@@ -5449,12 +5449,12 @@
     require-from-string "^2.0.2"
     uri-js "^4.2.2"
 
-"@redocly/cli@1.9.1":
-  version "1.9.1"
-  resolved "https://registry.yarnpkg.com/@redocly/cli/-/cli-1.9.1.tgz#32be499bac43be5cbf13dce1fee3b493d91c5e86"
-  integrity sha512-EkXJxEUa1KmHyq06eI2JJnd+h7HG7V7ffQ01AJeX2pT4uV0Nb0f+/BW/s6IXpOzvRIlYlDyeU2ycvQIFYpOpWA==
+"@redocly/cli@1.10.0":
+  version "1.10.0"
+  resolved "https://registry.yarnpkg.com/@redocly/cli/-/cli-1.10.0.tgz#af6ad5eabe099e3427963f1eced613f73fdff604"
+  integrity sha512-nzP+ZF2X/1w7CuwlLu8yxRwIrBDa8kGNbFqBxSjUi2yDak+qPfOyFkCIhvssToJAjXDUVt6Va6ufGrNoHxBWog==
   dependencies:
-    "@redocly/openapi-core" "1.9.1"
+    "@redocly/openapi-core" "1.10.0"
     abort-controller "^3.0.0"
     chokidar "^3.5.1"
     colorette "^1.2.0"
@@ -5473,13 +5473,14 @@
     styled-components "^6.0.7"
     yargs "17.0.1"
 
-"@redocly/openapi-core@1.9.1", "@redocly/openapi-core@^1.0.0-rc.2":
-  version "1.9.1"
-  resolved "https://registry.yarnpkg.com/@redocly/openapi-core/-/openapi-core-1.9.1.tgz#8f8b94eafc5aa7982e60df01e85e5e6bec73ac1e"
-  integrity sha512-Kn/8mshu4LDPATqR2kGlhXdSBjvWBb3MFAxDGPkU/Dt1Emuw47GmJSrGxeyG2/2eTaOOe4eJjrM4KjSijfubSg==
+"@redocly/openapi-core@1.10.0", "@redocly/openapi-core@^1.0.0-rc.2":
+  version "1.10.0"
+  resolved "https://registry.yarnpkg.com/@redocly/openapi-core/-/openapi-core-1.10.0.tgz#10b53928033cf5e47a506ddea6835d0bfef057a0"
+  integrity sha512-/anJVV1e5S/Kc0VwfNdpUpew0dxu93tnWj1TP9rzYnsofepS5MPWCRYoJThtnegcT+iHpyZOSq4VnqM9lyhKtQ==
   dependencies:
     "@redocly/ajv" "^8.11.0"
     colorette "^1.2.0"
+    https-proxy-agent "^7.0.4"
     js-levenshtein "^1.1.6"
     js-yaml "^4.1.0"
     lodash.isequal "^4.5.0"
