@@ -38,11 +38,16 @@ export type Simplified<T extends Entity | BpEntity> = Omit<T, "properties"> & {
 export const simplifyProperties = <T extends EntityPropertiesObject>(
   properties: T,
 ): SimpleProperties<T> => {
-  return typedEntries(properties).reduce(
-    (acc, [key, value]) => ({
+  // @ todo: this makes additional assumptions about the structure of the key.
+  //  This should be done more consistently, like through a branded type that
+  //  introduces well-known URL structures (this approach is used turbine)
+  return typedEntries(properties).reduce((acc, [key, value]) => {
+    // fallback to a non-simplified key if the key is not in the expected format
+    const simplified = key.split("/").at(-2) ?? key;
+
+    return {
       ...acc,
-      [camelCase(key.split("/").slice(-2, -1).pop())]: value,
-    }),
-    {} as SimpleProperties<T>,
-  );
+      [simplified]: value,
+    };
+  }, {} as SimpleProperties<T>);
 };

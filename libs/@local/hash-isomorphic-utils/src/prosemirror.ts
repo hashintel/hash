@@ -265,6 +265,7 @@ export const createSchema = (nodes: NodeSpecs) =>
   });
 
 export const isComponentNodeType = (nodeType: NodeType) =>
+  // @ts-expect-error -- `groups` is marked as internal in prosemirror-model
   nodeType.groups?.includes(componentNodeGroupName) ?? false;
 
 export const isComponentNode = (node: Node): node is ComponentNode =>
@@ -343,7 +344,9 @@ export const mutateSchema = (
       delete loadingType.spec.group;
     }
 
+    // @ts-expect-error -- `groups` is marked as internal in prosemirror-model
     loadingType.groups!.splice(
+      // @ts-expect-error -- `groups` is marked as internal in prosemirror-model
       loadingType.groups!.indexOf(componentNodeGroupName),
       1,
     );
