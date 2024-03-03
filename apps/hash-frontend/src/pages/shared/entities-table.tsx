@@ -382,7 +382,7 @@ export const EntitiesTable: FunctionComponent<{
   const handleEntityClick = useCallback(
     (entity: BpEntity) => {
       const { shortname: entityNamespace } = getOwnerForEntity(
-        entity as Entity,
+        entity as unknown as Entity,
       );
 
       if (entityNamespace === "") {

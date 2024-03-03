@@ -2,9 +2,8 @@
  * This file was automatically generated – do not edit it.
  */
 
-import { Entity } from "@blockprotocol/graph";
-
 import { BooleanDataType } from "./shared";
+import { Entity } from "@local/hash-subgraph";
 
 export type { BooleanDataType };
 
