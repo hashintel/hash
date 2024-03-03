@@ -31,7 +31,7 @@
   },
   "dependencies": {
     "@blockprotocol/graph": "0.3.4-canary.0",
-    "@blockprotocol/type-system": "0.1.1",
+    "@blockprotocol/type-system": "0.1.2-canary.0",
     "@local/advanced-types": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
     "uuid": "9.0.1"

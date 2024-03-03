@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import { Entity, LinkData } from "@blockprotocol/graph";
+import { Entity, LinkData } from "@local/hash-subgraph";
 
 export type Actor = Entity<ActorProperties>;
 

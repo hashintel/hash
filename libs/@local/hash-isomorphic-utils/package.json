@@ -49,7 +49,7 @@
     "uuid": "9.0.1"
   },
   "devDependencies": {
-    "@blockprotocol/type-system": "0.1.1",
+    "@blockprotocol/type-system": "0.1.2-canary.0",
     "@graphql-codegen/cli": "5.0.0",
     "@graphql-codegen/fragment-matcher": "3.3.3",
     "@graphql-codegen/typescript": "2.8.7",

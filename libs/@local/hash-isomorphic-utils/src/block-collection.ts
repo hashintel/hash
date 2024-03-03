@@ -36,10 +36,11 @@ const isSpatiallyPositionedProperties = (
 };
 
 export const sortBlockCollectionLinks = <
-  LinkEntity extends HasSpatiallyPositionedContent | HasIndexedContent,
+  Left extends HasSpatiallyPositionedContent | HasIndexedContent,
+  Right extends HasSpatiallyPositionedContent | HasIndexedContent,
 >(
-  a: LinkEntity,
-  b: LinkEntity,
+  a: Left,
+  b: Right,
 ) => {
   if (
     isSpatiallyPositionedProperties(a.properties) ||
