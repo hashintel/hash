@@ -10,6 +10,12 @@ import {
   MigrationState,
 } from "./migrate-ontology-types/types";
 
+import { fileURLToPath } from "node:url";
+import { dirname } from "node:path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 /**
  * Migrate the ontology types in the Graph API.
  */

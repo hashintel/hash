@@ -1,4 +1,4 @@
-import { ModuleHandler } from "@blockprotocol/core";
+import core from "@blockprotocol/core";
 
 // @todo restore this when an issue with module resolution has been resolved
 // import graphModuleJson from "./graph-module.json" assert { type: "json" };
@@ -8,6 +8,9 @@ import {
   GraphEmbedderMessages,
   Subgraph,
 } from "./main.js";
+
+// @todo roll-up seems to be having trouble with import { ModuleLoader } from "@blockprotocol/core";
+const { ModuleHandler } = core;
 
 /**
  * Creates a handler for the graph module for the embedder.

@@ -1,9 +1,12 @@
-import { ModuleHandler } from "@blockprotocol/core";
+import core from "@blockprotocol/core";
 
 import {
   GetEntityData as GetEntityDataGeneral,
   QueryEntitiesData as QueryEntitiesDataGeneral,
 } from "../shared/types/entity.js";
+
+// @todo roll-up seems to be having trouble with import { ModuleLoader } from "@blockprotocol/core";
+const { ModuleHandler } = core;
 /**
  * There's an issue when importing useGraphEmbedderModule from @blockprotocol/graph/react in hashintel/hash:
  * NextJS's output file tracing does not include graph-module.json, and yet an import statement for it is preserved.

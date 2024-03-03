@@ -4,6 +4,7 @@
   "private": true,
   "description": "API and data store for HASH",
   "license": "AGPL-3.0",
+  "type": "module",
   "scripts": {
     "build:docker": "docker buildx build --tag hash-api --file ../../infra/docker/api/prod/Dockerfile ../../ --load",
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",

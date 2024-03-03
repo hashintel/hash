@@ -11,6 +11,12 @@ import { config } from "dotenv-flow";
 import * as activities from "./activities";
 import * as workflows from "./workflows";
 
+import { fileURLToPath } from "node:url";
+import { dirname } from "node:path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 // This is a workaround to ensure that all functions defined in WorkflowTypeMap are exported from the workflows file
 // They must be individually exported from the file, and it's impossible to check completeness of exports in the file itself
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
