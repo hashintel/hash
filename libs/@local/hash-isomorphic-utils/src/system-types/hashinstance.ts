@@ -2,8 +2,9 @@
  * This file was automatically generated – do not edit it.
  */
 
-import { BooleanDataType } from "./shared";
 import { Entity } from "@local/hash-subgraph";
+
+import { BooleanDataType } from "./shared";
 
 export type { BooleanDataType };
 

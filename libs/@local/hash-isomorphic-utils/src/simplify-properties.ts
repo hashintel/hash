@@ -43,7 +43,8 @@ export const simplifyProperties = <T extends EntityPropertiesObject>(
   //  introduces well-known URL structures (this approach is used turbine)
   return typedEntries(properties).reduce((acc, [key, value]) => {
     // fallback to a non-simplified key if the key is not in the expected format
-    const simplified = key.split("/").at(-2) ?? key;
+    const id = key.split("/").at(-2);
+    const simplified = id ? camelCase(id) : key;
 
     return {
       ...acc,

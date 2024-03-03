@@ -26,7 +26,7 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.3.3",
+    "@blockprotocol/graph": "0.3.4-canary.0",
     "@blockprotocol/hook": "0.1.3",
     "@blockprotocol/service": "0.1.4",
     "@hashintel/block-design-system": "0.0.1",

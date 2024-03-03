@@ -1,3 +1,4 @@
+import type { Entity as EntityBp } from "@blockprotocol/graph";
 import { MultiFilter } from "@blockprotocol/graph";
 import { OntologyChip } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
@@ -74,7 +75,7 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
         throw new Error(res.errors?.[0]?.message ?? "Unknown error");
       }
 
-      return getRoots(res.data.results);
+      return getRoots(res.data.results) as unknown as EntityBp[];
     },
     [queryEntities],
   );

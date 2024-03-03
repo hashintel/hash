@@ -1,9 +1,9 @@
 import {
   BaseUrl,
+  Entity,
   MultiFilter,
   MultiFilterOperatorType,
 } from "@blockprotocol/graph";
-import { Entity } from "@local/hash-subgraph";
 
 export type FilterType = "Type" | "Property";
 

@@ -3,7 +3,7 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { EntityId, OwnedById } from "@local/hash-subgraph";
+import { OwnedById } from "@local/hash-subgraph";
 import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
 import { PropsWithChildren, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -151,8 +151,8 @@ export const OrgForm = ({
         ...(existingImageEntity
           ? {
               fileEntityUpdateInput: {
-                existingFileEntityId: existingImageEntity.metadata.recordId
-                  .entityId as EntityId,
+                existingFileEntityId:
+                  existingImageEntity.metadata.recordId.entityId,
               },
             }
           : {

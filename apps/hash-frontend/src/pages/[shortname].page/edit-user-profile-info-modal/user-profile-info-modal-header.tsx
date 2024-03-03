@@ -9,7 +9,7 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { EntityId, OwnedById } from "@local/hash-subgraph";
+import { OwnedById } from "@local/hash-subgraph";
 import { Box, buttonClasses, styled } from "@mui/material";
 import Image from "next/image";
 import {
@@ -155,8 +155,8 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
           ...(existingCoverImageEntity
             ? {
                 fileEntityUpdateInput: {
-                  existingFileEntityId: existingCoverImageEntity.metadata
-                    .recordId.entityId as EntityId,
+                  existingFileEntityId:
+                    existingCoverImageEntity.metadata.recordId.entityId,
                 },
               }
             : {

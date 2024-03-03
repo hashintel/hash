@@ -1,10 +1,9 @@
-import { MultiFilter } from "@blockprotocol/graph";
+import { Entity, MultiFilter } from "@blockprotocol/graph";
 import { LoadingSpinner } from "@hashintel/design-system";
 import { Card, List, ListItem, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 
 import { QueryEntitiesFunc } from "./types";
-import { Entity } from "@local/hash-subgraph";
 
 interface QueryPreviewProps {
   query: MultiFilter;
