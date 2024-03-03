@@ -8,6 +8,7 @@
     "url": "https://github.com/hashintel/hash.git"
   },
   "license": "AGPL-3.0",
+  "type": "module",
   "workspaces": {
     "nohoist": [
       "@sentry/webpack-plugin"

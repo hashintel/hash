@@ -4,6 +4,7 @@
   "private": true,
   "description": "A TypeScript worker for HASH for data integration",
   "license": "AGPL-3.0",
+  "type": "module",
   "scripts": {
     "build": "tsc --build && yarn exe ./scripts/bundle-workflow-code.ts",
     "build:docker": "docker buildx build --tag hash-integration-worker --file ./docker/Dockerfile ../../ --load",

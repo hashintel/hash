@@ -9,6 +9,7 @@
   },
   "license": "AGPL-3.0",
   "sideEffects": false,
+  "type": "module",
   "main": "src/main.ts",
   "types": "src/main.ts",
   "scripts": {

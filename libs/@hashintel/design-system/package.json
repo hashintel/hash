@@ -9,6 +9,7 @@
   },
   "license": "AGPL-3.0",
   "sideEffects": false,
+  "type": "module",
   "exports": {
     ".": "./src/components.ts",
     "./constants": "./src/constants.ts",

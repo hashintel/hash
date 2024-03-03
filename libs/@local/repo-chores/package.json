@@ -2,6 +2,7 @@
   "name": "@local/repo-chores",
   "version": "0.0.0-private",
   "private": true,
+  "type": "module",
   "scripts": {
     "exe": "tsx",
     "fix:eslint": "eslint --fix .",

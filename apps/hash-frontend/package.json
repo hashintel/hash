@@ -4,6 +4,7 @@
   "private": true,
   "description": "HASH frontend",
   "license": "AGPL-3.0",
+  "type": "module",
   "scripts": {
     "build": "next build",
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",

@@ -15,6 +15,7 @@
     "name": "HASH",
     "url": "https://hash.ai"
   },
+  "type": "module",
   "main": "src/main.ts",
   "types": "src/main.ts",
   "scripts": {
