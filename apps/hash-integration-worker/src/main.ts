@@ -1,5 +1,7 @@
 import * as http from "node:http";
 import * as path from "node:path";
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
@@ -10,9 +12,6 @@ import { config } from "dotenv-flow";
 
 import * as activities from "./activities";
 import * as workflows from "./workflows";
-
-import { fileURLToPath } from "node:url";
-import { dirname } from "node:path";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
