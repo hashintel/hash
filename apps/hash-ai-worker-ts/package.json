@@ -32,7 +32,7 @@
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "start": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/main.ts",
-    "test:unit": "jest"
+    "test:unit": "node --experimental-vm-modules $(yarn bin jest)"
   },
   "dependencies": {
     "@blockprotocol/type-system": "0.1.2-canary.0",
