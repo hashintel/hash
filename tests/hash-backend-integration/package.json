@@ -4,6 +4,7 @@
   "private": true,
   "description": "Integration tests for HASH",
   "license": "AGPL-3.0",
+  "type": "module",
   "scripts": {
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "fix:eslint": "eslint --fix .",
