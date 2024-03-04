@@ -1,5 +1,6 @@
-import { MultiFilter } from "@blockprotocol/graph";
-import { typedKeys } from "@local/advanced-types/typed-entries";
+import type { MultiFilter } from "@blockprotocol/graph";
+import { EntityType } from "@blockprotocol/type-system";
+import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
@@ -14,13 +15,19 @@ import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-p
 import { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
 import { GoogleSheetsIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
 import {
+  BaseUrl,
   Entity,
   EntityId,
   EntityRootType,
+  isEntityVertex,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  getEntityTypeById,
+  getPropertyTypeForEntity,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 import { RequestHandler } from "express";
 import { Auth, google, sheets_v4 } from "googleapis";
 
@@ -58,29 +65,131 @@ const createSpreadsheet = async (filename: string) => {
   return spreadsheetId;
 };
 
-// @todo lock spreadsheet editing
-const entitySubgraphToRows = (
-  entitySubgraph: Subgraph<EntityRootType>,
-): sheets_v4.Schema$RowData[] => {
-  const entities = getRoots(entitySubgraph);
+const createColumnsForEntity = (entityType: EntityType, subgraph: Subgraph) => {
+  const columns: Record<
+    string,
+    {
+      column: string;
+      label: string;
+    }
+  > = {
+    entityId: {
+      column: "A",
+      label: "EntityId",
+    },
+    label: {
+      column: "B",
+      label: "Label",
+    },
+    editionCreatedAt: {
+      column: "C",
+      label: "EditionCreatedAt",
+    },
+    entityCreatedAt: {
+      column: "D",
+      label: "EntityCreatedAt",
+    },
+    draft: {
+      column: "E",
+      label: "Draft",
+    },
+  };
 
-  if (!entities[0]) {
-    return [];
+  const entityTypeProperties = entityType.properties;
+  let nextColumnIndex = Object.keys(columns).length;
+  for (const [baseUrl] of typedEntries(entityTypeProperties)) {
+    const { propertyType } = getPropertyTypeForEntity(
+      subgraph,
+      entityType.$id,
+      baseUrl as BaseUrl,
+    );
+    columns[baseUrl] = {
+      column: String.fromCharCode(65 + nextColumnIndex),
+      label: propertyType.title,
+    };
+    nextColumnIndex++;
   }
 
-  const propertyKeys = typedKeys(entities[0].properties);
+  return columns;
+};
 
-  const headers = ["entityId", ...propertyKeys];
-
-  const headerRow = {
-    values: headers.map((header) => {
+const createCellFromValue = (value: unknown) => {
+  switch (typeof value) {
+    case "number": {
       return {
         userEnteredValue: {
-          stringValue: header,
+          numberValue: value,
         },
       };
-    }),
+    }
+    case "boolean": {
+      return {
+        userEnteredValue: {
+          boolValue: value,
+        },
+      };
+    }
+    default: {
+      return {
+        userEnteredValue: {
+          stringValue: stringifyPropertyValue(value),
+        },
+      };
+    }
+  }
+};
+
+type EntitySheets = {
+  [sheetName: string]: {
+    headers: sheets_v4.Schema$RowData;
+    values: sheets_v4.Schema$RowData[];
   };
+};
+
+// @todo lock spreadsheet editing
+const convertEntitySubgraphToSheets = (
+  entitySubgraph: Subgraph<EntityRootType>,
+): { [sheetName: string]: sheets_v4.Schema$RowData[] } => {
+  const entitySheets: EntitySheets = {};
+
+  for (const vertex of Object.values(entitySubgraph.vertices)) {
+    const revisions = Object.values(vertex);
+    for (const revision of revisions) {
+      if (!isEntityVertex(revision)) {
+        continue;
+      }
+
+      const entity = revision.inner;
+      const entityType = getEntityTypeById(
+        entitySubgraph,
+        entity.metadata.entityTypeId,
+      );
+      if (!entityType) {
+        throw new Error(
+          `Entity type ${entity.metadata.entityTypeId} not found for entity ${entity.metadata.recordId.entityId}`,
+        );
+      }
+
+      const sheetName = entityType.schema.title;
+
+      const colummns = createColumnsForEntity(entityType, entitySubgraph);
+
+      if (!entitySheets[sheetName]) {
+        entitySheets[sheetName] = {
+          headers: [],
+          values: [],
+        };
+      }
+
+      const entityRow: sheets_v4.Schema$RowData = [];
+      for (const [column, { column: columnLetter }] of typedEntries(
+        entitySheets[sheetName].headers,
+      )) {
+        const value = entity.properties[column];
+        entityRow.push(createCellFromValue(value));
+      }
+    }
+  }
 
   const valueRows = getRoots(entitySubgraph).map((entity) => {
     return {
@@ -122,29 +231,43 @@ const entitySubgraphToRows = (
 
 const updateSpreadsheet = async (
   spreadsheetId: string,
-  rows: sheets_v4.Schema$RowData[],
+  entitySubgraph: Subgraph<EntityRootType>,
 ) => {
+  const spreadsheet = await sheets.spreadsheets.get({
+    spreadsheetId,
+  });
+
+  const sheetsToWrite = convertEntitySubgraphToSheets(entitySubgraph);
+
   await sheets.spreadsheets.batchUpdate({
     spreadsheetId,
     requestBody: {
       requests: [
-        // {
-        //   updateSheetProperties: {
-        //     properties: {
-        //       title: "Entities",
-        //     },
-        //   },
-        // },
-        {
-          updateCells: {
-            fields: "*",
-            range: {
-              sheetId: 0,
-              startRowIndex: 0,
-            },
-            rows,
+        ...(spreadsheet.data.sheets ?? []).map((sheet) => ({
+          deleteSheet: {
+            sheetId: sheet.properties?.sheetId,
           },
-        },
+        })),
+        ...Object.entries(sheetsToWrite).flatMap(([sheetName, rows], index) => [
+          {
+            addSheet: {
+              properties: {
+                sheetId: index,
+                title: sheetName,
+              },
+            },
+          },
+          {
+            updateCells: {
+              fields: "*",
+              range: {
+                sheetId: index,
+                startRowIndex: 0,
+              },
+              rows,
+            },
+          },
+        ]),
       ],
     },
   });
@@ -295,7 +418,7 @@ export const createSheetsIntegration: RequestHandler<
         ? req.body.spreadsheetId
         : await createSpreadsheet(req.body.newFileName);
 
-    const rows = entitySubgraphToRows(entitySubgraph);
+    const rows = convertEntitySubgraphToRows(entitySubgraph);
 
     await updateSpreadsheet(spreadsheetId, rows);
 

@@ -1,6 +1,6 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { EntityTypeReference } from "@blockprotocol/type-system/dist/cjs";
-import { EntityType } from "@blockprotocol/type-system/dist/cjs-slim/index-slim";
+import { EntityType } from "@blockprotocol/type-system/slim";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { slugifyTypeTitle } from "@local/hash-isomorphic-utils/slugify-type-title";
 import { BaseUrl } from "@local/hash-subgraph";
