@@ -1,5 +1,3 @@
-import { beforeAll, afterAll, expect, it, describe } from "vitest";
-
 import {
   createKratosIdentity,
   kratosIdentityApi,
@@ -17,6 +15,7 @@ import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import {

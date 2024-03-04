@@ -1,5 +1,3 @@
-import { beforeAll, afterAll, expect, it, describe } from "vitest";
-
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
@@ -21,6 +19,7 @@ import {
   isOwnedOntologyElementMetadata,
   OwnedById,
 } from "@local/hash-subgraph";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import {

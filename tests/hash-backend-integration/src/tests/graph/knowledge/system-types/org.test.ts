@@ -1,5 +1,3 @@
-import { beforeAll, afterAll, expect, it, describe } from "vitest";
-
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import {
   getOrgByShortname,
@@ -10,6 +8,7 @@ import {
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import {

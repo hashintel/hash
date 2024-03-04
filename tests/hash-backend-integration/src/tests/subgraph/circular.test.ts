@@ -1,7 +1,5 @@
 import path from "node:path";
 
-import { describe, beforeAll, afterAll, it, expect } from "vitest";
-
 import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { getEntities } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import { EntityStructuralQuery } from "@local/hash-graph-client";
@@ -22,6 +20,7 @@ import {
   getEntities as getEntitiesSubgraph,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph, restoreSnapshot } from "../test-server";
 import { createTestImpureGraphContext } from "../util";

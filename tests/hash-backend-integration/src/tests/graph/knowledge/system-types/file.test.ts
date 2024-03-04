@@ -1,4 +1,3 @@
-import { beforeAll, afterAll, expect, it, describe } from "vitest";
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import {
@@ -9,6 +8,7 @@ import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { EntityId, OwnedById, Timestamp } from "@local/hash-subgraph";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";

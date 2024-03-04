@@ -1,5 +1,3 @@
-import { beforeAll, afterAll, expect, it, describe } from "vitest";
-
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import {
@@ -42,6 +40,7 @@ import { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared
 import { TextToken } from "@local/hash-isomorphic-utils/types";
 import { Entity, OwnedById } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import {
