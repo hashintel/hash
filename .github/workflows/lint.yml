@@ -210,7 +210,7 @@ jobs:
 
       - name: Check empty lock-file diffs
         if: always()
-        run: git diff-index --quiet HEAD -- '*.lock' || (echo "Uncommitted lockfile changes detected" && git diff --exit-code -- '*.lock')
+        run: git diff-index --quiet HEAD -- '*.lock' || (echo "Uncommitted lockfile changes detected" && git diff --exit-code)
 
       - name: Show disk usage
         run: df -h
