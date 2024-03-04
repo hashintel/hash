@@ -1,11 +1,11 @@
 import path, { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { JsonObject } from "@blockprotocol/core";
 import execa from "execa";
 import fs from "fs-extra";
 
 import { monorepoRootDirPath } from "./shared/monorepo";
-import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
