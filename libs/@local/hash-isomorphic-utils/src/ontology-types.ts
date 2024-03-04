@@ -123,6 +123,7 @@ export const generateLinkMapWithConsistentSelfReferences = (
             : {},
       };
 
+      // @ts-expect-error –– oneOf type to be updated as part of BP-89
       accumulator[linkTypeId] = schemaWithConsistentSelfReferences;
       return accumulator;
     },
