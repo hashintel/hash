@@ -208,6 +208,11 @@ jobs:
           RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
         run: just doc --document-private-items
 
+      - name: Check empty diff
+        if: always()
+        working-directory: ${{ matrix.directory }}
+        run: git diff-index --quiet HEAD -- || (echo "Uncommitted changes detected" && git diff --exit-code)
+
       - name: Show disk usage
         run: df -h
 
