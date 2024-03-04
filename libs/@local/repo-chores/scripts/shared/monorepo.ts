@@ -1,6 +1,10 @@
-import path from "node:path";
+import path, { dirname } from "node:path";
 
 import execa from "execa";
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export const monorepoRootDirPath = path.resolve(__dirname, "../../../../..");
 

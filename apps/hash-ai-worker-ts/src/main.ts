@@ -8,6 +8,11 @@ import { NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 
 import { createAiActivities, createGraphActivities } from "./activities";
+import { fileURLToPath } from "node:url";
+import { dirname } from "node:path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export const monorepoRootDir = path.resolve(__dirname, "../../..");
 

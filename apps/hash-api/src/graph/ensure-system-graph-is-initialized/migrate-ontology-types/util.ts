@@ -1,6 +1,6 @@
 /* eslint-disable no-param-reassign */
 import fs from "node:fs";
-import path from "node:path";
+import path, { dirname } from "node:path";
 
 import {
   Array,
@@ -94,6 +94,10 @@ import {
 } from "../system-webs-and-entities";
 import { MigrationState } from "./types";
 import { upgradeEntityTypeDependencies } from "./util/upgrade-entity-type-dependencies";
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const systemTypeDomain = "https://hash.ai";
 
