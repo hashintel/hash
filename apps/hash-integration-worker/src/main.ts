@@ -1,4 +1,5 @@
 import * as http from "node:http";
+import { createRequire } from "node:module";
 import * as path from "node:path";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,7 +13,6 @@ import { config } from "dotenv-flow";
 
 import * as activities from "./activities";
 import * as workflows from "./workflows";
-import { createRequire } from "node:module";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
