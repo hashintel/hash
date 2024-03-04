@@ -12,9 +12,12 @@ import { config } from "dotenv-flow";
 
 import * as activities from "./activities";
 import * as workflows from "./workflows";
+import { createRequire } from "node:module";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+const require = createRequire(import.meta.url);
 
 // This is a workaround to ensure that all functions defined in WorkflowTypeMap are exported from the workflows file
 // They must be individually exported from the file, and it's impossible to check completeness of exports in the file itself
