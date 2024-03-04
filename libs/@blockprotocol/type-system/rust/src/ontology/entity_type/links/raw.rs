@@ -62,7 +62,7 @@ pub struct MaybeOrderedArray<T> {
     #[serde(flatten)]
     array: raw::Array<T>,
     #[cfg_attr(target_arch = "wasm32", tsify(optional))]
-    #[serde(default, skip_serializing_if = "core::ops::Not::not")]
+    #[serde(default)]
     ordered: bool,
 }
 
@@ -166,7 +166,8 @@ mod tests {
                 "type": "array",
                 "items": {
                     "type": "string"
-                }
+                },
+                "ordered": false,
             });
 
             let inner_array: raw::Array<StringTypeStruct> = serde_json::from_value(expected_inner)
@@ -221,7 +222,7 @@ mod tests {
                         "type": "string"
                     },
                     "minItems": 10,
-                    "maxItems": 20
+                    "maxItems": 20,
                 }
             );
 
@@ -232,6 +233,7 @@ mod tests {
                 },
                 "minItems": 10,
                 "maxItems": 20,
+                "ordered": false,
             });
 
             let inner_array: raw::Array<StringTypeStruct> = serde_json::from_value(expected_inner)
@@ -264,6 +266,7 @@ mod tests {
                             "type": "array",
                             "items": {},
                             "maxItems": 10,
+                            "ordered": false,
                         }
                     }
                 }),
@@ -324,6 +327,7 @@ mod tests {
                             "items": {},
                             "minItems": 2,
                             "maxItems": 10,
+                            "ordered": false,
                         },
                         link_type_b.to_string(): {
                             "type": "array",
@@ -334,6 +338,7 @@ mod tests {
                             },
                             "minItems": 15,
                             "maxItems": 10,
+                            "ordered": false,
                         },
                         link_type_c.to_string(): {
                             "type": "array",
@@ -344,6 +349,7 @@ mod tests {
                             },
                             "minItems": 1,
                             "maxItems": 2,
+                            "ordered": false,
                         },
                     }
                 }),
@@ -355,6 +361,7 @@ mod tests {
                                     "type": "array",
                                     "items": {},
                                     "maxItems": 10,
+                                    "ordered": false,
                                 },
                                 link_type_b.to_string(): {
                                     "type": "array",
@@ -366,6 +373,7 @@ mod tests {
                                     },
                                     "minItems": 2,
                                     "maxItems": 10,
+                                    "ordered": false,
                                 },
                                 link_type_c.to_string(): {
                                     "type": "array",
@@ -383,6 +391,7 @@ mod tests {
                                     "type": "array",
                                     "items": {},
                                     "minItems": 2,
+                                    "ordered": false,
                                 },
                                 link_type_b.to_string(): {
                                     "type": "array",
@@ -392,12 +401,14 @@ mod tests {
                                         ]
                                     },
                                     "minItems": 15,
+                                    "ordered": false,
                                 },
                                 link_type_c.to_string(): {
                                     "type": "array",
                                     "items": {},
                                     "minItems": 1,
                                     "maxItems": 2,
+                                    "ordered": false,
                                 },
                             }
                         }),
