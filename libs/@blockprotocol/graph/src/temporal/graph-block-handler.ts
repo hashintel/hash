@@ -1,4 +1,4 @@
-import core from "@blockprotocol/core";
+import { ModuleHandler } from "@blockprotocol/core";
 
 import {
   GetEntityData as GetEntityDataGeneral,
@@ -40,9 +40,6 @@ import {
   UploadFileData,
   UploadFileReturn,
 } from "./main.js";
-
-// @todo roll-up seems to be having trouble with import { ModuleLoader } from "@blockprotocol/core";
-const { ModuleHandler } = core;
 
 /**
  * Creates a handler for the graph module for the block.
