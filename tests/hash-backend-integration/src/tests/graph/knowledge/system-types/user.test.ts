@@ -1,3 +1,5 @@
+import { beforeAll, afterAll, expect, it, describe } from "vitest";
+
 import {
   createKratosIdentity,
   kratosIdentityApi,
@@ -22,8 +24,6 @@ import {
   createTestOrg,
   generateRandomShortname,
 } from "../../../util";
-
-jest.setTimeout(60000);
 
 const logger = new Logger({
   mode: "dev",

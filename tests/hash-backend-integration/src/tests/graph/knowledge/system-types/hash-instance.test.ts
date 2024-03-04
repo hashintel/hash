@@ -1,3 +1,5 @@
+import { beforeAll, afterAll, expect, it, describe } from "vitest";
+
 import { publicUserAccountId } from "@apps/hash-api/src/auth/public-user-account-id";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import {
@@ -17,8 +19,6 @@ import { Logger } from "@local/hash-backend-utils/logger";
 
 import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
-
-jest.setTimeout(60000);
 
 const logger = new Logger({
   mode: "dev",
