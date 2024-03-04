@@ -9,7 +9,7 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "test:integration": "jest --runInBand"
+    "test:integration": "node --experimental-vm-modules $(yarn bin jest) --runInBand"
   },
   "dependencies": {
     "@apps/hash-api": "0.0.0-private",

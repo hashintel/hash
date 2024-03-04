@@ -16,7 +16,7 @@
     "lint:tsc": "tsc --noEmit",
     "start": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/index.ts",
     "start-test": "cross-env NODE_ENV=test NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/index.ts",
-    "test:unit": "jest"
+    "test:unit": "node --experimental-vm-modules $(yarn bin jest)"
   },
   "dependencies": {
     "@apps/hash-graph": "0.0.0-private",
