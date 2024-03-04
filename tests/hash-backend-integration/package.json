@@ -14,7 +14,7 @@
   "dependencies": {
     "@apps/hash-api": "0.0.0-private",
     "@apps/hash-graph": "0.0.0-private",
-    "@blockprotocol/type-system": "0.1.2-canary.0",
+    "@blockprotocol/type-system": "0.1.1",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
@@ -29,7 +29,7 @@
   "devDependencies": {
     "@babel/preset-env": "7.23.9",
     "@babel/preset-typescript": "7.23.3",
-    "@blockprotocol/graph": "0.3.4-canary.0",
+    "@blockprotocol/graph": "0.3.3",
     "@graphql-codegen/cli": "5.0.0",
     "@graphql-codegen/introspection": "2.2.3",
     "@graphql-codegen/typescript": "2.8.7",

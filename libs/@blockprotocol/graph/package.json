@@ -131,7 +131,7 @@
   },
   "dependencies": {
     "@blockprotocol/core": "0.1.2",
-    "@blockprotocol/type-system": "0.1.2-canary.0",
+    "@blockprotocol/type-system": "0.1.1",
     "ajv": "^8.11.2",
     "ajv-formats": "^2.1.1",
     "json-schema-to-typescript": "^11.0.2",

@@ -26,8 +26,8 @@
     "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.3.4-canary.0",
-    "@blockprotocol/type-system": "0.1.2-canary.0",
+    "@blockprotocol/graph": "0.3.3",
+    "@blockprotocol/type-system": "0.1.1",
     "@hashintel/design-system": "0.0.7",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "lowlight": "2.8.1",
