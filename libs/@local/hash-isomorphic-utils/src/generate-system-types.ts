@@ -72,18 +72,18 @@ const generateTypes = async (
 
 const replaceInFile = async (
   filePath: string,
-  search: string,
+  search: RegExp,
   replace: string,
 ) => {
   const contents = await fs.readFile(filePath, "utf-8");
-  const result = contents.replace(new RegExp(search, "g"), replace);
+  const result = contents.replace(search, replace);
 
   await fs.writeFile(filePath, result, "utf-8");
 };
 
 const replaceInDirectory = async (
   directoryPath: string,
-  search: string,
+  search: RegExp,
   replace: string,
 ) => {
   const children = await fs.readdir(directoryPath);
@@ -119,7 +119,7 @@ const generateSystemTypeTypes = async () => {
   // resulting files.
   await replaceInDirectory(
     path.join(__dirname, "system-types"),
-    "@blockprotocol/graph",
+    /@blockprotocol\/graph/g,
     "@local/hash-subgraph",
   );
 };
