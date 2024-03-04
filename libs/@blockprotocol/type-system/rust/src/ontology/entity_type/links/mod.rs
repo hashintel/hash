@@ -37,11 +37,10 @@ impl Links {
     }
 }
 
-impl FromIterator<Self> for Links {
-    fn from_iter<I: IntoIterator<Item = Self>>(iter: I) -> Self {
-        let mut links = HashMap::<_, MaybeOrderedArray<Option<OneOf<EntityTypeReference>>>>::new();
+impl Extend<Self> for Links {
+    fn extend<T: IntoIterator<Item = Self>>(&mut self, iter: T) {
         for (id, new_destinations) in iter.into_iter().flat_map(|links| links.0) {
-            match links.entry(id) {
+            match self.0.entry(id) {
                 Entry::Vacant(entry) => {
                     entry.insert(new_destinations);
                 }
@@ -91,7 +90,14 @@ impl FromIterator<Self> for Links {
                 }
             }
         }
-        Self(links)
+    }
+}
+
+impl FromIterator<Self> for Links {
+    fn from_iter<I: IntoIterator<Item = Self>>(iter: I) -> Self {
+        let mut default = Self::default();
+        default.extend(iter);
+        default
     }
 }
 

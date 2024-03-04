@@ -76,11 +76,8 @@ impl<T, const MIN: usize> Object<T, MIN> {
     }
 }
 
-impl<T, const MIN: usize> FromIterator<Self> for Object<T, MIN> {
-    fn from_iter<I: IntoIterator<Item = Self>>(iter: I) -> Self {
-        let mut properties = HashMap::new();
-        let mut required = HashSet::new();
-
+impl<T, const MIN: usize> Extend<Self> for Object<T, MIN> {
+    fn extend<I: IntoIterator<Item = Self>>(&mut self, iter: I) {
         for property_object in iter {
             // TODO: We want to merge properties and bail on conflicting properties, however, we
             //       want to allow properties where the origin is the same entity type. For that it
@@ -88,14 +85,17 @@ impl<T, const MIN: usize> FromIterator<Self> for Object<T, MIN> {
             //       Note, that this requires the full property type to be available and this
             //       function is only aware of the ID of the property type.
             //   see https://linear.app/hash/issue/H-860/improve-type-parent-validation
-            properties.extend(property_object.properties);
-            required.extend(property_object.required);
+            self.properties.extend(property_object.properties);
+            self.required.extend(property_object.required);
         }
+    }
+}
 
-        Self {
-            properties,
-            required,
-        }
+impl<T, const MIN: usize> FromIterator<Self> for Object<T, MIN> {
+    fn from_iter<I: IntoIterator<Item = Self>>(iter: I) -> Self {
+        let mut default = Self::default();
+        default.extend(iter);
+        default
     }
 }
 

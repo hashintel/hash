@@ -309,7 +309,6 @@ impl<C: AsClient> PostgresStore<C> {
         let mut visited_ids = HashSet::from([entity_type_id]);
 
         loop {
-            let mut parents = Vec::with_capacity(current_type.inherits_from.elements.len());
             for parent in current_type.inherits_from.elements.clone() {
                 let parent_id = EntityTypeId::from_url(parent.url());
 
@@ -328,7 +327,7 @@ impl<C: AsClient> PostgresStore<C> {
                     break;
                 }
 
-                parents.push(
+                current_type.extend_one(
                     available_types
                         .get(&parent_id)
                         .ok_or_else(|| Report::new(QueryError))
@@ -339,10 +338,6 @@ impl<C: AsClient> PostgresStore<C> {
 
                 visited_ids.insert(parent_id);
             }
-            current_type
-                .merge_parents(parents)
-                .change_context(QueryError)
-                .attach_printable("could not merge parent")?;
 
             if current_type.inherits_from.elements.is_empty() {
                 break;
