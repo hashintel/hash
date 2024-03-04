@@ -22,7 +22,7 @@ import { extractErrorMessage } from "../shared/extract-validation-failure-detail
 import { getEntityByFilter } from "../shared/get-entity-by-filter";
 import { stringify } from "../stringify";
 import { ensureTrailingSlash } from "./ensure-trailing-slash";
-import { ProposedEntityUpdatesByType } from "./generate-persist-entities-tools";
+import type { ProposedEntityUpdatesByType } from "./generate-persist-entities-tools";
 
 type StatusByTemporaryId<T> = Record<string, T>;
 

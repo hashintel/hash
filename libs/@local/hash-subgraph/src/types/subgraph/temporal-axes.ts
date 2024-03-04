@@ -3,9 +3,9 @@ import {
   type QueryTemporalAxesUnresolved as QueryTemporalAxesUnresolvedBp,
   type SubgraphTemporalAxes as SubgraphTemporalAxesBp,
 } from "@blockprotocol/graph/temporal";
-import { Subtype } from "@local/advanced-types/subtype";
+import type { Subtype } from "@local/advanced-types/subtype";
 
-import {
+import type {
   PinnedTemporalAxis,
   PinnedTemporalAxisUnresolved,
   VariableTemporalAxis,

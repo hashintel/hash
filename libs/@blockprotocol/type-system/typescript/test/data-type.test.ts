@@ -1,9 +1,5 @@
-import {
-  DataType,
-  ParseDataTypeError,
-  TypeSystemInitializer,
-  validateDataType,
-} from "../src/main";
+import type { DataType, ParseDataTypeError } from "../src/main";
+import { TypeSystemInitializer, validateDataType } from "../src/main";
 
 const primitiveDataTypes: DataType[] = [
   {

@@ -1,4 +1,4 @@
-import { Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
+import type { Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
 import {
   getRoots as getRootsBp,
   isDataTypeRootedSubgraph as isDataTypeRootedSubgraphBp,
@@ -6,12 +6,12 @@ import {
   isEntityTypeRootedSubgraph as isEntityTypeRootedSubgraphBp,
   isPropertyTypeRootedSubgraph as isPropertyTypeRootedSubgraphBp,
 } from "@blockprotocol/graph/temporal/stdlib";
-import {
+import type {
   EntityMetadata as GraphApiEntityMetadata,
   Subgraph as GraphApiSubgraph,
 } from "@local/hash-graph-client";
 
-import {
+import type {
   DataTypeRootType,
   EntityMetadata,
   EntityRootType,

@@ -1,5 +1,5 @@
-import { Entity } from "./element/knowledge";
-import {
+import type { Entity } from "./element/knowledge";
+import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,

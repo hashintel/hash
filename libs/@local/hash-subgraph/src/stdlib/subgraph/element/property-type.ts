@@ -1,18 +1,18 @@
-import { DataTypeReference, JsonValue } from "@blockprotocol/graph";
-import { Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
+import type { DataTypeReference, JsonValue } from "@blockprotocol/graph";
+import type { Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
 import {
   getPropertyTypeById as getPropertyTypeByIdBp,
   getPropertyTypeByVertexId as getPropertyTypeByVertexIdBp,
   getPropertyTypes as getPropertyTypesBp,
   getPropertyTypesByBaseUrl as getPropertyTypesByBaseUrlBp,
 } from "@blockprotocol/graph/temporal/stdlib";
-import {
+import type {
   EntityType,
   PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 
-import {
+import type {
   BaseUrl,
   DataTypeWithMetadata,
   OntologyTypeVertexId,

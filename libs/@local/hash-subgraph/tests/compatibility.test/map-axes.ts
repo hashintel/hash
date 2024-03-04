@@ -1,8 +1,8 @@
-import {
+import type {
   QueryTemporalAxes as QueryTemporalAxesGraphApi,
   QueryTemporalAxesUnresolved as QueryTemporalAxesUnresolvedGraphApi,
 } from "@local/hash-graph-client";
-import {
+import type {
   QueryTemporalAxes,
   QueryTemporalAxesUnresolved,
   Timestamp,

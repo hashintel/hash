@@ -9,7 +9,7 @@ import type {
   InferEntitiesCallerParams,
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
-import { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
+import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import type {
   DataTypeWithMetadata,
   EntityPropertiesObject,
@@ -18,7 +18,7 @@ import type {
 } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import { ApplicationFailure } from "@temporalio/activity";
-import { CreateEmbeddingResponse } from "openai/resources";
+import type { CreateEmbeddingResponse } from "openai/resources";
 
 import { inferEntitiesActivity } from "./activities/infer-entities";
 import { parseTextFromFile } from "./activities/parse-text-from-file";
