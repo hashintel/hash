@@ -1,6 +1,6 @@
 import * as S from "@effect/schema/Schema";
 
-export const TypeId = Symbol.for("@blockprotocol/graph/Url");
+const TypeId: unique symbol = Symbol.for("@blockprotocol/graph/Url");
 export type TypeId = typeof TypeId;
 
 export const Url = S.string.pipe(

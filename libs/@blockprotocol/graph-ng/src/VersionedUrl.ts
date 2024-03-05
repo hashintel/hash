@@ -4,7 +4,7 @@ import * as Url from "./Url";
 
 const VersionPattern = /^(.*)\/v\/(\d+)$/;
 
-export const TypeId = Symbol.for("@blockprotocol/graph/VersionedUrl");
+const TypeId: unique symbol = Symbol.for("@blockprotocol/graph/VersionedUrl");
 export type TypeId = typeof TypeId;
 
 export const VersionedUrl = Url.Url.pipe(
