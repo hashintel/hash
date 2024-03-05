@@ -2,7 +2,7 @@ import * as S from "@effect/schema/Schema";
 
 import * as Url from "./Url";
 
-const VersionPattern = /^(.*)\/v\/(\d+)$/;
+const VersionPattern = /^(.+\/)v\/(\d+)$/;
 
 const TypeId: unique symbol = Symbol.for("@blockprotocol/graph/VersionedUrl");
 export type TypeId = typeof TypeId;
