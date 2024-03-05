@@ -1,12 +1,15 @@
 import type { MultiFilter } from "@blockprotocol/graph";
-import { EntityType } from "@blockprotocol/type-system";
+import { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
+import { isDraftEntity } from "@local/hash-isomorphic-utils/entity-store";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  blockProtocolEntityTypes,
   blockProtocolLinkEntityTypes,
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -19,14 +22,15 @@ import {
   Entity,
   EntityId,
   EntityRootType,
+  EntityVertex,
   isEntityVertex,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
 import {
+  getEntityTypeAndParentsById,
   getEntityTypeById,
   getPropertyTypeForEntity,
-  getRoots,
 } from "@local/hash-subgraph/stdlib";
 import { RequestHandler } from "express";
 import { Auth, google, sheets_v4 } from "googleapis";
@@ -65,7 +69,18 @@ const createSpreadsheet = async (filename: string) => {
   return spreadsheetId;
 };
 
-const createColumnsForEntity = (entityType: EntityType, subgraph: Subgraph) => {
+type SheetOutputFormat = {
+  audience: "human" | "machine";
+};
+
+const createColumnsForEntity = (
+  entityType: EntityType,
+  subgraph: Subgraph,
+  format: SheetOutputFormat,
+) => {
+  const { audience } = format;
+  const humanReadable = audience === "human";
+
   const columns: Record<
     string,
     {
@@ -75,45 +90,126 @@ const createColumnsForEntity = (entityType: EntityType, subgraph: Subgraph) => {
   > = {
     entityId: {
       column: "A",
-      label: "EntityId",
+      label: humanReadable ? "Entity Id" : "entityId",
     },
     label: {
       column: "B",
-      label: "Label",
+      label: humanReadable ? "Label" : "label",
     },
     editionCreatedAt: {
       column: "C",
-      label: "EditionCreatedAt",
+      label: humanReadable ? "Edition Created At" : "editionCreatedAt",
     },
     entityCreatedAt: {
       column: "D",
-      label: "EntityCreatedAt",
+      label: humanReadable ? "Entity Created At" : "entityCreatedAt",
     },
     draft: {
       column: "E",
-      label: "Draft",
+      label: humanReadable ? "Draft" : "draft",
     },
   };
 
-  const entityTypeProperties = entityType.properties;
-  let nextColumnIndex = Object.keys(columns).length;
-  for (const [baseUrl] of typedEntries(entityTypeProperties)) {
-    const { propertyType } = getPropertyTypeForEntity(
-      subgraph,
-      entityType.$id,
-      baseUrl as BaseUrl,
-    );
-    columns[baseUrl] = {
+  const baseColumnCount = Object.keys(columns).length;
+
+  let nextColumnIndex = baseColumnCount;
+
+  const entityTypeAndParents = getEntityTypeAndParentsById(
+    subgraph,
+    entityType.$id,
+  );
+
+  const properties = new Set<BaseUrl>();
+  const links = new Set<VersionedUrl>();
+
+  for (const { schema } of entityTypeAndParents) {
+    for (const baseUrl of typedKeys(schema.properties)) {
+      properties.add(baseUrl as BaseUrl);
+    }
+    for (const linkTypeId of typedKeys(schema.links ?? {})) {
+      links.add(linkTypeId);
+    }
+  }
+
+  const isLinkType = entityTypeAndParents.find(
+    (ancestor) =>
+      ancestor.schema.$id === blockProtocolEntityTypes.link.entityTypeId,
+  );
+
+  if (isLinkType) {
+    columns.leftEntityId = {
       column: String.fromCharCode(65 + nextColumnIndex),
-      label: propertyType.title,
+      label: humanReadable ? "Source Entity Id" : "leftEntityId",
+    };
+    nextColumnIndex++;
+    columns.rightEntityId = {
+      column: String.fromCharCode(65 + nextColumnIndex),
+      label: humanReadable ? "Target Entity Id" : "rightEntityId",
     };
     nextColumnIndex++;
   }
 
-  return columns;
+  const baseAndLinkDataColumnCount = nextColumnIndex;
+
+  for (const linkTypeId of [...links]) {
+    const linkEntityType = getEntityTypeById(subgraph, linkTypeId);
+    if (!linkEntityType) {
+      throw new Error(`Link type ${linkTypeId} not found in subgraph`);
+    }
+
+    columns[linkTypeId] = {
+      column: String.fromCharCode(65 + nextColumnIndex),
+      label: humanReadable
+        ? linkEntityType.schema.title
+        : `links.${linkTypeId}`,
+    };
+    nextColumnIndex++;
+  }
+
+  const linkColumnCount = nextColumnIndex - baseAndLinkDataColumnCount;
+
+  for (const baseUrl of [...properties]) {
+    const { propertyType } = getPropertyTypeForEntity(
+      subgraph,
+      entityType.$id,
+      baseUrl,
+    );
+    columns[baseUrl] = {
+      column: String.fromCharCode(65 + nextColumnIndex),
+      label: humanReadable ? propertyType.title : `properties.${baseUrl}`,
+    };
+    nextColumnIndex++;
+  }
+
+  const propertyColumnCount =
+    nextColumnIndex - baseAndLinkDataColumnCount - linkColumnCount;
+
+  return {
+    baseColumnCount,
+    isLinkType,
+    linkColumnCount,
+    propertyColumnCount,
+    columns,
+  };
 };
 
-const createCellFromValue = (value: unknown) => {
+const createHyperlinkCell = ({
+  label,
+  sheetId,
+  startCellInclusive,
+  endCellInclusive,
+}: {
+  label: string;
+  sheetId: number;
+  startCellInclusive: string;
+  endCellInclusive: string;
+}) => ({
+  userEnteredValue: {
+    formulaValue: `=HYPERLINK("#gid=${sheetId}&range=${startCellInclusive}:${endCellInclusive}", ${label})`,
+  },
+});
+
+const createCellFromValue = (value: unknown): sheets_v4.Schema$CellData => {
   switch (typeof value) {
     case "number": {
       return {
@@ -139,94 +235,338 @@ const createCellFromValue = (value: unknown) => {
   }
 };
 
-type EntitySheets = {
-  [sheetName: string]: {
-    headers: sheets_v4.Schema$RowData;
-    values: sheets_v4.Schema$RowData[];
+type EntitySheetRequests = {
+  [typeId: string]: {
+    additionalRequests: sheets_v4.Schema$Request[];
+    sheetId: number;
+    rows: sheets_v4.Schema$RowData[];
+    typeTitle: string;
+    typeVersion: number;
   };
 };
 
-// @todo lock spreadsheet editing
-const convertEntitySubgraphToSheets = (
+const createSheetRequestsFromEntitySubgraph = (
   entitySubgraph: Subgraph<EntityRootType>,
-): { [sheetName: string]: sheets_v4.Schema$RowData[] } => {
-  const entitySheets: EntitySheets = {};
+  format: SheetOutputFormat,
+): sheets_v4.Schema$Request[] => {
+  const entitySheetRequests: EntitySheetRequests = {};
 
-  for (const vertex of Object.values(entitySubgraph.vertices)) {
-    const revisions = Object.values(vertex);
-    for (const revision of revisions) {
-      if (!isEntityVertex(revision)) {
-        continue;
+  const sortedEntities = Object.values(entitySubgraph.vertices)
+    .flatMap((editionMap) => Object.values(editionMap))
+    .filter((vertex): vertex is EntityVertex => isEntityVertex(vertex))
+    .map((vertex) => vertex.inner)
+    .sort((aEntity, bEntity) => {
+      /**
+       * Sort entities with linkData to the end, so we know the sheets position of the entities they reference
+       * by the time we process them, to allow for linking to the rows with the source and target entity
+       */
+      if (aEntity.linkData && !bEntity.linkData) {
+        return 1;
+      }
+      if (!aEntity.linkData && bEntity.linkData) {
+        return -1;
       }
 
-      const entity = revision.inner;
-      const entityType = getEntityTypeById(
-        entitySubgraph,
-        entity.metadata.entityTypeId,
-      );
-      if (!entityType) {
-        throw new Error(
-          `Entity type ${entity.metadata.entityTypeId} not found for entity ${entity.metadata.recordId.entityId}`,
+      /** Within link entities, sort them by the source (left) entityId, so we can link to a range of rows from the source */
+      if (aEntity.linkData && bEntity.linkData) {
+        return aEntity.linkData.leftEntityId.localeCompare(
+          bEntity.linkData.leftEntityId,
         );
       }
 
-      const sheetName = entityType.schema.title;
+      /**
+       * Within entities without linkData, sort them by their entityId, and then by the edition createdAt time (in case of multiple editions)
+       */
+      return (
+        aEntity.metadata.recordId.entityId.localeCompare(
+          bEntity.metadata.recordId.entityId,
+        ) ||
+        new Date(
+          aEntity.metadata.temporalVersioning.decisionTime.start.limit,
+        ).valueOf() -
+          new Date(
+            bEntity.metadata.temporalVersioning.decisionTime.start.limit,
+          ).valueOf()
+      );
+    });
 
-      const colummns = createColumnsForEntity(entityType, entitySubgraph);
+  const entityPositionMap: {
+    [key: EntityId]: {
+      sheetId: number;
+      rowIndex: number;
+    };
+  } = {};
 
-      if (!entitySheets[sheetName]) {
-        entitySheets[sheetName] = {
-          headers: [],
-          values: [],
-        };
-      }
-
-      const entityRow: sheets_v4.Schema$RowData = [];
-      for (const [column, { column: columnLetter }] of typedEntries(
-        entitySheets[sheetName].headers,
-      )) {
-        const value = entity.properties[column];
-        entityRow.push(createCellFromValue(value));
-      }
+  for (const entity of sortedEntities) {
+    const entityType = getEntityTypeById(
+      entitySubgraph,
+      entity.metadata.entityTypeId,
+    );
+    if (!entityType) {
+      throw new Error(
+        `Entity type ${entity.metadata.entityTypeId} not found for entity ${entity.metadata.recordId.entityId}`,
+      );
     }
-  }
 
-  const valueRows = getRoots(entitySubgraph).map((entity) => {
-    return {
-      values: [
-        {
-          userEnteredValue: {
-            stringValue: entity.metadata.recordId.entityId,
+    const typeTitle = entityType.schema.title;
+    const typeId = entityType.schema.$id;
+    const typeVersion = entityType.metadata.recordId.version;
+
+    const {
+      columns,
+      baseColumnCount,
+      isLinkType,
+      linkColumnCount,
+      propertyColumnCount,
+    } = createColumnsForEntity(entityType.schema, entitySubgraph, format);
+
+    if (!entitySheetRequests[typeId]) {
+      const sheetId = Object.keys(entitySheetRequests).length;
+
+      const headerRow = Object.values(columns).map(({ label }) => ({
+        userEnteredValue: {
+          stringValue: label,
+        },
+        userEnteredFormat: {
+          textFormat: {
+            bold: true,
           },
         },
-        ...propertyKeys.map((key) => {
-          const value = entity.properties[key];
+      }));
 
-          if (typeof value === "number") {
-            return {
-              userEnteredValue: {
-                numberValue: value,
-              },
-            };
-          } else if (typeof value === "boolean") {
-            return {
-              userEnteredValue: {
-                boolValue: value,
-              },
-            };
-          }
+      const additionalRequests: sheets_v4.Schema$Request[] = [];
 
-          return {
-            userEnteredValue: {
-              stringValue: stringifyPropertyValue(value),
+      const headerRows: sheets_v4.Schema$RowData[] = [{ values: headerRow }];
+
+      if (format.audience === "human") {
+        /** For human audiences we'll add group headers across groups of columns */
+        const groupHeaderCells: sheets_v4.Schema$CellData[] = [];
+
+        /** First, the metadata columns common to all entities */
+        groupHeaderCells.push({
+          userEnteredValue: {
+            stringValue: typeTitle,
+          },
+          userEnteredFormat: {
+            textFormat: {
+              bold: true,
+              underline: true,
             },
-          };
-        }),
-      ],
-    };
-  });
+          },
+        });
+        groupHeaderCells.push(...Array(baseColumnCount - 1).fill({}));
 
-  return [headerRow, ...valueRows];
+        additionalRequests.push({
+          mergeCells: {
+            range: {
+              sheetId,
+              startRowIndex: 0,
+              endRowIndex: 0,
+              startColumnIndex: 0,
+              endColumnIndex: baseColumnCount, // endColumnIndex is exclusive
+            },
+            mergeType: "MERGE_ALL",
+          },
+        });
+
+        if (isLinkType) {
+          /** If it's a link entity, we also have two cells for source and target entityIds */
+          groupHeaderCells.push({
+            userEnteredValue: {
+              stringValue: "Link Data",
+            },
+            userEnteredFormat: {
+              textFormat: {
+                bold: true,
+                underline: true,
+              },
+            },
+          });
+          groupHeaderCells.push(...Array(1).fill({}));
+
+          additionalRequests.push({
+            mergeCells: {
+              range: {
+                sheetId,
+                startRowIndex: 0,
+                endRowIndex: 0,
+                startColumnIndex: groupHeaderCells.length,
+                endColumnIndex: groupHeaderCells.length + 2, // endColumnIndex is exclusive
+              },
+              mergeType: "MERGE_ALL",
+            },
+          });
+        }
+
+        /** Now the properties */
+        groupHeaderCells.push({
+          userEnteredValue: {
+            stringValue: "Properties",
+          },
+          userEnteredFormat: {
+            textFormat: {
+              bold: true,
+              underline: true,
+            },
+          },
+        });
+        groupHeaderCells.push(...Array(propertyColumnCount - 1).fill({}));
+
+        additionalRequests.push({
+          mergeCells: {
+            range: {
+              sheetId,
+              startRowIndex: 0,
+              endRowIndex: 0,
+              startColumnIndex: groupHeaderCells.length,
+              endColumnIndex: groupHeaderCells.length + propertyColumnCount, // endColumnIndex is exclusive
+            },
+            mergeType: "MERGE_ALL",
+          },
+        });
+
+        /** Finally, cells for each potential link from the entity, which will link to a range in the link type's sheet */
+        groupHeaderCells.push({
+          userEnteredValue: {
+            stringValue: "Links",
+          },
+          userEnteredFormat: {
+            textFormat: {
+              bold: true,
+              underline: true,
+            },
+          },
+        });
+        groupHeaderCells.push(...Array(linkColumnCount - 1).fill({}));
+
+        additionalRequests.push({
+          mergeCells: {
+            range: {
+              sheetId,
+              startRowIndex: 0,
+              endRowIndex: 0,
+              startColumnIndex: groupHeaderCells.length,
+              endColumnIndex: groupHeaderCells.length + linkColumnCount, // endColumnIndex is exclusive
+            },
+            mergeType: "MERGE_ALL",
+          },
+        });
+
+        headerRows.unshift({ values: groupHeaderCells });
+      }
+
+      entitySheetRequests[typeId] = {
+        additionalRequests,
+        rows: headerRows,
+        sheetId,
+        typeTitle,
+        typeVersion,
+      };
+    }
+
+    entityPositionMap[entity.metadata.recordId.entityId] = {
+      sheetId: entitySheetRequests[typeId]!.sheetId,
+      rowIndex: entitySheetRequests[typeId]!.rows.length,
+    };
+
+    const entityCells: sheets_v4.Schema$CellData[] = [];
+
+    for (const key of Object.keys(columns)) {
+      if (key === "entityId") {
+        entityCells.push(
+          createCellFromValue(entity.metadata.recordId.entityId),
+        );
+      } else if (key === "label") {
+        entityCells.push(
+          createCellFromValue(generateEntityLabel(entitySubgraph, entity)),
+        );
+      } else if (key === "editionCreatedAt") {
+        entityCells.push(
+          createCellFromValue(
+            entity.metadata.temporalVersioning.decisionTime.start.limit,
+          ),
+        );
+      } else if (key === "entityCreatedAt") {
+        entityCells.push(
+          createCellFromValue(entity.metadata.provenance.createdAtDecisionTime),
+        );
+      } else if (key === "draft") {
+        entityCells.push(createCellFromValue(isDraftEntity(entity)));
+      } else if (key.startsWith("properties.")) {
+        const propertyKey = key.split(".")[1]!;
+        const value = entity.properties[propertyKey as BaseUrl];
+        entityCells.push(createCellFromValue(value));
+      } else if (key === "leftEntityId") {
+        entityCells.push(
+          createCellFromValue(entity.linkData?.leftEntityId ?? ""),
+        );
+      } else if (key === "rightEntityId") {
+        entityCells.push(
+          createCellFromValue(entity.linkData?.rightEntityId ?? ""),
+        );
+      } else if (key.startsWith("links.")) {
+        // do nothing with links, we will insert a link to the relevant sheet when we come to it
+      } else {
+        throw new Error(`Unexpected column key ${key}`);
+      }
+    }
+
+    entitySheetRequests[typeId]!.rows.push({ values: entityCells });
+  }
+
+  const requests: sheets_v4.Schema$Request[] = [];
+
+  for (const [
+    typeId,
+    { additionalRequests, sheetId, rows, typeTitle },
+  ] of Object.entries(entitySheetRequests)) {
+    const typesWithIdenticalTitles = Object.entries(entitySheetRequests).filter(
+      ([_typeId, entitySheetRequest]) =>
+        entitySheetRequest.typeTitle === typeTitle,
+    );
+
+    // @todo add discriminator to sheet titles to differentiate between types with identical titles, for human readers
+
+    requests.push(
+      ...[
+        {
+          addSheet: {
+            properties: {
+              gridProperties: {
+                frozenRowCount: format.audience === "human" ? 2 : 0,
+                frozenColumnCount: format.audience === "human" ? 2 : 0,
+              },
+              sheetId,
+              title: format.audience === "human" ? typeTitle : typeId,
+            },
+          },
+        },
+        {
+          updateCells: {
+            fields: "*",
+            range: {
+              sheetId,
+              startRowIndex: 0,
+            },
+            rows,
+          },
+        },
+        {
+          addProtectedRange: {
+            protectedRange: {
+              range: {
+                sheetId,
+              },
+              warningOnly: true,
+            },
+          },
+        },
+        ...additionalRequests,
+      ],
+    );
+  }
+
+  return requests;
 };
 
 const updateSpreadsheet = async (
@@ -237,7 +577,9 @@ const updateSpreadsheet = async (
     spreadsheetId,
   });
 
-  const sheetsToWrite = convertEntitySubgraphToSheets(entitySubgraph);
+  const sheetRequests = createSheetRequestsFromEntitySubgraph(entitySubgraph, {
+    audience: "machine",
+  });
 
   await sheets.spreadsheets.batchUpdate({
     spreadsheetId,
@@ -248,26 +590,7 @@ const updateSpreadsheet = async (
             sheetId: sheet.properties?.sheetId,
           },
         })),
-        ...Object.entries(sheetsToWrite).flatMap(([sheetName, rows], index) => [
-          {
-            addSheet: {
-              properties: {
-                sheetId: index,
-                title: sheetName,
-              },
-            },
-          },
-          {
-            updateCells: {
-              fields: "*",
-              range: {
-                sheetId: index,
-                startRowIndex: 0,
-              },
-              rows,
-            },
-          },
-        ]),
+        ...sheetRequests,
       ],
     },
   });

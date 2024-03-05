@@ -129,3 +129,45 @@ export const generateLinkMapWithConsistentSelfReferences = (
     },
     {},
   );
+
+const hashFormattedVersionedUrlRegExp =
+  /https?:\/\/.+\/@(.+)\/types\/(entity-type|data-type|property-type)\/.+\/v\/\d+$/;
+
+export type DeconstructedVersionedUrl = {
+  baseUrl: string;
+  hostname: string;
+  kind?: SchemaKind;
+  isHashFormatted: boolean;
+  version: number;
+  webShortname?: string;
+};
+
+export const deconstructVersionedUrl = (
+  url: VersionedUrl,
+): {
+  baseUrl: string;
+  hostname: string;
+  kind?: SchemaKind;
+  isHashFormatted: boolean;
+  version: number;
+  webShortname?: string;
+} => {
+  const { baseUrl, version } = componentsFromVersionedUrl(url);
+
+  const matchArray = baseUrl.match(hashFormattedVersionedUrlRegExp);
+
+  const isHashFormatted = !!matchArray;
+
+  const [_url, webShortname, kind] = matchArray ?? [];
+
+  const urlObject = new URL(baseUrl);
+
+  return {
+    baseUrl,
+    hostname: urlObject.hostname,
+    isHashFormatted,
+    kind: kind as SchemaKind | undefined,
+    version,
+    webShortname,
+  };
+};
