@@ -13,7 +13,7 @@ pub enum Location {
     Array(usize),
     /// Static field of a struct or enum variant
     Field(&'static str),
-    /// Entry in a HashMap or equivalent, for anything that has a variable amount of keys/values.
+    /// Entry in a `HashMap` or equivalent, for anything that has a variable amount of keys/values.
     Entry(String),
     /// Name of an enum variant
     Variant(&'static str),
