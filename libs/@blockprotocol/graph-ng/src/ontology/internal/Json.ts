@@ -6,6 +6,7 @@ export type Value =
   | number
   | boolean
   | null
+  | undefined
   | { [key: string]: Value }
   | ReadonlyArray<Value>;
 
@@ -14,6 +15,7 @@ export const Value: S.Schema<Value> = S.union(
   S.number,
   S.boolean,
   S.null,
+  S.undefined,
   S.record(
     S.string,
     S.suspend(() => Value),

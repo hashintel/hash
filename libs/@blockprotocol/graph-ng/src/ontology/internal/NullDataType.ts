@@ -1,14 +1,14 @@
 import * as S from "@effect/schema/Schema";
 import { identity } from "effect/Function";
 
-export const NullType = S.struct({
+export const NullDataType = S.struct({
   type: S.literal("null"),
   const: S.optional(S.null),
 });
 
-export type NullType = S.Schema.To<typeof NullType>;
+export type NullDataType = S.Schema.To<typeof NullDataType>;
 
-export function makeSchema(type: NullType) {
+export function makeSchema(type: NullDataType) {
   return S.null.pipe(
     type.const ? S.filter((value) => value === type.const) : identity,
   );

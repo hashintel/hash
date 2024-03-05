@@ -1,22 +1,22 @@
 import * as S from "@effect/schema/Schema";
 import { identity } from "effect/Function";
-import * as Equivalence from "effect/Equivalence";
 import * as Json from "./Json";
+import * as Equivalence from "@effect/schema/Equivalence";
 
-const Value = S.array(Json.Value);
-const ValueEquivalence = Equivalence.array(Json.ValueEquivalence);
+const Value = S.record(S.string, Json.Value);
+const ValueEquivalence = Equivalence.make(Value);
 
 // The type-system currently only supports a minimal set of JSON Schema features regarding objects.
-export const ArrayType = S.struct({
-  type: S.literal("array"),
+export const ObjectDataType = S.struct({
+  type: S.literal("object"),
   const: S.optional(Value),
 });
 
-export type ArrayType = S.Schema.To<typeof ArrayType>;
+export type ObjectDataType = S.Schema.To<typeof ObjectDataType>;
 
-export function makeSchema(type: ArrayType) {
-  return S.array(Json.Value).pipe(
-    type.const !== undefined
+export function makeSchema(type: ObjectDataType) {
+  return Value.pipe(
+    type.const
       ? S.filter((value) => ValueEquivalence(type.const!, value))
       : identity,
   );

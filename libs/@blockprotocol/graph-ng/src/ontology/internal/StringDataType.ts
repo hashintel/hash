@@ -26,7 +26,7 @@ const Format = S.union(
   S.union(JsonPointerFormat, RegularExpressionFormat),
 );
 
-export const StringType = S.struct({
+export const StringDataType = S.struct({
   type: S.literal("string"),
   minLength: S.optional(S.number),
   maxLength: S.optional(S.number),
@@ -47,9 +47,9 @@ export const StringType = S.struct({
   const: S.optional(S.string),
 });
 
-export type StringType = S.Schema.To<typeof StringType>;
+export type StringDataType = S.Schema.To<typeof StringDataType>;
 
-function plainValueSchema(type: StringType) {
+function plainValueSchema(type: StringDataType) {
   return S.string.pipe(
     type.minLength ? S.minLength(type.minLength) : identity,
     type.maxLength ? S.maxLength(type.maxLength) : identity,
@@ -58,22 +58,22 @@ function plainValueSchema(type: StringType) {
   );
 }
 
-function dateValueSchema(type: StringType) {
+function dateValueSchema(type: StringDataType) {
   return S.compose(plainValueSchema(type), TemporalSchema.PlainDateFromString);
 }
 
-function dateTimeValueSchema(type: StringType) {
+function dateTimeValueSchema(type: StringDataType) {
   return S.compose(
     plainValueSchema(type),
     TemporalSchema.ZonedDateTimeFromString,
   );
 }
 
-function timeValueSchema(type: StringType) {
+function timeValueSchema(type: StringDataType) {
   return S.compose(plainValueSchema(type), TemporalSchema.PlainTimeFromString);
 }
 
-function durationValueSchema(type: StringType) {
+function durationValueSchema(type: StringDataType) {
   return S.transform(
     S.compose(plainValueSchema(type), TemporalSchema.DurationFromString),
     S.DurationFromSelf,
@@ -83,7 +83,7 @@ function durationValueSchema(type: StringType) {
   );
 }
 
-export function makeSchema<T extends StringType>(
+export function makeSchema<T extends StringDataType>(
   type: T,
 ): T["format"] extends "date"
   ? ReturnType<typeof dateValueSchema>
@@ -108,6 +108,6 @@ export function makeSchema<T extends StringType>(
   }
 }
 
-export type ValueSchema<T extends StringType> = ReturnType<
+export type ValueSchema<T extends StringDataType> = ReturnType<
   typeof makeSchema<T>
 >;

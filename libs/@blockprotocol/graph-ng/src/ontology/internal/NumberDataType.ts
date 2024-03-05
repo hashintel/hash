@@ -1,7 +1,7 @@
 import * as S from "@effect/schema/Schema";
 import { identity } from "effect/Function";
 
-export const NumberType = S.struct({
+export const NumberDataType = S.struct({
   type: S.literal("number", "integer"),
   multipleOf: S.optional(S.number),
   minimum: S.optional(S.number),
@@ -11,9 +11,9 @@ export const NumberType = S.struct({
   const: S.optional(S.number),
 });
 
-export type NumberType = S.Schema.To<typeof NumberType>;
+export type NumberDataType = S.Schema.To<typeof NumberDataType>;
 
-export function makeSchema(type: NumberType) {
+export function makeSchema(type: NumberDataType) {
   const base = {
     integer: S.Int,
     number: S.number,

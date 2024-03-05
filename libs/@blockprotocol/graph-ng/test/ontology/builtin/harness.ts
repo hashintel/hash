@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 import * as S from "@effect/schema/Schema";
 import * as Null from "../../../src/ontology/builtin/Null";
 import * as DataType from "../../../src/ontology/DataType";
-import * as NullType from "../../../src/ontology/internal/NullType";
+import * as NullType from "../../../src/ontology/internal/NullDataType";
 
 export function testAgainstTypes<T extends DataType.DataType>(
   version: string,
@@ -15,7 +15,7 @@ export function testAgainstTypes<T extends DataType.DataType>(
     | "object"
     | "emptyList",
 ) {
-  const Schema = DataType.makeSchema(schema) as S.Schema<unknown, unknown>;
+  const Schema = DataType.makeValueSchema(schema) as S.Schema<unknown, unknown>;
 
   test(`v${version}: parse string`, () => {
     if (shouldSucceed !== "string") {

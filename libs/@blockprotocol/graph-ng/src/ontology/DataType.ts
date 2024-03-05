@@ -1,13 +1,14 @@
 import * as S from "@effect/schema/Schema";
-import * as Brand from "effect/Brand";
+import * as Struct from "effect/Struct";
 
+import * as DataTypeSchema from "./DataTypeSchema";
 import * as DataTypeUrl from "./DataTypeUrl";
-import * as BooleanType from "./internal/BooleanType";
-import * as NullType from "./internal/NullType";
-import * as NumberType from "./internal/NumberType";
-import * as StringType from "./internal/StringType";
-import * as ObjectType from "./internal/ObjectType";
-import * as ArrayType from "./internal/ArrayType";
+import * as BooleanDataType from "./internal/BooleanDataType";
+import * as NullDataType from "./internal/NullDataType";
+import * as NumberDataType from "./internal/NumberDataType";
+import * as StringDataType from "./internal/StringDataType";
+import * as ObjectDataType from "./internal/ObjectDataType";
+import * as ArrayDataType from "./internal/ArrayDataType";
 
 const TypeId: unique symbol = Symbol.for(
   "@blockprotocol/graph/ontology/DataType",
@@ -15,78 +16,66 @@ const TypeId: unique symbol = Symbol.for(
 export type TypeId = typeof TypeId;
 
 const InnerType = S.union(
-  StringType.StringType,
-  NumberType.NumberType,
-  BooleanType.BooleanType,
-  NullType.NullType,
-  ObjectType.ObjectType,
-  ArrayType.ArrayType,
+  StringDataType.StringDataType,
+  NumberDataType.NumberDataType,
+  BooleanDataType.BooleanDataType,
+  NullDataType.NullDataType,
+  ObjectDataType.ObjectDataType,
+  ArrayDataType.ArrayDataType,
 );
 
 export const DataType = S.extend(
-  S.extend(
-    S.struct({
-      kind: S.literal("dataType"),
+  S.struct({
+    kind: S.literal("dataType"),
 
-      id: DataTypeUrl.DataTypeUrl,
-      title: S.string.pipe(S.nonEmpty()),
-      description: S.optional(S.string.pipe(S.nonEmpty())),
-    }),
-    InnerType,
-  ),
-  S.record(S.string, S.any),
+    id: DataTypeUrl.DataTypeUrl,
+    title: S.string.pipe(S.nonEmpty()),
+    description: S.optional(S.string.pipe(S.nonEmpty())),
+  }),
+  InnerType,
 );
 
 export type DataType = S.Schema.To<typeof DataType>;
 
 // TODO: branding
 
-export function makeSchema<T extends DataType>(
+export function makeValueSchema<T extends DataType>(
   schema: T,
-): T extends StringType.StringType
-  ? StringType.ValueSchema<T>
-  : T extends NumberType.NumberType
-  ? NumberType.ValueSchema
-  : T extends BooleanType.BooleanType
-  ? BooleanType.ValueSchema
-  : T extends NullType.NullType
-  ? NullType.ValueSchema
-  : T extends ObjectType.ObjectType
-  ? ObjectType.ValueSchema
-  : T extends ArrayType.ArrayType
-  ? ArrayType.ValueSchema
+): T extends StringDataType.StringDataType
+  ? StringDataType.ValueSchema<T>
+  : T extends NumberDataType.NumberDataType
+  ? NumberDataType.ValueSchema
+  : T extends BooleanDataType.BooleanDataType
+  ? BooleanDataType.ValueSchema
+  : T extends NullDataType.NullDataType
+  ? NullDataType.ValueSchema
+  : T extends ObjectDataType.ObjectDataType
+  ? ObjectDataType.ValueSchema
+  : T extends ArrayDataType.ArrayDataType
+  ? ArrayDataType.ValueSchema
   : never {
   switch (schema.type) {
     case "string":
-      return StringType.makeSchema(schema) as never;
+      return StringDataType.makeSchema(schema) as never;
     case "integer":
     case "number":
-      return NumberType.makeSchema(schema) as never;
+      return NumberDataType.makeSchema(schema) as never;
     case "boolean":
-      return BooleanType.makeSchema(schema) as never;
+      return BooleanDataType.makeSchema(schema) as never;
     case "null":
-      return NullType.makeSchema(schema) as never;
+      return NullDataType.makeSchema(schema) as never;
     case "object":
-      return ObjectType.makeSchema(schema) as never;
+      return ObjectDataType.makeSchema(schema) as never;
     case "array":
-      return ArrayType.makeSchema(schema) as never;
+      return ArrayDataType.makeSchema(schema) as never;
   }
 }
 
-export function untypedSchema<T extends DataType>(schema: T) {
-  switch (schema.type) {
-    case "string":
-      return StringType.makeSchema(schema);
-    case "integer":
-    case "number":
-      return NumberType.makeSchema(schema);
-    case "boolean":
-      return BooleanType.makeSchema(schema);
-    case "null":
-      return NullType.makeSchema(schema);
-    case "object":
-      return ObjectType.makeSchema(schema);
-    case "array":
-      return ArrayType.makeSchema(schema);
-  }
+export function toSchema(schema: DataType): DataTypeSchema.DataTypeSchema {
+  return {
+    $schema:
+      "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+    $id: schema.id,
+    ...Struct.omit("id")(schema),
+  };
 }
