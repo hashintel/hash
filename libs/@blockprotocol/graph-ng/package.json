@@ -1,0 +1,12 @@
+{
+  "name": "@blockprotocol/graph-ng",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Next Generation Graph Tooling",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "lint:tsc": "tsc --noEmit"
+  }
+}
