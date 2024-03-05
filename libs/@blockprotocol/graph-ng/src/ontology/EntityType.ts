@@ -2,7 +2,9 @@ import * as S from "@effect/schema/Schema";
 
 import * as VersionedUrl from "../VersionedUrl";
 import * as EntityTypeReference from "./EntityTypeReference";
+import * as EntityTypeUrl from "./EntityTypeUrl";
 import * as PropertyTypeReference from "./PropertyTypeReference";
+import * as PropertyTypeUrl from "./PropertyTypeUrl";
 
 const TypeId: unique symbol = Symbol.for(
   "@blockprotocol/graph/ontology/EntityType",
@@ -15,7 +17,7 @@ export const EntityType = S.struct({
   ),
   kind: S.literal("entityType"),
 
-  id: VersionedUrl.VersionedUrl,
+  $id: EntityTypeUrl.EntityTypeUrl,
   title: S.string.pipe(S.nonEmpty()),
   description: S.optional(S.string.pipe(S.nonEmpty())),
   examples: S.record(S.string, S.any),
@@ -26,8 +28,8 @@ export const EntityType = S.struct({
 
   type: S.literal("object"),
   // TODO: PropertyArray :peepo:
-  properties: S.record(PropertyTypeReference.PropertyTypeReference, S.any),
-  required: S.readonlySet(PropertyTypeReference.PropertyTypeReference),
+  properties: S.record(PropertyTypeUrl.PropertyTypeUrl, S.any),
+  required: S.readonlySet(PropertyTypeUrl.PropertyTypeUrl),
 }).pipe(
   S.filter((value) => {
     const propertyKeys = Object.keys(value.properties);

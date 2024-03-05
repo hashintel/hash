@@ -7,8 +7,8 @@ const TypeId: unique symbol = Symbol.for(
 );
 export type TypeId = typeof TypeId;
 
-export const PropertyTypeReference = VersionedUrl.VersionedUrl.pipe(
-  S.brand(TypeId),
-);
+export const PropertyTypeReference = S.struct({
+  $ref: VersionedUrl.VersionedUrl,
+}).pipe(S.brand(TypeId));
 
 export type PropertyTypeReference = S.Schema.To<typeof PropertyTypeReference>;
