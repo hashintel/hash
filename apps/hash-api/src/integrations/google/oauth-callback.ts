@@ -188,6 +188,8 @@ export const googleOAuthCallback: RequestHandler<
     /**
      * Create the user secret, which only the user and Google bot can access.
      * The web bot has edit access to allow it to edit the user secret entity.
+     *
+     * @todo lock down user secret entity permissions / instantiators. prevent vault path guessing exploits
      */
     const userAndBotAndWebAdminsOnly: EntityRelationAndSubject[] = [
       {
