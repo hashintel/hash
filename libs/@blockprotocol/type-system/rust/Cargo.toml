@@ -22,7 +22,7 @@ utoipa = { version = "4.2.0", features = ["url"], optional = true }
 graph-test-data = { workspace = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-bindgen = { version = "0.2.91", features = ["serde-serialize"] }
+wasm-bindgen = { version = "0.2.92", features = ["serde-serialize"] }
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires
 # all the `std::fmt` and `std::panicking` infrastructure, so isn't great for
@@ -30,4 +30,4 @@ wasm-bindgen = { version = "0.2.91", features = ["serde-serialize"] }
 console_error_panic_hook = { version = "0.1.7" }
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
-wasm-bindgen-test = "0.3.41"
+wasm-bindgen-test = "0.3.42"
