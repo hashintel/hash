@@ -8,5 +8,10 @@
   "scripts": {
     "build": "tsc",
     "lint:tsc": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@effect/schema": "0.63.2",
+    "effect": "2.4.1"
   }
 }
+
