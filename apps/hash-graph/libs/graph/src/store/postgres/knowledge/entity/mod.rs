@@ -16,7 +16,7 @@ use authorization::{
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
 };
-use error_stack::{ensure, Report, Result, ResultExt};
+use error_stack::{bail, ensure, Report, Result, ResultExt};
 use futures::TryStreamExt;
 use graph_types::{
     account::{AccountId, CreatedById, EditionCreatedById},
@@ -55,10 +55,10 @@ use crate::{
             ValidateEntityParams,
         },
         postgres::{
-            knowledge::entity::read::EntityEdgeTraversalData, query::ReferenceTable,
-            TraversalContext,
+            knowledge::entity::read::EntityEdgeTraversalData, ontology::OntologyId,
+            query::ReferenceTable, TraversalContext,
         },
-        query::{Filter, FilterExpression, Parameter},
+        query::{Filter, FilterExpression, Parameter, ParameterList},
         validation::StoreProvider,
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, StoreCache,
         SubgraphRecord, UpdateError,
@@ -327,19 +327,21 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .attach_printable("At least one relationship must be provided"));
         }
 
-        let entity_type_id = EntityTypeId::from_url(&params.entity_type_id);
-        authorization_api
-            .check_entity_type_permission(
-                actor_id,
-                EntityTypePermission::Instantiate,
-                entity_type_id,
-                Consistency::FullyConsistent,
-            )
-            .await
-            .change_context(InsertionError)?
-            .assert_permission()
-            .change_context(InsertionError)
-            .attach(StatusCode::PermissionDenied)?;
+        for entity_type_id in &params.entity_type_ids {
+            let entity_type_id = EntityTypeId::from_url(entity_type_id);
+            authorization_api
+                .check_entity_type_permission(
+                    actor_id,
+                    EntityTypePermission::Instantiate,
+                    entity_type_id,
+                    Consistency::FullyConsistent,
+                )
+                .await
+                .change_context(InsertionError)?
+                .assert_permission()
+                .change_context(InsertionError)
+                .attach(StatusCode::PermissionDenied)?;
+        }
 
         if Some(params.owned_by_id.into_uuid()) != params.entity_uuid.map(EntityUuid::into_uuid) {
             authorization_api
@@ -528,7 +530,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .insert_entity_edition(
                 edition_created_by_id,
                 false,
-                &params.entity_type_id,
+                &params.entity_type_ids,
                 &params.properties,
                 &link_order,
             )
@@ -557,7 +559,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 authorization_api,
                 Consistency::FullyConsistent,
                 ValidateEntityParams {
-                    entity_type: EntityValidationType::ClosedSchema(Cow::Borrowed(&closed_schema)),
+                    entity_type: EntityValidationType::ClosedSchema(Cow::Owned(closed_schema)),
                     properties: Cow::Borrowed(&params.properties),
                     link_data: params.link_data.as_ref().map(Cow::Borrowed),
                     profile: if params.draft {
@@ -600,7 +602,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     entity_id,
                     edition_id,
                 },
-                entity_type_id: params.entity_type_id,
+                entity_type_ids: params.entity_type_ids,
                 provenance: EntityProvenanceMetadata {
                     created_by_id: CreatedById::new(edition_created_by_id.as_account_id()),
                     created_at_decision_time: Timestamp::from(
@@ -652,30 +654,38 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     ) -> Result<(), ValidateEntityError> {
         let schema = match params.entity_type {
             EntityValidationType::ClosedSchema(schema) => schema,
-            EntityValidationType::Schema(schema) => Cow::Owned(ClosedEntityType::from(schema)),
+            EntityValidationType::Schema(schemas) => Cow::Owned(schemas.into_iter().collect()),
             EntityValidationType::Id(entity_type_url) => {
-                let entity_type_id = EntityTypeId::from_url(entity_type_url.as_ref());
+                let (ontology_type_ids, ontology_type_uuids): (Vec<_>, Vec<_>) = entity_type_url
+                    .as_ref()
+                    .iter()
+                    .map(|url| {
+                        let id = EntityTypeId::from_url(url);
+                        (id, id.into_uuid())
+                    })
+                    .unzip();
 
-                authorization_api
-                    .check_entity_type_permission(
+                if !authorization_api
+                    .check_entity_types_permission(
                         actor_id,
                         EntityTypePermission::View,
-                        entity_type_id,
+                        ontology_type_ids.iter().copied(),
                         consistency,
                     )
                     .await
                     .change_context(ValidateEntityError)?
-                    .assert_permission()
-                    .change_context(ValidateEntityError)
-                    .attach(StatusCode::PermissionDenied)?;
+                    .0
+                    .into_iter()
+                    .all(|(_, permission)| permission)
+                {
+                    bail!(Report::new(ValidateEntityError).attach(StatusCode::PermissionDenied));
+                }
 
                 let mut closed_schemas = self
                     .read_closed_schemas(
-                        &Filter::Equal(
-                            Some(FilterExpression::Path(EntityTypeQueryPath::OntologyId)),
-                            Some(FilterExpression::Parameter(Parameter::Uuid(
-                                entity_type_id.into_uuid(),
-                            ))),
+                        &Filter::In(
+                            FilterExpression::Path(EntityTypeQueryPath::OntologyId),
+                            ParameterList::Uuid(&ontology_type_uuids),
                         ),
                         Some(
                             &QueryTemporalAxesUnresolved::DecisionTime {
@@ -878,7 +888,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         entity_id,
                         edition_id,
                     },
-                    entity_type_id: entity_type_url.clone(),
+                    entity_type_ids: vec![entity_type_url.clone()],
                     provenance: EntityProvenanceMetadata {
                         created_by_id: CreatedById::new(actor_id),
                         created_at_decision_time: Timestamp::from(
@@ -1054,19 +1064,27 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         temporal_client: Option<&TemporalClient>,
         mut params: UpdateEntityParams,
     ) -> Result<EntityMetadata, UpdateError> {
-        let entity_type_id = EntityTypeId::from_url(&params.entity_type_id);
-        authorization_api
-            .check_entity_type_permission(
+        let entity_type_ids = params
+            .entity_type_ids
+            .iter()
+            .map(EntityTypeId::from_url)
+            .collect::<Vec<_>>();
+
+        if !authorization_api
+            .check_entity_types_permission(
                 actor_id,
                 EntityTypePermission::Instantiate,
-                entity_type_id,
+                entity_type_ids,
                 Consistency::FullyConsistent,
             )
             .await
             .change_context(UpdateError)?
-            .assert_permission()
-            .change_context(UpdateError)
-            .attach(StatusCode::PermissionDenied)?;
+            .0
+            .into_iter()
+            .all(|(_, permission)| permission)
+        {
+            bail!(Report::new(UpdateError).attach(StatusCode::PermissionDenied));
+        }
 
         authorization_api
             .check_entity_permission(
@@ -1137,7 +1155,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .insert_entity_edition(
                 EditionCreatedById::new(actor_id),
                 params.archived,
-                &params.entity_type_id,
+                &params.entity_type_ids,
                 &params.properties,
                 &params.link_order,
             )
@@ -1256,7 +1274,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 edition_id,
             },
             temporal_versioning,
-            entity_type_id: params.entity_type_id,
+            entity_type_ids: params.entity_type_ids,
             provenance: EntityProvenanceMetadata {
                 created_by_id: previous_entity.metadata.provenance.created_by_id,
                 created_at_transaction_time: previous_entity
@@ -1436,7 +1454,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         &self,
         edition_created_by_id: EditionCreatedById,
         archived: bool,
-        entity_type_id: &VersionedUrl,
+        entity_type_ids: &[VersionedUrl],
         properties: &EntityProperties,
         link_order: &EntityLinkOrder,
     ) -> Result<(EntityEditionId, ClosedEntityType), InsertionError> {
@@ -1466,10 +1484,10 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .change_context(InsertionError)?
             .get(0);
 
-        let entity_type_ontology_id = self
-            .ontology_id_by_url(entity_type_id)
-            .await
-            .change_context(InsertionError)?;
+        let entity_type_ontology_ids = entity_type_ids
+            .iter()
+            .map(|entity_type_id| OntologyId::from(EntityTypeId::from_url(entity_type_id)))
+            .collect::<Vec<_>>();
 
         self.as_client()
             .query(
@@ -1477,22 +1495,25 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     INSERT INTO entity_is_of_type (
                         entity_edition_id,
                         entity_type_ontology_id
-                    ) VALUES ($1, $2);
+                    ) SELECT $1, UNNEST($2::UUID);
                 ",
-                &[&edition_id, &entity_type_ontology_id],
+                &[&edition_id, &entity_type_ontology_ids],
             )
             .await
             .change_context(InsertionError)?;
 
-        let Json(entity_type) = self
+        let entity_type = self
             .as_client()
-            .query_one(
-                "SELECT closed_schema FROM entity_types WHERE ontology_id = $1;",
-                &[&entity_type_ontology_id],
+            .query_raw(
+                "SELECT closed_schema FROM entity_types WHERE ontology_id IN ($1);",
+                &[&entity_type_ontology_ids],
             )
             .await
             .change_context(InsertionError)?
-            .get(0);
+            .and_then(|row| async move { Ok(row.get::<_, Json<ClosedEntityType>>(0).0) })
+            .try_collect::<ClosedEntityType>()
+            .await
+            .change_context(InsertionError)?;
 
         Ok((edition_id, entity_type))
     }

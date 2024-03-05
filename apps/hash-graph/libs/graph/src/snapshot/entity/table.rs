@@ -4,12 +4,12 @@ use graph_types::{
         entity::{DraftId, EntityEditionId, EntityProperties, EntityUuid},
         link::LinkOrder,
     },
-    ontology::OntologyTypeVersion,
     owned_by_id::OwnedById,
     Embedding,
 };
 use postgres_types::ToSql;
 use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, Timestamp, TransactionTime};
+use uuid::Uuid;
 
 #[derive(Debug, ToSql)]
 #[postgres(name = "entity_ids")]
@@ -40,8 +40,13 @@ pub struct EntityEditionRow {
     pub right_to_left_order: Option<LinkOrder>,
     pub edition_created_by_id: EditionCreatedById,
     pub archived: bool,
-    pub entity_type_base_url: String,
-    pub entity_type_version: OntologyTypeVersion,
+}
+
+#[derive(Debug, ToSql)]
+#[postgres(name = "entity_is_of_type_row")]
+pub struct EntityIsOfTypeRow {
+    pub entity_edition_id: EntityEditionId,
+    pub entity_type_ontology_id: Uuid,
 }
 
 #[derive(Debug, ToSql)]

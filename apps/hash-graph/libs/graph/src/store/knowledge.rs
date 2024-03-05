@@ -35,8 +35,8 @@ use crate::{
 #[serde(untagged)]
 #[expect(clippy::large_enum_variant)]
 pub enum EntityValidationType<'a> {
-    Schema(EntityType),
-    Id(Cow<'a, VersionedUrl>),
+    Schema(Vec<EntityType>),
+    Id(Cow<'a, [VersionedUrl]>),
     #[serde(skip)]
     ClosedSchema(Cow<'a, ClosedEntityType>),
 }
@@ -178,7 +178,7 @@ pub struct CreateEntityParams<R> {
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub decision_time: Option<Timestamp<DecisionTime>>,
-    pub entity_type_id: VersionedUrl,
+    pub entity_type_ids: Vec<VersionedUrl>,
     pub properties: EntityProperties,
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
@@ -220,7 +220,7 @@ pub struct UpdateEntityParams {
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub decision_time: Option<Timestamp<DecisionTime>>,
-    pub entity_type_id: VersionedUrl,
+    pub entity_type_ids: Vec<VersionedUrl>,
     pub properties: EntityProperties,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_order: EntityLinkOrder,

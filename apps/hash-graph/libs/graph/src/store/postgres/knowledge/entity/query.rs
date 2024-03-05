@@ -301,7 +301,7 @@ impl QueryRecordDecode for Entity {
                     decision_time: row.get(indices.decision_time),
                     transaction_time: row.get(indices.transaction_time),
                 },
-                entity_type_id,
+                entity_type_ids: vec![entity_type_id],
                 provenance: EntityProvenanceMetadata {
                     created_by_id: row.get(indices.created_by_id),
                     created_at_transaction_time: row.get(indices.created_at_transaction_time),

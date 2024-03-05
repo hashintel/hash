@@ -462,7 +462,7 @@ where
 struct UpdateEntityRequest {
     properties: EntityProperties,
     entity_id: EntityId,
-    entity_type_id: VersionedUrl,
+    entity_type_ids: Vec<VersionedUrl>,
     #[serde(flatten)]
     order: EntityLinkOrder,
     archived: bool,
@@ -507,7 +507,7 @@ where
     let Json(UpdateEntityRequest {
         properties,
         entity_id,
-        entity_type_id,
+        entity_type_ids,
         order: link_order,
         archived,
         draft,
@@ -528,7 +528,7 @@ where
             UpdateEntityParams {
                 entity_id,
                 decision_time,
-                entity_type_id,
+                entity_type_ids,
                 properties,
                 link_order,
                 archived,

@@ -13,6 +13,7 @@ type-system.workspace = true
 
 chrono = { version = "0.4.35", default-features = false, features = ["std"] }
 email_address.workspace = true
+futures.workspace = true
 regex = "1.10.3"
 serde_json.workspace = true
 thiserror = "1.0.57"
