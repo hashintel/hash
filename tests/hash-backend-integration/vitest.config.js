@@ -15,5 +15,10 @@ export default defineConfig({
     ],
     setupFiles: ["src/tests/load-test-env.ts"],
     testTimeout: 60_000,
+    poolOptions: {
+      threads: {
+        singleThread: true,
+      },
+    },
   },
 });
