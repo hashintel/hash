@@ -2,7 +2,8 @@
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
   "compilerOptions": {
     "lib": ["dom", "dom.iterable", "esnext"],
-    "outDir": "dist"
+    "outDir": "dist",
+    "exactOptionalPropertyTypes": true
   },
-  "include": ["src"]
+  "include": ["src", "test"]
 }

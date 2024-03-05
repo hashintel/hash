@@ -14,6 +14,10 @@ export const VersionedUrl = Url.Url.pipe(
 
 export type VersionedUrl = S.Schema.To<typeof VersionedUrl>;
 
+export function parseOrThrow(value: string): VersionedUrl {
+  return S.decodeSync(VersionedUrl)(value);
+}
+
 export function url(value: VersionedUrl): Url.Url {
   // the value is never null or undefined, because `Schema` guarantees a well-formed value.
   const match = value.match(VersionPattern)!;

@@ -88,7 +88,7 @@ export const ZonedDateTimeFromSelf = S.declare(isZonedDateTime, {
   identifier: "ZonedDateTime",
   description: "A Temporal ZonedDateTime instance",
   pretty: (): Pretty.Pretty<Temporal.ZonedDateTime> => (zonedDateTime) =>
-    `Temporal.ZonedDateTime.from({ year: ${zonedDateTime.year}, month: ${zonedDateTime.month}, day: ${zonedDateTime.day}, hour: ${zonedDateTime.hour}, minute: ${zonedDateTime.minute}, second: ${zonedDateTime.second}, millisecond: ${zonedDateTime.millisecond}, microsecond: ${zonedDateTime.microsecond}, nanosecond: ${zonedDateTime.nanosecond}, timeZone: ${zonedDateTime.timeZone} })`,
+    `Temporal.ZonedDateTime.from({ year: ${zonedDateTime.year}, month: ${zonedDateTime.month}, day: ${zonedDateTime.day}, hour: ${zonedDateTime.hour}, minute: ${zonedDateTime.minute}, second: ${zonedDateTime.second}, millisecond: ${zonedDateTime.millisecond}, microsecond: ${zonedDateTime.microsecond}, nanosecond: ${zonedDateTime.nanosecond}, timeZoneId: ${zonedDateTime.timeZoneId} })`,
   equivalence: (): Equivalence.Equivalence<Temporal.ZonedDateTime> =>
     ZonedDateTimeEquivalence,
 });

@@ -8,6 +8,7 @@ export const NumberType = S.struct({
   maximum: S.optional(S.number),
   exclusiveMinimum: S.optional(S.number),
   exclusiveMaximum: S.optional(S.number),
+  const: S.optional(S.number),
 });
 
 export type NumberType = S.Schema.To<typeof NumberType>;
@@ -24,6 +25,7 @@ export function makeSchema(type: NumberType) {
     type.maximum ? S.lessThanOrEqualTo(type.maximum) : identity,
     type.exclusiveMinimum ? S.greaterThan(type.exclusiveMinimum) : identity,
     type.exclusiveMaximum ? S.lessThan(type.exclusiveMaximum) : identity,
+    type.const ? S.filter((value) => value === type.const) : identity,
   );
 }
 

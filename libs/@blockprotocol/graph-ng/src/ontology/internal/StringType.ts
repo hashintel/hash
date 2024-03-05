@@ -44,6 +44,7 @@ export const StringType = S.struct({
     ),
   ),
   format: S.optional(Format),
+  const: S.optional(S.string),
 });
 
 export type StringType = S.Schema.To<typeof StringType>;
@@ -53,6 +54,7 @@ function plainValueSchema(type: StringType) {
     type.minLength ? S.minLength(type.minLength) : identity,
     type.maxLength ? S.maxLength(type.maxLength) : identity,
     type.pattern ? S.pattern(new RegExp(type.pattern)) : identity,
+    type.const ? S.filter((value) => value === type.const) : identity,
   );
 }
 

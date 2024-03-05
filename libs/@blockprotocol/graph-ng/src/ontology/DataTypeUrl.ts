@@ -10,3 +10,7 @@ export type TypeId = typeof TypeId;
 export const DataTypeUrl = VersionedUrl.VersionedUrl.pipe(S.brand(TypeId));
 
 export type DataTypeUrl = S.Schema.To<typeof DataTypeUrl>;
+
+export function parseOrThrow(value: string): DataTypeUrl {
+  return S.decodeSync(DataTypeUrl)(value);
+}
