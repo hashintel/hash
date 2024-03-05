@@ -3,7 +3,7 @@ import * as S from "@effect/schema/Schema";
 export const TypeId = Symbol.for("@blockprotocol/graph/Url");
 export type TypeId = typeof TypeId;
 
-export const Schema = S.string.pipe(
+export const Url = S.string.pipe(
   S.nonEmpty(),
   S.filter((value) => {
     try {
@@ -17,4 +17,4 @@ export const Schema = S.string.pipe(
   S.brand(TypeId),
 );
 
-export type Schema = S.Schema.To<typeof Schema>;
+export type Url = S.Schema.To<typeof Url>;
