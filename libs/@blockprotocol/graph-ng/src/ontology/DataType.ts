@@ -3,12 +3,12 @@ import * as Struct from "effect/Struct";
 
 import * as DataTypeSchema from "./DataTypeSchema";
 import * as DataTypeUrl from "./DataTypeUrl";
+import * as ArrayDataType from "./internal/ArrayDataType";
 import * as BooleanDataType from "./internal/BooleanDataType";
 import * as NullDataType from "./internal/NullDataType";
 import * as NumberDataType from "./internal/NumberDataType";
-import * as StringDataType from "./internal/StringDataType";
 import * as ObjectDataType from "./internal/ObjectDataType";
-import * as ArrayDataType from "./internal/ArrayDataType";
+import * as StringDataType from "./internal/StringDataType";
 
 const TypeId: unique symbol = Symbol.for(
   "@blockprotocol/graph/ontology/DataType",
