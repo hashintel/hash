@@ -24,55 +24,46 @@ You may also encounter [bots] while using HASH. But unlike users and orgs, bots 
 
 Every account (i.e. every user and every org) has a [web](/guide/webs). Webs contain **entities** (data), as well as **types** (which define what entities are, and provide them with meaning).
 
-Every user has their own [Personal Web], and every org a [Shared Web]. Users may have access to any number of shared webs, in addition to their own personal one. Read more about [Webs ›](/guide/webs)
+Every user has their own [Personal Web](/guide/webs/users#web), and every org a [Shared Web](/guide/webs/orgs#web). Users may have access to any number of shared webs, in addition to their own personal one. Read more about [Webs ›](/guide/webs)
 
-### Types
+## Entities
 
-There are four kinds of [types](/guide/types):
+All data in a [web](https://hash.ai/guide/webs) exists as [entities](/guide/entities). An individual entity may have one or more [entity types](/guide/types/entity-types), which outline the [attributes](/guide/entities/attributes) that can be captured on it.
 
-- [Entity types](/guide/types/entity-types) define what an entity is, by specifying what types of attributes (links and properties) can be associated with it
-- [Link types](/guide/types/link-types) describe relationship between entities (e.g. a person and a date)
-- [Property types](/guide/types/property-types) describe information that is stored directly on an entity (e.g. a description) without reference to any other entity
-- [Data types](/guide/types/data-types)
+An attribute can either be a [property](/guide/entities/attributes#properties) (value) representing some characteristic of an entity, or a [link](/guide/entities/attributes#links) (pointer) representing some connection to another entity.
 
-These types, known collectively as our "type system", enable any kind of data to be represented in HASH, and they are part of what makes HASH so powerful. Depending on how you use HASH, you may never need to create your own types or learn how they work. However, if you're interested, you can read more about [Types ›](/guide/types)
+An entity cannot contain any information if it has no types associated with it. Read more about [Entities ›](/guide/entities)
 
-### Entities
+## Types
 
-All data in [webs](https://hash.ai/guide/webs) exists as [entities](/guide/entities). An individual entity may have one or more [entity types](/guide/types/entity-types), which in turn enable [properties] and [links] to be stored on it. An entity cannot contain any information if it has no types associated with it. Read more about [Entities ›](/guide/entities)
+Depending on how you use HASH, you may never need to create your own types or _really_ learn how they work. However, in short, there are four kinds of [types](/guide/types) in HASH.
 
-#### Example entity
+Your entities are described by [entity types](/guide/types/entity-types), which define what sort of thing(s) an entity is, and the types of information (attributes) can be associated with it.
 
-Imagine you are a supplier of medical devices. You want to store information in your graph regarding one of your customers, the British National Health Service (NHS). The NHS entity you create might therefore have at least a couple of different entity types associated with it, such as `Organization`, and `Customer`.
+Attributes can either be [properties](/guide/entities/attributes#properties) (values) or [links](/guide/entities/attributes#links) (pointers to other entities). This is where things get a bit more complicated:
 
-- The entity type `Organization` might specify properties like `Legal name`, and links such as `Led by` (pointing to a `Person` entity representing the organization's Managing Director or CEO), and `Subsidiaries` (pointing to one or more other `Organization` entities).
-- Meanwhile, the `Customer` entity type may also specify properties such as `Name` (which will not appear duplicated) and `Contract value` alongside links such as `Point of contact` and `Key stakeholders` which may link to other `Person` entities.
+- Properties have a single [property type](/guide/types/property-types) that semantically describe them.
+  - Properties must conform to a [data type](/guide/types/data-types). The allowed data type(s) are defined by the _property type_.
+- Links between entities have one or more [link types](/guide/types/link-types) that describe the relationship between the entities (e.g. two people, or a person and a company).
+  - The type of entity that a link is allowed to point to may also be constrained. These constraints are contained within the definition of the entity type that expects the link.
 
-Entity preview: NHS England
-**Attrbute type** **Attribute name** **Value**
-Property type Legal name NHS England
-Property type Contract value £18,650,000
-Link type Led by Amanda Pritchard
-Link type Key stakeholders Ming Tang, Vin Diwakar, Louise Greenrod
-Link type Point of contact Amanda Pritchard
+These four types (entity, link, property and data) are known collectively as our "type system", enable any kind of data to be represented in HASH, and they are part of what makes HASH so powerful. If this sounds interesting (or confusing!) and you'd like to learn more, you can read more about [Types ›](/guide/types)
 
-[//]: # (We don't need to mention it to end-users here, but we may wish to explain in the dev docs that every link between two entities is itself an entity (of a special type, called a 'link entity'). In this case, a link called `NHS England - Led by - Amanda Pritchard` is created.)
-
-### Permissions
+## Permissions
 
 [Permissions](/guide/webs/permissions) govern what users (both individually and on a group-basis) can both see and do. Permissions can be managed very granularly, allowing view, update, comment, share and other forms of access to be restricted only to authoriszed users. Read more about [Permissions ›](/guide/webs/permissions)
 
-### History
+## History
 
 [History](/guide/webs/history) in HASH refers to three things:
 
 1. a complete record of all the changes to an entity or type over time (change tracking)
 1. the ability to inspect, access and even use older versions of an entity or type (versioning)
-1. the ability to see where information and changes came from (provenance)
+1. the ability to see where information and changes came from, as well as what caused them (provenance)
 
 Read more about [History ›](/guide/webs/history)
 
-### Pages
+## Pages
 
 [Pages](/guide/pages) are a special kind of entity in HASH. Pages created inside of each web you belong to (i.e. your own, and those of any organizations you're a member of) will appear in your left-hand sidebar inside of HASH.
 
@@ -89,12 +80,47 @@ Read more about [Pages ›](/guide/pages)
 
 - the [Paragaph] block lets you type (or see) some text, depending on whether you have edit (or just view) persmissions on a page
 - the [Image] block similarly lets you edit, insert, or simply view a picture (depending again upon your permissions)
-- a [Minesweeper] block
+- the [Minesweeper] block is just good fun
 
-Or a block might be interactive, and offer complex functionality such as access to an AI chatbot, or a game of Minesweeper.
+A block such as a button or dropdown may also be [interactive](/guide/pages/blocks#action), or offer complex functionality such as access to an AI chatbot.
 
 If you're a web developer comfortable writing code, you can build and publish your own blocks, and use them inside of HASH, by following the guide in the [HASH developer docs](https://hash.dev/docs/blocks).
 
 As a user, you can read more about [Blocks ›](/guide/pages/blocks)
 
-# Collaborating in HASH
+## Sharing
+
+## Integrations
+
+## Plugins
+
+## Flows
+
+## Apps
+
+## AI
+
+## Inbox
+
+# Got it?
+
+Don't worry about remembering everything. You won't need everything, and you'll be able to get help in-app anytime should you need it. Hopefully the above provides an at least somewhat enlightening overview of HASH's core concepts, and hints at its true power.
+
+---
+
+### Example entity
+
+Imagine you are a supplier of medical devices. You want to store information in your graph regarding one of your customers, the British National Health Service (NHS). The NHS entity you create might therefore have at least a couple of different entity types associated with it, such as `Organization`, and `Customer`.
+
+- The entity type `Organization` might specify properties like `Legal name`, and links such as `Led by` (pointing to a `Person` entity representing the organization's Managing Director or CEO), and `Subsidiaries` (pointing to one or more other `Organization` entities).
+- Meanwhile, the `Customer` entity type may also specify properties such as `Name` (which will not appear duplicated) and `Contract value` alongside links such as `Point of contact` and `Key stakeholders` which may link to other `Person` entities.
+
+Entity preview: NHS England
+**Attrbute type** **Attribute name** **Value**
+Property type Legal name NHS England
+Property type Contract value £18,650,000
+Link type Led by Amanda Pritchard
+Link type Key stakeholders Ming Tang, Vin Diwakar, Louise Greenrod
+Link type Point of contact Amanda Pritchard
+
+[//]: # (We don't need to mention it to end-users here, but we may wish to explain in the dev docs that every link between two entities is itself an entity (of a special type, called a 'link entity'). In this case, a link called `NHS England - Led by - Amanda Pritchard` is created.)
