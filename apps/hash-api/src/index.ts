@@ -58,10 +58,10 @@ import {
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
+import { checkGoogleAccessToken } from "./integrations/google/check-access-token";
 import { createSheetsIntegration } from "./integrations/google/create-sheets-integration";
 import { getGoogleAccessToken } from "./integrations/google/get-access-token";
 import { googleOAuthCallback } from "./integrations/google/oauth-callback";
-import { getGoogleAccountById } from "./integrations/google/shared/get-google-account";
 import { oAuthLinear, oAuthLinearCallback } from "./integrations/linear/oauth";
 import { linearWebhook } from "./integrations/linear/webhook";
 import { createIntegrationSyncBackWatcher } from "./integrations/sync-back-watcher";
@@ -92,8 +92,8 @@ import { createVaultClient } from "./vault";
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
 const baseRateLimitOptions: Partial<RateLimitOptions> = {
-  windowMs: process.env.NODE_ENV === "test" ? 1000 * 5 : 1000 * 20, // 20 seconds
-  limit: 5, // Limit each IP to 5 requests every 20 seconds
+  windowMs: process.env.NODE_ENV === "test" ? 1000 * 5 : 1000 * 30, // 30 seconds
+  limit: 10, // Limit each IP to 10 requests every 30 seconds
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 };
@@ -516,6 +516,11 @@ const main = async () => {
 
   app.post("/oauth/google/callback", authRouteRateLimiter, googleOAuthCallback);
   app.post("/oauth/google/token", authRouteRateLimiter, getGoogleAccessToken);
+  app.post(
+    "/oauth/google/check-token",
+    authRouteRateLimiter,
+    checkGoogleAccessToken,
+  );
   app.post(
     "/integrations/google-sheets/sync",
     authRouteRateLimiter,

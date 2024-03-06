@@ -22,7 +22,7 @@ import { getEntityRevision, getRoots } from "@local/hash-subgraph/stdlib";
 import { ImpureGraphFunction } from "../../../graph/context-types";
 import { getEntities } from "../../../graph/knowledge/primitive/entity";
 
-export const getSecretsForAccount: ImpureGraphFunction<
+export const getSecretEntitiesForAccount: ImpureGraphFunction<
   { userAccountId: AccountId; googleAccountEntityId: EntityId },
   Promise<
     {

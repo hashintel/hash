@@ -12,8 +12,6 @@ export const GoogleFilePicker = ({
 }: GoogleFilePickerProps) => {
   const [ready, setReady] = useState(typeof gapi !== "undefined");
 
-  console.log({ ready, accessToken });
-
   useEffect(() => {
     if (accessToken && ready) {
       gapi.load("picker", () => {

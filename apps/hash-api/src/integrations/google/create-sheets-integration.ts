@@ -28,12 +28,13 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import {
+  getEntityRevision,
   getEntityTypeAndParentsById,
   getEntityTypeById,
   getPropertyTypeForEntity,
 } from "@local/hash-subgraph/stdlib";
 import { RequestHandler } from "express";
-import { Auth, google, sheets_v4 } from "googleapis";
+import { google, sheets_v4 } from "googleapis";
 
 import {
   createEntity,
@@ -44,7 +45,7 @@ import { bpMultiFilterToGraphFilter } from "../../graph/knowledge/primitive/enti
 import { enabledIntegrations } from "../enabled-integrations";
 import { googleOAuth2Client } from "./oauth-client";
 import { getGoogleAccountById } from "./shared/get-google-account";
-import { getSecretsForAccount } from "./shared/get-secrets-for-account";
+import { getTokensForAccount } from "./shared/get-tokens-for-account";
 
 const sheets = google.sheets({
   auth: googleOAuth2Client,
@@ -73,39 +74,48 @@ type SheetOutputFormat = {
   audience: "human" | "machine";
 };
 
+type ColumnsForEntity = {
+  columns: Record<
+    string,
+    {
+      columnLetter: string;
+      label: string;
+      baseOrVersionedUrl?: string;
+    }
+  >;
+  baseColumnCount: number;
+  isLinkType: boolean;
+  linkColumnCount: number;
+  propertyColumnCount: number;
+};
+
 const createColumnsForEntity = (
   entityType: EntityType,
   subgraph: Subgraph,
   format: SheetOutputFormat,
-) => {
+): ColumnsForEntity => {
   const { audience } = format;
   const humanReadable = audience === "human";
 
-  const columns: Record<
-    string,
-    {
-      column: string;
-      label: string;
-    }
-  > = {
+  const columns: ColumnsForEntity["columns"] = {
     entityId: {
-      column: "A",
+      columnLetter: "A",
       label: humanReadable ? "Entity Id" : "entityId",
     },
     label: {
-      column: "B",
+      columnLetter: "B",
       label: humanReadable ? "Label" : "label",
     },
     editionCreatedAt: {
-      column: "C",
+      columnLetter: "C",
       label: humanReadable ? "Edition Created At" : "editionCreatedAt",
     },
     entityCreatedAt: {
-      column: "D",
+      columnLetter: "D",
       label: humanReadable ? "Entity Created At" : "entityCreatedAt",
     },
     draft: {
-      column: "E",
+      columnLetter: "E",
       label: humanReadable ? "Draft" : "draft",
     },
   };
@@ -131,19 +141,19 @@ const createColumnsForEntity = (
     }
   }
 
-  const isLinkType = entityTypeAndParents.find(
+  const isLinkType = entityTypeAndParents.some(
     (ancestor) =>
       ancestor.schema.$id === blockProtocolEntityTypes.link.entityTypeId,
   );
 
   if (isLinkType) {
     columns.leftEntityId = {
-      column: String.fromCharCode(65 + nextColumnIndex),
+      columnLetter: String.fromCharCode(65 + nextColumnIndex),
       label: humanReadable ? "Source Entity Id" : "leftEntityId",
     };
     nextColumnIndex++;
     columns.rightEntityId = {
-      column: String.fromCharCode(65 + nextColumnIndex),
+      columnLetter: String.fromCharCode(65 + nextColumnIndex),
       label: humanReadable ? "Target Entity Id" : "rightEntityId",
     };
     nextColumnIndex++;
@@ -151,14 +161,31 @@ const createColumnsForEntity = (
 
   const baseAndLinkDataColumnCount = nextColumnIndex;
 
+  for (const baseUrl of [...properties]) {
+    const { propertyType } = getPropertyTypeForEntity(
+      subgraph,
+      entityType.$id,
+      baseUrl,
+    );
+    columns[`properties.${baseUrl}`] = {
+      baseOrVersionedUrl: baseUrl,
+      columnLetter: String.fromCharCode(65 + nextColumnIndex),
+      label: humanReadable ? propertyType.title : `properties.${baseUrl}`,
+    };
+    nextColumnIndex++;
+  }
+
+  const propertyColumnCount = nextColumnIndex - baseAndLinkDataColumnCount;
+
   for (const linkTypeId of [...links]) {
     const linkEntityType = getEntityTypeById(subgraph, linkTypeId);
     if (!linkEntityType) {
       throw new Error(`Link type ${linkTypeId} not found in subgraph`);
     }
 
-    columns[linkTypeId] = {
-      column: String.fromCharCode(65 + nextColumnIndex),
+    columns[`links.${linkTypeId}`] = {
+      baseOrVersionedUrl: linkTypeId,
+      columnLetter: String.fromCharCode(65 + nextColumnIndex),
       label: humanReadable
         ? linkEntityType.schema.title
         : `links.${linkTypeId}`,
@@ -166,23 +193,8 @@ const createColumnsForEntity = (
     nextColumnIndex++;
   }
 
-  const linkColumnCount = nextColumnIndex - baseAndLinkDataColumnCount;
-
-  for (const baseUrl of [...properties]) {
-    const { propertyType } = getPropertyTypeForEntity(
-      subgraph,
-      entityType.$id,
-      baseUrl,
-    );
-    columns[baseUrl] = {
-      column: String.fromCharCode(65 + nextColumnIndex),
-      label: humanReadable ? propertyType.title : `properties.${baseUrl}`,
-    };
-    nextColumnIndex++;
-  }
-
-  const propertyColumnCount =
-    nextColumnIndex - baseAndLinkDataColumnCount - linkColumnCount;
+  const linkColumnCount =
+    nextColumnIndex - propertyColumnCount - baseAndLinkDataColumnCount;
 
   return {
     baseColumnCount,
@@ -205,7 +217,7 @@ const createHyperlinkCell = ({
   endCellInclusive: string;
 }) => ({
   userEnteredValue: {
-    formulaValue: `=HYPERLINK("#gid=${sheetId}&range=${startCellInclusive}:${endCellInclusive}", ${label})`,
+    formulaValue: `=HYPERLINK("#gid=${sheetId}&range=${startCellInclusive}:${endCellInclusive}", "${label}")`,
   },
 });
 
@@ -238,6 +250,7 @@ const createCellFromValue = (value: unknown): sheets_v4.Schema$CellData => {
 type EntitySheetRequests = {
   [typeId: string]: {
     additionalRequests: sheets_v4.Schema$Request[];
+    columns: ColumnsForEntity["columns"];
     sheetId: number;
     rows: sheets_v4.Schema$RowData[];
     typeTitle: string;
@@ -245,6 +258,12 @@ type EntitySheetRequests = {
   };
 };
 
+/**
+ * Create requests to the Google Sheets API to create a sheet for each entity type in the subgraph.
+ *
+ * This function could later return an abstraction of sheet requests (e.g. Create Sheet, Insert Rows)
+ * to be converted into calls to different spreadsheet APIs.
+ */
 const createSheetRequestsFromEntitySubgraph = (
   entitySubgraph: Subgraph<EntityRootType>,
   format: SheetOutputFormat,
@@ -290,12 +309,35 @@ const createSheetRequestsFromEntitySubgraph = (
       );
     });
 
+  /**
+   * Stores the first rows an entity appears in (there may be more rows that follow if multiple editions are present)
+   * Allows for linking from the link type's sheet to the entity's sheet in human-readable formatting.
+   */
   const entityPositionMap: {
-    [key: EntityId]: {
+    [entityId: EntityId]: {
       sheetId: number;
       rowIndex: number;
+      lastColumnLetter: string;
     };
   } = {};
+
+  /**
+   * Store the range of rows in a link type's sheet that contain the outgoing links from an entity of that type.
+   * Allows for linking from the entity's sheet to the link type's sheet in human-readable formatting.
+   */
+  const entityOutgoingLinkRangeByLinkTypeId: {
+    [entityId: EntityId]: {
+      [linkTypeId: VersionedUrl]: {
+        sourceColumnIndex: number;
+        sheetId?: number;
+        startRowIndex?: number;
+        endRowIndex?: number;
+        lastColumnLetter?: string;
+      };
+    };
+  } = {};
+
+  const humanReadable = format.audience === "human";
 
   for (const entity of sortedEntities) {
     const entityType = getEntityTypeById(
@@ -320,6 +362,9 @@ const createSheetRequestsFromEntitySubgraph = (
       propertyColumnCount,
     } = createColumnsForEntity(entityType.schema, entitySubgraph, format);
 
+    /**
+     * If we haven't yet created a sheet for this entity type, add it to the map and add its header row(s)
+     */
     if (!entitySheetRequests[typeId]) {
       const sheetId = Object.keys(entitySheetRequests).length;
 
@@ -338,14 +383,14 @@ const createSheetRequestsFromEntitySubgraph = (
 
       const headerRows: sheets_v4.Schema$RowData[] = [{ values: headerRow }];
 
-      if (format.audience === "human") {
+      if (humanReadable) {
         /** For human audiences we'll add group headers across groups of columns */
         const groupHeaderCells: sheets_v4.Schema$CellData[] = [];
 
         /** First, the metadata columns common to all entities */
         groupHeaderCells.push({
           userEnteredValue: {
-            stringValue: typeTitle,
+            stringValue: "Metadata",
           },
           userEnteredFormat: {
             textFormat: {
@@ -361,7 +406,7 @@ const createSheetRequestsFromEntitySubgraph = (
             range: {
               sheetId,
               startRowIndex: 0,
-              endRowIndex: 0,
+              endRowIndex: 1,
               startColumnIndex: 0,
               endColumnIndex: baseColumnCount, // endColumnIndex is exclusive
             },
@@ -370,6 +415,8 @@ const createSheetRequestsFromEntitySubgraph = (
         });
 
         if (isLinkType) {
+          const startColumnIndex = baseColumnCount;
+
           /** If it's a link entity, we also have two cells for source and target entityIds */
           groupHeaderCells.push({
             userEnteredValue: {
@@ -389,85 +436,111 @@ const createSheetRequestsFromEntitySubgraph = (
               range: {
                 sheetId,
                 startRowIndex: 0,
-                endRowIndex: 0,
-                startColumnIndex: groupHeaderCells.length,
-                endColumnIndex: groupHeaderCells.length + 2, // endColumnIndex is exclusive
+                endRowIndex: 1,
+                startColumnIndex,
+                endColumnIndex: startColumnIndex + 2, // endColumnIndex is exclusive
               },
               mergeType: "MERGE_ALL",
             },
           });
         }
 
-        /** Now the properties */
-        groupHeaderCells.push({
-          userEnteredValue: {
-            stringValue: "Properties",
-          },
-          userEnteredFormat: {
-            textFormat: {
-              bold: true,
-              underline: true,
-            },
-          },
-        });
-        groupHeaderCells.push(...Array(propertyColumnCount - 1).fill({}));
+        if (propertyColumnCount > 0) {
+          const startColumnIndex = groupHeaderCells.length;
 
-        additionalRequests.push({
-          mergeCells: {
-            range: {
-              sheetId,
-              startRowIndex: 0,
-              endRowIndex: 0,
-              startColumnIndex: groupHeaderCells.length,
-              endColumnIndex: groupHeaderCells.length + propertyColumnCount, // endColumnIndex is exclusive
+          /** Now the properties */
+          groupHeaderCells.push({
+            userEnteredValue: {
+              stringValue: "Properties",
             },
-            mergeType: "MERGE_ALL",
-          },
-        });
+            userEnteredFormat: {
+              textFormat: {
+                bold: true,
+                underline: true,
+              },
+            },
+          });
+          groupHeaderCells.push(...Array(propertyColumnCount - 1).fill({}));
 
-        /** Finally, cells for each potential link from the entity, which will link to a range in the link type's sheet */
-        groupHeaderCells.push({
-          userEnteredValue: {
-            stringValue: "Links",
-          },
-          userEnteredFormat: {
-            textFormat: {
-              bold: true,
-              underline: true,
+          additionalRequests.push({
+            mergeCells: {
+              range: {
+                sheetId,
+                startRowIndex: 0,
+                endRowIndex: 1,
+                startColumnIndex,
+                endColumnIndex: startColumnIndex + propertyColumnCount, // endColumnIndex is exclusive
+              },
+              mergeType: "MERGE_ALL",
             },
-          },
-        });
-        groupHeaderCells.push(...Array(linkColumnCount - 1).fill({}));
+          });
+        }
 
-        additionalRequests.push({
-          mergeCells: {
-            range: {
-              sheetId,
-              startRowIndex: 0,
-              endRowIndex: 0,
-              startColumnIndex: groupHeaderCells.length,
-              endColumnIndex: groupHeaderCells.length + linkColumnCount, // endColumnIndex is exclusive
+        if (linkColumnCount > 0) {
+          const startColumnIndex = groupHeaderCells.length;
+
+          /** Finally, cells for each potential link from the entity, which will link to a range in the link type's sheet */
+          groupHeaderCells.push({
+            userEnteredValue: {
+              stringValue: "Links",
             },
-            mergeType: "MERGE_ALL",
-          },
-        });
+            userEnteredFormat: {
+              textFormat: {
+                bold: true,
+                underline: true,
+              },
+            },
+          });
+          groupHeaderCells.push(...Array(linkColumnCount - 1).fill({}));
+
+          additionalRequests.push({
+            mergeCells: {
+              range: {
+                sheetId,
+                startRowIndex: 0,
+                endRowIndex: 0,
+                startColumnIndex,
+                endColumnIndex: startColumnIndex + linkColumnCount, // endColumnIndex is exclusive
+              },
+              mergeType: "MERGE_COLUMNS",
+            },
+          });
+        }
 
         headerRows.unshift({ values: groupHeaderCells });
       }
 
       entitySheetRequests[typeId] = {
         additionalRequests,
+        columns,
         rows: headerRows,
         sheetId,
         typeTitle,
         typeVersion,
       };
     }
+    /** Done initialising the sheet if we hadn't already */
 
+    const thisRowIndex = entitySheetRequests[typeId]!.rows.length;
+
+    const lastColumnLetter = String.fromCharCode(
+      65 + Object.keys(columns).length - 1,
+    );
+
+    /**
+     * Store this entity's position in the sheet, so we can link to it from sheets for link types.
+     * If there are multiple editions this will just link to the first.
+     */
     entityPositionMap[entity.metadata.recordId.entityId] = {
       sheetId: entitySheetRequests[typeId]!.sheetId,
-      rowIndex: entitySheetRequests[typeId]!.rows.length,
+      rowIndex: thisRowIndex,
+      lastColumnLetter,
     };
+
+    /**
+     * Initialise the map of ranges in link type sheets that link from this entity.
+     */
+    entityOutgoingLinkRangeByLinkTypeId[entity.metadata.recordId.entityId] = {};
 
     const entityCells: sheets_v4.Schema$CellData[] = [];
 
@@ -493,19 +566,107 @@ const createSheetRequestsFromEntitySubgraph = (
       } else if (key === "draft") {
         entityCells.push(createCellFromValue(isDraftEntity(entity)));
       } else if (key.startsWith("properties.")) {
-        const propertyKey = key.split(".")[1]!;
+        const propertyKey = columns[key]!.baseOrVersionedUrl;
         const value = entity.properties[propertyKey as BaseUrl];
         entityCells.push(createCellFromValue(value));
       } else if (key === "leftEntityId") {
-        entityCells.push(
-          createCellFromValue(entity.linkData?.leftEntityId ?? ""),
-        );
+        const leftEntityId = entity.linkData?.leftEntityId;
+        if (leftEntityId) {
+          const entityPosition = entityPositionMap[leftEntityId];
+          if (humanReadable && entityPosition) {
+            /**
+             * If this is a human-readable sheet, we want to:
+             * 1. Link from the link type's sheet to the range in the entity's sheet
+             * 2. Track the rows in the link type's sheet that link from this entity,
+             *    and insert a link to the range in the entity's sheet when we have all the rows.
+             * If we can't find the linked entity in the sheet (no entityPosition), we go to the else branch and just list the id.
+             * It might be excluded from the query due to permissions, archive or draft status.
+             */
+            const { sheetId, rowIndex } = entityPosition;
+            const linkedEntity = getEntityRevision(
+              entitySubgraph,
+              leftEntityId,
+            );
+
+            /** Create the link from this sheet to the source entity */
+            entityCells.push(
+              createHyperlinkCell({
+                label: generateEntityLabel(entitySubgraph, linkedEntity),
+                sheetId,
+                startCellInclusive: `A${rowIndex + 1}`,
+                endCellInclusive: `${entityPosition.lastColumnLetter}${rowIndex + 1}`,
+              }),
+            );
+
+            /**
+             * Track the range of rows in this link type's sheet that have a specific entity as the source.
+             * We sorted link entities by leftEntityId, so we know it will be an unbroken series in this sheet.
+             */
+            const outgoingLinkMapForLeftEntity =
+              entityOutgoingLinkRangeByLinkTypeId[leftEntityId]?.[typeId];
+            if (!outgoingLinkMapForLeftEntity) {
+              throw new Error(
+                `Outgoing link map for entity ${leftEntityId} somehow not initialized by the time ${typeId} links were processed`,
+              );
+            }
+            if (!outgoingLinkMapForLeftEntity.sheetId) {
+              /**
+               * This is the first time we've seen this entity as a source in this sheet, set the sheetId and start index
+               */
+              outgoingLinkMapForLeftEntity.sheetId =
+                entitySheetRequests[typeId]!.sheetId;
+              outgoingLinkMapForLeftEntity.startRowIndex = thisRowIndex;
+              outgoingLinkMapForLeftEntity.lastColumnLetter = lastColumnLetter;
+            }
+            /** Set the end index. We'll keep updating this until we no longer see the entity as a source */
+            outgoingLinkMapForLeftEntity.endRowIndex = thisRowIndex;
+          } else {
+            /**
+             * We're not in human-readable format or we can't find the source entity, just show its id.
+             */
+            entityCells.push(
+              createCellFromValue(entity.linkData?.leftEntityId ?? ""),
+            );
+          }
+        }
       } else if (key === "rightEntityId") {
-        entityCells.push(
-          createCellFromValue(entity.linkData?.rightEntityId ?? ""),
-        );
+        const rightEntityId = entity.linkData?.rightEntityId;
+
+        if (rightEntityId) {
+          const entityPosition = entityPositionMap[rightEntityId];
+
+          if (humanReadable && entityPosition) {
+            const { sheetId, rowIndex } = entityPosition;
+
+            const linkedEntity = getEntityRevision(
+              entitySubgraph,
+              rightEntityId,
+            );
+
+            entityCells.push(
+              createHyperlinkCell({
+                label: generateEntityLabel(entitySubgraph, linkedEntity),
+                sheetId,
+                startCellInclusive: `A${rowIndex + 1}`,
+                endCellInclusive: `${entityPosition.lastColumnLetter}${rowIndex + 1}`,
+              }),
+            );
+          } else {
+            entityCells.push(
+              createCellFromValue(entity.linkData?.rightEntityId ?? ""),
+            );
+          }
+        }
       } else if (key.startsWith("links.")) {
-        // do nothing with links, we will insert a link to the relevant sheet when we come to it
+        /**
+         * At this point we just need to initialize the map where we'll insert the range for each type of outgoing link from this entity.
+         * – when we process the link entities, we'll add a link in these cells to the range in the link type's sheet (see leftEntityId above)
+         */
+        entityOutgoingLinkRangeByLinkTypeId[entity.metadata.recordId.entityId]![
+          columns[key]!.baseOrVersionedUrl as VersionedUrl
+        ] = {
+          sourceColumnIndex: Object.keys(columns).indexOf(key),
+        };
       } else {
         throw new Error(`Unexpected column key ${key}`);
       }
@@ -520,22 +681,17 @@ const createSheetRequestsFromEntitySubgraph = (
     typeId,
     { additionalRequests, sheetId, rows, typeTitle },
   ] of Object.entries(entitySheetRequests)) {
-    const typesWithIdenticalTitles = Object.entries(entitySheetRequests).filter(
-      ([_typeId, entitySheetRequest]) =>
-        entitySheetRequest.typeTitle === typeTitle,
-    );
-
     // @todo add discriminator to sheet titles to differentiate between types with identical titles, for human readers
+    // const typesWithIdenticalTitles = Object.entries(entitySheetRequests).filter(
+    //   ([_typeId, entitySheetRequest]) =>
+    //     entitySheetRequest.typeTitle === typeTitle,
+    // );
 
     requests.push(
       ...[
         {
           addSheet: {
             properties: {
-              gridProperties: {
-                frozenRowCount: format.audience === "human" ? 2 : 0,
-                frozenColumnCount: format.audience === "human" ? 2 : 0,
-              },
               sheetId,
               title: format.audience === "human" ? typeTitle : typeId,
             },
@@ -551,19 +707,95 @@ const createSheetRequestsFromEntitySubgraph = (
             rows,
           },
         },
-        {
-          addProtectedRange: {
-            protectedRange: {
-              range: {
-                sheetId,
-              },
-              warningOnly: true,
-            },
-          },
-        },
+        /**
+         * This will show a warning when the user tries to edit the sheet, including:
+         * 1. Editing / deleting a cell
+         * 2. Sorting the sheet
+         * 3. Resizing the columns / rows
+         * Disabling for now as it's annoying and we aren't relying on the content/position of the cells,
+         * we just overwrite them each time. Might be useful when we start reading from the sheets, e.g. for 2-way sync.
+         */
+        // {
+        //   addProtectedRange: {
+        //     protectedRange: {
+        //       range: {
+        //         sheetId,
+        //         startRowIndex: 0,
+        //         endRowIndex: rows.length,
+        //         startColumnIndex: 0,
+        //         endColumnIndex: rows[0]?.values?.length ?? 0,
+        //       },
+        //       warningOnly: true,
+        //     },
+        //   },
+        // },
         ...additionalRequests,
       ],
     );
+
+    if (humanReadable) {
+      /** Fit columns to the maximum width of their content */
+      requests.push({
+        autoResizeDimensions: {
+          dimensions: {
+            sheetId,
+            dimension: "COLUMNS",
+            startIndex: 0,
+            endIndex: rows[0]?.values?.length ?? 0,
+          },
+        },
+      });
+    }
+  }
+
+  if (humanReadable) {
+    /**
+     * Add links from source entity rows to the range of links from them in the link type's sheet
+     */
+    for (const [entityId, outgoingLinkRanges] of typedEntries(
+      entityOutgoingLinkRangeByLinkTypeId,
+    )) {
+      const entityPosition = entityPositionMap[entityId];
+      if (!entityPosition) {
+        continue;
+      }
+
+      for (const [_linkTypeId, outgoingLinkRange] of Object.entries(
+        outgoingLinkRanges,
+      )) {
+        if (
+          outgoingLinkRange.sheetId !== undefined &&
+          outgoingLinkRange.startRowIndex !== undefined &&
+          outgoingLinkRange.endRowIndex !== undefined &&
+          outgoingLinkRange.lastColumnLetter !== undefined
+        ) {
+          requests.push({
+            updateCells: {
+              fields: "*",
+              range: {
+                sheetId: entityPosition.sheetId,
+                startRowIndex: entityPosition.rowIndex,
+                endRowIndex: entityPosition.rowIndex + 1,
+                startColumnIndex: outgoingLinkRange.sourceColumnIndex,
+                endColumnIndex: outgoingLinkRange.sourceColumnIndex + 1,
+              },
+              rows: [
+                {
+                  values: [
+                    createHyperlinkCell({
+                      label: `View links`,
+                      sheetId: outgoingLinkRange.sheetId,
+                      startCellInclusive: `A${outgoingLinkRange.startRowIndex + 1}`,
+                      endCellInclusive: `${outgoingLinkRange.lastColumnLetter}${outgoingLinkRange.endRowIndex + 1}`,
+                    }),
+                  ],
+                },
+              ],
+            },
+          });
+        }
+      }
+    }
   }
 
   return requests;
@@ -578,19 +810,40 @@ const updateSpreadsheet = async (
   });
 
   const sheetRequests = createSheetRequestsFromEntitySubgraph(entitySubgraph, {
-    audience: "machine",
+    audience: "human",
   });
+
+  const existingSheets = spreadsheet.data.sheets ?? [];
+
+  /**
+   * We can't leave the spreadsheet without a sheet, so we need to insert one first and delete it at the end,
+   * to allow clearing out the existing sheets. sheetId is an Int32
+   */
+  const placeholderFirstSheetId = 2147483647;
 
   await sheets.spreadsheets.batchUpdate({
     spreadsheetId,
     requestBody: {
       requests: [
-        ...(spreadsheet.data.sheets ?? []).map((sheet) => ({
+        {
+          addSheet: {
+            properties: {
+              sheetId: placeholderFirstSheetId,
+              title: "Placeholder",
+            },
+          },
+        },
+        ...existingSheets.map((sheet) => ({
           deleteSheet: {
             sheetId: sheet.properties?.sheetId,
           },
         })),
         ...sheetRequests,
+        {
+          deleteSheet: {
+            sheetId: placeholderFirstSheetId,
+          },
+        },
       ],
     },
   });
@@ -657,35 +910,23 @@ export const createSheetsIntegration: RequestHandler<
       return;
     }
 
-    const secretAndLinkPairs = await getSecretsForAccount(
-      req.context,
-      authentication,
-      {
-        userAccountId: req.user.accountId,
-        googleAccountEntityId: googleAccount.metadata.recordId.entityId,
-      },
-    );
+    const tokens = await getTokensForAccount(req.context, authentication, {
+      userAccountId: req.user.accountId,
+      googleAccountEntityId: googleAccount.metadata.recordId.entityId,
+      vaultClient: req.context.vaultClient,
+    });
 
-    if (!secretAndLinkPairs[0]) {
-      res.status(400).send({
-        error: `No secrets found for Google account with id ${googleAccountId}.`,
+    const errorMessage = `Could not get tokens for Google account with id ${googleAccountId} for user ${req.user.accountId}.`;
+
+    // @todo flag user secret entity is invalid and create notification for user
+    if (!tokens) {
+      res.status(500).send({
+        error: errorMessage,
       });
       return;
     }
 
-    const { userSecret } = secretAndLinkPairs[0];
-
-    const vaultPath =
-      userSecret.properties[
-        "https://hash.ai/@hash/types/property-type/vault-path/"
-      ];
-
-    const tokens = await req.context.vaultClient.read<Auth.Credentials>({
-      secretMountPath: "secret",
-      path: vaultPath,
-    });
-
-    googleOAuth2Client.setCredentials(tokens.data);
+    googleOAuth2Client.setCredentials(tokens);
 
     /**
      * Find the spreadsheetId to use with the integration by either:
@@ -727,10 +968,20 @@ export const createSheetsIntegration: RequestHandler<
 
     const filter = bpMultiFilterToGraphFilter(multiFilter as MultiFilter);
 
+    const depth = 2;
+
     const entitySubgraph = await getEntities(req.context, authentication, {
       query: {
         filter,
-        graphResolveDepths: zeroedGraphResolveDepths,
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          constrainsPropertiesOn: { outgoing: 255 },
+          constrainsLinksOn: { outgoing: 1 },
+          inheritsFrom: { outgoing: 255 },
+          isOfType: { outgoing: 1 },
+          hasRightEntity: { outgoing: depth, incoming: depth },
+          hasLeftEntity: { outgoing: depth, incoming: depth },
+        },
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
       },
@@ -741,9 +992,7 @@ export const createSheetsIntegration: RequestHandler<
         ? req.body.spreadsheetId
         : await createSpreadsheet(req.body.newFileName);
 
-    const rows = convertEntitySubgraphToRows(entitySubgraph);
-
-    await updateSpreadsheet(spreadsheetId, rows);
+    await updateSpreadsheet(spreadsheetId, entitySubgraph);
 
     const googleSheetIntegrationProperties: GoogleSheetsIntegrationProperties =
       {

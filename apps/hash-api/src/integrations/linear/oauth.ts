@@ -245,38 +245,13 @@ export const oAuthLinearCallback: RequestHandler<
     );
 
     /**
-     * Ensure the linear bot has access to the linear integration entity
-     * and user secret.
+     * Get the linear bot, which will need access to the linear integration entity and user secret.
      */
     const linearBotAccountId = await getMachineActorId(
       req.context,
       authentication,
       { identifier: "linear" },
     );
-
-    const userAndBotAndWebAdminsOnly: EntityRelationAndSubject[] = [
-      {
-        relation: "administrator",
-        subject: {
-          kind: "account",
-          subjectId: userAccountId,
-        },
-      },
-      {
-        relation: "viewer",
-        subject: {
-          kind: "account",
-          subjectId: linearBotAccountId,
-        },
-      },
-      {
-        relation: "setting",
-        subject: {
-          kind: "setting",
-          subjectId: "administratorFromWeb",
-        },
-      },
-    ];
 
     let linearIntegration: LinearIntegration;
     if (existingLinearIntegration) {
@@ -289,8 +264,8 @@ export const oAuthLinearCallback: RequestHandler<
         properties: secretMetadata,
         relationships: [
           /**
-           * Create the user secret, which only the user and Google bot can access.
-           * The web bot has edit access to allow it to edit the user secret entity.
+           * Create the user secret, which only the user and Linear bot can access.
+           * The Linear bot has edit access to allow it to edit and archive the user secret entity.
            */
           {
             relation: "editor",
@@ -325,6 +300,30 @@ export const oAuthLinearCallback: RequestHandler<
             createDefaultAuthorizationRelationships(authentication),
         },
       );
+
+      const userAndBotAndWebAdminsOnly: EntityRelationAndSubject[] = [
+        {
+          relation: "administrator",
+          subject: {
+            kind: "account",
+            subjectId: userAccountId,
+          },
+        },
+        {
+          relation: "viewer",
+          subject: {
+            kind: "account",
+            subjectId: linearBotAccountId,
+          },
+        },
+        {
+          relation: "setting",
+          subject: {
+            kind: "setting",
+            subjectId: "administratorFromWeb",
+          },
+        },
+      ];
 
       // Create the link from the integration to the secret entity, which only the user, Linear bot, and web admins can access
       await createLinkEntity(req.context, authentication, {

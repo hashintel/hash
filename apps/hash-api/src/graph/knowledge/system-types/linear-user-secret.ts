@@ -226,20 +226,23 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
     integrationEntity.properties as LinearIntegrationProperties,
   );
 
+  const userAccountId = extractOwnedByIdFromEntityId(
+    integrationEntity.metadata.recordId.entityId,
+  ) as AccountId;
+
   const secretEntity = await getLinearUserSecretByLinearOrgId(
     context,
     authentication,
     {
       linearOrgId,
-      userAccountId: extractOwnedByIdFromEntityId(
-        integrationEntity.metadata.recordId.entityId,
-      ) as AccountId,
+      userAccountId,
     },
   );
 
   const secret = await vaultClient.read<{ value: string }>({
     path: secretEntity.vaultPath,
     secretMountPath: "secret",
+    userAccountId,
   });
 
   return secret.data.value;

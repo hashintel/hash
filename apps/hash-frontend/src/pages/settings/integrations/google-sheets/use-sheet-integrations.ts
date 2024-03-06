@@ -89,15 +89,11 @@ export const useSheetsIntegrations = (): UseSheetsIntegrationsResult => {
       subgraph,
     ) as Entity<GoogleSheetsIntegrationProperties>[];
 
-    console.log({ integrations });
-
     const integrationsWithAccounts = integrations.map((integration) => {
       const linkedEntities = getOutgoingLinkAndTargetEntities(
         subgraph,
         integration.metadata.recordId.entityId,
       );
-
-      console.log({ linkedEntities });
 
       const accountEntity = linkedEntities.find(
         (linkAndTarget) =>

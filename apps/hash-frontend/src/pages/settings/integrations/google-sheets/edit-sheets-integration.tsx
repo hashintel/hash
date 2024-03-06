@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client";
 import { MultiFilter } from "@blockprotocol/graph";
-import { CheckIcon, TextField } from "@hashintel/design-system";
+import { AlertModal, CheckIcon, TextField } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -18,6 +18,7 @@ import { createEntityTypeMutation } from "../../../../graphql/queries/ontology/e
 import { useLatestEntityTypesOptional } from "../../../../shared/entity-types-context/hooks";
 import { usePropertyTypes } from "../../../../shared/property-types-context";
 import { Button } from "../../../../shared/ui/button";
+import { Link } from "../../../../shared/ui/link";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { GoogleAccountSelect } from "./edit-sheets-integration/account-select";
 import { useGoogleAuth } from "./google-auth-context";
@@ -34,6 +35,9 @@ type IntegrationData = {
 };
 
 type SyncToSheetRequestBody = {
+  format: {
+    audience: "human" | "machine";
+  };
   googleAccountId: string;
   queryEntityId: EntityId;
   schedule: "hourly" | "daily" | "weekly" | "monthly";
@@ -120,6 +124,7 @@ export const EditSheetsIntegration = ({
   onComplete,
 }: EditSheetsIntegrationProps) => {
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [showReauthModal, setShowReauthModal] = useState(false);
 
   const { authenticatedUser } = useAuthenticatedUser();
 
@@ -148,7 +153,7 @@ export const EditSheetsIntegration = ({
     return null;
   }
 
-  const { addGoogleAccount, getAccessToken } = authContext;
+  const { addGoogleAccount, checkAccessToken, getAccessToken } = authContext;
 
   const submittable =
     !!integrationData.googleAccountId &&
@@ -161,6 +166,15 @@ export const EditSheetsIntegration = ({
       !integrationData.query ||
       (!integrationData.existingFile && !integrationData.newFileName)
     ) {
+      return;
+    }
+
+    try {
+      await checkAccessToken({
+        googleAccountId: integrationData.googleAccountId,
+      });
+    } catch {
+      setShowReauthModal(true);
       return;
     }
 
@@ -201,13 +215,26 @@ export const EditSheetsIntegration = ({
 
   return (
     <Box>
+      {showReauthModal && (
+        <AlertModal
+          callback={() => addGoogleAccount()}
+          calloutMessage="Access to this Google account has expired or been revoked"
+          close={() => setShowReauthModal(false)}
+          type="info"
+        >
+          <Typography>
+            Please log in with Google again to continue setting up the
+            integration.
+          </Typography>
+        </AlertModal>
+      )}
       {accessToken && (
         <GoogleFilePicker
           accessToken={accessToken}
           onUserChoice={(response) => {
-            console.log("Picker response", response);
             setAccessToken(null);
 
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
             if (response.action !== "picked" || !response.docs[0]) {
               return;
             }
@@ -231,9 +258,9 @@ export const EditSheetsIntegration = ({
           <Stack alignItems="center" direction="row" gap={2}>
             <GoogleAccountSelect
               googleAccountId={integrationData.googleAccountId}
-              setGoogleAccountId={(googleAccountId) =>
-                setIntegrationData({ ...integrationData, googleAccountId })
-              }
+              setGoogleAccountId={(googleAccountId) => {
+                setIntegrationData({ ...integrationData, googleAccountId });
+              }}
             />
             <Typography>or</Typography>
             <Button onClick={() => addGoogleAccount()}>
@@ -259,10 +286,15 @@ export const EditSheetsIntegration = ({
                   return;
                 }
 
-                const response = await getAccessToken({
-                  googleAccountId: integrationData.googleAccountId,
-                });
-                setAccessToken(response.accessToken);
+                try {
+                  const response = await getAccessToken({
+                    googleAccountId: integrationData.googleAccountId,
+                  });
+
+                  setAccessToken(response.accessToken);
+                } catch {
+                  setShowReauthModal(true);
+                }
               }}
             >
               Choose {integrationData.existingFile ? "a different" : "a"} file

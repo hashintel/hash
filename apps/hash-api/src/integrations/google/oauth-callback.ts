@@ -24,7 +24,7 @@ import { createUserSecretPath } from "../../vault";
 import { enabledIntegrations } from "../enabled-integrations";
 import { googleOAuth2Client } from "./oauth-client";
 import { getGoogleAccountById } from "./shared/get-google-account";
-import { getSecretsForAccount } from "./shared/get-secrets-for-account";
+import { getSecretEntitiesForAccount } from "./shared/get-secret-entities-for-account";
 
 const oauth2 = google.oauth2({
   auth: googleOAuth2Client,
@@ -164,7 +164,8 @@ export const googleOAuthCallback: RequestHandler<
        * When looking at their Google Account security settings, users will see all scopes granted for an app combined,
        * rather than being able to inspect and revoke access on a token-by-token basis.
        */
-      const linkAndSecretPairs = await getSecretsForAccount(
+
+      const linkAndSecretPairs = await getSecretEntitiesForAccount(
         req.context,
         authentication,
         {
@@ -173,10 +174,15 @@ export const googleOAuthCallback: RequestHandler<
         },
       );
 
+      /** Only the Google bot can edit these entities */
+      const googleBotAuthentication = { actorId: googleBotAccountId };
+
       await Promise.all(
         linkAndSecretPairs.flatMap(({ userSecret, usesUserSecretLink }) => [
-          archiveEntity(req.context, authentication, { entity: userSecret }),
-          archiveEntity(req.context, authentication, {
+          archiveEntity(req.context, googleBotAuthentication, {
+            entity: userSecret,
+          }),
+          archiveEntity(req.context, googleBotAuthentication, {
             entity: usesUserSecretLink,
           }),
         ]),
@@ -187,9 +193,8 @@ export const googleOAuthCallback: RequestHandler<
 
     /**
      * Create the user secret, which only the user and Google bot can access.
-     * The web bot has edit access to allow it to edit the user secret entity.
-     *
-     * @todo lock down user secret entity permissions / instantiators. prevent vault path guessing exploits
+     * The Google integration bot has edit access to allow it to edit and archive the user secret entity.
+     * No other account requires access to it.
      */
     const userAndBotAndWebAdminsOnly: EntityRelationAndSubject[] = [
       {

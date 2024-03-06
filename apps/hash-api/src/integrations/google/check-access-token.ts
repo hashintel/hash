@@ -10,10 +10,15 @@ type GetGoogleAccessTokenRequestBody = {
 };
 
 type GetGoogleAccessTokenResponseBody =
-  | { accessToken: string }
+  | { accessToken: true }
   | { error: string };
 
-export const getGoogleAccessToken: RequestHandler<
+/**
+ * Check if a valid access token is present for the requested Google Account
+ * @param req
+ * @param res
+ */
+export const checkGoogleAccessToken: RequestHandler<
   Record<string, never>,
   GetGoogleAccessTokenResponseBody,
   GetGoogleAccessTokenRequestBody
@@ -68,7 +73,7 @@ export const getGoogleAccessToken: RequestHandler<
     const errorMessage = `Could not get tokens for Google account with id ${googleAccountId} for user ${req.user.accountId}.`;
 
     if (!tokens) {
-      res.status(500).send({
+      res.status(404).send({
         error: errorMessage,
       });
       return;
@@ -79,13 +84,13 @@ export const getGoogleAccessToken: RequestHandler<
     const response = await googleOAuth2Client.getAccessToken();
 
     if (!response.token) {
-      res.status(500).send({
+      res.status(403).send({
         error: errorMessage,
       });
       return;
     }
 
     res.json({
-      accessToken: response.token,
+      accessToken: true,
     });
   };

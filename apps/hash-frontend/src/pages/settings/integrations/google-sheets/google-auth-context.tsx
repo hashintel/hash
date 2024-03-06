@@ -19,6 +19,9 @@ type GoogleAuthContextReturn =
   | {
       accounts: Entity<GoogleAccountProperties>[];
       addGoogleAccount: () => void;
+      checkAccessToken: (args: {
+        googleAccountId: string;
+      }) => Promise<{ accessToken: true }>;
       getAccessToken: (args: {
         googleAccountId: string;
       }) => Promise<{ accessToken: string }>;
@@ -47,7 +50,31 @@ export const GoogleAuthProvider = ({ children }: PropsWithChildren) => {
     }: {
       googleAccountId: string;
     }): Promise<{ accessToken: string }> => {
-      return fetch(`${apiOrigin}/oauth/google/token`, {
+      return await fetch(`${apiOrigin}/oauth/google/token`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ googleAccountId }),
+      }).then(async (resp) => {
+        if (resp.status === 200) {
+          return resp.json();
+        }
+        const error = await resp.json();
+        throw new Error(error.error);
+      });
+    },
+    [],
+  );
+
+  const checkAccessToken = useCallback(
+    async ({
+      googleAccountId,
+    }: {
+      googleAccountId: string;
+    }): Promise<{ accessToken: true }> => {
+      return fetch(`${apiOrigin}/oauth/google/check-token`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -107,6 +134,7 @@ export const GoogleAuthProvider = ({ children }: PropsWithChildren) => {
         addGoogleAccount: () => {
           oauthClient.requestCode();
         },
+        checkAccessToken,
         getAccessToken,
         loading: false,
       };
@@ -115,7 +143,13 @@ export const GoogleAuthProvider = ({ children }: PropsWithChildren) => {
         loading: true,
       };
     }
-  }, [accounts, accountsLoading, getAccessToken, oauthClient]);
+  }, [
+    accounts,
+    accountsLoading,
+    checkAccessToken,
+    getAccessToken,
+    oauthClient,
+  ]);
 
   return (
     <GoogleAuthContext.Provider value={value}>
