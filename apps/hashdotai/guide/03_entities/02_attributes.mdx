@@ -6,7 +6,23 @@ metaDescription: Learn what attributes are, and get introduced to the different 
 sidebarTitle: Attributes
 ---
 
-Attributes are the information that describe an entity. Attributes may be either:
+# Overview
 
-1. **properties:** values stored directly on an entity, with a data type; or
-1. **links:** pointers to other entities.
+[Entity types](/guide/types/entity-types) specify the **attributes** that may occur on entities of their type. Attributes are simply the individual pieces of information that describe an entity. An attribute can be either a **property** or a **link**.
+
+# Properties
+
+A property is a value stored directly on an entity. Every property has one [property type](/guide/types/property-types) which:
+
+- has a name and a description which provide semantic meaning wherever it is used, so it is clear and unambiguous what the value represents; and
+- specifies one or more expected [data types](/guide/types/data-types) which can be used to validate that a provided value is plausible.
+
+# Links
+
+A link is a pointer from one entity to another. Every link has one or more [link types](/guide/types/link-type) which determine its semantic meaning.
+
+The expected entity type of a link's target/destination entity(s) are declared alongside the link type, by the entity type expecting the link. _This is in contrast to properties, whose validation constraints are determined by the data type(s) defined on the property type itself._
+
+# Constraints
+
+Constraints on an attribute's value — both the input format defined by a property's `Data Type`, as well as the kinds of entities accepted by a link — can sometimes feel annoying. However, they help validate that information entered or collected is in the right format, helping catch errors and keep data quality high. This also helps ensure that your entities can be used in off-the-shelf [HASH apps](/guide/apps), making bugs a thing of the past.
