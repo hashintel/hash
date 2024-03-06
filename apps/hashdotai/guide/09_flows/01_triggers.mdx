@@ -17,6 +17,8 @@ The presence of a trigger step is not required, but without one a flow will only
 1. **Watchers** monitor data or events, and activate upon the satisfaction of some user-defined criteria. For example:
   1. when a competitor's webpage is updated
   1. when a key metric crosses a specific threshold
+  1. when another flow successfully finishes a run
 1. **Schedulers** await a particular user-defined future point in time, upon which they activate themselves. For example:
-  1. _one-time_ at 2030-01-01 at 12:00PM PST
-  1. _recurrently_ at 12:01AM EST on the 1st of every month
+  1. **at an absolute point in time:** on 2030-01-01 at 12:00PM PST
+  1. **at a relative point in time:** five minutes from now
+  1. **recurringly:** every Friday at 09:00AM EST
