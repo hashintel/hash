@@ -3,13 +3,26 @@ pub(in crate::ontology) mod raw;
 
 use std::num::NonZero;
 
-use crate::{url::BaseUrl, ValidateUrl, ValidationError};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+use crate::{url::BaseUrl, PropertyTypeReference, ValidateUrl, ValidationError};
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(into = "raw::Array<T>", bound(serialize = "T: Serialize + Clone"))]
 pub struct Array<T> {
     pub items: T,
     pub min_items: Option<usize>,
     pub max_items: Option<NonZero<usize>>,
+}
+
+impl<'de> Deserialize<'de> for Array<PropertyTypeReference> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let array_repr = raw::Array::deserialize(deserializer)?;
+        array_repr.try_into().map_err(serde::de::Error::custom)
+    }
 }
 
 impl<T> Array<T> {
@@ -42,10 +55,24 @@ impl<T> Array<T> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(bound(serialize = "T: Serialize + Clone"))]
+#[serde(untagged)]
 pub enum ValueOrArray<T> {
     Value(T),
     Array(Array<T>),
+}
+
+impl<'de> Deserialize<'de> for ValueOrArray<PropertyTypeReference> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value_or_array_repr = raw::ValueOrArray::deserialize(deserializer)?;
+        value_or_array_repr
+            .try_into()
+            .map_err(serde::de::Error::custom)
+    }
 }
 
 impl<T: ValidateUrl> ValidateUrl for ValueOrArray<T> {
@@ -64,7 +91,7 @@ mod tests {
     use serde_json::json;
 
     use super::*;
-    use crate::{raw, url::VersionedUrl, PropertyTypeReference};
+    use crate::{raw, url::VersionedUrl};
 
     fn get_test_value_or_array(url: &VersionedUrl) -> ValueOrArray<PropertyTypeReference> {
         let json_repr = json!({

@@ -9,7 +9,7 @@ use temporal_versioning::RightBoundedTemporalInterval;
 use tokio_postgres::GenericClient;
 use type_system::{
     url::{BaseUrl, VersionedUrl},
-    EntityType,
+    ClosedEntityType,
 };
 
 use crate::{
@@ -65,7 +65,7 @@ impl<C: AsClient> PostgresStore<C> {
         &self,
         filter: &Filter<'f, EntityTypeWithMetadata>,
         temporal_axes: Option<&'f QueryTemporalAxes>,
-    ) -> Result<impl Stream<Item = Result<(EntityTypeId, EntityType), QueryError>>, QueryError>
+    ) -> Result<impl Stream<Item = Result<(EntityTypeId, ClosedEntityType), QueryError>>, QueryError>
     {
         let mut compiler = SelectCompiler::new(temporal_axes, false);
 
