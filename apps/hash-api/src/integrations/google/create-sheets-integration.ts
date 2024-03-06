@@ -409,9 +409,9 @@ const createSheetRequestsFromEntitySubgraph = (
           index === baseColumnCount - 1 ||
           (isLinkType
             ? index === baseColumnCount + 1 ||
-              index === baseColumnCount + propertyColumnCount - 1 ||
+              index === baseColumnCount + propertyColumnCount + 1 ||
               index ===
-                baseColumnCount + propertyColumnCount + linkColumnCount - 1
+                baseColumnCount + propertyColumnCount + linkColumnCount + 1
             : index === baseColumnCount + propertyColumnCount - 1 ||
               index ===
                 baseColumnCount + propertyColumnCount + linkColumnCount - 1);
