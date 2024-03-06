@@ -1,9 +1,6 @@
 import { RequestHandler } from "express";
 
-import { enabledIntegrations } from "../enabled-integrations";
-import { googleOAuth2Client } from "./oauth-client";
-import { getGoogleAccountById } from "./shared/get-google-account";
-import { getTokensForAccount } from "./shared/get-tokens-for-account";
+import { getGoogleAccessTokenForExpressRequest } from "./shared/get-or-check-access-token";
 
 type GetGoogleAccessTokenRequestBody = {
   googleAccountId: string;
@@ -13,6 +10,10 @@ type GetGoogleAccessTokenResponseBody =
   | { accessToken: string }
   | { error: string };
 
+/**
+ * Get an access token for use in the client where unavoidable, e.g. to use the Google File Picker.
+ * Access tokens last for 1 hour.
+ */
 export const getGoogleAccessToken: RequestHandler<
   Record<string, never>,
   GetGoogleAccessTokenResponseBody,
@@ -21,71 +22,20 @@ export const getGoogleAccessToken: RequestHandler<
   // @todo upgrade to Express 5, which handles errors from async request handlers automatically
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
   async (req, res) => {
-    if (!req.user) {
-      res.status(401).send({ error: "User not authenticated." });
-      return;
-    }
-
-    if (!req.context.vaultClient) {
-      res.status(501).send({ error: "Vault integration is not configured." });
-      return;
-    }
-
-    if (!enabledIntegrations.googleSheets) {
-      res.status(501).send({ error: "Google integration is not enabled." });
-      return;
-    }
-
-    const authentication = { actorId: req.user.accountId };
-
-    const { googleAccountId } = req.body;
-
-    /**
-     * Get the Google Account and ensure it has an available token
-     */
-    const googleAccount = await getGoogleAccountById(
-      req.context,
-      authentication,
-      {
-        userAccountId: req.user.accountId,
-        googleAccountId,
-      },
-    );
-
-    if (!googleAccount) {
-      res.status(404).send({
-        error: `Google account with id ${googleAccountId} not found.`,
-      });
-      return;
-    }
-
-    const tokens = await getTokensForAccount(req.context, authentication, {
-      userAccountId: req.user.accountId,
-      googleAccountEntityId: googleAccount.metadata.recordId.entityId,
-      vaultClient: req.context.vaultClient,
+    const accessToken = await getGoogleAccessTokenForExpressRequest({
+      googleAccountId: req.body.googleAccountId,
+      req,
+      res,
     });
 
-    const errorMessage = `Could not get tokens for Google account with id ${googleAccountId} for user ${req.user.accountId}.`;
-
-    if (!tokens) {
-      res.status(500).send({
-        error: errorMessage,
+    if (accessToken) {
+      res.json({
+        accessToken,
       });
       return;
     }
 
-    googleOAuth2Client.setCredentials(tokens);
-
-    const response = await googleOAuth2Client.getAccessToken();
-
-    if (!response.token) {
-      res.status(500).send({
-        error: errorMessage,
-      });
-      return;
-    }
-
-    res.json({
-      accessToken: response.token,
+    res.status(500).send({
+      error: "Internal error – no access token and no other error returned.",
     });
   };

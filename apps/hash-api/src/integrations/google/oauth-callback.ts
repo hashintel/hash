@@ -22,14 +22,9 @@ import {
 import { createLinkEntity } from "../../graph/knowledge/primitive/link-entity";
 import { createUserSecretPath } from "../../vault";
 import { enabledIntegrations } from "../enabled-integrations";
-import { googleOAuth2Client } from "./oauth-client";
 import { getGoogleAccountById } from "./shared/get-google-account";
 import { getSecretEntitiesForAccount } from "./shared/get-secret-entities-for-account";
-
-const oauth2 = google.oauth2({
-  auth: googleOAuth2Client,
-  version: "v2",
-});
+import { createGoogleOAuth2Client } from "./shared/oauth-client";
 
 export const googleOAuthCallback: RequestHandler<
   Record<string, never>,
@@ -57,6 +52,13 @@ export const googleOAuthCallback: RequestHandler<
     }
 
     const { code } = req.body;
+
+    const googleOAuth2Client = createGoogleOAuth2Client();
+
+    const oauth2 = google.oauth2({
+      auth: googleOAuth2Client,
+      version: "v2",
+    });
 
     const { tokens } = await googleOAuth2Client.getToken({
       code,

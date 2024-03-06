@@ -43,17 +43,18 @@ import {
 } from "../../graph/knowledge/primitive/entity";
 import { bpMultiFilterToGraphFilter } from "../../graph/knowledge/primitive/entity/query";
 import { enabledIntegrations } from "../enabled-integrations";
-import { googleOAuth2Client } from "./oauth-client";
 import { getGoogleAccountById } from "./shared/get-google-account";
 import { getTokensForAccount } from "./shared/get-tokens-for-account";
+import { createGoogleOAuth2Client } from "./shared/oauth-client";
 
-const sheets = google.sheets({
-  auth: googleOAuth2Client,
-  version: "v4",
-});
-
-const createSpreadsheet = async (filename: string) => {
-  const sheet = await sheets.spreadsheets.create({
+const createSpreadsheet = async ({
+  filename,
+  sheetsClient,
+}: {
+  filename: string;
+  sheetsClient: sheets_v4.Sheets;
+}) => {
+  const sheet = await sheetsClient.spreadsheets.create({
     requestBody: {
       properties: {
         title: filename,
@@ -205,6 +206,13 @@ const createColumnsForEntity = (
   };
 };
 
+const cellPadding = {
+  top: 8,
+  bottom: 8,
+  right: 8,
+  left: 8,
+};
+
 const createHyperlinkCell = ({
   label,
   sheetId,
@@ -219,15 +227,20 @@ const createHyperlinkCell = ({
   userEnteredValue: {
     formulaValue: `=HYPERLINK("#gid=${sheetId}&range=${startCellInclusive}:${endCellInclusive}", "${label}")`,
   },
+  userEnteredFormat: {
+    padding: cellPadding,
+  },
 });
 
 const createCellFromValue = (value: unknown): sheets_v4.Schema$CellData => {
+  const userEnteredFormat = { padding: cellPadding };
   switch (typeof value) {
     case "number": {
       return {
         userEnteredValue: {
           numberValue: value,
         },
+        userEnteredFormat,
       };
     }
     case "boolean": {
@@ -235,6 +248,7 @@ const createCellFromValue = (value: unknown): sheets_v4.Schema$CellData => {
         userEnteredValue: {
           boolValue: value,
         },
+        userEnteredFormat,
       };
     }
     default: {
@@ -242,6 +256,7 @@ const createCellFromValue = (value: unknown): sheets_v4.Schema$CellData => {
         userEnteredValue: {
           stringValue: stringifyPropertyValue(value),
         },
+        userEnteredFormat,
       };
     }
   }
@@ -368,20 +383,73 @@ const createSheetRequestsFromEntitySubgraph = (
     if (!entitySheetRequests[typeId]) {
       const sheetId = Object.keys(entitySheetRequests).length;
 
-      const headerRow = Object.values(columns).map(({ label }) => ({
-        userEnteredValue: {
-          stringValue: label,
-        },
-        userEnteredFormat: {
-          textFormat: {
-            bold: true,
+      const borderStyle = {
+        style: "SOLID",
+        colorStyle: {
+          rgbColor: {
+            red: 0,
+            green: 0,
+            blue: 0,
           },
         },
-      }));
+      };
+
+      const backgroundStyle: sheets_v4.Schema$CellFormat = {
+        backgroundColorStyle: {
+          rgbColor: {
+            red: 0.92,
+            green: 0.94,
+            blue: 1,
+          },
+        },
+      };
+
+      const headerRow = Object.values(columns).map(({ label }, index) => {
+        const endOfGroup =
+          index === baseColumnCount - 1 ||
+          (isLinkType
+            ? index === baseColumnCount + 1 ||
+              index === baseColumnCount + propertyColumnCount - 1 ||
+              index ===
+                baseColumnCount + propertyColumnCount + linkColumnCount - 1
+            : index === baseColumnCount + propertyColumnCount - 1 ||
+              index ===
+                baseColumnCount + propertyColumnCount + linkColumnCount - 1);
+
+        return {
+          userEnteredValue: {
+            stringValue: label,
+          },
+          userEnteredFormat: humanReadable
+            ? {
+                textFormat: {
+                  bold: true,
+                },
+                borders: {
+                  ...(endOfGroup ? { right: borderStyle } : {}),
+                },
+                padding: cellPadding,
+                ...backgroundStyle,
+              }
+            : {},
+        };
+      });
 
       const additionalRequests: sheets_v4.Schema$Request[] = [];
 
       const headerRows: sheets_v4.Schema$RowData[] = [{ values: headerRow }];
+
+      const groupHeaderFormat: sheets_v4.Schema$CellFormat = {
+        textFormat: {
+          bold: true,
+        },
+        borders: {
+          right: borderStyle,
+        },
+        horizontalAlignment: "CENTER",
+        padding: cellPadding,
+        ...backgroundStyle,
+      };
 
       if (humanReadable) {
         /** For human audiences we'll add group headers across groups of columns */
@@ -392,12 +460,7 @@ const createSheetRequestsFromEntitySubgraph = (
           userEnteredValue: {
             stringValue: "Metadata",
           },
-          userEnteredFormat: {
-            textFormat: {
-              bold: true,
-              underline: true,
-            },
-          },
+          userEnteredFormat: groupHeaderFormat,
         });
         groupHeaderCells.push(...Array(baseColumnCount - 1).fill({}));
 
@@ -422,12 +485,7 @@ const createSheetRequestsFromEntitySubgraph = (
             userEnteredValue: {
               stringValue: "Link Data",
             },
-            userEnteredFormat: {
-              textFormat: {
-                bold: true,
-                underline: true,
-              },
-            },
+            userEnteredFormat: groupHeaderFormat,
           });
           groupHeaderCells.push(...Array(1).fill({}));
 
@@ -453,12 +511,7 @@ const createSheetRequestsFromEntitySubgraph = (
             userEnteredValue: {
               stringValue: "Properties",
             },
-            userEnteredFormat: {
-              textFormat: {
-                bold: true,
-                underline: true,
-              },
-            },
+            userEnteredFormat: groupHeaderFormat,
           });
           groupHeaderCells.push(...Array(propertyColumnCount - 1).fill({}));
 
@@ -484,12 +537,7 @@ const createSheetRequestsFromEntitySubgraph = (
             userEnteredValue: {
               stringValue: "Links",
             },
-            userEnteredFormat: {
-              textFormat: {
-                bold: true,
-                underline: true,
-              },
-            },
+            userEnteredFormat: groupHeaderFormat,
           });
           groupHeaderCells.push(...Array(linkColumnCount - 1).fill({}));
 
@@ -498,11 +546,11 @@ const createSheetRequestsFromEntitySubgraph = (
               range: {
                 sheetId,
                 startRowIndex: 0,
-                endRowIndex: 0,
+                endRowIndex: 1,
                 startColumnIndex,
                 endColumnIndex: startColumnIndex + linkColumnCount, // endColumnIndex is exclusive
               },
-              mergeType: "MERGE_COLUMNS",
+              mergeType: "MERGE_ALL",
             },
           });
         }
@@ -692,6 +740,9 @@ const createSheetRequestsFromEntitySubgraph = (
         {
           addSheet: {
             properties: {
+              gridProperties: {
+                frozenRowCount: format.audience === "human" ? 2 : 0,
+              },
               sheetId,
               title: format.audience === "human" ? typeTitle : typeId,
             },
@@ -707,6 +758,23 @@ const createSheetRequestsFromEntitySubgraph = (
             rows,
           },
         },
+        ...[
+          humanReadable
+            ? {
+                setBasicFilter: {
+                  filter: {
+                    range: {
+                      sheetId,
+                      startRowIndex: 1,
+                      endRowIndex: rows.length,
+                      startColumnIndex: 0,
+                      endColumnIndex: rows[0]?.values?.length ?? 0,
+                    },
+                  },
+                },
+              }
+            : {},
+        ],
         /**
          * This will show a warning when the user tries to edit the sheet, including:
          * 1. Editing / deleting a cell
@@ -732,20 +800,6 @@ const createSheetRequestsFromEntitySubgraph = (
         ...additionalRequests,
       ],
     );
-
-    if (humanReadable) {
-      /** Fit columns to the maximum width of their content */
-      requests.push({
-        autoResizeDimensions: {
-          dimensions: {
-            sheetId,
-            dimension: "COLUMNS",
-            startIndex: 0,
-            endIndex: rows[0]?.values?.length ?? 0,
-          },
-        },
-      });
-    }
   }
 
   if (humanReadable) {
@@ -798,14 +852,29 @@ const createSheetRequestsFromEntitySubgraph = (
     }
   }
 
+  if (humanReadable) {
+    /** Fit columns to the maximum width of their content */
+    requests.push(
+      ...Object.values(entitySheetRequests).map(({ sheetId }) => ({
+        autoResizeDimensions: {
+          dimensions: {
+            sheetId,
+            dimension: "COLUMNS",
+          },
+        },
+      })),
+    );
+  }
+
   return requests;
 };
 
 const updateSpreadsheet = async (
   spreadsheetId: string,
   entitySubgraph: Subgraph<EntityRootType>,
+  sheetsClient: sheets_v4.Sheets,
 ) => {
-  const spreadsheet = await sheets.spreadsheets.get({
+  const spreadsheet = await sheetsClient.spreadsheets.get({
     spreadsheetId,
   });
 
@@ -821,7 +890,7 @@ const updateSpreadsheet = async (
    */
   const placeholderFirstSheetId = 2147483647;
 
-  await sheets.spreadsheets.batchUpdate({
+  await sheetsClient.spreadsheets.batchUpdate({
     spreadsheetId,
     requestBody: {
       requests: [
@@ -926,6 +995,12 @@ export const createSheetsIntegration: RequestHandler<
       return;
     }
 
+    const googleOAuth2Client = createGoogleOAuth2Client();
+    const sheetsClient = google.sheets({
+      auth: googleOAuth2Client,
+      version: "v4",
+    });
+
     googleOAuth2Client.setCredentials(tokens);
 
     /**
@@ -941,7 +1016,7 @@ export const createSheetsIntegration: RequestHandler<
     }
 
     if ("spreadsheetId" in req.body) {
-      const spreadsheet = await sheets.spreadsheets.get({
+      const spreadsheet = await sheetsClient.spreadsheets.get({
         spreadsheetId: req.body.spreadsheetId,
       });
 
@@ -990,9 +1065,12 @@ export const createSheetsIntegration: RequestHandler<
     const spreadsheetId =
       "spreadsheetId" in req.body
         ? req.body.spreadsheetId
-        : await createSpreadsheet(req.body.newFileName);
+        : await createSpreadsheet({
+            filename: req.body.newFileName,
+            sheetsClient,
+          });
 
-    await updateSpreadsheet(spreadsheetId, entitySubgraph);
+    await updateSpreadsheet(spreadsheetId, entitySubgraph, sheetsClient);
 
     const googleSheetIntegrationProperties: GoogleSheetsIntegrationProperties =
       {

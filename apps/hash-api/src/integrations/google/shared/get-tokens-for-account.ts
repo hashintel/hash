@@ -30,8 +30,6 @@ export const getTokensForAccount: ImpureGraphFunction<
     return null;
   }
 
-  console.log(JSON.stringify(secretAndLinkPairs, null, 2));
-
   const { userSecret } = secretAndLinkPairs[0];
 
   const vaultPath =
@@ -47,7 +45,6 @@ export const getTokensForAccount: ImpureGraphFunction<
     });
     return vaultResponse.data;
   } catch (err) {
-    console.log(err);
     return null;
   }
 };
