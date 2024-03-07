@@ -6,8 +6,6 @@ mod snapshot;
 mod test_server;
 mod type_fetcher;
 
-use std::future::Future;
-
 use error_stack::Result;
 use hash_tracing::{init_tracing, TracingConfig};
 

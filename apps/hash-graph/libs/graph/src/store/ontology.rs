@@ -1,4 +1,4 @@
-use std::{borrow::Cow, future::Future, iter};
+use std::{borrow::Cow, iter};
 
 use authorization::{
     schema::{

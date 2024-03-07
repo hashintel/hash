@@ -1,7 +1,5 @@
 #![feature(impl_trait_in_assoc_type)]
 
-use std::future::{Future, IntoFuture};
-
 pub use self::error::{ConfigError, ConnectionError, WorkflowError};
 
 mod ai;
