@@ -232,7 +232,8 @@
     {
       "fileMatch": ["(^|/)README\\.md$", "(^|/)src/lib\\.rs$"],
       "matchStrings": [
-        "https:\\/\\/img\\.shields\\.io\\/static\\/v1\\?label=Rust\\&message=\\d+\\.\\d+\\.\\d+\\/nightly-(?<currentValue>\\d+-\\d+-\\d+)\\&color=blue"
+        "https:\\/\\/img\\.shields\\.io\\/static\\/v1\\?label=Rust\\&message=\\d+\\.\\d+\\.\\d+\\/nightly-(?<currentValue>\\d+-\\d+-\\d+)\\&color=blue",
+        "## ≥ (?<currentValue>\\d+-\\d+-\\d+) \\(If installed through rustup, this will automatically install the required toolchain\\)"
       ],
       "depNameTemplate": "rust",
       "packageNameTemplate": "rust-lang/rust-analyzer",

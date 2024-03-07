@@ -177,9 +177,7 @@ mod tests {
             None,
         );
 
-        church
-            .merge_parent(building)
-            .expect("merging entity types failed");
+        church.extend_one(building);
 
         assert!(
             church.properties().contains_key(
