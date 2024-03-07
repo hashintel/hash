@@ -11,7 +11,7 @@ const MePage: NextPageWithLayout = () => {
   if (authenticatedUser) {
     void router.push(`/@${authenticatedUser.shortname}`);
   } else {
-    void router.push("/");
+    void router.push("/signin?return_to=/me");
   }
 
   return null;
