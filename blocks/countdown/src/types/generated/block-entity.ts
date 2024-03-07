@@ -12,7 +12,7 @@ export type BlockEntityOutgoingLinkAndTarget =
 /**
  * A True or False value
  */
-export type Boolean = boolean;
+export type BooleanDataType = boolean;
 
 export type CountdownBlock = Entity<CountdownBlockProperties>;
 
@@ -36,21 +36,21 @@ export type CountdownBlockProperties = {
  *
  * See: https://blockprotocol.org/@hash/blocks/countdown
  */
-export type CountdownBlockShouldDisplayTimePropertyValue = Boolean;
+export type CountdownBlockShouldDisplayTimePropertyValue = BooleanDataType;
 
 /**
  * An ISO-8601 formatted date and time that acts as the target for something.
  *
  * For example: “2233-03-22T13:30:23Z”
  */
-export type TargetDateAndTimePropertyValue = Text;
+export type TargetDateAndTimePropertyValue = TextDataType;
 
 /**
  * An ordered sequence of characters
  */
-export type Text = string;
+export type TextDataType = string;
 
 /**
  * The name given to something to identify it, generally associated with objects or inanimate things such as books, websites, songs, etc.
  */
-export type TitlePropertyValue = Text;
+export type TitlePropertyValue = TextDataType;

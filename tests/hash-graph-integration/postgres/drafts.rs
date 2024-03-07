@@ -4,6 +4,7 @@ use graph_types::knowledge::{
     link::EntityLinkOrder,
 };
 use pretty_assertions::assert_eq;
+use temporal_versioning::ClosedTemporalBound;
 use type_system::url::{BaseUrl, VersionedUrl};
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
@@ -65,6 +66,18 @@ async fn initial_draft() {
         .expect("could not create entity");
     assert!(entity.record_id.entity_id.draft_id.is_some());
     assert!(check_entity_exists(&api, entity.record_id.entity_id).await);
+    assert!(
+        entity
+            .provenance
+            .first_non_draft_created_at_decision_time
+            .is_none()
+    );
+    assert!(
+        entity
+            .provenance
+            .first_non_draft_created_at_transaction_time
+            .is_none()
+    );
 
     let updated_entity = api
         .update_entity(
@@ -85,6 +98,18 @@ async fn initial_draft() {
         entity.record_id.entity_id
     );
     assert!(check_entity_exists(&api, updated_entity.record_id.entity_id).await);
+    assert!(
+        updated_entity
+            .provenance
+            .first_non_draft_created_at_decision_time
+            .is_none()
+    );
+    assert!(
+        updated_entity
+            .provenance
+            .first_non_draft_created_at_transaction_time
+            .is_none()
+    );
 
     let updated_live_entity = api
         .update_entity(
@@ -112,6 +137,27 @@ async fn initial_draft() {
 
     assert!(!check_entity_exists(&api, updated_entity.record_id.entity_id).await);
     assert!(check_entity_exists(&api, updated_live_entity.record_id.entity_id).await);
+
+    let ClosedTemporalBound::Inclusive(undraft_transaction_time) = updated_live_entity
+        .temporal_versioning
+        .transaction_time
+        .start();
+    let ClosedTemporalBound::Inclusive(undraft_decision_time) = updated_live_entity
+        .temporal_versioning
+        .decision_time
+        .start();
+    assert_eq!(
+        updated_live_entity
+            .provenance
+            .first_non_draft_created_at_transaction_time,
+        Some(*undraft_transaction_time)
+    );
+    assert_eq!(
+        updated_live_entity
+            .provenance
+            .first_non_draft_created_at_decision_time,
+        Some(*undraft_decision_time)
+    );
 }
 
 #[tokio::test]
@@ -125,6 +171,21 @@ async fn no_initial_draft() {
         .expect("could not create entity");
     assert!(entity.record_id.entity_id.draft_id.is_none());
     assert!(check_entity_exists(&api, entity.record_id.entity_id).await);
+
+    let ClosedTemporalBound::Inclusive(undraft_transaction_time) =
+        entity.temporal_versioning.transaction_time.start();
+    let ClosedTemporalBound::Inclusive(undraft_decision_time) =
+        entity.temporal_versioning.decision_time.start();
+    assert_eq!(
+        entity
+            .provenance
+            .first_non_draft_created_at_transaction_time,
+        Some(*undraft_transaction_time)
+    );
+    assert_eq!(
+        entity.provenance.first_non_draft_created_at_decision_time,
+        Some(*undraft_decision_time)
+    );
 
     for _ in 0..5 {
         let updated_entity = api
@@ -152,6 +213,18 @@ async fn no_initial_draft() {
         assert!(updated_entity.record_id.entity_id.draft_id.is_some());
         assert!(check_entity_exists(&api, entity.record_id.entity_id).await);
         assert!(check_entity_exists(&api, updated_entity.record_id.entity_id).await);
+        assert_eq!(
+            updated_entity
+                .provenance
+                .first_non_draft_created_at_transaction_time,
+            Some(*undraft_transaction_time)
+        );
+        assert_eq!(
+            updated_entity
+                .provenance
+                .first_non_draft_created_at_decision_time,
+            Some(*undraft_decision_time)
+        );
 
         let updated_live_entity = api
             .update_entity(
@@ -173,6 +246,18 @@ async fn no_initial_draft() {
         );
         assert!(!check_entity_exists(&api, updated_entity.record_id.entity_id).await);
         assert!(check_entity_exists(&api, updated_live_entity.record_id.entity_id).await);
+        assert_eq!(
+            updated_live_entity
+                .provenance
+                .first_non_draft_created_at_transaction_time,
+            Some(*undraft_transaction_time)
+        );
+        assert_eq!(
+            updated_live_entity
+                .provenance
+                .first_non_draft_created_at_decision_time,
+            Some(*undraft_decision_time)
+        );
     }
 }
 
@@ -187,6 +272,20 @@ async fn multiple_drafts() {
         .expect("could not create entity");
     assert!(entity.record_id.entity_id.draft_id.is_none());
     assert!(check_entity_exists(&api, entity.record_id.entity_id).await);
+    let ClosedTemporalBound::Inclusive(undraft_transaction_time) =
+        entity.temporal_versioning.transaction_time.start();
+    let ClosedTemporalBound::Inclusive(undraft_decision_time) =
+        entity.temporal_versioning.decision_time.start();
+    assert_eq!(
+        entity
+            .provenance
+            .first_non_draft_created_at_transaction_time,
+        Some(*undraft_transaction_time)
+    );
+    assert_eq!(
+        entity.provenance.first_non_draft_created_at_decision_time,
+        Some(*undraft_decision_time)
+    );
 
     let mut drafts = Vec::new();
     for _ in 0..5 {
@@ -215,6 +314,18 @@ async fn multiple_drafts() {
         assert!(updated_entity.record_id.entity_id.draft_id.is_some());
         assert!(check_entity_exists(&api, entity.record_id.entity_id).await);
         assert!(check_entity_exists(&api, updated_entity.record_id.entity_id).await);
+        assert_eq!(
+            updated_entity
+                .provenance
+                .first_non_draft_created_at_transaction_time,
+            Some(*undraft_transaction_time)
+        );
+        assert_eq!(
+            updated_entity
+                .provenance
+                .first_non_draft_created_at_decision_time,
+            Some(*undraft_decision_time)
+        );
         drafts.push(updated_entity.record_id.entity_id);
     }
 
@@ -239,5 +350,17 @@ async fn multiple_drafts() {
         );
         assert!(!check_entity_exists(&api, draft).await);
         assert!(check_entity_exists(&api, updated_live_entity.record_id.entity_id).await);
+        assert_eq!(
+            updated_live_entity
+                .provenance
+                .first_non_draft_created_at_transaction_time,
+            Some(*undraft_transaction_time)
+        );
+        assert_eq!(
+            updated_live_entity
+                .provenance
+                .first_non_draft_created_at_decision_time,
+            Some(*undraft_decision_time)
+        );
     }
 }

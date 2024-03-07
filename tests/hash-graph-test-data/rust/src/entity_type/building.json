@@ -4,7 +4,11 @@
   "$id": "https://blockprotocol.org/@alice/types/entity-type/building/v/1",
   "type": "object",
   "title": "Building",
-  "properties": {},
+  "properties": {
+    "https://blockprotocol.org/@alice/types/property-type/built-at/": {
+      "$ref": "https://blockprotocol.org/@alice/types/property-type/built-at/v/1"
+    }
+  },
   "links": {
     "https://blockprotocol.org/@alice/types/entity-type/located-at/v/1": {
       "type": "array",

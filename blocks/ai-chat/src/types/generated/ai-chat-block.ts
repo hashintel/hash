@@ -27,7 +27,7 @@ import {
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
-  Text,
+  TextDataType,
   TextualContentPropertyValue,
 } from "./shared";
 
@@ -54,7 +54,7 @@ export type {
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
-  Text,
+  TextDataType,
   TextualContentPropertyValue,
 };
 
@@ -83,7 +83,7 @@ export type AIChatBlockOutgoingLinksByLinkEntityTypeId = {
  * - "sensitive"
  * - "pirate"
  */
-export type AIChatBlockPresetSystemPromptIDPropertyValue = Text;
+export type AIChatBlockPresetSystemPromptIDPropertyValue = TextDataType;
 
 /**
  * The block entity of the “AI Chat” block.
@@ -124,7 +124,7 @@ export type HasMessageProperties2 = {};
  *
  * Currently only "gpt-3.5-turbo" is supported.
  */
-export type OpenAIChatModelNamePropertyValue = Text;
+export type OpenAIChatModelNamePropertyValue = TextDataType;
 
 export type RootedAt = Entity<RootedAtProperties> & { linkData: LinkData };
 

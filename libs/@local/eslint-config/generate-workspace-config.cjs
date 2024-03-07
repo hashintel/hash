@@ -10,4 +10,15 @@ module.exports = (workspaceDirPath) => ({
     tsconfigRootDir: workspaceDirPath,
     project: `${workspaceDirPath}/tsconfig.json`,
   },
+  settings: {
+    "import/resolver": {
+      typescript: {
+        alwaysTryTypes: true,
+        project: `${workspaceDirPath}}/tsconfig.json`,
+      },
+    },
+  },
+  rules: {
+    "@typescript-eslint/consistent-type-imports": "error",
+  },
 });

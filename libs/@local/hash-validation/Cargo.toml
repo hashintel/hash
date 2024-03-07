@@ -11,7 +11,7 @@ graph-types.workspace = true
 error-stack = { workspace = true, features = ["hooks"] }
 type-system.workspace = true
 
-chrono = { version = "0.4.34", default-features = false, features = ["std"] }
+chrono = { version = "0.4.35", default-features = false, features = ["std"] }
 email_address.workspace = true
 regex = "1.10.3"
 serde_json.workspace = true

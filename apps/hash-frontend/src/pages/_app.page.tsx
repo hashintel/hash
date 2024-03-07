@@ -253,7 +253,10 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
     // If the user is logged out and not on a page that should be publicly accessible...
     if (!publiclyAccessiblePagePathnames.includes(pathname)) {
       // ...redirect them to the login page
-      redirectInGetInitialProps({ appContext, location: "/signin" });
+      redirectInGetInitialProps({
+        appContext,
+        location: `/signin${["", "/", "/404"].includes(pathname) ? "" : `?return_to=${pathname}`}`,
+      });
     }
 
     return {};

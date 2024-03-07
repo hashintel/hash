@@ -649,6 +649,8 @@ pub enum EntityIds {
     CreatedById,
     CreatedAtDecisionTime,
     CreatedAtTransactionTime,
+    FirstNonDraftCreatedAtDecisionTime,
+    FirstNonDraftCreatedAtTransactionTime,
 }
 
 impl EntityIds {
@@ -659,6 +661,10 @@ impl EntityIds {
             Self::CreatedById => "created_by_id",
             Self::CreatedAtDecisionTime => "created_at_decision_time",
             Self::CreatedAtTransactionTime => "created_at_transaction_time",
+            Self::FirstNonDraftCreatedAtDecisionTime => "first_non_draft_created_at_decision_time",
+            Self::FirstNonDraftCreatedAtTransactionTime => {
+                "first_non_draft_created_at_transaction_time"
+            }
         };
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
@@ -666,17 +672,23 @@ impl EntityIds {
 
     pub const fn nullable(self) -> bool {
         match self {
-            Self::WebId | Self::EntityUuid | Self::CreatedById => false,
-            Self::CreatedAtDecisionTime | Self::CreatedAtTransactionTime => true,
+            Self::WebId
+            | Self::EntityUuid
+            | Self::CreatedById
+            | Self::CreatedAtDecisionTime
+            | Self::CreatedAtTransactionTime => false,
+            Self::FirstNonDraftCreatedAtDecisionTime
+            | Self::FirstNonDraftCreatedAtTransactionTime => true,
         }
     }
 
     pub const fn parameter_type(self) -> ParameterType {
         match self {
             Self::WebId | Self::EntityUuid | Self::CreatedById => ParameterType::Uuid,
-            Self::CreatedAtDecisionTime | Self::CreatedAtTransactionTime => {
-                ParameterType::Timestamp
-            }
+            Self::CreatedAtDecisionTime
+            | Self::CreatedAtTransactionTime
+            | Self::FirstNonDraftCreatedAtDecisionTime
+            | Self::FirstNonDraftCreatedAtTransactionTime => ParameterType::Timestamp,
         }
     }
 }

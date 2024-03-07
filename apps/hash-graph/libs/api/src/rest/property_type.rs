@@ -259,10 +259,7 @@ where
 #[serde(untagged)]
 enum LoadExternalPropertyTypeRequest {
     #[serde(rename_all = "camelCase")]
-    Fetch {
-        #[schema(value_type = SHARED_VersionedUrl)]
-        property_type_id: VersionedUrl,
-    },
+    Fetch { property_type_id: VersionedUrl },
     Create {
         #[schema(value_type = VAR_PROPERTY_TYPE)]
         schema: PropertyType,
@@ -437,7 +434,6 @@ where
 struct UpdatePropertyTypeRequest {
     #[schema(value_type = VAR_UPDATE_PROPERTY_TYPE)]
     schema: serde_json::Value,
-    #[schema(value_type = SHARED_VersionedUrl)]
     type_to_update: VersionedUrl,
     relationships: Vec<PropertyTypeRelationAndSubject>,
 }
@@ -682,7 +678,6 @@ where
 #[serde(rename_all = "camelCase")]
 struct ModifyPropertyTypeAuthorizationRelationship {
     operation: ModifyRelationshipOperation,
-    #[schema(value_type = SHARED_VersionedUrl)]
     resource: VersionedUrl,
     relation_and_subject: PropertyTypeRelationAndSubject,
 }

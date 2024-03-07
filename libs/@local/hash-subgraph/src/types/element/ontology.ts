@@ -1,21 +1,21 @@
-import {
+import type {
   DataTypeWithMetadata as DataTypeWithMetadataBp,
   EntityTypeWithMetadata as EntityTypeWithMetadataBp,
-  type OntologyElementMetadata as OntologyElementMetadataBp,
+  OntologyElementMetadata as OntologyElementMetadataBp,
   PropertyTypeWithMetadata as PropertyTypeWithMetadataBp,
 } from "@blockprotocol/graph/temporal";
-import {
+import type {
   EntityType,
   PropertyType,
-  validateBaseUrl,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
-import { Brand } from "@local/advanced-types/brand";
-import { DistributiveOmit } from "@local/advanced-types/distribute";
-import { Subtype } from "@local/advanced-types/subtype";
-import { DataType } from "@local/hash-graph-client";
+import { validateBaseUrl } from "@blockprotocol/type-system/slim";
+import type { Brand } from "@local/advanced-types/brand";
+import type { DistributiveOmit } from "@local/advanced-types/distribute";
+import type { Subtype } from "@local/advanced-types/subtype";
+import type { DataType } from "@local/hash-graph-client";
 
-import {
+import type {
   BaseUrl,
   ExclusiveLimitedTemporalBound,
   InclusiveLimitedTemporalBound,

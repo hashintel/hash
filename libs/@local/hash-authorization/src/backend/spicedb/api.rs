@@ -122,15 +122,6 @@ impl SpiceDbOpenApi {
             Error(RpcError),
         }
 
-        impl<T> From<StreamResult<T>> for Result<T, Report<StreamError>> {
-            fn from(result: StreamResult<T>) -> Self {
-                match result {
-                    StreamResult::Result(result) => Ok(result),
-                    StreamResult::Error(rpc_error) => Err(Report::new(StreamError::Api(rpc_error))),
-                }
-            }
-        }
-
         let stream_response = self.invoke_request(path, body).await?;
         let stream_reader = StreamReader::new(
             stream_response
@@ -142,8 +133,12 @@ impl SpiceDbOpenApi {
             codec::bytes::JsonLinesDecoder::<StreamResult<R>>::new(),
         );
 
-        Ok(framed_stream
-            .map(|io_result| Result::from(io_result.change_context(StreamError::Parse)?)))
+        Ok(framed_stream.map(
+            |io_result| match io_result.change_context(StreamError::Parse)? {
+                StreamResult::Result(result) => Ok(result),
+                StreamResult::Error(rpc_error) => Err(Report::new(StreamError::Api(rpc_error))),
+            },
+        ))
     }
 }
 

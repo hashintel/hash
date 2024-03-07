@@ -31,18 +31,22 @@ kratos_env_vars = [
   { name = "LOG_LEAK_SENSITIVE_VALUES", secret = false, value = "false" },
   { name = "COURIER_SMTP_FROM_ADDRESS", secret = false, value = "noreply@hash.ai" },
   { name = "COURIER_SMTP_FROM_NAME", secret = false, value = "HASH" },
+  { name = "OAUTH2_PROVIDER_URL", secret = false, value = "http://localhost:4445" } # Hydra admin endpoint
 ]
 
 hydra_env_vars = [
   { name = "LOG_LEVEL", secret = false, value = "info" },
   { name = "COOKIES_PATH", secret = false, value = "/" },
-  { name = "COOKIES_DOMAIN", secret = false, value = "hash.ai" },
-  { name = "COOKIES_SAME_SITE", secret = false, value = "Lax" },
+  { name = "SERVE_COOKIES_DOMAIN", secret = false, value = "hash.ai" },
+  { name = "SERVE_COOKIES_SAME_SITE_MODE", secret = false, value = "Lax" },
+  { name = "URLS_CONSENT", secret = false, value = "https://app-api.hash.ai/oauth2/consent"},
   { name = "URLS_LOGIN", secret = false, value = "https://app.hash.ai/signin" },
   { name = "URLS_REGISTRATION", secret = false, value = "https://app.hash.ai/signup" },
   { name = "URLS_POST_LOGOUT_REDIRECT", secret = false, value = "https://app.hash.ai" },
-  { name = "URLs_IDENTITY_PROVIDER_PUBLICURL", secret = false, value = "http://localhost:4444" },
-  { name = "URLS_IDENTITY_PROVIDER_URL", secret = false, value = "http://localhost:4445" },
+  { name = "URLS_IDENTITY_PROVIDER_PUBLICURL", secret = false, value = "http://localhost:4433" }, # Kratos public endpoint
+  { name = "URLS_IDENTITY_PROVIDER_URL", secret = false, value = "http://localhost:4434" }, # Kratos admin endpoint
+  { name = "URLS_SELF_ISSUER", secret = false, value = "https://app-api.hash.ai" },
+  { name = "URLS_SELF_PUBLIC", secret = false, value = "https://app-api.hash.ai" }
 ]
 
 hash_graph_env_vars = [
@@ -65,10 +69,10 @@ hash_api_env_vars = [
 
   { name = "HASH_OPENSEARCH_ENABLED", secret = false, value = "false" },
 
-  { name = "ORY_KRATOS_PUBLIC_URL", secret = false, value = "http://localhost:4433" },
-  { name = "ORY_KRATOS_ADMIN_URL", secret = false, value = "http://localhost:4434" },
-  { name = "ORY_HYDRA_PUBLIC_URL", secret = false, value = "http://localhost:4444" },
-  { name = "ORY_HYDRA_ADMIN_URL", secret = false, value = "http://localhost:4445" },
+  { name = "HASH_KRATOS_PUBLIC_URL", secret = false, value = "http://localhost:4433" },
+  { name = "HASH_KRATOS_ADMIN_URL", secret = false, value = "http://localhost:4434" },
+  { name = "HASH_HYDRA_PUBLIC_URL", secret = false, value = "http://localhost:4444" },
+  { name = "HASH_HYDRA_ADMIN_URL", secret = false, value = "http://localhost:4445" },
 
   # TODO: remove these deprecated system org variables
   { name = "SYSTEM_ACCOUNT_NAME", secret = false, value = "HASH" },

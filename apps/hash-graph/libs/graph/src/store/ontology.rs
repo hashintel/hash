@@ -70,7 +70,6 @@ pub struct UpdateDataTypesParams<R> {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ArchiveDataTypeParams<'a> {
     #[serde(borrow)]
-    #[cfg_attr(feature = "utoipa", schema(value_type = SHARED_VersionedUrl))]
     pub data_type_id: Cow<'a, VersionedUrl>,
 }
 
@@ -78,7 +77,6 @@ pub struct ArchiveDataTypeParams<'a> {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UnarchiveDataTypeParams {
-    #[cfg_attr(feature = "utoipa", schema(value_type = SHARED_VersionedUrl))]
     pub data_type_id: VersionedUrl,
 }
 
@@ -87,7 +85,6 @@ pub struct UnarchiveDataTypeParams {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UpdateDataTypeEmbeddingParams<'a> {
     #[serde(borrow)]
-    #[cfg_attr(feature = "utoipa", schema(value_type = SHARED_VersionedUrl))]
     pub data_type_id: Cow<'a, VersionedUrl>,
     #[serde(borrow)]
     pub embedding: Embedding<'a>,
@@ -245,7 +242,6 @@ pub struct UpdatePropertyTypesParams<R> {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ArchivePropertyTypeParams<'a> {
     #[serde(borrow)]
-    #[cfg_attr(feature = "utoipa", schema(value_type = SHARED_VersionedUrl))]
     pub property_type_id: Cow<'a, VersionedUrl>,
 }
 
@@ -253,7 +249,6 @@ pub struct ArchivePropertyTypeParams<'a> {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UnarchivePropertyTypeParams<'a> {
-    #[cfg_attr(feature = "utoipa", schema(value_type = SHARED_VersionedUrl))]
     pub property_type_id: Cow<'a, VersionedUrl>,
 }
 
@@ -262,7 +257,6 @@ pub struct UnarchivePropertyTypeParams<'a> {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UpdatePropertyTypeEmbeddingParams<'a> {
     #[serde(borrow)]
-    #[cfg_attr(feature = "utoipa", schema(value_type = SHARED_VersionedUrl))]
     pub property_type_id: Cow<'a, VersionedUrl>,
     #[serde(borrow)]
     pub embedding: Embedding<'a>,
@@ -424,7 +418,6 @@ pub struct UpdateEntityTypesParams<R> {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ArchiveEntityTypeParams<'a> {
     #[serde(borrow)]
-    #[cfg_attr(feature = "utoipa", schema(value_type = SHARED_VersionedUrl))]
     pub entity_type_id: Cow<'a, VersionedUrl>,
 }
 
@@ -432,7 +425,6 @@ pub struct ArchiveEntityTypeParams<'a> {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UnarchiveEntityTypeParams<'a> {
-    #[cfg_attr(feature = "utoipa", schema(value_type = SHARED_VersionedUrl))]
     pub entity_type_id: Cow<'a, VersionedUrl>,
 }
 
@@ -441,7 +433,6 @@ pub struct UnarchiveEntityTypeParams<'a> {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UpdateEntityTypeEmbeddingParams<'a> {
     #[serde(borrow)]
-    #[cfg_attr(feature = "utoipa", schema(value_type = SHARED_VersionedUrl))]
     pub entity_type_id: Cow<'a, VersionedUrl>,
     #[serde(borrow)]
     pub embedding: Embedding<'a>,

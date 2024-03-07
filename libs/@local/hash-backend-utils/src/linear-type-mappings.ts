@@ -5,7 +5,6 @@ import {
   IssueUpdateInput,
   UpdateOrganizationInput,
   UpdateUserInput,
-  // eslint-disable-next-line import/no-unresolved
 } from "@linear/sdk/dist/_generated_documents";
 import {
   blockProtocolPropertyTypes,

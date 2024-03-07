@@ -1,4 +1,4 @@
-import { Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
+import type { Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
 import {
   getIncomingLinksForEntity as getIncomingLinksForEntityBp,
   getLeftEntityForLinkEntity as getLeftEntityForLinkEntityBp,
@@ -7,7 +7,7 @@ import {
   getRightEntityForLinkEntity as getRightEntityForLinkEntityBp,
 } from "@blockprotocol/graph/temporal/stdlib";
 
-import {
+import type {
   Entity,
   EntityId,
   LinkEntityAndRightEntity,

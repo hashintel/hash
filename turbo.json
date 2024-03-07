@@ -1,8 +1,11 @@
 {
   "$schema": "https://turborepo.org/schema.json",
   "pipeline": {
+    "postinstall": {
+      "cache": false
+    },
     "codegen": {
-      "dependsOn": ["^codegen"]
+      "dependsOn": ["^build"]
     },
     "build": {
       "dependsOn": ["codegen"]
@@ -38,7 +41,7 @@
   },
   "globalDependencies": [
     "**/turbo.json",
-    ".github/actions/**/**/*.yml",
+    ".github/actions/**/*.yml",
     ".github/scripts/**/*.rs",
     ".github/workflows/**/*",
     ".env*",

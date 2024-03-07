@@ -25,7 +25,7 @@ const Nav: FunctionComponent<{ children?: ReactNode }> = ({ children }) => (
   </Box>
 );
 
-export const HEADER_HEIGHT = 54;
+export const HEADER_HEIGHT = 60;
 
 export const PageHeader: FunctionComponent = () => {
   const theme = useTheme();

@@ -41,7 +41,8 @@ use tokio_postgres::{
 };
 use type_system::{
     url::{BaseUrl, VersionedUrl},
-    DataTypeReference, EntityType, EntityTypeReference, PropertyType, PropertyTypeReference,
+    ClosedEntityType, DataTypeReference, EntityType, EntityTypeReference, PropertyType,
+    PropertyTypeReference,
 };
 
 pub use self::{
@@ -432,7 +433,7 @@ where
         &self,
         ontology_id: OntologyId,
         entity_type: &EntityType,
-        closed_entity_type: &EntityType,
+        closed_entity_type: &ClosedEntityType,
         label_property: Option<&BaseUrl>,
         icon: Option<&str>,
     ) -> Result<Option<OntologyId>, InsertionError> {

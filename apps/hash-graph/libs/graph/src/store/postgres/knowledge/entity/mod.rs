@@ -39,7 +39,7 @@ use temporal_versioning::{
     RightBoundedTemporalInterval, TemporalBound, Timestamp, TransactionTime,
 };
 use tokio_postgres::{error::SqlState, GenericClient, Row};
-use type_system::{url::VersionedUrl, EntityType};
+use type_system::{url::VersionedUrl, ClosedEntityType};
 use uuid::Uuid;
 use validation::{Validate, ValidationProfile};
 
@@ -366,8 +366,31 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
-        if let Some(decision_time) = params.decision_time {
-            transaction
+        match (params.decision_time, params.draft) {
+            (Some(decision_time), false) => transaction
+                .as_client()
+                .query(
+                    "
+                    INSERT INTO entity_ids (
+                        web_id,
+                        entity_uuid,
+                        created_by_id,
+                        created_at_transaction_time,
+                        created_at_decision_time,
+                        first_non_draft_created_at_transaction_time,
+                        first_non_draft_created_at_decision_time
+                    ) VALUES ($1, $2, $3, now(), $4, now(), $4);
+                ",
+                    &[
+                        &entity_id.owned_by_id,
+                        &entity_id.entity_uuid,
+                        &CreatedById::new(actor_id),
+                        &decision_time,
+                    ],
+                )
+                .await
+                .change_context(InsertionError)?,
+            (Some(decision_time), true) => transaction
                 .as_client()
                 .query(
                     "
@@ -387,9 +410,30 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     ],
                 )
                 .await
-                .change_context(InsertionError)?;
-        } else {
-            transaction
+                .change_context(InsertionError)?,
+            (None, false) => transaction
+                .as_client()
+                .query(
+                    "
+                    INSERT INTO entity_ids (
+                        web_id,
+                        entity_uuid,
+                        created_by_id,
+                        created_at_transaction_time,
+                        created_at_decision_time,
+                        first_non_draft_created_at_transaction_time,
+                        first_non_draft_created_at_decision_time
+                    ) VALUES ($1, $2, $3, now(), now(), now(), now());
+                ",
+                    &[
+                        &entity_id.owned_by_id,
+                        &entity_id.entity_uuid,
+                        &CreatedById::new(actor_id),
+                    ],
+                )
+                .await
+                .change_context(InsertionError)?,
+            (None, true) => transaction
                 .as_client()
                 .query(
                     "
@@ -408,8 +452,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     ],
                 )
                 .await
-                .change_context(InsertionError)?;
-        }
+                .change_context(InsertionError)?,
+        };
 
         if let Some(draft_id) = entity_id.draft_id {
             transaction
@@ -513,7 +557,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 authorization_api,
                 Consistency::FullyConsistent,
                 ValidateEntityParams {
-                    entity_type: EntityValidationType::Schema(Cow::Borrowed(&closed_schema)),
+                    entity_type: EntityValidationType::ClosedSchema(Cow::Borrowed(&closed_schema)),
                     properties: Cow::Borrowed(&params.properties),
                     link_data: params.link_data.as_ref().map(Cow::Borrowed),
                     profile: if params.draft {
@@ -565,6 +609,11 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     created_at_transaction_time: Timestamp::from(
                         *temporal_versioning.transaction_time.start(),
                     ),
+                    first_non_draft_created_at_decision_time: (!params.draft)
+                        .then_some(Timestamp::from(*temporal_versioning.decision_time.start())),
+                    first_non_draft_created_at_transaction_time: (!params.draft).then_some(
+                        Timestamp::from(*temporal_versioning.transaction_time.start()),
+                    ),
                     edition: EntityEditionProvenanceMetadata {
                         created_by_id: edition_created_by_id,
                     },
@@ -602,7 +651,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         params: ValidateEntityParams<'_>,
     ) -> Result<(), ValidateEntityError> {
         let schema = match params.entity_type {
-            EntityValidationType::Schema(schema) => schema,
+            EntityValidationType::ClosedSchema(schema) => schema,
+            EntityValidationType::Schema(schema) => Cow::Owned(ClosedEntityType::from(schema)),
             EntityValidationType::Id(entity_type_url) => {
                 let entity_type_id = EntityTypeId::from_url(entity_type_url.as_ref());
 
@@ -638,7 +688,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     .await
                     .change_context(ValidateEntityError)?
                     .map_ok(|(_, raw_type)| raw_type)
-                    .try_collect::<Vec<EntityType>>()
+                    .try_collect::<Vec<ClosedEntityType>>()
                     .await
                     .change_context(ValidateEntityError)?;
 
@@ -669,7 +719,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         if let Err(error) = params
             .properties
-            .validate(schema.as_ref(), params.profile, &validator_provider)
+            .validate(&schema, params.profile, &validator_provider)
             .await
         {
             if let Err(ref mut report) = status {
@@ -682,7 +732,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         if let Err(error) = params
             .link_data
             .as_deref()
-            .validate(schema.as_ref(), params.profile, &validator_provider)
+            .validate(&schema, params.profile, &validator_provider)
             .await
         {
             if let Err(ref mut report) = status {
@@ -837,6 +887,12 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         created_at_transaction_time: Timestamp::from(
                             *temporal_versioning.transaction_time.start(),
                         ),
+                        first_non_draft_created_at_decision_time: Some(Timestamp::from(
+                            *temporal_versioning.decision_time.start(),
+                        )),
+                        first_non_draft_created_at_transaction_time: Some(Timestamp::from(
+                            *temporal_versioning.transaction_time.start(),
+                        )),
                         edition: EntityEditionProvenanceMetadata {
                             created_by_id: EditionCreatedById::new(actor_id),
                         },
@@ -1061,6 +1117,15 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         .attach(params.entity_id)
         .change_context(UpdateError)?;
 
+        let mut first_non_draft_created_at_decision_time = previous_entity
+            .metadata
+            .provenance
+            .first_non_draft_created_at_decision_time;
+        let mut first_non_draft_created_at_transaction_time = previous_entity
+            .metadata
+            .provenance
+            .first_non_draft_created_at_transaction_time;
+
         let was_draft_before = previous_entity
             .metadata
             .record_id
@@ -1115,6 +1180,32 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 // Publish a draft
                 params.entity_id.draft_id = None;
 
+                if first_non_draft_created_at_decision_time.is_none() {
+                    let row = transaction
+                        .as_client()
+                        .query_one(
+                            "
+                        UPDATE entity_ids
+                        SET first_non_draft_created_at_decision_time = $1,
+                            first_non_draft_created_at_transaction_time = now()
+                        WHERE web_id = $2
+                          AND entity_uuid = $3
+                        RETURNING first_non_draft_created_at_decision_time, \
+                             first_non_draft_created_at_transaction_time;
+                        ",
+                            &[
+                                &locked_row.updated_at_decision_time,
+                                &params.entity_id.owned_by_id,
+                                &params.entity_id.entity_uuid,
+                            ],
+                        )
+                        .await
+                        .change_context(UpdateError)?;
+
+                    first_non_draft_created_at_decision_time = row.get(0);
+                    first_non_draft_created_at_transaction_time = row.get(1);
+                }
+
                 if let Some(previous_live_entity) = transaction
                     .lock_entity_edition(params.entity_id, params.decision_time)
                     .await?
@@ -1139,7 +1230,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 authorization_api,
                 Consistency::FullyConsistent,
                 ValidateEntityParams {
-                    entity_type: EntityValidationType::Schema(Cow::Borrowed(&closed_schema)),
+                    entity_type: EntityValidationType::ClosedSchema(Cow::Borrowed(&closed_schema)),
                     properties: Cow::Borrowed(&params.properties),
                     link_data: previous_entity
                         .link_data
@@ -1176,6 +1267,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     .metadata
                     .provenance
                     .created_at_decision_time,
+                first_non_draft_created_at_decision_time,
+                first_non_draft_created_at_transaction_time,
                 edition: EntityEditionProvenanceMetadata {
                     created_by_id: EditionCreatedById::new(actor_id),
                 },
@@ -1289,8 +1382,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         WHERE web_id = $1
                           AND entity_uuid = $2
                           AND draft_id IS NULL
-                          AND updated_at_transaction_time <= $4
-                          AND updated_at_decision_time <= $5;
+                          AND updated_at_transaction_time <= $3
+                          AND updated_at_decision_time <= $4;
                     ",
                         &[
                             &params.entity_id.owned_by_id,
@@ -1346,7 +1439,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         entity_type_id: &VersionedUrl,
         properties: &EntityProperties,
         link_order: &EntityLinkOrder,
-    ) -> Result<(EntityEditionId, EntityType), InsertionError> {
+    ) -> Result<(EntityEditionId, ClosedEntityType), InsertionError> {
         let edition_id: EntityEditionId = self
             .as_client()
             .query_one(

@@ -1,6 +1,6 @@
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 // eslint-disable-next-line no-restricted-imports
-import { Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 import { expect, test } from "./browser-plugin/fixtures";
 import { loginUsingTempForm } from "./shared/login-using-temp-form";

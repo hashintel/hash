@@ -16,10 +16,10 @@
     "@apps/hash-graph": "0.0.0-private",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@redocly/cli": "1.9.0",
+    "@redocly/cli": "1.10.1",
     "@types/node": "18.15.13",
-    "@typescript-eslint/parser": "7.0.2",
-    "eslint": "8.56.0",
+    "@typescript-eslint/parser": "7.1.0",
+    "eslint": "8.57.0",
     "typescript": "5.1.6"
   }
 }
