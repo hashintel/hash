@@ -21,6 +21,7 @@ import {
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import {
+  DataType,
   DataTypeRelationAndSubject,
   UpdatePropertyType,
 } from "@local/hash-graph-client";
@@ -689,8 +690,8 @@ export const generateSystemEntityTypeSchema = (
                       entityTypeIdOrReference === "SELF_REFERENCE"
                         ? params.entityTypeId
                         : typeof entityTypeIdOrReference === "object"
-                        ? entityTypeIdOrReference.schema.$id
-                        : entityTypeIdOrReference,
+                          ? entityTypeIdOrReference.schema.$id
+                          : entityTypeIdOrReference,
                   }),
                 ),
               }

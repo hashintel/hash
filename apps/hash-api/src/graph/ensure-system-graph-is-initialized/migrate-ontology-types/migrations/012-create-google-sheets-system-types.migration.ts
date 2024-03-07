@@ -9,23 +9,13 @@ import { enabledIntegrations } from "../../../../integrations/enabled-integratio
 import { MigrationFunction } from "../types";
 import {
   anyUserInstantiator,
+  createSystemDataTypeIfNotExists,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
   getCurrentHashLinkEntityTypeId,
   getCurrentHashPropertyTypeId,
   getCurrentHashSystemEntityTypeId,
 } from "../util";
-
-// google user
-//
-// id: '107859988627014058933',
-// email: 'cmorinan@gmail.com',
-// verified_email: true,
-// name: 'Ciaran Morinan',
-// given_name: 'Ciaran',
-// family_name: 'Morinan',
-// picture: 'https://lh3.googleusercontent.com/a/ACg8ocIspwv1Em_t6bDaSDco92RHa42FXkB6Wukh4RLbgBFs=s96-c',
-// locale: 'en-GB'
 
 const migrate: MigrationFunction = async ({
   context,
@@ -132,6 +122,36 @@ const migrate: MigrationFunction = async ({
     },
   );
 
+  const actorTypeDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        title: "Actor Type",
+        description:
+          "The type of thing that can, should or will act on something.",
+        enum: ["human", "machine"],
+        type: "string",
+      },
+      webShortname: "hash",
+      migrationState,
+    },
+  );
+
+  const dataAudiencePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Data Audience",
+        description: "The expected audience for some data.",
+        possibleValues: [{ dataTypeId: actorTypeDataType.schema.$id }],
+      },
+      webShortname: "hash",
+      migrationState,
+    },
+  );
+
   const _googleSheetsIntegrationEntityType =
     await createSystemEntityTypeIfNotExists(context, authentication, {
       entityTypeDefinition: {
@@ -140,6 +160,10 @@ const migrate: MigrationFunction = async ({
         properties: [
           {
             propertyType: fileIdPropertyType,
+            required: true,
+          },
+          {
+            propertyType: dataAudiencePropertyType,
             required: true,
           },
         ],

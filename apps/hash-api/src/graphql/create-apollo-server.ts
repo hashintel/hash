@@ -3,6 +3,7 @@ import { performance } from "node:perf_hooks";
 import { makeExecutableSchema } from "@graphql-tools/schema";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { SearchAdapter } from "@local/hash-backend-utils/search/adapter";
+import { VaultClient } from "@local/hash-backend-utils/vault";
 import { schema } from "@local/hash-isomorphic-utils/graphql/type-defs/schema";
 import * as Sentry from "@sentry/node";
 import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
@@ -15,7 +16,6 @@ import { EmailTransporter } from "../email/transporters";
 import { GraphApi } from "../graph/context-types";
 import { UploadableStorageProvider } from "../storage/storage-provider";
 import { TemporalClient } from "../temporal";
-import { VaultClient } from "../vault/index";
 import { GraphQLContext } from "./context";
 import { resolvers } from "./resolvers";
 

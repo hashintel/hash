@@ -1,30 +1,15 @@
-import type { MultiFilter } from "@blockprotocol/graph";
 import { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import { isDraftEntity } from "@local/hash-isomorphic-utils/entity-store";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import {
-  createDefaultAuthorizationRelationships,
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import {
-  blockProtocolEntityTypes,
-  blockProtocolLinkEntityTypes,
-  systemEntityTypes,
-  systemLinkEntityTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
-import { GoogleSheetsIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
 import {
   BaseUrl,
-  Entity,
   EntityId,
   EntityRootType,
   EntityVertex,
   isEntityVertex,
-  OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
 import {
@@ -33,43 +18,7 @@ import {
   getEntityTypeById,
   getPropertyTypeForEntity,
 } from "@local/hash-subgraph/stdlib";
-import { RequestHandler } from "express";
-import { google, sheets_v4 } from "googleapis";
-
-import {
-  createEntity,
-  getEntities,
-  getLatestEntityById,
-} from "../../graph/knowledge/primitive/entity";
-import { bpMultiFilterToGraphFilter } from "../../graph/knowledge/primitive/entity/query";
-import { enabledIntegrations } from "../enabled-integrations";
-import { getGoogleAccountById } from "./shared/get-google-account";
-import { getTokensForAccount } from "./shared/get-tokens-for-account";
-import { createGoogleOAuth2Client } from "./shared/oauth-client";
-
-const createSpreadsheet = async ({
-  filename,
-  sheetsClient,
-}: {
-  filename: string;
-  sheetsClient: sheets_v4.Sheets;
-}) => {
-  const sheet = await sheetsClient.spreadsheets.create({
-    requestBody: {
-      properties: {
-        title: filename,
-      },
-    },
-  });
-
-  const spreadsheetId = sheet.data.spreadsheetId;
-
-  if (!spreadsheetId) {
-    throw new Error("No spreadsheetId returned from Google Sheets API");
-  }
-
-  return spreadsheetId;
-};
+import { sheets_v4 } from "googleapis";
 
 type SheetOutputFormat = {
   audience: "human" | "machine";
@@ -279,7 +228,7 @@ type EntitySheetRequests = {
  * This function could later return an abstraction of sheet requests (e.g. Create Sheet, Insert Rows)
  * to be converted into calls to different spreadsheet APIs.
  */
-const createSheetRequestsFromEntitySubgraph = (
+export const createSheetRequestsFromEntitySubgraph = (
   entitySubgraph: Subgraph<EntityRootType>,
   format: SheetOutputFormat,
 ): sheets_v4.Schema$Request[] => {
@@ -309,7 +258,8 @@ const createSheetRequestsFromEntitySubgraph = (
       }
 
       /**
-       * Within entities without linkData, sort them by their entityId, and then by the edition createdAt time (in case of multiple editions)
+       * Within entities without linkData, sort them by their entityId, and then by the edition createdAt time (in case
+       * of multiple editions)
        */
       return (
         aEntity.metadata.recordId.entityId.localeCompare(
@@ -627,8 +577,8 @@ const createSheetRequestsFromEntitySubgraph = (
              * 1. Link from the link type's sheet to the range in the entity's sheet
              * 2. Track the rows in the link type's sheet that link from this entity,
              *    and insert a link to the range in the entity's sheet when we have all the rows.
-             * If we can't find the linked entity in the sheet (no entityPosition), we go to the else branch and just list the id.
-             * It might be excluded from the query due to permissions, archive or draft status.
+             * If we can't find the linked entity in the sheet (no entityPosition), we go to the else branch and just
+             * list the id. It might be excluded from the query due to permissions, archive or draft status.
              */
             const { sheetId, rowIndex } = entityPosition;
             const linkedEntity = getEntityRevision(
@@ -659,7 +609,8 @@ const createSheetRequestsFromEntitySubgraph = (
             }
             if (!outgoingLinkMapForLeftEntity.sheetId) {
               /**
-               * This is the first time we've seen this entity as a source in this sheet, set the sheetId and start index
+               * This is the first time we've seen this entity as a source in this sheet, set the sheetId and start
+               * index
                */
               outgoingLinkMapForLeftEntity.sheetId =
                 entitySheetRequests[typeId]!.sheetId;
@@ -707,8 +658,10 @@ const createSheetRequestsFromEntitySubgraph = (
         }
       } else if (key.startsWith("links.")) {
         /**
-         * At this point we just need to initialize the map where we'll insert the range for each type of outgoing link from this entity.
-         * – when we process the link entities, we'll add a link in these cells to the range in the link type's sheet (see leftEntityId above)
+         * At this point we just need to initialize the map where we'll insert the range for each type of outgoing link
+         * from this entity.
+         * – when we process the link entities, we'll add a link in these cells to the range in the link type's sheet
+         * (see leftEntityId above)
          */
         entityOutgoingLinkRangeByLinkTypeId[entity.metadata.recordId.entityId]![
           columns[key]!.baseOrVersionedUrl as VersionedUrl
@@ -868,247 +821,3 @@ const createSheetRequestsFromEntitySubgraph = (
 
   return requests;
 };
-
-const updateSpreadsheet = async (
-  spreadsheetId: string,
-  entitySubgraph: Subgraph<EntityRootType>,
-  sheetsClient: sheets_v4.Sheets,
-) => {
-  const spreadsheet = await sheetsClient.spreadsheets.get({
-    spreadsheetId,
-  });
-
-  const sheetRequests = createSheetRequestsFromEntitySubgraph(entitySubgraph, {
-    audience: "human",
-  });
-
-  const existingSheets = spreadsheet.data.sheets ?? [];
-
-  /**
-   * We can't leave the spreadsheet without a sheet, so we need to insert one first and delete it at the end,
-   * to allow clearing out the existing sheets. sheetId is an Int32
-   */
-  const placeholderFirstSheetId = 2147483647;
-
-  await sheetsClient.spreadsheets.batchUpdate({
-    spreadsheetId,
-    requestBody: {
-      requests: [
-        {
-          addSheet: {
-            properties: {
-              sheetId: placeholderFirstSheetId,
-              title: "Placeholder",
-            },
-          },
-        },
-        ...existingSheets.map((sheet) => ({
-          deleteSheet: {
-            sheetId: sheet.properties?.sheetId,
-          },
-        })),
-        ...sheetRequests,
-        {
-          deleteSheet: {
-            sheetId: placeholderFirstSheetId,
-          },
-        },
-      ],
-    },
-  });
-};
-
-type SyncToSheetRequestBody = {
-  googleAccountId: string;
-  queryEntityId: EntityId;
-  schedule: "hourly" | "daily" | "weekly" | "monthly";
-} & (
-  | {
-      spreadsheetId: string;
-    }
-  | { newFileName: string }
-);
-
-type SyncToSheetResponseBody =
-  | { integrationEntity: Entity }
-  | { error: string };
-
-export const createSheetsIntegration: RequestHandler<
-  Record<string, never>,
-  SyncToSheetResponseBody,
-  SyncToSheetRequestBody
-> =
-  // @todo upgrade to Express 5, which handles errors from async request handlers automatically
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
-  async (req, res) => {
-    if (!req.user) {
-      res.status(401).send({ error: "User not authenticated." });
-      return;
-    }
-
-    if (!req.context.vaultClient) {
-      res.status(501).send({ error: "Vault integration is not configured." });
-      return;
-    }
-
-    if (!enabledIntegrations.googleSheets) {
-      res.status(501).send({ error: "Google integration is not enabled." });
-      return;
-    }
-
-    const authentication = { actorId: req.user.accountId };
-
-    const { googleAccountId, queryEntityId, schedule } = req.body;
-
-    /**
-     * Get the Google Account and ensure it has an available token
-     */
-    const googleAccount = await getGoogleAccountById(
-      req.context,
-      authentication,
-      {
-        userAccountId: req.user.accountId,
-        googleAccountId,
-      },
-    );
-
-    if (!googleAccount) {
-      res.status(400).send({
-        error: `Google account with id ${googleAccountId} not found.`,
-      });
-      return;
-    }
-
-    const tokens = await getTokensForAccount(req.context, authentication, {
-      userAccountId: req.user.accountId,
-      googleAccountEntityId: googleAccount.metadata.recordId.entityId,
-      vaultClient: req.context.vaultClient,
-    });
-
-    const errorMessage = `Could not get tokens for Google account with id ${googleAccountId} for user ${req.user.accountId}.`;
-
-    // @todo flag user secret entity is invalid and create notification for user
-    if (!tokens) {
-      res.status(500).send({
-        error: errorMessage,
-      });
-      return;
-    }
-
-    const googleOAuth2Client = createGoogleOAuth2Client();
-    const sheetsClient = google.sheets({
-      auth: googleOAuth2Client,
-      version: "v4",
-    });
-
-    googleOAuth2Client.setCredentials(tokens);
-
-    /**
-     * Find the spreadsheetId to use with the integration by either:
-     * 1. Confirming it exists and is accessible if an existing id has been provided, or
-     * 2. Creating a new spreadsheet if a filename has been provided
-     */
-    if (!("spreadsheetId" in req.body) && !("newFileName" in req.body)) {
-      res.status(400).send({
-        error: "Either spreadsheetId or newFileName must be provided.",
-      });
-      return;
-    }
-
-    if ("spreadsheetId" in req.body) {
-      const spreadsheet = await sheetsClient.spreadsheets.get({
-        spreadsheetId: req.body.spreadsheetId,
-      });
-
-      if (!spreadsheet.data.spreadsheetId) {
-        res.status(400).send({
-          error: `No spreadsheet found with id ${req.body.spreadsheetId}.`,
-        });
-        return;
-      }
-    }
-
-    const queryEntity = (await getLatestEntityById(
-      req.context,
-      authentication,
-      {
-        entityId: queryEntityId,
-      },
-    )) as Entity<QueryProperties>;
-
-    const multiFilter =
-      queryEntity.properties[
-        "https://blockprotocol.org/@hash/types/property-type/query/"
-      ];
-
-    const filter = bpMultiFilterToGraphFilter(multiFilter as MultiFilter);
-
-    const depth = 2;
-
-    const entitySubgraph = await getEntities(req.context, authentication, {
-      query: {
-        filter,
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          constrainsPropertiesOn: { outgoing: 255 },
-          constrainsLinksOn: { outgoing: 1 },
-          inheritsFrom: { outgoing: 255 },
-          isOfType: { outgoing: 1 },
-          hasRightEntity: { outgoing: depth, incoming: depth },
-          hasLeftEntity: { outgoing: depth, incoming: depth },
-        },
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
-      },
-    });
-
-    const spreadsheetId =
-      "spreadsheetId" in req.body
-        ? req.body.spreadsheetId
-        : await createSpreadsheet({
-            filename: req.body.newFileName,
-            sheetsClient,
-          });
-
-    await updateSpreadsheet(spreadsheetId, entitySubgraph, sheetsClient);
-
-    const googleSheetIntegrationProperties: GoogleSheetsIntegrationProperties =
-      {
-        "https://hash.ai/@hash/types/property-type/file-id/": spreadsheetId,
-      };
-
-    const googleSheetIntegrationEntity = await createEntity(
-      req.context,
-      authentication,
-      {
-        entityTypeId: systemEntityTypes.googleSheetsIntegration.entityTypeId,
-        ownedById: req.user.accountId as OwnedById,
-        properties: googleSheetIntegrationProperties,
-        relationships: createDefaultAuthorizationRelationships({
-          actorId: req.user.accountId,
-        }),
-        outgoingLinks: [
-          {
-            ownedById: req.user.accountId as OwnedById,
-            rightEntityId: queryEntityId,
-            linkEntityTypeId:
-              blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId,
-            relationships: createDefaultAuthorizationRelationships({
-              actorId: req.user.accountId,
-            }),
-          },
-          {
-            ownedById: req.user.accountId as OwnedById,
-            rightEntityId: googleAccount.metadata.recordId.entityId,
-            linkEntityTypeId:
-              systemLinkEntityTypes.associatedWithAccount.linkEntityTypeId,
-            relationships: createDefaultAuthorizationRelationships({
-              actorId: req.user.accountId,
-            }),
-          },
-        ],
-      },
-    );
-
-    res.json({ integrationEntity: googleSheetIntegrationEntity });
-  };

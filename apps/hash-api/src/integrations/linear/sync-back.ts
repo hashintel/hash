@@ -2,6 +2,7 @@ import { VersionedUrl } from "@blockprotocol/type-system";
 import { linearTypeMappings } from "@local/hash-backend-utils/linear-type-mappings";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { UpdateLinearDataWorkflow } from "@local/hash-backend-utils/temporal-integration-workflow-types";
+import { createVaultClient } from "@local/hash-backend-utils/vault";
 import { GraphApi } from "@local/hash-graph-client";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
@@ -22,7 +23,6 @@ import { getLinearSecretValueByHashWorkspaceId } from "../../graph/knowledge/sys
 import { systemAccountId } from "../../graph/system-account";
 import { createTemporalClient } from "../../temporal";
 import { genId } from "../../util";
-import { createVaultClient } from "../../vault";
 
 const supportedLinearEntityTypeIds = linearTypeMappings.map(
   ({ hashEntityTypeId }) => hashEntityTypeId as VersionedUrl,

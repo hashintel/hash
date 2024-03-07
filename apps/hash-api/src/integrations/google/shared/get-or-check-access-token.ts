@@ -1,9 +1,11 @@
+import {
+  createGoogleOAuth2Client,
+  getTokensForGoogleAccount,
+} from "@local/hash-backend-utils/google";
 import { Request, Response } from "express";
 
 import { enabledIntegrations } from "../../enabled-integrations";
 import { getGoogleAccountById } from "./get-google-account";
-import { getTokensForAccount } from "./get-tokens-for-account";
-import { createGoogleOAuth2Client } from "./oauth-client";
 
 /**
  * Shared function to retrieve a Google access token for an Express request,
@@ -55,9 +57,11 @@ export const getGoogleAccessTokenForExpressRequest = async ({
     return;
   }
 
-  const tokens = await getTokensForAccount(req.context, authentication, {
-    userAccountId: req.user.accountId,
+  const tokens = await getTokensForGoogleAccount({
+    authentication,
+    graphApi: req.context.graphApi,
     googleAccountEntityId: googleAccount.metadata.recordId.entityId,
+    userAccountId: req.user.accountId,
     vaultClient: req.context.vaultClient,
   });
 

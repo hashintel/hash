@@ -1,5 +1,6 @@
 import { Logger } from "@local/hash-backend-utils/logger";
 import { SearchAdapter } from "@local/hash-backend-utils/search/adapter";
+import { VaultClient } from "@local/hash-backend-utils/vault";
 
 import { CacheAdapter } from "../cache";
 import { EmailTransporter } from "../email/transporters";
@@ -7,7 +8,6 @@ import { GraphApi } from "../graph/context-types";
 import { User } from "../graph/knowledge/system-types/user";
 import { UploadableStorageProvider } from "../storage/storage-provider";
 import { TemporalClient } from "../temporal";
-import { VaultClient } from "../vault";
 import { AuthenticationContext } from "./authentication-context";
 
 /**

@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 
 import { LinearClient } from "@linear/sdk";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import { createUserSecretPath } from "@local/hash-backend-utils/vault";
 import {
   apiOrigin,
   frontendUrl,
@@ -33,7 +34,6 @@ import {
   LinearIntegration,
 } from "../../graph/knowledge/system-types/linear-integration-entity";
 import { isUserMemberOfOrg } from "../../graph/knowledge/system-types/user";
-import { createUserSecretPath } from "../../vault";
 
 const linearClientId = process.env.LINEAR_CLIENT_ID;
 const linearClientSecret = process.env.LINEAR_CLIENT_SECRET;

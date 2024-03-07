@@ -17,15 +17,15 @@ import {
 } from "@local/hash-subgraph";
 
 import {
-  archiveEntity,
-  getEntitiesByLinearId,
-  getEntityOutgoingLinks,
-} from "./activities/graph-requests";
-import {
   mapHashEntityToLinearUpdateInput,
   mapLinearDataToEntity,
   mapLinearDataToEntityWithOutgoingLinks,
-} from "./activities/mappings";
+} from "./linear-activities/mappings";
+import {
+  archiveEntity,
+  getEntitiesByLinearId,
+  getEntityOutgoingLinks,
+} from "./shared/graph-requests";
 
 const createHashEntity = async (params: {
   authentication: { actorId: AccountId };

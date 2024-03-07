@@ -14,13 +14,13 @@ import {
   EntityPropertiesObject,
   EntityPropertyValue,
 } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+import { extractBaseUrl } from "@local/hash-subgraph/src/shared/type-system-patch";
 
 import {
   getEntitiesByLinearId,
   getEntityOutgoingLinks,
   getLatestEntityById,
-} from "./graph-requests";
+} from "../shared/graph-requests";
 
 export const mapLinearDataToEntity = <
   T extends SupportedLinearTypeNames,

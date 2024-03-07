@@ -1,5 +1,6 @@
 /* eslint-disable import/first */
 
+import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import {
   monorepoRootDir,
   realtimeSyncEnabled,
@@ -7,9 +8,6 @@ import {
 } from "@local/hash-backend-utils/environment";
 import express, { ErrorRequestHandler, raw } from "express";
 import { create as handlebarsCreate } from "express-handlebars";
-
-// eslint-disable-next-line import/order
-import { initSentry } from "./sentry";
 
 const app = express();
 
@@ -20,9 +18,9 @@ import path from "node:path";
 import { promisify } from "node:util";
 
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
+import { createVaultClient } from "@local/hash-backend-utils/vault";
 import * as Sentry from "@sentry/node";
 import { json } from "body-parser";
 import cors from "cors";
@@ -59,7 +57,7 @@ import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-i
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
 import { checkGoogleAccessToken } from "./integrations/google/check-access-token";
-import { createSheetsIntegration } from "./integrations/google/create-sheets-integration";
+import { createOrUpdateSheetsIntegration } from "./integrations/google/create-or-update-sheets-integration";
 import { getGoogleAccessToken } from "./integrations/google/get-access-token";
 import { googleOAuthCallback } from "./integrations/google/oauth-callback";
 import { oAuthLinear, oAuthLinearCallback } from "./integrations/linear/oauth";
@@ -80,6 +78,7 @@ import {
 } from "./lib/env-config";
 import { logger } from "./logger";
 import { seedOrgsAndUsers } from "./seed-data";
+import { initSentry } from "./sentry";
 import {
   setupFileDownloadProxyHandler,
   setupStorageProviders,
@@ -87,7 +86,6 @@ import {
 import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { createTemporalClient } from "./temporal";
 import { getRequiredEnv } from "./util";
-import { createVaultClient } from "./vault";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -522,9 +520,9 @@ const main = async () => {
     checkGoogleAccessToken,
   );
   app.post(
-    "/integrations/google-sheets/sync",
+    "/integrations/google/sheets",
     authRouteRateLimiter,
-    createSheetsIntegration,
+    createOrUpdateSheetsIntegration,
   );
 
   // Endpoints used by HashGPT or in support of it

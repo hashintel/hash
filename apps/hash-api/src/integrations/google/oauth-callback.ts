@@ -1,4 +1,9 @@
+import {
+  createGoogleOAuth2Client,
+  getSecretEntitiesForGoogleAccount,
+} from "@local/hash-backend-utils/google";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import { createUserSecretPath } from "@local/hash-backend-utils/vault";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -20,11 +25,8 @@ import {
   createEntity,
 } from "../../graph/knowledge/primitive/entity";
 import { createLinkEntity } from "../../graph/knowledge/primitive/link-entity";
-import { createUserSecretPath } from "../../vault";
 import { enabledIntegrations } from "../enabled-integrations";
 import { getGoogleAccountById } from "./shared/get-google-account";
-import { getSecretEntitiesForAccount } from "./shared/get-secret-entities-for-account";
-import { createGoogleOAuth2Client } from "./shared/oauth-client";
 
 export const googleOAuthCallback: RequestHandler<
   Record<string, never>,
@@ -167,14 +169,11 @@ export const googleOAuthCallback: RequestHandler<
        * rather than being able to inspect and revoke access on a token-by-token basis.
        */
 
-      const linkAndSecretPairs = await getSecretEntitiesForAccount(
-        req.context,
+      const linkAndSecretPairs = await getSecretEntitiesForGoogleAccount({
         authentication,
-        {
-          userAccountId: req.user.accountId,
-          googleAccountEntityId: googleAccountEntity.metadata.recordId.entityId,
-        },
-      );
+        graphApi: req.context.graphApi,
+        googleAccountEntityId: googleAccountEntity.metadata.recordId.entityId,
+      });
 
       /** Only the Google bot can edit these entities */
       const googleBotAuthentication = { actorId: googleBotAccountId };

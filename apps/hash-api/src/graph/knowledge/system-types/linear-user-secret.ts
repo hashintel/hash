@@ -2,6 +2,7 @@ import {
   EntityTypeMismatchError,
   NotFoundError,
 } from "@local/hash-backend-utils/error";
+import { VaultClient } from "@local/hash-backend-utils/vault";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -30,7 +31,6 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
-import { VaultClient } from "../../../vault";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 
 export type LinearUserSecret = {

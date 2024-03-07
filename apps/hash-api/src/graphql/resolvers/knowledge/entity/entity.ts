@@ -1,4 +1,8 @@
-import { Filter, QueryTemporalAxesUnresolved } from "@local/hash-graph-client";
+import { convertBpFilterToGraphFilter } from "@local/hash-backend-utils/convert-bp-filter-to-graph-filter";
+import type {
+  Filter,
+  QueryTemporalAxesUnresolved,
+} from "@local/hash-graph-client";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
@@ -36,7 +40,6 @@ import {
   unarchiveEntity,
   updateEntity,
 } from "../../../../graph/knowledge/primitive/entity";
-import { bpMultiFilterToGraphFilter } from "../../../../graph/knowledge/primitive/entity/query";
 import {
   createLinkEntity,
   isEntityLinkEntity,
@@ -171,7 +174,7 @@ export const queryEntitiesResolver: NonNullable<
   }
 
   const filter = operation.multiFilter
-    ? bpMultiFilterToGraphFilter(operation.multiFilter)
+    ? convertBpFilterToGraphFilter(operation.multiFilter)
     : { any: [] };
 
   if ("any" in filter && filter.any.length === 0) {

@@ -1,8 +1,7 @@
+import { Scalars } from "@apps/hash-api/src/graphql/api-types.gen";
 import { Filter, PathExpression } from "@local/hash-graph-client";
 
-import { Scalars } from "../../../../graphql/api-types.gen";
-
-type QueryOperationInput = Scalars["QueryOperationInput"];
+export type QueryOperationInput = Scalars["QueryOperationInput"];
 type MultiFilter = NonNullable<QueryOperationInput["multiFilter"]>;
 
 export class InvalidEntityQueryError extends Error {
@@ -153,7 +152,8 @@ const bpMultiFilterFieldPathToPathExpression = (
           );
         }
 
-        // case `LeftEntity` - only possible for `EntityId` as the BP query syntax doesn't support filtering across links but the EntityId is stored in the LinkData
+        // case `LeftEntity` - only possible for `EntityId` as the BP query syntax doesn't support filtering across
+        // links but the EntityId is stored in the LinkData
         if (linkDataRoot === "leftEntityId") {
           if (linkDataRest.length > 0) {
             throw new InvalidEntityQueryError(
@@ -164,7 +164,8 @@ const bpMultiFilterFieldPathToPathExpression = (
           return ["linkData", "leftEntityId"];
         }
 
-        // case `RightEntity` - only possible for `EntityId` as the BP query syntax doesn't support filtering across links but the EntityId is stored in the LinkData
+        // case `RightEntity` - only possible for `EntityId` as the BP query syntax doesn't support filtering across
+        // links but the EntityId is stored in the LinkData
         if (linkDataRoot === "rightEntityId") {
           if (linkDataRest.length > 0) {
             throw new InvalidEntityQueryError(
@@ -208,7 +209,6 @@ const bpMultiFilterFieldPathToPathExpression = (
     })(),
   };
 };
-
 const bpFilterToGraphFilter = (
   filter: MultiFilter["filters"][number],
 ): Filter => {
@@ -272,13 +272,12 @@ const bpFilterToGraphFilter = (
   }
 
   throw new Error(
-    // @ts-expect-error -- We're dealing with data that is passed across boundaries, so someone _could_ pass us something
-    //     that actually breaks with our typings. We should handle this case gracefully.
+    // @ts-expect-error -- We're dealing with data that is passed across boundaries, so someone _could_ pass us
+    // something that actually breaks with our typings. We should handle this case gracefully.
     `UNIMPLEMENTED: Unknown filter operator \`${filter.operator}\``,
   );
 };
-
-export const bpMultiFilterToGraphFilter = (bpFilter: MultiFilter): Filter => {
+export const convertBpFilterToGraphFilter = (bpFilter: MultiFilter): Filter => {
   const { filters: bpFilters, operator } = bpFilter;
 
   const filter: Filter = {
