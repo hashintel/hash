@@ -1,5 +1,7 @@
 import * as S from "@effect/schema/Schema";
+import { Brand } from "effect";
 
+import * as BaseUrl from "../BaseUrl";
 import * as VersionedUrl from "../VersionedUrl";
 
 const TypeId: unique symbol = Symbol.for(
@@ -7,10 +9,16 @@ const TypeId: unique symbol = Symbol.for(
 );
 export type TypeId = typeof TypeId;
 
-export const DataTypeUrl = VersionedUrl.VersionedUrl.pipe(S.brand(TypeId));
+export const DataTypeUrl: S.Schema<DataTypeUrl, string> =
+  VersionedUrl.VersionedUrl.pipe(S.brand(TypeId));
 
-export type DataTypeUrl = S.Schema.To<typeof DataTypeUrl>;
+export type DataTypeUrl<T extends BaseUrl.BaseUrl = BaseUrl.BaseUrl> =
+  VersionedUrl.VersionedUrl<T> & Brand.Brand<TypeId>;
 
-export function parseOrThrow(value: string): DataTypeUrl {
-  return S.decodeSync(DataTypeUrl)(value);
+export function parseOrThrow<T extends string>(
+  value: T,
+): T extends VersionedUrl.Pattern<infer U>
+  ? DataTypeUrl<U & Brand.Brand<BaseUrl.TypeId>>
+  : DataTypeUrl {
+  return S.decodeSync(DataTypeUrl)(value) as never;
 }

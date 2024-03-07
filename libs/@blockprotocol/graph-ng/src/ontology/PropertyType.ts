@@ -1,6 +1,7 @@
 import * as S from "@effect/schema/Schema";
-import * as PropertyTypeUrl from "./PropertyTypeUrl";
+
 import * as DataType from "./DataType";
+import * as PropertyTypeUrl from "./PropertyTypeUrl";
 
 interface ArrayOfPropertyValuesTo {
   minItems?: number | undefined;
@@ -23,6 +24,7 @@ const ArrayOfPropertyValues: S.Schema<
   minItems: S.optional(S.Positive),
   maxItems: S.optional(S.Positive),
 
+  // eslint-disable-next-line @typescript-eslint/no-use-before-define
   items: S.suspend(() => PropertyValues),
 });
 
@@ -47,6 +49,7 @@ const PropertiesTypeObjectArray: S.Schema<
   minItems: S.optional(S.Positive),
   maxItems: S.optional(S.Positive),
 
+  // eslint-disable-next-line @typescript-eslint/no-use-before-define
   items: S.suspend(() => PropertyType),
 });
 
@@ -62,6 +65,7 @@ const PropertyTypeObject: S.Schema<
   PropertyTypeObjectFrom
 > = S.array(
   S.union(
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     S.suspend(() => PropertyType),
     PropertiesTypeObjectArray,
   ),

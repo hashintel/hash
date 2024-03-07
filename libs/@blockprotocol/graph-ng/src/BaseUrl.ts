@@ -1,20 +1,17 @@
 import * as S from "@effect/schema/Schema";
+import { Brand } from "effect";
 
-const TypeId: unique symbol = Symbol.for("@blockprotocol/graph/Url");
+import * as Url from "./internal/Url";
+
+const TypeId: unique symbol = Symbol.for("@blockprotocol/graph/BaseUrl");
 export type TypeId = typeof TypeId;
 
-export const BaseUrl = S.string.pipe(
-  S.nonEmpty(),
-  S.filter((value) => {
-    try {
-      // eslint-disable-next-line no-new
-      new URL(value);
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }),
-  S.brand(TypeId),
-);
+export const BaseUrl = Url.Url.pipe(S.brand(TypeId));
 
 export type BaseUrl = S.Schema.To<typeof BaseUrl>;
+
+export function parseOrThrow<T extends string>(
+  value: T,
+): T & Brand.Brand<TypeId> {
+  return S.decodeSync(BaseUrl)(value) as never;
+}

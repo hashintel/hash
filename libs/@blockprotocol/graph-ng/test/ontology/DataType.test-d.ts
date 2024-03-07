@@ -11,6 +11,7 @@ import * as Object from "../../src/ontology/builtin/Object";
 import * as Text from "../../src/ontology/builtin/Text";
 import * as DataType from "../../src/ontology/DataType";
 import * as DataTypeUrl from "../../src/ontology/DataTypeUrl";
+import { DataTypeValue } from "../../src/ontology/DataTypeValue";
 import * as Json from "../../src/ontology/internal/Json";
 
 test("makeValueSchema(Boolean)", () => {
@@ -125,4 +126,10 @@ test("makeValueSchema(Duration)", () => {
   const Schema = DataType.makeValueSchema(DurationV1);
 
   expectTypeOf(Schema).toMatchTypeOf<S.Schema<Duration.Duration, string>>();
+});
+
+test("makeValueSchema([opaque])", () => {
+  const Schema = DataType.makeValueSchema(DurationV1 as DataType.DataType);
+
+  expectTypeOf(Schema).toMatchTypeOf<S.Schema<Json.Value, DataTypeValue>>();
 });
