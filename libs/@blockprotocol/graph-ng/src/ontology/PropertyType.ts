@@ -3,92 +3,98 @@ import * as S from "@effect/schema/Schema";
 import * as DataType from "./DataType";
 import * as PropertyTypeUrl from "./PropertyTypeUrl";
 
-interface ArrayOfPropertyValuesTo {
+interface OneOfFrom<T> {
+  oneOf: ReadonlyArray<T>;
+}
+
+interface OneOf<T> {
+  oneOf: ReadonlyArray<T>;
+}
+
+const OneOf = <To, From, C>(
+  oneOf: S.Schema<To, From, C>,
+): S.Schema<OneOf<To>, OneOf<From>, C> =>
+  S.struct({
+    oneOf: S.array(oneOf).pipe(S.minLength(1)),
+  });
+
+interface Array<T> {
   minItems?: number | undefined;
   maxItems?: number | undefined;
 
-  items: PropertyValues;
+  items: T;
 }
 
-interface ArrayOfPropertyValuesFrom {
-  minItems?: number | undefined;
-  maxItems?: number | undefined;
+const Array = <To, From, C>(
+  items: S.Schema<To, From, C>,
+): S.Schema<Array<To>, Array<From>, C> =>
+  S.struct({
+    minItems: S.optional(S.number.pipe(S.int(), S.positive())),
+    maxItems: S.optional(S.number.pipe(S.int(), S.positive())),
 
-  items: PropertyValuesFrom;
-}
+    items,
+  });
+
+interface PropertyTypeObject
+  extends ReadonlyArray<PropertyType | Array<PropertyType>> {}
+
+interface PropertyTypeObjectFrom
+  extends ReadonlyArray<PropertyTypeFrom | Array<PropertyTypeFrom>> {}
+
+const PropertyTypeObject: S.Schema<PropertyTypeObject, PropertyTypeObjectFrom> =
+  // eslint-disable-next-line @typescript-eslint/no-use-before-define
+  S.array(S.suspend(() => S.union(PropertyType, Array(PropertyType))));
+
+interface ArrayOfPropertyValues extends Array<OneOf<PropertyValues>> {}
+interface ArrayOfPropertyValuesFrom
+  extends Array<OneOfFrom<PropertyValuesFrom>> {}
 
 const ArrayOfPropertyValues: S.Schema<
-  ArrayOfPropertyValuesTo,
+  ArrayOfPropertyValues,
   ArrayOfPropertyValuesFrom
-> = S.struct({
-  minItems: S.optional(S.Positive),
-  maxItems: S.optional(S.Positive),
-
   // eslint-disable-next-line @typescript-eslint/no-use-before-define
-  items: S.suspend(() => PropertyValues),
-});
+> = Array(OneOf(S.suspend(() => PropertyValues)));
 
-interface PropertiesTypeObjectArrayTo {
-  minItems?: number | undefined;
-  maxItems?: number | undefined;
+type PropertyValues =
+  | DataType.DataType
+  | PropertyTypeObject
+  | ArrayOfPropertyValues;
 
-  items: PropertyType;
-}
+type PropertyValuesFrom =
+  | S.Schema.From<typeof DataType.DataType>
+  | PropertyTypeObjectFrom
+  | ArrayOfPropertyValuesFrom;
 
-interface PropertiesTypeObjectArrayFrom {
-  minItems?: number | undefined;
-  maxItems?: number | undefined;
-
-  items: PropertyTypeFrom;
-}
-
-const PropertiesTypeObjectArray: S.Schema<
-  PropertiesTypeObjectArrayTo,
-  PropertiesTypeObjectArrayFrom
-> = S.struct({
-  minItems: S.optional(S.Positive),
-  maxItems: S.optional(S.Positive),
-
-  // eslint-disable-next-line @typescript-eslint/no-use-before-define
-  items: S.suspend(() => PropertyType),
-});
-
-type PropertyTypeObjectTo = ReadonlyArray<
-  PropertyType | PropertiesTypeObjectArrayTo
->;
-type PropertyTypeObjectFrom = ReadonlyArray<
-  PropertyTypeFrom | PropertiesTypeObjectArrayFrom
->;
-
-const PropertyTypeObject: S.Schema<
-  PropertyTypeObjectTo,
-  PropertyTypeObjectFrom
-> = S.array(
-  S.union(
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    S.suspend(() => PropertyType),
-    PropertiesTypeObjectArray,
-  ),
-);
-
-const PropertyValues = S.union(
+const PropertyValues: S.Schema<PropertyValues, PropertyValuesFrom> = S.union(
   DataType.DataType,
   PropertyTypeObject,
   ArrayOfPropertyValues,
 );
 
-type PropertyValues = S.Schema.To<typeof PropertyValues>;
-type PropertyValuesFrom = S.Schema.From<typeof PropertyValues>;
+interface PropertyType extends OneOf<PropertyValues> {
+  kind: "propertyType";
 
-export const PropertyType = S.struct({
-  kind: S.literal("propertyType"),
+  id: PropertyTypeUrl.PropertyTypeUrl;
+  title: string;
+  description?: string | undefined;
+}
 
-  id: PropertyTypeUrl.PropertyTypeUrl,
-  title: S.string,
-  description: S.optional(S.string),
+interface PropertyTypeFrom extends OneOfFrom<PropertyValuesFrom> {
+  kind: "propertyType";
 
-  oneOf: S.nonEmptyArray(PropertyValues),
-});
+  id: S.Schema.From<typeof PropertyTypeUrl.PropertyTypeUrl>;
+  title: string;
+  description?: string | undefined;
+}
 
-export interface PropertyType extends S.Schema.To<typeof PropertyType> {}
-interface PropertyTypeFrom extends S.Schema.From<typeof PropertyType> {}
+export const PropertyType: S.Schema<PropertyType, PropertyTypeFrom> = S.extend(
+  S.struct({
+    kind: S.literal("propertyType"),
+
+    id: PropertyTypeUrl.PropertyTypeUrl,
+    title: S.string,
+    description: S.optional(S.string),
+  }),
+
+  OneOf(PropertyValues),
+);
