@@ -110,8 +110,7 @@ async fn properties_add() {
             properties: vec![PropertyPatchOperation::Add {
                 path: once(PropertyPathElement::from(age_property_type_id())).collect(),
                 value: Property::Value(json!(30)),
-                confidence: None,
-                provenance: PropertyProvenance::default(),
+                metadata: None,
             }],
             draft: None,
             archived: None,
@@ -259,8 +258,7 @@ async fn properties_replace() {
             properties: vec![PropertyPatchOperation::Replace {
                 path: once(PropertyPathElement::from(name_property_type_id())).collect(),
                 value: Property::Value(json!("Bob")),
-                confidence: None,
-                provenance: PropertyProvenance::default(),
+                metadata: None,
             }],
             draft: None,
             archived: None,

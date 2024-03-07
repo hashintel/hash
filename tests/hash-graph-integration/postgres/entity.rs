@@ -228,8 +228,7 @@ async fn update() {
                 properties: vec![PropertyPatchOperation::Replace {
                     path: PropertyPath::default(),
                     value: Property::Object(page_v2.clone()),
-                    confidence: None,
-                    provenance: PropertyProvenance::default(),
+                    metadata: None,
                 }],
                 entity_type_ids: vec![],
                 archived: None,

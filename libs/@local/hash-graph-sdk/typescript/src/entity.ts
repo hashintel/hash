@@ -20,6 +20,7 @@ import type {
   EntityTemporalVersioningMetadata,
   EntityUuid,
   LinkData,
+  PropertyMetadataArray,
   PropertyMetadataElement,
   PropertyMetadataObject,
   PropertyMetadataValue,
@@ -83,6 +84,12 @@ type EntityData<
   };
 };
 
+type PropertyElementMetadata = {
+  confidence?: number;
+  provenance?: PropertyProvenance;
+  dataTypeId?: VersionedUrl;
+};
+
 type EntityInput<Properties extends EntityPropertiesObject> =
   | GraphApiEntity
   | SerializedEntity<Properties>;
@@ -109,19 +116,11 @@ export const flattenedPropertyMetadataMap = (
   metadata: PropertyMetadataObject,
 ): {
   path: PropertyPath;
-  metadata: {
-    dataTypeId?: VersionedUrl;
-    confidence?: number;
-    provenance?: PropertyProvenance;
-  };
+  metadata: PropertyElementMetadata;
 }[] => {
   const flattened: {
     path: PropertyPath;
-    metadata: {
-      dataTypeId?: VersionedUrl;
-      confidence?: number;
-      provenance?: PropertyProvenance;
-    };
+    metadata: PropertyElementMetadata;
   }[] = [];
 
   const visitElement = (
@@ -304,26 +303,45 @@ export class Entity<
     return this.#entity.properties;
   }
 
+  private propertyMetadataElement(
+    path: PropertyPath,
+  ): PropertyElementMetadata | undefined {
+    return path.reduce<PropertyMetadataElement | undefined>((map, key) => {
+      if (!map) {
+        return undefined;
+      }
+      if (typeof key === "number") {
+        return (map as PropertyMetadataArray)[`${key}`];
+      } else {
+        return (map as PropertyMetadataObject)[key];
+      }
+    }, this.#entity.metadata.properties);
+  }
+
   public propertyMetadata(
     path: PropertyPath,
-  ): PropertyMetadataElement | undefined {
-    const element = path.reduce<PropertyMetadataElement | undefined>(
-      (map, key) => {
-        if (!map) {
-          return undefined;
-        }
-        if (typeof key === "number") {
-          return (map as Record<`${number}`, PropertyMetadataElement>)[
-            `${key}`
-          ];
-        } else {
-          return (map as Record<BaseUrl, PropertyMetadataElement>)[key];
-        }
-      },
-      this.#entity.metadata.properties,
-    );
+  ): PropertyElementMetadata | undefined {
+    const element = this.propertyMetadataElement(path);
 
-    return element;
+    if (!element) {
+      return undefined;
+    }
+    const provenance = element.provenance;
+    const confidence = element.confidence;
+    const dataTypeId = (element as PropertyMetadataValue).dataTypeId;
+    if (
+      provenance === undefined &&
+      confidence === undefined &&
+      dataTypeId === undefined
+    ) {
+      return undefined;
+    }
+
+    return {
+      provenance,
+      confidence,
+      dataTypeId,
+    };
   }
 
   public flattenedProperties(): {
