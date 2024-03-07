@@ -60,7 +60,7 @@ where
         // TODO: Distinguish between format validation and content validation so it's possible
         //       to directly use the correct type.
         //   see https://linear.app/hash/issue/BP-33
-        Object::<_, 0>::new(self.properties().clone(), self.required().to_vec())
+        Object::<_, 0>::new(self.properties().clone(), self.required().clone())
             .expect("`Object` was already validated")
             .validate_value(value, profile, provider)
             .await
