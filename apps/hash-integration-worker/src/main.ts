@@ -4,7 +4,7 @@ import * as path from "node:path";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-integration-workflow-types";
+import type { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import { NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 

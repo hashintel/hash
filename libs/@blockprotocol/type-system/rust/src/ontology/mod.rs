@@ -15,7 +15,8 @@ mod shared;
 pub use data_type::{DataType, DataTypeReference, ParseDataTypeError};
 pub use entity_type::{
     links::{Links, MaybeOrderedArray, ParseLinksError},
-    EntityType, EntityTypeReference, MergeEntityTypeError, ParseEntityTypeError,
+    ClosedEntityType, ClosedEntityTypeSchemaData, EntityType, EntityTypeReference,
+    MergeEntityTypeError, ParseEntityTypeError,
 };
 pub use property_type::{
     ParsePropertyTypeError, PropertyType, PropertyTypeReference, PropertyValues,

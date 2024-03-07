@@ -1,9 +1,5 @@
-import {
-  ParsePropertyTypeError,
-  PropertyType,
-  TypeSystemInitializer,
-  validatePropertyType,
-} from "../src/main";
+import type { ParsePropertyTypeError, PropertyType } from "../src/main";
+import { TypeSystemInitializer, validatePropertyType } from "../src/main";
 
 const propertyTypes: PropertyType[] = [
   {

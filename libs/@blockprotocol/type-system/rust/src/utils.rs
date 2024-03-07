@@ -110,7 +110,6 @@ pub(crate) mod tests {
     /// Optionally checks the deserialized object against an expected value.
     ///
     /// [`repr`]: crate::raw
-    #[expect(clippy::similar_names)]
     #[expect(
         clippy::needless_pass_by_value,
         reason = "The value is used in the `assert_eq`, and passing by ref here is less convenient"

@@ -2,7 +2,7 @@ import {
   createGoogleOAuth2Client,
   getTokensForGoogleAccount,
 } from "@local/hash-backend-utils/google";
-import {
+import type {
   CreateHashEntityFromLinearData,
   ReadLinearTeamsWorkflow,
   SyncQueryToGoogleSheetWorkflow,
@@ -14,8 +14,8 @@ import { createVaultClient } from "@local/hash-backend-utils/vault";
 import { ActivityOptions, proxyActivities } from "@temporalio/workflow";
 
 import * as googleActivityFunctions from "./google-activities";
-import { createGraphActivities } from "./graph-activities";
-import { createLinearIntegrationActivities } from "./linear-activities";
+import type { createGraphActivities } from "./graph-activities";
+import type { createLinearIntegrationActivities } from "./linear-activities";
 
 const commonConfig: ActivityOptions = {
   startToCloseTimeout: "180 second",

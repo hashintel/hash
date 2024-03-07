@@ -23,12 +23,12 @@ import {
   type PropertiesConstrainedByEdge as PropertiesConstrainedByEdgeBp,
   type ValuesConstrainedByEdge as ValuesConstrainedByEdgeBp,
 } from "@blockprotocol/graph/temporal";
-import { Subtype } from "@local/advanced-types/subtype";
+import type { Subtype } from "@local/advanced-types/subtype";
 
-import { OntologyTypeVertexId } from "../../vertices";
-import { GenericOutwardEdge } from "../generic-outward-edge";
-import { OntologyEdgeKind, SharedEdgeKind } from "../kind";
-import { EntityIdWithInterval, OutwardEdge } from "../outward-edge";
+import type { OntologyTypeVertexId } from "../../vertices";
+import type { GenericOutwardEdge } from "../generic-outward-edge";
+import type { OntologyEdgeKind, SharedEdgeKind } from "../kind";
+import type { EntityIdWithInterval, OutwardEdge } from "../outward-edge";
 
 export type InheritsFromEdge = Subtype<
   InheritsFromEdgeBp,

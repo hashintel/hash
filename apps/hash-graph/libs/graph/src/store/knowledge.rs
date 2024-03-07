@@ -13,7 +13,7 @@ use graph_types::{
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
-use type_system::{url::VersionedUrl, EntityType};
+use type_system::{url::VersionedUrl, ClosedEntityType, EntityType};
 #[cfg(feature = "utoipa")]
 use utoipa::{
     openapi,
@@ -33,9 +33,12 @@ use crate::{
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
+#[expect(clippy::large_enum_variant)]
 pub enum EntityValidationType<'a> {
-    Schema(Cow<'a, EntityType>),
+    Schema(EntityType),
     Id(Cow<'a, VersionedUrl>),
+    #[serde(skip)]
+    ClosedSchema(Cow<'a, ClosedEntityType>),
 }
 
 #[cfg(feature = "utoipa")]

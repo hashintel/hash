@@ -12,6 +12,7 @@ use futures::{
 };
 use graph_types::ontology::OntologyTypeVersion;
 use postgres_types::Json;
+use type_system::ClosedEntityType;
 use uuid::Uuid;
 
 use crate::snapshot::{
@@ -177,7 +178,7 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
                 schema: Json(entity_type.schema.clone()),
                 // The unclosed schema is inserted initially. This will be replaced later by the
                 // closed schema.
-                closed_schema: Json(entity_type.schema),
+                closed_schema: Json(ClosedEntityType::from(entity_type.schema)),
                 label_property: entity_type
                     .metadata
                     .label_property

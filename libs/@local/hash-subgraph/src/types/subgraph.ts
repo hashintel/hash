@@ -5,18 +5,18 @@ import {
   type PropertyTypeRootType as PropertyTypeRootTypeBp,
   type SubgraphRootType as SubgraphRootTypeBp,
 } from "@blockprotocol/graph/temporal";
-import { Subtype } from "@local/advanced-types/subtype";
+import type { Subtype } from "@local/advanced-types/subtype";
 
-import {
+import type {
   DataTypeWithMetadata,
   Entity,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "./element";
-import { Edges } from "./subgraph/edges";
-import { GraphResolveDepths } from "./subgraph/graph-resolve-depths";
-import { SubgraphTemporalAxes } from "./subgraph/temporal-axes";
-import {
+import type { Edges } from "./subgraph/edges";
+import type { GraphResolveDepths } from "./subgraph/graph-resolve-depths";
+import type { SubgraphTemporalAxes } from "./subgraph/temporal-axes";
+import type {
   EntityVertexId,
   OntologyTypeVertexId,
   Vertices,

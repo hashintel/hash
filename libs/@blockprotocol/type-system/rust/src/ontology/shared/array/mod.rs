@@ -1,18 +1,37 @@
 pub(crate) mod error;
 pub(in crate::ontology) mod raw;
 
-use crate::{url::BaseUrl, ValidateUrl, ValidationError};
+use std::num::NonZero;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+use serde::{Deserialize, Serialize};
+
+use crate::{url::BaseUrl, PropertyTypeReference, ValidateUrl, ValidationError};
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(into = "raw::Array<T>", bound(serialize = "T: Serialize + Clone"))]
 pub struct Array<T> {
-    items: T,
-    min_items: Option<usize>,
-    max_items: Option<usize>,
+    pub items: T,
+    pub min_items: Option<usize>,
+    pub max_items: Option<NonZero<usize>>,
+}
+
+impl<'de> Deserialize<'de> for Array<PropertyTypeReference> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let array_repr = raw::Array::deserialize(deserializer)?;
+        array_repr.try_into().map_err(serde::de::Error::custom)
+    }
 }
 
 impl<T> Array<T> {
     #[must_use]
-    pub const fn new(items: T, min_items: Option<usize>, max_items: Option<usize>) -> Self {
+    pub const fn new(
+        items: T,
+        min_items: Option<usize>,
+        max_items: Option<NonZero<usize>>,
+    ) -> Self {
         Self {
             items,
             min_items,
@@ -31,15 +50,29 @@ impl<T> Array<T> {
     }
 
     #[must_use]
-    pub const fn max_items(&self) -> Option<usize> {
+    pub const fn max_items(&self) -> Option<NonZero<usize>> {
         self.max_items
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(bound(serialize = "T: Serialize + Clone"))]
+#[serde(untagged)]
 pub enum ValueOrArray<T> {
     Value(T),
     Array(Array<T>),
+}
+
+impl<'de> Deserialize<'de> for ValueOrArray<PropertyTypeReference> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value_or_array_repr = raw::ValueOrArray::deserialize(deserializer)?;
+        value_or_array_repr
+            .try_into()
+            .map_err(serde::de::Error::custom)
+    }
 }
 
 impl<T: ValidateUrl> ValidateUrl for ValueOrArray<T> {
@@ -58,7 +91,7 @@ mod tests {
     use serde_json::json;
 
     use super::*;
-    use crate::{raw, url::VersionedUrl, PropertyTypeReference};
+    use crate::{raw, url::VersionedUrl};
 
     fn get_test_value_or_array(url: &VersionedUrl) -> ValueOrArray<PropertyTypeReference> {
         let json_repr = json!({

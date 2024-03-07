@@ -29,7 +29,7 @@ use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTi
 use tokio_postgres::{GenericClient, Row};
 use type_system::{
     url::{BaseUrl, VersionedUrl},
-    EntityType,
+    ClosedEntityType, EntityType,
 };
 use uuid::Uuid;
 
@@ -300,8 +300,8 @@ impl<C: AsClient> PostgresStore<C> {
     #[tracing::instrument(level = "debug")]
     fn create_closed_entity_type(
         entity_type_id: EntityTypeId,
-        available_types: &mut HashMap<EntityTypeId, EntityType>,
-    ) -> Result<EntityType, QueryError> {
+        available_types: &mut HashMap<EntityTypeId, ClosedEntityType>,
+    ) -> Result<ClosedEntityType, QueryError> {
         let mut current_type = available_types
             .remove(&entity_type_id)
             .ok_or_else(|| Report::new(QueryError))
@@ -309,7 +309,7 @@ impl<C: AsClient> PostgresStore<C> {
         let mut visited_ids = HashSet::from([entity_type_id]);
 
         loop {
-            for parent in current_type.inherits_from.elements.clone() {
+            for parent in current_type.inherits_from.clone() {
                 let parent_id = EntityTypeId::from_url(parent.url());
 
                 ensure!(
@@ -318,31 +318,25 @@ impl<C: AsClient> PostgresStore<C> {
                 );
 
                 if visited_ids.contains(&parent_id) {
-                    // This can happens in case of multiple inheritance or cycles. Cycles are
+                    // This may happen in case of multiple inheritance or cycles. Cycles are
                     // already checked above, so we can just skip this parent.
-                    current_type
-                        .inherits_from
-                        .elements
-                        .retain(|value| *value != parent);
+                    current_type.inherits_from.remove(&parent);
                     break;
                 }
 
-                current_type
-                    .merge_parent(
-                        available_types
-                            .get(&parent_id)
-                            .ok_or_else(|| Report::new(QueryError))
-                            .attach_printable("entity type not available")
-                            .attach_printable_lazy(|| parent.url().clone())?
-                            .clone(),
-                    )
-                    .change_context(QueryError)
-                    .attach_printable("could not merge parent")?;
+                current_type.extend_one(
+                    available_types
+                        .get(&parent_id)
+                        .ok_or_else(|| Report::new(QueryError))
+                        .attach_printable("entity type not available")
+                        .attach_printable_lazy(|| parent.url().clone())?
+                        .clone(),
+                );
 
                 visited_ids.insert(parent_id);
             }
 
-            if current_type.inherits_from.elements.is_empty() {
+            if current_type.inherits_from.is_empty() {
                 break;
             }
         }
@@ -396,7 +390,12 @@ impl<C: AsClient> PostgresStore<C> {
         // The types we check either come from the graph or are provided by the user
         let mut available_schemas: HashMap<_, _> = entity_types
             .iter()
-            .map(|(id, schema)| (EntityTypeId::new(*id), schema.clone()))
+            .map(|(id, schema)| {
+                (
+                    EntityTypeId::new(*id),
+                    ClosedEntityType::from(schema.clone()),
+                )
+            })
             .chain(parent_schemas)
             .collect();
 
@@ -417,7 +416,7 @@ impl<C: AsClient> PostgresStore<C> {
 
 pub struct EntityTypeInsertion {
     pub schema: EntityType,
-    pub closed_schema: EntityType,
+    pub closed_schema: ClosedEntityType,
 }
 
 impl<C: AsClient> EntityTypeStore for PostgresStore<C> {

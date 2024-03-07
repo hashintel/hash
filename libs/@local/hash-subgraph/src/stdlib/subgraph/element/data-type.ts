@@ -5,10 +5,10 @@ import {
   getDataTypes as getDataTypesBp,
   getDataTypesByBaseUrl as getDataTypesByBaseUrlBp,
 } from "@blockprotocol/graph/temporal/stdlib";
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { DataType } from "@local/hash-graph-client";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { DataType } from "@local/hash-graph-client";
 
-import {
+import type {
   BaseUrl,
   DataTypeWithMetadata,
   OntologyTypeVertexId,

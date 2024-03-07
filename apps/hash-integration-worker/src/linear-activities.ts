@@ -1,20 +1,21 @@
-import { Connection, LinearClient, LinearDocument, Team } from "@linear/sdk";
+import type { Connection, LinearDocument, Team } from "@linear/sdk";
+import { LinearClient } from "@linear/sdk";
 import { getLinearMappingByHashEntityTypeId } from "@local/hash-backend-utils/linear-type-mappings";
-import {
+import type {
   CreateHashEntityFromLinearData,
   PartialEntity,
   UpdateHashEntityFromLinearData,
   UpdateLinearDataWorkflow,
 } from "@local/hash-backend-utils/temporal-integration-workflow-types";
-import { GraphApi } from "@local/hash-graph-client";
+import type { GraphApi } from "@local/hash-graph-client";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
+import type {
   AccountId,
   BaseUrl,
   EntityId,
-  extractDraftIdFromEntityId,
   OwnedById,
 } from "@local/hash-subgraph";
+import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 
 import {
   mapHashEntityToLinearUpdateInput,

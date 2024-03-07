@@ -1,16 +1,19 @@
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { typedKeys } from "@local/advanced-types/typed-entries";
-import { Status, StatusCode } from "@local/status";
+import type { Status } from "@local/status";
+import { StatusCode } from "@local/status";
 import dedent from "dedent";
-import OpenAI from "openai";
+import type OpenAI from "openai";
 
-import {
+import type {
   CouldNotInferEntitiesReturn,
-  generateSummaryTools,
   ProposedEntitySummariesByType,
-  validateEntitySummariesByType,
 } from "./infer-entity-summaries/generate-summary-tools";
 import {
+  generateSummaryTools,
+  validateEntitySummariesByType,
+} from "./infer-entity-summaries/generate-summary-tools";
+import type {
   CompletionPayload,
   DereferencedEntityTypesByTypeId,
   InferenceState,

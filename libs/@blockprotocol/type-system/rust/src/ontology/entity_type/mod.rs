@@ -1,3 +1,4 @@
+mod closed;
 mod error;
 pub(in crate::ontology) mod links;
 pub(in crate::ontology) mod raw;
@@ -5,13 +6,17 @@ pub(in crate::ontology) mod raw;
 mod wasm;
 
 use std::{
+    borrow::Borrow,
     collections::{HashMap, HashSet},
     ptr,
 };
 
-pub use error::{MergeEntityTypeError, ParseEntityTypeError};
 use serde::{Deserialize, Serialize};
 
+pub use self::{
+    closed::{ClosedEntityType, ClosedEntityTypeSchemaData},
+    error::{MergeEntityTypeError, ParseEntityTypeError},
+};
 use crate::{
     url::{BaseUrl, VersionedUrl},
     AllOf, Links, MaybeOrderedArray, Object, OneOf, PropertyTypeReference, ValidateUrl,
@@ -79,7 +84,7 @@ impl EntityType {
     }
 
     #[must_use]
-    pub fn required(&self) -> &[BaseUrl] {
+    pub const fn required(&self) -> &HashSet<BaseUrl> {
         self.property_object.required()
     }
 
@@ -93,57 +98,6 @@ impl EntityType {
     #[must_use]
     pub const fn examples(&self) -> &Vec<HashMap<BaseUrl, serde_json::Value>> {
         &self.examples
-    }
-
-    /// Merges another entity type into this one.
-    ///
-    /// This will:
-    ///   - remove the other entity type from the `allOf`
-    ///   - merge the `properties` and `required` fields
-    ///   - merge the `links` field
-    ///
-    /// # Notes
-    ///
-    /// - This does not validate the resulting entity type.
-    /// - The `required` field may have a different order after merging.
-    ///
-    /// # Errors
-    ///
-    /// - [`DoesNotInheritFrom`] if the other entity type is not in the `allOf` field
-    ///
-    /// [`DoesNotInheritFrom`]: MergeEntityTypeError::DoesNotInheritFrom
-    pub fn merge_parent(&mut self, other: Self) -> Result<(), MergeEntityTypeError> {
-        self.inherits_from.elements.remove(
-            self.inherits_from
-                .all_of()
-                .iter()
-                .position(|x| x.url == other.id)
-                .ok_or_else(|| MergeEntityTypeError::DoesNotInheritFrom {
-                    child: self.id.clone(),
-                    parent: other.id.clone(),
-                })?,
-        );
-
-        self.inherits_from
-            .elements
-            .extend(other.inherits_from.elements);
-
-        self.property_object
-            .properties
-            .extend(other.property_object.properties);
-
-        self.property_object.required = self
-            .property_object
-            .required
-            .drain(..)
-            .chain(other.property_object.required)
-            .collect::<HashSet<_>>()
-            .into_iter()
-            .collect();
-
-        self.links.0.extend(other.links.0);
-
-        Ok(())
     }
 
     #[must_use]
@@ -175,7 +129,11 @@ impl EntityType {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(
+    try_from = "raw::EntityTypeReference",
+    into = "raw::EntityTypeReference"
+)]
 #[repr(transparent)]
 pub struct EntityTypeReference {
     url: VersionedUrl,
@@ -198,6 +156,12 @@ impl From<&VersionedUrl> for &EntityTypeReference {
     fn from(url: &VersionedUrl) -> Self {
         // SAFETY: Self is `repr(transparent)`
         unsafe { &*ptr::from_ref::<VersionedUrl>(url).cast::<EntityTypeReference>() }
+    }
+}
+
+impl Borrow<VersionedUrl> for EntityTypeReference {
+    fn borrow(&self) -> &VersionedUrl {
+        &self.url
     }
 }
 

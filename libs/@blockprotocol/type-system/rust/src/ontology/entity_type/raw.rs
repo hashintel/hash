@@ -164,7 +164,9 @@ impl From<super::EntityTypeReference> for EntityTypeReference {
 
 #[cfg(test)]
 mod tests {
-    use crate::{raw, url::BaseUrl, utils::tests::check_serialization_from_str, EntityType};
+    use crate::{
+        raw, url::BaseUrl, utils::tests::check_serialization_from_str, ClosedEntityType, EntityType,
+    };
 
     #[test]
     fn merge_entity_type() {
@@ -172,17 +174,15 @@ mod tests {
             graph_test_data::entity_type::BUILDING_V1,
             None,
         );
-        let mut church: EntityType = check_serialization_from_str::<EntityType, raw::EntityType>(
+        let church: EntityType = check_serialization_from_str::<EntityType, raw::EntityType>(
             graph_test_data::entity_type::CHURCH_V1,
             None,
         );
 
-        church
-            .merge_parent(building)
-            .expect("merging entity types failed");
+        let closed_church: ClosedEntityType = [building, church].into_iter().collect();
 
         assert!(
-            church.properties().contains_key(
+            closed_church.properties.contains_key(
                 &BaseUrl::new(
                     "https://blockprotocol.org/@alice/types/property-type/built-at/".to_owned()
                 )
@@ -190,13 +190,13 @@ mod tests {
             )
         );
         assert!(
-            church.properties().contains_key(
+            closed_church.properties.contains_key(
                 &BaseUrl::new(
                     "https://blockprotocol.org/@alice/types/property-type/number-bells/".to_owned()
                 )
                 .expect("invalid url")
             )
         );
-        assert!(church.inherits_from().all_of().is_empty());
+        assert!(closed_church.inherits_from.is_empty());
     }
 }

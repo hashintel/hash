@@ -5,16 +5,19 @@ import {
   isOntologyOutwardEdge as isOntologyOutwardEdgeBp,
   type OutwardEdge as OutwardEdgeBp,
 } from "@blockprotocol/graph/temporal";
-import { Subtype } from "@local/advanced-types/subtype";
+import type { Subtype } from "@local/advanced-types/subtype";
 
-import {
+import type {
   EntityId,
   LimitedTemporalBound,
   TemporalBound,
   TimeInterval,
   Timestamp,
 } from "../../shared";
-import { KnowledgeGraphOutwardEdge, OntologyOutwardEdge } from "./variants";
+import type {
+  KnowledgeGraphOutwardEdge,
+  OntologyOutwardEdge,
+} from "./variants";
 
 /**
  * A simple tuple type which identifies an {@link Entity} by its {@link EntityId}, at a given {@link Timestamp}.

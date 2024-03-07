@@ -1,4 +1,5 @@
-import { expect, Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect } from "@playwright/test";
 
 /**
  * @todo Remove this function in favor of `loginUsingUi`once we have a proper login flow
