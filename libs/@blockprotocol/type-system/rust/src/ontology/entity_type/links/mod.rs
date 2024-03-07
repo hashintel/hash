@@ -9,13 +9,15 @@ use std::{
 };
 
 pub use error::ParseLinksError;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     url::{BaseUrl, VersionedUrl},
     Array, EntityTypeReference, OneOf, ValidateUrl, ValidationError,
 };
 
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(try_from = "raw::Links", into = "raw::Links")]
 pub struct Links(
     pub(crate) HashMap<VersionedUrl, MaybeOrderedArray<Option<OneOf<EntityTypeReference>>>>,
 );

@@ -39,7 +39,7 @@ use temporal_versioning::{
     RightBoundedTemporalInterval, TemporalBound, Timestamp, TransactionTime,
 };
 use tokio_postgres::{error::SqlState, GenericClient, Row};
-use type_system::{url::VersionedUrl, EntityType};
+use type_system::{url::VersionedUrl, ClosedEntityType};
 use uuid::Uuid;
 use validation::{Validate, ValidationProfile};
 
@@ -557,7 +557,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 authorization_api,
                 Consistency::FullyConsistent,
                 ValidateEntityParams {
-                    entity_type: EntityValidationType::Schema(Cow::Borrowed(&closed_schema)),
+                    entity_type: EntityValidationType::ClosedSchema(Cow::Borrowed(&closed_schema)),
                     properties: Cow::Borrowed(&params.properties),
                     link_data: params.link_data.as_ref().map(Cow::Borrowed),
                     profile: if params.draft {
@@ -651,7 +651,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         params: ValidateEntityParams<'_>,
     ) -> Result<(), ValidateEntityError> {
         let schema = match params.entity_type {
-            EntityValidationType::Schema(schema) => schema,
+            EntityValidationType::ClosedSchema(schema) => schema,
+            EntityValidationType::Schema(schema) => Cow::Owned(ClosedEntityType::from(schema)),
             EntityValidationType::Id(entity_type_url) => {
                 let entity_type_id = EntityTypeId::from_url(entity_type_url.as_ref());
 
@@ -687,7 +688,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     .await
                     .change_context(ValidateEntityError)?
                     .map_ok(|(_, raw_type)| raw_type)
-                    .try_collect::<Vec<EntityType>>()
+                    .try_collect::<Vec<ClosedEntityType>>()
                     .await
                     .change_context(ValidateEntityError)?;
 
@@ -718,7 +719,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         if let Err(error) = params
             .properties
-            .validate(schema.as_ref(), params.profile, &validator_provider)
+            .validate(&schema, params.profile, &validator_provider)
             .await
         {
             if let Err(ref mut report) = status {
@@ -731,7 +732,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         if let Err(error) = params
             .link_data
             .as_deref()
-            .validate(schema.as_ref(), params.profile, &validator_provider)
+            .validate(&schema, params.profile, &validator_provider)
             .await
         {
             if let Err(ref mut report) = status {
@@ -1229,7 +1230,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 authorization_api,
                 Consistency::FullyConsistent,
                 ValidateEntityParams {
-                    entity_type: EntityValidationType::Schema(Cow::Borrowed(&closed_schema)),
+                    entity_type: EntityValidationType::ClosedSchema(Cow::Borrowed(&closed_schema)),
                     properties: Cow::Borrowed(&params.properties),
                     link_data: previous_entity
                         .link_data
@@ -1438,7 +1439,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         entity_type_id: &VersionedUrl,
         properties: &EntityProperties,
         link_order: &EntityLinkOrder,
-    ) -> Result<(EntityEditionId, EntityType), InsertionError> {
+    ) -> Result<(EntityEditionId, ClosedEntityType), InsertionError> {
         let edition_id: EntityEditionId = self
             .as_client()
             .query_one(

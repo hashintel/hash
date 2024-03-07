@@ -1,3 +1,4 @@
+mod closed;
 mod error;
 pub(in crate::ontology) mod links;
 pub(in crate::ontology) mod raw;
@@ -5,13 +6,17 @@ pub(in crate::ontology) mod raw;
 mod wasm;
 
 use std::{
+    borrow::Borrow,
     collections::{HashMap, HashSet},
     ptr,
 };
 
-pub use error::{MergeEntityTypeError, ParseEntityTypeError};
 use serde::{Deserialize, Serialize};
 
+pub use self::{
+    closed::{ClosedEntityType, ClosedEntityTypeSchemaData},
+    error::{MergeEntityTypeError, ParseEntityTypeError},
+};
 use crate::{
     url::{BaseUrl, VersionedUrl},
     AllOf, Links, MaybeOrderedArray, Object, OneOf, PropertyTypeReference, ValidateUrl,
@@ -124,34 +129,11 @@ impl EntityType {
     }
 }
 
-impl Extend<Self> for EntityType {
-    fn extend<T: IntoIterator<Item = Self>>(&mut self, iter: T) {
-        let iter = iter.into_iter();
-        let size_hint = iter.size_hint().0;
-
-        self.property_object.extend_reserve(size_hint);
-        self.links.extend_reserve(size_hint);
-
-        for other in iter {
-            if let Some(position) = self
-                .inherits_from
-                .all_of()
-                .iter()
-                .position(|x| x.url == other.id)
-            {
-                self.inherits_from.elements.remove(position);
-            }
-
-            self.inherits_from
-                .elements
-                .extend(other.inherits_from.elements);
-            self.property_object.extend_one(other.property_object);
-            self.links.extend_one(other.links);
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(
+    try_from = "raw::EntityTypeReference",
+    into = "raw::EntityTypeReference"
+)]
 #[repr(transparent)]
 pub struct EntityTypeReference {
     url: VersionedUrl,
@@ -174,6 +156,12 @@ impl From<&VersionedUrl> for &EntityTypeReference {
     fn from(url: &VersionedUrl) -> Self {
         // SAFETY: Self is `repr(transparent)`
         unsafe { &*ptr::from_ref::<VersionedUrl>(url).cast::<EntityTypeReference>() }
+    }
+}
+
+impl Borrow<VersionedUrl> for EntityTypeReference {
+    fn borrow(&self) -> &VersionedUrl {
+        &self.url
     }
 }
 

@@ -7,7 +7,7 @@ use graph_types::{
 use postgres_types::{Json, ToSql};
 use temporal_versioning::{LeftClosedTemporalInterval, Timestamp, TransactionTime};
 use time::OffsetDateTime;
-use type_system::{DataType, EntityType, PropertyType};
+use type_system::{ClosedEntityType, DataType, EntityType, PropertyType};
 use uuid::Uuid;
 
 #[derive(Debug, ToSql)]
@@ -92,7 +92,7 @@ pub struct PropertyTypeConstrainsPropertiesOnRow {
 pub struct EntityTypeRow {
     pub ontology_id: Uuid,
     pub schema: Json<EntityType>,
-    pub closed_schema: Json<EntityType>,
+    pub closed_schema: Json<ClosedEntityType>,
     pub label_property: Option<String>,
     pub icon: Option<String>,
 }

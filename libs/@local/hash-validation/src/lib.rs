@@ -23,7 +23,7 @@ use graph_types::knowledge::entity::{Entity, EntityId};
 use serde::Deserialize;
 use type_system::{
     url::{BaseUrl, VersionedUrl},
-    EntityType,
+    ClosedEntityType,
 };
 
 trait Schema<V: ?Sized, P: Sync> {
@@ -102,7 +102,7 @@ pub trait OntologyTypeProvider<O> {
     ) -> impl Future<Output = Result<impl Borrow<O> + Send, Report<impl Context>>> + Send;
 }
 
-pub trait EntityTypeProvider: OntologyTypeProvider<EntityType> {
+pub trait EntityTypeProvider: OntologyTypeProvider<ClosedEntityType> {
     fn is_parent_of(
         &self,
         child: &VersionedUrl,
@@ -124,21 +124,21 @@ mod tests {
     use graph_types::knowledge::entity::EntityProperties;
     use serde_json::Value as JsonValue;
     use thiserror::Error;
-    use type_system::{DataType, PropertyType};
+    use type_system::{DataType, EntityType, PropertyType};
 
     use super::*;
     use crate::error::install_error_stack_hooks;
 
     struct Provider {
         entities: HashMap<EntityId, Entity>,
-        entity_types: HashMap<VersionedUrl, EntityType>,
+        entity_types: HashMap<VersionedUrl, ClosedEntityType>,
         property_types: HashMap<VersionedUrl, PropertyType>,
         data_types: HashMap<VersionedUrl, DataType>,
     }
     impl Provider {
         fn new(
             entities: impl IntoIterator<Item = Entity>,
-            entity_types: impl IntoIterator<Item = EntityType>,
+            entity_types: impl IntoIterator<Item = (VersionedUrl, ClosedEntityType)>,
             property_types: impl IntoIterator<Item = PropertyType>,
             data_types: impl IntoIterator<Item = DataType>,
         ) -> Self {
@@ -147,10 +147,7 @@ mod tests {
                     .into_iter()
                     .map(|entity| (entity.metadata.record_id.entity_id, entity))
                     .collect(),
-                entity_types: entity_types
-                    .into_iter()
-                    .map(|schema| (schema.id().clone(), schema))
-                    .collect(),
+                entity_types: entity_types.into_iter().collect(),
                 property_types: property_types
                     .into_iter()
                     .map(|schema| (schema.id().clone(), schema))
@@ -205,21 +202,20 @@ mod tests {
             parent: &BaseUrl,
         ) -> Result<bool, Report<InvalidEntityType>> {
             Ok(
-                OntologyTypeProvider::<EntityType>::provide_type(self, child)
+                OntologyTypeProvider::<ClosedEntityType>::provide_type(self, child)
                     .await?
-                    .inherits_from()
-                    .all_of()
+                    .inherits_from
                     .iter()
                     .any(|id| id.url().base_url == *parent),
             )
         }
     }
 
-    impl OntologyTypeProvider<EntityType> for Provider {
+    impl OntologyTypeProvider<ClosedEntityType> for Provider {
         async fn provide_type(
             &self,
             type_id: &VersionedUrl,
-        ) -> Result<&EntityType, Report<InvalidEntityType>> {
+        ) -> Result<&ClosedEntityType, Report<InvalidEntityType>> {
             self.entity_types.get(type_id).ok_or_else(|| {
                 Report::new(InvalidEntityType {
                     id: type_id.clone(),
@@ -278,8 +274,9 @@ mod tests {
             }),
         );
 
-        let entity_type: EntityType =
-            serde_json::from_str(entity_type).expect("failed to parse entity type");
+        let entity_type = ClosedEntityType::from(
+            serde_json::from_str::<EntityType>(entity_type).expect("failed to parse entity type"),
+        );
 
         let entity =
             serde_json::from_str::<EntityProperties>(entity).expect("failed to read entity string");
