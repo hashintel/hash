@@ -1,5 +1,5 @@
 use core::{borrow::Borrow, future::Future, pin::Pin};
-use std::collections::HashMap;
+use std::{collections::HashMap, num::NonZeroUsize};
 
 use error_stack::{bail, Report, ResultExt};
 use serde_json::Value as JsonValue;
@@ -171,7 +171,7 @@ where
                 }
             }
 
-            if let Some(max) = self.max_items() {
+            if let Some(max) = self.max_items().map(NonZeroUsize::get) {
                 if values.len() > max {
                     extend_report!(
                         status,

@@ -5,7 +5,7 @@ use tsify::Tsify;
 
 use crate::{
     url::{ParseBaseUrlError, ParseVersionedUrlError, VersionedUrl},
-    ParseAllOfError, ParseLinksError, ParsePropertyTypeObjectError,
+    EntityTypeReference, ParseAllOfError, ParseLinksError, ParsePropertyTypeObjectError,
 };
 
 #[cfg_attr(target_arch = "wasm32", derive(Tsify))]
@@ -37,4 +37,8 @@ pub enum MergeEntityTypeError {
         child: VersionedUrl,
         parent: VersionedUrl,
     },
+    #[error("Not all parents are properly merged: {unmerged:?}")]
+    IncompleteMerge { unmerged: Vec<EntityTypeReference> },
+    #[error("Parent missing: {missing:?}")]
+    ParentMissing { missing: Vec<EntityTypeReference> },
 }
