@@ -40,18 +40,16 @@ Depending on how you use HASH, you may never need to create your own types or _r
 
 Your entities are described by [entity types](/guide/types/entity-types), which define what sort of thing(s) an entity is, and the types of information (attributes) can be associated with it.
 
-Attributes can either be [properties](/guide/entities/attributes#properties) (values) or [links](/guide/entities/attributes#links) (pointers to other entities). This is where things get a bit more complicated:
+Attributes can either be [properties](/guide/entities/attributes#properties) (values) or [links](/guide/entities/attributes#links) (pointers to other entities):
 
-- Properties have a single [property type](/guide/types/property-types) that semantically describe them.
-  - Properties must conform to a [data type](/guide/types/data-types). The allowed data type(s) are defined by the _property type_.
-- Links between entities have one or more [link types](/guide/types/link-types) that describe the relationship between the entities (e.g. two people, or a person and a company).
-  - The type of entity that a link is allowed to point to may also be constrained. These constraints are contained within the definition of the entity type that expects the link.
+- Properties tell you something about the entity itself, for example its name. They are described by a [property type](/guide/types/property-types) that provides semantic meaning, and specifies the expected [data type(s)](/guide/types/data-types), e.g. `Text` or `Date`.
+- Links describe the relationship between entities (e.g. two people, or a person and a company). They are described by [link types](/guide/types/link-types), and may themselves have properties that tell you something about the relationship. For example, an employment relationship may have a job title and a start date.
 
 These four types (entity, link, property and data) are known collectively as our "type system", enable any kind of data to be represented in HASH, and they are part of what makes HASH so powerful. If this sounds interesting (or confusing!) and you'd like to learn more, you can read more about [Types ›](/guide/types)
 
 ## Permissions
 
-[Permissions](/guide/webs/permissions) govern what users (both individually and on a group-basis) can both see and do. Permissions can be managed very granularly, allowing view, update, comment, share and other forms of access to be restricted only to authoriszed users. Read more about [Permissions ›](/guide/webs/permissions)
+[Permissions](/guide/webs/permissions) govern what users (both individually and on a group-basis) can both see and do. Permissions can be managed very granularly, allowing view, update, comment, share and other forms of access to be restricted only to authorized users. Read more about [Permissions ›](/guide/webs/permissions)
 
 ## History
 
@@ -78,7 +76,7 @@ Read more about [Pages ›](/guide/pages)
 
 [Blocks](/guide/pages/blocks) are rectangles that can be inserted into pages which do different things. For example:
 
-- the [Paragaph] block lets you type (or see) some text, depending on whether you have edit (or just view) persmissions on a page
+- the [Paragaph] block lets you type (or see) some text, depending on whether you have edit (or just view) permissions on a page
 - the [Image] block similarly lets you edit, insert, or simply view a picture (depending again upon your permissions)
 - the [Minesweeper] block is just good fun
 
@@ -113,7 +111,7 @@ Don't worry about remembering everything. You won't need everything, and you'll 
 Imagine you are a supplier of medical devices. You want to store information in your graph regarding one of your customers, the British National Health Service (NHS). The NHS entity you create might therefore have at least a couple of different entity types associated with it, such as `Organization`, and `Customer`.
 
 - The entity type `Organization` might specify properties like `Legal name`, and links such as `Led by` (pointing to a `Person` entity representing the organization's Managing Director or CEO), and `Subsidiaries` (pointing to one or more other `Organization` entities).
-- Meanwhile, the `Customer` entity type may also specify properties such as `Name` (which will not appear duplicated) and `Contract value` alongside links such as `Point of contact` and `Key stakeholders` which may link to other `Person` entities.
+- Meanwhile, the `Customer` entity type may also specify properties such as `Name` and `Contract value` alongside links such as `Point of contact` and `Key stakeholders` which may link to other `Person` entities.
 
 Entity preview: NHS England
 **Attrbute type** **Attribute name** **Value**

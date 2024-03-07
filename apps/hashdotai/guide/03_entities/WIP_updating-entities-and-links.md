@@ -1,19 +1,18 @@
 ---
 title: Updating Entities and Links
-slug: hash/managing-your-data/entities/updating-entities-and-links
-objectId: ???
-description: Updating Entities and Links
+description: Updating Entities and Links directly
+metaTitle: Updating Entities and Links - HASH
+metaDescription: Learn how to keep your web of entities up to date in HASH
+sidebarTitle: Update directly
 ---
 
 # Updating Entities and Links
 
-1. To find the Entity you want to update, first find its Entity Type in the left-sidebar.
-
-1. In the Entity Type editor, click into the ‘Entities’ tab.
+1. To find the Entity you want to update, click the name of its type under Entities in the left-sidebar, which will take you to a list of all entities of that type. You can also use the search bar to enter a known value for the entity, e.g. its name.
 
 1. Find the Entity you want to update in the table. The search feature will highlight Entities in the table which match your search, helping you to find a particular Entity by its name or one of its properties.
 
-1. Once you’ve opened the Entity you want to update in the Entity editor, simply click to edit any of its Properties or Links. The name of an entity cannot be changed.
+1. Once you’ve opened the Entity you want to update in the Entity editor, simply click to edit any of its Properties or Links.
 
 1. Making a change will trigger a draft state, as indicated by the blue banner.
 

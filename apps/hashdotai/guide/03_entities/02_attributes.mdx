@@ -8,21 +8,24 @@ sidebarTitle: Attributes
 
 # Overview
 
-[Entity types](/guide/types/entity-types) specify the **attributes** that may occur on entities of their type. Attributes are simply the individual pieces of information that describe an entity. An attribute can be either a **property** or a **link**.
+[Entity types](/guide/types/entity-types) specify the **attributes** that may occur on entities of their type. Attributes are simply the individual pieces of information that describe an entity and its relationship to other entities. An attribute can be either a **property** or a **link**.
 
 # Properties
 
 A property is a value stored directly on an entity. Every property has one [property type](/guide/types/property-types) which:
 
 - has a name and a description which provide semantic meaning wherever it is used, so it is clear and unambiguous what the value represents; and
-- specifies one or more expected [data types](/guide/types/data-types) which can be used to validate that a provided value is plausible.
+- specifies one or more expected [data types](/guide/types/data-types) which both further describe the expected value, and ensure that any value provided is of the expected type, e.g. `Text` or `Number`.
+- may be used by multiple entity types. For example, a common property type such as `Name` might appear on many entity types. This makes it easier to identify properties which mean the same thing across entiites of different types.
 
 # Links
 
-A link is a pointer from one entity to another. Every link has one or more [link types](/guide/types/link-type) which determine its semantic meaning.
+A link describes a relationship between one entity and another. Every link has one or more [link types](/guide/types/link-type) which determine its semantic meaning, e.g. `Employed By`. Links may themselves have properties which provide more information about the relationship, e.g. `Job Title`.
 
-The expected entity type of a link's target/destination entity(s) are declared alongside the link type, by the entity type expecting the link. _This is in contrast to properties, whose validation constraints are determined by the data type(s) defined on the property type itself._
+Like property types, a link type might appear on multiple entity types. An `Invested In` link might appear on both a `Person` and a `Company` entity type, since they can both invest in other entities.
+
+The permitted properties of a given link type, for example `Investment Value`, are the same wherever it is re-used. However, each entity type which uses the link type can have different rules about the permitted target entity. Entities representing a `User` on a stock exchange platform might only permit an `Invested In` link to point to entities representing valid `Tradable Security`s on that platform, whereas a more generic `Person` entity might have a wider range of types of entities that it can be `Invested In`, for example private companies, or their kid's `Lemonade Stand`.
 
 # Constraints
 
-Constraints on an attribute's value — both the input format defined by a property's `Data Type`, as well as the kinds of entities accepted by a link — can sometimes feel annoying. However, they help validate that information entered or collected is in the right format, helping catch errors and keep data quality high. This also helps ensure that your entities can be used in off-the-shelf [HASH apps](/guide/apps), making bugs a thing of the past.
+Constraints on an attribute's value — both the input format defined by a property's `Data Type`, as well as the kinds of entities accepted by a link — can sometimes feel annoying. However, they help validate that information entered or collected is in the right format, helping catch errors and keep data quality high. This also helps ensure that your entities can reliably be used in off-the-shelf [HASH apps](/guide/apps), or in external applications that you sync your HASH data with.

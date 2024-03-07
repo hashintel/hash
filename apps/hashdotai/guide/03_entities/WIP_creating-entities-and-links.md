@@ -1,25 +1,27 @@
 ---
 title: Creating Entities and Links
-slug: hash/managing-your-data/entities/creating-entities-and-links
-objectId: ???
-description: Creating Entities and Links
+description: Creating Entities and Links directly
+metaTitle: Creating Entities and Links - HASH
+metaDescription: Learn how to create your own interlinked web of entities in HASH
+sidebarTitle: Create directly
 ---
 
-# Creating Entities and Links
+# Creating Entities and Links directly
 
 While Entity Types define schemas for kinds of things, Entities are those things. Like for Entity Types, HASH has a no-code Entity editor which you can use to create, inspect, and update Entities. The Entity editor is also where you create Links between Entities.
+Depending on how you use HASH, it may be that all your entities are automatically created and linked for you by our plugins or integrations. But you may also wish to create or edit entities yourself directly.
 
-1. There are two ways to start creating a new Entity:
+1. There are two ways to start creating a new Entity directly in the entity editor:
 
    1. Click the + button in the top-nav and select ‘Create Entity’. You will then need to select an Entity Type to use for this new Entity.
 
-   1. Navigate to the Entity Type for which you want to create new Entities by finding it in the left side-bar and then click ‘Create new entity’ on the right.
+   1. Look for the name of the type under Entities in the left side-bar, and then click ‘Create new entity’ from the context menu on the right, indicated by the three dots (`...`). This menu shows types you are already using – to find a new type you've never used before, click 'View all types' under the Types menu.
 
-1. You will now be editing a new draft Entity of this Entity Type, as shown by the blue banner.
+1. You will now be editing a new draft Entity of your chosen Entity Type. The blue banner at the top allows you to create or discard your draft.
 
-1. Use the Properties table to enter Data values for your new Entity. You will see the expected Data value in the “Expected type” column, but the input field will also constrain you to an acceptable value.
+1. Use the Properties table to enter property values for your new Entity. You will see the expected Data value in the “Expected type” column, and the input field will ensure you enter an acceptable value.
 
-1. Use the Links table to create links between this Entity and other Entities. You will see which Entity Types each Link Type allows in the “Expected entity type” column, but the Entity selection window which opens when you click to add a new link will be constrained to the accepted Entity Types.
+1. Use the Links table to create links between this Entity and other Entities. You will see which Entity Types each Link Type allows in the “Expected entity type” column, and the Entity selection window which opens when you click to add a new link will only show you entities of the accepted Entity Types.
 
 1. This selection window also gives you the option to create a new Entity of the expected type in order to link to it. Clicking on that option will open an Entity editor view in a new tab, allowing you to create the new Entity. Once the new Entity is created, it will not be automatically linked to the original Entity you were creating—you will need to use the Entity selection window to find it and create the link.
 
