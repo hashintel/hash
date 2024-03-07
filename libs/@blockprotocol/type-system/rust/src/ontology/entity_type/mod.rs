@@ -79,7 +79,7 @@ impl EntityType {
     }
 
     #[must_use]
-    pub fn required(&self) -> &[BaseUrl] {
+    pub const fn required(&self) -> &HashSet<BaseUrl> {
         self.property_object.required()
     }
 
@@ -93,57 +93,6 @@ impl EntityType {
     #[must_use]
     pub const fn examples(&self) -> &Vec<HashMap<BaseUrl, serde_json::Value>> {
         &self.examples
-    }
-
-    /// Merges another entity type into this one.
-    ///
-    /// This will:
-    ///   - remove the other entity type from the `allOf`
-    ///   - merge the `properties` and `required` fields
-    ///   - merge the `links` field
-    ///
-    /// # Notes
-    ///
-    /// - This does not validate the resulting entity type.
-    /// - The `required` field may have a different order after merging.
-    ///
-    /// # Errors
-    ///
-    /// - [`DoesNotInheritFrom`] if the other entity type is not in the `allOf` field
-    ///
-    /// [`DoesNotInheritFrom`]: MergeEntityTypeError::DoesNotInheritFrom
-    pub fn merge_parent(&mut self, other: Self) -> Result<(), MergeEntityTypeError> {
-        self.inherits_from.elements.remove(
-            self.inherits_from
-                .all_of()
-                .iter()
-                .position(|x| x.url == other.id)
-                .ok_or_else(|| MergeEntityTypeError::DoesNotInheritFrom {
-                    child: self.id.clone(),
-                    parent: other.id.clone(),
-                })?,
-        );
-
-        self.inherits_from
-            .elements
-            .extend(other.inherits_from.elements);
-
-        self.property_object
-            .properties
-            .extend(other.property_object.properties);
-
-        self.property_object.required = self
-            .property_object
-            .required
-            .drain(..)
-            .chain(other.property_object.required)
-            .collect::<HashSet<_>>()
-            .into_iter()
-            .collect();
-
-        self.links.0.extend(other.links.0);
-
-        Ok(())
     }
 
     #[must_use]
@@ -172,6 +121,33 @@ impl EntityType {
                 )
             })
             .collect()
+    }
+}
+
+impl Extend<Self> for EntityType {
+    fn extend<T: IntoIterator<Item = Self>>(&mut self, iter: T) {
+        let iter = iter.into_iter();
+        let size_hint = iter.size_hint().0;
+
+        self.property_object.extend_reserve(size_hint);
+        self.links.extend_reserve(size_hint);
+
+        for other in iter {
+            if let Some(position) = self
+                .inherits_from
+                .all_of()
+                .iter()
+                .position(|x| x.url == other.id)
+            {
+                self.inherits_from.elements.remove(position);
+            }
+
+            self.inherits_from
+                .elements
+                .extend(other.inherits_from.elements);
+            self.property_object.extend_one(other.property_object);
+            self.links.extend_one(other.links);
+        }
     }
 }
 
