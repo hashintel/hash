@@ -21,6 +21,16 @@ const nextConfig = {
         destination: "/blog?label=labs",
         permanent: false,
       },
+      {
+        source: "/license",
+        destination: "https://hash.ai/legal/developers/license",
+        permanent: true,
+      },
+      {
+        source: "/licence",
+        destination: "https://hash.ai/legal/developers/license",
+        permanent: true,
+      },
     ];
   },
 

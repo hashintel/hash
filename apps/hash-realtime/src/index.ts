@@ -9,10 +9,8 @@ import {
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
-import {
-  createPostgresConnPool,
-  PgPool,
-} from "@local/hash-backend-utils/postgres";
+import type { PgPool } from "@local/hash-backend-utils/postgres";
+import { createPostgresConnPool } from "@local/hash-backend-utils/postgres";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import {
   clearIntervalAsync,

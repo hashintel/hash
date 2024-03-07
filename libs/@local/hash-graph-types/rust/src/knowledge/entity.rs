@@ -142,6 +142,12 @@ pub struct EntityProvenanceMetadata {
     pub created_by_id: CreatedById,
     pub created_at_transaction_time: Timestamp<TransactionTime>,
     pub created_at_decision_time: Timestamp<DecisionTime>,
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub first_non_draft_created_at_transaction_time: Option<Timestamp<TransactionTime>>,
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub first_non_draft_created_at_decision_time: Option<Timestamp<DecisionTime>>,
     pub edition: EntityEditionProvenanceMetadata,
 }
 
@@ -152,7 +158,6 @@ pub struct EntityProvenanceMetadata {
 pub struct EntityMetadata {
     pub record_id: EntityRecordId,
     pub temporal_versioning: EntityTemporalMetadata,
-    #[cfg_attr(feature = "utoipa", schema(value_type = SHARED_VersionedUrl))]
     pub entity_type_id: VersionedUrl,
     pub provenance: EntityProvenanceMetadata,
     pub archived: bool,
@@ -301,7 +306,6 @@ pub struct EntityEmbedding<'e> {
     // TODO: Stop allocating everywhere in type-system package
     //   see https://linear.app/hash/issue/BP-57
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "utoipa", schema(value_type = SHARED_BaseUrl))]
     pub property: Option<BaseUrl>,
     pub embedding: Embedding<'e>,
 }

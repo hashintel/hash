@@ -58,6 +58,7 @@ module.exports = {
     camelcase: "off",
     "default-param-last": "off", // using @typescript-eslint/default-param-last instead
     "import/no-cycle": "error",
+    "import/named": "off", // redundant for TypeScript code, leads to false positives with @blockprotocol/type-system
     "import/prefer-default-export": "off",
     "no-await-in-loop": "off",
     "no-console": "error",

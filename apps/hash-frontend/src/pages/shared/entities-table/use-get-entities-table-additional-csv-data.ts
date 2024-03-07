@@ -5,6 +5,7 @@ import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import {
   Entity,
   EntityRootType,
@@ -24,7 +25,6 @@ import {
 } from "../../../graphql/api-types.gen";
 import { structuralQueryEntitiesQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import { GetAdditionalCsvDataFunction } from "../../../shared/table-header";
-import { stringifyPropertyValue } from "./stringify-property-value";
 import { TypeEntitiesRow } from "./use-entities-table";
 
 export const useGetEntitiesTableAdditionalCsvData = (props: {

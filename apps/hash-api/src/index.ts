@@ -27,7 +27,7 @@ import * as Sentry from "@sentry/node";
 import { json } from "body-parser";
 import cors from "cors";
 import proxy from "express-http-proxy";
-import { rateLimit } from "express-rate-limit";
+import { Options as RateLimitOptions, rateLimit } from "express-rate-limit";
 import helmet from "helmet";
 import { StatsD } from "hot-shots";
 import { createHttpTerminator } from "http-terminator";
@@ -87,11 +87,33 @@ import { createVaultClient } from "./vault";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
-const rateLimiter = rateLimit({
+const baseRateLimitOptions: Partial<RateLimitOptions> = {
   windowMs: process.env.NODE_ENV === "test" ? 1000 * 5 : 1000 * 20, // 20 seconds
   limit: 5, // Limit each IP to 5 requests every 20 seconds
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+};
+
+/**
+ * A rate limiter for routes which grant authentication or authorization credentials
+ */
+const authRouteRateLimiter = rateLimit(baseRateLimitOptions);
+
+/**
+ * A rate limit which throttles requests based on the user identifier rather than the IP address.
+ */
+const userIdentifierRateLimiter = rateLimit({
+  ...baseRateLimitOptions,
+  keyGenerator: (req) => {
+    if (req.body.identifier) {
+      /**
+       * 'identifier' is the field which identifies the user on a login attempt.
+       * We use this as a rate limiting key if present to mitigate brute force login attempts spread across multiple IPs.
+       */
+      return req.body.identifier;
+    }
+    return req.ip;
+  },
 });
 
 const hydraProxy = proxy(hydraPublicUrl ?? "", {
@@ -220,65 +242,33 @@ const main = async () => {
 
   app.use(express.static("public"));
 
+  if (isProdEnv) {
+    /**
+     * Trust the first proxy, on the assumption that we are running behind a load balancer in production.
+     * This means, for example, that `req.ip` will be set as the rightmost IP in the `X-Forwarded-For` header.
+     */
+    app.set("trust proxy", 1);
+  }
+
   const jsonParser = json({
     // default is 100kb
     limit: "16mb",
   });
   const rawParser = raw({ type: "application/json" });
 
-  /** PROXIES – these should come BEFORE bodyParser so that the body is proxied without changes */
+  /**
+   * PROXIES – these should come BEFORE bodyParser so that the body is proxied without being consumed and parsed
+   * @see https://www.npmjs.com/package/express-http-proxy#middleware-mixing
+   *
+   * Kratos is given an exception as we check the body for rate limiting purposes and parsing it out doesn't break it.
+   */
 
   /**
    * Proxy to Ory Hydra's OAuth2 authorization and token endpoints, for OAuth2 clients (e.g. HashGPT)
    */
-  app.use("/oauth2/auth", rateLimiter, hydraProxy);
-  app.use("/oauth2/token", rateLimiter, hydraProxy);
-  app.use("/oauth2/fallbacks", rateLimiter, hydraProxy);
-
-  /**
-   * Proxy for requests to the Ory Kratos public API, to be consumed by the frontend.
-   */
-  app.use("/auth/*", rateLimiter, cors(CORS_CONFIG), (req, res, next) => {
-    const expectedAccessControlAllowOriginHeader = res.getHeader(
-      "Access-Control-Allow-Origin",
-    );
-
-    if (!kratosPublicUrl) {
-      throw new Error("No kratosPublicUrl provided");
-    }
-
-    return proxy(kratosPublicUrl, {
-      /**
-       * Remove the `/auth` prefix from the request path, so the path is
-       * formatted correctly for the Ory Kratos API.
-       */
-      proxyReqPathResolver: ({ originalUrl }) =>
-        originalUrl.replace("/auth", ""),
-      /**
-       * Ory Kratos includes the wildcard `*` in the `Access-Control-Allow-Origin`
-       * by default, which is not permitted by browsers when including credentials
-       * in requests.
-       *
-       * When setting the value of the `Access-Control-Allow-Origin` header in
-       * the Ory Kratos configuration, the frontend URL is included twice in the
-       * header for some reason (e.g. ["https://localhost:3000", "https://localhost:3000"]),
-       * which is also not permitted by browsers when including credentials in requests.
-       *
-       * Therefore we manually set the `Access-Control-Allow-Origin` header to the
-       * expected value here before returning the response, to prevent CORS errors
-       * in modern browsers.
-       */
-      userResDecorator: (_proxyRes, proxyResData, _userReq, userRes) => {
-        if (typeof expectedAccessControlAllowOriginHeader === "string") {
-          userRes.set(
-            "Access-Control-Allow-Origin",
-            expectedAccessControlAllowOriginHeader,
-          );
-        }
-        return proxyResData;
-      },
-    })(req, res, next);
-  });
+  app.use("/oauth2/auth", authRouteRateLimiter, hydraProxy);
+  app.use("/oauth2/token", authRouteRateLimiter, hydraProxy);
+  app.use("/oauth2/fallbacks", authRouteRateLimiter, hydraProxy);
 
   /** END PROXIES */
 
@@ -293,6 +283,60 @@ const main = async () => {
     }
     return jsonParser(req, res, next);
   });
+
+  /**
+   * Proxy for requests to the Ory Kratos public API, to be consumed by the frontend.
+   *
+   * Although the proxy would ideally come before the body parser, so that we're passing it through untouched,
+   * we check the body in this process in order to rate limit requests based on the user attempting to log in.
+   */
+  app.use(
+    "/auth/*",
+    authRouteRateLimiter,
+    userIdentifierRateLimiter,
+    cors(CORS_CONFIG),
+    (req, res, next) => {
+      const expectedAccessControlAllowOriginHeader = res.getHeader(
+        "Access-Control-Allow-Origin",
+      );
+
+      if (!kratosPublicUrl) {
+        throw new Error("No kratosPublicUrl provided");
+      }
+
+      return proxy(kratosPublicUrl, {
+        /**
+         * Remove the `/auth` prefix from the request path, so the path is
+         * formatted correctly for the Ory Kratos API.
+         */
+        proxyReqPathResolver: ({ originalUrl }) =>
+          originalUrl.replace("/auth", ""),
+        /**
+         * Ory Kratos includes the wildcard `*` in the `Access-Control-Allow-Origin`
+         * by default, which is not permitted by browsers when including credentials
+         * in requests.
+         *
+         * When setting the value of the `Access-Control-Allow-Origin` header in
+         * the Ory Kratos configuration, the frontend URL is included twice in the
+         * header for some reason (e.g. ["https://localhost:3000", "https://localhost:3000"]),
+         * which is also not permitted by browsers when including credentials in requests.
+         *
+         * Therefore we manually set the `Access-Control-Allow-Origin` header to the
+         * expected value here before returning the response, to prevent CORS errors
+         * in modern browsers.
+         */
+        userResDecorator: (_proxyRes, proxyResData, _userReq, userRes) => {
+          if (typeof expectedAccessControlAllowOriginHeader === "string") {
+            userRes.set(
+              "Access-Control-Allow-Origin",
+              expectedAccessControlAllowOriginHeader,
+            );
+          }
+          return proxyResData;
+        },
+      })(req, res, next);
+    },
+  );
 
   // Set up authentication related middleware and routes
   addKratosAfterRegistrationHandler({ app, context });
@@ -333,8 +377,12 @@ const main = async () => {
   });
 
   /** OAuth2 consent flow */
-  app.get("/oauth2/consent", rateLimiter, oauthConsentRequestHandler);
-  app.post("/oauth2/consent", rateLimiter, oauthConsentSubmissionHandler);
+  app.get("/oauth2/consent", authRouteRateLimiter, oauthConsentRequestHandler);
+  app.post(
+    "/oauth2/consent",
+    authRouteRateLimiter,
+    oauthConsentSubmissionHandler,
+  );
 
   const hbs = handlebarsCreate({ defaultLayout: "main", extname: ".hbs" });
   app.engine(
@@ -433,6 +481,7 @@ const main = async () => {
       logger.info({
         requestId,
         method: req.method,
+        origin: req.headers.origin,
         ip: req.ip,
         path: req.path,
         message: "request",
@@ -457,8 +506,8 @@ const main = async () => {
   });
 
   // Integrations
-  app.get("/oauth/linear", rateLimiter, oAuthLinear);
-  app.get("/oauth/linear/callback", rateLimiter, oAuthLinearCallback);
+  app.get("/oauth/linear", authRouteRateLimiter, oAuthLinear);
+  app.get("/oauth/linear/callback", authRouteRateLimiter, oAuthLinearCallback);
   app.post("/webhooks/linear", linearWebhook);
 
   // Endpoints used by HashGPT or in support of it

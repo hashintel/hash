@@ -4,12 +4,17 @@ import {
   Box,
   InputAdornment,
   OutlinedInput,
+  outlinedInputClasses,
   Tooltip,
   Typography,
 } from "@mui/material";
 import { FunctionComponent, useCallback, useEffect, useRef } from "react";
 
 import { SearchIcon } from "../../../icons";
+import {
+  useSetKeyboardShortcuts,
+  useUnsetKeyboardShortcuts,
+} from "../../../keyboard-shortcuts-context";
 
 const ClearSearchIcon: FunctionComponent<{
   clearSearch: () => void;
@@ -69,7 +74,7 @@ const ShortcutIcon = () => {
             fontWeight: 500,
           })}
         >
-          {isMac ? "Cmd" : "Ctrl"} + P
+          {isMac ? "Cmd" : "Ctrl"} + /
         </Typography>
       </Box>
     </Box>
@@ -86,33 +91,30 @@ export const SearchInput: FunctionComponent<{
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  /**
-   * @todo reinstate this when search functionality is restored
-   */
-  // const setKeyboardShortcuts = useSetKeyboardShortcuts();
-  // const unsetKeyboardShortcuts = useUnsetKeyboardShortcuts();
-  //
-  // useEffect(() => {
-  //   const shortcut = {
-  //     keys: ["Control", "p"],
-  //     callback: (evt: KeyboardEvent) => {
-  //      event.preventDefault();
-  //      if (!isMac) {
-  //        inputRef.current?.focus();
-  //      }
-  //     },
-  //   };
-  //
-  //   setKeyboardShortcuts([shortcut]);
-  //
-  //   return () => {
-  //     unsetKeyboardShortcuts([shortcut]);
-  //   };
-  // }, [setKeyboardShortcuts, unsetKeyboardShortcuts]);
+  const setKeyboardShortcuts = useSetKeyboardShortcuts();
+  const unsetKeyboardShortcuts = useUnsetKeyboardShortcuts();
+
+  useEffect(() => {
+    const shortcut = {
+      keys: ["Meta", "/"],
+      callback: (event: KeyboardEvent) => {
+        event.preventDefault();
+        if (!isMac) {
+          inputRef.current?.focus();
+        }
+      },
+    };
+
+    setKeyboardShortcuts([shortcut]);
+
+    return () => {
+      unsetKeyboardShortcuts([shortcut]);
+    };
+  }, [isMac, setKeyboardShortcuts, unsetKeyboardShortcuts]);
 
   useEffect(() => {
     function checkSearchKey(event: KeyboardEvent) {
-      if (isMac && event.key === "p" && event.metaKey) {
+      if (isMac && event.key === "/" && event.metaKey) {
         event.preventDefault();
         inputRef.current?.focus();
       }
@@ -141,13 +143,23 @@ export const SearchInput: FunctionComponent<{
         setQueryText(event.target.value);
       }}
       sx={{
+        boxShadow: "none",
         width: isMobile ? "100%" : "385px",
         "& .MuiInputBase-input": {
           paddingLeft: "unset",
           paddingRight: isMobile ? 1 : "unset",
         },
+        [`& .${outlinedInputClasses.notchedOutline}`]: {
+          border: ({ palette }) => `1px solid ${palette.gray[30]}`,
+        },
       }}
-      inputProps={{ "aria-label": "search" }}
+      inputProps={{
+        "aria-label": "search",
+        sx: {
+          fontSize: 15,
+          py: 1.2,
+        },
+      }}
       startAdornment={
         <InputAdornment position="start">
           <Box

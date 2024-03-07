@@ -1,15 +1,16 @@
 import type { JsonObject } from "@blockprotocol/core";
-import { validateVersionedUrl, VersionedUrl } from "@blockprotocol/type-system";
-import {
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import { validateVersionedUrl } from "@blockprotocol/type-system";
+import type {
   ProposedEntity,
   ProposedEntitySchemaOrData,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
-import { Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import dedent from "dedent";
-import OpenAI from "openai";
+import type OpenAI from "openai";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
-import { DereferencedEntityType } from "../dereference-entity-type";
+import type { DereferencedEntityType } from "../dereference-entity-type";
 
 export type FunctionName =
   | "abandon_entities"

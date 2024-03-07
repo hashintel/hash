@@ -1,5 +1,5 @@
-import { GraphElementIdentifiers } from "../element-mappings";
-import {
+import type { GraphElementIdentifiers } from "../element-mappings";
+import type {
   KnowledgeGraphEdgeKind,
   OntologyEdgeKind,
   SharedEdgeKind,

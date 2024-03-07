@@ -1,12 +1,13 @@
 import type { JsonObject } from "@blockprotocol/core";
-import { validateVersionedUrl, VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import { validateVersionedUrl } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import OpenAI from "openai";
+import type OpenAI from "openai";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
-import { DereferencedEntityType } from "../dereference-entity-type";
-import {
+import type { DereferencedEntityType } from "../dereference-entity-type";
+import type {
   DereferencedEntityTypesByTypeId,
   ProposedEntitySummary,
 } from "../inference-types";

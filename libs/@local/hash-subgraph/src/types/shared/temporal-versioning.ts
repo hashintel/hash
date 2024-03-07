@@ -17,8 +17,8 @@ import {
   type VariableTemporalAxis as VariableTemporalAxisBp,
   type VariableTemporalAxisUnresolved as VariableTemporalAxisUnresolvedBp,
 } from "@blockprotocol/graph/temporal";
-import { Brand } from "@local/advanced-types/brand";
-import { Subtype } from "@local/advanced-types/subtype";
+import type { Brand } from "@local/advanced-types/brand";
+import type { Subtype } from "@local/advanced-types/subtype";
 
 /**
  * An ISO 8601 formatted timestamp string

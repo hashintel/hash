@@ -78,13 +78,13 @@ const Hero: FunctionComponent = () => (
       <BlueStylishDivider mb={5} />
       <Box width={{ xs: 1, md: 725 }}>
         <Typography mb={2} sx={{ lineHeight: 1.5 }}>
-          We’re building two open-source platforms in parallel — the{" "}
-          <strong>Block Protocol</strong> and <strong>HASH</strong> — to help
-          everybody make better decisions.
+          We’re developing two open-source projects in parallel — the{" "}
+          <strong>Block Protocol</strong> standard, and the <strong>HASH</strong>
+          platform — to help everybody make better decisions.
         </Typography>
         <Typography sx={{ lineHeight: 1.5 }}>
-          Here you’ll find information about the technical architecture of the
-          projects, as well as resources to help you build{" "}
+          Here you’ll find information about the technical architecture of each
+          project, as well as resources to help you build{" "}
           <strong>blocks</strong>, <strong>integrations</strong>,{" "}
           <strong>apps</strong> and <strong>simulations</strong>.
         </Typography>
@@ -267,14 +267,10 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
                 },
               }}
             >
-              Any application can integrate with the protocol’s public registry
-              (
-              <Link href="http://blockprotocol.com/hub">
-                <Box component="strong">Þ Hub</Box>
-              </Link>
-              ), enabling their users to discover and insert blocks at runtime,
-              expanding the utility of applications that support the protocol
-              well beyond their original programming.
+              Applications can integrate with the protocol’s public registry,
+              enabling their users to discover and insert new blocks at
+              runtime, unlocking new use cases and expanding app utility beyond
+              its original programming.
             </HomePageBodyTypography>
           </Project>
           <Project
@@ -371,7 +367,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
               <Box component="li">
                 <HomePageBodyTypography>
                   Map external data to types and integrate it into one unified{" "}
-                  <strong>graph</strong>
+                  <strong>web</strong>
                 </HomePageBodyTypography>
               </Box>
               <Box component="li">
@@ -388,7 +384,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
               </Box>
               <Box component="li">
                 <HomePageBodyTypography>
-                  Use entities in <strong>simulations</strong>
+                  Use entities in agent-based <strong>simulations</strong>
                 </HomePageBodyTypography>
               </Box>
             </Box>

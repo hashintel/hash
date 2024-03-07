@@ -1,9 +1,7 @@
-import {
+import type {
   Array,
   DataType,
   EntityType,
-  extractBaseUrl,
-  extractVersion,
   Object as BpObject,
   OneOf,
   PropertyType,
@@ -11,13 +9,14 @@ import {
   ValueOrArray,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import {
+import type {
   BaseUrl,
   EntityTypeMetadata,
-  linkEntityTypeUrl,
   Subgraph,
 } from "@local/hash-subgraph";
+import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import {
   getDataTypeById,
   getEntityTypeAndParentsById,

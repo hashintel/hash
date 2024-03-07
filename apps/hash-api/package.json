@@ -5,6 +5,7 @@
   "description": "API and data store for HASH",
   "license": "AGPL-3.0",
   "scripts": {
+    "build:docker": "docker buildx build --tag hash-api --file ../../infra/docker/api/prod/Dockerfile ../../ --load",
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "dev": "NODE_ENV=development NODE_OPTIONS=--max-old-space-size=2048 tsx watch --clear-screen=false ./src/index.ts",
     "fix:eslint": "eslint --fix .",
@@ -85,7 +86,6 @@
     "md5": "2.3.0",
     "mime-types": "2.1.35",
     "nanoid": "3.1.31",
-    "node-fetch": "^2.6.7",
     "nodemailer": "6.9.9",
     "oembed-providers": "1.0.20220105",
     "ts-json-schema-generator": "1.5.0",
@@ -95,6 +95,7 @@
     "ws": "8.15.1"
   },
   "devDependencies": {
+    "@blockprotocol/graph": "0.3.3",
     "@graphql-codegen/cli": "5.0.0",
     "@graphql-codegen/introspection": "2.2.3",
     "@graphql-codegen/typescript": "2.8.7",
@@ -111,12 +112,10 @@
     "@types/mailchimp__mailchimp_marketing": "3.0.17",
     "@types/md5": "2.3.2",
     "@types/mime-types": "2.1.1",
-    "@types/node-fetch": "^2.6.2",
     "@types/nodemailer": "6.4.6",
-    "eslint": "8.56.0",
+    "eslint": "8.57.0",
     "jest": "29.7.0",
-    "rimraf": "^5.0.5",
-    "ts-jest": "29.1.2",
-    "ts-node-dev": "2.0.0"
+    "rimraf": "5.0.5",
+    "ts-jest": "29.1.2"
   }
 }

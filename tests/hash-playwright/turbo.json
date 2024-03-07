@@ -1,6 +1,9 @@
 {
   "extends": ["//"],
   "pipeline": {
+    "codegen": {
+      "dependsOn": ["^codegen"]
+    },
     "test:system": {
       "dependsOn": ["@apps/plugin-browser#build:test"],
       "cache": false

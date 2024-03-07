@@ -1,4 +1,4 @@
-import { BaseUrl, EntityPropertiesObject } from "@local/hash-subgraph";
+import type { BaseUrl, EntityPropertiesObject } from "@local/hash-subgraph";
 
 /**
  * Property keys must end with a trailing slash, but the AI Model sometimes omits them.

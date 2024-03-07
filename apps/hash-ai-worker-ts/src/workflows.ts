@@ -1,9 +1,11 @@
 import type { EntityQueryCursor, Filter } from "@local/hash-graph-client";
 import type {
+  CreateEmbeddingsParams,
+  CreateEmbeddingsReturn,
+  GetResultsFromCancelledInferenceRequestQuery,
   InferEntitiesCallerParams,
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
-import { GetResultsFromCancelledInferenceRequestQuery } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import type {
   AccountId,
@@ -21,9 +23,9 @@ import {
   proxyActivities,
   setHandler,
 } from "@temporalio/workflow";
-import { CreateEmbeddingResponse } from "openai/resources";
+import type { CreateEmbeddingResponse } from "openai/resources";
 
-import { createAiActivities, createGraphActivities } from "./activities";
+import type { createAiActivities, createGraphActivities } from "./activities";
 
 const aiActivities = proxyActivities<ReturnType<typeof createAiActivities>>({
   cancellationType: ActivityCancellationType.WAIT_CANCELLATION_COMPLETED,
@@ -72,6 +74,12 @@ export const inferEntities = async (params: InferEntitiesCallerParams) => {
     }
     throw err;
   }
+};
+
+export const createEmbeddings = async (
+  params: CreateEmbeddingsParams,
+): Promise<CreateEmbeddingsReturn> => {
+  return await aiActivities.createEmbeddingsActivity(params);
 };
 
 type UpdateDataTypeEmbeddingsParams = {

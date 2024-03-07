@@ -1,5 +1,6 @@
 pub const ADDRESS_LINE_1_V1: &str = include_str!("address_line_1.json");
 pub const AGE_V1: &str = include_str!("age.json");
+pub const BUILT_AT: &str = include_str!("built_at.json");
 pub const BLURB_V1: &str = include_str!("blurb.json");
 pub const CITY_V1: &str = include_str!("city.json");
 pub const CONTACT_INFORMATION_V1: &str = include_str!("contact_information.json");

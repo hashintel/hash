@@ -1,0 +1,33 @@
+[package]
+name = "type-system"
+version = "0.0.0"
+edition = "2021"
+authors = ["HASH"]
+publish = false
+description = "Definitions of types within the Block Protocol Type System"
+
+[lib]
+name = "type_system"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = "1.0.114"
+thiserror = "1.0.57"
+tsify = "0.4.5"
+url = "2.5.0"
+utoipa = { version = "4.2.0", features = ["url"], optional = true }
+
+[dev-dependencies]
+graph-test-data = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = { version = "0.2.92", features = ["serde-serialize"] }
+# The `console_error_panic_hook` crate provides better debugging of panics by
+# logging them with `console.error`. This is great for development, but requires
+# all the `std::fmt` and `std::panicking` infrastructure, so isn't great for
+# code size when deploying.
+console_error_panic_hook = { version = "0.1.7" }
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+wasm-bindgen-test = "0.3.42"

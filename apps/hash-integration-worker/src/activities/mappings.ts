@@ -1,13 +1,13 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
-import {
-  getLinearMappingByLinearType,
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
   SupportedLinearTypeNames,
   SupportedLinearTypes,
   SupportedLinearUpdateInput,
 } from "@local/hash-backend-utils/linear-type-mappings";
-import { PartialEntity } from "@local/hash-backend-utils/temporal-workflow-types";
-import { GraphApi } from "@local/hash-graph-client";
-import {
+import { getLinearMappingByLinearType } from "@local/hash-backend-utils/linear-type-mappings";
+import type { PartialEntity } from "@local/hash-backend-utils/temporal-workflow-types";
+import type { GraphApi } from "@local/hash-graph-client";
+import type {
   AccountId,
   Entity,
   EntityId,

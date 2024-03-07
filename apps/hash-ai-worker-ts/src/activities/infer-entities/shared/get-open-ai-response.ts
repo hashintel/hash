@@ -1,9 +1,10 @@
-import { Status, StatusCode } from "@local/status";
+import type { Status } from "@local/status";
+import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
-import OpenAI from "openai";
+import type OpenAI from "openai";
 import { promptTokensEstimate } from "openai-chat-tokens";
 
-import { PermittedOpenAiModel } from "../inference-types";
+import type { PermittedOpenAiModel } from "../inference-types";
 import { log } from "../log";
 import { stringify } from "../stringify";
 import { firstUserMessageIndex } from "./first-user-message-index";

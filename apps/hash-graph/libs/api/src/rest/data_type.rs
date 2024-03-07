@@ -252,10 +252,7 @@ where
 #[serde(untagged)]
 enum LoadExternalDataTypeRequest {
     #[serde(rename_all = "camelCase")]
-    Fetch {
-        #[schema(value_type = SHARED_VersionedUrl)]
-        data_type_id: VersionedUrl,
-    },
+    Fetch { data_type_id: VersionedUrl },
     Create {
         #[schema(value_type = VAR_DATA_TYPE)]
         schema: DataType,
@@ -431,7 +428,6 @@ where
 struct UpdateDataTypeRequest {
     #[schema(value_type = VAR_UPDATE_DATA_TYPE)]
     schema: serde_json::Value,
-    #[schema(value_type = SHARED_VersionedUrl)]
     type_to_update: VersionedUrl,
     relationships: Vec<DataTypeRelationAndSubject>,
 }
@@ -676,7 +672,6 @@ where
 #[serde(rename_all = "camelCase")]
 struct ModifyDataTypeAuthorizationRelationship {
     operation: ModifyRelationshipOperation,
-    #[schema(value_type = SHARED_VersionedUrl)]
     resource: VersionedUrl,
     relation_and_subject: DataTypeRelationAndSubject,
 }

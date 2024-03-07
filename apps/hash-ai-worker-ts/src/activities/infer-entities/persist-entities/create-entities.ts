@@ -29,7 +29,7 @@ import isMatch from "lodash.ismatch";
 
 import { createEntityEmbeddings } from "../../shared/embeddings";
 import type { DereferencedEntityType } from "../dereference-entity-type";
-import { InferenceState, UpdateCandidate } from "../inference-types";
+import type { InferenceState, UpdateCandidate } from "../inference-types";
 import { extractErrorMessage } from "../shared/extract-validation-failure-details";
 import { getEntityByFilter } from "../shared/get-entity-by-filter";
 import { stringify } from "../stringify";

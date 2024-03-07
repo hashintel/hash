@@ -125,8 +125,8 @@ pub enum EntityQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::knowledge::EntityQueryPath;
-    /// let path = EntityQueryPath::deserialize(json!(["createdAtTransactionTime"]))?;
-    /// assert_eq!(path, EntityQueryPath::CreatedAtTransactionTime);
+    /// let path = EntityQueryPath::deserialize(json!(["createdAtDecisionTime"]))?;
+    /// assert_eq!(path, EntityQueryPath::CreatedAtDecisionTime);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
@@ -134,6 +134,41 @@ pub enum EntityQueryPath<'p> {
     /// [`EntityMetadata`]: graph_types::knowledge::entity::EntityMetadata
     /// [`EntityTemporalMetadata`]: graph_types::knowledge::entity::EntityTemporalMetadata
     CreatedAtDecisionTime,
+    /// The timestamp of the transaction time when the first non-draft edition of the [`Entity`]
+    /// was inserted into the database. This may be the first edition, if created as non-draft.
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["firstNonDraftCreatedAtTransactionTime"]))?;
+    /// assert_eq!(path, EntityQueryPath::FirstNonDraftCreatedAtTransactionTime);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
+    /// [`EntityMetadata`]: graph_types::knowledge::entity::EntityMetadata
+    /// [`EntityTemporalMetadata`]: graph_types::knowledge::entity::EntityTemporalMetadata
+    FirstNonDraftCreatedAtTransactionTime,
+    /// The timestamp of the decision time when the [`Entity`] was _first undrafted_ in the
+    /// database.
+    ///
+    /// This does not take into account if the [`Entity`] was updated with an earlier decision
+    /// time.
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["firstNonDraftCreatedAtDecisionTime"]))?;
+    /// assert_eq!(path, EntityQueryPath::FirstNonDraftCreatedAtDecisionTime);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
+    /// [`EntityMetadata`]: graph_types::knowledge::entity::EntityMetadata
+    /// [`EntityTemporalMetadata`]: graph_types::knowledge::entity::EntityTemporalMetadata
+    FirstNonDraftCreatedAtDecisionTime,
     /// Whether or not the [`Entity`] is in a draft state.
     ///
     /// ```rust
@@ -409,6 +444,12 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::TransactionTime => fmt.write_str("transactionTime"),
             Self::CreatedAtDecisionTime => fmt.write_str("createdAtDecisionTime"),
             Self::CreatedAtTransactionTime => fmt.write_str("createdAtTransactionTime"),
+            Self::FirstNonDraftCreatedAtDecisionTime => {
+                fmt.write_str("firstNonDraftCreatedAtDecisionTime")
+            }
+            Self::FirstNonDraftCreatedAtTransactionTime => {
+                fmt.write_str("firstNonDraftCreatedAtTransactionTime")
+            }
             Self::Archived => fmt.write_str("archived"),
             Self::Properties(Some(property)) => write!(fmt, "properties.{property}"),
             Self::Properties(None) => fmt.write_str("properties"),
@@ -459,9 +500,10 @@ impl QueryPath for EntityQueryPath<'_> {
             | Self::EditionCreatedById
             | Self::CreatedById => ParameterType::Uuid,
             Self::DecisionTime | Self::TransactionTime => ParameterType::TimeInterval,
-            Self::CreatedAtDecisionTime | Self::CreatedAtTransactionTime => {
-                ParameterType::Timestamp
-            }
+            Self::CreatedAtDecisionTime
+            | Self::CreatedAtTransactionTime
+            | Self::FirstNonDraftCreatedAtDecisionTime
+            | Self::FirstNonDraftCreatedAtTransactionTime => ParameterType::Timestamp,
             Self::Properties(_) => ParameterType::Any,
             Self::Embedding => ParameterType::Vector,
             Self::LeftToRightOrder | Self::RightToLeftOrder => ParameterType::I32,
@@ -487,6 +529,8 @@ pub enum EntityQueryToken {
     CreatedById,
     CreatedAtTransactionTime,
     CreatedAtDecisionTime,
+    FirstNonDraftCreatedAtTransactionTime,
+    FirstNonDraftCreatedAtDecisionTime,
     Type,
     Properties,
     Embedding,
@@ -507,7 +551,8 @@ pub struct EntityQueryPathVisitor {
 impl EntityQueryPathVisitor {
     pub const EXPECTING: &'static str =
         "one of `uuid`, `editionId`, `draftId`, `archived`, `ownedById`, `editionCreatedById`, \
-         `createdById`, `createdAtTransactionTime`, `createdAtDecisionTime`, `type`, \
+         `createdById`, `createdAtTransactionTime`, `createdAtDecisionTime`, \
+         `firstNonDraftCreatedAtTransactionTime`, `firstNonDraftCreatedAtDecisionTime`, `type`, \
          `properties`, `embedding`, `incomingLinks`, `outgoingLinks`, `leftEntity`, \
          `rightEntity`, `leftToRightOrder`, `rightToLeftOrder`";
 
@@ -543,6 +588,12 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
             EntityQueryToken::CreatedById => EntityQueryPath::CreatedById,
             EntityQueryToken::CreatedAtTransactionTime => EntityQueryPath::CreatedAtTransactionTime,
             EntityQueryToken::CreatedAtDecisionTime => EntityQueryPath::CreatedAtDecisionTime,
+            EntityQueryToken::FirstNonDraftCreatedAtTransactionTime => {
+                EntityQueryPath::FirstNonDraftCreatedAtTransactionTime
+            }
+            EntityQueryToken::FirstNonDraftCreatedAtDecisionTime => {
+                EntityQueryPath::FirstNonDraftCreatedAtDecisionTime
+            }
             EntityQueryToken::Archived => EntityQueryPath::Archived,
             EntityQueryToken::Embedding => EntityQueryPath::Embedding,
             EntityQueryToken::Type => EntityQueryPath::EntityTypeEdge {
@@ -709,6 +760,12 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
             EntityQueryPath::TransactionTime => EntityQueryPath::TransactionTime,
             EntityQueryPath::CreatedAtTransactionTime => EntityQueryPath::CreatedAtTransactionTime,
             EntityQueryPath::CreatedAtDecisionTime => EntityQueryPath::CreatedAtDecisionTime,
+            EntityQueryPath::FirstNonDraftCreatedAtTransactionTime => {
+                EntityQueryPath::FirstNonDraftCreatedAtTransactionTime
+            }
+            EntityQueryPath::FirstNonDraftCreatedAtDecisionTime => {
+                EntityQueryPath::FirstNonDraftCreatedAtDecisionTime
+            }
             EntityQueryPath::Archived => EntityQueryPath::Archived,
             EntityQueryPath::EditionCreatedById => EntityQueryPath::EditionCreatedById,
             EntityQueryPath::CreatedById => EntityQueryPath::CreatedById,

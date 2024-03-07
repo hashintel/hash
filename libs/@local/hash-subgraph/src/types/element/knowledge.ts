@@ -1,31 +1,31 @@
-import {
-  type Entity as EntityBp,
-  type EntityMetadata as EntityMetadataBp,
-  type EntityPropertiesObject as EntityPropertiesObjectBp,
-  type EntityPropertyValue as EntityPropertyValueBp,
-  type EntityRecordId as EntityRecordIdBp,
-  type EntityRevisionId as EntityRevisionIdBp,
-  type EntityTemporalVersioningMetadata as EntityTemporalVersioningMetadataBp,
+import type {
+  Entity as EntityBp,
+  EntityMetadata as EntityMetadataBp,
+  EntityPropertiesObject as EntityPropertiesObjectBp,
+  EntityPropertyValue as EntityPropertyValueBp,
+  EntityRecordId as EntityRecordIdBp,
+  EntityRevisionId as EntityRevisionIdBp,
+  EntityTemporalVersioningMetadata as EntityTemporalVersioningMetadataBp,
   isEntityRecordId as isEntityRecordIdBp,
-  type LinkData as LinkDataBp,
-  type LinkEntityAndRightEntity as LinkEntityAndRightEntityBp,
+  LinkData as LinkDataBp,
+  LinkEntityAndRightEntity as LinkEntityAndRightEntityBp,
 } from "@blockprotocol/graph/temporal";
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { Brand } from "@local/advanced-types/brand";
-import { Subtype } from "@local/advanced-types/subtype";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { Brand } from "@local/advanced-types/brand";
+import type { Subtype } from "@local/advanced-types/subtype";
 
-import {
+import type {
   BaseUrl,
   EntityId,
   EntityProvenanceMetadata,
   ExclusiveLimitedTemporalBound,
   InclusiveLimitedTemporalBound,
-  isEntityId,
   TemporalAxis,
   TimeInterval,
   Timestamp,
   Unbounded,
 } from "../shared";
+import { isEntityId } from "../shared";
 
 // This isn't necessary, it just _could_ provide greater clarity that this corresponds to an exact vertex and can be
 // used in a direct lookup and not a search in the vertices
