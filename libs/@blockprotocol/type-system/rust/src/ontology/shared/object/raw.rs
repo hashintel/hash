@@ -1,4 +1,7 @@
-use std::{collections::HashMap, fmt::Debug};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Debug,
+};
 
 use serde::{Deserialize, Serialize};
 #[cfg(target_arch = "wasm32")]
@@ -22,8 +25,8 @@ pub struct Object<T> {
     #[cfg_attr(target_arch = "wasm32", tsify(type = "Record<BaseUrl, T>"))]
     pub properties: HashMap<String, T>,
     #[cfg_attr(target_arch = "wasm32", tsify(optional, type = "BaseUrl[]"))]
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub required: Vec<String>,
+    #[serde(default, skip_serializing_if = "HashSet::is_empty")]
+    pub required: HashSet<String>,
 }
 
 impl<const MIN: usize> TryFrom<Object<raw::ValueOrArray<raw::PropertyTypeReference>>>
@@ -52,7 +55,7 @@ impl<const MIN: usize> TryFrom<Object<raw::ValueOrArray<raw::PropertyTypeReferen
             .map(|base_url| {
                 BaseUrl::new(base_url).map_err(ParsePropertyTypeObjectError::InvalidRequiredKey)
             })
-            .collect::<Result<Vec<_>, Self::Error>>()?;
+            .collect::<Result<_, Self::Error>>()?;
 
         Self::new(properties, required).map_err(ParsePropertyTypeObjectError::ValidationError)
     }
@@ -109,7 +112,7 @@ mod tests {
                 Some(Object {
                     r#type: ObjectTypeTag::Object,
                     properties: HashMap::new(),
-                    required: vec![],
+                    required: HashSet::new(),
                 }),
             );
         }
@@ -132,7 +135,7 @@ mod tests {
                         url.base_url.to_string(),
                         PropertyTypeReference::new(url.to_string()),
                     )]),
-                    required: vec![],
+                    required: HashSet::new(),
                 }),
             );
         }
@@ -164,7 +167,7 @@ mod tests {
                             PropertyTypeReference::new(url_b.to_string()),
                         ),
                     ]),
-                    required: vec![],
+                    required: HashSet::new(),
                 }),
             );
         }
@@ -193,7 +196,7 @@ mod tests {
                         url.base_url.to_string(),
                         PropertyTypeReference::new(url.to_string()),
                     )]),
-                    required: vec![],
+                    required: HashSet::new(),
                 }),
             );
         }
@@ -225,7 +228,7 @@ mod tests {
                             PropertyTypeReference::new(url_b.to_string()),
                         ),
                     ]),
-                    required: vec![],
+                    required: HashSet::new(),
                 }),
             );
         }
@@ -261,7 +264,7 @@ mod tests {
                         PropertyTypeReference::new(url_b.to_string()),
                     ),
                 ]),
-                required: vec![url_a.base_url.to_string()],
+                required: HashSet::from([url_a.base_url.to_string()]),
             }),
         );
     }

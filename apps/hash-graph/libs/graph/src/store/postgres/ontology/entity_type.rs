@@ -318,7 +318,7 @@ impl<C: AsClient> PostgresStore<C> {
                 );
 
                 if visited_ids.contains(&parent_id) {
-                    // This can happens in case of multiple inheritance or cycles. Cycles are
+                    // This may happen in case of multiple inheritance or cycles. Cycles are
                     // already checked above, so we can just skip this parent.
                     current_type
                         .inherits_from
@@ -327,17 +327,14 @@ impl<C: AsClient> PostgresStore<C> {
                     break;
                 }
 
-                current_type
-                    .merge_parent(
-                        available_types
-                            .get(&parent_id)
-                            .ok_or_else(|| Report::new(QueryError))
-                            .attach_printable("entity type not available")
-                            .attach_printable_lazy(|| parent.url().clone())?
-                            .clone(),
-                    )
-                    .change_context(QueryError)
-                    .attach_printable("could not merge parent")?;
+                current_type.extend_one(
+                    available_types
+                        .get(&parent_id)
+                        .ok_or_else(|| Report::new(QueryError))
+                        .attach_printable("entity type not available")
+                        .attach_printable_lazy(|| parent.url().clone())?
+                        .clone(),
+                );
 
                 visited_ids.insert(parent_id);
             }
