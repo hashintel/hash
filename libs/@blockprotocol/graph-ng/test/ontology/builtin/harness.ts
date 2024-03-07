@@ -1,12 +1,11 @@
-import { expect, test } from "vitest";
 import * as S from "@effect/schema/Schema";
-import * as Null from "../../../src/ontology/builtin/Null";
-import * as DataType from "../../../src/ontology/DataType";
-import * as NullType from "../../../src/ontology/internal/NullDataType";
+import { expect, test } from "vitest";
 
-export function testAgainstTypes<T extends DataType.DataType>(
+import * as DataType from "../../../src/ontology/DataType";
+
+export function testAgainstTypes(
   version: string,
-  schema: T,
+  schema: DataType.DataType,
   shouldSucceed:
     | "string"
     | "number"
@@ -15,7 +14,7 @@ export function testAgainstTypes<T extends DataType.DataType>(
     | "object"
     | "emptyList",
 ) {
-  const Schema = DataType.makeValueSchema(schema) as S.Schema<unknown, unknown>;
+  const Schema = DataType.makeValueSchema(schema);
 
   test(`v${version}: parse string`, () => {
     if (shouldSucceed !== "string") {

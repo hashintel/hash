@@ -4,6 +4,7 @@ import * as Duration from "effect/Duration";
 import { identity } from "effect/Function";
 
 import * as TemporalSchema from "./TemporalSchema";
+import { Predicate } from "effect";
 
 const DateFormat = S.literal("date", "date-time", "time", "duration");
 const EmailFormat = S.literal("email", "idn-email");
@@ -51,10 +52,18 @@ export type StringDataType = S.Schema.To<typeof StringDataType>;
 
 function plainValueSchema(type: StringDataType) {
   return S.string.pipe(
-    type.minLength ? S.minLength(type.minLength) : identity,
-    type.maxLength ? S.maxLength(type.maxLength) : identity,
-    type.pattern ? S.pattern(new RegExp(type.pattern)) : identity,
-    type.const ? S.filter((value) => value === type.const) : identity,
+    Predicate.isNotUndefined(type.minLength)
+      ? S.minLength(type.minLength)
+      : identity,
+    Predicate.isNotUndefined(type.maxLength)
+      ? S.maxLength(type.maxLength)
+      : identity,
+    Predicate.isNotUndefined(type.pattern)
+      ? S.pattern(new RegExp(type.pattern))
+      : identity,
+    Predicate.isNotUndefined(type.const)
+      ? S.filter((value) => value === type.const)
+      : identity,
   );
 }
 
@@ -88,12 +97,12 @@ export function makeSchema<T extends StringDataType>(
 ): T["format"] extends "date"
   ? ReturnType<typeof dateValueSchema>
   : T["format"] extends "date-time"
-  ? ReturnType<typeof dateTimeValueSchema>
-  : T["format"] extends "time"
-  ? ReturnType<typeof timeValueSchema>
-  : T["format"] extends "duration"
-  ? ReturnType<typeof durationValueSchema>
-  : ReturnType<typeof plainValueSchema> {
+    ? ReturnType<typeof dateTimeValueSchema>
+    : T["format"] extends "time"
+      ? ReturnType<typeof timeValueSchema>
+      : T["format"] extends "duration"
+        ? ReturnType<typeof durationValueSchema>
+        : ReturnType<typeof plainValueSchema> {
   switch (type.format) {
     case "date":
       return dateValueSchema(type) as never;

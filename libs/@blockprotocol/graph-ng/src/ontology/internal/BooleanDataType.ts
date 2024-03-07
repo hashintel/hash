@@ -1,4 +1,5 @@
 import * as S from "@effect/schema/Schema";
+import { Predicate } from "effect";
 import { identity } from "effect/Function";
 
 export const BooleanDataType = S.struct({
@@ -10,7 +11,9 @@ export type BooleanDataType = S.Schema.To<typeof BooleanDataType>;
 
 export function makeSchema(type: BooleanDataType) {
   return S.boolean.pipe(
-    type.const ? S.filter((value) => value === type.const) : identity,
+    Predicate.isNotUndefined(type.const)
+      ? S.filter((value) => value === type.const)
+      : identity,
   );
 }
 

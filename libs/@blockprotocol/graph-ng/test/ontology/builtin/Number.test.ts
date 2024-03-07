@@ -1,8 +1,9 @@
+import { expect, test } from "vitest";
+
 import * as Number from "../../../src/ontology/builtin/Number";
 import * as DataType from "../../../src/ontology/DataType";
 import * as NumberDataType from "../../../src/ontology/internal/NumberDataType";
 import { testAgainstTypes } from "./harness";
-import { expect, test } from "vitest";
 
 function requiresNumberType(_: NumberDataType.NumberDataType) {}
 requiresNumberType(Number.V1);

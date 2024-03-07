@@ -1,5 +1,6 @@
 import * as S from "@effect/schema/Schema";
 import { identity } from "effect/Function";
+import { Predicate } from "effect";
 
 export const NumberDataType = S.struct({
   type: S.literal("number", "integer"),
@@ -20,12 +21,24 @@ export function makeSchema(type: NumberDataType) {
   }[type.type];
 
   return base.pipe(
-    type.multipleOf ? S.multipleOf(type.multipleOf) : identity,
-    type.minimum ? S.greaterThanOrEqualTo(type.minimum) : identity,
-    type.maximum ? S.lessThanOrEqualTo(type.maximum) : identity,
-    type.exclusiveMinimum ? S.greaterThan(type.exclusiveMinimum) : identity,
-    type.exclusiveMaximum ? S.lessThan(type.exclusiveMaximum) : identity,
-    type.const ? S.filter((value) => value === type.const) : identity,
+    Predicate.isNotUndefined(type.multipleOf)
+      ? S.multipleOf(type.multipleOf)
+      : identity,
+    Predicate.isNotUndefined(type.minimum)
+      ? S.greaterThanOrEqualTo(type.minimum)
+      : identity,
+    Predicate.isNotUndefined(type.maximum)
+      ? S.lessThanOrEqualTo(type.maximum)
+      : identity,
+    Predicate.isNotUndefined(type.exclusiveMinimum)
+      ? S.greaterThan(type.exclusiveMinimum)
+      : identity,
+    Predicate.isNotUndefined(type.exclusiveMaximum)
+      ? S.lessThan(type.exclusiveMaximum)
+      : identity,
+    Predicate.isNotUndefined(type.const)
+      ? S.filter((value) => value === type.const)
+      : identity,
   );
 }
 

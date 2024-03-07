@@ -9,6 +9,8 @@ import * as NullDataType from "./internal/NullDataType";
 import * as NumberDataType from "./internal/NumberDataType";
 import * as ObjectDataType from "./internal/ObjectDataType";
 import * as StringDataType from "./internal/StringDataType";
+import { DataTypeValue } from "./DataTypeValue";
+import * as Json from "./internal/Json";
 
 const TypeId: unique symbol = Symbol.for(
   "@blockprotocol/graph/ontology/DataType",
@@ -23,9 +25,11 @@ const InnerType = S.union(
   ObjectDataType.ObjectDataType,
   ArrayDataType.ArrayDataType,
 );
+type InnerType = S.Schema.To<typeof InnerType>;
 
 export const DataType = S.extend(
   S.struct({
+    // TODO: remove in favor of `TypeId`?
     kind: S.literal("dataType"),
 
     id: DataTypeUrl.DataTypeUrl,
@@ -37,23 +41,29 @@ export const DataType = S.extend(
 
 export type DataType = S.Schema.To<typeof DataType>;
 
-// TODO: branding
-
-export function makeValueSchema<T extends DataType>(
+export function makeValueSchema<T extends StringDataType.StringDataType>(
   schema: T,
-): T extends StringDataType.StringDataType
-  ? StringDataType.ValueSchema<T>
-  : T extends NumberDataType.NumberDataType
-  ? NumberDataType.ValueSchema
-  : T extends BooleanDataType.BooleanDataType
-  ? BooleanDataType.ValueSchema
-  : T extends NullDataType.NullDataType
-  ? NullDataType.ValueSchema
-  : T extends ObjectDataType.ObjectDataType
-  ? ObjectDataType.ValueSchema
-  : T extends ArrayDataType.ArrayDataType
-  ? ArrayDataType.ValueSchema
-  : never {
+): StringDataType.ValueSchema<T>;
+export function makeValueSchema<T extends NumberDataType.NumberDataType>(
+  schema: T,
+): NumberDataType.ValueSchema;
+export function makeValueSchema<T extends BooleanDataType.BooleanDataType>(
+  schema: T,
+): BooleanDataType.ValueSchema;
+export function makeValueSchema<T extends NullDataType.NullDataType>(
+  schema: T,
+): NullDataType.ValueSchema;
+export function makeValueSchema<T extends ObjectDataType.ObjectDataType>(
+  schema: T,
+): ObjectDataType.ValueSchema;
+export function makeValueSchema<T extends ArrayDataType.ArrayDataType>(
+  schema: T,
+): ArrayDataType.ValueSchema;
+export function makeValueSchema(
+  schema: DataType,
+): S.Schema<Json.Value, DataTypeValue>;
+
+export function makeValueSchema(schema: DataType) {
   switch (schema.type) {
     case "string":
       return StringDataType.makeSchema(schema) as never;
