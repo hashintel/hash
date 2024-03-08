@@ -1,10 +1,10 @@
 import * as S from "@effect/schema/Schema";
 import { Temporal } from "@js-temporal/polyfill";
+import { Predicate } from "effect";
 import * as Duration from "effect/Duration";
 import { identity } from "effect/Function";
 
 import * as TemporalSchema from "./TemporalSchema";
-import { Predicate } from "effect";
 
 const DateFormat = S.literal("date", "date-time", "time", "duration");
 const EmailFormat = S.literal("email", "idn-email");
