@@ -31,6 +31,7 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolDataTypes,
+  googleEntityTypes,
   systemEntityTypes,
   systemLinkEntityTypes,
   systemPropertyTypes,
@@ -1277,10 +1278,12 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
 
         if (
           baseUrl === systemEntityTypes.userSecret.entityTypeBaseUrl ||
-          baseUrl === systemLinkEntityTypes.usesUserSecret.linkEntityTypeBaseUrl
+          baseUrl ===
+            systemLinkEntityTypes.usesUserSecret.linkEntityTypeBaseUrl ||
+          baseUrl === googleEntityTypes.account.entityTypeBaseUrl
         ) {
           /**
-           * User secrets are only editable by the bot that created them, which varies by secret
+           *These entities are only editable by the bot that created them
            */
           updateAuthentication = {
             actorId: entity.metadata.provenance.createdById,
