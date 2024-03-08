@@ -29,6 +29,21 @@ test("constant PropertyTypeUrl", () => {
         Brand.Brand<BaseUrl.TypeId>
     >
   >();
+
+  expectTypeOf(VersionedUrl.base(DescriptionProperty.id)).toMatchTypeOf<
+    "https://blockprotocol.org/@blockprotocol/types/property-type/description" &
+      Brand.Brand<BaseUrl.TypeId>
+  >();
+
+  const versionedUrl = PropertyTypeUrl.parseOrThrow(
+    "https://blockprotocol.org/@blockprotocol/types/property-type/description/v/1",
+  );
+  type X = Brand.Brand.Unbranded<typeof versionedUrl>;
+
+  expectTypeOf(PropertyTypeUrl.base(versionedUrl)).toMatchTypeOf<
+    "https://blockprotocol.org/@blockprotocol/types/property-type/description" &
+      Brand.Brand<BaseUrl.TypeId>
+  >();
 });
 
 test("DescriptionProperty.id is not unknown", () => {

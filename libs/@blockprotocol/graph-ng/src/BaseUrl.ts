@@ -6,9 +6,12 @@ import * as Url from "./internal/Url";
 const TypeId: unique symbol = Symbol.for("@blockprotocol/graph/BaseUrl");
 export type TypeId = typeof TypeId;
 
-export const BaseUrl = Url.Url.pipe(S.brand(TypeId));
+export type BaseUrl<T extends string = string> = T & Brand.Brand<TypeId>;
+const BaseUrlBrand = Brand.nominal<BaseUrl>();
 
-export type BaseUrl = S.Schema.To<typeof BaseUrl>;
+export const BaseUrl: S.Schema<BaseUrl, string> = Url.Url.pipe(
+  S.fromBrand(BaseUrlBrand),
+);
 
 export function parseOrThrow<T extends string>(
   value: T,
