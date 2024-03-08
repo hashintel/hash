@@ -28,8 +28,7 @@ export function parseOrThrow<T extends string>(
   return S.decodeSync(VersionedUrl)(value) as never;
 }
 
-export type Base<T extends VersionedUrl> =
-  T extends VersionedUrl<infer U> ? U : never;
+export type Base<T> = T extends VersionedUrl<infer U> ? U : never;
 export function base<T extends VersionedUrl>(value: T): Base<T> {
   // the value is never null or undefined, because `Schema` guarantees a well-formed value.
   const match = value.match(Pattern)!;

@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, expectTypeOf, test } from "vitest";
 
 import * as EmptyList from "../../../src/ontology/builtin/EmptyList";
 import * as DataType from "../../../src/ontology/DataType";
@@ -22,4 +22,8 @@ test("v1: schema", () => {
       "type": "array",
     }
   `);
+});
+
+test("v1: id not unknown", () => {
+  expectTypeOf(EmptyList.V1.id).not.toBeUnknown();
 });
