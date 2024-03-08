@@ -57,7 +57,7 @@ export const GoogleAccountSelect = ({
       onChange={(_event, { value: newValue }) => setGoogleAccountId(newValue)}
       options={options}
       sx={{ width: 300 }}
-      value={value ?? null}
+      value={value}
     />
   );
 };

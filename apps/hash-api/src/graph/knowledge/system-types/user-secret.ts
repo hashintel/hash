@@ -131,13 +131,6 @@ export const createUserSecret = async <
    */
   const authentication = { actorId: userAccountId };
 
-  const userSecretEntity = await createEntity({ graphApi }, authentication, {
-    entityTypeId: systemEntityTypes.userSecret.entityTypeId,
-    ownedById: userAccountId as OwnedById,
-    properties: secretMetadata,
-    relationships: botEditorUserViewerOnly,
-  });
-
   if (archiveExistingSecrets) {
     const linkAndSecretPairs = await getSecretEntitiesForIntegration({
       authentication,
@@ -161,6 +154,13 @@ export const createUserSecret = async <
       ]),
     );
   }
+
+  const userSecretEntity = await createEntity({ graphApi }, authentication, {
+    entityTypeId: systemEntityTypes.userSecret.entityTypeId,
+    ownedById: userAccountId as OwnedById,
+    properties: secretMetadata,
+    relationships: botEditorUserViewerOnly,
+  });
 
   /** Link the user secret to the Google Account */
   await createLinkEntity({ graphApi }, authentication, {

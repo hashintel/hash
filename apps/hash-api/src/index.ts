@@ -9,6 +9,9 @@ import {
 import express, { ErrorRequestHandler, raw } from "express";
 import { create as handlebarsCreate } from "express-handlebars";
 
+// eslint-disable-next-line import/order
+import { initSentry } from "./sentry";
+
 const app = express();
 
 initSentry(app);
@@ -78,7 +81,6 @@ import {
 } from "./lib/env-config";
 import { logger } from "./logger";
 import { seedOrgsAndUsers } from "./seed-data";
-import { initSentry } from "./sentry";
 import {
   setupFileDownloadProxyHandler,
   setupStorageProviders,
