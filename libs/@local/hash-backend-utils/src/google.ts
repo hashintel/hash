@@ -1,3 +1,4 @@
+import { getSecretEntitiesForIntegration } from "@local/hash-backend-utils/user-secret";
 import { GraphApi } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -6,13 +7,13 @@ import {
 import {
   blockProtocolEntityTypes,
   blockProtocolLinkEntityTypes,
-  systemEntityTypes,
+  googleEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
 import {
+  AccountProperties as GoogleAccountProperties,
   AssociatedWithAccountProperties,
-  GoogleAccountProperties,
   GoogleSheetsIntegrationProperties,
   HasQueryProperties,
 } from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
@@ -30,7 +31,7 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { Auth, google } from "googleapis";
 
-import { getSecretEntitiesForIntegration, VaultClient } from "./vault";
+import { VaultClient } from "./vault";
 
 const googleOAuthClientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
 const googleOAuthClientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
@@ -126,14 +127,26 @@ export const getGoogleSheetsIntegrationEntities = async ({
     .getEntitiesByQuery(authentication.actorId, {
       query: {
         filter: {
-          equal: [
+          all: [
             {
-              path: ["uuid"],
-              parameter: uuid,
+              equal: [
+                {
+                  path: ["uuid"],
+                },
+                {
+                  parameter: uuid,
+                },
+              ],
             },
             {
-              path: ["ownedById"],
-              parameter: ownedById,
+              equal: [
+                {
+                  path: ["ownedById"],
+                },
+                {
+                  parameter: ownedById,
+                },
+              ],
             },
           ],
         },
@@ -169,7 +182,7 @@ export const getGoogleSheetsIntegrationEntities = async ({
       linkAndRightEntity.linkEntity[0]?.metadata.entityTypeId ===
         systemLinkEntityTypes.associatedWithAccount.linkEntityTypeId &&
       linkAndRightEntity.rightEntity[0]?.metadata.entityTypeId ===
-        systemEntityTypes.googleAccount.entityTypeId,
+        googleEntityTypes.account.entityTypeId,
   );
 
   const existingQueryLink = outgoingLinks.find(

@@ -33,7 +33,7 @@ export const GoogleAccountSelect = ({
           ],
         value:
           account.properties[
-            "https://hash.ai/@hash/types/property-type/account-id/"
+            "https://hash.ai/@google/types/property-type/account-id/"
           ],
       }));
   }, [authContext]);
@@ -48,7 +48,8 @@ export const GoogleAccountSelect = ({
 
   return (
     <Autocomplete
-      autoHighlight
+      autoFocus={false}
+      autoHighlight={false}
       disableClearable
       getOptionLabel={(option) => option.label}
       isOptionEqualToValue={(option, val) => option.value === val.value}

@@ -3,50 +3,31 @@ import { MultiFilter } from "@blockprotocol/graph";
 import { AlertModal, CheckIcon, TextField } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
+import { CreateOrUpdateSheetsIntegrationRequest } from "@local/hash-isomorphic-utils/google-integration";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
-import { EntityId, OwnedById } from "@local/hash-subgraph";
+import { QueryProperties } from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
+import { OwnedById } from "@local/hash-subgraph";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import { PropsWithChildren, useMemo, useState } from "react";
 
 import {
   CreateEntityMutation,
   CreateEntityMutationVariables,
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables,
 } from "../../../../graphql/api-types.gen";
-import { createEntityMutation } from "../../../../graphql/queries/knowledge/entity.queries";
-import { createEntityTypeMutation } from "../../../../graphql/queries/ontology/entity-type.queries";
+import {
+  createEntityMutation,
+  updateEntityMutation,
+} from "../../../../graphql/queries/knowledge/entity.queries";
 import { useLatestEntityTypesOptional } from "../../../../shared/entity-types-context/hooks";
 import { usePropertyTypes } from "../../../../shared/property-types-context";
 import { Button } from "../../../../shared/ui/button";
-import { Link } from "../../../../shared/ui/link";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
-import { GoogleAccountSelect } from "./edit-sheets-integration/account-select";
+import { GoogleAccountSelect } from "./create-or-edit-sheets-integration/account-select";
 import { useGoogleAuth } from "./google-auth-context";
 import { GoogleFilePicker } from "./google-file-picker";
-
-type IntegrationData = {
-  googleAccountId?: string;
-  query?: MultiFilter;
-  existingFile?: {
-    id: string;
-    name: string;
-  };
-  newFileName?: string;
-};
-
-type SyncToSheetRequestBody = {
-  format: {
-    audience: "human" | "machine";
-  };
-  googleAccountId: string;
-  queryEntityId: EntityId;
-  schedule: "hourly" | "daily" | "weekly" | "monthly";
-} & (
-  | {
-      fileId: string;
-    }
-  | { newFileName: string }
-);
+import { UseSheetsIntegrationsData } from "./use-sheet-integrations";
 
 const StepContainer = ({
   children,
@@ -114,26 +95,64 @@ const StepContainer = ({
   );
 };
 
-type EditSheetsIntegrationProps = {
+type IntegrationData = {
+  audience: "human" | "machine";
+  googleAccountId?: string;
+  query?: MultiFilter;
+  existingFile?: {
+    id: string;
+    name: string;
+  };
+  newFileName?: string;
+};
+
+type CreateOrEditSheetsIntegrationProps = {
   close: () => void;
+  currentIntegration: UseSheetsIntegrationsData["integrations"][0] | null;
   onComplete: () => void;
 };
 
-export const EditSheetsIntegration = ({
+export const CreateOrEditSheetsIntegration = ({
   close,
+  currentIntegration,
   onComplete,
-}: EditSheetsIntegrationProps) => {
+}: CreateOrEditSheetsIntegrationProps) => {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [showReauthModal, setShowReauthModal] = useState(false);
 
   const { authenticatedUser } = useAuthenticatedUser();
 
-  const [integrationData, setIntegrationData] = useState<IntegrationData>({});
+  const [integrationData, setIntegrationData] = useState<IntegrationData>({
+    audience:
+      (currentIntegration?.properties[
+        "https://hash.ai/@hash/types/property-type/data-audience/"
+      ] as "human" | "machine" | undefined) ?? "human",
+    existingFile: currentIntegration
+      ? {
+          id: currentIntegration.properties[
+            "https://hash.ai/@hash/types/property-type/file-id/"
+          ],
+          name: "[existing file - todo, get file name]",
+        }
+      : undefined,
+    googleAccountId:
+      currentIntegration?.account.properties[
+        "https://hash.ai/@google/types/property-type/account-id/"
+      ],
+    query: currentIntegration?.query.properties[
+      "https://blockprotocol.org/@hash/types/property-type/query/"
+    ] as MultiFilter | undefined,
+  });
 
   const [createEntity] = useMutation<
     CreateEntityMutation,
     CreateEntityMutationVariables
   >(createEntityMutation);
+
+  const [updateEntity] = useMutation<
+    UpdateEntityMutation,
+    UpdateEntityMutationVariables
+  >(updateEntityMutation);
 
   const { propertyTypes } = usePropertyTypes({ latestOnly: true });
   const { latestEntityTypes } = useLatestEntityTypesOptional();
@@ -178,30 +197,36 @@ export const EditSheetsIntegration = ({
       return;
     }
 
-    const { data } = await createEntity({
-      variables: {
-        entityTypeId: blockProtocolEntityTypes.query.entityTypeId,
-        ownedById: authenticatedUser.accountId as OwnedById,
-        properties: {
-          "https://blockprotocol.org/@hash/types/property-type/query/":
-            integrationData.query,
-        } as QueryProperties,
-      },
-    });
-
-    const queryEntityId = data?.createEntity.metadata.recordId.entityId;
+    let queryEntityId = currentIntegration?.query.metadata.recordId.entityId;
     if (!queryEntityId) {
-      throw new Error("Query entity not created");
+      const { data } = await createEntity({
+        variables: {
+          entityTypeId: blockProtocolEntityTypes.query.entityTypeId,
+          ownedById: authenticatedUser.accountId as OwnedById,
+          properties: {
+            "https://blockprotocol.org/@hash/types/property-type/query/":
+              integrationData.query,
+          } as QueryProperties,
+        },
+      });
+
+      queryEntityId = data?.createEntity.metadata.recordId.entityId;
+      if (!queryEntityId) {
+        throw new Error("Query entity not created");
+      }
     }
 
-    const syncPayload = {
+    const syncPayload: CreateOrUpdateSheetsIntegrationRequest = {
+      audience: integrationData.audience,
+      existingIntegrationEntityId:
+        currentIntegration?.metadata.recordId.entityId,
       googleAccountId: integrationData.googleAccountId,
       queryEntityId,
       spreadsheetId: integrationData.existingFile?.id,
       newFileName: integrationData.newFileName,
     };
 
-    await fetch(`${apiOrigin}/integrations/google-sheets/sync`, {
+    await fetch(`${apiOrigin}/integrations/google/sheets`, {
       method: "POST",
       credentials: "include",
       headers: {
@@ -327,24 +352,59 @@ export const EditSheetsIntegration = ({
               entityTypes={entityTypeSchemas}
               propertyTypes={propertyTypeSchemas}
               defaultValue={integrationData.query}
-              onSave={async (query) =>
+              onSave={async (newQuery) => {
+                if (currentIntegration) {
+                  await updateEntity({
+                    variables: {
+                      entityUpdate: {
+                        entityId:
+                          currentIntegration.query.metadata.recordId.entityId,
+                        updatedProperties: {
+                          "https://blockprotocol.org/@hash/types/property-type/query/":
+                            newQuery,
+                        } as QueryProperties,
+                      },
+                    },
+                  });
+                }
                 setIntegrationData({
                   ...integrationData,
-                  query,
+                  query: newQuery,
+                });
+              }}
+              saveTitle={currentIntegration ? "Update query" : "Save query"}
+              discardTitle={
+                currentIntegration ? "Discard changes" : "Reset query"
+              }
+            />
+          </Box>
+        </StepContainer>
+        <StepContainer
+          done={!!integrationData.audience}
+          title="4. Select formatting"
+        >
+          <Box>
+            <select
+              value={integrationData.audience}
+              onChange={(event) =>
+                setIntegrationData({
+                  ...integrationData,
+                  audience: event.target.value as "human" | "machine",
                 })
               }
-              saveTitle="Save query"
-              discardTitle="Reset query"
-            />
+            >
+              <option value="human">Human</option>
+              <option value="machine">Machine</option>
+            </select>
           </Box>
         </StepContainer>
       </Box>
       <Stack direction="row" gap={2} mt={2}>
         <Button onClick={submit} disabled={!submittable} type="button">
-          Create sync
+          Save and update sheet
         </Button>
         <Button onClick={close} variant="secondary" type="button">
-          Discard
+          Discard / done
         </Button>
       </Stack>
     </Box>

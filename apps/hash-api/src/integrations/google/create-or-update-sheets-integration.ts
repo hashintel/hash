@@ -84,6 +84,8 @@ export const createOrUpdateSheetsIntegration: RequestHandler<
       existingIntegrationEntityId,
       queryEntityId,
       audience,
+      spreadsheetId: existingSpreadsheetId,
+      newFileName,
     } = req.body;
 
     if (!["human", "machine"].includes(audience)) {
@@ -153,14 +155,14 @@ export const createOrUpdateSheetsIntegration: RequestHandler<
      * 1. Confirming it exists and is accessible if an existing id has been provided, or
      * 2. Creating a new spreadsheet if a filename has been provided
      */
-    if (!("spreadsheetId" in req.body) && !("newFileName" in req.body)) {
+    if (!existingSpreadsheetId && !newFileName) {
       res.status(400).send({
         error: "Either spreadsheetId or newFileName must be provided.",
       });
       return;
     }
 
-    if ("spreadsheetId" in req.body) {
+    if (existingSpreadsheetId) {
       const spreadsheet = await sheetsClient.spreadsheets.get({
         spreadsheetId: req.body.spreadsheetId,
       });
@@ -174,12 +176,11 @@ export const createOrUpdateSheetsIntegration: RequestHandler<
     }
 
     const spreadsheetId =
-      "spreadsheetId" in req.body
-        ? req.body.spreadsheetId
-        : await createSpreadsheet({
-            filename: req.body.newFileName,
-            sheetsClient,
-          });
+      existingSpreadsheetId ??
+      (await createSpreadsheet({
+        filename: req.body.newFileName!,
+        sheetsClient,
+      }));
 
     const googleSheetIntegrationProperties: GoogleSheetsIntegrationProperties =
       {
@@ -251,7 +252,7 @@ export const createOrUpdateSheetsIntegration: RequestHandler<
 
       const existingLinkedGoogleAccountId =
         existingEntities.googleAccountEntity.properties[
-          "https://hash.ai/@hash/types/property-type/account-id/"
+          "https://hash.ai/@google/types/property-type/account-id/"
         ];
       if (googleAccountId !== existingLinkedGoogleAccountId) {
         await archiveEntity(req.context, authentication, {
@@ -328,23 +329,29 @@ export const createOrUpdateSheetsIntegration: RequestHandler<
     const workflow =
       "syncQueryToGoogleSheet" as const satisfies keyof WorkflowTypeMap;
 
-    /**
-     * Trigger a single write of the requested query results to the specified spreadsheet
-     * @todo implement repeated syncs on a schedule
-     */
-    await req.context.temporalClient.workflow.execute<
-      WorkflowTypeMap[typeof workflow]
-    >("syncQueryToGoogleSheet", {
-      taskQueue: "integration",
-      args: [
-        {
-          authentication: { actorId: req.user.accountId },
-          integrationEntityId:
-            googleSheetIntegrationEntity.metadata.recordId.entityId,
-        },
-      ],
-      workflowId: `${workflow}-${integrationEntityId}-${genId()}`,
-    });
+    try {
+      /**
+       * Trigger a single write of the requested query results to the specified spreadsheet
+       * @todo implement repeated syncs on a schedule
+       */
+      await req.context.temporalClient.workflow.execute<
+        WorkflowTypeMap[typeof workflow]
+      >("syncQueryToGoogleSheet", {
+        taskQueue: "integration",
+        args: [
+          {
+            integrationEntityId:
+              googleSheetIntegrationEntity.metadata.recordId.entityId,
+            userAccountId: req.user.accountId,
+          },
+        ],
+        workflowId: `${workflow}-${integrationEntityId}-${genId()}`,
+      });
 
-    res.json({ integrationEntityId });
+      res.json({ integrationEntityId });
+    } catch (err) {
+      res.status(500).send({
+        error: `Error triggering workflow ${workflow}: ${(err as Error).message}`,
+      });
+    }
   };

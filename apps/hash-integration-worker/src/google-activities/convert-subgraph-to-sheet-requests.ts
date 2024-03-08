@@ -1,24 +1,24 @@
-import { EntityType, VersionedUrl } from "@blockprotocol/type-system";
+import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import { isDraftEntity } from "@local/hash-isomorphic-utils/entity-store";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import {
+import type {
   BaseUrl,
   EntityId,
   EntityRootType,
   EntityVertex,
-  isEntityVertex,
   Subgraph,
 } from "@local/hash-subgraph";
+import { isEntityVertex } from "@local/hash-subgraph";
 import {
   getEntityRevision,
   getEntityTypeAndParentsById,
   getEntityTypeById,
   getPropertyTypeForEntity,
 } from "@local/hash-subgraph/stdlib";
-import { sheets_v4 } from "googleapis";
+import type { sheets_v4 } from "googleapis";
 
 type SheetOutputFormat = {
   audience: "human" | "machine";
@@ -370,18 +370,20 @@ export const createSheetRequestsFromEntitySubgraph = (
           userEnteredValue: {
             stringValue: label,
           },
-          userEnteredFormat: humanReadable
+          ...(humanReadable
             ? {
-                textFormat: {
-                  bold: true,
+                userEnteredFormat: {
+                  textFormat: {
+                    bold: true,
+                  },
+                  borders: {
+                    ...(endOfGroup ? { right: borderStyle } : {}),
+                  },
+                  padding: cellPadding,
+                  ...backgroundStyle,
                 },
-                borders: {
-                  ...(endOfGroup ? { right: borderStyle } : {}),
-                },
-                padding: cellPadding,
-                ...backgroundStyle,
               }
-            : {},
+            : {}),
         };
       });
 
@@ -711,9 +713,9 @@ export const createSheetRequestsFromEntitySubgraph = (
             rows,
           },
         },
-        ...[
-          humanReadable
-            ? {
+        ...(humanReadable
+          ? [
+              {
                 setBasicFilter: {
                   filter: {
                     range: {
@@ -725,9 +727,9 @@ export const createSheetRequestsFromEntitySubgraph = (
                     },
                   },
                 },
-              }
-            : {},
-        ],
+              },
+            ]
+          : []),
         /**
          * This will show a warning when the user tries to edit the sheet, including:
          * 1. Editing / deleting a cell

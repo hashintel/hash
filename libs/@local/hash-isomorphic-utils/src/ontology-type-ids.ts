@@ -60,11 +60,6 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/github-account/",
   },
-  googleAccount: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/google-account/v/1",
-    entityTypeBaseUrl:
-      "https://hash.ai/@hash/types/entity-type/google-account/",
-  },
   googleSheetsIntegration: {
     entityTypeId:
       "https://hash.ai/@hash/types/entity-type/google-sheets-integration/v/1",
@@ -326,11 +321,6 @@ export const systemLinkEntityTypes = {
 } as const;
 
 export const systemPropertyTypes = {
-  accountId: {
-    propertyTypeId: "https://hash.ai/@hash/types/property-type/account-id/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@hash/types/property-type/account-id/",
-  },
   appliesFrom: {
     propertyTypeId:
       "https://hash.ai/@hash/types/property-type/applies-from/v/1",
@@ -370,6 +360,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@hash/types/property-type/connection-source-name/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/connection-source-name/",
+  },
+  dataAudience: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/data-audience/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/data-audience/",
   },
   deletedAt: {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/deleted-at/v/1",
@@ -649,6 +645,12 @@ export const systemPropertyTypes = {
 } as const;
 
 export const systemDataTypes = {
+  actorType: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/actor-type/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/actor-type/",
+    title: "Actor Type",
+    description: "The type of thing that can, should or will act on something.",
+  },
   centimeters: {
     dataTypeId: "https://hash.ai/@hash/types/data-type/centimeters/v/1",
     dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/centimeters/",
@@ -720,7 +722,12 @@ export const systemDataTypes = {
   },
 } as const;
 
-export const googleEntityTypes = {} as const;
+export const googleEntityTypes = {
+  account: {
+    entityTypeId: "https://hash.ai/@google/types/entity-type/account/v/1",
+    entityTypeBaseUrl: "https://hash.ai/@google/types/entity-type/account/",
+  },
+} as const;
 
 export const googleLinkEntityTypes = {} as const;
 

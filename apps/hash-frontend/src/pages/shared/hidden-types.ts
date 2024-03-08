@@ -1,5 +1,8 @@
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  googleEntityTypes,
+  systemEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 /**
  * Entity types the user may have entities of that should be excluded from view in the UI
@@ -9,7 +12,6 @@ export const hiddenEntityTypeIds: VersionedUrl[] = [
   systemEntityTypes.browserPluginSettings.entityTypeId,
   systemEntityTypes.comment.entityTypeId,
   systemEntityTypes.commentNotification.entityTypeId,
-  systemEntityTypes.googleAccount.entityTypeId,
   systemEntityTypes.googleSheetsIntegration.entityTypeId,
   systemEntityTypes.graphChangeNotification.entityTypeId,
   systemEntityTypes.linearIntegration.entityTypeId,
@@ -24,4 +26,5 @@ export const hiddenEntityTypeIds: VersionedUrl[] = [
   systemEntityTypes.machine.entityTypeId,
   systemEntityTypes.usageRecord.entityTypeId,
   systemEntityTypes.userSecret.entityTypeId,
+  googleEntityTypes.account.entityTypeId,
 ];

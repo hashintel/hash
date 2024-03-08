@@ -5,16 +5,10 @@
 import { Entity, LinkData } from "@blockprotocol/graph";
 
 import {
-  AccountIdPropertyValue,
   ConnectionSourceNamePropertyValue,
   DisplayNamePropertyValue,
   EmailPropertyValue,
   ExpiredAtPropertyValue,
-  GoogleAccount,
-  GoogleAccountOutgoingLinkAndTarget,
-  GoogleAccountOutgoingLinksByLinkEntityTypeId,
-  GoogleAccountProperties,
-  GoogleAccountUsesUserSecretLink,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
@@ -33,16 +27,10 @@ import {
 } from "./shared";
 
 export type {
-  AccountIdPropertyValue,
   ConnectionSourceNamePropertyValue,
   DisplayNamePropertyValue,
   EmailPropertyValue,
   ExpiredAtPropertyValue,
-  GoogleAccount,
-  GoogleAccountOutgoingLinkAndTarget,
-  GoogleAccountOutgoingLinksByLinkEntityTypeId,
-  GoogleAccountProperties,
-  GoogleAccountUsesUserSecretLink,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
@@ -59,6 +47,38 @@ export type {
   UsesUserSecretProperties,
   VaultPathPropertyValue,
 };
+
+export type Account = Entity<AccountProperties>;
+
+/**
+ * A unique identifier for a Google account.
+ */
+export type AccountIdPropertyValue = TextDataType;
+
+export type AccountOutgoingLinkAndTarget = AccountUsesUserSecretLink;
+
+export type AccountOutgoingLinksByLinkEntityTypeId = {
+  "https://hash.ai/@hash/types/entity-type/uses-user-secret/v/1": AccountUsesUserSecretLink;
+};
+
+/**
+ * A Google user account.
+ */
+export type AccountProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": DisplayNamePropertyValue;
+  "https://hash.ai/@google/types/property-type/account-id/": AccountIdPropertyValue;
+  "https://hash.ai/@hash/types/property-type/email/": EmailPropertyValue;
+};
+
+export type AccountUsesUserSecretLink = {
+  linkEntity: UsesUserSecret;
+  rightEntity: UserSecret;
+};
+
+/**
+ * The type of thing that can, should or will act on something.
+ */
+export type ActorTypeDataType = "human" | "machine";
 
 export type AssociatedWithAccount = Entity<AssociatedWithAccountProperties> & {
   linkData: LinkData;
@@ -78,6 +98,11 @@ export type AssociatedWithAccountProperties1 = LinkProperties;
 export type AssociatedWithAccountProperties2 = {};
 
 /**
+ * The expected audience for some data.
+ */
+export type DataAudiencePropertyValue = ActorTypeDataType;
+
+/**
  * A system identifier for a file.
  */
 export type FileIdPropertyValue = TextDataType;
@@ -86,7 +111,7 @@ export type GoogleSheetsIntegration = Entity<GoogleSheetsIntegrationProperties>;
 
 export type GoogleSheetsIntegrationAssociatedWithAccountLink = {
   linkEntity: AssociatedWithAccount;
-  rightEntity: GoogleAccount;
+  rightEntity: Account;
 };
 
 export type GoogleSheetsIntegrationHasQueryLink = {
@@ -107,6 +132,7 @@ export type GoogleSheetsIntegrationOutgoingLinksByLinkEntityTypeId = {
  * An integration with Google Sheets.
  */
 export type GoogleSheetsIntegrationProperties = {
+  "https://hash.ai/@hash/types/property-type/data-audience/": DataAudiencePropertyValue;
   "https://hash.ai/@hash/types/property-type/file-id/": FileIdPropertyValue;
 };
 

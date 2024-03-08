@@ -1,4 +1,5 @@
 import {
+  createGoogleOAuth2Client,
   getGoogleSheetsIntegrationEntities,
   getTokensForGoogleAccount,
 } from "@local/hash-backend-utils/google";
@@ -10,25 +11,57 @@ import type {
   EntityRootType,
   Subgraph,
 } from "@local/hash-subgraph";
-import type { sheets_v4 } from "googleapis";
+import { google } from "googleapis";
 
 import { createSheetRequestsFromEntitySubgraph } from "./google-activities/convert-subgraph-to-sheet-requests";
 
 export const writeSubgraphToGoogleSheet = async ({
-  spreadsheetId,
+  audience,
   entitySubgraph,
-  sheetsClient,
+  googleAccountEntityId,
+  graphApi,
+  spreadsheetId,
+  userAccountId,
+  vaultClient,
 }: {
-  spreadsheetId: string;
+  audience: "human" | "machine";
+  /**
+   * A subgraph containing the entities to write and all related types
+   */
   entitySubgraph: Subgraph<EntityRootType>;
-  sheetsClient: sheets_v4.Sheets;
+  graphApi: GraphApi;
+  googleAccountEntityId: EntityId;
+  spreadsheetId: string;
+  userAccountId: AccountId;
+  vaultClient: VaultClient;
 }) => {
+  const tokens = await getTokensForGoogleAccount({
+    googleAccountEntityId,
+    graphApi,
+    userAccountId,
+    vaultClient,
+  });
+
+  if (!tokens) {
+    // @todo flag user secret entity is invalid and create notification for user
+    throw new Error(
+      `Could not get tokens for Google account with id ${googleAccountEntityId} for user ${userAccountId}.`,
+    );
+  }
+
+  const googleOAuth2Client = createGoogleOAuth2Client();
+  const sheetsClient = google.sheets({
+    auth: googleOAuth2Client,
+    version: "v4",
+  });
+
+  googleOAuth2Client.setCredentials(tokens);
   const spreadsheet = await sheetsClient.spreadsheets.get({
     spreadsheetId,
   });
 
   const sheetRequests = createSheetRequestsFromEntitySubgraph(entitySubgraph, {
-    audience: "human",
+    audience,
   });
 
   const existingSheets = spreadsheet.data.sheets ?? [];
@@ -69,8 +102,10 @@ export const writeSubgraphToGoogleSheet = async ({
 
 export const createGoogleActivities = ({
   graphApiClient,
+  vaultClient,
 }: {
   graphApiClient: GraphApi;
+  vaultClient: VaultClient;
 }) => ({
   getGoogleSheetsIntegrationEntities(params: {
     authentication: { actorId: AccountId };
@@ -92,8 +127,15 @@ export const createGoogleActivities = ({
     });
   },
   writeSubgraphToGoogleSheet(
-    ...params: Parameters<typeof writeSubgraphToGoogleSheet>
+    params: Omit<
+      Parameters<typeof writeSubgraphToGoogleSheet>[0],
+      "graphApi" | "vaultClient"
+    >,
   ) {
-    return writeSubgraphToGoogleSheet(...params);
+    return writeSubgraphToGoogleSheet({
+      ...params,
+      graphApi: graphApiClient,
+      vaultClient,
+    });
   },
 });

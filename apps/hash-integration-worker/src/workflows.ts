@@ -1,4 +1,3 @@
-import { createGoogleOAuth2Client } from "@local/hash-backend-utils/google";
 import type {
   CreateHashEntityFromLinearData,
   ReadLinearTeamsWorkflow,
@@ -7,10 +6,8 @@ import type {
   UpdateHashEntityFromLinearData,
   UpdateLinearDataWorkflow,
 } from "@local/hash-backend-utils/temporal-integration-workflow-types";
-import { createVaultClient } from "@local/hash-backend-utils/vault";
 import type { ActivityOptions } from "@temporalio/workflow";
 import { proxyActivities } from "@temporalio/workflow";
-import { google } from "googleapis";
 
 import type { createGoogleActivities } from "./google-activities";
 import type { createGraphActivities } from "./graph-activities";
@@ -92,11 +89,6 @@ export const syncQueryToGoogleSheet: SyncQueryToGoogleSheetWorkflow = async ({
   integrationEntityId,
   userAccountId,
 }) => {
-  const vaultClient = createVaultClient();
-  if (!vaultClient) {
-    throw new Error("Vault client not configured");
-  }
-
   const { googleAccountEntity, integrationEntity, queryEntity } =
     await googleActivities.getGoogleSheetsIntegrationEntities({
       authentication: { actorId: userAccountId },
@@ -109,27 +101,6 @@ export const syncQueryToGoogleSheet: SyncQueryToGoogleSheetWorkflow = async ({
     );
   }
 
-  const tokens = await googleActivities.getTokensForGoogleAccount({
-    googleAccountEntityId: googleAccountEntity.metadata.recordId.entityId,
-    userAccountId,
-    vaultClient,
-  });
-
-  if (!tokens) {
-    // @todo flag user secret entity is invalid and create notification for user
-    throw new Error(
-      `Could not get tokens for Google account with id ${googleAccountEntity.metadata.recordId.entityId} for user ${userAccountId}.`,
-    );
-  }
-
-  const googleOAuth2Client = createGoogleOAuth2Client();
-  const sheetsClient = google.sheets({
-    auth: googleOAuth2Client,
-    version: "v4",
-  });
-
-  googleOAuth2Client.setCredentials(tokens);
-
   const entitySubgraph =
     await graphActivities.getSubgraphFromBlockProtocolQueryEntity({
       authentication: { actorId: userAccountId },
@@ -137,11 +108,15 @@ export const syncQueryToGoogleSheet: SyncQueryToGoogleSheetWorkflow = async ({
     });
 
   await googleActivities.writeSubgraphToGoogleSheet({
+    audience: integrationEntity.properties[
+      "https://hash.ai/@hash/types/property-type/data-audience/"
+    ] as "human" | "machine",
     entitySubgraph,
-    sheetsClient,
+    googleAccountEntityId: googleAccountEntity.metadata.recordId.entityId,
     spreadsheetId:
       integrationEntity.properties[
         "https://hash.ai/@hash/types/property-type/file-id/"
       ],
+    userAccountId,
   });
 };

@@ -7,12 +7,9 @@ export type CreateOrUpdateSheetsIntegrationRequest = {
   existingIntegrationEntityId?: EntityId;
   googleAccountId: string;
   queryEntityId: EntityId;
-} & (
-  | {
-      spreadsheetId: string;
-    }
-  | { newFileName: string }
-);
+  spreadsheetId?: string;
+  newFileName?: string;
+};
 
 export type CreateOrUpdateSheetsIntegrationResponse =
   | {

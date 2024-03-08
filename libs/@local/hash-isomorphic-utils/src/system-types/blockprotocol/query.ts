@@ -4,9 +4,10 @@
 
 import { Entity } from "@blockprotocol/graph";
 
-import { ObjectDataType } from "./shared";
-
-export type { ObjectDataType };
+/**
+ * An opaque, untyped JSON object
+ */
+export type ObjectDataType = {};
 
 export type Query = Entity<QueryProperties>;
 

@@ -3,8 +3,8 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { GoogleAccountProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { AccountProperties as GoogleAccountProperties } from "@local/hash-isomorphic-utils/system-types/google/account";
 import { AccountId, Entity } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
@@ -28,7 +28,7 @@ export const getGoogleAccountById: ImpureGraphFunction<
           },
           { equal: [{ path: ["archived"] }, { parameter: false }] },
           generateVersionedUrlMatchingFilter(
-            systemEntityTypes.googleAccount.entityTypeId,
+            googleEntityTypes.account.entityTypeId,
             { ignoreParents: true },
           ),
           {
@@ -36,7 +36,7 @@ export const getGoogleAccountById: ImpureGraphFunction<
               {
                 path: [
                   "properties",
-                  "https://hash.ai/@hash/types/property-type/account-id/", // @todo FIX THIS once types regenerated
+                  "https://hash.ai/@google/types/property-type/account-id/",
                 ],
               },
               { parameter: googleAccountId },

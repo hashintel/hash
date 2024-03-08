@@ -1,5 +1,5 @@
-import { Scalars } from "@apps/hash-api/src/graphql/api-types.gen";
-import { Filter, PathExpression } from "@local/hash-graph-client";
+import type { Filter, PathExpression } from "@local/hash-graph-client";
+import type { Scalars } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
 export type QueryOperationInput = Scalars["QueryOperationInput"];
 type MultiFilter = NonNullable<QueryOperationInput["multiFilter"]>;

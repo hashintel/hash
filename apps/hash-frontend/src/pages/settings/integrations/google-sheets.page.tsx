@@ -4,18 +4,29 @@ import { useState } from "react";
 import { NextPageWithLayout } from "../../../shared/layout";
 import { Button } from "../../../shared/ui/button";
 import { getSettingsLayout } from "../shared/settings-layout";
-import { EditSheetsIntegration } from "./google-sheets/edit-sheets-integration";
+import { CreateOrEditSheetsIntegration } from "./google-sheets/create-or-edit-sheets-integration";
 import { GoogleAuthProvider } from "./google-sheets/google-auth-context";
-import { useSheetsIntegrations } from "./google-sheets/use-sheet-integrations";
+import {
+  useSheetsIntegrations,
+  UseSheetsIntegrationsData,
+} from "./google-sheets/use-sheet-integrations";
 
 const GoogleSheetsPage: NextPageWithLayout = () => {
   const [addingNewIntegration, setAddingNewIntegration] = useState(false);
+  const [integrationToEdit, setIntegrationToEdit] = useState<
+    UseSheetsIntegrationsData["integrations"][0] | null
+  >(null);
 
   const {
     integrations,
     loading: integrationsLoading,
     refetch,
   } = useSheetsIntegrations();
+
+  const stopEditing = () => {
+    setAddingNewIntegration(false);
+    setIntegrationToEdit(null);
+  };
 
   return (
     <GoogleAuthProvider>
@@ -28,12 +39,13 @@ const GoogleSheetsPage: NextPageWithLayout = () => {
           You will choose which files we are able to access – we cannot access
           files you don't choose.
         </Typography>
-        {addingNewIntegration ? (
-          <EditSheetsIntegration
-            close={() => setAddingNewIntegration(false)}
+        {addingNewIntegration || integrationToEdit ? (
+          <CreateOrEditSheetsIntegration
+            close={stopEditing}
+            currentIntegration={integrationToEdit}
             onComplete={() => {
-              setAddingNewIntegration(false);
               refetch();
+              stopEditing();
             }}
           />
         ) : (
@@ -68,6 +80,9 @@ const GoogleSheetsPage: NextPageWithLayout = () => {
                         ]
                       }
                     </Typography>
+                    <Button onClick={() => setIntegrationToEdit(integration)}>
+                      Edit
+                    </Button>
                   </Box>
                 );
               })}

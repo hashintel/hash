@@ -28,10 +28,5 @@ export const checkGoogleAccessToken: RequestHandler<
       res.json({
         accessToken: true,
       });
-      return;
     }
-
-    res.status(500).send({
-      error: "Internal error – no access token and no other error returned.",
-    });
   };

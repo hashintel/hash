@@ -4,6 +4,7 @@ import type {
   SupportedLinearTypes,
   SupportedLinearUpdateInput,
 } from "@local/hash-backend-utils/linear-type-mappings";
+import { getLinearMappingByLinearType } from "@local/hash-backend-utils/linear-type-mappings";
 import type { PartialEntity } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import type { GraphApi } from "@local/hash-graph-client";
 import type {
@@ -13,7 +14,7 @@ import type {
   EntityPropertiesObject,
   EntityPropertyValue,
 } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/src/shared/type-system-patch";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import {
   getEntitiesByLinearId,

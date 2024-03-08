@@ -4,11 +4,6 @@
 
 import { Entity, LinkData } from "@blockprotocol/graph";
 
-/**
- * A system identifier for an account.
- */
-export type AccountIdPropertyValue = TextDataType;
-
 export type Actor = Entity<ActorProperties>;
 
 export type ActorOutgoingLinkAndTarget = never;
@@ -299,29 +294,6 @@ export type FileURLPropertyValue = TextDataType;
  * The fractional index indicating the current position of something.
  */
 export type FractionalIndexPropertyValue = TextDataType;
-
-export type GoogleAccount = Entity<GoogleAccountProperties>;
-
-export type GoogleAccountOutgoingLinkAndTarget =
-  GoogleAccountUsesUserSecretLink;
-
-export type GoogleAccountOutgoingLinksByLinkEntityTypeId = {
-  "https://hash.ai/@hash/types/entity-type/uses-user-secret/v/1": GoogleAccountUsesUserSecretLink;
-};
-
-/**
- * A Google user account.
- */
-export type GoogleAccountProperties = {
-  "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": DisplayNamePropertyValue;
-  "https://hash.ai/@hash/types/property-type/account-id/": AccountIdPropertyValue;
-  "https://hash.ai/@hash/types/property-type/email/": EmailPropertyValue;
-};
-
-export type GoogleAccountUsesUserSecretLink = {
-  linkEntity: UsesUserSecret;
-  rightEntity: UserSecret;
-};
 
 export type Has = Entity<HasProperties> & { linkData: LinkData };
 

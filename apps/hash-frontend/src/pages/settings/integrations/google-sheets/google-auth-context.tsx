@@ -1,5 +1,5 @@
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
-import { GoogleAccountProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { AccountProperties as GoogleAccountProperties } from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
 import { Entity } from "@local/hash-subgraph";
 import Script from "next/script";
 import {

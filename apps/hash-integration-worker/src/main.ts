@@ -5,9 +5,12 @@ import { createGraphClient } from "@local/hash-backend-utils/create-graph-client
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-integration-workflow-types";
+import { createVaultClient } from "@local/hash-backend-utils/vault";
 import { NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 
+import * as googleActivities from "./google-activities";
+import * as graphActivities from "./graph-activities";
 import * as linearActivities from "./linear-activities";
 import * as workflows from "./workflows";
 
@@ -66,9 +69,21 @@ async function run() {
     port: parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10),
   });
 
+  const vaultClient = createVaultClient();
+  if (!vaultClient) {
+    throw new Error("Vault client not created");
+  }
+
   const worker = await Worker.create({
     ...workflowOption(),
     activities: {
+      ...googleActivities.createGoogleActivities({
+        graphApiClient,
+        vaultClient,
+      }),
+      ...graphActivities.createGraphActivities({
+        graphApiClient,
+      }),
       ...linearActivities.createLinearIntegrationActivities({
         graphApiClient,
       }),

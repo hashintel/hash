@@ -27,10 +27,5 @@ export const getGoogleAccessToken: RequestHandler<
       res.json({
         accessToken,
       });
-      return;
     }
-
-    res.status(500).send({
-      error: "Internal error – no access token and no other error returned.",
-    });
   };

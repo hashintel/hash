@@ -5,7 +5,7 @@ import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
+import type { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
 import type {
   AccountId,
   Entity,
@@ -19,10 +19,12 @@ import { getLatestEntityById } from "./shared/graph-requests";
 
 export const getSubgraphFromBlockProtocolQueryEntity = async ({
   authentication,
+  traversalDepth,
   graphApiClient,
   queryEntityId,
 }: {
   authentication: { actorId: AccountId };
+  traversalDepth: number;
   graphApiClient: GraphApi;
   queryEntityId: EntityId;
 }) => {
@@ -53,7 +55,18 @@ export const getSubgraphFromBlockProtocolQueryEntity = async ({
     {
       query: {
         filter,
-        graphResolveDepths: zeroedGraphResolveDepths,
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          isOfType: { outgoing: 255 },
+          inheritsFrom: { outgoing: 255 },
+          constrainsPropertiesOn: { outgoing: 255 },
+          constrainsLinksOn: { outgoing: 255 },
+          hasRightEntity: {
+            outgoing: traversalDepth,
+            incoming: traversalDepth,
+          },
+          hasLeftEntity: { incoming: traversalDepth, outgoing: traversalDepth },
+        },
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
       },
@@ -79,6 +92,7 @@ export const createGraphActivities = ({
       authentication,
       graphApiClient,
       queryEntityId,
+      traversalDepth: 2, // @todo make configurable – should be using a Structural Query rather than BP Query
     });
   },
 });

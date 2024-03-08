@@ -5,8 +5,8 @@ import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { GoogleAccountProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { AccountProperties as GoogleAccountProperties } from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
 import { Entity, EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
@@ -37,7 +37,7 @@ export const useGoogleAccounts = (): UseGoogleAccountsResult => {
         filter: {
           all: [
             generateVersionedUrlMatchingFilter(
-              systemEntityTypes.googleAccount.entityTypeId,
+              googleEntityTypes.account.entityTypeId,
               { ignoreParents: true },
             ),
             {

@@ -1,6 +1,6 @@
+import { getSecretEntitiesForIntegration } from "@local/hash-backend-utils/user-secret";
 import {
   createUserSecretPath,
-  getSecretEntitiesForIntegration,
   UserSecretService,
   VaultClient,
 } from "@local/hash-backend-utils/vault";
@@ -138,15 +138,6 @@ export const createUserSecret = async <
     relationships: botEditorUserViewerOnly,
   });
 
-  /** Link the user secret to the Google Account */
-  await createLinkEntity({ graphApi }, authentication, {
-    ownedById: userAccountId as OwnedById,
-    linkEntityTypeId: systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
-    leftEntityId: sourceIntegrationEntityId,
-    rightEntityId: userSecretEntity.metadata.recordId.entityId,
-    relationships: botEditorUserViewerOnly,
-  });
-
   if (archiveExistingSecrets) {
     const linkAndSecretPairs = await getSecretEntitiesForIntegration({
       authentication,
@@ -170,6 +161,15 @@ export const createUserSecret = async <
       ]),
     );
   }
+
+  /** Link the user secret to the Google Account */
+  await createLinkEntity({ graphApi }, authentication, {
+    ownedById: userAccountId as OwnedById,
+    linkEntityTypeId: systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
+    leftEntityId: sourceIntegrationEntityId,
+    rightEntityId: userSecretEntity.metadata.recordId.entityId,
+    relationships: botEditorUserViewerOnly,
+  });
 
   return userSecretEntity.metadata.recordId.entityId;
 };

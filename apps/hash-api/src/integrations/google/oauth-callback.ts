@@ -1,30 +1,16 @@
 import { createGoogleOAuth2Client } from "@local/hash-backend-utils/google";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import {
-  createUserSecretPath,
-  getSecretEntitiesForIntegration,
-} from "@local/hash-backend-utils/vault";
-import {
   GoogleOAuth2CallbackRequest,
   GoogleOAuth2CallbackResponse,
 } from "@local/hash-isomorphic-utils/google-integration";
-import {
-  systemEntityTypes,
-  systemLinkEntityTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
-  GoogleAccountProperties,
-  UserSecretProperties,
-} from "@local/hash-isomorphic-utils/system-types/shared";
-import { EntityRelationAndSubject, OwnedById } from "@local/hash-subgraph";
+import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { AccountProperties as GoogleAccountProperties } from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
+import { OwnedById } from "@local/hash-subgraph";
 import { RequestHandler } from "express";
-import { Auth, google } from "googleapis";
+import { google } from "googleapis";
 
-import {
-  archiveEntity,
-  createEntity,
-} from "../../graph/knowledge/primitive/entity";
-import { createLinkEntity } from "../../graph/knowledge/primitive/link-entity";
+import { createEntity } from "../../graph/knowledge/primitive/entity";
 import { createUserSecret } from "../../graph/knowledge/system-types/user-secret";
 import { enabledIntegrations } from "../enabled-integrations";
 import { getGoogleAccountById } from "./shared/get-google-account";
@@ -116,12 +102,12 @@ export const googleOAuthCallback: RequestHandler<
           googleUser.data.email,
         "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
           googleUser.data.name,
-        "https://hash.ai/@hash/types/property-type/account-id/":
+        "https://hash.ai/@google/types/property-type/account-id/":
           googleUser.data.id,
       };
 
       newGoogleAccountEntity = await createEntity(req.context, authentication, {
-        entityTypeId: systemEntityTypes.googleAccount.entityTypeId,
+        entityTypeId: googleEntityTypes.account.entityTypeId,
         ownedById: req.user.accountId as OwnedById,
         properties: googleAccountProperties,
         relationships: [
