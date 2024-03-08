@@ -3,7 +3,7 @@ import { Predicate } from "effect";
 import * as Equivalence from "effect/Equivalence";
 import { identity } from "effect/Function";
 
-import * as Json from "./Json";
+import * as Json from "../../internal/Json";
 
 const Value = S.array(Json.Value);
 const ValueEquivalence = Equivalence.array(Json.ValueEquivalence);

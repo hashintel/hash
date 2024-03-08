@@ -4,6 +4,8 @@ import * as DataType from "./DataType";
 import * as PropertyTypeUrl from "./PropertyTypeUrl";
 import { Function, Predicate } from "effect";
 import * as VersionedUrl from "../VersionedUrl";
+import * as Property from "../knowledge/Property";
+import * as Json from "../internal/Json";
 
 interface OneOfFrom<T> {
   oneOf: ReadonlyArray<T>;
@@ -20,24 +22,12 @@ const OneOf = <To, From, C>(
     oneOf: S.array(oneOf).pipe(S.minItems(1)),
   });
 
-function makeValueSchemaOneOfPropertyValues<A extends PropertyValues>(
-  value: OneOf<PropertyValues, [A]>,
-): ReturnType<typeof makeValueSchemaArrayOfPropertyValues<A>>;
+type ValueSchemaOneOfPropertyValues<T extends PropertyTypeUrl.PropertyTypeUrl> =
+  ValueSchemaPropertyValues<T>;
+
 function makeValueSchemaOneOfPropertyValues<
-  A extends PropertyValues,
-  B extends PropertyValues,
->(
-  value: OneOf<PropertyValues, [A, B]>,
-): ReturnType<typeof makeValueSchemaArrayOfPropertyValues<A>> &
-  ReturnType<typeof makeValueSchemaArrayOfPropertyValues<B>>;
-
-function makeValueSchemaOneOfPropertyValues(
-  value: OneOf<PropertyValues>,
-): ReturnType<typeof makeValueSchemaArrayOfPropertyValues>;
-
-function makeValueSchemaOneOfPropertyValues(
-  value: OneOf<PropertyValues>,
-): never {
+  T extends PropertyTypeUrl.PropertyTypeUrl,
+>(value: OneOf<PropertyValues<T>>): ValueSchemaOneOfPropertyValues<T> {
   return S.union(
     ...value.oneOf.map((value) => makeValueSchemaPropertyValues(value)),
   ) as never;
@@ -60,15 +50,32 @@ const Array = <To, From, C>(
     items,
   });
 
-function makeValueSchemaArrayPropertyType<T extends PropertyType>(
-  value: T,
-): ReturnType<typeof makeValueSchemaPropertyType<T>>;
-function makeValueSchemaArrayPropertyType(
-  value: PropertyType,
-): ReturnType<typeof makeValueSchemaPropertyType>;
+type ValueSchemaProperty<T extends PropertyTypeUrl.PropertyTypeUrl> = S.Schema<
+  Property.Property<T>,
+  Json.Value
+>;
 
-function makeValueSchemaArrayPropertyType(value: Array<PropertyType>) {
-  return S.array(makeValueSchemaPropertyType(value.items)).pipe(
+function makeValueSchemaProperty<T extends PropertyTypeUrl.PropertyTypeUrl>(
+  url: T,
+): ValueSchemaProperty<T> {
+  return S.transform(
+    Json.Value,
+    Property.Property,
+    (value) => ({
+      id: url,
+      value,
+    }),
+    (value) => value.value,
+  ) as never;
+}
+
+type ValueSchemaArrayPropertyType<T extends PropertyTypeUrl.PropertyTypeUrl> =
+  ReturnType<typeof makeValueSchemaArrayProperty<T>>;
+
+function makeValueSchemaArrayProperty<
+  T extends PropertyTypeUrl.PropertyTypeUrl,
+>(value: Array<T>) {
+  return S.array(makeValueSchemaProperty(value.items)).pipe(
     Predicate.isNotUndefined(value.minItems)
       ? S.minItems(value.minItems)
       : Function.identity,
@@ -78,72 +85,81 @@ function makeValueSchemaArrayPropertyType(value: Array<PropertyType>) {
   );
 }
 
-interface PropertyTypeObject
-  extends ReadonlyArray<PropertyType | Array<PropertyType>> {}
+interface PropertyTypeObject<
+  T extends PropertyTypeUrl.PropertyTypeUrl = PropertyTypeUrl.PropertyTypeUrl,
+> extends ReadonlyArray<T | Array<T>> {}
 
 interface PropertyTypeObjectFrom
-  extends ReadonlyArray<PropertyTypeFrom | Array<PropertyTypeFrom>> {}
+  extends ReadonlyArray<
+    | S.Schema.From<typeof PropertyTypeUrl.PropertyTypeUrl>
+    | Array<S.Schema.From<typeof PropertyTypeUrl.PropertyTypeUrl>>
+  > {}
 
 const PropertyTypeObject: S.Schema<PropertyTypeObject, PropertyTypeObjectFrom> =
   // eslint-disable-next-line @typescript-eslint/no-use-before-define
-  S.array(S.suspend(() => S.union(PropertyType, Array(PropertyType))));
+  S.array(
+    S.suspend(() =>
+      S.union(
+        PropertyTypeUrl.PropertyTypeUrl,
+        Array(PropertyTypeUrl.PropertyTypeUrl),
+      ),
+    ),
+  );
+
+type ValueSchemaPropertyTypeObjectSingle<
+  T extends PropertyTypeUrl.PropertyTypeUrl,
+> = S.Schema<
+  {
+    [key in VersionedUrl.Base<T>]:
+      | S.Schema.To<ValueSchemaProperty<T>>
+      | S.Schema.To<ValueSchemaArrayPropertyType<T>>;
+  },
+  {
+    [key in VersionedUrl.Base<T>]: Json.Value;
+  }
+>;
 
 function makeValueSchemaPropertyTypeObjectSingle<
-  T extends PropertyType<A>,
-  A extends ReadonlyArray<PropertyValues>,
->(
-  value: PropertyType<A>,
-): {
-  [key in VersionedUrl.Base<T["id"]>]: ReturnType<
-    typeof makeValueSchemaPropertyType<T>
-  >;
-};
-function makeValueSchemaPropertyTypeObjectSingle<T extends Array<PropertyType>>(
-  value: T,
-): {
-  [key in VersionedUrl.Base<T["items"]["id"]>]: ReturnType<
-    typeof makeValueSchemaArrayPropertyType<T>
-  >;
-};
-
-function makeValueSchemaPropertyTypeObjectSingle(
-  value: PropertyType | Array<PropertyType>,
-) {
+  T extends PropertyTypeUrl.PropertyTypeUrl,
+>(value: T | Array<T>): ValueSchemaPropertyTypeObjectSingle<T> {
   let valueSchema;
   let valueBase;
 
-  if (Predicate.hasProperty(value, "kind")) {
-    valueSchema = makeValueSchemaPropertyType(value);
-    valueBase = VersionedUrl.base(value.id);
+  if (Predicate.hasProperty(value, "items")) {
+    valueSchema = makeValueSchemaArrayProperty(value);
+    valueBase = VersionedUrl.base(value.items);
   } else {
-    valueSchema = makeValueSchemaArrayPropertyType(value);
-    valueBase = VersionedUrl.base(value.items.id);
+    valueSchema = makeValueSchemaProperty(value);
+    valueBase = VersionedUrl.base(value);
   }
 
-  return {
+  // never here because of generics
+  return S.struct({
     [valueBase]: valueSchema,
-  };
+  }) as never;
 }
 
-function makeValueSchemaPropertyTypeObject<T extends PropertyType>(
-  value: T,
-): ReturnType<typeof makeValueSchemaPropertyTypeObjectSingle<T>>;
-function makeValueSchemaPropertyTypeObject<T extends Array<PropertyType>>(
-  value: T,
-): ReturnType<typeof makeValueSchemaArrayPropertyType<T>>;
-function makeValueSchemaPropertyTypeObject(
-  value: PropertyType,
-): ReturnType<typeof makeValueSchemaPropertyType>;
+type ValueSchemaPropertyTypeObject<T extends PropertyTypeUrl.PropertyTypeUrl> =
+  S.Schema<
+    {
+      [key: string]: S.Schema.To<ValueSchemaPropertyTypeObjectSingle<T>>;
+    },
+    { [key: string]: Json.Value }
+  >;
 
-function makeValueSchemaPropertyTypeObject(value: PropertyTypeObject) {
+function makeValueSchemaPropertyTypeObject<
+  T extends PropertyTypeUrl.PropertyTypeUrl,
+>(value: PropertyTypeObject<T>): ValueSchemaPropertyTypeObject<T> {
   return value
     .map((value) => {
       return makeValueSchemaPropertyTypeObjectSingle(value);
     })
-    .reduce((acc, value) => ({ ...acc, ...value }), {});
+    .reduce((acc, value) => S.extend(acc, value) as never, S.struct({}));
 }
 
-interface ArrayOfPropertyValues extends Array<OneOf<PropertyValues>> {}
+interface ArrayOfPropertyValues<
+  T extends PropertyTypeUrl.PropertyTypeUrl = PropertyTypeUrl.PropertyTypeUrl,
+> extends Array<OneOf<PropertyValues<T>>> {}
 interface ArrayOfPropertyValuesFrom
   extends Array<OneOfFrom<PropertyValuesFrom>> {}
 
@@ -153,21 +169,32 @@ const ArrayOfPropertyValues: S.Schema<
   // eslint-disable-next-line @typescript-eslint/no-use-before-define
 > = Array(OneOf(S.suspend(() => PropertyValues)));
 
-function makeValueSchemaArrayOfPropertyValues(value: ArrayOfPropertyValues) {
-  return S.array(makeValueSchemaOneOfPropertyValues(value.items)).pipe(
+type ValueSchemaArrayOfPropertyValues<
+  T extends PropertyTypeUrl.PropertyTypeUrl = PropertyTypeUrl.PropertyTypeUrl,
+> = S.Schema<
+  readonly S.Schema.To<ValueSchemaOneOfPropertyValues<T>>[],
+  readonly S.Schema.From<ValueSchemaOneOfPropertyValues<T>>[]
+>;
+
+function makeValueSchemaArrayOfPropertyValues<
+  T extends PropertyTypeUrl.PropertyTypeUrl,
+>(value: Array<OneOf<PropertyValues<T>>>): ValueSchemaArrayOfPropertyValues<T> {
+  let values = makeValueSchemaOneOfPropertyValues(value.items);
+
+  // TODO: idk if that's correct here tbh
+  return S.array(values).pipe(
     Predicate.isNotUndefined(value.minItems)
       ? S.minItems(value.minItems)
       : Function.identity,
     Predicate.isNotUndefined(value.maxItems)
       ? S.maxItems(value.maxItems)
       : Function.identity,
-  );
+  ) as never;
 }
 
-type PropertyValues =
-  | DataType.DataType
-  | PropertyTypeObject
-  | ArrayOfPropertyValues;
+type PropertyValues<
+  T extends PropertyTypeUrl.PropertyTypeUrl = PropertyTypeUrl.PropertyTypeUrl,
+> = DataType.DataType | PropertyTypeObject<T> | ArrayOfPropertyValues<T>;
 
 type PropertyValuesFrom =
   | S.Schema.From<typeof DataType.DataType>
@@ -180,41 +207,26 @@ const PropertyValues: S.Schema<PropertyValues, PropertyValuesFrom> = S.union(
   ArrayOfPropertyValues,
 );
 
-// function makeValueSchemaPropertyValues<T extends DataType.DataType>(
-//   value: T,
-// ): ReturnType<typeof DataType.makeValueSchema<T>>;
+type ValueSchemaPropertyValues<T extends PropertyTypeUrl.PropertyTypeUrl> =
+  S.Schema<
+    | S.Schema.To<DataType.ValueSchema<DataType.DataType>>
+    | S.Schema.To<ValueSchemaPropertyTypeObject<T>>
+    | S.Schema.To<ValueSchemaArrayOfPropertyValues<T>>,
+    Json.Value
+  >;
 
-// TODO: this needs to function properly!
-// function makeValueSchemaPropertyValues<T extends DataType.DataType>(
-//   value: T,
-// ): ReturnType<typeof DataType.makeValueSchema<T>>;
-function makeValueSchemaPropertyValues(
-  value: DataType.DataType,
-): ReturnType<typeof DataType.makeValueSchema>;
-function makeValueSchemaPropertyValues<T extends PropertyTypeObject>(
-  value: T,
-): ReturnType<typeof makeValueSchemaPropertyTypeObject<T>>;
-function makeValueSchemaPropertyValues<T extends ArrayOfPropertyValues>(
-  value: T,
-): ReturnType<typeof makeValueSchemaArrayOfPropertyValues<T>>;
-function makeValueSchemaPropertyValues(
-  value: PropertyValues,
-):
-  | ReturnType<typeof DataType.makeValueSchema>
-  | ReturnType<typeof makeValueSchemaPropertyTypeObject>
-  | ReturnType<typeof makeValueSchemaArrayOfPropertyValues>;
-
-function makeValueSchemaPropertyValues(value: PropertyValues) {
+function makeValueSchemaPropertyValues<
+  T extends PropertyTypeUrl.PropertyTypeUrl,
+>(value: PropertyValues<T>): ValueSchemaPropertyValues<T> {
   if (Predicate.hasProperty(value, "kind")) {
-    return DataType.makeValueSchema(value);
+    return DataType.makeValueSchema(value) as never;
   }
 
-  throw new Error("Not implemented");
-  // if (Predicate.hasProperty(value, "items")) {
-  //   return makeValueSchemaArrayOfPropertyValues(value);
-  // }
-  //
-  // return makeValueSchemaPropertyTypeObject(value);
+  if (Predicate.hasProperty(value, "items")) {
+    return makeValueSchemaArrayOfPropertyValues(value) as never;
+  }
+
+  return makeValueSchemaPropertyTypeObject(value) as never;
 }
 
 interface PropertyType<
@@ -247,14 +259,12 @@ export const PropertyType: S.Schema<PropertyType, PropertyTypeFrom> = S.extend(
   OneOf(PropertyValues),
 );
 
-function makeValueSchemaPropertyType<A extends PropertyValues>(
-  value: PropertyType<[A]>,
-): ReturnType<typeof makeValueSchemaOneOfPropertyValues<A>>;
-function makeValueSchemaPropertyType<T extends PropertyValues>(
-  value: PropertyType<ReadonlyArray<T>>,
-): ReturnType<typeof makeValueSchemaOneOfPropertyValues<T>>;
+type ValueSchema<T extends PropertyTypeUrl.PropertyTypeUrl> =
+  ValueSchemaOneOfPropertyValues<T>;
 
-function makeValueSchemaPropertyType(value: PropertyType) {
+function makeValueSchemaPropertyType(
+  value: PropertyType,
+): ValueSchema<PropertyTypeUrl.PropertyTypeUrl> {
   return makeValueSchemaOneOfPropertyValues(value);
 }
 

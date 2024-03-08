@@ -10,7 +10,7 @@ import * as NumberDataType from "./internal/NumberDataType";
 import * as ObjectDataType from "./internal/ObjectDataType";
 import * as StringDataType from "./internal/StringDataType";
 import { DataTypeValue } from "./DataTypeValue";
-import * as Json from "./internal/Json";
+import * as Json from "../internal/Json";
 
 const TypeId: unique symbol = Symbol.for(
   "@blockprotocol/graph/ontology/DataType",
@@ -41,29 +41,22 @@ export const DataType = S.extend(
 
 export type DataType = S.Schema.To<typeof DataType>;
 
-export function makeValueSchema<T extends StringDataType.StringDataType>(
+// using `[T]` instead of `T` disables the distributive properties of conditional types
+export function makeValueSchema<T extends DataType>(
   schema: T,
-): StringDataType.ValueSchema<T>;
-export function makeValueSchema<T extends NumberDataType.NumberDataType>(
-  schema: T,
-): NumberDataType.ValueSchema;
-export function makeValueSchema<T extends BooleanDataType.BooleanDataType>(
-  schema: T,
-): BooleanDataType.ValueSchema;
-export function makeValueSchema<T extends NullDataType.NullDataType>(
-  schema: T,
-): NullDataType.ValueSchema;
-export function makeValueSchema<T extends ObjectDataType.ObjectDataType>(
-  schema: T,
-): ObjectDataType.ValueSchema;
-export function makeValueSchema<T extends ArrayDataType.ArrayDataType>(
-  schema: T,
-): ArrayDataType.ValueSchema;
-export function makeValueSchema(
-  schema: DataType,
-): S.Schema<Json.Value, DataTypeValue>;
-
-export function makeValueSchema(schema: DataType) {
+): [T] extends [StringDataType.StringDataType]
+  ? StringDataType.ValueSchema<T>
+  : [T] extends [NumberDataType.NumberDataType]
+    ? NumberDataType.ValueSchema
+    : [T] extends [BooleanDataType.BooleanDataType]
+      ? BooleanDataType.ValueSchema
+      : [T] extends [NullDataType.NullDataType]
+        ? NullDataType.ValueSchema
+        : [T] extends [ObjectDataType.ObjectDataType]
+          ? ObjectDataType.ValueSchema
+          : [T] extends [ArrayDataType.ArrayDataType]
+            ? ArrayDataType.ValueSchema
+            : S.Schema<DataTypeValue, Json.Value> {
   switch (schema.type) {
     case "string":
       return StringDataType.makeSchema(schema) as never;
@@ -80,6 +73,10 @@ export function makeValueSchema(schema: DataType) {
       return ArrayDataType.makeSchema(schema) as never;
   }
 }
+
+export type ValueSchema<T extends DataType> = ReturnType<
+  typeof makeValueSchema<T>
+>;
 
 export function toSchema(schema: DataType): DataTypeSchema.DataTypeSchema {
   return {
