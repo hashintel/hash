@@ -48,8 +48,8 @@ impl ToSchema<'_> for EntityValidationType<'_> {
             "EntityValidationType",
             Schema::OneOf(
                 schema::OneOfBuilder::new()
-                    .item(Ref::from_schema_name("VAR_ENTITY_TYPE"))
-                    .item(Ref::from_schema_name("VersionedUrl"))
+                    .item(Ref::from_schema_name("VAR_ENTITY_TYPE").to_array_builder())
+                    .item(Ref::from_schema_name("VersionedUrl").to_array_builder())
                     .build(),
             )
             .into(),
@@ -192,7 +192,7 @@ pub struct CreateEntityParams<R> {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ValidateEntityParams<'a> {
     #[serde(borrow)]
-    pub entity_type: EntityValidationType<'a>,
+    pub entity_types: EntityValidationType<'a>,
     #[serde(borrow)]
     pub properties: Cow<'a, EntityProperties>,
     #[serde(borrow, default)]

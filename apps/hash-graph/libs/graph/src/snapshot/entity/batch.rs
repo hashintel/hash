@@ -54,16 +54,9 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                         (LIKE entity_drafts INCLUDING ALL)
                         ON COMMIT DROP;
 
-                    CREATE TEMPORARY TABLE entity_editions_tmp (
-                        entity_edition_id UUID PRIMARY KEY,
-                        properties JSONB NOT NULL,
-                        left_to_right_order INTEGER,
-                        right_to_left_order INTEGER,
-                        edition_created_by_id UUID NOT NULL,
-                        archived BOOLEAN NOT NULL,
-                        entity_type_base_url TEXT NOT NULL,
-                        entity_type_version INT8 NOT NULL
-                    ) ON COMMIT DROP;
+                    CREATE TEMPORARY TABLE entity_editions_tmp
+                        (LIKE entity_editions INCLUDING ALL)
+                        ON COMMIT DROP;
 
                     CREATE TEMPORARY TABLE entity_is_of_type_tmp
                         (LIKE entity_is_of_type INCLUDING ALL)
@@ -73,8 +66,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                         (LIKE entity_temporal_metadata INCLUDING ALL)
                         ON COMMIT DROP;
                     ALTER TABLE entity_temporal_metadata_tmp
-                        ALTER COLUMN transaction_time
-                        SET DEFAULT TSTZRANGE(now(), NULL, '[)');
+                        ALTER COLUMN transaction_time SET DEFAULT TSTZRANGE(now(), NULL, '[)');
 
                     CREATE TEMPORARY TABLE entity_link_edges_tmp (
                         web_id UUID NOT NULL,
@@ -143,7 +135,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                     .query(
                         "
                             INSERT INTO entity_editions_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::entity_editions_tmp[])
+                            SELECT DISTINCT * FROM UNNEST($1::entity_editions[])
                             ON CONFLICT DO NOTHING
                             RETURNING 1;
                         ",

@@ -32,7 +32,7 @@ pub struct EntityDraftRow {
 }
 
 #[derive(Debug, ToSql)]
-#[postgres(name = "entity_editions_tmp")]
+#[postgres(name = "entity_editions")]
 pub struct EntityEditionRow {
     pub entity_edition_id: EntityEditionId,
     pub properties: EntityProperties,
@@ -43,7 +43,7 @@ pub struct EntityEditionRow {
 }
 
 #[derive(Debug, ToSql)]
-#[postgres(name = "entity_is_of_type_row")]
+#[postgres(name = "entity_is_of_type")]
 pub struct EntityIsOfTypeRow {
     pub entity_edition_id: EntityEditionId,
     pub entity_type_ontology_id: Uuid,

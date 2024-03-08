@@ -559,7 +559,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 authorization_api,
                 Consistency::FullyConsistent,
                 ValidateEntityParams {
-                    entity_type: EntityValidationType::ClosedSchema(Cow::Owned(closed_schema)),
+                    entity_types: EntityValidationType::ClosedSchema(Cow::Owned(closed_schema)),
                     properties: Cow::Borrowed(&params.properties),
                     link_data: params.link_data.as_ref().map(Cow::Borrowed),
                     profile: if params.draft {
@@ -652,7 +652,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         consistency: Consistency<'_>,
         params: ValidateEntityParams<'_>,
     ) -> Result<(), ValidateEntityError> {
-        let schema = match params.entity_type {
+        let schema = match params.entity_types {
             EntityValidationType::ClosedSchema(schema) => schema,
             EntityValidationType::Schema(schemas) => Cow::Owned(schemas.into_iter().collect()),
             EntityValidationType::Id(entity_type_url) => {
@@ -1248,7 +1248,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 authorization_api,
                 Consistency::FullyConsistent,
                 ValidateEntityParams {
-                    entity_type: EntityValidationType::ClosedSchema(Cow::Borrowed(&closed_schema)),
+                    entity_types: EntityValidationType::ClosedSchema(Cow::Borrowed(&closed_schema)),
                     properties: Cow::Borrowed(&params.properties),
                     link_data: previous_entity
                         .link_data
@@ -1495,7 +1495,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     INSERT INTO entity_is_of_type (
                         entity_edition_id,
                         entity_type_ontology_id
-                    ) SELECT $1, UNNEST($2::UUID);
+                    ) SELECT $1, UNNEST($2::UUID[]);
                 ",
                 &[&edition_id, &entity_type_ontology_ids],
             )
@@ -1505,7 +1505,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         let entity_type = self
             .as_client()
             .query_raw(
-                "SELECT closed_schema FROM entity_types WHERE ontology_id IN ($1);",
+                "SELECT closed_schema FROM entity_types WHERE ontology_id = ANY ($1::UUID[]);",
                 &[&entity_type_ontology_ids],
             )
             .await
