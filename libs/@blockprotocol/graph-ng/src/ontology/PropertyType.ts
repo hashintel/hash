@@ -25,9 +25,15 @@ const OneOf = <To, From, C>(
 type ValueSchemaOneOfPropertyValues<T extends PropertyTypeUrl.PropertyTypeUrl> =
   ValueSchemaPropertyValues<T>;
 
+// TODO: more tuple variants
 function makeValueSchemaOneOfPropertyValues<
   T extends PropertyTypeUrl.PropertyTypeUrl,
->(value: OneOf<PropertyValues<T>>): ValueSchemaOneOfPropertyValues<T> {
+  A extends ReadonlyArray<PropertyValues<T>> = ReadonlyArray<PropertyValues<T>>,
+>(
+  value: OneOf<PropertyValues<T>, A>,
+): A extends [infer B extends PropertyValues<infer B1>]
+  ? ValueSchemaOneOfPropertyValues<B1>
+  : ValueSchemaOneOfPropertyValues<T> {
   return S.union(
     ...value.oneOf.map((value) => makeValueSchemaPropertyValues(value)),
   ) as never;
@@ -85,9 +91,10 @@ function makeValueSchemaArrayProperty<
   );
 }
 
-interface PropertyTypeObject<
-  T extends PropertyTypeUrl.PropertyTypeUrl = PropertyTypeUrl.PropertyTypeUrl,
-> extends ReadonlyArray<T | Array<T>> {}
+interface PropertyTypeObject
+  extends ReadonlyArray<
+    PropertyTypeUrl.PropertyTypeUrl | Array<PropertyTypeUrl.PropertyTypeUrl>
+  > {}
 
 interface PropertyTypeObjectFrom
   extends ReadonlyArray<
@@ -106,7 +113,7 @@ const PropertyTypeObject: S.Schema<PropertyTypeObject, PropertyTypeObjectFrom> =
     ),
   );
 
-type ValueSchemaPropertyTypeObjectSingle<
+type ValueSchemaPropertyTypeObjectSingleUnknown<
   T extends PropertyTypeUrl.PropertyTypeUrl,
 > = S.Schema<
   {
@@ -119,9 +126,38 @@ type ValueSchemaPropertyTypeObjectSingle<
   }
 >;
 
+type ValueSchemaPropertyTypeObjectSingleProperty<
+  T extends PropertyTypeUrl.PropertyTypeUrl,
+> = S.Schema<
+  {
+    [key in VersionedUrl.Base<T>]: S.Schema.To<ValueSchemaProperty<T>>;
+  },
+  {
+    [key in VersionedUrl.Base<T>]: Json.Value;
+  }
+>;
+
+type ValueSchemaPropertyTypeObjectSingleArray<
+  T extends PropertyTypeUrl.PropertyTypeUrl,
+> = S.Schema<
+  {
+    [key in VersionedUrl.Base<T>]: S.Schema.To<ValueSchemaArrayPropertyType<T>>;
+  },
+  {
+    [key in VersionedUrl.Base<T>]: Json.Value;
+  }
+>;
+
 function makeValueSchemaPropertyTypeObjectSingle<
   T extends PropertyTypeUrl.PropertyTypeUrl,
->(value: T | Array<T>): ValueSchemaPropertyTypeObjectSingle<T> {
+  U extends T | Array<T> = T | Array<T>,
+>(
+  value: U,
+): [U] extends [Array<T>]
+  ? ValueSchemaPropertyTypeObjectSingleArray<T>
+  : [U] extends [T]
+    ? ValueSchemaPropertyTypeObjectSingleProperty<T>
+    : ValueSchemaPropertyTypeObjectSingleUnknown<T> {
   let valueSchema;
   let valueBase;
 
@@ -139,22 +175,20 @@ function makeValueSchemaPropertyTypeObjectSingle<
   }) as never;
 }
 
-type ValueSchemaPropertyTypeObject<T extends PropertyTypeUrl.PropertyTypeUrl> =
-  S.Schema<
-    {
-      [key: string]: S.Schema.To<ValueSchemaPropertyTypeObjectSingle<T>>;
-    },
-    { [key: string]: Json.Value }
-  >;
-
-function makeValueSchemaPropertyTypeObject<
-  T extends PropertyTypeUrl.PropertyTypeUrl,
->(value: PropertyTypeObject<T>): ValueSchemaPropertyTypeObject<T> {
+// TODO: more tuple versions c:
+function makeValueSchemaPropertyTypeObject<T extends PropertyTypeObject>(
+  value: T,
+): T extends [infer A extends PropertyTypeUrl.PropertyTypeUrl]
+  ? ReturnType<typeof makeValueSchemaPropertyTypeObjectSingle<A>>
+  : ValueSchemaPropertyTypeObjectSingleUnknown<PropertyTypeUrl.PropertyTypeUrl> {
   return value
     .map((value) => {
       return makeValueSchemaPropertyTypeObjectSingle(value);
     })
-    .reduce((acc, value) => S.extend(acc, value) as never, S.struct({}));
+    .reduce(
+      (acc, value) => S.extend(acc, value) as never,
+      S.struct({}),
+    ) as never;
 }
 
 interface ArrayOfPropertyValues<
@@ -194,7 +228,7 @@ function makeValueSchemaArrayOfPropertyValues<
 
 type PropertyValues<
   T extends PropertyTypeUrl.PropertyTypeUrl = PropertyTypeUrl.PropertyTypeUrl,
-> = DataType.DataType | PropertyTypeObject<T> | ArrayOfPropertyValues<T>;
+> = DataType.DataType | PropertyTypeObject | ArrayOfPropertyValues<T>;
 
 type PropertyValuesFrom =
   | S.Schema.From<typeof DataType.DataType>
@@ -210,7 +244,7 @@ const PropertyValues: S.Schema<PropertyValues, PropertyValuesFrom> = S.union(
 type ValueSchemaPropertyValues<T extends PropertyTypeUrl.PropertyTypeUrl> =
   S.Schema<
     | S.Schema.To<DataType.ValueSchema<DataType.DataType>>
-    | S.Schema.To<ValueSchemaPropertyTypeObject<T>>
+    | S.Schema.To<ReturnType<typeof makeValueSchemaPropertyTypeObject>>
     | S.Schema.To<ValueSchemaArrayOfPropertyValues<T>>,
     Json.Value
   >;
