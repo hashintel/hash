@@ -1,7 +1,4 @@
-import {
-  createGoogleOAuth2Client,
-  getTokensForGoogleAccount,
-} from "@local/hash-backend-utils/google";
+import { createGoogleOAuth2Client } from "@local/hash-backend-utils/google";
 import type {
   CreateHashEntityFromLinearData,
   ReadLinearTeamsWorkflow,
@@ -11,9 +8,11 @@ import type {
   UpdateLinearDataWorkflow,
 } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
-import { ActivityOptions, proxyActivities } from "@temporalio/workflow";
+import type { ActivityOptions } from "@temporalio/workflow";
+import { proxyActivities } from "@temporalio/workflow";
+import { google } from "googleapis";
 
-import * as googleActivityFunctions from "./google-activities";
+import type { createGoogleActivities } from "./google-activities";
 import type { createGraphActivities } from "./graph-activities";
 import type { createLinearIntegrationActivities } from "./linear-activities";
 
@@ -33,7 +32,7 @@ const linearActivities =
   );
 
 const googleActivities =
-  proxyActivities<typeof googleActivityFunctions>(commonConfig);
+  proxyActivities<ReturnType<typeof createGoogleActivities>>(commonConfig);
 
 export const syncWorkspace: SyncWorkspaceWorkflow = async (params) => {
   const { apiKey, workspaceOwnedById, authentication, teamIds } = params;
@@ -90,29 +89,37 @@ export const updateLinearData: UpdateLinearDataWorkflow = async (params) =>
   linearActivities.updateLinearData(params);
 
 export const syncQueryToGoogleSheet: SyncQueryToGoogleSheetWorkflow = async ({
-  authentication,
-  queryEntityId,
-  spreadsheetId,
+  integrationEntityId,
+  userAccountId,
 }) => {
   const vaultClient = createVaultClient();
   if (!vaultClient) {
     throw new Error("Vault client not configured");
   }
 
-  const tokens = await getTokensForGoogleAccount({
-    userAccountId: req.user.accountId,
-    googleAccountEntityId: googleAccount.metadata.recordId.entityId,
-    vaultClient: req.context.vaultClient,
+  const { googleAccountEntity, integrationEntity, queryEntity } =
+    await googleActivities.getGoogleSheetsIntegrationEntities({
+      authentication: { actorId: userAccountId },
+      integrationEntityId,
+    });
+
+  if (!googleAccountEntity || !integrationEntity || !queryEntity) {
+    throw new Error(
+      `Missing Google entities for integration with id ${integrationEntityId}`,
+    );
+  }
+
+  const tokens = await googleActivities.getTokensForGoogleAccount({
+    googleAccountEntityId: googleAccountEntity.metadata.recordId.entityId,
+    userAccountId,
+    vaultClient,
   });
 
-  const errorMessage = `Could not get tokens for Google account with id ${googleAccountId} for user ${req.user.accountId}.`;
-
-  // @todo flag user secret entity is invalid and create notification for user
   if (!tokens) {
-    res.status(500).send({
-      error: errorMessage,
-    });
-    return;
+    // @todo flag user secret entity is invalid and create notification for user
+    throw new Error(
+      `Could not get tokens for Google account with id ${googleAccountEntity.metadata.recordId.entityId} for user ${userAccountId}.`,
+    );
   }
 
   const googleOAuth2Client = createGoogleOAuth2Client();
@@ -125,13 +132,16 @@ export const syncQueryToGoogleSheet: SyncQueryToGoogleSheetWorkflow = async ({
 
   const entitySubgraph =
     await graphActivities.getSubgraphFromBlockProtocolQueryEntity({
-      authentication,
-      queryEntityId,
+      authentication: { actorId: userAccountId },
+      queryEntityId: queryEntity.metadata.recordId.entityId,
     });
 
   await googleActivities.writeSubgraphToGoogleSheet({
     entitySubgraph,
     sheetsClient,
-    spreadsheetId,
+    spreadsheetId:
+      integrationEntity.properties[
+        "https://hash.ai/@hash/types/property-type/file-id/"
+      ],
   });
 };

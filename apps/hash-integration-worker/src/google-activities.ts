@@ -1,5 +1,16 @@
-import { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { sheets_v4 } from "googleapis";
+import {
+  getGoogleSheetsIntegrationEntities,
+  getTokensForGoogleAccount,
+} from "@local/hash-backend-utils/google";
+import type { VaultClient } from "@local/hash-backend-utils/vault";
+import type { GraphApi } from "@local/hash-graph-client";
+import type {
+  AccountId,
+  EntityId,
+  EntityRootType,
+  Subgraph,
+} from "@local/hash-subgraph";
+import type { sheets_v4 } from "googleapis";
 
 import { createSheetRequestsFromEntitySubgraph } from "./google-activities/convert-subgraph-to-sheet-requests";
 
@@ -55,3 +66,34 @@ export const writeSubgraphToGoogleSheet = async ({
     },
   });
 };
+
+export const createGoogleActivities = ({
+  graphApiClient,
+}: {
+  graphApiClient: GraphApi;
+}) => ({
+  getGoogleSheetsIntegrationEntities(params: {
+    authentication: { actorId: AccountId };
+    integrationEntityId: EntityId;
+  }) {
+    return getGoogleSheetsIntegrationEntities({
+      ...params,
+      graphApi: graphApiClient,
+    });
+  },
+  getTokensForGoogleAccount(params: {
+    googleAccountEntityId: EntityId;
+    userAccountId: AccountId;
+    vaultClient: VaultClient;
+  }) {
+    return getTokensForGoogleAccount({
+      ...params,
+      graphApi: graphApiClient,
+    });
+  },
+  writeSubgraphToGoogleSheet(
+    ...params: Parameters<typeof writeSubgraphToGoogleSheet>
+  ) {
+    return writeSubgraphToGoogleSheet(...params);
+  },
+});

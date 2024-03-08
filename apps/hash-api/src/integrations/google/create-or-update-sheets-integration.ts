@@ -1,40 +1,32 @@
 import {
   createGoogleOAuth2Client,
+  getGoogleSheetsIntegrationEntities,
   getTokensForGoogleAccount,
 } from "@local/hash-backend-utils/google";
+import { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import {
-  createDefaultAuthorizationRelationships,
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+  CreateOrUpdateSheetsIntegrationRequest,
+  CreateOrUpdateSheetsIntegrationResponse,
+} from "@local/hash-isomorphic-utils/google-integration";
+import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolLinkEntityTypes,
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
-  GoogleAccountProperties,
-  GoogleSheetsIntegrationProperties,
-} from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
-import {
-  Entity,
-  EntityId,
-  OwnedById,
-  splitEntityId,
-} from "@local/hash-subgraph";
-import { getOutgoingLinkAndTargetEntities } from "@local/hash-subgraph/src/stdlib";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/subgraph/roots";
+import { GoogleSheetsIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
+import { Entity, OwnedById } from "@local/hash-subgraph";
 import { RequestHandler } from "express";
 import { google, sheets_v4 } from "googleapis";
 
 import {
   archiveEntity,
   createEntity,
-  getEntities,
   getLatestEntityById,
   updateEntity,
 } from "../../graph/knowledge/primitive/entity";
 import { createLinkEntity } from "../../graph/knowledge/primitive/link-entity";
+import { genId } from "../../util";
 import { enabledIntegrations } from "../enabled-integrations";
 import { getGoogleAccountById } from "./shared/get-google-account";
 
@@ -62,26 +54,10 @@ const createSpreadsheet = async ({
   return spreadsheetId;
 };
 
-type SyncToSheetRequestBody = {
-  audience: "human" | "machine";
-  existingIntegrationEntityId?: EntityId;
-  googleAccountId: string;
-  queryEntityId: EntityId;
-} & (
-  | {
-      spreadsheetId: string;
-    }
-  | { newFileName: string }
-);
-
-type SyncToSheetResponseBody =
-  | { integrationEntity: Entity }
-  | { error: string };
-
 export const createOrUpdateSheetsIntegration: RequestHandler<
   Record<string, never>,
-  SyncToSheetResponseBody,
-  SyncToSheetRequestBody
+  CreateOrUpdateSheetsIntegrationResponse,
+  CreateOrUpdateSheetsIntegrationRequest
 > =
   // @todo upgrade to Express 5, which handles errors from async request handlers automatically
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
@@ -148,7 +124,6 @@ export const createOrUpdateSheetsIntegration: RequestHandler<
     }
 
     const tokens = await getTokensForGoogleAccount({
-      authentication,
       graphApi: req.context.graphApi,
       userAccountId: req.user.accountId,
       googleAccountEntityId: googleAccount.metadata.recordId.entityId,
@@ -216,38 +191,15 @@ export const createOrUpdateSheetsIntegration: RequestHandler<
     let googleSheetIntegrationEntity:
       | Entity<GoogleSheetsIntegrationProperties>
       | undefined;
+
     if (existingIntegrationEntityId) {
-      const [ownedById, uuid] = splitEntityId(existingIntegrationEntityId);
-      const existingIntegrationEntitySubgraph = await getEntities(
-        req.context,
+      const existingEntities = await getGoogleSheetsIntegrationEntities({
         authentication,
-        {
-          query: {
-            filter: {
-              equal: [
-                {
-                  path: ["uuid"],
-                  parameter: uuid,
-                },
-                {
-                  path: ["ownedById"],
-                  parameter: ownedById,
-                },
-              ],
-            },
-            graphResolveDepths: {
-              ...zeroedGraphResolveDepths,
-              hasLeftEntity: { incoming: 1, outgoing: 0 },
-              hasRightEntity: { outgoing: 1, incoming: 0 },
-            },
-            includeDrafts: false,
-            temporalAxes: currentTimeInstantTemporalAxes,
-          },
-        },
-      );
-      googleSheetIntegrationEntity = getRoots(
-        existingIntegrationEntitySubgraph,
-      )[0] as Entity<GoogleSheetsIntegrationProperties> | undefined;
+        graphApi: req.context.graphApi,
+        integrationEntityId: existingIntegrationEntityId,
+      });
+
+      googleSheetIntegrationEntity = existingEntities.integrationEntity;
 
       if (!googleSheetIntegrationEntity) {
         res.status(404).send({
@@ -256,29 +208,20 @@ export const createOrUpdateSheetsIntegration: RequestHandler<
         return;
       }
 
-      const outgoingLinks = getOutgoingLinkAndTargetEntities(
-        existingIntegrationEntitySubgraph,
-        existingIntegrationEntityId,
-      );
-
-      const existingGoogleAccountLink = outgoingLinks.find(
-        ({ linkEntity }) =>
-          linkEntity[0]?.metadata.entityTypeId ===
-          systemLinkEntityTypes.associatedWithAccount.linkEntityTypeId,
-      );
-      if (!existingGoogleAccountLink?.linkEntity[0]) {
+      if (
+        !existingEntities.googleAccountEntity ||
+        !existingEntities.associatedWithAccountLinkEntity
+      ) {
         res.status(500).send({
           error: `No associated Google Account found for integration entity with id ${existingIntegrationEntityId}.`,
         });
         return;
       }
 
-      const existingQueryLink = outgoingLinks.find(
-        ({ linkEntity }) =>
-          linkEntity[0]?.metadata.entityTypeId ===
-          blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId,
-      );
-      if (!existingQueryLink?.linkEntity[0]) {
+      if (
+        !existingEntities.queryEntity ||
+        !existingEntities.hasQueryLinkEntity
+      ) {
         res.status(500).send({
           error: `No associated Query entity found for integration entity with id ${existingIntegrationEntityId}.`,
         });
@@ -306,14 +249,13 @@ export const createOrUpdateSheetsIntegration: RequestHandler<
         });
       }
 
-      const existingLinkedGoogleAccountId = (
-        existingQueryLink.rightEntity[0] as
-          | Entity<GoogleAccountProperties>
-          | undefined
-      )?.properties["https://hash.ai/@hash/types/property-type/account-id/"];
+      const existingLinkedGoogleAccountId =
+        existingEntities.googleAccountEntity.properties[
+          "https://hash.ai/@hash/types/property-type/account-id/"
+        ];
       if (googleAccountId !== existingLinkedGoogleAccountId) {
         await archiveEntity(req.context, authentication, {
-          entity: existingGoogleAccountLink.linkEntity[0],
+          entity: existingEntities.associatedWithAccountLinkEntity,
         });
         await createLinkEntity(req.context, authentication, {
           linkEntityTypeId:
@@ -329,10 +271,10 @@ export const createOrUpdateSheetsIntegration: RequestHandler<
 
       if (
         queryEntityId !==
-        existingQueryLink.rightEntity[0]?.metadata.recordId.entityId
+        existingEntities.queryEntity.metadata.recordId.entityId
       ) {
         await archiveEntity(req.context, authentication, {
-          entity: existingQueryLink.linkEntity[0],
+          entity: existingEntities.hasQueryLinkEntity,
         });
         await createLinkEntity(req.context, authentication, {
           linkEntityTypeId:
@@ -380,18 +322,29 @@ export const createOrUpdateSheetsIntegration: RequestHandler<
       )) as Entity<GoogleSheetsIntegrationProperties>;
     }
 
+    const integrationEntityId =
+      googleSheetIntegrationEntity.metadata.recordId.entityId;
+
+    const workflow =
+      "syncQueryToGoogleSheet" as const satisfies keyof WorkflowTypeMap;
+
     /**
      * Trigger a single write of the requested query results to the specified spreadsheet
      * @todo implement repeated syncs on a schedule
      */
-    await req.context.temporalClient.workflow.execute(
-      "syncQueryToGoogleSheet",
-      {
-        authentication,
-        queryEntityId,
-        spreadsheetId,
-      },
-    );
+    await req.context.temporalClient.workflow.execute<
+      WorkflowTypeMap[typeof workflow]
+    >("syncQueryToGoogleSheet", {
+      taskQueue: "integration",
+      args: [
+        {
+          authentication: { actorId: req.user.accountId },
+          integrationEntityId:
+            googleSheetIntegrationEntity.metadata.recordId.entityId,
+        },
+      ],
+      workflowId: `${workflow}-${integrationEntityId}-${genId()}`,
+    });
 
-    res.json({ integrationEntity: googleSheetIntegrationEntity });
+    res.json({ integrationEntityId });
   };

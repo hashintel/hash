@@ -2,23 +2,17 @@ import crypto from "node:crypto";
 
 import { LinearClient } from "@linear/sdk";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
-import { createUserSecretPath } from "@local/hash-backend-utils/vault";
 import {
   apiOrigin,
   frontendUrl,
 } from "@local/hash-isomorphic-utils/environment";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
-import {
-  systemEntityTypes,
-  systemLinkEntityTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
-import { UserSecretProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   AccountId,
   Entity,
   EntityId,
-  EntityRelationAndSubject,
   EntityUuid,
   extractEntityUuidFromEntityId,
   OwnedById,
@@ -27,13 +21,13 @@ import {
 import { RequestHandler } from "express";
 
 import { createEntity } from "../../graph/knowledge/primitive/entity";
-import { createLinkEntity } from "../../graph/knowledge/primitive/link-entity";
 import {
   getLinearIntegrationByLinearOrgId,
   getLinearIntegrationFromEntity,
   LinearIntegration,
 } from "../../graph/knowledge/system-types/linear-integration-entity";
 import { isUserMemberOfOrg } from "../../graph/knowledge/system-types/user";
+import { createUserSecret } from "../../graph/knowledge/system-types/user-secret";
 
 const linearClientId = process.env.LINEAR_CLIENT_ID;
 const linearClientSecret = process.env.LINEAR_CLIENT_SECRET;
@@ -214,27 +208,6 @@ export const oAuthLinearCallback: RequestHandler<
 
     const authentication = { actorId: userAccountId };
 
-    const vaultPath = createUserSecretPath({
-      accountId: userAccountId,
-      service: "linear",
-      restOfPath: `workspace/${linearOrgId}`,
-    });
-
-    await req.context.vaultClient.write({
-      data: { value: access_token },
-      secretMountPath: "secret",
-      path: vaultPath,
-    });
-
-    const secretMetadata: UserSecretProperties = {
-      /** @todo: verify this is the correct value */
-      "https://hash.ai/@hash/types/property-type/connection-source-name/":
-        "linear",
-      "https://hash.ai/@hash/types/property-type/expired-at/":
-        expiredAt.toISOString(),
-      "https://hash.ai/@hash/types/property-type/vault-path/": vaultPath,
-    };
-
     /**
      * Create the linear integration entity if it doesn't exist, and link it to the user secret
      */
@@ -244,46 +217,10 @@ export const oAuthLinearCallback: RequestHandler<
       { linearOrgId, userAccountId },
     );
 
-    /**
-     * Get the linear bot, which will need access to the linear integration entity and user secret.
-     */
-    const linearBotAccountId = await getMachineActorId(
-      req.context,
-      authentication,
-      { identifier: "linear" },
-    );
-
     let linearIntegration: LinearIntegration;
     if (existingLinearIntegration) {
       linearIntegration = existingLinearIntegration;
     } else {
-      // Create the user secret, which only the user, Linear bot, and web admins can access
-      const userSecretEntity = await createEntity(req.context, authentication, {
-        entityTypeId: systemEntityTypes.userSecret.entityTypeId,
-        ownedById: userAccountId as OwnedById,
-        properties: secretMetadata,
-        relationships: [
-          /**
-           * Create the user secret, which only the user and Linear bot can access.
-           * The Linear bot has edit access to allow it to edit and archive the user secret entity.
-           */
-          {
-            relation: "editor",
-            subject: {
-              kind: "account",
-              subjectId: linearBotAccountId,
-            },
-          },
-          {
-            relation: "setting",
-            subject: {
-              kind: "setting",
-              subjectId: "viewFromWeb",
-            },
-          },
-        ],
-      });
-
       const linearIntegrationProperties: LinearIntegrationProperties = {
         "https://hash.ai/@hash/types/property-type/linear-org-id/": linearOrgId,
       };
@@ -301,44 +238,36 @@ export const oAuthLinearCallback: RequestHandler<
         },
       );
 
-      const userAndBotAndWebAdminsOnly: EntityRelationAndSubject[] = [
-        {
-          relation: "administrator",
-          subject: {
-            kind: "account",
-            subjectId: userAccountId,
-          },
-        },
-        {
-          relation: "viewer",
-          subject: {
-            kind: "account",
-            subjectId: linearBotAccountId,
-          },
-        },
-        {
-          relation: "setting",
-          subject: {
-            kind: "setting",
-            subjectId: "administratorFromWeb",
-          },
-        },
-      ];
-
-      // Create the link from the integration to the secret entity, which only the user, Linear bot, and web admins can access
-      await createLinkEntity(req.context, authentication, {
-        ownedById: userAccountId as OwnedById,
-        linkEntityTypeId: systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
-        leftEntityId: linearIntegrationEntity.metadata.recordId.entityId,
-        rightEntityId: userSecretEntity.metadata.recordId.entityId,
-        properties: {},
-        relationships: userAndBotAndWebAdminsOnly,
-      });
-
       linearIntegration = getLinearIntegrationFromEntity({
         entity: linearIntegrationEntity,
       });
     }
+
+    /**
+     * Get the linear bot, which will be the only entity with edit access to the secret and the link to the secret
+     */
+    const linearBotAccountId = await getMachineActorId(
+      req.context,
+      authentication,
+      { identifier: "linear" },
+    );
+
+    await createUserSecret({
+      /**
+       * Because we have overwritten any existing secret with the same path, we should archive existing secrets.
+       */
+      archiveExistingSecrets: true,
+      expiresAt: expiredAt.toISOString(),
+      graphApi: req.context.graphApi,
+      managingBotAccountId: linearBotAccountId,
+      restOfPath: `workspace/${linearOrgId}`,
+      secretData: { value: access_token },
+      service: "linear",
+      sourceIntegrationEntityId:
+        linearIntegration.entity.metadata.recordId.entityId,
+      userAccountId: req.user.accountId,
+      vaultClient: req.context.vaultClient,
+    });
 
     res.redirect(
       `${frontendUrl}/settings/integrations/linear/new?linearIntegrationEntityId=${linearIntegration.entity.metadata.recordId.entityId}`,

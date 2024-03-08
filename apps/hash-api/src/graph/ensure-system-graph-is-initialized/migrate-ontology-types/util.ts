@@ -21,7 +21,6 @@ import {
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import {
-  DataType,
   DataTypeRelationAndSubject,
   UpdatePropertyType,
 } from "@local/hash-graph-client";
@@ -1276,6 +1275,17 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
 
         let shouldRemoveTemporaryMachineActorPermission = false;
 
+        if (
+          baseUrl === systemEntityTypes.userSecret.entityTypeBaseUrl ||
+          baseUrl === systemLinkEntityTypes.usesUserSecret.linkEntityTypeBaseUrl
+        ) {
+          /**
+           * User secrets are only editable by the bot that created them, which varies by secret
+           */
+          updateAuthentication = {
+            actorId: entity.metadata.provenance.createdById,
+          };
+        }
         if (baseUrl === systemEntityTypes.machine.entityTypeBaseUrl) {
           /**
            * If we are updating machine entities, we use the account ID

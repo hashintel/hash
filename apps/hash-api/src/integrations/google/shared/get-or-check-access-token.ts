@@ -58,7 +58,6 @@ export const getGoogleAccessTokenForExpressRequest = async ({
   }
 
   const tokens = await getTokensForGoogleAccount({
-    authentication,
     graphApi: req.context.graphApi,
     googleAccountEntityId: googleAccount.metadata.recordId.entityId,
     userAccountId: req.user.accountId,

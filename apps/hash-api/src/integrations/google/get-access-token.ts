@@ -1,23 +1,18 @@
+import {
+  GetGoogleTokenRequest,
+  GetGoogleTokenResponse,
+} from "@local/hash-isomorphic-utils/google-integration";
 import { RequestHandler } from "express";
 
 import { getGoogleAccessTokenForExpressRequest } from "./shared/get-or-check-access-token";
-
-type GetGoogleAccessTokenRequestBody = {
-  googleAccountId: string;
-};
-
-type GetGoogleAccessTokenResponseBody =
-  | { accessToken: string }
-  | { error: string };
-
 /**
  * Get an access token for use in the client where unavoidable, e.g. to use the Google File Picker.
  * Access tokens last for 1 hour.
  */
 export const getGoogleAccessToken: RequestHandler<
   Record<string, never>,
-  GetGoogleAccessTokenResponseBody,
-  GetGoogleAccessTokenRequestBody
+  GetGoogleTokenResponse,
+  GetGoogleTokenRequest
 > =
   // @todo upgrade to Express 5, which handles errors from async request handlers automatically
   // eslint-disable-next-line @typescript-eslint/no-misused-promises

@@ -51,10 +51,8 @@ export type UpdateLinearDataWorkflow = (params: {
 }) => Promise<void>;
 
 export type SyncQueryToGoogleSheetWorkflow = (params: {
-  accessToken: string;
-  authentication: { actorId: AccountId };
-  queryEntityId: EntityId;
-  spreadsheetId: string;
+  integrationEntityId: EntityId;
+  userAccountId: AccountId;
 }) => Promise<void>;
 
 export type WorkflowTypeMap = {

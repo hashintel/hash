@@ -1,9 +1,13 @@
-import {
-  createGoogleOAuth2Client,
-  getSecretEntitiesForGoogleAccount,
-} from "@local/hash-backend-utils/google";
+import { createGoogleOAuth2Client } from "@local/hash-backend-utils/google";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
-import { createUserSecretPath } from "@local/hash-backend-utils/vault";
+import {
+  createUserSecretPath,
+  getSecretEntitiesForIntegration,
+} from "@local/hash-backend-utils/vault";
+import {
+  GoogleOAuth2CallbackRequest,
+  GoogleOAuth2CallbackResponse,
+} from "@local/hash-isomorphic-utils/google-integration";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -12,11 +16,7 @@ import {
   GoogleAccountProperties,
   UserSecretProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
-  EntityId,
-  EntityRelationAndSubject,
-  OwnedById,
-} from "@local/hash-subgraph";
+import { EntityRelationAndSubject, OwnedById } from "@local/hash-subgraph";
 import { RequestHandler } from "express";
 import { Auth, google } from "googleapis";
 
@@ -25,13 +25,14 @@ import {
   createEntity,
 } from "../../graph/knowledge/primitive/entity";
 import { createLinkEntity } from "../../graph/knowledge/primitive/link-entity";
+import { createUserSecret } from "../../graph/knowledge/system-types/user-secret";
 import { enabledIntegrations } from "../enabled-integrations";
 import { getGoogleAccountById } from "./shared/get-google-account";
 
 export const googleOAuthCallback: RequestHandler<
   Record<string, never>,
-  { googleAccountEntityId: EntityId } | { error: string },
-  { code: string }
+  GoogleOAuth2CallbackResponse,
+  GoogleOAuth2CallbackRequest
 > =
   // @todo upgrade to Express 5, which handles errors from async request handlers automatically
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
@@ -154,7 +155,7 @@ export const googleOAuthCallback: RequestHandler<
       return;
     }
 
-    if (existingGoogleAccountEntity) {
+    await createUserSecret({
       /**
        * Archive all existing linked secrets for this Google Account.
        * This assumes that we do not create multiple access tokens for a Google account with different scopes,
@@ -167,86 +168,19 @@ export const googleOAuthCallback: RequestHandler<
        *
        * When looking at their Google Account security settings, users will see all scopes granted for an app combined,
        * rather than being able to inspect and revoke access on a token-by-token basis.
+       *
+       * If we wish to maintain multiple secrets, the vault path will need to be changed to not overwrite existing secrets.
        */
-
-      const linkAndSecretPairs = await getSecretEntitiesForGoogleAccount({
-        authentication,
-        graphApi: req.context.graphApi,
-        googleAccountEntityId: googleAccountEntity.metadata.recordId.entityId,
-      });
-
-      /** Only the Google bot can edit these entities */
-      const googleBotAuthentication = { actorId: googleBotAccountId };
-
-      await Promise.all(
-        linkAndSecretPairs.flatMap(({ userSecret, usesUserSecretLink }) => [
-          archiveEntity(req.context, googleBotAuthentication, {
-            entity: userSecret,
-          }),
-          archiveEntity(req.context, googleBotAuthentication, {
-            entity: usesUserSecretLink,
-          }),
-        ]),
-      );
-    }
-
-    /** Google Account is now created and existing secrets are archived */
-
-    /**
-     * Create the user secret, which only the user and Google bot can access.
-     * The Google integration bot has edit access to allow it to edit and archive the user secret entity.
-     * No other account requires access to it.
-     */
-    const userAndBotAndWebAdminsOnly: EntityRelationAndSubject[] = [
-      {
-        relation: "editor",
-        subject: {
-          kind: "account",
-          subjectId: googleBotAccountId,
-        },
-      },
-      {
-        relation: "setting",
-        subject: {
-          kind: "setting",
-          subjectId: "viewFromWeb",
-        },
-      },
-    ];
-
-    const vaultPath = createUserSecretPath({
-      accountId: req.user.accountId,
-      service: "google",
+      archiveExistingSecrets: true,
+      expiresAt: "", // the secret data includes an refresh token that lasts indefinitely and will be used as needed
+      graphApi: req.context.graphApi,
+      managingBotAccountId: googleBotAccountId,
       restOfPath: `account/${googleUser.data.id}`,
-    });
-
-    await vaultClient.write<Auth.Credentials>({
-      data: tokens,
-      secretMountPath: "secret",
-      path: vaultPath,
-    });
-
-    const secretMetadata: UserSecretProperties = {
-      "https://hash.ai/@hash/types/property-type/connection-source-name/":
-        "google",
-      "https://hash.ai/@hash/types/property-type/expired-at/": "", // we have a refresh token which lasts indefinitely
-      "https://hash.ai/@hash/types/property-type/vault-path/": vaultPath,
-    };
-
-    const userSecretEntity = await createEntity(req.context, authentication, {
-      entityTypeId: systemEntityTypes.userSecret.entityTypeId,
-      ownedById: req.user.accountId as OwnedById,
-      properties: secretMetadata,
-      relationships: userAndBotAndWebAdminsOnly,
-    });
-
-    /** Link the user secret to the Google Account */
-    await createLinkEntity(req.context, authentication, {
-      ownedById: req.user.accountId as OwnedById,
-      linkEntityTypeId: systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
-      leftEntityId: googleAccountEntity.metadata.recordId.entityId,
-      rightEntityId: userSecretEntity.metadata.recordId.entityId,
-      relationships: userAndBotAndWebAdminsOnly,
+      secretData: tokens,
+      service: "google",
+      sourceIntegrationEntityId: googleAccountEntity.metadata.recordId.entityId,
+      userAccountId: req.user.accountId,
+      vaultClient,
     });
 
     /**
