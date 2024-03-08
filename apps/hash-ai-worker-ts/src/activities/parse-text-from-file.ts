@@ -84,7 +84,7 @@ export const parseTextFromFile = async (
 
     await graphApiClient.updateEntity(webMachineActorId, {
       entityId: fileEntity.metadata.recordId.entityId,
-      entityTypeId: fileEntity.metadata.entityTypeId,
+      entityTypeIds: [fileEntity.metadata.entityTypeId],
       properties: updatedProperties,
       archived: fileEntity.metadata.archived,
       draft:

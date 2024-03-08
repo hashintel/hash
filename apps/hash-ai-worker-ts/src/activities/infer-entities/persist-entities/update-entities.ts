@@ -117,7 +117,7 @@ export const updateEntities = async ({
             );
 
             await graphApiClient.validateEntity(actorId, {
-              entityType: entityTypeId,
+              entityTypes: [entityTypeId],
               profile: draft ? "draft" : "full",
               properties,
               linkData: existingEntity.linkData,
@@ -127,7 +127,7 @@ export const updateEntities = async ({
               await graphApiClient.updateEntity(actorId, {
                 archived: existingEntity.metadata.archived,
                 draft,
-                entityTypeId,
+                entityTypeIds: [entityTypeId],
                 entityId: updateEntityId,
                 properties: newProperties,
               });

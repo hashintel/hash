@@ -20,7 +20,8 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { AccountId, Subgraph, Timestamp } from "@local/hash-subgraph";
+import type { AccountId, Timestamp } from "@local/hash-subgraph";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-subgraph/src/stdlib/subgraph/roots";
 import { StatusCode } from "@local/status";
 import { CancelledFailure, Context } from "@temporalio/activity";
 import dedent from "dedent";
@@ -269,7 +270,7 @@ const inferEntities = async ({
     for (const entityTypeId of entityTypeIds) {
       entityTypes[entityTypeId] = dereferenceEntityType(
         entityTypeId,
-        entityTypesSubgraph as Subgraph,
+        mapGraphApiSubgraphToSubgraph(entityTypesSubgraph),
       );
     }
   } catch (err) {
@@ -555,10 +556,11 @@ export const inferEntitiesActivity = async ({
           draft: false,
           properties: {},
           ownedById: userAuthenticationInfo.actorId,
-          entityTypeId:
+          entityTypeIds: [
             entityResult.operation === "create"
               ? systemLinkEntityTypes.created.linkEntityTypeId
               : systemLinkEntityTypes.updated.linkEntityTypeId,
+          ],
           linkData: {
             leftEntityId: usageRecordMetadata.recordId.entityId,
             rightEntityId: entityResult.entity.metadata.recordId.entityId,

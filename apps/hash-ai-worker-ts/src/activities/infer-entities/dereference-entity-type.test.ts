@@ -1,5 +1,6 @@
 import type { Subgraph as ApiClientSubgraph } from "@local/hash-graph-client";
 import type { Subgraph } from "@local/hash-subgraph";
+import { mapGraphApiVerticesToVertices } from "@local/hash-subgraph/src/stdlib/subgraph/roots";
 
 import { dereferenceEntityType } from "./dereference-entity-type";
 
@@ -981,7 +982,10 @@ describe("The dereferenceEntityType function", () => {
   it("correctly dereferences an entity type", () => {
     const result = dereferenceEntityType(
       "https://hash.ai/@test/types/entity-type/property-values-demo/v/4",
-      testSubgraph as Subgraph,
+      {
+        ...testSubgraph,
+        vertices: mapGraphApiVerticesToVertices(testSubgraph.vertices),
+      } as Subgraph,
     );
 
     expect(result).toEqual(expectedResult);
