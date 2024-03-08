@@ -4125,10 +4125,16 @@
       "EntityValidationType": {
         "oneOf": [
           {
-            "$ref": "./models/entity_type.json"
+            "type": "array",
+            "items": {
+              "$ref": "./models/entity_type.json"
+            }
           },
           {
-            "$ref": "#/components/schemas/VersionedUrl"
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            }
           }
         ]
       },
@@ -6222,12 +6228,12 @@
       "ValidateEntityParams": {
         "type": "object",
         "required": [
-          "entityType",
+          "entityTypes",
           "properties",
           "profile"
         ],
         "properties": {
-          "entityType": {
+          "entityTypes": {
             "$ref": "#/components/schemas/EntityValidationType"
           },
           "linkData": {
