@@ -77,6 +77,11 @@ module.exports = withSentryConfig(
             destination: "/settings/organizations/:shortname/general",
             permanent: true,
           },
+          {
+            source: "/login",
+            destination: "/signin",
+            permanent: true,
+          },
         ];
       },
       async headers() {
