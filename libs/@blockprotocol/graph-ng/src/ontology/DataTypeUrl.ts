@@ -12,7 +12,7 @@ export type TypeId = typeof TypeId;
 export const DataTypeUrl: S.Schema<DataTypeUrl, string> =
   VersionedUrl.VersionedUrl.pipe(S.brand(TypeId));
 
-export type DataTypeUrl<T extends BaseUrl.BaseUrl = BaseUrl.BaseUrl> =
+export type DataTypeUrl<T extends string = string> =
   VersionedUrl.VersionedUrl<T> & Brand.Brand<TypeId>;
 
 export function parseOrThrow<T extends string>(

@@ -13,6 +13,11 @@ export const BaseUrl: S.Schema<BaseUrl, string> = Url.Url.pipe(
   S.fromBrand(BaseUrlBrand),
 );
 
+export function raw<T extends BaseUrl>(value: T): Brand.Brand.Unbranded<T> {
+  // @ts-expect-error we're intentionally removing the brand here
+  return value;
+}
+
 export function parseOrThrow<T extends string>(
   value: T,
 ): T & Brand.Brand<TypeId> {

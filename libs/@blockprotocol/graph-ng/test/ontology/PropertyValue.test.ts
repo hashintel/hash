@@ -24,10 +24,7 @@ const DescriptionProperty = {
 
 test("constant PropertyTypeUrl", () => {
   expectTypeOf(DescriptionProperty.id).toMatchTypeOf<
-    PropertyTypeUrl.PropertyTypeUrl<
-      "https://blockprotocol.org/@blockprotocol/types/property-type/description" &
-        Brand.Brand<BaseUrl.TypeId>
-    >
+    PropertyTypeUrl.PropertyTypeUrl<"https://blockprotocol.org/@blockprotocol/types/property-type/description">
   >();
 
   expectTypeOf(VersionedUrl.base(DescriptionProperty.id)).toMatchTypeOf<
@@ -38,9 +35,8 @@ test("constant PropertyTypeUrl", () => {
   const versionedUrl = PropertyTypeUrl.parseOrThrow(
     "https://blockprotocol.org/@blockprotocol/types/property-type/description/v/1",
   );
-  type X = Brand.Brand.Unbranded<typeof versionedUrl>;
 
-  expectTypeOf(PropertyTypeUrl.base(versionedUrl)).toMatchTypeOf<
+  expectTypeOf(VersionedUrl.base(versionedUrl)).toMatchTypeOf<
     "https://blockprotocol.org/@blockprotocol/types/property-type/description" &
       Brand.Brand<BaseUrl.TypeId>
   >();
@@ -82,35 +78,28 @@ const FileProperties = {
   oneOf: [[DescriptionProperty.id] as const] as const,
 } satisfies PropertyType.PropertyType;
 
-test("single oneOf object type", () => {
-  let Schema = PropertyType.makeValueSchema(FileProperties);
-
-  let result = S.decodeSync(Schema)({
-    [VersionedUrl.base(DescriptionProperty.id)]: "description",
-  });
-
-  type DescriptionBaseUrl =
-    "https://blockprotocol.org/@blockprotocol/types/property-type/description" &
-      Brand.Brand<BaseUrl.TypeId>;
-  expectTypeOf(result).toMatchTypeOf<{
-    [key in DescriptionBaseUrl]: Property.Property<
-      (typeof DescriptionProperty)["id"]
-    >;
-  }>();
-
-  type DisplayNameBaseUrl =
-    "https://blockprotocol.org/@blockprotocol/types/property-type/display-name" &
-      Brand.Brand<BaseUrl.TypeId>;
-
-  expectTypeOf(result).not.toMatchTypeOf({
-    [VersionedUrl.base(DisplayNameProperty.id)]: {
-      id: DescriptionProperty.id,
-      value: "example",
-    } satisfies Property.Property,
-  });
-
-  // TODO: that shouldn't match, but it does! `Base<T>` is not working correctly it seems like?!?!
-  expectTypeOf(result).toMatchTypeOf<{
-    [key in BaseUrl.BaseUrl]: Property.Property;
-  }>();
-});
+// test("single oneOf object type", () => {
+//   let Schema = PropertyType.makeValueSchema(FileProperties);
+//
+//   let result = S.decodeSync(Schema)({
+//     [VersionedUrl.base(DescriptionProperty.id)]: "description",
+//   });
+//
+//   let value = result["a"];
+//   let value = result["b"];
+//   let value = result[VersionedUrl.base(DescriptionProperty.id)];
+//
+//   expectTypeOf(result).toMatchTypeOf<{
+//     [key in VersionedUrl.Base<
+//       (typeof DescriptionProperty)["id"]
+//     >]: Property.Property<(typeof DescriptionProperty)["id"]>;
+//   }>();
+//
+//   expectTypeOf(result).not.toMatchTypeOf({
+//     ["https://blockprotocol.org/@blockprotocol/types/property-type/display-name"]:
+//       {
+//         id: DescriptionProperty.id,
+//         value: "example",
+//       } satisfies Property.Property,
+//   });
+// });

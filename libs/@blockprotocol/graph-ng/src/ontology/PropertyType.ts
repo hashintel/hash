@@ -126,12 +126,8 @@ type ValueSchemaPropertyTypeObjectSingleUnknown = S.Schema<
 type ValueSchemaPropertyTypeObjectSingleProperty<
   T extends PropertyTypeUrl.PropertyTypeUrl,
 > = S.Schema<
-  {
-    [key in VersionedUrl.Base<T>]: S.Schema.To<ValueSchemaProperty<T>>;
-  },
-  {
-    [key in VersionedUrl.Base<T>]: Json.Value;
-  }
+  Record<"a", S.Schema.To<ValueSchemaProperty<T>>>,
+  Record<VersionedUrl.Base<T>, Json.Value>
 >;
 
 type ValueSchemaPropertyTypeObjectSingleArray<

@@ -9,9 +9,7 @@ test("v1: parseOrThrow(const)", () => {
 
   expectTypeOf(value).toMatchTypeOf<VersionedUrl.VersionedUrl>();
   expectTypeOf(value).toMatchTypeOf<
-    VersionedUrl.VersionedUrl<
-      "https://example.com" & Brand.Brand<BaseUrl.TypeId>
-    >
+    VersionedUrl.VersionedUrl<"https://example.com">
   >();
 });
 
@@ -20,9 +18,7 @@ test("v1: parseOrThrow(non-const)", () => {
 
   expectTypeOf(value).toMatchTypeOf<VersionedUrl.VersionedUrl>();
   expectTypeOf(value).not.toMatchTypeOf<
-    VersionedUrl.VersionedUrl<
-      "https://example.com" & Brand.Brand<BaseUrl.TypeId>
-    >
+    VersionedUrl.VersionedUrl<"https://example.com">
   >();
 });
 
