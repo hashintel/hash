@@ -51,7 +51,7 @@ use tokio_postgres::{
     tls::{MakeTlsConnect, TlsConnect},
     Socket,
 };
-use type_system::url::{BaseUrl, VersionedUrl};
+use type_system::url::VersionedUrl;
 
 use crate::{
     snapshot::{
@@ -400,8 +400,7 @@ where
             .map_ok(|row| {
                 SnapshotEntry::DataTypeEmbedding(DataTypeEmbeddingRecord {
                     data_type_id: VersionedUrl {
-                        base_url: BaseUrl::new(row.get(0))
-                            .expect("Invalid base URL returned from Postgres"),
+                        base_url: row.get(0),
                         version: row.get(1),
                     },
                     embedding: row.get(2),
@@ -433,8 +432,7 @@ where
             .map_ok(|row| {
                 SnapshotEntry::PropertyTypeEmbedding(PropertyTypeEmbeddingRecord {
                     property_type_id: VersionedUrl {
-                        base_url: BaseUrl::new(row.get(0))
-                            .expect("Invalid base URL returned from Postgres"),
+                        base_url: row.get(0),
                         version: row.get(1),
                     },
                     embedding: row.get(2),
@@ -466,8 +464,7 @@ where
             .map_ok(|row| {
                 SnapshotEntry::EntityTypeEmbedding(EntityTypeEmbeddingRecord {
                     entity_type_id: VersionedUrl {
-                        base_url: BaseUrl::new(row.get(0))
-                            .expect("Invalid base URL returned from Postgres"),
+                        base_url: row.get(0),
                         version: row.get(1),
                     },
                     embedding: row.get(2),
