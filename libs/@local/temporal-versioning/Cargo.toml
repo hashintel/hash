@@ -1,3 +1,5 @@
+cargo-features = ["edition2024"]
+
 [package]
 name = "temporal-versioning"
 authors.workspace = true

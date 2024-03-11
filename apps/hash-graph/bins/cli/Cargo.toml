@@ -1,7 +1,9 @@
+cargo-features = ["edition2024"]
+
 [package]
 name = "hash-graph"
 version = "0.0.0"
-edition = "2021"
+edition.workspace = true
 authors = ["HASH"]
 publish = false
 description = "The entity-graph query-layer for the HASH datastore"
