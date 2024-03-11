@@ -23,6 +23,7 @@ Defining the list of expected attributes consitutes most of the work associated 
 Entity types may also extend other existing entity types, "inheriting" their attributes, and avoiding the need to re-specify these all over again when creating a more specific version of an entity type. A type which extends another is called a 'child type', while the type which is extended is called the 'parent type'. An entity type may have any number of parent types or child types.
 
 <Toggle title="Example of entity type inheritance">
+
   A `Company` entity type might have multiple children which inherit from it, each with their own distinct properties. An incomplete but illustrative family of types might look something like this:
 
   - `Company` (entity type), with key propety types present on all of its children.
