@@ -16,7 +16,7 @@ mod data_type;
 mod entity_type;
 mod property_type;
 
-use std::{borrow::Borrow, future::Future};
+use std::borrow::Borrow;
 
 use error_stack::{Context, Report};
 use graph_types::knowledge::entity::{Entity, EntityId};

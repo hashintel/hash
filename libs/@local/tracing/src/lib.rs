@@ -1,4 +1,5 @@
 #![feature(lint_reasons)]
+#![feature(type_alias_impl_trait)]
 
 pub mod logging;
 
@@ -34,7 +35,7 @@ pub struct TracingConfig {
 /// # Errors
 ///
 /// - [`TryInitError`], if initializing the [`tracing_subscriber::Registry`] fails.
-pub async fn init_tracing(config: TracingConfig) -> Result<impl Drop + 'static, TryInitError> {
+pub async fn init_tracing(config: TracingConfig) -> Result<impl Drop, TryInitError> {
     let LoggingConfig {
         log_format,
         log_folder,

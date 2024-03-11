@@ -1,4 +1,4 @@
-use core::{borrow::Borrow, future::Future, pin::Pin};
+use core::{borrow::Borrow, pin::Pin};
 use std::{collections::HashMap, num::NonZeroUsize};
 
 use error_stack::{bail, Report, ResultExt};

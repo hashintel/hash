@@ -1,4 +1,4 @@
-use std::{borrow::Cow, error::Error, fmt, future::Future};
+use std::{borrow::Cow, error::Error, fmt};
 
 use authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency, AuthorizationApi};
 use error_stack::Report;
