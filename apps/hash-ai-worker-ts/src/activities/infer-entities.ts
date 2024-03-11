@@ -1,9 +1,5 @@
-import {
-  getHashInstanceAdminAccountGroupId,
-  isUserHashInstanceAdmin,
-} from "@local/hash-backend-utils/hash-instance";
+import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
-import { getUserServiceUsage } from "@local/hash-backend-utils/service-usage";
 import type { GraphApi } from "@local/hash-graph-client";
 import type {
   InferenceModelName,
@@ -11,7 +7,7 @@ import type {
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { AccountId, Timestamp } from "@local/hash-subgraph";
+import type { AccountId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import { CancelledFailure, Context } from "@temporalio/activity";
 import dedent from "dedent";
@@ -30,6 +26,7 @@ import type {
 import { log } from "./infer-entities/log";
 import { persistEntities } from "./infer-entities/persist-entities";
 import { stringify } from "./infer-entities/stringify";
+import { userExceededServiceUsageLimitActivity } from "./user-exceeded-service-usage-limit-activity";
 
 /**
  * A map of the API consumer-facing model names to the values provided to OpenAI.
@@ -40,17 +37,6 @@ const modelAliasToSpecificModel = {
   "gpt-4-turbo": "gpt-4-1106-preview", // 'gpt-4-turbo' is not a valid model name in the OpenAI API yet, it's in preview only
   "gpt-4": "gpt-4", // this points to the latest available anyway as of 6 Dec 2023
 } as const satisfies Record<InferenceModelName, PermittedOpenAiModel>;
-
-const usageCostLimit = {
-  admin: {
-    day: 100,
-    month: 500,
-  },
-  user: {
-    day: 10,
-    month: 50,
-  },
-};
 
 /**
  * Infer and create entities of the requested types from the provided text input.
@@ -69,58 +55,16 @@ const inferEntities = async ({
   inferenceState: InferenceState;
 }): Promise<InferEntitiesReturn> => {
   /** Check if the user has exceeded their usage limits */
-  const now = new Date();
 
-  const userServiceUsage = await getUserServiceUsage(
-    { graphApi: graphApiClient },
-    userAuthenticationInfo,
-    {
+  const userExceedServiceUsageLimitReason =
+    await userExceededServiceUsageLimitActivity({
+      graphApiClient,
       userAccountId: userAuthenticationInfo.actorId,
-      decisionTimeInterval: {
-        start: {
-          kind: "inclusive",
-          limit: new Date(
-            now.valueOf() - 1000 * 60 * 60 * 24 * 30,
-          ).toISOString() as Timestamp,
-        },
-        end: { kind: "inclusive", limit: now.toISOString() as Timestamp },
-      },
-    },
-  );
+    });
 
-  const { lastDaysCost, lastThirtyDaysCost } = userServiceUsage.reduce(
-    (acc, usageRecord) => {
-      acc.lastDaysCost += usageRecord.last24hoursTotalCostInUsd;
-      acc.lastThirtyDaysCost += usageRecord.totalCostInUsd;
-      return acc;
-    },
-    { lastDaysCost: 0, lastThirtyDaysCost: 0 },
-  );
-
-  const isUserAdmin = await isUserHashInstanceAdmin(
-    { graphApi: graphApiClient },
-    userAuthenticationInfo,
-    { userAccountId: userAuthenticationInfo.actorId },
-  );
-
-  const { day: dayLimit, month: monthLimit } =
-    usageCostLimit[isUserAdmin ? "admin" : "user"];
-
-  if (lastDaysCost >= dayLimit) {
-    return {
-      code: StatusCode.ResourceExhausted,
-      contents: [],
-      message: `You have exceeded your daily usage limit of ${dayLimit}.`,
-    };
+  if (userExceedServiceUsageLimitReason.code !== StatusCode.Ok) {
+    return userExceedServiceUsageLimitReason;
   }
-  if (lastThirtyDaysCost >= monthLimit) {
-    return {
-      code: StatusCode.ResourceExhausted,
-      contents: [],
-      message: `You have exceeded your monthly usage limit of ${monthLimit}.`,
-    };
-  }
-  /** Usage limit check complete */
 
   const {
     createAs,
