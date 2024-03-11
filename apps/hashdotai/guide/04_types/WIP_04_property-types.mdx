@@ -13,13 +13,23 @@ _Coming soon_
 
 # Creating a new property type
 
-To create a new property type, open the entity type editor page of the entity type you wish to add the property type to.
+You can create a new property type inline when editing an entity type, directly within the entity type editor. To create a new property type:
 
-If you're creating a new property type, you'll be asked now to provide a description. Your new property type will then become available for wider use in HASH, like the suggested ones you just saw, so a generic description which could apply to other entity types will work best.
+1. Open the editor for the entity type you'd like to add the property type to.
+1. Click "Add a new property" at the bottom of the list of any existing property types already expected.
+1. Type in the name of the property type you wish to create, as if searching for it in the suggestor that pops up. Next, click “Create {name} PROPERTY TYPE”.
+1. You'll now be asked to provide a description. Your new property type will be available for use with other entity types in HASH, so describing the property type's semantic meaning in a way that isn't overly specific to your current open entity type works best.
+1. Next, choose one or more [data types](/guide/types/data-types) that define the allowed values of a property type.
+  - Data types may be primitive, such as `Text`, `Number`, or `Boolean` (true/false), as well as more complex (`Phone Number`) or specific (e.g. various units of length).
+  - You can also define "custom" expected values, by clicking “Specify a custom expected value”. A custom expected value uses one or both of the `Array` and `Property Object` data types.
+    - `Array` data types are lists of values, such as a list of `Text` values
+    - `Property Object` data types are sets of other property types, nested within the _parent_ property type you are defining.
+    - Most users will never need to use these, and in many cases an object of property types would be better created as a separate entity with its own type that is then linked to other entities as required.
+    - Click ‘Save expected value’ if defining an `Array` or `Property Object` data type, when finished, to return to the property type defintition.
+1. Finally, click ‘Create new property type’. You'll see your new property type in the property types table of the entity type you're editing. You’ll notice that for each of the attributes of an entity type, you can also choose whether the attribute (such as the property type you just created) should be _required_, or whether it is just _possible_ to associate the attribute with the entity. You're also able to specify whether _multiple_ values for an attribute (such as instances of a link, or values of a property) can be provided.
+  - Setting an attribute to required means that entities of an entity type _cannot be created_ unless the required property value or link is present.
+  - Allowing multiple of the expected property type's value means that whatever the expected value is, there can be multiple of them (i.e. a list or array). If the property type expects a number, allowing multiple means the entity type will expect a list of numbers, and if the property type expects a list of numbers, allowing multiple would mean that the entity expects _a list of list of numbers_.
 
-Set a [data type](/guide/types/data-types) that defines the allowed values of a property type. Data types may be primtive, such as `Text`, `Number`, or `Boolean` (true/false), as well as more complex (`Phone Number`) or specific (e.g. various units of length). You can also define `Array` and `Property Object` data types by clicking “**Specify a custom expected value**”.
-- `Array` data types are lists of values, such as a list of `Text` values
-- `Property Object` data types are sets of other property types, nested within the _parent_ property type you are defining.
-- Most users will never need to use these, and in many cases an object of property types would be better created as a separate entity with its own type that is then linked to other entities as required.
+# Browsing property types
 
-Click ‘Save expected value’ if defining an Array or Property Object Data Type and then ‘Create new property type’. You will see your new Property Type in the Property Types table. You’ll notice that for each of these properties, you can also choose whether this entity type _requires_ this property and whether it accepts _multiple_ of the property type's expected value. Setting a Property Type to required means Entities of this Entity Type cannot be created unless they provide a value for this Property. Allowing multiple of the expected property type's value means that whatever the expected value is, there can be multiple of them (i.e. a list or array). If the property type expects a number, allowing multiple means the entity type will expect a list of numbers, and if the property type expects a list of numbers, allowing multiple would mean that the entity expects _a list of list of numbers_.
+You can see [all property types](https://app.hash.ai/types/property-type) you have permission to view from the **Types -> Property Types** page in HASH.

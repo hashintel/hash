@@ -24,7 +24,7 @@ User's webs are called [Personal Webs](/guide/webs/users#web), and orgs' webs ar
 
 ## Entities
 
-Data in a [web](/guide/webs) exists in the form of [entities](/guide/entities). An individual entity may have one or more [entity types](/guide/types/entity-types), which in turn specify the [**attributes**](/guide/entities/attributes) that can be associated with it. No information can be stored about an entity until it has a type.
+Data in a [web](/guide/webs) exists in the form of [entities](/guide/entities). An individual entity may have one or more [entity types](/guide/types/entity-types), which describes what sort of thing(s) an entity is, and the kinds of information (i.e. [**attributes**](/guide/entities/attributes)) that can be associated with it. No information can be stored about an entity until it has a type.
 
 ## Attributes
 
@@ -34,12 +34,12 @@ Data in a [web](/guide/webs) exists in the form of [entities](/guide/entities). 
 
 Depending on how you use HASH, you may never need to create your own [**types**](/guide/types) or _really_ learn how they work. However, in short, there are four kinds of [types](/guide/types) in HASH.
 
-[Entities](/guide/entities) are described by [entity types](/guide/types/entity-types), which define what sort of thing(s) an entity is, and the kinds of information (attributes) that can be associated with it.
+[Entities](/guide/entities) are described by (i) [entity types](/guide/types/entity-types), which define the [attributes](/guide/entities/attributes) that can be associtaed with them.
 
 [Attributes](/guide/entities/attributes) come in the form of [properties](/guide/entities/attributes#properties) (values) and [links](/guide/entities/attributes#links) (pointers to other entities):
 
-- Properties tell you something about the entity itself, for example its name. They are described by a [property type](/guide/types/property-types) that provides semantic meaning, and specifies the expected [data type(s)](/guide/types/data-types), e.g. `Text` or `Date`.
-- Links describe the relationship between entities (e.g. two people, or a person and a company). They are described by [link types](/guide/types/link-types), and may themselves have properties that tell you something about the relationship. For example, an employment relationship may have a job title and a start date.
+- Properties tell you something about the entity itself, for example its name. They are described by (ii) [property types](/guide/types/property-types) that provide semantic meaning, and specify (iii) the expected [data type(s)](/guide/types/data-types) of a property, e.g. `Text` or `Date`.
+- Links describe the relationship between entities (e.g. two people, or a person and a company). They are described by (iv) [link types](/guide/types/link-types), and may themselves have properties that tell you something about the relationship. For example, an employment relationship may have a job title and a start date.
 
 These four types (entity, link, property and data) are known collectively as our "type system", enable any kind of data to be represented in HASH, and they are part of what makes HASH so powerful.
 

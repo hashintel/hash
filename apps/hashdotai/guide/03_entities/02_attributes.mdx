@@ -26,6 +26,16 @@ Like property types, a link type might appear on multiple entity types. An `Inve
 
 The permitted properties of a given link type, for example `Investment Value`, are the same wherever it is re-used. However, each entity type which uses the link type can have different rules about the permitted target entity. Entities representing a `User` on a stock exchange platform might only permit an `Invested In` link to point to entities representing valid `Tradable Security`s on that platform, whereas a more generic `Person` entity might have a wider range of types of entities that it can be `Invested In`, for example private companies, or their kid's `Lemonade Stand`.
 
+## Multi-type links
+
+An instance of a link can have more than one link type associated with it. This is relatively uncommon, and typically link types will extend other link types (to make them "more specific") instead. A link with multiple types can, however, be useful to denote that two relationships are tied.
+
+Let's consider a `Person` and a `Delaware Corporation` (a type of company). Under Delaware law, company directors have a legal duty of care, known as a "fiduciary responsibility", to the shareholders of a company.
+
+In addition to connecting our `Person` to our `Delaware Corporation` by a `Is on the board of directors of` link, we may also add a _second_ link type to the link, called `Has fiduciary responsibility to the shareholders of`. This makes the relationship more explicit.
+
+If the person ceases to be a director of the company, and the link is removed entirely, their fidcuiary responsibility likewise vanishes. In this way, links with multiple link types can be useful for capturing conditionally linked aspects of a relationship.
+
 # Constraints
 
 Constraints on an attribute's value — both the input format of a property, defined by its `Data Type` — as well as the type of entities accepted by a `Link Type` — can sometimes feel annoying.
