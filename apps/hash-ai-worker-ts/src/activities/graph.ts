@@ -223,4 +223,10 @@ export const createGraphActivities = ({
   async getSubgraphEntities(params: { subgraph: Subgraph }): Promise<Entity[]> {
     return getEntities(params.subgraph);
   },
+
+  async createEntity(
+    ...params: Parameters<typeof graphApiClient.createEntity>
+  ) {
+    return graphApiClient.createEntity(...params);
+  },
 });
