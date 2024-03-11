@@ -28,4 +28,8 @@ The permitted properties of a given link type, for example `Investment Value`, a
 
 # Constraints
 
-Constraints on an attribute's value — both the input format defined by a property's `Data Type`, as well as the kinds of entities accepted by a link — can sometimes feel annoying. However, they help validate that information entered or collected is in the right format, helping catch errors and keep data quality high. This also helps ensure that your entities can reliably be used in off-the-shelf [HASH apps](/guide/apps), or in external applications that you sync your HASH data with.
+Constraints on an attribute's value — both the input format of a property, defined by its `Data Type` — as well as the type of entities accepted by a `Link Type` — can sometimes feel annoying.
+
+However, constraints can help validate that information is entered or collected is in the right format, catching errors at the point of data entry or ingest, and keeping the quality and trustworthiness of information in your [web](/guide/webs) high. This also helps ensure that your entities can reliably be used in off-the-shelf [HASH apps](/guide/apps), or in external applications that you sync your HASH data with.
+
+That said, not all property types strictly define their data types — and not all entity types that expect links are prescriptive about the `entity types` they allow linking to. Sometimes this "lack of typing" can be useful, but you should take extra care to avoid errors when relaxing type constraints.

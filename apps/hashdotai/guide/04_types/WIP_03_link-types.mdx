@@ -1,0 +1,34 @@
+---
+title: "Link Types"
+description: "Describing the relationship between things"
+metaTitle: "Link Types - HASH"
+metaDescription: "Link types describe the relationship between things, and may have attributes associated with them"
+sidebarTitle: "Link Types"
+sidebarIcon: https://app.hash.ai/icons/docs/link.svg
+---
+
+Links are a special kind of entity, which exist solely to describe the relationship between two other entities. 
+
+Like normal entities, links have their own type (a "link type", as opposed to an "entity type") which gives the link semantic meaning. Link types may also specify [attributes](/guide/entities/attributes) which provide more information about the relationship.
+
+For simplicity's sake link types can be defined and edited much like entity types, but you can otherwise think of them as their own separate thing dedicated to describing relationships between entities. 
+
+You can create a new link type:
+
+1. inline when editing an entity type, at the point of need, from within the entity type editor;
+1. by clicking the `+` button in the top-right of HASH, and selecting the 'Create link type' option;
+1. by conerting an existing entity type to a link type, using the context menu on an entity type's page (accessed by clicking the three vertical dots near the top-right of the page).
+
+# Inheritance
+
+Links can extend other links. This can be useful for capturing additional or more specific information about a relationship, or enforcing stricter [constraints](/guide/entities/attributes#constraints).
+
+# Multi-Type Links
+
+A link can have more than one link type associated with it. This is relatively uncommon, and typically link types will extend other link types (to make them "more specific") instead. A link with multiple types can, however, be useful to denote that two relationships are tied.
+
+Let's consider a `Person` and a `Delaware Corporation` (a type of company). Under Delaware law, company directors have a legal duty of care, known as a "fiduciary responsibility", to the shareholders of a company.
+
+In addition to connecting our `Person` to our `Delaware Corporation` by a `Is on the board of directors of` link, we may also add a _second_ link type to the link, called `Has fiduciary responsibility to the shareholders of`. This makes the relationship more explicit.
+
+If the person ceases to be a director of the company, and the link is removed entirely, their fidcuiary responsibility likewise vanishes. In this way, links with multiple link types can be useful for capturing conditionally linked aspects of a relationship.

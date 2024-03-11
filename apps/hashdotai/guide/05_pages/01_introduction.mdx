@@ -10,42 +10,51 @@ sidebarTitle: "Overview"
   Creating and editing pages is only available to **Team** and **Ultra** users of HASH.
 </Callout>
 
-# Working with data in Pages<a id="#working-with-data-in-pages" />
+# Introduction
 
-Pages let you render, manipulate, and create Entities and Links through Blocks. This section will introduce you to HASH’s Pages feature and walk you through common use cases for working with data in Blocks.
+Pages let you render, manipulate, and create [entities](/guide/entities) and their [attributes](/guide/entities/attributes) through [blocks](/guide/pages/blocks).
 
-# Introduction to Pages
+# What are pages?
 
-## Anatomy of a Page<a id="#anatomy-of-a-page" />
+Pages consist of several things:
 
-Pages are made up of several elements:
-
-1. A **Title** and an **Emoji icon** (“Page Title” and the #️⃣ icon below). These serve to quickly explain what a Page is about and appear in the “PAGES” section in the left side-bar as well as in breadcrumbs at the very top of each. \
-
-1. **Blocks** (demonstrated with the H1, Paragraph, Callout, and Code Blocks below). Every piece of content inside of a Page is a Block—a third-party component which can render and manipulate data. Blocks are laid out vertically and can be re-ordered. \
-
-1. **Comments** (shown below on the right of the Paragraph Block). Comments are attached to Blocks and allow users to augment the content in Blocks with additional questions and thoughts.
+1. A **title** and an **icon**. These help you identify pages quickly, appearing at the top of each page, as well as in the left-hand sidebar, navigational breadcrumbs, and in other links to pages.
+1. The ability to insert any number of [blocks](/guide/pages/blocks). Pages allow you to insert **blocks**, which are quite literally the fundamental building blocks of HASH, used to contain and display any and all information.
+1. **Comments**, which can be attached to blocks, and allow users to react to or reference information in the context of a page (for example, asking questions, or adding their own thoughts).
 
 !["A page with blocks and a comment"](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/1e31a95b-e62c-48c3-1df4-0becdb5f3f00/public)
 
-## Organizing and navigating Pages<a id="#organizing-and-navigating-pages" />
+# Types of pages
 
-You will find all of the Pages within your Workspace in the left side-bar under “PAGES”. Pages belong to the Workspace in which they were created and cannot be moved. You can drag and drop the Pages in the side-bar to reorder them.
+Pages come in two forms:
 
-## Creating a Page<a id="#creating-a-page" />
+- [Documents](/guide/pages/documents) which support displaying blocks linearly
+- [Canvases](/guide/pages/canvases) which support the freeform arrangement of blocks, a bit like a whiteboard. These work great for brainstorming, visually arranging information, and when working in 3D/VR and AR/mixed reality spatial environments (for example using the Apple Vision Pro, or Meta Quest).
 
-The + button next to “PAGES” lets you create a new Page. You can also create a new page using the + button in the top-nav. New Pages are added to the bottom of the Pages list in the left side-bar.
+## Accessing pages
 
-## Archiving a Page
+All of the pages you have access to can be found in your left-hand sidebar, under the name of the [web](/guide/webs) they exist inside of. Each page (like any entity) only exists in one web at a time. However, you can easily drag and drop pages in the sidebar to re-order them, or even move them between webs.
 
-You can archive a Page if you no longer need it by clicking the […] button to the right of its title in the side-bar and selecting “Archive page”. Archived pages do not appear in the side-bar and cannot be found through the UI but will still load if you have their URL. A banner at the top of an archived page makes it clear the page is archived.
+## Creating a page
 
-## Subpages
+You can click the `+` button in the left-hand sidebar of HASH, next to the section bearing name of the web you wish to create them inside.
 
-Pages can have an unlimited number of subpages. In terms of features, subpages are identical to Pages, differing only in that they are nested under a parent Page in the left side-bar. A Page with subpages will have a chevron icon button on the left of its title in the side-bar. Clicking this icon will show or hide the list of subpages. When viewing a subpage, breadcrumbs at the very top of the page will show its parent Page or Pages.
+You can also create a new page using the `+` button in the top-right of navigation bar. New pages created from here will by default be added to your private web, unless you select another location at the point of creation. Pages can easily, however, be moved later.
 
-## Sharing Pages in read-only mode
+## Archiving a page
 
-Pages in HASH are accessible to anyone with the link but only logged in users who are members of the Workspace which owns the page can edit it. To share a Page with a collaborator who is not a member of your Workspace, simply copy the URL from your browser’s address bar or click the [...] menu on the right of the Page’s title in the side-bar and select “Copy link to page”.
+You can archive a page if you no longer need it by clicking the `…` button to the right of its title in HASH's left-hand sidebar, and selecting “Archive page”. Archived pages do not appear in the sidebar, and will be excluded from appearing in HASH search results by default, but can still be loaded by navigating directly to a page's full URL. When viewing an archived page, a banner at the top of the page clearly communicates that the current page has been archived.
 
-All pages within a web are stored in its page tree. However, just because a page appears in a tree, it doesn't mean that that page will be visible to everybody else with access to a web. The pages you see
+## Sub-pages
+
+Pages can have an unlimited number of sub-pages. In terms of features, sub-pages are identical to pages, differing only in that they are nested under a parent page in the left-hand sidebar. A page with subpages will have an arrow shown to the left of its title in the sidebar. Clicking this icon will show or hide the list of sub-pages. When viewing a sub-page, breadcrumbs at the very top of the page will show its parent page(s).
+
+## Sharing pages
+
+By default, pages are private to members of the web they are contained within. However, stricter or more permissive sharing options may be chosen.
+
+All pages within a web are stored in its page tree. However, just because a page appears in a tree, it doesn't mean that the page will be visible to everybody else with access to the web (i.e. all of its other members). Private pages can exist within shared webs, visible to a limited subset of an [org](/guide/webs/orgs)'s members.
+
+When making pages publicly viewable to users who are not members of a web, by default it is still the case that only members of the web which owns the page will be able to edit it.
+
+Learn more about [sharing ->](/guide/sharing)
