@@ -12,9 +12,9 @@ import { StatusCode } from "@local/status";
 import { CancelledFailure, Context } from "@temporalio/activity";
 import dedent from "dedent";
 
+import { createInferenceUsageRecordActivity } from "./create-inference-usage-record-activity";
 import { getAiAssistantAccountIdActivity } from "./get-ai-assistant-account-id-activity";
 import { getDereferencedEntityTypesActivity } from "./get-dereferenced-entity-types-activity";
-import { createInferenceUsageRecord } from "./infer-entities/create-inference-usage-record";
 import { getResultsFromInferenceState } from "./infer-entities/get-results-from-inference-state";
 import { inferEntitiesSystemMessage } from "./infer-entities/infer-entities-system-message";
 import { inferEntitySummariesFromWebPage } from "./infer-entities/infer-entity-summaries-from-web-page";
@@ -56,6 +56,11 @@ const inferEntities = async ({
 }): Promise<InferEntitiesReturn> => {
   /** Check if the user has exceeded their usage limits */
 
+  /**
+   * @todo: once `inferEntities` has been refactored to become a workflow,
+   * use the `userExceededServiceUsageLimitActivity` function as an activity
+   * instead of directly calling the underlying function.
+   */
   const userExceedServiceUsageLimitReason =
     await userExceededServiceUsageLimitActivity({
       graphApiClient,
@@ -337,7 +342,12 @@ export const inferEntitiesActivity = async ({
       };
     }
 
-    const usageRecordMetadata = await createInferenceUsageRecord({
+    /**
+     * @todo: once `inferEntities` has been refactored to become a workflow,
+     * use the `createInferenceUsageRecordActivity` function as an activity
+     * instead of directly calling the underlying function.
+     */
+    const usageRecordMetadata = await createInferenceUsageRecordActivity({
       aiAssistantAccountId,
       graphApiClient,
       modelName: model,

@@ -21,6 +21,7 @@ import { ApplicationFailure } from "@temporalio/activity";
 import type { CreateEmbeddingResponse } from "openai/resources";
 
 import { createEntitiesActivity } from "./activities/create-entities-activity";
+import { createInferenceUsageRecordActivity } from "./activities/create-inference-usage-record-activity";
 import { getAiAssistantAccountIdActivity } from "./activities/get-ai-assistant-account-id-activity";
 import { getDereferencedEntityTypesActivity } from "./activities/get-dereferenced-entity-types-activity";
 import { getTextFromWebPageActivity } from "./activities/get-text-from-web-page-activity";
@@ -175,6 +176,18 @@ export const createAiActivities = ({
     >,
   ) {
     return userExceededServiceUsageLimitActivity({
+      ...params,
+      graphApiClient,
+    });
+  },
+
+  async createInferenceUsageRecordActivity(
+    params: Omit<
+      Parameters<typeof createInferenceUsageRecordActivity>[0],
+      "graphApiClient"
+    >,
+  ) {
+    return createInferenceUsageRecordActivity({
       ...params,
       graphApiClient,
     });
