@@ -164,11 +164,7 @@ impl<'a> FromSql<'a> for OntologyTypeVersion {
 // TODO: can we impl Tsify to turn this into a type: template string
 //  if we can then we should delete wasm::VersionedUrlPatch
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Hash)]
-#[cfg_attr(
-    feature = "postgres",
-    derive(FromSql, ToSql),
-    postgres(name = "VersionedUrl")
-)]
+#[cfg_attr(feature = "postgres", derive(FromSql, ToSql))]
 pub struct VersionedUrl {
     pub base_url: BaseUrl,
     pub version: OntologyTypeVersion,
