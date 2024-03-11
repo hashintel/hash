@@ -138,6 +138,10 @@ export const systemEntityTypes = {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/quick-note/v/1",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/quick-note/",
   },
+  researchTask: {
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/research-task/v/1",
+    entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/research-task/",
+  },
   serviceAccount: {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/service-account/v/1",
     entityTypeBaseUrl:
@@ -173,6 +177,10 @@ export const systemEntityTypes = {
   userSecret: {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/user-secret/v/1",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/user-secret/",
+  },
+  webPage: {
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/web-page/v/1",
+    entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/web-page/",
   },
 } as const;
 
@@ -300,6 +308,12 @@ export const systemLinkEntityTypes = {
     linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/updated/v/1",
     linkEntityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/updated/",
   },
+  usedResource: {
+    linkEntityTypeId:
+      "https://hash.ai/@hash/types/entity-type/used-resource/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/used-resource/",
+  },
   usesUserSecret: {
     linkEntityTypeId:
       "https://hash.ai/@hash/types/entity-type/uses-user-secret/v/1",
@@ -336,6 +350,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@hash/types/property-type/browser-plugin-tab/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/browser-plugin-tab/",
+  },
+  completedAt: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/completed-at/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/completed-at/",
   },
   componentId: {
     propertyTypeId:
@@ -537,6 +557,10 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/profile-url/",
   },
+  prompt: {
+    propertyTypeId: "https://hash.ai/@hash/types/property-type/prompt/v/1",
+    propertyTypeBaseUrl: "https://hash.ai/@hash/types/property-type/prompt/",
+  },
   readAt: {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/read-at/v/1",
     propertyTypeBaseUrl: "https://hash.ai/@hash/types/property-type/read-at/",
@@ -581,6 +605,10 @@ export const systemPropertyTypes = {
       "https://hash.ai/@hash/types/property-type/upload-completed-at/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/upload-completed-at/",
+  },
+  url: {
+    propertyTypeId: "https://hash.ai/@hash/types/property-type/url/v/1",
+    propertyTypeBaseUrl: "https://hash.ai/@hash/types/property-type/url/",
   },
   userRegistrationByInvitationIsEnabled: {
     propertyTypeId:

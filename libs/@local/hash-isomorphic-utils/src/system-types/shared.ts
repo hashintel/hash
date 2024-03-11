@@ -149,6 +149,20 @@ export type ComponentIdPropertyValue = TextDataType;
  */
 export type ConnectionSourceNamePropertyValue = TextDataType;
 
+export type Created = Entity<CreatedProperties> & { linkData: LinkData };
+
+export type CreatedOutgoingLinkAndTarget = never;
+
+export type CreatedOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * The thing that something created.
+ */
+export type CreatedProperties = CreatedProperties1 & CreatedProperties2;
+export type CreatedProperties1 = LinkProperties;
+
+export type CreatedProperties2 = {};
+
 /**
  * A reference to a particular date and time, formatted according to RFC 3339.
  */
@@ -840,6 +854,11 @@ export type TriggeredByUserProperties1 = LinkProperties;
 export type TriggeredByUserProperties2 = {};
 
 /**
+ * The URL (Uniform Resource Locator) of something.
+ */
+export type URLPropertyValue = TextDataType;
+
+/**
  * The timestamp when the upload of something has completed
  */
 export type UploadCompletedAtPropertyValue = DateTimeDataType;
@@ -948,6 +967,20 @@ export type UserSecretProperties = {
  * The path to a secret in Hashicorp Vault.
  */
 export type VaultPathPropertyValue = TextDataType;
+
+export type WebPage = Entity<WebPageProperties>;
+
+export type WebPageOutgoingLinkAndTarget = never;
+
+export type WebPageOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A page on a website
+ */
+export type WebPageProperties = {
+  "https://hash.ai/@hash/types/property-type/title/"?: TitlePropertyValue;
+  "https://hash.ai/@hash/types/property-type/url/": URLPropertyValue;
+};
 
 /**
  * A URL for a website
