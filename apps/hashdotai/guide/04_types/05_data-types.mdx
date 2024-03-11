@@ -1,0 +1,50 @@
+---
+title: "Data Types"
+description: "Defining the acceptable values of a property type"
+metaTitle: "Data Types - HASH"
+metaDescription: "Data types describe the range of acceptable values of a property type"
+sidebarTitle: "Data Types"
+sidebarIcon: https://app.hash.ai/icons/docs/barcode.svg
+---
+
+# Overview
+
+**Data types** describe an acceptable format of a value. Data types (validation logic) are distinct from property types (semantic meaning), allowing for single data types to be re-used across many multiple property types.
+
+# Primtive data types
+
+HASH contains a series of primitive data types, which are widely used, and from which more complex data types can be constructed. These include:
+- `Text`: an ordered sequence of characters, including letters, numbers, and symbols
+- `Number`: an arithmetical value (in the [real number](https://en.wikipedia.org/wiki/Real_number) system)
+- `Boolean`: a "true" or "false" value
+
+HASH also contains three other primitive data types, which are unlikely to be useful to most users.
+
+<Toggle title="The 3 advanced primitive data types">
+
+The following primtive data types are also supported in HASH, ensuring that all values representable within JavaScript Object Notation (JSON) are also representable in HASH:
+
+- `Null`: A placeholder value representing 'nothing'
+- `Object`: A plain JSON object with no predefined structure
+- `Empty List`: An empty List
+
+# Custom data types
+
+Non-primitive (i.e. "custom") data types provide an easy way to validate more complicated property values which historically might have required the repeated writing or rewriting or Regular Expressions (RegEx), or use of purpose-built programming language data validation libraries -- for example credit card numbers, dates, phone numbers, colors, etc.
+
+## Creating custom data types
+
+<Callout style="information" type="coming-soon">
+  We'll be documenting how to create custom data types shortly.
+</Callout>
+
+# Converting between data types 
+
+<Callout style="information" type="coming-soon">
+  We'll be adding information about converting between data types using
+  "data type groups" in the near future.
+</Callout>
+
+# Browsing data types
+
+You can see [all data types](https://app.hash.ai/types/data-type) you have permission to view from the **Types -> Data Types** page in HASH.

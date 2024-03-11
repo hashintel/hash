@@ -1,0 +1,29 @@
+---
+title: "Wait Steps"
+description: "Pausing or awaiting within runs"
+metaTitle: "Waits - HASH"
+metaDescription: "Wait steps allow you to pause a flow run for a predefined period of time, or until a trigger is satisfied "
+sidebarTitle: "Waits"
+---
+
+<Callout style="information" type="coming-soon">
+  Wait steps are only available to **Team** and **Ultra** users of HASH.
+</Callout>
+
+# Overview
+
+**Waits** allow you to pause a flow's execution mid-run until a [trigger](/guide/flows/triggers) is satisfied.
+
+You can use wait steps in combination with triggers to:
+
+- pause a flow for a predetermined fixed amount of time;
+- watch for and await a user response, enabling "human in the loop" workflows;
+- watch for and await an AI agent or software system's action;
+- watch for and await an external party's action.
+
+# Example Use Cases
+
+- **Public Consultation** — provide a time-limited window for members of the public to respond to a consultation document published online, before continuing with the next step in a flow. (Pausing a flow for a specific fixed length of time)
+- **Quality Control** — introduce a human quality control, or "review" step in a workflow, whose further running is paused until approval is received. (Human-in-the-loop workflow)
+- **Long-Running AI Workflows** — submit requests to an external LLM-provider like OpenAI or AI agent orchestor (like LlamaIndex or LangChain) and pause until a response is received, with no timeouts, even on incredibly long-running jobs. (Watch and wait for AI action or API trigger)
+- **Outbound Email Campaigns** - send messages, and pause for a fixed amount of time before continuing, unless/until a prospect responds. (Watch and wait for a human response; combines well with [filters](/guide/flows/filters))
