@@ -162,10 +162,12 @@ where
 
 type FileOutputLayer<S> = fmt::Layer<S, JsonFields, Format<Json>, NonBlocking>;
 
+pub type TracingDropGuard = impl Drop;
+
 pub fn file_logger<S>(
     folder: impl AsRef<Path>,
     file_prefix: &str,
-) -> (FileOutputLayer<S>, impl Drop)
+) -> (FileOutputLayer<S>, TracingDropGuard)
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {

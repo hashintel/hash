@@ -41,11 +41,13 @@ yarn global add "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
 #mv out/* .
 #rm out -r
 
-# Install the pruned dependencies
-
 echo "Installing Rust"
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal
 source "$HOME/.cargo/env"
+# `rustup show` uses `rust-toolchain.toml` to install the correct toolchain.
+for _ in {1..5}; do rustup show && break || sleep 5; done
+
+# Install the pruned dependencies
 
 echo "Installing yarn dependencies"
 HUSKY=0 yarn install --frozen-lockfile --prefer-offline --force --build-from-source
