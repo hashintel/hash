@@ -349,7 +349,7 @@ export const DocsHomePage: FunctionComponent = () => {
                     sx={{ color: ({ palette }) => palette.teal[80] }}
                   />
                 </Box>
-                <Box>
+                {/* <Box>
                   <Typography
                     sx={{
                       color: ({ palette }) => palette.teal[80],
@@ -369,7 +369,7 @@ export const DocsHomePage: FunctionComponent = () => {
                       sx={{ position: "relative", top: 2 }}
                     />
                   </Typography>
-                </Box>
+                </Box> */}
               </Box>
             </Link>
           </Grid>
