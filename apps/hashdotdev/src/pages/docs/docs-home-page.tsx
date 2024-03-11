@@ -324,7 +324,7 @@ export const DocsHomePage: FunctionComponent = () => {
               Continue seamlessly working with information in your existing
               favorite tools and apps…
             </Typography>
-            <Link href="/docs/get-started/adopt">
+            {/* <Link href="/docs/get-started/adopt">
               <Box
                 display="flex"
                 sx={{
@@ -349,7 +349,7 @@ export const DocsHomePage: FunctionComponent = () => {
                     sx={{ color: ({ palette }) => palette.teal[80] }}
                   />
                 </Box>
-                {/* <Box>
+                <Box>
                   <Typography
                     sx={{
                       color: ({ palette }) => palette.teal[80],
@@ -369,9 +369,9 @@ export const DocsHomePage: FunctionComponent = () => {
                       sx={{ position: "relative", top: 2 }}
                     />
                   </Typography>
-                </Box> */}
+                </Box>
               </Box>
-            </Link>
+            </Link> */}
           </Grid>
           <Grid item xs={12} md={8}>
             <Grid container spacing={3}>
