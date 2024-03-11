@@ -7,25 +7,31 @@ sidebarTitle: "Link Types"
 sidebarIcon: https://app.hash.ai/icons/docs/link.svg
 ---
 
+# Overview
+
 Links are a special kind of entity, which exist solely to describe the relationship between two other entities. 
 
 Like normal entities, links have their own type (a "link type", as opposed to an "entity type") which gives the link semantic meaning. Link types may also specify [attributes](/guide/entities/attributes) which provide more information about the relationship.
 
 For simplicity's sake link types can be defined and edited much like entity types, but you can otherwise think of them as their own separate thing dedicated to describing relationships between entities. 
 
+# Creating link types
+
 You can create a new link type:
 
 1. inline when editing an entity type, at the point of need, from within the entity type editor;
 1. by clicking the `+` button in the top-right of HASH, and selecting the 'Create link type' option;
-1. by conerting an existing entity type to a link type, using the context menu on an entity type's page (accessed by clicking the three vertical dots near the top-right of the page).
+1. by converting an existing entity type to a link type, using the context menu on an entity type's page (accessed by clicking the three vertical dots near the top-right of the page).
 
-# Inheritance
+When creating a link type, you simply need to specify a name and a description.
 
-Links can extend other links. This can be useful for capturing additional or more specific information about a relationship, or enforcing stricter [constraints](/guide/entities/attributes#constraints).
+# Extending link types
 
-# Multi-Type Links
+Link types can extend or "inherit" from other link types. This can be useful for capturing additional or more specific information about a relationship, or enforcing stricter [constraints](/guide/entities/attributes#constraints).
 
-A link can have more than one link type associated with it. This is relatively uncommon, and typically link types will extend other link types (to make them "more specific") instead. A link with multiple types can, however, be useful to denote that two relationships are tied.
+# Multi-type links
+
+An instance of a link can have more than one link type associated with it. This is relatively uncommon, and typically link types will extend other link types (to make them "more specific") instead. A link with multiple types can, however, be useful to denote that two relationships are tied.
 
 Let's consider a `Person` and a `Delaware Corporation` (a type of company). Under Delaware law, company directors have a legal duty of care, known as a "fiduciary responsibility", to the shareholders of a company.
 
