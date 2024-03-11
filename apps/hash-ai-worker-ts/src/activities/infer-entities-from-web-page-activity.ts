@@ -21,6 +21,7 @@ export const inferEntitiesFromWebPageActivity = async (params: {
   entityTypes: DereferencedEntityTypesByTypeId;
   inferenceState: InferenceState;
   validationActorId: AccountId;
+  model: PermittedOpenAiModel;
   graphApiClient: GraphApi;
   maxTokens?: number | null;
   temperature?: number;
@@ -30,14 +31,12 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     relevantEntitiesPrompt,
     entityTypes,
     validationActorId,
+    model,
     graphApiClient,
     inferenceState,
     maxTokens,
     temperature,
   } = params;
-
-  /** @todo: allow for overriding this */
-  const model: PermittedOpenAiModel = "gpt-4-1106-preview";
 
   /**
    * Inference step 1: get a list of entities that can be inferred from the input text, without property details
