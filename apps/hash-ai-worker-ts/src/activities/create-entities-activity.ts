@@ -1,13 +1,13 @@
 import type { GraphApi } from "@local/hash-graph-client";
-import { AccountId, OwnedById } from "@local/hash-subgraph";
+import type { AccountId, OwnedById } from "@local/hash-subgraph";
 
-import {
+import type {
   DereferencedEntityTypesByTypeId,
   InferenceState,
 } from "./infer-entities/inference-types";
 import { log } from "./infer-entities/log";
 import { createEntities } from "./infer-entities/persist-entities/create-entities";
-import { ProposedEntityCreationsByType } from "./infer-entities/persist-entities/generate-persist-entities-tools";
+import type { ProposedEntityCreationsByType } from "./infer-entities/persist-entities/generate-persist-entities-tools";
 
 export const createEntitiesActivity = async (params: {
   actorId: AccountId;
@@ -20,11 +20,11 @@ export const createEntitiesActivity = async (params: {
 }) => {
   const {
     creationSuccesses,
+    unchangedEntities,
     /** @todo: handle creation failures and update candidates */
     creationFailures: _creationFailures,
     updateCandidates: _updateCandidates,
-    unchangedEntities: _unchangedEntities,
   } = await createEntities({ ...params, log });
 
-  return { creationSuccesses };
+  return { creationSuccesses, unchangedEntities };
 };

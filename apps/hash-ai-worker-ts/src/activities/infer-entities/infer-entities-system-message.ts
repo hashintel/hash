@@ -1,5 +1,5 @@
 import dedent from "dedent";
-import OpenAI from "openai";
+import type OpenAI from "openai";
 
 export const inferEntitiesSystemMessage: OpenAI.ChatCompletionSystemMessageParam =
   {

@@ -2,7 +2,7 @@ import dedent from "dedent";
 
 import { inferEntitiesSystemMessage } from "./infer-entities-system-message";
 import { inferEntitySummaries } from "./infer-entity-summaries";
-import {
+import type {
   DereferencedEntityTypesByTypeId,
   InferenceState,
   PermittedOpenAiModel,

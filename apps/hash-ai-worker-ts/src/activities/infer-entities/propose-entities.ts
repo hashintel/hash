@@ -1,18 +1,20 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import { AccountId } from "@local/hash-subgraph";
-import { Status, StatusCode } from "@local/status";
+import type { AccountId } from "@local/hash-subgraph";
+import type { Status} from "@local/status";
+import { StatusCode } from "@local/status";
 import dedent from "dedent";
-import OpenAI from "openai";
+import type OpenAI from "openai";
 
-import {
+import type {
   CompletionPayload,
   DereferencedEntityTypesByTypeId,
   InferenceState,
 } from "./inference-types";
 import { log } from "./log";
+import type {
+  ProposedEntityCreationsByType} from "./persist-entities/generate-persist-entities-tools";
 import {
-  ProposedEntityCreationsByType,
   validateProposedEntitiesByType,
 } from "./persist-entities/generate-persist-entities-tools";
 import { generateProposeEntitiesTools } from "./propose-entities/generate-propose-entities-tools";

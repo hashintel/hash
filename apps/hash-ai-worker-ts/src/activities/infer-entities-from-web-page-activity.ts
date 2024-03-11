@@ -1,11 +1,11 @@
 import type { GraphApi } from "@local/hash-graph-client";
-import { AccountId } from "@local/hash-subgraph";
+import type { AccountId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
 import { inferEntitiesSystemMessage } from "./infer-entities/infer-entities-system-message";
 import { inferEntitySummariesFromWebPage } from "./infer-entities/infer-entity-summaries-from-web-page";
-import {
+import type {
   DereferencedEntityTypesByTypeId,
   InferenceState,
   PermittedOpenAiModel,
