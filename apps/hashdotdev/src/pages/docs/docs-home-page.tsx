@@ -391,7 +391,7 @@ export const DocsHomePage: FunctionComponent = () => {
                     gap: 3,
                   }}
                 >
-                  {["BigQuery", "Snowflake", "PostgreSql"].map((name) => (
+                  {["PostgreSQL", "Snowflake", "BigQuery", "AWS Redshift"].map((name) => (
                     <LabelWithIcon
                       key={name}
                       label={name}
@@ -437,13 +437,13 @@ export const DocsHomePage: FunctionComponent = () => {
                       icon: <GithubIcon />,
                     },
                     { name: "Linear" },
-                    { name: "ClickUp" },
+                    { name: "Salesforce" },
                     { name: "Greenhouse" },
                     {
-                      name: "Hubspot",
+                      name: "HubSpot",
                       icon: <HubspotIcon />,
                     },
-                    { name: "TBD" },
+                    { name: "Slack" },
                   ].map(({ name, icon }) => (
                     <LabelWithIcon
                       key={name}
