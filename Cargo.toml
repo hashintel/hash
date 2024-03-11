@@ -1,3 +1,5 @@
+cargo-features = ["edition2024"]
+
 [workspace]
 members = [
     "apps/hash-graph/bench",
@@ -28,7 +30,7 @@ resolver = "2"
 
 [workspace.package]
 authors = ["HASH"]
-edition = "2021"
+edition = "2024"
 
 
 [workspace.dependencies]

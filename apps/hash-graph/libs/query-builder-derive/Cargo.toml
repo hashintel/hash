@@ -1,7 +1,9 @@
+cargo-features = ["edition2024"]
+
 [package]
 name = "query-builder-derive"
 version = "0.1.0"
-edition = "2021"
+edition.workspace = true
 
 [lib]
 proc-macro = true

@@ -5,7 +5,7 @@
     lint_reasons,
     never_type
 )]
-
+#![feature(type_alias_impl_trait)]
 pub mod backend;
 pub mod schema;
 pub mod zanzibar;

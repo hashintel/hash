@@ -1,7 +1,7 @@
 mod spicedb;
 
 use core::{fmt, iter::repeat};
-use std::{error::Error, future::Future};
+use std::error::Error;
 
 use error_stack::Report;
 use futures::{stream, Stream};
