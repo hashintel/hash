@@ -1,3 +1,4 @@
+import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import type {
   DataTypeStructuralQuery,
   EntityQueryCursor,
@@ -228,5 +229,14 @@ export const createGraphActivities = ({
     ...params: Parameters<typeof graphApiClient.createEntity>
   ) {
     return graphApiClient.createEntity(...params);
+  },
+
+  async getHashInstanceAdminAccountGroupId(authentication: {
+    actorId: AccountId;
+  }) {
+    return getHashInstanceAdminAccountGroupId(
+      { graphApi: graphApiClient },
+      authentication,
+    );
   },
 });
