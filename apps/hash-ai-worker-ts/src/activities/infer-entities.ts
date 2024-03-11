@@ -21,7 +21,7 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { AccountId, Timestamp } from "@local/hash-subgraph";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-subgraph/src/stdlib/subgraph/roots";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-subgraph/stdlib";
 import { StatusCode } from "@local/status";
 import { CancelledFailure, Context } from "@temporalio/activity";
 import dedent from "dedent";
