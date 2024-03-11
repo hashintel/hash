@@ -1,20 +1,22 @@
 use graph_types::{
     account::{EditionArchivedById, EditionCreatedById},
-    ontology::OntologyTypeVersion,
     owned_by_id::OwnedById,
     Embedding,
 };
 use postgres_types::{Json, ToSql};
 use temporal_versioning::{LeftClosedTemporalInterval, Timestamp, TransactionTime};
 use time::OffsetDateTime;
-use type_system::{ClosedEntityType, DataType, EntityType, PropertyType};
+use type_system::{
+    url::{BaseUrl, OntologyTypeVersion},
+    ClosedEntityType, DataType, EntityType, PropertyType,
+};
 use uuid::Uuid;
 
 #[derive(Debug, ToSql)]
 #[postgres(name = "ontology_ids")]
 pub struct OntologyIdRow {
     pub ontology_id: Uuid,
-    pub base_url: String,
+    pub base_url: BaseUrl,
     pub version: OntologyTypeVersion,
 }
 
@@ -67,7 +69,7 @@ pub struct PropertyTypeRow {
 #[postgres(name = "property_type_constrains_values_on_tmp")]
 pub struct PropertyTypeConstrainsValuesOnRow {
     pub source_property_type_ontology_id: Uuid,
-    pub target_data_type_base_url: String,
+    pub target_data_type_base_url: BaseUrl,
     pub target_data_type_version: OntologyTypeVersion,
 }
 
@@ -83,7 +85,7 @@ pub struct PropertyTypeEmbeddingRow {
 #[postgres(name = "property_type_constrains_properties_on_tmp")]
 pub struct PropertyTypeConstrainsPropertiesOnRow {
     pub source_property_type_ontology_id: Uuid,
-    pub target_property_type_base_url: String,
+    pub target_property_type_base_url: BaseUrl,
     pub target_property_type_version: OntologyTypeVersion,
 }
 
@@ -109,7 +111,7 @@ pub struct EntityTypeEmbeddingRow {
 #[postgres(name = "entity_type_constrains_properties_on_tmp")]
 pub struct EntityTypeConstrainsPropertiesOnRow {
     pub source_entity_type_ontology_id: Uuid,
-    pub target_property_type_base_url: String,
+    pub target_property_type_base_url: BaseUrl,
     pub target_property_type_version: OntologyTypeVersion,
 }
 
@@ -117,7 +119,7 @@ pub struct EntityTypeConstrainsPropertiesOnRow {
 #[postgres(name = "entity_type_inherits_from_tmp")]
 pub struct EntityTypeInheritsFromRow {
     pub source_entity_type_ontology_id: Uuid,
-    pub target_entity_type_base_url: String,
+    pub target_entity_type_base_url: BaseUrl,
     pub target_entity_type_version: OntologyTypeVersion,
 }
 
@@ -125,7 +127,7 @@ pub struct EntityTypeInheritsFromRow {
 #[postgres(name = "entity_type_constrains_links_on_tmp")]
 pub struct EntityTypeConstrainsLinksOnRow {
     pub source_entity_type_ontology_id: Uuid,
-    pub target_entity_type_base_url: String,
+    pub target_entity_type_base_url: BaseUrl,
     pub target_entity_type_version: OntologyTypeVersion,
 }
 
@@ -133,6 +135,6 @@ pub struct EntityTypeConstrainsLinksOnRow {
 #[postgres(name = "entity_type_constrains_link_destinations_on_tmp")]
 pub struct EntityTypeConstrainsLinkDestinationsOnRow {
     pub source_entity_type_ontology_id: Uuid,
-    pub target_entity_type_base_url: String,
+    pub target_entity_type_base_url: BaseUrl,
     pub target_entity_type_version: OntologyTypeVersion,
 }

@@ -20,8 +20,8 @@ use graph_types::{
     ontology::{
         DataTypeMetadata, EntityTypeMetadata, OntologyTemporalMetadata, OntologyType,
         OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
-        OntologyTypeVersion, PartialDataTypeMetadata, PartialEntityTypeMetadata,
-        PartialPropertyTypeMetadata, PropertyTypeMetadata,
+        PartialDataTypeMetadata, PartialEntityTypeMetadata, PartialPropertyTypeMetadata,
+        PropertyTypeMetadata,
     },
     owned_by_id::OwnedById,
 };
@@ -32,7 +32,7 @@ use tokio::net::ToSocketAddrs;
 use tokio_serde::formats::Json;
 use type_fetcher::fetcher::{FetchedOntologyType, FetcherClient};
 use type_system::{
-    url::{BaseUrl, VersionedUrl},
+    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     DataType, EntityType, EntityTypeReference, PropertyType,
 };
 
@@ -740,8 +740,7 @@ where
         .find(|metadata| {
             let record_id = metadata.record_id();
             let reference = reference.url();
-            record_id.base_url == reference.base_url
-                && record_id.version.inner() == reference.version
+            record_id.base_url == reference.base_url && record_id.version == reference.version
         })
         .ok_or_else(|| {
             Report::new(InsertionError).attach_printable(format!(

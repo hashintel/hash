@@ -24,7 +24,7 @@ use temporal_client::TemporalClient;
 use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
 use tokio_postgres::{GenericClient, Row};
 use type_system::{
-    url::{BaseUrl, VersionedUrl},
+    url::{OntologyTypeVersion, VersionedUrl},
     DataType,
 };
 
@@ -412,7 +412,18 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
     {
         let old_ontology_id = DataTypeId::from_url(&VersionedUrl {
             base_url: params.schema.id().base_url.clone(),
-            version: params.schema.id().version - 1,
+            version: OntologyTypeVersion::new(
+                params
+                    .schema
+                    .id()
+                    .version
+                    .inner()
+                    .checked_sub(1)
+                    .ok_or(UpdateError)
+                    .attach_printable(
+                        "The version of the data type is already at the lowest possible value",
+                    )?,
+            ),
         });
         authorization_api
             .check_data_type_permission(
@@ -614,8 +625,7 @@ impl QueryRecordDecode for DataTypeWithMetadata {
 
     fn decode(row: &Row, indices: &Self::CompilationArtifacts) -> Self {
         let record_id = OntologyTypeRecordId {
-            base_url: BaseUrl::new(row.get(indices.base_url))
-                .expect("invalid base URL returned from Postgres"),
+            base_url: row.get(indices.base_url),
             version: row.get(indices.version),
         };
 

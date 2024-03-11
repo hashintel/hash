@@ -5,7 +5,7 @@ use graph_types::knowledge::{
 };
 use pretty_assertions::assert_eq;
 use temporal_versioning::ClosedTemporalBound;
-use type_system::url::{BaseUrl, VersionedUrl};
+use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
 
@@ -36,7 +36,7 @@ fn person_entity_type_id() -> VersionedUrl {
             "https://blockprotocol.org/@alice/types/entity-type/person/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: 1,
+        version: OntologyTypeVersion::new(1),
     }
 }
 

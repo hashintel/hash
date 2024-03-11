@@ -18,7 +18,7 @@ codec = { workspace = true }
 
 error-stack = { workspace = true, features = ["std", "serde"] }
 hash-status = { workspace = true }
-type-system = { workspace = true }
+type-system = { workspace = true, features = ["postgres"] }
 
 postgres-types = { workspace = true, features = ["derive", "with-serde_json-1"] }
 serde = { workspace = true, features = ["derive"] }

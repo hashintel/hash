@@ -1,7 +1,9 @@
+cargo-features = ["edition2024"]
+
 [package]
 name = "type-system"
 version = "0.0.0"
-edition = "2021"
+edition.workspace = true
 authors = ["HASH"]
 publish = false
 description = "Definitions of types within the Block Protocol Type System"
@@ -11,6 +13,7 @@ name = "type_system"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+postgres-types = { workspace = true, optional = true }
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
 thiserror = "1.0.58"
@@ -20,6 +23,10 @@ utoipa = { version = "4.2.0", features = ["url"], optional = true }
 
 [dev-dependencies]
 graph-test-data = { workspace = true }
+
+[features]
+postgres = ["dep:postgres-types"]
+utoipa = ["dep:utoipa"]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { version = "0.2.92", features = ["serde-serialize"] }

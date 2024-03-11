@@ -4,13 +4,12 @@ use derivative::Derivative;
 use error_stack::{bail, Context, Report, ResultExt};
 use graph_types::{
     knowledge::entity::{Entity, EntityId},
-    ontology::OntologyTypeVersion,
     Embedding,
 };
 use serde::Deserialize;
 use serde_json::{Number, Value};
 use temporal_versioning::Timestamp;
-use type_system::url::{BaseUrl, VersionedUrl};
+use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 use uuid::Uuid;
 
 use crate::{
@@ -75,7 +74,7 @@ where
             Self::Equal(
                 Some(FilterExpression::Path(<R::QueryPath<'p>>::version())),
                 Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
-                    OntologyTypeVersion::new(versioned_url.version),
+                    versioned_url.version,
                 ))),
             ),
         ])
@@ -479,7 +478,7 @@ mod tests {
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
             )
             .expect("invalid base url"),
-            version: 1,
+            version: OntologyTypeVersion::new(1),
         };
 
         let expected = json!({

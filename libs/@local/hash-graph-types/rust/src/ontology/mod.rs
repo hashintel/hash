@@ -3,18 +3,12 @@ mod entity_type;
 mod property_type;
 
 use core::fmt;
-#[cfg(feature = "postgres")]
-use std::error::Error;
 
-#[cfg(feature = "postgres")]
-use bytes::BytesMut;
-#[cfg(feature = "postgres")]
-use postgres_types::{FromSql, IsNull, ToSql, Type};
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use time::OffsetDateTime;
 use type_system::{
-    url::{BaseUrl, VersionedUrl},
+    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     DataTypeReference, EntityTypeReference, PropertyTypeReference,
 };
 
@@ -32,46 +26,6 @@ use crate::{
     account::{EditionArchivedById, EditionCreatedById},
     owned_by_id::OwnedById,
 };
-
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[repr(transparent)]
-pub struct OntologyTypeVersion(u32);
-
-impl OntologyTypeVersion {
-    #[must_use]
-    pub const fn new(inner: u32) -> Self {
-        Self(inner)
-    }
-
-    #[must_use]
-    pub const fn inner(self) -> u32 {
-        self.0
-    }
-}
-
-#[cfg(feature = "postgres")]
-impl ToSql for OntologyTypeVersion {
-    postgres_types::accepts!(INT8);
-
-    postgres_types::to_sql_checked!();
-
-    fn to_sql(&self, _: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>>
-    where
-        Self: Sized,
-    {
-        i64::from(self.0).to_sql(&Type::INT8, out)
-    }
-}
-
-#[cfg(feature = "postgres")]
-impl<'a> FromSql<'a> for OntologyTypeVersion {
-    postgres_types::accepts!(INT8);
-
-    fn from_sql(_: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
-        Ok(Self::new(i64::from_sql(&Type::INT8, raw)?.try_into()?))
-    }
-}
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -93,7 +47,7 @@ impl From<VersionedUrl> for OntologyTypeRecordId {
     fn from(versioned_url: VersionedUrl) -> Self {
         Self {
             base_url: versioned_url.base_url,
-            version: OntologyTypeVersion::new(versioned_url.version),
+            version: versioned_url.version,
         }
     }
 }
@@ -102,7 +56,7 @@ impl From<OntologyTypeRecordId> for VersionedUrl {
     fn from(record_id: OntologyTypeRecordId) -> Self {
         Self {
             base_url: record_id.base_url,
-            version: record_id.version.inner(),
+            version: record_id.version,
         }
     }
 }

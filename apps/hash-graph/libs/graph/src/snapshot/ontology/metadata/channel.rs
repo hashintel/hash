@@ -93,7 +93,7 @@ impl
         self.id
             .start_send(OntologyIdRow {
                 ontology_id,
-                base_url: record_id.base_url.as_str().to_owned(),
+                base_url: record_id.base_url,
                 version: record_id.version,
             })
             .change_context(SnapshotRestoreError::Read)
