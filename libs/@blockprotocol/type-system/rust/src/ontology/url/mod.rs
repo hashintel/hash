@@ -1,6 +1,9 @@
-use std::{error::Error, fmt, num::IntErrorKind, str::FromStr};
+#[cfg(feature = "postgres")]
+use std::error::Error;
+use std::{fmt, num::IntErrorKind, str::FromStr};
 
 pub use error::{ParseBaseUrlError, ParseVersionedUrlError};
+#[cfg(feature = "postgres")]
 use postgres_types::{private::BytesMut, FromSql, IsNull, ToSql, Type};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 #[cfg(target_arch = "wasm32")]
