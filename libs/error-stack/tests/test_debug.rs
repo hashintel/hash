@@ -228,12 +228,12 @@ fn sources_nested_alternate() {
     assert_snapshot!(format!("{report:#?}"));
 }
 
-#[cfg(all(
-    rust_1_65,
-    any(feature = "std", feature = "hooks"),
-    feature = "spantrace"
-))]
 mod full {
+    #![cfg(all(
+        rust_1_65,
+        any(feature = "std", feature = "hooks"),
+        feature = "spantrace"
+    ))]
     //! Why so many cfg guards?
     //! What was found during initial development of the feature was,
     //! that a complete test of all tests with snapshots on every possible feature combination

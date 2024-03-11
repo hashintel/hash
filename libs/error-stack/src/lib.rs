@@ -519,8 +519,8 @@ pub use self::{
 };
 
 #[cfg(test)]
+#[allow(dead_code, clippy::extra_unused_type_parameters)]
 mod tests {
-    #![allow(dead_code, clippy::extra_unused_type_parameters)]
 
     use core::mem;
 
