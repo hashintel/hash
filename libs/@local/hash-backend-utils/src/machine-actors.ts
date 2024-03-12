@@ -154,8 +154,9 @@ export const createMachineActorEntity = async (
   const metadata = await context.graphApi
     .createEntity(machineAccountId, {
       draft: false,
-      entityTypeId:
+      entityTypeIds: [
         machineEntityTypeId ?? systemEntityTypes.machine.entityTypeId,
+      ],
       ownedById,
       properties: {
         "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":

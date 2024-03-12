@@ -29,10 +29,14 @@ const topLevelDocsPages = (siteMap as SiteMap).pages.find(
 )!.subPages;
 
 const docsTabs: { title: string; href: string }[] = [
-  {
-    title: "Home",
-    href: "/docs",
-  },
+  /**
+   * Temporarily hide the "Home" tab, while we don't want to display
+   * the `/docs` page.
+   */
+  // {
+  //   title: "Home",
+  //   href: "/docs",
+  // },
   ...topLevelDocsPages.map(
     ({ title, titleDerivedFromDirectoryName, href }) => ({
       /**
@@ -108,8 +112,8 @@ const DocsPage: NextPageWithLayout<DocsPageProps> = ({
 
   const tabsRef = useRef<HTMLDivElement>(null);
 
-  const [isLastTabVisible, setIsLastTabVisible] = useState(false);
-  const [isFirstTabVisible, setIsFirstTabVisible] = useState(false);
+  const [isLastTabVisible, setIsLastTabVisible] = useState(true);
+  const [isFirstTabVisible, setIsFirstTabVisible] = useState(true);
 
   useEffect(() => {
     const tabsElement = tabsRef.current;
@@ -124,7 +128,7 @@ const DocsPage: NextPageWithLayout<DocsPageProps> = ({
         const isScrolledToStart = scrollLeft === 0;
 
         const isScrolledToEnd =
-          scrollWidth - Math.round(scrollLeft + clientWidth) < 0;
+          scrollWidth - Math.round(scrollLeft + clientWidth) <= 0;
 
         setIsFirstTabVisible(isScrolledToStart);
         setIsLastTabVisible(isScrolledToEnd);
@@ -147,8 +151,8 @@ const DocsPage: NextPageWithLayout<DocsPageProps> = ({
       ({ href }) => href === `/docs${docsSlug[0] ? `/${docsSlug[0]}` : ""}`,
     );
 
-    // If no matching tab is found, redirect to the docs homepage.
-    if (!tab) {
+    // If no matching tab is found, perform a client-side redirect to the first tab.
+    if (!tab && typeof window !== "undefined") {
       void router.push(docsTabs[0]!.href);
     }
 
@@ -209,7 +213,7 @@ const DocsPage: NextPageWithLayout<DocsPageProps> = ({
               opacity: isFirstTabVisible ? 0 : 1,
               background: ({ palette }) =>
                 `linear-gradient(to left, ${palette.gray[10]}00, ${palette.gray[10]}FF)`,
-              zIndex: 1,
+              zIndex: isFirstTabVisible ? -1 : 1,
             },
             "&::after": {
               content: "''",
@@ -220,6 +224,7 @@ const DocsPage: NextPageWithLayout<DocsPageProps> = ({
               height: "100%",
               transition: ({ transitions }) => transitions.create("opacity"),
               opacity: isLastTabVisible ? 0 : 1,
+              zIndex: isLastTabVisible ? -1 : 1,
               background: ({ palette }) =>
                 `linear-gradient(to right, ${palette.gray[10]}00, ${palette.gray[10]}FF)`,
             },

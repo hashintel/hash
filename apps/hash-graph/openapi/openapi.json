@@ -2725,7 +2725,7 @@
         "type": "object",
         "required": [
           "ownedById",
-          "entityTypeId",
+          "entityTypeIds",
           "properties",
           "draft",
           "relationships"
@@ -2741,8 +2741,11 @@
           "draft": {
             "type": "boolean"
           },
-          "entityTypeId": {
-            "$ref": "#/components/schemas/VersionedUrl"
+          "entityTypeIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            }
           },
           "entityUuid": {
             "allOf": [
@@ -3318,7 +3321,7 @@
         "required": [
           "recordId",
           "temporalVersioning",
-          "entityTypeId",
+          "entityTypeIds",
           "provenance",
           "archived"
         ],
@@ -3326,8 +3329,11 @@
           "archived": {
             "type": "boolean"
           },
-          "entityTypeId": {
-            "$ref": "#/components/schemas/VersionedUrl"
+          "entityTypeIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            }
           },
           "provenance": {
             "$ref": "#/components/schemas/EntityProvenanceMetadata"
@@ -4119,10 +4125,16 @@
       "EntityValidationType": {
         "oneOf": [
           {
-            "$ref": "./models/entity_type.json"
+            "type": "array",
+            "items": {
+              "$ref": "./models/entity_type.json"
+            }
           },
           {
-            "$ref": "#/components/schemas/VersionedUrl"
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            }
           }
         ]
       },
@@ -6073,7 +6085,7 @@
             "required": [
               "properties",
               "entityId",
-              "entityTypeId",
+              "entityTypeIds",
               "archived",
               "draft"
             ],
@@ -6094,8 +6106,11 @@
               "entityId": {
                 "$ref": "#/components/schemas/EntityId"
               },
-              "entityTypeId": {
-                "$ref": "#/components/schemas/VersionedUrl"
+              "entityTypeIds": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/VersionedUrl"
+                }
               },
               "properties": {
                 "$ref": "#/components/schemas/EntityProperties"
@@ -6213,12 +6228,12 @@
       "ValidateEntityParams": {
         "type": "object",
         "required": [
-          "entityType",
+          "entityTypes",
           "properties",
           "profile"
         ],
         "properties": {
-          "entityType": {
+          "entityTypes": {
             "$ref": "#/components/schemas/EntityValidationType"
           },
           "linkData": {

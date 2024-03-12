@@ -11,7 +11,6 @@ import {
 import { FunctionComponent, ReactNode } from "react";
 
 import { ArrowRightRegularIcon } from "../../components/icons/arrow-right-regular-icon";
-import { BookRegularIcon } from "../../components/icons/book-regular-icon";
 import { EarthAmericasRegularIcon } from "../../components/icons/earth-americas-regular-icon";
 import { EllipsisRegularIcon } from "../../components/icons/ellipsis-regular-icon";
 import { FontAwesomeIcon } from "../../components/icons/font-awesome-icon";
@@ -391,15 +390,17 @@ export const DocsHomePage: FunctionComponent = () => {
                     gap: 3,
                   }}
                 >
-                  {["PostgreSQL", "Snowflake", "BigQuery", "AWS Redshift"].map((name) => (
-                    <LabelWithIcon
-                      key={name}
-                      label={name}
-                      iconBackground="teal"
-                      icon={<EarthAmericasRegularIcon />}
-                      width={180}
-                    />
-                  ))}
+                  {["PostgreSQL", "Snowflake", "BigQuery", "AWS Redshift"].map(
+                    (name) => (
+                      <LabelWithIcon
+                        key={name}
+                        label={name}
+                        iconBackground="teal"
+                        icon={<EarthAmericasRegularIcon />}
+                        width={180}
+                      />
+                    ),
+                  )}
                 </Box>
               </Grid>
               <Grid

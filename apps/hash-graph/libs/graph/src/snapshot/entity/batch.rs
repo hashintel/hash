@@ -6,16 +6,17 @@ use authorization::{
     schema::{EntityRelationAndSubject, EntityTypeId},
     NoAuthorization,
 };
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, ResultExt};
 use futures::TryStreamExt;
 use graph_types::knowledge::entity::{Entity, EntityUuid};
 use tokio_postgres::GenericClient;
+use type_system::ClosedEntityType;
 use validation::{Validate, ValidationProfile};
 
 use crate::{
     snapshot::{
         entity::{
-            table::{EntityDraftRow, EntityEmbeddingRow},
+            table::{EntityDraftRow, EntityEmbeddingRow, EntityIsOfTypeRow},
             EntityEditionRow, EntityIdRow, EntityLinkEdgeRow, EntityTemporalMetadataRow,
         },
         WriteBatch,
@@ -30,6 +31,7 @@ pub enum EntityRowBatch {
     Ids(Vec<EntityIdRow>),
     Drafts(Vec<EntityDraftRow>),
     Editions(Vec<EntityEditionRow>),
+    Type(Vec<EntityIsOfTypeRow>),
     TemporalMetadata(Vec<EntityTemporalMetadataRow>),
     Links(Vec<EntityLinkEdgeRow>),
     Relations(Vec<(EntityUuid, EntityRelationAndSubject)>),
@@ -38,7 +40,7 @@ pub enum EntityRowBatch {
 
 #[async_trait]
 impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
-    async fn begin(postgres_client: &PostgresStore<C>) -> Result<(), InsertionError> {
+    async fn begin(postgres_client: &PostgresStore<C>) -> Result<(), Report<InsertionError>> {
         postgres_client
             .as_client()
             .client()
@@ -52,23 +54,19 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                         (LIKE entity_drafts INCLUDING ALL)
                         ON COMMIT DROP;
 
-                    CREATE TEMPORARY TABLE entity_editions_tmp (
-                        entity_edition_id UUID PRIMARY KEY,
-                        properties JSONB NOT NULL,
-                        left_to_right_order INTEGER,
-                        right_to_left_order INTEGER,
-                        edition_created_by_id UUID NOT NULL,
-                        archived BOOLEAN NOT NULL,
-                        entity_type_base_url TEXT NOT NULL,
-                        entity_type_version INT8 NOT NULL
-                    ) ON COMMIT DROP;
+                    CREATE TEMPORARY TABLE entity_editions_tmp
+                        (LIKE entity_editions INCLUDING ALL)
+                        ON COMMIT DROP;
+
+                    CREATE TEMPORARY TABLE entity_is_of_type_tmp
+                        (LIKE entity_is_of_type INCLUDING ALL)
+                        ON COMMIT DROP;
 
                     CREATE TEMPORARY TABLE entity_temporal_metadata_tmp
                         (LIKE entity_temporal_metadata INCLUDING ALL)
                         ON COMMIT DROP;
                     ALTER TABLE entity_temporal_metadata_tmp
-                        ALTER COLUMN transaction_time
-                        SET DEFAULT TSTZRANGE(now(), NULL, '[)');
+                        ALTER COLUMN transaction_time SET DEFAULT TSTZRANGE(now(), NULL, '[)');
 
                     CREATE TEMPORARY TABLE entity_link_edges_tmp (
                         web_id UUID NOT NULL,
@@ -95,7 +93,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
         self,
         postgres_client: &PostgresStore<C>,
         authorization_api: &mut (impl ZanzibarBackend + Send),
-    ) -> Result<(), InsertionError> {
+    ) -> Result<(), Report<InsertionError>> {
         let client = postgres_client.as_client().client();
         match self {
             Self::Ids(ids) => {
@@ -137,7 +135,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                     .query(
                         "
                             INSERT INTO entity_editions_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::entity_editions_tmp[])
+                            SELECT DISTINCT * FROM UNNEST($1::entity_editions[])
                             ON CONFLICT DO NOTHING
                             RETURNING 1;
                         ",
@@ -147,6 +145,23 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
                     tracing::info!("Read {} entity editions", rows.len());
+                }
+            }
+            Self::Type(types) => {
+                let rows = client
+                    .query(
+                        "
+                            INSERT INTO entity_is_of_type_tmp
+                            SELECT DISTINCT * FROM UNNEST($1::entity_is_of_type[])
+                            ON CONFLICT DO NOTHING
+                            RETURNING 1;
+                        ",
+                        &[&types],
+                    )
+                    .await
+                    .change_context(InsertionError)?;
+                if !rows.is_empty() {
+                    tracing::info!("Read {} entity types", rows.len());
                 }
             }
             Self::TemporalMetadata(temporal_metadata) => {
@@ -210,7 +225,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
     async fn commit(
         postgres_client: &PostgresStore<C>,
         validation: bool,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<(), Report<InsertionError>> {
         postgres_client
             .as_client()
             .client()
@@ -234,13 +249,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                  entity_temporal_metadata_tmp;
 
                     INSERT INTO entity_is_of_type
-                        SELECT
-                            entity_edition_id,
-                            ontology_ids_tmp.ontology_id AS entity_type_ontology_id
-                        FROM entity_editions_tmp
-                        INNER JOIN ontology_ids_tmp ON
-                            ontology_ids_tmp.base_url = entity_editions_tmp.entity_type_base_url
-                            AND ontology_ids_tmp.version = entity_editions_tmp.entity_type_version;
+                        SELECT * FROM entity_is_of_type_tmp;
 
                     INSERT INTO entity_has_left_entity
                         SELECT
@@ -286,11 +295,21 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
             };
 
             for entity in entities {
-                let entity_type_id = EntityTypeId::from_url(&entity.metadata.entity_type_id);
-                let schema = schemas.get(&entity_type_id).ok_or(InsertionError)?;
+                let schema = entity
+                    .metadata
+                    .entity_type_ids
+                    .iter()
+                    .map(|id| {
+                        schemas
+                            .get(&EntityTypeId::from_url(id))
+                            .ok_or(InsertionError)
+                            .cloned()
+                    })
+                    .collect::<Result<ClosedEntityType, _>>()?;
+
                 entity
                     .validate(
-                        schema,
+                        &schema,
                         if entity.metadata.record_id.entity_id.draft_id.is_some() {
                             ValidationProfile::Draft
                         } else {

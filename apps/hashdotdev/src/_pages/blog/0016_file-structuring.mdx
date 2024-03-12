@@ -162,9 +162,9 @@ Importing something from another workspace is as straightforward as `package-nam
 
 But when faced with the need to import from the same workspace, we have two options:
 
-1.  use relative paths, e.g. `../../../foo/bar`
-2.  create top-level aliases for some folders, e.g. `@/foo` for `my-workspace/src/foo`.
-    [Next.js supports this style](https://nextjs.org/docs/advanced-features/module-path-aliases); other types of workspaces can be configured to support it too.
+1. use relative paths, e.g. `../../../foo/bar`
+2. create top-level aliases for some folders, e.g. `@/foo` for `my-workspace/src/foo`.
+   [Next.js supports this style](https://nextjs.org/docs/advanced-features/module-path-aliases); other types of workspaces can be configured to support it too.
 
 The problem with the second approach is that it creates two correct ways of doing the same thing. If we are in `my-workspace/x/y.ts` and we want to import from `my-workspace/a/b.ts`, we can either write `../a/b` or `@/a/b`. Using `@/a/b` requires additional setup, which can become a source of tooling incompatibility, team debate, and other wastage of time. It is easier to always use relative paths.
 
@@ -293,3 +293,15 @@ At each moment in time, files and folders communicate the ‘current truth’ of
 
 - In [Þ → libs/blockprotocol](https://github.com/blockprotocol/blockprotocol/tree/main/libs/blockprotocol)
 - In [# → @hashintel/design-system](https://github.com/hashintel/hash/tree/main/libs/@hashintel/design-system)
+
+## Co-existing with Rust in a monorepo
+
+Our fractal tree approach applies only to the JavaScript portion of our monorepo. Not all rules hold in Rust. Key differences in our Rust code include:
+
+- **P4.** resources of a sub-sub-tree are inaccessible
+- **Rule 2:** no `index` files are used (we tried this, but found it more distracting and a worse developer experience than simply just using `mod.rs`)
+- **Rule 5:** imports within sub-trees do not use relative paths (given increased refactoring costs, and by default imports are absolute in Rust with the exception of reexporting sub-module exports)
+- **Rule 6:** we don't have a shared folder in Rust, and we want to avoid having one
+- **Rule 7:** multiple entry points are disallowed (our entry point is `fn main()` - always)
+- **Rule 8:** unit tests are typically colocated at the _bottom_ of files inside of a `test` module, per Rust convention
+- **Rule 9:** exceptions are in fact prohibited; the `panic!` macro is avoided)

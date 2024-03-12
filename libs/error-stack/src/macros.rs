@@ -1,5 +1,5 @@
-#[doc(hidden)]
 pub mod __private {
+    #![doc(hidden)]
     //! Implementation detail for macros.
     //!
     //! ⚠️ **Functionality in this module is considered unstable and is subject to change at any time

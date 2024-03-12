@@ -31,9 +31,11 @@ import {
   linkEntityTypeUrl,
   OwnedById,
   PropertyTypeWithMetadata,
-  Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  getRoots,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-subgraph/stdlib";
 
 import { resetGraph } from "../../../test-server";
 import {
@@ -291,7 +293,9 @@ describe("Entity CRU", () => {
           includeDrafts: false,
         },
       })
-      .then(({ data }) => getRoots(data.subgraph as Subgraph<EntityRootType>));
+      .then(({ data }) =>
+        getRoots(mapGraphApiSubgraphToSubgraph<EntityRootType>(data.subgraph)),
+      );
 
     const newlyUpdated = allEntities.find(
       (ent) =>

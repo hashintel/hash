@@ -79,7 +79,8 @@ const Hero: FunctionComponent = () => (
       <Box width={{ xs: 1, md: 725 }}>
         <Typography mb={2} sx={{ lineHeight: 1.5 }}>
           We’re developing two open-source projects in parallel — the{" "}
-          <strong>Block Protocol</strong> standard, and the <strong>HASH</strong>
+          <strong>Block Protocol</strong> standard, and the{" "}
+          <strong>HASH</strong>
           platform — to help everybody make better decisions.
         </Typography>
         <Typography sx={{ lineHeight: 1.5 }}>
@@ -268,9 +269,9 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
               }}
             >
               Applications can integrate with the protocol’s public registry,
-              enabling their users to discover and insert new blocks at
-              runtime, unlocking new use cases and expanding app utility beyond
-              its original programming.
+              enabling their users to discover and insert new blocks at runtime,
+              unlocking new use cases and expanding app utility beyond its
+              original programming.
             </HomePageBodyTypography>
           </Project>
           <Project
