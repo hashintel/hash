@@ -1,9 +1,10 @@
-import { CanvasPosition } from "@local/hash-graphql-shared/graphql/types";
 import {
-  getPageQuery,
-  updatePageContents,
-} from "@local/hash-graphql-shared/queries/page.queries";
-import { EntityId } from "@local/hash-subgraph";
+  UpdateBlockCollectionContentsMutation,
+  UpdateBlockCollectionContentsMutationVariables,
+} from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
+import { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
+import { EntityId, extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { toDomPrecision } from "@tldraw/primitives";
 import {
   defineShape,
@@ -14,13 +15,12 @@ import {
   TLOpacityType,
 } from "@tldraw/tldraw";
 
-import { BlockContextProvider } from "../../../../blocks/page/block-context";
 import { BlockLoader } from "../../../../components/block-loader/block-loader";
-import {
-  UpdatePageContentsMutation,
-  UpdatePageContentsMutationVariables,
-} from "../../../../graphql/api-types.gen";
+import { structuralQueryEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../../../../lib/apollo-client";
+import { BlockContextProvider } from "../../../shared/block-collection/block-context";
+import { getBlockCollectionContentsStructuralQueryVariables } from "../../../shared/block-collection-contents";
+import { BlockCollectionContext } from "../../../shared/block-collection-context";
 import {
   defaultBlockHeight,
   defaultBlockWidth,
@@ -34,7 +34,7 @@ export type BlockShape = TLBaseShape<
     w: number;
     h: number;
     opacity: TLOpacityType;
-    indexPosition: number;
+    linkEntityId: EntityId;
     pageEntityId: EntityId;
     blockLoaderProps: JsonSerializableBlockLoaderProps;
   }
@@ -42,31 +42,36 @@ export type BlockShape = TLBaseShape<
 
 // Persist a block's new position in the database
 const persistBlockPosition = ({
-  blockIndexPosition,
+  linkEntityId,
   pageEntityId,
   canvasPosition,
 }: {
-  blockIndexPosition: number;
+  linkEntityId: EntityId;
   pageEntityId: EntityId;
-  canvasPosition: CanvasPosition;
+  canvasPosition: HasSpatiallyPositionedContentProperties;
 }) => {
   void apolloClient.mutate<
-    UpdatePageContentsMutation,
-    UpdatePageContentsMutationVariables
+    UpdateBlockCollectionContentsMutation,
+    UpdateBlockCollectionContentsMutationVariables
   >({
     variables: {
       actions: {
         moveBlock: {
-          currentPosition: blockIndexPosition,
-          newPosition: blockIndexPosition,
-          canvasPosition,
+          linkEntityId,
+          position: { canvasPosition },
         },
       },
       entityId: pageEntityId,
     },
-    mutation: updatePageContents,
+    mutation: updateBlockCollectionContents,
     refetchQueries: [
-      { query: getPageQuery, variables: { entityId: pageEntityId } },
+      // Refetch the page
+      {
+        query: structuralQueryEntitiesQuery,
+        variables: getBlockCollectionContentsStructuralQueryVariables(
+          extractEntityUuidFromEntityId(pageEntityId),
+        ),
+      },
     ],
   });
 };
@@ -77,24 +82,24 @@ export class BlockUtil extends TLBoxUtil<BlockShape> {
 
   // gather a shape's positional information into a flat object
   // they are split up in TLDraw because x, y and rotation are properties on every shape, whereas w and h are not
-  static shapeToCanvasPosition = (shape: BlockShape): CanvasPosition => {
+  static shapeToCanvasPosition = (
+    shape: BlockShape,
+  ): HasSpatiallyPositionedContentProperties => {
     return {
-      "https://blockprotocol.org/@hash/types/property-type/x-position/":
-        shape.x,
-      "https://blockprotocol.org/@hash/types/property-type/y-position/":
-        shape.y,
-      "https://blockprotocol.org/@hash/types/property-type/width-in-pixels/":
+      "https://hash.ai/@hash/types/property-type/x-position/": shape.x,
+      "https://hash.ai/@hash/types/property-type/y-position/": shape.y,
+      "https://hash.ai/@hash/types/property-type/width-in-pixels/":
         shape.props.w,
-      "https://blockprotocol.org/@hash/types/property-type/height-in-pixels/":
+      "https://hash.ai/@hash/types/property-type/height-in-pixels/":
         shape.props.h,
-      "https://blockprotocol.org/@hash/types/property-type/rotation-in-rads/":
+      "https://hash.ai/@hash/types/property-type/rotation-in-rads/":
         shape.rotation,
     };
   };
 
   static persistShapePosition = (shape: BlockShape) => {
     persistBlockPosition({
-      blockIndexPosition: shape.props.indexPosition,
+      linkEntityId: shape.props.linkEntityId,
       pageEntityId: shape.props.pageEntityId,
       canvasPosition: BlockUtil.shapeToCanvasPosition(shape),
     });
@@ -126,11 +131,11 @@ export class BlockUtil extends TLBoxUtil<BlockShape> {
        */
       blockLoaderProps: {} as JsonSerializableBlockLoaderProps,
       /**
-       * This is intentionally a dummy string that should never be used,
-       * because we supply it in when creating a BlockShape
+       * These are intentionally dummy strings that should never be used,
+       * because we supply them when creating a BlockShape
        */
       pageEntityId: "placeholder-123" as EntityId,
-      indexPosition: 0,
+      linkEntityId: "placeholder-123" as EntityId,
     };
   }
 
@@ -159,12 +164,22 @@ export class BlockUtil extends TLBoxUtil<BlockShape> {
         }}
       >
         <BlockContextProvider key={blockLoaderProps.wrappingEntityId}>
-          <BlockLoader
-            {...blockLoaderProps}
-            editableRef={null}
-            onBlockLoaded={() => null}
-            readonly
-          />
+          <BlockCollectionContext.Consumer>
+            {(collectionContext) => (
+              <BlockLoader
+                {...blockLoaderProps}
+                blockCollectionSubgraph={
+                  collectionContext!.blockCollectionSubgraph
+                }
+                editableRef={null}
+                onBlockLoaded={() => null}
+                readonly
+                userPermissionsOnEntities={
+                  collectionContext!.userPermissionsOnEntities
+                }
+              />
+            )}
+          </BlockCollectionContext.Consumer>
         </BlockContextProvider>
       </HTMLContainer>
     );

@@ -9,12 +9,12 @@ inputs:
     description: "Build hash-ai-worker-ts image"
     required: false
     default: "false"
-  hash-ai-worker-py:
-    description: "Build hash-ai-worker-py image"
-    required: false
-    default: "false"
   hash-integration-worker:
     description: "Build hash-integration-worker image"
+    required: false
+    default: "false"
+  hash-api:
+    description: "Build hash-api image"
     required: false
     default: "false"
 
@@ -22,7 +22,7 @@ runs:
   using: "composite"
   steps:
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@885d1462b80bc1c1c7f0b00334ad271f09369c55 # v2.10.0
+      uses: docker/setup-buildx-action@0d103c3126aa41d772a8362f6aa67afac040f80c # v3.1.0
 
     - name: Load tags
       shell: bash
@@ -42,6 +42,10 @@ runs:
         set -x
         echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
+    - name: Clean docker system
+      shell: bash
+      run: docker system prune --force --all
+
     - name: Download hash-graph image
       if: inputs.hash-graph == 'true'
       uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
@@ -56,18 +60,18 @@ runs:
         name: hash-ai-worker-ts
         path: /tmp
 
-    - name: Download hash-ai-worker-py image
-      if: inputs.hash-ai-worker-py == 'true'
-      uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
-      with:
-        name: hash-ai-worker-py
-        path: /tmp
-
     - name: Download hash-integration-worker image
       if: inputs.hash-integration-worker == 'true'
       uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
       with:
         name: hash-integration-worker
+        path: /tmp
+
+    - name: Download hash-api image
+      if: inputs.hash-api == 'true'
+      uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+      with:
+        name: hash-api
         path: /tmp
 
     - name: Load hash-graph image
@@ -80,15 +84,15 @@ runs:
       shell: bash
       run: docker load --input /tmp/hash-ai-worker-ts.tar
 
-    - name: Load hash-ai-worker-py image
-      if: inputs.hash-ai-worker-py == 'true'
-      shell: bash
-      run: docker load --input /tmp/hash-ai-worker-py.tar
-
     - name: Load hash-integration-worker image
       if: inputs.hash-integration-worker == 'true'
       shell: bash
       run: docker load --input /tmp/hash-integration-worker.tar
+
+    - name: Load hash-api image
+      if: inputs.hash-api == 'true'
+      shell: bash
+      run: docker load --input /tmp/hash-api.tar
 
     - name: Summarize docker images
       shell: bash

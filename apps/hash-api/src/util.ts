@@ -22,12 +22,12 @@ export const getRequiredEnv = (name: string) => {
 };
 
 /** Returns true if exactly one of items is not null or undefined. */
-export const exactlyOne = (...items: any[]): boolean =>
+export const exactlyOne = (...items: unknown[]): boolean =>
   items
     .map((val) => val !== null && val !== undefined)
     .reduce((acc, val) => (val ? 1 : 0) + acc, 0) === 1;
 
-export const isRecord = (thing: unknown): thing is Record<string, any> => {
+export const isRecord = (thing: unknown): thing is Record<string, unknown> => {
   if (typeof thing !== "object") {
     return false;
   }

@@ -1,31 +1,37 @@
+import { VersionedUrl } from "@blockprotocol/type-system";
 import {
+  AccountGroupId,
   AccountId,
   Entity,
   EntityId,
   EntityMetadata,
   EntityPropertiesObject,
-  EntityTypeWithMetadata,
+  EntityRelationAndSubject,
+  extractDraftIdFromEntityId,
   LinkData,
   OwnedById,
 } from "@local/hash-subgraph";
+import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
-import { ImpureGraphFunction } from "../..";
-import { isEntityTypeLinkEntityType } from "../../ontology/primitive/entity-type";
+import { ImpureGraphFunction } from "../../context-types";
+import {
+  getEntityTypeById,
+  isEntityTypeLinkEntityType,
+} from "../../ontology/primitive/entity-type";
 import { getLatestEntityById } from "./entity";
+import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 
 export type CreateLinkEntityParams = {
   ownedById: OwnedById;
   properties?: EntityPropertiesObject;
-  linkEntityType: EntityTypeWithMetadata;
+  linkEntityTypeId: VersionedUrl;
+  owner?: AccountId | AccountGroupId;
+  draft?: boolean;
   leftEntityId: EntityId;
   leftToRightOrder?: number;
   rightEntityId: EntityId;
   rightToLeftOrder?: number;
-  actorId: AccountId;
-};
-
-export type LinkEntity = Entity & {
-  linkData: NonNullable<Entity["linkData"]>;
+  relationships: EntityRelationAndSubject[];
 };
 
 export const isEntityLinkEntity = (entity: Entity): entity is LinkEntity =>
@@ -35,7 +41,7 @@ export const isEntityLinkEntity = (entity: Entity): entity is LinkEntity =>
  * Create a link entity between a left and a right entity.
  *
  * @param params.ownedById - the id of the account who owns the new link entity
- * @param params.linkEntityType - the link entity type of the link entity
+ * @param params.linkEntityTypeId - the link entity type ID of the link entity
  * @param params.leftEntityId - the ID of the left entity
  * @param params.leftToRightOrder (optional) - the left to right order of the link entity
  * @param params.rightEntityId - the ID of the right entity
@@ -45,19 +51,33 @@ export const isEntityLinkEntity = (entity: Entity): entity is LinkEntity =>
 export const createLinkEntity: ImpureGraphFunction<
   CreateLinkEntityParams,
   Promise<LinkEntity>
-> = async (context, params) => {
+> = async (context, authentication, params) => {
   const {
     ownedById,
-    linkEntityType,
-    actorId,
+    linkEntityTypeId,
     leftEntityId,
     leftToRightOrder,
     rightEntityId,
     rightToLeftOrder,
     properties = {},
+    draft = false,
   } = params;
 
-  if (!(await isEntityTypeLinkEntityType(context, linkEntityType.schema))) {
+  const linkEntityType = await getEntityTypeById(context, authentication, {
+    entityTypeId: linkEntityTypeId,
+  });
+
+  /**
+   * @todo: remove this check once it is made in the Graph API
+   * @see https://linear.app/hash/issue/H-972/validate-links-when-creatingupdating-an-entity-or-links-tofrom-an
+   */
+  if (
+    !(await isEntityTypeLinkEntityType(
+      context,
+      authentication,
+      linkEntityType.schema,
+    ))
+  ) {
     throw new Error(
       `Entity type with ID "${linkEntityType.schema.$id}" is not a link entity type.`,
     );
@@ -70,19 +90,35 @@ export const createLinkEntity: ImpureGraphFunction<
     rightToLeftOrder,
   };
 
-  const { data: metadata } = await context.graphApi.createEntity({
-    ownedById,
-    linkData,
-    actorId,
-    entityTypeId: linkEntityType.schema.$id,
-    properties,
-  });
+  const { data: metadata } = await context.graphApi.createEntity(
+    authentication.actorId,
+    {
+      ownedById,
+      linkData,
+      entityTypeId: linkEntityType.schema.$id,
+      properties,
+      draft,
+      relationships: params.relationships,
+    },
+  );
 
-  return {
+  const linkEntity = {
     metadata: metadata as EntityMetadata,
     properties,
     linkData,
   };
+
+  for (const afterCreateHook of afterCreateEntityHooks) {
+    if (afterCreateHook.entityTypeId === linkEntity.metadata.entityTypeId) {
+      void afterCreateHook.callback({
+        context,
+        entity: linkEntity,
+        authentication,
+      });
+    }
+  }
+
+  return linkEntity;
 };
 
 /**
@@ -100,20 +136,22 @@ export const updateLinkEntity: ImpureGraphFunction<
     properties?: EntityPropertiesObject;
     leftToRightOrder?: number;
     rightToLeftOrder?: number;
-    actorId: AccountId;
+    draft?: boolean;
   },
   Promise<LinkEntity>
-> = async ({ graphApi }, params) => {
-  const { actorId, leftToRightOrder, rightToLeftOrder, linkEntity } = params;
+> = async ({ graphApi }, { actorId }, params) => {
+  const { leftToRightOrder, rightToLeftOrder, linkEntity } = params;
 
   const properties = params.properties ?? linkEntity.properties;
 
-  const { data: metadata } = await graphApi.updateEntity({
-    actorId,
+  const { data: metadata } = await graphApi.updateEntity(actorId, {
     entityId: linkEntity.metadata.recordId.entityId,
     entityTypeId: linkEntity.metadata.entityTypeId,
     properties,
     archived: linkEntity.metadata.archived,
+    draft:
+      params.draft ??
+      !!extractDraftIdFromEntityId(linkEntity.metadata.recordId.entityId),
     leftToRightOrder,
     rightToLeftOrder,
   });
@@ -137,8 +175,8 @@ export const updateLinkEntity: ImpureGraphFunction<
 export const getLinkEntityRightEntity: ImpureGraphFunction<
   { linkEntity: LinkEntity },
   Promise<Entity>
-> = async (ctx, { linkEntity }) => {
-  const rightEntity = await getLatestEntityById(ctx, {
+> = async (ctx, authentication, { linkEntity }) => {
+  const rightEntity = await getLatestEntityById(ctx, authentication, {
     entityId: linkEntity.linkData.rightEntityId,
   });
 
@@ -153,8 +191,8 @@ export const getLinkEntityRightEntity: ImpureGraphFunction<
 export const getLinkEntityLeftEntity: ImpureGraphFunction<
   { linkEntity: LinkEntity },
   Promise<Entity>
-> = async (ctx, { linkEntity }) => {
-  const leftEntity = await getLatestEntityById(ctx, {
+> = async (ctx, authentication, { linkEntity }) => {
+  const leftEntity = await getLatestEntityById(ctx, authentication, {
     entityId: linkEntity.linkData.leftEntityId,
   });
 

@@ -1,8 +1,11 @@
-import { PropertyType } from "@blockprotocol/type-system/slim";
+import { EntityTypeWithMetadata } from "@blockprotocol/graph";
+import { extractBaseUrl, PropertyType } from "@blockprotocol/type-system/slim";
 import { faChevronRight, faList } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
-import { Box, Collapse, Fade, TableCell } from "@mui/material";
+import { Box, Collapse, Fade, Stack, TableCell, Tooltip } from "@mui/material";
+import { useWatch } from "react-hook-form";
 
+import { EntityTypeEditorFormData } from "../../shared/form-types";
 import { useIsReadonly } from "../../shared/read-only-context";
 import { ArrowTurnDownRightIcon } from "../shared/arrow-turn-down-right-icon";
 import {
@@ -10,13 +13,15 @@ import {
   ROW_DEPTH_INDENTATION,
 } from "../shared/collapsible-row-line";
 import { EntityTypeTableTitleCellText } from "../shared/entity-type-table";
+import { useInheritedValuesForCurrentDraft } from "../shared/use-inherited-values";
 import { VersionUpgradeIndicator } from "../shared/version-upgrade-indicator";
+import { TagIcon } from "./property-title-cell/tag-icon";
 
 interface PropertyTitleCellProps {
   property: PropertyType;
   array: boolean;
   depth: number;
-  inherited?: boolean;
+  inheritanceChain?: EntityTypeWithMetadata[];
   lines: boolean[];
   expanded?: boolean;
   currentVersion: number;
@@ -31,7 +36,7 @@ export const PropertyTitleCell = ({
   property,
   array,
   depth = 0,
-  inherited,
+  inheritanceChain,
   lines,
   expanded,
   setExpanded,
@@ -40,6 +45,16 @@ export const PropertyTitleCell = ({
   onUpdateVersion,
 }: PropertyTitleCellProps) => {
   const isReadonly = useIsReadonly();
+
+  const { labelProperty: inheritedLabelProperty } =
+    useInheritedValuesForCurrentDraft();
+
+  const labelProperty = useWatch<EntityTypeEditorFormData>({
+    name: "labelProperty",
+  });
+
+  const isLabelProperty =
+    (labelProperty ?? inheritedLabelProperty) === extractBaseUrl(property.$id);
 
   return (
     <TableCell width={PROPERTY_TITLE_CELL_WIDTH} sx={{ position: "relative" }}>
@@ -77,6 +92,7 @@ export const PropertyTitleCell = ({
             expanded !== undefined && depth === 0
               ? "translateX(-20px)"
               : "none",
+          whiteSpace: "nowrap",
         }}
       >
         <Collapse
@@ -102,9 +118,42 @@ export const PropertyTitleCell = ({
           </IconButton>
         </Collapse>
 
-        {inherited && <ArrowTurnDownRightIcon sx={{ mr: 1 }} />}
+        <Tooltip
+          title={
+            inheritanceChain
+              ? `Inherited from ${inheritanceChain[inheritanceChain.length - 1]!.schema.title}`
+              : ""
+          }
+        >
+          <Stack direction="row" alignItems="center">
+            {inheritanceChain && <ArrowTurnDownRightIcon sx={{ mr: 1 }} />}
 
-        <Box>{property.title}</Box>
+            <Box>{property.title}</Box>
+
+            {isLabelProperty && (
+              <Box
+                sx={({ palette }) => ({
+                  background: palette.gray[20],
+                  border: `1px solid ${palette.gray[30]}`,
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: 18,
+                  width: 18,
+                  ml: 1,
+                })}
+              >
+                <TagIcon
+                  sx={{
+                    fontSize: 9,
+                    fill: ({ palette }) => palette.common.black,
+                  }}
+                />
+              </Box>
+            )}
+          </Stack>
+        </Tooltip>
 
         <Fade in={array} appear={false}>
           <FontAwesomeIcon
@@ -117,7 +166,10 @@ export const PropertyTitleCell = ({
           />
         </Fade>
 
-        {depth === 0 && currentVersion !== latestVersion && !isReadonly ? (
+        {depth === 0 &&
+        currentVersion !== latestVersion &&
+        !inheritanceChain &&
+        !isReadonly ? (
           <VersionUpgradeIndicator
             currentVersion={currentVersion}
             latestVersion={latestVersion}

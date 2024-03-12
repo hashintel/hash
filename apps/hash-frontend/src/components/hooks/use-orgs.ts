@@ -1,7 +1,7 @@
-import { useQuery } from "@apollo/client";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { OrgProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { ApolloQueryResult, useQuery } from "@apollo/client";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
@@ -10,30 +10,32 @@ import {
   QueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
 import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { constructOrg, Org } from "../../lib/user-and-org";
+import {
+  constructMinimalOrg,
+  isEntityOrgEntity,
+  MinimalOrg,
+} from "../../lib/user-and-org";
 import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
 
 /**
- * Retrieves a list of organizations.
- * @todo the API should provide this, and it should only be available to admins.
- *    users should only see a list of orgs they are a member of.
+ * Retrieves a list of organizations
  */
-export const useOrgs = (
-  cache = false,
-): {
+export const useOrgs = (): {
   loading: boolean;
-  orgs?: Org[];
+  orgs?: MinimalOrg[];
+  refetch: () => Promise<ApolloQueryResult<QueryEntitiesQuery>>;
 } => {
-  const { data, loading } = useQuery<
+  const { data, loading, refetch } = useQuery<
     QueryEntitiesQuery,
     QueryEntitiesQueryVariables
   >(queryEntitiesQuery, {
     variables: {
+      includePermissions: false,
       operation: {
         multiFilter: {
           filters: [
             entityHasEntityTypeByVersionedUrlFilter(
-              types.entityType.org.entityTypeId,
+              systemEntityTypes.organization.entityTypeId,
             ),
           ],
           operator: "AND",
@@ -45,37 +47,36 @@ export const useOrgs = (
       constrainsLinkDestinationsOn: { outgoing: 0 },
       inheritsFrom: { outgoing: 0 },
       isOfType: { outgoing: 0 },
-      hasLeftEntity: { incoming: 0, outgoing: 1 },
-      hasRightEntity: { incoming: 1, outgoing: 0 },
+      hasLeftEntity: { incoming: 0, outgoing: 0 },
+      hasRightEntity: { incoming: 0, outgoing: 0 },
     },
-    /** @todo reconsider caching. This is done for testing/demo purposes. */
-    fetchPolicy: cache ? "cache-first" : "no-cache",
+    fetchPolicy: "cache-and-network",
   });
 
-  const { queryEntities: subgraph } = data ?? {};
+  const { queryEntities: subgraphAndPermissions } = data ?? {};
 
   const orgs = useMemo(() => {
-    if (!subgraph) {
+    if (!subgraphAndPermissions) {
       return undefined;
     }
 
-    // Sharing the same resolved map makes the map below slightly more efficient
-    const resolvedUsers = {};
-    const resolvedOrgs = {};
-
-    /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
-    return getRoots(subgraph as Subgraph<EntityRootType>).map((orgEntity) =>
-      constructOrg({
-        subgraph,
-        orgEntity: orgEntity as Entity<OrgProperties>,
-        resolvedUsers,
-        resolvedOrgs,
-      }),
+    const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+      subgraphAndPermissions.subgraph,
     );
-  }, [subgraph]);
+
+    return getRoots(subgraph).map((orgEntity) => {
+      if (!isEntityOrgEntity(orgEntity)) {
+        throw new Error(
+          `Entity with type ${orgEntity.metadata.entityTypeId} is not an org entity`,
+        );
+      }
+      return constructMinimalOrg({ orgEntity });
+    });
+  }, [subgraphAndPermissions]);
 
   return {
     loading,
     orgs,
+    refetch,
   };
 };

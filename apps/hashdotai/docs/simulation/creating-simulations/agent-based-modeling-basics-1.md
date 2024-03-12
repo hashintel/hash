@@ -13,9 +13,9 @@ In contrast with traditional simulation and modeling, agent-based modelers descr
 
 A popular example of an agent-based simulation is Conway's _Game of Life_ - a simulation performed on a grid, where each cell can be either alive or dead. Here, the cells are _agents_, and the rules are _behaviors._ The behaviors for Conway's _Game of Life_ are as follows:
 
-> 1.  Any live cell with two or three neighbors survives.
-> 1.  Any dead cell with three live neighbors becomes a live cell.
-> 1.  All other live cells die in the next generation. Similarly, all other dead cells stay dead.
+> 1. Any live cell with two or three neighbors survives.
+> 1. Any dead cell with three live neighbors becomes a live cell.
+> 1. All other live cells die in the next generation. Similarly, all other dead cells stay dead.
 
 These simple interactions produce what is called _emergent behavior_, where simple rules create complex results.
 

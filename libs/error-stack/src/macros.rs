@@ -1,5 +1,5 @@
-#[doc(hidden)]
 pub mod __private {
+    #![doc(hidden)]
     //! Implementation detail for macros.
     //!
     //! ⚠️ **Functionality in this module is considered unstable and is subject to change at any time
@@ -106,6 +106,7 @@ pub mod __private {
 /// use error_stack::{report, Context};
 ///
 /// #[derive(Debug)]
+/// # #[allow(dead_code)]
 /// struct PermissionDenied(User, Resource);
 ///
 /// impl fmt::Display for PermissionDenied {
@@ -173,6 +174,7 @@ macro_rules! report {
 /// use error_stack::{bail, Context};
 ///
 /// #[derive(Debug)]
+/// # #[allow(dead_code)]
 /// struct PermissionDenied(User, Resource);
 ///
 /// impl fmt::Display for PermissionDenied {
@@ -222,6 +224,7 @@ macro_rules! bail {
 /// use error_stack::{ensure, Context};
 ///
 /// #[derive(Debug)]
+/// # #[allow(dead_code)]
 /// struct PermissionDenied(User, Resource);
 ///
 /// impl fmt::Display for PermissionDenied {

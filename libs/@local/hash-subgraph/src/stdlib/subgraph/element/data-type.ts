@@ -5,9 +5,10 @@ import {
   getDataTypes as getDataTypesBp,
   getDataTypesByBaseUrl as getDataTypesByBaseUrlBp,
 } from "@blockprotocol/graph/temporal/stdlib";
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { DataType } from "@local/hash-graph-client";
 
-import {
+import type {
   BaseUrl,
   DataTypeWithMetadata,
   OntologyTypeVertexId,
@@ -37,6 +38,17 @@ export const getDataTypeById = (
   getDataTypeByIdBp(subgraph as unknown as SubgraphBp, dataTypeId) as
     | DataTypeWithMetadata
     | undefined;
+
+export const mustGetDataTypeById = (
+  subgraph: Subgraph,
+  dataTypeId: VersionedUrl,
+): DataTypeWithMetadata => {
+  const dataType = getDataTypeById(subgraph, dataTypeId);
+  if (!dataType) {
+    throw new Error(`Data type with id ${dataTypeId} not found in subgraph`);
+  }
+  return dataType;
+};
 
 /**
  * Gets a `DataTypeWithMetadata` by its `OntologyTypeVertexId` from within the vertices of the subgraph. Returns
@@ -68,3 +80,23 @@ export const getDataTypesByBaseUrl = (
     subgraph as unknown as SubgraphBp,
     baseUrl,
   ) as DataTypeWithMetadata[];
+
+export const getJsonSchemaTypeFromValue = (
+  value: unknown,
+): DataType["type"] => {
+  if (value === null) {
+    return "null";
+  }
+
+  if (Array.isArray(value)) {
+    return "array";
+  }
+
+  switch (typeof value) {
+    case "number":
+    case "bigint":
+      return "number";
+    default:
+      return typeof value;
+  }
+};

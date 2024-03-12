@@ -3,7 +3,6 @@
     feature(
         error_in_core,
         error_generic_member_access,
-        saturating_int_impl,
         sync_unsafe_cell,
         exclusive_wrapper
     )
@@ -15,6 +14,7 @@
 //  `visit_none` on every `deserialize_*` call if appropriate. missing value (`visit_none`) will
 //  only be generated through `*Access` implementations.
 
+#[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::{string::String, vec::Vec};
 use core::marker::PhantomData;
 
@@ -795,6 +795,7 @@ impl<T> DeserializeOwned for T where T: for<'de> Deserialize<'de> {}
 
 #[cfg(test)]
 pub(crate) mod test {
+    #[cfg_attr(feature = "std", allow(unused_imports))]
     use alloc::{format, string::String, vec::Vec};
     use core::{
         fmt::{Display, Formatter},

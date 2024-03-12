@@ -1,7 +1,9 @@
+cargo-features = ["edition2024"]
+
 [package]
 name = "graph-benches"
 version = "0.0.0"
-edition = "2021"
+edition.workspace = true
 publish = false
 # If we leave `autobenches` enabled, then every module in the benches folder is compiled to be a standalone binary,
 # which means we can't use modules to group shared logic (importing via `super`, etc.)
@@ -11,22 +13,23 @@ publish = false
 autobenches = false
 
 [dev-dependencies]
-graph = { path = "../lib/graph" }
+graph = { workspace = true }
 graph-test-data = { workspace = true }
 graph-types = { workspace = true }
 temporal-versioning = { workspace = true }
+authorization = { workspace = true }
 
 type-system = { workspace = true }
 
 criterion = { version = "0.5.1", features = ["async_tokio", "html_reports"] }
 criterion-macro = "0.4.0"
-futures = "0.3.28"
+futures = { workspace = true }
 rand = "0.8.5"
-serde = { version = "1.0.188", features = ["derive"] }
-serde_json = "1.0.105"
-tokio = { version = "1.32.0", features = ["rt-multi-thread", "macros"] }
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = "1.0.114"
+tokio = { workspace = true, features = ["macros"] }
 tokio-postgres = { version = "0.7.10", default-features = false }
-uuid = { version = "1.4.1", features = ["v4", "serde"] }
+uuid = { version = "1.7.0", features = ["v4", "serde"] }
 
 [[bench]]
 name = "read_scaling"

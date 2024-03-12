@@ -1,5 +1,3 @@
-export { CaretDownIcon } from "./caret-down";
-export { CheckIcon } from "./check";
 export { ChevronRightIcon } from "./chevron-right";
 export { CircleQuestionIcon } from "./circle-question";
 export { CodePenIcon } from "./code-pen";

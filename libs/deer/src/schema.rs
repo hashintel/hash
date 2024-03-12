@@ -1,7 +1,9 @@
 // NOTE: this is still a prototype, and might be deleted at any stage, this minimally expands on the
 // existing schema things, but instead allows for deeply nested values.
 
-use alloc::{boxed::Box, collections::BTreeMap, format, string::String};
+use alloc::collections::BTreeMap;
+#[cfg_attr(feature = "std", allow(unused_imports))]
+use alloc::{boxed::Box, format, string::String};
 use core::any::{type_name, TypeId};
 
 use serde::{ser::SerializeMap, Serialize, Serializer};
@@ -243,10 +245,13 @@ impl Serialize for Document {
             .get(&self.id)
             .expect("`new()` should have created a schema for the main schema");
         map.serialize_entry("$ref", &id.as_path())?;
-        map.serialize_entry("$defs", &SerializeDefinitions {
-            schemas: &self.schemas,
-            references: &self.references,
-        })?;
+        map.serialize_entry(
+            "$defs",
+            &SerializeDefinitions {
+                schemas: &self.schemas,
+                references: &self.references,
+            },
+        )?;
 
         map.end()
     }
@@ -295,7 +300,9 @@ pub(crate) mod visitor {
 
 #[cfg(test)]
 mod tests {
-    use alloc::{boxed::Box, collections::BTreeMap, vec::Vec};
+    use alloc::collections::BTreeMap;
+    #[cfg_attr(feature = "std", allow(unused_imports))]
+    use alloc::{boxed::Box, vec::Vec};
 
     use serde_json::{json, to_value};
     use similar_asserts::assert_serde_eq;
@@ -459,6 +466,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::std_instead_of_alloc)] // Reason: `assert_serde_eq!` uses `std`
     fn integration() {
         // patented sanity integration test™
         let document = Vertex::document();

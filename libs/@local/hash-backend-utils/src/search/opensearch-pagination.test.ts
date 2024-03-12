@@ -104,7 +104,7 @@ describe("OpenSearch pagination", () => {
     });
 
     const secondPage = await openSearch.continuePaginatedSearch({
-      cursor: firstPage.cursor!!,
+      cursor: firstPage.cursor!,
     });
 
     expect(firstPage.cursor).toBeDefined();

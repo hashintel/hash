@@ -3,10 +3,10 @@ import {
   CustomRenderer,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
-import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites";
-import { customColors } from "@hashintel/design-system";
+import { customColors } from "@hashintel/design-system/theme";
 
 import { getCellHorizontalPadding } from "../../../components/grid/utils";
+import { CustomIcon } from "../../../components/grid/utils/custom-grid-icons";
 import { drawTextWithIcon } from "../../../components/grid/utils/draw-text-with-icon";
 
 export interface TextIconCellProps {
@@ -18,15 +18,23 @@ export interface TextIconCellProps {
 
 export type TextIconCell = CustomCell<TextIconCellProps>;
 
-export const renderTextIconCell: CustomRenderer<TextIconCell> = {
+export const createRenderTextIconCell = (params?: {
+  firstColumnLeftPadding?: number;
+}): CustomRenderer<TextIconCell> => ({
   kind: GridCellKind.Custom,
   isMatch: (cell: CustomCell): cell is TextIconCell =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (cell.data as any).kind === "text-icon-cell",
   draw: (args, cell) => {
+    const { firstColumnLeftPadding } = params ?? {};
     const { theme, rect, ctx } = args;
     const { value, icon } = cell.data;
 
-    const columnPadding = getCellHorizontalPadding(true);
+    const columnPadding =
+      typeof firstColumnLeftPadding !== "undefined" && args.col === 1
+        ? firstColumnLeftPadding
+        : getCellHorizontalPadding();
+
     const iconLeft = rect.x + columnPadding;
 
     // prepare to fill text
@@ -49,4 +57,4 @@ export const renderTextIconCell: CustomRenderer<TextIconCell> = {
     args.cell.data.onClick?.();
     return undefined;
   },
-};
+});

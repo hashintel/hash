@@ -1,9 +1,0 @@
-{
-  "keys": {
-    "waiting": {
-      "nullable": true,
-      "type": "boolean"
-    }
-  },
-  "built_in_key_use": null
-}

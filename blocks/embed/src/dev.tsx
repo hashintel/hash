@@ -4,7 +4,7 @@
  */
 import { MockBlockDock } from "mock-block-dock";
 import { FunctionComponent, useState } from "react";
-import { render } from "react-dom";
+import { createRoot } from "react-dom/client";
 import { tw } from "twind";
 
 import variants from "../variants.json";
@@ -100,4 +100,4 @@ const App = () => {
   return <AppComponent />;
 };
 
-render(<App />, node);
+createRoot(node!).render(<App />);

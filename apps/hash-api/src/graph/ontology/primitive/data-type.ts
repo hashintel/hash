@@ -2,32 +2,39 @@ import {
   DATA_TYPE_META_SCHEMA,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import { NotFoundError } from "@local/hash-backend-utils/error";
 import {
+  ArchiveDataTypeParams,
+  DataTypePermission,
   DataTypeStructuralQuery,
+  ModifyRelationshipOperation,
   OntologyTemporalMetadata,
+  UnarchiveDataTypeParams,
 } from "@local/hash-graph-client";
-import { ConstructDataTypeParams } from "@local/hash-graphql-shared/graphql/types";
-import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
-  AccountId,
+  ConstructDataTypeParams,
+  DataTypeAuthorizationRelationship,
+  DataTypeMetadata,
+  DataTypeRelationAndSubject,
   DataTypeRootType,
   DataTypeWithMetadata,
-  OntologyElementMetadata,
   OntologyTypeRecordId,
   ontologyTypeRecordIdToVersionedUrl,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  getRoots,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-subgraph/stdlib";
 
-import { NotFoundError } from "../../../lib/error";
-import { ImpureGraphFunction } from "../..";
-import { getNamespaceOfAccountOwner } from "./util";
+import { ImpureGraphFunction } from "../../context-types";
+import { getWebShortname, isExternalTypeId } from "./util";
 
 /**
  * Create a data type.
@@ -39,6 +46,8 @@ import { getNamespaceOfAccountOwner } from "./util";
  *   https://app.asana.com/0/1200211978612931/1202464168422955/f
  *
  * @param params.ownedById - the id of the account who owns the data type
+ * @param [params.webShortname] – the shortname of the web that owns the data type, if the web entity does not yet exist.
+ *    - Only for seeding purposes. Caller is responsible for ensuring the webShortname is correct for the ownedById.
  * @param params.schema - the `DataType`
  * @param params.actorId - the id of the account that is creating the data type
  */
@@ -46,22 +55,27 @@ export const createDataType: ImpureGraphFunction<
   {
     ownedById: OwnedById;
     schema: ConstructDataTypeParams;
-    actorId: AccountId;
+    webShortname?: string;
+    relationships: DataTypeRelationAndSubject[];
   },
   Promise<DataTypeWithMetadata>
-> = async (ctx, params) => {
-  const { ownedById, actorId } = params;
-  const namespace = await getNamespaceOfAccountOwner(ctx, {
-    ownerId: params.ownedById,
-  });
+> = async (ctx, authentication, params) => {
+  const { ownedById, webShortname } = params;
+
+  const shortname =
+    webShortname ??
+    (await getWebShortname(ctx, authentication, {
+      accountOrAccountGroupId: params.ownedById,
+    }));
 
   const { graphApi } = ctx;
 
   const dataTypeUrl = generateTypeId({
-    namespace,
     kind: "data-type",
     title: params.schema.title,
+    webShortname: shortname,
   });
+
   const schema = {
     $schema: DATA_TYPE_META_SCHEMA,
     kind: "dataType" as const,
@@ -69,13 +83,16 @@ export const createDataType: ImpureGraphFunction<
     ...params.schema,
   };
 
-  const { data: metadata } = await graphApi.createDataType({
-    schema,
-    ownedById,
-    actorId,
-  });
+  const { data: metadata } = await graphApi.createDataType(
+    authentication.actorId,
+    {
+      schema,
+      ownedById,
+      relationships: params.relationships,
+    },
+  );
 
-  return { schema, metadata: metadata as OntologyElementMetadata };
+  return { schema, metadata: metadata as DataTypeMetadata };
 };
 
 /**
@@ -85,13 +102,17 @@ export const createDataType: ImpureGraphFunction<
  */
 export const getDataTypes: ImpureGraphFunction<
   {
-    query: DataTypeStructuralQuery;
+    query: Omit<DataTypeStructuralQuery, "includeDrafts">;
   },
   Promise<Subgraph<DataTypeRootType>>
-> = async ({ graphApi }, { query }) => {
+> = async ({ graphApi }, { actorId }, { query }) => {
   return await graphApi
-    .getDataTypesByQuery(query)
-    .then(({ data: subgraph }) => subgraph as Subgraph<DataTypeRootType>);
+    .getDataTypesByQuery(actorId, { includeDrafts: false, ...query })
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<DataTypeRootType>(data);
+
+      return subgraph;
+    });
 };
 
 /**
@@ -104,10 +125,10 @@ export const getDataTypeById: ImpureGraphFunction<
     dataTypeId: VersionedUrl;
   },
   Promise<DataTypeWithMetadata>
-> = async (context, params) => {
+> = async (context, authentication, params) => {
   const { dataTypeId } = params;
 
-  const [dataType] = await getDataTypes(context, {
+  const [dataType] = await getDataTypes(context, authentication, {
     query: {
       filter: {
         equal: [{ path: ["versionedUrl"] }, { parameter: dataTypeId }],
@@ -130,15 +151,14 @@ export const getDataTypeById: ImpureGraphFunction<
  * If the type does not already exist within the Graph, and is an externally-hosted type, this will also load the type into the Graph.
  */
 export const getDataTypeSubgraphById: ImpureGraphFunction<
-  Omit<DataTypeStructuralQuery, "filter"> & {
+  Omit<DataTypeStructuralQuery, "filter" | "includeDrafts"> & {
     dataTypeId: VersionedUrl;
-    actorId: AccountId;
   },
   Promise<Subgraph<DataTypeRootType>>
-> = async (context, params) => {
-  const { graphResolveDepths, temporalAxes, dataTypeId, actorId } = params;
+> = async (context, authentication, params) => {
+  const { graphResolveDepths, temporalAxes, dataTypeId } = params;
 
-  const query: DataTypeStructuralQuery = {
+  const query: Omit<DataTypeStructuralQuery, "includeDrafts"> = {
     filter: {
       equal: [{ path: ["versionedUrl"] }, { parameter: dataTypeId }],
     },
@@ -146,17 +166,16 @@ export const getDataTypeSubgraphById: ImpureGraphFunction<
     temporalAxes,
   };
 
-  let subgraph = await getDataTypes(context, {
+  let subgraph = await getDataTypes(context, authentication, {
     query,
   });
 
-  if (subgraph.roots.length === 0 && !dataTypeId.startsWith(frontendUrl)) {
-    await context.graphApi.loadExternalDataType({
-      actorId,
+  if (subgraph.roots.length === 0 && isExternalTypeId(dataTypeId)) {
+    await context.graphApi.loadExternalDataType(authentication.actorId, {
       dataTypeId,
     });
 
-    subgraph = await getDataTypes(context, {
+    subgraph = await getDataTypes(context, authentication, {
       query,
     });
   }
@@ -181,20 +200,20 @@ export const updateDataType: ImpureGraphFunction<
   {
     dataTypeId: VersionedUrl;
     schema: ConstructDataTypeParams;
-    actorId: AccountId;
+    relationships: DataTypeRelationAndSubject[];
   },
   Promise<DataTypeWithMetadata>
-> = async ({ graphApi }, params) => {
-  const { dataTypeId, schema, actorId } = params;
+> = async ({ graphApi }, { actorId }, params) => {
+  const { dataTypeId, schema } = params;
 
-  const { data: metadata } = await graphApi.updateDataType({
-    actorId,
+  const { data: metadata } = await graphApi.updateDataType(actorId, {
     typeToUpdate: dataTypeId,
     schema: {
       $schema: DATA_TYPE_META_SCHEMA,
       kind: "dataType",
       ...schema,
     },
+    relationships: params.relationships,
   });
 
   const { recordId } = metadata;
@@ -206,7 +225,7 @@ export const updateDataType: ImpureGraphFunction<
       ...schema,
       $id: ontologyTypeRecordIdToVersionedUrl(recordId as OntologyTypeRecordId),
     },
-    metadata: metadata as OntologyElementMetadata,
+    metadata: metadata as DataTypeMetadata,
   };
 };
 
@@ -217,18 +236,13 @@ export const updateDataType: ImpureGraphFunction<
  * @param params.actorId - the id of the account that is archiving the data type
  */
 export const archiveDataType: ImpureGraphFunction<
-  {
-    dataTypeId: VersionedUrl;
-    actorId: AccountId;
-  },
+  ArchiveDataTypeParams,
   Promise<OntologyTemporalMetadata>
-> = async ({ graphApi }, params) => {
-  const { dataTypeId, actorId } = params;
-
-  const { data: temporalMetadata } = await graphApi.archiveDataType({
-    typeToArchive: dataTypeId,
+> = async ({ graphApi }, { actorId }, params) => {
+  const { data: temporalMetadata } = await graphApi.archiveDataType(
     actorId,
-  });
+    params,
+  );
 
   return temporalMetadata;
 };
@@ -240,18 +254,54 @@ export const archiveDataType: ImpureGraphFunction<
  * @param params.actorId - the id of the account that is unarchiving the data type
  */
 export const unarchiveDataType: ImpureGraphFunction<
-  {
-    dataTypeId: VersionedUrl;
-    actorId: AccountId;
-  },
+  UnarchiveDataTypeParams,
   Promise<OntologyTemporalMetadata>
-> = async ({ graphApi }, params) => {
-  const { dataTypeId, actorId } = params;
-
-  const { data: temporalMetadata } = await graphApi.unarchiveDataType({
-    typeToUnarchive: dataTypeId,
+> = async ({ graphApi }, { actorId }, params) => {
+  const { data: temporalMetadata } = await graphApi.unarchiveDataType(
     actorId,
-  });
+    params,
+  );
 
   return temporalMetadata;
 };
+
+export const getDataTypeAuthorizationRelationships: ImpureGraphFunction<
+  { dataTypeId: VersionedUrl },
+  Promise<DataTypeAuthorizationRelationship[]>
+> = async ({ graphApi }, { actorId }, params) =>
+  graphApi
+    .getDataTypeAuthorizationRelationships(actorId, params.dataTypeId)
+    .then(({ data }) =>
+      data.map(
+        (relationship) =>
+          ({
+            resource: { kind: "dataType", resourceId: params.dataTypeId },
+            ...relationship,
+          }) as DataTypeAuthorizationRelationship,
+      ),
+    );
+
+export const modifyDataTypeAuthorizationRelationships: ImpureGraphFunction<
+  {
+    operation: ModifyRelationshipOperation;
+    relationship: DataTypeAuthorizationRelationship;
+  }[],
+  Promise<void>
+> = async ({ graphApi }, { actorId }, params) => {
+  await graphApi.modifyDataTypeAuthorizationRelationships(
+    actorId,
+    params.map(({ operation, relationship }) => ({
+      operation,
+      resource: relationship.resource.resourceId,
+      relationAndSubject: relationship,
+    })),
+  );
+};
+
+export const checkDataTypePermission: ImpureGraphFunction<
+  { dataTypeId: VersionedUrl; permission: DataTypePermission },
+  Promise<boolean>
+> = async ({ graphApi }, { actorId }, params) =>
+  graphApi
+    .checkDataTypePermission(actorId, params.dataTypeId, params.permission)
+    .then(({ data }) => data.has_permission);

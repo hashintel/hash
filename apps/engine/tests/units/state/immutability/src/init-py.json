@@ -1,8 +1,0 @@
-[
-  {
-    "behaviors": ["changing.py"],
-    "myObject": {
-      "value": 10
-    }
-  }
-]

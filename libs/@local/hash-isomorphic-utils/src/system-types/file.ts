@@ -2,54 +2,58 @@
  * This file was automatically generated – do not edit it.
  */
 
-import { Entity } from "@blockprotocol/graph";
+import {
+  BooleanDataType,
+  DateTimeDataType,
+  DescriptionPropertyValue,
+  DisplayNamePropertyValue,
+  File,
+  FileHashPropertyValue,
+  FileNamePropertyValue,
+  FileOutgoingLinkAndTarget,
+  FileOutgoingLinksByLinkEntityTypeId,
+  FileProperties,
+  FileSizePropertyValue,
+  FileStorageBucketPropertyValue,
+  FileStorageEndpointPropertyValue,
+  FileStorageForcePathStylePropertyValue,
+  FileStorageKeyPropertyValue,
+  FileStorageProviderPropertyValue,
+  FileStorageRegionPropertyValue,
+  FileURLPropertyValue,
+  MIMETypePropertyValue,
+  NumberDataType,
+  OriginalFileNamePropertyValue,
+  OriginalSourcePropertyValue,
+  OriginalURLPropertyValue,
+  TextDataType,
+  UploadCompletedAtPropertyValue,
+} from "./shared";
 
-import { TextDataType } from "./shared";
-
-export type { TextDataType };
-
-/**
- * URL to an external file.
- */
-export type ExternalFileURLPropertyValue = TextDataType;
-
-export type File = Entity<FileProperties>;
-
-/**
- * Key used to uniquely identify a file in a third-party system.
- */
-export type FileKeyPropertyValue =
-  | {
-      "http://localhost:3000/@system-user/types/property-type/object-store-key/"?: ObjectStoreKeyPropertyValue;
-    }
-  | {
-      "http://localhost:3000/@system-user/types/property-type/external-file-url/"?: ExternalFileURLPropertyValue;
-    };
-
-/**
- * Media type of a file.
- */
-export type FileMediaTypePropertyValue = TextDataType;
-
-export type FileOutgoingLinkAndTarget = never;
-
-export type FileOutgoingLinksByLinkEntityTypeId = {};
-
-/**
- * A file.
- */
-export type FileProperties = {
-  "http://localhost:3000/@system-user/types/property-type/file-key/": FileKeyPropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/file-media-type/": FileMediaTypePropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/file-url/": FileURLPropertyValue;
+export type {
+  BooleanDataType,
+  DateTimeDataType,
+  DescriptionPropertyValue,
+  DisplayNamePropertyValue,
+  File,
+  FileHashPropertyValue,
+  FileNamePropertyValue,
+  FileOutgoingLinkAndTarget,
+  FileOutgoingLinksByLinkEntityTypeId,
+  FileProperties,
+  FileSizePropertyValue,
+  FileStorageBucketPropertyValue,
+  FileStorageEndpointPropertyValue,
+  FileStorageForcePathStylePropertyValue,
+  FileStorageKeyPropertyValue,
+  FileStorageProviderPropertyValue,
+  FileStorageRegionPropertyValue,
+  FileURLPropertyValue,
+  MIMETypePropertyValue,
+  NumberDataType,
+  OriginalFileNamePropertyValue,
+  OriginalSourcePropertyValue,
+  OriginalURLPropertyValue,
+  TextDataType,
+  UploadCompletedAtPropertyValue,
 };
-
-/**
- * URL to access a file.
- */
-export type FileURLPropertyValue = TextDataType;
-
-/**
- * Unique identifier for an object in an object store.
- */
-export type ObjectStoreKeyPropertyValue = TextDataType;

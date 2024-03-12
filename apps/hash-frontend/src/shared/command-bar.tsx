@@ -1,5 +1,4 @@
 import { Chip, TextField } from "@hashintel/design-system";
-import { OwnedById } from "@local/hash-subgraph/.";
 import {
   Autocomplete,
   AutocompleteChangeDetails,
@@ -30,7 +29,8 @@ import {
 
 import { useAccountPages } from "../components/hooks/use-account-pages";
 import { useCreatePage } from "../components/hooks/use-create-page";
-import { WorkspaceContext } from "../pages/shared/workspace-context";
+import { useHashInstance } from "../components/hooks/use-hash-instance";
+import { useActiveWorkspace } from "../pages/shared/workspace-context";
 // import { CheatSheet } from "./command-bar/cheat-sheet";
 import {
   // childMenu,
@@ -42,6 +42,11 @@ import {
   menu,
 } from "./command-bar/command-bar-options";
 import { HotKey } from "./command-bar/hot-key";
+import {
+  KeyboardShortcut,
+  useSetKeyboardShortcuts,
+  useUnsetKeyboardShortcuts,
+} from "./keyboard-shortcuts-context";
 
 // childMenu.addOption("Child", "General", ["Meta", "c"]).activate({
 //   command: () => {
@@ -191,17 +196,6 @@ const useDelayedCallback = (callback: () => void, delay: number) => {
   return [handler, cancel] as const;
 };
 
-// borrowed from rooks
-const doesIdentifierMatchKeyboardEvent = (
-  event: KeyboardEvent,
-  identifier: number | string,
-): boolean =>
-  event.key === identifier ||
-  event.code === identifier ||
-  event.keyCode === identifier ||
-  event.which === identifier ||
-  event.charCode === identifier;
-
 export const CommandBar: FunctionComponent = () => {
   const popupState = usePopupState({
     popupId: "kbar",
@@ -210,14 +204,15 @@ export const CommandBar: FunctionComponent = () => {
 
   const router = useRouter();
 
-  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+  const { activeWorkspaceOwnedById, activeWorkspace } = useActiveWorkspace();
 
-  const [createUntitledPage] = useCreatePage(
-    activeWorkspaceAccountId as OwnedById,
-  );
-  const { lastRootPageIndex } = useAccountPages(
-    activeWorkspaceAccountId as OwnedById,
-  );
+  const { hashInstance } = useHashInstance();
+
+  const { lastRootPageIndex } = useAccountPages(activeWorkspaceOwnedById);
+  const [createUntitledPage] = useCreatePage({
+    shortname: activeWorkspace?.shortname,
+    ownedById: activeWorkspaceOwnedById,
+  });
 
   const [inputValue, setInputValue] = useState("");
   const [selectedOptionPath, setSelectedOptionPath] = useState<
@@ -255,8 +250,8 @@ export const CommandBar: FunctionComponent = () => {
 
       if (command) {
         if (
-          command.options ||
-          command.renderCustomScreen ||
+          command.options ??
+          command.renderCustomScreen ??
           command.asyncCommand
         ) {
           cancelReset();
@@ -357,85 +352,49 @@ export const CommandBar: FunctionComponent = () => {
     </>
   );
 
+  /**
+   * The keyboard shortcuts are managed via a class outside of React.
+   * This function is provided to the class to allow it to trigger a re-render when options are added/activated.
+   */
   const [, forceRender] = useReducer((val: number) => val + 1, 0);
+  useEffect(() => {
+    const unregisterMenuUpdateListener = menu.addUpdateListener(forceRender);
+
+    return () => unregisterMenuUpdateListener();
+  }, []);
+
+  const setKeyboardShortcuts = useSetKeyboardShortcuts();
+  const unsetKeyboardShortcuts = useUnsetKeyboardShortcuts();
 
   useEffect(() => {
-    const remove = menu.addListener(forceRender);
-    const mapping: Record<string, boolean | undefined> = {};
-
-    // adapted from rooks to handle multiple sets of keys
-    const handleKeyDown = (event: KeyboardEvent) => {
-      /**
-       * Handle the command bar hotkey
-       * We cannot use useKeys directly for this due to https://github.com/imbhargav5/rooks/issues/1730
-       */
-      if (event.metaKey && doesIdentifierMatchKeyboardEvent(event, "k")) {
-        if (popupState.isOpen) {
-          closeBar("delayed");
-        } else {
-          cancelReset();
-          popupState.open();
-        }
-        return;
-      }
-
-      // First detect the key that was pressed;
-      for (const option of menu.options) {
-        let areAllKeysFromListPressed = false;
-
-        if (option.keysList && option.isActive()) {
-          for (const identifier of option.keysList) {
-            if (doesIdentifierMatchKeyboardEvent(event, identifier)) {
-              mapping[identifier] = true;
-            }
+    const keyboardShortcuts: KeyboardShortcut[] = [
+      {
+        keys: ["Meta", "k"],
+        callback: () => {
+          if (popupState.isOpen) {
+            closeBar("delayed");
+          } else {
+            cancelReset();
+            popupState.open();
           }
+        },
+      },
+    ];
 
-          if (
-            option.keysList.every((identifier) => Boolean(mapping[identifier]))
-          ) {
-            areAllKeysFromListPressed = true;
-          }
-
-          if (areAllKeysFromListPressed) {
-            event.preventDefault();
+    for (const option of menu.options) {
+      if (option.keysList) {
+        keyboardShortcuts.push({
+          keys: option.keysList,
+          callback: () => {
             triggerOption(option);
-
-            for (const key of Object.keys(mapping)) {
-              delete mapping[key];
-            }
-          }
-        }
+          },
+        });
       }
-    };
+    }
 
-    document.addEventListener("keydown", handleKeyDown);
+    setKeyboardShortcuts(keyboardShortcuts);
 
-    const handleKeyUp = (event: KeyboardEvent) => {
-      for (const option of menu.options) {
-        for (const identifier of option.keysList ?? []) {
-          if (doesIdentifierMatchKeyboardEvent(event, identifier)) {
-            mapping[identifier] = undefined;
-          }
-        }
-      }
-    };
-
-    document.addEventListener("keyup", handleKeyUp);
-
-    const handleBlur = () => {
-      for (const key of Object.keys(mapping)) {
-        delete mapping[key];
-      }
-    };
-
-    window.addEventListener("blur", handleBlur);
-
-    return () => {
-      window.removeEventListener("blur", handleBlur);
-      document.removeEventListener("keydown", handleKeyDown);
-      document.removeEventListener("keyup", handleKeyUp);
-      remove();
-    };
+    return () => unsetKeyboardShortcuts(keyboardShortcuts);
   });
 
   useEffect(() => {
@@ -453,12 +412,19 @@ export const CommandBar: FunctionComponent = () => {
   }, [router]);
 
   useEffect(() => {
+    if (!hashInstance?.properties.pagesAreEnabled) {
+      return;
+    }
     createPageOption.activate({
       command: async () => {
-        await createUntitledPage(lastRootPageIndex);
+        await createUntitledPage(lastRootPageIndex, "document");
       },
     });
-  }, [createUntitledPage, lastRootPageIndex]);
+  }, [
+    createUntitledPage,
+    hashInstance?.properties.pagesAreEnabled,
+    lastRootPageIndex,
+  ]);
 
   return (
     <>

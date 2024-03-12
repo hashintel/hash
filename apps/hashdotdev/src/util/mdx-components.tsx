@@ -26,7 +26,7 @@ import { MdxPre } from "../components/mdx-pre";
 import { MdxTalkSlide } from "../components/mdx-talk-slide";
 import { MdxVideo } from "../components/mdx-video";
 
-const CalculationBlock = dynamic<{}>(
+const CalculationBlock = dynamic<Record<string, never>>(
   () =>
     import("../components/calculation-block").then(
       (module) => module.CalculationBlock,
@@ -99,6 +99,7 @@ const HEADING_MARGIN_TOP = {
 };
 const HEADING_MARGIN_BOTTOM = 2;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const mdxComponents: Record<string, ComponentType<any>> = {
   Box,
   Typography,

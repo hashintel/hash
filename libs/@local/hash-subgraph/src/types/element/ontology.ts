@@ -1,25 +1,26 @@
-import {
-  type OntologyElementMetadata as OntologyElementMetadataBp,
+import type {
   DataTypeWithMetadata as DataTypeWithMetadataBp,
   EntityTypeWithMetadata as EntityTypeWithMetadataBp,
+  OntologyElementMetadata as OntologyElementMetadataBp,
   PropertyTypeWithMetadata as PropertyTypeWithMetadataBp,
 } from "@blockprotocol/graph/temporal";
-import {
-  DataType,
+import type {
   EntityType,
   PropertyType,
-  validateBaseUrl,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
-import { Brand } from "@local/advanced-types/brand";
-import { Subtype } from "@local/advanced-types/subtype";
+import { validateBaseUrl } from "@blockprotocol/type-system/slim";
+import type { Brand } from "@local/advanced-types/brand";
+import type { DistributiveOmit } from "@local/advanced-types/distribute";
+import type { Subtype } from "@local/advanced-types/subtype";
+import type { DataType } from "@local/hash-graph-client";
 
-import {
+import type {
   BaseUrl,
   ExclusiveLimitedTemporalBound,
   InclusiveLimitedTemporalBound,
+  OntologyProvenanceMetadata,
   OwnedById,
-  ProvenanceMetadata,
   TimeInterval,
   Timestamp,
   Unbounded,
@@ -62,45 +63,175 @@ export const isOntologyTypeRecordId = (
 
 export type OwnedOntologyElementMetadata = {
   recordId: OntologyTypeRecordId;
-  custom: {
-    ownedById: OwnedById;
-    provenance: ProvenanceMetadata;
-    temporalVersioning: {
-      transactionTime: TimeInterval<
-        InclusiveLimitedTemporalBound,
-        ExclusiveLimitedTemporalBound | Unbounded
-      >;
-    };
+  ownedById: OwnedById;
+  provenance: OntologyProvenanceMetadata;
+  temporalVersioning: {
+    transactionTime: TimeInterval<
+      InclusiveLimitedTemporalBound,
+      ExclusiveLimitedTemporalBound | Unbounded
+    >;
   };
 };
 
 export type ExternalOntologyElementMetadata = {
   recordId: OntologyTypeRecordId;
-  custom: {
-    fetchedAt: Timestamp;
-    provenance: ProvenanceMetadata;
-    temporalVersioning: {
-      transactionTime: TimeInterval<
-        InclusiveLimitedTemporalBound,
-        ExclusiveLimitedTemporalBound | Unbounded
-      >;
-    };
+  fetchedAt: Timestamp;
+  provenance: OntologyProvenanceMetadata;
+  temporalVersioning: {
+    transactionTime: TimeInterval<
+      InclusiveLimitedTemporalBound,
+      ExclusiveLimitedTemporalBound | Unbounded
+    >;
   };
 };
 
-export type OntologyElementMetadata = Subtype<
+type OntologyElementMetadata = Subtype<
   OntologyElementMetadataBp,
   OwnedOntologyElementMetadata | ExternalOntologyElementMetadata
 >;
 
-export type EntityTypeMetadata = OntologyElementMetadata & {
-  custom: { labelProperty?: BaseUrl };
+export type EditableOntologyElementMetadata = Pick<
+  EntityTypeWithMetadataBp["metadata"],
+  "icon"
+> & {
+  labelProperty?: BaseUrl | null;
 };
+
+export type DataTypeMetadata = OntologyElementMetadata;
+
+export type PropertyTypeMetadata = OntologyElementMetadata;
+
+export type EntityTypeMetadata = EditableOntologyElementMetadata &
+  OntologyElementMetadata;
+
+/**
+ * Non-exhaustive list of possible values for 'format'
+ *
+ * The presence of a format in this list does _NOT_ mean that:
+ * 1. The Graph will validate it
+ * 2. The frontend will treat it differently for input or display
+ *
+ * @see https://json-schema.org/understanding-json-schema/reference/string
+ */
+type StringFormat =
+  | "date"
+  | "time"
+  | "date-time"
+  | "duration"
+  | "email"
+  | "hostname"
+  | "ipv4"
+  | "ipv6"
+  | "regex"
+  | "uri"
+  | "uuid";
+
+export type StringConstraint = {
+  format?: StringFormat;
+  minLength?: number; // Int
+  maxLength?: number; // Int
+  pattern?: string; // RegExp
+  type: "string";
+};
+
+export type NumberConstraint = {
+  minimum?: number;
+  maximum?: number;
+  exclusiveMinimum?: number;
+  exclusiveMaximum?: number;
+  multipleOf?: number;
+  type: "number" | "integer";
+};
+
+export type BooleanConstraint = {
+  type: "boolean";
+};
+
+export type NullConstraint = {
+  type: "null";
+};
+
+export type ObjectConstraint = {
+  type: "object";
+};
+
+export type StringEnumConstraint = {
+  enum: string[];
+  type: "string";
+};
+
+export type NumberEnumConstraint = {
+  enum: number[];
+  type: "number" | "integer";
+};
+
+/** @see https://json-schema.org/understanding-json-schema/reference/enum */
+export type EnumConstraint = StringEnumConstraint | NumberEnumConstraint;
+
+export type StringConstConstraint = {
+  const: string;
+  type: "string";
+};
+
+export type NumberConstConstraint = {
+  const: number;
+  type: "number" | "integer";
+};
+
+export type ConstConstraint = StringConstConstraint | NumberConstConstraint;
+
+type ValueLabel = {
+  left?: string;
+  right?: string;
+};
+
+export type SingleValueConstraint =
+  | BooleanConstraint
+  | NullConstraint
+  | ObjectConstraint
+  | StringConstraint
+  | NumberConstraint
+  | EnumConstraint
+  | ConstConstraint;
+
+export type ArrayConstraint = {
+  type: "array";
+  items: ValueConstraint;
+};
+
+/** @see https://json-schema.org/understanding-json-schema/reference/array#tuple-validation */
+export type TupleConstraint = {
+  type: "array";
+  items: false; // disallow additional items;
+  prefixItems: ValueConstraint[];
+};
+
+export type ValueConstraint = (
+  | SingleValueConstraint
+  | ArrayConstraint
+  | TupleConstraint
+) & { description?: string; label?: ValueLabel };
+
+export type CustomDataType = Subtype<
+  DataType,
+  {
+    description?: string;
+    $id: VersionedUrl;
+    kind: "dataType";
+    $schema: "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type";
+    title: string;
+  } & ValueConstraint
+>;
+
+export type ConstructDataTypeParams = DistributiveOmit<
+  CustomDataType,
+  "$id" | "kind" | "$schema"
+>;
 
 export type DataTypeWithMetadata = Subtype<
   DataTypeWithMetadataBp,
   {
-    schema: DataType;
+    schema: CustomDataType;
     metadata: OntologyElementMetadata;
   }
 >;
@@ -122,13 +253,9 @@ export type EntityTypeWithMetadata = Subtype<
 >;
 
 export const isExternalOntologyElementMetadata = (
-  metadata: OntologyElementMetadata,
-): metadata is ExternalOntologyElementMetadata =>
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- this can be undefined if the cast is wrong
-  (metadata as ExternalOntologyElementMetadata).custom.fetchedAt !== undefined;
+  metadata: DataTypeMetadata | EntityTypeMetadata,
+): metadata is ExternalOntologyElementMetadata => "fetchedAt" in metadata;
 
 export const isOwnedOntologyElementMetadata = (
-  metadata: OntologyElementMetadata,
-): metadata is OwnedOntologyElementMetadata =>
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- this can be undefined if the cast is wrong
-  (metadata as OwnedOntologyElementMetadata).custom.ownedById !== undefined;
+  metadata: DataTypeMetadata | EntityTypeMetadata,
+): metadata is OwnedOntologyElementMetadata => "ownedById" in metadata;

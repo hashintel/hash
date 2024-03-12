@@ -3,32 +3,32 @@ import {
   EntityId,
   EntityMetadata,
   EntityPropertiesObject,
-  EntityRevisionId,
   EntityTemporalVersioningMetadata,
   LinkData,
 } from "@local/hash-subgraph";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Draft, produce } from "immer";
 
 import { BlockEntity } from "./entity";
 import { generateDraftIdForEntity } from "./entity-store-plugin";
-import { types } from "./ontology-types";
+import { blockProtocolPropertyTypes } from "./ontology-type-ids";
 
 export type EntityStoreType = BlockEntity | BlockEntity["blockChildEntity"];
 
-export const TEXT_ENTITY_TYPE_ID = types.entityType.text.entityTypeId;
-// `extractBaseUrl` does not work within this context, so this is a hacky way to get the base URL.
-export const TEXT_TOKEN_PROPERTY_TYPE_BASE_URL =
-  types.propertyType.tokens.propertyTypeId.slice(0, -3);
+export const textualContentPropertyTypeBaseUrl = extractBaseUrl(
+  blockProtocolPropertyTypes.textualContent.propertyTypeId,
+);
 
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   metadata: {
+    archived: boolean;
     recordId: {
       entityId: EntityId | null;
-      revisionId?: EntityRevisionId;
+      editionId: string;
     };
     entityTypeId?: VersionedUrl | null;
     provenance?: EntityMetadata["provenance"];
-    temporalVersioning?: EntityTemporalVersioningMetadata;
+    temporalVersioning: EntityTemporalVersioningMetadata;
   };
   /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
   blockChildEntity?: Type & { draftId?: string };
@@ -115,6 +115,13 @@ const restoreDraftId = (
 };
 
 /**
+ * Creates an entity store from a list of entities and a list of draft entities.
+ *
+ * This is used to create the initial state of the entity store, and also in response to update the contents in the API.
+ * The latter is a source of bugs, because more recent local updates can be overwritten by stale data from the API.
+ *
+ * This would be solved by having a collaborative editing server which managed document state centrally. H-1234
+ *
  * @todo this should be flat – so that we don't have to traverse links
  * @todo clean up
  */
@@ -168,14 +175,19 @@ export const createEntityStore = (
       { ...entity, draftId },
       (draftEntity: Draft<DraftEntity>) => {
         if (draftData[draftId]) {
+          /**
+           * If we have a local draft of this entity, and it's recorded as being updated more recently than the API-provided one,
+           * we prefer the local entity. We set the decision time manually in the entityStoreReducer when updating properties.
+           * This is not a good long-term solution – we need a collaborative editing server to manage document state. H-1234
+           */
           if (
             new Date(
-              draftData[draftId]!.metadata.temporalVersioning?.decisionTime
-                .start.limit ?? 0,
+              draftData[
+                draftId
+              ]!.metadata.temporalVersioning.decisionTime.start.limit,
             ).getTime() >
             new Date(
-              draftEntity.metadata.temporalVersioning?.decisionTime.start
-                .limit ?? 0,
+              draftEntity.metadata.temporalVersioning.decisionTime.start.limit,
             ).getTime()
           ) {
             Object.assign(draftEntity, draftData[draftId]);

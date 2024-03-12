@@ -7,9 +7,9 @@ This is a playbook for interacting with a self-hosted, single-node Citus cluster
 
 ## Open an SSH session
 
-1.  Get the SSH private key for the instance on 1Password.
-1.  Save the key to `~/.ssh/hadmin-citus-ec2`
-1.  Open an SSH session:
+1. Get the SSH private key for the instance on 1Password.
+1. Save the key to `~/.ssh/hadmin-citus-ec2`
+1. Open an SSH session:
 
 ```console
 $ ssh -i ~/.ssh/hadmin-citus-ec2 hadmin@$(h-tfinfo --deployment citus --output instance_ip)
@@ -18,29 +18,29 @@ $ ssh -i ~/.ssh/hadmin-citus-ec2 hadmin@$(h-tfinfo --deployment citus --output i
 
 ## Pull the Citus Docker image
 
-1.  List the images stored in the deployment's ECR repository:
+1. List the images stored in the deployment's ECR repository:
 
 ```console
 $ h-list-images --service citus
 ..
 ```
 
-1.  [Open an SSH session to the EC2 instance](#open-an-ssh-session).
-1.  Set the image tag you wish to deploy from step 1:
+1. [Open an SSH session to the EC2 instance](#open-an-ssh-session).
+1. Set the image tag you wish to deploy from step 1:
 
 ```console
 $ image_tag=$IMAGE_TAG
 ..
 ```
 
-1.  Log-in to Docker:
+1. Log-in to Docker:
 
 ```console
 $ aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY_URL
 ..
 ```
 
-1.  Pull an image with the tag `$IMAGE_TAG`:
+1. Pull an image with the tag `$IMAGE_TAG`:
 
 ```console
 $ docker pull $ECR_REPO_URL:$IMAGE_TAG
@@ -49,19 +49,19 @@ $ docker pull $ECR_REPO_URL:$IMAGE_TAG
 
 ## Start a new database
 
-1.  Get the Citus 'superuser' password from 1Password.
-1.  [Open an SSH session to the EC2 instance](#open-an-ssh-session).
-1.  [Pull the Citus Docker image](#pull-the-citus-docker-image)
-1.  Get the Citus 'superuser' password from 1Password and set it as a
-    variable:
+1. Get the Citus 'superuser' password from 1Password.
+1. [Open an SSH session to the EC2 instance](#open-an-ssh-session).
+1. [Pull the Citus Docker image](#pull-the-citus-docker-image)
+1. Get the Citus 'superuser' password from 1Password and set it as a
+   variable:
 
 ```console
 $ superuser_password=$PASSWORD
 ..
 ```
 
-1.  If the database container is already running, stop it (`docker ps`, `docker stop`).
-1.  Run a Docker container:
+1. If the database container is already running, stop it (`docker ps`, `docker stop`).
+1. Run a Docker container:
 
 ```console
 $ docker run --rm \
@@ -80,8 +80,8 @@ $ docker run --rm \
 
 ## Connect to the database using psql
 
-1.  Get the password for the desired user from 1Password.
-1.  Connect with user `$USER`:
+1. Get the password for the desired user from 1Password.
+1. Connect with user `$USER`:
 
 ```console
 $ psql -h $(h-tfinfo --deployment citus --output instance_ip) -U 5432 -d postgres $USER -p

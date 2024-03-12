@@ -5,35 +5,33 @@ import { createOrg } from "../../../../graph/knowledge/system-types/org";
 import { joinOrg } from "../../../../graph/knowledge/system-types/user";
 import { MutationCreateOrgArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { dataSourcesToImpureGraphContext } from "../../util";
+import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const createOrgResolver: ResolverFn<
   Promise<Subgraph>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   MutationCreateOrgArgs
 > = async (
   _,
-  { name, shortname, orgSize, website, hasLeftEntity, hasRightEntity },
-  { dataSources, user },
+  { name, shortname, websiteUrl, hasLeftEntity, hasRightEntity },
+  graphQLContext,
 ) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
+  const { authentication, user } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  const org = await createOrg(context, {
+  const org = await createOrg(context, authentication, {
     shortname,
     name,
-    providedInfo: orgSize ? { orgSize } : undefined,
-    actorId: user.accountId,
-    website,
+    websiteUrl,
   });
 
-  await joinOrg(context, {
-    actorId: user.accountId,
+  await joinOrg(context, authentication, {
     orgEntityId: org.entity.metadata.recordId.entityId,
     userEntityId: user.entity.metadata.recordId.entityId,
   });
 
-  return await getLatestEntityRootedSubgraph(context, {
+  return await getLatestEntityRootedSubgraph(context, authentication, {
     entity: org.entity,
     graphResolveDepths: {
       hasLeftEntity,

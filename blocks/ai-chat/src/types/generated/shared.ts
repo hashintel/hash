@@ -89,9 +89,9 @@ export type LinkProperties = {};
 /**
  * An ordered sequence of characters
  */
-export type Text = string;
+export type TextDataType = string;
 
 /**
  * The text material, information, or body, that makes up the content of this thing.
  */
-export type TextualContentPropertyValue = Text;
+export type TextualContentPropertyValue = TextDataType;

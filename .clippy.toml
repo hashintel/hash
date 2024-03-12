@@ -1,0 +1,5 @@
+avoid-breaking-exported-api = false
+allow-expect-in-tests = true
+allow-print-in-tests = true
+suppress-restriction-lint-in-const = true
+doc-valid-idents = ["SpiceDB", "OpenAPI", ".."]

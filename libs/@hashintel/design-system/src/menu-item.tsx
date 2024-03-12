@@ -10,12 +10,21 @@ import { forwardRef, FunctionComponent, ReactNode } from "react";
 export type MenuItemProps = {
   children?: ReactNode;
   faded?: boolean;
+  dangerous?: boolean;
   noSelectBackground?: boolean;
 } & MuiMenuItemProps;
 
 export const MenuItem: FunctionComponent<MenuItemProps> = forwardRef(
   (
-    { children, sx = [], faded, selected, noSelectBackground, ...props },
+    {
+      children,
+      sx = [],
+      faded,
+      dangerous,
+      selected,
+      noSelectBackground,
+      ...props
+    },
     ref,
   ) => {
     return (
@@ -29,6 +38,21 @@ export const MenuItem: FunctionComponent<MenuItemProps> = forwardRef(
                 },
               [`& .${listItemIconClasses.root}, & svg`]: {
                 color: palette.gray[40],
+              },
+            }),
+            ...(dangerous && {
+              [`& .${listItemTextClasses.primary}, .${typographyClasses.root}`]:
+                {
+                  color: palette.red[70],
+                },
+              "&:hover": {
+                [`& .${listItemTextClasses.primary}, .${typographyClasses.root}`]:
+                  {
+                    color: palette.red[90],
+                  },
+              },
+              [`& .${listItemIconClasses.root}, & svg`]: {
+                color: palette.red[50],
               },
             }),
           }),

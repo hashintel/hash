@@ -134,12 +134,12 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
             result,
             errors.into_result().change_context(ObjectAccessError),
         ) {
-            (Err(error), Ok(_)) | (Ok(_), Err(error)) => Err(error),
+            (Err(error), Ok(())) | (Ok(_), Err(error)) => Err(error),
             (Err(mut result), Err(errors)) => {
                 result.extend_one(errors);
                 Err(result)
             }
-            (Ok(result), Ok(_)) => Ok(result),
+            (Ok(result), Ok(())) => Ok(result),
         };
 
         Ok(result)

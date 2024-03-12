@@ -1,46 +1,72 @@
+/* eslint-disable import/first */
+
+import {
+  monorepoRootDir,
+  realtimeSyncEnabled,
+  waitOnResource,
+} from "@local/hash-backend-utils/environment";
+import express, { ErrorRequestHandler, raw } from "express";
+import { create as handlebarsCreate } from "express-handlebars";
+
+// eslint-disable-next-line import/order
+import { initSentry } from "./sentry";
+
+const app = express();
+
+initSentry(app);
+
 import http from "node:http";
 import path from "node:path";
 import { promisify } from "node:util";
 
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import {
-  monorepoRootDir,
-  waitOnResource,
-} from "@local/hash-backend-utils/environment";
+import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
-import { Session } from "@ory/client";
-import type { Client as TemporalClient } from "@temporalio/client";
+import * as Sentry from "@sentry/node";
 import { json } from "body-parser";
 import cors from "cors";
-import express, { raw } from "express";
+import proxy from "express-http-proxy";
+import { Options as RateLimitOptions, rateLimit } from "express-rate-limit";
 import helmet from "helmet";
 import { StatsD } from "hot-shots";
 import { createHttpTerminator } from "http-terminator";
 import { customAlphabet } from "nanoid";
 
-import setupAuth from "./auth";
+import { gptGetUserWebs } from "./ai/gpt/gpt-get-user-webs";
+import { gptQueryEntities } from "./ai/gpt/gpt-query-entities";
+import { upsertGptOauthClient } from "./ai/gpt/upsert-gpt-oauth-client";
+import { openInferEntitiesWebSocket } from "./ai/infer-entities-websocket";
+import {
+  addKratosAfterRegistrationHandler,
+  createAuthMiddleware,
+} from "./auth/create-auth-handlers";
+import { getActorIdFromRequest } from "./auth/get-actor-id";
+import {
+  oauthConsentRequestHandler,
+  oauthConsentSubmissionHandler,
+} from "./auth/oauth-consent-handlers";
+import { hydraPublicUrl } from "./auth/ory-hydra";
+import { kratosPublicUrl } from "./auth/ory-kratos";
+import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
 import { RedisCache } from "./cache";
 import {
   AwsSesEmailTransporter,
   DummyEmailTransporter,
   EmailTransporter,
 } from "./email/transporters";
-import {
-  createGraphClient,
-  ensureSystemGraphIsInitialized,
-  ImpureGraphContext,
-} from "./graph";
-import { User } from "./graph/knowledge/system-types/user";
-import { ensureLinearOrgExists } from "./graph/linear-org";
-import { ensureLinearTypesExist } from "./graph/linear-types";
+import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
 import { oAuthLinear, oAuthLinearCallback } from "./integrations/linear/oauth";
 import { linearWebhook } from "./integrations/linear/webhook";
 import { createIntegrationSyncBackWatcher } from "./integrations/sync-back-watcher";
 import { getAwsRegion } from "./lib/aws-config";
-import { CORS_CONFIG, getEnvStorageType } from "./lib/config";
+import {
+  CORS_CONFIG,
+  getEnvStorageType,
+  LOCAL_FILE_UPLOAD_PATH,
+} from "./lib/config";
 import {
   isDevEnv,
   isProdEnv,
@@ -50,26 +76,49 @@ import {
 } from "./lib/env-config";
 import { logger } from "./logger";
 import { seedOrgsAndUsers } from "./seed-data";
-import { setupFileProxyHandler, setupStorageProviders } from "./storage";
+import {
+  setupFileDownloadProxyHandler,
+  setupStorageProviders,
+} from "./storage";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { createTemporalClient } from "./temporal";
 import { getRequiredEnv } from "./util";
-import { createVaultClient, VaultClient } from "./vault";
-
-declare global {
-  namespace Express {
-    interface Request {
-      context: ImpureGraphContext & {
-        temporalClient?: TemporalClient;
-        vaultClient?: VaultClient;
-      };
-      session: Session | undefined;
-      user: User | undefined;
-    }
-  }
-}
+import { createVaultClient } from "./vault";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
+
+const baseRateLimitOptions: Partial<RateLimitOptions> = {
+  windowMs: process.env.NODE_ENV === "test" ? 1000 * 5 : 1000 * 20, // 20 seconds
+  limit: 5, // Limit each IP to 5 requests every 20 seconds
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+};
+
+/**
+ * A rate limiter for routes which grant authentication or authorization credentials
+ */
+const authRouteRateLimiter = rateLimit(baseRateLimitOptions);
+
+/**
+ * A rate limit which throttles requests based on the user identifier rather than the IP address.
+ */
+const userIdentifierRateLimiter = rateLimit({
+  ...baseRateLimitOptions,
+  keyGenerator: (req) => {
+    if (req.body.identifier) {
+      /**
+       * 'identifier' is the field which identifies the user on a login attempt.
+       * We use this as a rate limiting key if present to mitigate brute force login attempts spread across multiple IPs.
+       */
+      return req.body.identifier;
+    }
+    return req.ip;
+  },
+});
+
+const hydraProxy = proxy(hydraPublicUrl ?? "", {
+  proxyReqPathResolver: (req) => req.originalUrl,
+});
 
 const main = async () => {
   await TypeSystemInitializer.initialize();
@@ -115,12 +164,37 @@ const main = async () => {
     logger.error(`Could not start StatsD client: ${err}`);
   }
 
-  // Configure the Express server
-  const app = express();
+  // Configure Sentry error / trace handling
+  app.use(
+    Sentry.Handlers.requestHandler({
+      ip: true,
+    }),
+  );
+  app.use(Sentry.Handlers.tracingHandler());
+
   app.use(cors(CORS_CONFIG));
+
+  // Add logging of requests
+  app.use((req, res, next) => {
+    const requestId = nanoid();
+    res.set("x-hash-request-id", requestId);
+    logger.info({
+      requestId,
+      method: req.method,
+      ip: req.ip,
+      path: req.path,
+      message: "request",
+      userAgent: req.headers["user-agent"],
+      graphqlClient: req.headers["apollographql-client-name"],
+    });
+
+    next();
+  });
 
   const redisHost = getRequiredEnv("HASH_REDIS_HOST");
   const redisPort = parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10);
+  const redisEncryptedTransit =
+    process.env.HASH_REDIS_ENCRYPTED_TRANSIT === "true";
 
   const graphApiHost = getRequiredEnv("HASH_GRAPH_API_HOST");
   const graphApiPort = parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10);
@@ -134,6 +208,7 @@ const main = async () => {
   const redis = new RedisCache(logger, {
     host: redisHost,
     port: redisPort,
+    tls: redisEncryptedTransit,
   });
   shutdown.addCleanup("Redis", async () => redis.close());
 
@@ -151,17 +226,9 @@ const main = async () => {
 
   const vaultClient = createVaultClient();
 
-  const context = { graphApi, uploadProvider };
-
-  setupFileProxyHandler(app, uploadProvider, redis);
+  const context = { graphApi, uploadProvider, temporalClient };
 
   await ensureSystemGraphIsInitialized({ logger, context });
-
-  if (process.env.LINEAR_CLIENT_ID) {
-    await ensureLinearOrgExists({ logger, context });
-
-    await ensureLinearTypesExist({ logger, context });
-  }
 
   // This will seed users, an org and pages.
   // Configurable through environment variables.
@@ -173,27 +240,162 @@ const main = async () => {
   // Potentially only in development mode
   app.use(helmet({ contentSecurityPolicy: false }));
 
+  app.use(express.static("public"));
+
+  if (isProdEnv) {
+    /**
+     * Trust the first proxy, on the assumption that we are running behind a load balancer in production.
+     * This means, for example, that `req.ip` will be set as the rightmost IP in the `X-Forwarded-For` header.
+     */
+    app.set("trust proxy", 1);
+  }
+
   const jsonParser = json({
     // default is 100kb
     limit: "16mb",
   });
   const rawParser = raw({ type: "application/json" });
 
-  // Body parsing middleware
+  /**
+   * PROXIES – these should come BEFORE bodyParser so that the body is proxied without being consumed and parsed
+   * @see https://www.npmjs.com/package/express-http-proxy#middleware-mixing
+   *
+   * Kratos is given an exception as we check the body for rate limiting purposes and parsing it out doesn't break it.
+   */
+
+  /**
+   * Proxy to Ory Hydra's OAuth2 authorization and token endpoints, for OAuth2 clients (e.g. HashGPT)
+   */
+  app.use("/oauth2/auth", authRouteRateLimiter, hydraProxy);
+  app.use("/oauth2/token", authRouteRateLimiter, hydraProxy);
+  app.use("/oauth2/fallbacks", authRouteRateLimiter, hydraProxy);
+
+  /** END PROXIES */
+
+  /** Body parsing middleware */
   app.use((req, res, next) => {
-    if (req.path.startsWith("/webhooks/")) {
+    if (
+      req.path.startsWith("/webhooks/") ||
+      req.path === LOCAL_FILE_UPLOAD_PATH
+    ) {
       // webhooks typically need the raw body for signature verification
       return rawParser(req, res, next);
     }
     return jsonParser(req, res, next);
   });
 
+  /**
+   * Proxy for requests to the Ory Kratos public API, to be consumed by the frontend.
+   *
+   * Although the proxy would ideally come before the body parser, so that we're passing it through untouched,
+   * we check the body in this process in order to rate limit requests based on the user attempting to log in.
+   */
+  app.use(
+    "/auth/*",
+    authRouteRateLimiter,
+    userIdentifierRateLimiter,
+    cors(CORS_CONFIG),
+    (req, res, next) => {
+      const expectedAccessControlAllowOriginHeader = res.getHeader(
+        "Access-Control-Allow-Origin",
+      );
+
+      if (!kratosPublicUrl) {
+        throw new Error("No kratosPublicUrl provided");
+      }
+
+      return proxy(kratosPublicUrl, {
+        /**
+         * Remove the `/auth` prefix from the request path, so the path is
+         * formatted correctly for the Ory Kratos API.
+         */
+        proxyReqPathResolver: ({ originalUrl }) =>
+          originalUrl.replace("/auth", ""),
+        /**
+         * Ory Kratos includes the wildcard `*` in the `Access-Control-Allow-Origin`
+         * by default, which is not permitted by browsers when including credentials
+         * in requests.
+         *
+         * When setting the value of the `Access-Control-Allow-Origin` header in
+         * the Ory Kratos configuration, the frontend URL is included twice in the
+         * header for some reason (e.g. ["https://localhost:3000", "https://localhost:3000"]),
+         * which is also not permitted by browsers when including credentials in requests.
+         *
+         * Therefore we manually set the `Access-Control-Allow-Origin` header to the
+         * expected value here before returning the response, to prevent CORS errors
+         * in modern browsers.
+         */
+        userResDecorator: (_proxyRes, proxyResData, _userReq, userRes) => {
+          if (typeof expectedAccessControlAllowOriginHeader === "string") {
+            userRes.set(
+              "Access-Control-Allow-Origin",
+              expectedAccessControlAllowOriginHeader,
+            );
+          }
+          return proxyResData;
+        },
+      })(req, res, next);
+    },
+  );
+
   // Set up authentication related middleware and routes
-  setupAuth({ app, logger, context });
+  addKratosAfterRegistrationHandler({ app, context });
+  const authMiddleware = createAuthMiddleware({ logger, context });
+  app.use(authMiddleware);
+
+  /**
+   * Add scope to Sentry, now the user has been checked.
+   * We could set some of this scope earlier, but it doesn't get picked up for GraphQL requests for some reason
+   * if the middleware comes earlier.
+   */
+  app.use((req, _res, next) => {
+    const scope = Sentry.getCurrentScope();
+
+    // Clear the scope and breadcrumbs – requests seem to bleed into each other otherwise
+    scope.clear();
+    scope.clearBreadcrumbs();
+
+    /**
+     * Sentry automatically populates a 'Headers' object, but for some reason it doesn't do this for GraphQL requests.
+     * This might be something to do with how Sentry hooks into fetch that doesn't play nicely with ApolloServer,
+     * or how we're loading it.
+     */
+    const userAgent = req.header("user-agent");
+    const origin = req.header("origin");
+    const ip = req.ip;
+
+    scope.setContext("request", { ip, origin, userAgent });
+
+    const user = req.user;
+    scope.setUser({
+      id: getActorIdFromRequest(req),
+      email: user?.emails[0],
+      username: user?.shortname ?? "public",
+    });
+
+    next();
+  });
+
+  /** OAuth2 consent flow */
+  app.get("/oauth2/consent", authRouteRateLimiter, oauthConsentRequestHandler);
+  app.post(
+    "/oauth2/consent",
+    authRouteRateLimiter,
+    oauthConsentSubmissionHandler,
+  );
+
+  const hbs = handlebarsCreate({ defaultLayout: "main", extname: ".hbs" });
+  app.engine(
+    "hbs",
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
+    hbs.engine,
+  );
+  app.set("view engine", "hbs");
+  app.set("views", "./views");
 
   // Create an email transporter
   const emailTransporter =
-    (isTestEnv || isDevEnv) && process.env.HASH_EMAIL_TRANSPORTER === "dummy"
+    isTestEnv || isDevEnv || process.env.HASH_EMAIL_TRANSPORTER === "dummy"
       ? new DummyEmailTransporter({
           copyCodesOrLinksToClipboard:
             process.env.DUMMY_EMAIL_TRANSPORTER_USE_CLIPBOARD === "true",
@@ -206,18 +408,18 @@ const main = async () => {
             : undefined,
         })
       : process.env.AWS_REGION
-      ? new AwsSesEmailTransporter({
-          from: `${getRequiredEnv(
-            "SYSTEM_EMAIL_SENDER_NAME",
-          )} <${getRequiredEnv("SYSTEM_EMAIL_ADDRESS")}>`,
-          region: getAwsRegion(),
-          subjectPrefix: isProdEnv ? undefined : "[DEV SITE] ",
-        })
-      : ({
-          sendMail: (mail) => {
-            logger.info(`Tried to send mail to ${mail.to}:\n${mail.html}`);
-          },
-        } as EmailTransporter);
+        ? new AwsSesEmailTransporter({
+            from: `${getRequiredEnv(
+              "SYSTEM_EMAIL_SENDER_NAME",
+            )} <${getRequiredEnv("SYSTEM_EMAIL_ADDRESS")}>`,
+            region: getAwsRegion(),
+            subjectPrefix: isProdEnv ? undefined : "[DEV SITE] ",
+          })
+        : ({
+            sendMail: (mail) => {
+              logger.info(`Tried to send mail to ${mail.to}:\n${mail.html}`);
+            },
+          } as EmailTransporter);
 
   let search: OpenSearch | undefined;
   if (process.env.HASH_OPENSEARCH_ENABLED === "true") {
@@ -261,7 +463,13 @@ const main = async () => {
     next();
   });
 
-  app.get("/", (_, res) => res.send("Hello World"));
+  setupFileDownloadProxyHandler(app, redis);
+
+  setupBlockProtocolExternalServiceMethodProxy(app);
+
+  app.get("/", (_req, res) => {
+    res.send("Hello World");
+  });
 
   // Used by AWS Application Load Balancer (ALB) for health checks
   app.get("/health-check", (_, res) => res.status(200).send("Hello World!"));
@@ -273,6 +481,7 @@ const main = async () => {
       logger.info({
         requestId,
         method: req.method,
+        origin: req.headers.origin,
         ip: req.ip,
         path: req.path,
         message: "request",
@@ -283,10 +492,52 @@ const main = async () => {
     next();
   });
 
+  app.use((req, _res, next) => {
+    if (req.path !== "/graphql") {
+      if (!req.user?.isAccountSignupComplete) {
+        /**
+         * Only GraphQL requests need to be provided with incomplete users, to allow them to complete signup
+         *   – otherwise they should be treated as anonymous requests.
+         */
+        delete req.user;
+      }
+    }
+    next();
+  });
+
   // Integrations
-  app.get("/oauth/linear", oAuthLinear);
-  app.get("/oauth/linear/callback", oAuthLinearCallback);
+  app.get("/oauth/linear", authRouteRateLimiter, oAuthLinear);
+  app.get("/oauth/linear/callback", authRouteRateLimiter, oAuthLinearCallback);
   app.post("/webhooks/linear", linearWebhook);
+
+  // Endpoints used by HashGPT or in support of it
+  app.post("/gpt/entities/query", gptQueryEntities);
+  app.get("/gpt/user-webs", gptGetUserWebs);
+  app.post("/gpt/upsert-gpt-oauth-client", upsertGptOauthClient);
+
+  /**
+   * This middleware MUST:
+   * 1. Come AFTER all non-error controllers
+   * 2. Come BEFORE all error controllers/middleware
+   */
+  app.use(
+    Sentry.Handlers.errorHandler({
+      shouldHandleError(_error) {
+        /**
+         * Capture all errors for now – we can selectively filter out errors based on code if needed.
+         */
+        return true;
+      },
+    }),
+  );
+
+  // Fallback error handler for errors that haven't been caught and sent as a response already
+  const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+    Sentry.captureException(err);
+
+    res.status(500).send(err.message);
+  };
+  app.use(errorHandler);
 
   // Create the HTTP server.
   // Note: calling `close` on a `http.Server` stops new connections, but it does not
@@ -295,6 +546,13 @@ const main = async () => {
   const httpServer = http.createServer(app);
   const httpTerminator = createHttpTerminator({ server: httpServer });
   shutdown.addCleanup("HTTP Server", async () => httpTerminator.terminate());
+
+  openInferEntitiesWebSocket({
+    context,
+    httpServer,
+    logger,
+    temporalClient,
+  });
 
   // Start the Apollo GraphQL server.
   // Note: the server must be started before the middleware can be applied
@@ -316,15 +574,17 @@ const main = async () => {
     });
   });
 
-  const integrationSyncBackWatcher =
-    await createIntegrationSyncBackWatcher(graphApi);
+  if (realtimeSyncEnabled) {
+    const integrationSyncBackWatcher =
+      await createIntegrationSyncBackWatcher(graphApi);
 
-  void integrationSyncBackWatcher.start();
+    void integrationSyncBackWatcher.start();
 
-  shutdown.addCleanup(
-    "Integration sync back watcher",
-    integrationSyncBackWatcher.stop,
-  );
+    shutdown.addCleanup(
+      "Integration sync back watcher",
+      integrationSyncBackWatcher.stop,
+    );
+  }
 };
 
 void main().catch(async (err) => {

@@ -1,0 +1,50 @@
+cargo-features = ["edition2024"]
+
+[package]
+name = "graph-api"
+version = "0.0.0"
+authors.workspace = true
+edition.workspace = true
+publish = false
+description = "HASH Graph API"
+
+[dependencies]
+hash-status = { workspace = true }
+graph = { workspace = true, features = ["utoipa"] }
+graph-types = { workspace = true, features = ["utoipa"] }
+hash-tracing = { workspace = true }
+temporal-client = { workspace = true }
+temporal-versioning = { workspace = true }
+authorization = { workspace = true }
+type-system = { workspace = true, features = ["utoipa"] }
+validation = { workspace = true, features = ["utoipa"] }
+codec = { workspace = true, optional = true }
+
+async-trait = "0.1.77"
+axum = "0.7.4"
+base64 = "0.22.0"
+bytes = "1.5.0"
+error-stack = { workspace = true }
+futures = { workspace = true }
+http-body-util = "0.1.1"
+hyper = "1.2.0"
+include_dir = "0.7.3"
+mime = "0.3.17"
+opentelemetry = "0.21.0"
+opentelemetry_sdk = { version = "0.21.2", features = ["rt-tokio"] }
+sentry = { version = "0.32.2", features = ["tracing", "tower", "tower-http"], default-features = false }
+serde = { version = "1.0.197", features = ['derive'] }
+serde_json = "1.0.114"
+time = { workspace = true }
+tokio = { workspace = true, features = ["macros"], optional = true }
+tokio-postgres = { version = "0.7.10", default-features = false, optional = true }
+tokio-util = { workspace = true, features = ["io"], optional = true }
+tower = "0.4.13"
+tower-http = { version = "0.5.2", features = ["trace"] }
+tracing = { workspace = true }
+tracing-opentelemetry = "0.22.0"
+utoipa = "4.2.0"
+uuid = "1.7.0"
+
+[features]
+test-server = ["dep:tokio", "dep:tokio-postgres", "dep:tokio-util", "dep:codec"]

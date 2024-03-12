@@ -4,7 +4,14 @@ import {
   PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
-import { apiGraphQLEndpoint } from "@local/hash-graphql-shared/environment";
+import {
+  apiGraphQLEndpoint,
+  frontendUrl,
+} from "@local/hash-isomorphic-utils/environment";
+import {
+  SystemTypeWebShortname,
+  systemTypeWebShortnames,
+} from "@local/hash-isomorphic-utils/ontology-types";
 import { OntologyTypeVertexId } from "@local/hash-subgraph";
 import type { ApolloError } from "apollo-server-express";
 import type { NextRequest } from "next/server";
@@ -71,8 +78,22 @@ export const returnTypeAsJson = async (request: NextRequest) => {
     );
   }
 
+  // To be removed in H-1172: Temporary provision until app is migrated to https://hash.ai
+  const urlObject = new URL(url);
+  const shouldServeHashAiType =
+    frontendUrl === "https://app.hash.ai" ||
+    (frontendUrl === "http://localhost:3000" &&
+      systemTypeWebShortnames.includes(
+        urlObject.pathname.split("/")[1]!.slice(1) as SystemTypeWebShortname,
+      ));
+
+  const urlToRequest = shouldServeHashAiType
+    ? (new URL(urlObject.pathname, "https://hash.ai").href as VersionedUrl)
+    : url;
+  // Remove above code in H-1172, pass url directly to generateQueryArgs
+
   const { query, variables } = generateQueryArgs(
-    url,
+    urlToRequest,
     ontologyType as "data-type" | "entity-type" | "property-type",
   );
 
@@ -84,7 +105,7 @@ export const returnTypeAsJson = async (request: NextRequest) => {
     | GetPropertyTypeQueryVariables
   >(query, variables, cookie);
 
-  if (errors || !data) {
+  if (errors ?? !data) {
     const { code, message } = errors?.[0] ?? {
       code: "INTERNAL_SERVER_ERROR",
       message: "Unknown error",
@@ -99,8 +120,8 @@ export const returnTypeAsJson = async (request: NextRequest) => {
     "getDataType" in data
       ? data.getDataType
       : "getEntityType" in data
-      ? data.getEntityType
-      : data.getPropertyType;
+        ? data.getEntityType
+        : data.getPropertyType;
 
   const root = roots[0] as OntologyTypeVertexId | undefined;
   if (!root) {

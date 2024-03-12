@@ -1,0 +1,16 @@
+{
+  "name": "@tests/hash-graph-integration-rs",
+  "version": "0.0.0-private",
+  "private": true,
+  "scripts": {
+    "fix:clippy": "just clippy --fix",
+    "lint:clippy": "just clippy",
+    "test:integration": "cargo nextest run --all-features --all-targets"
+  },
+  "dependencies": {
+    "@apps/hash-graph": "0.0.0-private",
+    "@local/hash-authorization-rs": "0.0.0-private",
+    "@local/hash-graph-types-rs": "0.0.0-private",
+    "@tests/hash-graph-test-data-rs": "0.0.0-private"
+  }
+}

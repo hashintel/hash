@@ -1,25 +1,31 @@
-import { EntityId, OwnedById } from "@local/hash-subgraph";
-import { useContext } from "react";
+import { useMutation } from "@apollo/client";
+import {
+  Entity,
+  extractDraftIdFromEntityId,
+  extractOwnedByIdFromEntityId,
+} from "@local/hash-subgraph";
 
 import { useBlockProtocolArchiveEntity } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
-import { useBlockProtocolCreateEntity } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
-import { WorkspaceContext } from "../../../../shared/workspace-context";
+import {
+  CreateEntityMutation,
+  CreateEntityMutationVariables,
+} from "../../../../../graphql/api-types.gen";
+import { createEntityMutation } from "../../../../../graphql/queries/knowledge/entity.queries";
 import {
   DraftLinksToArchive,
   DraftLinksToCreate,
 } from "./use-draft-link-state";
 
 export const useApplyDraftLinkEntityChanges = () => {
-  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
-
   const { archiveEntity } = useBlockProtocolArchiveEntity();
 
-  const { createEntity } = useBlockProtocolCreateEntity(
-    (activeWorkspaceAccountId as OwnedById | undefined) ?? null,
-  );
+  const [createEntity] = useMutation<
+    CreateEntityMutation,
+    CreateEntityMutationVariables
+  >(createEntityMutation);
 
   const applyDraftLinkEntityChanges = async (
-    leftEntityId: EntityId,
+    leftEntity: Entity,
     draftLinksToCreate: DraftLinksToCreate,
     draftLinksToArchive: DraftLinksToArchive,
   ) => {
@@ -27,16 +33,23 @@ export const useApplyDraftLinkEntityChanges = () => {
       archiveEntity({ data: { entityId: linkEntityId } }),
     );
 
+    const leftEntityId = leftEntity.metadata.recordId.entityId;
+
     const createPromises = draftLinksToCreate.map(
       ({ linkEntity, rightEntity }) =>
         createEntity({
-          data: {
+          variables: {
             entityTypeId: linkEntity.metadata.entityTypeId,
+            // The link should be in the same web as the source entity.
+            ownedById: extractOwnedByIdFromEntityId(leftEntityId),
             properties: {},
             linkData: {
               leftEntityId,
               rightEntityId: rightEntity.metadata.recordId.entityId,
             },
+            draft: !!extractDraftIdFromEntityId(
+              leftEntity.metadata.recordId.entityId,
+            ),
           },
         }),
     );

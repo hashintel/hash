@@ -5,13 +5,18 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "lib": ["dom", "dom.iterable", "esnext"],
-    "target": "es5",
+    "target": "es6",
     "noEmit": true,
     "paths": {
       "@blockprotocol/type-system": [
         "../../../../node_modules/@blockprotocol/type-system/dist/cjs-slim/index-slim.d.ts"
       ]
-    }
+    },
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
   "include": [
     "assets.d.ts",

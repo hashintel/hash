@@ -1,4 +1,6 @@
-use alloc::{boxed::Box, collections::BTreeMap};
+#[cfg_attr(feature = "std", allow(unused_imports))]
+use alloc::boxed::Box;
+use alloc::collections::BTreeMap;
 use core::any::{Any, TypeId};
 
 #[derive(Debug)]
@@ -64,7 +66,7 @@ mod tests {
     #[test]
     fn insert() {
         let mut context = Context::new();
-        context.insert(0u8);
+        context.insert(0_u8);
 
         let has_u8 = context.inner.keys().any(|id| *id == TypeId::of::<u8>());
         assert!(has_u8);
@@ -74,8 +76,8 @@ mod tests {
     fn remove() {
         let mut context = Context::new();
 
-        context.insert::<u8>(0u8);
-        context.insert::<u16>(0u16);
+        context.insert::<u8>(0_u8);
+        context.insert::<u16>(0_u16);
         assert_eq!(context.inner.len(), 2);
 
         let value = context.remove::<u8>();
@@ -87,8 +89,8 @@ mod tests {
     fn clear() {
         let mut context = Context::new();
 
-        context.insert::<u8>(0u8);
-        context.insert::<u16>(0u16);
+        context.insert::<u8>(0_u8);
+        context.insert::<u16>(0_u16);
         assert_eq!(context.inner.len(), 2);
 
         context.clear();
@@ -99,8 +101,8 @@ mod tests {
     fn contains() {
         let mut context = Context::new();
 
-        context.insert::<u8>(0u8);
-        context.insert::<u16>(0u16);
+        context.insert::<u8>(0_u8);
+        context.insert::<u16>(0_u16);
 
         assert!(context.contains::<u8>());
         assert!(context.contains::<u16>());
@@ -111,8 +113,8 @@ mod tests {
     fn request_ref() {
         let mut context = Context::new();
 
-        context.insert::<u8>(3u8);
+        context.insert::<u8>(3_u8);
 
-        assert_eq!(context.request_ref::<u8>(), Some(&3u8));
+        assert_eq!(context.request_ref::<u8>(), Some(&3_u8));
     }
 }

@@ -17,16 +17,15 @@
   "scripts": {
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
-    "lint:tsc": "tsc --noEmit",
-    "test": "jest"
+    "lint:tsc": "tsc --noEmit"
   },
   "dependencies": {},
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "eslint": "8.33.0",
-    "react": "^18.2.0",
-    "rimraf": "^3.0.2",
+    "eslint": "8.57.0",
+    "react": "18.2.0",
+    "rimraf": "5.0.5",
     "typescript": "5.1.6"
   }
 }

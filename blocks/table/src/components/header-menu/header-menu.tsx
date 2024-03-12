@@ -2,6 +2,7 @@ import { Rectangle } from "@glideapps/glide-data-grid";
 import { useLayer } from "react-laag";
 import { useKey } from "rooks";
 
+import { DangerButton } from "../shared/danger-button";
 import styles from "./styles.module.scss";
 
 interface HeaderMenuProps {
@@ -48,9 +49,14 @@ export const HeaderMenu = ({
         defaultValue={title}
         onChange={(event) => updateTitle(event.target.value)}
       />
-      <button type="button" className={styles.danger} onClick={onDelete}>
+      <DangerButton
+        onClick={onDelete}
+        sx={{
+          padding: ({ spacing }) => spacing(0.75, 1),
+        }}
+      >
         Delete
-      </button>
+      </DangerButton>
     </div>,
   );
 };

@@ -1,4 +1,4 @@
-import { fluidFontClassName } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/theme";
 import { TableCell, Tooltip } from "@mui/material";
 
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";
@@ -34,7 +34,7 @@ export const InheritedLinkRow = ({
   } = inheritedLinkData;
 
   const { entityTypes, linkTypes } = useEntityTypesOptions();
-  const linkSchema = linkTypes[$id];
+  const linkSchema = linkTypes[$id]?.schema;
 
   if (!linkSchema) {
     throw new Error(`Inherited property type ${$id} not found`);
@@ -49,7 +49,7 @@ export const InheritedLinkRow = ({
       <TableCell>
         <EntityTypeTableTitleCellText>
           <ArrowTurnDownRightIcon sx={{ mr: 1 }} />
-          <Link href={$id} style={{ color: "inherit", fontWeight: 600 }}>
+          <Link href={$id} style={{ color: "inherit", fontWeight: 500 }}>
             {linkSchema.title}
           </Link>
         </EntityTypeTableTitleCellText>
@@ -74,7 +74,7 @@ export const InheritedLinkRow = ({
                 return (
                   <DestinationEntityType
                     key={entityTypeId}
-                    entityType={entityType}
+                    entityTypeSchema={entityType.schema}
                   />
                 );
               })

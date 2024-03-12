@@ -1,5 +1,5 @@
+import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
-import { Page } from "playwright";
 
 import { getDerivedPayloadFromMostRecentEmail } from "./get-derived-payload-from-most-recent-email";
 
@@ -10,7 +10,7 @@ export const loginUsingUi = async ({
   page: Page;
   accountShortName: string;
 }): Promise<void> => {
-  await page.goto("/login");
+  await page.goto("/signin");
 
   // Enter account short name
   const accountShortNameInputSelector =

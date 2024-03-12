@@ -20,9 +20,9 @@ Process models in HASH are built on a single agent, and there are three elements
 
 Each process block behavior operates in three parts:
 
-1.  The block retrieves all objects in its queue.
-1.  The block then performs a function, such as modifying on object property or seizing a resource from the agent.
-1.  The block puts modified objects back into its queue, or into the queue of the following block.
+1. The block retrieves all objects in its queue.
+1. The block then performs a function, such as modifying on object property or seizing a resource from the agent.
+1. The block puts modified objects back into its queue, or into the queue of the following block.
 
 <Hint style="warning">
 The only exception to this is the Sink block. Since it represents the end of a process, it does not send objects into a new queue.

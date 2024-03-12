@@ -7,24 +7,24 @@ import {
   ResolverFn,
 } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { dataSourcesToImpureGraphContext } from "../../util";
+import { graphQLContextToImpureGraphContext } from "../../util";
 import { mapCommentToGQL, UnresolvedCommentGQL } from "../graphql-mapping";
 
 export const updateCommentTextResolver: ResolverFn<
   Promise<UnresolvedCommentGQL>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   MutationUpdateCommentTextArgs
-> = async (_, { entityId, tokens }, { dataSources, user }) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
+> = async (_, { entityId, textualContent }, graphQLContext) => {
+  const { authentication } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  await updateCommentText(context, {
+  await updateCommentText(context, authentication, {
     commentEntityId: entityId,
-    actorId: user.accountId,
-    tokens,
+    textualContent,
   });
 
-  const comment = await getCommentById(context, {
+  const comment = await getCommentById(context, authentication, {
     entityId,
   });
 

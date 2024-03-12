@@ -4,6 +4,7 @@ export * from "./block-prompt-input";
 export * from "./block-settings-button";
 export * from "./dropdown-selector";
 export * from "./editable-field";
+export * from "./entities-graph-chart";
 export * from "./get-help-link";
 export * from "./icons/icons";
-export { theme } from "@hashintel/design-system";
+export { theme } from "@hashintel/design-system/theme";

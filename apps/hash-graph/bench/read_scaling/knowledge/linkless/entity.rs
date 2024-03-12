@@ -1,9 +1,15 @@
 use std::{iter::repeat, str::FromStr};
 
+use authorization::{schema::WebOwnerSubject, NoAuthorization};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use graph::{
-    store::{query::Filter, AccountStore, EntityStore},
+    store::{
+        account::{InsertAccountIdParams, InsertWebIdParams},
+        knowledge::GetEntityParams,
+        query::Filter,
+        AccountStore, EntityQuerySorting, EntityStore,
+    },
     subgraph::{
         edges::GraphResolveDepths,
         query::StructuralQuery,
@@ -17,12 +23,12 @@ use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     account::AccountId,
     knowledge::entity::{EntityMetadata, EntityProperties},
-    provenance::{OwnedById, RecordCreatedById},
+    owned_by_id::OwnedById,
 };
 use rand::{prelude::IteratorRandom, thread_rng};
 use temporal_versioning::TemporalBound;
 use tokio::runtime::Runtime;
-use type_system::{repr, EntityType};
+use type_system::EntityType;
 use uuid::Uuid;
 
 use crate::util::{seed, setup, Store, StoreWrapper};
@@ -44,22 +50,39 @@ async fn seed_db(
     eprintln!("Seeding database: {}", store_wrapper.bench_db_name);
 
     transaction
-        .insert_account_id(account_id)
+        .insert_account_id(
+            account_id,
+            &mut NoAuthorization,
+            InsertAccountIdParams { account_id },
+        )
         .await
         .expect("could not insert account id");
+    transaction
+        .insert_web_id(
+            account_id,
+            &mut NoAuthorization,
+            InsertWebIdParams {
+                owned_by_id: OwnedById::new(account_id.into_uuid()),
+                owner: WebOwnerSubject::Account { id: account_id },
+            },
+        )
+        .await
+        .expect("could not create web id");
 
     seed(
         &mut transaction,
         account_id,
-        [data_type::TEXT_V1],
+        [data_type::TEXT_V1, data_type::NUMBER_V1],
         [
             property_type::NAME_V1,
             property_type::BLURB_V1,
             property_type::PUBLISHED_ON_V1,
+            property_type::AGE_V1,
         ],
         [
             entity_type::LINK_V1,
             entity_type::link::FRIEND_OF_V1,
+            entity_type::link::ACQUAINTANCE_OF_V1,
             entity_type::link::WRITTEN_BY_V1,
             entity_type::PERSON_V1,
             entity_type::BOOK_V1,
@@ -69,17 +92,22 @@ async fn seed_db(
 
     let properties: EntityProperties =
         serde_json::from_str(entity::BOOK_V1).expect("could not parse entity");
-    let entity_type_repr: repr::EntityType = serde_json::from_str(entity_type::BOOK_V1)
-        .expect("could not parse entity type representation");
-    let entity_type_id = EntityType::try_from(entity_type_repr)
-        .expect("could not parse entity type")
-        .id()
-        .clone();
+    let entity_type: EntityType =
+        serde_json::from_str(entity_type::BOOK_V1).expect("could not parse entity type");
+    let entity_type_id = entity_type.id().clone();
 
     let entity_metadata_list = transaction
         .insert_entities_batched_by_type(
-            repeat((OwnedById::new(account_id), None, properties, None, None)).take(total),
-            RecordCreatedById::new(account_id),
+            account_id,
+            &mut NoAuthorization,
+            repeat((
+                OwnedById::new(account_id.into_uuid()),
+                None,
+                properties,
+                None,
+                None,
+            ))
+            .take(total),
             &entity_type_id,
         )
         .await
@@ -104,6 +132,7 @@ pub fn bench_get_entity_by_id(
     b: &mut Bencher,
     runtime: &Runtime,
     store: &Store,
+    actor_id: AccountId,
     entity_metadata_list: &[EntityMetadata],
 ) {
     b.to_async(runtime).iter_batched(
@@ -112,23 +141,35 @@ pub fn bench_get_entity_by_id(
             // query
             entity_metadata_list
                 .iter()
-                .map(EntityMetadata::record_id)
+                .map(|metadata| metadata.record_id)
                 .choose(&mut thread_rng())
                 .expect("could not choose random entity")
         },
         |entity_record_id| async move {
             store
-                .get_entity(&StructuralQuery {
-                    filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
+                .get_entity(
+                    actor_id,
+                    &NoAuthorization,
+                    GetEntityParams {
+                        query: StructuralQuery {
+                            filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
+                            graph_resolve_depths: GraphResolveDepths::default(),
+                            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                                pinned: PinnedTemporalAxisUnresolved::new(None),
+                                variable: VariableTemporalAxisUnresolved::new(
+                                    Some(TemporalBound::Unbounded),
+                                    None,
+                                ),
+                            },
+                            include_drafts: false,
+                        },
+                        sorting: EntityQuerySorting {
+                            paths: Vec::new(),
+                            cursor: None,
+                        },
+                        limit: None,
                     },
-                })
+                )
                 .await
                 .expect("failed to read entity from store");
         },
@@ -146,7 +187,7 @@ fn bench_scaling_read_entity(c: &mut Criterion) {
     );
 
     for size in [1, 10, 100, 1_000, 10_000] {
-        let (runtime, mut store_wrapper) = setup(DB_NAME, true, true);
+        let (runtime, mut store_wrapper) = setup(DB_NAME, true, true, account_id);
 
         let entity_uuids = runtime.block_on(seed_db(account_id, &mut store_wrapper, size));
         let store = &store_wrapper.store;
@@ -158,7 +199,7 @@ fn bench_scaling_read_entity(c: &mut Criterion) {
             ),
             &(account_id, entity_uuids),
             |b, (_account_id, entity_metadata_list)| {
-                bench_get_entity_by_id(b, &runtime, store, entity_metadata_list);
+                bench_get_entity_by_id(b, &runtime, store, account_id, entity_metadata_list);
             },
         );
     }

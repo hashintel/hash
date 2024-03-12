@@ -1,8 +1,23 @@
-// import { useQuery } from "@apollo/client";
-// import { PageSearchResult } from "../../../../../graphql/api-types.gen";
-import { IconButton } from "@hashintel/design-system";
+import { useQuery } from "@apollo/client";
+import { Chip, IconButton } from "@hashintel/design-system";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  Entity,
+  EntityRootType,
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
+import {
+  getEntityTypeById,
+  getRoots,
+  isEntityRootedSubgraph,
+} from "@local/hash-subgraph/stdlib";
 import { Box, SxProps, Theme, useMediaQuery, useTheme } from "@mui/material";
-import { escapeRegExp } from "lodash";
 import {
   FunctionComponent,
   ReactNode,
@@ -12,39 +27,31 @@ import {
 } from "react";
 import { useDebounce, useKey, useOutsideClickRef } from "rooks";
 
-import { HASH_OPENSEARCH_ENABLED } from "../../../lib/public-env";
-import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
-import { getBlockDomId } from "../../get-block-dom-id";
+import { useUserOrOrgShortnameByOwnedById } from "../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
+import {
+  StructuralQueryEntitiesQuery,
+  StructuralQueryEntitiesQueryVariables,
+} from "../../../graphql/api-types.gen";
+import { structuralQueryEntitiesQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import { SearchIcon } from "../../icons";
 import { Button, Link } from "../../ui";
 import { SearchInput } from "./search-bar/search-input";
 
-/** finds the query's words in the result and chops it into parts at the words' boundaries */
-const splitByMatches = (result: string, query: string) => {
-  const separator = query
-    .split(/\s+/g)
-    .sort((a, b) => b.length - a.length) // match longer words first
-    .map(escapeRegExp)
-    .join("|");
-
-  /** @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/split#splitting_with_a_regexp_to_include_parts_of_the_separator_in_the_result */
-  return result.split(new RegExp(`(${separator})`, "gi"));
-};
-
-const toBlockUrl = (searchPage: any): string => {
-  const segments = [
-    "/",
-    searchPage.page.accountId,
-    "/",
-    searchPage.page.entityId,
-  ];
-
-  if (searchPage.block) {
-    segments.push("#", getBlockDomId(searchPage.block.entityId));
-  }
-
-  return segments.join("");
-};
+/**
+ * finds the query's words in the result and chops it into parts at the words' boundaries
+ * @todo reintroduce this for entities with textual-content – H-2258
+ *    bear in mind that text may not contain the search term, given that it's semantic search
+ */
+// const splitByMatches = (result: string, query: string) => {
+//   const separator = query
+//     .split(/\s+/g)
+//     .sort((a, b) => b.length - a.length) // match longer words first
+//     .map(escapeRegExp)
+//     .join("|");
+//
+//   /** @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/split#splitting_with_a_regexp_to_include_parts_of_the_separator_in_the_result */
+//   return result.split(new RegExp(`(${separator})`, "gi"));
+// };
 
 const ResultList: FunctionComponent<{
   isMobile: boolean;
@@ -55,7 +62,7 @@ const ResultList: FunctionComponent<{
     sx={(theme) => ({
       position: !isMobile ? "absolute" : "unset",
       top: !isMobile ? "calc(100% + 1px)" : "unset",
-      zIndex: 10,
+      zIndex: 10_000,
       width: "100%",
       maxHeight: "15rem",
       overflow: "auto",
@@ -94,6 +101,34 @@ const ResultItem: FunctionComponent<{
       ]}
       {...props}
     />
+  );
+};
+
+const EntityResult: FunctionComponent<{
+  entity: Entity;
+  subgraph: Subgraph<EntityRootType>;
+}> = ({ entity, subgraph }) => {
+  const entityId = entity.metadata.recordId.entityId;
+
+  const ownedById = extractOwnedByIdFromEntityId(entityId);
+  const { shortname: entityOwningShortname } = useUserOrOrgShortnameByOwnedById(
+    { ownedById },
+  );
+
+  const entityType = getEntityTypeById(subgraph, entity.metadata.entityTypeId);
+
+  return (
+    <ResultItem>
+      <Link
+        noLinkStyle
+        href={`/@${entityOwningShortname}/entities/${extractEntityUuidFromEntityId(entityId)}`}
+      >
+        {generateEntityLabel(subgraph, entity)}
+      </Link>
+      {entityType && (
+        <Chip color="teal" label={entityType.schema.title} sx={{ ml: 1 }} />
+      )}
+    </ResultItem>
   );
 };
 
@@ -138,7 +173,12 @@ const getSearchBarResponsiveStyles = (
   return {};
 };
 
-const SearchBarWhenSearchIsEnabled: FunctionComponent = () => {
+/**
+ * The maximum distance between the search query and an entity's embedding for it to appear in results
+ */
+const maximumSemanticDistance = 0.6;
+
+export const SearchBar: FunctionComponent = () => {
   const theme = useTheme();
 
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -154,31 +194,46 @@ const SearchBarWhenSearchIsEnabled: FunctionComponent = () => {
     }
   }, [displayedQuery, displaySearchInput]);
 
-  const { authenticatedUser: _ } = useAuthenticatedUser();
+  const { data: resultData, loading } = useQuery<
+    StructuralQueryEntitiesQuery,
+    StructuralQueryEntitiesQueryVariables
+  >(structuralQueryEntitiesQuery, {
+    variables: {
+      query: {
+        filter: {
+          cosineDistance: [
+            { path: ["embedding"] },
+            {
+              parameter: submittedQuery,
+            },
+            { parameter: maximumSemanticDistance },
+          ],
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          inheritsFrom: { outgoing: 255 },
+          isOfType: { outgoing: 1 },
+        },
+        includeDrafts: true,
+      },
+      includePermissions: false,
+    },
+    skip: !submittedQuery,
+  });
 
-  const data: any = [];
-  const loading = false;
-  /**
-   * @todo: We currently do not support search, see https://app.asana.com/0/1201095311341924/1202681411010022/f
-   */
-  // const { data, loading } = useQuery<
-  //   SearchPagesQuery,
-  //   SearchPagesQueryVariables
-  // >(searchPages, {
-  //   variables: {
-  //     accountId: authenticatedUser!.entityId,
-  //     query: submittedQuery,
-  //   },
-  //   skip: !authenticatedUser?.entityId || !submittedQuery,
-  //   fetchPolicy: "network-only",
-  // });
+  const subgraph =
+    resultData &&
+    isEntityRootedSubgraph(resultData.structuralQueryEntities.subgraph)
+      ? resultData.structuralQueryEntities.subgraph
+      : undefined;
+
+  const results = subgraph ? getRoots(subgraph) : [];
 
   useKey(["Escape"], () => setResultListVisible(false));
 
   const [rootRef] = useOutsideClickRef(() => setResultListVisible(false));
 
-  // present loading screen while waiting for the user to stop typing
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
   const isLoading = loading || displayedQuery !== submittedQuery;
 
   return (
@@ -238,39 +293,23 @@ const SearchBarWhenSearchIsEnabled: FunctionComponent = () => {
             <ResultItem sx={{ display: "block" }}>
               Loading results for&nbsp;<b>{submittedQuery}</b>.
             </ResultItem>
-          ) : !data?.searchPages.length ? (
+          ) : !results.length ? (
             <ResultItem sx={{ display: "block" }}>
               No results found for&nbsp;<b>{submittedQuery}</b>.
             </ResultItem>
           ) : (
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-            data.searchPages.map((searchPage: any) => (
-              <ResultItem
-                key={searchPage.block?.entityId ?? searchPage.page.entityId}
-              >
-                <Link noLinkStyle href={toBlockUrl(searchPage)}>
-                  <a>
-                    {splitByMatches(searchPage.content, submittedQuery).map(
-                      // eslint-disable-next-line react/no-array-index-key
-                      (str, i) => (i % 2 === 1 ? <b key={i}>{str}</b> : str),
-                    )}
-                  </a>
-                </Link>
-              </ResultItem>
-            ))
+            results.map((entity) => {
+              return (
+                <EntityResult
+                  key={entity.metadata.recordId.entityId}
+                  entity={entity}
+                  subgraph={subgraph!}
+                />
+              );
+            })
           )}
         </ResultList>
       )}
     </Box>
   );
 };
-
-const SearchBarWhenSearchIsDisabled: FunctionComponent = () => {
-  return <div />;
-};
-
-// Note: This component becomes empty is opensearch is disabled
-export const SearchBar =
-  HASH_OPENSEARCH_ENABLED === "true"
-    ? SearchBarWhenSearchIsEnabled
-    : SearchBarWhenSearchIsDisabled;

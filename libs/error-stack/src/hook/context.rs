@@ -1,4 +1,6 @@
-use alloc::{boxed::Box, collections::BTreeMap};
+#[cfg_attr(feature = "std", allow(unused_imports))]
+use alloc::boxed::Box;
+use alloc::collections::BTreeMap;
 use core::any::{Any, TypeId};
 
 pub(crate) type Storage = BTreeMap<TypeId, BTreeMap<TypeId, Box<dyn Any>>>;
@@ -150,7 +152,7 @@ impl<T> HookContext<T> {
     /// #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
     /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
     /// #
-    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+    /// #     ansi_to_html::convert(value.as_ref()).unwrap()
     /// # }
     /// #
     /// # #[cfg(nightly)]
@@ -260,7 +262,7 @@ impl<T: 'static> HookContext<T> {
     /// #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
     /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
     /// #
-    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+    /// #     ansi_to_html::convert(value.as_ref()).unwrap()
     /// # }
     /// #
     /// # #[cfg(nightly)]
@@ -327,7 +329,7 @@ impl<T: 'static> HookContext<T> {
     /// #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
     /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
     /// #
-    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+    /// #     ansi_to_html::convert(value.as_ref()).unwrap()
     /// # }
     /// #
     /// # #[cfg(nightly)]

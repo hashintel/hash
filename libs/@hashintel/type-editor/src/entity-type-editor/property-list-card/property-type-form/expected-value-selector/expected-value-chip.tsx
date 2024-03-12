@@ -1,4 +1,3 @@
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { faEdit } from "@fortawesome/free-regular-svg-icons";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -10,11 +9,13 @@ import {
 import { Box, chipClasses, Collapse, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 
-import { ArrayType } from "../../shared/expected-value-types";
-import { expectedValuesOptions } from "../../shared/expected-values-options";
+import {
+  CustomExpectedValueTypeId,
+  useDataTypesOptions,
+} from "../../../../shared/data-types-options-context";
 
 interface ExpectedValueChipProps {
-  expectedValueType: VersionedUrl | ArrayType | "object" | "array";
+  expectedValueType: CustomExpectedValueTypeId;
   editable?: boolean;
   onEdit?: () => void;
 }
@@ -28,7 +29,9 @@ export const ExpectedValueChip = ({
 }: ChipProps & ExpectedValueChipProps) => {
   const [hovered, setHovered] = useState(false);
 
-  const { icon, title, colors } = expectedValuesOptions[expectedValueType]!;
+  const { getExpectedValueDisplay } = useDataTypesOptions();
+
+  const { icon, title, colors } = getExpectedValueDisplay(expectedValueType);
 
   return (
     <Stack

@@ -1,8 +1,8 @@
-import { TextToken } from "@local/hash-graphql-shared/graphql/types";
+import { TextToken } from "@local/hash-isomorphic-utils/types";
 import { Node, Schema } from "prosemirror-model";
 
 import { TextEntityType, TextProperties } from "./entity";
-import { TEXT_TOKEN_PROPERTY_TYPE_BASE_URL } from "./entity-store";
+import { textualContentPropertyTypeBaseUrl } from "./entity-store";
 import { ComponentNode } from "./prosemirror";
 
 export const textBlockNodesFromTokens = (
@@ -18,6 +18,8 @@ export const textBlockNodesFromTokens = (
         return schema.node("mention", {
           mentionType: token.mentionType,
           entityId: token.entityId,
+          propertyTypeBaseUrl: token.propertyTypeBaseUrl,
+          linkEntityTypeBaseUrl: token.linkEntityTypeBaseUrl,
         });
       case "text": {
         return schema.text(
@@ -46,7 +48,7 @@ export const childrenForTextEntity = (
   schema: Schema,
 ): Node[] =>
   textBlockNodesFromTokens(
-    entity.properties[TEXT_TOKEN_PROPERTY_TYPE_BASE_URL] ?? [],
+    entity.properties[textualContentPropertyTypeBaseUrl] ?? [],
     schema,
   );
 
@@ -68,6 +70,8 @@ export const textBlockNodeToTextTokens = (node: ComponentNode): TextToken[] => {
           tokenType: "mention",
           mentionType: child.attrs.mentionType,
           entityId: child.attrs.entityId,
+          propertyTypeBaseUrl: child.attrs.propertyTypeBaseUrl,
+          linkEntityTypeBaseUrl: child.attrs.linkEntityTypeBaseUrl,
         });
         break;
       }
@@ -102,5 +106,5 @@ export const textBlockNodeToTextTokens = (node: ComponentNode): TextToken[] => {
 export const textBlockNodeToEntityProperties = (
   node: ComponentNode,
 ): TextProperties => ({
-  [TEXT_TOKEN_PROPERTY_TYPE_BASE_URL]: textBlockNodeToTextTokens(node),
+  [textualContentPropertyTypeBaseUrl]: textBlockNodeToTextTokens(node),
 });

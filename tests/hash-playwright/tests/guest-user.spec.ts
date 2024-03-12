@@ -1,3 +1,6 @@
+// eslint-disable-next-line no-restricted-imports
+import { test as testTolerateConsoleErrors } from "@playwright/test";
+
 import { resetDb } from "./shared/reset-db";
 import { expect, test } from "./shared/runtime";
 
@@ -5,74 +8,77 @@ test.beforeEach(async () => {
   await resetDb();
 });
 
-/**
- * @todo: Re-enable this playwright test when resetting db functionality is fixed
- * @see https://app.asana.com/0/1202805690238892/1203106234191599/f
- */
-test.skip("guest user navigation to login and signup pages", async ({
-  page,
-}) => {
+test("guest user navigation to login and signup pages", async ({ page }) => {
   await page.goto("/");
-  await page.waitForURL("**/login");
+  await page.waitForURL("**/signin");
 
-  await expect(page.locator("text=Sign in to your account")).toBeVisible();
-  await expect(page.locator("text=No account? No problem")).toBeVisible();
+  await expect(page.locator("text=SIGN IN TO YOUR ACCOUNT")).toBeVisible();
+  await expect(page.locator("text=Create a free account")).toBeVisible();
 
-  await page.click("text=No account? No problem");
+  // Can click the sign up button in the content
 
-  await Promise.all([
-    page.click("text=Create a free account"),
-    page.waitForURL("**/signup"),
-  ]);
+  await page.click("text=Create a free account");
 
-  await expect(
-    page.locator('[placeholder="Enter your email address.."]'),
-  ).toBeVisible();
+  await page.waitForURL("**/signup");
 
   await expect(
-    page.locator('button:has-text("Continue with email")'),
+    page.locator('[placeholder="Enter your email address"]'),
   ).toBeVisible();
+
+  await expect(page.locator('button:has-text("Sign up")')).toBeVisible();
 
   await expect(
-    page.locator(
-      "text=Alternatively if you already have a HASH account, Click here to log in",
-    ),
+    page.locator("text=Already have an account? Sign in"),
   ).toBeVisible();
 
-  await Promise.all([
-    page.click("text=Click here to log in"),
-    page.waitForURL("**/login"),
-  ]);
+  // Can click the sign in button in the header
 
-  await expect(
-    page.locator('h1:has-text("Sign in to your account")'),
-  ).toBeVisible();
+  await page.locator("text=Sign In").nth(0).click();
 
-  await page.click('[placeholder="Enter your email or shortname"]');
+  await page.waitForURL("**/signin");
 
-  await page.fill(
-    '[placeholder="Enter your email or shortname"]',
-    "hello world",
-  );
+  await expect(page.locator("text=SIGN IN TO YOUR ACCOUNT")).toBeVisible();
 
-  await page.click('button:has-text("Submit")');
+  // Can click the sign up button in the header
 
-  await page.click(
-    "text=A user with the shortname 'hello world' could not be found.",
-  );
+  await page.click("text=Sign Up");
+
+  await page.waitForURL("**/signup");
+
+  // Can click the sign in button in the content
+
+  await page.locator("text=Sign In").nth(1).click();
+
+  await page.waitForURL("**/signin");
 });
 
-/**
- * @todo: Re-enable this playwright test when resetting db functionality is fixed
- * @see https://app.asana.com/0/1202805690238892/1203106234191599/f
- */
-test.skip("guest user navigation to inaccessible pages", async ({ page }) => {
+testTolerateConsoleErrors(
+  "incorrect credentials are handled",
+  async ({ page }) => {
+    await page.goto("/");
+    await page.waitForURL("**/signin");
+
+    await expect(page.locator("text=SIGN IN TO YOUR ACCOUNT")).toBeVisible();
+
+    await page.fill(
+      '[placeholder="Enter your email address"]',
+      "helloworld@example.com",
+    );
+
+    await page.fill('[type="password"]', "password");
+
+    await page.click('button:has-text("Submit")');
+
+    await expect(
+      page.locator("text=The provided credentials are invalid"),
+    ).toBeVisible();
+  },
+);
+
+test("guest user redirected to login page", async ({ page }) => {
   await page.goto("/non/existing/page");
-  await expect(page).toHaveTitle("404: This page could not be found");
 
-  await expect(
-    page.locator("text=This page could not be found."),
-  ).toBeVisible();
+  await page.waitForURL("**/signin");
 
-  await expect(page.locator("text=Sign InSign Up")).toBeVisible();
+  await expect(page.locator("text=SIGN IN TO YOUR ACCOUNT")).toBeVisible();
 });

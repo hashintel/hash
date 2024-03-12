@@ -1,14 +1,14 @@
 import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks";
-import fetch from "node-fetch";
+import { ApolloError, ForbiddenError } from "apollo-server-express";
 
 import { BlockProtocolBlock, ResolverFn } from "../../api-types.gen";
 import { GraphQLContext } from "../../context";
 
 export const getBlockProtocolBlocksResolver: ResolverFn<
-  Promise<BlockProtocolBlock[]>,
-  {},
+  BlockProtocolBlock[],
+  Record<string, never>,
   GraphQLContext,
-  {}
+  Record<string, never>
 > = async () => {
   const apiKey = process.env.BLOCK_PROTOCOL_API_KEY;
 
@@ -20,7 +20,19 @@ export const getBlockProtocolBlocksResolver: ResolverFn<
     headers: { "x-api-key": apiKey },
   });
 
-  const { results } = await res.json();
+  if (res.status === 401) {
+    throw new ForbiddenError(
+      `Invalid BLOCK_PROTOCOL_API_KEY for ${blockProtocolHubOrigin}`,
+    );
+  } else if (res.status !== 200) {
+    throw new ApolloError(
+      `Could not fetch blocks from Block Protocol Hub: ${res.statusText}`,
+    );
+  }
 
-  return results as BlockProtocolBlock[];
+  const { results } = await (res.json() as Promise<{
+    results: BlockProtocolBlock[];
+  }>);
+
+  return results;
 };

@@ -10,12 +10,12 @@ Now that we have our list of agents, we move to step 2 - understanding the main 
 
 In this simulation it’s the process of delivering oil from tankers, through the supply chain, to retailers.
 
-1.  Tankers deliver crude oil to storage tanks
-1.  Which store it until needed by refineries
-1.  Refineries refine the crude oil and send it back to storage agents
-1.  Retailers provide oil to customers and when they run out request more
-1.  Which triggers fuel tankers to go to the storage agents load oil
-1.  And deliver it to retailers
+1. Tankers deliver crude oil to storage tanks
+1. Which store it until needed by refineries
+1. Refineries refine the crude oil and send it back to storage agents
+1. Retailers provide oil to customers and when they run out request more
+1. Which triggers fuel tankers to go to the storage agents load oil
+1. And deliver it to retailers
 
 ![](https://cdn-us1.hash.ai/site/docs/anylogic-oil-main-loop.png)
 

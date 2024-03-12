@@ -1,9 +1,0 @@
-{
-  "keys": {
-    "strain": {
-      "nullable": false,
-      "type": "string"
-    }
-  },
-  "built_in_key_use": null
-}

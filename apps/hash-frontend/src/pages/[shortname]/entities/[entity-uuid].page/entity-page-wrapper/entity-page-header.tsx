@@ -1,23 +1,39 @@
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import { Box, Stack, Typography } from "@mui/material";
+import {
+  Entity,
+  EntityRootType,
+  extractDraftIdFromEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
+import { Box, Collapse, Stack, Typography } from "@mui/material";
 import { Container } from "@mui/system";
 import { useRouter } from "next/router";
 import { ReactNode, useContext } from "react";
 
+import { NotificationsWithLinksContextProvider } from "../../../../shared/notifications-with-links-context";
 import { TopContextBar } from "../../../../shared/top-context-bar";
 import { WorkspaceContext } from "../../../../shared/workspace-context";
+import { DraftEntityBanner } from "./draft-entity-banner";
 
 export const EntityPageHeader = ({
+  entity,
+  entitySubgraph,
+  onEntityUpdated,
   entityLabel,
   lightTitle,
   chip,
   editBar,
+  isModifyingEntity,
 }: {
+  entity?: Entity;
+  entitySubgraph?: Subgraph<EntityRootType>;
+  onEntityUpdated?: (entity: Entity) => void;
   entityLabel: string;
   lightTitle?: boolean;
   chip: ReactNode;
   editBar?: ReactNode;
+  isModifyingEntity?: boolean;
 }) => {
   const router = useRouter();
 
@@ -34,10 +50,12 @@ export const EntityPageHeader = ({
     <>
       <TopContextBar
         defaultCrumbIcon={null}
+        item={entity}
         crumbs={[
           {
             title: "Entities",
             id: "entities",
+            href: "/entities",
           },
           {
             title: entityLabel,
@@ -48,6 +66,21 @@ export const EntityPageHeader = ({
         ]}
         scrollToTop={() => {}}
       />
+
+      {entity && entitySubgraph ? (
+        <NotificationsWithLinksContextProvider>
+          <Collapse
+            in={!!extractDraftIdFromEntityId(entity.metadata.recordId.entityId)}
+          >
+            <DraftEntityBanner
+              draftEntity={entity}
+              draftEntitySubgraph={entitySubgraph}
+              isModifyingEntity={isModifyingEntity}
+              onAcceptedEntity={onEntityUpdated}
+            />
+          </Collapse>
+        </NotificationsWithLinksContextProvider>
+      ) : null}
 
       {editBar}
 

@@ -11,7 +11,7 @@ export const CheatSheet = () => {
   const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = menu.addListener(forceRender);
+    const unsubscribe = menu.addUpdateListener(forceRender);
 
     return () => {
       unsubscribe();
@@ -32,24 +32,32 @@ export const CheatSheet = () => {
   );
 
   /**
-   * @todo reinstate this
-   * when doing so, check if https://github.com/imbhargav5/rooks/issues/1730 has been fixed
-   * if it has, upgrade rooks. if not, either implement our own version of useKeys (command-bar has one) or patch rooks
+   * @todo reinstate this when we have enough shortcuts for a cheatsheet, and style it properly
    */
-  // useKeys(
-  //   ["?"],
-  //   (evt) => {
-  //     // Hack to detect if pressed inside an input or textarea
-  //     if (
-  //       evt.target &&
-  //       !("defaultValue" in evt.target) &&
-  //       !(evt.target as HTMLElement).isContentEditable
-  //     ) {
-  //       setOpen(true);
-  //     }
-  //   },
-  //   {},
-  // );
+  // const setKeyboardShortcuts = useSetKeyboardShortcuts();
+  // const unsetKeyboardShortcuts = useUnsetKeyboardShortcuts();
+  //
+  // useEffect(() => {
+  //   const shortcut = {
+  //     keys: ["?"],
+  //     callback: (evt: KeyboardEvent) => {
+  //       // Hack to detect if pressed inside an input or textarea
+  //       if (
+  //         evt.target &&
+  //         !("defaultValue" in evt.target) &&
+  //         !(evt.target as HTMLElement).isContentEditable
+  //       ) {
+  //         setOpen(true);
+  //       }
+  //     },
+  //   };
+  //
+  //   setKeyboardShortcuts([shortcut]);
+  //
+  //   return () => {
+  //     unsetKeyboardShortcuts([shortcut]);
+  //   };
+  // }, [setKeyboardShortcuts, unsetKeyboardShortcuts]);
 
   return (
     <Modal open={open} onClose={() => setOpen(false)}>

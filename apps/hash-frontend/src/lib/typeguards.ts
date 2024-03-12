@@ -1,6 +1,6 @@
 import {
   Array,
-  Object,
+  Object as BpObject,
   OneOf,
   PropertyTypeReference,
   PropertyValues,
@@ -17,8 +17,8 @@ export const isPropertyValueArray = (
   return "type" in propertyValue && propertyValue.type === "array";
 };
 
-export const isPropertyValueNested = (
+export const isPropertyValuePropertyObject = (
   propertyValue: PropertyValues,
-): propertyValue is Object<ValueOrArray<PropertyTypeReference>> => {
+): propertyValue is BpObject<ValueOrArray<PropertyTypeReference>> => {
   return "type" in propertyValue && propertyValue.type === "object";
 };

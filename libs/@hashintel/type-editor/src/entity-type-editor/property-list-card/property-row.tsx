@@ -71,7 +71,7 @@ export const PropertyRow = ({
   menuTableCell,
   onUpdateVersion,
   flash = false,
-  ...maybeInheritanceData
+  inheritanceChain,
 }: {
   property: PropertyType;
   isArray: boolean;
@@ -84,7 +84,7 @@ export const PropertyRow = ({
   menuTableCell?: ReactNode;
   onUpdateVersion?: (nextId: VersionedUrl) => void;
   flash?: boolean;
-} & (InheritanceData | {})) => {
+} & Partial<InheritanceData>) => {
   const propertyTypesOptions = usePropertyTypesOptions();
 
   const isReadonly = useIsReadonly();
@@ -133,7 +133,10 @@ export const PropertyRow = ({
                   "required" in selectedProperty &&
                   selectedProperty.required?.includes(propertyId),
               );
-              return [...childrenArray, { ...propertyType, array, required }];
+              return [
+                ...childrenArray,
+                { ...propertyType.schema, array, required },
+              ];
             }
 
             return childrenArray;
@@ -157,18 +160,16 @@ export const PropertyRow = ({
     };
   }, []);
 
-  const inherited = "inheritanceChain" in maybeInheritanceData;
-
   const readonlyMessage = generateReadonlyMessage(
-    inherited
-      ? maybeInheritanceData
+    inheritanceChain
+      ? { inheritanceChain }
       : { parentPropertyName: parentPropertyName ?? "parent" },
   );
 
   return (
     <>
       <EntityTypeTableRow
-        inherited={inherited}
+        inherited={!!inheritanceChain}
         ref={(row: HTMLTableRowElement | null) => {
           if (row) {
             mainRef.current = row;
@@ -181,7 +182,7 @@ export const PropertyRow = ({
           property={property}
           array={isArray}
           depth={depth}
-          inherited={inherited}
+          inheritanceChain={inheritanceChain}
           lines={lines}
           expanded={children.length ? expanded : undefined}
           setExpanded={setExpanded}

@@ -14,11 +14,11 @@ The benefit of simulation, when applied with this framework, are numerous. Simul
 
 There are five steps in the theory of constraints framework:
 
-1.  Identify the system's constraints: Model the system and find the bottlenecks.
-1.  Decide how to exploit the system's constraints: Test different strategies for alleviating bottlenecks.
-1.  Subordinate everything else to the above decisions: Make the case using graphs and experiments.
-1.  Elevate the constraints: Upgrade the necessary components, buy more of the resources, increase capacity, etc.
-1.  Repeat: After the targeted intervention, if successful the constraint will shift to another resource. Repeat the above process, practicing the art of continuous improvement.
+1. Identify the system's constraints: Model the system and find the bottlenecks.
+1. Decide how to exploit the system's constraints: Test different strategies for alleviating bottlenecks.
+1. Subordinate everything else to the above decisions: Make the case using graphs and experiments.
+1. Elevate the constraints: Upgrade the necessary components, buy more of the resources, increase capacity, etc.
+1. Repeat: After the targeted intervention, if successful the constraint will shift to another resource. Repeat the above process, practicing the art of continuous improvement.
 
 The theory of constraints offers guidelines and heuristic for modeling processes and identifying actions to take; however, it doesn't provide specific tools and scientific approaches for analyzing systems. That's where simulation can help. This article will walk through applying the theory of constraints + simulations, and include examples and principles for applying it to your own problems.
 

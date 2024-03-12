@@ -2,24 +2,26 @@ import { faFile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, BoxProps } from "@mui/material";
 
-export type SizeVariant = "small" | "medium";
-
-export const pageIconVariantSizes: Record<
+import {
+  iconVariantSizes,
   SizeVariant,
-  { container: number; font: number }
-> = {
-  small: { container: 20, font: 14 },
-  medium: { container: 44, font: 36 },
-};
+} from "../shared/edit-emoji-icon-button";
+import { CanvasIcon } from "../shared/icons/canvas-icon";
 
 interface PageIconProps {
+  isCanvas?: boolean;
   icon?: string | null;
   size?: SizeVariant;
   sx?: BoxProps["sx"];
 }
 
-export const PageIcon = ({ icon, size = "medium", sx = [] }: PageIconProps) => {
-  const sizes = pageIconVariantSizes[size];
+export const PageIcon = ({
+  isCanvas,
+  icon,
+  size = "medium",
+  sx = [],
+}: PageIconProps) => {
+  const sizes = iconVariantSizes[size];
 
   return (
     <Box
@@ -28,6 +30,7 @@ export const PageIcon = ({ icon, size = "medium", sx = [] }: PageIconProps) => {
           width: sizes.container,
           height: sizes.container,
           fontSize: sizes.font,
+          fontFamily: "auto",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
@@ -35,15 +38,23 @@ export const PageIcon = ({ icon, size = "medium", sx = [] }: PageIconProps) => {
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
     >
-      {icon ?? (
-        <FontAwesomeIcon
-          icon={faFile}
-          sx={(theme) => ({
-            fontSize: `${sizes.font}px !important`,
-            color: theme.palette.gray[40],
-          })}
-        />
-      )}
+      {icon ??
+        (isCanvas ? (
+          <CanvasIcon
+            sx={{
+              fill: ({ palette }) => palette.gray[40],
+              fontSize: sizes.font + 2,
+            }}
+          />
+        ) : (
+          <FontAwesomeIcon
+            icon={faFile}
+            sx={(theme) => ({
+              fontSize: `${sizes.font}px !important`,
+              color: theme.palette.gray[40],
+            })}
+          />
+        ))}
     </Box>
   );
 };

@@ -1,12 +1,11 @@
 import {
   DataEditorProps,
   isObjectEditorCallbackResult,
-  Item,
 } from "@glideapps/glide-data-grid";
-import { useScrollLock } from "@hashintel/design-system";
 import { MutableRefObject, PropsWithChildren } from "react";
 
 import { useEditBarContext } from "../../../shared/edit-bar-scroller";
+import { useScrollLock } from "../../../shared/use-scroll-lock";
 import { InteractableManager } from "./interactable-manager";
 
 const ScrollLockWrapper = ({ children }: PropsWithChildren) => {
@@ -44,9 +43,7 @@ export const overrideCustomRenderers = (
         draw: (args, cell) =>
           draw({ ...args, tableId: tableIdRef.current }, cell),
         onClick: (args) => {
-          /** @todo investigate why `args` don't have `location` in it's type  */
-          const [colIndex, rowIndex] = (args as unknown as { location: Item })
-            .location;
+          const [colIndex, rowIndex] = args.location;
 
           const wasClickHandledByManager = InteractableManager.handleClick(
             `${tableIdRef.current}-${colIndex}-${rowIndex}`,

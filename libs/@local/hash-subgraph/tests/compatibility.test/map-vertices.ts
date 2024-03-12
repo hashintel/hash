@@ -1,50 +1,59 @@
-import {
-  DataType,
+import type {
   EntityType,
   OneOf,
   PropertyType,
   PropertyValues,
-  validateBaseUrl,
-  validateVersionedUrl,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
+  validateBaseUrl,
+  validateVersionedUrl,
+} from "@blockprotocol/type-system";
+import type {
   DataType as DataTypeGraphApi,
+  DataTypeMetadata as DataTypeMetadataGraphApi,
   EntityMetadata as EntityMetadataGraphApi,
+  EntityProvenanceMetadata as EntityProvenanceMetadataGraphApi,
   EntityRecordId as EntityRecordIdGraphApi,
   EntityTemporalMetadata as EntityTemporalMetadataGraphApi,
   EntityType as EntityTypeGraphApi,
   EntityTypeMetadata as EntityTypeMetadataGraphApi,
   KnowledgeGraphVertex as KnowledgeGraphVertexGraphApi,
   LinkData as LinkDataGraphApi,
-  OntologyElementMetadata as OntologyElementMetadataGraphApi,
+  OntologyProvenanceMetadata as OntologyProvenanceMetadataGraphApi,
+  OntologyTypeRecordId as OntologyTypeRecordIdGraphApi,
   OntologyVertex as OntologyVertexGraphApi,
   PropertyType as PropertyTypeGraphApi,
-  ProvenanceMetadata as ProvenanceMetadataGraphApi,
+  PropertyTypeMetadata as PropertyTypeMetadataGraphApi,
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
-import {
+import type {
   BaseUrl,
+  CreatedAtDecisionTime,
+  CreatedAtTransactionTime,
+  CreatedById,
+  CustomDataType,
+  DataTypeMetadata,
+  EditionArchivedById,
+  EditionCreatedById,
   EntityId,
   EntityMetadata,
   EntityPropertiesObject,
+  EntityProvenanceMetadata,
   EntityRecordId,
   EntityTemporalVersioningMetadata,
   EntityTypeMetadata,
-  isEntityId,
   KnowledgeGraphVertex,
   LinkData,
-  OntologyElementMetadata,
+  OntologyProvenanceMetadata,
   OntologyTypeRecordId,
   OntologyVertex,
-  ProvenanceMetadata,
-  RecordArchivedById,
-  RecordCreatedById,
   Timestamp,
   Vertices,
 } from "@local/hash-subgraph";
+import { isEntityId } from "@local/hash-subgraph";
 
-const mapDataType = (dataType: DataTypeGraphApi): DataType => {
+const mapDataType = (dataType: DataTypeGraphApi): CustomDataType => {
   const idResult = validateVersionedUrl(dataType.$id);
   if (idResult.type === "Err") {
     throw new Error(
@@ -56,7 +65,7 @@ const mapDataType = (dataType: DataTypeGraphApi): DataType => {
   const { inner: $id } = idResult;
 
   return {
-    ...dataType,
+    ...(dataType as CustomDataType),
     $id,
   };
 };
@@ -92,7 +101,7 @@ const mapEntityType = (entityType: EntityTypeGraphApi): EntityType => {
 };
 
 const mapOntologyTypeRecordId = (
-  recordId: OntologyElementMetadataGraphApi["recordId"],
+  recordId: OntologyTypeRecordIdGraphApi,
 ): OntologyTypeRecordId => {
   return {
     baseUrl: recordId.baseUrl as BaseUrl,
@@ -100,48 +109,93 @@ const mapOntologyTypeRecordId = (
   };
 };
 
-const mapProvenanceMetadata = (
-  metadata: ProvenanceMetadataGraphApi,
-): ProvenanceMetadata => {
+const mapOntologyProvenanceMetadata = (
+  metadata: OntologyProvenanceMetadataGraphApi,
+): OntologyProvenanceMetadata => {
   return {
-    recordCreatedById: metadata.recordCreatedById as RecordCreatedById,
-    recordArchivedById: metadata.recordArchivedById as RecordArchivedById,
+    edition: {
+      createdById: metadata.edition.createdById as EditionCreatedById,
+      archivedById: metadata.edition.archivedById as EditionArchivedById,
+    },
   };
 };
 
-const mapOntologyMetadata = (
-  metadata: OntologyElementMetadataGraphApi,
-): OntologyElementMetadata => {
+const mapEntityProvenanceMetadata = (
+  metadata: EntityProvenanceMetadataGraphApi,
+): EntityProvenanceMetadata => {
+  return {
+    createdById: metadata.createdById as CreatedById,
+    createdAtTransactionTime:
+      metadata.createdAtTransactionTime as CreatedAtTransactionTime,
+    createdAtDecisionTime:
+      metadata.createdAtDecisionTime as CreatedAtDecisionTime,
+    edition: {
+      createdById: metadata.edition.createdById as EditionCreatedById,
+    },
+  };
+};
+
+const mapDataTypeMetadata = (
+  metadata: DataTypeMetadataGraphApi,
+): DataTypeMetadata => {
   return {
     recordId: mapOntologyTypeRecordId(metadata.recordId),
-    custom: {
-      provenance: mapProvenanceMetadata(metadata.custom.provenance),
-      ...("fetchedAt" in metadata.custom
-        ? { fetchedAt: metadata.custom.fetchedAt as Timestamp }
-        : ({} as {
-            fetchedAt: Timestamp;
-          })),
-      temporalVersioning: {
-        transactionTime: {
-          start: {
-            kind: metadata.custom.temporalVersioning.transactionTime.start.kind,
-            limit: metadata.custom.temporalVersioning.transactionTime.start
-              .limit as Timestamp,
-          },
-          end:
-            metadata.custom.temporalVersioning.transactionTime.end.kind ===
-            "unbounded"
-              ? {
-                  kind: metadata.custom.temporalVersioning.transactionTime.end
-                    .kind,
-                }
-              : {
-                  kind: metadata.custom.temporalVersioning.transactionTime.end
-                    .kind,
-                  limit: metadata.custom.temporalVersioning.transactionTime.end
-                    .limit as Timestamp,
-                },
+    provenance: mapOntologyProvenanceMetadata(metadata.provenance),
+    ...("fetchedAt" in metadata
+      ? { fetchedAt: metadata.fetchedAt as Timestamp }
+      : ({} as {
+          fetchedAt: Timestamp;
+        })),
+    temporalVersioning: {
+      transactionTime: {
+        start: {
+          kind: metadata.temporalVersioning.transactionTime.start.kind,
+          limit: metadata.temporalVersioning.transactionTime.start
+            .limit as Timestamp,
         },
+        end:
+          metadata.temporalVersioning.transactionTime.end.kind === "unbounded"
+            ? {
+                kind: metadata.temporalVersioning.transactionTime.end.kind,
+              }
+            : {
+                kind: metadata.temporalVersioning.transactionTime.end.kind,
+                limit: metadata.temporalVersioning.transactionTime.end
+                  .limit as Timestamp,
+              },
+      },
+    },
+  };
+};
+
+const mapPropertyTypeMetadata = (
+  metadata: PropertyTypeMetadataGraphApi,
+): DataTypeMetadata => {
+  return {
+    recordId: mapOntologyTypeRecordId(metadata.recordId),
+    provenance: mapOntologyProvenanceMetadata(metadata.provenance),
+    ...("fetchedAt" in metadata
+      ? { fetchedAt: metadata.fetchedAt as Timestamp }
+      : ({} as {
+          fetchedAt: Timestamp;
+        })),
+    temporalVersioning: {
+      transactionTime: {
+        start: {
+          kind: metadata.temporalVersioning.transactionTime.start.kind,
+          limit: metadata.temporalVersioning.transactionTime.start
+            .limit as Timestamp,
+        },
+        end:
+          metadata.temporalVersioning.transactionTime.end.kind === "unbounded"
+            ? {
+                kind: metadata.temporalVersioning.transactionTime.end.kind,
+              }
+            : {
+                kind: metadata.temporalVersioning.transactionTime.end.kind,
+                limit: metadata.temporalVersioning.transactionTime.end
+                  .limit as Timestamp,
+              },
       },
     },
   };
@@ -152,36 +206,31 @@ const mapEntityTypeMetadata = (
 ): EntityTypeMetadata => {
   return {
     recordId: mapOntologyTypeRecordId(metadata.recordId),
-    custom: {
-      provenance: mapProvenanceMetadata(metadata.custom.provenance),
-      ...("fetchedAt" in metadata.custom
-        ? { fetchedAt: metadata.custom.fetchedAt as Timestamp }
-        : ({} as {
-            fetchedAt: Timestamp;
-          })),
-      temporalVersioning: {
-        transactionTime: {
-          start: {
-            kind: metadata.custom.temporalVersioning.transactionTime.start.kind,
-            limit: metadata.custom.temporalVersioning.transactionTime.start
-              .limit as Timestamp,
-          },
-          end:
-            metadata.custom.temporalVersioning.transactionTime.end.kind ===
-            "unbounded"
-              ? {
-                  kind: metadata.custom.temporalVersioning.transactionTime.end
-                    .kind,
-                }
-              : {
-                  kind: metadata.custom.temporalVersioning.transactionTime.end
-                    .kind,
-                  limit: metadata.custom.temporalVersioning.transactionTime.end
-                    .limit as Timestamp,
-                },
+    labelProperty: metadata.labelProperty as BaseUrl,
+    provenance: mapOntologyProvenanceMetadata(metadata.provenance),
+    ...("fetchedAt" in metadata
+      ? { fetchedAt: metadata.fetchedAt as Timestamp }
+      : ({} as {
+          fetchedAt: Timestamp;
+        })),
+    temporalVersioning: {
+      transactionTime: {
+        start: {
+          kind: metadata.temporalVersioning.transactionTime.start.kind,
+          limit: metadata.temporalVersioning.transactionTime.start
+            .limit as Timestamp,
         },
+        end:
+          metadata.temporalVersioning.transactionTime.end.kind === "unbounded"
+            ? {
+                kind: metadata.temporalVersioning.transactionTime.end.kind,
+              }
+            : {
+                kind: metadata.temporalVersioning.transactionTime.end.kind,
+                limit: metadata.temporalVersioning.transactionTime.end
+                  .limit as Timestamp,
+              },
       },
-      labelProperty: metadata.custom.labelProperty as BaseUrl,
     },
   };
 };
@@ -192,7 +241,7 @@ const mapOntologyVertex = (vertex: OntologyVertexGraphApi): OntologyVertex => {
       return {
         kind: vertex.kind,
         inner: {
-          metadata: mapOntologyMetadata(vertex.inner.metadata),
+          metadata: mapDataTypeMetadata(vertex.inner.metadata),
           schema: mapDataType(vertex.inner.schema),
         },
       };
@@ -201,7 +250,7 @@ const mapOntologyVertex = (vertex: OntologyVertexGraphApi): OntologyVertex => {
       return {
         kind: vertex.kind,
         inner: {
-          metadata: mapOntologyMetadata(vertex.inner.metadata),
+          metadata: mapPropertyTypeMetadata(vertex.inner.metadata),
           schema: mapPropertyType(vertex.inner.schema),
         },
       };
@@ -280,7 +329,7 @@ const mapEntityMetadata = (
     temporalVersioning: mapEntityTemporalVersioningMetadata(
       metadata.temporalVersioning,
     ),
-    provenance: mapProvenanceMetadata(metadata.provenance),
+    provenance: mapEntityProvenanceMetadata(metadata.provenance),
     archived: metadata.archived,
   };
 };

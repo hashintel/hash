@@ -1,10 +1,15 @@
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import { Entity, EntityId } from "@local/hash-subgraph";
+import {
+  Entity,
+  EntityRootType,
+  extractDraftIdFromEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
+import { useMemo } from "react";
 
 import { useMarkLinkEntityToArchive } from "../../../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../../../entity-editor-context";
-import { LinkAndTargetEntity } from "../../types";
 import { LinkedWithCell } from "../linked-with-cell";
 import { EntitySelector } from "./entity-selector";
 import {
@@ -26,7 +31,12 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
     maxItems,
   } = cell.data.linkRow;
 
-  const onSelectForSingleLink = (selectedEntity: Entity) => {
+  const entity = useMemo(() => getRoots(entitySubgraph)[0]!, [entitySubgraph]);
+
+  const onSelectForSingleLink = (
+    selectedEntity: Entity,
+    sourceSubgraph: Subgraph<EntityRootType> | null,
+  ) => {
     const { linkEntity: currentLink, rightEntity: currentLinkedEntity } =
       linkAndTargetEntities[0] ?? {};
 
@@ -47,14 +57,14 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
     // create new link
     const linkEntity = createDraftLinkEntity({
       linkEntityTypeId,
-      leftEntityId: getRoots(entitySubgraph)[0]?.metadata.recordId
-        .entityId as EntityId,
+      leftEntityId: entity.metadata.recordId.entityId,
       rightEntityId: selectedEntity.metadata.recordId.entityId,
     });
 
-    const newLinkAndTargetEntity: LinkAndTargetEntity = {
+    const newLinkAndTargetEntity = {
       linkEntity,
       rightEntity: selectedEntity,
+      sourceSubgraph,
     };
 
     setDraftLinksToCreate((prev) => [...prev, newLinkAndTargetEntity]);
@@ -73,10 +83,14 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
 
     return (
       <EntitySelector
+        includeDrafts={
+          !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId)
+        }
         onSelect={onSelectForSingleLink}
-        onCancel={onCancel}
+        onFinishedEditing={onCancel}
         expectedEntityTypes={expectedEntityTypes}
         entityIdsToFilterOut={linkedEntityId && [linkedEntityId]}
+        linkEntityTypeId={linkEntityTypeId}
       />
     );
   }

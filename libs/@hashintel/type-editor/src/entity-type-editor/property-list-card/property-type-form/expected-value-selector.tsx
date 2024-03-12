@@ -1,13 +1,13 @@
-import { BaseUrl } from "@blockprotocol/type-system/slim";
+import { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   AutocompleteDropdown,
   Button,
   Chip,
-  fluidFontClassName,
   FontAwesomeIcon,
   StyledPlusCircleIcon,
   TextField,
 } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/theme";
 import { Autocomplete, Box, PaperProps, Typography } from "@mui/material";
 import { useMemo, useRef, useState } from "react";
 import {
@@ -18,11 +18,8 @@ import {
   useWatch,
 } from "react-hook-form";
 
+import { useDataTypesOptions } from "../../../shared/data-types-options-context";
 import { useStateCallback } from "../../shared/use-state-callback";
-import {
-  dataTypeOptions,
-  expectedValuesOptions,
-} from "../shared/expected-values-options";
 import { getExpectedValueDescriptor } from "../shared/get-expected-value-descriptor";
 import { PropertyTypeFormValues } from "../shared/property-type-form-values";
 import { CustomExpectedValueBuilder } from "./expected-value-selector/custom-expected-value-builder";
@@ -229,6 +226,9 @@ export const ExpectedValueSelector = ({
 
   const [autocompleteFocused, setAutocompleteFocused] = useState(false);
 
+  const { dataTypes, getExpectedValueDisplay } = useDataTypesOptions();
+  const dataTypeOptions = dataTypes.map((option) => option.$id);
+
   return (
     <CustomExpectedValueBuilderContext.Provider
       value={customExpectedValueBuilderContextValue}
@@ -245,6 +245,37 @@ export const ExpectedValueSelector = ({
           selectOnFocus={false}
           clearOnBlur={false}
           {...expectedValuesField}
+          filterOptions={(options, { inputValue: searchValue }) => {
+            return options.filter((option) => {
+              const lowercaseInput = searchValue.toLowerCase();
+
+              if (typeof option === "object") {
+                return option.typeId.toLowerCase().includes(lowercaseInput);
+              }
+              const dataType = dataTypes.find((dt) => dt.$id === option);
+              if (!dataType) {
+                return option.toLowerCase().includes(lowercaseInput);
+              }
+              const { description, title } = dataType;
+
+              const leftLabel =
+                "label" in dataType && "left" in dataType.label
+                  ? (dataType.label as { left: string }).left
+                  : "";
+              const rightLabel =
+                "label" in dataType && "right" in dataType.label
+                  ? (dataType.label as { right: string }).right
+                  : "";
+
+              return (
+                (description &&
+                  description.toLowerCase().includes(lowercaseInput)) ||
+                title.toLowerCase().includes(lowercaseInput) ||
+                leftLabel.toLowerCase().includes(lowercaseInput) ||
+                rightLabel.toLowerCase().includes(lowercaseInput)
+              );
+            });
+          }}
           onFocus={() => {
             setAutocompleteFocused(true);
           }}
@@ -282,12 +313,7 @@ export const ExpectedValueSelector = ({
                       ? expectedValue.id
                       : expectedValue
                   }
-                  expectedValueType={
-                    typeof expectedValue === "object" &&
-                    "arrayType" in expectedValue
-                      ? expectedValue.arrayType
-                      : typeId
-                  }
+                  expectedValueType={typeId}
                   editable={editable}
                   onEdit={() => {
                     if (typeof expectedValue === "object") {
@@ -313,8 +339,9 @@ export const ExpectedValueSelector = ({
           sx={{ width: "70%" }}
           options={dataTypeOptions}
           getOptionLabel={(opt) =>
-            expectedValuesOptions[typeof opt === "object" ? opt.typeId : opt]!
-              .title
+            getExpectedValueDisplay(
+              typeof opt === "object" ? opt.typeId : (opt as VersionedUrl),
+            ).title
           }
           disableCloseOnSelect
           renderOption={(optProps, opt) => {
@@ -324,7 +351,7 @@ export const ExpectedValueSelector = ({
               <Box component="li" {...optProps} sx={{ py: 1.5, px: 2.25 }}>
                 <FontAwesomeIcon
                   icon={{
-                    icon: expectedValuesOptions[typeId]!.icon,
+                    icon: getExpectedValueDisplay(typeId).icon,
                   }}
                   sx={(theme) => ({ color: theme.palette.gray[50] })}
                 />
@@ -334,7 +361,7 @@ export const ExpectedValueSelector = ({
                   ml={1.5}
                   color={(theme) => theme.palette.gray[80]}
                 >
-                  {expectedValuesOptions[typeId]!.title}
+                  {getExpectedValueDisplay(typeId).title}
                 </Typography>
                 <Chip color="blue" label="DATA TYPE" sx={{ ml: 1.5 }} />
               </Box>

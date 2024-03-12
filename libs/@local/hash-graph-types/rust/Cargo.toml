@@ -1,0 +1,29 @@
+cargo-features = ["edition2024"]
+
+[package]
+name = "graph-types"
+authors.workspace = true
+edition.workspace = true
+version = "0.0.0"
+publish = false
+
+[dependencies]
+temporal-versioning.workspace = true
+
+type-system.workspace = true
+
+serde = { workspace = true, features = ["derive"] }
+
+bytes = { version = "1.5.0" }
+serde_json = { version = "1.0.114" }
+utoipa = { version = "4.2.0", optional = true }
+postgres-types = { version = "0.2.6", default-features = false, features = ["derive", "with-uuid-1",  "with-serde_json-1"], optional = true }
+time = { version = "0.3.34", default-features = false, features = ["serde", "parsing", "formatting", "macros"] }
+uuid = { version = "1.7.0", default-features = false, features = ["serde"] }
+
+[dev-dependencies]
+graph-test-data = { workspace = true }
+
+[features]
+postgres = ["dep:postgres-types", "temporal-versioning/postgres"]
+utoipa = ["dep:utoipa", "temporal-versioning/utoipa"]

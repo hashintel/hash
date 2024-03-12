@@ -1,4 +1,4 @@
-FROM oryd/kratos:v0.13.0
+FROM oryd/kratos:v1.0.0
 
 USER root
 
@@ -7,7 +7,7 @@ RUN apk update
 RUN apk add yq=~4
 
 # This can be either `dev` or `prod`
-ARG ENV=dev
+ARG ENV
 ENV ENV=$ENV
 ARG API_SECRET=secret
 ENV API_SECRET=$API_SECRET
@@ -27,9 +27,11 @@ RUN yq -i '.selfservice.flows.registration.after.password.hooks[0].config.url |=
 
 RUN ln /etc/config/kratos/kratos.$ENV.yml /etc/config/kratos/kratos.yml
 
+# Add AWS certificate bundle for SSL connection
 ADD https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem /home/ory/.postgresql/root.crt
 RUN chown -R ory:ory /home/ory && \
     chmod a+r /home/ory/.postgresql
+
 USER ory
 
 ENTRYPOINT ["kratos", "-c", "/etc/config/kratos/kratos.yml"]

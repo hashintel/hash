@@ -15,10 +15,10 @@ output "temporal_private_hostname" {
 
 output "host" {
   description = "The hostname of the Temporal cluster to connect to."
-  value       = aws_lb.net_alb.dns_name
+  value       = "http://${aws_lb.net_alb.dns_name}"
 }
 
-output "temporal_port" {
+output "port" {
   description = "The port of the Temporal cluster to connect to."
   value       = local.temporal_port
 }

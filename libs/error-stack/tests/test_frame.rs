@@ -113,7 +113,7 @@ fn context() {
 
 #[test]
 fn type_id() {
-    let report = create_report().attach(2u32);
+    let report = create_report().attach(2_u32);
     let current = &report.current_frames()[0];
 
     assert_eq!(current.type_id(), TypeId::of::<u32>());

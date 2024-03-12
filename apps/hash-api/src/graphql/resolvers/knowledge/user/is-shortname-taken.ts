@@ -4,18 +4,19 @@ import {
 } from "../../../../graph/knowledge/system-types/account.fields";
 import { QueryIsShortnameTakenArgs, ResolverFn } from "../../../api-types.gen";
 import { GraphQLContext } from "../../../context";
-import { dataSourcesToImpureGraphContext } from "../../util";
+import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const isShortnameTakenResolver: ResolverFn<
   Promise<boolean>,
-  {},
+  Record<string, never>,
   GraphQLContext,
   QueryIsShortnameTakenArgs
-> = async (_, { shortname }, { dataSources }) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
+> = async (_, { shortname }, graphQLContext) => {
+  const { authentication } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   return (
     shortnameIsRestricted({ shortname }) ||
-    (await shortnameIsTaken(context, { shortname }))
+    (await shortnameIsTaken(context, authentication, { shortname }))
   );
 };

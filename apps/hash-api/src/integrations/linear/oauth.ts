@@ -1,12 +1,23 @@
 import crypto from "node:crypto";
 
 import { LinearClient } from "@linear/sdk";
-import { apiOrigin } from "@local/hash-graphql-shared/environment";
-import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
+import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import {
+  apiOrigin,
+  frontendUrl,
+} from "@local/hash-isomorphic-utils/environment";
+import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
+import { UserSecretProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   AccountId,
   Entity,
   EntityId,
+  EntityRelationAndSubject,
   EntityUuid,
   extractEntityUuidFromEntityId,
   OwnedById,
@@ -22,7 +33,6 @@ import {
   LinearIntegration,
 } from "../../graph/knowledge/system-types/linear-integration-entity";
 import { isUserMemberOfOrg } from "../../graph/knowledge/system-types/user";
-import { SYSTEM_TYPES } from "../../graph/system-types";
 
 const linearClientId = process.env.LINEAR_CLIENT_ID;
 const linearClientSecret = process.env.LINEAR_CLIENT_SECRET;
@@ -58,8 +68,8 @@ const generateLinearOAuthUrl = (oAuthState: string) => {
 };
 
 export const oAuthLinear: RequestHandler<
-  {},
-  {},
+  Record<string, never>,
+  string,
   {
     ownedById?: EntityUuid;
   }
@@ -80,6 +90,7 @@ export const oAuthLinear: RequestHandler<
       res.status(401).send("You must be authenticated to do this.");
       return;
     }
+    const authentication = { actorId: req.user.accountId };
 
     const { ownedById } = req.query;
 
@@ -92,7 +103,7 @@ export const oAuthLinear: RequestHandler<
 
     if (
       extractEntityUuidFromEntityId(userEntityId) !== ownedById &&
-      !(await isUserMemberOfOrg(req.context, {
+      !(await isUserMemberOfOrg(req.context, authentication, {
         userEntityId,
         orgEntityUuid: ownedById as EntityUuid,
       }))
@@ -123,9 +134,9 @@ export const oAuthLinear: RequestHandler<
   };
 
 export const oAuthLinearCallback: RequestHandler<
-  {},
+  Record<string, never>,
   Entity | { error: string },
-  {},
+  never,
   { code: string; state?: string }
 > =
   // @todo upgrade to Express 5, which handles errors from async request handlers automatically
@@ -163,7 +174,7 @@ export const oAuthLinearCallback: RequestHandler<
       return;
     }
 
-    const { actorEntityId, ownedById, ownerType } = stateData;
+    const { actorEntityId, ownerType } = stateData;
 
     stateMap.delete(state);
 
@@ -203,8 +214,14 @@ export const oAuthLinearCallback: RequestHandler<
 
     const linearOrgId = org.id;
 
+    const userAccountId = extractEntityUuidFromEntityId(
+      actorEntityId,
+    ) as Uuid as AccountId;
+
+    const authentication = { actorId: userAccountId };
+
     // @todo give the path components some more thought
-    const vaultPath = `${ownerType}/${ownedById}/linear/user/${actorEntityId}/workspace/${linearOrgId}`;
+    const vaultPath = `${ownerType}/${userAccountId}/linear/user/${actorEntityId}/workspace/${linearOrgId}`;
 
     await req.context.vaultClient.write({
       data: { value: access_token },
@@ -212,53 +229,95 @@ export const oAuthLinearCallback: RequestHandler<
       path: vaultPath,
     });
 
-    const secretMetadata = {
-      [SYSTEM_TYPES.propertyType.expiredAt.metadata.recordId.baseUrl]:
+    const secretMetadata: UserSecretProperties = {
+      /** @todo: verify this is the correct value */
+      "https://hash.ai/@hash/types/property-type/connection-source-name/":
+        "linear",
+      "https://hash.ai/@hash/types/property-type/expired-at/":
         expiredAt.toISOString(),
-      [SYSTEM_TYPES.propertyType.vaultPath.metadata.recordId.baseUrl]:
-        vaultPath,
+      "https://hash.ai/@hash/types/property-type/vault-path/": vaultPath,
     };
 
-    const actorId = extractEntityUuidFromEntityId(
-      actorEntityId,
-    ) as Uuid as AccountId;
-
+    /**
+     * Create the linear integration entity if it doesn't exist, and link it to the user secret
+     */
     const existingLinearIntegration = await getLinearIntegrationByLinearOrgId(
       req.context,
-      { linearOrgId, userAccountId: actorId },
+      authentication,
+      { linearOrgId, userAccountId },
     );
 
-    let linearIntegration: LinearIntegration;
+    /**
+     * Ensure the linear bot has access to the linear integration entity
+     * and user secret.
+     */
+    const linearBotAccountId = await getMachineActorId(
+      req.context,
+      authentication,
+      { identifier: "linear" },
+    );
 
+    const userAndBotAndWebAdminsOnly: EntityRelationAndSubject[] = [
+      {
+        relation: "administrator",
+        subject: {
+          kind: "account",
+          subjectId: userAccountId,
+        },
+      },
+      {
+        relation: "viewer",
+        subject: {
+          kind: "account",
+          subjectId: linearBotAccountId,
+        },
+      },
+      {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "administratorFromWeb",
+        },
+      },
+    ];
+
+    let linearIntegration: LinearIntegration;
     if (existingLinearIntegration) {
       linearIntegration = existingLinearIntegration;
     } else {
-      const userSecretEntity = await createEntity(req.context, {
-        actorId,
-        entityTypeId: SYSTEM_TYPES.entityType.userSecret.schema.$id,
-        ownedById: ownedById as Uuid as OwnedById,
+      // Create the user secret, which only the user, Linear bot, and web admins can access
+      const userSecretEntity = await createEntity(req.context, authentication, {
+        entityTypeId: systemEntityTypes.userSecret.entityTypeId,
+        ownedById: userAccountId as OwnedById,
         properties: secretMetadata,
+        relationships: userAndBotAndWebAdminsOnly,
       });
 
-      const linearIntegrationProperties = {
-        [SYSTEM_TYPES.propertyType.linearOrgId.metadata.recordId.baseUrl]:
-          linearOrgId,
+      const linearIntegrationProperties: LinearIntegrationProperties = {
+        "https://hash.ai/@hash/types/property-type/linear-org-id/": linearOrgId,
       };
 
-      const linearIntegrationEntity = await createEntity(req.context, {
-        actorId,
-        entityTypeId: SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
-        ownedById: ownedById as Uuid as OwnedById,
-        properties: linearIntegrationProperties,
-      });
+      // Create the Linear integration entity, which any web member can view and edit
+      const linearIntegrationEntity = await createEntity(
+        req.context,
+        authentication,
+        {
+          entityTypeId: systemEntityTypes.linearIntegration.entityTypeId,
+          ownedById: userAccountId as OwnedById,
+          properties: linearIntegrationProperties,
+          relationships:
+            createDefaultAuthorizationRelationships(authentication),
+        },
+      );
 
-      await createLinkEntity(req.context, {
-        ownedById: ownedById as Uuid as OwnedById,
-        linkEntityType: SYSTEM_TYPES.linkEntityType.usesUserSecret,
+      // Create the link from the integration to the secret entity, which only the user, Linear bot, and web admins can access
+      await createLinkEntity(req.context, authentication, {
+        ownedById: userAccountId as OwnedById,
+        linkEntityTypeId: systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
         leftEntityId: linearIntegrationEntity.metadata.recordId.entityId,
         rightEntityId: userSecretEntity.metadata.recordId.entityId,
         properties: {},
-        actorId,
+        relationships: userAndBotAndWebAdminsOnly,
       });
 
       linearIntegration = getLinearIntegrationFromEntity({
@@ -267,6 +326,6 @@ export const oAuthLinearCallback: RequestHandler<
     }
 
     res.redirect(
-      `${frontendUrl}/account/integrations/linear/new?linearIntegrationEntityId=${linearIntegration.entity.metadata.recordId.entityId}`,
+      `${frontendUrl}/settings/integrations/linear/new?linearIntegrationEntityId=${linearIntegration.entity.metadata.recordId.entityId}`,
     );
   };

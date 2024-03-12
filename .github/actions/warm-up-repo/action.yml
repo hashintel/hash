@@ -11,23 +11,18 @@ runs:
   using: composite
 
   steps:
-    - uses: actions/setup-node@5e21ff4d9bc1a8cf6de233a3057d20ec6b3fb69d # v3.8.1
+    - uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
       with:
         node-version: 18 ## aligned with Node version on Vercel
         # cache: yarn ## Currently disabled because of frequent timeouts
 
-    - name: Install poetry
-      run: pipx install poetry
-      shell: bash
-
-    - name: Set up Python 3.11
-      uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1 # v4.7.0
+    - name: Install WASM tools
+      uses: taiki-e/install-action@d5ead4fdbf0cb2a037f276e7dfb78bbb9dd0ab8c # v2.28.10
       with:
-        python-version: "^3.11"
-        cache: poetry
+        tool: wasm-pack@0.12.1
 
     - name: yarn install
-      uses: nick-fields/retry@943e742917ac94714d2f408a0e8320f2d1fcafcd # v2.8.3
+      uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
       with:
         max_attempts: 3
         timeout_minutes: 10
@@ -36,11 +31,11 @@ runs:
           export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD="${{ inputs.playwright-deps == '' }}"
           yarn install
 
-    - name: yarn playwright install-deps
+    - name: npx playwright install
       if: ${{ inputs.playwright-deps != '' }}
-      uses: nick-fields/retry@943e742917ac94714d2f408a0e8320f2d1fcafcd # v2.8.3
+      uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
       with:
         max_attempts: 3
         timeout_minutes: 10
         shell: bash
-        command: yarn playwright install-deps ${{ inputs.playwright-deps }}
+        command: npx playwright install --with-deps ${{ inputs.playwright-deps }}

@@ -1,5 +1,10 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import {
+  CreatedAtDecisionTime,
+  CreatedAtTransactionTime,
+  CreatedById,
+  EditionCreatedById,
+  Entity,
   EntityId,
   EntityRevisionId,
   EntityRootType,
@@ -18,7 +23,7 @@ export const useDraftEntitySubgraph = (
   Dispatch<SetStateAction<Subgraph<EntityRootType> | undefined>>,
   boolean,
 ] => {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [draftEntitySubgraph, setDraftEntitySubgraph] =
     useState<Subgraph<EntityRootType>>();
 
@@ -27,8 +32,6 @@ export const useDraftEntitySubgraph = (
   useEffect(() => {
     const init = async () => {
       try {
-        setLoading(true);
-
         const { data: subgraph } = await getEntityType({
           data: {
             entityTypeId,
@@ -68,7 +71,14 @@ export const useDraftEntitySubgraph = (
                       editionId: now,
                     },
                     entityTypeId,
-                    provenance: { recordCreatedById: "" },
+                    provenance: {
+                      createdById: "" as CreatedById,
+                      createdAtDecisionTime: now as CreatedAtDecisionTime,
+                      createdAtTransactionTime: now as CreatedAtTransactionTime,
+                      edition: {
+                        createdById: "" as EditionCreatedById,
+                      },
+                    },
                     archived: false,
                     temporalVersioning: {
                       decisionTime: {
@@ -91,11 +101,11 @@ export const useDraftEntitySubgraph = (
                       },
                     },
                   },
-                },
+                } satisfies Entity,
               },
             },
           },
-        } as Subgraph<EntityRootType>);
+        });
       } finally {
         setLoading(false);
       }

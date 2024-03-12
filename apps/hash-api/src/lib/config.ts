@@ -1,14 +1,14 @@
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import corsMiddleware from "cors";
 
-import { StorageType } from "../storage";
+import { StorageType, storageTypes } from "../storage/storage-provider";
 
 export function getEnvStorageType(): StorageType {
   const envUploadProvider = process.env.FILE_UPLOAD_PROVIDER as string;
   if (!envUploadProvider) {
-    return StorageType.LocalFileSystem;
+    return "LOCAL_FILE_SYSTEM";
   }
-  if (Object.values<string>(StorageType).includes(envUploadProvider)) {
+  if (storageTypes.includes(envUploadProvider as StorageType)) {
     return envUploadProvider as StorageType;
   }
   // In case a value is defined but is wrong
@@ -22,5 +22,10 @@ export const LOCAL_FILE_UPLOAD_PATH =
 
 export const CORS_CONFIG: corsMiddleware.CorsOptions = {
   credentials: true,
-  origin: [/-hashintel\.vercel\.app$/, /\.stage\.hash\.ai$/, frontendUrl],
+  origin: [
+    /-hashintel\.vercel\.app$/,
+    /\.stage\.hash\.ai$/,
+    "https://hash.ai",
+    frontendUrl,
+  ],
 };

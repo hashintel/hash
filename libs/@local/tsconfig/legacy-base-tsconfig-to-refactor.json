@@ -4,8 +4,8 @@
     "allowJs": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "lib": ["dom", "es2020"],
-    "module": "commonjs",
+    "lib": ["dom", "es2022"],
+    "module": "ESNext",
     "moduleResolution": "node",
     "noUncheckedIndexedAccess": true,
     "resolveJsonModule": true,
@@ -15,7 +15,6 @@
     "baseUrl": ".",
     "paths": {
       "@local/hash-backend-utils/*": ["../hash-backend-utils/src/*"],
-      "@local/hash-graphql-shared/*": ["../hash-graphql-shared/src/*"],
       "@local/hash-isomorphic-utils/*": ["../hash-isomorphic-utils/src/*"]
     }
   },

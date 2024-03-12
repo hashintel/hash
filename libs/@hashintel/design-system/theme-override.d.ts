@@ -50,9 +50,9 @@ declare module "@mui/material/styles" {
     100: string;
   }
   interface Palette {
-    gray: PaletteValue;
+    gray: PaletteValue & { 5: string; 15: string };
     grey: undefined;
-    blue: PaletteValue;
+    blue: PaletteValue & { 15: string; 25: string };
     purple: PaletteValue;
     red: PaletteValue;
     orange: PaletteValue;

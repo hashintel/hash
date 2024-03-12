@@ -1,22 +1,22 @@
 import { Box, Skeleton } from "@mui/material";
 
-import { ProsemirrorLoadingState } from "../blocks/page/loading-view";
-import { PAGE_CONTENT_WIDTH } from "../blocks/page/page-section-container";
+import { pageContentWidth } from "../pages/[shortname]/[page-slug].page";
+import { ProsemirrorLoadingState } from "../pages/shared/block-collection/loading-view";
 import {
   PAGE_TITLE_FONT_SIZE,
   PAGE_TITLE_LINE_HEIGHT,
-} from "../blocks/page/page-title/page-title";
-import { pageIconVariantSizes } from "./page-icon";
+} from "../pages/shared/block-collection/page-title/page-title";
+import { iconVariantSizes } from "../shared/edit-emoji-icon-button";
 
 export const PageLoadingState = () => {
   return (
-    <Box maxWidth={PAGE_CONTENT_WIDTH} pt={6}>
+    <Box maxWidth={pageContentWidth} pt={6}>
       <Box display="flex">
         <Skeleton
           variant="rectangular"
           sx={{
-            width: pageIconVariantSizes.medium.container,
-            height: pageIconVariantSizes.medium.container,
+            width: iconVariantSizes.medium.container,
+            height: iconVariantSizes.medium.container,
             mr: 3,
             borderRadius: 1,
           }}

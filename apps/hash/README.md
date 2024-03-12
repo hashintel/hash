@@ -47,86 +47,89 @@ See the [respective section in the parent README](../README.md#hash) for descrip
 
 To run HASH locally, please follow these steps:
 
-1.  Make sure you have, [Git](https://git-scm.com), [Node LTS](https://nodejs.org), [Yarn Classic](https://classic.yarnpkg.com), [Docker](https://docs.docker.com/get-docker/), [Python](https://www.python.org/downloads/), [Poetry](https://python-poetry.org/docs/) and [Java](https://www.java.com/download/ie_manual.jsp). Building the Docker containers requires [Docker Buildx](https://docs.docker.com/build/install-buildx/).
-    Run each of these version commands and make sure the output is expected:
+1. Make sure you have, [Git](https://git-scm.com), [Node LTS](https://nodejs.org), [Yarn Classic](https://classic.yarnpkg.com), [Rust](https://www.rust-lang.org), [Docker](https://docs.docker.com/get-docker/), [Protobuf](https://github.com/protocolbuffers/protobuf), and [Java](https://www.java.com/download/ie_manual.jsp). Building the Docker containers requires [Docker Buildx](https://docs.docker.com/build/install-buildx/).
+   Run each of these version commands and make sure the output is expected:
 
-    ```sh
-    git --version
-    ## ≥ 2.17
-    
-    node --version
-    ## ≥ 18.15
-    
-    yarn --version
-    ## ≥ 1.16
-    
-    docker --version
-    ## ≥ 20.10
-    
-    docker compose version
-    ## ≥ 2.17.2
-    
-    docker buildx version
-    ## ≥ 0.10.4
-    
-    java --version
-    ## ≥ 8
-    
-    python --version
-    ## ≥ 3.11
-    
-    poetry --version
-    ## ≥ 1.4.2
-    ```
+   ```sh
+   git --version
+   ## ≥ 2.17
+   
+   node --version
+   ## ≥ 18.15
+   
+   yarn --version
+   ## ≥ 1.16
+   
+   rustc --version
+   ## ≥ 2024-03-11 (If installed through rustup, this will automatically install the required toolchain)
+   
+   cargo --version
+   ## Version matching the above rustc version
+   
+   docker --version
+   ## ≥ 20.10
+   
+   docker compose version
+   ## ≥ 2.17.2
+   
+   docker buildx version
+   ## ≥ 0.10.4
+   
+   protoc --version
+   ## ≥ 25
+   
+   java --version
+   ## ≥ 8
+   ```
 
-    If you have difficulties with `git --version` on macOS you may need to install Xcode Command Line Tools first: `xcode-select --install`.
+   If you have difficulties with `git --version` on macOS you may need to install Xcode Command Line Tools first: `xcode-select --install`.
 
-    If you use Docker for macOS or Windows, go to _Preferences_ → _Resources_ and ensure that Docker can use at least 4GB of RAM (8GB is recommended).
+   If you use Docker for macOS or Windows, go to _Preferences_ → _Resources_ and ensure that Docker can use at least 4GB of RAM (8GB is recommended).
 
-1.  [Clone](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) this repository and **navigate to the root of the repository folder** in your terminal.
+1. [Clone](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) this repository and **navigate to the root of the repository folder** in your terminal.
 
-1.  Install dependencies:
+1. Install dependencies:
 
-    ```sh
-    yarn install
-    ```
+   ```sh
+   yarn install
+   ```
 
-1.  Ensure Docker is running.
-    If you are on Windows or macOS, you should see app icon in the system tray or the menu bar.
-    Alternatively, you can use this command to check Docker:
+1. Ensure Docker is running.
+   If you are on Windows or macOS, you should see app icon in the system tray or the menu bar.
+   Alternatively, you can use this command to check Docker:
 
-    ```sh
-    docker run hello-world
-    ```
+   ```sh
+   docker run hello-world
+   ```
 
-1.  Launch external services (Postgres, the graph query layer, Kratos, Redis, and OpenSearch) as Docker containers:
+1. Launch external services (Postgres, the graph query layer, Kratos, Redis, and OpenSearch) as Docker containers:
 
-    ```sh
-    yarn external-services up
-    ```
+   ```sh
+   yarn external-services up
+   ```
 
-    1.  You can optionally force a rebuild of the docker containers by adding the `--build` argument(**this is necessary if changes have been made to the graph query layer). It's recommended to do this whenever updating your branch from upstream**.
+   1. You can optionally force a rebuild of the docker containers by adding the `--build` argument(**this is necessary if changes have been made to the graph query layer). It's recommended to do this whenever updating your branch from upstream**.
 
-    1.  You can keep external services running between app restarts by adding the `--detach` argument to run the containers in the background. It is possible to tear down the external services with `yarn external-services down`.
+   1. You can keep external services running between app restarts by adding the `--detach` argument to run the containers in the background. It is possible to tear down the external services with `yarn external-services down`.
 
-    1.  When using `yarn external-services:offline up`, the Graph services does not try to connect to `https://blockprotocol.org` to fetch required schemas. This is useful for development when the internet connection is slow or unreliable.
+   1. When using `yarn external-services:offline up`, the Graph services does not try to connect to `https://blockprotocol.org` to fetch required schemas. This is useful for development when the internet connection is slow or unreliable.
 
-1.  Launch app services:
+1. Launch app services:
 
-    ```sh
-    yarn dev
-    ```
+   ```sh
+   yarn dev
+   ```
 
-    This will start backend and frontend in a single terminal.
+   This will start backend and frontend in a single terminal.
 
-    You can also launch parts of the app in separate terminals, e.g.:
+   You can also launch parts of the app in separate terminals, e.g.:
 
-    ```sh
-    yarn dev:backend
-    yarn dev:frontend
-    ```
+   ```sh
+   yarn dev:backend
+   yarn dev:frontend
+   ```
 
-    See `package.json` → `scripts` for details and more options.
+   See `package.json` → `scripts` for details and more options.
 
 #### External services test mode
 
@@ -289,10 +292,6 @@ We use [Yarn Workspaces](https://classic.yarnpkg.com/en/docs/workspaces) to work
 
 ## Troubleshooting
 
-### Command not found: ruff
-
-Run `yarn poetry:install` before running `yarn lint` or `yarn fix` for the first time.
-
 ### eslint `parserOptions.project`
 
 There is a mismatch between VSCode's eslint plugin and the eslint cli tool. Specifically the option
@@ -349,15 +348,19 @@ You **do not** need to set any environment variables to run the application.
 If you want to use AWS for file uploads or emails, you will need to have it configured:
 
 - `AWS_REGION`: The region, eg. `us-east-1`
-- `AWS_ACCESS_KEY_ID`: Your aws access key
-- `AWS_SECRET_ACCESS_KEY`: Your aws secret key
+- `AWS_ACCESS_KEY_ID`: Your AWS access key
+- `AWS_SECRET_ACCESS_KEY`: Your AWS secret key
 - `AWS_S3_UPLOADS_BUCKET`: The name of the bucket to use for file uploads (if you want to use S3 for file uploads), eg: `my_uploads_bucket`
+- `AWS_S3_UPLOADS_ACCESS_KEY_ID`: (optional) the AWS access key ID to use for file uploads. Must be provided along with the secret access key if the API is not otherwise authorized to access the bucket (e.g. via an IAM role).
+- `AWS_S3_UPLOADS_SECRET_ACCESS_KEY`: (optional) the AWS secret access key to use for file uploads.
+- `AWS_S3_UPLOADS_ENDPOINT`: (optional) the endpoint to use for S3 operations. If not, the AWS S3 default for the given region is used. Useful if you are using a different S3-compatible storage provider.
+- `AWS_S3_UPLOADS_FORCE_PATH_STYLE`: (optional) set `true` if your S3 setup requires path-style rather than virtual hosted-style S3 requests.
 
 ### File uploads
 
-By default, files are uploaded locally. It is also possible to upload files on AWS S3.
+By default, files are uploaded locally, which is **not** recommended for production use. It is also possible to upload files on AWS S3.
 
-- `FILE_UPLOAD_PROVIDER`: Which type of provider is used for file uploads. Possible values `LOCAL_FILE_SYSTEM`, or `AWS_S3`. If choosing S3, then you need to configure the aws variables above.
+- `FILE_UPLOAD_PROVIDER`: Which type of provider is used for file uploads. Possible values `LOCAL_FILE_SYSTEM`, or `AWS_S3`. If choosing S3, then you need to configure the `AWS_S3_UPLOADS_` variables above.
 - `LOCAL_FILE_UPLOAD_PATH`: Relative path to store uploaded files if using the local file system storage provider. Default is `var/uploads` (the `var` folder is the folder normally used for application data)
 
 ### Email
@@ -395,24 +398,20 @@ The Postgres information for Kratos is configured through:
 
 - `HASH_KRATOS_PG_USER` (default: `kratos`)
 - `HASH_KRATOS_PG_PASSWORD` (default: `kratos`)
-- `HASH_KRATOS_PG_DEV_DATABASE` (default: `dev_kratos`)
-- `HASH_KRATOS_PG_TEST_DATABASE` (default: `test_kratos`)
+- `HASH_KRATOS_PG_DATABASE` (default: `kratos`)
 
 The Postgres information for Temporal is configured through:
 
 - `HASH_TEMPORAL_PG_USER` (default: `temporal`)
 - `HASH_TEMPORAL_PG_PASSWORD` (default: `temporal`)
-- `HASH_TEMPORAL_PG_DEV_DATABASE` (default: `dev_temporal`)
-- `HASH_TEMPORAL_VISIBILITY_PG_DEV_DATABASE` (default: `dev_temporal_visibility`)
-- `HASH_TEMPORAL_PG_TEST_DATABASE` (default: `test_temporal`)
-- `HASH_TEMPORAL_VISIBILITY_PG_TEST_DATABASE` (default: `test_temporal_visibility`)
+- `HASH_TEMPORAL_PG_DATABASE` (default: `temporal`)
+- `HASH_TEMPORAL_VISIBILITY_PG_DATABASE` (default: `temporal_visibility`)
 
 The Postgres information for the graph query layer is configured through:
 
 - `HASH_GRAPH_PG_USER` (default: `graph`)
 - `HASH_GRAPH_PG_PASSWORD` (default: `graph`)
-- `HASH_GRAPH_PG_DEV_DATABASE` (default: `dev_graph`)
-- `HASH_GRAPH_PG_TEST_DATABASE` (default: `test_graph`)
+- `HASH_GRAPH_PG_DATABASE` (default: `graph`)
 
 ### Redis
 
@@ -437,6 +436,7 @@ If the service should report metrics to a StatsD server, the following variables
 ### Others
 
 - `FRONTEND_URL`: URL of the frontend website for links (default: `http://localhost:3000`)
+- `NOTIFICATION_POLL_INTERVAL`: the interval in milliseconds at which the frontend will poll for new notifications, or 0 for no polling. (default: `10_000`)
 - `HASH_INTEGRATION_QUEUE_NAME` The name of the Redis queue which updates to entities are published to
 - `HASH_REALTIME_PORT`: Realtime service listening port. (default: `3333`)
 - `HASH_SEARCH_LOADER_PORT`: (default: `3838`)

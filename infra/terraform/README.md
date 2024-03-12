@@ -4,10 +4,10 @@ This folder contains Terraform modules to deploy a HASH instance on AWS. The ent
 
 ## Getting started
 
-1.  Install the [terraform CLI](https://learn.hashicorp.com/tutorials/terraform/install-cli)
-1.  Install Docker
-1.  Install [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) and configure it to use [your credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html)
-1.  Initialize the terraform modules by executing the following command in [`./hash/`](./hash/): `terraform init`
+1. Install the [terraform CLI](https://learn.hashicorp.com/tutorials/terraform/install-cli)
+1. Install Docker
+1. Install [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) and configure it to use [your credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html)
+1. Initialize the terraform modules by executing the following command in [`./hash/`](./hash/): `terraform init`
 
 After initializing, you'll be put into the `default` workspace which isn't allowed for the plan.
 You can create new workspace names by creating/selecting new workspaces:
@@ -48,35 +48,56 @@ The region and environment fields are set by the variables supplied in the `*.tf
 
 Deployment currently relies on a couple of manual steps - but is to be automated in the future. The container registries need to have images pushed in the correct place for the applications to start and the database has to be migrated manually. The order of executions for deployment:
 
-1.  Deploy infrastructure with terraform
-1.  Migrate databases
-1.  Build/push docker images
+1. Deploy infrastructure with terraform
+1. Migrate databases
+1. Build/push docker images
 
 ## Deploy infrastructure with terraform
 
 Secret environment should be provided in HashiCorp Vault. These are expected in a kvv2 secrets engine path starting with `pipelines/hash/` and ending with the environment name, e.g. for a secrets engine `automation` the path would be `automation/pipelines/hash/prod`. The following secrets are expected:
 
-```json
+```json5
 {
-  "hash_block_protocol_api_key": "*",
-  "hash_seed_users": [
+  aws_s3_uploads_access_key_id: "changeme",
+  aws_s3_uploads_secret_access_key: "changeme",
+  aws_s3_uploads_bucket: "changeme",
+  aws_s3_uploads_endpoint: "changeme", // if not using the default S3 endpoint, e.g. if using another S3-compatible service
+  graph_sentry_dsn: "https://changeme.ingest.sentry.io/changeme",
+  hash_api_rudderstack_key: "changeme",
+  hash_block_protocol_api_key: "changeme",
+  hash_openai_api_key: "changeme",
+  hash_seed_users: [
     {
-      "email": "chageme@example.com",
-      "isInstanceAdmin": true,
-      "password": "changeme",
-      "preferredName": "Instance Admin",
-      "shortname": "instance-admin"
-    }
+      email: "changeme@example.com",
+      isInstanceAdmin: true,
+      password: "changeme",
+      preferredName: "Instance Admin",
+      shortname: "instance-admin",
+    },
   ],
-  "hash_system_user_password": "changeme",
-  "kratos_api_key": "changeme",
-  "kratos_secrets_cipher": "32-LONG-SECRET-NOT-SECURE-AT-ALL",
-  "kratos_secrets_cookie": "changeme",
-  "pg_graph_user_password_hash": "SCRAM-SHA-256$4096:calculateme",
-  "pg_graph_user_password_raw": "changeme",
-  "pg_kratos_user_password_hash": "SCRAM-SHA-256$4096:calculateme",
-  "pg_kratos_user_password_raw": "chageme",
-  "pg_superuser_password": "changeme"
+  hydra_secrets_system: "changeme",
+  hydra_secrets_cookie: "changeme",
+  kratos_api_key: "changeme",
+  kratos_secrets_cipher: "32-LONG-SECRET-NOT-SECURE-AT-ALL",
+  kratos_secrets_cookie: "changeme",
+  linear_webhook_secret: "changeme",
+  mailchimp_api_key: "changeme",
+  mailchimp_list_id: "changeme",
+  node_api_sentry_dsn: "https://changeme.ingest.sentry.io/changeme",
+  pg_graph_user_password_hash: "SCRAM-SHA-256$4096:calculateme-see-postgres_roles.tf",
+  pg_graph_user_password_raw: "changeme",
+  pg_hydra_user_password_hash: "SCRAM-SHA-256$4096:calculateme-see-postgres_roles.tf",
+  pg_hydra_user_password_raw: "changeme",
+  pg_kratos_user_password_hash: "SCRAM-SHA-256$4096:calculateme-see-postgres_roles.tf",
+  pg_kratos_user_password_raw: "changeme",
+  pg_spicedb_password_hash: "SCRAM-SHA-256$4096:calculateme-see-postgres_roles.tf",
+  pg_spicedb_password_raw: "changeme",
+  pg_superuser_password: "changeme",
+  pg_temporal_user_password_hash: "SCRAM-SHA-256$4096:calculateme-see-postgres_roles.tf",
+  pg_temporal_user_password_raw: "changeme",
+  pg_temporal_visibility_user_password_hash: "SCRAM-SHA-256$4096:calculateme-see-postgres_roles.tf",
+  pg_temporal_visibility_user_password_raw: "changeme",
+  spicedb_grpc_preshared_key: "changeme",
 }
 ```
 
@@ -88,18 +109,18 @@ Secret environment should be provided in HashiCorp Vault. These are expected in 
 The database is configured to use `scram-sha-256` for password auth.
 To generate a hashed password in this form:
 
-1.  Start a local DB:
-    `$ docker run --rm -it --name postgres-dummy -d -e POSTGRES_HOST_AUTH_METHOD=trust postgres:14-alpine`
-1.  Connect to instance
-    `$ docker exec -it postgres-dummy psql -U postgres`
-1.  Reset password
-    `postgres=# \password`
-    (type in your password twice)
-1.  Extract password
-    `select rolpassword from pg_authid where rolname = 'postgres';`
-1.  Copy the result, repeat from step 3 as needed
-1.  Quit with `\q` and stop the container
-    `docker stop postgres-dummy`
+1. Start a local DB:
+   `$ docker run --rm -it --name postgres-dummy -d -e POSTGRES_HOST_AUTH_METHOD=trust postgres:14-alpine`
+1. Connect to instance
+   `$ docker exec -it postgres-dummy psql -U postgres`
+1. Reset password
+   `postgres=# \password`
+   (type in your password twice)
+1. Extract password
+   `select rolpassword from pg_authid where rolname = 'postgres';`
+1. Copy the result, repeat from step 3 as needed
+1. Quit with `\q` and stop the container
+   `docker stop postgres-dummy`
 
 </details>
 
@@ -141,7 +162,7 @@ $ docker run --rm \
   -e HASH_GRAPH_PG_HOST=localhost \
   -e HASH_GRAPH_PG_PORT=5554 \
   -e HASH_GRAPH_PG_DATABASE=graph \
-  -e RUST_LOG=debug \
+  -e HASH_GRAPH_LOG_LEVEL=debug \
   000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-graphecr:latest \
   migrate
 ..
@@ -230,10 +251,6 @@ $ # AI Typescript worker
 $ DOCKER_BUILDKIT=1 docker build . -f ./apps/hash-ai-worker-ts/docker/Dockerfile -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-temporalworkeraits:latest
 $ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-temporalworkeraits:latest
 ..
-$ # AI Python worker
-$ DOCKER_BUILDKIT=1 docker build . -f ./apps/hash-ai-worker-py/docker/Dockerfile -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-temporalworkeraipy:latest
-$ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-temporalworkeraipy:latest
-..
 $ # Integration worker
 $ DOCKER_BUILDKIT=1 docker build . -f ./apps/hash-integration-worker/docker/Dockerfile -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-temporalworkerintegration:latest
 $ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-temporalworkerintegration:latest
@@ -279,9 +296,9 @@ Once the CLI has been configured, you should have a `.aws` folder in your home d
 
 If you wish to pull/push container images to ECR manually, you must:
 
-1.  Login to the registry
-1.  Build and tag the image
-1.  Push the image to ECR
+1. Login to the registry
+1. Build and tag the image
+1. Push the image to ECR
 
 Please see the [AWS docs](https://docs.aws.amazon.com/AmazonECR/latest/userguide/docker-push-ecr-image.html) for instructions on how to do so.
 
@@ -324,7 +341,7 @@ $ docker run --rm \
   -e HASH_GRAPH_PG_HOST=$HASH_PG_HOST \
   -e HASH_GRAPH_PG_PORT=$HASH_PG_PORT \
   -e HASH_GRAPH_PG_DATABASE \
-  -e RUST_LOG=info \
+  -e HASH_GRAPH_LOG_LEVEL=info \
   hash-graph \
   migrate
 ..

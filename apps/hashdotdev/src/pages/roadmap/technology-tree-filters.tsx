@@ -16,13 +16,45 @@ import { statuses, StatusId } from "./statuses";
 import { UseCaseId, useCases } from "./use-cases";
 import { VariantId, variants } from "./variants";
 
-const FilterHeading = styled(Typography)(({ theme }) => ({
+const FilterHeadingTypography = styled(Typography)(({ theme }) => ({
   color: theme.palette.gray[90],
   fontSize: 12,
   fontWeight: 600,
   textTransform: "uppercase",
   marginBottom: theme.spacing(0.75),
 }));
+
+const FilterHeading: FunctionComponent<{
+  children: ReactNode;
+  togglingAll: boolean;
+  setTogglingAll: (togglingAll: boolean) => void;
+}> = ({ children, togglingAll, setTogglingAll }) => {
+  return (
+    <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+      <FilterHeadingTypography>{children}</FilterHeadingTypography>
+      <FormControlLabel
+        sx={{
+          position: "relative",
+          top: -2,
+          marginX: 0,
+          [`.${formControlLabelClasses.label}`]: {
+            color: ({ palette }) =>
+              togglingAll ? palette.black : palette.gray[80],
+            fontSize: 12,
+            fontWeight: 600,
+          },
+        }}
+        control={
+          <Checkbox
+            checked={togglingAll}
+            onChange={({ target }) => setTogglingAll(target.checked)}
+          />
+        }
+        label="Toggle All"
+      />
+    </Box>
+  );
+};
 
 const FilterCheckboxItem: FunctionComponent<{
   checked: boolean;
@@ -108,8 +140,8 @@ export const TechnologyTreeFilters: FunctionComponent<{
               ? `translateX(calc(100% - ${spacing(0.5)}))`
               : "translateX(0%)"
             : open
-            ? "translateX(0%)"
-            : "translateX(100%)",
+              ? "translateX(0%)"
+              : "translateX(100%)",
         height: isWideScreen ? "100%" : "unset",
         maxHeight: ({ spacing }) =>
           isWideScreen ? "unset" : `calc(100% - ${spacing(4)})`,
@@ -167,7 +199,16 @@ export const TechnologyTreeFilters: FunctionComponent<{
         }}
       >
         <Box>
-          <FilterHeading>By Status</FilterHeading>
+          <FilterHeading
+            togglingAll={displayedStatuses.length === statuses.length}
+            setTogglingAll={(togglingAll) =>
+              togglingAll
+                ? setDisplayedStatuses(statuses.map(({ id }) => id))
+                : setDisplayedStatuses([])
+            }
+          >
+            By Status
+          </FilterHeading>
           {statuses.map(({ id, name, icon, filterColor }) => (
             <FilterCheckboxItem
               key={id}
@@ -186,7 +227,16 @@ export const TechnologyTreeFilters: FunctionComponent<{
           ))}
         </Box>
         <Box>
-          <FilterHeading>By Type</FilterHeading>
+          <FilterHeading
+            togglingAll={displayedVariants.length === variants.length}
+            setTogglingAll={(togglingAll) =>
+              togglingAll
+                ? setDisplayedVariants(variants.map(({ id }) => id))
+                : setDisplayedVariants([])
+            }
+          >
+            By Type
+          </FilterHeading>
           {variants.map(({ id, name, icon }) => (
             <FilterCheckboxItem
               key={id}
@@ -204,7 +254,16 @@ export const TechnologyTreeFilters: FunctionComponent<{
           ))}
         </Box>
         <Box>
-          <FilterHeading>By Area</FilterHeading>
+          <FilterHeading
+            togglingAll={displayedUseCases.length === useCases.length}
+            setTogglingAll={(togglingAll) =>
+              togglingAll
+                ? setDisplayedUseCases(useCases.map(({ id }) => id))
+                : setDisplayedUseCases([])
+            }
+          >
+            By Area
+          </FilterHeading>
           {useCases.map(({ id, name, icon }) => (
             <FilterCheckboxItem
               key={id}

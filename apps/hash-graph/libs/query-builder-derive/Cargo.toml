@@ -1,0 +1,16 @@
+cargo-features = ["edition2024"]
+
+[package]
+name = "query-builder-derive"
+version = "0.1.0"
+edition.workspace = true
+
+[lib]
+proc-macro = true
+
+[dependencies]
+virtue = "0.0.16"
+syn = "2.0.52"
+
+[dev-dependencies]
+trybuild = "1.0.89"

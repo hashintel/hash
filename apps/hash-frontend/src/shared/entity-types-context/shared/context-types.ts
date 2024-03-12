@@ -7,8 +7,13 @@ import {
 
 export type EntityTypesContextValue = {
   entityTypes: EntityTypeWithMetadata[] | null;
-  // a record of entity type ids to whether they are link types or not
-  isLinkTypeLookup: Record<VersionedUrl, boolean> | null;
+  // a record of entity type ids to their parent entity type ids, whether direct or indirect parents
+  entityTypeParentIds: Record<VersionedUrl, VersionedUrl[]> | null;
+  // a record of entity type ids to whether they are special types or not
+  isSpecialEntityTypeLookup: Record<
+    VersionedUrl,
+    { isFile: boolean; isImage: boolean; isLink: boolean }
+  > | null;
   subgraph: Subgraph<EntityTypeRootType> | null;
   loading: boolean;
 

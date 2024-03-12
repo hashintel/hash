@@ -8,7 +8,9 @@ import {
 } from "./layout/layout-with-sidebar";
 import { PlainLayout } from "./layout/plain-layout";
 
-export type NextPageWithLayout<T = {}> = NextPage<T> & {
+export type NextPageWithLayout<
+  T extends Record<string, unknown> = Record<string, unknown>,
+> = NextPage<T> & {
   getLayout?: (page: ReactElement) => ReactNode;
 };
 

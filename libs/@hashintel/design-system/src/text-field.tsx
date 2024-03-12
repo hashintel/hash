@@ -1,32 +1,20 @@
-import { faCheckCircle } from "@fortawesome/free-regular-svg-icons";
-import { faCircleExclamation } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   Collapse,
   formHelperTextClasses,
-  InputAdornment,
-  inputClasses,
-  InputProps,
-  outlinedInputClasses,
   TextField as MuiTextField,
-  TextFieldProps as MuiTextFieldProps,
   Typography,
+  useTheme,
 } from "@mui/material";
-import { forwardRef, FunctionComponent, useState } from "react";
+import { forwardRef, FunctionComponent, ReactNode, useState } from "react";
 
-import { FontAwesomeIcon } from "./fontawesome-icon";
-
-type TextFieldProps = {
-  success?: boolean;
-  showLabelCornerHint?: boolean;
-  autoResize?: boolean;
-} & MuiTextFieldProps;
+import { getInputProps, inputLabelProps, TextFieldProps } from "./input-props";
 
 /**
  * 'Freezes' a value when it's falsy, meaning the value will never update to
  * be falsy. Useful for keeping a component the same when animating out
  */
-const useFrozenValue = <T extends any>(value: T): T => {
+const useFrozenValue = <T extends ReactNode>(value: T): T => {
   const [frozenValue, setFrozenValue] = useState(value);
 
   if (value && frozenValue !== value) {
@@ -35,75 +23,13 @@ const useFrozenValue = <T extends any>(value: T): T => {
   return frozenValue;
 };
 
-export const getInputProps = ({
-  success,
-  variant,
-  error,
-  multiline,
-  autoResize,
-  ...otherProps
-}: InputProps &
-  Pick<
-    TextFieldProps,
-    "success" | "error" | "multiline" | "autoResize" | "variant"
-  > = {}): InputProps => {
-  const { sx: InputPropsSx = [], ...otherInputProps } = otherProps;
-
-  const renderEndAdornment = () => {
-    if (error || success) {
-      return (
-        <InputAdornment position="end">
-          <FontAwesomeIcon
-            icon={success ? faCheckCircle : faCircleExclamation}
-            sx={({ palette }) => ({
-              color: success ? palette.blue[70] : palette.red[60],
-            })}
-          />
-        </InputAdornment>
-      );
-    }
-    return null;
-  };
-
-  return {
-    sx: [
-      ({ palette }) => ({
-        [`& .${outlinedInputClasses.notchedOutline}, &:hover .${outlinedInputClasses.notchedOutline}, &.${inputClasses.disabled} .${outlinedInputClasses.notchedOutline}`]:
-          {
-            borderColor: error ? palette.red[40] : palette.gray[30],
-          },
-        [`&.${inputClasses.disabled}`]: { backgroundColor: palette.gray[20] },
-        ...(multiline &&
-          autoResize && {
-            [`& .${outlinedInputClasses.input}`]: {
-              resize: "auto",
-            },
-          }),
-      }),
-      ...(Array.isArray(InputPropsSx) ? InputPropsSx : [InputPropsSx]),
-    ],
-    /** `notched` is only expected for `outlined` variant, passing it for other variants gives a console warning
-     * @see https://github.com/mui/material-ui/issues/32550 for context
-     */
-    ...(variant === "outlined" ? { notched: false } : {}),
-    ...otherInputProps,
-    endAdornment:
-      error || success ? renderEndAdornment() : otherProps.endAdornment,
-  };
-};
-
-export const inputLabelProps = {
-  disableAnimation: true,
-  shrink: true,
-};
-
 export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
   (
     {
       helperText,
       variant = "outlined",
       sx,
-      InputProps: inputProps = {},
+      InputProps,
       success,
       error,
       label,
@@ -114,6 +40,8 @@ export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
     ref,
   ) => {
     const frozenHelperText = useFrozenValue(helperText);
+
+    const theme = useTheme();
 
     return (
       <MuiTextField
@@ -129,7 +57,7 @@ export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
           ...(Array.isArray(sx) ? sx : [sx]),
         ]}
         variant={variant}
-        {...textFieldProps}
+        minRows={3}
         error={error}
         label={
           label ? (
@@ -154,7 +82,7 @@ export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
         }
         InputLabelProps={inputLabelProps}
         InputProps={getInputProps({
-          ...inputProps,
+          ...InputProps,
           variant,
           success,
           error,
@@ -176,7 +104,12 @@ export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
             color: error ? palette.red[80] : palette.gray[60],
           }),
         }}
-        minRows={3}
+        {...textFieldProps}
+        // eslint-disable-next-line react/jsx-no-duplicate-props
+        inputProps={{
+          ...theme.components?.MuiInputBase?.defaultProps?.inputProps,
+          ...textFieldProps.inputProps,
+        }}
       />
     );
   },

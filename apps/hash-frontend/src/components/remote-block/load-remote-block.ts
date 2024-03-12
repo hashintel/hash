@@ -7,7 +7,7 @@ import { crossFrameFetchFn } from "../sandbox/framed-block/util";
 export type UnknownBlock =
   | string
   | typeof HTMLElement
-  | ((...props: any[]) => ReactElement);
+  | ((...props: unknown[]) => ReactElement);
 
 export type FetchSourceFn = (
   url: string,

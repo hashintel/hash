@@ -1,8 +1,8 @@
 name: Bug Report (HASH App)
 description: Create a report to help us improve HASH
 labels:
-  - "area: apps > hash*"
-  - "category: bug"
+  - "area/apps > hash*"
+  - "category/bug"
 body:
   - type: markdown
     attributes:

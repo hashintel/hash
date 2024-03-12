@@ -1,8 +1,0 @@
-{
-  "keys": {
-    "a": {
-      "type": "number",
-      "nullable": false
-    }
-  }
-}

@@ -33,7 +33,7 @@ resource "aws_security_group" "redis" {
 
 resource "aws_elasticache_replication_group" "redis" {
   replication_group_id        = "${local.prefix}replica"
-  description                 = "Redis multi-AZ repliation group for HASH"
+  description                 = "Redis multi-AZ replication group for HASH"
   engine                      = "redis"
   automatic_failover_enabled  = true
   preferred_cache_cluster_azs = var.region_az_names

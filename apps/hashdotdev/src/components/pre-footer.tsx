@@ -130,12 +130,11 @@ export const Subscribe: FunctionComponent<
               sx={{
                 color: ({ palette }) => palette.teal[50],
                 fontWeight: 900,
-                fontSize: 48,
                 lineHeight: 1,
                 mb: 2,
               }}
             >
-              <EnvelopeDotSolidIcon />
+              <EnvelopeDotSolidIcon sx={{ fontSize: 48 }} />
             </Box>
             <Typography
               variant="hashHeading2"
@@ -228,7 +227,7 @@ export const Subscribe: FunctionComponent<
                   disabled={loading}
                   placeholder="you@example.com"
                   error={error !== null}
-                  helperText={error !== null ? error : undefined}
+                  helperText={error ?? undefined}
                   inputRef={inputRef}
                 />
                 <Button
@@ -282,8 +281,8 @@ const BlogPost: FunctionComponent<{
           all.length - 1 === i
             ? name
             : all.length - 2 === i
-            ? `${name} & `
-            : `${name}, `,
+              ? `${name} & `
+              : `${name}, `,
         )
         .join("")}
     </Typography>

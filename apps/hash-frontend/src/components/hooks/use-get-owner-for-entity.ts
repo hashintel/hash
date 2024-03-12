@@ -7,35 +7,40 @@ import { useUsers } from "./use-users";
 export const useGetOwnerForEntity = () => {
   /*
    * This is a simple way of getting all users and orgs to find an entity's owner's name
-   * @todo rethink caching here – users and orgs added since session start won't appear
-   * @todo probably replace this with something like fetching owners individually instead
    */
-  const { users = [] } = useUsers(true);
-  const { orgs = [] } = useOrgs(true);
+  const { users = [], loading: usersLoading } = useUsers();
+  const { orgs = [], loading: orgsLoading } = useOrgs();
+
+  const loading = usersLoading || orgsLoading;
 
   return useCallback(
     (entity: Entity) => {
-      const ownerUuid = extractOwnedByIdFromEntityId(
+      const ownedById = extractOwnedByIdFromEntityId(
         entity.metadata.recordId.entityId,
       );
 
+      if (loading) {
+        return {
+          ownedById,
+          shortname: "",
+        };
+      }
+
       const owner =
-        users.find((user) => ownerUuid === user.accountId) ??
-        orgs.find((org) => ownerUuid === org.accountId);
+        users.find((user) => ownedById === user.accountId) ??
+        orgs.find((org) => ownedById === org.accountGroupId);
 
       if (!owner) {
         throw new Error(
-          `Owner with accountId ${ownerUuid} not found – possibly a caching issue if it has been created mid-session`,
+          `Owner with accountId ${ownedById} not found – possibly a caching issue if it has been created mid-session`,
         );
       }
 
-      const isUser = "userAccountId" in owner;
-
       return {
-        accountId: isUser ? owner.userAccountId : owner.accountId,
+        ownedById,
         shortname: owner.shortname ?? "incomplete-user-account",
       };
     },
-    [orgs, users],
+    [loading, orgs, users],
   );
 };

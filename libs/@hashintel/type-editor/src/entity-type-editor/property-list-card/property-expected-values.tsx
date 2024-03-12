@@ -1,15 +1,11 @@
 import { PropertyType } from "@blockprotocol/type-system/slim";
-import {
-  Chip,
-  fluidFontClassName,
-  FontAwesomeIcon,
-} from "@hashintel/design-system";
+import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/theme";
 import { chipClasses, Tooltip } from "@mui/material";
 import { Stack } from "@mui/system";
 
+import { useDataTypesOptions } from "../../shared/data-types-options-context";
 import { usePropertyTypesOptions } from "../../shared/property-types-options-context";
-import { expectedValuesOptions } from "./shared/expected-values-options";
-import { getArrayExpectedValueType } from "./shared/get-expected-value-descriptor";
 
 export const PropertyExpectedValues = ({
   property,
@@ -24,28 +20,28 @@ export const PropertyExpectedValues = ({
 }) => {
   const propertyTypes = usePropertyTypesOptions();
 
+  const { getExpectedValueDisplay } = useDataTypesOptions();
+
   return (
     <Stack direction="row" flexWrap="wrap" gap="2px 8px">
       {property.oneOf.map((dataType, index) => {
         let expectedValueOption;
 
         if ("$ref" in dataType) {
-          expectedValueOption = expectedValuesOptions[dataType.$ref];
+          expectedValueOption = getExpectedValueDisplay(dataType.$ref);
         } else if (dataType.type === "array") {
           const childrenTypes = dataType.items.oneOf.map((item) =>
             "type" in item ? item.type : item.$ref,
           );
 
-          const arrayType = getArrayExpectedValueType(childrenTypes);
-
-          expectedValueOption = expectedValuesOptions[arrayType];
+          expectedValueOption = getExpectedValueDisplay(childrenTypes);
         } else {
           const selected = selectedExpectedValueIndex === index;
           const childrenTitles = Object.values(dataType.properties)
             .map((prop) => {
               const $ref = "items" in prop ? prop.items.$ref : prop.$ref;
 
-              return propertyTypes[$ref]?.title;
+              return propertyTypes[$ref]?.schema.title;
             })
             .filter((title) => title !== undefined);
 
@@ -82,31 +78,27 @@ export const PropertyExpectedValues = ({
           );
         }
 
-        if (expectedValueOption) {
-          return (
-            <Chip
-              // eslint-disable-next-line react/no-array-index-key
-              key={index}
-              label={expectedValueOption.title}
-              icon={
-                <FontAwesomeIcon
-                  icon={{
-                    icon: expectedValueOption.icon,
-                  }}
-                  sx={{ fontSize: "1em", mr: "1ch" }}
-                />
-              }
-              color="gray"
-              sx={{
-                [`.${chipClasses.label}`]: {
-                  color: ({ palette }) => palette.gray[70],
-                },
-              }}
-            />
-          );
-        }
-
-        return null;
+        return (
+          <Chip
+            // eslint-disable-next-line react/no-array-index-key
+            key={index}
+            label={expectedValueOption.title}
+            icon={
+              <FontAwesomeIcon
+                icon={{
+                  icon: expectedValueOption.icon,
+                }}
+                sx={{ fontSize: "1em", mr: "1ch" }}
+              />
+            }
+            color="gray"
+            sx={{
+              [`.${chipClasses.label}`]: {
+                color: ({ palette }) => palette.gray[70],
+              },
+            }}
+          />
+        );
       })}
     </Stack>
   );

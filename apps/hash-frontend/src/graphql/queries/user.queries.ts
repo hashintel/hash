@@ -1,6 +1,5 @@
 import { gql } from "@apollo/client";
-
-import { subgraphFieldsFragment } from "./subgraph";
+import { subgraphFieldsFragment } from "@local/hash-isomorphic-utils/graphql/queries/subgraph";
 
 export const isShortnameTaken = gql`
   query isShortnameTaken($shortname: String!) {
@@ -8,13 +7,23 @@ export const isShortnameTaken = gql`
   }
 `;
 
+export const hasAccessToHashQuery = gql`
+  query hasAccessToHash {
+    hasAccessToHash
+  }
+`;
+
 export const meQuery = gql`
   query me {
     me(
-      hasLeftEntity: { incoming: 1, outgoing: 1 }
-      hasRightEntity: { incoming: 1, outgoing: 1 }
+      # fetch the user's org memberships and the orgs they link to
+      # we fetch more information on the orgs as a follow-up, in the auth context
+      hasLeftEntity: { incoming: 1, outgoing: 0 }
+      hasRightEntity: { incoming: 0, outgoing: 1 }
     ) {
-      ...SubgraphFields
+      subgraph {
+        ...SubgraphFields
+      }
     }
   }
   ${subgraphFieldsFragment}

@@ -9,8 +9,8 @@ import { useBlockProtocolQueryDataTypes } from "../../components/hooks/block-pro
 import { useLatestEntityTypesOptional } from "../../shared/entity-types-context/hooks";
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { FilesLightIcon } from "../../shared/icons/files-light-icon";
-import { useLatestPropertyTypes } from "../../shared/latest-property-types-context";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
+import { usePropertyTypes } from "../../shared/property-types-context";
 import { TopContextBar } from "../shared/top-context-bar";
 import {
   tabTitles,
@@ -50,35 +50,40 @@ export const getServerSideProps: GetServerSideProps<
 const contentMaxWidth = 1000;
 
 const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
-  const latestEntityTypes = useLatestEntityTypesOptional({
+  const { latestEntityTypes } = useLatestEntityTypesOptional({
     includeArchived: true,
   });
 
-  const { isLinkTypeLookup } = useEntityTypesContextRequired();
+  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
   const latestNonLinkEntityTypes = useMemo(
     () =>
-      isLinkTypeLookup
+      isSpecialEntityTypeLookup
         ? latestEntityTypes?.filter(
-            (entityType) => !isLinkTypeLookup[entityType.schema.$id],
+            (entityType) =>
+              !isSpecialEntityTypeLookup[entityType.schema.$id]?.isLink,
           )
         : undefined,
-    [isLinkTypeLookup, latestEntityTypes],
+    [isSpecialEntityTypeLookup, latestEntityTypes],
   );
 
   const latestLinkEntityTypes = useMemo(
     () =>
-      isLinkTypeLookup
+      isSpecialEntityTypeLookup
         ? latestEntityTypes?.filter(
-            (entityType) => isLinkTypeLookup[entityType.schema.$id],
+            (entityType) =>
+              isSpecialEntityTypeLookup[entityType.schema.$id]?.isLink,
           )
         : undefined,
-    [isLinkTypeLookup, latestEntityTypes],
+    [isSpecialEntityTypeLookup, latestEntityTypes],
   );
 
   const { queryDataTypes } = useBlockProtocolQueryDataTypes();
 
-  const latestPropertyTypesObject = useLatestPropertyTypes();
+  const { propertyTypes: latestPropertyTypesObject } = usePropertyTypes({
+    latestOnly: true,
+    includeArchived: true,
+  });
 
   const latestPropertyTypes = useMemo(
     () =>
@@ -131,12 +136,12 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
       currentTab === "all"
         ? allTypes
         : currentTab === "entity-type"
-        ? latestNonLinkEntityTypes ?? []
-        : currentTab === "link-type"
-        ? latestLinkEntityTypes ?? []
-        : currentTab === "property-type"
-        ? latestPropertyTypes ?? []
-        : latestDataTypes ?? [],
+          ? latestNonLinkEntityTypes
+          : currentTab === "link-type"
+            ? latestLinkEntityTypes
+            : currentTab === "property-type"
+              ? latestPropertyTypes
+              : latestDataTypes,
     [
       currentTab,
       allTypes,
@@ -205,7 +210,7 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
         </Container>
       </Box>
       <Container sx={{ paddingTop: 5, maxWidth: { lg: contentMaxWidth } }}>
-        <TypesTable kind={currentTab} types={currentTypes ?? []} />
+        <TypesTable kind={currentTab} types={currentTypes} />
       </Container>
     </>
   );

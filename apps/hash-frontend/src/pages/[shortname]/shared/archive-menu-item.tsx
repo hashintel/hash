@@ -1,5 +1,5 @@
 import { useMutation } from "@apollo/client";
-import { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph/.";
+import { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { ListItemIcon, ListItemText } from "@mui/material";
 import { FunctionComponent, useCallback } from "react";
 
@@ -11,9 +11,9 @@ import {
 import { archiveEntityTypeMutation } from "../../../graphql/queries/ontology/entity-type.queries";
 import { useFetchEntityTypes } from "../../../shared/entity-types-context/hooks";
 import { BoxArchiveIcon } from "../../../shared/icons/box-archive-icon";
+import { isEntityPageEntity } from "../../../shared/is-of-type";
 import { MenuItem } from "../../../shared/ui/menu-item";
 import {
-  isEntityPageEntity,
   isItemEntityType,
   useContextBarActionsContext,
 } from "../../shared/top-context-bar";
@@ -64,8 +64,8 @@ export const ArchiveMenuItem: FunctionComponent<{
           isItemEntityType(item)
             ? "type"
             : isEntityPageEntity(item)
-            ? "page"
-            : "entity"
+              ? "page"
+              : "entity"
         }`}
       />
     </MenuItem>

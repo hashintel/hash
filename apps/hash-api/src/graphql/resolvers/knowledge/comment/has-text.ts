@@ -1,28 +1,23 @@
-import { TextToken } from "@local/hash-graphql-shared/graphql/types";
+import { TextToken } from "@local/hash-isomorphic-utils/types";
 
 import { getCommentText } from "../../../../graph/knowledge/system-types/comment";
-import { SYSTEM_TYPES } from "../../../../graph/system-types";
 import { ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { dataSourcesToImpureGraphContext } from "../../util";
+import { graphQLContextToImpureGraphContext } from "../../util";
 import { UnresolvedCommentGQL } from "../graphql-mapping";
 
 export const commentHasTextResolver: ResolverFn<
-  Promise<TextToken[]>,
+  TextToken[],
   UnresolvedCommentGQL,
   LoggedInGraphQLContext,
-  {}
-> = async ({ metadata }, _, { dataSources }) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
+  Record<string, never>
+> = async ({ metadata }, _, graphQLContext) => {
+  const { authentication } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  const textEntity = await getCommentText(context, {
+  const text = await getCommentText(context, authentication, {
     commentEntityId: metadata.recordId.entityId,
   });
 
-  // @todo implement `Text` class so that a `Text.getTokens()` method can be used here
-  return (
-    (textEntity.properties[
-      SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl
-    ] as TextToken[] | undefined) ?? []
-  );
+  return text.textualContent;
 };

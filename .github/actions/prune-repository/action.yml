@@ -1,0 +1,60 @@
+name: Prune repository
+description: "Prunes the repository to only the files required for the given scope"
+inputs:
+  scope:
+    description: "Scope to prune to"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install turbo
+      uses: ./.github/actions/install-turbo
+
+    - name: Prune repository
+      shell: bash
+      run: |
+        while IFS= read -r line; do
+          if [[ -n "$line" ]]; then
+            turbo prune --scope="$line"
+          fi
+        done <<< "${{ inputs.scope }}"
+
+        while IFS= read -r line; do
+          DIRECTORY=$(dirname "$line")
+          # Create a dummy crate if it does not exist
+          if [[ ! -d "out/$DIRECTORY" ]]; then
+            mkdir -p "out/$DIRECTORY/src"
+            echo > "out/$DIRECTORY/src/lib.rs"
+            echo -e "[package]\nname = \"$(yq '.package.name' -p toml -oy $line)\"" > "out/$DIRECTORY/Cargo.toml"
+          fi
+        done < <(find $(yq '.workspace.members' -p toml -o tsv Cargo.toml | tr '*' ' ') -maxdepth 2 -name Cargo.toml)
+
+    - name: Copy required files
+      shell: bash
+      run: |
+        cp -R yarn.lock patches Cargo.toml Cargo.lock rust-toolchain.toml out/
+
+        # Globs are fun, especially in Bash. Covers all dot-files except `.`, `..`, and `.git`.
+        shopt -s extglob
+        cp -R .[!.!(.git)]* .git?* out/
+
+    - name: Allow patch files to fail
+      shell: bash
+      run: |
+        # `patch-package` will always fail in CI if the package does not exist, `--error-on-fail` is not respected
+        # This allows `patch-package` to fail without failing the build
+        cat package.json | sed 's/\("postinstall".*patch-package.*\)"/\1 || true"/g' > out/package.json
+
+    - name: Remove old repository files
+      shell: bash
+      run: |
+        git ls-files -z | xargs -0 rm -f
+        git ls-tree --name-only -d -r -z HEAD | sort -rz | xargs -0 rm -rf
+
+    - name: Restore `out` directory
+      shell: bash
+      run: |
+        shopt -s dotglob
+        mv out/* .
+        rmdir out

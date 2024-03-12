@@ -3,7 +3,7 @@ import {
   CustomRenderer,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
-import { customColors } from "@hashintel/design-system";
+import { customColors } from "@hashintel/design-system/theme";
 
 import {
   getCellHorizontalPadding,
@@ -28,6 +28,7 @@ export const createRenderPropertyNameCell = (
   return {
     kind: GridCellKind.Custom,
     isMatch: (cell: CustomCell): cell is PropertyNameCell =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (cell.data as any).kind === "property-name-cell",
     draw: (args, cell) => {
       const { ctx, theme, rect, spriteManager } = args;

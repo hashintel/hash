@@ -1,15 +1,16 @@
 import { getCommentText } from "../../../../graph/knowledge/system-types/comment";
 import { CommentResolvers } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { dataSourcesToImpureGraphContext } from "../../util";
+import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const commentTextUpdatedAtResolver: CommentResolvers<LoggedInGraphQLContext>["textUpdatedAt"] =
-  async ({ metadata }, _, { dataSources }) => {
-    const context = dataSourcesToImpureGraphContext(dataSources);
+  async ({ metadata }, _, graphQLContext) => {
+    const { authentication } = graphQLContext;
+    const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-    const textEntity = await getCommentText(context, {
+    const text = await getCommentText(context, authentication, {
       commentEntityId: metadata.recordId.entityId,
     });
 
-    return textEntity.metadata.temporalVersioning;
+    return text.entity.metadata.temporalVersioning;
   };

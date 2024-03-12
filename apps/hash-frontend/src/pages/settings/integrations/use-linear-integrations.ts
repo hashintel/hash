@@ -1,10 +1,14 @@
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { Entity } from "@local/hash-subgraph/.";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { SyncLinearDataWithProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
+import { Entity } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { useEffect, useState } from "react";
 
 import { useBlockProtocolQueryEntities } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
@@ -24,7 +28,7 @@ export const useLinearIntegrations = () => {
 
   useEffect(() => {
     void (async () => {
-      const { data: subgraph } = await queryEntities({
+      const { data } = await queryEntities({
         data: {
           operation: {
             multiFilter: {
@@ -37,7 +41,7 @@ export const useLinearIntegrations = () => {
                 {
                   field: ["metadata", "entityTypeId"],
                   operator: "EQUALS",
-                  value: types.entityType.linearIntegration.entityTypeId,
+                  value: systemEntityTypes.linearIntegration.entityTypeId,
                 },
               ],
               operator: "AND",
@@ -50,7 +54,9 @@ export const useLinearIntegrations = () => {
         },
       });
 
-      if (subgraph) {
+      if (data) {
+        const subgraph = data.results;
+
         const linearIntegrationEntities = getRoots(subgraph);
 
         setLinearIntegrations(
@@ -66,7 +72,7 @@ export const useLinearIntegrations = () => {
 
                   return (
                     linkEntity.metadata.entityTypeId ===
-                      types.linkEntityType.syncLinearDataWith
+                      systemLinkEntityTypes.syncLinearDataWith
                         .linkEntityTypeId && !linkEntity.metadata.archived
                   );
                 })
@@ -74,15 +80,13 @@ export const useLinearIntegrations = () => {
                   const linkEntity = linkAndTarget.linkEntity[0]!;
                   const rightEntity = linkAndTarget.rightEntity[0]!;
 
-                  const linearTeamIds = linkEntity.properties[
-                    extractBaseUrl(
-                      types.propertyType.linearTeamId.propertyTypeId,
-                    )
-                  ] as string[];
+                  const { linearTeamId: linearTeamIds } = simplifyProperties(
+                    linkEntity.properties as SyncLinearDataWithProperties,
+                  );
 
                   return {
                     workspaceEntity: rightEntity,
-                    linearTeamIds,
+                    linearTeamIds: linearTeamIds ?? [],
                   };
                 }),
             };

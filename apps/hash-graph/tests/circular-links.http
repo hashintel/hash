@@ -2,6 +2,10 @@
 
 ### Create account
 POST http://127.0.0.1:4000/accounts
+Content-Type: application/json
+X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
+
+{}
 
 > {%
   client.test("status", function() {
@@ -10,14 +14,115 @@ POST http://127.0.0.1:4000/accounts
   client.global.set("account_id", response.body.toString());
 %}
 
+### Create account web
+POST http://127.0.0.1:4000/webs
+Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+   "ownedById": "{{account_id}}",
+   "owner": {
+       "kind": "account",
+       "subjectId": "{{account_id}}"
+    }
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 204, "Response status is not 204");
+  });
+%}
+
+### load entity link type
+POST http://127.0.0.1:4000/entity-types/load
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+    "kind": "entityType",
+    "$id": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+    "type": "object",
+    "title": "Link",
+    "properties": {}
+  },
+  "relationships": [{
+    "relation": "viewer",
+    "subject": {
+      "kind": "public"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert link entity type
+POST http://127.0.0.1:4000/entity-types
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+    "kind": "entityType",
+    "$id": "http://localhost:3000/@snapshot/types/entity-type/link/v/1",
+    "type": "object",
+    "title": "Object",
+    "allOf": [{ "$ref": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1" }],
+    "properties": {}
+  },
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "updateFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.global.set("link_entity_type_id", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
+%}
+
+### Allow the link entity type to be instantiated by the account
+POST http://127.0.0.1:4000/entity-types/relationships
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+[
+  {
+    "operation": "create",
+    "resource": "{{link_entity_type_id}}",
+    "relationAndSubject": {
+      "relation": "instantiator",
+      "subject": {
+        "kind": "account",
+        "subjectId": "{{account_id}}"
+      }
+    }
+  }
+]
+
 ### Insert entity type
 POST http://127.0.0.1:4000/entity-types
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "schema": {
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
     "kind": "entityType",
@@ -26,7 +131,7 @@ Accept: application/json
     "title": "Object",
     "properties": {},
     "links": {
-      "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1": {
+      "http://localhost:3000/@snapshot/types/entity-type/link/v/1": {
         "type": "array",
         "items": {
           "oneOf": [
@@ -38,27 +143,63 @@ Accept: application/json
         "ordered": false
       }
     }
-  }
+  },
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "updateFromWeb"
+    }
+  }]
 }
 
 > {%
   client.test("status", function() {
     client.assert(response.status === 200, "Response status is not 200");
   });
+  client.global.set("entity_type_id", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
 %}
+
+### Allow the entity type to be instantiated by the account
+POST http://127.0.0.1:4000/entity-types/relationships
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+[
+  {
+    "operation": "create",
+    "resource": "{{entity_type_id}}",
+    "relationAndSubject": {
+      "relation": "instantiator",
+      "subject": {
+        "kind": "account",
+        "subjectId": "{{account_id}}"
+      }
+    }
+  }
+]
 
 
 ### Insert entity A
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/object/v/1",
-  "entityUuid": "0000000A-0001-0000-0000-000000000000"
+  "entityUuid": "0000000A-0001-0000-0000-000000000000",
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -72,13 +213,21 @@ Accept: application/json
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/object/v/1",
-  "entityUuid": "0000000B-0001-0000-0000-000000000000"
+  "entityUuid": "0000000B-0001-0000-0000-000000000000",
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -92,13 +241,21 @@ Accept: application/json
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/object/v/1",
-  "entityUuid": "0000000C-0001-0000-0000-000000000000"
+  "entityUuid": "0000000C-0001-0000-0000-000000000000",
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -112,13 +269,21 @@ Accept: application/json
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/object/v/1",
-  "entityUuid": "0000000D-0001-0000-0000-000000000000"
+  "entityUuid": "0000000D-0001-0000-0000-000000000000",
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -132,17 +297,25 @@ Accept: application/json
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
-  "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+  "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/link/v/1",
   "entityUuid": "000000AB-0001-0000-0000-000000000000",
   "linkData": {
     "leftEntityId": "{{entity_a}}",
     "rightEntityId": "{{entity_b}}"
-  }
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -155,17 +328,25 @@ Accept: application/json
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
-  "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+  "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/link/v/1",
   "entityUuid": "000000BC-0001-0000-0000-000000000000",
   "linkData": {
     "leftEntityId": "{{entity_b}}",
     "rightEntityId": "{{entity_c}}"
-  }
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -178,17 +359,25 @@ Accept: application/json
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
-  "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+  "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/link/v/1",
   "entityUuid": "000000CD-0001-0000-0000-000000000000",
   "linkData": {
     "leftEntityId": "{{entity_c}}",
     "rightEntityId": "{{entity_d}}"
-  }
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -201,17 +390,25 @@ Accept: application/json
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
-  "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+  "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/link/v/1",
   "entityUuid": "000000DA-0001-0000-0000-000000000000",
   "linkData": {
     "leftEntityId": "{{entity_d}}",
     "rightEntityId": "{{entity_a}}"
-  }
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -225,17 +422,25 @@ Accept: application/json
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
-  "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+  "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/link/v/1",
   "entityUuid": "000000BA-0001-0000-0000-000000000000",
   "linkData": {
     "leftEntityId": "{{entity_b}}",
     "rightEntityId": "{{entity_a}}"
-  }
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -250,17 +455,25 @@ Accept: application/json
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
-  "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+  "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/link/v/1",
   "entityUuid": "000000CB-0001-0000-0000-000000000000",
   "linkData": {
     "leftEntityId": "{{entity_c}}",
     "rightEntityId": "{{entity_b}}"
-  }
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -275,17 +488,25 @@ Accept: application/json
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
-  "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+  "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/link/v/1",
   "entityUuid": "000000DC-0001-0000-0000-000000000000",
   "linkData": {
     "leftEntityId": "{{entity_d}}",
     "rightEntityId": "{{entity_c}}"
-  }
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -300,17 +521,25 @@ Accept: application/json
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
-  "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+  "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/link/v/1",
   "entityUuid": "000000AD-0001-0000-0000-000000000000",
   "linkData": {
     "leftEntityId": "{{entity_a}}",
     "rightEntityId": "{{entity_d}}"
-  }
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%

@@ -1,38 +1,63 @@
-import { EntityId, EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { useEffect, useState } from "react";
+import { useQuery } from "@apollo/client";
+import {
+  mapGqlSubgraphFieldsFragmentToSubgraph,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
+import { UserPermissionsOnEntities } from "@local/hash-isomorphic-utils/types";
+import {
+  EntityId,
+  EntityRootType,
+  GraphResolveDepths,
+  Subgraph,
+} from "@local/hash-subgraph";
+import { useMemo } from "react";
 
-import { useBlockProtocolGetEntity } from "./block-protocol-functions/knowledge/use-block-protocol-get-entity";
+import {
+  GetEntityQuery,
+  GetEntityQueryVariables,
+} from "../../graphql/api-types.gen";
 
-export const useEntityById = (
-  entityId: EntityId,
-): {
+export const useEntityById = ({
+  entityId,
+  graphResolveDepths,
+  includePermissions = false,
+  pollInterval,
+}: {
+  entityId: EntityId;
+  graphResolveDepths?: GraphResolveDepths;
+  includePermissions?: boolean;
+  pollInterval?: number;
+}): {
   loading: boolean;
   entitySubgraph?: Subgraph<EntityRootType>;
+  permissions?: UserPermissionsOnEntities;
 } => {
-  const [loading, setLoading] = useState(true);
-  const [entitySubgraph, setEntitySubgraph] =
-    useState<Subgraph<EntityRootType>>();
+  const { data, loading } = useQuery<GetEntityQuery, GetEntityQueryVariables>(
+    getEntityQuery,
+    {
+      variables: {
+        ...zeroedGraphResolveDepths,
+        ...graphResolveDepths,
+        entityId,
+        includePermissions,
+      },
+      fetchPolicy: "cache-and-network",
+      pollInterval,
+    },
+  );
 
-  const { getEntity } = useBlockProtocolGetEntity();
+  return useMemo(() => {
+    const subgraph = data
+      ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+          data.getEntity.subgraph,
+        )
+      : undefined;
 
-  useEffect(() => {
-    const fetch = async () => {
-      try {
-        const res = await getEntity({ data: { entityId } });
-
-        if (res.data) {
-          setEntitySubgraph(res.data);
-        }
-      } finally {
-        setLoading(false);
-      }
+    return {
+      loading,
+      entitySubgraph: subgraph,
+      permissions: data?.getEntity.userPermissionsOnEntities,
     };
-
-    void fetch();
-  }, [getEntity, entityId]);
-
-  return {
-    loading,
-    entitySubgraph,
-  };
+  }, [loading, data]);
 };

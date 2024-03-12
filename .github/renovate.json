@@ -1,12 +1,20 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "ignorePaths": [
+    "**/node_modules/**",
+    "**/bower_components/**",
+    "**/vendor/**",
+    "**/target/**",
+    "**/dist/**"
+  ],
   "extends": ["config:base"],
 
+  "automerge": true,
   "branchPrefix": "deps/",
   "dependencyDashboard": true,
   "dependencyDashboardApproval": true,
-  "automerge": true,
-  "ignorePaths": ["apps/engine/**"],
+  "dependencyDashboardTitle": "🚀 Dependency Updates",
+  "dependencyDashboardOSVVulnerabilitySummary": "none",
   "npm": { "minimumReleaseAge": "3 days" },
   "postUpdateOptions": ["yarnDedupeFewer"],
   "rangeStrategy": "bump",
@@ -23,7 +31,27 @@
       "matchManagers": ["github-actions"],
       "commitMessageTopic": "GitHub Action `{{depName}}`",
       "additionalBranchPrefix": "gha/",
-      "pinDigests": true
+      "pinDigests": true,
+      "dependencyDashboardApproval": false
+    },
+    {
+      "packageRules": [
+        {
+          "matchPackageNames": ["taiki-e/install-action"],
+          "schedule": ["after 9pm on sunday"]
+        }
+      ]
+    },
+    {
+      "packageRules": [
+        {
+          "matchPackageNames": [
+            "actions/download-artifact",
+            "actions/upload-artifact"
+          ],
+          "dependencyDashboardApproval": true
+        }
+      ]
     },
     {
       "matchManagers": ["docker-compose", "dockerfile"],
@@ -36,20 +64,27 @@
       "additionalBranchPrefix": "js/"
     },
     {
-      "matchManagers": ["poetry"],
-      "commitMessageTopic": "Python package `{{depName}}`",
-      "additionalBranchPrefix": "py/",
-      "reviewers": ["team:Python"]
-    },
-    {
       "matchManagers": ["cargo"],
       "commitMessageTopic": "Rust crate `{{depName}}`",
       "additionalBranchPrefix": "rs/",
-      "reviewers": ["team:Rust"]
+      "reviewers": ["team:Rust"],
+      "dependencyDashboardApproval": false
     },
     {
       "matchDepTypes": ["devDependencies"],
-      "matchPackagePatterns": ["^jest-", "jest$", "^prettier", "prettier$"],
+      "matchPackagePatterns": [
+        "^jest-",
+        "jest$",
+        "lint-staged",
+        "lockfile-lint",
+        "markdownlint-cli",
+        "^prettier",
+        "prettier$",
+        "rimraf",
+        "turbo",
+        "yarn-deduplicate",
+        "@redocly/cli"
+      ],
       "excludePackageNames": ["prettier-plugin-sql"],
       "dependencyDashboardApproval": false
     },
@@ -79,6 +114,11 @@
       "groupName": "GraphQL npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@graphql/", "^graphql-", "graphql$"]
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["httpyac"],
+      "dependencyDashboardApproval": false
     },
     {
       "groupName": "Jest npm packages",
@@ -120,16 +160,6 @@
       "matchPackagePatterns": ["^@signia/"]
     },
     {
-      "groupName": "Pydantic Python packages",
-      "matchManagers": ["poetry"],
-      "matchPackagePatterns": ["^pydantic"]
-    },
-    {
-      "matchManagers": ["poetry"],
-      "matchPackagePatterns": ["mypy", "ruff", "black"],
-      "dependencyDashboardApproval": false
-    },
-    {
       "matchManagers": ["regex"],
       "matchDepNames": ["rust"],
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
@@ -137,24 +167,10 @@
       "fetchReleaseNotes": false,
       "commitMessageExtra": "to nightly-{{newVersion}}",
       "additionalBranchPrefix": "rs/",
+      "groupName": "Rust toolchains",
+      "commitMessageTopic": "Rust toolchains",
       "reviewers": ["team:Rust"],
       "dependencyDashboardApproval": false
-    },
-    {
-      "matchManagers": ["regex"],
-      "matchDepNames": ["rust"],
-      "matchDepPatterns": ["(R|r)ust(-.+)?"],
-      "matchPaths": ["libs/**"],
-      "groupName": "Rust libraries toolchains",
-      "commitMessageTopic": "Rust toolchains for `/libs`"
-    },
-    {
-      "matchManagers": ["regex"],
-      "matchDepNames": ["rust"],
-      "matchDepPatterns": ["(R|r)ust(-.+)?"],
-      "matchPaths": ["apps/**"],
-      "groupName": "Rust applications toolchains",
-      "commitMessageTopic": "Rust toolchains for `/apps`"
     },
     {
       "matchManagers": ["cargo"],
@@ -164,8 +180,7 @@
     {
       "matchManagers": ["cargo"],
       "matchPackagePatterns": ["^criterion[-_]?"],
-      "groupName": "`criterion` Rust crates",
-      "dependencyDashboardApproval": false
+      "groupName": "`criterion` Rust crates"
     },
     {
       "matchManagers": ["cargo"],
@@ -217,7 +232,8 @@
     {
       "fileMatch": ["(^|/)README\\.md$", "(^|/)src/lib\\.rs$"],
       "matchStrings": [
-        "https:\\/\\/img\\.shields\\.io\\/static\\/v1\\?label=Rust\\&message=\\d+\\.\\d+\\.\\d+\\/nightly-(?<currentValue>\\d+-\\d+-\\d+)\\&color=blue"
+        "https:\\/\\/img\\.shields\\.io\\/static\\/v1\\?label=Rust\\&message=\\d+\\.\\d+\\.\\d+\\/nightly-(?<currentValue>\\d+-\\d+-\\d+)\\&color=blue",
+        "## ≥ (?<currentValue>\\d+-\\d+-\\d+) \\(If installed through rustup, this will automatically install the required toolchain\\)"
       ],
       "depNameTemplate": "rust",
       "packageNameTemplate": "rust-lang/rust-analyzer",

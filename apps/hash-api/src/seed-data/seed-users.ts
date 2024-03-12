@@ -2,20 +2,15 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import { AxiosError } from "axios";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
-import { ImpureGraphContext } from "../graph";
-import {
-  createUser,
-  updateUserPreferredName,
-  updateUserShortname,
-  User,
-} from "../graph/knowledge/system-types/user";
-import { systemUserAccountId } from "../graph/system-user";
-import { isDevEnv } from "../lib/env-config";
+import { ImpureGraphContext } from "../graph/context-types";
+import { createUser, User } from "../graph/knowledge/system-types/user";
+import { systemAccountId } from "../graph/system-account";
+import { isDevEnv, isTestEnv } from "../lib/env-config";
 
 type SeededUser = {
   email: string;
   shortname: string;
-  preferredName: string;
+  displayName: string;
   isInstanceAdmin?: boolean;
   // If not set, default to "password"
   password?: string;
@@ -25,18 +20,18 @@ const devUsers: readonly SeededUser[] = [
   {
     email: "admin@example.com",
     shortname: "instance-admin",
-    preferredName: "Instance Admin",
+    displayName: "Instance Admin",
     isInstanceAdmin: true,
   },
   {
     email: "alice@example.com",
     shortname: "alice",
-    preferredName: "Alice",
+    displayName: "Alice",
   },
   {
     email: "bob@example.com",
     shortname: "bob01",
-    preferredName: "Bob",
+    displayName: "Bob",
   },
 ] as const;
 
@@ -48,9 +43,10 @@ export const ensureUsersAreSeeded = async ({
   context: ImpureGraphContext;
 }): Promise<User[]> => {
   const createdUsers = [];
+  const authentication = { actorId: systemAccountId };
 
   // Only use `devUsers` if we are in a dev environment
-  let usersToSeed = isDevEnv ? devUsers : [];
+  let usersToSeed = isDevEnv || isTestEnv ? devUsers : [];
 
   // Or if we're explicitly setting users to seed.
   if (process.env.HASH_SEED_USERS) {
@@ -68,14 +64,14 @@ export const ensureUsersAreSeeded = async ({
     const {
       email,
       shortname,
-      preferredName,
+      displayName,
       password = "password",
       isInstanceAdmin,
     } = usersToSeed[index]!;
 
-    if (!(email && shortname && preferredName)) {
+    if (!(email && shortname && displayName)) {
       logger.error(
-        `User entry at index ${index} is missing email, shortname or preferredName!`,
+        `User entry at index ${index} is missing email, shortname or displayName!`,
       );
       continue;
     }
@@ -104,23 +100,12 @@ export const ensureUsersAreSeeded = async ({
       const { traits, id: kratosIdentityId } = maybeNewIdentity;
       const { emails } = traits;
 
-      let user = await createUser(context, {
+      const user = await createUser(context, authentication, {
         emails,
         kratosIdentityId,
-        actorId: systemUserAccountId,
         isInstanceAdmin,
-      });
-
-      user = await updateUserShortname(context, {
-        user,
-        updatedShortname: shortname,
-        actorId: systemUserAccountId,
-      });
-
-      user = await updateUserPreferredName(context, {
-        user,
-        updatedPreferredName: preferredName,
-        actorId: systemUserAccountId,
+        shortname,
+        displayName,
       });
 
       createdUsers.push(user);

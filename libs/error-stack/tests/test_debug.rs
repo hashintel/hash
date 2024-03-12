@@ -228,12 +228,12 @@ fn sources_nested_alternate() {
     assert_snapshot!(format!("{report:#?}"));
 }
 
-#[cfg(all(
-    rust_1_65,
-    any(feature = "std", feature = "hooks"),
-    feature = "spantrace"
-))]
 mod full {
+    #![cfg(all(
+        rust_1_65,
+        any(feature = "std", feature = "hooks"),
+        feature = "spantrace"
+    ))]
     //! Why so many cfg guards?
     //! What was found during initial development of the feature was,
     //! that a complete test of all tests with snapshots on every possible feature combination
@@ -440,7 +440,7 @@ mod full {
     fn hook() {
         let _guard = prepare(false);
 
-        let report = create_report().attach(2u32);
+        let report = create_report().attach(2_u32);
 
         Report::install_debug_hook::<u32>(|_, context| {
             context.push_body("unsigned 32bit integer");
@@ -453,7 +453,7 @@ mod full {
     fn hook_context() {
         let _guard = prepare(false);
 
-        let report = create_report().attach(2u32);
+        let report = create_report().attach(2_u32);
 
         Report::install_debug_hook::<u32>(|_, context| {
             let idx = context.increment_counter();
@@ -467,7 +467,7 @@ mod full {
     fn hook_for_context() {
         let _guard = prepare(false);
 
-        let report = create_report().attach(2u32);
+        let report = create_report().attach(2_u32);
 
         Report::install_debug_hook::<RootError>(|_, _| {
             // This should not be displayed as `RootError` is only used as `Context`, never as
@@ -482,7 +482,7 @@ mod full {
     fn hook_multiple() {
         let _guard = prepare(false);
 
-        let report = create_report().attach(1u32).attach(2u64);
+        let report = create_report().attach(1_u32).attach(2_u64);
 
         Report::install_debug_hook::<u32>(|_, context| {
             context.push_body("unsigned 32bit integer");
@@ -499,9 +499,9 @@ mod full {
         let _guard = prepare(false);
 
         let report = create_report() //
-            .attach(1u32)
-            .attach(2u32)
-            .attach(3u32);
+            .attach(1_u32)
+            .attach(2_u32)
+            .attach(3_u32);
 
         Report::install_debug_hook::<u32>(|_, context| {
             let idx = context.decrement_counter();
@@ -516,9 +516,9 @@ mod full {
         let _guard = prepare(false);
 
         let report = create_report() //
-            .attach(1u32)
-            .attach(2u32)
-            .attach(3u32);
+            .attach(1_u32)
+            .attach(2_u32)
+            .attach(3_u32);
 
         Report::install_debug_hook::<u32>(|_, context| {
             let idx = context.increment_counter();
@@ -532,7 +532,7 @@ mod full {
     fn hook_alternate() {
         let _guard = prepare(false);
 
-        let report = create_report().attach(2u64);
+        let report = create_report().attach(2_u64);
 
         Report::install_debug_hook::<u64>(|_, context| {
             if context.alternate() {

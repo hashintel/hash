@@ -1,0 +1,78 @@
+{
+  "name": "@blockprotocol/type-system",
+  "version": "0.1.2-canary.0",
+  "description": "Definitions of types within the Block Protocol Type System",
+  "homepage": "https://blockprotocol.org",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:hashintel/hash.git",
+    "directory": "libs/@blockprotocol/type-system/typescript"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "HASH",
+    "url": "https://hash.ai"
+  },
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/cjs/main.d.ts",
+      "node": "./dist/node/main.cjs",
+      "import": "./dist/es/main.js",
+      "default": "./dist/cjs/main.cjs"
+    },
+    "./slim": {
+      "types": "./dist/cjs-slim/main-slim.d.ts",
+      "node": "./dist/node/main.cjs",
+      "import": "./dist/es-slim/main-slim.js",
+      "default": "./dist/cjs-slim/main-slim.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/umd/main.js",
+  "module": "./dist/es/main.js",
+  "types": "./dist/umd/main.d.ts",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./dist/cjs-slim/main.d.ts"
+      ],
+      "slim": [
+        "./dist/cjs-slim/main-slim.d.ts"
+      ]
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rollup -c --bundleConfigAsCjs",
+    "clean": "rimraf ./dist/",
+    "compressed-size": "yarn build && find dist -iname '*.js' -exec npx terser@latest --compress --mangle --output {} -- {} \\;",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit",
+    "prepublishOnly": "yarn build:wasm && yarn test && yarn build:bundle",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@blockprotocol/type-system-rs": "0.0.0-private"
+  },
+  "devDependencies": {
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "@rollup/plugin-node-resolve": "15.2.3",
+    "@rollup/plugin-typescript": "11.1.6",
+    "@rollup/plugin-wasm": "6.0.1",
+    "@types/jest": "29.5.12",
+    "@types/react": "18.0.26",
+    "eslint": "8.57.0",
+    "jest": "29.7.0",
+    "react": "18.2.0",
+    "rollup": "4.12.0",
+    "ts-jest": "29.1.2",
+    "tslib": "2.4.1",
+    "typescript": "5.1.6"
+  }
+}

@@ -1,4 +1,4 @@
-import { Rectangle } from "@glideapps/glide-data-grid";
+import { DrawHeaderCallback, Rectangle } from "@glideapps/glide-data-grid";
 
 export type InteractablePosition = {
   left: number;
@@ -7,14 +7,25 @@ export type InteractablePosition = {
   bottom: number;
 };
 
-// used as `${tableId}-${col}-${row}`
+// used as `${tableId}-${columnIndex}-${rowIndex}`
 export type CellPath = `${string}-${number}-${number}`;
+
+// used as `${tableId}-${columnIndex}`
+export type ColumnHeaderPath = `${string}-${number}`;
+
+export type ColumnHeaderDrawArgs = Parameters<DrawHeaderCallback>[0] & {
+  /**
+   * The `tableId` is not included in the draw header callback args,
+   * but we need this to derive the `path` of the interactable.
+   */
+  tableId: string;
+};
 
 type InteractableEventHandler = (interactable: Interactable) => void;
 
 export interface Interactable {
   pos: InteractablePosition;
-  path: CellPath;
+  path: CellPath | ColumnHeaderPath;
   hovered: boolean;
   cellRect: Rectangle;
   id: string;

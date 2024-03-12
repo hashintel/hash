@@ -1,5 +1,6 @@
 import { useMutation } from "@apollo/client";
-import { RemoteFile } from "@local/hash-isomorphic-utils/system-types/blockprotocol/file";
+import { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/shared";
+import { OwnedById } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
 import {
@@ -7,15 +8,16 @@ import {
   CreateFileFromUrlMutationVariables,
   RequestFileUploadMutation,
   RequestFileUploadMutationVariables,
-  RequestFileUploadResponse,
 } from "../../../../graphql/api-types.gen";
 import {
   createFileFromUrl,
   requestFileUpload,
 } from "../../../../graphql/queries/knowledge/file.queries";
+import { uploadFileToStorageProvider } from "../../../../shared/upload-to-storage-provider";
 import { UploadFileRequestCallback } from "./knowledge-shim";
 
 export const useBlockProtocolFileUpload = (
+  ownedById?: OwnedById,
   _readonly?: boolean,
 ): { uploadFile: UploadFileRequestCallback } => {
   const [requestFileUploadFn] = useMutation<
@@ -28,27 +30,11 @@ export const useBlockProtocolFileUpload = (
     CreateFileFromUrlMutationVariables
   >(createFileFromUrl);
 
-  const uploadFileToStorageProvider = async (
-    presignedPostData: RequestFileUploadResponse["presignedPost"],
-    file: File,
-  ) => {
-    const formData = new FormData();
-    const { url, fields } = presignedPostData;
-
-    for (const [key, val] of Object.entries(fields)) {
-      formData.append(key, val as string);
-    }
-
-    formData.append("file", file);
-
-    return await fetch(url, {
-      method: "POST",
-      body: formData,
-    });
-  };
-
   const uploadFile: UploadFileRequestCallback = useCallback(
     async ({ data: fileUploadData }) => {
+      if (!ownedById) {
+        throw new Error("No ownedById provided for uploadFile");
+      }
       if (!fileUploadData) {
         return {
           errors: [
@@ -64,8 +50,16 @@ export const useBlockProtocolFileUpload = (
         const result = await createFileFromUrlFn({
           variables: {
             description,
-            name,
+            displayName: name,
             url,
+            ...("fileEntityUpdateInput" in fileUploadData
+              ? { fileEntityUpdateInput: fileUploadData.fileEntityUpdateInput }
+              : {
+                  fileEntityCreationInput: {
+                    ownedById,
+                    ...fileUploadData.fileEntityCreationInput,
+                  },
+                }),
           },
         });
 
@@ -83,7 +77,7 @@ export const useBlockProtocolFileUpload = (
 
         const { createFileFromUrl: fileEntity } = result.data;
 
-        return { data: fileEntity as unknown as RemoteFile };
+        return { data: fileEntity as unknown as FileEntityType };
       }
 
       if (!("file" in fileUploadData)) {
@@ -102,8 +96,17 @@ export const useBlockProtocolFileUpload = (
       const { data } = await requestFileUploadFn({
         variables: {
           description,
-          name,
+          displayName: name,
+          name: file.name,
           size: file.size,
+          ...("fileEntityUpdateInput" in fileUploadData
+            ? { fileEntityUpdateInput: fileUploadData.fileEntityUpdateInput }
+            : {
+                fileEntityCreationInput: {
+                  ownedById,
+                  ...fileUploadData.fileEntityCreationInput,
+                },
+              }),
         },
       });
 
@@ -122,14 +125,14 @@ export const useBlockProtocolFileUpload = (
        * Upload file with presignedPost data to storage provider
        */
       const {
-        requestFileUpload: { presignedPost, entity: uploadedFileEntity },
+        requestFileUpload: { presignedPut, entity: uploadedFileEntity },
       } = data;
 
-      await uploadFileToStorageProvider(presignedPost, file);
+      await uploadFileToStorageProvider(presignedPut, file);
 
-      return { data: uploadedFileEntity as unknown as RemoteFile };
+      return { data: uploadedFileEntity as unknown as FileEntityType };
     },
-    [createFileFromUrlFn, requestFileUploadFn],
+    [createFileFromUrlFn, ownedById, requestFileUploadFn],
   );
 
   return {

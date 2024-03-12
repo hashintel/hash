@@ -24,7 +24,7 @@ export type BlockEntityOutgoingLinkAndTarget =
  *
  * See: https://www.w3schools.com/cssref/css_colors_legal.php
  */
-export type CSSBackgroundColorPropertyValue = Text;
+export type CSSBackgroundColorPropertyValue = TextDataType;
 
 export type DividerBlock = Entity<DividerBlockProperties>;
 
@@ -45,14 +45,14 @@ export type DividerBlockProperties = {
 /**
  * The height of a UI element in pixels.
  */
-export type HeightInPixelsPropertyValue = Number;
+export type HeightInPixelsPropertyValue = NumberDataType;
 
 /**
  * An arithmetical value (in the Real number system)
  */
-export type Number = number;
+export type NumberDataType = number;
 
 /**
  * An ordered sequence of characters
  */
-export type Text = string;
+export type TextDataType = string;

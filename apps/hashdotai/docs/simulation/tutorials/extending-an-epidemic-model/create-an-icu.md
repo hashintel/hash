@@ -10,8 +10,8 @@ So now we can tell people they’re sick, and when they hear they’re sick they
 
 Let’s breakdown what we’ll need to modify in our existing model:
 
-1.  **At risk.** Right now a person is infected or not infected, but we want to delineate between the mild and severe cases.
-1.  **ICU Capacity.** A hospital, so long as it has room in its intensive care unit, should treat severe cases. Instead of going home, the person will move to the hospital and stay there until they’re recovered.
+1. **At risk.** Right now a person is infected or not infected, but we want to delineate between the mild and severe cases.
+1. **ICU Capacity.** A hospital, so long as it has room in its intensive care unit, should treat severe cases. Instead of going home, the person will move to the hospital and stay there until they’re recovered.
 
 On your Hospital initialization \(in `init.json`\), add a value for `icu_beds`. This will represent the number of Intensive Care Unit beds that a hospital has.
 

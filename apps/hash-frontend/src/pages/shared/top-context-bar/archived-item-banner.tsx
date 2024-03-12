@@ -17,8 +17,9 @@ import { useFetchEntityTypes } from "../../../shared/entity-types-context/hooks"
 import { BoxArchiveIcon } from "../../../shared/icons/box-archive-icon";
 import { CalendarIcon } from "../../../shared/icons/calendar-icon";
 import { UserIcon } from "../../../shared/icons/user-icon";
+import { isEntityPageEntity } from "../../../shared/is-of-type";
 import { Button, Link } from "../../../shared/ui";
-import { isEntityPageEntity, isItemEntityType } from "./util";
+import { isItemEntityType } from "./util";
 
 type ArchivedItemBannerProps = {
   item: Entity | EntityTypeWithMetadata;
@@ -62,9 +63,9 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
 
   const archivedByAccountId = useMemo(() => {
     if (isItemEntityType(item)) {
-      return item.metadata.custom.provenance.recordArchivedById!;
+      return item.metadata.provenance.edition.archivedById!;
     } else if (isEntityPageEntity(item)) {
-      return item.metadata.provenance.recordCreatedById;
+      return item.metadata.provenance.edition.createdById;
     } else {
       throw new Error("Archived entities are not yet supported.");
     }
@@ -77,9 +78,9 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
     () =>
       new Date(
         isItemEntityType(item)
-          ? item.metadata.custom.temporalVersioning.transactionTime.end.kind ===
+          ? item.metadata.temporalVersioning.transactionTime.end.kind ===
             "exclusive"
-            ? item.metadata.custom.temporalVersioning.transactionTime.end.limit
+            ? item.metadata.temporalVersioning.transactionTime.end.limit
             : 0
           : item.metadata.temporalVersioning.decisionTime.start.limit,
       ),
@@ -155,7 +156,7 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
                     marginRight: 0.75,
                   }}
                 />
-                {archivedByUser.preferredName}
+                {archivedByUser.displayName}
               </Link>
             </>
           ) : null}
@@ -206,8 +207,8 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
             isItemEntityType(item)
               ? "type"
               : isEntityPageEntity(item)
-              ? "page"
-              : "entity"
+                ? "page"
+                : "entity"
           }`}
         </Button>
       </Container>

@@ -58,6 +58,7 @@ module.exports = {
     camelcase: "off",
     "default-param-last": "off", // using @typescript-eslint/default-param-last instead
     "import/no-cycle": "error",
+    "import/named": "off", // redundant for TypeScript code, leads to false positives with @blockprotocol/type-system
     "import/prefer-default-export": "off",
     "no-await-in-loop": "off",
     "no-console": "error",
@@ -184,7 +185,11 @@ module.exports = {
         ],
         patterns: [
           {
-            group: ["@hashintel/design-system/*"],
+            group: [
+              "@hashintel/design-system/*",
+              "!@hashintel/design-system/theme",
+              "!@hashintel/design-system/constants",
+            ],
             message: "Please import from @hashintel/design-system instead.",
           },
         ],
@@ -336,7 +341,12 @@ module.exports = {
       ],
       rules: {
         "no-unused-vars": "off",
-        "@typescript-eslint/prefer-nullish-coalescing": ["error"],
+        "@typescript-eslint/prefer-nullish-coalescing": [
+          "error",
+          {
+            ignoreMixedLogicalExpressions: true,
+          },
+        ],
         "@typescript-eslint/no-meaningless-void-operator": "error",
         "@typescript-eslint/no-misused-promises": [
           "error", // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/docs/rules/no-misused-promises.md#checksvoidreturn

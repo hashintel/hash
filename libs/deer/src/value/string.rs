@@ -1,3 +1,4 @@
+#[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::string::String;
 
 use error_stack::{Report, Result, ResultExt};

@@ -1,5 +1,6 @@
 import { useLazyQuery } from "@apollo/client";
-import { PropertyTypeRootType, Subgraph } from "@local/hash-subgraph";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { PropertyTypeRootType } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
 import {
@@ -16,8 +17,7 @@ export const useBlockProtocolQueryPropertyTypes = (): {
     QueryPropertyTypesQuery,
     QueryPropertyTypesQueryVariables
   >(queryPropertyTypesQuery, {
-    /** @todo reconsider caching. This is done for testing/demo purposes. */
-    fetchPolicy: "no-cache",
+    fetchPolicy: "cache-and-network",
   });
 
   const queryPropertyTypes = useCallback<QueryPropertyTypesMessageCallback>(
@@ -33,7 +33,7 @@ export const useBlockProtocolQueryPropertyTypes = (): {
         };
       }
 
-      const { graphResolveDepths } = data;
+      const { graphResolveDepths, includeArchived, latestOnly } = data;
       /**
        * @todo Add filtering to this query using structural querying.
        *   This may mean having the backend use structural querying and relaying
@@ -45,6 +45,8 @@ export const useBlockProtocolQueryPropertyTypes = (): {
           constrainsValuesOn: { outgoing: 255 },
           constrainsPropertiesOn: { outgoing: 255 },
           ...graphResolveDepths,
+          includeArchived,
+          latestOnly,
         },
       });
 
@@ -59,11 +61,13 @@ export const useBlockProtocolQueryPropertyTypes = (): {
         };
       }
 
-      return {
-        /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
-        data: response.data
-          .queryPropertyTypes as Subgraph<PropertyTypeRootType>,
-      };
+      /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
+      const subgraph =
+        mapGqlSubgraphFieldsFragmentToSubgraph<PropertyTypeRootType>(
+          response.data.queryPropertyTypes,
+        );
+
+      return { data: subgraph };
     },
     [queryFn],
   );

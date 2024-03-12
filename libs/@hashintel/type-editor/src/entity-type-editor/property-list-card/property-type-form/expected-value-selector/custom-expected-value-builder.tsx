@@ -5,9 +5,9 @@ import {
   Chip,
   ChipProps,
   faCube,
-  fluidFontClassName,
   FontAwesomeIcon,
 } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/theme";
 import {
   Box,
   buttonClasses,
@@ -74,11 +74,7 @@ const ExpectedValueBuilder: FunctionComponent<ExpectedValueBuilderProps> = ({
   }
 };
 
-type CustomExpectedValueBuilderProps = {};
-
-export const CustomExpectedValueBuilder: FunctionComponent<
-  CustomExpectedValueBuilderProps
-> = () => {
+export const CustomExpectedValueBuilder: FunctionComponent = () => {
   const { handleSave, handleCancel } = useCustomExpectedValueBuilderContext();
   const { getValues, setValue, control } =
     useFormContext<ExpectedValueSelectorFormValues>();

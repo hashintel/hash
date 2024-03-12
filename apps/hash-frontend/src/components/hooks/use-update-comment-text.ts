@@ -1,5 +1,5 @@
 import { useMutation } from "@apollo/client";
-import { TextToken } from "@local/hash-graphql-shared/graphql/types";
+import { TextToken } from "@local/hash-isomorphic-utils/types";
 import { EntityId } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
@@ -15,7 +15,7 @@ export const useUpdateCommentText = (pageId: EntityId) => {
     UpdateCommentTextMutation,
     UpdateCommentTextMutationVariables
   >(updateCommentText, {
-    awaitRefetchQueries: true,
+    awaitRefetchQueries: false,
     refetchQueries: () => [
       {
         query: getPageComments,
@@ -27,9 +27,9 @@ export const useUpdateCommentText = (pageId: EntityId) => {
   });
 
   const updatePageCommentText = useCallback(
-    async (commentId: EntityId, tokens: TextToken[]) => {
+    async (commentId: EntityId, textualContent: TextToken[]) => {
       await updatePageCommentTextFn({
-        variables: { entityId: commentId, tokens },
+        variables: { entityId: commentId, textualContent },
       });
     },
     [updatePageCommentTextFn],

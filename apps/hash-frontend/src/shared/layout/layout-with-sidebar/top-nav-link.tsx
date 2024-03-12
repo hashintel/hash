@@ -1,14 +1,19 @@
-import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
-import { Tooltip, Typography, typographyClasses } from "@mui/material";
-import { FunctionComponent } from "react";
+import {
+  Box,
+  Fade,
+  Tooltip,
+  Typography,
+  typographyClasses,
+} from "@mui/material";
+import { FunctionComponent, ReactNode } from "react";
 
 import { Link } from "../../ui";
 
 type NavLinkProps = {
-  icon: IconDefinition;
+  icon: ReactNode;
   title: string;
   href: string;
+  count?: number;
   active?: boolean;
   tooltipTitle: string;
 };
@@ -18,6 +23,7 @@ export const TopNavLink: FunctionComponent<NavLinkProps> = ({
   title,
   href,
   active,
+  count,
   tooltipTitle,
 }) => {
   return (
@@ -33,16 +39,19 @@ export const TopNavLink: FunctionComponent<NavLinkProps> = ({
           mx: 0.75,
           transition: transitions.create("background-color"),
 
-          [`& > .${typographyClasses.root}, & > svg`]: {
+          [`& > .${typographyClasses.root}, & svg`]: {
             transition: transitions.create("color"),
           },
 
-          "& > svg": {
-            color: palette.gray[40],
+          "& svg": {
+            color: palette.gray[50],
           },
 
           [`& > .${typographyClasses.root}`]: {
             color: palette.gray[70],
+            "&.count": {
+              color: palette.gray[50],
+            },
           },
 
           "&:hover": {
@@ -50,6 +59,9 @@ export const TopNavLink: FunctionComponent<NavLinkProps> = ({
 
             [`& > svg, & > .${typographyClasses.root}`]: {
               color: palette.gray[80],
+              "&.count": {
+                color: palette.gray[60],
+              },
             },
           },
 
@@ -61,16 +73,36 @@ export const TopNavLink: FunctionComponent<NavLinkProps> = ({
           ...(active && {
             backgroundColor: palette.gray[30],
 
-            [`& > svg, & > .${typographyClasses.root}`]: {
+            [`& svg, & > .${typographyClasses.root}`]: {
               color: palette.gray[90],
             },
           }),
         })}
       >
-        <FontAwesomeIcon sx={{ mr: 1.5 }} icon={icon} />
+        <Box
+          sx={{
+            width: 20,
+            marginRight: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {icon}
+        </Box>
         <Typography variant="smallTextLabels" fontWeight={500}>
           {title}
         </Typography>
+        <Fade in={typeof count !== "undefined"}>
+          <Typography
+            variant="smallTextLabels"
+            fontWeight={500}
+            className="count"
+            sx={{ marginLeft: 1.25 }}
+          >
+            {count}
+          </Typography>
+        </Fade>
       </Link>
     </Tooltip>
   );

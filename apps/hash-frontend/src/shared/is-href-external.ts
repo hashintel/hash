@@ -2,5 +2,16 @@
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 
 export const isHrefExternal = (href: string) =>
-  (href === "/discord" || !/^(mailto:|#|\/)/.test(href)) &&
-  !href.startsWith(frontendUrl);
+  !!href &&
+  (href === "/discord" ||
+    href === "/contact" ||
+    !/^(mailto:|#|\/)/.test(href)) &&
+  !href.startsWith(frontendUrl) &&
+  // To be removed in H-1172: Temporary provision to serve types with a https://hash.ai URL from https://app.hash.ai
+  !(
+    process.env.NEXT_PUBLIC_SELF_HOSTED_HASH !== "true" &&
+    ["https://app.hash.ai", "http://localhost:3000"].includes(frontendUrl) &&
+    (href.startsWith("#") ||
+      href.startsWith("/") ||
+      new URL(href).hostname === "hash.ai")
+  );

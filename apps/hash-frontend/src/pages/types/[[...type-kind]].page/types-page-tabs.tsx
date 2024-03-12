@@ -36,6 +36,7 @@ export const TypesPageTabs: FunctionComponent<TypesPageTabsProps> = ({
           key={tabId}
           value={tabId}
           href={tabId === "all" ? "/types" : `/types/${tabId}`}
+          active={tabId === currentTab}
           label={tabTitles[tabId]}
           count={numberOfTypesByTab[tabId]}
           loading={numberOfTypesByTab[tabId] === undefined}

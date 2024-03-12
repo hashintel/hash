@@ -208,7 +208,11 @@ export const BlogPostHead: FunctionComponent<{
                         overflow="hidden"
                         position="relative"
                       >
-                        <Image src={author.photo.src} layout="fill" />
+                        <Image
+                          {...author.photo}
+                          layout="fill"
+                          placeholder="blur"
+                        />
                       </Box>
                     ) : null}
                     <Stack ml={2} direction="column" spacing={0.5}>

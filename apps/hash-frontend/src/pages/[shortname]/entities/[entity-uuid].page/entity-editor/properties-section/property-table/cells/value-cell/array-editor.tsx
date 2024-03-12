@@ -24,7 +24,7 @@ import { DraftRow } from "./array-editor/draft-row";
 import { ItemLimitInfo } from "./array-editor/item-limit-info";
 import { SortableRow } from "./array-editor/sortable-row";
 import { SortableItem } from "./array-editor/types";
-import { editorSpecs } from "./editor-specs";
+import { getEditorSpecs } from "./editor-specs";
 import { ValueCellEditorComponent } from "./types";
 import {
   guessEditorTypeFromExpectedType,
@@ -77,7 +77,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     if (expectedTypes.length === 1) {
       const expectedType = guessEditorTypeFromExpectedType(expectedTypes[0]!);
 
-      if (editorSpecs[expectedType].arrayEditException === "no-edit-mode") {
+      if (getEditorSpecs(expectedType).arrayEditException === "no-edit-mode") {
         return "";
       }
     }
@@ -162,7 +162,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     const onlyOneExpectedType = expectedTypes.length === 1;
     const expectedType = expectedTypes[0]!;
     const editorType = guessEditorTypeFromExpectedType(expectedType);
-    const editorSpec = editorSpecs[editorType];
+    const editorSpec = getEditorSpecs(editorType, expectedType);
     const noEditMode = editorSpec.arrayEditException === "no-edit-mode";
 
     // add the value on click instead of showing draftRow

@@ -27,16 +27,17 @@
   },
   "dependencies": {
     "@blockprotocol/core": "0.1.2",
-    "@blockprotocol/graph": "0.3.1-canary-20230803163819"
+    "@blockprotocol/graph": "0.3.3"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "block-scripts": "0.3.0",
-    "eslint": "8.33.0",
-    "mock-block-dock": "0.1.5",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "@types/react-dom": "18.0.10",
+    "block-scripts": "0.3.4",
+    "eslint": "8.57.0",
+    "mock-block-dock": "0.1.9",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
     "typescript": "5.1.6"
   },
   "peerDependencies": {

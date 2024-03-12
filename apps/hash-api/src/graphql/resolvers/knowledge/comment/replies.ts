@@ -1,18 +1,19 @@
 import { getCommentReplies } from "../../../../graph/knowledge/system-types/comment";
 import { ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { dataSourcesToImpureGraphContext } from "../../util";
+import { graphQLContextToImpureGraphContext } from "../../util";
 import { mapCommentToGQL, UnresolvedCommentGQL } from "../graphql-mapping";
 
 export const commentRepliesResolver: ResolverFn<
-  Promise<UnresolvedCommentGQL[]>,
+  UnresolvedCommentGQL[],
   UnresolvedCommentGQL,
   LoggedInGraphQLContext,
-  {}
-> = async ({ metadata }, _, { dataSources }) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
+  Record<string, never>
+> = async ({ metadata }, _, graphQLContext) => {
+  const { authentication } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  const replies = await getCommentReplies(context, {
+  const replies = await getCommentReplies(context, authentication, {
     commentEntityId: metadata.recordId.entityId,
   });
 

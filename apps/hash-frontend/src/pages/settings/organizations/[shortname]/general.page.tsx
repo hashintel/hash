@@ -1,16 +1,17 @@
-import { EntityPropertiesObject } from "@blockprotocol/graph";
-import { extractBaseUrl } from "@blockprotocol/type-system";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { OrganizationProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 import { useRef } from "react";
 
 import { useBlockProtocolUpdateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
+import { useOrgs } from "../../../../components/hooks/use-orgs";
 import { NextPageWithLayout } from "../../../../shared/layout";
+import { useUserPermissionsOnEntity } from "../../../../shared/use-user-permissions-on-entity";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
-import { OrgForm, OrgFormData } from "../../../shared/org-form";
 import { getSettingsLayout } from "../../shared/settings-layout";
-import { OrgSettingsContainer } from "../shared/org-settings-container";
+import { SettingsPageContainer } from "../../shared/settings-page-container";
+import { OrgForm, OrgFormData } from "../shared/org-form";
 
 const OrgGeneralSettingsPage: NextPageWithLayout = () => {
   const router = useRouter();
@@ -21,11 +22,14 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
 
   const { updateEntity } = useBlockProtocolUpdateEntity();
 
-  const { authenticatedUser, refetch } = useAuthenticatedUser();
+  const { authenticatedUser, refetch: refetchUser } = useAuthenticatedUser();
+  const { refetch: refetchOrgs } = useOrgs();
 
   const org = authenticatedUser.memberOf.find(
-    (orgOption) => orgOption.shortname === shortname,
-  );
+    ({ org: orgOption }) => orgOption.shortname === shortname,
+  )?.org;
+
+  const { userPermissions } = useUserPermissionsOnEntity(org?.entity);
 
   if (!org) {
     // @todo show a 404 page
@@ -34,68 +38,62 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
   }
 
   const updateOrg = async (orgData: OrgFormData) => {
-    const updatedProperties: EntityPropertiesObject = {
+    const updatedProperties: OrganizationProperties = {
+      "https://hash.ai/@hash/types/property-type/shortname/": org.shortname,
+      "https://hash.ai/@hash/types/property-type/organization-name/":
+        orgData.name,
       // @todo this is tedious, either enable TS's exact-optional-property-types or allow 'undefined' as a value in EntityPropertiesObject
-      ...(orgData.name
-        ? {
-            [extractBaseUrl(types.propertyType.orgName.propertyTypeId)]:
-              orgData.name,
-          }
-        : {}),
       ...(orgData.description
         ? {
-            [extractBaseUrl(types.propertyType.description.propertyTypeId)]:
+            "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
               orgData.description,
           }
         : {}),
       ...(orgData.location
         ? {
-            [extractBaseUrl(types.propertyType.location.propertyTypeId)]:
+            "https://hash.ai/@hash/types/property-type/location/":
               orgData.location,
           }
         : {}),
-      ...(orgData.website
+      ...(orgData.websiteUrl
         ? {
-            [extractBaseUrl(types.propertyType.website.propertyTypeId)]:
-              orgData.website,
+            "https://hash.ai/@hash/types/property-type/website-url/":
+              orgData.websiteUrl,
           }
         : {}),
     };
 
     await updateEntity({
       data: {
-        entityId: org.entityRecordId.entityId,
-        entityTypeId: types.entityType.org.entityTypeId,
-        properties: {
-          // @todo allow partial property updates, or spread the existing entity's properties here
-          [extractBaseUrl(types.propertyType.shortname.propertyTypeId)]:
-            org.shortname,
-          ...updatedProperties,
-        },
+        entityId: org.entity.metadata.recordId.entityId,
+        entityTypeId: systemEntityTypes.organization.entityTypeId,
+        properties: updatedProperties,
       },
     });
 
     topRef.current?.scrollIntoView({ behavior: "smooth" });
 
-    void refetch();
+    void refetchUser();
+    void refetchOrgs();
   };
 
   return (
     <>
       <NextSeo title={`${org.name} | Settings`} />
 
-      <OrgSettingsContainer
-        header={org.name}
+      <SettingsPageContainer
+        heading={org.name}
         sectionLabel="General"
         ref={topRef}
       >
         <OrgForm
-          key={org.entityRecordId.entityId}
+          key={org.entity.metadata.recordId.entityId}
           org={org}
           onSubmit={updateOrg}
+          readonly={!userPermissions?.edit}
           submitLabel="Update organization profile"
         />
-      </OrgSettingsContainer>
+      </SettingsPageContainer>
     </>
   );
 };

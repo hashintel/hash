@@ -1,8 +1,8 @@
-import {
+import type {
   QueryTemporalAxes as QueryTemporalAxesGraphApi,
   QueryTemporalAxesUnresolved as QueryTemporalAxesUnresolvedGraphApi,
 } from "@local/hash-graph-client";
-import {
+import type {
   QueryTemporalAxes,
   QueryTemporalAxesUnresolved,
   Timestamp,
@@ -16,13 +16,13 @@ const mapVariableTemporalAxisUnresolvedInterval = (
       interval.start === null
         ? null
         : interval.start.kind === "unbounded"
-        ? {
-            kind: "unbounded",
-          }
-        : {
-            kind: interval.start.kind,
-            limit: interval.start.limit as Timestamp,
-          },
+          ? {
+              kind: "unbounded",
+            }
+          : {
+              kind: interval.start.kind,
+              limit: interval.start.limit as Timestamp,
+            },
     end:
       interval.end === null
         ? null

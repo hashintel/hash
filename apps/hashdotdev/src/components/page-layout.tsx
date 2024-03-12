@@ -7,8 +7,6 @@ import { GradientContainer } from "./gradient-container";
 import { Navbar } from "./navbar";
 import { PreFooter } from "./pre-footer";
 
-// @todo extract NavLink component
-
 export const PageLayout: FunctionComponent<{
   children?: ReactNode;
   subscribe?: boolean;

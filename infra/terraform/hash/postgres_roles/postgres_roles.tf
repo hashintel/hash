@@ -93,7 +93,7 @@ resource "postgresql_grant" "make_references" {
 # 4. Extract password
 #    select rolpassword from pg_authid where rolname = 'postgres';
 # 5. Copy the result, repeat from step 3 as needed
-# 6. Quit wiht `\q` and stop the container
+# 6. Quit with `\q` and stop the container
 #    docker stop postgres-dummy
 ######################################################################
 
@@ -110,6 +110,25 @@ resource "postgresql_role" "kratos_user" {
 resource "postgresql_database" "kratos" {
   name              = "kratos"
   owner             = postgresql_role.kratos_user.name
+  template          = "template0"
+  lc_collate        = "C"
+  connection_limit  = -1
+  allow_connections = true
+}
+
+# Hydra
+resource "postgresql_role" "hydra_user" {
+  name           = "hydra"
+  login          = true
+  password       = var.pg_hydra_user_password_hash
+  inherit        = true
+  roles          = [postgresql_role.readwrite.name]
+  skip_drop_role = true
+}
+
+resource "postgresql_database" "hydra" {
+  name              = "hydra"
+  owner             = postgresql_role.hydra_user.name
   template          = "template0"
   lc_collate        = "C"
   connection_limit  = -1
@@ -182,4 +201,30 @@ resource "postgresql_default_privileges" "temporal_visibility_readwrite_tables" 
   privileges  = ["SELECT", "INSERT", "UPDATE", "DELETE"]
 }
 
+# Temporal
+resource "postgresql_role" "spicedb_user" {
+  name           = "spicedb"
+  login          = true
+  password       = var.pg_spicedb_user_password_hash
+  inherit        = true
+  skip_drop_role = false
+}
 
+resource "postgresql_database" "spicedb" {
+  name              = "spicedb"
+  owner             = var.pg_superuser_username
+  template          = "template0"
+  lc_collate        = "C"
+  connection_limit  = -1
+  allow_connections = true
+}
+
+resource "postgresql_default_privileges" "spicedb_readwrite_tables" {
+  owner       = var.pg_superuser_username
+  role        = postgresql_role.spicedb_user.name
+  database    = postgresql_database.spicedb.name
+  schema      = "public"
+
+  object_type = "table"
+  privileges  = ["SELECT", "INSERT", "UPDATE", "DELETE"]
+}

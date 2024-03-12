@@ -4,15 +4,25 @@ import {
   GraphEmbedderMessageCallbacks,
 } from "@blockprotocol/graph/temporal";
 import { useGraphEmbedderModule } from "@blockprotocol/graph/temporal/react";
+import {
+  getOutgoingLinksForEntity,
+  getRoots,
+} from "@blockprotocol/graph/temporal/stdlib";
 import { useHookEmbedderModule } from "@blockprotocol/hook/react";
+import { useServiceEmbedderModule } from "@blockprotocol/service/react";
+import { textualContentPropertyTypeBaseUrl } from "@local/hash-isomorphic-utils/entity-store";
+import { blockProtocolLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Skeleton, SkeletonProps } from "@mui/material";
-import { FunctionComponent, useEffect, useRef } from "react";
+import { FunctionComponent, useEffect, useMemo, useRef } from "react";
 import { v4 as uuid } from "uuid";
 
+import { useUserBlocks } from "../../blocks/user-blocks";
+import { AddLinkedQueryPrompt } from "./add-linked-query-prompt";
 import { BlockRenderer } from "./block-renderer";
+import { serviceModuleCallbacks } from "./construct-service-module-callbacks";
 import { useRemoteBlock } from "./use-remote-block";
 
-type RemoteBlockProps = {
+export type RemoteBlockProps = {
   graphCallbacks: Omit<
     /** @todo-0.3 - Add these back */
     GraphEmbedderMessageCallbacks,
@@ -75,6 +85,8 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
   graphProperties,
   onBlockLoaded,
 }) => {
+  const { value: userBlocks } = useUserBlocks();
+
   const [loading, err, blockSource] = useRemoteBlock(
     blockMetadata.source,
     crossFrame,
@@ -92,6 +104,8 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
     graphModule.registerCallbacks(graphCallbacks);
   }, [graphCallbacks, graphModule]);
 
+  useServiceEmbedderModule(wrapperRef, { callbacks: serviceModuleCallbacks });
+
   useHookEmbedderModule(wrapperRef, {
     callbacks: {
       // eslint-disable-next-line @typescript-eslint/require-await -- async is required upstream
@@ -99,8 +113,7 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
         if (
           data?.type === "text" &&
           data.path.length === 1 &&
-          data.path[0] ===
-            "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"
+          data.path[0] === textualContentPropertyTypeBaseUrl
         ) {
           if (!editableRef) {
             return {
@@ -138,8 +151,60 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
     });
   }, [graphProperties.readonly, graphModule]);
 
+  const blockSchema = useMemo(() => {
+    const blockSchemaId = blockMetadata.schema;
+
+    return Object.values(userBlocks).find(
+      ({ schema }) => schema && schema.$id === blockSchemaId,
+    )?.schema;
+  }, [userBlocks, blockMetadata]);
+
+  const blockSchemaRequiresOutgoingHasQueryLinks = useMemo(() => {
+    if (blockSchema) {
+      return Object.entries(blockSchema.links ?? {}).some(
+        ([linkEntityTypeId, value]) =>
+          linkEntityTypeId ===
+            blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId &&
+          value.minItems &&
+          value.minItems > 0,
+      );
+    }
+
+    return false;
+  }, [blockSchema]);
+
+  const blockHasMissingHasQueryLinks = useMemo(() => {
+    if (blockSchemaRequiresOutgoingHasQueryLinks) {
+      const blockEntity = getRoots(graphProperties.blockEntitySubgraph)[0];
+
+      if (blockEntity) {
+        const outgoingLinks = getOutgoingLinksForEntity(
+          graphProperties.blockEntitySubgraph,
+          blockEntity.metadata.recordId.entityId,
+        );
+
+        return !outgoingLinks.some(
+          (link) =>
+            link.metadata.entityTypeId ===
+            blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId,
+        );
+      }
+    }
+
+    return false;
+  }, [graphProperties, blockSchemaRequiresOutgoingHasQueryLinks]);
+
   if (loading) {
     return <BlockLoadingIndicator />;
+  }
+
+  if (blockHasMissingHasQueryLinks) {
+    return (
+      <AddLinkedQueryPrompt
+        blockIconSrc={blockMetadata.icon ?? undefined}
+        blockName={blockMetadata.displayName ?? blockMetadata.name}
+      />
+    );
   }
 
   if (!blockSource) {

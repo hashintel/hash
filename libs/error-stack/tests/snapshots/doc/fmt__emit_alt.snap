@@ -1,5 +1,5 @@
 <b>invalid input parameter</b>
-├╴at <i>src/fmt/hook.rs:50:14</i>
+├╴at <i>src/fmt/hook.rs:51:14</i>
 ├╴backtrace (1)
 ├╴error code: 404
 ├╴suggestion 0:

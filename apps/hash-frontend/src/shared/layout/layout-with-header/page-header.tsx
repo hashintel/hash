@@ -8,6 +8,7 @@ import { HashLockup } from "../../icons/hash-lockup";
 import { Button, Link } from "../../ui";
 import { AccountDropdown } from "./account-dropdown";
 import { ActionsDropdown } from "./actions-dropdown";
+import { NotificationsDropdown } from "./notifications-dropdown";
 import { SearchBar } from "./search-bar";
 
 const Nav: FunctionComponent<{ children?: ReactNode }> = ({ children }) => (
@@ -24,7 +25,7 @@ const Nav: FunctionComponent<{ children?: ReactNode }> = ({ children }) => (
   </Box>
 );
 
-export const HEADER_HEIGHT = 54;
+export const HEADER_HEIGHT = 60;
 
 export const PageHeader: FunctionComponent = () => {
   const theme = useTheme();
@@ -77,13 +78,18 @@ export const PageHeader: FunctionComponent = () => {
           {authenticatedUser ? <SearchBar /> : null}
         </Box>
         {authenticatedUser ? (
-          <Box sx={{ display: "flex", alignItems: "center" }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              columnGap: {
+                xs: 1,
+                md: 1.5,
+              },
+            }}
+          >
             <ActionsDropdown />
-            {/*  
-              Commented out Notifications dropdown because the functionality has not been implemented yet
-              @todo uncomment when functionality has been implemented 
-            */}
-            {/* <NotificationsDropdown /> */}
+            <NotificationsDropdown />
             <AccountDropdown
               logout={logout}
               authenticatedUser={authenticatedUser}
@@ -95,13 +101,13 @@ export const PageHeader: FunctionComponent = () => {
               variant="tertiary_quiet"
               sx={{ mr: 1 }}
               size="xs"
-              // navigating to the login route instead of showing the login modal for now
+              // navigating to the sign in route instead of showing the sign in modal for now
               // since there's some z-index issues between the sidebar and the modal
-              href="/login"
+              href="/signin"
             >
               Sign In
             </Button>
-            {hashInstance && hashInstance.userSelfRegistrationIsEnabled ? (
+            {hashInstance?.properties.userSelfRegistrationIsEnabled ? (
               <Button href="/signup" size={isMobile ? "xs" : "small"}>
                 Sign Up
               </Button>

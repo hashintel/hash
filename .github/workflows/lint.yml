@@ -1,0 +1,353 @@
+name: Lint
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  merge_group:
+
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: hashintel
+  TURBO_REMOTE_ONLY: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  setup:
+    runs-on: ubuntu-22.04
+    outputs:
+      packages: ${{ steps.packages.outputs.packages }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 2
+
+      - name: Install turbo
+        uses: ./.github/actions/install-turbo
+
+      - name: Determine changed packages
+        id: packages
+        run: |
+          FILTER=$(turbo run lint --dry-run=json --filter '...[HEAD^]' | jq -e '.packages | contains(["//"])' > /dev/null && echo '' || echo '--filter ...[HEAD^]')
+          PACKAGES=$(sh -c "turbo run lint --dry-run=json $FILTER" \
+            | jq '.tasks[]' \
+            | jq 'select(.task == "lint")' \
+            | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
+
+          echo "packages=$PACKAGES" >> $GITHUB_OUTPUT
+
+  package:
+    name: Package
+    needs: [setup]
+    strategy:
+      matrix: ${{ fromJSON(needs.setup.outputs.packages) }}
+      fail-fast: false
+    if: needs.setup.outputs.packages != '{"package":[],"include":[]}'
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 2
+
+      - name: Install turbo
+        uses: ./.github/actions/install-turbo
+
+      - name: Find lint steps to run
+        id: lints
+        run: |
+          set -x
+          ESLINT=$(turbo run lint:eslint --filter '${{ matrix.package }}' --dry-run=json \
+            | jq '[.tasks[] | select(.task == "lint:eslint" and .command != "<NONEXISTENT>")] != []' || echo 'false')
+          echo "eslint=$ESLINT" >> $GITHUB_OUTPUT
+
+          TSC=$(turbo run lint:tsc --filter '${{ matrix.package }}' --dry-run=json \
+            | jq '[.tasks[] | select(.task == "lint:tsc" and .command != "<NONEXISTENT>")] != []' || echo 'false')
+          echo "tsc=$TSC" >> $GITHUB_OUTPUT
+
+          CODEGEN=$(turbo run codegen --filter '${{ matrix.package }}' --dry-run=json \
+            | jq '[.tasks[] | select(.task == "codegen" and .command != "<NONEXISTENT>")] != []' || echo 'false')
+          echo "codegen=$CODEGEN" >> $GITHUB_OUTPUT
+
+          HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
+          echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
+          if [[ $HAS_RUST = 'true' ]]; then
+            if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
+              RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/rust-toolchain.toml"
+            else
+              RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
+            fi
+            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
+            echo "has-rustfmt=$(yq '.toolchain.components | contains(["rustfmt"])' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
+            echo "has-clippy=$(yq '.toolchain.components | contains(["clippy"])' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Prune repository
+        uses: ./.github/actions/prune-repository
+        with:
+          scope: ${{ matrix.package }}
+
+      - name: Install Protobuf
+        if: always() && steps.lints.outputs.has-rust == 'true'
+        run: sudo apt install protobuf-compiler
+
+      - name: Install Rust toolchain
+        if: always() && steps.lints.outputs.has-rust == 'true'
+        uses: ./.github/actions/install-rust-toolchain
+        with:
+          toolchain: ${{ steps.lints.outputs.rust-toolchain }}
+          working-directory: ${{ matrix.directory }}
+
+      - name: Install Rust tools
+        if: always() && steps.lints.outputs.has-rust == 'true'
+        uses: taiki-e/install-action@d5ead4fdbf0cb2a037f276e7dfb78bbb9dd0ab8c # v2.28.10
+        with:
+          tool: just@1.13.0,cargo-hack@0.6.7,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
+
+      - name: Install WASM tools
+        if: always()
+        uses: taiki-e/install-action@d5ead4fdbf0cb2a037f276e7dfb78bbb9dd0ab8c # v2.28.10
+        with:
+          tool: wasm-pack@0.12.1
+
+      - name: Install yarn dependencies
+        uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
+        env:
+          HUSKY: 0
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          shell: bash
+          command: yarn install --frozen-lockfile --prefer-offline
+
+      - name: Cache Rust dependencies
+        if: always() && steps.lints.outputs.has-rust == 'true'
+        uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
+        with:
+          workspaces: ${{ matrix.directory }}
+          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
+
+      - name: Show disk usage
+        run: df -h
+
+      - name: Run codegen
+        if: always() && steps.lints.outputs.codegen == 'true'
+        run: |
+          set -o pipefail
+          turbo run codegen --no-cache --filter "${{ matrix.package }}"
+          while IFS= read -r line; do
+            if [[ -n "$line" ]]; then
+              echo "Checking diff of ${{ matrix.directory }}/$line"
+              git --no-pager diff --exit-code --color -- "${{ matrix.directory }}/$line"
+            fi
+          done <<< "$(cat ${{ matrix.directory }}/turbo.json | grep -v '^ *//' | jq -r '.pipeline.codegen.outputs | if . == null then "." else .[] end')"
+
+      - name: Show disk usage
+        run: df -h
+
+      - name: Run ESLint
+        if: always() && steps.lints.outputs.eslint == 'true'
+        run: turbo run lint:eslint --filter "${{ matrix.package }}"
+
+      - name: Run TSC
+        if: always() && steps.lints.outputs.tsc == 'true'
+        run: turbo run lint:tsc --filter "${{ matrix.package }}"
+
+      - name: Run rustfmt
+        if: always() && steps.lints.outputs.has-rustfmt == 'true'
+        working-directory: ${{ matrix.directory }}
+        run: just format --check
+
+      - name: Run clippy
+        if: always() && steps.lints.outputs.has-clippy == 'true'
+        working-directory: ${{ matrix.directory }}
+        run: |
+          just lint-toml "check"
+
+          just clippy --message-format=json \
+            | clippy-sarif \
+            | jq '.runs[].results |= unique' \
+            | tee clippy.sarif \
+            | sarif-fmt
+
+          jq -e '.runs[].results == []' clippy.sarif> /dev/null
+
+      - name: Process SARIF file
+        working-directory: ${{ matrix.directory }}
+        if: always() && steps.lints.outputs.has-clippy == 'true'
+        run: |
+          tmp=$(mktemp)
+
+          jq --arg pwd "${{ matrix.directory }}" '.runs[].results[].locations[].physicalLocation.artifactLocation.uri |= $pwd + "/" + .' clippy.sarif > "$tmp"
+
+          mv "$tmp" clippy.sarif
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@8a470fddafa5cbb6266ee11b37ef4d8aae19c571 # v3.24.6
+        if: always() && steps.lints.outputs.has-clippy == 'true'
+        with:
+          sarif_file: ${{ matrix.directory }}/clippy.sarif
+          category: ${{ matrix.name }}
+
+      - name: Check public documentation
+        if: always() && steps.lints.outputs.has-rust == 'true'
+        working-directory: ${{ matrix.directory }}
+        env:
+          RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
+        run: just doc
+
+      - name: Check private documentation
+        if: always() && steps.lints.outputs.has-rust == 'true'
+        working-directory: ${{ matrix.directory }}
+        env:
+          RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
+        run: just doc --document-private-items
+
+      - name: Show disk usage
+        run: df -h
+
+  global:
+    name: Global
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - uses: ./.github/actions/warm-up-repo
+        if: ${{ success() || failure() }}
+
+      - name: Run yarn lint:dependency-version-consistency
+        if: ${{ success() || failure() }}
+        run: |
+          if ! yarn lint:dependency-version-consistency; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Try running `yarn fix:dependency-version-consistency` locally to apply autofixes.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
+      - name: Run yarn lint:lockfile-lint
+        if: ${{ success() || failure() }}
+        run: |
+          if ! yarn lint:lockfile-lint; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Try resetting yarn.lock to its previous state and then run `yarn install`.'
+            echo 'If your `~/.npmrc` mentions a custom registry, you should remove this setting first.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
+      - name: Run yarn lint:license-in-workspaces
+        if: ${{ success() || failure() }}
+        env:
+          FORCE_COLOR: "1" ## https://www.npmjs.com/package/chalk#supportsColor
+        run: |
+          if ! yarn lint:license-in-workspaces; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Please fix the above errors locally for the check to pass.'
+            echo 'If you don’t see them, try merging target branch into yours.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
+      - name: Run yarn lint:markdownlint
+        if: ${{ success() || failure() }}
+        run: |
+          if ! yarn lint:markdownlint; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Try running `yarn fix:markdownlint` locally to apply autofixes.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
+      - name: Run yarn lint:prettier
+        if: ${{ success() || failure() }}
+        run: |
+          if ! yarn lint:prettier; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Try running `yarn fix:prettier` locally to apply autofixes.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
+        ## TODO: Replace with `yarn fix:yarn-dedupe` after upgrading to Yarn v3+
+        ## https://yarnpkg.com/cli/dedupe
+        ## https://github.com/yarnpkg/berry/issues/2297
+      - name: Run yarn lint:yarn-deduplicate
+        if: ${{ success() || failure() }}
+        run: |
+          if ! yarn lint:yarn-deduplicate; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Some dependencies can be deduplicated, which will make node_modules'
+            echo 'lighter and potentially save us from unexplainable bugs.'
+            echo 'Please run `yarn fix:yarn-deduplicate` locally and commit yarn.lock.'
+            echo 'You may need to run the command 2-3 times in some rare cases.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
+        ## yarn --frozen-lockfile does not work for monorepos, so using a workaround:
+        ## https://github.com/yarnpkg/yarn/issues/5840#issuecomment-467516207
+        ## TODO: Use `yarn install --immutable` after upgrading to Yarn v3+
+      - name: Check yarn.lock stability
+        if: ${{ success() || failure() }}
+        run: |
+          git diff yarn.lock
+          if ! git diff --exit-code yarn.lock; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Changes were detected in yarn.lock file after running `yarn install`.'
+            echo 'This makes runtime less stable, so should be avoided.'
+            echo 'Please run `yarn install` locally and commit yarn.lock.'
+            echo 'You may also want to run `yarn fix:yarn-deduplicate` just in case.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1;
+          fi
+
+      - name: Validate renovate config
+        if: ${{ success() || failure() }}
+        run: |
+          # Adding renovate in `package.json` causes incompatibility between our dependencies and their dependencies.
+          npm install --global renovate
+          if ! renovate-config-validator; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Please fix the above errors locally for the check to pass.'
+            echo 'If you don’t see them, try merging target branch into yours.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
+  passed:
+    name: Linting passed
+    needs: [setup, package, global]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check setup script
+        run: |
+          [[ ${{ needs.setup.result }} = success ]]
+      - name: Check package results
+        run: |
+          [[ ${{ needs.package.result }} =~ success|skipped ]]
+      - name: Check global results
+        run: |
+          [[ ${{ needs.global.result }} =~ success|skipped ]]

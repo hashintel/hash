@@ -4,6 +4,7 @@ import { PropsWithChildren, ReactElement, useMemo } from "react";
 
 import { Org } from "../../../lib/user-and-org";
 import { PeopleGroupIcon } from "../../../shared/icons/people-group-icon";
+import { PlugSolidIcon } from "../../../shared/icons/plug-solid-icon";
 import { LayoutWithSidebar } from "../../../shared/layout/layout-with-sidebar";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { TopContextBar } from "../../shared/top-context-bar";
@@ -12,14 +13,16 @@ import {
   SidebarItemData,
 } from "./settings-layout/settings-sidebar";
 
-const generateMenuLinks = (organizations: Org[]): SidebarItemData[] => {
+const generateMenuLinks = (
+  organizations: { org: Org }[],
+): SidebarItemData[] => {
   const organizationItems: SidebarItemData[] = organizations
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .map((org) => [
+    .sort(({ org: a }, { org: b }) => a.name.localeCompare(b.name))
+    .map(({ org }) => [
       {
         label: org.name,
         href: `/settings/organizations/${org.shortname}/general`,
-        activeIfHrefStartsWith: `/settings/organizations/${org.shortname}`,
+        activeIfPathStartsWith: `/settings/organizations/${org.shortname}`,
         parentHref: "/settings/organizations",
       },
       {
@@ -43,14 +46,19 @@ const generateMenuLinks = (organizations: Org[]): SidebarItemData[] => {
       icon: PeopleGroupIcon,
     },
     ...organizationItems,
+    {
+      label: "Integrations",
+      href: "/settings/integrations",
+      icon: <PlugSolidIcon sx={{ fontSize: 12 }} />,
+    },
   ];
 
   for (const item of menuItems) {
     item.children = menuItems.filter(
       (child) =>
         child.parentHref === item.href ||
-        (item.activeIfHrefStartsWith &&
-          child.parentHref === item.activeIfHrefStartsWith),
+        (item.activeIfPathStartsWith &&
+          child.parentHref === item.activeIfPathStartsWith),
     );
   }
 
@@ -87,8 +95,8 @@ const SettingsLayout = ({ children }: PropsWithChildren) => {
           // eslint-disable-next-line no-loop-func
           (item) =>
             item.href === href ||
-            (item.activeIfHrefStartsWith &&
-              item.activeIfHrefStartsWith === href),
+            (item.activeIfPathStartsWith &&
+              item.activeIfPathStartsWith === href),
         );
 
         if (!currentPage) {
@@ -115,7 +123,7 @@ const SettingsLayout = ({ children }: PropsWithChildren) => {
   }, [menuItems, router.asPath]);
 
   if (!user.authenticatedUser.accountSignupComplete) {
-    void router.push("/login");
+    void router.push("/signin");
     return null;
   }
 

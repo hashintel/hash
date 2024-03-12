@@ -24,14 +24,14 @@ export type BlockEntityOutgoingLinkAndTarget =
  *
  * See: https://www.w3schools.com/cssref/css_colors_legal.php
  */
-export type CSSTextColorPropertyValue = Text;
+export type CSSTextColorPropertyValue = TextDataType;
 
 /**
  * The “level” or size of the heading, this can be an integer between 1 to 6 (inclusive).
  *
  * This corresponds to the equivalent HTML tags (h1, h2, etc.)
  */
-export type HTMLHeadingLevelPropertyValue = Number;
+export type HTMLHeadingLevelPropertyValue = NumberDataType;
 
 export type HeadingBlock = Entity<HeadingBlockProperties>;
 
@@ -53,14 +53,19 @@ export type HeadingBlockProperties = {
 /**
  * An arithmetical value (in the Real number system)
  */
-export type Number = number;
+export type NumberDataType = number;
+
+/**
+ * An opaque, untyped JSON object
+ */
+export type ObjectDataType = {};
 
 /**
  * An ordered sequence of characters
  */
-export type Text = string;
+export type TextDataType = string;
 
 /**
  * The text material, information, or body, that makes up the content of this thing.
  */
-export type TextualContentPropertyValue = Text;
+export type TextualContentPropertyValue = TextDataType | ObjectDataType[];

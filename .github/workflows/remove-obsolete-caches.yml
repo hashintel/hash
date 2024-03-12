@@ -30,12 +30,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Remove untagged docker images
-        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6.4.1
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const pr_tag = "pr-${{ github.event.pull_request.number }}"
-            for (const image of ["hash-graph", "hash-ai-worker-ts", "hash-ai-worker-py", "hash-integration-worker"]) {
+            for (const image of ["hash-graph-cache", "hash-ai-worker-ts-cache", "hash-integration-worker-cache"]) {
               const url = "/orgs/hashintel/packages/container/" + image + "/versions";
               const response = await github.request("GET " + url, { per_page: 100 });
               for (const version of response.data) {

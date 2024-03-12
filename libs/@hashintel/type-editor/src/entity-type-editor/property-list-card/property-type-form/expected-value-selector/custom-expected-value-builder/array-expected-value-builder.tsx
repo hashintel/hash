@@ -5,27 +5,18 @@ import { usePopupState } from "material-ui-popup-state/hooks";
 import { FunctionComponent, useEffect, useMemo, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
-import { getDefaultExpectedValue } from "../../../shared/default-expected-value";
 import {
-  CustomExpectedValue,
   CustomExpectedValueTypeId,
-} from "../../../shared/expected-value-types";
-import {
-  dataTypeOptions as primitiveDataTypeOptions,
-  expectedValuesOptions,
-} from "../../../shared/expected-values-options";
+  useDataTypesOptions,
+} from "../../../../../shared/data-types-options-context";
+import { getDefaultExpectedValue } from "../../../shared/default-expected-value";
+import { CustomExpectedValue } from "../../../shared/expected-value-types";
 import { CustomExpectedValueSelector } from "../shared/custom-expected-value-selector";
 import { DeleteExpectedValueModal } from "../shared/delete-expected-value-modal";
 import { ExpectedValueBadge } from "../shared/expected-value-badge";
 import { ExpectedValueSelectorFormValues } from "../shared/expected-value-selector-form-values";
 import { ObjectExpectedValueBuilder } from "../shared/object-expected-value-builder";
 import { ArrayMinMaxItems } from "./array-expected-value-builder/array-min-max-items";
-
-const dataTypeOptions: CustomExpectedValueTypeId[] = [
-  ...primitiveDataTypeOptions,
-  "array",
-  "object",
-];
 
 const deleteExpectedValueAndChildren = (
   id: string,
@@ -150,6 +141,14 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
     name: `flattenedCustomExpectedValueList.${expectedValueId}.data.itemIds`,
   });
 
+  const { dataTypes, getExpectedValueDisplay } = useDataTypesOptions();
+
+  const dataTypeOptions: CustomExpectedValueTypeId[] = [
+    ...dataTypes.map((option) => option.$id),
+    "array",
+    "object",
+  ];
+
   const [dataTypeCount, propertyObjectCount, arrayCount] = useMemo(() => {
     const arrays = itemIds.filter(
       (childId) => flattenedExpectedValues[childId]?.data?.typeId === "array",
@@ -159,9 +158,9 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
       (childId) => flattenedExpectedValues[childId]?.data?.typeId === "object",
     ).length;
 
-    const dataTypes = itemIds.length - arrays - objects;
+    const count = itemIds.length - arrays - objects;
 
-    return [dataTypes, objects, arrays];
+    return [count, objects, arrays];
   }, [itemIds, flattenedExpectedValues]);
 
   const deleteModalPopupState = usePopupState({
@@ -256,7 +255,7 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
             return (
               <Box component="li" {...optProps} sx={{ py: 1.5, px: 2.25 }}>
                 <FontAwesomeIcon
-                  icon={{ icon: expectedValuesOptions[opt!]!.icon }}
+                  icon={{ icon: getExpectedValueDisplay(opt!).icon }}
                   sx={(theme) => ({ color: theme.palette.gray[50] })}
                 />
                 <Typography
@@ -265,7 +264,7 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
                   ml={1.5}
                   color={(theme) => theme.palette.gray[80]}
                 >
-                  {expectedValuesOptions[opt!]!.title}
+                  {getExpectedValueDisplay(opt!).title}
                 </Typography>
                 <Chip color="blue" label="DATA TYPE" sx={{ ml: 1.5 }} />
               </Box>
@@ -274,8 +273,7 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
           onChange={(_evt, _data, reason, details) => {
             const typeId = details?.option;
             if (typeId) {
-              const allowMultiple =
-                expectedValuesOptions[typeId]?.allowMultiple;
+              const allowMultiple = typeId === "object" || typeId === "array";
 
               const defaultData = getDefaultExpectedValue(typeId);
 

@@ -1,0 +1,134 @@
+volumes:
+  hash-vault-data:
+
+services:
+  postgres:
+    environment:
+      HASH_SPICEDB_PG_USER: "${HASH_SPICEDB_PG_USER}"
+      HASH_SPICEDB_PG_PASSWORD: "${HASH_SPICEDB_PG_PASSWORD}"
+      HASH_SPICEDB_PG_DATABASE: "${HASH_SPICEDB_PG_DATABASE}"
+    ports:
+      - "${POSTGRES_PORT}:5432"
+
+  telemetry-collector:
+    image: jaegertracing/all-in-one:1.48
+    deploy:
+      restart_policy:
+        condition: on-failure
+    healthcheck:
+      # Port 14269 is the Jaeger admin endpoint
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:14269 || exit 1",
+        ]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+    ports:
+      - "16686:16686"
+      # To expose OTLP collector over gRPC on the host
+      - "4317:4317"
+      # To expose OTLP collector over HTTP on the host
+      # - "4318:4318"
+      # serve configs (sampling, etc.)
+      - "5778:5778"
+      # accept jaeger.thrift over Thrift-compact protocol (used by most SDKs)
+      - "6831:6831"
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+
+  spicedb-migrate:
+    image: authzed/spicedb:v${HASH_SPICEDB_VERSION}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPICEDB_DATASTORE_ENGINE: postgres
+      SPICEDB_DATASTORE_CONN_URI: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_SPICEDB_PG_DATABASE}"
+      SPICEDB_LOG_FORMAT: "console"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    command: migrate head
+
+  spicedb:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      spicedb-migrate:
+        condition: service_completed_successfully
+      telemetry-collector:
+        condition: service_healthy
+    ports:
+      - "${HASH_SPICEDB_HTTP_PORT}:8443"
+      - "${HASH_SPICEDB_GRPC_PORT}:50051"
+    environment:
+      SPICEDB_DATASTORE_ENGINE: postgres
+      SPICEDB_DATASTORE_CONN_URI: "postgres://${HASH_SPICEDB_PG_USER}:${HASH_SPICEDB_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_SPICEDB_PG_DATABASE}?plan_cache_mode=force_custom_plan"
+      SPICEDB_GRPC_PRESHARED_KEY: "${HASH_SPICEDB_GRPC_PRESHARED_KEY}"
+      SPICEDB_OTEL_PROVIDER: "otlpgrpc"
+      SPICEDB_OTEL_ENDPOINT: "telemetry-collector:4317"
+      SPICEDB_OTEL_INSECURE: "True"
+
+  kratos:
+    depends_on:
+      telemetry-collector:
+        condition: service_healthy
+    ports:
+      - "4433:4433" # public API
+      - "4434:4434" # admin API
+    environment:
+      OAUTH2_PROVIDER_URL: "http://hydra:4445"
+      TRACING_PROVIDER: "jaeger"
+      TRACING_PROVIDERS_JAEGER_SAMPLING_SERVER_URL: "telemetry-collector:5778/sampling"
+      TRACING_PROVIDERS_JAEGER_LOCAL_AGENT_ADDRESS: "telemetry-collector:6831"
+      LOG_LEVEL: trace
+    command: serve --dev --watch-courier
+
+  mailslurper:
+    ports:
+      - "4436:4436"
+      - "4437:4437"
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  vault:
+    image: hashicorp/vault
+    ports:
+      - "${HASH_VAULT_PORT}:8200"
+    volumes:
+      - hash-vault-data:/vault/file:rw
+      # - ./vault/config:/vault/config:rw - for when we need a config file
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: "${HASH_VAULT_ROOT_TOKEN}"
+      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+    security_opt:
+      - no-new-privileges:true
+
+  # TODO: Services below this line are developed by HASH and should not be part of this file
+
+  graph-migrate:
+    depends_on:
+      telemetry-collector:
+        condition: service_healthy
+    environment:
+      HASH_GRAPH_OTLP_ENDPOINT: "http://telemetry-collector:4317"
+
+  graph:
+    depends_on:
+      telemetry-collector:
+        condition: service_healthy
+    environment:
+      HASH_SPICEDB_HOST: http://spicedb
+      HASH_SPICEDB_HTTP_PORT: "${HASH_SPICEDB_HTTP_PORT}"
+      HASH_SPICEDB_GRPC_PRESHARED_KEY: "${HASH_SPICEDB_GRPC_PRESHARED_KEY}"
+      HASH_TEMPORAL_SERVER_HOST: "http://temporal"
+      HASH_TEMPORAL_SERVER_PORT: "${HASH_TEMPORAL_SERVER_PORT}"
+      HASH_GRAPH_OTLP_ENDPOINT: "http://telemetry-collector:4317"
+    ports:
+      - "${HASH_GRAPH_API_PORT}:4000"

@@ -1,6 +1,6 @@
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
-import { Logger } from "@local/hash-backend-utils/logger";
-import { QueueProducer } from "@local/hash-backend-utils/queue/adapter";
+import type { Logger } from "@local/hash-backend-utils/logger";
+import type { QueueProducer } from "@local/hash-backend-utils/queue/adapter";
 import { RedisQueueProducer } from "@local/hash-backend-utils/queue/redis";
 import { supportedRealtimeTables } from "@local/hash-backend-utils/realtime";
 import { AsyncRedisClient } from "@local/hash-backend-utils/redis";
@@ -21,6 +21,7 @@ export const generateQueues = (
         new AsyncRedisClient(logger, {
           host: getRequiredEnv("HASH_REDIS_HOST"),
           port: parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10),
+          tls: process.env.HASH_REDIS_ENCRYPTED_TRANSIT === "true",
         }),
       ),
     },
@@ -30,6 +31,7 @@ export const generateQueues = (
         new AsyncRedisClient(logger, {
           host: getRequiredEnv("HASH_REDIS_HOST"),
           port: parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10),
+          tls: process.env.HASH_REDIS_ENCRYPTED_TRANSIT === "true",
         }),
       ),
     },

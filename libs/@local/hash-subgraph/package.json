@@ -26,21 +26,21 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "test": "jest"
+    "test:unit": "jest"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.3.1-canary-20230803163819",
+    "@blockprotocol/graph": "0.3.3",
     "@blockprotocol/type-system": "0.1.1",
     "@local/advanced-types": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
-    "uuid": "9.0.0"
+    "uuid": "9.0.1"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
-    "@types/jest": "29.5.4",
+    "@types/jest": "29.5.12",
     "@types/uuid": "8.3.0",
-    "jest": "29.6.4",
-    "ts-jest": "29.1.1",
+    "jest": "29.7.0",
+    "ts-jest": "29.1.2",
     "typescript": "5.1.6"
   }
 }

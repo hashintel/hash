@@ -1,8 +1,0 @@
-[
-  {
-    "behaviors": ["changing.js"],
-    "myObject": {
-      "value": 10
-    }
-  }
-]

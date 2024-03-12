@@ -20,7 +20,7 @@ export const HtmlLoader: FunctionComponent<HtmlElementLoaderProps> = ({
     const node = ref.current;
 
     if (node) {
-      renderHtmlBlock(node, definition, controller.signal).catch((err: any) => {
+      renderHtmlBlock(node, definition, controller.signal).catch((err) => {
         if (err?.name !== "AbortError") {
           node.innerText = `Error: ${err}`;
           setError(() => {

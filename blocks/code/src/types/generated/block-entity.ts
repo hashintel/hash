@@ -11,7 +11,7 @@ export type BlockEntityOutgoingLinkAndTarget = CodeBlockOutgoingLinkAndTarget;
 /**
  * A brief explanation or accompanying message.
  */
-export type CaptionPropertyValue = Text;
+export type CaptionPropertyValue = TextDataType;
 
 export type CodeBlock = Entity<CodeBlockProperties>;
 
@@ -22,7 +22,7 @@ export type CodeBlock = Entity<CodeBlockProperties>;
  *
  * See: https://prismjs.com/#supported-languages
  */
-export type CodeBlockLanguagePropertyValue = Text;
+export type CodeBlockLanguagePropertyValue = TextDataType;
 
 export type CodeBlockOutgoingLinkAndTarget = never;
 
@@ -40,11 +40,16 @@ export type CodeBlockProperties = {
 };
 
 /**
+ * An opaque, untyped JSON object
+ */
+export type ObjectDataType = {};
+
+/**
  * An ordered sequence of characters
  */
-export type Text = string;
+export type TextDataType = string;
 
 /**
  * The text material, information, or body, that makes up the content of this thing.
  */
-export type TextualContentPropertyValue = Text;
+export type TextualContentPropertyValue = TextDataType | ObjectDataType[];

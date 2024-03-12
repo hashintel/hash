@@ -1,7 +1,5 @@
 #!/usr/bin/env just --justfile
 
-set dotenv-load := true
-
 repo := `git rev-parse --show-toplevel`
 profile := env_var_or_default('PROFILE', "dev")
 github-event-name := env_var_or_default('GITHUB_EVENT_NAME', "none")
@@ -106,7 +104,7 @@ install-cargo-tool tool install version:
 
 [private]
 install-cargo-hack:
-  @just install-cargo-tool 'cargo hack' cargo-hack 0.5.26
+  @just install-cargo-tool 'cargo hack' cargo-hack 0.6.7
 
 [private]
 install-cargo-nextest:
@@ -152,13 +150,15 @@ format *arguments:
 [no-cd]
 clippy *arguments: install-cargo-hack install-rust-script
   @just lint-toml "generate"
-  @just in-pr cargo clippy --profile {{profile}} --workspace --all-features --all-targets --no-deps {{arguments}}
-  @just not-in-pr cargo hack --workspace --optional-deps --feature-powerset clippy --profile {{profile}} --all-targets --no-deps {{arguments}}
+  @just in-pr cargo clippy --profile {{profile}} --all-features --all-targets --no-deps {{arguments}}
+  @just not-in-pr cargo hack --optional-deps --feature-powerset clippy --profile {{profile}} --all-targets --no-deps {{arguments}}
 
 # Creates the documentation for the crate
 [no-cd]
 doc *arguments:
-  cargo doc --workspace --all-features --no-deps -Zunstable-options -Zrustdoc-scrape-examples {{arguments}}
+  @just in-pr RUSTDOCFLAGS=-Dwarnings cargo doc --all-features --workspace --no-deps -Zunstable-options -Zrustdoc-scrape-examples {{arguments}}
+  @just not-in-pr cargo doc --all-features --workspace --no-deps -Zunstable-options -Zrustdoc-scrape-examples {{arguments}}
+
 
 # Builds the crate
 [no-cd]
@@ -168,23 +168,32 @@ build *arguments:
 # Run the test suite
 [no-cd]
 test *arguments: install-cargo-nextest install-cargo-hack
-  @# We only run a subset of tests in PRs to save CI time. The merge queue will test the full suite below.
-  @just in-pr cargo nextest run --cargo-profile {{profile}} --workspace --all-features {{arguments}}
-  @just not-in-pr cargo hack --workspace --optional-deps --feature-powerset nextest run --cargo-profile {{profile}} {{arguments}}
-
-  @just in-dev cargo test --profile {{profile}} --workspace --all-features --doc
+  cargo hack --optional-deps --feature-powerset nextest run --cargo-profile {{profile}} {{arguments}}
+  cargo test --profile {{profile}} --all-features --doc
 
 # Run the test suite with `miri`
 [no-cd]
 miri *arguments:
-  cargo miri test --workspace --all-features --all-targets {{arguments}}
+  cargo miri test --all-features --all-targets {{arguments}}
 
 # Runs the benchmarks
 [no-cd]
 bench *arguments:
-  cargo bench --workspace --all-features --all-targets {{arguments}}
+  cargo bench --all-features --all-targets {{arguments}}
 
 # Run the test suite and generate a coverage report
 [no-cd]
 coverage *arguments: install-llvm-cov
-  cargo llvm-cov nextest --workspace --all-features --all-targets {{arguments}}
+  cargo llvm-cov nextest --all-features --all-targets --cargo-profile {{profile}} {{arguments}}
+  cargo llvm-cov --all-features --profile {{profile}} --doc {{arguments}}
+
+# Run the test suite and optionally generate a coverage report when `$TEST_COVERAGE` is set to `true`
+[no-cd]
+test-or-coverage:
+  #!/usr/bin/env bash
+  set -eo pipefail
+  if [[ "$TEST_COVERAGE" = 'true' || "$TEST_COVERAGE" = '1' ]]; then
+    just coverage --lcov --output-path lcov.info
+  else
+    just test --no-fail-fast
+  fi

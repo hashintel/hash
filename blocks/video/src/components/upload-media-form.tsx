@@ -91,7 +91,7 @@ export const UploadMediaForm: FunctionComponent<UploadMediaFormProps> = ({
               type="submit"
             >
               {loading && <Loader />}
-              Embed {capitalisedType}
+              Insert {capitalisedType}
             </button>
           )}
         </div>

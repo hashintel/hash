@@ -1,5 +1,4 @@
 import { ApolloError } from "apollo-server-errors";
-import fetch from "node-fetch";
 import oEmbedData from "oembed-providers/providers.json";
 
 import {
@@ -90,22 +89,21 @@ async function getEmbedResponse({
 
 export const embedCode: ResolverFn<
   Promise<Embed>,
-  {},
+  Record<string, never>,
   GraphQLContext,
   QueryEmbedCodeArgs
 > = async (_, { url, type }) => {
-  const embedResponse: OembedResponse & { error: boolean } =
-    await getEmbedResponse({
-      url,
-      type,
-    }).catch((__) => {
-      throw new ApolloError(
-        `Embed Code for URL ${url} not found${
-          type?.trim() ? ` for type ${type}` : ""
-        }`,
-        "NOT_FOUND",
-      );
-    });
+  const embedResponse = (await getEmbedResponse({
+    url,
+    type,
+  }).catch((__) => {
+    throw new ApolloError(
+      `Embed Code for URL ${url} not found${
+        type?.trim() ? ` for type ${type}` : ""
+      }`,
+      "NOT_FOUND",
+    );
+  })) as OembedResponse & { error: boolean };
 
   const { html, error, provider_name, height, width } = embedResponse;
 

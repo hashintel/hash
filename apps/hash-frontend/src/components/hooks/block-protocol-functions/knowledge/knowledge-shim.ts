@@ -11,10 +11,10 @@ import {
   CreateResourceError,
   QueryOperationInput,
   ReadOrModifyResourceError,
-  UploadFileData,
-  UploadFileReturn,
+  UploadFileData as BpUploadFileData,
 } from "@blockprotocol/graph";
 import { VersionedUrl } from "@blockprotocol/type-system";
+import { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   Entity,
   EntityId,
@@ -23,6 +23,11 @@ import {
   LinkData,
   Subgraph,
 } from "@local/hash-subgraph";
+
+import {
+  FileEntityCreationInput,
+  FileEntityUpdateInput,
+} from "../../../../graphql/api-types.gen";
 
 /* Entity CRU */
 
@@ -61,10 +66,18 @@ export type UpdateEntityMessageCallback = MessageCallback<
   ReadOrModifyResourceError
 >;
 
+export type UploadFileRequestData = BpUploadFileData &
+  (
+    | {
+        fileEntityCreationInput: Omit<FileEntityCreationInput, "ownedById">;
+      }
+    | { fileEntityUpdateInput: FileEntityUpdateInput }
+  );
+
 export type UploadFileRequestCallback = MessageCallback<
-  UploadFileData,
+  UploadFileRequestData,
   null,
-  MessageReturn<UploadFileReturn>,
+  MessageReturn<FileEntityType>,
   CreateResourceError
 >;
 
@@ -76,7 +89,10 @@ export type QueryEntitiesRequest = {
 export type QueryEntitiesMessageCallback = MessageCallback<
   QueryEntitiesRequest,
   null,
-  MessageReturn<Subgraph<EntityRootType>>,
+  MessageReturn<{
+    results: Subgraph<EntityRootType>;
+    operation: QueryOperationInput;
+  }>,
   ReadOrModifyResourceError
 >;
 

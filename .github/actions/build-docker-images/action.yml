@@ -9,12 +9,12 @@ inputs:
     description: "Build hash-ai-worker-ts image"
     required: false
     default: "false"
-  hash-ai-worker-py:
-    description: "Build hash-ai-worker-py image"
-    required: false
-    default: "false"
   hash-integration-worker:
     description: "Build hash-integration-worker image"
+    required: false
+    default: "false"
+  hash-api:
+    description: "Build hash-api image"
     required: false
     default: "false"
   repo-token:
@@ -47,10 +47,10 @@ runs:
         echo "GRAPH_PROFILE=$GRAPH_PROFILE" >> $GITHUB_ENV
 
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@885d1462b80bc1c1c7f0b00334ad271f09369c55 # v2.10.0
+      uses: docker/setup-buildx-action@0d103c3126aa41d772a8362f6aa67afac040f80c # v3.1.0
 
     - name: Login to GitHub Container Registry
-      uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc # v2.2.0
+      uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
@@ -58,11 +58,13 @@ runs:
 
     - name: Build hash-graph image
       if: inputs.hash-graph == 'true'
-      uses: docker/build-push-action@2eb1c1961a95fc15694676618e422e8ba1d63825 # v4.1.1
+      uses: docker/build-push-action@af5a7ed5ba88268d5278f7203fb52cd833f66d6e # v5.2.0
       with:
         context: .
         file: apps/hash-graph/docker/Dockerfile
-        tags: hash-graph
+        tags: |
+          hash-graph
+          hash-graph:test
         cache-from: |
           type=registry,ref=ghcr.io/hashintel/hash-graph${{ env.IMAGE_TAG }}
           type=registry,ref=ghcr.io/hashintel/hash-graph
@@ -82,15 +84,15 @@ runs:
           ENABLE_TEST_SERVER=yes
 
     - name: Upload artifact
-      if: inputs.hash-graph == 'true'
-      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+      if: ${{ (success() || failure()) && inputs.hash-graph == 'true' }}
+      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
       with:
         name: hash-graph
         path: /tmp/hash-graph.tar
 
     - name: Build hash-ai-worker-ts image
       if: inputs.hash-ai-worker-ts == 'true'
-      uses: docker/build-push-action@2eb1c1961a95fc15694676618e422e8ba1d63825 # v4.1.1
+      uses: docker/build-push-action@af5a7ed5ba88268d5278f7203fb52cd833f66d6e # v5.2.0
       with:
         context: .
         file: apps/hash-ai-worker-ts/docker/Dockerfile
@@ -107,40 +109,15 @@ runs:
           org.opencontainers.image.description="A TypeScript 'AI' worker for HASH"
 
     - name: Upload artifact
-      if: inputs.hash-ai-worker-ts == 'true'
-      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+      if: ${{ (success() || failure()) && inputs.hash-ai-worker-ts == 'true' }}
+      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
       with:
         name: hash-ai-worker-ts
         path: /tmp/hash-ai-worker-ts.tar
 
-    - name: Build hash-ai-worker-py image
-      if: inputs.hash-ai-worker-py == 'true'
-      uses: docker/build-push-action@2eb1c1961a95fc15694676618e422e8ba1d63825 # v4.1.1
-      with:
-        context: .
-        file: apps/hash-ai-worker-py/docker/Dockerfile
-        tags: hash-ai-worker-py
-        cache-from: |
-          type=registry,ref=ghcr.io/hashintel/hash-ai-worker-py${{ env.IMAGE_TAG }}
-          type=registry,ref=ghcr.io/hashintel/hash-ai-worker-py
-        cache-to: |
-          type=registry,ref=ghcr.io/hashintel/hash-ai-worker-py${{ env.IMAGE_TAG }},mode=max
-        outputs: type=docker,dest=/tmp/hash-ai-worker-py.tar
-        labels: |
-          org.opencontainers.image.source="https://github.com/hashintel/hash"
-          org.opencontainers.image.licenses="AGPL-3.0-only,"
-          org.opencontainers.image.description="A Python 'AI' worker for HASH"
-
-    - name: Upload artifact
-      if: inputs.hash-ai-worker-py == 'true'
-      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
-      with:
-        name: hash-ai-worker-py
-        path: /tmp/hash-ai-worker-py.tar
-
     - name: Build hash-integration-worker image
       if: inputs.hash-integration-worker == 'true'
-      uses: docker/build-push-action@2eb1c1961a95fc15694676618e422e8ba1d63825 # v4.1.1
+      uses: docker/build-push-action@af5a7ed5ba88268d5278f7203fb52cd833f66d6e # v5.2.0
       with:
         context: .
         file: apps/hash-integration-worker/docker/Dockerfile
@@ -157,8 +134,33 @@ runs:
           org.opencontainers.image.description="A TypeScript worker for HASH for data integration"
 
     - name: Upload artifact
-      if: inputs.hash-integration-worker == 'true'
-      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+      if: ${{ (success() || failure()) && inputs.hash-integration-worker == 'true' }}
+      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
       with:
         name: hash-integration-worker
         path: /tmp/hash-integration-worker.tar
+
+    - name: Build hash-api image
+      if: inputs.hash-api == 'true'
+      uses: docker/build-push-action@af5a7ed5ba88268d5278f7203fb52cd833f66d6e # v5.2.0
+      with:
+        context: .
+        file: infra/docker/api/prod/Dockerfile
+        tags: hash-api
+        cache-from: |
+          type=registry,ref=ghcr.io/hashintel/hash-api${{ env.IMAGE_TAG }}
+          type=registry,ref=ghcr.io/hashintel/hash-api
+        cache-to: |
+          type=registry,ref=ghcr.io/hashintel/hash-api${{ env.IMAGE_TAG }},mode=max
+        outputs: type=docker,dest=/tmp/hash-api.tar
+        labels: |
+          org.opencontainers.image.source="https://github.com/hashintel/hash"
+          org.opencontainers.image.licenses="AGPL-3.0-only,"
+          org.opencontainers.image.description="API and data store for HAS"
+
+    - name: Upload artifact
+      if: ${{ (success() || failure()) && inputs.hash-api == 'true' }}
+      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
+      with:
+        name: hash-api
+        path: /tmp/hash-api.tar

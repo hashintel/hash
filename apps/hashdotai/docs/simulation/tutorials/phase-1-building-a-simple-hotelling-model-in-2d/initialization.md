@@ -10,10 +10,10 @@ Now, open up init.json. This is where we will be writing our [agent creator](/do
 
 ## Customers
 
-1.  Look at the lower left of screen and locate the Add to Simulation sidebar.
-1.  Click on the search bar located under the title and type “Create grids”.
-1.  Select the **Create Grids** result and choose Add to Simulation.
-1.  Repeat steps 2-3 for **Create Agents** and **Remove Self**.
+1. Look at the lower left of screen and locate the Add to Simulation sidebar.
+1. Click on the search bar located under the title and type “Create grids”.
+1. Select the **Create Grids** result and choose Add to Simulation.
+1. Repeat steps 2-3 for **Create Agents** and **Remove Self**.
 
 Customers begin evenly distributed in a grid across the environment. Thanks to HASH’s published behavior feature, we can do this easily by adding those three behaviors to our creator agent:
 
@@ -54,11 +54,11 @@ Now click Reset and then run your simulation for two time steps with the **+1** 
 
 Now to create Business agents:
 
-1.  Add the published behavior **Create Scatters** to your Project.
-1.  Create two new files - `business.js` and `update_businesses.js`.
-1.  Add the `scatter_templates` property and two behaviors to the creator agent
-1.  `@hash/create-scatters/create_scatters.js`
-1.  `update_businesses.js`
+1. Add the published behavior **Create Scatters** to your Project.
+1. Create two new files - `business.js` and `update_businesses.js`.
+1. Add the `scatter_templates` property and two behaviors to the creator agent
+1. `@hash/create-scatters/create_scatters.js`
+1. `update_businesses.js`
 
 **init.json**
 

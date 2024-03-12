@@ -15,13 +15,16 @@ fn test_messages<E>(report: &Report<E>) {
 }
 
 fn test_kinds<E>(report: &Report<E>) {
-    assert_kinds!(report, [
-        FrameKind::Attachment(AttachmentKind::Opaque(_)),
-        FrameKind::Attachment(AttachmentKind::Opaque(_)),
-        FrameKind::Attachment(AttachmentKind::Opaque(_)),
-        FrameKind::Attachment(AttachmentKind::Opaque(_)),
-        FrameKind::Context(_)
-    ]);
+    assert_kinds!(
+        report,
+        [
+            FrameKind::Attachment(AttachmentKind::Opaque(_)),
+            FrameKind::Attachment(AttachmentKind::Opaque(_)),
+            FrameKind::Attachment(AttachmentKind::Opaque(_)),
+            FrameKind::Attachment(AttachmentKind::Opaque(_)),
+            FrameKind::Context(_)
+        ]
+    );
 }
 
 #[test]

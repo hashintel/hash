@@ -1,3 +1,4 @@
+#![allow(clippy::ignored_unit_patterns, clippy::non_ascii_literal)] // Reason: `proptest` does not match against `Ok(())` but `Ok(_)`
 use core::time::Duration;
 
 use deer_desert::{assert_tokens_with_assertion, Token};
@@ -9,6 +10,7 @@ proptest! {
     fn duration_ok(value in any::<Duration>()) {
         let input = value.as_secs_f64();
 
+        #[allow(clippy::float_arithmetic)]
         assert_tokens_with_assertion(|received: Duration| {
             // due to the inherent imprecise nature of floats, we cannot use `assert_eq!`
             // instead we need to check if the difference between both values is <= ε

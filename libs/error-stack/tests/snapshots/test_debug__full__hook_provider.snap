@@ -8,7 +8,7 @@ context D
 ├╴at tests/test_debug.rs:588:38
 │
 ╰─▶ root error
-    ├╴at tests/common.rs:4:5
+    ├╴at tests/common.rs:9:5
     ├╴backtrace (1)
     ╰╴span trace with 2 frames (1)
 

@@ -1,5 +1,0 @@
-[
-  {
-    "behaviors": ["create_flock.js", "@hash/remove-self/remove_self.js"]
-  }
-]

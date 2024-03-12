@@ -1,16 +1,15 @@
 import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import {
+  AlertModal,
   Button,
-  Callout,
   EntityTypeIcon,
   FontAwesomeIcon,
   LinkTypeIcon,
-  Modal,
   TYPE_SELECTOR_HEIGHT,
 } from "@hashintel/design-system";
 import { Box, Stack } from "@mui/material";
-import { useMemo, useRef, useState } from "react";
+import { ReactElement, useMemo, useRef, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import { useEntityTypesOptions } from "../shared/entity-types-options-context";
@@ -25,13 +24,17 @@ import { useFilterTypeOptions } from "./shared/use-filter-type-options";
 type ModalData = {
   callback?: () => void;
   calloutMessage: string;
+  confirmButtonText?: string;
+  header: ReactElement;
   type: "info" | "warning";
 };
 
 export const InheritanceRow = ({
   entityTypeId,
+  typeTitle,
 }: {
   entityTypeId: VersionedUrl;
+  typeTitle: string;
 }) => {
   const [typeSelectorOpen, setTypeSelectorOpen] = useState(false);
   const [modalData, setModalData] = useState<ModalData | null>(null);
@@ -61,12 +64,12 @@ export const InheritanceRow = ({
   const { entityTypesArray, directParents } = useMemo(() => {
     const isLinkType = directParentEntityTypeIds.find((id) => linkTypes[id]);
     const entityTypeOptions = Object.values(entityTypes).map((type) => ({
-      ...type,
+      ...type.schema,
       Icon: EntityTypeIcon,
     }));
 
     const linkTypeOptions = Object.values(linkTypes).map((type) => ({
-      ...type,
+      ...type.schema,
       Icon: LinkTypeIcon,
     }));
 
@@ -74,8 +77,8 @@ export const InheritanceRow = ({
     const typesArray = isLinkType
       ? linkTypeOptions
       : directParentEntityTypeIds.length
-      ? entityTypeOptions
-      : [...entityTypeOptions, ...linkTypeOptions];
+        ? entityTypeOptions
+        : [...entityTypeOptions, ...linkTypeOptions];
 
     const parents = typesArray.filter(
       (type) =>
@@ -114,10 +117,18 @@ export const InheritanceRow = ({
         childLinksIds: links.map((link) => link.$id),
         childPropertiesIds: properties.map((property) => property.$id),
         directParentIds: proposedParentIds,
+        newParentTitle: parent.title,
       });
     } catch (error) {
       setModalData({
         calloutMessage: (error as Error).message,
+        confirmButtonText: "Add anyway",
+        header: (
+          <>
+            Cannot set <strong>{parent.title}</strong> as a parent of{" "}
+            <strong>{typeTitle}</strong>
+          </>
+        ),
         type: "warning",
       });
       return;
@@ -135,6 +146,13 @@ export const InheritanceRow = ({
         callback: setNewParents,
         calloutMessage:
           "You are adding a link type as a parent, which will make future versions of this type a link type.",
+        confirmButtonText: "Add this link type as a parent",
+        header: (
+          <>
+            Add <strong>{parent.title}</strong> as a parent of{" "}
+            <strong>{typeTitle}</strong>
+          </>
+        ),
         type: "info",
       });
       return;
@@ -160,6 +178,13 @@ export const InheritanceRow = ({
         callback: setNewParents,
         calloutMessage:
           "Removing this parent, a link type, will mean future versions of this type are not link types.",
+        confirmButtonText: "Remove link type as a parent",
+        header: (
+          <>
+            Remove <strong>{parent.title}</strong> as a parent of{" "}
+            <strong>{typeTitle}</strong>
+          </>
+        ),
         type: "info",
       });
       return;
@@ -239,33 +264,7 @@ export const InheritanceRow = ({
         )}
       </Stack>
       {modalData && (
-        <Modal open onClose={() => setModalData(null)}>
-          <Stack spacing={3}>
-            <Callout type={modalData.type}>{modalData.calloutMessage}</Callout>
-            <Stack direction="row" spacing={2} justifyContent="space-between">
-              {modalData.callback && (
-                <Button
-                  autoFocus
-                  onClick={() => {
-                    modalData.callback?.();
-                    setModalData(null);
-                  }}
-                  sx={{ width: "50%" }}
-                >
-                  Continue
-                </Button>
-              )}
-              <Button
-                autoFocus={!modalData.callback}
-                onClick={() => setModalData(null)}
-                variant={modalData.callback ? "secondary" : "primary"}
-                sx={{ width: modalData.callback ? "50%" : "100%" }}
-              >
-                {modalData.callback ? "Cancel" : "Close"}
-              </Button>
-            </Stack>
-          </Stack>
-        </Modal>
+        <AlertModal close={() => setModalData(null)} {...modalData} />
       )}
     </>
   );

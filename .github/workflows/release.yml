@@ -12,16 +12,26 @@ jobs:
     if: github.repository == 'hashintel/hash'
 
     steps:
-      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           token: ${{ secrets.MACHINE_USER_TOKEN }}
 
       - uses: ./.github/actions/warm-up-repo
 
       - name: Create Release Pull Request or Publish to npm
-        uses: changesets/action@f13b1baaa620fde937751f5d2c3572b9da32af23 # v1.4.5
+        uses: changesets/action@e2f8e964d080ae97c874b19e27b12e0a8620fb6c # v1.4.6
         with:
           publish: yarn changeset publish
         env:
           GITHUB_TOKEN: ${{ secrets.MACHINE_USER_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Notify Slack on failure
+        uses: rtCamp/action-slack-notify@68c1f353baff8aeb637650eb6b01d9c8c95f383a
+        if: ${{ failure() }}
+        env:
+          SLACK_LINK_NAMES: true
+          SLACK_MESSAGE: "Error releasing NPM packages <@U0143NL4GMP> <@U027NPY8Y3X>"
+          SLACK_TITLE: Package release failed
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_USERNAME: GitHub

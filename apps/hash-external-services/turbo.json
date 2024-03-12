@@ -9,7 +9,6 @@
       "dependsOn": [
         "@apps/hash-graph#build:docker",
         "@apps/hash-ai-worker-ts#build:docker",
-        "@apps/hash-ai-worker-py#build:docker",
         "@apps/hash-integration-worker#build:docker",
         "codegen"
       ]
@@ -19,7 +18,6 @@
       "dependsOn": [
         "@apps/hash-graph#build:docker:test",
         "@apps/hash-ai-worker-ts#build:docker",
-        "@apps/hash-ai-worker-py#build:docker",
         "@apps/hash-integration-worker#build:docker",
         "codegen"
       ]
@@ -29,14 +27,13 @@
       "dependsOn": [
         "@apps/hash-graph#build:docker:offline",
         "@apps/hash-ai-worker-ts#build:docker",
-        "@apps/hash-ai-worker-py#build:docker",
         "@apps/hash-integration-worker#build:docker",
         "codegen"
       ]
     },
     "deploy:prod": {
       "cache": false,
-      "dependsOn": []
+      "dependsOn": ["@apps/hash-graph#build:docker:prod", "codegen"]
     },
     "deploy:prototype": {
       "cache": false

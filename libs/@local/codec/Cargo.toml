@@ -1,0 +1,17 @@
+cargo-features = ["edition2024"]
+
+[package]
+name = "codec"
+authors.workspace = true
+edition.workspace = true
+version = "0.0.0"
+publish = false
+
+[dependencies]
+error-stack.workspace = true
+
+serde.workspace = true
+
+derive-where = { version = "1.2.7", default-features = false, features = ["nightly"] }
+serde_json = { version = "1.0.114" }
+tokio-util = { version = "0.7.10", default-features = false, features = ["codec"] }

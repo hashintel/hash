@@ -1,0 +1,21 @@
+cargo-features = ["edition2024"]
+
+[package]
+name = "temporal-client"
+authors.workspace = true
+edition.workspace = true
+version = "0.0.0"
+publish = false
+
+[dependencies]
+graph-types = { workspace = true }
+error-stack = { workspace = true }
+
+temporal-io-client = { package = "temporal-client", git = "https://github.com/temporalio/sdk-core", rev = "7e3c23f" }
+temporal-io-sdk-core-protos = { package = "temporal-sdk-core-protos", git = "https://github.com/temporalio/sdk-core", rev = "7e3c23f" }
+
+uuid = { workspace = true, features = ["v4"] }
+url = { version = "2.5.0", default-features = false }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = "1.0.58"

@@ -1,3 +1,4 @@
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { DraggableAttributes } from "@dnd-kit/core";
 import { faChevronRight, faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
@@ -6,26 +7,27 @@ import { Box, PopoverPosition, Tooltip, Typography } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { CSSProperties, forwardRef, MouseEvent, useState } from "react";
 
-import { PAGE_TITLE_PLACEHOLDER } from "../../../../blocks/page/page-title/page-title";
-import { PageIconButton } from "../../../../components/page-icon-button";
+import { PAGE_TITLE_PLACEHOLDER } from "../../../../pages/shared/block-collection/page-title/page-title";
+import { PageIconButton } from "../../../page-icon-button";
 import { Link } from "../../../ui";
 import { PageMenu } from "./page-menu";
 
 interface DragProps {
   isSorting?: boolean;
   attributes?: DraggableAttributes;
+  // eslint-disable-next-line @typescript-eslint/ban-types -- this matches the library type we get listeners from
   listeners?: Record<string, Function>;
   style?: CSSProperties;
   wrapperRef?(this: void, node: HTMLLIElement): void;
 }
 export interface PageTreeItemProps {
   pageEntityId: EntityId;
+  pageEntityTypeId: VersionedUrl;
   title: string;
   pagePath: string;
   depth: number;
   selected: boolean;
   expanded: boolean;
-  expandable: boolean;
   collapsed: boolean;
   createSubPage: () => Promise<void>;
   icon?: string | null;
@@ -45,8 +47,8 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
   (
     {
       pageEntityId,
+      pageEntityTypeId,
       title,
-      expandable,
       pagePath,
       depth,
       selected,
@@ -114,8 +116,8 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
             backgroundColor: selected
               ? palette.gray[30]
               : hovered
-              ? palette.gray[20]
-              : "none",
+                ? palette.gray[20]
+                : "none",
           })}
           ref={ref}
           {...listeners}
@@ -131,16 +133,9 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
             unpadded
             rounded
             sx={({ transitions }) => ({
-              visibility: "hidden",
-              pointerEvents: "none",
               mr: 0.5,
-
-              ...(expandable && {
-                visibility: "visible",
-                pointerEvents: "auto",
-                transform: expanded ? `rotate(90deg)` : "none",
-                transition: transitions.create("transform", { duration: 300 }),
-              }),
+              transform: expanded ? `rotate(90deg)` : "none",
+              transition: transitions.create("transform", { duration: 300 }),
             })}
           >
             <FontAwesomeIcon icon={faChevronRight} />
@@ -149,6 +144,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
           <PageIconButton
             hasDarkBg={selected}
             entityId={pageEntityId}
+            pageEntityTypeId={pageEntityTypeId}
             icon={icon}
             size="small"
             onClick={stopEvent}
@@ -171,7 +167,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
               variant="smallTextLabels"
               sx={({ palette }) => ({
                 display: "block",
-                fontWeight: 400,
+                fontWeight: 500,
                 marginLeft: 0.75,
                 py: 1,
                 overflow: "hidden",
@@ -185,16 +181,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
             </Typography>
           </Tooltip>
 
-          <Tooltip
-            title="Add subpages, delete, duplicate and more"
-            componentsProps={{
-              tooltip: {
-                sx: {
-                  width: 175,
-                },
-              },
-            }}
-          >
+          <Tooltip title="Options">
             <Box>
               <IconButton
                 {...trigger}

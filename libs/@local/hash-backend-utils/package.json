@@ -18,17 +18,23 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "test": "jest"
+    "test:unit": "jest"
   },
   "dependencies": {
     "@blockprotocol/core": "0.1.2",
     "@blockprotocol/type-system": "0.1.1",
     "@linear/sdk": "6.0.0",
+    "@local/hash-graph-client": "0.0.0-private",
+    "@local/hash-isomorphic-utils": "0.0.0-private",
+    "@local/hash-subgraph": "0.0.0-private",
+    "@local/status": "0.0.0-private",
     "@opensearch-project/opensearch": "1.1.0",
     "@temporalio/client": "1.8.1",
+    "agentkeepalive": "4.2.1",
     "apollo-datasource": "3.3.2",
+    "axios": "1.6.0",
     "dotenv-flow": "3.2.0",
-    "redis": "3.1.2",
+    "redis": "4.6.12",
     "slonik": "24.1.2",
     "wait-on": "6.0.1",
     "winston": "3.3.3"
@@ -37,10 +43,12 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/dotenv-flow": "3.2.0",
+    "@types/jest": "29.5.12",
     "@types/node": "18.15.13",
-    "@types/redis": "2.8.32",
     "@types/wait-on": "5.3.1",
-    "eslint": "8.33.0",
+    "eslint": "8.57.0",
+    "jest": "29.7.0",
+    "ts-jest": "29.1.2",
     "typescript": "5.1.6"
   }
 }

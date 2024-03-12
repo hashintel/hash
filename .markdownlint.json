@@ -2,7 +2,12 @@
   "default": true,
   "first-line-heading": false,
   "line-length": false,
-  "list-marker-space": { "ol_multi": 2, "ol_single": 2 },
+  "list-marker-space": {
+    "ol_multi": 1,
+    "ol_single": 1,
+    "ul_multi": 1,
+    "ul_single": 1
+  },
   "no-alt-text": false,
   "no-bare-urls": false,
   "no-duplicate-heading": { "siblings_only": true },

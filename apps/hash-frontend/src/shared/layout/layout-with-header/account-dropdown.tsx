@@ -6,6 +6,7 @@ import {
   Menu,
   Tooltip,
   Typography,
+  typographyClasses,
 } from "@mui/material";
 import {
   bindMenu,
@@ -14,18 +15,17 @@ import {
 } from "material-ui-popup-state/hooks";
 import { FunctionComponent, useMemo } from "react";
 
-import { AuthenticatedUser } from "../../../lib/user-and-org";
-import { MenuItem } from "../../ui";
+import { User } from "../../../lib/user-and-org";
+import { getImageUrlFromEntityProperties } from "../../../pages/shared/get-image-url-from-properties";
+import { Link, MenuItem } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";
 
 type AccountDropdownProps = {
-  avatar?: string;
   logout: () => void;
-  authenticatedUser: AuthenticatedUser;
+  authenticatedUser: User;
 };
 
 export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
-  avatar,
   logout,
   authenticatedUser,
 }) => {
@@ -55,7 +55,7 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
               }}
               mb={0.5}
             >
-              <strong>{authenticatedUser.preferredName}</strong>
+              <strong>{authenticatedUser.displayName}</strong>
             </Typography>
             {userPrimaryEmail && (
               <Typography
@@ -80,16 +80,17 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
           }}
           data-testid="user-avatar"
         >
-          {avatar ? (
-            <Box
-              component="img"
-              alt="avatar"
-              src={avatar}
-              sx={{ height: "32px", width: "32px", borderRadius: "100%" }}
-            />
-          ) : (
-            <Avatar size={32} title={authenticatedUser.preferredName ?? "U"} />
-          )}
+          <Avatar
+            size={32}
+            title={authenticatedUser.displayName ?? "U"}
+            src={
+              authenticatedUser.hasAvatar
+                ? getImageUrlFromEntityProperties(
+                    authenticatedUser.hasAvatar.imageEntity.properties,
+                  )
+                : undefined
+            }
+          />
         </HeaderIconButton>
       </Tooltip>
 
@@ -114,37 +115,56 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
           }),
         }}
       >
-        <Box px={1.5} pt={1} pb={0.25} display="flex" flexDirection="column">
-          <Typography
-            variant="smallTextLabels"
-            sx={({ palette }) => ({
-              color: palette.gray[80],
-              fontWeight: 500,
-            })}
-          >
-            {authenticatedUser.preferredName}
-          </Typography>
-          {userPrimaryEmail && (
+        <Link
+          href={`/@${authenticatedUser.shortname}`}
+          noLinkStyle
+          sx={{
+            [`&:hover .${typographyClasses.root}`]: {
+              color: ({ palette }) => palette.blue[70],
+            },
+          }}
+          onClick={() => popupState.close()}
+        >
+          <Box px={1.5} pt={1} pb={0.25} display="flex" flexDirection="column">
             <Typography
-              variant="microText"
-              sx={({ palette }) => ({ color: palette.gray[70] })}
+              variant="smallTextLabels"
+              sx={({ palette }) => ({
+                color: palette.gray[80],
+                fontWeight: 500,
+              })}
             >
-              {userPrimaryEmail}
+              {authenticatedUser.displayName}
             </Typography>
-          )}
-        </Box>
+            {userPrimaryEmail && (
+              <Typography
+                variant="microText"
+                sx={({ palette }) => ({ color: palette.gray[70] })}
+              >
+                {userPrimaryEmail}
+              </Typography>
+            )}
+          </Box>
+        </Link>
         <Divider />
+        <MenuItem href="/settings" onClick={() => popupState.close()}>
+          <ListItemText primary="Settings" />
+        </MenuItem>
+        <MenuItem
+          href="/settings/integrations"
+          onClick={() => popupState.close()}
+        >
+          <ListItemText primary="Integrations" />
+        </MenuItem>
         {/*  
           Commented out menu items whose functionality have not been implemented yet
           @todo uncomment when functionality has been implemented 
         */}
-        {/* <MenuItem onClick={popupState.close}>
-          <ListItemText primary="Account Settings" />
-        </MenuItem>
+        {/*
         <MenuItem onClick={popupState.close}>
           <ListItemText primary="Appearance" />
         </MenuItem>
-        <Divider /> */}
+        */}
+        <Divider />
         <MenuItem onClick={logout} faded>
           <ListItemText primary="Sign Out" />
         </MenuItem>

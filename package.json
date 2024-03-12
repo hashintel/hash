@@ -5,12 +5,8 @@
     "packages": [
       "apps/*",
       "blocks/*",
-      "libs/*",
-      "libs/@hashintel/*",
-      "libs/@local/*",
-      "libs/@local/*/typescript",
-      "libs/@local/*/python",
-      "tests/*"
+      "libs/**",
+      "tests/**"
     ]
   },
   "scripts": {
@@ -22,53 +18,45 @@
     "dev:backend:realtime": "turbo dev --log-order stream --filter '@apps/hash-realtime' --",
     "dev:backend:search-loader": "turbo dev --log-order stream --filter '@apps/hash-search-loader' --",
     "dev:frontend": "turbo dev --log-order stream --filter '@apps/hash-frontend' --",
+    "dev:graph": "yarn workspace @apps/hash-graph dev",
+    "dev:graph:test-server": "yarn workspace @apps/hash-graph dev:test-server",
+    "graph:reset-database": "yarn workspace @apps/hash-graph reset-database",
     "external-services": "turbo deploy --filter '@apps/hash-external-services' --",
     "external-services:offline": "turbo deploy:offline --filter '@apps/hash-external-services' --",
     "external-services:test": "turbo deploy:test --filter '@apps/hash-external-services' --",
-    "external-services:prototype": "turbo deploy:prototype --filter '@apps/hash-external-services' --",
     "external-services:prod": "turbo deploy:prod --filter '@apps/hash-external-services' --",
     "generate-system-types": "yarn workspace @local/hash-isomorphic-utils generate-system-types",
+    "generate-ontology-type-ids": "yarn workspace @apps/hash-api generate-ontology-type-ids",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
-    "fix:black": "turbo fix:black",
     "@TODO.1": "Upgrade or remove these blocks and remove the --ignore-package options (also @TODO.2)",
-    "fix:dependency-version-consistency": "check-dependency-version-consistency --fix . --ignore-package=@apps/hashdotdev --ignore-package=@blocks/chart --ignore-package=@blocks/embed --ignore-package=@blocks/person",
+    "fix:dependency-version-consistency": "check-dependency-version-consistency --fix . --ignore-dep=@blockprotocol/graph --ignore-dep=@blockprotocol/type-system --ignore-package=@apps/hashdotdev --ignore-package=@blocks/embed --ignore-package=@blocks/person",
     "fix:eslint": "turbo --continue fix:eslint --",
-    "fix:lock-files": "turbo fix:lock-files",
     "fix:markdownlint": "markdownlint --dot --fix .",
     "fix:prettier": "prettier --write  --ignore-unknown .",
-    "fix:ruff": "turbo fix:ruff",
     "fix:yarn-deduplicate": "yarn install && yarn-deduplicate --strategy=fewer && yarn install",
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
-    "lint:black": "turbo lint:black",
     "@TODO.2": "Upgrade or remove these blocks and remove the --ignore-package options (also @TODO.1)",
-    "lint:dependency-version-consistency": "check-dependency-version-consistency . --ignore-package=@apps/hashdotdev --ignore-package=@blocks/chart --ignore-package=@blocks/embed --ignore-package=@blocks/person",
+    "lint:dependency-version-consistency": "check-dependency-version-consistency . --ignore-dep=@blockprotocol/graph --ignore-dep=@blockprotocol/type-system --ignore-package=@apps/hashdotdev --ignore-package=@blocks/chart --ignore-package=@blocks/embed --ignore-package=@blocks/person",
     "lint:eslint": "turbo --continue lint:eslint --",
     "lint:license-in-workspaces": "yarn workspace @local/repo-chores exe scripts/check-license-in-workspaces.ts",
-    "lint:lock-files": "turbo lint:lock-files",
     "lint:lockfile-lint": "lockfile-lint --path yarn.lock --allowed-hosts registry.yarnpkg.com --allowed-schemes \"https:\"",
     "lint:markdownlint": "markdownlint --dot .",
     "lint:prettier": "prettier --check --ignore-unknown .",
-    "lint:mypy": "turbo lint:mypy",
-    "lint:ruff": "turbo lint:ruff",
     "lint:tsc": "turbo --continue lint:tsc --",
     "lint:yarn-deduplicate": "yarn-deduplicate --fail --list --strategy=fewer",
-    "postinstall": "patch-package --error-on-warn && husky install .config/husky",
+    "postinstall": "turbo run postinstall; patch-package --error-on-warn && husky install .config/husky",
     "seed-data:opensearch": "yarn workspace @apps/hash-search-loader clear-opensearch",
     "seed-data:redis": "yarn workspace @apps/hash-realtime clear-redis",
     "seed-data": "concurrently \"yarn:seed-data:*\"",
-    "poetry:install": "turbo poetry:install",
-    "poetry:install-production": "turbo poetry:install-production",
-    "test:backend-integration": "turbo test --filter '@tests/hash-backend-integration' --",
-    "test:playwright": "turbo test --filter '@tests/hash-playwright' --",
-    "test:unit": "turbo test --filter '@apps/hash-api' --filter '@local/hash-backend-utils' --filter '@local/hash-isomorphic-utils' --"
+    "test": "npm-run-all --continue-on-error \"test:*\"",
+    "test:unit": "turbo run test:unit --",
+    "test:integration": "turbo run test:integration --",
+    "test:system": "turbo run test:system --"
   },
   "lint-staged": {
     "**": [
       "suppress-exit-code markdownlint --fix",
       "suppress-exit-code prettier --write"
-    ],
-    "**.py": [
-      "suppress-exit-code yarn fix:black"
     ]
   },
   "prettier": {
@@ -89,9 +77,9 @@
     ]
   },
   "resolutions": {
-    "@types/react": "18.0.25",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "@types/react": "18.0.26",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
   },
   "devDependencies": {
     "@changesets/changelog-github": "0.4.8",
@@ -101,19 +89,19 @@
     "cross-env": "7.0.3",
     "dotenv-flow": "3.2.0",
     "husky": "8.0.3",
-    "lint-staged": "13.0.4",
-    "lockfile-lint": "4.9.6",
-    "markdownlint-cli": "0.32.2",
+    "lint-staged": "15.2.2",
+    "lockfile-lint": "4.13.2",
+    "markdownlint-cli": "0.39.0",
     "npm-run-all": "4.1.5",
     "patch-package": "6.5.0",
     "postinstall-postinstall": "2.1.0",
-    "prettier": "3.0.2",
-    "prettier-plugin-packagejson": "2.4.5",
-    "prettier-plugin-sh": "0.13.1",
+    "prettier": "3.2.5",
+    "prettier-plugin-packagejson": "2.4.12",
+    "prettier-plugin-sh": "0.14.0",
     "prettier-plugin-sql": "0.12.1",
     "suppress-exit-code": "3.1.0",
-    "turbo": "1.10.12",
+    "turbo": "1.12.5",
     "wait-on": "6.0.1",
-    "yarn-deduplicate": "6.0.1"
+    "yarn-deduplicate": "6.0.2"
   }
 }

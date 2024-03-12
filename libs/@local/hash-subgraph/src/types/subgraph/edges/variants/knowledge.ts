@@ -2,21 +2,21 @@ import {
   type HasLeftEntityEdge as HasLeftEntityEdgeBp,
   type HasRightEntityEdge as HasRightEntityEdgeBp,
   type IncomingLinkEdge as IncomingLinkEdgeBp,
-  type IsOfTypeEdge as IsOfTypeEdgeBp,
-  type KnowledgeGraphOutwardEdge as KnowledgeGraphOutwardEdgeBp,
-  type OutgoingLinkEdge as OutgoingLinkEdgeBp,
   isHasLeftEntityEdge as isHasLeftEntityEdgeBp,
   isHasRightEntityEdge as isHasRightEntityEdgeBp,
   isIncomingLinkEdge as isIncomingLinkEdgeBp,
   isIsOfTypeEdge as isIsOfTypeEdgeBp,
+  type IsOfTypeEdge as IsOfTypeEdgeBp,
   isOutgoingLinkEdge as isOutgoingLinkEdgeBp,
+  type KnowledgeGraphOutwardEdge as KnowledgeGraphOutwardEdgeBp,
+  type OutgoingLinkEdge as OutgoingLinkEdgeBp,
 } from "@blockprotocol/graph/temporal";
-import { Subtype } from "@local/advanced-types/subtype";
+import type { Subtype } from "@local/advanced-types/subtype";
 
-import { OntologyTypeVertexId } from "../../vertices";
-import { GenericOutwardEdge } from "../generic-outward-edge";
-import { KnowledgeGraphEdgeKind, SharedEdgeKind } from "../kind";
-import { EntityIdWithInterval, OutwardEdge } from "../outward-edge";
+import type { OntologyTypeVertexId } from "../../vertices";
+import type { GenericOutwardEdge } from "../generic-outward-edge";
+import type { KnowledgeGraphEdgeKind, SharedEdgeKind } from "../kind";
+import type { EntityIdWithInterval, OutwardEdge } from "../outward-edge";
 
 export type OutgoingLinkEdge = Subtype<
   OutgoingLinkEdgeBp,

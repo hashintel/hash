@@ -1,6 +1,11 @@
-import { FunctionComponent, PropsWithChildren, useState } from "react";
+import {
+  FunctionComponent,
+  PropsWithChildren,
+  ReactNode,
+  useState,
+} from "react";
 
-export const useFrozenValue = <T extends any>(
+export const useFrozenValue = <T extends ReactNode>(
   value: T,
   isFrozen: boolean,
 ): T => {

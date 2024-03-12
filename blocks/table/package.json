@@ -30,10 +30,10 @@
     "trailingComma": "all"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.3.1-canary-20230803163819",
-    "@glideapps/glide-data-grid": "5.2.1",
+    "@blockprotocol/graph": "0.3.3",
+    "@glideapps/glide-data-grid": "6.0.3",
     "@hashintel/block-design-system": "0.0.1",
-    "@mui/material": "5.11.9",
+    "@mui/material": "5.14.11",
     "clsx": "1.2.1",
     "immer": "9.0.6",
     "lodash.debounce": "4.0.8",
@@ -47,12 +47,15 @@
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/react-dom": "18.0.9",
-    "block-scripts": "0.3.0",
-    "eslint": "8.33.0",
-    "mock-block-dock": "0.1.5",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "@types/react-dom": "18.0.10",
+    "@types/lodash.debounce": "4.0.7",
+    "@types/lodash.isequal": "4.5.6",
+    "@types/lodash.uniqueid": "4.0.7",
+    "block-scripts": "0.3.4",
+    "eslint": "8.57.0",
+    "mock-block-dock": "0.1.9",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
   },
   "peerDependencies": {
     "react": "^18.0.0",
@@ -99,7 +102,7 @@
     "image": "public/block-preview.png",
     "name": "@hash/table",
     "protocol": "0.3",
-    "blockEntityType": "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/entity-type/table-block/v/4",
+    "blockEntityType": "https://blockprotocol.org/@hash/types/entity-type/table-block/v/4",
     "codegen": {
       "outputFolder": "src/types/generated",
       "targets": {

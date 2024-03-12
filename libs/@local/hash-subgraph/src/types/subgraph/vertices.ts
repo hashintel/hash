@@ -4,6 +4,12 @@ import {
   type EntityVertex as EntityVertexBp,
   type EntityVertexId as EntityVertexIdBp,
   type GraphElementVertexId as GraphElementVertexIdBp,
+  isDataTypeVertex as isDataTypeVertexBp,
+  isEntityTypeVertex as isEntityTypeVertexBp,
+  isEntityVertex as isEntityVertexBp,
+  isEntityVertexId as isEntityVertexIdBp,
+  isOntologyTypeVertexId as isOntologyTypeVertexIdBp,
+  isPropertyTypeVertex as isPropertyTypeVertexBp,
   type KnowledgeGraphVertex as KnowledgeGraphVertexBp,
   type KnowledgeGraphVertices as KnowledgeGraphVerticesBp,
   type OntologyTypeVertexId as OntologyTypeVertexIdBp,
@@ -13,16 +19,10 @@ import {
   type Vertex as VertexBp,
   type VertexId as VertexIdBp,
   type Vertices as VerticesBp,
-  isDataTypeVertex as isDataTypeVertexBp,
-  isEntityTypeVertex as isEntityTypeVertexBp,
-  isEntityVertex as isEntityVertexBp,
-  isEntityVertexId as isEntityVertexIdBp,
-  isOntologyTypeVertexId as isOntologyTypeVertexIdBp,
-  isPropertyTypeVertex as isPropertyTypeVertexBp,
 } from "@blockprotocol/graph/temporal";
-import { Subtype } from "@local/advanced-types/subtype";
+import type { Subtype } from "@local/advanced-types/subtype";
 
-import {
+import type {
   DataTypeWithMetadata,
   Entity,
   EntityPropertiesObject,
@@ -32,7 +32,7 @@ import {
   OntologyTypeRevisionId,
   PropertyTypeWithMetadata,
 } from "../element";
-import { BaseUrl, EntityId } from "../shared";
+import type { BaseUrl, EntityId } from "../shared";
 
 export type DataTypeVertex = Subtype<
   DataTypeVertexBp,
