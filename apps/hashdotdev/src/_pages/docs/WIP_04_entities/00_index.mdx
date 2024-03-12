@@ -23,10 +23,8 @@ Users can also create **shared webs** which multiple users may have ownership ov
 
 ## Entities & Links
 
-An entity is "anything". A **standard entity** might correspond to a physical thing, a concept or idea, an event or action, or really anything else you like _other than_ a relationship between two entities.
+An entity is "anything". An **entity** might correspond to a physical thing, a concept or idea, an event or action, or really anything else you like.
 
-In the case of relationships between entities, a **link entity** is used to denote their relationship between. For example a `Sibling` link entity might connect two standard `Person` entities.
+Link entities are a special kind of entity which describe a relationship between two other entities. For example a `Sibling` link entity might connect two `Person` entities. For brevity, elsewhere in these docs and the product we generally refer to link entities as "links", and other entities simply as "entities".
 
-Link entities are the _only_ non-standard entities that exist. For brevity, elsewhere in these docs and the product we generally refer to link entities as "links", and standard entities simply as "entities".
-
-But being an entity doesn't mean much. Information can't be stored on an entity or associated with it until that entity has a [type](https://hash.dev/docs/types).
+All entities must have at least one [type](https://hash.dev/docs/types), which describes the information and relationships it may have.
