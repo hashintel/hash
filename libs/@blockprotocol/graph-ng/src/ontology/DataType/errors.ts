@@ -7,13 +7,18 @@ export type UnsupportedKeyword =
   | "symbol"
   | "undefined"
   | "void"
-  | "unique symbol";
+  | "unique symbol"
+  | "tuple"
+  | "type"
+  | "object";
 
 export type ValidationErrorReason = Data.TaggedEnum<{
   UnsupportedKeyword: {
     keyword: UnsupportedKeyword;
   };
+  CustomTypeNotSupported: {};
   UnionNotSupported: {};
+  RecursiveTypeNotSupported: {};
 }>;
 export const ValidationErrorReason = Data.taggedEnum<ValidationErrorReason>();
 
