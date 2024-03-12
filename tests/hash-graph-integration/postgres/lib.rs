@@ -523,7 +523,7 @@ impl DatabaseApi<'_> {
     pub async fn create_entity(
         &mut self,
         properties: EntityProperties,
-        entity_type_id: VersionedUrl,
+        entity_type_ids: Vec<VersionedUrl>,
         entity_uuid: Option<EntityUuid>,
         draft: bool,
     ) -> Result<EntityMetadata, InsertionError> {
@@ -536,7 +536,7 @@ impl DatabaseApi<'_> {
                     owned_by_id: OwnedById::new(self.account_id.into_uuid()),
                     entity_uuid,
                     decision_time: Some(generate_decision_time()),
-                    entity_type_id,
+                    entity_type_ids,
                     properties,
                     link_data: None,
                     draft,
@@ -701,7 +701,7 @@ impl DatabaseApi<'_> {
         &mut self,
         entity_id: EntityId,
         properties: EntityProperties,
-        entity_type_id: VersionedUrl,
+        entity_type_ids: Vec<VersionedUrl>,
         link_order: EntityLinkOrder,
         draft: bool,
     ) -> Result<EntityMetadata, UpdateError> {
@@ -713,7 +713,7 @@ impl DatabaseApi<'_> {
                 UpdateEntityParams {
                     entity_id,
                     decision_time: Some(generate_decision_time()),
-                    entity_type_id,
+                    entity_type_ids,
                     properties,
                     link_order,
                     archived: false,
@@ -726,7 +726,7 @@ impl DatabaseApi<'_> {
     async fn create_link_entity(
         &mut self,
         properties: EntityProperties,
-        entity_type_id: VersionedUrl,
+        entity_type_ids: Vec<VersionedUrl>,
         entity_uuid: Option<EntityUuid>,
         left_entity_id: EntityId,
         right_entity_id: EntityId,
@@ -740,7 +740,7 @@ impl DatabaseApi<'_> {
                     owned_by_id: OwnedById::new(self.account_id.into_uuid()),
                     entity_uuid,
                     decision_time: Some(generate_decision_time()),
-                    entity_type_id,
+                    entity_type_ids,
                     properties,
                     link_data: Some(LinkData {
                         left_entity_id,
@@ -922,7 +922,7 @@ impl DatabaseApi<'_> {
         &mut self,
         entity_id: EntityId,
         properties: EntityProperties,
-        entity_type_id: VersionedUrl,
+        entity_type_ids: Vec<VersionedUrl>,
         link_order: EntityLinkOrder,
     ) -> Result<EntityMetadata, UpdateError> {
         self.store
@@ -935,7 +935,7 @@ impl DatabaseApi<'_> {
                     decision_time: None,
                     archived: true,
                     draft: false,
-                    entity_type_id,
+                    entity_type_ids,
                     properties,
                     link_order,
                 },

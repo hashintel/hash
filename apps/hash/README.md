@@ -61,7 +61,7 @@ To run HASH locally, please follow these steps:
    ## ≥ 1.16
    
    rustc --version
-   ## ≥ 2024-03-04 (If installed through rustup, this will automatically install the required toolchain)
+   ## ≥ 2024-03-11 (If installed through rustup, this will automatically install the required toolchain)
    
    cargo --version
    ## Version matching the above rustc version

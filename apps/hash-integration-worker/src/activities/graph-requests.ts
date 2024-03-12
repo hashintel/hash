@@ -206,7 +206,7 @@ export const archiveEntity = async (params: {
      *
      * @see https://app.asana.com/0/1201095311341924/1203285029221330/f
      * */
-    entityTypeId: entity.metadata.entityTypeId,
+    entityTypeIds: [entity.metadata.entityTypeId],
     properties: entity.properties,
     draft: false,
   });

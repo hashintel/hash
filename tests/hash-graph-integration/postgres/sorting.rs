@@ -128,7 +128,7 @@ async fn insert(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
             serde_json::from_str(entity).expect("could not parse entity");
         api.create_entity(
             properties.clone(),
-            type_id.clone(),
+            vec![type_id.clone()],
             Some(EntityUuid::new(Uuid::from_u128(idx as u128))),
             false,
         )

@@ -3898,6 +3898,7 @@ dependencies = [
  "chrono",
  "email_address",
  "error-stack",
+ "futures",
  "graph-test-data",
  "graph-types",
  "iso8601-duration",
