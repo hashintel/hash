@@ -5,7 +5,8 @@ use crate::{
     store::postgres::query::{
         table::{
             Column, EntityEditions, EntityEmbeddings, EntityHasLeftEntity, EntityHasRightEntity,
-            EntityIds, EntityTemporalMetadata, JsonField, ReferenceTable, Relation,
+            EntityIds, EntityIsOfTypeIds, EntityTemporalMetadata, JsonField, ReferenceTable,
+            Relation,
         },
         PostgresQueryPath,
     },
@@ -34,6 +35,7 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             | Self::RightToLeftOrder
             | Self::EditionCreatedById
             | Self::Archived => vec![Relation::EntityEditions],
+            Self::TypeBaseUrls | Self::TypeVersions => vec![Relation::EntityIsOfTypes],
             Self::EntityTypeEdge {
                 edge_kind: SharedEdgeKind::IsOfType,
                 path,
@@ -99,6 +101,8 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             Self::EditionCreatedById => Column::EntityEditions(EntityEditions::EditionCreatedById),
             Self::Embedding => Column::EntityEmbeddings(EntityEmbeddings::Embedding),
             Self::CreatedById => Column::EntityIds(EntityIds::CreatedById),
+            Self::TypeBaseUrls => Column::EntityIsOfTypeIds(EntityIsOfTypeIds::BaseUrls),
+            Self::TypeVersions => Column::EntityIsOfTypeIds(EntityIsOfTypeIds::Versions),
             Self::CreatedAtDecisionTime => Column::EntityIds(EntityIds::CreatedAtDecisionTime),
             Self::CreatedAtTransactionTime => {
                 Column::EntityIds(EntityIds::CreatedAtTransactionTime)
