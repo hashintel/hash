@@ -37,7 +37,7 @@ Each instance of HASH relies on a number of components. Opportunities for contri
 
 We also make use of third-party open-source applications as part of:
 
-- **Authentication system:** based on Ory Kratos, handles user accounts and sessions. Managed by the Node API.
+- **Authentication system:** based on Ory Kratos and Hydra, handles user accounts, sessions and access tokens. Managed by the Node API.
 - **Authorization system** based on SpiceDB, extends a Zanzibar-like way of providing permissionsed access to information. Managed by the Graph.
 - **Execution system:** based on Temporal, powers **flows**
 - **Datastore(s):** currently Postgres, with planned support for additional specialized backends for selectively storing/offloading specific kinds of data (e.g. timeseries, financial/accounting) and queries (e.g. full-text/vector search). Managed by the Graph.
