@@ -158,7 +158,7 @@ pub struct EntityProvenanceMetadata {
 pub struct EntityMetadata {
     pub record_id: EntityRecordId,
     pub temporal_versioning: EntityTemporalMetadata,
-    pub entity_type_id: VersionedUrl,
+    pub entity_type_ids: Vec<VersionedUrl>,
     pub provenance: EntityProvenanceMetadata,
     pub archived: bool,
 }

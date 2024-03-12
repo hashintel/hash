@@ -211,20 +211,6 @@ const getHeadingsFromMarkdown = (markdownFilePath: string): Heading[] => {
         },
       ],
     },
-    ...(data.subtitle
-      ? [
-          {
-            type: "heading" as const,
-            depth: 2,
-            children: [
-              {
-                type: "text",
-                value: data.subtitle,
-              },
-            ],
-          },
-        ]
-      : []),
     ...headings,
   ];
 };

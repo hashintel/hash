@@ -175,3 +175,6 @@ LICENSE-*.md
 # Turborepo
 .turbo/
 out/
+
+# hash.dev sitemap
+apps/hashdotdev/sitemap.json

@@ -1603,7 +1603,7 @@ Content-Type: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "entityType": "http://localhost:3000/@alice/types/entity-type/person/v/1",
+  "entityTypes": ["http://localhost:3000/@alice/types/entity-type/person/v/1"],
   "properties": {
     "http://localhost:3000/@alice/types/property-type/name/": "Alice"
   },
@@ -1627,7 +1627,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": {
     "http://localhost:3000/@alice/types/property-type/name/": "Alice"
   },
-  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1",
+  "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/person/v/1"],
   "draft": false,
   "relationships": [{
     "relation": "setting",
@@ -1754,7 +1754,7 @@ Content-Type: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "entityType": "http://localhost:3000/@alice/types/entity-type/person/v/2",
+  "entityTypes": ["http://localhost:3000/@alice/types/entity-type/person/v/2"],
   "properties": {
     "http://localhost:3000/@alice/types/property-type/name/": "Alice Allison"
   },
@@ -1775,7 +1775,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "entityId": "{{person_a_entity_id}}",
-  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
+  "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/person/v/2"],
   "properties": {
     "http://localhost:3000/@alice/types/property-type/name/": "Alice Allison 3"
   },
@@ -1834,7 +1834,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "http://localhost:3000/@alice/types/property-type/name/": "Bob",
     "http://localhost:3000/@alice/types/property-type/height/": 1.8
   },
-  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
+  "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/person/v/2"],
   "draft": true,
   "relationships": [{
     "relation": "setting",
@@ -2016,7 +2016,7 @@ Content-Type: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "entityType": "{{friendship_link_entity_type_id}}",
+  "entityTypes": ["{{friendship_link_entity_type_id}}"],
   "properties": {},
   "linkData": {
     "leftEntityId": "{{person_a_entity_id}}",
@@ -2040,7 +2040,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 {
   "ownedById": "{{account_id}}",
   "properties": {},
-  "entityTypeId": "{{friendship_link_entity_type_id}}",
+  "entityTypeIds": ["{{friendship_link_entity_type_id}}"],
   "linkData": {
     "leftEntityId": "{{person_a_entity_id}}",
     "rightEntityId": "{{person_b_entity_id}}"
@@ -2070,7 +2070,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "entityId": "{{person_b_entity_id}}",
-  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
+  "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/person/v/2"],
   "properties": {
     "http://localhost:3000/@alice/types/property-type/name/": "Bob"
   },
@@ -2093,7 +2093,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "entityId": "{{link_entity_id}}",
-  "entityTypeId": "{{friendship_link_entity_type_id}}",
+  "entityTypeIds": ["{{friendship_link_entity_type_id}}"],
   "properties": {},
   "archived": false,
   "draft": false
@@ -2276,7 +2276,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "entityId": "{{person_b_entity_id}}",
-  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1",
+  "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/person/v/1"],
   "properties": {
     "http://localhost:3000/@alice/types/property-type/name/": "Bob"
   },
@@ -2848,7 +2848,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": {
     "http://localhost:3000/@alice/types/property-type/name/": "Charles"
   },
-  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
+  "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/person/v/2"],
   "draft": false,
   "relationships": [{
     "relation": "setting",
@@ -2875,7 +2875,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "entityId": "{{person_c_entity_id}}",
-  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
+  "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/person/v/2"],
   "properties": {
     "http://localhost:3000/@alice/types/property-type/name/": "Charles 2 draft"
   },
@@ -2899,7 +2899,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "entityId": "{{person_c_entity_id_draft}}",
-  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
+  "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/person/v/2"],
   "properties": {
     "http://localhost:3000/@alice/types/property-type/name/": "Charles 2"
   },

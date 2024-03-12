@@ -31,6 +31,15 @@ const nextConfig = {
         destination: "https://hash.ai/legal/developers/license",
         permanent: true,
       },
+      /**
+       * Temporarily redirect the `/docs` home page to the first tab of the
+       * `/docs` pages.
+       */
+      {
+        source: "/docs",
+        destination: "/docs/get-started",
+        permanent: false,
+      },
     ];
   },
 
