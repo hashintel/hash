@@ -27,7 +27,7 @@ When finding the neighbors of agents in a simulation, HASH depends on a few impo
 | `conway` | Same as chebyshev. Named after John Conway because of its use in collecting all 8 neighbors in an [agent's neighborhood](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life#Rules). |
 | `manhattan` | Distance between agents are computed on a grid, where the distance is the total sum of the difference in each of the axes. [Wikipedia](https://en.wikipedia.org/wiki/Taxicab_geometry) |
 | `euclidean` | The point-point distance "as the crow flies" between two points [Wikipedia](https://en.wikipedia.org/wiki/Euclidean_distance) |
-| `euclidean_squared` | Same as euclidean, but the final square root is not taken. This is useful when for high-performance distance calculations when only order matters. [Wikipedia](https://en.wikipedia.org/wiki/Euclidean_distance#Squared_Euclidean_distance) |
+| `euclidean_squared` | Same as euclidean, but the final square root is not taken. This is useful when high-performance distance calculations when only order matters. [Wikipedia](https://en.wikipedia.org/wiki/Euclidean_distance#Squared_Euclidean_distance) |
 
 <Hint style="info">
   The default distance function is `conway` - make sure to change it depending
