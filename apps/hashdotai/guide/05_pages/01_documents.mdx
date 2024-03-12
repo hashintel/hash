@@ -1,0 +1,61 @@
+---
+title: "Documents"
+description: "Standard linear pages"
+metaTitle: "Documents - HASH"
+metaDescription: "Documents are pages composed of blocks arranged in a fixed, linear order. In English this is top-to-bottom and left-to-right, but in other languages this may vary."
+sidebarTitle: "Documents"
+sidebarIcon: https://app.hash.ai/icons/docs/pages-documents.svg
+---
+
+<Callout style="information" type="coming-soon">
+  Creating and editing documents is only available to **Team** and **Ultra**
+  users of HASH.
+</Callout>
+
+# Overview
+
+Documents are a type of [page](/guide/pages) that allow for blocks to be inserted and arranged linearly (e.g. top-to-bottom, left-to-right) within columns.
+
+Whatever kind of information you're viewing, creating or editing when using documents in HASH, you'll interface with it through a [block](/guides/pages/blocks).
+
+# Inserting blocks
+
+When you create a new document in HASH, an empty "Paragraph" block will automatically be inserted at the top of the page and your cursor will be placed inside the block, ready to type. HASH does this so that pages can be used to quickly capture writing.
+
+Pressing the `/` key on your keyboard, while in an empty block (such as the one each page starts out with) will open a menu containing the different types of blocks available in HASH. You can scroll through this list or continue typing to search. Hitting return will insert the currently selected block in that menu, but you can also click on the block you want. The `/` command works in almost any text-based block.
+
+Hitting the return key `⮐` in the paragraph block will create a new empty block below the original. Each paragraph on a page exists an individual block. You can tell this from the `...` context menu on the left of the block, from the comment button on the right of the block, and from the `—-[+]—-` button which appears above and below the paragraph when you hover. Clicking on this button provides another means of inserting blocks onto a page, in the given location that the pressed button appeared.
+
+!["The insert block button"](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/d54cea75-8635-415c-ffa3-163990c6f200/public)
+
+The "Paragraph" block is the most basic sort of block in HASH, and only one of many different kinds.
+
+# Managing blocks
+
+The `...` button shown to the left of the block while hovering over it is the block's context menu, providing a set of options:
+
+1. **Copy link**: copies a link to this specific block to your clipboard. Opening this link will open the page and show a visual highlight next to the block which was linked to.
+1. **Edit block**: opens the "editor" for the entity attached to this block in a side-bar overlay on the right of the screen. Edits you make to the entity will be reflected in the block immediately.
+1. **Configure**: opens the block’s configuration menu, if available. Not all blocks have configuration options. Those that do allow for things like the customization of the block’s UI or the toggling of different features.
+1. **Delete**: removes a block from the current version of a page.
+
+You can also re-order blocks by clicking and dragging on the `...` conetxt menu icon. As you drag, you’ll notice a line will appear which indicates where the drop will move to in the order of blocks on the page if you drop it.
+
+# Using blocks
+
+Blocks are generally used for either (a) capturing new information (like our paragraph block), or (b) loading and display existing information (such as a chart block, which generates a graph plotting the values of some entities).
+
+However, some blocks may be used for both: for example a table block may query and display entities already in your graph, additionally making them editable, while allowing you to create new entities that match the query parameters, as well.
+
+Other blocks may not be used for either. For example, the "Minesweeper" game block provides on-page fun, but doesn't save your results or persist your score anywhere else. It is simply a "window" into a game.
+
+You can attach a comment to a block by clicking the speech bubble icon, which appears as you hover on the right. Comments are attached to the whole block.
+
+<Callout style="information" type="coming-soon">
+  In the future we'll support commenting on specific elements within blocks, as
+  well as on blocks themselves.
+</Callout>{" "}
+
+# Using chips
+
+In addition to the `/` command, you can type `@` inside a text block, as well as when writing a comment, to _mention_ entities or other users. Learn more about [chips >](/guide/pages/chips)

@@ -1,0 +1,64 @@
+---
+title: "Open-sourcing HASH"
+subtitle: "Our plans for the platform's future"
+date: "2022-01-27"
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/c3b91ea7-6229-4f88-4ab8-45e1c4f92c00/public
+categories:
+  - "Company"
+---
+
+If you’ve followed HASH (the company) for a while, you’re probably familiar with or have used:
+
+- **[hEngine](https://hash.ai/platform/engine)**: our agent-based modeling simulation engine written in Rust;
+- **[hCore](https://hash.ai/platform/core)**: our web-based IDE for quickly prototyping simulations and designing experiments;
+- **[hCloud](https://hash.ai/platform/cloud)**: our one-click cloud compute service for executing experiments at scale with zero DevOps or set up required;
+- **[hIndex](https://hash.ai/platform/index)**: our online community for simulation modelers - sometimes described as “GitHub meets a package manager” - albeit for simulations and their component parts, supporting datasets, behaviours, agent schemas, and complete simulation models.
+
+A few months ago [we revealed](https://hash.ai/blog/announcing-the-block-protocol) we were working on something new. The [Block Protocol](https://blockprotocol.org/) is now in public draft, and an early preview of our new product, _HASH_, is available for download on GitHub.
+
+## Block Protocol
+
+The _Block Protocol_ is an open specification and hosted registry for finding and sharing semantically meaningful 'blocks' of the sort you find in content management systems and note-taking applications today. You can [read more about the Block Protocol](https://www.joelonsoftware.com/?p=3906) on our co-founder Joel's blog. Our intention is that these 'block' components should generally support both viewing and editing data inline, making the components versatile and suitable for use within a wide range of contexts.
+
+## HASH
+
+_HASH_ is a fully open-source all-in-one workspace application based on the Block Protocol. You can find the pre-release preview over in the [HASH GitHub repo](https://github.com/hashintel/hash/tree/main/packages/hash).
+
+HASH is very early-stage today, but we're developing it out in the open. The app provides every user with a rich entity graph, web-based editor, and tools for defining entity types ('schemas'). While this sounds complicated, what it means for everyday business users is that creating and viewing structured data is easier than ever.
+
+We haven’t yet thrown up a hosted demo of our new _HASH_ workspace application, but you can view the code on GitHub, and run/install it yourself. What you see today is an early alpha release; if you like it now, just wait until you see how fast it improves. You can [sign up for the waitlist](http://hash.ai/platform/hash) to get access to the hosted version of HASH before anybody else.
+
+## **What this means for current users of hash.ai**
+
+You can expect a hosted version of _HASH_ to replace our present-day _hIndex_ in the coming months (i.e. the current hash.ai website). In the meantime, you can continue to use hIndex as normal, and anything you publish to it will continue to be available (publicly or private to you/your organization) once the transition is complete. All of hIndex’s version-control functionality will exist within the new HASH product.
+
+## **Currently in-flight**
+
+Things you can look out for in the weeks and months ahead:
+
+- improving the UX/UI of the new HASH application (our design lead Maggie Appleton has produced some truly amazing designs and user flows we can’t wait to share)
+- allowing non-technical users to connect up SaaS applications and external databases/data warehouses to automate entity creation and updates
+- supporting computationally expensive activities in blocks (e.g. advanced SQL queries) through improvements to hCloud
+- developing a wider-array of Business Intelligence-type blocks
+- a focus on speed and stability as we start refining the product
+
+## **Future simulation-specific plans**
+
+Once the core [HASH platform](https://hash.ai/platform) has been built, we intend to focus on:
+
+- building [hCore](https://hash.ai/platform/core)'s core functionality into HASH itself, and deprecating hCore as a standalone application
+- allowing users to attach programmatic behaviors to entity types, further facilitating the _HASH_ workspace product’s ability to speed simulation model development cycles
+- enabling hCloud simulation results to be pumped directly back into users' graphs
+- supporting the easy instantiation of agents in simulation models from users' graphs
+
+## Get involved
+
+**We’re actively looking to support open-source community members interested in any of the following:**
+
+- Tooling and utilities that improve the block-development process
+- Novel or unique blocks not yet widely found in existing block-based editors
+- Extending HASH to support programmatic notebooks/in-document REPLs (e.g. inline JavaScript execution, or hCloud-powered Python)
+- A Block Protocol plugin for WordPress that works seamlessly with the existing Gutenberg editor (update: or potentially [some deeper integration](https://twitter.com/photomatt/status/1486793646045216769))
+- Adding support for the Block Protocol within any other application
+
+[Contact us](https://blockprotocol.org/contact) directly, create a discussion on the [Block Protocol repo](https://github.com/blockprotocol/blockprotocol/discussions), or join us in the [HASH Discord](https://hash.ai/discord).

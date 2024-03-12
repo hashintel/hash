@@ -350,8 +350,8 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
             }
           >
             <HomePageBodyTypography>
-              HASH is an open source, all-in-one platform for working with
-              information, built around blocks.
+              HASH is an open-source, self-building database, with 2-way sync
+              and a graphical user interface.
             </HomePageBodyTypography>
             <Box component="ul" sx={{ "> li": { marginBottom: 0 } }}>
               <Box component="li">
@@ -385,7 +385,8 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
               </Box>
               <Box component="li">
                 <HomePageBodyTypography>
-                  Use entities in agent-based <strong>simulations</strong>
+                  In the future: use entities in agent-based{" "}
+                  <strong>simulations</strong>
                 </HomePageBodyTypography>
               </Box>
             </Box>
