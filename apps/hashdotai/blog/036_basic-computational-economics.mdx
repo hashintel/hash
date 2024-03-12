@@ -42,7 +42,7 @@ The behavior takes in a mutable **state** for the specific agent and an immutabl
 
 Each agent on the HASH platform has a private state that can contain any fields that you want. The state object can be accessed as an object in JavaScript or a dictionary in Python.
 
-Changing the state can change the 3D appearance of an agent, using [reserved fields](https://hash.ai/docs/simulation/creating-simulations/anatomy-of-an-agent/state).
+Changing the state can change the 3D appearance of an agent, using [reserved fields](https://hash.dev/docs/simulation/creating-simulations/anatomy-of-an-agent/state).
 
 ```javascript
 const behavior = (state, context) => {
@@ -323,7 +323,7 @@ The code in the HASH simulation above calculates the outcome for the iterated Pr
 
 Lets model the Prisoner's Dilemma more abstractly by considering two agents, **A** and **B**, who at each time step can either co-operate or defect.
 
-We can model a strategy in HASH through writing a [behavior](https://hash.ai/docs/simulation/creating-simulations/behaviors). Behaviors in HASH are functions attached to agents called at every time step. Behaviors take in the agent’s mutable state and context, and return an updated state.
+We can model a strategy in HASH through writing a [behavior](https://hash.dev/docs/simulation/creating-simulations/behaviors). Behaviors in HASH are functions attached to agents called at every time step. Behaviors take in the agent’s mutable state and context, and return an updated state.
 
 The code below from `strategy_cooperate.js` outlines a basic strategy in which the agent **always co-operates**.
 
@@ -459,7 +459,7 @@ function adoptStrategies(sum, strategy_colors, state, context) {
 }
 ```
 
-The grid layout is the simplest of many layouts of agents that can be simulated in HASH. In this simulation, we have imported the `@hash/create_grids.js` behavior to set up the grid of agents in 3D space. The behavior is part of the [HASH standard library](https://hash.ai/docs/simulation/creating-simulations/libraries).
+The grid layout is the simplest of many layouts of agents that can be simulated in HASH. In this simulation, we have imported the `@hash/create_grids.js` behavior to set up the grid of agents in 3D space. The behavior is part of the [HASH standard library](https://hash.dev/docs/simulation/creating-simulations/libraries).
 
 ### Analyzing our output
 
@@ -562,7 +562,7 @@ The behaviors on each agent work on a state that is updated all at once every ti
 
 In our code below, the agent checks its neighbouring agents and makes a bid. However, the bid price of the nearest sellers will only update after the full time step for all agents is complete.
 
-Agents can also communicate with each other via use of [messages](https://hash.ai/docs/simulation/creating-simulations/agent-messages). Messages are sent via agents before the computation of every time step. This allows for more complex coordination between agents.
+Agents can also communicate with each other via use of [messages](https://hash.dev/docs/simulation/creating-simulations/agent-messages). Messages are sent via agents before the computation of every time step. This allows for more complex coordination between agents.
 
 ### Selling at auction
 
@@ -651,7 +651,7 @@ Let's vary the minimum skill it takes to produce an apple from 0 to 1. We can se
 
 The results show a wide distribution of outcomes -- even though we the simulation was generated using a simple set of instructions and parameters. We can see that the greatest changes in production are when the minimum `skill` is set to around `0.6`. HASH allows for building insights about these complex systems that go above and beyond the tools of normal econometrics.
 
-[Learn more about creating experiments in HASH >](https://hash.ai/docs/simulation/creating-simulations/experiments)
+[Learn more about creating experiments in HASH >](https://hash.dev/docs/simulation/creating-simulations/experiments)
 
 ## Queueing theory
 
@@ -1070,6 +1070,6 @@ After running the simulation for a sufficient number of steps, the offerings con
 
 ## In summary
 
-That's it for this post. If you want to take the ideas mentioned here course further, please check out any of the [open-source simulations](https://hash.ai/models) built on HASH which are available for download, or read the [HASH simulation-development docs](https://hash.ai/docs/simulation).
+That's it for this post. If you want to take the ideas mentioned here course further, please check out any of the [open-source simulations](https://hash.ai/models) built on HASH which are available for download, or read the [HASH simulation-development docs](https://hash.dev/docs/simulation).
 
 We recommend getting started with the [wildfires simulation](https://simulation.hash.ai/@hash/wildfires-regrowth), or the [interconnected call center](https://simulation.hash.ai/@hash/interconnected-call-center) that was mentioned earlier in this piece. Thanks for joining us, and we hope to see you in our [Discord](https://hash.ai/discord) or on the platform!
