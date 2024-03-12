@@ -1,0 +1,124 @@
+---
+title: "Dictionary of Terms"
+subtitle: "Technical reference guide for HASH"
+---
+
+## Introduction
+
+This dictionary of terms acts as a companion to the codebase of HASH, and is designed for those developing the application itself (both active contributors, and those looking to push changes for the first time). It establishes the common terms we use, and ensures we refer to the same things in the same ways consistently across the application's codebase (which is large) and in issues/discussions with ourselves. It covers technical concepts, as well as the names of user-facing features we refer to in code (cross-linking to the user guide for functional overviews of these where appropriate).
+
+## Key concepts
+
+### Meta
+
+#### Instances
+
+An `Instance` of HASH refers to a single implementation of HASH which is running somewhere. This may be generally accessible via the World Wide Web, hosted privately within an organization's intranet, or set up locally on a single machine only (perhaps even running in an air-gapped environment with no external network access).
+
+Any `Instance` of HASH which allows external network access is known as a `Connected Instance`.
+
+Any `Connected Instance` of HASH that syncs information with, or publishes information to the `Global Public Graph` is known as a `Federated Instance`.
+
+#### Accounts, Users & Bots
+
+Any actor which interacts with the `Graph` has an `Account`. This includes both:
+
+- Any human actor, known as a `User`, has an `Account` and exactly one `Web` of their own.
+- Any machine actor, known as a `Bot`, has an `Account` but no `Web` of its own.
+
+`User` accounts can be logged into, while `Bot` accounts cannot.
+
+#### Organizations
+
+An `Organization` has a `Web`, as well as one or more associated `User`s, known as `Member`s.
+
+At least one of the `User`s associated with an `Organization` must be designated an `Administrator` of the `Organization`, granting them access to key management permissions (e.g. the ability to invite other `User`s to the `Organization`).
+
+#### Webs
+
+Every `Entity` lives inside of exactly one `Web`.
+
+Every `User` and every `Organization` has exactly one `Web`.
+
+Every `Web` has a human-readable `Namespace` by which it can be identified.
+
+`Bot` (machine) `Account`s do not have a `Web`, nor do they therefore have `Namespace`s.
+
+#### Namespaces
+
+A `Namespace` is the reserved ID of a `Web`, within a particular HASH `Instance` (e.g. the `@acme-corp` portion of `https://hash.ai/@acme-corp`). Every `User` and `Organization` has a `Web`, so also has a `Namespace`. However, not every `Account` necessarily has a `Namespace` (e.g. in the case of machine actor accounts)
+
+### Knowledge
+
+#### Graphs, Subgraphs & Structural Queries
+
+A **Graph** contains all of the data within a single HASH _Instance_.
+
+A **Subgraph** represents some _part_ (strict subset) of the whole _Graph_, and is returned by a _Structural Query_.
+
+A **Structural Query** consists of:
+
+1. a `filter` which is applied to the portion of the `Graph` visible to the `Account` running the query, which returns zero or more `root` entities;
+1. a `depth` parameter which tells the application how many layers of links deep to traverse the graph.
+
+Understanding `depth` in _Structural Queries_:
+
+- If a _Structural Query_ has a `depth` of `0`, it will only return the `root` entities for a query which directly match its specified `filter`.
+- A depth of `1` would return all `root` entities as well as any entities directly connected by a link to any `root` entity.
+- A depth of `2` would return all `root` entities, any entities directly connected to them by a link, as well as any entities in turn connected to those entities by yet another link.
+- Depending on the shape of the data in a _Graph_, a high `depth` parameter can exponentially increase the amount of information returned by any given query, and great care should be taken.
+
+The `Global Public Graph` is a planned initiative which will allow for unifyied querying of all public information that exists across any `Connected Instance` of HASH.
+
+#### Entities
+
+**Entities** are identified using:
+
+- `EntityId`: Primary identifier for an entity, encoded as `{OwnedById}~{EntityUuid}`
+  - `OwnedById`/`WebId` (both terms mean the same): Identifies a 'Web', currently part of the primary key for entities but likely to be moved to entity metadata
+  - `EntityUuid`: a UUIDv4
+- `EditionId`: Each update of an entity is persisted in the datastore. Each update creates a new edition.
+- `TransactionTime`: The time point when an entity or a type was inserted into the datastore (precisely the time when the transaction started to create that record)
+- `DecisionTime`: The time when a user decided something should go into the data store. This defaults to the `TransactionTime`.
+
+To uniquely identify an **entity edition**, you must specify both:
+
+1. The `EntityId`
+1. Any two of `EditionId`, `TransactionTime`, or `DecisionTime`
+
+.....Explain when we use entity editions/why this matters.....
+
+#### Kinds of Entities
+
+Technically speaking, there are two kinds of entities:
+
+1. **Ordinary entities**, which have an _Entity Type_. We generally mean these when we refer to "entities" in standalone.
+1. **Link entities**, which have a _Link Type_. Often referred to simply as "links". These specify a relationship between at least two ordinary entities, making them both semantically meaningful, and integral to _Structural Queries_ (enabling paths to be followed between connected entities).
+
+### Ontology
+
+#### Types
+
+Ontology types are identified using:
+
+- `BaseUrl`: A URL referring to the ontology type. Needs to be in a valid URL format (including a trailing slash!)
+- `VersionedUrl`: The `BaseUrl` and a version. encoded as `{BaseUrl}v/{version}`
+- `TransactionTime`: see above
+- `DecisionTime`: see above, not implemented, yet
+- `OntologyId`: A UUIDv5 created from the `VersionedUrl` and the [`NameSpace_URL`](https://www.rfc-editor.org/rfc/rfc4122#appendix-C), mainly used internally to avoid a string as identifier
+
+#### Kinds of Types
+
+There are four kinds of types.
+
+##### Entity Types
+
+##### Link Entity Types
+
+##### Property Types
+
+##### Data Types
+
+## Visualization
+
+.....Insert graph representation of the types in HASH, and the connections between them (a visual summary of the page here).....

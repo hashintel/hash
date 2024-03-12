@@ -2,6 +2,11 @@ import { faLink } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   styled,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
   Tooltip,
   Typography,
   TypographyProps,
@@ -18,8 +23,15 @@ import slugify from "slugify";
 import { FontAwesomeIcon } from "../components/icons/font-awesome-icon";
 import { ImageWithText } from "../components/image-with-text";
 import { Link } from "../components/link";
+import { Check } from "../components/mdx/check";
+import { Embed } from "../components/mdx/embed";
+import { Hint } from "../components/mdx/hint";
+import { InfoCard } from "../components/mdx/info-card";
+import { InfoCardWrapper } from "../components/mdx/info-card-wrapper";
+import { Math } from "../components/mdx/math";
 import { usePageHeading } from "../components/mdx/shared/use-page-heading";
 import { stringifyChildren } from "../components/mdx/shared/util";
+import { Tab, Tabs, TextTab, TextTabs } from "../components/mdx/tabs";
 import { MdxCallout } from "../components/mdx-callout";
 import { MdxImage } from "../components/mdx-image";
 import { MdxPre } from "../components/mdx-pre";
@@ -139,7 +151,7 @@ export const mdxComponents: Record<string, ComponentType<any>> = {
     );
   },
   h2: (props: TypographyProps<"h2">) => {
-    const anchor = slugify(stringifyChildren(props.children));
+    const anchor = slugify(stringifyChildren(props.children)).toLowerCase();
 
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const { headingRef } = usePageHeading({ anchor });
@@ -158,7 +170,7 @@ export const mdxComponents: Record<string, ComponentType<any>> = {
     );
   },
   h3: (props: TypographyProps<"h3">) => {
-    const anchor = slugify(stringifyChildren(props.children));
+    const anchor = slugify(stringifyChildren(props.children)).toLowerCase();
 
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const { headingRef } = usePageHeading({ anchor });
@@ -218,4 +230,46 @@ export const mdxComponents: Record<string, ComponentType<any>> = {
   ImageWithText,
 
   TalkSlide: MdxTalkSlide,
+
+  InfoCard,
+
+  InfoCardWrapper,
+
+  table: Table,
+
+  thead: TableHead,
+
+  tbody: TableBody,
+
+  tr: TableRow,
+
+  th: ({ children }: HTMLProps<HTMLTableHeaderCellElement>) => (
+    <TableCell variant="head">{children}</TableCell>
+  ),
+
+  td: TableCell,
+
+  /**
+   * These components were ported from the legacy hash.ai website and
+   * are used in the `/docs/simulation` pages.
+   *
+   * Some of these components depend on the `legacy-mdx-components.scss`
+   * stylesheet imported in `_app.page.tsx`.
+   */
+
+  Hint,
+
+  Tab,
+
+  Tabs,
+
+  TextTab,
+
+  TextTabs,
+
+  Math,
+
+  Embed,
+
+  Check,
 };

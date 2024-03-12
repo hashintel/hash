@@ -19,6 +19,7 @@ import Image from "next/legacy/image";
 import { ComponentProps, FunctionComponent, ReactNode } from "react";
 
 import { Button } from "../components/button";
+import { ArrowUpRightFromSquareRegularIcon } from "../components/icons/arrow-up-right-from-square-regular-icon";
 import { FontAwesomeIcon } from "../components/icons/font-awesome-icon";
 import { GithubIcon } from "../components/icons/github-icon";
 import { Link } from "../components/link";
@@ -77,13 +78,14 @@ const Hero: FunctionComponent = () => (
       <BlueStylishDivider mb={5} />
       <Box width={{ xs: 1, md: 725 }}>
         <Typography mb={2} sx={{ lineHeight: 1.5 }}>
-          We’re building two open-source platforms in parallel — the{" "}
-          <strong>Block Protocol</strong> and <strong>HASH</strong> — to help
-          everybody make better decisions.
+          We’re developing two open-source projects in parallel — the{" "}
+          <strong>Block Protocol</strong> standard, and the{" "}
+          <strong>HASH</strong>
+          platform — to help everybody make better decisions.
         </Typography>
         <Typography sx={{ lineHeight: 1.5 }}>
-          Here you’ll find information about the technical architecture of the
-          projects, as well as resources to help you build{" "}
+          Here you’ll find information about the technical architecture of each
+          project, as well as resources to help you build{" "}
           <strong>blocks</strong>, <strong>integrations</strong>,{" "}
           <strong>apps</strong> and <strong>simulations</strong>.
         </Typography>
@@ -209,14 +211,27 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
               </Box>
             }
             buttons={
-              <Button
-                href="https://blockprotocol.org"
-                openInNew
-                color="purple"
-                endIcon={<FontAwesomeIcon icon={faArrowUpRightFromSquare} />}
-              >
-                Learn more
-              </Button>
+              <Box>
+                <Button
+                  href="https://blockprotocol.org"
+                  openInNew
+                  color="purple"
+                  endIcon={<ArrowUpRightFromSquareRegularIcon />}
+                  sx={{ marginRight: 2, marginBottom: 2 }}
+                >
+                  Learn more
+                </Button>
+                <Button
+                  href="https://github.com/blockprotocol/blockprotocol"
+                  openInNew
+                  endIcon={<GithubIcon />}
+                  variant="secondary"
+                  color="purple"
+                  sx={{ marginBottom: 2 }}
+                >
+                  View on GitHub
+                </Button>
+              </Box>
             }
             image={
               <Image
@@ -253,14 +268,10 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
                 },
               }}
             >
-              Any application can integrate with the protocol’s public registry
-              (
-              <Link href="http://blockprotocol.com/hub">
-                <Box component="strong">Þ Hub</Box>
-              </Link>
-              ), enabling their users to discover and insert blocks at runtime,
-              expanding the utility of applications that support the protocol
-              well beyond their original programming.
+              Applications can integrate with the protocol’s public registry,
+              enabling their users to discover and insert new blocks at runtime,
+              unlocking new use cases and expanding app utility beyond its
+              original programming.
             </HomePageBodyTypography>
           </Project>
           <Project
@@ -297,7 +308,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
                   Learn more
                 </Button>
                 <Button
-                  href="https://github.com/hashintel/hash/tree/main/apps/hash"
+                  href="https://github.com/hashintel/hash"
                   openInNew
                   endIcon={<GithubIcon />}
                   variant="secondary"
@@ -357,7 +368,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
               <Box component="li">
                 <HomePageBodyTypography>
                   Map external data to types and integrate it into one unified{" "}
-                  <strong>graph</strong>
+                  <strong>web</strong>
                 </HomePageBodyTypography>
               </Box>
               <Box component="li">
@@ -374,7 +385,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
               </Box>
               <Box component="li">
                 <HomePageBodyTypography>
-                  Use entities in <strong>simulations</strong>
+                  Use entities in agent-based <strong>simulations</strong>
                 </HomePageBodyTypography>
               </Box>
             </Box>
@@ -395,7 +406,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
   );
 };
 
-const Tutorial: FunctionComponent<{
+const Resource: FunctionComponent<{
   title: string;
   description: string;
   color: "blue" | "teal" | "purple";
@@ -498,21 +509,21 @@ const Tutorial: FunctionComponent<{
   );
 };
 
-const _Tutorials: FunctionComponent = () => {
+const _Resources: FunctionComponent = () => {
   return (
     <Container component="section">
       <Typography variant="hashHeading4" component="h3">
-        Tutorials
+        Resources
       </Typography>
       <HomePageBodyTypography
         marginBottom={2}
         sx={{ color: ({ palette }) => palette.gray[70] }}
       >
-        Learn by example through our step-by-step tutorials
+        Learn by example through step-by-step guides and resources
       </HomePageBodyTypography>
       <Grid container spacing={4} marginBottom={2}>
         <Grid item xs={12} md={6} lg={4}>
-          <Tutorial
+          <Resource
             title="Build your own blocks"
             description="Extend the functionality of Block Protocol-based applications by creating your own blocks"
             color="purple"
@@ -521,7 +532,7 @@ const _Tutorials: FunctionComponent = () => {
           />
         </Grid>
         <Grid item xs={12} md={6} lg={4}>
-          <Tutorial
+          <Resource
             title="Code your first simulation"
             description="Learn how to develop a simulation and run it locally or in-browser"
             color="blue"
@@ -530,7 +541,7 @@ const _Tutorials: FunctionComponent = () => {
           />
         </Grid>
         <Grid item xs={12} md={12} lg={4}>
-          <Tutorial
+          <Resource
             title="Build a block-based website using HASH"
             description="Use HASH as a CMS alongside Block Protocol blocks"
             color="teal"
@@ -540,7 +551,7 @@ const _Tutorials: FunctionComponent = () => {
       </Grid>
       <Box display="flex" width="100%" flexDirection="row-reverse">
         <Link
-          href="/tutorials"
+          href="/resources"
           sx={{
             color: ({ palette }) => palette.teal[70],
             borderBottomStyle: "solid",
@@ -550,7 +561,11 @@ const _Tutorials: FunctionComponent = () => {
             fontWeight: 600,
           }}
         >
-          View all tutorials
+          See more resources{" "}
+          <FontAwesomeIcon
+            icon={faArrowRight}
+            sx={{ position: "relative", top: 2 }}
+          />
         </Link>
       </Box>
     </Container>
@@ -608,8 +623,8 @@ const Home: NextPageWithLayout<HomePageProps> = ({ posts }) => {
       <PageLayout subscribe={false} recentBlogPosts>
         <Hero />
         <Projects />
-        {/* @todo: add tutorials pages */}
-        {/* <Tutorials /> */}
+        {/* @todo: add resources pages */}
+        {/* <Resources /> */}
         <Subscribe
           heading="Be the first to know..."
           body={

@@ -1,0 +1,35 @@
+---
+title: "Setting HASH up"
+---
+
+## Global HASH
+
+**Joining the global web**
+
+The easiest way to get started with HASH, or to try it out, is to use the hosted instance on the `hash.ai` website. We're currently inviting users from our waitlist. Sign up at [hash.ai/signup](https://hash.ai/signup)
+
+## Local HASH
+
+**Running HASH on your own infrastructure**
+
+<InfoCardWrapper>
+
+<InfoCard variant="warning" title="Coming soon">
+
+We're still writing documentation outlining how you can self-host HASH, but we'll update this page when it's ready.
+
+</InfoCard>
+
+We're working with early "lighthouse partners" to help them self-host HASH in production, but we haven't yet released public documentation for self-hosting HASH. Once this is ready, we'll publish it here. In the meantime, feel free to [get in touch](https://hash.ai/contact) to tell us more about our use case; or if you're comfortable finding your way round a monorepo, download the code and Terraform files [on GitHub](https://github.com/hashintel/hash). We're also happy to answer questions [over on Discord](https://hash.ai/discord).
+
+</InfoCardWrapper>
+
+## Which version should I use?
+
+**If you’re uncertain about whether HASH is right for you:** try signing up for the [hosted global network](#global-hash). It’s free to create an account, and you'll be able to get a sense as to what HASH is all about. To learn more about what you’ll be able to do with HASH, read about its [use cases](/docs/get-started/use-cases).
+
+**If you're a non-technical user:** you should also use the [hosted global network](#global-hash). Ultimately we plan to make it as easy to run your own HASH instance as it is to install an app locally on your mobile or desktop device, but the current process is a lot more complicated than that. Using the hosted version of HASH means that there are no servers or containers to worry about, and no upfront set up or ongoing infrastructure maintenance costs. In fact, you don't need to know anything about these! You're currently reading our developer documentation, but check out the [user guide](https://hash.ai/guide) for more on using HASH as a less technical person.
+
+**If security, availability, processing integrity, confidentiality and privacy are concerns:** we're currently in the process of obtaining SOC2 compliance certification. However, we understand that many enterprise organizations may nevertheless wish to host HASH within their own walled infrastructure, even then. Please [contact us](https://hash.ai/contact) if you have specific requirements you'd like to discuss, and to learn more about getting set up.
+
+**If you're still uncertain about which version to use:** you can always switch between the hosted and self-hosted versions of HASH later, without being locked in to either. Do whatever's easiest for you now and you can always change it up later. It's quicker to get started with the hosted version, so we generally recommend that. In the future we plan to allow self-hosted instances of HASH to be linked with one another and the global network. These "federated instances" will be able to see and pull public information from the global network, as well as publish to it for use by others. Right now, entity visibility settings are unique "per instance" of HASH. For example, a user of `hash.ai` will be able to see other `hash.ai` user's _public_ information, but nothing 'public' of a self-hosted user. Conversely, users of another instance (e.g. `example.com`) would be able to see other `example.com` user's public entities and types, but not those of `hash.ai` users. The data model we've adopted allows everybody to stay in control of their data, fully owning their records, while still enabling the secure, on-demand, easy-sharing of information when required.

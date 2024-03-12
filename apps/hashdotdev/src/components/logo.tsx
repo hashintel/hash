@@ -14,6 +14,6 @@ export const Logo: FunctionComponent<
     ]}
     {...props}
   >
-    <HashDotDevLogo />
+    <HashDotDevLogo sx={{ height: 19, width: 158 }} />
   </Link>
 );
