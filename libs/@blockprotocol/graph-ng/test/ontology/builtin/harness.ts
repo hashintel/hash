@@ -1,7 +1,7 @@
 import * as S from "@effect/schema/Schema";
 import { expect, test } from "vitest";
 
-import * as DataType from "../../../src/ontology/DataType";
+import * as DataType from "../../../src/ontology-v1/DataType";
 
 export function testAgainstTypes(
   version: string,

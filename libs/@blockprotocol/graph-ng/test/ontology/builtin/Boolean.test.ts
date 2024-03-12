@@ -1,8 +1,8 @@
 import { expect, test } from "vitest";
 
-import * as Boolean from "../../../src/ontology/builtin/Boolean";
-import * as DataType from "../../../src/ontology/DataType";
-import * as BooleanDataType from "../../../src/ontology/internal/BooleanDataType";
+import * as Boolean from "../../../src/ontology-v1/builtin/Boolean";
+import * as DataType from "../../../src/ontology-v1/DataType";
+import * as BooleanDataType from "../../../src/ontology-v1/internal/BooleanDataType";
 import { testAgainstTypes } from "./harness";
 
 function requiresBooleanType(_: BooleanDataType.BooleanDataType) {}

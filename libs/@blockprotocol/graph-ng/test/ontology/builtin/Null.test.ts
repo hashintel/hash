@@ -1,8 +1,8 @@
 import { expect, test } from "vitest";
 
-import * as Null from "../../../src/ontology/builtin/Null";
-import * as DataType from "../../../src/ontology/DataType";
-import * as NullDataType from "../../../src/ontology/internal/NullDataType";
+import * as Null from "../../../src/ontology-v1/builtin/Null";
+import * as DataType from "../../../src/ontology-v1/DataType";
+import * as NullDataType from "../../../src/ontology-v1/internal/NullDataType";
 import { testAgainstTypes } from "./harness";
 
 function requiresNullType(_: NullDataType.NullDataType) {}

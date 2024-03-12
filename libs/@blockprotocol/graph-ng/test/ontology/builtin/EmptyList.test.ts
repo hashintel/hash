@@ -1,8 +1,8 @@
 import { expect, expectTypeOf, test } from "vitest";
 
-import * as EmptyList from "../../../src/ontology/builtin/EmptyList";
-import * as DataType from "../../../src/ontology/DataType";
-import * as ArrayDataType from "../../../src/ontology/internal/ArrayDataType";
+import * as EmptyList from "../../../src/ontology-v1/builtin/EmptyList";
+import * as DataType from "../../../src/ontology-v1/DataType";
+import * as ArrayDataType from "../../../src/ontology-v1/internal/ArrayDataType";
 import { testAgainstTypes } from "./harness";
 
 function requiresArrayType(_: ArrayDataType.ArrayDataType) {}

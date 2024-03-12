@@ -3,15 +3,15 @@ import { Temporal } from "@js-temporal/polyfill";
 import { Duration } from "effect";
 import { expectTypeOf, test } from "vitest";
 
-import * as Boolean from "../../src/ontology/builtin/Boolean";
-import * as EmptyList from "../../src/ontology/builtin/EmptyList";
-import * as Null from "../../src/ontology/builtin/Null";
-import * as Number from "../../src/ontology/builtin/Number";
-import * as Object from "../../src/ontology/builtin/Object";
-import * as Text from "../../src/ontology/builtin/Text";
-import * as DataType from "../../src/ontology/DataType";
-import * as DataTypeUrl from "../../src/ontology/DataTypeUrl";
-import { DataTypeValue } from "../../src/ontology/DataTypeValue";
+import * as Boolean from "../../src/ontology-v1/builtin/Boolean";
+import * as EmptyList from "../../src/ontology-v1/builtin/EmptyList";
+import * as Null from "../../src/ontology-v1/builtin/Null";
+import * as Number from "../../src/ontology-v1/builtin/Number";
+import * as Object from "../../src/ontology-v1/builtin/Object";
+import * as Text from "../../src/ontology-v1/builtin/Text";
+import * as DataType from "../../src/ontology-v1/DataType";
+import * as DataTypeUrl from "../../src/ontology-v1/DataTypeUrl";
+import { DataTypeValue } from "../../src/ontology-v1/DataTypeValue";
 import * as Json from "../../src/internal/Json";
 
 test("makeValueSchema(Boolean)", () => {

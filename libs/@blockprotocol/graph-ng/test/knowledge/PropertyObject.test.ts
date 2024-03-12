@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import * as PropertyTypeUrl from "../../src/ontology/PropertyTypeUrl";
+import * as PropertyTypeUrl from "../../src/ontology-v1/PropertyTypeUrl";
 import * as BaseUrl from "../../src/BaseUrl";
 import * as VersionedUrl from "../../src/VersionedUrl";
 import * as PropertyObject from "../../src/knowledge/PropertyObject";

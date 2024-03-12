@@ -47,16 +47,16 @@ export function makeValueSchema<T extends DataType>(
 ): [T] extends [StringDataType.StringDataType]
   ? StringDataType.ValueSchema<T>
   : [T] extends [NumberDataType.NumberDataType]
-    ? NumberDataType.ValueSchema
-    : [T] extends [BooleanDataType.BooleanDataType]
-      ? BooleanDataType.ValueSchema
-      : [T] extends [NullDataType.NullDataType]
-        ? NullDataType.ValueSchema
-        : [T] extends [ObjectDataType.ObjectDataType]
-          ? ObjectDataType.ValueSchema
-          : [T] extends [ArrayDataType.ArrayDataType]
-            ? ArrayDataType.ValueSchema
-            : S.Schema<DataTypeValue, Json.Value> {
+  ? NumberDataType.ValueSchema
+  : [T] extends [BooleanDataType.BooleanDataType]
+  ? BooleanDataType.ValueSchema
+  : [T] extends [NullDataType.NullDataType]
+  ? NullDataType.ValueSchema
+  : [T] extends [ObjectDataType.ObjectDataType]
+  ? ObjectDataType.ValueSchema
+  : [T] extends [ArrayDataType.ArrayDataType]
+  ? ArrayDataType.ValueSchema
+  : S.Schema<DataTypeValue, Json.Value> {
   switch (schema.type) {
     case "string":
       return StringDataType.makeSchema(schema) as never;

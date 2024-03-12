@@ -1,8 +1,8 @@
 import { expect, test } from "vitest";
 
-import * as Text from "../../../src/ontology/builtin/Text";
-import * as DataType from "../../../src/ontology/DataType";
-import * as StringDataType from "../../../src/ontology/internal/StringDataType";
+import * as Text from "../../../src/ontology-v1/builtin/Text";
+import * as DataType from "../../../src/ontology-v1/DataType";
+import * as StringDataType from "../../../src/ontology-v1/internal/StringDataType";
 import { testAgainstTypes } from "./harness";
 
 function requiresStringType(_: StringDataType.StringDataType) {}

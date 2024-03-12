@@ -1,8 +1,8 @@
 import { expect, test } from "vitest";
 
-import * as Object from "../../../src/ontology/builtin/Object";
-import * as DataType from "../../../src/ontology/DataType";
-import * as ObjectDataType from "../../../src/ontology/internal/ObjectDataType";
+import * as Object from "../../../src/ontology-v1/builtin/Object";
+import * as DataType from "../../../src/ontology-v1/DataType";
+import * as ObjectDataType from "../../../src/ontology-v1/internal/ObjectDataType";
 import { testAgainstTypes } from "./harness";
 
 function requiresObjectType(_: ObjectDataType.ObjectDataType) {}

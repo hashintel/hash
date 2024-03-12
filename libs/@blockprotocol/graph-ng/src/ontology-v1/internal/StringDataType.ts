@@ -97,12 +97,12 @@ export function makeSchema<T extends StringDataType>(
 ): T["format"] extends "date"
   ? ReturnType<typeof dateValueSchema>
   : T["format"] extends "date-time"
-    ? ReturnType<typeof dateTimeValueSchema>
-    : T["format"] extends "time"
-      ? ReturnType<typeof timeValueSchema>
-      : T["format"] extends "duration"
-        ? ReturnType<typeof durationValueSchema>
-        : ReturnType<typeof plainValueSchema> {
+  ? ReturnType<typeof dateTimeValueSchema>
+  : T["format"] extends "time"
+  ? ReturnType<typeof timeValueSchema>
+  : T["format"] extends "duration"
+  ? ReturnType<typeof durationValueSchema>
+  : ReturnType<typeof plainValueSchema> {
   switch (type.format) {
     case "date":
       return dateValueSchema(type) as never;

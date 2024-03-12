@@ -1,10 +1,10 @@
 import * as S from "@effect/schema/Schema";
 import { expectTypeOf, test, expect } from "vitest";
-import * as PropertyType from "../../src/ontology/PropertyType";
-import * as PropertyTypeUrl from "../../src/ontology/PropertyTypeUrl";
-import * as Text from "../../src/ontology/builtin/Text";
+import * as PropertyType from "../../src/ontology-v1/PropertyType";
+import * as PropertyTypeUrl from "../../src/ontology-v1/PropertyTypeUrl";
+import * as Text from "../../src/ontology-v1/builtin/Text";
 import * as Json from "../../src/internal/Json";
-import * as DataType from "../../src/ontology/DataType";
+import * as DataType from "../../src/ontology-v1/DataType";
 import * as BaseUrl from "../../src/BaseUrl";
 import * as VersionedUrl from "../../src/VersionedUrl";
 import { Brand } from "effect";

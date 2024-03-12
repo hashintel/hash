@@ -1,5 +1,5 @@
 import * as S from "@effect/schema/Schema";
-import * as PropertyTypeUrl from "../ontology/PropertyTypeUrl";
+import * as PropertyTypeUrl from "../ontology-v1/PropertyTypeUrl";
 import * as Json from "../internal/Json";
 
 export const Property: S.Schema<Property, { id: string; value: Json.Value }> =
