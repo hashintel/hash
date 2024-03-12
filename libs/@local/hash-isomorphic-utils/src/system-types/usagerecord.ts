@@ -7,10 +7,6 @@ import type { Entity, LinkData } from "@blockprotocol/graph";
 import type {
   AppliesFromPropertyValue,
   AppliesUntilPropertyValue,
-  Created,
-  CreatedOutgoingLinkAndTarget,
-  CreatedOutgoingLinksByLinkEntityTypeId,
-  CreatedProperties,
   DateTimeDataType,
   FeatureNamePropertyValue,
   InputUnitCostPropertyValue,
@@ -32,10 +28,6 @@ import type {
 export type {
   AppliesFromPropertyValue,
   AppliesUntilPropertyValue,
-  Created,
-  CreatedOutgoingLinkAndTarget,
-  CreatedOutgoingLinksByLinkEntityTypeId,
-  CreatedProperties,
   DateTimeDataType,
   FeatureNamePropertyValue,
   InputUnitCostPropertyValue,
@@ -53,6 +45,20 @@ export type {
   ServiceUnitCostPropertyValue,
   TextDataType,
 };
+
+export type Created = Entity<CreatedProperties> & { linkData: LinkData };
+
+export type CreatedOutgoingLinkAndTarget = never;
+
+export type CreatedOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * The thing that something created.
+ */
+export type CreatedProperties = CreatedProperties1 & CreatedProperties2;
+export type CreatedProperties1 = LinkProperties;
+
+export type CreatedProperties2 = {};
 
 /**
  * How many input units were or will be used
