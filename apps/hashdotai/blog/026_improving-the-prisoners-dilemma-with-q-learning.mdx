@@ -3,7 +3,7 @@ title: "Improving the Prisoners Dilemma with Q-Learning"
 subtitle: "New open-source AI library from HASH"
 date: "2021-07-23"
 cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/7f77fa85-736f-4a69-c56a-c6cef769e400/public
-categories: 
+categories:
   - "Simulation"
   - "AI"
 ---
@@ -12,13 +12,12 @@ We recently published HASH’s [Q-Learning Library](https://hash.ai/@hash/qrl), 
 
 The Prisoner’s Dilemma is a classic game theory problem, where two players individually choose to cooperate or defect with the other player. Depending on the strategy and the outcome, they earn different rewards.
 
-| 
+|
 Prisoner B
 
-  
 Prisoner A
 
- | Prisoner B stays silent  
+| Prisoner B stays silent  
 (_cooperates_) | Prisoner B betrays  
 (_defects_) |
 | --- | --- | --- |
@@ -62,7 +61,7 @@ This behavior needs to translate the decisions made by the `@hash/qrl/action.py`
 
 ```javascript
 // Play the move chosen by @hash/qrl/action.py
-context.neighbors().map(n => {
+context.neighbors().map((n) => {
   state.curr_moves[n.agent_id] = state.action;
 });
 ```

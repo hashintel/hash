@@ -3,7 +3,7 @@ title: "Adding Physics to Simulations"
 subtitle: "Improve models by adding real-world laws of physics"
 date: "2021-06-28"
 cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/a1f0bd7b-fb28-451e-e2ef-e5a67f4e2900/public
-categories: 
+categories:
   - "Simulation"
 ---
 
@@ -28,29 +28,29 @@ const init = (context) => {
   const { k, length, damping } = context.globals();
   let agents = [
     {
-      "agent_id": "anchor",
-      "position": [0, 0, 0]
+      agent_id: "anchor",
+      position: [0, 0, 0],
     },
     {
-      "behaviors": ["@hash/physics/spring.rs", "@hash/physics/forces.rs"],
-      "position": [4, 0, 0],
-      "mass": 10,
-      "color": "blue",
-      "shape": "sphere",
-      "search_radius": 10,
-      "springs": [
+      behaviors: ["@hash/physics/spring.rs", "@hash/physics/forces.rs"],
+      position: [4, 0, 0],
+      mass: 10,
+      color: "blue",
+      shape: "sphere",
+      search_radius: 10,
+      springs: [
         {
-          "agent_id": "anchor",
+          agent_id: "anchor",
           k,
           length,
-          damping
-        }
+          damping,
+        },
       ],
-      "network_neighbor_ids": ["anchor"]
-    }
+      network_neighbor_ids: ["anchor"],
+    },
   ];
   return agents;
-}
+};
 ```
 
 There are three key parameters you can modify for a spring: the resting `length`, the spring constant `k`, and the damping constant `B`. Modify the global variables in the embedded simulation to see the different effects.
@@ -90,7 +90,7 @@ The final physics behavior to explore is `@hash/physics/collision.rs`. This beha
 
 ```javascript
 {
-    "shape": "sphere", 
+    "shape": "sphere",
     "color": "blue",
     "behaviors": ["@hash/physics/collision.rs", "@hash/physics/forces.rs", "custom.js"],
     "mass": 10,

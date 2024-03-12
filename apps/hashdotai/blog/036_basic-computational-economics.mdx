@@ -3,7 +3,7 @@ title: "Basic Computational Economics"
 subtitle: "An in-depth introductory guide"
 date: "2022-06-05"
 cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/c04c8e28-4139-4e22-b2d5-88f7dbf24600/public
-categories: 
+categories:
   - "Simulation"
   - "Topic > Finance"
 ---
@@ -35,7 +35,7 @@ Each agent can have multiple behaviors, each of which is outlined by a standardi
 ```javascript
 const behavior = (state, context) => {
   state.age += 1;
-}
+};
 ```
 
 The behavior takes in a mutable **state** for the specific agent and an immutable **context**.
@@ -46,14 +46,14 @@ Changing the state can change the 3D appearance of an agent, using [reserved fie
 
 ```javascript
 const behavior = (state, context) => {
-    state.messages.push({
-        to: "schelling",
-        type: "data_point",
-        data: {
-            num_agents: 50
-        }
-    });
-}
+  state.messages.push({
+    to: "schelling",
+    type: "data_point",
+    data: {
+      num_agents: 50,
+    },
+  });
+};
 ```
 
 States also have the ability to send messages to other agents**,** as in the example above.
@@ -112,27 +112,28 @@ In our toy model, the behavioral logic in `shops.js` governs the supply-side, al
 At the most basic level, if the cost of running the store exceeds the retail price of items, the shop closes down. White squares represent closed shops, so the state color is changed to white.
 
 ```javascript
-function shutDownClosed(state, context){
+function shutDownClosed(state, context) {
   // Cost exceeds price, so shut down
   if (state.cost > state.price) {
     state.color = "white";
   }
   return state;
-
 }
 ```
 
 Later on in `shops.js`, we provide closed shops with a (randomly determined) chance of re-opening.
 
 ```javascript
-function reOpenClosed(state, globals){
+function reOpenClosed(state, globals) {
   // Random chance for new shop to open
   state.color = Math.random() < globals.startup_rate ? "skyblue" : "white";
 
   // If the shop is now open, set random price and cost
   if (state.color === "skyblue") {
-    state.price = Math.floor(Math.random() * globals.max_price) + globals.min_price;
-    state.cost = Math.floor(Math.random() * globals.max_cost) + globals.min_cost;
+    state.price =
+      Math.floor(Math.random() * globals.max_price) + globals.min_price;
+    state.cost =
+      Math.floor(Math.random() * globals.max_cost) + globals.min_cost;
   }
 }
 ```
@@ -140,7 +141,7 @@ function reOpenClosed(state, globals){
 Shops will reduce their prices if there isn't enough demand. Other parts of the `shop.js` script deal with lowering prices to attract buyer agents.
 
 ```javascript
-function lowerPrices(current_buyers, state){
+function lowerPrices(current_buyers, state) {
   // If open and there was a sale last step (green)
   // but no sale this step
   if (current_buyers === 0) {
@@ -161,7 +162,7 @@ Lets take a look at the behaviors defined inside `buyer.js`.
 We can see that every buyer agent takes stock of its given location and looks around all the neighboring squares to see the lowest price.
 
 ```javascript
-function windowShop(current_shop, state){
+function windowShop(current_shop, state) {
   // Window Shopping: look for the lowest price
   if (current_shop.color !== "white" && !state.can_buy) {
     state.window_shopping_counter -= 1;
@@ -169,7 +170,8 @@ function windowShop(current_shop, state){
       state.lowest_price = current_shop.price;
     } else {
       // Set a new lowest price if its lower
-      state.lowest_price = current_shop.price < state.lowest_price
+      state.lowest_price =
+        current_shop.price < state.lowest_price
           ? current_shop.price
           : state.lowest_price;
     }
@@ -180,7 +182,7 @@ function windowShop(current_shop, state){
 The model allows for more complex behavior, such as waiting for a period of time to get the best price.
 
 ```javascript
-function count_shopping(state, window_shopping_steps){
+function count_shopping(state, window_shopping_steps) {
   // Once my window shopping time runs out I can try and buy
   if (state.window_shopping_counter === 0) {
     state.can_buy = true;
@@ -195,12 +197,8 @@ function count_shopping(state, window_shopping_steps){
 This simulation works by creating agents in 3D space along a 2D grid. The buyer agents are given a height of 4 to make them easy to spot, and placed randomly in 2D space, as we can see in `create_buyers.js` below.
 
 ```javascript
-function behavior (state, context) {
-  const {
-    buyer_count,
-    topology,
-    window_shopping_steps,
-  } = context.globals();
+function behavior(state, context) {
+  const { buyer_count, topology, window_shopping_steps } = context.globals();
 
   const width = topology.x_bounds[1] - topology.x_bounds[0];
   const height = topology.y_bounds[1] - topology.y_bounds[0];
@@ -209,7 +207,10 @@ function behavior (state, context) {
   state.agents["buyers"] = Array(buyer_count)
     .fill()
     .map((_val, id) => ({
-      position: [ Math.floor(Math.random() * width), Math.floor(Math.random() * height)],
+      position: [
+        Math.floor(Math.random() * width),
+        Math.floor(Math.random() * height),
+      ],
       color: "violet",
       purchased: false,
       can_buy: false,
@@ -217,7 +218,7 @@ function behavior (state, context) {
         Math.floor(Math.random() * window_shopping_steps) + 1,
       lowest_price: 0,
       height: 4,
-      behaviors: ["buyer.js", "@hash/random-movement/random_movement.rs"]
+      behaviors: ["buyer.js", "@hash/random-movement/random_movement.rs"],
     }));
 }
 ```
@@ -225,14 +226,9 @@ function behavior (state, context) {
 The `create_shops.js` script is similar, in that it generates shops rather than buyers. The shops are placed in an array, each with an associated cost and a price of items.
 
 ```javascript
-function behavior (state, context) {
-  const {
-    topology,
-    max_price,
-    min_price,
-    max_cost,
-    min_cost,
-  } = context.globals();
+function behavior(state, context) {
+  const { topology, max_price, min_price, max_cost, min_cost } =
+    context.globals();
 
   const width = topology.x_bounds[1] - topology.x_bounds[0];
   const height = topology.y_bounds[1] - topology.y_bounds[0];
@@ -244,7 +240,7 @@ function behavior (state, context) {
     cost,
     price,
     height: 2,
-    behaviors: ["shop.js"]
+    behaviors: ["shop.js"],
   });
 
   // Store a set of shop agents for generating later
@@ -256,7 +252,7 @@ function behavior (state, context) {
       const color = cost > price ? "white" : "skyblue";
       return create_shops(id, color, price, cost);
     });
-};
+}
 ```
 
 ### Analysis view
@@ -297,12 +293,12 @@ This section of the course will teach you how to model one specific problem in G
 The dilemma is as follows:
 
 > Two members of a criminal organization are arrested and imprisoned. Each prisoner is in solitary confinement with no means of communicating with the other. The prosecutors lack sufficient evidence to convict the pair on the principal charge, but they have enough to convict both on a lesser charge. Simultaneously, the prosecutors offer each prisoner a bargain. Each prisoner is given the opportunity either to betray the other by testifying that the other committed the crime, or to cooperate with the other by remaining silent. The possible outcomes are:
-> 
+>
 > 1. If A and B each betray the other, each of them serves two years in prison (both **defect**)
 > 1. If A betrays B but B remains silent, A will be set free and B will serve three years in prison (A **defects**, B **cooperates**)
 > 1. If A remains silent but B betrays A, A will serve three years in prison and B will be set free (A **cooperates**, B **defects**)
 > 1. If A and B both remain silent, both of them will serve only one year in prison (both **cooperate**).
-> 
+>
 > [Wikipedia](https://en.wikipedia.org/wiki/Prisoner%27s_dilemma)
 
 The strategies outlined are known as **cooperate** and **defect**.
@@ -339,10 +335,10 @@ function behavior(state, context) {
   }
 
   // Always cooperate
-  context.neighbors().map(n => {
+  context.neighbors().map((n) => {
     state.curr_moves[n.agent_id] = "c";
-  });  
-};
+  });
+}
 ```
 
 In contrast, a mixed strategy is one where an agent makes a decision whether to co-operate or to defect.
@@ -356,7 +352,7 @@ function behavior(state, context) {
     return;
   }
 
-  context.neighbors().map(n => {
+  context.neighbors().map((n) => {
     if (!state.curr_histories[n.agent_id]) {
       // Always cooperate on the first move
       state.curr_moves[n.agent_id] = "c";
@@ -377,14 +373,14 @@ function behavior(state, context) {
     state.curr_moves = {};
     return;
   }
-  
-  context.neighbors().map(n => {
+
+  context.neighbors().map((n) => {
     let moves = ["c", "d"];
     // Play randomly
     let move = moves[Math.floor(Math.random() * moves.length)];
     state.curr_moves[n.agent_id] = move;
   });
-};
+}
 ```
 
 ### Setting our simulation up
@@ -439,26 +435,26 @@ In HASH, agents can view their immediate neighbours using built-in functionality
 Taking a look at `score.js`, we can see a method that takes representations of the agents placed on a grid and updates the new strategy based on the neighbouring grid squares so far.
 
 ```javascript
-function adoptStrategies(sum, strategy_colors, state, context){
+function adoptStrategies(sum, strategy_colors, state, context) {
   const ns = context.neighbors();
   const myScores = state.scores.slice(-1)[0];
   const myAvg = sum(myScores) / myScores.length;
 
-  const neighborScores = ns.map(n => n.scores.slice(-1)[0]);
-  const neighborAvgs = neighborScores.map(ss => sum(ss) / ss.length);
-    
+  const neighborScores = ns.map((n) => n.scores.slice(-1)[0]);
+  const neighborAvgs = neighborScores.map((ss) => sum(ss) / ss.length);
+
   // Adopt a better strategy if there is one
   const maxNeighborAvg = Math.max(...neighborAvgs);
 
   if (myAvg < maxNeighborAvg) {
-      // Adopt max scoring agent's strategy
+    // Adopt max scoring agent's strategy
     const newStrategy = ns[neighborAvgs.indexOf(maxNeighborAvg)].behaviors[2];
-      
-      // Simulation requires "strategy-" behavior to be in position [2]
-    state.behaviors.splice(2, 1, newStrategy)
+
+    // Simulation requires "strategy-" behavior to be in position [2]
+    state.behaviors.splice(2, 1, newStrategy);
     state.color = strategy_colors[newStrategy];
   }
-    
+
   state.checking_strategies = false;
 }
 ```
@@ -493,30 +489,37 @@ We can see in `init.js` how this simulation is set up. Buyers and sellers are pl
 
 ```javascript
 const init = (context) => {
-  const { topology, reserve, initial_apples, initial_price,
-      initial_gold, skill_apples, skill_gold } = context.globals();
+  const {
+    topology,
+    reserve,
+    initial_apples,
+    initial_price,
+    initial_gold,
+    skill_apples,
+    skill_gold,
+  } = context.globals();
 
   const randInRange = (range) => {
     return Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
-  }
+  };
 
   const genAgent = () => ({
-    "behaviors": ["produce.js", "set_price.js", "buy.js", "sell.js"],
-    "apples": randInRange(initial_apples),
-    "gold": initial_gold,
-    "reserve": randInRange(reserve),
-    "skill_a": randInRange(skill_apples),
-    "skill_g": randInRange(skill_gold),
-    "bid_price": initial_price,
-    "final_price": initial_price,
-    "selling": false,
-    "waiting": false,
-    "sold": false
-});
+    behaviors: ["produce.js", "set_price.js", "buy.js", "sell.js"],
+    apples: randInRange(initial_apples),
+    gold: initial_gold,
+    reserve: randInRange(reserve),
+    skill_a: randInRange(skill_apples),
+    skill_g: randInRange(skill_gold),
+    bid_price: initial_price,
+    final_price: initial_price,
+    selling: false,
+    waiting: false,
+    sold: false,
+  });
 
   const agents = hstd.init.grid(topology, genAgent);
   return agents;
-}
+};
 ```
 
 ### Buying apples
@@ -536,21 +539,23 @@ function behavior(state, context) {
 
   // Find selling neighbors, sort low prices first
   const sellers = neighbors
-    .filter(n => n.selling)
+    .filter((n) => n.selling)
     .sort((n1, n2) => n1.bid_price - n2.bid_price);
 
-  if (!sellers.length) { return; }
+  if (!sellers.length) {
+    return;
+  }
 
   // Send one buy offer
   if (state.bid_price >= sellers[0].bid_price) {
     state.addMessage(sellers[0].agent_id, "buy", {
-      "price": state.bid_price,
-      "gold": state.gold
+      price: state.bid_price,
+      gold: state.gold,
     });
 
     state.waiting = true;
   }
-};
+}
 ```
 
 The behaviors on each agent work on a state that is updated all at once every time step.
@@ -564,7 +569,7 @@ Agents can also communicate with each other via use of [messages](https://hash.a
 Here, the bid price is used to set a color for the agent when displayed in 3D. Let's take a look at `set_price.js`.
 
 ```javascript
-function behavior (state, context) { 
+function behavior(state, context) {
   // Decide if you're selling or buying
   state.selling = state.apples > state.reserve;
 
@@ -572,19 +577,25 @@ function behavior (state, context) {
   const normApples = state.apples / state.reserve;
   const normGold = state.gold / (state.final_price * state.reserve);
 
-  state.bid_price = state.final_price * 
-    Math.pow(3*Math.E, normGold * (1 - normApples));
+  state.bid_price =
+    state.final_price * Math.pow(3 * Math.E, normGold * (1 - normApples));
 
   function priceColor(price) {
-    if (price < 0.5) { return "red"; }
-    else if (price < 1) { return "orange"; }
-    else if (price < 1.5) { return "yellow"; }
-    else if (price < 2) { return "green"; }
-    else { return "blue"; }
+    if (price < 0.5) {
+      return "red";
+    } else if (price < 1) {
+      return "orange";
+    } else if (price < 1.5) {
+      return "yellow";
+    } else if (price < 2) {
+      return "green";
+    } else {
+      return "blue";
+    }
   }
 
   state.color = priceColor(state.final_price);
-};
+}
 ```
 
 Apples are sold at a price that approximates the laws of supply and demand.
@@ -594,15 +605,15 @@ Apples are sold at a price that approximates the laws of supply and demand.
 In `produce.js`, we determine if an agent should produce more apples or more gold. The agent will consume one apple per time step, and will produce apples if it runs out. Otherwise, the agent will produce apples or gold based on a local price and the agents skill.
 
 ```javascript
-function behavior (state, context) {
+function behavior(state, context) {
   const messages = context.messages();
   const ns = context.neighbors();
 
   // Check messages for receipts from sellers
-  const sales = messages.filter(m => m.type === "sell");
+  const sales = messages.filter((m) => m.type === "sell");
   if (sales.length > 0) {
     const { apples, cost } = sales[0].data;
-    
+
     state.apples += apples;
     state.gold -= cost;
     state.final_price = cost / apples;
@@ -612,13 +623,14 @@ function behavior (state, context) {
   state.apples -= 1;
 
   // Diffuse final_price
-  const sumFinalPrice = ns.reduce((acc, n) => acc + n.final_price, 0) + state.final_price;
+  const sumFinalPrice =
+    ns.reduce((acc, n) => acc + n.final_price, 0) + state.final_price;
   state.final_price = sumFinalPrice / (ns.length + 1);
 
   // Decide whether to produce apples or gold
   const outOfApples = state.apples <= 0;
-  const applesMoreValuable = state.skill_g <= (state.final_price * state.skill_a);
-  
+  const applesMoreValuable = state.skill_g <= state.final_price * state.skill_a;
+
   if (outOfApples || applesMoreValuable) {
     state.apples += state.skill_a;
     state.height = 3;
@@ -626,7 +638,7 @@ function behavior (state, context) {
     state.gold += state.skill_g;
     state.height = 1;
   }
-};
+}
 ```
 
 ## Running an experiment
@@ -660,15 +672,23 @@ So far, we have initialized agents in HASH using one of the preset scripts, `cre
 ```javascript
 //Set up a ring of n call centers and randomly generate variables
 const behavior = (state, context) => {
-  const { n_call_centers, call_distribution, skill_level, operators } = context.globals();
+  const { n_call_centers, call_distribution, skill_level, operators } =
+    context.globals();
 
   let call_centers = [];
-  let call_center_template = state.call_center_template
+  let call_center_template = state.call_center_template;
 
   for (let i = 0; i < n_call_centers; i++) {
     //Generate call centers in a circle
-    let angle = i * Math.PI * 2.0 / n_call_centers;
-    let call_center = generate_call_center(call_center_template, angle, n_call_centers, call_distribution, skill_level, operators)
+    let angle = (i * Math.PI * 2.0) / n_call_centers;
+    let call_center = generate_call_center(
+      call_center_template,
+      angle,
+      n_call_centers,
+      call_distribution,
+      skill_level,
+      operators,
+    );
 
     call_centers.push(call_center);
   }
@@ -680,45 +700,46 @@ const behavior = (state, context) => {
 In addition to placing agents in a circle, we can also add a representation of links between them. Let's take a look at `create_links.js`.
 
 ```javascript
-const generateLink = (agent_a,agent_b, links_capacity) => {
+const generateLink = (agent_a, agent_b, links_capacity) => {
   // Generate a link capacity at random
-    const capacity = Math.round(Math.random() * (links_capacity.max - links_capacity.min)) + links_capacity.min;
-    const available = capacity !== 0 ? true : false;
+  const capacity =
+    Math.round(Math.random() * (links_capacity.max - links_capacity.min)) +
+    links_capacity.min;
+  const available = capacity !== 0 ? true : false;
 
-    // Tag every link with a standard agent ID
-    const agent_id = hash_stdlib.generateAgentID();
+  // Tag every link with a standard agent ID
+  const agent_id = hash_stdlib.generateAgentID();
 
-    // Create a link between the two call centers
-    const pos_a = agent_a.position;
-    const pos_b = agent_b.position;
+  // Create a link between the two call centers
+  const pos_a = agent_a.position;
+  const pos_b = agent_b.position;
 
-    const dx = pos_a[0] - pos_b[0]
-    const dy = pos_a[1] - pos_b[1]
-    const dx2 = dx ** 2
-    const dy2 = dy ** 2
+  const dx = pos_a[0] - pos_b[0];
+  const dy = pos_a[1] - pos_b[1];
+  const dx2 = dx ** 2;
+  const dy2 = dy ** 2;
 
-    const norm = (dx2 + dy2) ** 0.5
-    const mid_x = (pos_a[0] + pos_b[0]) / 2
-    const mid_y = (pos_a[1] + pos_b[1]) / 2
+  const norm = (dx2 + dy2) ** 0.5;
+  const mid_x = (pos_a[0] + pos_b[0]) / 2;
+  const mid_y = (pos_a[1] + pos_b[1]) / 2;
 
-
-    // Create the link agent object, using parameters defined in HASH
-    link = {
-          agent_id,
-          capacity,
-          available,
-          sent: 0,
-          scale: [norm, 0.1, 0.1],
-          height: 0.1,
-          rgb: [0, 0, 255],
-          center_1: agent_a.agent_id,
-          center_2: agent_b.agent_id,
-          position: [mid_x, mid_y],
-          direction: [2*dy, -2*dx],
-          behaviors: ["link_transfer.js"]
-        }
-    return link;
-}
+  // Create the link agent object, using parameters defined in HASH
+  link = {
+    agent_id,
+    capacity,
+    available,
+    sent: 0,
+    scale: [norm, 0.1, 0.1],
+    height: 0.1,
+    rgb: [0, 0, 255],
+    center_1: agent_a.agent_id,
+    center_2: agent_b.agent_id,
+    position: [mid_x, mid_y],
+    direction: [2 * dy, -2 * dx],
+    behaviors: ["link_transfer.js"],
+  };
+  return link;
+};
 ```
 
 The links have a length equal to the distance between caller agents, and a width and height of 0.1. They are rotated to be placed between the caller agents.
@@ -728,7 +749,9 @@ The links have a length equal to the distance between caller agents, and a width
 Taking a look at `generate_calls.js`, we can see how the HASH standard library allows for statistical modelling of calls in the simulation.
 
 ```javascript
-const calls_generated = hash_stdlib.stats.triangular.sample(...state.call_generation)
+const calls_generated = hash_stdlib.stats.triangular.sample(
+  ...state.call_generation,
+);
 ```
 
 The stats module in the HASH standard library provides a wide range of functions used in statistical modelling. You can check out the [full library on GitHub](https://github.com/hashintel/hash/tree/master/packages/engine/stdlib).
@@ -738,19 +761,23 @@ The stats module in the HASH standard library provides a wide range of functions
 const behavior = (state, context) => {
   const { mean_call_duration } = context.globals();
 
-  if (state.counter !== 0) { return; }
+  if (state.counter !== 0) {
+    return;
+  }
 
-  const calls_generated = hash_stdlib.stats.triangular.sample(...state.call_generation)
+  const calls_generated = hash_stdlib.stats.triangular.sample(
+    ...state.call_generation,
+  );
 
   for (let i = 0; i < Math.round(calls_generated); i++) {
     const call = {
       duration: generateDurationForAgent(mean_call_duration, state.skill_level),
       wait_time: 0,
-      origin: state.agent_id
+      origin: state.agent_id,
     };
-    
+
     state.call_queue.push(call);
-  };
+  }
 };
 ```
 
@@ -759,39 +786,41 @@ Calls are generated stochastically and added to a queue. This simulates the beha
 Taking a look at `link_transfer.js`, we can see how the simulation displays links and their capacity to forward calls. If a call to a link is made when there is not enough capacity, the call is balked.
 
 ```javascript
-  if (index < external_calls.length) {
-    for (let i = index; i < external_calls.length; i++) {
-      state.addMessage(external_calls[index].from, "balked_call");
-    }
+if (index < external_calls.length) {
+  for (let i = index; i < external_calls.length; i++) {
+    state.addMessage(external_calls[index].from, "balked_call");
   }
+}
 ```
 
 The flow of traffic in the queuing simulation can be understood through color coding.
 
 ```javascript
-  // Visuals 
-  const color_proportion = state.sent / state.capacity;
-  if (!color_proportion) {
-    state.rgb = [0, 0, 0]
-  } else {
-    state.rgb = [255 * color_proportion, 0, 255];
-  }
+// Visuals
+const color_proportion = state.sent / state.capacity;
+if (!color_proportion) {
+  state.rgb = [0, 0, 0];
+} else {
+  state.rgb = [255 * color_proportion, 0, 255];
+}
 ```
 
 Our main call center agents are also color coded, but this time based on the proportion of calls that make it through. Let's take a look at `answer_calls.js`.
 
 ```javascript
 const behavior = (state, context) => {
-  //---------- 
-  // Answering calls code 
-  //---------- 
+  //----------
+  // Answering calls code
+  //----------
 
-  // Visuals 
-  const color_proportion = (state.current_calls.length + state.call_queue.length) / (20 + state.operators);
+  // Visuals
+  const color_proportion =
+    (state.current_calls.length + state.call_queue.length) /
+    (20 + state.operators);
   state.rgb = [255, 255 - 255 * color_proportion, 255 - 255 * color_proportion];
 
   state.height = state.current_calls.length;
-}
+};
 ```
 
 Each agent has a property `state.rgb` that allows for a behavior to modify the display color. In this case, we use the color to code the agents by success rate.
@@ -862,7 +891,7 @@ const keys = {};
 const behavior = (state, context) => {
   const { num_businesses } = context.globals();
 
-  const business_colors = ["red", "yellow", "blue", "orange", "green"]
+  const business_colors = ["red", "yellow", "blue", "orange", "green"];
 
   Array(num_businesses)
     .fill()
@@ -872,9 +901,14 @@ const behavior = (state, context) => {
 
       const data = {
         ...template,
-        popup_fields: ["position", "item_price", "desired_position", "desired_price"],
+        popup_fields: [
+          "position",
+          "item_price",
+          "desired_position",
+          "desired_price",
+        ],
         item_price: 750,
-        profit: Math.floor((Math.random() * 500000) + 1000000),
+        profit: Math.floor(Math.random() * 500000 + 1000000),
         tenancy_length: 0,
         color: business_colors[id],
         desired_position: null,
@@ -884,14 +918,20 @@ const behavior = (state, context) => {
         open_auctions: {},
         winner_data: null,
         new_business: true,
-        behaviors: ["collect_auctions.js", "update_auctions.js", "collect_auction_winners.js", "business.js", "update_lng_lat.js"]
+        behaviors: [
+          "collect_auctions.js",
+          "update_auctions.js",
+          "collect_auction_winners.js",
+          "business.js",
+          "update_lng_lat.js",
+        ],
       };
 
       state.addMessage("HASH", "create_agent", data);
-    })
+    });
 
   return state;
-}
+};
 ```
 
 ### Mapping with coordinates
@@ -904,26 +944,33 @@ const keys = {};
 const behavior = (state, context) => {
   const globals = context.globals();
 
-  context.data()["@sophiad/subset-data/property.csv"]
-    .map(home => {
-      const split_address = home["Address"].split('(').join(', ').split(')').join(', ').split(', ')
-      const lng_lat = [parseFloat(split_address[3]), parseFloat(split_address[2])]
+  context.data()["@sophiad/subset-data/property.csv"].map((home) => {
+    const split_address = home["Address"]
+      .split("(")
+      .join(", ")
+      .split(")")
+      .join(", ")
+      .split(", ");
+    const lng_lat = [
+      parseFloat(split_address[3]),
+      parseFloat(split_address[2]),
+    ];
 
-      const pos_x = 1000.0 * (lng_lat[0] - globals.boston_lng)
-      const pos_y = 1000.0 * (lng_lat[1] - globals.boston_lat)
+    const pos_x = 1000.0 * (lng_lat[0] - globals.boston_lng);
+    const pos_y = 1000.0 * (lng_lat[1] - globals.boston_lat);
 
-      const position = [pos_x, pos_y]
-      
-      state.addMessage("HASH", "create_agent", {
-        position,
-        lng_lat,
-        rgb: [255, 255, 255],
-        behaviors: ["customer.js"]
-      });
-    })
+    const position = [pos_x, pos_y];
+
+    state.addMessage("HASH", "create_agent", {
+      position,
+      lng_lat,
+      rgb: [255, 255, 255],
+      behaviors: ["customer.js"],
+    });
+  });
 
   return state;
-}
+};
 ```
 
 These agents have a display in the 3D viewer as well as in the geospatial viewer.
@@ -937,23 +984,30 @@ const behavior = (state, context) => {
   const messages = context.messages();
   const neighbors = context.neighbors();
 
-  const businesses = neighbors.filter((neighbor) => neighbor.behaviors.includes("business.js"))
+  const businesses = neighbors.filter((neighbor) =>
+    neighbor.behaviors.includes("business.js"),
+  );
 
   //---------
   //Customer.js code
   //----------
-}
+};
 ```
 
 In this case, the `customer.js` script is able to search for neighboring businesses and find the lowest price.
 
 ```javascript
-  // Function to determine cost --> business price + distance from business
-  const calculate_cost = (position, price) => {
-    const state_position = state.get("position");
-    return price + Math.sqrt(Math.pow((state_position[0] - position[0]), 2) + Math.pow((state_position[1] - position[1]), 2))
-
-  }
+// Function to determine cost --> business price + distance from business
+const calculate_cost = (position, price) => {
+  const state_position = state.get("position");
+  return (
+    price +
+    Math.sqrt(
+      Math.pow(state_position[0] - position[0], 2) +
+        Math.pow(state_position[1] - position[1], 2),
+    )
+  );
+};
 ```
 
 ### Profit-maximizing
@@ -961,21 +1015,25 @@ In this case, the `customer.js` script is able to search for neighboring busines
 This script models behavior of businesses to open in the locations that are most likely to turn a profit. Taking a look at `business.js`, we see that there is code for running an auction for a location.
 
 ```javascript
-  const bid = () => {
-    const desired_position = state.get("desired_position");
-    let open_auctions = state.get("open_auctions");
+const bid = () => {
+  const desired_position = state.get("desired_position");
+  let open_auctions = state.get("open_auctions");
 
-    const location_price = open_auctions[JSON.stringify(desired_position)].price;
-    const desire = Math.random();
-    const bid = state.get("profit") * desire;
+  const location_price = open_auctions[JSON.stringify(desired_position)].price;
+  const desire = Math.random();
+  const bid = state.get("profit") * desire;
 
-    // Bid if price is desirable and affordable
-    if (bid >= location_price) {
-      state.addMessage(open_auctions[JSON.stringify(desired_position)].auction_id, "bid", { bid });
-    }
-
-    state.set("open_auctions", open_auctions);
+  // Bid if price is desirable and affordable
+  if (bid >= location_price) {
+    state.addMessage(
+      open_auctions[JSON.stringify(desired_position)].auction_id,
+      "bid",
+      { bid },
+    );
   }
+
+  state.set("open_auctions", open_auctions);
+};
 ```
 
 Just like in real life, our simulated businesses will try and open in places that are desirable and affordable.
@@ -991,13 +1049,13 @@ const behavior = (state, context) => {
 
   // Winner was already found
   if (winner_id !== null) {
-    return state
+    return state;
   }
 
   //--------
   //Auction code
   //-------
-}
+};
 ```
 
 Taking a look at `location_dutch_auction.js`, we see that businesses in the model are able to bid on desirable locations at each turn.

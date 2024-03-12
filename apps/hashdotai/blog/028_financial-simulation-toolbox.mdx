@@ -3,7 +3,7 @@ title: "Financial Simulation Toolbox"
 subtitle: "Modeling financial systems in HASH"
 date: "2021-08-05"
 cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/57eb9197-0ec1-4ad2-b54e-b795f75e9a00/public
-categories: 
+categories:
   - "Simulation"
   - "Topic > Finance"
 ---
@@ -30,7 +30,7 @@ In our simulation, each agent holds a portfolio of securities, which are stored 
 const behavior = (state, context) => {
 
   const items = context.globals()["trade_items"];
-           
+
   if (!state.portfolio){
 
     // Initialize empty array
@@ -55,11 +55,11 @@ The **name** of the security is just a label to identify the security to humans,
 
 Our simulation models each security earning interest at each time step. The stored expected `risk_free_interest_rate` models the average rate of interest that each security earns over time. The stored `volatility` models, just like in real life, the variance of the price of the security as it changes over time. For example, a stock might have a higher expected volatility than a commodity.
 
-At each time step, the `stored_price` of the security according to the agent changes according to the extra earned interest. Each agent updates the prices at every turn. This value does not store the true underlying price of the security, but merely each agent’s estimate of the price. 
+At each time step, the `stored_price` of the security according to the agent changes according to the extra earned interest. Each agent updates the prices at every turn. This value does not store the true underlying price of the security, but merely each agent’s estimate of the price.
 
 In our model, some securities are European-style options which take time to reach maturity, represented by the variable `time`. During this period, when time > 0, the option does not earn any interest, and its `stored_price` according to the agent is fixed, though the underlying true price of the option may still change. The **strike price** of the security represents how much the security should be bought or sold for when it reaches maturity.
 
-When options mature we exercise the option if the agent’s `stored_price` of the underlying security is greater than the option’s strike price. If it is, we exchange a quantity of the agent’s currency equal to the strike price to exercise the option. Otherwise, we discard the option. 
+When options mature we exercise the option if the agent’s `stored_price` of the underlying security is greater than the option’s strike price. If it is, we exchange a quantity of the agent’s currency equal to the strike price to exercise the option. Otherwise, we discard the option.
 
 When exercising an option, our code does not need to directly deal with the original seller, as the simulation already models the seller as having made the reverse trade (as explained later).
 
@@ -73,27 +73,28 @@ We will start by initializing every agent with a randomized portfolio of assets.
  * @param {AgentContext} context of the agent
  */
 const behavior = (state, context) => {
-
   const items = context.globals()["trade_items"];
-           
-  if (!state.portfolio){
 
+  if (!state.portfolio) {
     // Initialize empty array
-    state.portfolio = []
-    for (item of items){
-      var agent_portfolio_item = {"name": item.name};
-      agent_portfolio_item["stored_price"] = Math.max(hstd.stats.normal.sample(item.mean_price, item.variance_price), 0);
+    state.portfolio = [];
+    for (item of items) {
+      var agent_portfolio_item = { name: item.name };
+      agent_portfolio_item["stored_price"] = Math.max(
+        hstd.stats.normal.sample(item.mean_price, item.variance_price),
+        0,
+      );
       agent_portfolio_item["volatility"] = item.variance_price;
-      agent_portfolio_item["quantity"] = Math.round(Math.max(Math.random() * 10,0));
+      agent_portfolio_item["quantity"] = Math.round(
+        Math.max(Math.random() * 10, 0),
+      );
       agent_portfolio_item["time"] = 0;
-      agent_portfolio_item["strike_price"] = agent_portfolio_item["stored_price"];
+      agent_portfolio_item["strike_price"] =
+        agent_portfolio_item["stored_price"];
       agent_portfolio_item["seller"] = null;
 
       state.portfolio.push(agent_portfolio_item);
-
     }
-
-
   }
 };
 ```
@@ -104,10 +105,10 @@ Separately we store the basic properties of each security, such as volatility an
 
 ```javascript
 // If security has reached maturity, start earning interest
-    if (p.time == 0){
-      p.stored_price = p.stored_price * risk_free_interest_rate;
-      p.stored_price = hstd.stats.normal.sample(p.stored_price, p.volatility)
-    }
+if (p.time == 0) {
+  p.stored_price = p.stored_price * risk_free_interest_rate;
+  p.stored_price = hstd.stats.normal.sample(p.stored_price, p.volatility);
+}
 ```
 
 Reflecting their real-world counterparts, stocks are modeled as having a higher volatility, and commodities as having a generally lower level of volatility.
@@ -117,19 +118,26 @@ At each time step for an agent, we increase the price of each security according
 The value of a long-short portfolio can be easily calculated from the stored properties. We will use the Black-Scholes equation to calculate the total value of all securities at any particular moment.
 
 ```javascript
-  // Excerpt to value the portfolio  
-    state.value = 0;
-    for (let i = 0; i < state.portfolio.length; i++){
-      if (state.portfolio[i].time == 0){
-        state.value += state.portfolio[i].stored_price;
-      }
-      else{
-        // Calculate value using Black-Sholes
-        let underlying_price = state.portfolio.filter(item => item.name == state.portfolio[i].name)[0].stored_price;
-        state.value += BlackScholes(state.portfolio[i].quantity > 0, underlying_price, state.portfolio[i].stored_price, 
-        state.portfolio[i].time, risk_free_interest_rate,state.portfolio[i].volatility);
-      }
-    }
+// Excerpt to value the portfolio
+state.value = 0;
+for (let i = 0; i < state.portfolio.length; i++) {
+  if (state.portfolio[i].time == 0) {
+    state.value += state.portfolio[i].stored_price;
+  } else {
+    // Calculate value using Black-Sholes
+    let underlying_price = state.portfolio.filter(
+      (item) => item.name == state.portfolio[i].name,
+    )[0].stored_price;
+    state.value += BlackScholes(
+      state.portfolio[i].quantity > 0,
+      underlying_price,
+      state.portfolio[i].stored_price,
+      state.portfolio[i].time,
+      risk_free_interest_rate,
+      state.portfolio[i].volatility,
+    );
+  }
+}
 ```
 
 ## Trading
@@ -144,28 +152,30 @@ In the simulation, every agent decides whether to trade at every time step. We c
  * @param {AgentContext} context of the agent
  */
 const behavior = (state, context) => {
-        state.trades = []
+  state.trades = [];
 
   // Check each neighbour, and each item in the neighbours portfolio
-  context.neighbors().map(n => {
-    if (n.portfolio){
-      for (p of n.portfolio){
-          
+  context.neighbors().map((n) => {
+    if (n.portfolio) {
+      for (p of n.portfolio) {
         // Make trades completely at random
-        if (Math.random() < 0.001){
-
+        if (Math.random() < 0.001) {
           // Decide the trade quantity and trade direction at random
           var trade = p;
-          trade.quantity = hstd.stats.normal.sample(0,1);
-            
+          trade.quantity = hstd.stats.normal.sample(0, 1);
+
           var stored_price = trade.quantity * p.stored_price;
           var trade_partner = n.agent_id;
 
-          state.trades.push({"trade": trade, "stored_price": stored_price, "trade_partner": trade_partner});
+          state.trades.push({
+            trade: trade,
+            stored_price: stored_price,
+            trade_partner: trade_partner,
+          });
         }
       }
     }
-  })
+  });
 };
 ```
 
@@ -183,20 +193,19 @@ function behavior(state, context) {
     state.curr_trades = {};
     return;
   }
-  if (!state.trades){
-      return
-    }
+  if (!state.trades) {
+    return;
+  }
 
-  for (trade of state.trades){
-
+  for (trade of state.trades) {
     // If we don't have trades initialize for this agent yet, create an empy array
-    if (!state.curr_trades[trade.trade_partner]){
+    if (!state.curr_trades[trade.trade_partner]) {
       state.curr_trades[trade.trade_partner] = [];
     }
 
     // Update internal variables payment and total_price
     var payment = state.portfolio[0];
-    payment.quantity = -state.stored_price/payment.stored_price;
+    payment.quantity = -state.stored_price / payment.stored_price;
 
     // Push the trade and the payment
     state.curr_trades[trade.trade_partner].push(trade.trade);
@@ -205,7 +214,7 @@ function behavior(state, context) {
     // Set trade to null
     trade = null;
   }
-};
+}
 ```
 
 ### Rational Strategies
@@ -218,27 +227,31 @@ We can make a slight modification to the random strategy by only making the trad
  * @param {AgentContext} context of the agent
  */
 const behavior = (state, context) => {
-  state.trades = []
+  state.trades = [];
   // Check each neighbour, and each item in the neighbours portfolio
-  context.neighbors().map(n => {
-    if (n.portfolio){
-      for (p of n.portfolio){
-          
-      // Only trade if there is an arbitrage opportunity between our price and our neighbors
-      let valuation = state.portfolio.filter(item => item.name == p.name)[0].stored_price;
-      if (p.stored_price < valuation && Math.random() < 0.1){
+  context.neighbors().map((n) => {
+    if (n.portfolio) {
+      for (p of n.portfolio) {
+        // Only trade if there is an arbitrage opportunity between our price and our neighbors
+        let valuation = state.portfolio.filter((item) => item.name == p.name)[0]
+          .stored_price;
+        if (p.stored_price < valuation && Math.random() < 0.1) {
           // Decide the trade quantity at random
           var trade = p;
-          trade.quantity = hstd.stats.normal.sample(0,1);
-            
+          trade.quantity = hstd.stats.normal.sample(0, 1);
+
           var stored_price = trade.quantity * p.stored_price;
           var trade_partner = n.agent_id;
 
-          state.trades.push({"trade": trade, "stored_price": stored_price, "trade_partner": trade_partner});
+          state.trades.push({
+            trade: trade,
+            stored_price: stored_price,
+            trade_partner: trade_partner,
+          });
         }
       }
     }
-  })
+  });
 };
 ```
 
@@ -251,7 +264,7 @@ Alternatively, we can trade by making use of the Black-Scholes equation. We can 
 ```javascript
 const behavior = (state, context) => {
   const risk_free_interest_rate = context.globals()["risk_free_interest_rate"];
-    
+
     state.trades = [];
   // Check each neighbour, and each item in the neighbours portfolio
   context.neighbors().map(n => {
@@ -261,14 +274,14 @@ const behavior = (state, context) => {
       // This is how much we will pay for the security at time n
       // Let's just fix the current underlying price in place
       let underlying_price = state.portfolio.filter(item => item.name == p.name)[0].price;
-      let strike_price = underlying_price; 
+      let strike_price = underlying_price;
 
       // Randomly choose put or call options and time to maturity
       let timeToMaturtity = Math.round(Math.random()*10);
-      let putCall = Math.random() < 0.5 ? true : false 
-      
+      let putCall = Math.random() < 0.5 ? true : false
+
       // This is our estimate of the secutity's value right now
-      let valuation = BlackScholes(putCall, underlying_price, strike_price, 
+      let valuation = BlackScholes(putCall, underlying_price, strike_price,
         timeToMaturtity, risk_free_interest_rate,p.volatility);
 
       // Make the trade if its a good deal
@@ -276,14 +289,14 @@ const behavior = (state, context) => {
           // Decide the trade quantity at random
           p.time = timeToMaturtity;
           p.strike_price = strike_price;
-          p.quantity = Math.max(hstd.stats.normal.sample(0,1),0); 
-          
+          p.quantity = Math.max(hstd.stats.normal.sample(0,1),0);
+
           if (putCall == false){
             // Short positions are represented by negative quantitiy
             p.quantity *= -1;
           }
           var trade = p;
-            
+
           var stored_price = state.trade.quantity * p.stored_price;
           var trade_partner = n.agent_id;
 
@@ -298,11 +311,11 @@ We use the Black-Scholes equation to value the options based on parameters inclu
 
 ### Writing your own strategy
 
-To write your own strategy, all you have to do is write a new behavior file in JavaScript, modeled on the strategies written above. The agent’s behavior should take in a **state** and **context** as input, and use the `context.neighbours` to view the agent’s neighbours which will be its trading partners. 
+To write your own strategy, all you have to do is write a new behavior file in JavaScript, modeled on the strategies written above. The agent’s behavior should take in a **state** and **context** as input, and use the `context.neighbours` to view the agent’s neighbours which will be its trading partners.
 
 The agent can only modify its own state. To learn more about how behaviors work, we recommend you check out the [docs](https://hash.ai/docs/simulation/creating-simulations/anatomy-of-an-agent).
 
-To make a trade, simply set the parameters `trade`, `price` and `trade_partner` using your own code, and add it to the array `state.trades`. 
+To make a trade, simply set the parameters `trade`, `price` and `trade_partner` using your own code, and add it to the array `state.trades`.
 
 To use the strategy, include it in the `globals.json` file in the array strategies. You should also use the `strategy.colors` array to set a color to view the strategy as its adopted in the 3D viewer.
 

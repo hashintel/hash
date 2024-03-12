@@ -3,7 +3,7 @@ title: "Functional Agent-Based Modeling"
 subtitle: "Breaking away from object-oriented simulation"
 date: "2020-12-09"
 cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/a94e70b7-5dba-47e6-beb6-244c5ce9f900/public
-categories: 
+categories:
   - "Simulation"
 ---
 
@@ -17,7 +17,7 @@ If you’ve never programmed agents before, this post will serve as a crash-cour
 
 Agents are entities inside a simulated world. They may sense and interact with things in its environment, or do nothing at all. They may learn and adapt in the face of their environment, or they may remain stubborn or inanimate in the face of existential threats.
 
-In HASH, what an agent does is up to it. All agents are in charge of managing their own state, and any change to an agent is the result of an action it has taken. This can sometimes seem counter-intuitive at first. For instance, in our [wildfires simulation](https://hash.ai/@hash/wildfires-regrowth), a fire can't set trees alight -- instead, all it can do is tell the trees they should be on fire, and the trees then have to set themselves ablaze. But whilst this may seem strange, the approach used, known as the "[actor model](https://hash.ai/glossary/actor-model)" in computing, allows us to distribute simulations across huge numbers of machines without resorting to [locks and mutexes](https://en.wikipedia.org/wiki/Lock_(computer_science)). This lets us -- not only in theory but practice -- scale simulations to vast sizes (millions of agents across many machines), as well as a high level of realism and complexity (many thousands of behaviors).
+In HASH, what an agent does is up to it. All agents are in charge of managing their own state, and any change to an agent is the result of an action it has taken. This can sometimes seem counter-intuitive at first. For instance, in our [wildfires simulation](https://hash.ai/@hash/wildfires-regrowth), a fire can't set trees alight -- instead, all it can do is tell the trees they should be on fire, and the trees then have to set themselves ablaze. But whilst this may seem strange, the approach used, known as the "[actor model](https://hash.ai/glossary/actor-model)" in computing, allows us to distribute simulations across huge numbers of machines without resorting to [locks and mutexes](<https://en.wikipedia.org/wiki/Lock_(computer_science)>). This lets us -- not only in theory but practice -- scale simulations to vast sizes (millions of agents across many machines), as well as a high level of realism and complexity (many thousands of behaviors).
 
 ## **Simulation steps**
 
@@ -88,7 +88,7 @@ A HASH behavior is simply that “step” function in isolation from its other c
 
 ![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/6cbda21d-18d1-4add-2108-03dad7d6a800/public)
 
-I could store this as a behavior, say `blue.js`, and add that behavior to any HASH agent by including it in the agent’s **behaviors** field, and the agent would, in the words of Tobias Fünke, blue itself. 
+I could store this as a behavior, say `blue.js`, and add that behavior to any HASH agent by including it in the agent’s **behaviors** field, and the agent would, in the words of Tobias Fünke, blue itself.
 
 If you’re a functional programmer, you might call this a _pure function_, and you might call our behavior list a form of _function composition_. You might also be imagining that hCloud is something like MapReduce, and in some sense you'd be right. But it’s not necessary to know any of that to understand that **agents have behaviors which determine how they behave during a step.**
 
@@ -106,7 +106,7 @@ As for the implementations of dancer and vegetarian, that’s left as an exercis
 
 To explore this further, I’d suggest checking out the following extremely basic toy HASH simulations with a single agent type:
 
-- The classic [Conway’s Game of Life](https://hash.ai/@hash/conways-game-of-life) 
+- The classic [Conway’s Game of Life](https://hash.ai/@hash/conways-game-of-life)
 - [Rainfall](https://hash.ai/@hash/rainfall), which composes a variety of behaviors together in order to accomplish something a bit greater than the sum of their parts.
 - [Boids 3D](https://hash.ai/@hash/boids-3d), where a single behavior and awareness of context demonstrates elaborate emergent patterns.
 

@@ -3,7 +3,7 @@ title: "What is the entity layer?"
 subtitle: "The backbone of a future web"
 date: "2022-12-26"
 cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/12be2a8e-6153-4159-dda1-cc77e6ab6000/public
-categories: 
+categories:
   - "Company"
   - "Data"
 ---
@@ -24,7 +24,7 @@ Occasionally, efforts are established to create "standards" for working with dat
 
 For example, [ActivityPub](https://www.w3.org/TR/activitypub/), a W3C recommendation concerning social networking, finds itself in partial competition with a half-dozen other initiatives, including [AT Protocol](https://atproto.com/) from Jack Dorsey's _Bluesky_, and [Scuttlebutt Protocol](https://ssbc.github.io/scuttlebutt-protocol-guide/).
 
-Oftentimes standards seek to solve slightly different sets of challenges. For example, AT Protocol goes beyond ActivityPub in promising account portability and providing users with algorithmic choice in how their newsfeeds are presented, but it is (at this time) privately controlled, as opposed to a W3C standard, with popular not-for-profit [Mastodon](https://en.wikipedia.org/wiki/Mastodon_(social_network)) electing to base itself upon the latter instead (while also predating AT's emergence).
+Oftentimes standards seek to solve slightly different sets of challenges. For example, AT Protocol goes beyond ActivityPub in promising account portability and providing users with algorithmic choice in how their newsfeeds are presented, but it is (at this time) privately controlled, as opposed to a W3C standard, with popular not-for-profit [Mastodon](<https://en.wikipedia.org/wiki/Mastodon_(social_network)>) electing to base itself upon the latter instead (while also predating AT's emergence).
 
 Because we cannot guarantee universal alignment between standards, or their adoption in the first place, to work with data from around the web in our applications we need a "translation layer".
 
@@ -34,16 +34,17 @@ Consider the humble todo list. **As a user, you might want to be able to sync to
 
 1. You could manually re-enter the information inside of each app whenever you change it in one. _Fun! Not to mention error prone._
 
-3. Or you can hope that each application:
-    - (a) allows exporting and importing to a common format (e.g. CSV);
-    - (b) formats their exports in such a way that the other can import it without additional transformation;
-    - (c) is at feature parity to avoid data loss as you transfer between platforms; and
-    - (d) is capable of partial-syncing to avoid duplication of data upon imports.
-    - _You still have to do this process manually, so with any luck you don't need to do it very often, and hopefully it doesn't take too long._
+2. Or you can hope that each application:
 
-5. Another alternative is that you find a third-party service like _IFTTT_, or _Zapier_, which just happens to support both apps you use works reliably, and doesn't cause more issues than it solves... breaking on occasion, resulting in duplicate or missing data, or even corrupting information in a way that might only be realized 6 months down the line. _Good luck!_
+   - (a) allows exporting and importing to a common format (e.g. CSV);
+   - (b) formats their exports in such a way that the other can import it without additional transformation;
+   - (c) is at feature parity to avoid data loss as you transfer between platforms; and
+   - (d) is capable of partial-syncing to avoid duplication of data upon imports.
+   - _You still have to do this process manually, so with any luck you don't need to do it very often, and hopefully it doesn't take too long._
 
-7. Finally, you pray that a native "integration" exists. Most apps don't offer integrations, and those that do typically only support one-way sync or the one-time import of data. Why should app developers incur engineering effort and expense making it easy for people to get data _out_ of their platform, after all, beyond any minimum legal requirement to do so? _See: **walled gardens** above._
+3. Another alternative is that you find a third-party service like _IFTTT_, or _Zapier_, which just happens to support both apps you use works reliably, and doesn't cause more issues than it solves... breaking on occasion, resulting in duplicate or missing data, or even corrupting information in a way that might only be realized 6 months down the line. _Good luck!_
+
+4. Finally, you pray that a native "integration" exists. Most apps don't offer integrations, and those that do typically only support one-way sync or the one-time import of data. Why should app developers incur engineering effort and expense making it easy for people to get data _out_ of their platform, after all, beyond any minimum legal requirement to do so? _See: **walled gardens** above._
 
 To cut a long story short, the process sucks, and is heavily reliant on app developers to pick and choose who they want to support. In effect, scaling out the final strategy given (number four) would today require every application developer in the world to build a set of translations for every other application in the world, supporting and maintaining all of these indefinitely themselves. What we really need is a _translation layer_.
 
@@ -148,7 +149,166 @@ The Block Protocol doesn't assume a _one size fits all_ approach to the entity l
 
 At HASH, our [non-negotiable principle](https://hash.dev/blog/one-principle) is that **everything we allow users to do within our products must be portable and accessible**. But we know that this degree of openness is incompatible with many software vendor's business models today, and we don't expect that all Þ applications will adopt the same approach. The table below explores some of the trade-offs developers might consider when building applications on top of the entity layer.
 
-<table><tbody><tr><td></td><td>(1) <strong>Non-Þ datastore</strong></td><td>(2) <strong>Owned or self-hosted Þ entity store (multi-tenant)</strong></td><td>(3) <strong>Hosted Þ entity store (multi-tenant)</strong></td><td>(4) <strong>Hosted Þ entity store (single graph)</strong></td></tr><tr><td><strong>How it works...</strong></td><td>Entities in user's external graphs can be canonically referenced by persistent IDs, without needing to migrate an application's underlying datastore to the Þ architecture</td><td>Developers build their own entity stores based on the Þ reference architecture, or simply self-host the open-source version of <a rel="noreferrer noopener" href="https://hash.ai/platform/hash" target="_blank">HASH</a></td><td>Developers build their applications on top of hosted entity stores such as <a rel="noreferrer noopener" href="https://hash.ai/" target="_blank">hash.ai</a>, allowing users to sign in to their applications via these third-parties (e.g. "Login with HASH")</td><td>Developers build atop a hosted entity store, and save user data in partitions within a single workspace under their control, and handle auth and data flow logic separately</td></tr><tr><td><strong>Ingest - read user data in from external applications that write to the entity layer</strong></td><td><strong>Yes</strong>, apps can ingest data via any entity layer provider by integrating with these manually</td><td><strong>Yes</strong>, the methods an application developer uses to read from their own entity store enable them to connect to any external entity layer provider</td><td><strong>Yes</strong>, reading third-party data from the entity layer is the same as reading first-party information, only requiring users to confirm consent. Data remains private, within a user's own graph</td><td><strong>No</strong>, because every user's data lives in a single shared graph with an application's developer having unconstrained access to it, guarantees around data privacy cannot be made enabling the import of external data</td></tr><tr><td><strong>Egress - allow authenticated external apps to access user data created</strong></td><td><strong>Optional</strong>, depending on whether an application developer chooses to build and expose their own API</td><td><strong>Optional</strong>, developers are under no obligation to make their entity stores publicly accessible</td><td><strong>Guaranteed</strong>, data lives in an external graph, accessible via the same API the developer themselves has used</td><td><strong>Optional</strong>, depending on whether an application developer chooses to build and expose their own API</td></tr><tr><td><strong>Become an entity layer provider listed on the Þ</strong></td><td><strong>No</strong>, this requires a Þ-compliant entity store and interface</td><td><strong>Optional</strong>, a developer may choose to provide a gateway to the entity layer for others <em>(requires egress)</em></td><td><strong>No</strong>, in this scenario you are using an external provider</td><td><strong>No</strong>, in this scenario you are using an external provider</td></tr><tr><td><strong>Impact on user switching costs</strong></td><td><strong>No change</strong>, developers retain control over the barriers to exit users face while using their apps</td><td><strong>Variable</strong>, it becomes easier for users to switch, but only if developers allow it</td><td><strong>Greatly improved</strong>, as users are guaranteed access and portability of their data</td><td><strong>No change</strong>, developers retain control over the barriers to exit users face while using their apps</td></tr><tr><td><strong>Recommended?</strong></td><td>No</td><td><strong>Yes, if self-hosting is important</strong>. All the benefits of the entity layer, albeit with higher overhead than option (3).</td><td><strong>Yes, for the best and fastest DX</strong>. A complete integration, and the easiest way to access the entity layer.</td><td>No</td></tr></tbody></table>
+<table>
+  <tbody>
+    <tr>
+      <td></td>
+      <td>
+        (1) <strong>Non-Þ datastore</strong>
+      </td>
+      <td>
+        (2) <strong>Owned or self-hosted Þ entity store (multi-tenant)</strong>
+      </td>
+      <td>
+        (3) <strong>Hosted Þ entity store (multi-tenant)</strong>
+      </td>
+      <td>
+        (4) <strong>Hosted Þ entity store (single graph)</strong>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <strong>How it works...</strong>
+      </td>
+      <td>
+        Entities in user's external graphs can be canonically referenced by
+        persistent IDs, without needing to migrate an application's underlying
+        datastore to the Þ architecture
+      </td>
+      <td>
+        Developers build their own entity stores based on the Þ reference
+        architecture, or simply self-host the open-source version of{" "}
+        <a
+          rel="noreferrer noopener"
+          href="https://hash.ai/platform/hash"
+          target="_blank"
+        >
+          HASH
+        </a>
+      </td>
+      <td>
+        Developers build their applications on top of hosted entity stores such
+        as{" "}
+        <a rel="noreferrer noopener" href="https://hash.ai/" target="_blank">
+          hash.ai
+        </a>
+        , allowing users to sign in to their applications via these third-parties
+        (e.g. "Login with HASH")
+      </td>
+      <td>
+        Developers build atop a hosted entity store, and save user data in
+        partitions within a single workspace under their control, and handle
+        auth and data flow logic separately
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <strong>
+          Ingest - read user data in from external applications that write to
+          the entity layer
+        </strong>
+      </td>
+      <td>
+        <strong>Yes</strong>, apps can ingest data via any entity layer provider
+        by integrating with these manually
+      </td>
+      <td>
+        <strong>Yes</strong>, the methods an application developer uses to read
+        from their own entity store enable them to connect to any external
+        entity layer provider
+      </td>
+      <td>
+        <strong>Yes</strong>, reading third-party data from the entity layer is
+        the same as reading first-party information, only requiring users to
+        confirm consent. Data remains private, within a user's own graph
+      </td>
+      <td>
+        <strong>No</strong>, because every user's data lives in a single shared
+        graph with an application's developer having unconstrained access to it,
+        guarantees around data privacy cannot be made enabling the import of
+        external data
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <strong>
+          Egress - allow authenticated external apps to access user data created
+        </strong>
+      </td>
+      <td>
+        <strong>Optional</strong>, depending on whether an application developer
+        chooses to build and expose their own API
+      </td>
+      <td>
+        <strong>Optional</strong>, developers are under no obligation to make
+        their entity stores publicly accessible
+      </td>
+      <td>
+        <strong>Guaranteed</strong>, data lives in an external graph, accessible
+        via the same API the developer themselves has used
+      </td>
+      <td>
+        <strong>Optional</strong>, depending on whether an application developer
+        chooses to build and expose their own API
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <strong>Become an entity layer provider listed on the Þ</strong>
+      </td>
+      <td>
+        <strong>No</strong>, this requires a Þ-compliant entity store and
+        interface
+      </td>
+      <td>
+        <strong>Optional</strong>, a developer may choose to provide a gateway
+        to the entity layer for others <em>(requires egress)</em>
+      </td>
+      <td>
+        <strong>No</strong>, in this scenario you are using an external provider
+      </td>
+      <td>
+        <strong>No</strong>, in this scenario you are using an external provider
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <strong>Impact on user switching costs</strong>
+      </td>
+      <td>
+        <strong>No change</strong>, developers retain control over the barriers
+        to exit users face while using their apps
+      </td>
+      <td>
+        <strong>Variable</strong>, it becomes easier for users to switch, but
+        only if developers allow it
+      </td>
+      <td>
+        <strong>Greatly improved</strong>, as users are guaranteed access and
+        portability of their data
+      </td>
+      <td>
+        <strong>No change</strong>, developers retain control over the barriers
+        to exit users face while using their apps
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <strong>Recommended?</strong>
+      </td>
+      <td>No</td>
+      <td>
+        <strong>Yes, if self-hosting is important</strong>. All the benefits of
+        the entity layer, albeit with higher overhead than option (3).
+      </td>
+      <td>
+        <strong>Yes, for the best and fastest DX</strong>. A complete
+        integration, and the easiest way to access the entity layer.
+      </td>
+      <td>No</td>
+    </tr>
+  </tbody>
+</table>
 
 Incentives faced by application developers
 

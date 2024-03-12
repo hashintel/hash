@@ -350,8 +350,8 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
             }
           >
             <HomePageBodyTypography>
-              HASH is an open-source, self-building database, with 2-way
-              sync and a graphical user interface.
+              HASH is an open-source, self-building database, with 2-way sync
+              and a graphical user interface.
             </HomePageBodyTypography>
             <Box component="ul" sx={{ "> li": { marginBottom: 0 } }}>
               <Box component="li">

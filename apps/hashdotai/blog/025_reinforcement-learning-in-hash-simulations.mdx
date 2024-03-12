@@ -3,7 +3,7 @@ title: "Reinforcement Learning in Simulations"
 subtitle: "Training agents with Q-Learning"
 date: "2021-07-14"
 cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/73337fed-6b7d-4857-e76c-c2ba4da5d700/public
-categories: 
+categories:
   - "Simulation"
   - "AI"
 ---
@@ -14,7 +14,7 @@ RL can completely transform how simulations are both built and used. HASH as a p
 
 We've created a demonstration in HASH using a simple reinforcement learning algorithm, called Q-Learning, that agents can use to navigate a two-dimensional environment, avoid obstacles, and get to an end goal. You can follow along in our [example "Map Explorer" simulation](https://hash.ai/@hash/q-learning-map-explorer), or use the [Q-Learning behavior library](https://hash.ai/@hash/qrl) we've published to experiment with it in your own RL simulations.
 
-* * *
+---
 
 The basic structure of a reinforcement learning simulation is an **agent** decides what **actions** to take in a given time step in its **environment**; it executes the action, updating the **state** of the agent and its surrounding, and receives a **reward** which can then **update** the **policy** the agent uses to select actions.
 
@@ -45,21 +45,28 @@ The agent is initialized with a set of behaviors:
 Each behavior represents a part of the reinforcement learning loop. It also contains fields for storing reward information and parameters applicable to the RL update algorithm.
 
 ```javascript
- agent = {
-   "behaviors": ["validate_action.py", "action.py", "move.py", "reward.py", "update_q.py", "control.py"],
-   "agent_name": "rl",
-   "q_table": q_table,
-   "actions": actions,
-   "position": [2, 0],
-   "reward": 0,
-   "episode_reward": 0,
-   "episode": 0,
-   "rewards": [],
-   "episodes": [],
-   "epsilon": context.globals()["epsilon"],
-   "learning_rate": context.globals()["learning_rate"],
-   "steps": 1
-}
+agent = {
+  behaviors: [
+    "validate_action.py",
+    "action.py",
+    "move.py",
+    "reward.py",
+    "update_q.py",
+    "control.py",
+  ],
+  agent_name: "rl",
+  q_table: q_table,
+  actions: actions,
+  position: [2, 0],
+  reward: 0,
+  episode_reward: 0,
+  episode: 0,
+  rewards: [],
+  episodes: [],
+  epsilon: context.globals()["epsilon"],
+  learning_rate: context.globals()["learning_rate"],
+  steps: 1,
+};
 ```
 
 ## Actions
@@ -69,12 +76,12 @@ Each behavior represents a part of the reinforcement learning loop. It also cont
 Every timestep the agent can consider taking one of four actions - it can move up, down, right, or left.
 
 ```javascript
- actions = [
-    [1, 0],
-    [0, 1],
-    [-1, 0],
-    [0, -1]
-  ]
+actions = [
+  [1, 0],
+  [0, 1],
+  [-1, 0],
+  [0, -1],
+];
 ```
 
 At certain positions in gridworld, some of these actions would take it outside the bounds of our simulation. To prevent that, this behavior filters all possible actions to a subset of valid actions. It then stores these in `state[“actions”]`.

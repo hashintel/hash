@@ -3,7 +3,7 @@ title: "Surviving a Chip Shortage"
 subtitle: "Weathering supply-chain interruptions with simulation"
 date: "2021-06-16"
 cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/4741a400-0cf1-4a95-bdae-163d9def4d00/public
-categories: 
+categories:
   - "Simulation"
 ---
 
@@ -26,9 +26,9 @@ The three firms all have a corresponding customer demand agent, which sends them
 const desired = hstd.stats.max([state.avg_order, state.avg_delivery]);
 
 if (state.production_rate < desired) {
-    state.production_rate *= 1.001;
+  state.production_rate *= 1.001;
 } else if (state.production_rate > desired) {
-    state.production_rate *= 0.999;
+  state.production_rate *= 0.999;
 }
 ```
 
@@ -38,15 +38,15 @@ Most firms will attempt to keep one months worth of raw materials on hand, and r
 
 ```javascript
 if (state.agent_name === "toyota") {
-    if (state.raw_stock < 8*state.avg_delivery) {
-        state.order_quantity = 26*state.avg_delivery - state.raw_stock;
-        return
-    }
+  if (state.raw_stock < 8 * state.avg_delivery) {
+    state.order_quantity = 26 * state.avg_delivery - state.raw_stock;
+    return;
+  }
 } else {
-    if (state.raw_stock < 4*state.avg_delivery) {
-        state.order_quantity = 4*state.avg_delivery - state.raw_stock;
-        return
-    }
+  if (state.raw_stock < 4 * state.avg_delivery) {
+    state.order_quantity = 4 * state.avg_delivery - state.raw_stock;
+    return;
+  }
 }
 ```
 
