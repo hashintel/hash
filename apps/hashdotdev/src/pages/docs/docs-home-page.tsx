@@ -324,7 +324,7 @@ export const DocsHomePage: FunctionComponent = () => {
               Continue seamlessly working with information in your existing
               favorite tools and apps…
             </Typography>
-            <Link href="/docs/get-started/adopt">
+            {/* <Link href="/docs/get-started/adopt">
               <Box
                 display="flex"
                 sx={{
@@ -371,7 +371,7 @@ export const DocsHomePage: FunctionComponent = () => {
                   </Typography>
                 </Box>
               </Box>
-            </Link>
+            </Link> */}
           </Grid>
           <Grid item xs={12} md={8}>
             <Grid container spacing={3}>
@@ -391,15 +391,17 @@ export const DocsHomePage: FunctionComponent = () => {
                     gap: 3,
                   }}
                 >
-                  {["BigQuery", "Snowflake", "PostgreSql"].map((name) => (
-                    <LabelWithIcon
-                      key={name}
-                      label={name}
-                      iconBackground="teal"
-                      icon={<EarthAmericasRegularIcon />}
-                      width={180}
-                    />
-                  ))}
+                  {["PostgreSQL", "Snowflake", "BigQuery", "AWS Redshift"].map(
+                    (name) => (
+                      <LabelWithIcon
+                        key={name}
+                        label={name}
+                        iconBackground="teal"
+                        icon={<EarthAmericasRegularIcon />}
+                        width={180}
+                      />
+                    ),
+                  )}
                 </Box>
               </Grid>
               <Grid
@@ -437,13 +439,13 @@ export const DocsHomePage: FunctionComponent = () => {
                       icon: <GithubIcon />,
                     },
                     { name: "Linear" },
-                    { name: "ClickUp" },
+                    { name: "Salesforce" },
                     { name: "Greenhouse" },
                     {
-                      name: "Hubspot",
+                      name: "HubSpot",
                       icon: <HubspotIcon />,
                     },
-                    { name: "TBD" },
+                    { name: "Slack" },
                   ].map(({ name, icon }) => (
                     <LabelWithIcon
                       key={name}
