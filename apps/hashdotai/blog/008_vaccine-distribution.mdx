@@ -17,11 +17,11 @@ In a true feat of modern medicine, at least three working COVID-19 vaccines have
 
 ![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/be167380-f92a-417a-7157-1e87e7de6700/public)
 
-We’ve constructed a HASH simulation to help understand these complexities. You can [find it on hIndex](https://hash.ai/@hash/vaccination-supply-coordination) and follow along. A simulation like this interactively allows community decision-makers explore multiple distribution plans and make quantitative decisions to preempt scenarios where not enough vaccines are delivered, or too many vaccines are perishing due to storage challenges.
+We’ve constructed a HASH simulation to help understand these complexities. You can [find it on hIndex](https://simulation.hash.ai/@hash/vaccination-supply-coordination) and follow along. A simulation like this interactively allows community decision-makers explore multiple distribution plans and make quantitative decisions to preempt scenarios where not enough vaccines are delivered, or too many vaccines are perishing due to storage challenges.
 
 ## The Model
 
-This [Vaccine Supply Coordination model](https://hash.ai/@hash/vaccination-supply-coordination) is an extension of our [Flexible Supply Chain model](https://hash.ai/@hash/flexible-supply-chain). It simulates the distribution of a vaccine on an hourly scale to a community through three different types of agents: distribution centers, medical facilities, and a vaccine source.
+This [Vaccine Supply Coordination model](https://simulation.hash.ai/@hash/vaccination-supply-coordination) is an extension of our [Flexible Supply Chain model](https://simulation.hash.ai/@hash/flexible-supply-chain). It simulates the distribution of a vaccine on an hourly scale to a community through three different types of agents: distribution centers, medical facilities, and a vaccine source.
 
 ![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/d1da6533-eb79-44db-1c2c-70be17cc7800/public)
 
@@ -37,7 +37,7 @@ There are three types of agents in the model. In our example  they are all init
 
 ### The Supply Chain
 
-Because this simulation is based on the [Flexible Supply Chain](https://hash.ai/@hash/flexible-supply-chain) model, a key built-in feature is the ability for certain agents to source from and deliver to multiple different destinations.
+Because this simulation is based on the [Flexible Supply Chain](https://simulation.hash.ai/@hash/flexible-supply-chain) model, a key built-in feature is the ability for certain agents to source from and deliver to multiple different destinations.
 
 Distributors place orders in an attempt to match the average demand for vaccines that they are observing. They track the number of patients that attempt to receive a vaccine each day and attempt to order an amount equal to that daily count multiplied by the `avg_order_ratio` scaling factor, located in the `globals.json` file. This factor represents how conservative the model is being, in an attempt to minimize unused vaccines perishing.
 

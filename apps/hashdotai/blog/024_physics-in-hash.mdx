@@ -17,7 +17,7 @@ Let's look at a few simulations to better understand how to make use of the libr
 
 ## A Simple Spring
 
-[Open the "Simple Spring" simulation ->](https://hash.ai/@hash/hanging-spring)
+[Open the "Simple Spring" simulation ->](https://simulation.hash.ai/@hash/hanging-spring)
 
 The key behavior for the physics library is `@hash/physics/forces.rs`. This behavior translates forces exerted onto the object into changes in motion and position. You will typically pair it with other custom or library behaviors which will add forces to the agent.
 
@@ -57,7 +57,7 @@ There are three key parameters you can modify for a spring: the resting `length`
 
 ## Pendulums
 
-[Open the "Pendulum" simulation ->](https://hash.ai/@hash/pendulum)
+[Open the "Pendulum" simulation ->](https://simulation.hash.ai/@hash/pendulum)
 
 If we increase the value of _k_ for a spring by orders of magnitude, we can use them to simulate rigid rods. The example below is a pendulum which uses a spring for this exact purpose.
 
@@ -84,7 +84,7 @@ We can easily create more complex systems by connecting more mass agents in a si
 
 ## Colliding Agents
 
-[Open the "Colliding Agents" simulation ->](https://hash.ai/@hash/colliding-agents)
+[Open the "Colliding Agents" simulation ->](https://simulation.hash.ai/@hash/colliding-agents)
 
 The final physics behavior to explore is `@hash/physics/collision.rs`. This behavior, like `spring.rs`, handles an interaction between agents. It will cause two agents to bounce off each other if they get too close (within 0.5 units). The collision is perfectly elastic, conserving both momentum and energy. Here is the definition for one of the colliding agents:
 

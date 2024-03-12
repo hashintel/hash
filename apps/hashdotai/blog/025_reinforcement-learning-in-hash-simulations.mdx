@@ -12,7 +12,7 @@ Reinforcement Learning (RL) is a way to teach an agent how to behave in an envir
 
 RL can completely transform how simulations are both built and used. HASH as a platform is designed to help you leverage RL and apply it directly within agent-based simulation models.
 
-We've created a demonstration in HASH using a simple reinforcement learning algorithm, called Q-Learning, that agents can use to navigate a two-dimensional environment, avoid obstacles, and get to an end goal. You can follow along in our [example "Map Explorer" simulation](https://hash.ai/@hash/q-learning-map-explorer), or use the [Q-Learning behavior library](https://hash.ai/@hash/qrl) we've published to experiment with it in your own RL simulations.
+We've created a demonstration in HASH using a simple reinforcement learning algorithm, called Q-Learning, that agents can use to navigate a two-dimensional environment, avoid obstacles, and get to an end goal. You can follow along in our [example "Map Explorer" simulation](https://simulation.hash.ai/@hash/q-learning-map-explorer), or use the [Q-Learning behavior library](https://simulation.hash.ai/@hash/qrl) we've published to experiment with it in your own RL simulations.
 
 ---
 
@@ -179,6 +179,6 @@ To get a more quantitative measure of how the agent is performing, switch to the
 
 The speed at which the agent converges to a steady, positive reward state will be determined in large part by the hyperparameters of the simulation. The reward size, penalty size, epsilon, etc. will all affect the behavior of the agent. You can try manually setting different values in global and see what happens, or you can use [the HASH optimization engine](https://hash.ai/docs/simulation/creating-simulations/experiments/optimization-experiments) to select hyperparameters that maximize the reward.
 
-To build your own RL simulations with HASH, you can experiment with the library of RL behaviors shared from this simulation. They contain generic versions of the action, reward, and update behaviors - you can use the Q-learning algorithm or implement your own custom algorithm. For inspiration [take a look at a prisoners dilemma simulation](https://hash.ai/@hash/prisoners-dilemma-with-q-learning) with two agents leveraging the QRL libraries. And while they're by no means a replacement for the full fledged RL implementations you'll find in frameworks like Tensorflow or PyTorch, they're a great way to start experimenting with RL.
+To build your own RL simulations with HASH, you can experiment with the library of RL behaviors shared from this simulation. They contain generic versions of the action, reward, and update behaviors - you can use the Q-learning algorithm or implement your own custom algorithm. For inspiration [take a look at a prisoners dilemma simulation](https://simulation.hash.ai/@hash/prisoners-dilemma-with-q-learning) with two agents leveraging the QRL libraries. And while they're by no means a replacement for the full fledged RL implementations you'll find in frameworks like Tensorflow or PyTorch, they're a great way to start experimenting with RL.
 
 Over the coming months we’ll be releasing HASH’s long-awaited hEngine, together with specific reinforcement learning features, including support for external frameworks, making it as easy as possible to add powerful learning capabilities to your simulations.

@@ -12,7 +12,7 @@ _We've modified the [Uniswap simulation](https://hash.ai/blog/uniswap) to accoun
 
 One of the benefits of building a HASH simulation is maintainability and extensibility. You can add and modify behaviors over time, giving your agents new abilities and simulating new situations.
 
-In the [initial release of our Uniswap simulation](https://hash.ai/@b/uniswap), we kept it simple and only modeled two exchanges with a set pair of tokens, A and B. The Arbitrageur would check both exchanges, getting the best buy and sell prices for the two tokens, and place an order if there was an arbitrage opportunity.
+In the [initial release of our Uniswap simulation](https://simulation.hash.ai/@b/uniswap), we kept it simple and only modeled two exchanges with a set pair of tokens, A and B. The Arbitrageur would check both exchanges, getting the best buy and sell prices for the two tokens, and place an order if there was an arbitrage opportunity.
 
 However, we really want to understand what happens when there are multiple token pairs across multiple exchanges. Maybe there isn't a straightforward arb from exchange foo to exchange baz for tokens A and B, but there is one from foo -> baz -> bar for tokens A/B, B/C, C/A. In essence, we need to find the best path that can net us a profit.
 

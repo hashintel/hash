@@ -16,7 +16,7 @@ Finance jobs are infamous for their copious use of spreadsheets. However, there 
 
 This tutorial is aimed at people with only a basic understanding of financial terms and conventions, such as options, pricing and trading, and will take you on a guided tour of HASH’s _financial toolbox_ simulation. By the end you should be able to code your own simple trading strategies, as well as understand how the HASH platform works in practice. The tutorial will be all in JavaScript, although HASH allows for Python code as well.
 
-This financial toolbox is an extension of the HASH [Prisoner’s Dilemma simulation](https://hash.ai/@hash/prisoners-dilemma). This game theory simulation has agents using strategies to play a scored game with each other at each time-step, with the strategies which result in the higher scores being adopted by neighbouring agents. Our simulation operates similarly, except instead of being trapped in a Prisoner’s Dilemma, the game we’re playing is trading a portfolio of assets, and the score is the value of the portfolio.
+This financial toolbox is an extension of the HASH [Prisoner’s Dilemma simulation](https://simulation.hash.ai/@hash/prisoners-dilemma). This game theory simulation has agents using strategies to play a scored game with each other at each time-step, with the strategies which result in the higher scores being adopted by neighbouring agents. Our simulation operates similarly, except instead of being trapped in a Prisoner’s Dilemma, the game we’re playing is trading a portfolio of assets, and the score is the value of the portfolio.
 
 We simulate a grid array of agents, each with their own portfolio of assets. At every time step, the agents make trades with their neighbours based on a trading strategy. If a neighbour’s strategy is successful, that is - it makes the neighbouring agent’s portfolio more valuable, it will be adopted by other agents. We can track the prevalence of strategies over time to see which ones are more successful.
 
@@ -325,13 +325,13 @@ To use the strategy, include it in the `globals.json` file in the array strategi
 
 We can use HASH’s analysis tool to understand which strategies are most effective at increasing the value of a portfolio. We can define metrics to count how many agents are using each strategy, and then graph the output. Our metrics count the number of agents coded a certain color, which allows us to graph the result.
 
-The first plot in our [financial toolbox example simulation](https://hash.ai/@hash/financial-toolbox-example) graphs the prevalence of each of the strategies we have coded. We can run the simulation and see if, for example, changing the real interest rate affects which strategies win and are adopted more often.
+The first plot in our [financial toolbox example simulation](https://simulation.hash.ai/@hash/financial-toolbox-example) graphs the prevalence of each of the strategies we have coded. We can run the simulation and see if, for example, changing the real interest rate affects which strategies win and are adopted more often.
 
 ### Total Assets
 
 Another way to use graphs to understand the simulation is to graph the total value of assets held by all the agents. We define a metric that sums the valuation of the portfolio for each agent, using the code we wrote earlier.
 
-We can graph the results over time to show how securities gradually increase in value exponentially. We can again adjust the parameter for the real interest rate to change the rate of exponential growth. This graph can again be found in the financial toolbox [example simulation](https://hash.ai/@hash/financial-toolbox-example).
+We can graph the results over time to show how securities gradually increase in value exponentially. We can again adjust the parameter for the real interest rate to change the rate of exponential growth. This graph can again be found in the financial toolbox [example simulation](https://simulation.hash.ai/@hash/financial-toolbox-example).
 
 ### Value at Risk
 
@@ -339,4 +339,4 @@ Value at Risk (VaR) is a statistic that quantifies the maximum extent of possibl
 
 VaR is difficult to calculate when including nonlinear trades such as options. In such cases we would typically use another method, “Monte Carlo VaR”, to calculate VaR.
 
-In the [financial toolbox example](https://hash.ai/@hash/financial-toolbox-example) we plot a histogram of the total portfolio value of all of the assets. This "Value Distribution" will allow us to understand the distribution of outcomes when trading with the tested strategies.
+In the [financial toolbox example](https://simulation.hash.ai/@hash/financial-toolbox-example) we plot a histogram of the total portfolio value of all of the assets. This "Value Distribution" will allow us to understand the distribution of outcomes when trading with the tested strategies.
