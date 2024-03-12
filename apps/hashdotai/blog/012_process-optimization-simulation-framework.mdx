@@ -79,7 +79,7 @@ _Senior billers utilization with 11 billers_
 
 In some systems, a bottleneck may be caused not by the number of resources available, but by the way those resources are accessed. As a rule of thumb, if tasks are separated among separated sets of resources, it can produce inefficiencies. Luckily, our Billing model doesn't run into this constraint. Different Senior Billers can all pull new audits from the same pile, they don't have separate sets they need to complete.
 
-However, consider this [simple simulation of a set of four call centers](https://core.hash.ai/@hash/interconnected-call-center-single-agent/1.0.0). Customers call in, and then are answered if there is an available employee. Note that they cannot route calls between centers; if I call Center A, my call has to be answered by Center A.
+However, consider this [simple simulation of a set of four call centers](https://simulation.hash.ai/@hash/interconnected-call-center-single-agent/1.0.0). Customers call in, and then are answered if there is an available employee. Note that they cannot route calls between centers; if I call Center A, my call has to be answered by Center A.
 
 In the presence of large variability in call frequency, this can create over and under-utilized centers, leading to large increases in waiting time. But if all incoming calls can be routed between Centers (effectively creating a single queue), we expect to see much more efficient service, since calls can be distributed evenly.
 
