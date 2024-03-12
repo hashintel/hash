@@ -17,7 +17,7 @@ If you’ve never programmed agents before, this post will serve as a crash-cour
 
 Agents are entities inside a simulated world. They may sense and interact with things in its environment, or do nothing at all. They may learn and adapt in the face of their environment, or they may remain stubborn or inanimate in the face of existential threats.
 
-In HASH, what an agent does is up to it. All agents are in charge of managing their own state, and any change to an agent is the result of an action it has taken. This can sometimes seem counter-intuitive at first. For instance, in our [wildfires simulation](https://hash.ai/@hash/wildfires-regrowth), a fire can't set trees alight -- instead, all it can do is tell the trees they should be on fire, and the trees then have to set themselves ablaze. But whilst this may seem strange, the approach used, known as the "[actor model](https://hash.ai/glossary/actor-model)" in computing, allows us to distribute simulations across huge numbers of machines without resorting to [locks and mutexes](<https://en.wikipedia.org/wiki/Lock_(computer_science)>). This lets us -- not only in theory but practice -- scale simulations to vast sizes (millions of agents across many machines), as well as a high level of realism and complexity (many thousands of behaviors).
+In HASH, what an agent does is up to it. All agents are in charge of managing their own state, and any change to an agent is the result of an action it has taken. This can sometimes seem counter-intuitive at first. For instance, in our [wildfires simulation](https://simulation.hash.ai/@hash/wildfires-regrowth), a fire can't set trees alight -- instead, all it can do is tell the trees they should be on fire, and the trees then have to set themselves ablaze. But whilst this may seem strange, the approach used, known as the "[actor model](https://hash.ai/glossary/actor-model)" in computing, allows us to distribute simulations across huge numbers of machines without resorting to [locks and mutexes](<https://en.wikipedia.org/wiki/Lock_(computer_science)>). This lets us -- not only in theory but practice -- scale simulations to vast sizes (millions of agents across many machines), as well as a high level of realism and complexity (many thousands of behaviors).
 
 ## **Simulation steps**
 
@@ -98,7 +98,7 @@ Returning our attention to Meredith...
 
 ![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/9ad0684a-d037-4f76-7856-6d201edcad00/public)
 
-...we can see that HASH permits us to include behaviors from a variety of different sources and languages (notice `dancer.**rs**` and `vegetarian.**py**`), and that we don’t necessarily need to know or understand what a behavior does in order to see it in effect on an Agent. Our [hIndex](https://hash.ai/index) includes a number of common behaviors which can be complementary to common operations that agents may seek to perform, such as reproducing, positioning themselves in space, or communicating with other agents.
+...we can see that HASH permits us to include behaviors from a variety of different sources and languages (notice `dancer.**rs**` and `vegetarian.**py**`), and that we don’t necessarily need to know or understand what a behavior does in order to see it in effect on an Agent. Our [hIndex](https://simulation.hash.ai/index) includes a number of common behaviors which can be complementary to common operations that agents may seek to perform, such as reproducing, positioning themselves in space, or communicating with other agents.
 
 As for the implementations of dancer and vegetarian, that’s left as an exercise for the reader.
 
@@ -106,8 +106,8 @@ As for the implementations of dancer and vegetarian, that’s left as an exercis
 
 To explore this further, I’d suggest checking out the following extremely basic toy HASH simulations with a single agent type:
 
-- The classic [Conway’s Game of Life](https://hash.ai/@hash/conways-game-of-life)
-- [Rainfall](https://hash.ai/@hash/rainfall), which composes a variety of behaviors together in order to accomplish something a bit greater than the sum of their parts.
-- [Boids 3D](https://hash.ai/@hash/boids-3d), where a single behavior and awareness of context demonstrates elaborate emergent patterns.
+- The classic [Conway’s Game of Life](https://simulation.hash.ai/@hash/conways-game-of-life)
+- [Rainfall](https://simulation.hash.ai/@hash/rainfall), which composes a variety of behaviors together in order to accomplish something a bit greater than the sum of their parts.
+- [Boids 3D](https://simulation.hash.ai/@hash/boids-3d), where a single behavior and awareness of context demonstrates elaborate emergent patterns.
 
-If you find yourself looking for something more advanced, check out our models on [warehouse logistics](https://hash.ai/@hash/warehouse-logistics), the spread of [disease in San Francisco](https://hash.ai/@hash/city-infection-model), and [much](https://hash.ai/@hash/air-defense-system), [much](https://hash.ai/@hash/traffic-intersection) [more](https://hash.ai/@hash/warehouse-conveyor1).
+If you find yourself looking for something more advanced, check out our models on [warehouse logistics](https://simulation.hash.ai/@hash/warehouse-logistics), the spread of [disease in San Francisco](https://simulation.hash.ai/@hash/city-infection-model), and [much](https://simulation.hash.ai/@hash/air-defense-system), [much](https://simulation.hash.ai/@hash/traffic-intersection) [more](https://simulation.hash.ai/@hash/warehouse-conveyor1).

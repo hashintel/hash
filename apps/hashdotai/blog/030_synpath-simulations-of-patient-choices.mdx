@@ -15,7 +15,7 @@ It is important that patient pathways reflect best practice, improve patient out
 
 SynPath is being designed as a set of foundational modules to serve a variety of use-cases. With shared modules, users will be able to easily collaborate and benchmark different approaches. These modules include:
 
-- **Data Model** – Python object with Standardized [FHIR](https://hash.ai/glossary/fast-healthcare-interoperability-resources) attributes.
+- **Data Model** – Python object with Standardized [FHIR](https://hash.ai/glossary/fhir) attributes.
 - **Environment layer** – the set of healthcare service points (e.g. GP, outpatient etc.)
 - **Intelligence layer** - the definition of rules and learning algorithms that dictate agents’ movement through the environment.
 
@@ -29,7 +29,7 @@ _Synpath agent flow (from project report)_
 
 This summer NHSX worked with HASH to incorporate a type 2 diabetes pathway into the SynPath framework, helping assess what components would be needed in an intelligence layer and determining the optimal learning strategies.
 
-The intelligence layer is the way SynPath will use optimisation of patient health outcomes and health service resources (cost and environmental impacts) for patient pathways. HASH worked with [Tiyi Morris](https://hash.ai/@tiyimo) of NHSX to evaluate different options for the intelligence layer, both with examples of relevant models ([risk of diabetes](https://hash.ai/@hash/risk-of-diabetes), [game theory strategies](https://hash.ai/@b/mcts)) and different algorithmic-based approaches ([stochastic gradient descent](https://hash.ai/@hash/sgd), [monte carlo tree search](https://hash.ai/@hash/monte-carlo-tree-search), [A\* search](https://hash.ai/@hash/a-star-search)). Various challenges regarding implementation of the type 2 diabetes pathway were explored as part of this work: for example, if an agent’s medical history changes over time, what effect might this have on the model’s ability to converge to an optimal outcome?
+The intelligence layer is the way SynPath will use optimisation of patient health outcomes and health service resources (cost and environmental impacts) for patient pathways. HASH worked with [Tiyi Morris](https://simulation.hash.ai/@tiyimo) of NHSX to evaluate different options for the intelligence layer, both with examples of relevant models ([risk of diabetes](https://simulation.hash.ai/@hash/risk-of-diabetes), [game theory strategies](https://simulation.hash.ai/@b/mcts)) and different algorithmic-based approaches ([stochastic gradient descent](https://simulation.hash.ai/@hash/sgd), [monte carlo tree search](https://simulation.hash.ai/@hash/monte-carlo-tree-search), [A\* search](https://simulation.hash.ai/@hash/a-star-search)). Various challenges regarding implementation of the type 2 diabetes pathway were explored as part of this work: for example, if an agent’s medical history changes over time, what effect might this have on the model’s ability to converge to an optimal outcome?
 
 As part of implementation the team tested the different algorithms and simulation designs, leveraging the modular nature of HASH behaviors to quickly experiment with different techniques, informing the key elements that make up the intelligence layer implementation.
 

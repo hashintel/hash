@@ -11,7 +11,7 @@ One of simulation's great benefits is that it can help us explore complex system
 
 The rise of decentralized finance has dramatically increased the options available to investors and traders, and understanding key elements of it through modeling and simulation can help reduce uncertainty. It’s also just a really _interesting_ space - [for example](https://rope.lol/) - which means a lot of fun can be had building simulations. Over the next few weeks we'll be publishing models and explainers covering a few different projects in the crypto-world. By following along, you'll be able to fork these models, expand them, and experiment with alternative crypto mechanics.
 
-To start out we've built a [simulation of the Uniswap protocol](https://hash.ai/@hash/uniswap).
+To start out we've built a [simulation of the Uniswap protocol](https://simulation.hash.ai/@hash/uniswap).
 
 # Introducing Uniswap
 
@@ -25,7 +25,7 @@ Reserves of the token pairs are deposited by liquidity providers, who “invest�
 
 ![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/47b415f2-2d51-49e0-7d3c-013f6a53ff00/public)
 
-An overview of the Uniswap Protocol ([Source](https://docs.uniswap.org/protocol/V2/concepts/core-concepts/pools))
+An overview of the Uniswap Protocol ([Source](https://docs.uniswap.org/concepts/overview))
 
 As the exchange rate changes for exogenous reasons, arbitrageurs have an incentive to buy and sell the tokens, aligning the price.
 
@@ -35,7 +35,7 @@ Uniswap, and similar automated market makers, are interesting systems to simulat
 
 # **About This Model**
 
-[This simulation models the Uniswap protocol and evaluates arbitrage between two balancer pools](https://core.hash.ai/@b/uniswap/main) and the gains / potential [impermanent loss](https://uniswap.org/docs/v2/advanced-topics/understanding-returns/)
+[This simulation models the Uniswap protocol and evaluates arbitrage between two balancer pools](https://simulation.hash.ai/@b/uniswap/main) and the gains / potential _impermanent loss_.
 
 It is made up of four agents:
 
@@ -55,7 +55,7 @@ There are many ways to expand the model:
 - Calibrate the scenario against historical data, using a real token pair and exchange data to observe how well the model matches actual trading behavior.
 - Add competing arbitrage agents, and malicious “rug pull” strategies.
 
-If you’re interested in adapting it or just want to chat about the implementation - or to point out a bug (!) - [drop us a line](mailto:b@hash.ai) or [create an issue](https://hash.ai/@b/uniswap/issues)!
+If you’re interested in adapting it or just want to chat about the implementation - or to point out a bug (!) - [drop us a line](mailto:b@hash.ai) or [create an issue](https://simulation.hash.ai/@b/uniswap/issues)!
 
 **Update: we've published a follow-up to this piece.** _See [Extending the Uniswap Simulation Model](https://hash.ai/blog/extending-the-uniswap-simulation) for more._
 
