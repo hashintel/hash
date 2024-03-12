@@ -383,6 +383,9 @@ services:
       HASH_TEMPORAL_SERVER_PORT: "${HASH_TEMPORAL_SERVER_PORT}"
       HASH_GRAPH_API_HOST: graph
       HASH_GRAPH_API_PORT: "${HASH_GRAPH_API_PORT}"
+      HASH_VAULT_HOST: "http://vault"
+      HASH_VAULT_PORT: "${HASH_VAULT_PORT}"
+      HASH_VAULT_TOKEN: "${HASH_VAULT_TOKEN}"
     tmpfs:
       - /tmp
     read_only: true
