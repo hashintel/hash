@@ -1,7 +1,7 @@
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::knowledge::{entity::EntityProperties, link::EntityLinkOrder};
 use temporal_versioning::ClosedTemporalBound;
-use type_system::url::{BaseUrl, VersionedUrl};
+use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
 use crate::DatabaseTestWrapper;
 
@@ -33,7 +33,7 @@ async fn insert() {
                     "https://blockprotocol.org/@alice/types/entity-type/person/".to_owned(),
                 )
                 .expect("couldn't construct Base URL"),
-                version: 1,
+                version: OntologyTypeVersion::new(1),
             }],
             None,
             false,
@@ -73,7 +73,7 @@ async fn query() {
                     "https://blockprotocol.org/@alice/types/entity-type/organization/".to_owned(),
                 )
                 .expect("couldn't construct Base URL"),
-                version: 1,
+                version: OntologyTypeVersion::new(1),
             }],
             None,
             false,
@@ -115,7 +115,7 @@ async fn update() {
                     "https://blockprotocol.org/@alice/types/entity-type/page/".to_owned(),
                 )
                 .expect("couldn't construct Base URL"),
-                version: 1,
+                version: OntologyTypeVersion::new(1),
             }],
             None,
             false,
@@ -132,7 +132,7 @@ async fn update() {
                     "https://blockprotocol.org/@alice/types/entity-type/page/".to_owned(),
                 )
                 .expect("couldn't construct Base URL"),
-                version: 1,
+                version: OntologyTypeVersion::new(1),
             }],
             EntityLinkOrder {
                 left_to_right: None,

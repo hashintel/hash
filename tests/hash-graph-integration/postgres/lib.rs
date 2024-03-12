@@ -63,8 +63,7 @@ use graph_types::{
     },
     ontology::{
         DataTypeMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
-        OntologyTypeClassificationMetadata, OntologyTypeVersion, PropertyTypeMetadata,
-        PropertyTypeWithMetadata,
+        OntologyTypeClassificationMetadata, PropertyTypeMetadata, PropertyTypeWithMetadata,
     },
     owned_by_id::OwnedById,
 };
@@ -800,7 +799,7 @@ impl DatabaseApi<'_> {
                     inheritance_depth: Some(0),
                 })),
                 Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
-                    OntologyTypeVersion::new(link_type_id.version),
+                    link_type_id.version,
                 ))),
             ),
         ]);

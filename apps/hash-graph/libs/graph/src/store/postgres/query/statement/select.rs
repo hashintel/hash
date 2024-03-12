@@ -1052,10 +1052,9 @@ mod tests {
     mod predefined {
         use graph_types::{
             knowledge::entity::{EntityId, EntityUuid},
-            ontology::OntologyTypeVersion,
             owned_by_id::OwnedById,
         };
-        use type_system::url::{BaseUrl, VersionedUrl};
+        use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
         use super::*;
 
@@ -1066,7 +1065,7 @@ mod tests {
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
                 )
                 .expect("invalid base url"),
-                version: 1,
+                version: OntologyTypeVersion::new(1),
             };
 
             let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
@@ -1087,11 +1086,7 @@ mod tests {
                 WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
                   AND ("ontology_ids_0_1_0"."base_url" = $2) AND ("ontology_ids_0_1_0"."version" = $3)
                 "#,
-                &[
-                    &pinned_timestamp,
-                    &url.base_url.as_str(),
-                    &OntologyTypeVersion::new(url.version),
-                ],
+                &[&pinned_timestamp, &url.base_url, &url.version],
             );
         }
 
