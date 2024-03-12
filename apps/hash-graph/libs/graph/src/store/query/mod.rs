@@ -94,6 +94,6 @@ pub trait OntologyQueryPath {
 
     /// Returns the path identifying the [`OntologyTypeVersion`].
     ///
-    /// [`OntologyTypeVersion`]: graph_types::ontology::OntologyTypeVersion
+    /// [`OntologyTypeVersion`]: type_system::url::OntologyTypeVersion
     fn version() -> Self;
 }

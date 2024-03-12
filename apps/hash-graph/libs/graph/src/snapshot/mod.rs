@@ -40,9 +40,7 @@ use futures::{
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{Entity, EntityId, EntityUuid},
-    ontology::{
-        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyTypeVersion, PropertyTypeWithMetadata,
-    },
+    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
     owned_by_id::OwnedById,
 };
 use hash_status::StatusCode;
@@ -53,7 +51,7 @@ use tokio_postgres::{
     tls::{MakeTlsConnect, TlsConnect},
     Socket,
 };
-use type_system::url::{BaseUrl, VersionedUrl};
+use type_system::url::VersionedUrl;
 
 use crate::{
     snapshot::{
@@ -402,9 +400,8 @@ where
             .map_ok(|row| {
                 SnapshotEntry::DataTypeEmbedding(DataTypeEmbeddingRecord {
                     data_type_id: VersionedUrl {
-                        base_url: BaseUrl::new(row.get(0))
-                            .expect("Invalid base URL returned from Postgres"),
-                        version: row.get::<_, OntologyTypeVersion>(1).inner(),
+                        base_url: row.get(0),
+                        version: row.get(1),
                     },
                     embedding: row.get(2),
                     updated_at_transaction_time: row.get(3),
@@ -435,9 +432,8 @@ where
             .map_ok(|row| {
                 SnapshotEntry::PropertyTypeEmbedding(PropertyTypeEmbeddingRecord {
                     property_type_id: VersionedUrl {
-                        base_url: BaseUrl::new(row.get(0))
-                            .expect("Invalid base URL returned from Postgres"),
-                        version: row.get::<_, OntologyTypeVersion>(1).inner(),
+                        base_url: row.get(0),
+                        version: row.get(1),
                     },
                     embedding: row.get(2),
                     updated_at_transaction_time: row.get(3),
@@ -468,9 +464,8 @@ where
             .map_ok(|row| {
                 SnapshotEntry::EntityTypeEmbedding(EntityTypeEmbeddingRecord {
                     entity_type_id: VersionedUrl {
-                        base_url: BaseUrl::new(row.get(0))
-                            .expect("Invalid base URL returned from Postgres"),
-                        version: row.get::<_, OntologyTypeVersion>(1).inner(),
+                        base_url: row.get(0),
+                        version: row.get(1),
                     },
                     embedding: row.get(2),
                     updated_at_transaction_time: row.get(3),
@@ -507,13 +502,11 @@ where
             .map_ok(|row| {
                 SnapshotEntry::EntityEmbedding(EntityEmbeddingRecord {
                     entity_id: EntityId {
-                        owned_by_id: OwnedById::new(row.get(0)),
+                        owned_by_id: row.get(0),
                         entity_uuid: row.get(1),
                         draft_id: row.get(2),
                     },
-                    property: row.get::<_, Option<String>>(3).map(|property| {
-                        BaseUrl::new(property).expect("Invalid property URL returned from Postgres")
-                    }),
+                    property: row.get(3),
                     embedding: row.get(4),
                     updated_at_decision_time: row.get(5),
                     updated_at_transaction_time: row.get(6),

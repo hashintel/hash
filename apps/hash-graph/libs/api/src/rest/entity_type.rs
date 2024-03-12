@@ -52,7 +52,7 @@ use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use time::OffsetDateTime;
 use type_system::{
-    url::{BaseUrl, VersionedUrl},
+    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     EntityType,
 };
 use utoipa::{OpenApi, ToSchema};
@@ -781,7 +781,7 @@ where
         relationships,
     }) = body;
 
-    type_to_update.version += 1;
+    type_to_update.version = OntologyTypeVersion::new(type_to_update.version.inner() + 1);
 
     let entity_type = patch_id_and_parse(&type_to_update, schema).map_err(|report| {
         tracing::error!(error=?report, "Couldn't convert schema to Entity Type");
