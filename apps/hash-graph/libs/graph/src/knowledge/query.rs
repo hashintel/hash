@@ -104,6 +104,8 @@ pub enum EntityQueryPath<'p> {
     /// It's currently not possible to query for the list of types directly. Use [`EntityTypeEdge`]
     /// instead.
     ///
+    /// [`BaseUrl`]: type_system::url::BaseUrl
+    /// [`EntityType`]: type_system::EntityType
     /// [`EntityTypeEdge`]: Self::EntityTypeEdge
     TypeBaseUrls,
     /// The list of [`EntityType`]s' versions belonging to the [`Entity`].
@@ -111,6 +113,7 @@ pub enum EntityQueryPath<'p> {
     /// It's currently not possible to query for the list of types directly. Use [`EntityTypeEdge`]
     /// instead.
     ///
+    /// [`EntityType`]: type_system::EntityType
     /// [`EntityTypeEdge`]: Self::EntityTypeEdge
     TypeVersions,
     /// The timestamp of the transaction time when the [`Entity`] was _first inserted_ into the
