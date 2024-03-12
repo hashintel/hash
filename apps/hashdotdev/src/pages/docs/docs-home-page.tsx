@@ -391,15 +391,17 @@ export const DocsHomePage: FunctionComponent = () => {
                     gap: 3,
                   }}
                 >
-                  {["PostgreSQL", "Snowflake", "BigQuery", "AWS Redshift"].map((name) => (
-                    <LabelWithIcon
-                      key={name}
-                      label={name}
-                      iconBackground="teal"
-                      icon={<EarthAmericasRegularIcon />}
-                      width={180}
-                    />
-                  ))}
+                  {["PostgreSQL", "Snowflake", "BigQuery", "AWS Redshift"].map(
+                    (name) => (
+                      <LabelWithIcon
+                        key={name}
+                        label={name}
+                        iconBackground="teal"
+                        icon={<EarthAmericasRegularIcon />}
+                        width={180}
+                      />
+                    ),
+                  )}
                 </Box>
               </Grid>
               <Grid
