@@ -1,5 +1,9 @@
 import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
-import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
+import {
+  typedEntries,
+  typedKeys,
+  typedValues,
+} from "@local/advanced-types/typed-entries";
 import { isDraftEntity } from "@local/hash-isomorphic-utils/entity-store";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -249,10 +253,8 @@ export const createSheetRequestsFromEntitySubgraph = (
 ): sheets_v4.Schema$Request[] => {
   const entitySheetRequests: EntitySheetRequests = {};
 
-  const sortedEntities = Object.values(entitySubgraph.vertices)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- TODO why is vertices becoming any
-    .flatMap((editionMap) => Object.values(editionMap))
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- TODO why is vertices becoming any
+  const sortedEntities = typedValues(entitySubgraph.vertices)
+    .flatMap((editionMap) => typedValues(editionMap))
     .filter((vertex): vertex is EntityVertex => isEntityVertex(vertex))
     .map((vertex) => vertex.inner)
     .sort((aEntity, bEntity) => {
