@@ -1,6 +1,7 @@
 use std::{borrow::Borrow, collections::HashMap};
 
 use error_stack::{Report, ResultExt};
+use futures::{stream, StreamExt, TryStreamExt};
 use graph_types::knowledge::{
     entity::{Entity, EntityId, EntityProperties},
     link::LinkData,
@@ -35,8 +36,8 @@ pub enum EntityValidationError {
     UnexpectedLinkData,
     #[error("The entity is a link but does not contain link data")]
     MissingLinkData,
-    #[error("the validator was unable to read the entity type `{id}`")]
-    EntityTypeRetrieval { id: VersionedUrl },
+    #[error("the validator was unable to read the entity type `{ids:?}`")]
+    EntityTypeRetrieval { ids: Vec<VersionedUrl> },
     #[error("the validator was unable to read the entity `{id}`")]
     EntityRetrieval { id: EntityId },
     #[error("The link type `{link_types:?}` is not allowed")]
@@ -191,12 +192,21 @@ where
                 id: link_data.left_entity_id,
             })?;
 
-        let left_entity_type = provider
-            .provide_type(&left_entity.borrow().metadata.entity_type_id)
-            .await
-            .change_context_lazy(|| EntityValidationError::EntityTypeRetrieval {
-                id: left_entity.borrow().metadata.entity_type_id.clone(),
-            })?;
+        let left_entity_type = stream::iter(&left_entity.borrow().metadata.entity_type_ids)
+            .then(|entity_type| async {
+                Ok::<_, Report<EntityValidationError>>(
+                    provider
+                        .provide_type(entity_type)
+                        .await
+                        .change_context_lazy(|| EntityValidationError::EntityTypeRetrieval {
+                            ids: left_entity.borrow().metadata.entity_type_ids.clone(),
+                        })?
+                        .borrow()
+                        .clone(),
+                )
+            })
+            .try_collect::<Self>()
+            .await?;
 
         let right_entity = provider
             .provide_entity(link_data.right_entity_id, true)
@@ -205,19 +215,27 @@ where
                 id: link_data.right_entity_id,
             })?;
 
-        let right_entity_type = provider
-            .provide_type(&right_entity.borrow().metadata.entity_type_id)
-            .await
-            .change_context_lazy(|| EntityValidationError::EntityTypeRetrieval {
-                id: right_entity.borrow().metadata.entity_type_id.clone(),
-            })?;
+        let right_entity_type = stream::iter(&right_entity.borrow().metadata.entity_type_ids)
+            .then(|entity_type| async {
+                Ok::<_, Report<EntityValidationError>>(
+                    provider
+                        .provide_type(entity_type)
+                        .await
+                        .change_context_lazy(|| EntityValidationError::EntityTypeRetrieval {
+                            ids: right_entity.borrow().metadata.entity_type_ids.clone(),
+                        })?
+                        .borrow()
+                        .clone(),
+                )
+            })
+            .try_collect::<Self>()
+            .await?;
 
         // We track that at least one link type was found to avoid reporting an error if no
         // link type was found.
         let mut found_link_target = false;
         for link_type_id in self.schemas.keys() {
-            let Some(maybe_allowed_targets) =
-                left_entity_type.borrow().links.links().get(link_type_id)
+            let Some(maybe_allowed_targets) = left_entity_type.links.links().get(link_type_id)
             else {
                 continue;
             };
@@ -233,7 +251,6 @@ where
             let mut found_match = false;
             for allowed_target in allowed_targets.one_of() {
                 if right_entity_type
-                    .borrow()
                     .schemas
                     .keys()
                     .any(|right_type| right_type.base_url == allowed_target.url().base_url)
@@ -247,7 +264,7 @@ where
                 extend_report!(
                     status,
                     EntityValidationError::InvalidLinkTargetId {
-                        target_types: right_entity_type.borrow().schemas.keys().cloned().collect(),
+                        target_types: right_entity_type.schemas.keys().cloned().collect(),
                     }
                 );
             }

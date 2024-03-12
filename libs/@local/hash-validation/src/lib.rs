@@ -1,4 +1,5 @@
 #![feature(lint_reasons)]
+#![feature(extend_one)]
 #![expect(
     clippy::missing_errors_doc,
     reason = "It's obvious that validation may error on invalid data."
@@ -16,7 +17,7 @@ mod data_type;
 mod entity_type;
 mod property_type;
 
-use std::{borrow::Borrow, future::Future};
+use std::borrow::Borrow;
 
 use error_stack::{Context, Report};
 use graph_types::knowledge::entity::{Entity, EntityId};
@@ -109,12 +110,13 @@ pub trait EntityTypeProvider: OntologyTypeProvider<ClosedEntityType> {
         parent: &BaseUrl,
     ) -> impl Future<Output = Result<bool, Report<impl Context>>> + Send;
 }
+
 pub trait EntityProvider {
     fn provide_entity(
         &self,
         entity_id: EntityId,
         include_drafts: bool,
-    ) -> impl Future<Output = Result<impl Borrow<Entity> + Send, Report<impl Context>>> + Send;
+    ) -> impl Future<Output = Result<impl Borrow<Entity> + Send + Sync, Report<impl Context>>> + Send;
 }
 
 #[cfg(test)]
