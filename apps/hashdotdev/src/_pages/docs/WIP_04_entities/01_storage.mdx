@@ -1,0 +1,47 @@
+---
+title: "Storage"
+---
+
+## Datastore(s)
+
+All data in HASH is stored in a primary datastore, and one or more mirror datastores. This data is accessed by the HASH application via the **Graph Layer**.
+
+<aside>
+  ℹ️ By default, the primary datastore is Postgres. Secondary datastores include
+  Weaviate (for vector storage), and OpenSearch (for full text search).
+</aside>
+
+Today, data stored in HASH is done so purely on an append-only basis. When support for **hard deletion** is introduced this will cease to be strictly true, but it will still be the primary behavior.
+
+This means that a full version history and chain of provenance is stored for every entity in HASH.
+
+Because of this design, the amount of information stored in an instance of HASH will generally only grow over time, resulting in a steadily increased need for storage.
+
+<aside>
+  🔜 Planned support for intelligent offloading: we intend to support the
+  automatic intelligent transferal of information into cold storage. [View on
+  roadmap →](https://hash.dev/roadmap)
+</aside>
+
+<aside>
+  🔜 Planned support for distributed storage: we intend to allow for horizontal
+  and vertical scaling of the primary HASH Graph datastore beyond one node.
+  [View on roadmap →](https://hash.dev/roadmap)
+</aside>
+
+In addition, because HASH is designed to ingest a variety of different kinds of data, it is not all optimally stored in the primary or even secondary datastores.
+
+<aside>
+  🔜 Planned support for optimized datastores: to account for the presence of a
+  wide variety of data within HASH, we intend to support additional use-case
+  optimized datastores in HASH, allowing the likes of geospatial, time-series,
+  and financial accounting databases to be accessed via the HASH Graph.
+  Depending on the **type** of entities being ingested, operations will be
+  automatically offloaded to the most appropriate datastore, before being synced
+  back out to the primary and secondary indexes (for standard querying, search,
+  embedding generation, etc.) [View on roadmap →](https://hash.dev/roadmap)
+</aside>
+
+## Blobstore(s)
+
+HASH stores binary files in S3-compatible blob storage, with corresponding metadata existing in the primary graph datastore.

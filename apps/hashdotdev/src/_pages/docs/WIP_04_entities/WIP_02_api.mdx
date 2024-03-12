@@ -1,0 +1,37 @@
+---
+title: "Entity API Operations"
+---
+
+## Query Entities
+
+## Create Entity
+
+## Read Entity
+
+## Update Entity
+
+## Delete Entity
+
+### Types of deletion
+
+At this time, HASH operates on a purely append-only basis. This means that data in a user’s graph cannot be hard deleted, only ‘archived’ or ‘soft-deleted’.
+
+| Deletion type | When to use                                                                                     | Status     |
+| ------------- | ----------------------------------------------------------------------------------------------- | ---------- |
+| Archival      | To hide information that is no longer relevant or of interest, and which will not be maintained | Supported  |
+| Soft deletion | To get rid of entities created in error                                                         | On roadmap |
+| Hard deletion | To destroy secrets, to comply with laws                                                         | On roadmap |
+
+### Archival
+
+Archiving an entity marks an entity as ‘no longer relevant’. It hides the entity from most views. It should generally be used when information is outdated, or no longer relevant.
+
+_API instructions for archival go here_
+
+### Soft deletion
+
+Soft deletion moves an entity to a user’s trash. Like archival, this hides the entity from most views. We advise soft deleting entities that were created in error.
+
+### Hard deletion
+
+In the future, we intend to introduce hard deletion. You can find this on the [product roadmap](https://hash.dev/roadmap). In general, we discourage the use of hard deletion in favor of archival or soft deletion, however its use may be required in order to maintain compliance with various regulations, policies or laws that you or your data may be subject to (for example, GDPR).

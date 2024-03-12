@@ -1,4 +1,4 @@
-import { Box, BoxProps } from "@mui/material";
+import { Box, BoxProps, ContainerProps } from "@mui/material";
 import { useTheme } from "@mui/system";
 import { FunctionComponent, ReactNode } from "react";
 
@@ -13,12 +13,18 @@ export const PageLayout: FunctionComponent<{
   recentBlogPosts?: boolean;
   community?: boolean;
   contentWrapperSx?: BoxProps["sx"];
+  navbarSx?: BoxProps["sx"];
+  navbarContainerSx?: ContainerProps["sx"];
+  navbarLogoEndAdornment?: ReactNode;
 }> = ({
   children,
   subscribe = true,
   recentBlogPosts = false,
   community = true,
   contentWrapperSx,
+  navbarSx,
+  navbarContainerSx,
+  navbarLogoEndAdornment,
 }) => {
   const theme = useTheme();
 
@@ -60,7 +66,11 @@ export const PageLayout: FunctionComponent<{
         },
       }}
     >
-      <Navbar />
+      <Navbar
+        sx={navbarSx}
+        containerSx={navbarContainerSx}
+        logoEndAdornment={navbarLogoEndAdornment}
+      />
       <Box flexGrow={1} display="flex" flexDirection="column">
         <GradientContainer
           sx={[
