@@ -1,4 +1,14 @@
-import { Either, HashSet, Option } from "effect";
+import {
+  Either,
+  Equal,
+  Hash,
+  HashSet,
+  Inspectable,
+  Option,
+  pipe,
+  Pipeable,
+  Predicate,
+} from "effect";
 import * as S from "@effect/schema/Schema";
 import * as DataTypeUrl from "./DataTypeUrl";
 import * as Json from "../internal/Json";
@@ -7,7 +17,7 @@ import {
   ValidationError,
   ValidationErrorReason,
 } from "./DataType/errors";
-import { AST } from "@effect/schema";
+import { AST, Format } from "@effect/schema";
 
 const TypeId: unique symbol = Symbol.for(
   "@blockprotocol/graph/ontology/DataType",
@@ -16,13 +26,73 @@ export type TypeId = typeof TypeId;
 
 interface Annotations {}
 
-interface DataType<T> {
+export interface DataType<T>
+  extends Equal.Equal,
+    Pipeable.Pipeable,
+    Inspectable.Inspectable {
   [TypeId]: TypeId;
 
   readonly id: DataTypeUrl.DataTypeUrl;
   readonly schema: S.Schema<T, Json.Value>;
 
   readonly annotations: Annotations;
+}
+
+interface DataTypeImpl<T> extends DataType<T> {}
+
+const DataTypeProto: DataTypeImpl<unknown> = {
+  [TypeId]: TypeId,
+  annotations: {},
+
+  toJSON(): unknown {
+    return {
+      _id: "DataType",
+      id: this.id,
+      // schema: this.schema.toJSON(), <- TODO: next minor release
+    };
+  },
+  toString(this: DataTypeImpl<unknown>): string {
+    return Inspectable.format({
+      _id: "DataType",
+      id: this.id,
+      schema: Format.format(this.schema),
+    });
+  },
+  [Inspectable.NodeInspectSymbol]() {
+    return this.toJSON();
+  },
+  pipe() {
+    Pipeable.pipeArguments(this, arguments);
+  },
+
+  [Hash.symbol](this: DataTypeImpl<unknown>) {
+    const hash = pipe(Hash.hash(TypeId), Hash.combine(Hash.hash(this.id)));
+
+    return Hash.cached(this, hash);
+  },
+  [Equal.symbol]<T>(this: DataType<T>, that: unknown): boolean {
+    if (!isDataType(that)) {
+      return false;
+    }
+
+    return this.id === that.id;
+  },
+};
+
+export interface Schema {
+  readonly $schema: "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type";
+  readonly kind: "dataType";
+
+  readonly $id: DataTypeUrl.DataTypeUrl;
+
+  readonly title: string;
+  readonly description?: string;
+
+  readonly type: string;
+}
+
+export function isDataType(value: unknown): value is DataType<unknown> {
+  return Predicate.hasProperty(value, TypeId);
 }
 
 export function validate(

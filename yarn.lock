@@ -2769,10 +2769,10 @@
   dependencies:
     tslib "^2.0.0"
 
-"@effect/schema@0.63.2":
-  version "0.63.2"
-  resolved "https://registry.yarnpkg.com/@effect/schema/-/schema-0.63.2.tgz#08c920b2929ebb8111dd051f9da67a732dcfc5ce"
-  integrity sha512-piS+6dlGmcX8sAPGXdY4T6QmBbY2YXVnYjUguXpClk6FL7lQ9u2aIDib5kjCpciawJjil2VwltmPnMj0NJKKQQ==
+"@effect/schema@0.63.4":
+  version "0.63.4"
+  resolved "https://registry.yarnpkg.com/@effect/schema/-/schema-0.63.4.tgz#94a0aaa33bb5d8a4ee514c216194baaa6ccd8dc6"
+  integrity sha512-59b7N0XntkfivwhTSutyP13t1utlbJ9wDWDwEdAivNPpXBfpUlAWnZw7MAi86qI8J1LVz3ZDlz5p0pkDSu7p9g==
 
 "@emoji-mart/react@1.0.1":
   version "1.0.1"
@@ -12984,10 +12984,10 @@ ee-first@1.1.1:
   resolved "https://registry.yarnpkg.com/ee-first/-/ee-first-1.1.1.tgz#590c61156b0ae2f4f0255732a158b266bc56b21d"
   integrity "sha1-WQxhFWsK4vTwJVcyoViyZrxWsh0= sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow=="
 
-effect@2.4.1:
-  version "2.4.1"
-  resolved "https://registry.yarnpkg.com/effect/-/effect-2.4.1.tgz#c690b4a6f39075248ac66280c0f49bd0e131d53e"
-  integrity sha512-YsoMB/EGCohGKFyTPYqaFe2B7UCU2MM303dkoowF8DNOdks/4q/00cyhTbBUmM/0FMDoUPmUi/AJ0Aj3E7vO1A==
+effect@2.4.3:
+  version "2.4.3"
+  resolved "https://registry.yarnpkg.com/effect/-/effect-2.4.3.tgz#c447bb7020fd45154a2e9d216e45e5323531b744"
+  integrity sha512-OmIgfNgQMZsQt5l7qLQqLOUxIXq7ku8/RK3Wv3LqxSE2zMyU1mHXof5QeyCt7m9sXv3Vui52Urk1vVsEd2szMQ==
 
 ejs@^3.1.8:
   version "3.1.8"
