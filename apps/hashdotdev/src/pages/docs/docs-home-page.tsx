@@ -11,7 +11,6 @@ import {
 import { FunctionComponent, ReactNode } from "react";
 
 import { ArrowRightRegularIcon } from "../../components/icons/arrow-right-regular-icon";
-import { BookRegularIcon } from "../../components/icons/book-regular-icon";
 import { EarthAmericasRegularIcon } from "../../components/icons/earth-americas-regular-icon";
 import { EllipsisRegularIcon } from "../../components/icons/ellipsis-regular-icon";
 import { FontAwesomeIcon } from "../../components/icons/font-awesome-icon";
