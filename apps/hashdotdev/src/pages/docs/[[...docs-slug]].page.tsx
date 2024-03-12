@@ -124,7 +124,7 @@ const DocsPage: NextPageWithLayout<DocsPageProps> = ({
         const isScrolledToStart = scrollLeft === 0;
 
         const isScrolledToEnd =
-          scrollWidth - Math.round(scrollLeft + clientWidth) < 0;
+          scrollWidth - Math.round(scrollLeft + clientWidth) <= 0;
 
         setIsFirstTabVisible(isScrolledToStart);
         setIsLastTabVisible(isScrolledToEnd);
@@ -209,7 +209,7 @@ const DocsPage: NextPageWithLayout<DocsPageProps> = ({
               opacity: isFirstTabVisible ? 0 : 1,
               background: ({ palette }) =>
                 `linear-gradient(to left, ${palette.gray[10]}00, ${palette.gray[10]}FF)`,
-              zIndex: 1,
+              zIndex: isFirstTabVisible ? -1 : 1,
             },
             "&::after": {
               content: "''",
@@ -220,6 +220,7 @@ const DocsPage: NextPageWithLayout<DocsPageProps> = ({
               height: "100%",
               transition: ({ transitions }) => transitions.create("opacity"),
               opacity: isLastTabVisible ? 0 : 1,
+              zIndex: isLastTabVisible ? -1 : 1,
               background: ({ palette }) =>
                 `linear-gradient(to right, ${palette.gray[10]}00, ${palette.gray[10]}FF)`,
             },
