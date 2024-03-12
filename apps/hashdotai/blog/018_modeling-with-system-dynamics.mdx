@@ -7,11 +7,11 @@ categories:
   - "Simulation"
 ---
 
-[System Dynamics](https://hash.ai/wiki/system-dynamics) models are a powerful tool for visualizing and modeling complex systems. They break down a model into abstract or concrete quantities (**stocks**), and the rates at which they change (**flows**). HASH’s [System Dynamics library](https://hash.ai/@hash/sd) makes it easy to incorporate these types of models into your simulations.
+[System Dynamics](https://hash.ai/wiki/system-dynamics) models are a powerful tool for visualizing and modeling complex systems. They break down a model into abstract or concrete quantities (**stocks**), and the rates at which they change (**flows**). HASH’s [System Dynamics library](https://simulation.hash.ai/@hash/sd) makes it easy to incorporate these types of models into your simulations.
 
 With the HASH library, models are always defined and run on a single agent. Thanks to HASH’s modular nature, you can use System Dynamics to build an entire model, or use it as a single component within a larger agent-based model.
 
-For example, we can import the library and use it to build a model of a widget factory, diagrammed below. You can follow along in this [simulation](https://hash.ai/@hash/widget-factory-system-dynamics).
+For example, we can import the library and use it to build a model of a widget factory, diagrammed below. You can follow along in this [simulation](https://simulation.hash.ai/@hash/widget-factory-system-dynamics).
 
 ## Designing our Factory
 
@@ -34,7 +34,7 @@ We’ll follow the format given in the System Dynamics Library to specify the st
 - Expect More = `demand > expected_demand ? 0.1 * (demand - expected_demand) : 0`
 - Expect Less = `demand < expected_demand ? 0.1 * (expected_demand - demand) : 0`
 
-All the constants in use in these equations are located on the top level of the agent definition. Take a look at the [simulation code](https://core.hash.ai/@hash/widget-factory-system-dynamics/1.0.0), and the [System Dynamics Library](https://hash.ai/@hash/sd) README for more information and examples.
+All the constants in use in these equations are located on the top level of the agent definition. Take a look at the [simulation code](https://core.hash.ai/@hash/widget-factory-system-dynamics/1.0.0), and the [System Dynamics Library](https://simulation.hash.ai/@hash/sd) README for more information and examples.
 
 ### Visualizing the System
 

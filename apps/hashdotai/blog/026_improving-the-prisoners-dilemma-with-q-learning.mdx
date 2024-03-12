@@ -8,7 +8,7 @@ categories:
   - "AI"
 ---
 
-We recently published HASH’s [Q-Learning Library](https://hash.ai/@hash/qrl), to make it easier to start building simulations and agents that use reinforcement learning. Let’s take a look at how we can use the library to update an older simulation. We'll take the classic [Prisoner’s Dilemma simulation](https://hash.ai/@hash/prisoners-dilemma) and add an agent which uses q-learning to determine its strategy.
+We recently published HASH’s [Q-Learning Library](https://simulation.hash.ai/@hash/qrl), to make it easier to start building simulations and agents that use reinforcement learning. Let’s take a look at how we can use the library to update an older simulation. We'll take the classic [Prisoner’s Dilemma simulation](https://simulation.hash.ai/@hash/prisoners-dilemma) and add an agent which uses q-learning to determine its strategy.
 
 The Prisoner’s Dilemma is a classic game theory problem, where two players individually choose to cooperate or defect with the other player. Depending on the strategy and the outcome, they earn different rewards.
 
@@ -33,7 +33,7 @@ The simulation uses hard-coded strategies like “Always cooperate” or “Tit 
 
 In addition to the library behaviors, we always need to create two custom behaviors to allow the Q-Learning algorithm to properly interact with the environment of the specific simulation.
 
-One behavior will provide a ‘reward’ to the agent, and one will translate the action determined by the q learning algorithm into a valid “play”. You can see the end result in [this simulation](https://hash.ai/@hash/prisoners-dilemma-with-q-learning).
+One behavior will provide a ‘reward’ to the agent, and one will translate the action determined by the q learning algorithm into a valid “play”. You can see the end result in [this simulation](https://simulation.hash.ai/@hash/prisoners-dilemma-with-q-learning).
 
 ## Representing the State Space
 
@@ -71,6 +71,6 @@ Since the agent needs a certain number of rounds in the history in order to dete
 
 ## Initializing the Simulation
 
-Initializing the agent with a q-learning strategy will require us to set a number of global and state variables. The full list can be found in the [README for the library](https://hash.ai/@hash/qrl).
+Initializing the agent with a q-learning strategy will require us to set a number of global and state variables. The full list can be found in the [README for the library](https://simulation.hash.ai/@hash/qrl).
 
 When we run the simulation, the q-learning agent will attempt to fill out its q-table by exploring different actions, and exploiting its current knowledge of the opponent. You can run the "Test Every Strategy" experiment to observe how well the q-learning agent learns to play against other strategies.
