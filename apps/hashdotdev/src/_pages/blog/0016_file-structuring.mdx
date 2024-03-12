@@ -303,5 +303,5 @@ Our fractal tree approach applies only to the JavaScript portion of our monorepo
 - **Rule 5:** imports within sub-trees do not use relative paths (given increased refactoring costs, and by default imports are absolute in Rust with the exception of reexporting sub-module exports)
 - **Rule 6:** we don't have a shared folder in Rust, and we want to avoid having one
 - **Rule 7:** multiple entry points are disallowed (our entry point is `fn main()` - always)
-- **Rule 8:** unit tests typically are located at the bottom of the file inside of a `test` module, this is a Rust convention
+- **Rule 8:** unit tests are typically colocated at the _bottom_ of files inside of a `test` module, per Rust convention
 - **Rule 9:** exceptions are in fact prohibited; the `panic!` macro is avoided)
