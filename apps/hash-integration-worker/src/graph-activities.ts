@@ -36,10 +36,6 @@ export const getSubgraphFromBlockProtocolQueryEntity = async ({
       entityId: queryEntityId,
     })) as Entity<QueryProperties>;
   } catch {
-    // couldn't get entity
-  }
-
-  if (!queryEntity) {
     throw new Error(`No query entity found with id ${queryEntityId}.`);
   }
 
