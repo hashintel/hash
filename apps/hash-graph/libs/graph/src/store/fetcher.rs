@@ -1237,17 +1237,19 @@ where
     where
         R: IntoIterator<Item = EntityRelationAndSubject> + Send,
     {
-        let entity_type_reference = EntityTypeReference::new(params.entity_type_id.clone());
-        self.insert_external_types_by_reference(
-            actor_id,
-            authorization_api,
-            temporal_client,
-            OntologyTypeReference::EntityTypeReference(&entity_type_reference),
-            ConflictBehavior::Skip,
-            FetchBehavior::ExcludeProvidedReferences,
-            &HashSet::new(),
-        )
-        .await?;
+        for entity_type_id in &params.entity_type_ids {
+            let entity_type_reference = EntityTypeReference::new(entity_type_id.clone());
+            self.insert_external_types_by_reference(
+                actor_id,
+                authorization_api,
+                temporal_client,
+                OntologyTypeReference::EntityTypeReference(&entity_type_reference),
+                ConflictBehavior::Skip,
+                FetchBehavior::ExcludeProvidedReferences,
+                &HashSet::new(),
+            )
+            .await?;
+        }
 
         self.store
             .create_entity(actor_id, authorization_api, temporal_client, params)
@@ -1317,18 +1319,21 @@ where
         temporal_client: Option<&TemporalClient>,
         params: UpdateEntityParams,
     ) -> Result<EntityMetadata, UpdateError> {
-        let entity_type_reference = EntityTypeReference::new(params.entity_type_id.clone());
-        self.insert_external_types_by_reference(
-            actor_id,
-            authorization_api,
-            temporal_client,
-            OntologyTypeReference::EntityTypeReference(&entity_type_reference),
-            ConflictBehavior::Skip,
-            FetchBehavior::ExcludeProvidedReferences,
-            &HashSet::new(),
-        )
-        .await
-        .change_context(UpdateError)?;
+        for entity_type_id in &params.entity_type_ids {
+            self.insert_external_types_by_reference(
+                actor_id,
+                authorization_api,
+                temporal_client,
+                OntologyTypeReference::EntityTypeReference(&EntityTypeReference::new(
+                    entity_type_id.clone(),
+                )),
+                ConflictBehavior::Skip,
+                FetchBehavior::ExcludeProvidedReferences,
+                &HashSet::new(),
+            )
+            .await
+            .change_context(UpdateError)?;
+        }
 
         self.store
             .update_entity(actor_id, authorization_api, temporal_client, params)

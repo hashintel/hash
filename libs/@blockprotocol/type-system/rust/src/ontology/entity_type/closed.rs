@@ -14,7 +14,7 @@ pub struct ClosedEntityTypeSchemaData {
     pub description: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ClosedEntityType {
     pub schemas: HashMap<VersionedUrl, ClosedEntityTypeSchemaData>,
@@ -47,15 +47,15 @@ impl From<EntityType> for ClosedEntityType {
 
 impl FromIterator<EntityType> for ClosedEntityType {
     fn from_iter<T: IntoIterator<Item = EntityType>>(iter: T) -> Self {
-        let iter = iter.into_iter();
+        let mut entity_type = Self::default();
+        entity_type.extend(iter);
+        entity_type
+    }
+}
 
-        let mut entity_type = Self {
-            schemas: HashMap::with_capacity(iter.size_hint().0),
-            properties: HashMap::new(),
-            required: HashSet::new(),
-            links: Links(HashMap::new()),
-            inherits_from: HashSet::new(),
-        };
+impl FromIterator<Self> for ClosedEntityType {
+    fn from_iter<T: IntoIterator<Item = Self>>(iter: T) -> Self {
+        let mut entity_type = Self::default();
         entity_type.extend(iter);
         entity_type
     }
