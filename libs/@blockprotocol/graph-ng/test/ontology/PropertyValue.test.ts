@@ -78,28 +78,28 @@ const FileProperties = {
   oneOf: [[DescriptionProperty.id] as const] as const,
 } satisfies PropertyType.PropertyType;
 
-// test("single oneOf object type", () => {
-//   let Schema = PropertyType.makeValueSchema(FileProperties);
-//
-//   let result = S.decodeSync(Schema)({
-//     [VersionedUrl.base(DescriptionProperty.id)]: "description",
-//   });
-//
-//   let value = result["a"];
-//   let value = result["b"];
-//   let value = result[VersionedUrl.base(DescriptionProperty.id)];
-//
-//   expectTypeOf(result).toMatchTypeOf<{
-//     [key in VersionedUrl.Base<
-//       (typeof DescriptionProperty)["id"]
-//     >]: Property.Property<(typeof DescriptionProperty)["id"]>;
-//   }>();
-//
-//   expectTypeOf(result).not.toMatchTypeOf({
-//     ["https://blockprotocol.org/@blockprotocol/types/property-type/display-name"]:
-//       {
-//         id: DescriptionProperty.id,
-//         value: "example",
-//       } satisfies Property.Property,
-//   });
-// });
+test("single oneOf object type", () => {
+  let Schema = PropertyType.makeValueSchema(FileProperties);
+
+  let result = S.decodeSync(Schema)({
+    [VersionedUrl.base(DescriptionProperty.id)]: "description",
+  });
+
+  let value = result["a"];
+  let value = result["b"];
+  let value = result[VersionedUrl.base(DescriptionProperty.id)];
+
+  expectTypeOf(result).toMatchTypeOf<{
+    [key in VersionedUrl.Base<
+      (typeof DescriptionProperty)["id"]
+    >]: Property.Property<(typeof DescriptionProperty)["id"]>;
+  }>();
+
+  expectTypeOf(result).not.toMatchTypeOf({
+    ["https://blockprotocol.org/@blockprotocol/types/property-type/display-name"]:
+      {
+        id: DescriptionProperty.id,
+        value: "example",
+      } satisfies Property.Property,
+  });
+});
