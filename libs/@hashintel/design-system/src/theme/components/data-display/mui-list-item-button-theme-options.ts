@@ -1,4 +1,4 @@
-import { Components, CSSObject, Theme } from "@mui/material";
+import type { Components, CSSObject, Theme } from "@mui/material";
 
 export const MuiListItemButtonThemeOptions: Components<Theme>["MuiListItemButton"] =
   {

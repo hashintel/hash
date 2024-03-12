@@ -1,9 +1,10 @@
-import { EntityType } from "@blockprotocol/type-system";
+import type { EntityType } from "@blockprotocol/type-system";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { BaseUrl, linkEntityTypeUrl } from "@local/hash-subgraph";
+import type { BaseUrl } from "@local/hash-subgraph";
+import { linkEntityTypeUrl } from "@local/hash-subgraph";
 
 import { getEntityTypeById } from "../../../ontology/primitive/entity-type";
-import { MigrationFunction } from "../types";
+import type { MigrationFunction } from "../types";
 import {
   anyUserInstantiator,
   createSystemEntityTypeIfNotExists,

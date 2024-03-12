@@ -6,7 +6,7 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { useEffect } from "react";
 
-import {
+import type {
   GetEntityTypesQuery,
   GetEntityTypesQueryVariables,
 } from "../../graphql/api-types.gen";

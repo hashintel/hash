@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import {
+import type {
   ConnectionSourceNamePropertyValue,
   ExpiredAtPropertyValue,
   TextDataType,

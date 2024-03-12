@@ -1,13 +1,15 @@
+import type {
+  DragOverEvent,
+  DragStartEvent,
+  UniqueIdentifier,
+} from "@dnd-kit/core";
 import {
   closestCenter,
   defaultDropAnimationSideEffects,
   DndContext,
-  DragOverEvent,
   DragOverlay,
-  DragStartEvent,
   KeyboardSensor,
   PointerSensor,
-  UniqueIdentifier,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -22,12 +24,12 @@ import debounce from "lodash.debounce";
 import isEqual from "lodash.isequal";
 import { useMemo, useRef, useState } from "react";
 
-import {
+import type {
   BlockEntityKey,
   BoardCardKey,
   BoardColumnKey,
 } from "../../additional-types";
-import {
+import type {
   BlockEntity,
   KanbanBoardColumnPropertyValue,
 } from "../../types/generated/block-entity";
@@ -35,7 +37,7 @@ import { StaticCard } from "./card/static-card";
 import { Column } from "./column/column";
 import { SortableColumn } from "./column/sortable-column";
 import styles from "./styles.module.scss";
-import {
+import type {
   ActiveItem,
   CardData,
   ColumnsState,

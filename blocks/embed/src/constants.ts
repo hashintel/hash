@@ -1,7 +1,7 @@
 // These are arbitary values. Ideally the Embedding Application should provide
 // some of them to the block
 
-import { ProviderName } from "./types";
+import type { ProviderName } from "./types";
 
 /**
  * This helps ensure there's space for the edit button

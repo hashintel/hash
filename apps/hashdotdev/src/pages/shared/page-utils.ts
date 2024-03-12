@@ -1,4 +1,4 @@
-import { SiteMapPage, SiteMapPageSection } from "./sitemap";
+import type { SiteMapPage, SiteMapPageSection } from "./sitemap";
 
 export const generatePathWithoutParams = (path: string) => {
   const pathWithoutParams = path.match(/^[^?]*/)?.[0];

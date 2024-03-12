@@ -1,9 +1,5 @@
-import {
-  Components,
-  listItemIconClasses,
-  listItemTextClasses,
-  Theme,
-} from "@mui/material";
+import type { Components, Theme } from "@mui/material";
+import { listItemIconClasses, listItemTextClasses } from "@mui/material";
 
 export const MuiListItemButtonThemeOptions: Components<Theme>["MuiListItemButton"] =
   {

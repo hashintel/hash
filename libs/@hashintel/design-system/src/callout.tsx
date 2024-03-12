@@ -1,6 +1,7 @@
 import { faCircleInfo, faWarning } from "@fortawesome/free-solid-svg-icons";
-import { Stack, SxProps, Theme, Typography } from "@mui/material";
-import { PropsWithChildren, ReactNode } from "react";
+import type { SxProps, Theme } from "@mui/material";
+import { Stack, Typography } from "@mui/material";
+import type { PropsWithChildren, ReactNode } from "react";
 
 import { FontAwesomeIcon } from "./fontawesome-icon";
 

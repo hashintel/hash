@@ -1,7 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
-import { InitializeContext } from "../context/initialize.js";
+import type { InitializeContext } from "../context/initialize.js";
 
 export const ensureOutputDirExists = async (
   context: InitializeContext,

@@ -1,4 +1,4 @@
-import { MultiFilter } from "@blockprotocol/graph";
+import type { MultiFilter } from "@blockprotocol/graph";
 import {
   type BlockComponent,
   useEntitySubgraph,
@@ -11,12 +11,12 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { isMobile } from "react-device-detect";
 import { SizeMe } from "react-sizeme";
 
-import { RootKey } from "./additional-types";
+import type { RootKey } from "./additional-types";
 import { SettingsBar } from "./components/settings-bar/settings-bar";
 import { Table } from "./components/table/table";
 import { TableWithQuery } from "./components/table/table-with-query";
 import { WelcomeModal } from "./components/welcome-modal";
-import {
+import type {
   BlockEntity,
   TableBlockOutgoingLinkAndTarget,
 } from "./types/generated/block-entity";

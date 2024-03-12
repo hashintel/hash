@@ -1,4 +1,8 @@
-import { EntityRootType, Subgraph, VersionedUrl } from "@blockprotocol/graph";
+import type {
+  EntityRootType,
+  Subgraph,
+  VersionedUrl,
+} from "@blockprotocol/graph";
 import { getEntityTypeById, getRoots } from "@blockprotocol/graph/stdlib";
 import {
   Box,
@@ -6,7 +10,8 @@ import {
   Button,
   Typography,
 } from "@mui/material";
-import { FunctionComponent, useMemo } from "react";
+import type { FunctionComponent } from "react";
+import { useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 
 import { BarChartDefinitionForm } from "./edit-chart-definition/bar-chart-definition-form";
@@ -16,7 +21,7 @@ import {
 } from "./edit-chart-definition/bar-graph-definition-form/group-by-property-form";
 import { GraphChartDefinitionForm } from "./edit-chart-definition/graph-chart-definition-form";
 import { getEntityTypePropertyTypes } from "./edit-chart-definition/util";
-import { ChartDefinition } from "./types/chart-definition";
+import type { ChartDefinition } from "./types/chart-definition";
 
 const chartKindToLabel: Record<ChartDefinition["kind"], string> = {
   "bar-chart": "Bar Chart",

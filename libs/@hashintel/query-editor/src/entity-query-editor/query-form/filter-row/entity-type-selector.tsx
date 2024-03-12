@@ -1,11 +1,11 @@
-import { EntityType } from "@blockprotocol/graph";
+import type { EntityType } from "@blockprotocol/graph";
 import { MenuItem, OntologyChip } from "@hashintel/design-system";
 import { FormControl, listClasses } from "@mui/material";
 import { useMemo } from "react";
 import { useFormContext } from "react-hook-form";
 
 import { useReadonlyContext } from "../../readonly-context";
-import { FormValues } from "../../types";
+import type { FormValues } from "../../types";
 import { RHFSelect } from "./rhf-select";
 
 export const EntityTypeSelector = ({

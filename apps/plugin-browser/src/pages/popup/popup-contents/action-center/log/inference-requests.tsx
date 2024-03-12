@@ -12,9 +12,10 @@ import {
   Typography,
 } from "@mui/material";
 import { format } from "date-fns";
-import { MouseEvent, useState } from "react";
+import type { MouseEvent } from "react";
+import { useState } from "react";
 
-import {
+import type {
   LocalStorage,
   PageEntityInference,
 } from "../../../../../shared/storage";

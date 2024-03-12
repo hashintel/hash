@@ -1,5 +1,5 @@
-import { JsonObject } from "@blockprotocol/core";
-import { DataSource } from "apollo-datasource";
+import type { JsonObject } from "@blockprotocol/core";
+import type { DataSource } from "apollo-datasource";
 
 export type SearchHit = {
   /** The ID of the document matching the query.  */

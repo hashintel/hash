@@ -1,19 +1,19 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
-import {
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
   AccountGroupId,
   AccountId,
   Entity,
   EntityId,
   EntityPropertiesObject,
   EntityRelationAndSubject,
-  extractDraftIdFromEntityId,
   LinkData,
   OwnedById,
 } from "@local/hash-subgraph";
+import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-subgraph/stdlib";
-import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
-import { ImpureGraphFunction } from "../../context-types";
+import type { ImpureGraphFunction } from "../../context-types";
 import {
   getEntityTypeById,
   isEntityTypeLinkEntityType,

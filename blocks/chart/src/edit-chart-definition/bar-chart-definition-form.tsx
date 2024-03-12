@@ -1,9 +1,13 @@
-import { EntityRootType, EntityType, Subgraph } from "@blockprotocol/graph";
+import type {
+  EntityRootType,
+  EntityType,
+  Subgraph,
+} from "@blockprotocol/graph";
 import { FormControl, InputLabel, MenuItem, Select } from "@mui/material";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 
-import { ChartDefinition } from "../types/chart-definition";
+import type { ChartDefinition } from "../types/chart-definition";
 import {
   CountLinksForm,
   generateInitialChartDefinition as generateInitialCountLinkedEntitiesChartDefinition,

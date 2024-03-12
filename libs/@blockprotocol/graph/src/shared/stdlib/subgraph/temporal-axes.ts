@@ -1,5 +1,6 @@
-import { isTemporalSubgraph, Subgraph } from "../../types/subgraph.js";
-import {
+import type { Subgraph } from "../../types/subgraph.js";
+import { isTemporalSubgraph } from "../../types/subgraph.js";
+import type {
   BoundedTimeInterval,
   TimeInterval,
 } from "../../types/temporal-versioning.js";

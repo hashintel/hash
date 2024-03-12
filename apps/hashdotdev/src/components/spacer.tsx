@@ -1,6 +1,7 @@
-import { Box, Breakpoint, Theme } from "@mui/material";
-import { SystemStyleObject } from "@mui/system";
-import { FunctionComponent } from "react";
+import type { Breakpoint, Theme } from "@mui/material";
+import { Box } from "@mui/material";
+import type { SystemStyleObject } from "@mui/system";
+import type { FunctionComponent } from "react";
 
 type FlexProps = { flex: true };
 type InnerNotFlexProps = {

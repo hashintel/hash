@@ -3,7 +3,8 @@ import "../shared/common.scss";
 import { theme } from "@hashintel/design-system/theme";
 import { Box, Skeleton, ThemeProvider } from "@mui/material";
 import { useEffect, useState } from "react";
-import browser, { Tabs } from "webextension-polyfill";
+import type { Tabs } from "webextension-polyfill";
+import browser from "webextension-polyfill";
 
 import { clearError } from "../../shared/badge";
 import { useStorageSync } from "../shared/use-storage-sync";

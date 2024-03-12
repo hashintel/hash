@@ -1,6 +1,6 @@
 /* eslint-disable canonical/filename-no-index -- @todo rename file */
 
-import { ThemeOptions } from "@mui/material";
+import type { ThemeOptions } from "@mui/material";
 
 import { MuiAvatarThemeOptions } from "./data-display/mui-avatar-theme-options";
 import { MuiIconButtonThemeOptions } from "./data-display/mui-icon-button-theme-options";

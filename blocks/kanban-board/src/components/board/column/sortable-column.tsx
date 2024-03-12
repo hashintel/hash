@@ -4,7 +4,7 @@ import clsx from "clsx";
 
 import { Column } from "./column";
 import styles from "./styles.module.scss";
-import { SortableColumnProps } from "./types";
+import type { SortableColumnProps } from "./types";
 
 export const SortableColumn = (props: SortableColumnProps) => {
   const { data } = props;

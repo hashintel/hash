@@ -1,6 +1,6 @@
-import { HTMLProps } from "react";
+import type { HTMLProps } from "react";
 
-import {
+import type {
   ColumnData,
   CreateCardCallback,
   DeleteCardCallback,

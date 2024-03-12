@@ -1,5 +1,6 @@
 import { Box } from "@mui/material";
-import { Children, HTMLAttributes, isValidElement } from "react";
+import type { HTMLAttributes } from "react";
+import { Children, isValidElement } from "react";
 
 import { mdxComponents } from "../util/mdx-components";
 import { Link } from "./link";

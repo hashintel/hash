@@ -1,5 +1,7 @@
-import { Paper, PaperProps, Typography } from "@mui/material";
-import { Children, FunctionComponent, isValidElement, ReactNode } from "react";
+import type { PaperProps } from "@mui/material";
+import { Paper, Typography } from "@mui/material";
+import type { FunctionComponent, ReactNode } from "react";
+import { Children, isValidElement } from "react";
 
 export type InfoCardVariant = "info" | "warning";
 

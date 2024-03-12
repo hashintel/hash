@@ -1,6 +1,6 @@
-import { AccountId, Entity } from "@local/hash-subgraph";
+import type { AccountId, Entity } from "@local/hash-subgraph";
 
-import { FileProperties } from "./system-types/shared";
+import type { FileProperties } from "./system-types/shared";
 
 export type ParseTextFromFileParams = {
   presignedFileDownloadUrl: string;

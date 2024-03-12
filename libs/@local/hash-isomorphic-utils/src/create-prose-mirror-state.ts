@@ -1,9 +1,10 @@
-import { OwnedById } from "@local/hash-subgraph";
+import type { OwnedById } from "@local/hash-subgraph";
 import { cloneDeep } from "lodash";
 import { baseKeymap } from "prosemirror-commands";
 import { dropCursor } from "prosemirror-dropcursor";
-import { Node, Schema } from "prosemirror-model";
-import { EditorState, Plugin } from "prosemirror-state";
+import type { Node, Schema } from "prosemirror-model";
+import type { Plugin } from "prosemirror-state";
+import { EditorState } from "prosemirror-state";
 
 import { createEntityStorePlugin } from "./entity-store-plugin";
 import {

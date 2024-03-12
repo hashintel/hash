@@ -1,4 +1,5 @@
-import { Stack, StackProps } from "@mui/material";
+import type { StackProps } from "@mui/material";
+import { Stack } from "@mui/material";
 
 export const DestinationTypeContainer = ({
   children,

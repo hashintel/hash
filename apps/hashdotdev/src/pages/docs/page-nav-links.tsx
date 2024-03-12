@@ -1,16 +1,11 @@
-import {
-  Box,
-  BoxProps,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from "@mui/material";
-import { FunctionComponent } from "react";
+import type { BoxProps } from "@mui/material";
+import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
+import type { FunctionComponent } from "react";
 
 import { ArrowLeftRegularIcon } from "../../components/icons/arrow-left-regular-icon";
 import { ArrowRightRegularIcon } from "../../components/icons/arrow-right-regular-icon";
 import { Link } from "../../components/link";
-import { SiteMapPage } from "../shared/sitemap";
+import type { SiteMapPage } from "../shared/sitemap";
 
 /** @todo: make use of styled component when `FaIcon` component has been replaced */
 const navArrowIconStyling: BoxProps["sx"] = {

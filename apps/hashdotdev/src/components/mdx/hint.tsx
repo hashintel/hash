@@ -3,7 +3,7 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import WarningIcon from "@mui/icons-material/Warning";
 import { Box } from "@mui/material";
-import { FunctionComponent, PropsWithChildren, ReactNode } from "react";
+import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
 
 type HintStyle = "success" | "info" | "warning" | "danger";
 

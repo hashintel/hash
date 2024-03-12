@@ -1,15 +1,9 @@
 import Prism from "prismjs";
-import {
-  ChangeEvent,
-  KeyboardEvent,
-  RefObject,
-  useCallback,
-  useEffect,
-  useRef,
-} from "react";
+import type { ChangeEvent, KeyboardEvent, RefObject } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import styles from "./editor.module.css";
-import { LanguageType } from "./utils";
+import type { LanguageType } from "./utils";
 
 type IEditorProps = {
   content: string;

@@ -1,4 +1,5 @@
-import { Button, ButtonProps } from "@hashintel/design-system";
+import type { ButtonProps } from "@hashintel/design-system";
+import { Button } from "@hashintel/design-system";
 import { Link } from "@mui/material";
 
 export const MapButton = ({ children, href, sx, ...props }: ButtonProps) => {

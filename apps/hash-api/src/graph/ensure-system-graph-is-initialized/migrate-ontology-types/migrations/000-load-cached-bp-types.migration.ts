@@ -1,11 +1,11 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 import {
   CACHED_DATA_TYPE_SCHEMAS,
   CACHED_ENTITY_TYPE_SCHEMAS,
   CACHED_PROPERTY_TYPE_SCHEMAS,
 } from "../../../../seed-data";
-import { MigrationFunction } from "../types";
+import type { MigrationFunction } from "../types";
 import {
   loadExternalDataTypeIfNotExists,
   loadExternalEntityTypeIfNotExists,

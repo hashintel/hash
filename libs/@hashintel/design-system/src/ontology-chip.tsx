@@ -1,12 +1,7 @@
-import {
-  Box,
-  Stack,
-  SxProps,
-  Theme,
-  Typography,
-  typographyClasses,
-} from "@mui/material";
-import { forwardRef, ForwardRefRenderFunction, useMemo } from "react";
+import type { SxProps, Theme } from "@mui/material";
+import { Box, Stack, Typography, typographyClasses } from "@mui/material";
+import type { ForwardRefRenderFunction } from "react";
+import { forwardRef, useMemo } from "react";
 
 import { IconRainbowHash } from "./icon-rainbow-hash";
 
