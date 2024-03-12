@@ -222,6 +222,10 @@ const createCellFromValue = (value: unknown): sheets_v4.Schema$CellData => {
   }
 };
 
+const createEmptyCells = (count: number): Array<object> =>
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  Array(count).fill({});
+
 type EntitySheetRequests = {
   [typeId: string]: {
     additionalRequests: sheets_v4.Schema$Request[];
@@ -246,7 +250,9 @@ export const createSheetRequestsFromEntitySubgraph = (
   const entitySheetRequests: EntitySheetRequests = {};
 
   const sortedEntities = Object.values(entitySubgraph.vertices)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- TODO why is vertices becoming any
     .flatMap((editionMap) => Object.values(editionMap))
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- TODO why is vertices becoming any
     .filter((vertex): vertex is EntityVertex => isEntityVertex(vertex))
     .map((vertex) => vertex.inner)
     .sort((aEntity, bEntity) => {
@@ -425,7 +431,7 @@ export const createSheetRequestsFromEntitySubgraph = (
           },
           userEnteredFormat: groupHeaderFormat,
         });
-        groupHeaderCells.push(...Array(baseColumnCount - 1).fill({}));
+        groupHeaderCells.push(...createEmptyCells(baseColumnCount - 1));
 
         additionalRequests.push({
           mergeCells: {
@@ -450,7 +456,7 @@ export const createSheetRequestsFromEntitySubgraph = (
             },
             userEnteredFormat: groupHeaderFormat,
           });
-          groupHeaderCells.push(...Array(1).fill({}));
+          groupHeaderCells.push(...createEmptyCells(1));
 
           additionalRequests.push({
             mergeCells: {
@@ -476,7 +482,7 @@ export const createSheetRequestsFromEntitySubgraph = (
             },
             userEnteredFormat: groupHeaderFormat,
           });
-          groupHeaderCells.push(...Array(propertyColumnCount - 1).fill({}));
+          groupHeaderCells.push(...createEmptyCells(propertyColumnCount - 1));
 
           additionalRequests.push({
             mergeCells: {
@@ -502,7 +508,7 @@ export const createSheetRequestsFromEntitySubgraph = (
             },
             userEnteredFormat: groupHeaderFormat,
           });
-          groupHeaderCells.push(...Array(linkColumnCount - 1).fill({}));
+          groupHeaderCells.push(...createEmptyCells(linkColumnCount - 1));
 
           additionalRequests.push({
             mergeCells: {
