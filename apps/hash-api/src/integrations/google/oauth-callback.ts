@@ -64,11 +64,7 @@ export const googleOAuthCallback: RequestHandler<
 
     const googleUser = await oauth2.userinfo.get();
 
-    if (
-      !googleUser.data.id ||
-      !googleUser.data.email ||
-      !googleUser.data.name
-    ) {
+    if (!googleUser.data.id || !googleUser.data.email) {
       res.status(500).send({
         error: "Google user data is missing required fields",
       });
@@ -101,7 +97,7 @@ export const googleOAuthCallback: RequestHandler<
         "https://hash.ai/@hash/types/property-type/email/":
           googleUser.data.email,
         "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-          googleUser.data.name,
+          googleUser.data.name ?? googleUser.data.email,
         "https://hash.ai/@google/types/property-type/account-id/":
           googleUser.data.id,
       };
