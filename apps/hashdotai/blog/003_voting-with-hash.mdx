@@ -1,0 +1,189 @@
+---
+title: "Voting with HASH"
+subtitle: "Simulating elections in-silico"
+date: "2020-10-29"
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/1a080be9-c7ef-41e1-f017-f01d8bf13a00/public
+categories:
+  - "Simulation"
+---
+
+No election is without complication, but the 2020 US presidential election faces the extra added challenge of taking place in the midst of a global pandemic. Keeping people safe while ensuring they can still easily vote has led to states implementing both accommodations and restrictions on their election practices. Some of these have made voting more difficult, and this has put voter access in the spotlight, with [numerous](https://www.cnn.com/2020/10/27/politics/texas-supreme-court-ballot-drop-boxes/index.html) [controversies](https://www.nytimes.com/2020/10/26/us/supreme-court-wisconsin-ballots.html) over election rules.
+
+In democracies, the right to vote is generally universal - but the way an election is held may affect whether or not every citizen has the option to exercise that right.
+
+While many factors affect voter turnout, researchers have identified several key structural factors - factors that are embedded in the process of running the election - that determine voter turnout levels, in particular the **ease of voting**. This includes the distance a voter has to travel to vote, how long they have to wait in line to vote, and whether they can vote over an extended period of time or just on one day.
+
+To explore how voting place access affects the end number of votes cast, we've produced a model that simulates voter turnout based upon distance to polling stations and population density. This simulation combines 2018 census data from Durham County, North Carolina to determine population density, and builds on live polling site locations. [View this model on the hIndex](https://hash.ai/@hash/polling-places).
+
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/3c059d09-ef09-44ea-efa7-6f02d8cd7000/public)
+
+A geospatial view of the simulation
+
+The simulation is run for 217 steps. One step corresponds to one hour of real-time (except for the initialization stage):
+
+- Simulation initialization (3 steps)
+- 16 days of early voting, with polling stations open for an average of 12 hours (192 steps)
+- Reinitializing with election day voting locations (2 steps)
+- Election day voting, with polls open for 20 hours (20 steps)
+
+#### Visualization
+
+Polling places are represented as blue agents. Their height displays the current number of voters that are waiting in line to vote.
+
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/e94f8a9f-eb56-44ee-d6f4-1d3994a76b00/public)
+
+A view of the simulation in HASH's 3D viewer
+
+Population tracts are represented as yellow agents. Their height displays the current number of voters who have not yet gone to vote, or have dropped out of line. The position of the agent is the centroid of the census tract.
+
+## Model Behavior
+
+We've captured both early voting and election day voting in our model. The early voting period is 16 days long. Base turnout and processing rate at polling stations was determined by the official voting counts for votes cast during the first five days of early voting.
+
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/be872b8c-c20d-4222-41ff-9233d93e4e00/public)
+
+A run of the model with no poll closures. Final count is 146,000 votes cast
+
+Election day voting lasts for 20 hours. Base turnout is calculated from a prediction of 65% _eligible_ voter turnout. This becomes on average 55% of the total population when considering the demographics of Durham County. In this county there are more polling locations open on election day than during the early voting period, but voters may cast ballots at any location during the early voting period.
+
+#### Choosing a Polling Site
+
+Voters attempt to choose a polling location that is close to them, and does not have a long line. Durham County maintains an online map with approximate wait times at polling locations, updated every few hours. Every 10 steps, voters in our simulation reconsider which polling place minimizes their travel and wait cost, which leads to periodic behavior in the model results.
+
+These actions are performed by the `get_closest_poll.js` behavior.
+
+#### Distance to Polls
+
+When voters have to travel farther to get to a polling site, turnout is depressed. We've represented census tracts (the smallest region of measurement) based on the centroids of their geographic regions, and it's the distance from this location to a polling place that is used to determine how the turnout rate is affected. We assume on average a linear relationship between the distance traveled and decreased likelihood of voting A 2.75 mile increase in the average distance from a polling site leads to a 1% drop in turnout during early voting, and a 2% drop on election day (over larger distances the relationship between travel distance and turnout on election day is non-linear).
+
+The `send_voters.js` behavior decides how many voters go to the polls on a given time step, and weighs the cost of travel distance into those calculations.
+
+When there are fewer open polling sites in the county, on average voters will always have to travel farther to vote. This will incur a cost on turnout. Our Plots tab contains a graph that shows the average distance voters are travelling to get to the polls:
+
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/958fb977-0805-4eed-7986-f1331ee48a00/public)
+
+Note that once election day arrives, voters need to travel less, until they decide to try finding a polling place with a shorter line
+
+When more polling places are closed, we see the periodic effects of the model become exaggerated as voters find farther polling locations to avoid long lines.
+
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/6a6be58c-f091-4cbe-ebe4-beb55c9efd00/public)
+
+Average voter travel with 50% early poll closures
+
+#### Lines at Polls
+
+Voters who have to wait longer than an hour at a polling location are captured as "leftover" voters. A percent of these voters drop out of line with a probability of returning to the polls at a later time. When voters see that they will have to wait for longer than an hour to vote, this leads to less voters attempting to cast their ballot in our model.
+
+The **poll.js** behavior handles information about voters in line, and calculates how many voters are dropping out at a given moment. When there are fewer open polling sites in the county, on average lines at polling stations will become longer. This in turn depresses voter turnout.
+
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/9bda6696-e7d5-40cb-0dcd-b14789871f00/public)
+
+The voter success graph in the Plots view allows you to see how many people successfully vote on a given time step, and how many decide to drop out of a long line
+
+## Experiments
+
+In the `globals.json` file, we can adjust the `early_pct_closed` and `election_day_pct_closed` values to understand how closures of polling places can affect the total number of ballots that are cast.
+
+```javascript
+{
+  "durham_county_population": 320322,
+  "minutes_to_vote": 5,
+  "voters_at_a_time": 5,
+  "drop_out_rate": 0.005,
+  "center_ll": [-78.898854, 35.993859],
+  "scale_ll": 1000,
+  "turnout": 0.55,
+  "early_pct_closed": 0,
+  "election_day_pct_closed": 0
+}
+```
+
+- `early_pct_closed` - This variable determines what percent of early polling locations are randomly shut down. If the value is 0, all locations are open, and if the value is 1, all are closed.
+
+- `election_day_pct_closed` - This variable determines what percent of election day polling locations are randomly shut down. It behaves identically to `early_pct_closed`.
+
+We've defined two experiments that will run the simulation with a range of values between 0 and 0.9 for both of these global values, allowing you to explore the relationship between poll closures, turnout, lines, and ballots cast.
+
+**There is a direct impact on ballots cast when the number of polling sites is reduced.**
+
+The relationship between poll closures and votes cast is inverse linear in the output of our model. This is a result of both a very real limit on throughput at polling places, and because of the dissuading effects of longer travel times and wait times, both of which inherently increase when there are fewer polling places available. The impact of closures on average voter travel is exponential, and in a larger county, this would have a larger impact on the number of votes cast.
+
+<table>
+  <tbody>
+    <tr>
+      <td>
+        <strong>Percent Polls Closed</strong>
+      </td>
+      <td>
+        <strong>Votes Cast</strong>
+      </td>
+      <td>
+        <strong>Avg Early Voter Travel</strong>
+      </td>
+    </tr>
+    <tr>
+      <td>0%</td>
+      <td>160,918</td>
+      <td>2.2 miles</td>
+    </tr>
+    <tr>
+      <td>10%</td>
+      <td>159,934</td>
+      <td>2.4 miles</td>
+    </tr>
+    <tr>
+      <td>20%</td>
+      <td>149,358</td>
+      <td>2.8 miles</td>
+    </tr>
+    <tr>
+      <td>30%</td>
+      <td>146,751</td>
+      <td>3.0 miles</td>
+    </tr>
+    <tr>
+      <td>40%</td>
+      <td>129,737</td>
+      <td>3.4 miles</td>
+    </tr>
+    <tr>
+      <td>50%</td>
+      <td>119,020</td>
+      <td>3.8 miles</td>
+    </tr>
+    <tr>
+      <td>60%</td>
+      <td>109,020</td>
+      <td>4.6 miles</td>
+    </tr>
+    <tr>
+      <td>70%</td>
+      <td>87,410</td>
+      <td>5.5 miles</td>
+    </tr>
+    <tr>
+      <td>80%</td>
+      <td>76,063</td>
+      <td>6.8 miles</td>
+    </tr>
+    <tr>
+      <td>90%</td>
+      <td>58,010</td>
+      <td>7.6 miles</td>
+    </tr>
+  </tbody>
+</table>
+
+Results from an early voting poll closures experiment run
+
+By inspecting our plots we can also see that Election Day voting becomes much more significant as access to early voting locations decreases (as we would expect). We also run into logistical limits as the throughput of the polling locations cannot handle the amount of voters left. This is what leads to the decline in the voting rate in the final steps of the graph below:
+
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/5dd102a0-142c-48cc-9d09-77cb21fb2d00/public)
+
+Ballots cast with 70% early poll closures
+
+In winner-take-all races, counties that are closely contested **need only experience minor changes in voter turnout to drastically shift the results of elections**. For this reason it’s important to understand how even small modifications in election practices can shift voters’ access to polls and likelihood of voting.
+
+## Fork It
+
+Want to know what this model could look like in another county, or even yours? Simply [fork this model](https://hash.ai/@hash/polling-places) by pressing `Cmd`+`S` (on Mac) or `Ctrl`+`S` on Windows, from within [hCore](https://hash.ai/platform/core), and then upload another county’s polling and demographic data. We used data from Durham's board of elections and from a local data consultancy to populate this simulation.

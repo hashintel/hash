@@ -1,0 +1,112 @@
+---
+title: "Core Concepts"
+description: "Learn the basics of HASH"
+metaTitle: "Core Concepts - HASH"
+metaDescription: "Discover the most important concepts within HASH and learn how the application works"
+sidebarTitle: "Core Concepts"
+---
+
+# Overview
+
+You don't need to understand all of the concepts outlined on this page in order to [Get Started](/guide/introduction/get-started) with HASH, but being familiar with them will help you learn HASH faster. We recommend having a quick scan of this page as you start out, and returning to it later when you need more information about a particular thing. In addition to defining key terms you'll find throughout the docs, these concepts provide a broad sense as to the types of features and capabilties that are present within HASH.
+
+# Concepts
+
+## Accounts
+
+We use the term 'account' to refer to both **users** and **organizations** (aka. "orgs") in HASH. All users and orgs have a _web_ and an _account name_, such as `@example`. This can be used to access an account's public profile, such as [https://app.hash.ai/@example](/@example).
+
+## Webs
+
+Every user and every org has their own [**web**](/guide/webs). Webs contain **entities** (data), as well as **types** (which define what entities are, and provide them with meaning).
+
+User's webs are called [Personal Webs](/guide/webs/users#web), and orgs' webs are known as [Shared Webs](/guide/webs/orgs#web). Users may have access to any number of shared webs, in addition to their own personal one.
+
+## Entities
+
+Data in a [web](/guide/webs) exists in the form of [entities](/guide/entities). An individual entity may have one or more [entity types](/guide/types/entity-types), which describes what sort of thing(s) an entity is, and the kinds of information (i.e. [**attributes**](/guide/entities/attributes)) that can be associated with it. Entities without entity types cannot be created.
+
+## Attributes
+
+[Attributes](/guide/entities/attributes) are information about entities. They can either be [properties](/guide/entities/attributes#properties) (values) representing some characteristic of an entity, or [links](/guide/entities/attributes#links) (relationships) connecting one entity to another.
+
+## Types
+
+Depending on how you use HASH, you may never need to create your own [**types**](/guide/types) or _really_ learn how they work. However, in short, there are four kinds of [types](/guide/types) in HASH.
+
+[Entities](/guide/entities) are described by (i) [entity types](/guide/types/entity-types), which define the [attributes](/guide/entities/attributes) that can be associtaed with them.
+
+[Attributes](/guide/entities/attributes) come in the form of [properties](/guide/entities/attributes#properties) (values) and [links](/guide/entities/attributes#links) (pointers to other entities):
+
+- Properties tell you something about the entity itself, for example its name. They are described by (ii) [property types](/guide/types/property-types) that provide semantic meaning, and specify (iii) the expected [data type(s)](/guide/types/data-types) of a property, e.g. `Text` or `Date`.
+- Links describe the relationship between entities (e.g. two people, or a person and a company). They are described by (iv) [link types](/guide/types/link-types), and may themselves have properties that tell you something about the relationship. For example, an employment relationship may have a job title and a start date.
+
+These four types (entity, link, property and data) are known collectively as our "type system", enable any kind of data to be represented in HASH, and they are part of what makes HASH so powerful.
+
+## Permissions
+
+[**Permissions**](/guide/webs/permissions) govern what users (both individually and on a group-basis) can both see and do. Permissions can be managed very granularly, allowing view, update, comment, share and other forms of access to be restricted only to authorized users.
+
+## History
+
+[History](/guide/webs/history) in HASH refers to three things:
+
+1. a complete record of all the changes to an entity or type over time (change tracking)
+1. the ability to inspect, access and even use older versions of an entity or type (versioning)
+1. the ability to see where information and changes came from, as well as what caused them (provenance)
+
+## Pages
+
+[Pages](/guide/pages) provide a way of using your entities, in HASH. Pages are created inside of each web you belong to (i.e. your own personal web, or the shared web of any organizations you're a member of), and will appear in your left-hand sidebar inside of HASH.
+
+There are two types of pages in HASH:
+
+- [Documents](/guide/pages/documents): linear pages where blocks are arranged in columns; typically used for text-heavy pages
+- [Canvases](/guide/pages/canvases): free-form pages where blocks can be arranged spatially on an infinite canvas; useful for mindmaps, flowcharts, dashboards, and app-building
+
+## Blocks
+
+[Blocks](/guide/pages/blocks) can be inserted into pages, and provide many different kinds of functionality. For example:
+
+- the **Paragaph** block lets you type (or see) some text, depending on whether you have edit (or just view) permissions on a page
+- the **Image** block similarly lets you edit, insert, or simply view a picture (depending again upon your permissions)
+- the **AI Image** block lets you type in a prompt and actually _generate_ an image, which is then saved and persisted on the page
+- the **Minesweeper** block is just good fun
+
+A block such as a button or dropdown may also be [interactive](/guide/pages/blocks#action), or offer complex functionality such as access to an AI chatbot.
+
+If you're a web developer comfortable writing code, you can build and publish your own blocks, and use them inside of HASH, by following the guide in the [HASH developer docs](https://hash.dev/docs/blocks).
+
+## Sharing
+
+@TODO FINISH
+
+## Integrations
+
+[Integrations](/guide/integrations) enable HASH to act on your behalf in external applications, and sync data with your web.
+
+## Plugins
+
+[Plugins](/guide/plugins) are HASH-built extensions for other applications which enable you to access HASH functionality within them.
+
+## Flows
+
+[Flows](/guide/flows) are sequences of steps which can be planned and executed on your behalf, automating previously manual work. They also serve to explicitly document processes, improving transparency and reliability.
+
+## Apps
+
+[Apps](/guide/apps) are ready-made bundles of blocks, types and pages, which can be added to a web with one click. Apps can also be created in a "no-code" manner by combining the same elements, and in the future will be publishable to a HASH _App Store_.
+
+## AI
+
+HASH integrates a range of [AI capabilities and interfaces](/guide/ai) to help you get more done in less time.
+
+## Inbox
+
+Your [inbox](/guide/inbox) contains notifications, messages, and actions (including drafts).
+
+# Got it?
+
+Don't worry about remembering everything. The above is just a quick-reference overview, and you'll be able to get help in-app anytime should you need it. If you need more help at any point, you can always [contact us](/contact) or join the [community forum](/discord).
+
+For now, continue on to [get started >](/guide/introduction/get-started)

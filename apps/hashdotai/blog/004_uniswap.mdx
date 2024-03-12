@@ -1,0 +1,64 @@
+---
+title: "Uniswap Simulation"
+subtitle: "A web-based simulation of Uniswap's provision of liquidity"
+date: "2020-11-18"
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/96c6bfe5-8597-4d93-3d84-c1eab1e6a600/public
+categories: 
+  - "Simulation"
+---
+
+One of simulation's great benefits is that it can help us explore complex systems and discover unexpected outcomes. There are few domains that exhibit quite as much complexity as cryptocurrencies, and the surprising and unexpected seem to occur on a constant, regular basis.
+
+The rise of decentralized finance has dramatically increased the options available to investors and traders, and understanding key elements of it through modeling and simulation can help reduce uncertainty. It’s also just a really _interesting_ space - [for example](https://rope.lol/) - which means a lot of fun can be had building simulations. Over the next few weeks we'll be publishing models and explainers covering a few different projects in the crypto-world. By following along, you'll be able to fork these models, expand them, and experiment with alternative crypto mechanics.
+
+To start out we've built a [simulation of the Uniswap protocol](https://hash.ai/@hash/uniswap).
+
+# Introducing Uniswap
+
+_Uniswap_ is a fully decentralized protocol for automated liquidity provisioning on Ethereum. Building on a [Reddit post](https://www.reddit.com/r/ethereum/comments/55m04x/lets_run_onchain_decentralized_exchanges_the_way/) by Ethereum co-founder Vitalik Buterin, Uniswap is part of a class of automated market makers that use a defined algorithm to set prices for buying and selling tokens. Users can swap token A for Token B at a rate set by the constant product formula `x * y = k`, where `x` is the reserve of tokens `A`, `y` is the reserves of token `B`, and `K` is a constant. As more of token `A` is purchased, and thus more of token `B` is deposited, the price of `A` in terms of `B` will rise.
+
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/26120a59-728c-4054-65c0-6a07db3d4d00/public)
+
+The constant product formula of the Uniswap Protocol ([Source](https://rossbulat.medium.com/uniswap-v2-everything-new-with-the-decentralised-exchange-52b4bb2093ab))
+
+Reserves of the token pairs are deposited by liquidity providers, who “invest” in the pool by depositing a proportional amount of tokens A and B, and receive liquidity shares, which grant them a fractional claim on tokens in the pool. Liquidity providers can redeem their shares and reclaim the tokens, which may in the meantime grow from fees charged during trading.
+
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/47b415f2-2d51-49e0-7d3c-013f6a53ff00/public)
+
+An overview of the Uniswap Protocol ([Source](https://docs.uniswap.org/protocol/V2/concepts/core-concepts/pools))
+
+As the exchange rate changes for exogenous reasons, arbitrageurs have an incentive to buy and sell the tokens, aligning the price.
+
+Uniswap, and similar automated market makers, are interesting systems to simulate given their well defined behaviors and operation in complex environments, where different starting parameters (token reserves, fees) can lead to significantly different outcomes for traders, investors, and users.
+
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/57ba885c-e411-4ef5-1fcc-8a2b0c390700/public)
+
+# **About This Model**
+
+[This simulation models the Uniswap protocol and evaluates arbitrage between two balancer pools](https://core.hash.ai/@b/uniswap/main) and the gains / potential [impermanent loss](https://uniswap.org/docs/v2/advanced-topics/understanding-returns/)
+
+It is made up of four agents:
+
+- Two automated market makes running the Uniswap protocol
+- An arbitrage agent that compares the price between the automated market maker. The agent arbitrages any differences.
+- A liquidity providing agent that adds liquidity to a pool and later removes it.
+
+# **Running the model**
+
+With the default parameters we suggest stepping through the model to observe the price changes from steps 1-50. All the action happens in the plots tab (select it in the top right). It demonstrates price equalizing due to arbitrageur actions and gains to the liquidity provider. Then experiment with different fee/initial token allocations.
+
+# **Next Steps**
+
+There are many ways to expand the model:
+
+- Compare the Uniswap agent with a traditional exchange, modeled as as a Brownian motion process).
+- Calibrate the scenario against historical data, using a real token pair and exchange data to observe how well the model matches actual trading behavior. 
+- Add competing arbitrage agents, and malicious “rug pull” strategies. 
+
+If you’re interested in adapting it or just want to chat about the implementation - or to point out a bug (!) - [drop us a line](mailto:b@hash.ai) or [create an issue](https://hash.ai/@b/uniswap/issues)!
+
+**Update: we've published a follow-up to this piece.** _See [Extending the Uniswap Simulation Model](https://hash.ai/blog/extending-the-uniswap-simulation) for more._
+
+* * *
+
+_This communication is provided for informational purposes only, and is not intended to constitute, nor should be construed as, investment advice, investment recommendations, investment research, or an offer or solicitation with respect to the purchase or sale of any security or interest. Although the information in this communication is believed to be materially correct as at the date of issue, no representation or warranty is given as to the accuracy of any of the information provided. Potential investors should seek their own independent financial, tax, legal and other advice._

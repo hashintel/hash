@@ -1,0 +1,111 @@
+---
+title: "Entity Types"
+description: "Defining the possible attributes of a thing"
+metaTitle: "Entity Types - HASH"
+metaDescription: "Entity types describe the shape of 'things', and the kind of attributes that are expected to be associated with them"
+sidebarTitle: "Entity Types"
+sidebarIcon: https://app.hash.ai/icons/docs/asterisk.svg
+---
+
+# Overview
+
+Information in a user's [web](/guide/webs) is stored in the form of semantic [entities](/guide/entities). Every entity has at least one **entity type**.
+
+An entity type is a formal definition of what an entity is. It consists of:
+
+- a **name*, which refers to the kind of entity (e.g. `Building`);
+- a **description** of the type, written in plain language, which describes what kind of thing a type refers to — useful for eliminating any ambiguity that the name alone may not sufficiently address (e.g. `A structure with a roof and walls, such as a house or factory.`);
+- a pictographic **icon**, which can be used to quickly identify the type (or entities of the given type) in a list of others.
+- a list of expected [attributes](/guide/entities/attributes) that can be associated with entities of the type. Attributes expected may either be properties, described by [property types](/guide/types/property-types); or links, described by [link types](/guide/types/link-types).
+
+Defining the list of expected attributes consitutes most of the work associated with defining a new type.
+
+Entity types may also extend other existing entity types, "inheriting" their attributes, and avoiding the need to re-specify these all over again when creating a more specific version of an entity type. A type which extends another is called a 'child type', while the type which is extended is called the 'parent type'. An entity type may have any number of parent types or child types.
+
+<Toggle title="Example of entity type inheritance">
+
+  A `Company` entity type might have multiple children which inherit from it, each with their own distinct properties. An incomplete but illustrative family of types might look something like this:
+
+  - `Company` (entity type), with key propety types present on all of its children.
+    - `Company > US Company` (entity type), specifying certain US-specific property types found on all of its children.
+      - `Company > US Company > C Corporation` (entity type),
+      - `Company > US Company > S Corporation` (entity type), 
+    - `Company > UK Company` (entity type), containing various UK-specific property types found on all of its children.
+      - `Company > UK Company > Public Limited Company (PLC)` (entity type)
+      - `Company > UK Company > Private Limited Company (Ltd)`
+      - `Company > UK Company > Private Unlimited Company (Unltd)`
+      - `Company > UK Company > Community Interest Corporation (CIC)`
+
+</Toggle>
+
+# Creating a new entity type
+
+HASH provides a visual editor that you can use to create, inspect and update entity types. Creating a new entity type lets you store new kinds of entities in HASH, along with relevant information about them that you care about.
+
+**To create a new entity type:**
+
+1. Name and describe your entity type:
+  1. Click the `+` button in the top navbar and select “Entity Type”.
+  1. In the pop-up modal, enter the a name and description for the entity type you're trying to create. The name and sometimes its description will appear in lists, so it’s a good idea to make it descriptive and specific so that you and your collaborators can recognize it in the future. When you're ready, click "Create new entity type" to proceed to the editor.
+  1. You should now find yourself in the entity editor, faced with a blank slate. **Your new entity type has not yet been created.** Navigating away from this screen will result in your draft being discarded.
+1. Define the expected attributes on your entity type:
+  - You can define any number of attributes as "expected" on an entity type, including an unlimited number of properties and links. To get started, either:
+    1. **Add a property type**
+      1. Click "Add a property type +" to define the properties your new entity type’s entities can have. The property type suggestor will find and propose existing property types you may wish to use. These may include ones you've created or used before, along with other property types that are public on HASH. Using shared property types can save you time and may lead to your data conforming to shared standards and mutually intelligible formats more closely.
+      1. Start typing to search for an existing property type. Typing in this input filters the property types shown in the suggestor, and allows you to find ones relevant to you. If you can't find an existing property type which is suitable, type a name for your new property type and click the  “Create {name} PROPERTY TYPE” button at top/bottom of the suggestor and follow the guide to [creating a new property type](/guides/types/property-types#creating-a-new-property-type).
+    1. **Add a link type**
+      1. Click ‘Add a link type +’ to define a relationship that instances of this entity type may have with other entities. As with property types, the link type suggestor will suggest existing link types you may wish to use. 
+      1. When expected link types are added to an entity type's definition, by default they accept links to entities of any type as valid links. To constrain this, click on the "Anything" chip, and select the entity type(s) that are valid targets for this type of link, for the entity type you are creating.
+      1. By default, newly added link types also accept “0 or more” links. Optionally increase the minimum to "1" or more to enforce that the presence of a link be required on an entity, and/or set a cap on the maximum number of links that may exist for a given link type. Click the “0 or more” chip to change this for a given link type present.
+    1. Once you've added all the attributes you expect on entities of this new given entity type, click “Create” in the blue banner. Your new entity type is now saved, and usable elsewhere in HASH, and you can [create your first entity](/guide/entities/creating) using it.
+
+# Extending an existing entity type
+
+To extend an entity type, find the type you wish to extend in your [list of types](https://app.hash.ai/types), and then click on the type in question. Once the type has loaded, in the upper-right portion of the page you should see an "Extend type" button. Click this, and choose a name and description for the child type you are creating to continue. The remainder of this process now mirrors that for creating a new entity type (covered above).
+
+<Toggle title="When is it appropriate to extend an entity type, instead of update it?">
+
+You should always avoid updating entity types in ways that change its semantic meaning.
+
+When modifying an entity type, consider if it's really appropriate to update an existing entity type, or whether it would be better to:
+
+- _extend_ it, creating a more specific version of the type, a "child type", which inherits from the existing definition.
+- _parent_ it, creating a more general, less specific "parent type", which your existing type can be made to inherit _from_.
+
+You might determine that an existing entity type definition still needs updating because you want to:
+
+- correct a mistake
+- tighten the constraints associated with a link type, to make them more precise
+- add additional expected attributes which may be present on any instance of a thing, and not just a particular sub-group of entities of the type (who could otherwise be served better by the creation of a more specific child entity type)
+
+</Toggle>
+
+# Updating an existing entity type
+
+To edit an entity type, find the type in your [list of types](https://app.hash.ai/types) and click on it to open it up. If you have permission to edit the entity type, you'll be able to add or remove existing attributes from this page, by clicking the "Add a property" or "Add a link" buttons beneath the property/link tables respectively, and by using the context menu found next to each existing attribute.
+
+When you're done making edits, click the "Publish update" button in the blue banner at the top of the page to save your changes and create a new version of the entity type. You can also click the "Discard changes" button to revert your edits without updating the entity type.
+
+Once a new version of an entity type has been created, existing entities of that type will still need "updating" to use the latest version. When entity type updates are available, you'll see a notice in your [actions queue](/guide/inbox/actions), making it easy to bulk-update existing entities to their latest version, and address any conflicts that may arise during the update process.
+
+You can also update the entity type of an individual entity directly when viewing it in the entity editor.
+
+<Toggle title="Updating an individual entity">
+
+When viewing an entity that uses an outdated type, the type will be highlighted in the entity's "Types" list, along with an indication indicating that a newer version of the entity type is available. You can click on this to update the entity to use the new version of the entity type.
+
+A modal will pop up to make sure you understand the potential consequences of this update:
+
+   1. If Property Types or Link Types have been removed in the new version of the Entity Type, they will be removed from this Entity, along with any Data values.
+   1. If any Property Types’ Data Types have been changed, any existing Data values which don’t conform to the new Data Type will be removed or unset.
+   1. If existing Property Types have been changed from not required to required and the Entity doesn’t have a Data value set for those Property Types, you will still be able to upgrade the Entity Type. Data values will not be set automatically and no problems occur, but you should manually add values to make sure the Entity is compliant with its Entity Type.
+   1. If the expected Entity Types or allowed number of links on any of the Link Types has been changed in the new version of the Entity Type and the Entity’s existing links don’t follow the new schema, they will be unaffected but should be updated.
+   1. If new Property Types or Links Types have been added to the new version of the Entity Type, the Entity will have those new Property and Link Types, but no Data values or Links will be created.
+
+If you've happy with this, click ‘Update entity type’ to upgrade your Entity. You’ll notice that any updated property- link- and data- types are now reflected on your entity, and you can make any necessary changes so that this entity follows its new schema.
+
+</Toggle>
+
+# Browsing entity types
+
+You can see [all entity types](https://app.hash.ai/types/entity-type) you have permission to view from the **Types > Entity Types** page in HASH.

@@ -1,0 +1,30 @@
+---
+title: "Types"
+description: "Understanding and using types in HASH"
+metaTitle: "Types - HASH"
+metaDescription: "Learn about types in HASH, and how to use them – entity types, property types, link types, and data types"
+sidebarTitle: "Overview"
+sidebarIcon: https://app.hash.ai/icons/docs/globe-stand.svg
+---
+
+# Introduction
+
+"Types" are one of the most important concepts to understand in HASH.
+
+Every entity in HASH has one or more [entity types](/guide/types/entity-types) which describe the [attributes](/guide/entities/attributes) expected on an entity.
+
+Every attribute in turn has either a [property type](/guide/types/property-types) or a [link type](/guide/types/link-types). These are described in more depth on the [attributes](/guide/entities/attributes) page.
+
+Property values are constrained by [data types](/guide/types/data-types), while the entities that a link points to may be constrained by their entity type(s).
+
+# Using types
+
+Once you understand what entity types, link types, property types and data types are, you can begin to model the things you care about, by finding existing types in HASH that represent them, or by creating your own types.
+
+# Advanced features of types
+
+You can also use some of the more advanced features of types, to make managing your data easier and cleaner:
+
+- **Extending types:** entity types and link types can both be "extended". This allows you to make them more specific, specifying (i) additional [attributes](/guide/entities/attributes), and (ii) tighter [constraints](/guide/entities/attributes#constraints) on an entity.
+- **Using multiple types in combination:** both entities and links can have more than one type associated with them. This allows you to capture more information about entities and the relationships that connect them than may be allowed by a single type. You can learn more about this on the [entity type](/guide/types/entity-types) and [link type](/guide/types/link-types) pages.
+- **Converting between types:** because HASH is a "multi-tenant" database, the same information (and types) may exist in multiple users' webs. You can convert and cross-walk between [peers](/guide/sharing/peers).

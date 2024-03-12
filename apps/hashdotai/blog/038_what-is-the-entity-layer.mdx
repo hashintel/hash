@@ -1,0 +1,163 @@
+---
+title: "What is the entity layer?"
+subtitle: "The backbone of a future web"
+date: "2022-12-26"
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/12be2a8e-6153-4159-dda1-cc77e6ab6000/public
+categories: 
+  - "Company"
+  - "Data"
+---
+
+## Walled gardens and data silos
+
+**Data silos** are sets of information isolated from the world around themselves, often used for a specific purpose, but inaccessible in other cases where access might be useful. Silos generally arise accidentally, existing _within_ single organizations and between partners, the product of _poor planning_ and _bad communication_, or as you might call it... "_the realities of life_".
+
+**Walled gardens**, on the other hand, are effectively _data siloes by design_. They're built to keep the rest of the world out, and to stop folks accessing or integrating with data that might be useful to them. In walled gardens, network operators erect barriers to exit intentionally work to keep users locked into an ecosystems, and prevent them transporting their data out to other services.
+
+## Separating application data and logic
+
+In web development today, data and applications are hardwired together. Even with decentralized backends (such as [Solid](https://solidproject.org/), from Tim Berners-Lee), applications and their data are typically still designed _together_. Business logic and frontend components are placed onto pages with knowledge of the shape of the data on which they operate, requiring reprogramming any time they're used in another context (assuming those components are repurposable at all).
+
+For example, the frontend of a todo list app may “know” that it can render `response.list` from an API as a list of text strings, and that this will be the list of todos the user expects. The frontend and the API will typically have been built by the same person, or by people talking to each other.
+
+Occasionally, efforts are established to create "standards" for working with data in a given space that might improve interoperability and enable the development of services separate from data. But these efforts are inevitably subject to disagreement and challenges, because not all applications operate the same way, and neither they nor their users necessarily all value the same things.
+
+For example, [ActivityPub](https://www.w3.org/TR/activitypub/), a W3C recommendation concerning social networking, finds itself in partial competition with a half-dozen other initiatives, including [AT Protocol](https://atproto.com/) from Jack Dorsey's _Bluesky_, and [Scuttlebutt Protocol](https://ssbc.github.io/scuttlebutt-protocol-guide/).
+
+Oftentimes standards seek to solve slightly different sets of challenges. For example, AT Protocol goes beyond ActivityPub in promising account portability and providing users with algorithmic choice in how their newsfeeds are presented, but it is (at this time) privately controlled, as opposed to a W3C standard, with popular not-for-profit [Mastodon](https://en.wikipedia.org/wiki/Mastodon_(social_network)) electing to base itself upon the latter instead (while also predating AT's emergence).
+
+Because we cannot guarantee universal alignment between standards, or their adoption in the first place, to work with data from around the web in our applications we need a "translation layer".
+
+## Data portability
+
+Consider the humble todo list. **As a user, you might want to be able to sync todo list items from one application to another.** Sounds simple, right? To do this...
+
+1. You could manually re-enter the information inside of each app whenever you change it in one. _Fun! Not to mention error prone._
+
+3. Or you can hope that each application:
+    - (a) allows exporting and importing to a common format (e.g. CSV);
+    - (b) formats their exports in such a way that the other can import it without additional transformation;
+    - (c) is at feature parity to avoid data loss as you transfer between platforms; and
+    - (d) is capable of partial-syncing to avoid duplication of data upon imports.
+    - _You still have to do this process manually, so with any luck you don't need to do it very often, and hopefully it doesn't take too long._
+
+5. Another alternative is that you find a third-party service like _IFTTT_, or _Zapier_, which just happens to support both apps you use works reliably, and doesn't cause more issues than it solves... breaking on occasion, resulting in duplicate or missing data, or even corrupting information in a way that might only be realized 6 months down the line. _Good luck!_
+
+7. Finally, you pray that a native "integration" exists. Most apps don't offer integrations, and those that do typically only support one-way sync or the one-time import of data. Why should app developers incur engineering effort and expense making it easy for people to get data _out_ of their platform, after all, beyond any minimum legal requirement to do so? _See: **walled gardens** above._
+
+To cut a long story short, the process sucks, and is heavily reliant on app developers to pick and choose who they want to support. In effect, scaling out the final strategy given (number four) would today require every application developer in the world to build a set of translations for every other application in the world, supporting and maintaining all of these indefinitely themselves. What we really need is a _translation layer_.
+
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/df06470d-7f50-46ce-1d98-836102959700/public)
+
+Walled gardens trap data deliberately, whereas data silos are generally unintended. Both result in useful information not always being accessible where and when it is needed.
+
+App developers generally love integrations **that bring data in** because they improve cardinality, with their application becoming "more central" in a user's stack, improving retention. By connecting to lots of other data sources, an application may not only offer its users more information and value within itself, but become harder for users to walk away from, requiring disentangling from the rest of their digital life. But even considering this, integrations are labor-intensive to build and carry ongoing maintenance costs, with first-party feature work in apps often representing the "higher value" option for attracting new and prospective users.
+
+The process for application developers building integrations today involves various steps:
+
+1. obtain and maintain API access to the service they are integrating with
+1. set up an ability for users to authenticate themselves with that external service (safely collecting and storing API keys, or facilitating an OAuth integration flow)
+1. learn the shape of the information they'll be importing
+1. set up data pipelines to ingest information from external services, or middleware that can query them as required
+1. either (a) transform ingested data into a structure already expected by their application, or (b) rewire their application to work with data in this new form, potentially even creating new frontend components to render it
+1. set up monitoring to detect issues with the integration and keep the data flowing
+
+All of this takes time and costs money. As established, there are also minimal incentives for most application developers to make it easy _for others_ to get their data out of the products they develop, meaning that the developer experience involved in actually trying to do just that is often _not great_, where services even make it possible at all.
+
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/8cdbecd3-c598-4d39-63bb-13b868317700/public)
+
+## Seamless data translation
+
+### Inverting incentives
+
+Regulators are currently trying to reshape incentives for tech companies to promote competition. With the passage of the Digital Markets Act, the EU has introduced data portability obligations for platforms they deem to be "gatekeepers". Companies can go about complying with data portability requirements however they like, and will probably do so as cheaply and inaccessibly as they can, until regulators introduce more requirements that demand compliance in more specific ways. But heading all of this off... what if there were a way to be compliant that actually brought benefits, and allowed connecting up _in both directions_ to lots of other providers (both data sources and destinations) with minimal effort? What if it were possible to make an application more extensible and useful to users cheaply, while ticking the regulatory checkbox?
+
+Consumers don't know what an "entity layer" is. They don't know why they need it. But the above question is most easily answered _by one_ and the benefits to consumers will be immense. **So, what is the entity layer?**
+
+### The entity layer, in a nutshell
+
+The entity layer is an openly queryable graph made up of "entities" which can be understood and used by any application which needs them.
+
+The [Block Protocol](https://blockprotocol.org/) (**Þ**) defines what entities are, and how applications can interact with them. Entities have persistent, unique global identifiers. They are private by default, owned by users and only accessible with a user's consent.
+
+The Block Protocol's specification also provides a process for translating between different conceptions of what single entities or types of entities actually are. This allows different applications which value different things to reconcile their differences and work with the same underlying entity, ensuring a common semantic representation of the information that _users_ care about, making digital data easier to manage, understand, and keep in sync. No more silos.
+
+> _To learn more about the Þ, read "[What is the Block Protocol?](https://hash.ai/blog/what-is-the-block-protocol)"_
+
+### Making data understandable
+
+All **entities** have an **entity type**, or several (a single entity may have many of these types attached to it).
+
+Each entity type defines a set of properties that can be associated with any entity of its type. In other words, entity types tell apps what values might exist on an entity. For example, "preferred name", or "date of birth" are **properties** that might exist on an entity whose type is "Person".
+
+Properties themselves also have types (**property types**) which in turn define the acceptable range of values that can be provided for a property. This helps prevent invalid data from becoming associated with entities, although property types can be both extremely permissive or incredibly strict in what they allow, depending on the information they represent.
+
+Because entities can have multiple entity types, it becomes possible to flexibly represent real-world things by progressively adding types to entities. A single 'Company' entity may, for example, be used in multiple contexts, becoming a 'Supplier', 'Customer', and 'Competitor' in addition, over time.
+
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/01432bef-6fa7-4f04-3539-c32d31899700/public)
+
+The Block Protocol allows disparate constellations of data to be connected via a system of addressable public types
+
+### Democratizing schemas
+
+For data to get created in a typed fashion, _everybody_ needs to be able to input into the process of what types look like. Types should reflect the mental model, or conception of entities and properties, held by the users who use them.
+
+It's not reasonable to expect a centralized standards setting body to be able to craft and maintain an ontology of _everything in the world_, let alone one with definitions that everybody agrees on. And more specialist ontologies maintained by different organizations don't solve our problem either, as long as they remain unconnected.
+
+We need types that are:
+
+- _cross-walkable_, whose schemas can be mapped to those of any other type
+- _easy and fast_, so that they can be created and updated by domain experts without input from software engineers
+- _permissionless_, with everybody able to create types reflecting their own mental models, free from any requirement these be "approved" by others or subjected to deliberation
+- _updatable_, so that when understanding evolves, so can any related type definitions
+
+The Block Protocol allows anybody to create types and host them at permanent, publicly accessible addresses, with updates to types easily discoverable using only the original URI. But beyond this and cross-walking (the mapping of one type to another as conceptually representing the same thing), how do we ensure this proliferation of types doesn't become an unintelligible mess?
+
+### Type convergence
+
+Block Protocol RFCs propose support for creating new types that link back to the existing ecosystem in a number of ways:
+
+- **Type extension:** if you need to make a more specific sub-type of an entity type which adds certain new fields, you can do so by extending an entity type.
+- **Type forking:** where differences arise between your conception of a type and an existing one which require changing one or more of the existing properties (not merely adding new ones), you can fork a type. Creating a fork duplicates a type in a user's own workspace, or one in which they're a member. By default this duplicate contains a "same as" linkback between it and the original, outlining that the creator of the fork believes the two types to at least conceptually refer to the same _thing_). The new type initially inherits all of the properties of its ancestor, but unlike types that 'extend' others, any of these properties can subsequently be changed, allowing the fork and the original to diverge.
+
+Block Protocol compliant applications that allow users to create and manage their own types, such as [HASH](https://hash.ai/platform/hash), also encourage type convergence in other ways. For example, HASH encourages type reuse by surfacing existing types to users whenever they look to add new ones.
+
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/e2ef1176-f7f3-4eed-77d1-6a0379fd4700/public)
+
+While adding a property type to an entity type in HASH, existing types are surfaced alongside the ability to create new ones
+
+### Making components interoperable
+
+In the same way entities have persistent IDs, entity types and property types have persistent URIs.
+
+Whenever you extend or fork a type, the property types assigned to the original remain associated with the new type (linked by its URI). This means that **blocks** (frontend components) can hydrate themselves with an entity's properties if any of these exist on it, without the entity itself necessarily needing to use the same entity type(s) envisaged by the block's original creators.
+
+This process is possible without resorting to methods like fuzzy matching property labels, or analyzing the values or data types of properties that are present on an entity, both of which can improve the ability to auto-hydrate blocks further.
+
+In addition, embedding applications can provide advanced users with the ability to map data themselves. This is especially useful in cases where an embedding application allows their users to insert _any_ block from the [Þ Hub](https://blockprotocol.org/hub). This means blocks built without any knowledge of an embedding application (or vice-versa) can be wired up by users to work as originally intended.
+
+Blocks express the shape of data they _can_ render. For example, a _checklist_ block inserted onto a page by a user might look for a `CompletionStatus` boolean and a `Title` string. If neither are present, a user can be presented with the opportunity to 'map' the properties their entities do have to those expected by a block, or given the opportunity to select entities from their graph which do have matching properties.
+
+Instead of application developers needing to hardwire components up to data, blocks can intelligently load data in a variety of shapes, and in customizable apps like HASH users can "softwire" data to use powerful new blocks themselves, in just a few simple, unscary steps. Data mapping will be explored more fully in a future post.
+
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/d588bdeb-e78c-4375-2b44-674c2c213500/public)
+
+### Unpresumptuous
+
+The Block Protocol doesn't assume a _one size fits all_ approach to the entity layer. It doesn't require that everybody use the same platform, or technology, and there isn't a network, token, or "coin". The protocol simply describes a set of core interfaces and mechanisms which can be implemented however a developer likes, without regard to business requirements, motivations or existing stack choices.
+
+At HASH, our [non-negotiable principle](https://hash.dev/blog/one-principle) is that **everything we allow users to do within our products must be portable and accessible**. But we know that this degree of openness is incompatible with many software vendor's business models today, and we don't expect that all Þ applications will adopt the same approach. The table below explores some of the trade-offs developers might consider when building applications on top of the entity layer.
+
+<table><tbody><tr><td></td><td>(1) <strong>Non-Þ datastore</strong></td><td>(2) <strong>Owned or self-hosted Þ entity store (multi-tenant)</strong></td><td>(3) <strong>Hosted Þ entity store (multi-tenant)</strong></td><td>(4) <strong>Hosted Þ entity store (single graph)</strong></td></tr><tr><td><strong>How it works...</strong></td><td>Entities in user's external graphs can be canonically referenced by persistent IDs, without needing to migrate an application's underlying datastore to the Þ architecture</td><td>Developers build their own entity stores based on the Þ reference architecture, or simply self-host the open-source version of <a rel="noreferrer noopener" href="https://hash.ai/platform/hash" target="_blank">HASH</a></td><td>Developers build their applications on top of hosted entity stores such as <a rel="noreferrer noopener" href="https://hash.ai/" target="_blank">hash.ai</a>, allowing users to sign in to their applications via these third-parties (e.g. "Login with HASH")</td><td>Developers build atop a hosted entity store, and save user data in partitions within a single workspace under their control, and handle auth and data flow logic separately</td></tr><tr><td><strong>Ingest - read user data in from external applications that write to the entity layer</strong></td><td><strong>Yes</strong>, apps can ingest data via any entity layer provider by integrating with these manually</td><td><strong>Yes</strong>, the methods an application developer uses to read from their own entity store enable them to connect to any external entity layer provider</td><td><strong>Yes</strong>, reading third-party data from the entity layer is the same as reading first-party information, only requiring users to confirm consent. Data remains private, within a user's own graph</td><td><strong>No</strong>, because every user's data lives in a single shared graph with an application's developer having unconstrained access to it, guarantees around data privacy cannot be made enabling the import of external data</td></tr><tr><td><strong>Egress - allow authenticated external apps to access user data created</strong></td><td><strong>Optional</strong>, depending on whether an application developer chooses to build and expose their own API</td><td><strong>Optional</strong>, developers are under no obligation to make their entity stores publicly accessible</td><td><strong>Guaranteed</strong>, data lives in an external graph, accessible via the same API the developer themselves has used</td><td><strong>Optional</strong>, depending on whether an application developer chooses to build and expose their own API</td></tr><tr><td><strong>Become an entity layer provider listed on the Þ</strong></td><td><strong>No</strong>, this requires a Þ-compliant entity store and interface</td><td><strong>Optional</strong>, a developer may choose to provide a gateway to the entity layer for others <em>(requires egress)</em></td><td><strong>No</strong>, in this scenario you are using an external provider</td><td><strong>No</strong>, in this scenario you are using an external provider</td></tr><tr><td><strong>Impact on user switching costs</strong></td><td><strong>No change</strong>, developers retain control over the barriers to exit users face while using their apps</td><td><strong>Variable</strong>, it becomes easier for users to switch, but only if developers allow it</td><td><strong>Greatly improved</strong>, as users are guaranteed access and portability of their data</td><td><strong>No change</strong>, developers retain control over the barriers to exit users face while using their apps</td></tr><tr><td><strong>Recommended?</strong></td><td>No</td><td><strong>Yes, if self-hosting is important</strong>. All the benefits of the entity layer, albeit with higher overhead than option (3).</td><td><strong>Yes, for the best and fastest DX</strong>. A complete integration, and the easiest way to access the entity layer.</td><td>No</td></tr></tbody></table>
+
+Incentives faced by application developers
+
+## The promise of an entity layer
+
+For consumers, the promise of an entity layer is in having data that works everywhere.
+
+- **Instant availability of data across applications:** no waiting for sync jobs to complete
+
+- **Control over data:** the ability to grant and withdraw permissioned access to data at will
+
+- **A single source of truth:** the ability to merge entities that exist in multiple systems into one
