@@ -8,7 +8,7 @@ HASH has a robust analysis system in place, allowing users to gather data from t
 
 ## Creating a Complex Metric
 
-In a simulation like [Interconnected Call Centers](https://core.hash.ai/@hash/interconnected-call-center/3.1.0), a modeler’s main goal might be to reduce the number of balked calls that occur during a simulation run. The number of balked calls is already a defined metric, so we can easily spin up an optimization experiment. Running it, we discover that the optimal number of call centers is infinity! After all, the more call centers we initialize, the more calls we can handle.
+In a simulation like [Interconnected Call Centers](https://simulation.hash.ai/@hash/interconnected-call-center/3.1.0), a modeler’s main goal might be to reduce the number of balked calls that occur during a simulation run. The number of balked calls is already a defined metric, so we can easily spin up an optimization experiment. Running it, we discover that the optimal number of call centers is infinity! After all, the more call centers we initialize, the more calls we can handle.
 
 However, in setting up this optimization, we’ve ignored an important business consideration: the more call centers we use, the higher the costs! We need to create a new metric that accounts for these costs and optimizes within a cost constraint.
 

@@ -11,7 +11,7 @@ Agent-based models provide an alternative way of exploring and explaining the wo
 
 Because of this, if a sample of cells is completely synchronous (all cells at the same phase of the cycle, replicating at the same time) it will not produce a smooth curve, but rather a discrete step function. To ensure that cell growth in samples is a smooth curve, asynchronous samples are prepared, where cells are randomly distributed across the different phases. However, experimental data shows that most samples behave partially synchronously, not asynchronously. We can attempt to explain this same phenomenon using some simple behaviors in HASH, in conjunction with the optimization engine.
 
-We’ll make one important assumption, and see if it lets us recreate the experimental data. Even though our agents are initially created at random stages in their cell cycle, we’ll assume that when a cell divides, both of them are now synchronous, e.g. at the same stage of their cycle. We'll mark agents in different colors based on their current cell cycle phase, matching the paper. [You can find the model here](https://hash.ai/@hash/multi-stage-cell-replication).
+We’ll make one important assumption, and see if it lets us recreate the experimental data. Even though our agents are initially created at random stages in their cell cycle, we’ll assume that when a cell divides, both of them are now synchronous, e.g. at the same stage of their cycle. We'll mark agents in different colors based on their current cell cycle phase, matching the paper. [You can find the model here](https://simulation.hash.ai/@hash/multi-stage-cell-replication).
 
 Here's is how the initial model looked compared to the experimental data (_the model is blue and the comparison experimental data is orange_):
 
@@ -31,7 +31,7 @@ Let’s see if we can use the optimization engine to bring the model much closer
 
 Defining the optimization experiment to help calibrate our model
 
-We’ll create a custom agent to compute the error between our model and the experimental data. You can read more about this in the [complex metrics section of the HASH docs](https://hash.ai/docs/simulation/creating-simulations/experiments/optimization-experiments/complex-metrics). At first, let’s try and fit the curves in the second plot, which count the agents based on color.
+We’ll create a custom agent to compute the error between our model and the experimental data. You can read more about this in the [complex metrics section of the HASH docs](https://hash.dev/docs/simulations/creating-simulations/experiments/optimization-experiments/complex-metrics). At first, let’s try and fit the curves in the second plot, which count the agents based on color.
 
 ![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/431df3f2-3c15-46eb-703a-65e2106e9100/public)
 
