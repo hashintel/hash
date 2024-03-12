@@ -112,8 +112,8 @@ const DocsPage: NextPageWithLayout<DocsPageProps> = ({
 
   const tabsRef = useRef<HTMLDivElement>(null);
 
-  const [isLastTabVisible, setIsLastTabVisible] = useState(false);
-  const [isFirstTabVisible, setIsFirstTabVisible] = useState(false);
+  const [isLastTabVisible, setIsLastTabVisible] = useState(true);
+  const [isFirstTabVisible, setIsFirstTabVisible] = useState(true);
 
   useEffect(() => {
     const tabsElement = tabsRef.current;
