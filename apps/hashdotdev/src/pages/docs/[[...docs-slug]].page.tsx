@@ -151,8 +151,8 @@ const DocsPage: NextPageWithLayout<DocsPageProps> = ({
       ({ href }) => href === `/docs${docsSlug[0] ? `/${docsSlug[0]}` : ""}`,
     );
 
-    // If no matching tab is found, redirect to the docs homepage.
-    if (!tab) {
+    // If no matching tab is found, perform a client-side redirect to the first tab.
+    if (!tab && typeof window !== "undefined") {
       void router.push(docsTabs[0]!.href);
     }
 
