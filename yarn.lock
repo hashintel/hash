@@ -2308,6 +2308,14 @@
     es-module-lexer "^0.10.5"
     uuid "^8.3.2"
 
+"@blockprotocol/core@0.1.3-canary-20240312191227":
+  version "0.1.3-canary-20240312191227"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/core/-/core-0.1.3-canary-20240312191227.tgz#94e865a44846364acb767a092fbbf719f602d5cf"
+  integrity sha512-mbN/Uwt8oFXpVch2uqPSbl87fGU+a5epGS59uAdP3k0/Sy3FoP9dQ+8rtxBcCioAuXmEPlsBwt4HfoBQ4NDCZw==
+  dependencies:
+    es-module-lexer "^0.10.5"
+    uuid "^8.3.2"
+
 "@blockprotocol/graph@0.0.13":
   version "0.0.13"
   resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.0.13.tgz#28557aa66a4f1262f8d10b0569ac16d283490b44"
@@ -2344,6 +2352,19 @@
   integrity sha512-0S82erXffRCal/dVY/6tST/rc0qD3Jpofnn1G+IH7c3Ard5D0VlPQ0fPFeshjTvoOmRd1gqqnHoMiVQUIt9JOQ==
   dependencies:
     "@blockprotocol/core" "0.1.2"
+    "@blockprotocol/type-system" "0.1.1"
+    ajv "^8.11.2"
+    ajv-formats "^2.1.1"
+    json-schema-to-typescript "^11.0.2"
+    lit "^2.4.1"
+    typescript "4.9.4"
+
+"@blockprotocol/graph@0.3.4-canary-20240312191227":
+  version "0.3.4-canary-20240312191227"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.3.4-canary-20240312191227.tgz#88bfd88078e85d2e8f32cbc9a403e9ae249e3533"
+  integrity sha512-jiOI/N47LbMNClvVMskVj1w5+QxTSafhmdsaeD5lrzOD2YE7B/2YU8t8cen48chrNMEQmw7PODABJkekJrlJ2g==
+  dependencies:
+    "@blockprotocol/core" "0.1.3-canary-20240312191227"
     "@blockprotocol/type-system" "0.1.1"
     ajv "^8.11.2"
     ajv-formats "^2.1.1"
