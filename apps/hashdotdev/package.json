@@ -70,6 +70,7 @@
     "@types/d3": "7.4.0",
     "@types/fs-extra": "9.0.13",
     "@types/gtag.js": "0.0.12",
+    "@types/html-to-text": "9.0.4",
     "@types/md5": "2.3.2",
     "@types/node": "18.15.13",
     "@types/prismjs": "1.26.0",
