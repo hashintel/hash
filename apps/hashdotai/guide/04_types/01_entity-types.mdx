@@ -15,8 +15,9 @@ An entity type is a formal definition of what an entity is. It consists of:
 
 - a **name*, which refers to the kind of entity (e.g. `Building`);
 - a **description** of the type, written in plain language, which describes what kind of thing a type refers to — useful for eliminating any ambiguity that the name alone may not sufficiently address (e.g. `A structure with a roof and walls, such as a house or factory.`);
-- a pictographic **icon**, which can be used to quickly identify the type (or entities of the given type) in a list of others.
 - a list of expected [attributes](/guide/entities/attributes) that can be associated with entities of the type. Attributes expected may either be properties, described by [property types](/guide/types/property-types); or links, described by [link types](/guide/types/link-types).
+- (optional) a pictographic **icon**, which can be used to quickly identify the type (or entities of the given type) in a list of others.
+- (optional) a "label" flag, which denotes which of an entity type's attributes should be used as a label for an entity (e.g. its name, or another unique identifier)
 
 Defining the list of expected attributes consitutes most of the work associated with defining a new type.
 
