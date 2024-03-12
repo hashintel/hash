@@ -29,10 +29,14 @@ const topLevelDocsPages = (siteMap as SiteMap).pages.find(
 )!.subPages;
 
 const docsTabs: { title: string; href: string }[] = [
-  {
-    title: "Home",
-    href: "/docs",
-  },
+  /**
+   * Temporarily hide the "Home" tab, while we don't want to display
+   * the `/docs` page.
+   */
+  // {
+  //   title: "Home",
+  //   href: "/docs",
+  // },
   ...topLevelDocsPages.map(
     ({ title, titleDerivedFromDirectoryName, href }) => ({
       /**
