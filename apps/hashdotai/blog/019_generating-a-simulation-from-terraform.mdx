@@ -13,7 +13,7 @@ Because infrastructure is defined in declarative information files, those same c
 
 Terraform-based HASH simulations can help improve infrastructure provisioning and design processes, helping you select the right instance types to use, anticipate or avoid downtime, and forecast or smooth costs.
 
-By way of lightweight demonstration, above you'll see a [simulation that takes in a Terraform configuration](https://simulation.hash.ai/@hash/terraform-simulation) alongside a set of user data, and creates a Kubernetes cluster. This leverages HASH's [support for datasets](https://hash.dev/docs/simulation/creating-simulations/datasets) to define a unique simulation based off of the user's configuration files:
+By way of lightweight demonstration, above you'll see a [simulation that takes in a Terraform configuration](https://simulation.hash.ai/@hash/terraform-simulation) alongside a set of user data, and creates a Kubernetes cluster. This leverages HASH's [support for datasets](https://hash.dev/docs/simulations/creating-simulations/datasets) to define a unique simulation based off of the user's configuration files:
 
 - `terraform_resource.json` - a `terraform.tf.json` style file that defines the cluster and gets information on AWS CPU and memory specs from another dataset of [AWS instances](https://simulation.hash.ai/@hash/aws-instances).
 - `distribution.csv` - a dataset that represents a proportion of daily requests received each hour of the day.

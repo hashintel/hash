@@ -18,7 +18,7 @@ With that in mind, we used HASH to build an agent-based simulation of the UK hou
 
 # Overview
 
-Our model closely resembles the model outlined by the Bank of England in their [working paper](https://www.bankofengland.co.uk/working-paper/2016/macroprudential-policy-in-an-agent-based-model-of-the-uk-housing-market) entitled “Macroprudential policy in an agent-based model of the UK housing market”. We extended this model to simulate the housing market at the regional level, compared to the UK as a whole. The relative ease of adding this extra source of heterogeneity is a testament to the power of agent-based simulation and the [actor model](https://hash.ai/wiki/actor-model) of programming underpinning HASH.
+Our model closely resembles the model outlined by the Bank of England in their [working paper](https://www.bankofengland.co.uk/working-paper/2016/macroprudential-policy-in-an-agent-based-model-of-the-uk-housing-market) entitled “Macroprudential policy in an agent-based model of the UK housing market”. We extended this model to simulate the housing market at the regional level, compared to the UK as a whole. The relative ease of adding this extra source of heterogeneity is a testament to the power of agent-based simulation and the [actor model](https://hash.ai/glossary/actor-model) of programming underpinning HASH.
 
 Within each region (London, South-West England etc.) the simulation consists of five different types of agents:
 
@@ -47,9 +47,9 @@ A full list of exogenous variables which users may adjust can be found in [the p
 
 ![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/e7c135b0-b89d-4103-0805-e36218614500/public)
 
-While our model contains many sources of heterogeneity, and includes detailed agent behavior to model household decisions such as whether a renting household should attempt to purchase a house and how much the household is willing to pay. Agents in a HASH simulation make decisions using [_behaviors_](https://hash.dev/docs/simulation/creating-simulations/behaviors/composable-behaviors) — composable pieces of logic which control various attributes of an agent.
+While our model contains many sources of heterogeneity, and includes detailed agent behavior to model household decisions such as whether a renting household should attempt to purchase a house and how much the household is willing to pay. Agents in a HASH simulation make decisions using [_behaviors_](https://hash.dev/docs/simulations/creating-simulations/behaviors/composable-behaviors) — composable pieces of logic which control various attributes of an agent.
 
-Our housing model contains over 40 behaviors which control individual aspects of each agent such as paying rent, deciding when to buy a house and approving the mortgage principal. Behaviors can be easily modified or replaced, and if desired, may be published on [HASH](https://hash.ai/index) for other simulations to use privately within your organization, or with all HASH users. The HASH community has made many great behavior libraries available for [process modelling](https://simulation.hash.ai/@hash/process), [networks](https://simulation.hash.ai/@hash/networks), [auctions](https://simulation.hash.ai/search?query=auction), [system dynamics](https://simulation.hash.ai/@hash/sd), and many more to help you get a model up and running quickly.
+Our housing model contains over 40 behaviors which control individual aspects of each agent such as paying rent, deciding when to buy a house and approving the mortgage principal. Behaviors can be easily modified or replaced, and if desired, may be published on [HASH](https://simulation.hash.ai/index) for other simulations to use privately within your organization, or with all HASH users. The HASH community has made many great behavior libraries available for [process modelling](https://simulation.hash.ai/@hash/process), [networks](https://simulation.hash.ai/@hash/networks), [auctions](https://simulation.hash.ai/search?query=auction), [system dynamics](https://simulation.hash.ai/@hash/sd), and many more to help you get a model up and running quickly.
 
 # Extensions
 
