@@ -39,6 +39,17 @@ type ColumnsForEntity = {
   propertyColumnCount: number;
 };
 
+const columnIndexToColumnLetters = (columnIndex: number): string => {
+  let columnLetters = "";
+  let unprocessedColumnIndex = columnIndex;
+  while (unprocessedColumnIndex >= 0) {
+    const remainder = unprocessedColumnIndex % 26;
+    columnLetters = String.fromCharCode(65 + remainder) + columnLetters;
+    unprocessedColumnIndex = Math.floor(unprocessedColumnIndex / 26) - 1;
+  }
+  return columnLetters;
+};
+
 const createColumnsForEntity = (
   entityType: EntityType,
   subgraph: Subgraph,
@@ -98,12 +109,12 @@ const createColumnsForEntity = (
 
   if (isLinkType) {
     columns.leftEntityId = {
-      columnLetter: String.fromCharCode(65 + nextColumnIndex),
+      columnLetter: columnIndexToColumnLetters(nextColumnIndex),
       label: humanReadable ? "Source Entity Id" : "leftEntityId",
     };
     nextColumnIndex++;
     columns.rightEntityId = {
-      columnLetter: String.fromCharCode(65 + nextColumnIndex),
+      columnLetter: columnIndexToColumnLetters(nextColumnIndex),
       label: humanReadable ? "Target Entity Id" : "rightEntityId",
     };
     nextColumnIndex++;
@@ -119,7 +130,7 @@ const createColumnsForEntity = (
     );
     columns[`properties.${baseUrl}`] = {
       baseOrVersionedUrl: baseUrl,
-      columnLetter: String.fromCharCode(65 + nextColumnIndex),
+      columnLetter: columnIndexToColumnLetters(nextColumnIndex),
       label: humanReadable ? propertyType.title : `properties.${baseUrl}`,
     };
     nextColumnIndex++;
@@ -135,7 +146,7 @@ const createColumnsForEntity = (
 
     columns[`links.${linkTypeId}`] = {
       baseOrVersionedUrl: linkTypeId,
-      columnLetter: String.fromCharCode(65 + nextColumnIndex),
+      columnLetter: columnIndexToColumnLetters(nextColumnIndex),
       label: humanReadable
         ? linkEntityType.schema.title
         : `links.${linkTypeId}`,
@@ -523,8 +534,8 @@ export const createSheetRequestsFromEntitySubgraph = (
 
     const thisRowIndex = entitySheetRequests[typeId]!.rows.length;
 
-    const lastColumnLetter = String.fromCharCode(
-      65 + Object.keys(columns).length - 1,
+    const lastColumnLetter = columnIndexToColumnLetters(
+      Object.keys(columns).length - 1,
     );
 
     /**
