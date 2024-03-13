@@ -154,6 +154,16 @@ resource "postgresql_database" "graph" {
   allow_connections = true
 }
 
+resource "postgresql_default_privileges" "graph_readwrite_tables" {
+  owner    = var.pg_superuser_username
+  role     = postgresql_role.graph_user.name
+  database = postgresql_database.graph.name
+  schema   = "public"
+
+  object_type = "table"
+  privileges  = ["SELECT", "INSERT", "UPDATE", "DELETE"]
+}
+
 # Temporal
 resource "postgresql_role" "temporal_user" {
   name           = "temporal"
@@ -173,10 +183,10 @@ resource "postgresql_database" "temporal" {
 }
 
 resource "postgresql_default_privileges" "temporal_readwrite_tables" {
-  owner       = var.pg_superuser_username
-  role        = postgresql_role.temporal_user.name
-  database    = postgresql_database.temporal.name
-  schema      = "public"
+  owner    = var.pg_superuser_username
+  role     = postgresql_role.temporal_user.name
+  database = postgresql_database.temporal.name
+  schema   = "public"
 
   object_type = "table"
   privileges  = ["SELECT", "INSERT", "UPDATE", "DELETE"]
@@ -192,10 +202,10 @@ resource "postgresql_database" "temporal_visibility" {
 }
 
 resource "postgresql_default_privileges" "temporal_visibility_readwrite_tables" {
-  owner       = var.pg_superuser_username
-  role        = postgresql_role.temporal_user.name
-  database    = postgresql_database.temporal_visibility.name
-  schema      = "public"
+  owner    = var.pg_superuser_username
+  role     = postgresql_role.temporal_user.name
+  database = postgresql_database.temporal_visibility.name
+  schema   = "public"
 
   object_type = "table"
   privileges  = ["SELECT", "INSERT", "UPDATE", "DELETE"]
@@ -220,10 +230,10 @@ resource "postgresql_database" "spicedb" {
 }
 
 resource "postgresql_default_privileges" "spicedb_readwrite_tables" {
-  owner       = var.pg_superuser_username
-  role        = postgresql_role.spicedb_user.name
-  database    = postgresql_database.spicedb.name
-  schema      = "public"
+  owner    = var.pg_superuser_username
+  role     = postgresql_role.spicedb_user.name
+  database = postgresql_database.spicedb.name
+  schema   = "public"
 
   object_type = "table"
   privileges  = ["SELECT", "INSERT", "UPDATE", "DELETE"]
