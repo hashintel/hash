@@ -367,12 +367,6 @@ export const useNotificationsWithLinksContextValue =
               "https://hash.ai/@hash/types/property-type/entity-edition-id/"
             ];
 
-            if (!occurredInEntityEditionTimestamp) {
-              throw new Error(
-                `Graph change notification "${entityId}" Occurred In Entity link is missing required entityEditionId property`,
-              );
-            }
-
             const occurredInEntity = occurredInEntityLink.rightEntity[0];
             if (!occurredInEntity) {
               // @todo archive the notification when the entity it occurred in is archived
