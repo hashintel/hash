@@ -15,7 +15,7 @@ import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
-import { mapGraphApiEntityToEntity } from "@local/hash-subgraph/src/stdlib/subgraph/roots";
+import { mapGraphApiEntityToEntity } from "@local/hash-subgraph/stdlib";
 import { CancelledFailure } from "@temporalio/common";
 import {
   ActivityCancellationType,
