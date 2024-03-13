@@ -1,7 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { AccountId } from "@local/hash-subgraph";
-import type { Status} from "@local/status";
+import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 import type OpenAI from "openai";
@@ -12,11 +12,8 @@ import type {
   InferenceState,
 } from "./inference-types";
 import { log } from "./log";
-import type {
-  ProposedEntityCreationsByType} from "./persist-entities/generate-persist-entities-tools";
-import {
-  validateProposedEntitiesByType,
-} from "./persist-entities/generate-persist-entities-tools";
+import type { ProposedEntityCreationsByType } from "./persist-entities/generate-persist-entities-tools";
+import { validateProposedEntitiesByType } from "./persist-entities/generate-persist-entities-tools";
 import { generateProposeEntitiesTools } from "./propose-entities/generate-propose-entities-tools";
 import { extractErrorMessage } from "./shared/extract-validation-failure-details";
 import { firstUserMessageIndex } from "./shared/first-user-message-index";
@@ -248,7 +245,7 @@ export const proposeEntities = async (params: {
       });
     }
 
-    case "content_filter":
+    case "content_filter": {
       log(
         `The content filter was triggered on attempt ${iterationCount} with input: ${stringify(
           completionPayload.messages,
@@ -260,6 +257,7 @@ export const proposeEntities = async (params: {
         contents: [inferenceState],
         message: "The content filter was triggered",
       };
+    }
 
     case "tool_calls": {
       if (!toolCalls) {
@@ -367,7 +365,7 @@ export const proposeEntities = async (params: {
                     proposedEntitiesOfType.map(async (proposedEntityOfType) => {
                       try {
                         await graphApiClient.validateEntity(validationActorId, {
-                          entityType: entityTypeId,
+                          entityTypes: [entityTypeId],
                           profile: "draft",
                           properties: proposedEntityOfType.properties ?? {},
                         });
