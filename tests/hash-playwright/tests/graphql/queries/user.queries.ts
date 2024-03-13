@@ -1,6 +1,3 @@
-import { subgraphFieldsFragment } from "@local/hash-isomorphic-utils/graphql/queries/subgraph";
-import { print } from "graphql";
-
 export const meQuery = /* GraphQL */ `
   query me {
     me(
@@ -43,5 +40,4 @@ export const meQuery = /* GraphQL */ `
       }
     }
   }
-  ${print(subgraphFieldsFragment)}
 `;
