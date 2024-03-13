@@ -21,21 +21,21 @@ export const defaultSortRows = <T extends Row>(
   const clone = [...rows] as T[];
   return clone.sort((row1, row2) => {
     // we sort only by alphabetical order for now
-    const key1 = String(row1[sort.columnKey]);
-    const key2 = String(row2[sort.columnKey]);
+    const value1 = String(row1[sort.columnKey]);
+    const value2 = String(row2[sort.columnKey]);
 
-    const previousKey1 = previousSort?.columnKey
+    const previousValue1 = previousSort?.columnKey
       ? String(row1[previousSort.columnKey])
       : undefined;
-    const previousKey2 = previousSort?.columnKey
+    const previousValue2 = previousSort?.columnKey
       ? String(row2[previousSort.columnKey])
       : undefined;
 
-    let comparison = key1.localeCompare(key2);
+    let comparison = value1.localeCompare(value2);
 
-    if (comparison === 0 && previousKey1 && previousKey2) {
+    if (comparison === 0 && previousValue1 && previousValue2) {
       // if the two keys are equal, we sort by the previous sort
-      comparison = previousKey1.localeCompare(previousKey2);
+      comparison = previousValue1.localeCompare(previousValue2);
     }
 
     if (sort.direction === "desc") {

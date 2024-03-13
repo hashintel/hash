@@ -358,8 +358,7 @@ export const EntitiesTable: FunctionComponent<{
             };
           }
 
-          const propertyCellValue =
-            columnId && row.properties && row.properties[columnId];
+          const propertyCellValue = columnId && row[columnId];
 
           if (propertyCellValue) {
             return {
