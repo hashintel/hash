@@ -1,4 +1,4 @@
-use std::{borrow::Cow, error::Error, fmt, future::Future};
+use std::{borrow::Cow, error::Error, fmt};
 
 use authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency, AuthorizationApi};
 use error_stack::Report;
@@ -13,7 +13,7 @@ use graph_types::{
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
-use type_system::{url::VersionedUrl, EntityType};
+use type_system::{url::VersionedUrl, ClosedEntityType, EntityType};
 #[cfg(feature = "utoipa")]
 use utoipa::{
     openapi,
@@ -33,9 +33,12 @@ use crate::{
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
+#[expect(clippy::large_enum_variant)]
 pub enum EntityValidationType<'a> {
-    Schema(Cow<'a, EntityType>),
-    Id(Cow<'a, VersionedUrl>),
+    Schema(Vec<EntityType>),
+    Id(Cow<'a, [VersionedUrl]>),
+    #[serde(skip)]
+    ClosedSchema(Cow<'a, ClosedEntityType>),
 }
 
 #[cfg(feature = "utoipa")]
@@ -45,8 +48,8 @@ impl ToSchema<'_> for EntityValidationType<'_> {
             "EntityValidationType",
             Schema::OneOf(
                 schema::OneOfBuilder::new()
-                    .item(Ref::from_schema_name("VAR_ENTITY_TYPE"))
-                    .item(Ref::from_schema_name("SHARED_VersionedUrl"))
+                    .item(Ref::from_schema_name("VAR_ENTITY_TYPE").to_array_builder())
+                    .item(Ref::from_schema_name("VersionedUrl").to_array_builder())
                     .build(),
             )
             .into(),
@@ -175,8 +178,7 @@ pub struct CreateEntityParams<R> {
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub decision_time: Option<Timestamp<DecisionTime>>,
-    #[cfg_attr(feature = "utoipa", schema(value_type = SHARED_VersionedUrl))]
-    pub entity_type_id: VersionedUrl,
+    pub entity_type_ids: Vec<VersionedUrl>,
     pub properties: EntityProperties,
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
@@ -190,7 +192,7 @@ pub struct CreateEntityParams<R> {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ValidateEntityParams<'a> {
     #[serde(borrow)]
-    pub entity_type: EntityValidationType<'a>,
+    pub entity_types: EntityValidationType<'a>,
     #[serde(borrow)]
     pub properties: Cow<'a, EntityProperties>,
     #[serde(borrow, default)]
@@ -218,8 +220,7 @@ pub struct UpdateEntityParams {
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub decision_time: Option<Timestamp<DecisionTime>>,
-    #[cfg_attr(feature = "utoipa", schema(value_type = SHARED_VersionedUrl))]
-    pub entity_type_id: VersionedUrl,
+    pub entity_type_ids: Vec<VersionedUrl>,
     pub properties: EntityProperties,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_order: EntityLinkOrder,

@@ -8,9 +8,9 @@
  * be used everywhere.
  */
 
-import { Subgraph as SubgraphGraphApi } from "@local/hash-graph-client";
+import type { Subgraph as SubgraphGraphApi } from "@local/hash-graph-client";
 
-import { Subgraph } from "../src/main";
+import type { Subgraph } from "../src/main";
 import {
   mapQueryTemporalAxes,
   mapQueryTemporalAxesUnresolved,

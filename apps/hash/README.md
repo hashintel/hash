@@ -47,7 +47,7 @@ See the [respective section in the parent README](../README.md#hash) for descrip
 
 To run HASH locally, please follow these steps:
 
-1. Make sure you have, [Git](https://git-scm.com), [Node LTS](https://nodejs.org), [Yarn Classic](https://classic.yarnpkg.com), [Docker](https://docs.docker.com/get-docker/), [Protobuf](https://github.com/protocolbuffers/protobuf), and [Java](https://www.java.com/download/ie_manual.jsp). Building the Docker containers requires [Docker Buildx](https://docs.docker.com/build/install-buildx/).
+1. Make sure you have, [Git](https://git-scm.com), [Node LTS](https://nodejs.org), [Yarn Classic](https://classic.yarnpkg.com), [Rust](https://www.rust-lang.org), [Docker](https://docs.docker.com/get-docker/), [Protobuf](https://github.com/protocolbuffers/protobuf), and [Java](https://www.java.com/download/ie_manual.jsp). Building the Docker containers requires [Docker Buildx](https://docs.docker.com/build/install-buildx/).
    Run each of these version commands and make sure the output is expected:
 
    ```sh
@@ -59,6 +59,12 @@ To run HASH locally, please follow these steps:
    
    yarn --version
    ## ≥ 1.16
+   
+   rustc --version
+   ## ≥ 2024-03-11 (If installed through rustup, this will automatically install the required toolchain)
+   
+   cargo --version
+   ## Version matching the above rustc version
    
    docker --version
    ## ≥ 20.10

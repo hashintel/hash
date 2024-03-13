@@ -1,26 +1,28 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
-import { GraphApi } from "@local/hash-graph-client";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { GraphApi } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
+import type {
   AccountId,
   Entity,
   EntityId,
   EntityRootType,
+  OwnedById,
+} from "@local/hash-subgraph";
+import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
-  OwnedById,
   splitEntityId,
 } from "@local/hash-subgraph";
 import {
   getRoots,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
-import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
 export const getEntitiesByLinearId = async (params: {
   graphApiClient: GraphApi;
@@ -204,7 +206,7 @@ export const archiveEntity = async (params: {
      *
      * @see https://app.asana.com/0/1201095311341924/1203285029221330/f
      * */
-    entityTypeId: entity.metadata.entityTypeId,
+    entityTypeIds: [entity.metadata.entityTypeId],
     properties: entity.properties,
     draft: false,
   });

@@ -21,6 +21,25 @@ const nextConfig = {
         destination: "/blog?label=labs",
         permanent: false,
       },
+      {
+        source: "/license",
+        destination: "https://hash.ai/legal/developers/license",
+        permanent: true,
+      },
+      {
+        source: "/licence",
+        destination: "https://hash.ai/legal/developers/license",
+        permanent: true,
+      },
+      /**
+       * Temporarily redirect the `/docs` home page to the first tab of the
+       * `/docs` pages.
+       */
+      {
+        source: "/docs",
+        destination: "/docs/get-started",
+        permanent: false,
+      },
     ];
   },
 
@@ -38,4 +57,5 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+// eslint-disable-next-line import/no-default-export
+export default nextConfig;

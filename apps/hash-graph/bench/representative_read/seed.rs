@@ -37,9 +37,10 @@ const SEED_DATA_TYPES: [&str; 6] = [
     data_type::TEXT_V1,
 ];
 
-const SEED_PROPERTY_TYPES: [&str; 20] = [
+const SEED_PROPERTY_TYPES: [&str; 21] = [
     property_type::ADDRESS_LINE_1_V1,
     property_type::AGE_V1,
+    property_type::BUILT_AT,
     property_type::BLURB_V1,
     property_type::CITY_V1,
     property_type::EMAIL_V1,
@@ -290,10 +291,7 @@ async fn get_samples(account_id: AccountId, store_wrapper: &StoreWrapper) -> Sam
                 ORDER BY RANDOM()
                 LIMIT 50
                 ",
-                &[
-                    &entity_type_id.base_url.as_str(),
-                    &i64::from(entity_type_id.version),
-                ],
+                &[&entity_type_id.base_url, &entity_type_id.version],
             )
             .await
             .unwrap_or_else(|err| {

@@ -1,20 +1,21 @@
-import { Connection, LinearClient, LinearDocument, Team } from "@linear/sdk";
+import type { Connection, LinearDocument, Team } from "@linear/sdk";
+import { LinearClient } from "@linear/sdk";
 import { getLinearMappingByHashEntityTypeId } from "@local/hash-backend-utils/linear-type-mappings";
-import {
+import type {
   CreateHashEntityFromLinearData,
   PartialEntity,
   UpdateHashEntityFromLinearData,
   UpdateLinearDataWorkflow,
 } from "@local/hash-backend-utils/temporal-workflow-types";
-import { GraphApi } from "@local/hash-graph-client";
+import type { GraphApi } from "@local/hash-graph-client";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
+import type {
   AccountId,
   BaseUrl,
   EntityId,
-  extractDraftIdFromEntityId,
   OwnedById,
 } from "@local/hash-subgraph";
+import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 
 import {
   archiveEntity,
@@ -65,6 +66,7 @@ const createHashEntity = async (params: {
         },
       ],
       ...params.partialEntity,
+      entityTypeIds: [params.partialEntity.entityTypeId],
     },
   );
 
@@ -76,7 +78,7 @@ const createHashEntity = async (params: {
           leftEntityId: entity.recordId.entityId,
           rightEntityId: destinationEntityId,
         },
-        entityTypeId: linkEntityTypeId,
+        entityTypeIds: [linkEntityTypeId],
         properties: {},
         draft: false,
         relationships: [
@@ -171,7 +173,7 @@ const createOrUpdateHashEntity = async (params: {
       ),
       ...addedOutgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) =>
         graphApiClient.createEntity(params.authentication.actorId, {
-          entityTypeId: linkEntityTypeId,
+          entityTypeIds: [linkEntityTypeId],
           linkData: {
             leftEntityId: existingEntity.metadata.recordId.entityId,
             rightEntityId: destinationEntityId,
@@ -226,7 +228,7 @@ const createOrUpdateHashEntity = async (params: {
     await graphApiClient.updateEntity(params.authentication.actorId, {
       archived: false,
       entityId: existingEntity.metadata.recordId.entityId,
-      entityTypeId: existingEntity.metadata.entityTypeId,
+      entityTypeIds: [existingEntity.metadata.entityTypeId],
       properties: mergedProperties,
       draft: !!extractDraftIdFromEntityId(
         existingEntity.metadata.recordId.entityId,

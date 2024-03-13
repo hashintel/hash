@@ -34,6 +34,12 @@ export const useBlogPostPhotos = () => {
   return context;
 };
 
+export const useOptionalBlogPostPhotos = () => {
+  const context = useContext(BlogPostPhotosContext);
+
+  return context;
+};
+
 export type BlogPostAuthorProps = TypographyProps & {
   children?: ReactNode;
   small?: boolean;

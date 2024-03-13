@@ -1,0 +1,34 @@
+---
+title: "Link Types"
+description: "Describing the relationship between things"
+metaTitle: "Link Types - HASH"
+metaDescription: "Link types describe the relationship between things, and may have attributes associated with them"
+sidebarTitle: "Link Types"
+sidebarIcon: https://app.hash.ai/icons/docs/types-linktypes.svg
+---
+
+# Overview
+
+Links are a special kind of entity, which exist solely to describe the relationship between two other entities.
+
+Like normal entities, links have their own type (a "link type", as opposed to an "entity type") which gives the link semantic meaning. Link types may also specify [attributes](/guide/entities/attributes) which provide more information about the relationship.
+
+For simplicity's sake link types can be defined and edited much like entity types, but you can otherwise think of them as their own separate thing dedicated to describing relationships between entities.
+
+# Creating link types
+
+You can create a new link type:
+
+1. inline when editing an entity type, at the point of need, from within the entity type editor;
+1. by clicking the `+` button in the top-right of HASH, and selecting the 'Create link type' option;
+1. by converting an existing entity type to a link type, using the context menu on an entity type's page (accessed by clicking the three vertical dots near the top-right of the page).
+
+When creating a link type, you simply need to specify a name and a description.
+
+# Extending link types
+
+Link types can extend or "inherit" from other link types. This can be useful for capturing additional or more specific information about a relationship, or enforcing stricter [constraints](/guide/entities/attributes#constraints).
+
+# Browsing link types
+
+You can see [all link types](https://app.hash.ai/types/link-type) you have permission to view from the **Types > Link Types** page in HASH.

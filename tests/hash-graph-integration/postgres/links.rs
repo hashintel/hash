@@ -1,6 +1,6 @@
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::knowledge::{entity::EntityProperties, link::EntityLinkOrder};
-use type_system::url::{BaseUrl, VersionedUrl};
+use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
 use crate::DatabaseTestWrapper;
 
@@ -30,16 +30,16 @@ async fn insert() {
             "https://blockprotocol.org/@alice/types/entity-type/person/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: 1,
+        version: OntologyTypeVersion::new(1),
     };
 
     let alice_metadata = api
-        .create_entity(alice, person_type_id.clone(), None, false)
+        .create_entity(alice, vec![person_type_id.clone()], None, false)
         .await
         .expect("could not create entity");
 
     let bob_metadata = api
-        .create_entity(bob, person_type_id.clone(), None, false)
+        .create_entity(bob, vec![person_type_id.clone()], None, false)
         .await
         .expect("could not create entity");
 
@@ -48,12 +48,12 @@ async fn insert() {
             "https://blockprotocol.org/@alice/types/entity-type/friend-of/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: 1,
+        version: OntologyTypeVersion::new(1),
     };
 
     api.create_link_entity(
         friend_of,
-        friend_of_type_id.clone(),
+        vec![friend_of_type_id.clone()],
         None,
         alice_metadata.record_id.entity_id,
         bob_metadata.record_id.entity_id,
@@ -98,7 +98,7 @@ async fn get_entity_links() {
             "https://blockprotocol.org/@alice/types/entity-type/person/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: 1,
+        version: OntologyTypeVersion::new(1),
     };
 
     let friend_link_type_id = VersionedUrl {
@@ -106,7 +106,7 @@ async fn get_entity_links() {
             "https://blockprotocol.org/@alice/types/entity-type/friend-of/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: 1,
+        version: OntologyTypeVersion::new(1),
     };
 
     let acquaintance_entity_link_type_id = VersionedUrl {
@@ -114,27 +114,27 @@ async fn get_entity_links() {
             "https://blockprotocol.org/@alice/types/entity-type/acquaintance-of/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: 1,
+        version: OntologyTypeVersion::new(1),
     };
 
     let alice_metadata = api
-        .create_entity(alice, person_type_id.clone(), None, false)
+        .create_entity(alice, vec![person_type_id.clone()], None, false)
         .await
         .expect("could not create entity");
 
     let bob_metadata = api
-        .create_entity(bob, person_type_id.clone(), None, false)
+        .create_entity(bob, vec![person_type_id.clone()], None, false)
         .await
         .expect("could not create entity");
 
     let charles_metadata = api
-        .create_entity(charles, person_type_id.clone(), None, false)
+        .create_entity(charles, vec![person_type_id.clone()], None, false)
         .await
         .expect("could not create entity");
 
     api.create_link_entity(
         EntityProperties::empty(),
-        friend_link_type_id.clone(),
+        vec![friend_link_type_id.clone()],
         None,
         alice_metadata.record_id.entity_id,
         bob_metadata.record_id.entity_id,
@@ -144,7 +144,7 @@ async fn get_entity_links() {
 
     api.create_link_entity(
         EntityProperties::empty(),
-        acquaintance_entity_link_type_id.clone(),
+        vec![acquaintance_entity_link_type_id.clone()],
         None,
         alice_metadata.record_id.entity_id,
         charles_metadata.record_id.entity_id,
@@ -160,12 +160,12 @@ async fn get_entity_links() {
     assert!(
         links_from_source
             .iter()
-            .any(|link_entity| link_entity.metadata.entity_type_id == friend_link_type_id)
+            .any(|link_entity| link_entity.metadata.entity_type_ids[0] == friend_link_type_id)
     );
     assert!(
         links_from_source
             .iter()
-            .any(|link_entity| link_entity.metadata.entity_type_id
+            .any(|link_entity| link_entity.metadata.entity_type_ids[0]
                 == acquaintance_entity_link_type_id)
     );
 
@@ -215,7 +215,7 @@ async fn remove_link() {
             "https://blockprotocol.org/@alice/types/entity-type/person/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: 1,
+        version: OntologyTypeVersion::new(1),
     };
 
     let friend_link_type_id = VersionedUrl {
@@ -223,23 +223,23 @@ async fn remove_link() {
             "https://blockprotocol.org/@alice/types/entity-type/friend-of/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: 1,
+        version: OntologyTypeVersion::new(1),
     };
 
     let alice_metadata = api
-        .create_entity(alice, person_type_id.clone(), None, false)
+        .create_entity(alice, vec![person_type_id.clone()], None, false)
         .await
         .expect("could not create entity");
 
     let bob_metadata = api
-        .create_entity(bob, person_type_id.clone(), None, false)
+        .create_entity(bob, vec![person_type_id.clone()], None, false)
         .await
         .expect("could not create entity");
 
     let link_entity_metadata = api
         .create_link_entity(
             EntityProperties::empty(),
-            friend_link_type_id.clone(),
+            vec![friend_link_type_id.clone()],
             None,
             alice_metadata.record_id.entity_id,
             bob_metadata.record_id.entity_id,
@@ -257,7 +257,7 @@ async fn remove_link() {
     api.archive_entity(
         link_entity_metadata.record_id.entity_id,
         EntityProperties::empty(),
-        friend_link_type_id,
+        vec![friend_link_type_id],
         EntityLinkOrder {
             left_to_right: None,
             right_to_left: None,

@@ -1,3 +1,4 @@
+import { Box, BoxProps } from "@mui/material";
 import { useRouter } from "next/router";
 import { MDXRemote, MDXRemoteSerializeResult } from "next-mdx-remote";
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
@@ -6,11 +7,15 @@ import { mdxComponents } from "../util/mdx-components";
 import { Heading, PageHeadingsContext } from "./context/page-headings-context";
 
 type MdxPageContentProps = {
+  paragraphMaxWidth?: number;
   serializedPage: MDXRemoteSerializeResult<Record<string, unknown>>;
+  wrapperSx?: BoxProps["sx"];
 };
 
 export const MdxPageContent: FunctionComponent<MdxPageContentProps> = ({
+  paragraphMaxWidth,
   serializedPage,
+  wrapperSx,
 }) => {
   const router = useRouter();
 
@@ -89,8 +94,22 @@ export const MdxPageContent: FunctionComponent<MdxPageContentProps> = ({
 
   return (
     <PageHeadingsContext.Provider value={contextValue}>
-      {/* @ts-expect-error @todo fix this */}
-      <MDXRemote {...serializedPage} components={mdxComponents} />
+      <Box
+        sx={[
+          {
+            "& > :not(.info-card-wrapper), > a:not(.info-card-wrapper) > *": {
+              width: {
+                xs: "100%",
+                sm: paragraphMaxWidth,
+              },
+            },
+          },
+          ...(Array.isArray(wrapperSx) ? wrapperSx : [wrapperSx]),
+        ]}
+      >
+        {/* @ts-expect-error @todo fix this */}
+        <MDXRemote {...serializedPage} components={mdxComponents} />
+      </Box>
     </PageHeadingsContext.Provider>
   );
 };

@@ -1,0 +1,276 @@
+{
+  "name": "graph",
+  "version": "0.2",
+  "coreVersion": "0.2",
+  "messages": [
+    {
+      "messageName": "createEntity",
+      "description": "Request to create an entity",
+      "source": "block",
+      "respondedToBy": "createEntityResponse",
+      "sentOnInitialization": false,
+      "data": {
+        "type": "object",
+        "properties": {
+          "entityTypeId": {
+            "description": "The entityTypeId of the type of the entity to create",
+            "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/versioned-url"
+          },
+          "properties": {
+            "description": "The properties of the entity to create",
+            "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type-object"
+          },
+          "linkData": {
+            "description": "Link data if the entity is a link entity",
+            "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/link-data"
+          }
+        },
+        "required": ["entityTypeId", "properties"]
+      },
+      "errorCodes": []
+    },
+    {
+      "messageName": "createEntityResponse",
+      "description": "The response to a request to create an entity",
+      "source": "embedder",
+      "respondedToBy": null,
+      "sentOnInitialization": false,
+      "data": {
+        "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity"
+      },
+      "errorCodes": [
+        "FORBIDDEN",
+        "INVALID_INPUT",
+        "NOT_IMPLEMENTED",
+        "INTERNAL_ERROR"
+      ]
+    },
+    {
+      "messageName": "updateEntity",
+      "description": "Request to update an entity, with the properties to update",
+      "source": "block",
+      "respondedToBy": "updateEntityResponse",
+      "sentOnInitialization": false,
+      "data": {
+        "type": "object",
+        "allOf": [
+          {
+            "properties": {
+              "entityId": {
+                "description": "The entityId of the entity to update",
+                "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-id"
+              },
+              "entityTypeId": {
+                "description": "The entityTypeId of the updated entity",
+                "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/versioned-url"
+              },
+              "properties": {
+                "description": "The new properties object to assign to the entity",
+                "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type-object"
+              }
+            }
+          },
+          {
+            "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/link-orders"
+          }
+        ],
+        "required": ["entityId", "entityTypeId", "properties"]
+      },
+      "errorCodes": []
+    },
+    {
+      "messageName": "updateEntityResponse",
+      "description": "The response to a request to update an entity",
+      "source": "embedder",
+      "respondedToBy": null,
+      "sentOnInitialization": false,
+      "data": {
+        "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity"
+      },
+      "errorCodes": [
+        "FORBIDDEN",
+        "INVALID_INPUT",
+        "NOT_FOUND",
+        "NOT_IMPLEMENTED",
+        "INTERNAL_ERROR"
+      ]
+    },
+    {
+      "messageName": "deleteEntity",
+      "description": "Request to delete an entity, expecting 'true' in response if the operation succeeds.",
+      "source": "block",
+      "respondedToBy": "deleteEntityResponse",
+      "sentOnInitialization": false,
+      "data": {
+        "description": "The entityId of the entity to delete",
+        "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-id"
+      },
+      "errorCodes": []
+    },
+    {
+      "messageName": "deleteEntityResponse",
+      "description": "The response to a request to delete an entity",
+      "source": "embedder",
+      "respondedToBy": null,
+      "sentOnInitialization": false,
+      "data": {
+        "description": "'true' if the operation succeeded. Otherwise, errors should be returned.",
+        "type": "boolean",
+        "const": true
+      },
+      "errorCodes": [
+        "FORBIDDEN",
+        "INVALID_INPUT",
+        "NOT_FOUND",
+        "NOT_IMPLEMENTED",
+        "INTERNAL_ERROR"
+      ]
+    },
+    {
+      "messageName": "getEntity",
+      "description": "Request to retrieve a subgraph rooted at a specific entity",
+      "source": "block",
+      "respondedToBy": "getEntityResponse",
+      "sentOnInitialization": false,
+      "data": {
+        "type": "object",
+        "properties": {
+          "entityId": {
+            "description": "The entityId of the entity to retrieve",
+            "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-id"
+          },
+          "graphResolveDepths": {
+            "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/partial-graph-resolve-depths"
+          }
+        },
+        "required": ["entityId"]
+      },
+      "errorCodes": []
+    },
+    {
+      "messageName": "getEntityResponse",
+      "description": "The response to a request to get an entity",
+      "source": "embedder",
+      "respondedToBy": null,
+      "sentOnInitialization": false,
+      "data": {
+        "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/subgraph"
+      },
+      "errorCodes": [
+        "FORBIDDEN",
+        "INVALID_INPUT",
+        "NOT_FOUND",
+        "NOT_IMPLEMENTED",
+        "INTERNAL_ERROR"
+      ]
+    },
+    {
+      "messageName": "queryEntities",
+      "description": "Request to query entities.",
+      "source": "block",
+      "respondedToBy": "queryEntitiesResponse",
+      "sentOnInitialization": false,
+      "data": {
+        "description": "The results of a query over entities, and the operation that was used to produce it.",
+        "type": "object",
+        "properties": {
+          "operation": {
+            "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/query-operation"
+          },
+          "graphResolveDepths": {
+            "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/partial-graph-resolve-depths"
+          }
+        },
+        "required": ["operation"]
+      },
+      "errorCodes": []
+    },
+    {
+      "messageName": "queryEntitiesResponse",
+      "description": "The response to a request to query over entities",
+      "source": "embedder",
+      "respondedToBy": null,
+      "sentOnInitialization": false,
+      "data": {
+        "description": "The query operation to apply",
+        "type": "object",
+        "properties": {
+          "results": {
+            "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/subgraph"
+          },
+          "operation": {
+            "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/query-operation"
+          }
+        },
+        "required": ["results", "operation"]
+      },
+      "errorCodes": [
+        "FORBIDDEN",
+        "INVALID_INPUT",
+        "NOT_IMPLEMENTED",
+        "INTERNAL_ERROR"
+      ]
+    },
+    {
+      "messageName": "uploadFile",
+      "description": "Request to upload a file and create an entity to store metadata about it.",
+      "source": "block",
+      "respondedToBy": "uploadFileResponse",
+      "sentOnInitialization": false,
+      "data": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "description": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string",
+                "format": "uri",
+                "$comment": "The URL to take the file from, if not being uploaded directly."
+              }
+            },
+            "required": ["url"]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "description": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "file": {
+                "$comment": "the file blob, if being uploaded directly."
+              }
+            },
+            "required": ["file"]
+          }
+        ]
+      },
+      "errorCodes": []
+    },
+    {
+      "messageName": "uploadFileResponse",
+      "description": "The response to a request to create an entity storing metadata about an uploaded file.",
+      "source": "embedder",
+      "respondedToBy": null,
+      "sentOnInitialization": false,
+      "data": {
+        "$ref": "https://blockprotocol.org/@blockprotocol/types/entity-type/remote-file/v/2"
+      },
+      "errorCodes": [
+        "FORBIDDEN",
+        "INVALID_INPUT",
+        "NOT_FOUND",
+        "NOT_IMPLEMENTED",
+        "INTERNAL_ERROR"
+      ]
+    }
+  ]
+}

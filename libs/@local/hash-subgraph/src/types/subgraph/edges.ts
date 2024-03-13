@@ -3,11 +3,11 @@ import {
   type KnowledgeGraphRootedEdges as KnowledgeGraphRootedEdgesBp,
   type OntologyRootedEdges as OntologyRootedEdgesBp,
 } from "@blockprotocol/graph/temporal";
-import { Subtype } from "@local/advanced-types/subtype";
+import type { Subtype } from "@local/advanced-types/subtype";
 
-import { OntologyTypeRevisionId } from "../element";
-import { BaseUrl, EntityId, Timestamp } from "../shared";
-import {
+import type { OntologyTypeRevisionId } from "../element";
+import type { BaseUrl, EntityId, Timestamp } from "../shared";
+import type {
   KnowledgeGraphOutwardEdge,
   OntologyOutwardEdge,
 } from "./edges/variants";

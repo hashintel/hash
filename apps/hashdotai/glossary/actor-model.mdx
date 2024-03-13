@@ -109,7 +109,7 @@ The same simulation shown in object-oriented form can easily be implemented usin
 ]
 ```
 
-There a few interesting points of note here. First, agents in hash can create other agents. The simulation is initialized with a single agent which in-turn creates all people agents in the model. Second, behaviors compose with each other. All people agents have two behaviors: `make_bet.js` and `@hash/random-movement/random_movement.rs`. The first is a user-defined behavior which allows an agent to engage in bets, and the second allows agents to move throughout the grid as the simulation progresses — one of the many behaviors made available by the community on [hIndex](https://hash.ai/index).
+There a few interesting points of note here. First, agents in hash can create other agents. The simulation is initialized with a single agent which in-turn creates all people agents in the model. Second, behaviors compose with each other. All people agents have two behaviors: `make_bet.js` and `@hash/random-movement/random_movement.rs`. The first is a user-defined behavior which allows an agent to engage in bets, and the second allows agents to move throughout the grid as the simulation progresses — one of the many behaviors made available by the community on [hIndex](https://simulation.hash.ai/index).
 
 The `make_bet.js` behavior is shown below.
 
@@ -149,4 +149,4 @@ The behavior logic is similar to that of the object-oriented method, but is cruc
 
 The actor model allows HASH to present a user-friendly and intuitive approach to agent-based modelling. Because only agents can modify their own state, the requirement that object-oriented frameworks place on the user to implement lock-based synchronization is removed, allowing for much more scalable world-building. The very same simulations run locally on multiple cores, and scale seamlessly to large clusters running in the cloud.
 
-For users looking for an approach to class inheritance offered by object-oriented programming, HASH provides [Agent Types](https://docs.hash.ai/core/behaviors/inheritance). Agents in HASH can have any number of types, allowing agent logic to be similarly clustered, inherited, and attached in the form of grouped behaviors.
+For users looking for an approach to class inheritance offered by object-oriented programming, HASH provides [Agent Types](https://hash.dev/docs/simulations/behaviors/inheritance). Agents in HASH can have any number of types, allowing agent logic to be similarly clustered, inherited, and attached in the form of grouped behaviors.

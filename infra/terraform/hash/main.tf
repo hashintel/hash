@@ -150,7 +150,7 @@ module "postgres_roles" {
   pg_superuser_password = data.vault_kv_secret_v2.secrets.data["pg_superuser_password"]
 
   pg_kratos_user_password_hash   = data.vault_kv_secret_v2.secrets.data["pg_kratos_user_password_hash"]
-  pg_hydra_user_password_hash   = data.vault_kv_secret_v2.secrets.data["pg_hydra_user_password_hash"]
+  pg_hydra_user_password_hash    = data.vault_kv_secret_v2.secrets.data["pg_hydra_user_password_hash"]
   pg_graph_user_password_hash    = data.vault_kv_secret_v2.secrets.data["pg_graph_user_password_hash"]
   pg_temporal_user_password_hash = data.vault_kv_secret_v2.secrets.data["pg_temporal_user_password_hash"]
   pg_spicedb_user_password_hash  = data.vault_kv_secret_v2.secrets.data["pg_spicedb_user_password_hash"]
@@ -223,7 +223,7 @@ module "application" {
   cpu                          = 2048
   memory                       = 4096
   worker_cpu                   = 256
-  worker_memory                = 512
+  worker_memory                = 1024
   ses_verified_domain_identity = var.ses_verified_domain_identity
   graph_image                  = module.graph_ecr
   graph_migration_env_vars     = concat(var.hash_graph_env_vars, [
@@ -281,8 +281,8 @@ module "application" {
       value = "postgres://kratos:${sensitive(data.vault_kv_secret_v2.secrets.data["pg_kratos_user_password_raw"])}@${module.postgres.pg_host}:${module.postgres.pg_port}/kratos"
     },
   ])
-  hydra_image       = module.hydra_ecr
-  hydra_env_vars    = concat(var.hydra_env_vars, [
+  hydra_image    = module.hydra_ecr
+  hydra_env_vars = concat(var.hydra_env_vars, [
     {
       name  = "DSN", secret = true,
       value = "postgres://hydra:${sensitive(data.vault_kv_secret_v2.secrets.data["pg_hydra_user_password_raw"])}@${module.postgres.pg_host}:${module.postgres.pg_port}/hydra"

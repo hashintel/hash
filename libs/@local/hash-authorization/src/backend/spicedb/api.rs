@@ -66,6 +66,9 @@ impl fmt::Display for StreamError {
 
 impl Error for StreamError {}
 
+type StreamReturn<T: DeserializeOwned, B: Serialize + Sync> =
+    impl Stream<Item = Result<T, Report<StreamError>>>;
+
 impl SpiceDbOpenApi {
     async fn invoke_request(
         &self,
@@ -110,25 +113,16 @@ impl SpiceDbOpenApi {
             .change_context(InvocationError::Response)
     }
 
-    async fn stream<R: DeserializeOwned>(
+    async fn stream<R: DeserializeOwned, B: Serialize + Sync>(
         &self,
         path: &'static str,
-        body: &(impl Serialize + Sync),
-    ) -> Result<impl Stream<Item = Result<R, Report<StreamError>>>, Report<InvocationError>> {
+        body: &B,
+    ) -> Result<StreamReturn<R, B>, Report<InvocationError>> {
         #[derive(Deserialize)]
         #[serde(rename_all = "camelCase")]
         enum StreamResult<T> {
             Result(T),
             Error(RpcError),
-        }
-
-        impl<T> From<StreamResult<T>> for Result<T, Report<StreamError>> {
-            fn from(result: StreamResult<T>) -> Self {
-                match result {
-                    StreamResult::Result(result) => Ok(result),
-                    StreamResult::Error(rpc_error) => Err(Report::new(StreamError::Api(rpc_error))),
-                }
-            }
         }
 
         let stream_response = self.invoke_request(path, body).await?;
@@ -142,8 +136,12 @@ impl SpiceDbOpenApi {
             codec::bytes::JsonLinesDecoder::<StreamResult<R>>::new(),
         );
 
-        Ok(framed_stream
-            .map(|io_result| Result::from(io_result.change_context(StreamError::Parse)?)))
+        Ok(framed_stream.map(
+            |io_result| match io_result.change_context(StreamError::Parse)? {
+                StreamResult::Result(result) => Ok(result),
+                StreamResult::Error(rpc_error) => Err(Report::new(StreamError::Api(rpc_error))),
+            },
+        ))
     }
 }
 
@@ -555,7 +553,7 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         }
 
         Ok(self
-            .stream::<ReadRelationshipsResponse<R>>(
+            .stream::<ReadRelationshipsResponse<R>, _>(
                 "/v1/relationships/read",
                 &ReadRelationshipsRequest {
                     consistency: model::Consistency::from(consistency),

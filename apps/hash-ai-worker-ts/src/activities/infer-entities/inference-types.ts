@@ -1,13 +1,13 @@
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import type { Entity } from "@local/hash-graph-client";
-import {
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type {
   InferenceTokenUsage,
   InferredEntityChangeResult,
   ProposedEntity,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
-import OpenAI from "openai";
+import type { Entity } from "@local/hash-subgraph";
+import type OpenAI from "openai";
 
-import { DereferencedEntityType } from "./dereference-entity-type";
+import type { DereferencedEntityType } from "./dereference-entity-type";
 
 export type PermittedOpenAiModel =
   | "gpt-3.5-turbo-1106"

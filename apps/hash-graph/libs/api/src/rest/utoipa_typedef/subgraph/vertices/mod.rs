@@ -1,10 +1,10 @@
 use std::collections::{hash_map::Entry, BTreeMap, HashMap};
 
 use graph::subgraph::temporal_axes::VariableAxis;
-use graph_types::{knowledge::entity::EntityId, ontology::OntologyTypeVersion};
+use graph_types::knowledge::entity::EntityId;
 use serde::Serialize;
 use temporal_versioning::Timestamp;
-use type_system::url::BaseUrl;
+use type_system::url::{BaseUrl, OntologyTypeVersion};
 use utoipa::{
     openapi::{schema::AdditionalProperties, ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema},
     ToSchema,

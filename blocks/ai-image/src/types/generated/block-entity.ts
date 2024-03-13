@@ -34,29 +34,29 @@ export type BlockEntityOutgoingLinkAndTarget =
 /**
  * A True or False value
  */
-export type Boolean = boolean;
+export type BooleanDataType = boolean;
 
 /**
  * A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.
  */
-export type DescriptionPropertyValue = Text;
+export type DescriptionPropertyValue = TextDataType;
 
 /**
  * A human-friendly display name for something
  */
-export type DisplayNamePropertyValue = Text;
+export type DisplayNamePropertyValue = TextDataType;
 
 export type File = Entity<FileProperties>;
 
 /**
  * A unique signature derived from a file's contents
  */
-export type FileHashPropertyValue = Text;
+export type FileHashPropertyValue = TextDataType;
 
 /**
  * The name of a file.
  */
-export type FileNamePropertyValue = Text;
+export type FileNamePropertyValue = TextDataType;
 
 export type FileOutgoingLinkAndTarget = never;
 
@@ -87,42 +87,42 @@ export type FileProperties = {
 /**
  * The size of a file
  */
-export type FileSizePropertyValue = Number;
+export type FileSizePropertyValue = NumberDataType;
 
 /**
  * The bucket in which a file is stored.
  */
-export type FileStorageBucketPropertyValue = Text;
+export type FileStorageBucketPropertyValue = TextDataType;
 
 /**
  * The endpoint for making requests to a file storage provider.
  */
-export type FileStorageEndpointPropertyValue = Text;
+export type FileStorageEndpointPropertyValue = TextDataType;
 
 /**
  * Whether to force path style for requests to a file storage provider (vs virtual host style).
  */
-export type FileStorageForcePathStylePropertyValue = Boolean;
+export type FileStorageForcePathStylePropertyValue = BooleanDataType;
 
 /**
  * The key identifying a file in storage.
  */
-export type FileStorageKeyPropertyValue = Text;
+export type FileStorageKeyPropertyValue = TextDataType;
 
 /**
  * The provider of a file storage service.
  */
-export type FileStorageProviderPropertyValue = Text;
+export type FileStorageProviderPropertyValue = TextDataType;
 
 /**
  * The region in which a file is stored.
  */
-export type FileStorageRegionPropertyValue = Text;
+export type FileStorageRegionPropertyValue = TextDataType;
 
 /**
  * A URL that serves a file.
  */
-export type FileURLPropertyValue = Text;
+export type FileURLPropertyValue = TextDataType;
 
 export type Generated = Entity<GeneratedProperties> & { linkData: LinkData };
 
@@ -165,36 +165,36 @@ export type LinkProperties = {};
  *
  * See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types
  */
-export type MIMETypePropertyValue = Text;
+export type MIMETypePropertyValue = TextDataType;
 
 /**
  * An arithmetical value (in the Real number system)
  */
-export type Number = number;
+export type NumberDataType = number;
 
 /**
  * The prompt provided as an input to an OpenAI-model capable of generating images.
  *
  * See: https://blockprotocol.org/docs/spec/service-module
  */
-export type OpenAIImageModelPromptPropertyValue = Text;
+export type OpenAIImageModelPromptPropertyValue = TextDataType;
 
 /**
  * The original name of a file
  */
-export type OriginalFileNamePropertyValue = Text;
+export type OriginalFileNamePropertyValue = TextDataType;
 
 /**
  * The original source of something
  */
-export type OriginalSourcePropertyValue = Text;
+export type OriginalSourcePropertyValue = TextDataType;
 
 /**
  * The original URL something was hosted at
  */
-export type OriginalURLPropertyValue = Text;
+export type OriginalURLPropertyValue = TextDataType;
 
 /**
  * An ordered sequence of characters
  */
-export type Text = string;
+export type TextDataType = string;

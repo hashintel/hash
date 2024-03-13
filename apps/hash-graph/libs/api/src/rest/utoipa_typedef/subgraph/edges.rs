@@ -10,10 +10,10 @@ use graph::subgraph::{
     },
     temporal_axes::VariableAxis,
 };
-use graph_types::{knowledge::entity::EntityId, ontology::OntologyTypeVersion};
+use graph_types::knowledge::entity::EntityId;
 use serde::Serialize;
 use temporal_versioning::Timestamp;
-use type_system::url::BaseUrl;
+use type_system::url::{BaseUrl, OntologyTypeVersion};
 use utoipa::{
     openapi::{schema::AdditionalProperties, ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema},
     ToSchema,
@@ -245,13 +245,12 @@ mod tests {
     };
     use graph_types::{
         knowledge::entity::{EntityId, EntityUuid},
-        ontology::OntologyTypeVersion,
         owned_by_id::OwnedById,
     };
     use temporal_versioning::{
         ClosedTemporalBound, LeftClosedTemporalInterval, OpenTemporalBound, Timestamp,
     };
-    use type_system::url::BaseUrl;
+    use type_system::url::{BaseUrl, OntologyTypeVersion};
     use uuid::Uuid;
 
     use crate::rest::utoipa_typedef::subgraph::Edges;

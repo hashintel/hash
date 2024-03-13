@@ -54,7 +54,10 @@ use hash_status::Status;
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use time::OffsetDateTime;
-use type_system::{url::VersionedUrl, PropertyType};
+use type_system::{
+    url::{OntologyTypeVersion, VersionedUrl},
+    PropertyType,
+};
 use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
@@ -259,10 +262,7 @@ where
 #[serde(untagged)]
 enum LoadExternalPropertyTypeRequest {
     #[serde(rename_all = "camelCase")]
-    Fetch {
-        #[schema(value_type = SHARED_VersionedUrl)]
-        property_type_id: VersionedUrl,
-    },
+    Fetch { property_type_id: VersionedUrl },
     Create {
         #[schema(value_type = VAR_PROPERTY_TYPE)]
         schema: PropertyType,
@@ -437,7 +437,6 @@ where
 struct UpdatePropertyTypeRequest {
     #[schema(value_type = VAR_UPDATE_PROPERTY_TYPE)]
     schema: serde_json::Value,
-    #[schema(value_type = SHARED_VersionedUrl)]
     type_to_update: VersionedUrl,
     relationships: Vec<PropertyTypeRelationAndSubject>,
 }
@@ -478,7 +477,7 @@ where
         relationships,
     }) = body;
 
-    type_to_update.version += 1;
+    type_to_update.version = OntologyTypeVersion::new(type_to_update.version.inner() + 1);
 
     let property_type = patch_id_and_parse(&type_to_update, schema).map_err(|report| {
         tracing::error!(error=?report, "Couldn't patch schema and convert to Property Type");
@@ -682,7 +681,6 @@ where
 #[serde(rename_all = "camelCase")]
 struct ModifyPropertyTypeAuthorizationRelationship {
     operation: ModifyRelationshipOperation,
-    #[schema(value_type = SHARED_VersionedUrl)]
     resource: VersionedUrl,
     relation_and_subject: PropertyTypeRelationAndSubject,
 }

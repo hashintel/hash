@@ -20,9 +20,9 @@ import {
   type VertexId as VertexIdBp,
   type Vertices as VerticesBp,
 } from "@blockprotocol/graph/temporal";
-import { Subtype } from "@local/advanced-types/subtype";
+import type { Subtype } from "@local/advanced-types/subtype";
 
-import {
+import type {
   DataTypeWithMetadata,
   Entity,
   EntityPropertiesObject,
@@ -32,7 +32,7 @@ import {
   OntologyTypeRevisionId,
   PropertyTypeWithMetadata,
 } from "../element";
-import { BaseUrl, EntityId } from "../shared";
+import type { BaseUrl, EntityId } from "../shared";
 
 export type DataTypeVertex = Subtype<
   DataTypeVertexBp,

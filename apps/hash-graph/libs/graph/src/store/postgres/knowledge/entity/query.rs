@@ -190,6 +190,8 @@ pub struct EntityRecordRowIndices {
     pub created_by_id: usize,
     pub created_at_transaction_time: usize,
     pub created_at_decision_time: usize,
+    pub first_non_draft_created_at_transaction_time: usize,
+    pub first_non_draft_created_at_decision_time: usize,
     pub edition_created_by_id: usize,
 
     pub archived: usize,
@@ -299,11 +301,15 @@ impl QueryRecordDecode for Entity {
                     decision_time: row.get(indices.decision_time),
                     transaction_time: row.get(indices.transaction_time),
                 },
-                entity_type_id,
+                entity_type_ids: vec![entity_type_id],
                 provenance: EntityProvenanceMetadata {
                     created_by_id: row.get(indices.created_by_id),
                     created_at_transaction_time: row.get(indices.created_at_transaction_time),
                     created_at_decision_time: row.get(indices.created_at_decision_time),
+                    first_non_draft_created_at_transaction_time: row
+                        .get(indices.first_non_draft_created_at_transaction_time),
+                    first_non_draft_created_at_decision_time: row
+                        .get(indices.first_non_draft_created_at_decision_time),
                     edition: EntityEditionProvenanceMetadata {
                         created_by_id: row.get(indices.edition_created_by_id),
                     },
@@ -377,6 +383,10 @@ impl PostgresRecord for Entity {
                 .add_selection_path(&EntityQueryPath::CreatedAtTransactionTime),
             created_at_decision_time: compiler
                 .add_selection_path(&EntityQueryPath::CreatedAtDecisionTime),
+            first_non_draft_created_at_transaction_time: compiler
+                .add_selection_path(&EntityQueryPath::FirstNonDraftCreatedAtTransactionTime),
+            first_non_draft_created_at_decision_time: compiler
+                .add_selection_path(&EntityQueryPath::FirstNonDraftCreatedAtDecisionTime),
             edition_created_by_id: compiler
                 .add_selection_path(&EntityQueryPath::EditionCreatedById),
 

@@ -1,0 +1,161 @@
+{
+  "name": "@blockprotocol/graph",
+  "version": "0.3.4-canary.0",
+  "description": "Implementation of the Block Protocol Graph service specification for blocks and embedding applications",
+  "keywords": [
+    "blockprotocol",
+    "blocks",
+    "graph"
+  ],
+  "homepage": "https://blockprotocol.org",
+  "bugs": {
+    "url": "https://github.com/blockprotocol/blockprotocol/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:blockprotocol/blockprotocol.git",
+    "directory": "libs/@blockprotocol/graph"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "HASH",
+    "url": "https://hash.ai"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/cjs/non-temporal/main.d.ts",
+      "require": "./dist/cjs/main-non-temporal.cjs",
+      "import": "./dist/es/main-non-temporal.js"
+    },
+    "./temporal": {
+      "types": "./dist/cjs/temporal/main.d.ts",
+      "require": "./dist/cjs/main-temporal.cjs",
+      "import": "./dist/es/main-temporal.js"
+    },
+    "./codegen": {
+      "types": "./dist/cjs/codegen.d.ts",
+      "require": "./dist/cjs/codegen.cjs",
+      "import": "./dist/es/codegen.js"
+    },
+    "./custom-element": {
+      "types": "./dist/cjs/non-temporal/custom-element.d.ts",
+      "require": "./dist/cjs/custom-element-non-temporal.cjs",
+      "import": "./dist/es/custom-element-non-temporal.js"
+    },
+    "./temporal/custom-element": {
+      "types": "./dist/cjs/temporal/custom-element.d.ts",
+      "require": "./dist/cjs/custom-element-temporal.cjs",
+      "import": "./dist/es/custom-element-temporal.js"
+    },
+    "./graph-module-json": {
+      "types": "./dist/cjs/graph-module-json.d.ts",
+      "require": "./dist/cjs/graph-module-json.cjs",
+      "import": "./dist/es/graph-module-json.js"
+    },
+    "./internal": {
+      "types": "./dist/cjs/internal.d.ts",
+      "require": "./dist/cjs/internal.cjs",
+      "import": "./dist/es/internal.js"
+    },
+    "./react": {
+      "types": "./dist/cjs/non-temporal/react.d.ts",
+      "require": "./dist/cjs/react-non-temporal.cjs",
+      "import": "./dist/es/react-non-temporal.js"
+    },
+    "./temporal/react": {
+      "types": "./dist/cjs/temporal/react.d.ts",
+      "require": "./dist/cjs/react-temporal.cjs",
+      "import": "./dist/es/react-temporal.js"
+    },
+    "./stdlib": {
+      "types": "./dist/cjs/non-temporal/stdlib.d.ts",
+      "require": "./dist/cjs/stdlib-non-temporal.cjs",
+      "import": "./dist/es/stdlib-non-temporal.js"
+    },
+    "./temporal/stdlib": {
+      "types": "./dist/cjs/temporal/stdlib.d.ts",
+      "require": "./dist/cjs/stdlib-temporal.cjs",
+      "import": "./dist/es/stdlib-temporal.js"
+    }
+  },
+  "module": "./dist/es/non-temporal/main.js",
+  "types": "./dist/cjs/non-temporal/main.d.ts",
+  "typesVersions": {
+    "*": {
+      ".": [
+        "./dist/cjs/non-temporal/main.d.ts"
+      ],
+      "temporal": [
+        "./dist/cjs/temporal/main.d.ts"
+      ],
+      "codegen": [
+        "./dist/cjs/codegen.d.ts"
+      ],
+      "custom-element": [
+        "./dist/cjs/non-temporal/custom-element.d.ts"
+      ],
+      "temporal/custom-element": [
+        "./dist/cjs/temporal/custom-element.d.ts"
+      ],
+      "graph-module-json": [
+        "./dist/cjs/graph-module-json.d.ts"
+      ],
+      "internal": [
+        "./dist/cjs/internal.d.ts"
+      ],
+      "react": [
+        "./dist/cjs/non-temporal/react.d.ts"
+      ],
+      "temporal/react": [
+        "./dist/cjs/temporal/react.d.ts"
+      ],
+      "stdlib": [
+        "./dist/cjs/non-temporal/stdlib.d.ts"
+      ],
+      "temporal/stdlib": [
+        "./dist/cjs/temporal/stdlib.d.ts"
+      ]
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "yarn clean && yarn build:bundle",
+    "build:bundle": "node --max-old-space-size=8192 ../../../node_modules/rollup/dist/bin/rollup -c --bundleConfigAsCjs",
+    "clean": "rimraf ./dist/",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@blockprotocol/core": "0.1.2",
+    "@blockprotocol/type-system": "0.1.2-canary.0",
+    "ajv": "^8.11.2",
+    "ajv-formats": "^2.1.1",
+    "json-schema-to-typescript": "^11.0.2",
+    "lit": "^2.4.1",
+    "lodash.isequal": "4.5.0",
+    "typescript": "5.1.6"
+  },
+  "devDependencies": {
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "@rollup/plugin-commonjs": "25.0.7",
+    "@rollup/plugin-json": "6.1.0",
+    "@rollup/plugin-typescript": "11.1.6",
+    "@types/lodash.isequal": "4.5.6",
+    "@types/node": "18.15.13",
+    "@types/react": "18.0.26",
+    "eslint": "8.57.0",
+    "rimraf": "5.0.5",
+    "rollup": "4.12.0"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0"
+  },
+  "engines": {
+    "node": ">=18.15"
+  }
+}

@@ -4,12 +4,12 @@ use graph_types::{
         entity::{DraftId, EntityEditionId, EntityProperties, EntityUuid},
         link::LinkOrder,
     },
-    ontology::OntologyTypeVersion,
     owned_by_id::OwnedById,
     Embedding,
 };
 use postgres_types::ToSql;
 use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, Timestamp, TransactionTime};
+use uuid::Uuid;
 
 #[derive(Debug, ToSql)]
 #[postgres(name = "entity_ids")]
@@ -17,6 +17,8 @@ pub struct EntityIdRow {
     pub created_by_id: CreatedById,
     pub created_at_transaction_time: Timestamp<TransactionTime>,
     pub created_at_decision_time: Timestamp<DecisionTime>,
+    pub first_non_draft_created_at_transaction_time: Option<Timestamp<TransactionTime>>,
+    pub first_non_draft_created_at_decision_time: Option<Timestamp<DecisionTime>>,
     pub web_id: OwnedById,
     pub entity_uuid: EntityUuid,
 }
@@ -30,7 +32,7 @@ pub struct EntityDraftRow {
 }
 
 #[derive(Debug, ToSql)]
-#[postgres(name = "entity_editions_tmp")]
+#[postgres(name = "entity_editions")]
 pub struct EntityEditionRow {
     pub entity_edition_id: EntityEditionId,
     pub properties: EntityProperties,
@@ -38,8 +40,13 @@ pub struct EntityEditionRow {
     pub right_to_left_order: Option<LinkOrder>,
     pub edition_created_by_id: EditionCreatedById,
     pub archived: bool,
-    pub entity_type_base_url: String,
-    pub entity_type_version: OntologyTypeVersion,
+}
+
+#[derive(Debug, ToSql)]
+#[postgres(name = "entity_is_of_type")]
+pub struct EntityIsOfTypeRow {
+    pub entity_edition_id: EntityEditionId,
+    pub entity_type_ontology_id: Uuid,
 }
 
 #[derive(Debug, ToSql)]
@@ -69,6 +76,7 @@ pub struct EntityLinkEdgeRow {
 pub struct EntityEmbeddingRow {
     pub web_id: OwnedById,
     pub entity_uuid: EntityUuid,
+    pub draft_id: Option<DraftId>,
     pub property: Option<String>,
     pub embedding: Embedding<'static>,
     pub updated_at_transaction_time: Timestamp<TransactionTime>,

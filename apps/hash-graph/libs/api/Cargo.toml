@@ -1,3 +1,5 @@
+cargo-features = ["edition2024"]
+
 [package]
 name = "graph-api"
 version = "0.0.0"
@@ -14,17 +16,17 @@ hash-tracing = { workspace = true }
 temporal-client = { workspace = true }
 temporal-versioning = { workspace = true }
 authorization = { workspace = true }
-type-system = { workspace = true }
+type-system = { workspace = true, features = ["utoipa"] }
 validation = { workspace = true, features = ["utoipa"] }
 codec = { workspace = true, optional = true }
 
 async-trait = "0.1.77"
 axum = "0.7.4"
-base64 = "0.21.7"
+base64 = "0.22.0"
 bytes = "1.5.0"
 error-stack = { workspace = true }
 futures = { workspace = true }
-http-body-util = "0.1.0"
+http-body-util = "0.1.1"
 hyper = "1.2.0"
 include_dir = "0.7.3"
 mime = "0.3.17"
@@ -38,7 +40,7 @@ tokio = { workspace = true, features = ["macros"], optional = true }
 tokio-postgres = { version = "0.7.10", default-features = false, optional = true }
 tokio-util = { workspace = true, features = ["io"], optional = true }
 tower = "0.4.13"
-tower-http = { version = "0.5.1", features = ["trace"] }
+tower-http = { version = "0.5.2", features = ["trace"] }
 tracing = { workspace = true }
 tracing-opentelemetry = "0.22.0"
 utoipa = "4.2.0"

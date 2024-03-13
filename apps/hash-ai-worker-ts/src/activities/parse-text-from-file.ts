@@ -1,8 +1,8 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
-import { DOCXDocumentProperties } from "@local/hash-isomorphic-utils/system-types/docxdocument";
+import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
+import type { DOCXDocumentProperties } from "@local/hash-isomorphic-utils/system-types/docxdocument";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 import isDocker from "is-docker";
 import officeParser from "officeparser";
@@ -84,7 +84,7 @@ export const parseTextFromFile = async (
 
     await graphApiClient.updateEntity(webMachineActorId, {
       entityId: fileEntity.metadata.recordId.entityId,
-      entityTypeId: fileEntity.metadata.entityTypeId,
+      entityTypeIds: [fileEntity.metadata.entityTypeId],
       properties: updatedProperties,
       archived: fileEntity.metadata.archived,
       draft:

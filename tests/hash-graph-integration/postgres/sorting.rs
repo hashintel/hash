@@ -10,7 +10,7 @@ use graph::{
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::knowledge::entity::{EntityProperties, EntityUuid};
 use pretty_assertions::assert_eq;
-use type_system::url::{BaseUrl, VersionedUrl};
+use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 use uuid::Uuid;
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
@@ -106,14 +106,14 @@ async fn insert(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
             "https://blockprotocol.org/@alice/types/entity-type/person/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: 1,
+        version: OntologyTypeVersion::new(1),
     };
     let page_entity_type = VersionedUrl {
         base_url: BaseUrl::new(
             "https://blockprotocol.org/@alice/types/entity-type/page/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: 1,
+        version: OntologyTypeVersion::new(1),
     };
     let entities_properties = [
         (entity::PERSON_ALICE_V1, &person_entity_type),
@@ -128,7 +128,7 @@ async fn insert(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
             serde_json::from_str(entity).expect("could not parse entity");
         api.create_entity(
             properties.clone(),
-            type_id.clone(),
+            vec![type_id.clone()],
             Some(EntityUuid::new(Uuid::from_u128(idx as u128))),
             false,
         )

@@ -50,7 +50,7 @@ runs:
         AWS_REGION: ${{ inputs.AWS_REGION }}
 
     - name: Cache Docker layers
-      uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+      uses: actions/cache@ab5e6d0c87105b4c9c2047343972218f562e4319 # v4.0.1
       with:
         path: /tmp/.buildx-cache
         key: docker-${{inputs.SHORTNAME}}-${{ hashFiles('yarn.lock') }}
@@ -61,7 +61,7 @@ runs:
 
     # Build images and push to ECR
     - name: Build and push ${{inputs.SHORTNAME}} image
-      uses: docker/build-push-action@4a13e500e55cf31b7a5d59a38ab2040ab0f42f56 # v5.1.0
+      uses: docker/build-push-action@af5a7ed5ba88268d5278f7203fb52cd833f66d6e # v5.2.0
       env:
         GH_RUN_ID: ${{ github.run_id }}
       with:

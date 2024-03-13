@@ -1,4 +1,4 @@
-import {
+import type {
   CreateHashEntityFromLinearData,
   ReadLinearTeamsWorkflow,
   SyncWorkspaceWorkflow,
@@ -7,7 +7,7 @@ import {
 } from "@local/hash-backend-utils/temporal-workflow-types";
 import { proxyActivities } from "@temporalio/workflow";
 
-import { createLinearIntegrationActivities } from "./activities";
+import type { createLinearIntegrationActivities } from "./activities";
 
 const linear = proxyActivities<
   ReturnType<typeof createLinearIntegrationActivities>

@@ -1,10 +1,6 @@
 import { BlockMetadata, BlockVariant } from "@blockprotocol/core";
 import { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 
-/** @todo: might need refactor: https://github.com/hashintel/dev/pull/206#discussion_r723210329 */
-// eslint-disable-next-line global-require, @typescript-eslint/no-explicit-any
-const fetch = (globalThis as any).fetch ?? require("node-fetch");
-
 export interface HashBlockMeta extends BlockMetadata {
   componentId: string;
   variants: NonNullable<BlockMetadata["variants"]>;

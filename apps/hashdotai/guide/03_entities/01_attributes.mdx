@@ -1,0 +1,46 @@
+---
+title: "Attributes"
+description: "Information about an entity"
+metaTitle: "Entity Attributes - HASH"
+metaDescription: "Learn what attributes are, and get introduced to the different kinds of attributes that may exist on entities in HASH"
+sidebarTitle: "Attributes"
+sidebarIcon: https://app.hash.ai/icons/docs/entities-attributes.svg
+---
+
+# Overview
+
+[Entity types](/guide/types/entity-types) specify the **attributes** that may occur on entities of their type. Attributes are simply the individual pieces of information that describe an entity and its relationship to other entities. An attribute can be either a **property** or a **link**.
+
+# Properties
+
+A property is a value stored directly on an entity. Every property has one [property type](/guide/types/property-types) which:
+
+- has a name and a description which provide semantic meaning wherever it is used, so it is clear and unambiguous what the value represents; and
+- specifies one or more expected [data types](/guide/types/data-types) which both further describe the expected value, and ensure that any value provided is of the expected type, e.g. `Text` or `Number`.
+- may be used by multiple entity types. For example, a common property type such as `Name` might appear on many entity types. This makes it easier to identify properties which mean the same thing across entiites of different types.
+
+# Links
+
+A link describes a relationship between one entity and another. Every link has one or more [link types](/guide/types/link-type) which determine its semantic meaning, e.g. `Employed By`. Links may themselves have properties which provide more information about the relationship, e.g. `Job Title`.
+
+Like property types, a link type might appear on multiple entity types. An `Invested In` link might appear on both a `Person` and a `Company` entity type, since they can both invest in other entities.
+
+The permitted properties of a given link type, for example `Investment Value`, are the same wherever it is re-used. However, each entity type which uses the link type can have different rules about the permitted target entity. Entities representing a `User` on a stock exchange platform might only permit an `Invested In` link to point to entities representing valid `Tradable Security`s on that platform, whereas a more generic `Person` entity might have a wider range of types of entities that it can be `Invested In`, for example private companies, or their kid's `Lemonade Stand`.
+
+## Multi-type links
+
+An instance of a link can have more than one link type associated with it. This is relatively uncommon, and typically link types will extend other link types (to make them "more specific") instead. A link with multiple types can, however, be useful to denote that two relationships are tied.
+
+Let's consider a `Person` and a `Delaware Corporation` (a type of company). Under Delaware law, company directors have a legal duty of care, known as a "fiduciary responsibility", to the shareholders of a company.
+
+In addition to connecting our `Person` to our `Delaware Corporation` by a `Is on the board of directors of` link, we may also add a _second_ link type to the link, called `Has fiduciary responsibility to the shareholders of`. This makes the relationship more explicit.
+
+If the person ceases to be a director of the company, and the link is removed entirely, their fidcuiary responsibility likewise vanishes. In this way, links with multiple link types can be useful for capturing conditionally linked aspects of a relationship.
+
+# Constraints
+
+Constraints on an attribute's value — both the input format of a property, defined by its `Data Type` — as well as the type of entities accepted by a `Link Type` — can sometimes feel annoying.
+
+However, constraints can help validate that information is entered or collected is in the right format, catching errors at the point of data entry or ingest, and keeping the quality and trustworthiness of information in your [web](/guide/webs) high. This also helps ensure that your entities can reliably be used in off-the-shelf [HASH apps](/guide/apps), or in external applications that you sync your HASH data with.
+
+That said, not all property types strictly define their data types — and not all entity types that expect links are prescriptive about the `entity types` they allow linking to. Sometimes this "lack of typing" can be useful, but you should take extra care to avoid errors when relaxing type constraints.

@@ -54,7 +54,7 @@ use graph_types::{
     ontology::{
         DataTypeMetadata, EntityTypeMetadata, OntologyEditionProvenanceMetadata,
         OntologyProvenanceMetadata, OntologyTemporalMetadata, OntologyTypeMetadata,
-        OntologyTypeRecordId, OntologyTypeReference, OntologyTypeVersion, PropertyTypeMetadata,
+        OntologyTypeRecordId, OntologyTypeReference, PropertyTypeMetadata,
     },
     owned_by_id::OwnedById,
 };
@@ -68,6 +68,7 @@ use temporal_versioning::{
     ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
     OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, Timestamp, TransactionTime,
 };
+use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 use utoipa::{
     openapi::{
         self, schema, ArrayBuilder, KnownFormat, Object, ObjectBuilder, OneOfBuilder, Ref, RefOr,
@@ -343,6 +344,8 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
         schemas(
             PermissionResponse,
 
+            BaseUrl,
+            VersionedUrl,
             OwnedById,
             CreatedById,
             EditionCreatedById,
@@ -549,7 +552,6 @@ fn modify_schema_references(schema_component: &mut RefOr<openapi::Schema>) {
 
 fn modify_reference(reference: &mut openapi::Ref) {
     static REF_PREFIX_MODELS: &str = "#/components/schemas/VAR_";
-    static REF_PREFIX_SHARED: &str = "#/components/schemas/SHARED_";
 
     if reference.ref_location.starts_with(REF_PREFIX_MODELS) {
         reference
@@ -557,13 +559,6 @@ fn modify_reference(reference: &mut openapi::Ref) {
             .replace_range(0..REF_PREFIX_MODELS.len(), "./models/");
         reference.ref_location.make_ascii_lowercase();
         reference.ref_location.push_str(".json");
-    };
-
-    if reference.ref_location.starts_with(REF_PREFIX_SHARED) {
-        reference.ref_location.replace_range(
-            0..REF_PREFIX_SHARED.len(),
-            "./models/shared.json#/definitions/",
-        );
     };
 }
 

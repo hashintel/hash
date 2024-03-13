@@ -2629,7 +2629,7 @@
         ],
         "properties": {
           "dataTypeId": {
-            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+            "$ref": "#/components/schemas/VersionedUrl"
           }
         },
         "additionalProperties": false
@@ -2641,7 +2641,7 @@
         ],
         "properties": {
           "entityTypeId": {
-            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+            "$ref": "#/components/schemas/VersionedUrl"
           }
         },
         "additionalProperties": false
@@ -2653,10 +2653,14 @@
         ],
         "properties": {
           "propertyTypeId": {
-            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+            "$ref": "#/components/schemas/VersionedUrl"
           }
         },
         "additionalProperties": false
+      },
+      "BaseUrl": {
+        "type": "string",
+        "format": "uri"
       },
       "ClosedTemporalBound": {
         "oneOf": [
@@ -2721,7 +2725,7 @@
         "type": "object",
         "required": [
           "ownedById",
-          "entityTypeId",
+          "entityTypeIds",
           "properties",
           "draft",
           "relationships"
@@ -2737,8 +2741,11 @@
           "draft": {
             "type": "boolean"
           },
-          "entityTypeId": {
-            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+          "entityTypeIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            }
           },
           "entityUuid": {
             "allOf": [
@@ -2782,7 +2789,12 @@
             "nullable": true
           },
           "labelProperty": {
-            "$ref": "./models/shared.json#/definitions/BaseUrl"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BaseUrl"
+              }
+            ],
+            "nullable": true
           },
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
@@ -3020,7 +3032,7 @@
         ],
         "properties": {
           "baseId": {
-            "$ref": "./models/shared.json#/definitions/BaseUrl"
+            "$ref": "#/components/schemas/BaseUrl"
           },
           "revisionId": {
             "$ref": "#/components/schemas/OntologyTypeVersion"
@@ -3256,7 +3268,12 @@
             "$ref": "#/components/schemas/Embedding"
           },
           "property": {
-            "$ref": "./models/shared.json#/definitions/BaseUrl"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BaseUrl"
+              }
+            ],
+            "nullable": true
           }
         }
       },
@@ -3304,7 +3321,7 @@
         "required": [
           "recordId",
           "temporalVersioning",
-          "entityTypeId",
+          "entityTypeIds",
           "provenance",
           "archived"
         ],
@@ -3312,8 +3329,11 @@
           "archived": {
             "type": "boolean"
           },
-          "entityTypeId": {
-            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+          "entityTypeIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            }
           },
           "provenance": {
             "$ref": "#/components/schemas/EntityProvenanceMetadata"
@@ -3384,6 +3404,20 @@
           },
           "edition": {
             "$ref": "#/components/schemas/EntityEditionProvenanceMetadata"
+          },
+          "firstNonDraftCreatedAtDecisionTime": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            ]
+          },
+          "firstNonDraftCreatedAtTransactionTime": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            ]
           }
         },
         "additionalProperties": false
@@ -3453,6 +3487,8 @@
           "createdById",
           "createdAtTransactionTime",
           "createdAtDecisionTime",
+          "firstNonDraftCreatedAtTransactionTime",
+          "firstNonDraftCreatedAtDecisionTime",
           "type",
           "properties",
           "embedding",
@@ -4042,7 +4078,7 @@
         ],
         "properties": {
           "baseId": {
-            "$ref": "./models/shared.json#/definitions/BaseUrl"
+            "$ref": "#/components/schemas/BaseUrl"
           },
           "revisionId": {
             "$ref": "#/components/schemas/OntologyTypeVersion"
@@ -4089,10 +4125,16 @@
       "EntityValidationType": {
         "oneOf": [
           {
-            "$ref": "./models/entity_type.json"
+            "type": "array",
+            "items": {
+              "$ref": "./models/entity_type.json"
+            }
           },
           {
-            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            }
           }
         ]
       },
@@ -4691,7 +4733,7 @@
             ],
             "properties": {
               "dataTypeId": {
-                "$ref": "./models/shared.json#/definitions/VersionedUrl"
+                "$ref": "#/components/schemas/VersionedUrl"
               }
             }
           },
@@ -4724,7 +4766,7 @@
             ],
             "properties": {
               "entityTypeId": {
-                "$ref": "./models/shared.json#/definitions/VersionedUrl"
+                "$ref": "#/components/schemas/VersionedUrl"
               }
             }
           },
@@ -4740,7 +4782,12 @@
                 "nullable": true
               },
               "label_property": {
-                "$ref": "./models/shared.json#/definitions/BaseUrl"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/BaseUrl"
+                  }
+                ],
+                "nullable": true
               },
               "relationships": {
                 "type": "array",
@@ -4764,7 +4811,7 @@
             ],
             "properties": {
               "propertyTypeId": {
-                "$ref": "./models/shared.json#/definitions/VersionedUrl"
+                "$ref": "#/components/schemas/VersionedUrl"
               }
             }
           },
@@ -4842,7 +4889,7 @@
             "$ref": "#/components/schemas/DataTypeRelationAndSubject"
           },
           "resource": {
-            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+            "$ref": "#/components/schemas/VersionedUrl"
           }
         }
       },
@@ -4880,7 +4927,7 @@
             "$ref": "#/components/schemas/EntityTypeRelationAndSubject"
           },
           "resource": {
-            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+            "$ref": "#/components/schemas/VersionedUrl"
           }
         }
       },
@@ -4899,7 +4946,7 @@
             "$ref": "#/components/schemas/PropertyTypeRelationAndSubject"
           },
           "resource": {
-            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+            "$ref": "#/components/schemas/VersionedUrl"
           }
         }
       },
@@ -5526,7 +5573,7 @@
         ],
         "properties": {
           "baseId": {
-            "$ref": "./models/shared.json#/definitions/BaseUrl"
+            "$ref": "#/components/schemas/BaseUrl"
           },
           "revisionId": {
             "$ref": "#/components/schemas/OntologyTypeVersion"
@@ -5896,7 +5943,7 @@
         ],
         "properties": {
           "dataTypeId": {
-            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+            "$ref": "#/components/schemas/VersionedUrl"
           }
         },
         "additionalProperties": false
@@ -5908,7 +5955,7 @@
         ],
         "properties": {
           "entityTypeId": {
-            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+            "$ref": "#/components/schemas/VersionedUrl"
           }
         },
         "additionalProperties": false
@@ -5920,7 +5967,7 @@
         ],
         "properties": {
           "propertyTypeId": {
-            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+            "$ref": "#/components/schemas/VersionedUrl"
           }
         },
         "additionalProperties": false
@@ -5960,7 +6007,7 @@
         ],
         "properties": {
           "dataTypeId": {
-            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+            "$ref": "#/components/schemas/VersionedUrl"
           },
           "embedding": {
             "$ref": "#/components/schemas/Embedding"
@@ -5992,7 +6039,7 @@
             "$ref": "./models/update_data_type.json"
           },
           "typeToUpdate": {
-            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+            "$ref": "#/components/schemas/VersionedUrl"
           }
         },
         "additionalProperties": false
@@ -6038,7 +6085,7 @@
             "required": [
               "properties",
               "entityId",
-              "entityTypeId",
+              "entityTypeIds",
               "archived",
               "draft"
             ],
@@ -6059,8 +6106,11 @@
               "entityId": {
                 "$ref": "#/components/schemas/EntityId"
               },
-              "entityTypeId": {
-                "$ref": "./models/shared.json#/definitions/VersionedUrl"
+              "entityTypeIds": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/VersionedUrl"
+                }
               },
               "properties": {
                 "$ref": "#/components/schemas/EntityProperties"
@@ -6082,7 +6132,7 @@
             "$ref": "#/components/schemas/Embedding"
           },
           "entityTypeId": {
-            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+            "$ref": "#/components/schemas/VersionedUrl"
           },
           "reset": {
             "type": "boolean"
@@ -6106,7 +6156,12 @@
             "nullable": true
           },
           "labelProperty": {
-            "$ref": "./models/shared.json#/definitions/BaseUrl"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BaseUrl"
+              }
+            ],
+            "nullable": true
           },
           "relationships": {
             "type": "array",
@@ -6118,7 +6173,7 @@
             "$ref": "./models/update_entity_type.json"
           },
           "typeToUpdate": {
-            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+            "$ref": "#/components/schemas/VersionedUrl"
           }
         },
         "additionalProperties": false
@@ -6136,7 +6191,7 @@
             "$ref": "#/components/schemas/Embedding"
           },
           "propertyTypeId": {
-            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+            "$ref": "#/components/schemas/VersionedUrl"
           },
           "reset": {
             "type": "boolean"
@@ -6165,7 +6220,7 @@
             "$ref": "./models/update_property_type.json"
           },
           "typeToUpdate": {
-            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+            "$ref": "#/components/schemas/VersionedUrl"
           }
         },
         "additionalProperties": false
@@ -6173,12 +6228,12 @@
       "ValidateEntityParams": {
         "type": "object",
         "required": [
-          "entityType",
+          "entityTypes",
           "properties",
           "profile"
         ],
         "properties": {
-          "entityType": {
+          "entityTypes": {
             "$ref": "#/components/schemas/EntityValidationType"
           },
           "linkData": {
@@ -6203,6 +6258,10 @@
           "full",
           "draft"
         ]
+      },
+      "VersionedUrl": {
+        "type": "string",
+        "format": "uri"
       },
       "Vertex": {
         "oneOf": [

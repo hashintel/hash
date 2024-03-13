@@ -3,7 +3,6 @@ import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
   AllFilter,
   CosineDistanceFilter,
-  Entity,
   GraphApi,
 } from "@local/hash-graph-client";
 import type {
@@ -15,8 +14,7 @@ import { generateVersionedUrlMatchingFilter } from "@local/hash-isomorphic-utils
 import type {
   AccountId,
   BaseUrl,
-  Entity as BrandedEntity,
-  EntityId,
+  Entity,
   LinkData,
   OwnedById,
 } from "@local/hash-subgraph";
@@ -29,7 +27,7 @@ import isMatch from "lodash.ismatch";
 
 import { createEntityEmbeddings } from "../../shared/embeddings";
 import type { DereferencedEntityType } from "../dereference-entity-type";
-import { InferenceState, UpdateCandidate } from "../inference-types";
+import type { InferenceState, UpdateCandidate } from "../inference-types";
 import { extractErrorMessage } from "../shared/extract-validation-failure-details";
 import { getEntityByFilter } from "../shared/get-entity-by-filter";
 import { stringify } from "../stringify";
@@ -301,7 +299,7 @@ export const createEntities = async ({
               internalEntityStatusMap.unchangedEntities[
                 proposedEntity.entityId
               ] = {
-                entity: existingEntity as BrandedEntity,
+                entity: existingEntity,
                 entityTypeId,
                 operation: "already-exists-as-proposed",
                 proposedEntity,
@@ -313,7 +311,7 @@ export const createEntities = async ({
 
           try {
             await graphApiClient.validateEntity(actorId, {
-              entityType: entityTypeId,
+              entityTypes: [entityTypeId],
               profile: createAsDraft ? "draft" : "full",
               properties,
             });
@@ -321,7 +319,7 @@ export const createEntities = async ({
             const { data: createdEntityMetadata } =
               await graphApiClient.createEntity(actorId, {
                 draft: createAsDraft,
-                entityTypeId,
+                entityTypeIds: [entityTypeId],
                 ownedById,
                 properties,
                 relationships: [
@@ -495,13 +493,13 @@ export const createEntities = async ({
           }
 
           const linkData: LinkData = {
-            leftEntityId: sourceEntity.metadata.recordId.entityId as EntityId,
-            rightEntityId: targetEntity.metadata.recordId.entityId as EntityId,
+            leftEntityId: sourceEntity.metadata.recordId.entityId,
+            rightEntityId: targetEntity.metadata.recordId.entityId,
           };
 
           try {
             await graphApiClient.validateEntity(actorId, {
-              entityType: entityTypeId,
+              entityTypes: [entityTypeId],
               profile: createAsDraft ? "draft" : "full",
               properties,
               linkData,
@@ -589,7 +587,7 @@ export const createEntities = async ({
             const { data: createdEntityMetadata } =
               await graphApiClient.createEntity(actorId, {
                 draft: createAsDraft,
-                entityTypeId,
+                entityTypeIds: [entityTypeId],
                 linkData,
                 ownedById,
                 properties,

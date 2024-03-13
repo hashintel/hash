@@ -1,10 +1,10 @@
-import {
+import type {
   BaseUrl as BaseUrlBp,
-  validateBaseUrl,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
-import { Brand } from "@local/advanced-types/brand";
-import {
+import { validateBaseUrl } from "@blockprotocol/type-system/slim";
+import type { Brand } from "@local/advanced-types/brand";
+import type {
   DataTypeRelationAndSubject as DataTypeRelationAndSubjectGraph,
   EntityRelationAndSubject as EntityRelationAndSubjectGraph,
   EntityTypeInstantiatorSubject as EntityTypeInstantiatorSubjectGraph,
@@ -14,7 +14,7 @@ import {
 } from "@local/hash-graph-client";
 import { validate as validateUuid } from "uuid";
 
-import { Timestamp } from "./temporal-versioning";
+import type { Timestamp } from "./temporal-versioning";
 
 export type BaseUrl = Brand<BaseUrlBp, "BaseUrl">;
 

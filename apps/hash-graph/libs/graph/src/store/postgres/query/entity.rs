@@ -21,7 +21,11 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             | Self::DecisionTime
             | Self::TransactionTime
             | Self::DraftId => vec![],
-            Self::CreatedById | Self::CreatedAtTransactionTime | Self::CreatedAtDecisionTime => {
+            Self::CreatedById
+            | Self::CreatedAtTransactionTime
+            | Self::CreatedAtDecisionTime
+            | Self::FirstNonDraftCreatedAtTransactionTime
+            | Self::FirstNonDraftCreatedAtDecisionTime => {
                 vec![Relation::EntityIds]
             }
             Self::Embedding => vec![Relation::EntityEmbeddings],
@@ -98,6 +102,12 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             Self::CreatedAtDecisionTime => Column::EntityIds(EntityIds::CreatedAtDecisionTime),
             Self::CreatedAtTransactionTime => {
                 Column::EntityIds(EntityIds::CreatedAtTransactionTime)
+            }
+            Self::FirstNonDraftCreatedAtDecisionTime => {
+                Column::EntityIds(EntityIds::FirstNonDraftCreatedAtDecisionTime)
+            }
+            Self::FirstNonDraftCreatedAtTransactionTime => {
+                Column::EntityIds(EntityIds::FirstNonDraftCreatedAtTransactionTime)
             }
             Self::EntityTypeEdge { path, .. } => path.terminating_column(),
             Self::EntityEdge {

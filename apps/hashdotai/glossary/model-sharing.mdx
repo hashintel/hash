@@ -19,7 +19,7 @@ Blackbox sharing is useful for distributing forecasts and projections that show 
 
 ## Closed-Greybox Sharing
 
-Closed-greybox sharing is similar to blackbox sharing, except that users are provided with **the ability to vary a fixed set of parameters** that feed a simulation (usually a simulation’s [global variables](https://docs.hash.ai/core/configuration)).
+Closed-greybox sharing is similar to blackbox sharing, except that users are provided with **the ability to vary a fixed set of parameters** that feed a simulation (usually a simulation’s [global variables](https://hash.dev/docs/simulations/configuration)).
 
 As in blackbox sharing, simulation logic such as code and other parameters not intended for sharing can remain off-limits to simulation viewers.
 
@@ -48,7 +48,7 @@ When a simulation is shared in a transparent fashion, it may still be copyrighte
 
 A final type of sharing, “output-only sharing”, is more restrictive than any of the other forms of sharing outlined above.
 
-Output-only sharing refers to the distribution of certain specified simulation outputs only (i.e. single values of specific metrics tracked during a simulation run). The “entire run” of a simulation will not be visible, and only the individual metric tracked will be made available. Typically this is accessed via an Application Programming Interface, such as the [HASH API](https://docs.hash.ai/core/api).
+Output-only sharing refers to the distribution of certain specified simulation outputs only (i.e. single values of specific metrics tracked during a simulation run). The “entire run” of a simulation will not be visible, and only the individual metric tracked will be made available. Typically this is accessed via an Application Programming Interface, such as the [HASH API](https://hash.dev/docs/simulations/api).
 
 Whereas blackbox sharing results in the distribution of an entire simulation run to the end-consumer, so they can see how it evolved over time, output-only sharing simply cherrypicks a metric (e.g. the final state of a particular value at the end of a simulation run, or the average value of a particular thing over the lifetime of a run).
 
@@ -58,11 +58,11 @@ Output-only sharing is useful for powering business intelligence dashboards, and
 
 HASH is the only AI and simulation platform that supports true blackbox, closed-greybox, open-greybox, transparent and output-only forms of sharing.
 
-This makes HASH ideal for regulated environments in which both model secrecy and proving compliance is a concern, as well as high-security environments, and in powering third-party applications which require simulation data as inputs. [Read more about sharing in HASH >](https://docs.hash.ai/core/sharing-releasing)
+This makes HASH ideal for regulated environments in which both model secrecy and proving compliance is a concern, as well as high-security environments, and in powering third-party applications which require simulation data as inputs. [Read more about sharing in HASH >](https://hash.dev/docs/simulations/sharing-releasing)
 
 **Currently available:**
 
 - **Transparent** sharing is fully available within the [hCore](https://hash.ai/platform/core).
 - **Closed-greybox** sharing is in public beta and available when sharing or embedding private projects from hCore (with code-privacy guarantees coming soon).
-- **Output-only** sharing is available as part of HASH’s pre-release program ([register for access](https://docs.hash.ai/core/api/register-for-access)).
+- **Output-only** sharing is available as part of HASH’s pre-release program ([register for access](https://hash.dev/docs/simulations/api/register-for-access)).
 - **Blackbox** sharing and **open-greybox** sharing are coming soon.

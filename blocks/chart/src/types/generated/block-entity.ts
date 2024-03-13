@@ -29,7 +29,7 @@ export type ChartBlockProperties = {
 /**
  * The chart definition of something.
  */
-export type ChartDefintionPropertyValue = Object;
+export type ChartDefintionPropertyValue = ObjectDataType;
 
 export type HasQuery = Entity<HasQueryProperties> & { linkData: LinkData };
 
@@ -56,7 +56,7 @@ export type LinkProperties = {};
 /**
  * An opaque, untyped JSON object
  */
-export type Object = {};
+export type ObjectDataType = {};
 
 export type Query = Entity<QueryProperties>;
 
@@ -71,14 +71,14 @@ export type QueryProperties = {
 /**
  * The query for something.
  */
-export type QueryPropertyValue = Object;
+export type QueryPropertyValue = ObjectDataType;
 
 /**
  * An ordered sequence of characters
  */
-export type Text = string;
+export type TextDataType = string;
 
 /**
  * The name given to something to identify it, generally associated with objects or inanimate things such as books, websites, songs, etc.
  */
-export type TitlePropertyValue = Text;
+export type TitlePropertyValue = TextDataType;

@@ -20,20 +20,19 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { AccountId, Subgraph, Timestamp } from "@local/hash-subgraph";
+import type { AccountId, Timestamp } from "@local/hash-subgraph";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-subgraph/stdlib";
 import { StatusCode } from "@local/status";
 import { CancelledFailure, Context } from "@temporalio/activity";
 import dedent from "dedent";
-import OpenAI from "openai";
+import type OpenAI from "openai";
 
 import { createInferenceUsageRecord } from "./infer-entities/create-inference-usage-record";
-import {
-  DereferencedEntityType,
-  dereferenceEntityType,
-} from "./infer-entities/dereference-entity-type";
+import type { DereferencedEntityType } from "./infer-entities/dereference-entity-type";
+import { dereferenceEntityType } from "./infer-entities/dereference-entity-type";
 import { getResultsFromInferenceState } from "./infer-entities/get-results-from-inference-state";
 import { inferEntitySummaries } from "./infer-entities/infer-entity-summaries";
-import {
+import type {
   InferenceState,
   PermittedOpenAiModel,
 } from "./infer-entities/inference-types";
@@ -271,7 +270,7 @@ const inferEntities = async ({
     for (const entityTypeId of entityTypeIds) {
       entityTypes[entityTypeId] = dereferenceEntityType(
         entityTypeId,
-        entityTypesSubgraph as Subgraph,
+        mapGraphApiSubgraphToSubgraph(entityTypesSubgraph),
       );
     }
   } catch (err) {
@@ -558,10 +557,11 @@ export const inferEntitiesActivity = async ({
           draft: false,
           properties: {},
           ownedById: userAuthenticationInfo.actorId,
-          entityTypeId:
+          entityTypeIds: [
             entityResult.operation === "create"
               ? systemLinkEntityTypes.created.linkEntityTypeId
               : systemLinkEntityTypes.updated.linkEntityTypeId,
+          ],
           linkData: {
             leftEntityId: usageRecordMetadata.recordId.entityId,
             rightEntityId: entityResult.entity.metadata.recordId.entityId,

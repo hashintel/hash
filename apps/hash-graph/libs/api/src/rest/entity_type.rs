@@ -52,7 +52,7 @@ use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use time::OffsetDateTime;
 use type_system::{
-    url::{BaseUrl, VersionedUrl},
+    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     EntityType,
 };
 use utoipa::{OpenApi, ToSchema};
@@ -162,7 +162,6 @@ struct CreateEntityTypeRequest {
     schema: MaybeListOfEntityType,
     owned_by_id: OwnedById,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[schema(value_type = SHARED_BaseUrl)]
     label_property: Option<BaseUrl>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     icon: Option<String>,
@@ -173,7 +172,6 @@ struct CreateEntityTypeRequest {
 #[serde(rename_all = "camelCase")]
 struct ModifyEntityTypeAuthorizationRelationship {
     operation: ModifyRelationshipOperation,
-    #[schema(value_type = SHARED_VersionedUrl)]
     resource: VersionedUrl,
     relation_and_subject: EntityTypeRelationAndSubject,
 }
@@ -523,15 +521,11 @@ where
 #[serde(untagged)]
 enum LoadExternalEntityTypeRequest {
     #[serde(rename_all = "camelCase")]
-    Fetch {
-        #[schema(value_type = SHARED_VersionedUrl)]
-        entity_type_id: VersionedUrl,
-    },
+    Fetch { entity_type_id: VersionedUrl },
     Create {
         #[schema(value_type = VAR_ENTITY_TYPE)]
         schema: EntityType,
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        #[schema(value_type = SHARED_BaseUrl)]
         label_property: Option<BaseUrl>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         icon: Option<String>,
@@ -741,10 +735,8 @@ where
 struct UpdateEntityTypeRequest {
     #[schema(value_type = VAR_UPDATE_ENTITY_TYPE)]
     schema: serde_json::Value,
-    #[schema(value_type = SHARED_VersionedUrl)]
     type_to_update: VersionedUrl,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[schema(value_type = SHARED_BaseUrl)]
     label_property: Option<BaseUrl>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     icon: Option<String>,
@@ -789,7 +781,7 @@ where
         relationships,
     }) = body;
 
-    type_to_update.version += 1;
+    type_to_update.version = OntologyTypeVersion::new(type_to_update.version.inner() + 1);
 
     let entity_type = patch_id_and_parse(&type_to_update, schema).map_err(|report| {
         tracing::error!(error=?report, "Couldn't convert schema to Entity Type");
