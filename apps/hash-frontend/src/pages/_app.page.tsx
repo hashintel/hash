@@ -11,6 +11,10 @@ import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import wasm from "@blockprotocol/type-system/type-system.wasm";
 import { CacheProvider, EmotionCache } from "@emotion/react";
 import { createEmotionCache, theme } from "@hashintel/design-system/theme";
+import {
+  FeatureFlag,
+  featureFlags,
+} from "@local/hash-isomorphic-utils/feature-flags";
 import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
@@ -220,6 +224,17 @@ const publiclyAccessiblePagePathnames = [
   "/recovery",
 ];
 
+/**
+ * A map from a feature flag, to the list of pages which should not be accessible
+ * if that feature flag is not enabled for the user.
+ */
+const featureFlagHiddenPathnames: Record<FeatureFlag, string[]> = {
+  pages: [],
+  documents: [],
+  canvases: [],
+  notes: ["/notes"],
+};
+
 AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
   const {
     ctx: { req, pathname },
@@ -283,6 +298,21 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
       // ...if they don't have access to HASH but aren't on the home page...
     } else if (!hasAccessToHash && pathname !== "/") {
       // ...then redirect them to the home page.
+      redirectInGetInitialProps({ appContext, location: "/" });
+    }
+  }
+
+  // For each feature flag...
+  for (const featureFlag of featureFlags) {
+    /**
+     * ...if the user has not enabled the feature flag,
+     * and the page is a hidden pathname for that feature flag...
+     */
+    if (
+      !user.enabledFeatureFlags.includes(featureFlag) &&
+      featureFlagHiddenPathnames[featureFlag].includes(pathname)
+    ) {
+      // ...then redirect them to the home page instead.
       redirectInGetInitialProps({ appContext, location: "/" });
     }
   }
