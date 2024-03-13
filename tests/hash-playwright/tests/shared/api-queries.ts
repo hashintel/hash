@@ -20,7 +20,7 @@ import type {
 import { createEntityMutation } from "../graphql/queries/entity.queries";
 import { meQuery } from "../graphql/queries/user.queries";
 
-const getUser = async () => {
+export const getUser = async () => {
   return queryGraphQlApi<MeQuery, MeQueryVariables>({
     apiOrigin: `${apiOrigin}/graphql`,
     query: meQuery,

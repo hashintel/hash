@@ -1,4 +1,3 @@
-import { getUser } from "@apps/plugin-browser/src/shared/get-user";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -10,7 +9,7 @@ import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/s
 import type { AccountId } from "@local/hash-subgraph";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
-import { createEntity } from "./shared/api-queries";
+import { createEntity, getUser } from "./shared/api-queries";
 import { loginUsingTempForm } from "./shared/login-using-temp-form";
 import { expect, test } from "./shared/runtime";
 
