@@ -597,4 +597,5 @@ export const parseTextFromFile = async (
 
 export const researchTask = createResearchTaskWorkflow({
   aiActivities,
+  graphActivities,
 });
