@@ -8,6 +8,7 @@ import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
 import { useDraftEntities } from "../../draft-entities-context";
 import { SidebarToggleIcon } from "../../icons";
+import { BoltLightIcon } from "../../icons/bolt-light-icon";
 import { FeatherLightIcon } from "../../icons/feather-light-icon";
 import { InboxIcon } from "../../icons/inbox-icon";
 import { NoteIcon } from "../../icons/note-icon";
@@ -81,6 +82,13 @@ export const PageSidebar: FunctionComponent = () => {
         href="/"
         tooltipTitle=""
         active={router.pathname === "/[shortname]"}
+      />
+      <TopNavLink
+        icon={<BoltLightIcon sx={{ fontSize: 16 }} />}
+        title="AI"
+        href="/ai"
+        tooltipTitle=""
+        active={router.pathname.startsWith("/ai")}
       />
       <TopNavLink
         icon={<InboxIcon sx={{ fontSize: 16 }} />}
