@@ -283,7 +283,7 @@ impl QueryPath for PropertyTypeQueryPath<'_> {
             Self::Version => ParameterType::OntologyTypeVersion,
             Self::TransactionTime => ParameterType::TimeInterval,
             Self::Title | Self::Description => ParameterType::Text,
-            Self::Embedding => ParameterType::Vector,
+            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
             Self::DataTypeEdge { path, .. } => path.expected_type(),
             Self::PropertyTypeEdge { path, .. } => path.expected_type(),
             Self::EntityTypeEdge { path, .. } => path.expected_type(),
