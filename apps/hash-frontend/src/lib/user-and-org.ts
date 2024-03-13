@@ -1,4 +1,5 @@
 import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
+import { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -66,6 +67,7 @@ export type MinimalUser = {
   entity: Entity;
   accountId: AccountId;
   accountSignupComplete: boolean;
+  enabledFeatureFlags: FeatureFlag[];
   pinnedEntityTypeBaseUrls?: BaseUrl[];
   shortname?: string;
   displayName?: string;
@@ -86,7 +88,15 @@ export const constructMinimalUser = (params: {
 
   const simpleProperties = simplifyProperties(userEntity.properties);
 
-  const { shortname, displayName, pinnedEntityTypeBaseUrl } = simpleProperties;
+  const {
+    shortname,
+    displayName,
+    pinnedEntityTypeBaseUrl,
+    enabledFeatureFlag,
+  } = simpleProperties;
+
+  const enabledFeatureFlags =
+    (enabledFeatureFlag as FeatureFlag[] | undefined) ?? [];
 
   const accountSignupComplete = !!shortname && !!displayName;
 
@@ -98,6 +108,7 @@ export const constructMinimalUser = (params: {
       userEntity.metadata.recordId.entityId as AccountEntityId,
     ),
     accountSignupComplete,
+    enabledFeatureFlags,
     ...(pinnedEntityTypeBaseUrl
       ? {
           pinnedEntityTypeBaseUrls: pinnedEntityTypeBaseUrl as BaseUrl[],
