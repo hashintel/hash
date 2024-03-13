@@ -1,4 +1,5 @@
 import type { EntityQueryCursor, Filter } from "@local/hash-graph-client";
+import type { Entity as GraphApiEntity } from "@local/hash-graph-client/api";
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
@@ -14,6 +15,7 @@ import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
+import { mapGraphApiEntityToEntity } from "@local/hash-subgraph/src/stdlib/subgraph/roots";
 import { CancelledFailure } from "@temporalio/common";
 import {
   ActivityCancellationType,
@@ -343,7 +345,7 @@ type UpdateEntityEmbeddingsParams = {
   };
 } & (
   | {
-      entities: Entity[];
+      entities: GraphApiEntity[];
     }
   | {
       filter: Filter;
@@ -378,7 +380,7 @@ export const updateEntityEmbeddings = async (
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
     if ("entities" in params) {
-      entities = params.entities;
+      entities = params.entities.map(mapGraphApiEntityToEntity);
     } else {
       const queryResponse = await graphActivities.getEntitiesByQuery({
         authentication: params.authentication,
@@ -418,7 +420,7 @@ export const updateEntityEmbeddings = async (
         authentication: params.authentication,
         query: {
           filter: {
-            equal: [
+            containsSegment: [
               { path: ["versionedUrl"] },
               { parameter: entity.metadata.entityTypeId },
             ],

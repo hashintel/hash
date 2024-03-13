@@ -8,6 +8,7 @@ import {
 } from "@blockprotocol/graph/temporal/stdlib";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
+  Entity as GraphApiEntity,
   EntityMetadata as GraphApiEntityMetadata,
   KnowledgeGraphVertex as KnowledgeGraphVertexGraphApi,
   Subgraph as GraphApiSubgraph,
@@ -16,6 +17,7 @@ import type {
 
 import type {
   DataTypeRootType,
+  Entity,
   EntityMetadata,
   EntityRootType,
   EntityTypeRootType,
@@ -167,14 +169,17 @@ export const mapGraphApiEntityMetadataToMetadata = (
   } as EntityMetadata;
 };
 
+export const mapGraphApiEntityToEntity = (entity: GraphApiEntity) => {
+  return {
+    ...entity,
+    metadata: mapGraphApiEntityMetadataToMetadata(entity.metadata),
+  } as Entity;
+};
+
 const mapKnowledgeGraphVertex = (vertex: KnowledgeGraphVertexGraphApi) => {
   return {
     kind: vertex.kind,
-    inner: {
-      properties: vertex.inner.properties,
-      linkData: vertex.inner.linkData,
-      metadata: mapGraphApiEntityMetadataToMetadata(vertex.inner.metadata),
-    },
+    inner: mapGraphApiEntityToEntity(vertex.inner),
   } as KnowledgeGraphVertex;
 };
 
