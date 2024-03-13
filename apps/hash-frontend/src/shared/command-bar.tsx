@@ -30,6 +30,7 @@ import {
 import { useAccountPages } from "../components/hooks/use-account-pages";
 import { useCreatePage } from "../components/hooks/use-create-page";
 import { useHashInstance } from "../components/hooks/use-hash-instance";
+import { useEnabledFeatureFlags } from "../pages/shared/use-enabled-feature-flags";
 import { useActiveWorkspace } from "../pages/shared/workspace-context";
 // import { CheatSheet } from "./command-bar/cheat-sheet";
 import {
@@ -411,8 +412,14 @@ export const CommandBar: FunctionComponent = () => {
     });
   }, [router]);
 
+  const enabledFeatureFlags = useEnabledFeatureFlags();
+
   useEffect(() => {
-    if (!hashInstance?.properties.pagesAreEnabled) {
+    if (
+      !hashInstance?.properties.pagesAreEnabled ||
+      !enabledFeatureFlags.pages ||
+      !enabledFeatureFlags.documents
+    ) {
       return;
     }
     createPageOption.activate({
@@ -423,6 +430,7 @@ export const CommandBar: FunctionComponent = () => {
   }, [
     createUntitledPage,
     hashInstance?.properties.pagesAreEnabled,
+    enabledFeatureFlags,
     lastRootPageIndex,
   ]);
 

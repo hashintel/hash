@@ -41,6 +41,7 @@ import { useCreateSubPage } from "../../../../components/hooks/use-create-sub-pa
 import { useReorderPage } from "../../../../components/hooks/use-reorder-page";
 import { useUserOrOrgShortnameByOwnedById } from "../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { constructPageRelativeUrl } from "../../../../lib/routes";
+import { useEnabledFeatureFlags } from "../../../../pages/shared/use-enabled-feature-flags";
 import { PlusRegularIcon } from "../../../icons/plus-regular";
 import { NavLink } from "../nav-link";
 import { LoadingSkeleton } from "../shared/loading-skeleton";
@@ -113,6 +114,8 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     setTreeItems(getTreeItemList(data));
   }
 
+  const enabledFeatureFlags = useEnabledFeatureFlags();
+
   // @todo handle loading/error states properly
   const addPage = useCallback(async () => {
     if (loading) {
@@ -120,12 +123,15 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     }
 
     try {
-      await createUntitledPage(getLastIndex(treeItems), "document");
+      await createUntitledPage(
+        getLastIndex(treeItems),
+        enabledFeatureFlags.documents ? "document" : "canvas",
+      );
     } catch (err) {
       // eslint-disable-next-line no-console -- TODO: consider using logger
       console.error("Could not create page: ", err);
     }
-  }, [createUntitledPage, loading, treeItems]);
+  }, [createUntitledPage, loading, treeItems, enabledFeatureFlags]);
 
   const handleToggle = (nodeId: string) => {
     setExpandedPageIds((expandedIds) =>

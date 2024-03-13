@@ -134,7 +134,8 @@ export const PageSidebar: FunctionComponent = () => {
         {activeWorkspaceOwnedById ? (
           <>
             {/* PAGES */}
-            {hashInstance?.properties.pagesAreEnabled ? (
+            {hashInstance?.properties.pagesAreEnabled &&
+            enabledFeatureFlags.pages ? (
               <AccountPageList
                 currentPageEntityUuid={routePageEntityUuid}
                 ownedById={activeWorkspaceOwnedById}
