@@ -29,7 +29,7 @@
     "test:unit": "jest"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.3.3",
+    "@blockprotocol/graph": "0.3.4-canary-20240313122533",
     "@blockprotocol/type-system": "0.1.1",
     "@local/advanced-types": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",

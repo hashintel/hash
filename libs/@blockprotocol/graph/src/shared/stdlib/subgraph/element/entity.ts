@@ -1,6 +1,6 @@
 import { Entity, EntityId, EntityRevisionId } from "../../../types/entity.js";
 import { Subgraph } from "../../../types/subgraph.js";
-import { isEntityVertex } from "../../../types/subgraph/vertices.js";
+import { isEntityVertex, Vertices } from "../../../types/subgraph/vertices.js";
 import { TimeInterval } from "../../../types/temporal-versioning.js";
 import { mustBeDefined, typedEntries, typedValues } from "../../../util.js";
 import {
@@ -36,6 +36,28 @@ export const getEntities = <Temporal extends boolean>(
   });
 };
 
+const getRevisionsForEntity = <Temporal extends boolean>(
+  subgraph: Subgraph<Temporal>,
+  entityId: EntityId,
+): Vertices<Temporal>[string] | undefined => {
+  const entityRevisions = subgraph.vertices[entityId];
+
+  if (entityRevisions) {
+    return entityRevisions;
+  }
+
+  /**
+   * Check for the presence of a draft version of the entity in the subgraph
+   */
+  const draftEntityId = Object.keys(subgraph.vertices).find((id) =>
+    id.startsWith(`${entityId}~`),
+  );
+
+  if (draftEntityId) {
+    return subgraph.vertices[draftEntityId];
+  }
+};
+
 /**
  * Gets an {@link Entity} by its {@link EntityId} from within the vertices of the subgraph. If
  * `targetRevisionInformation` is not passed, then the latest version of the {@link Entity} will be returned.
@@ -56,7 +78,7 @@ export const getEntityRevision = <Temporal extends boolean>(
     ? EntityRevisionId | Date
     : undefined,
 ): Entity<Temporal> | undefined => {
-  const entityRevisions = subgraph.vertices[entityId];
+  const entityRevisions = getRevisionsForEntity(subgraph, entityId);
 
   if (entityRevisions === undefined) {
     return undefined;
@@ -126,16 +148,16 @@ export const getEntityRevisionsByEntityId = <Temporal extends boolean>(
   entityId: EntityId,
   interval?: Temporal extends true ? TimeInterval : undefined,
 ): Entity<Temporal>[] => {
-  const versionObject = subgraph.vertices[entityId];
+  const entityRevisions = getRevisionsForEntity(subgraph, entityId);
 
-  if (!versionObject) {
+  if (entityRevisions === undefined) {
     return [];
   }
 
   if (interval !== undefined) {
     const filteredEntities = [];
 
-    for (const [startTime, vertex] of typedEntries(versionObject)) {
+    for (const [startTime, vertex] of typedEntries(entityRevisions)) {
       // Only look at vertices that were created before or within the search interval
       if (
         !intervalIsStrictlyAfterInterval(
@@ -167,7 +189,7 @@ export const getEntityRevisionsByEntityId = <Temporal extends boolean>(
 
     return filteredEntities;
   } else {
-    const entityVertices = typedValues(versionObject);
+    const entityVertices = typedValues(entityRevisions);
     return entityVertices.filter(isEntityVertex).map((vertex) => {
       return vertex.inner;
     });
