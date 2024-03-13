@@ -420,7 +420,7 @@ export const updateEntityEmbeddings = async (
         authentication: params.authentication,
         query: {
           filter: {
-            containsSegment: [
+            equal: [
               { path: ["versionedUrl"] },
               { parameter: entity.metadata.entityTypeId },
             ],
