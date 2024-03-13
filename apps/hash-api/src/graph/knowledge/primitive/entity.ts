@@ -308,6 +308,7 @@ export const getOrCreateEntity: ImpureGraphFunction<
     try {
       entity = await getLatestEntityById(context, authentication, {
         entityId: existingEntityId,
+        includeDrafts: true,
       });
     } catch {
       throw new ApolloError(
