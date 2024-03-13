@@ -163,6 +163,8 @@ export const EntitiesTable: FunctionComponent<{
   useEffect(() => {
     if (isDisplayingFilesOnly) {
       setView("Grid");
+    } else {
+      setView("Table");
     }
   }, [isDisplayingFilesOnly]);
 
