@@ -12,10 +12,10 @@ import type {
   AccountId,
   DataTypeWithMetadata,
   Entity,
+  EntityMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
-import { mapGraphApiEntityToEntity } from "@local/hash-subgraph/stdlib";
 import { CancelledFailure } from "@temporalio/common";
 import {
   ActivityCancellationType,
@@ -380,7 +380,24 @@ export const updateEntityEmbeddings = async (
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
     if ("entities" in params) {
-      entities = params.entities.map(mapGraphApiEntityToEntity);
+      entities = params.entities.map((entity) => {
+        // We should use `mapGraphApiEntityToEntity` but due to Temporal this function is not available in workflows
+        if (entity.metadata.entityTypeIds.length !== 1) {
+          throw new Error(
+            `Expected entity metadata to have exactly one entity type id, but got ${entity.metadata.entityTypeIds.length}`,
+          );
+        }
+        return {
+          ...entity,
+          metadata: {
+            recordId: entity.metadata.recordId,
+            entityTypeId: entity.metadata.entityTypeIds[0],
+            temporalVersioning: entity.metadata.temporalVersioning,
+            provenance: entity.metadata.provenance,
+            archived: entity.metadata.archived,
+          } as EntityMetadata,
+        } as Entity;
+      });
     } else {
       const queryResponse = await graphActivities.getEntitiesByQuery({
         authentication: params.authentication,
