@@ -9,7 +9,7 @@ categories:
 
 Often, the goal of creating simulations is to find the optimal combination of policies or parameters for achieving some objective: e.g. to maximize revenues, minimize costs, improve the efficacy of an advertising campaign, or boost throughput in a factory. While HASH makes it easy for you to modify parameters and explore your simulation, once the parameter space becomes too large it's unwieldy to try and find an optimal configuration by hand.
 
-That’s why we’ve introduced [optimization experiments](https://hash.ai/docs/simulation/creating-simulations/experiments/optimization-experiments) into hCore.
+That’s why we’ve introduced [optimization experiments](https://hash.dev/docs/simulations/creating-simulations/experiments/optimization-experiments) into hCore.
 
 **What are different types of optimization?**
 
@@ -34,7 +34,7 @@ You’ve done your research, designed and constructed a model, tested and revise
 
 **Optimizing Restocking Levels**
 
-Let’s consider how we might optimize a [supply chain model](https://hash.ai/@hash/distributor-vs-direct-delivery-orig). In this simulation, the supply chain consists of a port warehouse which transfers stock to a local distributor in West Virginia, which sends deliveries to a number of clients. The most obvious optimization in such a model is to reduce costs. Expenses in this model are incurred for renting warehouse space and for sending delivery trucks.
+Let’s consider how we might optimize a [supply chain model](https://simulation.hash.ai/@hash/distributor-vs-direct-delivery-orig). In this simulation, the supply chain consists of a port warehouse which transfers stock to a local distributor in West Virginia, which sends deliveries to a number of clients. The most obvious optimization in such a model is to reduce costs. Expenses in this model are incurred for renting warehouse space and for sending delivery trucks.
 
 Two of the parameters that we can set in the model are `port_stock_2_alarm_level` and `wv_stock_alarm_level`. These parameters control when the port or distributor will make a restocking request, based on the % of total capacity currently stocked.
 

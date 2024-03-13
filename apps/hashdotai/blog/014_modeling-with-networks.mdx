@@ -13,7 +13,7 @@ Networks are a fundamental pattern within simulation modeling. Many important sy
 - Digital systems such as servers and distributed computing systems
 - Social systems such as social networks and organizational charts
 
-The [Networks Library](https://hash.ai/@hash/networks) allows you to easily model networks. Similar to HASH’s existing neighbor system, it allows agents to view their network neighbors' properties. Network neighbors are specified with a list of agent ids, and by running the basic network behavior `@hash/networks/get_neighbors.js`, agents will be able to see the properties of their network neighbors, populated in their `network_neighbors` field.
+The [Networks Library](https://simulation.hash.ai/@hash/networks) allows you to easily model networks. Similar to HASH’s existing neighbor system, it allows agents to view their network neighbors' properties. Network neighbors are specified with a list of agent ids, and by running the basic network behavior `@hash/networks/get_neighbors.js`, agents will be able to see the properties of their network neighbors, populated in their `network_neighbors` field.
 
 We already mentioned the many domains that can be modeled with networks. Here are some concrete demonstrations of the Networks Library in HASH.
 
@@ -25,7 +25,7 @@ There are many different questions you can ask using even a simple model like th
 
 We'll use the built-in `@hash/networks/create_nx_graph.py` to stochastically generate three different types of networks. This behavior makes use of the powerful [NetworkX](https://networkx.org/documentation/stable/index.html) Python package.
 
-You can [experiment with the simulation](https://core.hash.ai/@hash/network-opinion-spread/stable) as you read along.
+You can [experiment with the simulation](https://simulation.hash.ai/@hash/network-opinion-spread/stable) as you read along.
 
 ### In a Random (Erdos-Renyi) Network
 
@@ -61,7 +61,7 @@ Each new node is attached to "m" other nodes initially. If we run an experiment 
 
 ![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/82eeb4ea-5d8a-4aef-859d-2fc6fa526d00/public)
 
-You can run your own experiments and continue to [explore the model here](https://hash.ai/@hash/network-opinion-spread). What happens if you modify the way that that agents change their opinions in **`opinion_spread.js`**?
+You can run your own experiments and continue to [explore the model here](https://simulation.hash.ai/@hash/network-opinion-spread). What happens if you modify the way that that agents change their opinions in **`opinion_spread.js`**?
 
 ---
 
