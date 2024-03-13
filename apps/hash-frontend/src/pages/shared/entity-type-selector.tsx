@@ -1,12 +1,13 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import {
   EntityTypeIcon,
   LinkTypeIcon,
   SelectorAutocomplete,
 } from "@hashintel/design-system";
-import { EntityTypeWithMetadata } from "@local/hash-subgraph";
-import { BoxProps } from "@mui/material";
-import { FunctionComponent, useMemo, useRef, useState } from "react";
+import type { EntityTypeWithMetadata } from "@local/hash-subgraph";
+import type { BoxProps } from "@mui/material";
+import type { FunctionComponent } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { useLatestEntityTypesOptional } from "../../shared/entity-types-context/hooks";
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";

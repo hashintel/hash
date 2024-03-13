@@ -1,27 +1,23 @@
 import { useLazyQuery } from "@apollo/client";
 import { TextField } from "@hashintel/design-system";
 import { Box, Typography } from "@mui/material";
-import { RegistrationFlow } from "@ory/client";
+import type { RegistrationFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
-import { AxiosError } from "axios";
+import type { AxiosError } from "axios";
 import { useRouter } from "next/router";
-import {
-  FormEventHandler,
-  FunctionComponent,
-  useEffect,
-  useState,
-} from "react";
+import type { FormEventHandler, FunctionComponent } from "react";
+import { useEffect, useState } from "react";
 
 import { useHashInstance } from "../../components/hooks/use-hash-instance";
-import { HasAccessToHashQuery } from "../../graphql/api-types.gen";
+import type { HasAccessToHashQuery } from "../../graphql/api-types.gen";
 import { hasAccessToHashQuery } from "../../graphql/queries/user.queries";
 import { EnvelopeRegularIcon } from "../../shared/icons/envelope-regular-icon";
 import { Button, Link } from "../../shared/ui";
 import { AuthHeading } from "../shared/auth-heading";
 import { useAuthInfo } from "../shared/auth-info-context";
 import { AuthPaper } from "../shared/auth-paper";
+import type { IdentityTraits } from "../shared/ory-kratos";
 import {
-  IdentityTraits,
   mustGetCsrfTokenFromFlow,
   oryKratosClient,
 } from "../shared/ory-kratos";

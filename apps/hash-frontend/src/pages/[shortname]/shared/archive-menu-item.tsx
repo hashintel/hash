@@ -1,10 +1,11 @@
 import { useMutation } from "@apollo/client";
-import { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
+import type { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { ListItemIcon, ListItemText } from "@mui/material";
-import { FunctionComponent, useCallback } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback } from "react";
 
 import { useArchivePage } from "../../../components/hooks/use-archive-page";
-import {
+import type {
   ArchiveEntityTypeMutation,
   ArchiveEntityTypeMutationVariables,
 } from "../../../graphql/api-types.gen";

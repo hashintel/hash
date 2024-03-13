@@ -1,25 +1,18 @@
 import { useQuery } from "@apollo/client";
-import { JsonValue } from "@blockprotocol/core";
-import { VersionedUrl } from "@blockprotocol/type-system";
+import type { JsonValue } from "@blockprotocol/core";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedValues } from "@local/advanced-types/typed-entries";
-import {
-  formatDataValue,
-  FormattedValuePart,
-} from "@local/hash-isomorphic-utils/data-types";
-import {
+import type { FormattedValuePart } from "@local/hash-isomorphic-utils/data-types";
+import { formatDataValue } from "@local/hash-isomorphic-utils/data-types";
+import type {
   DataTypeWithMetadata,
   OntologyTypeRevisionId,
 } from "@local/hash-subgraph";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
-import {
-  createContext,
-  PropsWithChildren,
-  useCallback,
-  useContext,
-  useMemo,
-} from "react";
+import type { PropsWithChildren } from "react";
+import { createContext, useCallback, useContext, useMemo } from "react";
 
-import {
+import type {
   QueryDataTypesQuery,
   QueryDataTypesQueryVariables,
 } from "../../graphql/api-types.gen";

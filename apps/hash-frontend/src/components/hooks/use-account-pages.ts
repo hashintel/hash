@@ -1,15 +1,14 @@
-import { ApolloQueryResult, useQuery } from "@apollo/client";
+import type { ApolloQueryResult } from "@apollo/client";
+import { useQuery } from "@apollo/client";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
-  SimpleProperties,
-  simplifyProperties,
-} from "@local/hash-isomorphic-utils/simplify-properties";
-import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
+import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type {
   EntityMetadata,
   EntityRootType,
   OwnedById,
@@ -20,7 +19,7 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
-import {
+import type {
   StructuralQueryEntitiesQuery,
   StructuralQueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";

@@ -1,19 +1,21 @@
-import { MultiFilter } from "@blockprotocol/graph";
-import { IconButton, Modal, ModalProps } from "@hashintel/design-system";
+import type { MultiFilter } from "@blockprotocol/graph";
+import type { ModalProps } from "@hashintel/design-system";
+import { IconButton, Modal } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
 import {
   blockProtocolEntityTypes,
   blockProtocolLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
-import { Entity, EntityId, OwnedById } from "@local/hash-subgraph";
+import type { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
+import type { Entity, EntityId, OwnedById } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
 import { Box, Typography } from "@mui/material";
-import { FunctionComponent, useCallback, useMemo, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { useFetchBlockSubgraph } from "../../../../blocks/use-fetch-block-subgraph";
 import { useBlockProtocolCreateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";

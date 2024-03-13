@@ -1,10 +1,10 @@
 import { useQuery } from "@apollo/client";
-import { VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
-import { EntityRootType, GraphResolveDepths } from "@local/hash-subgraph";
+import type { EntityRootType, GraphResolveDepths } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
-import {
+import type {
   QueryEntitiesQuery,
   QueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";

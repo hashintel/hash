@@ -1,21 +1,21 @@
 import type { BlockVariant } from "@blockprotocol/core";
-import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
-import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
-import { OwnedById } from "@local/hash-subgraph";
+import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
+import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
+import type { OwnedById } from "@local/hash-subgraph";
 import { Popper } from "@mui/material";
-import {
+import type {
   EditorState,
-  Plugin,
-  PluginKey,
   TextSelection,
   Transaction,
 } from "prosemirror-state";
+import { Plugin, PluginKey } from "prosemirror-state";
 import { Decoration, DecorationSet } from "prosemirror-view";
-import { ReactElement } from "react";
+import type { ReactElement } from "react";
 
 import { ensureMounted } from "../../../../lib/dom";
-import { RenderPortal } from "../block-portals";
-import { Mention, MentionSuggester } from "../shared/mention-suggester";
+import type { RenderPortal } from "../block-portals";
+import type { Mention } from "../shared/mention-suggester";
+import { MentionSuggester } from "../shared/mention-suggester";
 import { BlockSuggester } from "./block-suggester";
 
 interface Trigger {

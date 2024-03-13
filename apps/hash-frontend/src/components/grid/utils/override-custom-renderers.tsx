@@ -1,8 +1,6 @@
-import {
-  DataEditorProps,
-  isObjectEditorCallbackResult,
-} from "@glideapps/glide-data-grid";
-import { MutableRefObject, PropsWithChildren } from "react";
+import type { DataEditorProps } from "@glideapps/glide-data-grid";
+import { isObjectEditorCallbackResult } from "@glideapps/glide-data-grid";
+import type { MutableRefObject, PropsWithChildren } from "react";
 
 import { useEditBarContext } from "../../../shared/edit-bar-scroller";
 import { useScrollLock } from "../../../shared/use-scroll-lock";

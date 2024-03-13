@@ -1,5 +1,5 @@
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";
-import { FallbackRender } from "@sentry/react";
+import type { FallbackRender } from "@sentry/react";
 import { useState } from "react";
 
 import { Button } from "../../shared/ui/button";

@@ -1,4 +1,4 @@
-import { RequestFileUploadResponse } from "../graphql/api-types.gen";
+import type { RequestFileUploadResponse } from "../graphql/api-types.gen";
 
 export const uploadFileToStorageProvider = async (
   presignedPutData: RequestFileUploadResponse["presignedPut"],

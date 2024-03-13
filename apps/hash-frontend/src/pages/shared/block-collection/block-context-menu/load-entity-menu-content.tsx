@@ -1,15 +1,15 @@
 import { useQuery } from "@apollo/client";
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { faAsterisk, faSearch } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,
   LoadingSpinner,
   TextField,
 } from "@hashintel/design-system";
-import { EntityStoreType } from "@local/hash-isomorphic-utils/entity-store";
+import type { EntityStoreType } from "@local/hash-isomorphic-utils/entity-store";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
-import { Entity, EntityId, EntityRootType } from "@local/hash-subgraph";
+import type { Entity, EntityId, EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import {
   Box,
@@ -19,16 +19,11 @@ import {
   MenuList,
   Tooltip,
 } from "@mui/material";
-import { PopupState } from "material-ui-popup-state/hooks";
-import {
-  FunctionComponent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-} from "react";
+import type { PopupState } from "material-ui-popup-state/hooks";
+import type { FunctionComponent } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
-import {
+import type {
   QueryEntitiesQuery,
   QueryEntitiesQueryVariables,
 } from "../../../../graphql/api-types.gen";

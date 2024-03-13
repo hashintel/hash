@@ -8,42 +8,29 @@ import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { EntityTypeWithMetadata, OwnedById } from "@local/hash-subgraph";
+import type { EntityTypeWithMetadata, OwnedById } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import {
-  Box,
-  Divider,
-  ModalProps,
-  Typography,
-  typographyClasses,
-} from "@mui/material";
-import {
-  FunctionComponent,
-  ReactElement,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import {
-  DragDropContext,
-  Draggable,
+import type { ModalProps } from "@mui/material";
+import { Box, Divider, Typography, typographyClasses } from "@mui/material";
+import type { FunctionComponent, ReactElement } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type {
   DraggableProvided,
   DraggingStyle,
-  Droppable,
   NotDraggingStyle,
   OnDragEndResponder,
 } from "react-beautiful-dnd";
+import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 import { createPortal } from "react-dom";
 import { useFieldArray, useForm } from "react-hook-form";
 
 import { useBlockProtocolCreateEntityType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
-import {
+import type {
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
-import { Org, User } from "../../lib/user-and-org";
+import type { Org, User } from "../../lib/user-and-org";
 import { useLatestEntityTypesOptional } from "../../shared/entity-types-context/hooks";
 import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { ArrowUpRightRegularIcon } from "../../shared/icons/arrow-up-right-regular-icon";

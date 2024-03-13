@@ -1,8 +1,9 @@
 import { LoadingSpinner } from "@hashintel/design-system";
 import { theme } from "@hashintel/design-system/theme";
-import { Box, SxProps, Tab, Theme, Typography } from "@mui/material";
+import type { SxProps, Theme } from "@mui/material";
+import { Box, Tab, Typography } from "@mui/material";
 import millify from "millify";
-import { FunctionComponent, ReactElement, ReactNode } from "react";
+import type { FunctionComponent, ReactElement, ReactNode } from "react";
 
 import { Link } from "./link";
 

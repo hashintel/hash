@@ -1,17 +1,15 @@
 import { Skeleton } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import {
+import type {
   Entity,
   EntityId,
   EntityRootType,
   Subgraph,
 } from "@local/hash-subgraph";
 import { Box, Container, Divider, Typography } from "@mui/material";
+import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 import {
-  Dispatch,
   Fragment,
-  FunctionComponent,
-  SetStateAction,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -22,11 +20,12 @@ import {
 
 import { useDraftEntities } from "../../shared/draft-entities-context";
 import { Button } from "../../shared/ui";
-import { MinimalActor, useActors } from "../../shared/use-actors";
+import type { MinimalActor } from "../../shared/use-actors";
+import { useActors } from "../../shared/use-actors";
 import { DraftEntitiesContextBar } from "./draft-entities/draft-entities-context-bar";
+import type { DraftEntityFilterState } from "./draft-entities/draft-entities-filters";
 import {
   DraftEntitiesFilters,
-  DraftEntityFilterState,
   filterDraftEntities,
   generateDefaultFilterState,
   isFilerStateDefaultFilterState,

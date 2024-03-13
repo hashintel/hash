@@ -1,8 +1,5 @@
-import {
-  Entity,
-  EntityId,
-  extractEntityUuidFromEntityId,
-} from "@local/hash-subgraph";
+import type { Entity, EntityId } from "@local/hash-subgraph";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";

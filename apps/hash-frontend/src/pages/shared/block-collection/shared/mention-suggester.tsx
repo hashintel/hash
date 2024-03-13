@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import { VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
@@ -16,15 +16,15 @@ import {
   isPageEntityTypeId,
   pageEntityTypeIds,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import {
+import type {
   BaseUrl,
   Entity,
   EntityId,
   EntityRootType,
   EntityTypeWithMetadata,
-  extractOwnedByIdFromEntityId,
   OwnedById,
 } from "@local/hash-subgraph";
+import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import {
   getEntityTypeById,
   getOutgoingLinkAndTargetEntities,
@@ -32,9 +32,9 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { List, ListItem, ListItemIcon, ListItemText } from "@mui/material";
+import type { FunctionComponent } from "react";
 import {
   Fragment,
-  FunctionComponent,
   useCallback,
   useEffect,
   useMemo,
@@ -43,7 +43,7 @@ import {
 } from "react";
 import { useKey } from "rooks";
 
-import {
+import type {
   StructuralQueryEntitiesQuery,
   StructuralQueryEntitiesQueryVariables,
 } from "../../../../graphql/api-types.gen";
@@ -55,11 +55,11 @@ import { useScrollLock } from "../../../../shared/use-scroll-lock";
 import { useAuthenticatedUser } from "../../auth-info-context";
 import { hiddenEntityTypeIds } from "../../hidden-types";
 import { fuzzySearchBy } from "./fuzzy-search-by";
-import {
-  MentionSuggesterEntity,
+import type {
   SortOrder,
   SubMenuItem,
 } from "./mention-suggester/mention-suggester-entity";
+import { MentionSuggesterEntity } from "./mention-suggester/mention-suggester-entity";
 import { MentionSuggesterSubheading } from "./mention-suggester/mention-suggester-subheading";
 import { MentionSuggesterWrapper } from "./mention-suggester/mention-suggester-wrapper";
 

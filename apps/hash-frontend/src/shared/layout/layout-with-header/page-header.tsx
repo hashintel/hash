@@ -1,5 +1,5 @@
 import { Box, useMediaQuery, useTheme } from "@mui/material";
-import { FunctionComponent, ReactNode } from "react";
+import type { FunctionComponent, ReactNode } from "react";
 
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { useLogoutFlow } from "../../../components/hooks/use-logout-flow";

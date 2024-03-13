@@ -1,15 +1,13 @@
-import { validateVersionedUrl, VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import { validateVersionedUrl } from "@blockprotocol/type-system";
 import { Container, Paper, Typography } from "@mui/material";
 import { useRouter } from "next/router";
-import {
-  FunctionComponent,
-  PropsWithChildren,
-  useContext,
-  useMemo,
-} from "react";
+import type { FunctionComponent, PropsWithChildren } from "react";
+import { useContext, useMemo } from "react";
 
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
+import type { NextPageWithLayout } from "../../shared/layout";
+import { getLayoutWithSidebar } from "../../shared/layout";
 import { Link } from "../../shared/ui/link";
 import { useUserPermissionsOnEntityType } from "../../shared/use-user-permissions-on-entity-type";
 import { CreateEntityPage } from "../[shortname]/entities/[entity-uuid].page/create-entity-page";

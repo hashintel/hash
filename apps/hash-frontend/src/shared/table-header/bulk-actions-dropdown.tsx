@@ -1,12 +1,12 @@
 import { useMutation } from "@apollo/client";
 import { CaretDownSolidIcon, Chip } from "@hashintel/design-system";
-import {
+import type {
   DataTypeWithMetadata,
   Entity,
   EntityTypeWithMetadata,
-  extractOwnedByIdFromEntityId,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
+import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import {
   Box,
   chipClasses,
@@ -20,10 +20,11 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { FunctionComponent, useCallback, useMemo } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback, useMemo } from "react";
 
 import { useArchivePage } from "../../components/hooks/use-archive-page";
-import {
+import type {
   ArchiveEntityTypeMutation,
   ArchiveEntityTypeMutationVariables,
   ArchivePropertyTypeMutation,

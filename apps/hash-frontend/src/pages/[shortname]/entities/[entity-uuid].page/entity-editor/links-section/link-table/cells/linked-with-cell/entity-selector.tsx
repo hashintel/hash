@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   ArrowLeftIcon,
   AutocompleteDropdown,
@@ -13,16 +13,17 @@ import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import {
+import type {
   Entity,
   EntityId,
   EntityRootType,
   EntityTypeWithMetadata,
-  extractDraftIdFromEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
+import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { PaperProps, Stack, Typography } from "@mui/material";
+import type { PaperProps } from "@mui/material";
+import { Stack, Typography } from "@mui/material";
 import {
   createContext,
   useCallback,
@@ -32,7 +33,7 @@ import {
   useState,
 } from "react";
 
-import {
+import type {
   StructuralQueryEntitiesQuery,
   StructuralQueryEntitiesQueryVariables,
 } from "../../../../../../../../../graphql/api-types.gen";

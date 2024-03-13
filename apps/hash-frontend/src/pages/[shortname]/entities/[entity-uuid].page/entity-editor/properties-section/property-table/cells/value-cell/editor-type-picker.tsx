@@ -1,9 +1,9 @@
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import { DataTypeWithMetadata } from "@local/hash-subgraph";
+import type { DataTypeWithMetadata } from "@local/hash-subgraph";
 import { Box, ButtonBase, Typography } from "@mui/material";
 
 import { getEditorSpecs } from "./editor-specs";
-import { OnTypeChange } from "./types";
+import type { OnTypeChange } from "./types";
 import { guessEditorTypeFromExpectedType } from "./utils";
 
 const ExpectedTypeButton = ({
