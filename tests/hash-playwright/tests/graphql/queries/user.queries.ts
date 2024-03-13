@@ -8,7 +8,38 @@ export const meQuery = /* GraphQL */ `
       hasRightEntity: { incoming: 0, outgoing: 0 }
     ) {
       subgraph {
-        ...SubgraphFields
+        roots
+        vertices
+        edges
+        depths {
+          constrainsLinkDestinationsOn {
+            outgoing
+          }
+          constrainsLinksOn {
+            outgoing
+          }
+          constrainsValuesOn {
+            outgoing
+          }
+          constrainsPropertiesOn {
+            outgoing
+          }
+          inheritsFrom {
+            outgoing
+          }
+          isOfType {
+            outgoing
+          }
+          hasLeftEntity {
+            incoming
+            outgoing
+          }
+          hasRightEntity {
+            incoming
+            outgoing
+          }
+        }
+        temporalAxes
       }
     }
   }
