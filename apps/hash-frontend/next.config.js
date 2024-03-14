@@ -2,6 +2,7 @@ import { config } from "dotenv-flow";
 import bundleAnalyzer from "@next/bundle-analyzer";
 import { withSentryConfig } from "@sentry/nextjs";
 import webpack from "webpack";
+// eslint-disable-next-line import/extensions
 import { buildStamp } from "./buildstamp.js";
 
 const { DefinePlugin } = webpack;
