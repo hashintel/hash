@@ -198,7 +198,7 @@ export const useEntitiesTable = (params: {
               lastEditedBy,
               /** @todo: uncomment this when we have additional types for entities */
               // additionalTypes: "",
-              properties: propertyColumns.reduce((fields, column) => {
+              ...propertyColumns.reduce((fields, column) => {
                 if (column.id) {
                   const propertyValue = entity.properties[column.id as BaseUrl];
 
