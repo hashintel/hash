@@ -1,13 +1,14 @@
 import { useMutation } from "@apollo/client";
 import { TextField } from "@hashintel/design-system";
-import { EntityWithSources } from "@local/hash-isomorphic-utils/research-task-types";
+import type { EntityWithSources } from "@local/hash-isomorphic-utils/research-task-types";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import { EntityTypeWithMetadata } from "@local/hash-subgraph";
+import type { EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import { Box, Container, InputLabel, Typography } from "@mui/material";
-import { FormEvent, FunctionComponent, useCallback, useState } from "react";
+import type { FormEvent, FunctionComponent } from "react";
+import { useCallback, useState } from "react";
 
-import {
+import type {
   StartResearchTaskMutation,
   StartResearchTaskMutationVariables,
 } from "../../graphql/api-types.gen";
@@ -128,22 +129,56 @@ export const AiWorkerPageContent: FunctionComponent = () => {
           marginTop: 3,
         }}
       >
-        <Typography variant="h5">Research Task</Typography>
-        <TextField
-          label="Look for...  e.g. specific things to include, focus on, or pay attention to"
-          placeholder="e.g. Board members at Apple"
-          value={prompt}
-          onChange={({ target }) => setPrompt(target.value)}
-        />
+        <Typography variant="h5" sx={{ color: ({ palette }) => palette.black }}>
+          What is your goal?
+        </Typography>
         <Box>
-          <InputLabel>Select an entity type to search for</InputLabel>
+          <InputLabel>
+            <Box
+              component="span"
+              sx={{ color: ({ palette }) => palette.black, fontWeight: 600 }}
+            >
+              Find and add...
+            </Box>
+          </InputLabel>
           <EntityTypeSelector
             onSelect={(selectedEntityType) => setEntityType(selectedEntityType)}
             disableCreateNewEmpty
             autoFocus={false}
           />
         </Box>
-        <Button type="submit">Start Research Task</Button>
+        <Box>
+          <InputLabel>
+            <Box
+              component="span"
+              sx={{ color: ({ palette }) => palette.black, fontWeight: 600 }}
+            >
+              Look for and add...
+            </Box>{" "}
+            <Box
+              component="span"
+              sx={{
+                color: ({ palette }) => palette.gray[70],
+                fontWeight: 600,
+              }}
+            >
+              e.g. specific things to include, focus on, or pay attention to
+            </Box>
+          </InputLabel>
+          <TextField
+            placeholder="Tell the AI what to look for"
+            value={prompt}
+            onChange={({ target }) => setPrompt(target.value)}
+            sx={{
+              width: "100%",
+              maxWidth: 440,
+            }}
+          />
+        </Box>
+
+        <Button type="submit" sx={{ maxWidth: 440 }}>
+          Start Research Task
+        </Button>
         {loading ? <Typography>Loading...</Typography> : null}
         {createdDraftEntities ? (
           <>
