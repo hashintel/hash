@@ -1446,8 +1446,8 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                         entity_edition_id,
                         edition_created_by_id,
                         archived,
-                        properties,
-                    ) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5)
+                        properties
+                    ) VALUES (gen_random_uuid(), $1, $2, $3)
                     RETURNING entity_edition_id;
                 ",
                 &[&edition_created_by_id, &archived, &properties],

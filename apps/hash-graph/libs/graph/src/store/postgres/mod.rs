@@ -1146,10 +1146,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             )
             .await
             .change_context(InsertionError)?;
-        let writer = BinaryCopyInWriter::new(
-            sink,
-            &[Type::JSONB, Type::INT4, Type::INT4, Type::UUID, Type::BOOL],
-        );
+        let writer = BinaryCopyInWriter::new(sink, &[Type::JSONB, Type::UUID, Type::BOOL]);
         futures::pin_mut!(writer);
         for properties in entities {
             let properties = serde_json::to_value(properties).change_context(InsertionError)?;
