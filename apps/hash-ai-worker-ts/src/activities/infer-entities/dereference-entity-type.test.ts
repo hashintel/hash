@@ -1,3 +1,4 @@
+import { describe, it, expect } from "vitest";
 import type { Subgraph as ApiClientSubgraph } from "@local/hash-graph-client";
 import type { Subgraph } from "@local/hash-subgraph";
 import { mapGraphApiVerticesToVertices } from "@local/hash-subgraph/stdlib";
