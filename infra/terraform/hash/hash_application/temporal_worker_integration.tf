@@ -4,6 +4,18 @@ locals {
   temporal_worker_integration_param_prefix = "${local.param_prefix}/worker/integration"
 }
 
+resource "aws_ssm_parameter" "temporal_worker_integration_env_vars" {
+  # Only put secrets into SSM
+  for_each = {for env_var in var.temporal_worker_integration_env_vars : env_var.name => env_var if env_var.secret}
+
+  name      = "${local.temporal_worker_integration_param_prefix}/${each.value.name}"
+  # Still supports non-secret values
+  type      = each.value.secret ? "SecureString" : "String"
+  value     = each.value.secret ? sensitive(each.value.value) : each.value.value
+  overwrite = true
+  tags      = {}
+}
+
 locals {
   temporal_worker_integration_service_container_def = {
     essential   = true
@@ -28,6 +40,10 @@ locals {
       }
     }
     Environment = concat(
+      [
+        for env_var in var.temporal_worker_integration_env_vars : { name = env_var.name, value = env_var.value }
+        if !env_var.secret
+      ],
       [
         { name = "HASH_TEMPORAL_SERVER_HOST", value = var.temporal_host },
         { name = "HASH_TEMPORAL_SERVER_PORT", value = var.temporal_port },

@@ -67,7 +67,7 @@ locals {
   worker_task_defs = [
     {
       task_def = local.temporal_worker_integration_service_container_def
-      env_vars = []
+      env_vars = aws_ssm_parameter.temporal_worker_integration_env_vars
       ecr_arn  = var.temporal_worker_integration_image.ecr_arn
     }
   ]
