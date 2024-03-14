@@ -46,15 +46,43 @@ const getRevisionsForEntity = <Temporal extends boolean>(
     return entityRevisions;
   }
 
+  // check for the presence of draft versions of the entity in the subgraph
+  if (entityId.split("~")[2]) {
+    /**
+     * This entityId contains a draftId, and so we would have already found it via vertices[entityId] if it exists
+     */
+    return undefined;
+  }
+
   /**
-   * Check for the presence of a draft version of the entity in the subgraph
+   * We haven't found the exact entityId in the subgraph, but it might be qualified by a draftId
+   * – check for vertices which are keyed by a qualified version of the provided entityId
    */
-  const draftEntityId = Object.keys(subgraph.vertices).find((id) =>
+  const draftEntityIds = Object.keys(subgraph.vertices).filter((id) =>
     id.startsWith(`${entityId}~`),
   );
 
-  if (draftEntityId) {
-    return subgraph.vertices[draftEntityId];
+  if (draftEntityIds.length > 0) {
+    /**
+     * Return a combined version of all the draft editions of this entity present in the subgraph.
+     * Return a combined object of all the draft editions of this entity present in the subgraph.
+     * There may be multiple draft editions with the same timestamp, if:
+     * 1. There are multiple draft series for the entity (i.e. multiple draftId where `${baseEntityId}~${draftId}`)
+     * AND
+     * 2. Two or more draft series contain an edition created at the exact same timestamp.
+     * If this is the case, some will not be present among the editions, as they will be overwritten by the last one.
+     * @todo reconsider the approach to this as part of rethinking the subgraph shape
+     */
+    const acc: Vertices<Temporal>[string] = {};
+    for (const draftEntityId of draftEntityIds) {
+      const draftEntity = subgraph.vertices[draftEntityId];
+      if (draftEntity) {
+        for (const [timestamp, vertex] of typedEntries(draftEntity)) {
+          acc[timestamp] = vertex;
+        }
+      }
+    }
+    return acc;
   }
 };
 
