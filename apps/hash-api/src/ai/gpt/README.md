@@ -204,7 +204,7 @@ export ORY_SDK_URL=http://localhost:4445
 hydra clients list
 
 # create a client
-hydra clients create --redirect-uri=[uri] --name=[name] --scope=[scope]
+hydra clients create --redirect-uri=[uri] --name=HashGPT --scope=read --grant-type=authorization_code,refresh_token
 
 # update a client – ALL fields must be provided, even if they are not changing
 hydra clients update [client_id] --redirect-uri=[uri] --name=[name] --scope=[scope]

@@ -22,6 +22,7 @@
     "exe": "tsx",
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
+    "migrate": "cargo run --bin hash-graph --all-features -- migrate --user postgres --password postgres",
     "reset-database": "httpyac send --all tests/reset-database.http",
     "test:integration": "just test-integration",
     "test:unit": "just test-unit"

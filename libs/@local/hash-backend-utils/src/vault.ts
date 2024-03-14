@@ -1,3 +1,4 @@
+import type { AccountId } from "@local/hash-subgraph";
 import type { AxiosError, AxiosInstance } from "axios";
 import axios from "axios";
 
@@ -11,6 +12,8 @@ type VaultSecret<D = unknown> = {
     version: number;
   };
 };
+
+type UserSecretPath = `users/${AccountId}/${string}`;
 
 export class VaultClient {
   client: AxiosInstance;
@@ -27,7 +30,7 @@ export class VaultClient {
       (response) => response,
       (error: AxiosError<{ errors: string[] }>) => {
         const vaultErrorMessages =
-          error.status?.toString() === "404"
+          error.response?.status.toString() === "404"
             ? ["Secret not found"]
             : error.response?.data.errors ?? [error.message];
 
@@ -38,17 +41,15 @@ export class VaultClient {
     );
   }
 
-  async write<
-    D extends Record<string, string> = Record<"value", string>,
-  >(params: {
-    secretMountPath: string;
-    path: string;
+  async write<D extends object = Record<"value", string>>(params: {
+    secretMountPath: "secret";
+    path: UserSecretPath;
     data: D;
   }): Promise<VaultSecret<D>> {
     const { secretMountPath, path, data } = params;
 
     const response = await this.client.post<{ data: VaultSecret["metadata"] }>(
-      `/${secretMountPath}/data/${path}`,
+      `/${secretMountPath}/data/${path.replace(/^\//, "")}`,
       { data },
     );
 
@@ -59,10 +60,18 @@ export class VaultClient {
   }
 
   async read<D = unknown>(params: {
-    secretMountPath: string;
+    secretMountPath: "secret";
     path: string;
+    userAccountId: AccountId;
   }): Promise<VaultSecret<D>> {
     const { secretMountPath, path } = params;
+
+    const userAccountIdInPath = path.split("/").at(1);
+    if (userAccountIdInPath !== params.userAccountId) {
+      throw new Error(
+        `User accountId '${userAccountIdInPath}' in secret path does not match provided accountId '${params.userAccountId}'`,
+      );
+    }
 
     const response = await this.client.get<{ data: VaultSecret<D> }>(
       `/${secretMountPath}/data/${path}`,
@@ -81,4 +90,21 @@ export const createVaultClient = () => {
         token: process.env.HASH_VAULT_ROOT_TOKEN,
       })
     : undefined;
+};
+
+export type UserSecretService = "google" | "linear";
+
+export const createUserSecretPath = ({
+  accountId,
+  restOfPath,
+  service,
+}: {
+  /** The user's accountId */
+  accountId: AccountId;
+  /** The rest of the path to the secret, determined by the service. May contain multiple segments. */
+  restOfPath: string;
+  /** The service the secret is for */
+  service: UserSecretService;
+}): UserSecretPath => {
+  return `users/${accountId}/${service}/${restOfPath.replace(/^\//, "")}`;
 };

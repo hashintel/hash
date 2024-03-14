@@ -1,49 +1,64 @@
 import type {
   CreateHashEntityFromLinearData,
   ReadLinearTeamsWorkflow,
+  SyncQueryToGoogleSheetWorkflow,
   SyncWorkspaceWorkflow,
   UpdateHashEntityFromLinearData,
   UpdateLinearDataWorkflow,
-} from "@local/hash-backend-utils/temporal-workflow-types";
+} from "@local/hash-backend-utils/temporal-integration-workflow-types";
+import type { ActivityOptions } from "@temporalio/workflow";
 import { proxyActivities } from "@temporalio/workflow";
 
-import type { createLinearIntegrationActivities } from "./activities";
+import type { createGoogleActivities } from "./google-activities";
+import type { createGraphActivities } from "./graph-activities";
+import type { createLinearIntegrationActivities } from "./linear-activities";
 
-const linear = proxyActivities<
-  ReturnType<typeof createLinearIntegrationActivities>
->({
+const commonConfig: ActivityOptions = {
   startToCloseTimeout: "180 second",
   retry: {
     maximumAttempts: 3,
   },
-});
+};
+
+const graphActivities =
+  proxyActivities<ReturnType<typeof createGraphActivities>>(commonConfig);
+
+const linearActivities =
+  proxyActivities<ReturnType<typeof createLinearIntegrationActivities>>(
+    commonConfig,
+  );
+
+const googleActivities =
+  proxyActivities<ReturnType<typeof createGoogleActivities>>(commonConfig);
 
 export const syncWorkspace: SyncWorkspaceWorkflow = async (params) => {
   const { apiKey, workspaceOwnedById, authentication, teamIds } = params;
 
-  const organization = linear
+  const organization = linearActivities
     .readLinearOrganization({ apiKey })
     .then((organizationEntity) =>
-      linear.createPartialEntities({
+      linearActivities.createPartialEntities({
         authentication,
         workspaceOwnedById,
         entities: [organizationEntity],
       }),
     );
 
-  const users = linear.readLinearUsers({ apiKey }).then((userEntities) =>
-    linear.createPartialEntities({
-      authentication,
-      workspaceOwnedById,
-      entities: userEntities,
-    }),
-  );
+  const users = linearActivities
+    .readLinearUsers({ apiKey })
+    .then((userEntities) =>
+      linearActivities.createPartialEntities({
+        authentication,
+        workspaceOwnedById,
+        entities: userEntities,
+      }),
+    );
 
   const issues = teamIds.map((teamId) =>
-    linear
+    linearActivities
       .readLinearIssues({ apiKey, filter: { teamId } })
       .then((issueEntities) =>
-        linear.createPartialEntities({
+        linearActivities.createPartialEntities({
           authentication,
           workspaceOwnedById,
           entities: issueEntities,
@@ -56,16 +71,52 @@ export const syncWorkspace: SyncWorkspaceWorkflow = async (params) => {
 
 export const createHashEntityFromLinearData: CreateHashEntityFromLinearData =
   async (params) => {
-    await linear.createHashEntityFromLinearData(params);
+    await linearActivities.createHashEntityFromLinearData(params);
   };
 
 export const updateHashEntityFromLinearData: UpdateHashEntityFromLinearData =
   async (params) => {
-    await linear.updateHashEntityFromLinearData(params);
+    await linearActivities.updateHashEntityFromLinearData(params);
   };
 
 export const readLinearTeams: ReadLinearTeamsWorkflow = async ({ apiKey }) =>
-  linear.readLinearTeams({ apiKey });
+  linearActivities.readLinearTeams({ apiKey });
 
 export const updateLinearData: UpdateLinearDataWorkflow = async (params) =>
-  linear.updateLinearData(params);
+  linearActivities.updateLinearData(params);
+
+export const syncQueryToGoogleSheet: SyncQueryToGoogleSheetWorkflow = async ({
+  integrationEntityId,
+  userAccountId,
+}) => {
+  const { googleAccountEntity, integrationEntity, queryEntity } =
+    await googleActivities.getGoogleSheetsIntegrationEntities({
+      authentication: { actorId: userAccountId },
+      integrationEntityId,
+    });
+
+  if (!googleAccountEntity || !integrationEntity || !queryEntity) {
+    throw new Error(
+      `Missing Google entities for integration with id ${integrationEntityId}`,
+    );
+  }
+
+  const entitySubgraph =
+    await graphActivities.getSubgraphFromBlockProtocolQueryEntity({
+      authentication: { actorId: userAccountId },
+      queryEntityId: queryEntity.metadata.recordId.entityId,
+    });
+
+  await googleActivities.writeSubgraphToGoogleSheet({
+    audience: integrationEntity.properties[
+      "https://hash.ai/@hash/types/property-type/data-audience/"
+    ] as "human" | "machine",
+    entitySubgraph,
+    googleAccountEntityId: googleAccountEntity.metadata.recordId.entityId,
+    spreadsheetId:
+      integrationEntity.properties[
+        "https://hash.ai/@hash/types/property-type/file-id/"
+      ],
+    userAccountId,
+  });
+};

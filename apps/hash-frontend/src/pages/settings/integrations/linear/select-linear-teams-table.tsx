@@ -16,10 +16,10 @@ import { Fragment, useCallback, useMemo } from "react";
 import type {
   GetLinearOrganizationQuery,
   SyncWithWorkspace,
-} from "../../../graphql/api-types.gen";
-import type { MinimalUser, Org } from "../../../lib/user-and-org";
-import { MenuItem } from "../../../shared/ui";
-import { useAuthenticatedUser } from "../../shared/auth-info-context";
+} from "../../../../graphql/api-types.gen";
+import type { MinimalUser, Org } from "../../../../lib/user-and-org";
+import { MenuItem } from "../../../../shared/ui";
+import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import type { LinearIntegration } from "./use-linear-integrations";
 
 const SelectWorkspaces: FunctionComponent<{

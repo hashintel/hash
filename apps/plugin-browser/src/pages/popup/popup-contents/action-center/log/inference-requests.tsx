@@ -2,6 +2,7 @@ import {
   CheckIcon,
   CloseIcon,
   DashIcon,
+  FeatherRegularIcon,
   IconButton,
 } from "@hashintel/design-system";
 import {
@@ -9,6 +10,7 @@ import {
   CircularProgress,
   Collapse,
   Stack,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import { format } from "date-fns";
@@ -115,47 +117,82 @@ const InferenceRequestContainer = ({
         {request.status === "pending" ? (
           <Stack alignItems="center" direction="row">
             {cancellationRequested ? (
+              <Tooltip title="Cancellation pending..." placement="top">
+                <CircularProgress
+                  variant="indeterminate"
+                  size={13}
+                  sx={{ mr: 1, color: ({ palette }) => palette.red[70] }}
+                />
+              </Tooltip>
+            ) : (
+              <Tooltip title="Cancel request" placement="top">
+                <IconButton
+                  onClick={cancelRequest}
+                  sx={{ p: 0, "&:hover": { background: "none" }, mr: 0.2 }}
+                >
+                  <CloseIcon
+                    sx={({ palette, transitions }) => ({
+                      fill: palette.gray[30],
+                      fontSize: 12,
+                      mr: 1,
+                      transition: transitions.create("fill"),
+                      "&:hover": {
+                        fill: palette.red[70],
+                      },
+                    })}
+                  />
+                </IconButton>
+              </Tooltip>
+            )}
+            <Tooltip title="Job in progress..." placement="top">
               <CircularProgress
                 variant="indeterminate"
                 size={13}
-                sx={{ mr: 1, color: ({ palette }) => palette.red[70] }}
+                sx={{ mr: 1 }}
               />
-            ) : (
-              <IconButton
-                onClick={cancelRequest}
-                title="Cancel request"
-                sx={{ p: 0, "&:hover": { background: "none" }, mr: 0.2 }}
-              >
-                <CloseIcon
-                  sx={({ palette, transitions }) => ({
-                    fill: palette.gray[30],
-                    fontSize: 12,
-                    mr: 1,
-                    transition: transitions.create("fill"),
-                    "&:hover": {
-                      fill: palette.red[70],
-                    },
-                  })}
-                />
-              </IconButton>
-            )}
-            <CircularProgress
-              variant="indeterminate"
-              size={13}
-              sx={{ mr: 1 }}
-            />
+            </Tooltip>
           </Stack>
         ) : request.status === "complete" ||
           request.status === "user-cancelled" ? (
-          isUnproductiveSuccessfulRequest ? (
-            <DashIcon
-              sx={{ height: 16, fill: ({ palette }) => palette.gray[40] }}
-            />
-          ) : (
-            <CheckIcon
-              sx={{ height: 16, fill: ({ palette }) => palette.green[80] }}
-            />
-          )
+          <Stack alignItems="center" direction="row">
+            {isUnproductiveSuccessfulRequest ? (
+              <Tooltip title="No entities created or updated" placement="top">
+                <Box sx={{ height: 16 }}>
+                  <DashIcon
+                    sx={{ height: 16, fill: ({ palette }) => palette.gray[40] }}
+                  />
+                </Box>
+              </Tooltip>
+            ) : (
+              <>
+                {request.createAs === "draft" && (
+                  <Tooltip title="Draft" placement="top">
+                    <Box sx={{ height: 16 }}>
+                      <FeatherRegularIcon
+                        aria-label="Draft"
+                        sx={{
+                          fontSize: 16,
+                          color: ({ palette }) => palette.gray[40],
+                          mr: 0.3,
+                        }}
+                      />
+                    </Box>
+                  </Tooltip>
+                )}
+                <Tooltip title="Entities successfully inferred" placement="top">
+                  <Box sx={{ height: 16 }}>
+                    <CheckIcon
+                      aria-label="Entities successfully inferred"
+                      sx={{
+                        height: 16,
+                        fill: ({ palette }) => palette.green[80],
+                      }}
+                    />
+                  </Box>
+                </Tooltip>
+              </>
+            )}
+          </Stack>
         ) : (
           <CloseIcon
             sx={{

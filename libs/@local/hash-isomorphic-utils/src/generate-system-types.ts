@@ -6,6 +6,7 @@ import slugify from "slugify";
 
 import {
   blockProtocolEntityTypes,
+  googleEntityTypes,
   linearEntityTypes,
   systemEntityTypes,
 } from "./ontology-type-ids";
@@ -73,6 +74,7 @@ const generateTypes = async (
 const generateSystemTypeTypes = async () => {
   await generateTypes(systemEntityTypes, "system");
   await generateTypes(linearEntityTypes, "linear", "linear");
+  await generateTypes(googleEntityTypes, "google", "google");
   await generateTypes(
     blockProtocolEntityTypes,
     "Block Protocol",
