@@ -1,3 +1,5 @@
+import { sleep } from "@local/hash-isomorphic-utils/sleep";
+
 import { loginUsingTempForm } from "./shared/login-using-temp-form";
 import { resetDb } from "./shared/reset-db";
 import { expect, test } from "./shared/runtime";
@@ -67,6 +69,8 @@ test("user can create entity type", async ({ page }) => {
   // Publish the entity type
 
   await page.click('[data-testid="editbar-confirm"]');
+
+  await sleep(5_000);
 
   const ontologyChipPath = await page
     .locator('[data-testid="ontology-chip-path"]')
