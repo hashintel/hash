@@ -13,6 +13,7 @@ export * from "./form-inline";
 export * from "./icon-arrow-left";
 export * from "./icon-arrow-right";
 export * from "./icon-arrow-rotate-left";
+export * from "./icon-arrow-up-regular";
 export * from "./icon-arrow-up-right";
 export * from "./icon-arrow-up-right-regular";
 export * from "./icon-asterisk-regular";

@@ -162,7 +162,7 @@ export const TextPreview = ({
           >
             Return to Top
           </Typography>
-          <ArrowUpIcon
+          <ArrowUpRegularIcon
             sx={{ fontSize: 16, color: ({ palette }) => palette.gray[40] }}
           />
         </Box> */}
