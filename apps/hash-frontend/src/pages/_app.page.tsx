@@ -9,26 +9,22 @@ import "./globals.scss";
 import { ApolloProvider } from "@apollo/client/react";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import wasm from "@blockprotocol/type-system/type-system.wasm";
-import { CacheProvider, EmotionCache } from "@emotion/react";
+import type { EmotionCache } from "@emotion/react";
+import { CacheProvider } from "@emotion/react";
 import { createEmotionCache, theme } from "@hashintel/design-system/theme";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
 import { configureScope, ErrorBoundary } from "@sentry/nextjs";
-import { AppProps as NextAppProps } from "next/app";
+import type { AppProps as NextAppProps } from "next/app";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { SnackbarProvider } from "notistack";
-import {
-  FunctionComponent,
-  PropsWithChildren,
-  Suspense,
-  useEffect,
-  useState,
-} from "react";
+import type { FunctionComponent, PropsWithChildren } from "react";
+import { Suspense, useEffect, useState } from "react";
 
-import { HasAccessToHashQuery, MeQuery } from "../graphql/api-types.gen";
+import type { HasAccessToHashQuery, MeQuery } from "../graphql/api-types.gen";
 import { hasAccessToHashQuery, meQuery } from "../graphql/queries/user.queries";
 import { apolloClient } from "../lib/apollo-client";
 import { constructMinimalUser } from "../lib/user-and-org";
@@ -36,17 +32,15 @@ import { DraftEntitiesContextProvider } from "../shared/draft-entities-context";
 import { EntityTypesContextProvider } from "../shared/entity-types-context/provider";
 import { FileUploadsProvider } from "../shared/file-upload-context";
 import { KeyboardShortcutsContextProvider } from "../shared/keyboard-shortcuts-context";
-import {
-  getLayoutWithSidebar,
-  getPlainLayout,
-  NextPageWithLayout,
-} from "../shared/layout";
+import type { NextPageWithLayout } from "../shared/layout";
+import { getLayoutWithSidebar, getPlainLayout } from "../shared/layout";
 import { SidebarContextProvider } from "../shared/layout/layout-with-sidebar/sidebar-context";
 import { NotificationEntitiesContextProvider } from "../shared/notification-entities-context";
 import { PropertyTypesContextProvider } from "../shared/property-types-context";
 import { RoutePageInfoProvider } from "../shared/routing";
 import { ErrorFallback } from "./_app.page/error-fallback";
-import { AppPage, redirectInGetInitialProps } from "./shared/_app.util";
+import type { AppPage } from "./shared/_app.util";
+import { redirectInGetInitialProps } from "./shared/_app.util";
 import { AuthInfoProvider, useAuthInfo } from "./shared/auth-info-context";
 import { DataTypesContextProvider } from "./shared/data-types-context";
 import { setSentryUser } from "./shared/sentry";
@@ -222,7 +216,7 @@ const publiclyAccessiblePagePathnames = [
 
 AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
   const {
-    ctx: { req, pathname },
+    ctx: { req, pathname, asPath },
   } = appContext;
 
   const { cookie } = req?.headers ?? {};
@@ -255,7 +249,7 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
       // ...redirect them to the login page
       redirectInGetInitialProps({
         appContext,
-        location: `/signin${["", "/", "/404"].includes(pathname) ? "" : `?return_to=${pathname}`}`,
+        location: `/signin${["", "/", "/404"].includes(pathname) ? "" : `?return_to=${asPath}`}`,
       });
     }
 

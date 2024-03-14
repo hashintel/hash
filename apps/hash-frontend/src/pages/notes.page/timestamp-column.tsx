@@ -1,6 +1,6 @@
 import { IconButton } from "@hashintel/design-system";
 import { Box } from "@mui/material";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 
 import { ArrowsFromLineRegularIcon } from "../../shared/icons/arrows-from-line-regular-icon";
 import { ArrowsToLineRegularIcon } from "../../shared/icons/arrows-to-line-regular-icon";

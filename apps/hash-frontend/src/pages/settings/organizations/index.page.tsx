@@ -5,7 +5,7 @@ import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 import { useRef } from "react";
 
-import { NextPageWithLayout } from "../../../shared/layout";
+import type { NextPageWithLayout } from "../../../shared/layout";
 import { Button } from "../../../shared/ui/button";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { getSettingsLayout } from "../shared/settings-layout";

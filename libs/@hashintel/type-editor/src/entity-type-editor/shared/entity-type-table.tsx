@@ -1,5 +1,6 @@
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { WhiteCard } from "@hashintel/design-system";
+import type { TypographyProps } from "@mui/material";
 import {
   Box,
   ButtonBase,
@@ -15,19 +16,11 @@ import {
   TableRow,
   tableRowClasses,
   Typography,
-  TypographyProps,
   useForkRef,
 } from "@mui/material";
 import memoize from "lodash.memoize";
-import {
-  forwardRef,
-  PropsWithChildren,
-  ReactNode,
-  RefObject,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import type { PropsWithChildren, ReactNode, RefObject } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
 
 import { useIsReadonly } from "../../shared/read-only-context";
 

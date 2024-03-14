@@ -1,44 +1,42 @@
 import { useQuery } from "@apollo/client";
-import { HashBlock } from "@local/hash-isomorphic-utils/blocks";
+import type { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
+import type { EntityId, EntityRootType } from "@local/hash-subgraph";
 import {
-  EntityId,
-  EntityRootType,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { Box, SxProps } from "@mui/material";
+import type { SxProps } from "@mui/material";
+import { Box } from "@mui/material";
 import { Router, useRouter } from "next/router";
 import { NextSeo } from "next-seo";
-import { PropsWithChildren, useEffect, useMemo, useRef, useState } from "react";
+import type { PropsWithChildren } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { BlockLoadedProvider } from "../../blocks/on-block-loaded";
 import { UserBlocksProvider } from "../../blocks/user-blocks";
-import {
-  AccountPagesInfo,
-  useAccountPages,
-} from "../../components/hooks/use-account-pages";
-import {
-  PageThread,
-  usePageComments,
-} from "../../components/hooks/use-page-comments";
+import type { AccountPagesInfo } from "../../components/hooks/use-account-pages";
+import { useAccountPages } from "../../components/hooks/use-account-pages";
+import type { PageThread } from "../../components/hooks/use-page-comments";
+import { usePageComments } from "../../components/hooks/use-page-comments";
 import { PageIcon } from "../../components/page-icon";
 import { PageLoadingState } from "../../components/page-loading-state";
 import { CollabPositionProvider } from "../../contexts/collab-position-context";
-import {
+import type {
   StructuralQueryEntitiesQuery,
   StructuralQueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
 import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { constructPageRelativeUrl } from "../../lib/routes";
-import { MinimalOrg, MinimalUser } from "../../lib/user-and-org";
+import type { MinimalOrg, MinimalUser } from "../../lib/user-and-org";
 import { iconVariantSizes } from "../../shared/edit-emoji-icon-button";
-import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
+import type { NextPageWithLayout } from "../../shared/layout";
+import { getLayoutWithSidebar } from "../../shared/layout";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { PageIconButton } from "../../shared/page-icon-button";
 import {

@@ -1,25 +1,25 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
-import { Entity, EntityId, OwnedById } from "@local/hash-subgraph";
+import type { Entity, EntityId, OwnedById } from "@local/hash-subgraph";
 import { UserInputError } from "apollo-server-errors";
 import produce from "immer";
 
-import { ImpureGraphContext } from "../../../../graph/context-types";
+import type { ImpureGraphContext } from "../../../../graph/context-types";
+import type { PropertyValue } from "../../../../graph/knowledge/primitive/entity";
 import {
   createEntityWithLinks,
   getLatestEntityById,
   getOrCreateEntity,
-  PropertyValue,
   updateEntityProperties,
 } from "../../../../graph/knowledge/primitive/entity";
+import type { Block } from "../../../../graph/knowledge/system-types/block";
 import {
-  Block,
   createBlock,
   getBlockById,
   updateBlockDataEntity,
 } from "../../../../graph/knowledge/system-types/block";
-import { User } from "../../../../graph/knowledge/system-types/user";
-import {
+import type { User } from "../../../../graph/knowledge/system-types/user";
+import type {
   CreateEntityAction,
   EntityDefinition,
   InsertBlockAction,
@@ -27,7 +27,7 @@ import {
   UpdateBlockCollectionAction,
   UpdateEntityAction,
 } from "../../../api-types.gen";
-import { AuthenticationContext } from "../../../authentication-context";
+import type { AuthenticationContext } from "../../../authentication-context";
 
 export const createEntityWithPlaceholdersFn =
   (

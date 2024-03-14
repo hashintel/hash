@@ -1,9 +1,7 @@
-import {
-  DATA_TYPE_META_SCHEMA,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import { DATA_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
-import {
+import type {
   ArchiveDataTypeParams,
   DataTypePermission,
   DataTypeStructuralQuery,
@@ -16,7 +14,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import {
+import type {
   ConstructDataTypeParams,
   DataTypeAuthorizationRelationship,
   DataTypeMetadata,
@@ -24,16 +22,16 @@ import {
   DataTypeRootType,
   DataTypeWithMetadata,
   OntologyTypeRecordId,
-  ontologyTypeRecordIdToVersionedUrl,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
+import { ontologyTypeRecordIdToVersionedUrl } from "@local/hash-subgraph";
 import {
   getRoots,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
 
-import { ImpureGraphFunction } from "../../context-types";
+import type { ImpureGraphFunction } from "../../context-types";
 import { getWebShortname, isExternalTypeId } from "./util";
 
 /**

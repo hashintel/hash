@@ -1,13 +1,14 @@
-import { GridCellKind, Item } from "@glideapps/glide-data-grid";
+import type { Item } from "@glideapps/glide-data-grid";
+import { GridCellKind } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
 
-import { ChipCell } from "../../../../../../shared/chip-cell";
+import type { ChipCell } from "../../../../../../shared/chip-cell";
 import { useEntityEditor } from "../../entity-editor-context";
-import { SummaryChipCell } from "../../shared/summary-chip-cell";
-import { LinkCell } from "./cells/link-cell";
-import { LinkedWithCell } from "./cells/linked-with-cell";
+import type { SummaryChipCell } from "../../shared/summary-chip-cell";
+import type { LinkCell } from "./cells/link-cell";
+import type { LinkedWithCell } from "./cells/linked-with-cell";
 import { linkGridIndexes } from "./constants";
-import { LinkRow } from "./types";
+import type { LinkRow } from "./types";
 
 export const useCreateGetCellContent = () => {
   const { readonly } = useEntityEditor();

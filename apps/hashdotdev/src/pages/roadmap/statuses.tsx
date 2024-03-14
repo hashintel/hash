@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { CircleArrowRightSolidIcon } from "../../components/icons/circle-arrow-right-solid-icon";
 import { CircleCheckSolidIcon } from "../../components/icons/circle-check-solid-icon";

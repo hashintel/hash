@@ -1,4 +1,4 @@
-import { RemoteFileEntity } from "@blockprotocol/graph";
+import type { RemoteFileEntity } from "@blockprotocol/graph";
 import {
   type BlockComponent,
   useEntitySubgraph,
@@ -9,7 +9,7 @@ import { SizeMe } from "react-sizeme";
 
 import { GenerateImage } from "./app/generate-image";
 import { ImageTile } from "./shared/image-tile";
-import {
+import type {
   AIImageBlockOutgoingLinksByLinkEntityTypeId,
   BlockEntity,
   BlockEntityOutgoingLinkAndTarget,

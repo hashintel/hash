@@ -1,4 +1,5 @@
-import { Fragment, ReactNode, useCallback, useState } from "react";
+import type { ReactNode } from "react";
+import { Fragment, useCallback, useState } from "react";
 import { createPortal } from "react-dom";
 import { v4 as uuid } from "uuid";
 

@@ -1,11 +1,10 @@
+import type { DropAnimation, UniqueIdentifier } from "@dnd-kit/core";
 import {
   closestCenter,
   DndContext,
   DragOverlay,
-  DropAnimation,
   MeasuringStrategy,
   PointerSensor,
-  UniqueIdentifier,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -15,10 +14,11 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { List } from "@mui/material";
-import React, { FunctionComponent, useMemo, useRef, useState } from "react";
+import type { FunctionComponent } from "react";
+import React, { useMemo, useRef, useState } from "react";
 
 import { propertyIds } from "../property-ids";
-import { ShuffleBlockItemPropertyValue } from "../types/generated/block-entity";
+import type { ShuffleBlockItemPropertyValue } from "../types/generated/block-entity";
 import { Item as ItemComponent } from "./item";
 import { SortableItem } from "./sortable-item";
 

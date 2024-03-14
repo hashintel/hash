@@ -1,19 +1,21 @@
-import {
+import type {
   Entity,
   EntityRootType,
-  extractBaseUrl,
   Subgraph,
   VersionedUrl,
 } from "@blockprotocol/graph";
+import { extractBaseUrl } from "@blockprotocol/graph";
 import {
   getIncomingLinksForEntity,
   getOutgoingLinksForEntity,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import { EChart, ECOption } from "@hashintel/design-system";
-import { FunctionComponent, useMemo } from "react";
+import type { ECOption } from "@hashintel/design-system";
+import { EChart } from "@hashintel/design-system";
+import type { FunctionComponent } from "react";
+import { useMemo } from "react";
 
-import { ChartDefinition } from "./types/chart-definition";
+import type { ChartDefinition } from "./types/chart-definition";
 
 export const BarChart: FunctionComponent<{
   definition: ChartDefinition<"bar-chart">;

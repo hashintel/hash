@@ -1,4 +1,5 @@
-import axios, { AxiosError, AxiosInstance } from "axios";
+import type { AxiosError, AxiosInstance } from "axios";
+import axios from "axios";
 
 type VaultSecret<D = unknown> = {
   data: D;

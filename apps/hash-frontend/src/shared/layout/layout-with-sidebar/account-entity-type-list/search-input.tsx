@@ -5,7 +5,7 @@ import {
   TextField,
 } from "@hashintel/design-system";
 import { Fade, outlinedInputClasses, Tooltip } from "@mui/material";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 
 import { MagnifyingGlassLightIcon } from "../../../icons/magnifying-glass-light";
 

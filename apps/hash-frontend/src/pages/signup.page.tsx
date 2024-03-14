@@ -4,15 +4,15 @@ import { useRouter } from "next/router";
 import { useCallback, useEffect, useState } from "react";
 
 import { useUpdateAuthenticatedUser } from "../components/hooks/use-update-authenticated-user";
-import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
-import { Button, ButtonProps } from "../shared/ui";
+import type { NextPageWithLayout } from "../shared/layout";
+import { getPlainLayout } from "../shared/layout";
+import type { ButtonProps } from "../shared/ui";
+import { Button } from "../shared/ui";
 import { useAuthInfo } from "./shared/auth-info-context";
 import { AuthLayout } from "./shared/auth-layout";
 import { parseGraphQLError } from "./shared/auth-utils";
-import {
-  AccountSetupForm,
-  AccountSetupFormData,
-} from "./signup.page/account-setup-form";
+import type { AccountSetupFormData } from "./signup.page/account-setup-form";
+import { AccountSetupForm } from "./signup.page/account-setup-form";
 import { SignupRegistrationForm } from "./signup.page/signup-registration-form";
 import { SignupRegistrationRightInfo } from "./signup.page/signup-registration-right-info";
 import { SignupSteps } from "./signup.page/signup-steps";

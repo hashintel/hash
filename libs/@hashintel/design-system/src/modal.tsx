@@ -1,12 +1,11 @@
-import {
-  Box,
-  Modal as MuiModal,
+import type {
   ModalProps as MuiModalProps,
   SxProps,
   Theme,
 } from "@mui/material";
+import { Box, Modal as MuiModal } from "@mui/material";
 import clsx from "clsx";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 
 import { fluidFontClassName } from "./fluid-fonts";
 

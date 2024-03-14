@@ -1,4 +1,7 @@
-import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
+import type {
+  ImpureGraphFunction,
+  PureGraphFunction,
+} from "../../context-types";
 import { getOrgByShortname } from "./org";
 import { getUserByShortname } from "./user";
 

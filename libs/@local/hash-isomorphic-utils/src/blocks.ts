@@ -1,5 +1,5 @@
-import { BlockMetadata, BlockVariant } from "@blockprotocol/core";
-import { EntityType, VersionedUrl } from "@blockprotocol/type-system";
+import type { BlockMetadata, BlockVariant } from "@blockprotocol/core";
+import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 
 export interface HashBlockMeta extends BlockMetadata {
   componentId: string;

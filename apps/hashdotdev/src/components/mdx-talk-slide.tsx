@@ -1,6 +1,7 @@
 import { Box, Typography } from "@mui/material";
-import Image, { ImageProps } from "next/legacy/image";
-import { FunctionComponent, ReactNode } from "react";
+import type { ImageProps } from "next/legacy/image";
+import Image from "next/legacy/image";
+import type { FunctionComponent, ReactNode } from "react";
 
 import { useBlogPostPhotos } from "./blog-post";
 

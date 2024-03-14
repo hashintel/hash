@@ -1,6 +1,6 @@
-import { Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import { Grid } from "@mui/material";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 
 import { GridViewItem } from "./grid-view/grid-view-item";
 import { GridViewItemSkeleton } from "./grid-view/grid-view-item-skeleton";

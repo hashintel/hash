@@ -1,12 +1,12 @@
 import { useMutation } from "@apollo/client";
 import { useCallback } from "react";
 
-import {
+import type {
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../../../graphql/queries/knowledge/entity.queries";
-import { UpdateEntityMessageCallback } from "./knowledge-shim";
+import type { UpdateEntityMessageCallback } from "./knowledge-shim";
 
 export const useBlockProtocolUpdateEntity = (
   readonly?: boolean,

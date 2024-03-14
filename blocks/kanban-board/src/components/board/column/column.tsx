@@ -7,7 +7,7 @@ import { DiscardIcon } from "../../icons/discard-icon";
 import { Card } from "../card/card";
 import { EditableColumnTitle } from "./editable-column-title/editable-column-title";
 import styles from "./styles.module.scss";
-import { ColumnProps } from "./types";
+import type { ColumnProps } from "./types";
 
 export const Column = ({
   data,

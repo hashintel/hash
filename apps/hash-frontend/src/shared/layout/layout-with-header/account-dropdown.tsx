@@ -13,9 +13,10 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { FunctionComponent, useMemo } from "react";
+import type { FunctionComponent } from "react";
+import { useMemo } from "react";
 
-import { User } from "../../../lib/user-and-org";
+import type { User } from "../../../lib/user-and-org";
 import { getImageUrlFromEntityProperties } from "../../../pages/shared/get-image-url-from-properties";
 import { Link, MenuItem } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";

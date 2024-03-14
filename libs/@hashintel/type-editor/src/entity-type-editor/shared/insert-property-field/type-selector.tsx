@@ -1,11 +1,10 @@
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import {
-  SelectorAutocomplete,
-  TypeListSelectorDropdownProps,
-} from "@hashintel/design-system";
-import { SvgIconProps, SxProps, Theme } from "@mui/material";
-import { PopupState } from "material-ui-popup-state/hooks";
-import { FunctionComponent, Ref, useRef, useState } from "react";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { TypeListSelectorDropdownProps } from "@hashintel/design-system";
+import { SelectorAutocomplete } from "@hashintel/design-system";
+import type { SvgIconProps, SxProps, Theme } from "@mui/material";
+import type { PopupState } from "material-ui-popup-state/hooks";
+import type { FunctionComponent, Ref } from "react";
+import { useRef, useState } from "react";
 
 export type TypeSelectorType = {
   $id: VersionedUrl;

@@ -14,7 +14,7 @@ import {
   MultipleValuesControlContainer,
 } from "../shared/multiple-values-cell";
 import { TypeMenuCell } from "../shared/type-menu-cell";
-import { InheritedValues } from "../shared/use-inherited-values";
+import type { InheritedValues } from "../shared/use-inherited-values";
 import { AnythingChip } from "./anything-chip";
 import { DestinationEntityType } from "./destination-entity-type";
 import { DestinationTypeContainer } from "./destination-type-container";

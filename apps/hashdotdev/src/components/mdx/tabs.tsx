@@ -1,4 +1,5 @@
-import { FunctionComponent, PropsWithChildren, useState } from "react";
+import type { FunctionComponent, PropsWithChildren } from "react";
+import { useState } from "react";
 
 export const Tabs: FunctionComponent<PropsWithChildren> = ({ children }) => {
   const [activeTab, setActiveTab] = useState(0);

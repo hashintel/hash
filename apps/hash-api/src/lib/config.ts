@@ -1,7 +1,8 @@
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
-import corsMiddleware from "cors";
+import type corsMiddleware from "cors";
 
-import { StorageType, storageTypes } from "../storage/storage-provider";
+import type { StorageType } from "../storage/storage-provider";
+import { storageTypes } from "../storage/storage-provider";
 
 export function getEnvStorageType(): StorageType {
   const envUploadProvider = process.env.FILE_UPLOAD_PROVIDER as string;

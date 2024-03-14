@@ -1,7 +1,7 @@
-import { CustomCell } from "@glideapps/glide-data-grid";
-import { ReactElement } from "react";
+import type { CustomCell } from "@glideapps/glide-data-grid";
+import type { ReactElement } from "react";
 
-import { CustomIcon } from "../custom-grid-icons";
+import type { CustomIcon } from "../custom-grid-icons";
 
 export type GridTooltip = {
   colIndex: number;

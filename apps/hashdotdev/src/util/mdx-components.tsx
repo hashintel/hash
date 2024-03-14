@@ -1,4 +1,5 @@
 import { faLink } from "@fortawesome/free-solid-svg-icons";
+import type { TypographyProps } from "@mui/material";
 import {
   Box,
   styled,
@@ -9,10 +10,9 @@ import {
   TableRow,
   Tooltip,
   Typography,
-  TypographyProps,
 } from "@mui/material";
 import dynamic from "next/dynamic";
-import {
+import type {
   ComponentType,
   FunctionComponent,
   HTMLAttributes,

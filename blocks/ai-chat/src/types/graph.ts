@@ -1,6 +1,6 @@
-import { EntityId, GraphBlockHandler } from "@blockprotocol/graph";
+import type { EntityId, GraphBlockHandler } from "@blockprotocol/graph";
 
-import {
+import type {
   AIChatRequestMessage,
   AIChatResponseMessage,
 } from "./generated/shared";

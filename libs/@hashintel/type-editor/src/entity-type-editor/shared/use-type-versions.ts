@@ -1,12 +1,12 @@
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   extractBaseUrl,
   extractVersion,
-  VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 import { useMemo } from "react";
 
-import { EntityTypesByVersionedUrl } from "../../shared/entity-types-options-context";
-import { PropertyTypesByVersionedUrl } from "../../shared/property-types-options-context";
+import type { EntityTypesByVersionedUrl } from "../../shared/entity-types-options-context";
+import type { PropertyTypesByVersionedUrl } from "../../shared/property-types-options-context";
 import { typedValues } from "./typed-values";
 
 export const useTypeVersions = (

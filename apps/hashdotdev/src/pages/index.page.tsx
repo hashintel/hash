@@ -16,7 +16,7 @@ import {
 import { useTheme } from "@mui/system";
 import type { GetStaticProps } from "next";
 import Image from "next/legacy/image";
-import { ComponentProps, FunctionComponent, ReactNode } from "react";
+import type { ComponentProps, FunctionComponent, ReactNode } from "react";
 
 import { Button } from "../components/button";
 import { ArrowUpRightFromSquareRegularIcon } from "../components/icons/arrow-up-right-from-square-regular-icon";
@@ -26,14 +26,12 @@ import { Link } from "../components/link";
 import { PageLayout } from "../components/page-layout";
 import { Subscribe } from "../components/pre-footer";
 import { getAllPages } from "../util/mdx-util";
-import { NextPageWithLayout } from "../util/next-types";
-import { BlogPost } from "./blog/[...blog-slug].page";
+import type { NextPageWithLayout } from "../util/next-types";
+import type { BlogPost } from "./blog/[...blog-slug].page";
 import { BlueStylishDivider } from "./blog/shared/blue-styled-divider";
 import { getPhoto } from "./blog/shared/get-photo";
-import {
-  BlogIndividualPage,
-  BlogPostsProvider,
-} from "./shared/blog-posts-context";
+import type { BlogIndividualPage } from "./shared/blog-posts-context";
+import { BlogPostsProvider } from "./shared/blog-posts-context";
 
 const StylishDivider: FunctionComponent<
   ComponentProps<typeof Stack> & { wide?: boolean }

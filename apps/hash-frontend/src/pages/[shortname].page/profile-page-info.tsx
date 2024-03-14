@@ -6,7 +6,7 @@ import {
   PenRegularIcon,
 } from "@hashintel/design-system";
 import { sanitizeHref } from "@local/hash-isomorphic-utils/sanitize";
-import { Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import {
   Box,
   Divider,
@@ -16,16 +16,17 @@ import {
   Typography,
 } from "@mui/material";
 import { format, formatDistanceToNowStrict } from "date-fns";
-import { FunctionComponent, ReactNode, useMemo } from "react";
+import type { FunctionComponent, ReactNode } from "react";
+import { useMemo } from "react";
 
 import { useOrgsWithLinks } from "../../components/hooks/use-orgs-with-links";
-import { Org, User } from "../../lib/user-and-org";
+import type { Org, User } from "../../lib/user-and-org";
 import { CalendarDayRegularIcon } from "../../shared/icons/calendar-day-regular-icon";
 import { CustomLinkIcon } from "../../shared/icons/custom-link-icon";
 import { Link } from "../../shared/ui/link";
 import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-heading";
 import { getImageUrlFromEntityProperties } from "../shared/get-image-url-from-properties";
-import { ProfilePageTab } from "./util";
+import type { ProfilePageTab } from "./util";
 
 const InfoItem: FunctionComponent<{
   icon: ReactNode;

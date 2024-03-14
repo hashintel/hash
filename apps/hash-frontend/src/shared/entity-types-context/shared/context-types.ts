@@ -1,5 +1,5 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
-import {
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
   EntityTypeRootType,
   EntityTypeWithMetadata,
   Subgraph,

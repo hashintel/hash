@@ -1,4 +1,5 @@
-import { Modal as BaseModal, ModalProps } from "@hashintel/design-system";
+import type { ModalProps } from "@hashintel/design-system";
+import { Modal as BaseModal } from "@hashintel/design-system";
 
 export const Modal = (props: ModalProps) => (
   <BaseModal

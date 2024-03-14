@@ -1,4 +1,4 @@
-import { JsonValue } from "@blockprotocol/core";
+import type { JsonValue } from "@blockprotocol/core";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
@@ -8,7 +8,7 @@ import {
   faTrash,
 } from "@fortawesome/free-solid-svg-icons";
 import { formatDataValue } from "@local/hash-isomorphic-utils/data-types";
-import { DataTypeWithMetadata } from "@local/hash-subgraph";
+import type { DataTypeWithMetadata } from "@local/hash-subgraph";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { Box, Divider, Typography } from "@mui/material";
 import { useRef, useState } from "react";
@@ -19,7 +19,7 @@ import { JsonInput } from "../inputs/json-input";
 import { NumberOrTextInput } from "../inputs/number-or-text-input";
 import { guessEditorTypeFromValue } from "../utils";
 import { RowAction } from "./row-action";
-import { SortableItem } from "./types";
+import type { SortableItem } from "./types";
 import { ValueChip } from "./value-chip";
 
 interface SortableRowProps {

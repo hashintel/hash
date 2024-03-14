@@ -3,19 +3,17 @@ import {
   NotFoundError,
 } from "@local/hash-backend-utils/error";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
-import { GraphApi } from "@local/hash-graph-client";
+import type { GraphApi } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
-  SimpleProperties,
-  simplifyProperties,
-} from "@local/hash-isomorphic-utils/simplify-properties";
-import { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
-import {
+import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import type { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
+import type {
   AccountGroupId,
   AccountId,
   Entity,

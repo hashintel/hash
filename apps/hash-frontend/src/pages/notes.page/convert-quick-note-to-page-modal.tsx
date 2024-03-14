@@ -8,26 +8,25 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { PageProperties } from "@local/hash-isomorphic-utils/system-types/page";
-import { Entity, OwnedById } from "@local/hash-subgraph";
+import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/page";
+import type { Entity, OwnedById } from "@local/hash-subgraph";
+import type { ModalProps } from "@mui/material";
 import {
   autocompleteClasses,
   Box,
   Divider,
-  ModalProps,
   outlinedInputClasses,
   Typography,
 } from "@mui/material";
 import { generateKeyBetween } from "fractional-indexing";
-import { FunctionComponent, useCallback, useMemo } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback, useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { useBlockProtocolCreateEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
 import { useBlockProtocolUpdateEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
-import {
-  SimplePage,
-  useAccountPages,
-} from "../../components/hooks/use-account-pages";
+import type { SimplePage } from "../../components/hooks/use-account-pages";
+import { useAccountPages } from "../../components/hooks/use-account-pages";
 import { PageIcon } from "../../components/page-icon";
 import { XMarkRegularIcon } from "../../shared/icons/x-mark-regular-icon";
 import { Button } from "../../shared/ui";

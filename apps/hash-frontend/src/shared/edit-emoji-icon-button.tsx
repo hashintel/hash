@@ -4,23 +4,17 @@ import {
   fontAwesomeIconClasses,
   IconButton,
 } from "@hashintel/design-system";
-import { Box, iconButtonClasses, SxProps, Theme, Tooltip } from "@mui/material";
-import { SystemStyleObject } from "@mui/system";
-import { BaseEmoji } from "emoji-mart";
+import type { SxProps, Theme } from "@mui/material";
+import { Box, iconButtonClasses, Tooltip } from "@mui/material";
+import type { SystemStyleObject } from "@mui/system";
+import type { BaseEmoji } from "emoji-mart";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import {
-  FunctionComponent,
-  MouseEventHandler,
-  ReactNode,
-  useCallback,
-  useState,
-} from "react";
+import type { FunctionComponent, MouseEventHandler, ReactNode } from "react";
+import { useCallback, useState } from "react";
 
 import { useDefaultState } from "../components/hooks/use-default-state";
-import {
-  EmojiPicker,
-  EmojiPickerPopoverProps,
-} from "./edit-emoji-icon-button/emoji-picker/emoji-picker";
+import type { EmojiPickerPopoverProps } from "./edit-emoji-icon-button/emoji-picker/emoji-picker";
+import { EmojiPicker } from "./edit-emoji-icon-button/emoji-picker/emoji-picker";
 
 export type SizeVariant = "small" | "medium";
 

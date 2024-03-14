@@ -1,7 +1,10 @@
 import { faMap, faNewspaper } from "@fortawesome/free-solid-svg-icons";
-import { ReactElement } from "react";
+import type { ReactElement } from "react";
 
-import { SiteMapPage, SiteMapPageSection } from "../../pages/shared/sitemap";
+import type {
+  SiteMapPage,
+  SiteMapPageSection,
+} from "../../pages/shared/sitemap";
 import { BookAtlasRegularIcon } from "../icons/book-atlas-regular-icon";
 import { DiagramSankeySolidIcon } from "../icons/diagram-sankey-solid-icon";
 import { FontAwesomeIcon } from "../icons/font-awesome-icon";

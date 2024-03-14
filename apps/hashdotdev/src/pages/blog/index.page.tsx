@@ -1,15 +1,11 @@
-import {
-  Container,
-  Divider,
-  Stack,
-  StackProps,
-  Typography,
-} from "@mui/material";
+import type { StackProps } from "@mui/material";
+import { Container, Divider, Stack, Typography } from "@mui/material";
 import { Box } from "@mui/system";
-import { GetStaticProps } from "next";
+import type { GetStaticProps } from "next";
 import Image from "next/legacy/image";
 import { NextSeo } from "next-seo";
-import { ComponentProps, Fragment, FunctionComponent } from "react";
+import type { ComponentProps, FunctionComponent } from "react";
+import { Fragment } from "react";
 
 import { BlogPostAuthor } from "../../components/blog-post";
 import { ArrowUpRightFromSquareRegularIcon } from "../../components/icons/arrow-up-right-from-square-regular-icon";
@@ -18,9 +14,12 @@ import { PageLayout } from "../../components/page-layout";
 import { Subscribe } from "../../components/pre-footer";
 import { parseNameFromFileName } from "../../util/client-mdx-util";
 import { getAllPages } from "../../util/mdx-util";
-import { NextPageWithLayout } from "../../util/next-types";
-import { BlogIndividualPage } from "../shared/blog-posts-context";
-import { BlogPost, BlogPostAuthorWithPhotoSrc } from "./[...blog-slug].page";
+import type { NextPageWithLayout } from "../../util/next-types";
+import type { BlogIndividualPage } from "../shared/blog-posts-context";
+import type {
+  BlogPost,
+  BlogPostAuthorWithPhotoSrc,
+} from "./[...blog-slug].page";
 import { generateFeeds } from "./index.page/generate-feeds";
 import { getPhoto } from "./shared/get-photo";
 

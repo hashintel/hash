@@ -1,8 +1,8 @@
-import {
-  DropdownSelector,
+import type {
   DropdownSelectorProps,
   Option,
 } from "@hashintel/block-design-system";
+import { DropdownSelector } from "@hashintel/block-design-system";
 import { Box, Typography } from "@mui/material";
 
 import { GridIcon } from "../../icons/grid";

@@ -1,5 +1,5 @@
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Drawer, Stack, Typography } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";

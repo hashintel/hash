@@ -1,9 +1,9 @@
-import {
+import type {
   GraphEmbedderMessageCallbacks,
   JsonObject,
 } from "@blockprotocol/graph/temporal";
 
-import { FetchEmbedCodeFn } from "../block-loader/fetch-embed-code";
+import type { FetchEmbedCodeFn } from "../block-loader/fetch-embed-code";
 
 export type MessageFromFramedBlock = {
   requestId: string;

@@ -1,5 +1,5 @@
-import { Entity } from "../../shared/types/entity.js";
-import {
+import type { Entity } from "../../shared/types/entity.js";
+import type {
   DataTypeVertex,
   DataTypeWithMetadata,
   EntityIdWithInterval,
@@ -7,12 +7,12 @@ import {
   EntityTypeWithMetadata,
   EntityVertex,
   EntityVertexId,
-  isTemporalSubgraph,
   OntologyTypeVertexId,
   PropertyTypeVertex,
   PropertyTypeWithMetadata,
   Subgraph,
 } from "../../shared/types/subgraph.js";
+import { isTemporalSubgraph } from "../../shared/types/subgraph.js";
 
 /**
  * Looking to build a subgraph? You probably want {@link buildSubgraph} from `@blockprotocol/graph/stdlib`

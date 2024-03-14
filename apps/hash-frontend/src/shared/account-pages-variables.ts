@@ -4,7 +4,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { pageEntityTypeFilter } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import { OwnedById } from "@local/hash-subgraph";
+import type { OwnedById } from "@local/hash-subgraph";
 
 export const getAccountPagesVariables = ({
   ownedById,

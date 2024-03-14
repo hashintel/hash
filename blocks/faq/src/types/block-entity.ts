@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import { Entity, LinkData } from "@blockprotocol/graph";
+import type { Entity, LinkData } from "@blockprotocol/graph";
 
 /**
  * A response to a question that provides information, clarification, or confirmation.

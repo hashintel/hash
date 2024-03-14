@@ -1,11 +1,10 @@
-import {
+import type {
   EntityRecordId,
   GraphElementVertexId,
-  isEntityRecordId,
-  isOntologyTypeRecordId,
   OntologyTypeRecordId,
   Subgraph,
 } from "../../types.js";
+import { isEntityRecordId, isOntologyTypeRecordId } from "../../types.js";
 import { typedEntries } from "../../util.js";
 
 /**

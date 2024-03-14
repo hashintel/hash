@@ -1,6 +1,7 @@
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
-import { FunctionComponent, useMemo } from "react";
+import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import type { FunctionComponent } from "react";
+import { useMemo } from "react";
 
 import { LinkLabelWithSourceAndDestination } from "../../../../shared/link-label-with-source-and-destination";
 import { SectionWrapper } from "../../../shared/section-wrapper";

@@ -1,15 +1,13 @@
 import { faFileAlt } from "@fortawesome/free-regular-svg-icons";
 import { faArchive, faLink } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import { EntityId } from "@local/hash-subgraph";
-import {
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  PopoverPosition,
-} from "@mui/material";
-import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
-import { FunctionComponent, useMemo, useState } from "react";
+import type { EntityId } from "@local/hash-subgraph";
+import type { PopoverPosition } from "@mui/material";
+import { ListItemIcon, ListItemText, Menu } from "@mui/material";
+import type { PopupState } from "material-ui-popup-state/hooks";
+import { bindMenu } from "material-ui-popup-state/hooks";
+import type { FunctionComponent } from "react";
+import { useMemo, useState } from "react";
 
 import { MenuItem } from "../../../ui";
 

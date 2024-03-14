@@ -1,6 +1,7 @@
-import { Box, BoxProps, ContainerProps } from "@mui/material";
+import type { BoxProps, ContainerProps } from "@mui/material";
+import { Box } from "@mui/material";
 import { useTheme } from "@mui/system";
-import { FunctionComponent, ReactNode } from "react";
+import type { FunctionComponent, ReactNode } from "react";
 
 import { Footer } from "./footer";
 import { GradientContainer } from "./gradient-container";

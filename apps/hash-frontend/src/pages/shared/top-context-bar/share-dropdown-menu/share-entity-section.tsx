@@ -1,21 +1,22 @@
 import { useMutation } from "@apollo/client";
 import { AuthorizationSubjectKind } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-import { AccountGroupId, AccountId, Entity } from "@local/hash-subgraph";
+import type { AccountGroupId, AccountId, Entity } from "@local/hash-subgraph";
 import { Box, Skeleton, Typography } from "@mui/material";
-import { FunctionComponent, useCallback, useMemo } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback, useMemo } from "react";
 
 import { useOrgsWithLinks } from "../../../../components/hooks/use-orgs-with-links";
 import { useUsersWithLinks } from "../../../../components/hooks/use-users-with-links";
-import {
+import type {
   AddEntityViewerMutation,
   AddEntityViewerMutationVariables,
-  EntityAuthorizationRelation,
 } from "../../../../graphql/api-types.gen";
+import { EntityAuthorizationRelation } from "../../../../graphql/api-types.gen";
 import {
   addEntityViewerMutation,
   getEntityAuthorizationRelationshipsQuery,
 } from "../../../../graphql/queries/knowledge/entity.queries";
-import {
+import type {
   MinimalOrg,
   MinimalUser,
   Org,
@@ -24,7 +25,7 @@ import {
 import { isEntityPageEntity } from "../../../../shared/is-of-type";
 import { EditableAuthorizationRelationships } from "./editable-authorization-relationship";
 import { InviteAccountForm } from "./invite-account-form";
-import {
+import type {
   AccountAuthorizationRelationship,
   AuthorizationRelationship,
   PublicAuthorizationRelationship,

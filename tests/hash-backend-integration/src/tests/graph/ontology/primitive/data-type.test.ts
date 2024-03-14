@@ -1,10 +1,8 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
-import { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
-import {
-  joinOrg,
-  User,
-} from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
+import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   createDataType,
   getDataTypeById,
@@ -13,12 +11,12 @@ import {
 import { modifyWebAuthorizationRelationships } from "@apps/hash-api/src/graph/ontology/primitive/util";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import {
+import type {
   ConstructDataTypeParams,
   DataTypeWithMetadata,
-  isOwnedOntologyElementMetadata,
   OwnedById,
 } from "@local/hash-subgraph";
+import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
 
 import { resetGraph } from "../../../test-server";
 import {

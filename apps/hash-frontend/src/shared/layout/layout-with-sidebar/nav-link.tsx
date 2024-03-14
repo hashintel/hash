@@ -5,7 +5,7 @@ import {
   LoadingSpinner,
 } from "@hashintel/design-system";
 import { Box, Collapse, Typography } from "@mui/material";
-import { FunctionComponent, ReactNode } from "react";
+import type { FunctionComponent, ReactNode } from "react";
 
 type NavLinkProps = {
   children?: ReactNode;

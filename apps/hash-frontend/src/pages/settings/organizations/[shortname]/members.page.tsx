@@ -11,7 +11,7 @@ import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 import { useEffect, useRef, useState } from "react";
 
-import { NextPageWithLayout } from "../../../../shared/layout";
+import type { NextPageWithLayout } from "../../../../shared/layout";
 import { useUserPermissionsOnEntity } from "../../../../shared/use-user-permissions-on-entity";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { getSettingsLayout } from "../../shared/settings-layout";

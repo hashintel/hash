@@ -1,4 +1,4 @@
-import { LinkColumn, LinkColumnKey } from "./types";
+import type { LinkColumn, LinkColumnKey } from "./types";
 
 export const linkGridColumns: LinkColumn[] = [
   {

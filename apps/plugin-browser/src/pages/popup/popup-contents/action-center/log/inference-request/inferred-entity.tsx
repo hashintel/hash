@@ -8,10 +8,8 @@ import {
 } from "@hashintel/design-system";
 import { customColors } from "@hashintel/design-system/theme";
 import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/ai-inference-types";
-import {
-  formatDataValue,
-  FormattedValuePart,
-} from "@local/hash-isomorphic-utils/data-types";
+import type { FormattedValuePart } from "@local/hash-isomorphic-utils/data-types";
+import { formatDataValue } from "@local/hash-isomorphic-utils/data-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
   BaseUrl,
@@ -30,7 +28,7 @@ import {
 import { Box, Collapse, Stack, Tooltip, Typography } from "@mui/material";
 
 import { getOwnedByIdFromEntityId } from "../../../../../../shared/get-user";
-import { LocalStorage } from "../../../../../../shared/storage";
+import type { LocalStorage } from "../../../../../../shared/storage";
 import {
   darkModeBorderColor,
   darkModeInputColor,

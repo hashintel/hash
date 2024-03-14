@@ -1,6 +1,7 @@
 import { faArrowsRotate, faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";
-import { ElementType, useState } from "react";
+import type { ElementType } from "react";
+import { useState } from "react";
 
 import { FontAwesomeIcon } from "./fontawesome-icon";
 import { IconButton } from "./icon-button";

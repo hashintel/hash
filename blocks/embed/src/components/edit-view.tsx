@@ -1,4 +1,4 @@
-import { FormEvent, FunctionComponent } from "react";
+import type { FormEvent, FunctionComponent } from "react";
 import { tw } from "twind";
 
 import Cross from "../svgs/cross";

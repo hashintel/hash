@@ -1,11 +1,9 @@
+import type { InputBaseProps, SxProps, Theme } from "@mui/material";
 import {
   Box,
   Fade,
   IconButton,
   InputBase,
-  InputBaseProps,
-  SxProps,
-  Theme,
   Typography,
   useTheme,
 } from "@mui/material";

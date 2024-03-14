@@ -6,18 +6,18 @@
  * package and be removed from here.
  */
 
-import { MessageCallback, MessageReturn } from "@blockprotocol/core";
-import {
+import type { MessageCallback, MessageReturn } from "@blockprotocol/core";
+import type {
   CreateResourceError,
   ReadOrModifyResourceError,
 } from "@blockprotocol/graph";
-import {
+import type {
   EntityType,
   PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { EmptyObject } from "@local/hash-isomorphic-utils/util";
-import {
+import type { EmptyObject } from "@local/hash-isomorphic-utils/util";
+import type {
   DataTypeRootType,
   EntityTypeRootType,
   EntityTypeWithMetadata,

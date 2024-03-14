@@ -1,19 +1,19 @@
-import { EntityType, extractVersion } from "@blockprotocol/type-system/slim";
+import type { EntityType } from "@blockprotocol/type-system/slim";
+import { extractVersion } from "@blockprotocol/type-system/slim";
 import {
   ArrowUpRightIcon,
   EntityTypeIcon,
   LinkTypeIcon,
 } from "@hashintel/design-system";
-import {
-  EntityTypeEditorFormData,
-  useEntityTypeFormContext,
-} from "@hashintel/type-editor";
+import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
+import { useEntityTypeFormContext } from "@hashintel/type-editor";
 import {
   extractBaseUrl,
   versionedUrlFromComponents,
 } from "@local/hash-subgraph/type-system-patch";
 import { Box, Stack, Typography } from "@mui/material";
-import { ReactNode, useState } from "react";
+import type { ReactNode } from "react";
+import { useState } from "react";
 import { Controller } from "react-hook-form";
 
 import { EditEmojiIconButton } from "../../../../shared/edit-emoji-icon-button";

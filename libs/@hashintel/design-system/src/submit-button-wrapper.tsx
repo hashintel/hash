@@ -2,17 +2,17 @@ import {
   faCircleExclamation,
   faWarning,
 } from "@fortawesome/free-solid-svg-icons";
+import type { BoxProps, TooltipProps } from "@mui/material";
 import {
   Box,
-  BoxProps,
   Collapse,
   styled,
   Tooltip,
   tooltipClasses,
-  TooltipProps,
   Typography,
 } from "@mui/material";
-import { forwardRef, FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
+import { forwardRef } from "react";
 
 import { FontAwesomeIcon } from "./fontawesome-icon";
 

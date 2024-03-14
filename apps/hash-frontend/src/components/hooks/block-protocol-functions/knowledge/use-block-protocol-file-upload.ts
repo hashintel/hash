@@ -1,9 +1,9 @@
 import { useMutation } from "@apollo/client";
-import { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/shared";
-import { OwnedById } from "@local/hash-subgraph";
+import type { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { OwnedById } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
-import {
+import type {
   CreateFileFromUrlMutation,
   CreateFileFromUrlMutationVariables,
   RequestFileUploadMutation,
@@ -14,7 +14,7 @@ import {
   requestFileUpload,
 } from "../../../../graphql/queries/knowledge/file.queries";
 import { uploadFileToStorageProvider } from "../../../../shared/upload-to-storage-provider";
-import { UploadFileRequestCallback } from "./knowledge-shim";
+import type { UploadFileRequestCallback } from "./knowledge-shim";
 
 export const useBlockProtocolFileUpload = (
   ownedById?: OwnedById,

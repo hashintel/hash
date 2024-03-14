@@ -1,10 +1,12 @@
-import { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
+import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 import { faAdd, faLink } from "@fortawesome/free-solid-svg-icons";
 import { ArrowUpRightIcon } from "@hashintel/design-system";
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
 import { Menu } from "@mui/material";
-import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
-import { FunctionComponent, useState } from "react";
+import type { PopupState } from "material-ui-popup-state/hooks";
+import { bindMenu } from "material-ui-popup-state/hooks";
+import type { FunctionComponent } from "react";
+import { useState } from "react";
 
 import { useEntityTypesContextRequired } from "../../../entity-types-context/hooks/use-entity-types-context-required";
 import { useFrozenValue } from "../../../frozen";

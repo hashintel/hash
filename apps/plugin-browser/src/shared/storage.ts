@@ -1,5 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
-import { Subtype } from "@local/advanced-types/subtype";
+import type { Subtype } from "@local/advanced-types/subtype";
 import type {
   InferenceModelName,
   InferEntitiesReturn,
@@ -15,7 +15,7 @@ import type {
   OrganizationProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import {
+import type {
   Entity,
   EntityId,
   EntityTypeRootType,

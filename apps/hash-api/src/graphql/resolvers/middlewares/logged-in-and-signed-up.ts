@@ -1,6 +1,6 @@
-import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
+import type { GraphQLContext, LoggedInGraphQLContext } from "../../context";
 import { loggedInMiddleware } from "./logged-in";
-import { ResolverMiddleware } from "./middleware-types";
+import type { ResolverMiddleware } from "./middleware-types";
 import { signedUpMiddleware } from "./signed-up";
 
 export const loggedInAndSignedUpMiddleware: ResolverMiddleware<

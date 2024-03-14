@@ -1,5 +1,5 @@
+import type { EntityPropertiesObject } from "@local/hash-subgraph";
 import {
-  EntityPropertiesObject,
   fileUrlPropertyTypeUrl,
   mimeTypePropertyTypeUrl,
 } from "@local/hash-subgraph";

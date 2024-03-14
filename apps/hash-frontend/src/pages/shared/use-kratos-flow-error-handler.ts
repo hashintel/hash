@@ -1,14 +1,15 @@
-import {
+import type {
   ErrorAuthenticatorAssuranceLevelNotSatisfied,
   ErrorBrowserLocationChangeRequired,
   NeedsPrivilegedSessionError,
 } from "@ory/client";
-import { AxiosError } from "axios";
+import type { AxiosError } from "axios";
 import { useRouter } from "next/router";
-import { Dispatch, SetStateAction, useCallback } from "react";
+import type { Dispatch, SetStateAction } from "react";
+import { useCallback } from "react";
 
 import { useAuthInfo } from "./auth-info-context";
-import { Flows } from "./ory-kratos";
+import type { Flows } from "./ory-kratos";
 
 export const useKratosErrorHandler = <S>(props: {
   flowType: keyof Flows;

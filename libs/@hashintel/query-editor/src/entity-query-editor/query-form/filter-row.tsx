@@ -1,11 +1,11 @@
-import { EntityType, PropertyType } from "@blockprotocol/graph";
+import type { EntityType, PropertyType } from "@blockprotocol/graph";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Box, Stack } from "@mui/material";
 import { useFormContext } from "react-hook-form";
 
 import { useReadonlyContext } from "../readonly-context";
-import { FormValues } from "../types";
+import type { FormValues } from "../types";
 import { ChainOperatorSelector } from "./filter-row/chain-operator-selector";
 import { EntityTypeSelector } from "./filter-row/entity-type-selector";
 import { OperatorSelector } from "./filter-row/operator-selector";

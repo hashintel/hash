@@ -4,8 +4,8 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
-import { UserPermissionsOnEntities } from "@local/hash-isomorphic-utils/types";
-import {
+import type { UserPermissionsOnEntities } from "@local/hash-isomorphic-utils/types";
+import type {
   EntityId,
   EntityRootType,
   GraphResolveDepths,
@@ -13,7 +13,7 @@ import {
 } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
-import {
+import type {
   GetEntityQuery,
   GetEntityQueryVariables,
 } from "../../graphql/api-types.gen";

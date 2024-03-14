@@ -1,5 +1,5 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
-import {
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
   CreatedAtDecisionTime,
   CreatedAtTransactionTime,
   CreatedById,
@@ -12,7 +12,8 @@ import {
   Subgraph,
   Timestamp,
 } from "@local/hash-subgraph";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
+import { useEffect, useState } from "react";
 
 import { useBlockProtocolGetEntityType } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
 

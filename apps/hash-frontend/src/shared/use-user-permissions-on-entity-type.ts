@@ -1,8 +1,8 @@
 import { useQuery } from "@apollo/client";
-import { VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { useMemo } from "react";
 
-import {
+import type {
   CheckUserPermissionsOnEntityTypeQuery,
   CheckUserPermissionsOnEntityTypeQueryVariables,
 } from "../graphql/api-types.gen";

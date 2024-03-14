@@ -5,8 +5,8 @@ import {
 import { Collapse, Fade, Switch } from "@mui/material";
 import { useState } from "react";
 
-import { RootKey } from "../../additional-types";
-import { BlockEntity } from "../../types/generated/block-entity";
+import type { RootKey } from "../../additional-types";
+import type { BlockEntity } from "../../types/generated/block-entity";
 import styles from "./styles.module.scss";
 
 const isStripedKey: RootKey =

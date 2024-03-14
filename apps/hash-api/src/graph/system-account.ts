@@ -1,11 +1,11 @@
-import { Logger } from "@local/hash-backend-utils/logger";
+import type { Logger } from "@local/hash-backend-utils/logger";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { AccountId, BaseUrl } from "@local/hash-subgraph";
+import type { AccountId, BaseUrl } from "@local/hash-subgraph";
 import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 
 import { publicUserAccountId } from "../auth/public-user-account-id";
 import { createAccount } from "./account-permission-management";
-import { ImpureGraphContext } from "./context-types";
+import type { ImpureGraphContext } from "./context-types";
 import { getEntityTypeById } from "./ontology/primitive/entity-type";
 
 // eslint-disable-next-line import/no-mutable-exports

@@ -1,17 +1,18 @@
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { OrganizationProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { OrganizationProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 import { useRef } from "react";
 
 import { useBlockProtocolUpdateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { useOrgs } from "../../../../components/hooks/use-orgs";
-import { NextPageWithLayout } from "../../../../shared/layout";
+import type { NextPageWithLayout } from "../../../../shared/layout";
 import { useUserPermissionsOnEntity } from "../../../../shared/use-user-permissions-on-entity";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { getSettingsLayout } from "../../shared/settings-layout";
 import { SettingsPageContainer } from "../../shared/settings-page-container";
-import { OrgForm, OrgFormData } from "../shared/org-form";
+import type { OrgFormData } from "../shared/org-form";
+import { OrgForm } from "../shared/org-form";
 
 const OrgGeneralSettingsPage: NextPageWithLayout = () => {
   const router = useRouter();

@@ -1,5 +1,5 @@
+import type { BlockComponent } from "@blockprotocol/graph/react";
 import {
-  BlockComponent,
   useEntitySubgraph,
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
@@ -8,7 +8,7 @@ import { useRef } from "react";
 
 import { EmojiIcon } from "./emoji-icon";
 import { propertyIds } from "./property-ids";
-import { BlockEntity } from "./types/generated/block-entity";
+import type { BlockEntity } from "./types/generated/block-entity";
 
 export const App: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph, readonly },

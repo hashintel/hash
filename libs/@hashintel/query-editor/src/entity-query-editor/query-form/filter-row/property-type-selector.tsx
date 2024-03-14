@@ -1,11 +1,13 @@
-import { extractBaseUrl, PropertyType } from "@blockprotocol/graph";
+import type { PropertyType } from "@blockprotocol/graph";
+import { extractBaseUrl } from "@blockprotocol/graph";
 import { MenuItem, OntologyChip } from "@hashintel/design-system";
 import { FormControl, listClasses } from "@mui/material";
 import { useMemo } from "react";
-import { FieldErrorsImpl, useFormContext } from "react-hook-form";
+import type { FieldErrorsImpl } from "react-hook-form";
+import { useFormContext } from "react-hook-form";
 
 import { useReadonlyContext } from "../../readonly-context";
-import { FormValues, PropertyFilter } from "../../types";
+import type { FormValues, PropertyFilter } from "../../types";
 import { RHFSelect } from "./rhf-select";
 
 export const PropertyTypeSelector = ({

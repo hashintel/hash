@@ -1,6 +1,6 @@
 import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primitive/entity";
-import { Query, QueryMeArgs, ResolverFn } from "../../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../../context";
+import type { Query, QueryMeArgs, ResolverFn } from "../../../api-types.gen";
+import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 import { createSubgraphAndPermissionsReturn } from "../shared/create-subgraph-and-permissions-return";
 

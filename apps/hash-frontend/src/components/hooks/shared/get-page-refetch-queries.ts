@@ -1,5 +1,5 @@
+import type { EntityId } from "@local/hash-subgraph";
 import {
-  EntityId,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
