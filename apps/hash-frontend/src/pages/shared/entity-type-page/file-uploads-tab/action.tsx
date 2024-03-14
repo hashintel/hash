@@ -3,10 +3,11 @@ import {
   ArrowUpRightIcon,
   DashIcon,
 } from "@hashintel/design-system";
-import { Box, Stack, SxProps, Theme, Tooltip } from "@mui/material";
+import type { SxProps, Theme } from "@mui/material";
+import { Box, Stack, Tooltip } from "@mui/material";
 
 import { useUserOrOrgShortnameByOwnedById } from "../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
-import { FileUpload } from "../../../../shared/file-upload-context";
+import type { FileUpload } from "../../../../shared/file-upload-context";
 import { Link } from "../../../../shared/ui/link";
 import { generateEntityHref } from "../../use-entity-href";
 

@@ -1,5 +1,6 @@
-import { MutationHookOptions, useMutation } from "@apollo/client";
-import { Entity } from "@local/hash-subgraph";
+import type { MutationHookOptions } from "@apollo/client";
+import { useMutation } from "@apollo/client";
+import type { Entity } from "@local/hash-subgraph";
 import {
   Box,
   buttonClasses,
@@ -17,15 +18,16 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { FunctionComponent, useCallback, useMemo } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback, useMemo } from "react";
 
-import {
+import type {
   AddEntityViewerMutation,
   AddEntityViewerMutationVariables,
-  AuthorizationSubjectKind,
   RemoveEntityViewerMutation,
   RemoveEntityViewerMutationVariables,
 } from "../../../../graphql/api-types.gen";
+import { AuthorizationSubjectKind } from "../../../../graphql/api-types.gen";
 import {
   addEntityViewerMutation,
   getEntityAuthorizationRelationshipsQuery,

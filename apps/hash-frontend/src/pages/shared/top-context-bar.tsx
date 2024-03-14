@@ -1,29 +1,24 @@
 import { faCheck, faFile } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
+import type { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
+import type { SxProps, Theme } from "@mui/material";
 import {
   Box,
   Collapse,
   FormControlLabel,
   Switch,
-  SxProps,
-  Theme,
   Typography,
 } from "@mui/material";
 import { useRouter } from "next/router";
-import {
-  FunctionComponent,
-  ReactElement,
-  ReactNode,
-  useMemo,
-  useState,
-} from "react";
+import type { FunctionComponent, ReactElement, ReactNode } from "react";
+import { useMemo, useState } from "react";
 
 import { isItemArchived } from "../../shared/is-archived";
 import { isEntityPageEntity } from "../../shared/is-of-type";
 import { useSidebarContext } from "../../shared/layout/layout-with-sidebar";
-import { Breadcrumbs, BreadcrumbsProps } from "./breadcrumbs";
+import type { BreadcrumbsProps } from "./breadcrumbs";
+import { Breadcrumbs } from "./breadcrumbs";
 import { ArchivedItemBanner } from "./top-context-bar/archived-item-banner";
 import { ContextBarActionsDropdown } from "./top-context-bar/context-bar-actions-dropdown";
 import { ShareDropdownMenu } from "./top-context-bar/share-dropdown-menu";

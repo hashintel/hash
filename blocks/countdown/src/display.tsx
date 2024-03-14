@@ -1,5 +1,7 @@
-import { Duration, intervalToDuration, isPast } from "date-fns";
-import { FunctionComponent, useEffect, useState } from "react";
+import type { Duration } from "date-fns";
+import { intervalToDuration, isPast } from "date-fns";
+import type { FunctionComponent } from "react";
+import { useEffect, useState } from "react";
 
 type DisplayProps = {
   targetDate: Date | null;

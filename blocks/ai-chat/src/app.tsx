@@ -1,4 +1,4 @@
-import { Subgraph } from "@blockprotocol/graph";
+import type { Subgraph } from "@blockprotocol/graph";
 import {
   type BlockComponent,
   useEntitySubgraph,
@@ -8,16 +8,18 @@ import { theme } from "@hashintel/design-system/theme";
 import { ThemeProvider } from "@mui/material";
 import { useMemo, useState } from "react";
 
-import {
-  CompleteChat,
+import type {
   CompleteChatRequest,
   CompleteChatResponse,
-  createRequestId,
-  createResponseId,
   RequestId,
   ResponseId,
 } from "./complete-chat";
 import {
+  CompleteChat,
+  createRequestId,
+  createResponseId,
+} from "./complete-chat";
+import type {
   AIChatBlock,
   AIChatRequestMessage,
   AIChatResponseMessage,

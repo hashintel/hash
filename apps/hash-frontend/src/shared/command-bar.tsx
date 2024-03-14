@@ -1,23 +1,27 @@
 import { Chip, TextField } from "@hashintel/design-system";
-import {
-  Autocomplete,
+import type {
   AutocompleteChangeDetails,
   AutocompleteChangeReason,
-  autocompleteClasses,
   AutocompleteRenderInputParams,
+} from "@mui/material";
+import {
+  Autocomplete,
+  autocompleteClasses,
   Box,
   Modal,
   Paper,
 } from "@mui/material";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
-import {
-  createContext,
-  forwardRef,
+import type {
   FunctionComponent,
   HTMLAttributes,
   PropsWithChildren,
   ReactNode,
+} from "react";
+import {
+  createContext,
+  forwardRef,
   useCallback,
   useContext,
   useEffect,
@@ -32,18 +36,20 @@ import { useCreatePage } from "../components/hooks/use-create-page";
 import { useHashInstance } from "../components/hooks/use-hash-instance";
 import { useActiveWorkspace } from "../pages/shared/workspace-context";
 // import { CheatSheet } from "./command-bar/cheat-sheet";
-import {
+import type {
   // childMenu,
   CommandBarOption,
   CommandBarOptionCommand,
+} from "./command-bar/command-bar-options";
+import {
   createEntityOption,
   createPageOption,
   createTypeOption,
   menu,
 } from "./command-bar/command-bar-options";
 import { HotKey } from "./command-bar/hot-key";
+import type { KeyboardShortcut } from "./keyboard-shortcuts-context";
 import {
-  KeyboardShortcut,
   useSetKeyboardShortcuts,
   useUnsetKeyboardShortcuts,
 } from "./keyboard-shortcuts-context";

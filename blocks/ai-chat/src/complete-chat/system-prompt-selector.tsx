@@ -1,8 +1,10 @@
+import type {
+  DropdownSelectorProps,
+  GroupedOptions,
+} from "@hashintel/block-design-system";
 import {
   codeBlockFormattingPrompt,
   DropdownSelector,
-  DropdownSelectorProps,
-  GroupedOptions,
 } from "@hashintel/block-design-system";
 import { Box } from "@mui/material";
 

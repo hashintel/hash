@@ -1,19 +1,19 @@
 import { NotFoundError } from "@local/hash-backend-utils/error";
+import type { HashInstance } from "@local/hash-backend-utils/hash-instance";
 import {
   getHashInstance,
   getHashInstanceFromEntity,
-  HashInstance,
 } from "@local/hash-backend-utils/hash-instance";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
-import { OwnedById } from "@local/hash-subgraph";
+import type { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
+import type { OwnedById } from "@local/hash-subgraph";
 
 import { createAccountGroup } from "../../account-permission-management";
-import { ImpureGraphFunction } from "../../context-types";
+import type { ImpureGraphFunction } from "../../context-types";
 import { modifyEntityTypeAuthorizationRelationships } from "../../ontology/primitive/entity-type";
 import { createEntity } from "../primitive/entity";
 import { getOrgByShortname } from "./org";
-import { User } from "./user";
+import type { User } from "./user";
 
 /**
  * Create the hash instance entity.

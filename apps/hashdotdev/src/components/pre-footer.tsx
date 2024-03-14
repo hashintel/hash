@@ -1,4 +1,5 @@
 import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
+import type { Theme } from "@mui/material";
 import {
   Box,
   buttonClasses,
@@ -6,30 +7,21 @@ import {
   Divider,
   Grid,
   Stack,
-  Theme,
   Typography,
   useMediaQuery,
 } from "@mui/material";
-import { BoxProps } from "@mui/system";
+import type { BoxProps } from "@mui/system";
 import axios from "axios";
 import Image from "next/image";
 import { useRouter } from "next/router";
-import {
-  FunctionComponent,
-  ReactNode,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import type { FunctionComponent, ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 
 import { FRONTEND_URL } from "../config";
-import { SubscribeResponseBody } from "../pages/api/subscribe.page";
-import {
-  BlogIndividualPage,
-  useBlogPosts,
-} from "../pages/shared/blog-posts-context";
+import type { SubscribeResponseBody } from "../pages/api/subscribe.page";
+import type { BlogIndividualPage } from "../pages/shared/blog-posts-context";
+import { useBlogPosts } from "../pages/shared/blog-posts-context";
 import { parseNameFromFileName } from "../util/client-mdx-util";
 import { Button } from "./button";
 import { CommentCodeSolidIcon } from "./icons/comment-code-solid-icon";

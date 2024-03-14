@@ -1,4 +1,4 @@
-import { ComponentProps, FunctionComponent } from "react";
+import type { ComponentProps, FunctionComponent } from "react";
 
 import { HashDotDevLogo } from "./icons/hash-dot-dev-logo";
 import { Link } from "./link";

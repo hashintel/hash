@@ -1,10 +1,10 @@
-import { BaseUrl } from "@blockprotocol/type-system/slim";
+import type { BaseUrl } from "@blockprotocol/type-system/slim";
 
-import { EntityId } from "../entity.js";
-import { OntologyTypeRevisionId } from "../ontology.js";
-import { Timestamp } from "../temporal-versioning.js";
-import { KnowledgeGraphOutwardEdge } from "./edges/variants/knowledge.js";
-import { OntologyOutwardEdge } from "./edges/variants/ontology.js";
+import type { EntityId } from "../entity.js";
+import type { OntologyTypeRevisionId } from "../ontology.js";
+import type { Timestamp } from "../temporal-versioning.js";
+import type { KnowledgeGraphOutwardEdge } from "./edges/variants/knowledge.js";
+import type { OntologyOutwardEdge } from "./edges/variants/ontology.js";
 
 export * from "./edges/kind.js";
 export * from "./edges/outward-edge.js";

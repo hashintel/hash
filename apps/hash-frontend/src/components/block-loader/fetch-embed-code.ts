@@ -1,4 +1,4 @@
-import { JsonObject } from "@blockprotocol/core";
+import type { JsonObject } from "@blockprotocol/core";
 import { apiGraphQLEndpoint } from "@local/hash-isomorphic-utils/environment";
 
 export type FetchEmbedCodeFn = (

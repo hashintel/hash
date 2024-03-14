@@ -1,10 +1,10 @@
 import { useQuery } from "@apollo/client";
-import {
+import type {
   CheckUserPermissionsOnEntityQuery,
   CheckUserPermissionsOnEntityQueryVariables,
 } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { checkUserPermissionsOnEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
-import { Entity, EntityMetadata } from "@local/hash-subgraph";
+import type { Entity, EntityMetadata } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 export const useUserPermissionsOnEntity = (

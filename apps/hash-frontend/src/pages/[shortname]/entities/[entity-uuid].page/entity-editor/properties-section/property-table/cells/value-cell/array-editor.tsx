@@ -1,7 +1,7 @@
+import type { DragEndEvent } from "@dnd-kit/core";
 import {
   closestCenter,
   DndContext,
-  DragEndEvent,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -23,9 +23,9 @@ import { AddAnotherButton } from "./array-editor/add-another-button";
 import { DraftRow } from "./array-editor/draft-row";
 import { ItemLimitInfo } from "./array-editor/item-limit-info";
 import { SortableRow } from "./array-editor/sortable-row";
-import { SortableItem } from "./array-editor/types";
+import type { SortableItem } from "./array-editor/types";
 import { getEditorSpecs } from "./editor-specs";
-import { ValueCellEditorComponent } from "./types";
+import type { ValueCellEditorComponent } from "./types";
 import {
   guessEditorTypeFromExpectedType,
   isBlankStringOrNullish,

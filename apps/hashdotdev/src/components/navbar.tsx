@@ -3,14 +3,12 @@ import {
   faBars,
   faClose,
 } from "@fortawesome/free-solid-svg-icons";
+import type { BoxProps, ButtonProps, ContainerProps } from "@mui/material";
 import {
   alpha,
   Box,
-  BoxProps,
   buttonClasses,
-  ButtonProps,
   Container,
-  ContainerProps,
   Fade,
   IconButton,
   Slide,
@@ -21,13 +19,8 @@ import {
 } from "@mui/material";
 import clsx from "clsx";
 import { useRouter } from "next/router";
-import {
-  FunctionComponent,
-  ReactNode,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import type { FunctionComponent, ReactNode } from "react";
+import { useContext, useEffect, useState } from "react";
 
 import { SiteMapContext } from "../pages/shared/sitemap-context";
 import { Button } from "./button";

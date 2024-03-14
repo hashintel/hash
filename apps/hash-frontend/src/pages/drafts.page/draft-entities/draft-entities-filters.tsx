@@ -1,27 +1,27 @@
-import { extractVersion, VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import { extractVersion } from "@blockprotocol/type-system";
 import { WandMagicSparklesIcon } from "@hashintel/design-system";
-import {
+import type {
   AccountId,
   BaseUrl,
   Entity,
   EntityRootType,
   EntityTypeWithMetadata,
-  extractOwnedByIdFromEntityId,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
+import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Fade, Typography } from "@mui/material";
 import { subDays, subHours } from "date-fns";
-import {
+import type {
   Dispatch,
   FunctionComponent,
   ReactNode,
   SetStateAction,
-  useCallback,
-  useMemo,
 } from "react";
+import { useCallback, useMemo } from "react";
 
 import { useOrgs } from "../../../components/hooks/use-orgs";
 import { useUsers } from "../../../components/hooks/use-users";
@@ -37,10 +37,11 @@ import { LinkRegularIcon } from "../../../shared/icons/link-regular-icon";
 import { UserIcon } from "../../../shared/icons/user-icon";
 import { UsersRegularIcon } from "../../../shared/icons/users-regular-icon";
 import { Button } from "../../../shared/ui";
-import { isAiMachineActor, MinimalActor } from "../../../shared/use-actors";
+import type { MinimalActor } from "../../../shared/use-actors";
+import { isAiMachineActor } from "../../../shared/use-actors";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { FilterSection } from "./draft-entities-filters/filter-section";
-import { FilterSectionDefinition } from "./draft-entities-filters/types";
+import type { FilterSectionDefinition } from "./draft-entities-filters/types";
 
 const draftEntitiesFiltersColumnWidth = 200;
 

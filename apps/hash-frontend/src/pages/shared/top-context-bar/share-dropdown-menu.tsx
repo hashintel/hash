@@ -1,24 +1,25 @@
 import { useQuery } from "@apollo/client";
-import { Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import { Box, Divider, Popover, Typography } from "@mui/material";
 import {
   bindMenu,
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { FunctionComponent, useMemo } from "react";
+import type { FunctionComponent } from "react";
+import { useMemo } from "react";
 
-import {
-  EntityAuthorizationRelation,
+import type {
   GetEntityAuthorizationRelationshipsQuery,
   GetEntityAuthorizationRelationshipsQueryVariables,
 } from "../../../graphql/api-types.gen";
+import { EntityAuthorizationRelation } from "../../../graphql/api-types.gen";
 import { getEntityAuthorizationRelationshipsQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import { Button } from "../../../shared/ui";
 import { useUserPermissionsOnEntity } from "../../../shared/use-user-permissions-on-entity";
+import type { EntityAuthorizationStatus } from "./share-dropdown-menu/edit-authorization-status-menu";
 import {
   EditAuthorizationStatusMenu,
-  EntityAuthorizationStatus,
   entityAuthorizationStatusIcons,
 } from "./share-dropdown-menu/edit-authorization-status-menu";
 import { ShareEntitySection } from "./share-dropdown-menu/share-entity-section";

@@ -1,8 +1,8 @@
 import { Box, TextField } from "@mui/material";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import { useFormContext } from "react-hook-form";
 
-import { ChartDefinition } from "../types/chart-definition";
+import type { ChartDefinition } from "../types/chart-definition";
 
 const minDepth = 0;
 const maxDepth = 255;

@@ -2,7 +2,7 @@ import { Typography } from "@mui/material";
 import { Plugin, PluginKey } from "prosemirror-state";
 import { Decoration, DecorationSet } from "prosemirror-view";
 
-import { RenderPortal } from "../block-portals";
+import type { RenderPortal } from "../block-portals";
 
 export type CommentPlaceholderAction = {
   type: "replacePlaceholder";

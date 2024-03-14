@@ -1,4 +1,4 @@
-import { Shadows, ThemeOptions } from "@mui/material";
+import type { Shadows, ThemeOptions } from "@mui/material";
 
 type ShadowSizes = {
   none: string;

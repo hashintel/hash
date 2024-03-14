@@ -1,8 +1,8 @@
-import { OwnedById } from "@local/hash-subgraph";
-import { Node } from "prosemirror-model";
-import { EditorView, NodeView } from "prosemirror-view";
+import type { OwnedById } from "@local/hash-subgraph";
+import type { Node } from "prosemirror-model";
+import type { EditorView, NodeView } from "prosemirror-view";
 
-import { RenderPortal } from "../block-portals";
+import type { RenderPortal } from "../block-portals";
 import { MentionDisplay } from "./mention-display";
 
 export class MentionView implements NodeView {

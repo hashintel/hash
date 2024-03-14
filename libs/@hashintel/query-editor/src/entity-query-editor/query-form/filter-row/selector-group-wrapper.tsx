@@ -5,7 +5,7 @@ import {
   outlinedInputClasses,
   Stack,
 } from "@mui/material";
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 
 export const SelectorGroupWrapper = ({ children }: { children: ReactNode }) => {
   return (

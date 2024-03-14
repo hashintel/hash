@@ -8,7 +8,8 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { FunctionComponent, useCallback, useEffect, useRef } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import { SearchIcon } from "../../../icons";
 import {

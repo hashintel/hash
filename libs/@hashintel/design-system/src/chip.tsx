@@ -1,10 +1,8 @@
 import { faCircle } from "@fortawesome/free-solid-svg-icons";
-import {
-  Chip as MuiChip,
-  chipClasses,
-  ChipProps as MuiChipProps,
-} from "@mui/material";
-import { forwardRef, FunctionComponent } from "react";
+import type { ChipProps as MuiChipProps } from "@mui/material";
+import { Chip as MuiChip, chipClasses } from "@mui/material";
+import type { FunctionComponent } from "react";
+import { forwardRef } from "react";
 
 import { FontAwesomeIcon } from "./fontawesome-icon";
 

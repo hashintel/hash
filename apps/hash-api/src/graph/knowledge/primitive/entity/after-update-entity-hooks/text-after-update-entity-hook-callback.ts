@@ -1,10 +1,7 @@
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { TextToken } from "@local/hash-isomorphic-utils/types";
-import {
-  entityIdFromOwnedByIdAndEntityUuid,
-  EntityUuid,
-  OwnedById,
-} from "@local/hash-subgraph";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
+import type { EntityUuid, OwnedById } from "@local/hash-subgraph";
+import { entityIdFromOwnedByIdAndEntityUuid } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import {
@@ -19,7 +16,7 @@ import {
 import { getUserById } from "../../../system-types/user";
 import { checkPermissionsOnEntity } from "../../entity";
 import { getTextUpdateOccurredIn } from "../shared/mention-notification";
-import { UpdateEntityHookCallback } from "../update-entity-hooks";
+import type { UpdateEntityHookCallback } from "../update-entity-hooks";
 
 /**
  * This after update `Text` entity hook is responsible for creating

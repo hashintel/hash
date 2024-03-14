@@ -1,18 +1,13 @@
 import { getBlockCollectionResolveDepth } from "@local/hash-isomorphic-utils/block-collection";
-import {
+import type {
   Entity,
   EntityRootType,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
 import { Box, Skeleton } from "@mui/material";
-import {
-  FunctionComponent,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import type { FunctionComponent } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useBlockProtocolGetEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
 import { ArrowTurnDownLeftRegularIcon } from "../../shared/icons/arrow-turn-down-left-regular-icon";

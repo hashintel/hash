@@ -1,10 +1,11 @@
 import { Box, Dialog, Stack, Typography } from "@mui/material";
-import { Plugin, PluginKey, Transaction } from "prosemirror-state";
-import { FunctionComponent } from "react";
+import type { Transaction } from "prosemirror-state";
+import { Plugin, PluginKey } from "prosemirror-state";
+import type { FunctionComponent } from "react";
 
 import { ensureMounted } from "../../../lib/dom";
 import { Button } from "../../../shared/ui";
-import { RenderPortal } from "./block-portals";
+import type { RenderPortal } from "./block-portals";
 
 type ErrorProps = { errored: boolean };
 

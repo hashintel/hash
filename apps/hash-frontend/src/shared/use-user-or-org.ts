@@ -9,9 +9,9 @@ import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { OrganizationProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import {
+import type { OrganizationProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+import type {
   AccountGroupId,
   AccountId,
   Entity,
@@ -22,7 +22,7 @@ import {
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
-import {
+import type {
   StructuralQueryEntitiesQuery,
   StructuralQueryEntitiesQueryVariables,
 } from "../graphql/api-types.gen";

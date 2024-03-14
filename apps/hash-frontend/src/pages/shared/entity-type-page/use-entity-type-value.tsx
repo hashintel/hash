@@ -1,12 +1,12 @@
 import { useMutation } from "@apollo/client";
-import {
+import type {
   EntityType,
   PropertyTypeReference,
   ValueOrArray,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { ConstructEntityTypeParams } from "@local/hash-isomorphic-utils/types";
-import {
+import type { ConstructEntityTypeParams } from "@local/hash-isomorphic-utils/types";
+import type {
   AccountId,
   BaseUrl,
   EntityTypeWithMetadata,
@@ -30,7 +30,7 @@ import {
   useState,
 } from "react";
 
-import {
+import type {
   CreateEntityTypeMutation,
   CreateEntityTypeMutationVariables,
   UpdateEntityTypeMutation,

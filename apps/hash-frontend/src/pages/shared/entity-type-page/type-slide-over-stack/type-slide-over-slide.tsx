@@ -1,4 +1,4 @@
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   ArrowLeftIcon,
   CloseIcon,
@@ -7,17 +7,18 @@ import {
   OntologyChip,
   parseUrlForOntologyChip,
 } from "@hashintel/design-system";
+import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 import {
   EntityTypeEditor,
-  EntityTypeEditorFormData,
   EntityTypeFormProvider,
   getFormDataFromEntityType,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
-import { EntityTypeWithMetadata } from "@local/hash-subgraph";
+import type { EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, ButtonBase, Slide, Tooltip } from "@mui/material";
-import { FunctionComponent, useCallback, useMemo, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { ArrowRightIcon } from "../../../../shared/icons/arrow-right";

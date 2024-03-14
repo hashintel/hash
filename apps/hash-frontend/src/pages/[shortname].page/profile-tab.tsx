@@ -1,7 +1,7 @@
 import { Box } from "@mui/material";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 
-import { Org, User } from "../../lib/user-and-org";
+import type { Org, User } from "../../lib/user-and-org";
 import { ProfileBio } from "./profile-bio";
 
 export const ProfileTab: FunctionComponent<{

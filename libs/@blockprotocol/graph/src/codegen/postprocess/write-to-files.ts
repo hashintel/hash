@@ -1,7 +1,7 @@
 import { writeFile } from "node:fs/promises";
 import * as path from "node:path";
 
-import { PostprocessContext } from "../context/postprocess.js";
+import type { PostprocessContext } from "../context/postprocess.js";
 
 export const writeToFiles = async (
   context: PostprocessContext,

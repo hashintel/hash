@@ -1,11 +1,11 @@
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   getReferencedIdsFromEntityType,
   getReferencedIdsFromPropertyType,
-  VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 
 import { typedValues } from "../../shared/util/typed-object-iter";
-import { InitializeContext } from "../context.js";
+import type { InitializeContext } from "../context.js";
 import { fetchTypeAsJson } from "./traverse/fetch.js";
 import {
   isDataType,

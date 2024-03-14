@@ -1,10 +1,11 @@
-import { Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 
 import { getCommentParent } from "../../../../graph/knowledge/system-types/comment";
-import { ResolverFn } from "../../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../../context";
+import type { ResolverFn } from "../../../api-types.gen";
+import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
-import { mapEntityToGQL, UnresolvedCommentGQL } from "../graphql-mapping";
+import type { UnresolvedCommentGQL } from "../graphql-mapping";
+import { mapEntityToGQL } from "../graphql-mapping";
 
 export const commentParentResolver: ResolverFn<
   Promise<Entity>,

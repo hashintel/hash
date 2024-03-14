@@ -1,26 +1,33 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { createOrgMembershipAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { IsMemberOfProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
+import type { IsMemberOfProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type {
   AccountEntityId,
   AccountGroupEntityId,
   EntityId,
+  OwnedById,
+} from "@local/hash-subgraph";
+import {
   extractAccountGroupId,
   extractAccountId,
   extractEntityUuidFromEntityId,
-  OwnedById,
 } from "@local/hash-subgraph";
-import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
-import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
+import type {
+  ImpureGraphFunction,
+  PureGraphFunction,
+} from "../../context-types";
 import {
   createLinkEntity,
   getLinkEntityLeftEntity,
   getLinkEntityRightEntity,
 } from "../primitive/link-entity";
-import { getOrgFromEntity, Org } from "./org";
-import { getUserFromEntity, User } from "./user";
+import type { Org } from "./org";
+import { getOrgFromEntity } from "./org";
+import type { User } from "./user";
+import { getUserFromEntity } from "./user";
 
 export type OrgMembership = {
   linkEntity: LinkEntity<IsMemberOfProperties>;

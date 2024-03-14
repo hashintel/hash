@@ -1,11 +1,11 @@
 import { useQuery } from "@apollo/client";
-import { VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import {
   currentTimeInstantTemporalAxes,
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import {
+import type {
   BaseUrl,
   EntityRootType,
   GraphResolveDepths,
@@ -14,7 +14,7 @@ import {
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
-import {
+import type {
   QueryEntitiesQueryVariables,
   StructuralQueryEntitiesQuery,
   StructuralQueryEntitiesQueryVariables,
@@ -24,7 +24,7 @@ import {
   structuralQueryEntitiesQuery,
 } from "../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../lib/apollo-client";
-import { EntityTypeEntitiesContextValue } from "./entity-type-entities-context";
+import type { EntityTypeEntitiesContextValue } from "./entity-type-entities-context";
 
 export const generateUseEntityTypeEntitiesQueryVariables = (params: {
   ownedById?: OwnedById;

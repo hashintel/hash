@@ -1,10 +1,10 @@
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import { AccountId, OwnedById } from "@local/hash-subgraph";
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+import type { AccountId, OwnedById } from "@local/hash-subgraph";
 import { ApolloError, UserInputError } from "apollo-server-express";
 
 import { userHasAccessToHash } from "../../../../../shared/user-has-access-to-hash";
-import { ImpureGraphContext } from "../../../../context-types";
+import type { ImpureGraphContext } from "../../../../context-types";
 import { modifyWebAuthorizationRelationships } from "../../../../ontology/primitive/util";
 import { systemAccountId } from "../../../../system-account";
 import {
@@ -18,7 +18,7 @@ import {
   getUserFromEntity,
   updateUserKratosIdentityTraits,
 } from "../../../system-types/user";
-import { UpdateEntityHookCallback } from "../update-entity-hooks";
+import type { UpdateEntityHookCallback } from "../update-entity-hooks";
 
 const validateAccountShortname = async (
   context: ImpureGraphContext,

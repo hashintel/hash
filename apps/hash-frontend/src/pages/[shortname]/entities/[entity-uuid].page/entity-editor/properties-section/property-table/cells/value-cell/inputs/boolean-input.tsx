@@ -3,7 +3,7 @@ import { faRightLeft } from "@fortawesome/free-solid-svg-icons";
 import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, chipClasses, Tooltip, Typography } from "@mui/material";
 
-import { CellInputProps } from "./types";
+import type { CellInputProps } from "./types";
 
 export const BooleanInput = ({
   onChange,

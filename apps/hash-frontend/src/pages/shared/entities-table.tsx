@@ -1,25 +1,19 @@
-import {
+import type {
   Entity as BpEntity,
   EntityRootType as BpEntityRootType,
   Subgraph as BpSubgraph,
   VersionedUrl,
 } from "@blockprotocol/graph";
-import {
-  CustomCell,
-  GridCellKind,
-  Item,
-  TextCell,
-} from "@glideapps/glide-data-grid";
+import type { CustomCell, Item, TextCell } from "@glideapps/glide-data-grid";
+import { GridCellKind } from "@glideapps/glide-data-grid";
 import { EntitiesGraphChart } from "@hashintel/block-design-system";
 import { ListRegularIcon } from "@hashintel/design-system";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { BaseUrl, Entity, EntityId } from "@local/hash-subgraph";
 import {
-  BaseUrl,
-  Entity,
-  EntityId,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
@@ -33,15 +27,8 @@ import {
   useTheme,
 } from "@mui/material";
 import { useRouter } from "next/router";
-import {
-  FunctionComponent,
-  ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import type { FunctionComponent, ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   Grid,
@@ -49,33 +36,27 @@ import {
   gridHorizontalScrollbarHeight,
   gridRowHeight,
 } from "../../components/grid/grid";
-import { BlankCell, blankCell } from "../../components/grid/utils";
-import { CustomIcon } from "../../components/grid/utils/custom-grid-icons";
-import { ColumnFilter } from "../../components/grid/utils/filtering";
+import type { BlankCell } from "../../components/grid/utils";
+import { blankCell } from "../../components/grid/utils";
+import type { CustomIcon } from "../../components/grid/utils/custom-grid-icons";
+import type { ColumnFilter } from "../../components/grid/utils/filtering";
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
 import { useEntityTypeEntitiesContext } from "../../shared/entity-type-entities-context";
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { ChartNetworkRegularIcon } from "../../shared/icons/chart-network-regular-icon";
 import { GridSolidIcon } from "../../shared/icons/grid-solid-icon";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
-import {
-  FilterState,
-  TableHeader,
-  tableHeaderHeight,
-} from "../../shared/table-header";
+import type { FilterState } from "../../shared/table-header";
+import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
 import { isAiMachineActor } from "../../shared/use-actors";
 import { useEntityTypeEntities } from "../../shared/use-entity-type-entities";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { renderChipCell } from "./chip-cell";
 import { GridView } from "./entities-table/grid-view";
-import {
-  createRenderTextIconCell,
-  TextIconCell,
-} from "./entities-table/text-icon-cell";
-import {
-  TypeEntitiesRow,
-  useEntitiesTable,
-} from "./entities-table/use-entities-table";
+import type { TextIconCell } from "./entities-table/text-icon-cell";
+import { createRenderTextIconCell } from "./entities-table/text-icon-cell";
+import type { TypeEntitiesRow } from "./entities-table/use-entities-table";
+import { useEntitiesTable } from "./entities-table/use-entities-table";
 import { useGetEntitiesTableAdditionalCsvData } from "./entities-table/use-get-entities-table-additional-csv-data";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 

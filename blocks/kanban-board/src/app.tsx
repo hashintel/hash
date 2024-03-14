@@ -7,10 +7,10 @@ import { EditableField, theme } from "@hashintel/block-design-system";
 import { ThemeProvider } from "@mui/material";
 import { useMemo, useRef, useState } from "react";
 
-import { BlockEntityKey } from "./additional-types";
+import type { BlockEntityKey } from "./additional-types";
 import styles from "./base.module.scss";
 import { Board } from "./components/board/board";
-import {
+import type {
   BlockEntity,
   KanbanBoardBlockOutgoingLinkAndTarget,
 } from "./types/generated/block-entity";

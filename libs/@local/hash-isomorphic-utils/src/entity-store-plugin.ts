@@ -1,36 +1,32 @@
-import { Block } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-import {
+import type { Block } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import type {
   EntityId,
   EntityPropertiesObject,
   OwnedById,
   Timestamp,
 } from "@local/hash-subgraph";
-import { castDraft, Draft, produce } from "immer";
+import type { Draft } from "immer";
+import { castDraft, produce } from "immer";
 import { isEqual } from "lodash";
-import { Node } from "prosemirror-model";
-import { EditorState, Plugin, PluginKey, Transaction } from "prosemirror-state";
-import { EditorView } from "prosemirror-view";
+import type { Node } from "prosemirror-model";
+import type { EditorState, Transaction } from "prosemirror-state";
+import { Plugin, PluginKey } from "prosemirror-state";
+import type { EditorView } from "prosemirror-view";
 import { v4 as uuid } from "uuid";
 
-import {
-  BlockEntity,
-  getEntityChildEntity,
-  isRichTextContainingEntity,
-} from "./entity";
+import type { BlockEntity } from "./entity";
+import { getEntityChildEntity, isRichTextContainingEntity } from "./entity";
+import type { DraftEntity, EntityStore, EntityStoreType } from "./entity-store";
 import {
   createEntityStore,
-  DraftEntity,
-  EntityStore,
-  EntityStoreType,
   getDraftEntityByEntityId,
   isBlockEntity,
   isDraftBlockEntity,
   textualContentPropertyTypeBaseUrl,
 } from "./entity-store";
+import type { ComponentNode, EntityNode } from "./prosemirror";
 import {
-  ComponentNode,
   componentNodeToId,
-  EntityNode,
   findComponentNodes,
   isComponentNode,
   isEntityNode,

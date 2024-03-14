@@ -1,17 +1,17 @@
 import { useMutation } from "@apollo/client";
+import type { Entity } from "@local/hash-subgraph";
 import {
-  Entity,
   extractDraftIdFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
 
 import { useBlockProtocolArchiveEntity } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
-import {
+import type {
   CreateEntityMutation,
   CreateEntityMutationVariables,
 } from "../../../../../graphql/api-types.gen";
 import { createEntityMutation } from "../../../../../graphql/queries/knowledge/entity.queries";
-import {
+import type {
   DraftLinksToArchive,
   DraftLinksToCreate,
 } from "./use-draft-link-state";

@@ -1,4 +1,5 @@
-import { Components, Theme, typographyClasses } from "@mui/material";
+import type { Components, Theme } from "@mui/material";
+import { typographyClasses } from "@mui/material";
 
 export const MuiFormHelperTextThemeOptions: Components<Theme>["MuiFormHelperText"] =
   {

@@ -1,13 +1,13 @@
 import { useMutation } from "@apollo/client";
-import { OwnedById } from "@local/hash-subgraph";
+import type { OwnedById } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
-import {
+import type {
   CreateEntityTypeMutation,
   CreateEntityTypeMutationVariables,
 } from "../../../../graphql/api-types.gen";
 import { createEntityTypeMutation } from "../../../../graphql/queries/ontology/entity-type.queries";
-import { CreateEntityTypeMessageCallback } from "./ontology-types-shim";
+import type { CreateEntityTypeMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolCreateEntityType = (
   ownedById: OwnedById | null,

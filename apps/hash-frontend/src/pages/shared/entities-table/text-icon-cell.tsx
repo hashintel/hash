@@ -1,12 +1,9 @@
-import {
-  CustomCell,
-  CustomRenderer,
-  GridCellKind,
-} from "@glideapps/glide-data-grid";
+import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
+import { GridCellKind } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
 
 import { getCellHorizontalPadding } from "../../../components/grid/utils";
-import { CustomIcon } from "../../../components/grid/utils/custom-grid-icons";
+import type { CustomIcon } from "../../../components/grid/utils/custom-grid-icons";
 import { drawTextWithIcon } from "../../../components/grid/utils/draw-text-with-icon";
 
 export interface TextIconCellProps {

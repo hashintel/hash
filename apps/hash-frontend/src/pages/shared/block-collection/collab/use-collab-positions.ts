@@ -1,9 +1,10 @@
-import { CollabPosition } from "@local/hash-isomorphic-utils/collab";
+import type { CollabPosition } from "@local/hash-isomorphic-utils/collab";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import { useEffect, useState } from "react";
 
-import { AbortingPromise, GET } from "./http";
+import type { AbortingPromise } from "./http";
+import { GET } from "./http";
 
 const requestRetryInterval = 5000;
 

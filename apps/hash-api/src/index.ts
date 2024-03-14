@@ -5,7 +5,8 @@ import {
   realtimeSyncEnabled,
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
-import express, { ErrorRequestHandler, raw } from "express";
+import type { ErrorRequestHandler } from "express";
+import express, { raw } from "express";
 import { create as handlebarsCreate } from "express-handlebars";
 
 // eslint-disable-next-line import/order
@@ -27,7 +28,8 @@ import * as Sentry from "@sentry/node";
 import { json } from "body-parser";
 import cors from "cors";
 import proxy from "express-http-proxy";
-import { Options as RateLimitOptions, rateLimit } from "express-rate-limit";
+import type { Options as RateLimitOptions } from "express-rate-limit";
+import { rateLimit } from "express-rate-limit";
 import helmet from "helmet";
 import { StatsD } from "hot-shots";
 import { createHttpTerminator } from "http-terminator";
@@ -50,10 +52,10 @@ import { hydraPublicUrl } from "./auth/ory-hydra";
 import { kratosPublicUrl } from "./auth/ory-kratos";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
 import { RedisCache } from "./cache";
+import type { EmailTransporter } from "./email/transporters";
 import {
   AwsSesEmailTransporter,
   DummyEmailTransporter,
-  EmailTransporter,
 } from "./email/transporters";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
 import { createApolloServer } from "./graphql/create-apollo-server";

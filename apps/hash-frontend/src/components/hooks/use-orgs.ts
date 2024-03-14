@@ -1,20 +1,18 @@
-import { ApolloQueryResult, useQuery } from "@apollo/client";
+import type { ApolloQueryResult } from "@apollo/client";
+import { useQuery } from "@apollo/client";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { EntityRootType } from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
-import {
+import type {
   QueryEntitiesQuery,
   QueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
 import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import {
-  constructMinimalOrg,
-  isEntityOrgEntity,
-  MinimalOrg,
-} from "../../lib/user-and-org";
+import type { MinimalOrg } from "../../lib/user-and-org";
+import { constructMinimalOrg, isEntityOrgEntity } from "../../lib/user-and-org";
 import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
 
 /**

@@ -1,4 +1,5 @@
-import { FunctionComponent, useEffect, useRef } from "react";
+import type { FunctionComponent } from "react";
+import { useEffect, useRef } from "react";
 import { tw } from "twind";
 
 import { toCSSText } from "./utils";

@@ -1,6 +1,6 @@
-import { MultiFilter } from "@blockprotocol/graph";
+import type { MultiFilter } from "@blockprotocol/graph";
 
-import {
+import type {
   FilterValue,
   FilterValueType,
   FormValues,

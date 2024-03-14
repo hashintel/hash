@@ -1,15 +1,18 @@
-import {
+import type {
   Entity,
   EntityId,
   EntityRootType,
   Subgraph,
 } from "@blockprotocol/graph";
 import { getEntities, getEntityTypeById } from "@blockprotocol/graph/stdlib";
-import { Chart, EChart, ECOption } from "@hashintel/design-system";
+import type { Chart, ECOption } from "@hashintel/design-system";
+import { EChart } from "@hashintel/design-system";
 // eslint-disable-next-line no-restricted-imports
 import { generateEntityLabel as hashGenerateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { BoxProps, useTheme } from "@mui/material";
-import { FunctionComponent, useEffect, useMemo, useState } from "react";
+import type { BoxProps } from "@mui/material";
+import { useTheme } from "@mui/material";
+import type { FunctionComponent } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const generateEntityLabel = (
   subgraph: Subgraph<EntityRootType>,

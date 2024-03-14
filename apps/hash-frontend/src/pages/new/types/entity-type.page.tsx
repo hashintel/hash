@@ -1,4 +1,4 @@
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { OntologyChip } from "@hashintel/design-system";
 import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
@@ -6,10 +6,8 @@ import { Box, Container, Stack, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useContext } from "react";
 
-import {
-  getLayoutWithSidebar,
-  NextPageWithLayout,
-} from "../../../shared/layout";
+import type { NextPageWithLayout } from "../../../shared/layout";
+import { getLayoutWithSidebar } from "../../../shared/layout";
 import { CreateEntityTypeForm } from "../../shared/create-entity-type-form";
 import { TopContextBar } from "../../shared/top-context-bar";
 import { WorkspaceContext } from "../../shared/workspace-context";

@@ -1,6 +1,6 @@
-import { EntityTypeWithMetadata } from "@blockprotocol/graph";
+import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
 
-import { EntityTypeEditorFormData } from "./shared/form-types";
+import type { EntityTypeEditorFormData } from "./shared/form-types";
 
 type Entries<T> = {
   [K in keyof T]: [K, T[K]];

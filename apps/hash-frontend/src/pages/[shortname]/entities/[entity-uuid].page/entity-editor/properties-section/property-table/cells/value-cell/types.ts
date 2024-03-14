@@ -1,7 +1,10 @@
-import { CustomCell, ProvideEditorComponent } from "@glideapps/glide-data-grid";
+import type {
+  CustomCell,
+  ProvideEditorComponent,
+} from "@glideapps/glide-data-grid";
 
-import { TooltipCellProps } from "../../../../../../../../../components/grid/utils/use-grid-tooltip/types";
-import { PropertyRow } from "../../types";
+import type { TooltipCellProps } from "../../../../../../../../../components/grid/utils/use-grid-tooltip/types";
+import type { PropertyRow } from "../../types";
 
 export interface ValueCellProps extends TooltipCellProps {
   readonly kind: "value-cell";

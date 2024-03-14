@@ -1,4 +1,4 @@
-import { FunctionComponent, ReactNode } from "react";
+import type { FunctionComponent, ReactNode } from "react";
 
 import { useIsReadonlyModeForApp } from "../readonly-mode";
 import { PageHeader } from "./layout-with-header/page-header";

@@ -9,16 +9,14 @@ import {
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
-  AccountEntityId,
-  EntityRootType,
-  extractAccountId,
-} from "@local/hash-subgraph";
+import type { AccountEntityId, EntityRootType } from "@local/hash-subgraph";
+import { extractAccountId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
-import { FormEvent, useEffect, useRef, useState } from "react";
+import type { FormEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import {
+import type {
   AddAccountGroupMemberMutation,
   AddAccountGroupMemberMutationVariables,
   CreateEntityMutation,
@@ -31,7 +29,7 @@ import {
   createEntityMutation,
   queryEntitiesQuery,
 } from "../../../../../graphql/queries/knowledge/entity.queries";
-import { Org } from "../../../../../lib/user-and-org";
+import type { Org } from "../../../../../lib/user-and-org";
 import { Button } from "../../../../../shared/ui/button";
 import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
 

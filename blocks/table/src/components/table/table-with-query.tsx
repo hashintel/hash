@@ -1,26 +1,25 @@
-import {
+import type {
   BaseUrl,
   Entity,
   EntityRootType,
-  extractBaseUrl,
-  extractVersion,
   GraphBlockHandler,
   JsonValue,
   MultiFilter,
   PropertyType,
   Subgraph,
 } from "@blockprotocol/graph";
+import { extractBaseUrl, extractVersion } from "@blockprotocol/graph";
 import { getPropertyTypes, getRoots } from "@blockprotocol/graph/stdlib";
-import {
+import type {
   DataEditorProps,
   DataEditorRef,
-  GridCellKind,
   GridColumn,
 } from "@glideapps/glide-data-grid";
+import { GridCellKind } from "@glideapps/glide-data-grid";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { RootKey } from "../../additional-types";
-import { BlockEntity } from "../../types/generated/block-entity";
+import type { RootKey } from "../../additional-types";
+import type { BlockEntity } from "../../types/generated/block-entity";
 import { Grid, ROW_HEIGHT } from "../grid/grid";
 
 const isStripedKey: RootKey =

@@ -1,11 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import browser from "webextension-polyfill";
 
-import {
-  getFromLocalStorage,
-  LocalStorage,
-  setInLocalStorage,
-} from "../../shared/storage";
+import type { LocalStorage } from "../../shared/storage";
+import { getFromLocalStorage, setInLocalStorage } from "../../shared/storage";
 
 type NonUndefined<T> = T extends undefined ? never : T;
 

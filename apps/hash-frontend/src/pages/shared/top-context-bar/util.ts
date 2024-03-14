@@ -1,4 +1,4 @@
-import { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
+import type { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
 
 export const isItemEntityType = (
   item: Entity | EntityTypeWithMetadata,

@@ -1,18 +1,16 @@
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import { TextToken } from "@local/hash-isomorphic-utils/types";
-import {
-  AccountEntityId,
-  EntityId,
-  extractAccountId,
-} from "@local/hash-subgraph";
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
+import type { AccountEntityId, EntityId } from "@local/hash-subgraph";
+import { extractAccountId } from "@local/hash-subgraph";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Box, buttonClasses, Collapse } from "@mui/material";
-import { FunctionComponent, useMemo, useRef, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { useCreateComment } from "../../../../components/hooks/use-create-comment";
-import { PageThread } from "../../../../components/hooks/use-page-comments";
+import type { PageThread } from "../../../../components/hooks/use-page-comments";
 import { Button } from "../../../../shared/ui";
 import { useAuthenticatedUser } from "../../auth-info-context";
 import { CommentActionButtons } from "./comment-action-buttons";

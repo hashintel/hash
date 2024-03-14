@@ -1,11 +1,10 @@
 import { faFile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import { Box, BoxProps } from "@mui/material";
+import type { BoxProps } from "@mui/material";
+import { Box } from "@mui/material";
 
-import {
-  iconVariantSizes,
-  SizeVariant,
-} from "../shared/edit-emoji-icon-button";
+import type { SizeVariant } from "../shared/edit-emoji-icon-button";
+import { iconVariantSizes } from "../shared/edit-emoji-icon-button";
 import { CanvasIcon } from "../shared/icons/canvas-icon";
 
 interface PageIconProps {

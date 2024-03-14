@@ -1,4 +1,4 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import {
@@ -6,9 +6,13 @@ import {
   getMachineActorId,
 } from "@local/hash-backend-utils/machine-actors";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
-import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
-import { AccountGroupId, AccountId, OwnedById } from "@local/hash-subgraph";
+import type { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
+import type {
+  AccountGroupId,
+  AccountId,
+  OwnedById,
+} from "@local/hash-subgraph";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { enabledIntegrations } from "../../integrations/enabled-integrations";
@@ -18,7 +22,7 @@ import {
   createAccountGroup,
   createWeb,
 } from "../account-permission-management";
-import { ImpureGraphContext } from "../context-types";
+import type { ImpureGraphContext } from "../context-types";
 import { createOrg, getOrgByShortname } from "../knowledge/system-types/org";
 import { systemAccountId } from "../system-account";
 

@@ -1,7 +1,8 @@
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Checkbox, Typography } from "@mui/material";
-import { FunctionComponent, useMemo, useRef, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { useDraftEntities } from "../../shared/draft-entities-context";
 import { ArrowUpRightRegularIcon } from "../../shared/icons/arrow-up-right-regular-icon";

@@ -2,25 +2,27 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import {
+import type {
   Array,
-  DATA_TYPE_META_SCHEMA,
   DataTypeReference,
-  ENTITY_TYPE_META_SCHEMA,
   EntityType,
-  extractVersion,
   Object as ObjectSchema,
   OneOf,
-  PROPERTY_TYPE_META_SCHEMA,
   PropertyType,
   PropertyTypeReference,
   PropertyValues,
   ValueOrArray,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import {
+  DATA_TYPE_META_SCHEMA,
+  ENTITY_TYPE_META_SCHEMA,
+  extractVersion,
+  PROPERTY_TYPE_META_SCHEMA,
+} from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
-import {
+import type {
   DataTypeRelationAndSubject,
   UpdatePropertyType,
 } from "@local/hash-graph-client";
@@ -35,13 +37,15 @@ import {
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
-  generateLinkMapWithConsistentSelfReferences,
-  generateTypeBaseUrl,
+import type {
   SchemaKind,
   SystemTypeWebShortname,
 } from "@local/hash-isomorphic-utils/ontology-types";
 import {
+  generateLinkMapWithConsistentSelfReferences,
+  generateTypeBaseUrl,
+} from "@local/hash-isomorphic-utils/ontology-types";
+import type {
   BaseUrl,
   ConstructDataTypeParams,
   CustomDataType,
@@ -52,11 +56,11 @@ import {
   EntityTypeInstantiatorSubject,
   EntityTypeRelationAndSubject,
   EntityTypeWithMetadata,
-  extractOwnedByIdFromEntityId,
   OwnedById,
   PropertyTypeRelationAndSubject,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
+import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import {
   getRoots,
   mapGraphApiSubgraphToSubgraph,
@@ -72,7 +76,7 @@ import {
   CACHED_ENTITY_TYPE_SCHEMAS,
   CACHED_PROPERTY_TYPE_SCHEMAS,
 } from "../../../seed-data";
-import { ImpureGraphFunction } from "../../context-types";
+import type { ImpureGraphFunction } from "../../context-types";
 import { getEntities, updateEntity } from "../../knowledge/primitive/entity";
 import {
   createDataType,
@@ -87,12 +91,12 @@ import {
   getPropertyTypeById,
 } from "../../ontology/primitive/property-type";
 import { systemAccountId } from "../../system-account";
+import type { PrimitiveDataTypeKey } from "../system-webs-and-entities";
 import {
   getOrCreateOwningAccountGroupId,
   isSelfHostedInstance,
-  PrimitiveDataTypeKey,
 } from "../system-webs-and-entities";
-import { MigrationState } from "./types";
+import type { MigrationState } from "./types";
 import { upgradeEntityTypeDependencies } from "./util/upgrade-entity-type-dependencies";
 
 const systemTypeDomain = "https://hash.ai";

@@ -2,7 +2,8 @@ import { Box, Typography } from "@mui/material";
 import { useEffect, useReducer, useState } from "react";
 
 import { Modal } from "../ui/modal";
-import { CommandBarOption, menu } from "./command-bar-options";
+import type { CommandBarOption } from "./command-bar-options";
+import { menu } from "./command-bar-options";
 import { HotKey } from "./hot-key";
 
 export const CheatSheet = () => {

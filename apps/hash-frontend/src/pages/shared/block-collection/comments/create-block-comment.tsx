@@ -1,9 +1,10 @@
 import { faComment } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
-import { TextToken } from "@local/hash-isomorphic-utils/types";
-import { EntityId } from "@local/hash-subgraph";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
+import type { EntityId } from "@local/hash-subgraph";
 import { Box } from "@mui/material";
-import { FunctionComponent, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useState } from "react";
 
 import { useCreateComment } from "../../../../components/hooks/use-create-comment";
 import { usePageContext } from "../page-context";

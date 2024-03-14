@@ -5,34 +5,33 @@ import {
   EyeSlashIconRegular,
 } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import {
+import type {
   Entity,
   EntityPropertyValue,
   EntityRootType,
   EntityTypeWithMetadata,
-  extractEntityUuidFromEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
   getEntityRevision,
   getEntityTypeById,
   getOutgoingLinkAndTargetEntities,
   getPropertyTypeById,
 } from "@local/hash-subgraph/stdlib";
-import {
-  extractBaseUrl,
-  LinkEntity,
-} from "@local/hash-subgraph/type-system-patch";
+import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+import type { BoxProps } from "@mui/material";
 import {
   Box,
-  BoxProps,
   chipClasses,
   styled,
   Tooltip,
   Typography,
   typographyClasses,
 } from "@mui/material";
-import { FunctionComponent, ReactNode, useMemo } from "react";
+import type { FunctionComponent, ReactNode } from "react";
+import { useMemo } from "react";
 
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
 import { generateLinkParameters } from "../../shared/generate-link-parameters";

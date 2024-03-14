@@ -1,6 +1,6 @@
 import { createReadStream } from "node:fs";
 
-import { GraphStatus } from "@apps/hash-graph/type-defs/status";
+import type { GraphStatus } from "@apps/hash-graph/type-defs/status";
 import { StatusCode } from "@local/status";
 import fetch from "node-fetch";
 

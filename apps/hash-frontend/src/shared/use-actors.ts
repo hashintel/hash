@@ -6,18 +6,18 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { MachineProperties } from "@local/hash-isomorphic-utils/system-types/machine";
-import { AccountId, EntityRootType } from "@local/hash-subgraph";
+import type { MachineProperties } from "@local/hash-isomorphic-utils/system-types/machine";
+import type { AccountId, EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import { useUsers } from "../components/hooks/use-users";
-import {
+import type {
   StructuralQueryEntitiesQuery,
   StructuralQueryEntitiesQueryVariables,
 } from "../graphql/api-types.gen";
 import { structuralQueryEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
-import { MinimalUser } from "../lib/user-and-org";
+import type { MinimalUser } from "../lib/user-and-org";
 
 type MachineActor = {
   accountId: AccountId;

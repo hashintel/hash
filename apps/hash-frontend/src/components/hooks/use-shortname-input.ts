@@ -1,7 +1,7 @@
 import { useApolloClient } from "@apollo/client";
 import { useCallback, useState } from "react";
 
-import {
+import type {
   IsShortnameTakenQuery,
   QueryIsShortnameTakenArgs,
 } from "../../graphql/api-types.gen";

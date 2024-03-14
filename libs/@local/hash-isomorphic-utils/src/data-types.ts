@@ -1,5 +1,5 @@
-import { JsonValue } from "@blockprotocol/core";
-import { ValueConstraint } from "@local/hash-subgraph";
+import type { JsonValue } from "@blockprotocol/core";
+import type { ValueConstraint } from "@local/hash-subgraph";
 import { getJsonSchemaTypeFromValue } from "@local/hash-subgraph/stdlib";
 
 export type FormattedValuePart = {

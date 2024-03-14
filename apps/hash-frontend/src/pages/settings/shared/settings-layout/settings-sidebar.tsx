@@ -1,21 +1,16 @@
 import { CaretDownSolidIcon, IconButton } from "@hashintel/design-system";
+import type { SvgIconProps } from "@mui/material";
 import {
   Box,
   Collapse,
   ListItem,
   styled,
-  SvgIconProps,
   Typography,
   useTheme,
 } from "@mui/material";
 import { useRouter } from "next/router";
-import {
-  FunctionComponent,
-  ReactNode,
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import type { FunctionComponent, ReactNode } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Link } from "../../../../shared/ui/link";
 

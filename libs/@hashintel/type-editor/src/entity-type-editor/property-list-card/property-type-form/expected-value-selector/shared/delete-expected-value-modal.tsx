@@ -6,7 +6,8 @@ import {
   Modal,
 } from "@hashintel/design-system";
 import { Box, Stack, Typography } from "@mui/material";
-import { bindDialog, PopupState } from "material-ui-popup-state/hooks";
+import type { PopupState } from "material-ui-popup-state/hooks";
+import { bindDialog } from "material-ui-popup-state/hooks";
 import { Fragment } from "react";
 
 type CountItemProps = { label: string; count: number };

@@ -1,14 +1,11 @@
-import { Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 
 import { getBlockCollectionBlocks } from "../../../../graph/knowledge/system-types/block-collection";
-import { ResolverFn } from "../../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../../context";
+import type { ResolverFn } from "../../../api-types.gen";
+import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
-import {
-  mapBlockToGQL,
-  mapEntityToGQL,
-  UnresolvedBlockGQL,
-} from "../graphql-mapping";
+import type { UnresolvedBlockGQL } from "../graphql-mapping";
+import { mapBlockToGQL, mapEntityToGQL } from "../graphql-mapping";
 
 export const blockCollectionContents: ResolverFn<
   { linkEntity: Entity; rightEntity: UnresolvedBlockGQL }[],

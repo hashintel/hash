@@ -2,12 +2,12 @@ import { useMutation } from "@apollo/client";
 import { TableCell, TableRow, Typography } from "@mui/material";
 
 import { useBlockProtocolArchiveEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
-import {
+import type {
   RemoveAccountGroupMemberMutation,
   RemoveAccountGroupMemberMutationVariables,
 } from "../../../../graphql/api-types.gen";
 import { removeAccountGroupMemberMutation } from "../../../../graphql/queries/account-group.queries";
-import { Org } from "../../../../lib/user-and-org";
+import type { Org } from "../../../../lib/user-and-org";
 import { Link } from "../../../../shared/ui/link";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { Cell } from "../shared/cell";

@@ -1,22 +1,22 @@
-import {
+import type {
   CustomCell,
   CustomRenderer,
   DataEditorRef,
-  GridCellKind,
 } from "@glideapps/glide-data-grid";
+import { GridCellKind } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
-import { DataTypeWithMetadata } from "@local/hash-subgraph";
+import type { DataTypeWithMetadata } from "@local/hash-subgraph";
 import produce from "immer";
-import { RefObject } from "react";
+import type { RefObject } from "react";
 
 import { getYCenter } from "../../../../../../../../components/grid/utils";
 import { drawCellFadeOutGradient } from "../../../../../../../../components/grid/utils/draw-cell-fade-out-gradient";
 import { drawChip } from "../../../../../../../../components/grid/utils/draw-chip";
 import { drawChipWithIcon } from "../../../../../../../../components/grid/utils/draw-chip-with-icon";
 import { propertyGridIndexes } from "../constants";
-import { PropertyRow } from "../types";
+import type { PropertyRow } from "../types";
 import { getEditorSpecs } from "./value-cell/editor-specs";
-import { ValueCell } from "./value-cell/types";
+import type { ValueCell } from "./value-cell/types";
 import { guessEditorTypeFromExpectedType } from "./value-cell/utils";
 
 export interface ChangeTypeCellProps {
