@@ -289,7 +289,6 @@ export type User = MinimalUser & {
     profileBioEntity: Entity<ProfileBioProperties>;
   };
   hasServiceAccounts: UserServiceAccount[];
-  isInstanceAdmin: boolean;
   memberOf: {
     linkEntity: Entity<IsMemberOfProperties>;
     org: Org;
@@ -479,11 +478,6 @@ export const constructUser = (params: {
       };
     });
 
-  /**
-   * @todo: determine whether a user is an instance admin from the subgraph
-   */
-  const isInstanceAdmin = false;
-
   const joinedAt = new Date(
     userEntity.metadata.provenance.createdAtDecisionTime,
   );
@@ -496,7 +490,6 @@ export const constructUser = (params: {
     hasServiceAccounts,
     joinedAt,
     memberOf,
-    isInstanceAdmin,
     emails: [
       {
         address: primaryEmailAddress,

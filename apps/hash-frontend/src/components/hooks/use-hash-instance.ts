@@ -7,6 +7,7 @@ import {
   HASHInstance,
   HASHInstanceProperties,
 } from "@local/hash-isomorphic-utils/system-types/hashinstance";
+import { Entity } from "@local/hash-subgraph/.";
 import { useMemo } from "react";
 
 import {
@@ -20,7 +21,9 @@ import { getHashInstanceEntityQuery } from "../../graphql/queries/knowledge/hash
  */
 export const useHashInstance = (): {
   loading: boolean;
-  hashInstance?: Simplified<HASHInstance>;
+  hashInstance?: Omit<Entity, "properties"> & {
+    properties: Simplified<HASHInstance>["properties"];
+  };
 } => {
   const { data, loading } = useQuery<
     GetHashInstanceEntityQueryQuery,
@@ -31,7 +34,12 @@ export const useHashInstance = (): {
 
   const { hashInstanceEntity } = data ?? {};
 
-  const hashInstance = useMemo<Simplified<HASHInstance> | undefined>(() => {
+  const hashInstance = useMemo<
+    | (Omit<Entity, "properties"> & {
+        properties: Simplified<HASHInstance>["properties"];
+      })
+    | undefined
+  >(() => {
     if (!hashInstanceEntity) {
       return undefined;
     }
