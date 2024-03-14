@@ -93,9 +93,7 @@ test("new notifications are shown on inbox page", async ({ page }) => {
   /** Wait for the notification poll interval to expire */
   await sleep(12_000);
 
-  await expect(
-    page.locator(`text=${draftNotificationTitle}`),
-  ).not.toBeVisible();
+  await expect(page.locator(`text=${draftNotificationTitle}`)).toBeVisible();
 
   const nonDraftNotificationTitle = new Date().toISOString();
 
@@ -113,7 +111,5 @@ test("new notifications are shown on inbox page", async ({ page }) => {
   /** Wait for the notification poll interval to expire */
   await sleep(12_000);
 
-  await expect(
-    page.locator(`text=${nonDraftNotificationTitle}`),
-  ).not.toBeVisible();
+  await expect(page.locator(`text=${nonDraftNotificationTitle}`)).toBeVisible();
 });
