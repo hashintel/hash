@@ -1,5 +1,6 @@
-import { VersionedUrl } from "@blockprotocol/graph";
-import { Button, ButtonProps, PlusIcon } from "@hashintel/design-system";
+import type { VersionedUrl } from "@blockprotocol/graph";
+import type { ButtonProps } from "@hashintel/design-system";
+import { Button, PlusIcon } from "@hashintel/design-system";
 import {
   Box,
   Stack,
@@ -13,7 +14,7 @@ import {
 } from "@mui/material";
 import { useMemo, useState } from "react";
 
-import { LocalStorage } from "../../../../../shared/storage";
+import type { LocalStorage } from "../../../../../shared/storage";
 import {
   borderColors,
   darkModeBorderColor,
@@ -25,7 +26,7 @@ import { CircleExclamationIcon } from "./select-scope/circle-exclamation-icon";
 import { RowsByLocation } from "./select-scope/rows-by-location";
 import { RowsByType } from "./select-scope/rows-by-type";
 import { SelectGrouping } from "./select-scope/select-grouping";
-import { CommonRowsProps } from "./select-scope/shared/common-rows-props";
+import type { CommonRowsProps } from "./select-scope/shared/common-rows-props";
 
 const AddTypeButton = ({
   disabled,

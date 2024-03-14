@@ -1,8 +1,9 @@
 import { useMutation } from "@apollo/client";
-import { EntityId, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-subgraph";
+import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
-import {
+import type {
   SetParentPageMutation,
   SetParentPageMutationVariables,
 } from "../../graphql/api-types.gen";

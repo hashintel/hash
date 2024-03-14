@@ -1,10 +1,10 @@
-import { GraphApi } from "@local/hash-graph-client";
+import type { GraphApi } from "@local/hash-graph-client";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
+import type {
   AccountId,
   EntityId,
   EntityRelationAndSubject,

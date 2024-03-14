@@ -3,13 +3,14 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { EntityId, OwnedById } from "@local/hash-subgraph";
+import type { EntityId, OwnedById } from "@local/hash-subgraph";
 import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
-import { PropsWithChildren, useState } from "react";
+import type { PropsWithChildren } from "react";
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { useShortnameInput } from "../../../../components/hooks/use-shortname-input";
-import { Org } from "../../../../lib/user-and-org";
+import type { Org } from "../../../../lib/user-and-org";
 import { useFileUploads } from "../../../../shared/file-upload-context";
 import { Button } from "../../../../shared/ui/button";
 import { useAuthInfo } from "../../../shared/auth-info-context";

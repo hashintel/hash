@@ -1,7 +1,6 @@
-import {
+import type {
   Array,
   BaseUrl,
-  extractBaseUrl,
   Object as BpObject,
   OneOf,
   PropertyType,
@@ -10,14 +9,15 @@ import {
   ValueOrArray,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
+import { extractBaseUrl } from "@blockprotocol/type-system/slim";
 
-import {
+import type {
   ArrayExpectedValue,
   CustomExpectedValue,
   CustomExpectedValueData,
   Property,
 } from "./shared/expected-value-types";
-import { PropertyTypeFormValues } from "./shared/property-type-form-values";
+import type { PropertyTypeFormValues } from "./shared/property-type-form-values";
 
 const getPrimitiveSchema = ($ref: VersionedUrl): PropertyTypeReference => ({
   $ref,

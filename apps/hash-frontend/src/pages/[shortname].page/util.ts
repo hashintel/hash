@@ -1,11 +1,11 @@
-import {
+import type {
   BaseUrl,
   Entity,
   EntityRootType,
   EntityTypeWithMetadata,
   Subgraph,
 } from "@local/hash-subgraph";
-import { NextParsedUrlQuery } from "next/dist/server/request-meta";
+import type { NextParsedUrlQuery } from "next/dist/server/request-meta";
 
 export type ProfilePageTab =
   | {

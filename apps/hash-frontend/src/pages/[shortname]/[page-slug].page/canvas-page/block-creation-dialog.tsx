@@ -1,13 +1,14 @@
 import { useMutation } from "@apollo/client";
-import { VersionedUrl } from "@blockprotocol/type-system/dist/cjs-slim/index-slim";
-import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
+import type { VersionedUrl } from "@blockprotocol/type-system/dist/cjs-slim/index-slim";
+import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
-import { extractEntityUuidFromEntityId, OwnedById } from "@local/hash-subgraph";
+import type { OwnedById } from "@local/hash-subgraph";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { useApp } from "@tldraw/editor";
-import { DialogProps } from "@tldraw/tldraw";
+import type { DialogProps } from "@tldraw/tldraw";
 import { useCallback, useState } from "react";
 
-import {
+import type {
   UpdateBlockCollectionContentsMutation,
   UpdateBlockCollectionContentsMutationVariables,
 } from "../../../../graphql/api-types.gen";
@@ -16,7 +17,7 @@ import { BlockSuggester } from "../../../shared/block-collection/create-suggeste
 import { usePageContext } from "../../../shared/block-collection/page-context";
 import { getBlockCollectionContentsStructuralQueryVariables } from "../../../shared/block-collection-contents";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
-import { BlockShape } from "./block-shape";
+import type { BlockShape } from "./block-shape";
 import { defaultBlockHeight, defaultBlockWidth } from "./shared";
 
 // An interface for selecting a Block Protocol block and creating the entity it needs

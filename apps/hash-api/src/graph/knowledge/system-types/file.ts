@@ -1,22 +1,26 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
+import type {
   File,
   FileProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import { Entity, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
+import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import mime from "mime-types";
 
-import {
+import type {
   MutationCreateFileFromUrlArgs,
   MutationRequestFileUploadArgs,
 } from "../../../graphql/api-types.gen";
-import { AuthenticationContext } from "../../../graphql/authentication-context";
-import { PresignedPutUpload } from "../../../storage/storage-provider";
+import type { AuthenticationContext } from "../../../graphql/authentication-context";
+import type { PresignedPutUpload } from "../../../storage/storage-provider";
 import { genId } from "../../../util";
-import { ImpureGraphContext, ImpureGraphFunction } from "../../context-types";
+import type {
+  ImpureGraphContext,
+  ImpureGraphFunction,
+} from "../../context-types";
 import {
   createEntity,
   getLatestEntityById,

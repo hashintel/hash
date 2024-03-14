@@ -1,7 +1,8 @@
-import { EntityId, EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { Dispatch, SetStateAction, useState } from "react";
+import type { EntityId, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { Dispatch, SetStateAction } from "react";
+import { useState } from "react";
 
-import { LinkAndTargetEntity } from "../entity-editor/links-section/link-table/types";
+import type { LinkAndTargetEntity } from "../entity-editor/links-section/link-table/types";
 
 export type DraftLinksToCreate = (LinkAndTargetEntity & {
   sourceSubgraph: Subgraph<EntityRootType> | null;

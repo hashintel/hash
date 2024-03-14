@@ -1,13 +1,11 @@
 import { faSmile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import {
-  EntityTypeEditorFormData,
-  useEntityTypeFormState,
-} from "@hashintel/type-editor";
+import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
+import { useEntityTypeFormState } from "@hashintel/type-editor";
 import { useState } from "react";
 
 import { PencilSimpleLine } from "../../../shared/icons/svg";
-import { ButtonProps } from "../../../shared/ui/button";
+import type { ButtonProps } from "../../../shared/ui/button";
 import {
   EditBarCollapse,
   EditBarContainer,

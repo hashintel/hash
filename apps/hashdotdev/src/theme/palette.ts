@@ -1,4 +1,4 @@
-import { ThemeOptions } from "@mui/material";
+import type { ThemeOptions } from "@mui/material";
 
 export const customColors = {
   yellow: {

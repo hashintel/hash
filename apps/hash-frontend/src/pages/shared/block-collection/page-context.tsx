@@ -1,16 +1,8 @@
-import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
-import { EntityId } from "@local/hash-subgraph";
-import { EditorView } from "prosemirror-view";
-import {
-  createContext,
-  FunctionComponent,
-  PropsWithChildren,
-  RefObject,
-  useContext,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
+import type { EntityId } from "@local/hash-subgraph";
+import type { EditorView } from "prosemirror-view";
+import type { FunctionComponent, PropsWithChildren, RefObject } from "react";
+import { createContext, useContext, useMemo, useRef, useState } from "react";
 
 interface EditorContext {
   view: EditorView;

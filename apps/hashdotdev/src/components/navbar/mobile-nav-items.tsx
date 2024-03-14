@@ -7,22 +7,22 @@ import {
   ListItemIcon,
   ListItemText,
 } from "@mui/material";
-import {
+import type {
   Dispatch,
-  Fragment,
   FunctionComponent,
   ReactElement,
   SetStateAction,
-  useContext,
-  useEffect,
-  useState,
 } from "react";
+import { Fragment, useContext, useEffect, useState } from "react";
 
 import {
   generatePathWithoutParams,
   pageHasOpenSubPage,
 } from "../../pages/shared/page-utils";
-import { SiteMapPage, SiteMapPageSection } from "../../pages/shared/sitemap";
+import type {
+  SiteMapPage,
+  SiteMapPageSection,
+} from "../../pages/shared/sitemap";
 import { SiteMapContext } from "../../pages/shared/sitemap-context";
 import { ChevronDownRegularIcon } from "../icons/chevron-down-regular-icon";
 import { HashtagRegularIcon } from "../icons/hashtag-regular-icon";

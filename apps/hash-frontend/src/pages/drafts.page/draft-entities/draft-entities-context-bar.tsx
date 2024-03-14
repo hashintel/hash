@@ -1,11 +1,7 @@
-import { Entity, EntityId } from "@local/hash-subgraph";
+import type { Entity, EntityId } from "@local/hash-subgraph";
 import { Box, Checkbox, Fade, styled, Typography } from "@mui/material";
-import {
-  Dispatch,
-  FunctionComponent,
-  SetStateAction,
-  useCallback,
-} from "react";
+import type { Dispatch, FunctionComponent, SetStateAction } from "react";
+import { useCallback } from "react";
 
 import { CheckRegularIcon } from "../../../shared/icons/check-regular-icon";
 import { Button } from "../../../shared/ui";

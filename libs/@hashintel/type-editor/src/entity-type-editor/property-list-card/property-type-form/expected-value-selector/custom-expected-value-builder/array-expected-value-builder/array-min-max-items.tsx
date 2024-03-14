@@ -1,3 +1,4 @@
+import type { InputProps } from "@mui/material";
 import {
   Box,
   Checkbox,
@@ -5,20 +6,13 @@ import {
   collapseClasses,
   Input,
   inputClasses,
-  InputProps,
   Typography,
 } from "@mui/material";
-import {
-  forwardRef,
-  FunctionComponent,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import type { FunctionComponent } from "react";
+import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
 import { useController, useFormContext, useWatch } from "react-hook-form";
 
-import { ExpectedValueSelectorFormValues } from "../../shared/expected-value-selector-form-values";
+import type { ExpectedValueSelectorFormValues } from "../../shared/expected-value-selector-form-values";
 
 type ItemInputProps = { width: string } & InputProps;
 

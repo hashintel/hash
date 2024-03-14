@@ -3,7 +3,7 @@
  * and RPC APIs.
  */
 
-import { Status } from "../../type-defs/status";
+import type { Status } from "../../type-defs/status";
 import { StatusCode } from "./status-code";
 
 export type { Status } from "../../type-defs/status";

@@ -1,4 +1,4 @@
-import { BoundedTimeInterval } from "@local/hash-subgraph";
+import type { BoundedTimeInterval } from "@local/hash-subgraph";
 
 export type AggregatedUsageRecord = {
   serviceName: string;

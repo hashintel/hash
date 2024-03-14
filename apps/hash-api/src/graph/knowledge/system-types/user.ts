@@ -13,8 +13,8 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import {
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+import type {
   AccountEntityId,
   AccountGroupId,
   AccountId,
@@ -22,10 +22,12 @@ import {
   EntityId,
   EntityRootType,
   EntityUuid,
+  OwnedById,
+} from "@local/hash-subgraph";
+import {
   extractAccountId,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
-  OwnedById,
 } from "@local/hash-subgraph";
 import {
   getRoots,
@@ -33,13 +35,16 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
-import {
-  kratosIdentityApi,
+import type {
   KratosUserIdentity,
   KratosUserIdentityTraits,
 } from "../../../auth/ory-kratos";
+import { kratosIdentityApi } from "../../../auth/ory-kratos";
 import { createAccount, createWeb } from "../../account-permission-management";
-import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
+import type {
+  ImpureGraphFunction,
+  PureGraphFunction,
+} from "../../context-types";
 import { systemAccountId } from "../../system-account";
 import {
   createEntity,
@@ -52,11 +57,11 @@ import {
   shortnameIsTaken,
 } from "./account.fields";
 import { addHashInstanceAdmin } from "./hash-instance";
+import type { OrgMembership } from "./org-membership";
 import {
   createOrgMembership,
   getOrgMembershipFromLinkEntity,
   getOrgMembershipOrg,
-  OrgMembership,
 } from "./org-membership";
 
 export type User = {

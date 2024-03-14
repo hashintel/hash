@@ -1,14 +1,10 @@
-import {
+import type {
   ChangeEventHandler,
   FocusEventHandler,
   FunctionComponent,
   KeyboardEventHandler,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
 } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { clamp } from "./clamp";
 

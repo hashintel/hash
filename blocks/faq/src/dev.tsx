@@ -1,10 +1,10 @@
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { MockBlockDock } from "mock-block-dock";
 import { createRoot } from "react-dom/client";
 
 import packageJson from "../package.json";
 import Component from "./index";
-import { BlockEntity } from "./types/block-entity";
+import type { BlockEntity } from "./types/block-entity";
 
 const node = document.getElementById("app");
 

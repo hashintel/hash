@@ -1,5 +1,5 @@
 import type { FallbackRender } from "@sentry/react";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 
 import { Button } from "../../shared/ui";
 

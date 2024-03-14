@@ -1,8 +1,8 @@
-import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
+import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import { ListItemIcon, listItemIconClasses, ListItemText } from "@mui/material";
-import { PopupState } from "material-ui-popup-state/hooks";
-import { ReactElement } from "react";
+import type { PopupState } from "material-ui-popup-state/hooks";
+import type { ReactElement } from "react";
 
 import { MenuItem } from "../../../ui";
 

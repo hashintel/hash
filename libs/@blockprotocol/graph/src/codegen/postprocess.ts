@@ -1,4 +1,4 @@
-import { PostprocessContext } from "./context/postprocess.js";
+import type { PostprocessContext } from "./context/postprocess.js";
 import { allocateTypesToFiles } from "./postprocess/allocate-types-to-files.js";
 import { appendIdentifierDefinitionsToFileContents } from "./postprocess/append-identifier-definitions-to-file-contents.js";
 import { generateBlockEntityTypeAliases } from "./postprocess/generate-block-entity-type-aliases.js";

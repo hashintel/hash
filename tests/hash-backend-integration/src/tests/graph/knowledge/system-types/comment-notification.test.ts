@@ -4,21 +4,20 @@ import { createEntity } from "@apps/hash-api/src/graph/knowledge/primitive/entit
 import { createBlock } from "@apps/hash-api/src/graph/knowledge/system-types/block";
 import { createComment } from "@apps/hash-api/src/graph/knowledge/system-types/comment";
 import { getCommentNotification } from "@apps/hash-api/src/graph/knowledge/system-types/notification";
-import { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org.js";
+import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org.js";
 import {
   createPage,
   getPageBlocks,
 } from "@apps/hash-api/src/graph/knowledge/system-types/page";
-import {
-  joinOrg,
-  User,
-} from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { extractOwnedByIdFromEntityId, OwnedById } from "@local/hash-subgraph";
+import type { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { OwnedById } from "@local/hash-subgraph";
+import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
 import { resetGraph } from "../../../test-server";
 import {

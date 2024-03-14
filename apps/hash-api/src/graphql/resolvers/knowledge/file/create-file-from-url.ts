@@ -1,11 +1,11 @@
-import { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import { createFileFromExternalUrl } from "../../../../graph/knowledge/system-types/file";
-import {
+import type {
   MutationCreateFileFromUrlArgs,
   ResolverFn,
 } from "../../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../../context";
+import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const createFileFromUrl: ResolverFn<

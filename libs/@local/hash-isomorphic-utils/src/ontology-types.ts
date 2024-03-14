@@ -1,9 +1,9 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
-import { EntityTypeReference } from "@blockprotocol/type-system/dist/cjs";
-import { EntityType } from "@blockprotocol/type-system/dist/cjs-slim/index-slim";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { EntityTypeReference } from "@blockprotocol/type-system/dist/cjs";
+import type { EntityType } from "@blockprotocol/type-system/dist/cjs-slim/index-slim";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { slugifyTypeTitle } from "@local/hash-isomorphic-utils/slugify-type-title";
-import { BaseUrl } from "@local/hash-subgraph";
+import type { BaseUrl } from "@local/hash-subgraph";
 import {
   componentsFromVersionedUrl,
   versionedUrlFromComponents,

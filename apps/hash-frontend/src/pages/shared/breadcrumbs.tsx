@@ -14,7 +14,7 @@ import {
   usePopupState,
 } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { Button, MenuItem } from "../../shared/ui";
 import { PAGE_TITLE_PLACEHOLDER } from "./block-collection/page-title/page-title";

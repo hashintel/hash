@@ -1,3 +1,4 @@
+import type { PopperProps } from "@mui/material";
 import {
   Box,
   Checkbox,
@@ -7,13 +8,13 @@ import {
   ListItemText,
   Paper,
   Popper,
-  PopperProps,
   Typography,
 } from "@mui/material";
-import { FunctionComponent, useEffect, useRef, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { MenuItem } from "../../../shared/ui";
-import { ColumnFilter } from "./filtering";
+import type { ColumnFilter } from "./filtering";
 
 export const ColumnFilterMenu: FunctionComponent<
   {

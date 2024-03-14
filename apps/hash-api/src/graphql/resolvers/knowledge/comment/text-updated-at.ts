@@ -1,6 +1,6 @@
 import { getCommentText } from "../../../../graph/knowledge/system-types/comment";
-import { CommentResolvers } from "../../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../../context";
+import type { CommentResolvers } from "../../../api-types.gen";
+import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const commentTextUpdatedAtResolver: CommentResolvers<LoggedInGraphQLContext>["textUpdatedAt"] =

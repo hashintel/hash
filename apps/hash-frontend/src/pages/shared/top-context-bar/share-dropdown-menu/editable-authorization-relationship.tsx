@@ -1,6 +1,7 @@
-import { MutationHookOptions, useMutation } from "@apollo/client";
+import type { MutationHookOptions } from "@apollo/client";
+import { useMutation } from "@apollo/client";
 import { Avatar } from "@hashintel/design-system";
-import { Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import {
   Box,
   buttonClasses,
@@ -17,23 +18,26 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { FunctionComponent, useCallback, useMemo } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback, useMemo } from "react";
 
-import {
+import type {
   AddEntityEditorMutation,
   AddEntityEditorMutationVariables,
   AddEntityOwnerMutation,
   AddEntityOwnerMutationVariables,
   AddEntityViewerMutation,
   AddEntityViewerMutationVariables,
-  AuthorizationSubjectKind,
-  EntityAuthorizationRelation,
   RemoveEntityEditorMutation,
   RemoveEntityEditorMutationVariables,
   RemoveEntityOwnerMutation,
   RemoveEntityOwnerMutationVariables,
   RemoveEntityViewerMutation,
   RemoveEntityViewerMutationVariables,
+} from "../../../../graphql/api-types.gen";
+import {
+  AuthorizationSubjectKind,
+  EntityAuthorizationRelation,
 } from "../../../../graphql/api-types.gen";
 import {
   addEntityEditorMutation,
@@ -44,7 +48,7 @@ import {
   removeEntityOwnerMutation,
   removeEntityViewerMutation,
 } from "../../../../graphql/queries/knowledge/entity.queries";
-import { Org, User } from "../../../../lib/user-and-org";
+import type { Org, User } from "../../../../lib/user-and-org";
 import { ChevronDownRegularIcon } from "../../../../shared/icons/chevron-down-regular-icon";
 import { GlobeLightIcon } from "../../../../shared/icons/globe-light-icon";
 import { isEntityPageEntity } from "../../../../shared/is-of-type";
@@ -52,7 +56,7 @@ import { Button } from "../../../../shared/ui";
 import { useAuthenticatedUser } from "../../auth-info-context";
 import { getImageUrlFromEntityProperties } from "../../get-image-url-from-properties";
 import { PrivacyStatusMenuItem } from "./privacy-menu-item";
-import { AuthorizationRelationship } from "./types";
+import type { AuthorizationRelationship } from "./types";
 
 const relationHierarchy: Record<EntityAuthorizationRelation, number> = {
   Owner: 3,

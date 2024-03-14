@@ -1,25 +1,20 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
-import {
-  GridCellKind,
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
   Item,
   SizedGridColumn,
   TextCell,
 } from "@glideapps/glide-data-grid";
-import {
+import { GridCellKind } from "@glideapps/glide-data-grid";
+import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
-  isExternalOntologyElementMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
+import { isExternalOntologyElementMetadata } from "@local/hash-subgraph";
 import { Box, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
-import {
-  FunctionComponent,
-  useCallback,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import type { FunctionComponent } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import {
   Grid,
@@ -34,16 +29,11 @@ import { useEntityTypesContextRequired } from "../../../shared/entity-types-cont
 import { generateLinkParameters } from "../../../shared/generate-link-parameters";
 import { isTypeArchived } from "../../../shared/is-archived";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
-import {
-  FilterState,
-  TableHeader,
-  tableHeaderHeight,
-} from "../../../shared/table-header";
+import type { FilterState } from "../../../shared/table-header";
+import { TableHeader, tableHeaderHeight } from "../../../shared/table-header";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
-import {
-  createRenderTextIconCell,
-  TextIconCell,
-} from "../../shared/entities-table/text-icon-cell";
+import type { TextIconCell } from "../../shared/entities-table/text-icon-cell";
+import { createRenderTextIconCell } from "../../shared/entities-table/text-icon-cell";
 import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
 
 const typesTableColumnIds = [

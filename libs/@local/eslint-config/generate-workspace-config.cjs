@@ -18,7 +18,4 @@ module.exports = (workspaceDirPath) => ({
       },
     },
   },
-  rules: {
-    "@typescript-eslint/consistent-type-imports": "error",
-  },
 });

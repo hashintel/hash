@@ -11,26 +11,26 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
-import { UserSecretProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
+import type { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
+import type { UserSecretProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type {
   AccountId,
   Entity,
   EntityId,
   EntityRelationAndSubject,
   EntityUuid,
-  extractEntityUuidFromEntityId,
   OwnedById,
   Uuid,
 } from "@local/hash-subgraph";
-import { RequestHandler } from "express";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import type { RequestHandler } from "express";
 
 import { createEntity } from "../../graph/knowledge/primitive/entity";
 import { createLinkEntity } from "../../graph/knowledge/primitive/link-entity";
+import type { LinearIntegration } from "../../graph/knowledge/system-types/linear-integration-entity";
 import {
   getLinearIntegrationByLinearOrgId,
   getLinearIntegrationFromEntity,
-  LinearIntegration,
 } from "../../graph/knowledge/system-types/linear-integration-entity";
 import { isUserMemberOfOrg } from "../../graph/knowledge/system-types/user";
 

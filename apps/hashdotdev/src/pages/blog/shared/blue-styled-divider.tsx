@@ -1,5 +1,6 @@
-import { Box, Stack, StackProps, useTheme } from "@mui/material";
-import { FunctionComponent } from "react";
+import type { StackProps } from "@mui/material";
+import { Box, Stack, useTheme } from "@mui/material";
+import type { FunctionComponent } from "react";
 
 export const BlueStylishDivider: FunctionComponent<StackProps> = (props) => {
   const { palette } = useTheme();

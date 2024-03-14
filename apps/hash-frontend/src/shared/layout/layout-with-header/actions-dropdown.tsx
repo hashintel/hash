@@ -23,7 +23,8 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { FunctionComponent, useContext } from "react";
+import type { FunctionComponent } from "react";
+import { useContext } from "react";
 
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { useEnabledFeatureFlags } from "../../../pages/shared/use-enabled-feature-flags";

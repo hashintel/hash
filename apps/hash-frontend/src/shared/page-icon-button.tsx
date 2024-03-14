@@ -1,18 +1,19 @@
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { faFile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { EntityId } from "@local/hash-subgraph";
-import { SxProps, Theme } from "@mui/material";
-import { MouseEventHandler, useCallback } from "react";
+import type { EntityId } from "@local/hash-subgraph";
+import type { SxProps, Theme } from "@mui/material";
+import type { MouseEventHandler } from "react";
+import { useCallback } from "react";
 
 import { useDefaultState } from "../components/hooks/use-default-state";
+import type { SizeVariant } from "./edit-emoji-icon-button";
 import {
   EditEmojiIconButton,
   iconVariantSizes,
-  SizeVariant,
 } from "./edit-emoji-icon-button";
-import { EmojiPickerPopoverProps } from "./edit-emoji-icon-button/emoji-picker/emoji-picker";
+import type { EmojiPickerPopoverProps } from "./edit-emoji-icon-button/emoji-picker/emoji-picker";
 import { CanvasIcon } from "./icons/canvas-icon";
 import { useUpdatePageIcon } from "./use-update-page-icon";
 

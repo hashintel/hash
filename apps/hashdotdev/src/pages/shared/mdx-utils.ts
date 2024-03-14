@@ -3,7 +3,7 @@ import path from "node:path";
 import fs from "fs-extra";
 import matter from "gray-matter";
 import { htmlToText } from "html-to-text";
-import { MDXRemoteSerializeResult } from "next-mdx-remote";
+import type { MDXRemoteSerializeResult } from "next-mdx-remote";
 import { serialize } from "next-mdx-remote/serialize";
 import remarkGfm from "remark-gfm";
 import remarkMdx from "remark-mdx";
@@ -12,7 +12,7 @@ import remarkParse from "remark-parse";
 import slugify from "slugify";
 import { unified } from "unified";
 
-import { SiteMapPage, SiteMapPageSection } from "./sitemap";
+import type { SiteMapPage, SiteMapPageSection } from "./sitemap";
 
 type Node = {
   type: string;

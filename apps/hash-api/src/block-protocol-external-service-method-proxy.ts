@@ -1,5 +1,5 @@
 import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks";
-import { Express } from "express";
+import type { Express } from "express";
 import proxy from "express-http-proxy";
 
 /**

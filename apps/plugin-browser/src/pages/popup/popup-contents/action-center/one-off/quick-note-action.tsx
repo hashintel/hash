@@ -4,12 +4,12 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
+import type {
   BlockProperties,
   HasIndexedContentProperties,
   TextProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import { TextToken } from "@local/hash-isomorphic-utils/types";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import { Box } from "@mui/material";
 import { generateKeyBetween } from "fractional-indexing";
 

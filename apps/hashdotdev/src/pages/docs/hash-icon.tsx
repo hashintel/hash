@@ -1,5 +1,6 @@
-import { SvgIcon, SvgIconProps } from "@mui/material";
-import { FunctionComponent } from "react";
+import type { SvgIconProps } from "@mui/material";
+import { SvgIcon } from "@mui/material";
+import type { FunctionComponent } from "react";
 
 export const HashIcon: FunctionComponent<SvgIconProps> = (props) => (
   <SvgIcon {...props} width="46" height="46" viewBox="0 0 46 46">

@@ -1,10 +1,14 @@
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
 import { createComment } from "../../../../graph/knowledge/system-types/comment";
-import { MutationCreateCommentArgs, ResolverFn } from "../../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../../context";
+import type {
+  MutationCreateCommentArgs,
+  ResolverFn,
+} from "../../../api-types.gen";
+import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
-import { mapCommentToGQL, UnresolvedCommentGQL } from "../graphql-mapping";
+import type { UnresolvedCommentGQL } from "../graphql-mapping";
+import { mapCommentToGQL } from "../graphql-mapping";
 
 export const createCommentResolver: ResolverFn<
   Promise<UnresolvedCommentGQL>,

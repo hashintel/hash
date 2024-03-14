@@ -11,20 +11,22 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { contentLinkTypeFilter } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { BlockProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { BlockProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { Entity, EntityId } from "@local/hash-subgraph";
 import {
-  Entity,
-  EntityId,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
-import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
+import type {
+  ImpureGraphFunction,
+  PureGraphFunction,
+} from "../../context-types";
+import type { CreateEntityParams } from "../primitive/entity";
 import {
   archiveEntity,
   createEntity,
-  CreateEntityParams,
   getEntities,
   getEntityIncomingLinks,
   getEntityOutgoingLinks,
@@ -36,7 +38,8 @@ import {
   getLinkEntityRightEntity,
   isEntityLinkEntity,
 } from "../primitive/link-entity";
-import { Comment, getCommentFromEntity } from "./comment";
+import type { Comment } from "./comment";
+import { getCommentFromEntity } from "./comment";
 
 export type Block = {
   componentId: string;

@@ -9,12 +9,11 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { ReactNode, useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import {
-  CustomExpectedValueTypeId,
-  useDataTypesOptions,
-} from "../../../../../shared/data-types-options-context";
+import type { CustomExpectedValueTypeId } from "../../../../../shared/data-types-options-context";
+import { useDataTypesOptions } from "../../../../../shared/data-types-options-context";
 
 interface ExpectedValueBadgeProps {
   typeId: CustomExpectedValueTypeId;

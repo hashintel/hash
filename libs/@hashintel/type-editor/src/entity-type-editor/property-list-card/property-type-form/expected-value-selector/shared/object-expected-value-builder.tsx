@@ -14,15 +14,16 @@ import {
   Typography,
 } from "@mui/material";
 import { usePopupState } from "material-ui-popup-state/hooks";
-import { FunctionComponent, useEffect, useMemo, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import { usePropertyTypesOptions } from "../../../../../shared/property-types-options-context";
-import { Property } from "../../../shared/expected-value-types";
+import type { Property } from "../../../shared/expected-value-types";
 import { CustomExpectedValueSelector } from "./custom-expected-value-selector";
 import { DeleteExpectedValueModal } from "./delete-expected-value-modal";
 import { ExpectedValueBadge } from "./expected-value-badge";
-import { ExpectedValueSelectorFormValues } from "./expected-value-selector-form-values";
+import type { ExpectedValueSelectorFormValues } from "./expected-value-selector-form-values";
 
 const StyledTableRow = styled(Box)(({ theme }) => ({
   display: "flex",

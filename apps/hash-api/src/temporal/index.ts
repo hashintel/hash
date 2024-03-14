@@ -1,4 +1,4 @@
-import { Logger } from "@local/hash-backend-utils/logger";
+import type { Logger } from "@local/hash-backend-utils/logger";
 import { Client as TemporalClient, Connection } from "@temporalio/client";
 
 import { getRequiredEnv } from "../util";

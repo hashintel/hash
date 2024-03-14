@@ -4,7 +4,7 @@ import {
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Container } from "@mui/material";
 import {
@@ -18,13 +18,14 @@ import { useCallback, useMemo, useRef, useState } from "react";
 
 import { BlockLoadedProvider } from "../blocks/on-block-loaded";
 import { UserBlocksProvider } from "../blocks/user-blocks";
-import {
+import type {
   StructuralQueryEntitiesQuery,
   StructuralQueryEntitiesQueryVariables,
 } from "../graphql/api-types.gen";
 import { structuralQueryEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
 import { NoteIcon } from "../shared/icons/note-icon";
-import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
+import type { NextPageWithLayout } from "../shared/layout";
+import { getLayoutWithSidebar } from "../shared/layout";
 import { NotesSection } from "./notes.page/notes-section";
 import { TodaySection } from "./notes.page/today-section";
 import { useAuthenticatedUser } from "./shared/auth-info-context";

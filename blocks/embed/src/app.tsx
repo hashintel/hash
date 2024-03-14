@@ -1,7 +1,7 @@
-import { BlockProtocolUpdateEntitiesAction } from "blockprotocol";
-import { BlockComponent } from "blockprotocol/react";
+import type { BlockProtocolUpdateEntitiesAction } from "blockprotocol";
+import type { BlockComponent } from "blockprotocol/react";
+import type { Reducer } from "react";
 import {
-  Reducer,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -21,7 +21,7 @@ import {
 } from "./constants";
 import { HtmlBlock } from "./html-block";
 import Pencil from "./svgs/pencil";
-import { Actions, AppState, ProviderName } from "./types";
+import type { Actions, AppState, ProviderName } from "./types";
 import { getFormCopy } from "./utils";
 
 type BlockEntityProperties = {

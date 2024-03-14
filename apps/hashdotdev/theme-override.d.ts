@@ -1,4 +1,4 @@
-import { CSSProperties } from "react";
+import type { CSSProperties } from "react";
 
 declare module "@mui/material/styles" {
   interface PaletteValue {

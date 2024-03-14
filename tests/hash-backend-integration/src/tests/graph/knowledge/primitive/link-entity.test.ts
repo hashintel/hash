@@ -1,9 +1,7 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
-import {
-  EntityTypeDefinition,
-  generateSystemEntityTypeSchema,
-} from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
+import type { EntityTypeDefinition } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
+import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
 import {
   archiveEntity,
   createEntity,
@@ -14,19 +12,19 @@ import {
   getLinkEntityLeftEntity,
   getLinkEntityRightEntity,
 } from "@apps/hash-api/src/graph/knowledge/primitive/link-entity";
-import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import {
+import type {
   Entity,
   EntityTypeWithMetadata,
-  linkEntityTypeUrl,
   OwnedById,
 } from "@local/hash-subgraph";
-import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import { linkEntityTypeUrl } from "@local/hash-subgraph";
+import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
 import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";

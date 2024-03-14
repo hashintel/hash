@@ -4,13 +4,13 @@ import {
   addHashInstanceAdmin,
   removeHashInstanceAdmin,
 } from "@apps/hash-api/src/graph/knowledge/system-types/hash-instance";
-import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
-import { AuthenticationContext } from "@apps/hash-api/src/graphql/authentication-context";
+import type { AuthenticationContext } from "@apps/hash-api/src/graphql/authentication-context";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
+import type { HashInstance } from "@local/hash-backend-utils/hash-instance";
 import {
   getHashInstance,
-  HashInstance,
   isUserHashInstanceAdmin,
 } from "@local/hash-backend-utils/hash-instance";
 import { Logger } from "@local/hash-backend-utils/logger";

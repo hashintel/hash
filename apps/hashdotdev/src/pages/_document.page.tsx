@@ -1,11 +1,6 @@
 import createEmotionServer from "@emotion/server/create-instance";
-import Document, {
-  DocumentContext,
-  Head,
-  Html,
-  Main,
-  NextScript,
-} from "next/document";
+import type { DocumentContext } from "next/document";
+import Document, { Head, Html, Main, NextScript } from "next/document";
 import { Children } from "react";
 
 import { SITE_FAVICON_PATH } from "../config";

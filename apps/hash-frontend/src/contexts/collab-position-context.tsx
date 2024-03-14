@@ -1,4 +1,4 @@
-import { CollabPosition } from "@local/hash-isomorphic-utils/collab";
+import type { CollabPosition } from "@local/hash-isomorphic-utils/collab";
 import { createContext, useContext } from "react";
 
 const CollabPositionContext = createContext<CollabPosition[]>([]);

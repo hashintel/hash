@@ -1,8 +1,9 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
 import { Autocomplete, Chip, MenuItem } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import { BaseUrl, EntityTypeWithMetadata } from "@local/hash-subgraph";
-import { outlinedInputClasses, PopperProps, Typography } from "@mui/material";
+import type { BaseUrl, EntityTypeWithMetadata } from "@local/hash-subgraph";
+import type { PopperProps } from "@mui/material";
+import { outlinedInputClasses, Typography } from "@mui/material";
 import { useMemo } from "react";
 
 import {

@@ -1,4 +1,4 @@
-import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
+import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 
 export const fa100: IconDefinition["icon"] = [
   512,

@@ -1,9 +1,7 @@
-import {
-  ENTITY_TYPE_META_SCHEMA,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
-import {
+import type {
   ArchiveEntityTypeParams,
   EntityType,
   EntityTypePermission,
@@ -18,22 +16,24 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import {
+import type {
   ConstructEntityTypeParams,
   UserPermissionsOnEntityType,
 } from "@local/hash-isomorphic-utils/types";
-import {
+import type {
   BaseUrl,
   EntityTypeAuthorizationRelationship,
   EntityTypeMetadata,
   EntityTypeRelationAndSubject,
   EntityTypeRootType,
   EntityTypeWithMetadata,
-  linkEntityTypeUrl,
   OntologyTypeRecordId,
-  ontologyTypeRecordIdToVersionedUrl,
   OwnedById,
   Subgraph,
+} from "@local/hash-subgraph";
+import {
+  linkEntityTypeUrl,
+  ontologyTypeRecordIdToVersionedUrl,
 } from "@local/hash-subgraph";
 import {
   getRoots,
@@ -41,7 +41,7 @@ import {
 } from "@local/hash-subgraph/stdlib";
 
 import { publicUserAccountId } from "../../../auth/public-user-account-id";
-import { ImpureGraphFunction } from "../../context-types";
+import type { ImpureGraphFunction } from "../../context-types";
 import { getWebShortname, isExternalTypeId } from "./util";
 
 export const getEntityTypeAuthorizationRelationships: ImpureGraphFunction<

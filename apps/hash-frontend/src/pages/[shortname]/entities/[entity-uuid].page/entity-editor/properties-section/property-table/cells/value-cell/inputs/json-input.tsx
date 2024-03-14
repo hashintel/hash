@@ -5,7 +5,7 @@ import { Box, Popper, Tooltip, Typography } from "@mui/material";
 import { useState } from "react";
 
 import { JsonEditor } from "./json-input/json-editor";
-import { CellInputProps } from "./types";
+import type { CellInputProps } from "./types";
 
 const isJsonObjectString = (str?: string) => {
   if (!str || str.trim()[0] !== "{") {

@@ -1,4 +1,4 @@
-import { FunctionComponent, MouseEventHandler } from "react";
+import type { FunctionComponent, MouseEventHandler } from "react";
 
 export interface EmojiIconProps {
   disabled?: boolean;

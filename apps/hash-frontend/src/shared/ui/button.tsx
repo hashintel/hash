@@ -1,13 +1,14 @@
-import { UrlObject } from "node:url";
+import type { UrlObject } from "node:url";
 
+import type { ButtonProps as BaseButtonProps } from "@hashintel/design-system";
 import {
   // eslint-disable-next-line no-restricted-imports
   Button as BaseButton,
-  ButtonProps as BaseButtonProps,
 } from "@hashintel/design-system";
 // eslint-disable-next-line no-restricted-imports
 import Link from "next/link";
-import { forwardRef, FunctionComponent, ReactNode, useMemo } from "react";
+import type { FunctionComponent, ReactNode } from "react";
+import { forwardRef, useMemo } from "react";
 
 import { generateLinkParameters } from "../generate-link-parameters";
 

@@ -2,9 +2,9 @@
  * This file was automatically generated – do not edit it.
  */
 
-import { Entity } from "@blockprotocol/graph";
+import type { Entity } from "@blockprotocol/graph";
 
-import {
+import type {
   BooleanDataType,
   DateTimeDataType,
   DescriptionPropertyValue,

@@ -1,11 +1,13 @@
-import {
+import type {
   OptionsObject,
   ProviderContext,
   SnackbarKey,
   SnackbarMessage,
+  VariantType,
+} from "notistack";
+import {
   // eslint-disable-next-line no-restricted-imports
   useSnackbar as useLibSnackbar,
-  VariantType,
 } from "notistack";
 import { useMemo } from "react";
 

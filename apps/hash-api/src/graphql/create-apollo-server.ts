@@ -1,22 +1,22 @@
 import { performance } from "node:perf_hooks";
 
 import { makeExecutableSchema } from "@graphql-tools/schema";
-import { Logger } from "@local/hash-backend-utils/logger";
-import { SearchAdapter } from "@local/hash-backend-utils/search/adapter";
+import type { Logger } from "@local/hash-backend-utils/logger";
+import type { SearchAdapter } from "@local/hash-backend-utils/search/adapter";
 import { schema } from "@local/hash-isomorphic-utils/graphql/type-defs/schema";
 import * as Sentry from "@sentry/node";
 import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
 import { ApolloServer } from "apollo-server-express";
-import { StatsD } from "hot-shots";
+import type { StatsD } from "hot-shots";
 
 import { getActorIdFromRequest } from "../auth/get-actor-id";
-import { CacheAdapter } from "../cache";
-import { EmailTransporter } from "../email/transporters";
-import { GraphApi } from "../graph/context-types";
-import { UploadableStorageProvider } from "../storage/storage-provider";
-import { TemporalClient } from "../temporal";
-import { VaultClient } from "../vault/index";
-import { GraphQLContext } from "./context";
+import type { CacheAdapter } from "../cache";
+import type { EmailTransporter } from "../email/transporters";
+import type { GraphApi } from "../graph/context-types";
+import type { UploadableStorageProvider } from "../storage/storage-provider";
+import type { TemporalClient } from "../temporal";
+import type { VaultClient } from "../vault/index";
+import type { GraphQLContext } from "./context";
 import { resolvers } from "./resolvers";
 
 export interface CreateApolloServerParams {

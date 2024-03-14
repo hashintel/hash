@@ -1,5 +1,5 @@
-import { DataType } from "@blockprotocol/graph";
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { DataType } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   faList,
   faListCheck,
@@ -24,13 +24,8 @@ import {
   faText,
 } from "@hashintel/design-system";
 import { theme } from "@hashintel/design-system/theme";
-import {
-  createContext,
-  PropsWithChildren,
-  useCallback,
-  useContext,
-  useMemo,
-} from "react";
+import type { PropsWithChildren } from "react";
+import { createContext, useCallback, useContext, useMemo } from "react";
 
 const chipColors = {
   blue: {

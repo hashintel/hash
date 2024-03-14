@@ -1,4 +1,4 @@
-import { Components, Theme } from "@mui/material";
+import type { Components, Theme } from "@mui/material";
 
 export const MuiTabItemThemeOptions: Components<Theme>["MuiTab"] = {
   defaultProps: {

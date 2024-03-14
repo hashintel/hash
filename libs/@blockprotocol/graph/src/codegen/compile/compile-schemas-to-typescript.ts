@@ -1,19 +1,18 @@
-import {
+import type {
   DataType,
   EntityType,
   PropertyType,
-  validateVersionedUrl,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
-import {
-  compile as compileJsonSchema,
-  JSONSchema,
-} from "json-schema-to-typescript";
+import { validateVersionedUrl } from "@blockprotocol/type-system/slim";
+import type { JSONSchema } from "json-schema-to-typescript";
+import { compile as compileJsonSchema } from "json-schema-to-typescript";
 
 import { mustBeDefined } from "../../shared/util/must-be-defined.js";
 import { typedValues } from "../../shared/util/typed-object-iter.js";
-import { CompileContext } from "../context.js";
-import { CompiledTsType, redundantTypePlaceholder } from "../shared.js";
+import type { CompileContext } from "../context.js";
+import type { CompiledTsType } from "../shared.js";
+import { redundantTypePlaceholder } from "../shared.js";
 
 const compileIndividualSchemaToTypescript = async (
   type: DataType | PropertyType | EntityType,

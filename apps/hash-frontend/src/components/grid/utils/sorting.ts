@@ -1,4 +1,4 @@
-import { Row } from "./rows";
+import type { Row } from "./rows";
 
 export type ColumnSortDirection = "asc" | "desc";
 

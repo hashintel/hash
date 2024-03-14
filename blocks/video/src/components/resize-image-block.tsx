@@ -1,4 +1,5 @@
-import { FunctionComponent, MouseEvent, useLayoutEffect, useRef } from "react";
+import type { FunctionComponent, MouseEvent } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { tw } from "twind";
 
 type ResizeBlockProps = {

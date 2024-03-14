@@ -1,20 +1,15 @@
-import {
+import type {
   GraphEmbedderMessageCallbacks,
   JsonObject,
 } from "@blockprotocol/graph/temporal";
-import {
-  FunctionComponent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-} from "react";
+import type { FunctionComponent } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { v4 as uuid } from "uuid";
 
 import { memoizeFetchFunction } from "../../../lib/memoize";
-import { FetchEmbedCodeFn } from "../../block-loader/fetch-embed-code";
+import type { FetchEmbedCodeFn } from "../../block-loader/fetch-embed-code";
 import { ResizingIFrame } from "../resizing-iframe/resizing-iframe";
-import { MessageFromBlockFramer, MessageFromFramedBlock } from "../types";
+import type { MessageFromBlockFramer, MessageFromFramedBlock } from "../types";
 
 export type CrossFrameProxyProps = GraphEmbedderMessageCallbacks & {
   blockProperties: JsonObject;

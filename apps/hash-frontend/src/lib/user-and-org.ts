@@ -5,15 +5,15 @@ import {
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { Image } from "@local/hash-isomorphic-utils/system-types/image";
-import {
+import type { Image } from "@local/hash-isomorphic-utils/system-types/image";
+import type {
   IsMemberOfProperties,
   OrganizationProperties,
   ProfileBioProperties,
   ServiceAccountProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import {
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+import type {
   AccountEntityId,
   AccountGroupEntityId,
   AccountGroupId,
@@ -21,12 +21,11 @@ import {
   BaseUrl,
   Entity,
   EntityRootType,
-  extractAccountGroupId,
-  extractAccountId,
   OwnedById,
   Subgraph,
   Timestamp,
 } from "@local/hash-subgraph";
+import { extractAccountGroupId, extractAccountId } from "@local/hash-subgraph";
 import {
   getIncomingLinksForEntity,
   getLeftEntityForLinkEntity,
@@ -36,7 +35,7 @@ import {
   intervalCompareWithInterval,
   intervalForTimestamp,
 } from "@local/hash-subgraph/stdlib";
-import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
 export const constructMinimalOrg = (params: {
   orgEntity: Entity<OrganizationProperties>;

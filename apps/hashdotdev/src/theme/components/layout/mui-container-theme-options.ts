@@ -1,4 +1,4 @@
-import { Components, Theme } from "@mui/material";
+import type { Components, Theme } from "@mui/material";
 
 // @todo rename this variables, use them instead of interpolation
 const size = (padding: number) => ({

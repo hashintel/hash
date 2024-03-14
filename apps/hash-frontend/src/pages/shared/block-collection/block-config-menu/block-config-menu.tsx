@@ -1,7 +1,7 @@
-import { JsonObject, JsonValue } from "@blockprotocol/core";
+import type { JsonObject, JsonValue } from "@blockprotocol/core";
 import { TextField } from "@hashintel/design-system";
-import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
-import { JsonSchema } from "@local/hash-isomorphic-utils/json-utils";
+import type { BlockEntity } from "@local/hash-isomorphic-utils/entity";
+import type { JsonSchema } from "@local/hash-isomorphic-utils/json-utils";
 import {
   Box,
   Checkbox,
@@ -10,15 +10,10 @@ import {
   Typography,
 } from "@mui/material";
 import { get } from "lodash";
-import { bindPopover, PopupState } from "material-ui-popup-state/hooks";
-import {
-  ChangeEvent,
-  ForwardedRef,
-  FunctionComponent,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import type { PopupState } from "material-ui-popup-state/hooks";
+import { bindPopover } from "material-ui-popup-state/hooks";
+import type { ChangeEvent, ForwardedRef, FunctionComponent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useKey } from "rooks";
 
 import { MenuItem } from "../../../../shared/ui";

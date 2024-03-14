@@ -99,6 +99,23 @@ pub enum EntityQueryPath<'p> {
     /// [`EntityMetadata`]: graph_types::knowledge::entity::EntityMetadata
     /// [`EntityTemporalMetadata`]: graph_types::knowledge::entity::EntityTemporalMetadata
     TransactionTime,
+    /// The list of [`EntityType`]s' [`BaseUrl`]s belonging to the [`Entity`].
+    ///
+    /// It's currently not possible to query for the list of types directly. Use [`EntityTypeEdge`]
+    /// instead.
+    ///
+    /// [`BaseUrl`]: type_system::url::BaseUrl
+    /// [`EntityType`]: type_system::EntityType
+    /// [`EntityTypeEdge`]: Self::EntityTypeEdge
+    TypeBaseUrls,
+    /// The list of [`EntityType`]s' versions belonging to the [`Entity`].
+    ///
+    /// It's currently not possible to query for the list of types directly. Use [`EntityTypeEdge`]
+    /// instead.
+    ///
+    /// [`EntityType`]: type_system::EntityType
+    /// [`EntityTypeEdge`]: Self::EntityTypeEdge
+    TypeVersions,
     /// The timestamp of the transaction time when the [`Entity`] was _first inserted_ into the
     /// database.
     ///
@@ -442,6 +459,8 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::EditionId => fmt.write_str("editionId"),
             Self::DecisionTime => fmt.write_str("decisionTime"),
             Self::TransactionTime => fmt.write_str("transactionTime"),
+            Self::TypeBaseUrls => fmt.write_str("typeBaseUrls"),
+            Self::TypeVersions => fmt.write_str("typeVersions"),
             Self::CreatedAtDecisionTime => fmt.write_str("createdAtDecisionTime"),
             Self::CreatedAtTransactionTime => fmt.write_str("createdAtTransactionTime"),
             Self::FirstNonDraftCreatedAtDecisionTime => {
@@ -500,12 +519,16 @@ impl QueryPath for EntityQueryPath<'_> {
             | Self::EditionCreatedById
             | Self::CreatedById => ParameterType::Uuid,
             Self::DecisionTime | Self::TransactionTime => ParameterType::TimeInterval,
+            Self::TypeBaseUrls => ParameterType::Vector(Box::new(ParameterType::VersionedUrl)),
+            Self::TypeVersions => {
+                ParameterType::Vector(Box::new(ParameterType::OntologyTypeVersion))
+            }
             Self::CreatedAtDecisionTime
             | Self::CreatedAtTransactionTime
             | Self::FirstNonDraftCreatedAtDecisionTime
             | Self::FirstNonDraftCreatedAtTransactionTime => ParameterType::Timestamp,
             Self::Properties(_) => ParameterType::Any,
-            Self::Embedding => ParameterType::Vector,
+            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
             Self::LeftToRightOrder | Self::RightToLeftOrder => ParameterType::I32,
             Self::Archived => ParameterType::Boolean,
             Self::EntityTypeEdge { path, .. } => path.expected_type(),
@@ -758,6 +781,8 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
             EntityQueryPath::EditionId => EntityQueryPath::EditionId,
             EntityQueryPath::DecisionTime => EntityQueryPath::DecisionTime,
             EntityQueryPath::TransactionTime => EntityQueryPath::TransactionTime,
+            EntityQueryPath::TypeBaseUrls => EntityQueryPath::TypeBaseUrls,
+            EntityQueryPath::TypeVersions => EntityQueryPath::TypeVersions,
             EntityQueryPath::CreatedAtTransactionTime => EntityQueryPath::CreatedAtTransactionTime,
             EntityQueryPath::CreatedAtDecisionTime => EntityQueryPath::CreatedAtDecisionTime,
             EntityQueryPath::FirstNonDraftCreatedAtTransactionTime => {

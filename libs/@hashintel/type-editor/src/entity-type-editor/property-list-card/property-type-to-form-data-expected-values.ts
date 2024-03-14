@@ -1,16 +1,16 @@
-import {
-  extractBaseUrl,
+import type {
   OneOf,
   PropertyType,
   PropertyValues,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
+import { extractBaseUrl } from "@blockprotocol/type-system/slim";
 import uniqueId from "lodash.uniqueid";
 
 import { arrayExpectedValueDataDefaults } from "./shared/default-expected-value";
-import { ExpectedValue } from "./shared/expected-value-types";
+import type { ExpectedValue } from "./shared/expected-value-types";
 import { getExpectedValueDescriptor } from "./shared/get-expected-value-descriptor";
-import { PropertyTypeFormValues } from "./shared/property-type-form-values";
+import type { PropertyTypeFormValues } from "./shared/property-type-form-values";
 
 export const propertyTypeToFormDataExpectedValues = (
   property: PropertyType,

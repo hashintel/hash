@@ -1,11 +1,12 @@
-import { EntityTypeWithMetadata } from "@blockprotocol/graph";
-import { extractBaseUrl, PropertyType } from "@blockprotocol/type-system/slim";
+import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
+import type { PropertyType } from "@blockprotocol/type-system/slim";
+import { extractBaseUrl } from "@blockprotocol/type-system/slim";
 import { faChevronRight, faList } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Box, Collapse, Fade, Stack, TableCell, Tooltip } from "@mui/material";
 import { useWatch } from "react-hook-form";
 
-import { EntityTypeEditorFormData } from "../../shared/form-types";
+import type { EntityTypeEditorFormData } from "../../shared/form-types";
 import { useIsReadonly } from "../../shared/read-only-context";
 import { ArrowTurnDownRightIcon } from "../shared/arrow-turn-down-right-icon";
 import {

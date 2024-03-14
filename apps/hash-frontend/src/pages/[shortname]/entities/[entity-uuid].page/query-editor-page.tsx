@@ -1,4 +1,4 @@
-import { MultiFilter } from "@blockprotocol/graph";
+import type { MultiFilter } from "@blockprotocol/graph";
 import { OntologyChip } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
 import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
@@ -16,7 +16,7 @@ import {
   useLatestEntityTypesOptional,
 } from "../../../../shared/entity-types-context/hooks";
 import { usePropertyTypes } from "../../../../shared/property-types-context";
-import { EntityEditorProps } from "./entity-editor";
+import type { EntityEditorProps } from "./entity-editor";
 import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
 import { TypesSection } from "./entity-editor/types-section";
 import { EntityPageWrapper } from "./entity-page-wrapper";

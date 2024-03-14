@@ -1,18 +1,18 @@
-import {
+import type {
   UpdateBlockCollectionContentsMutation,
   UpdateBlockCollectionContentsMutationVariables,
 } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
-import { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
-import { EntityId, extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import type { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
+import type { EntityId } from "@local/hash-subgraph";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { toDomPrecision } from "@tldraw/primitives";
+import type { TLBaseShape, TLOpacityType } from "@tldraw/tldraw";
 import {
   defineShape,
   HTMLContainer,
-  TLBaseShape,
   TLBoxTool,
   TLBoxUtil,
-  TLOpacityType,
 } from "@tldraw/tldraw";
 
 import { BlockLoader } from "../../../../components/block-loader/block-loader";
@@ -21,11 +21,8 @@ import { apolloClient } from "../../../../lib/apollo-client";
 import { BlockContextProvider } from "../../../shared/block-collection/block-context";
 import { getBlockCollectionContentsStructuralQueryVariables } from "../../../shared/block-collection-contents";
 import { BlockCollectionContext } from "../../../shared/block-collection-context";
-import {
-  defaultBlockHeight,
-  defaultBlockWidth,
-  JsonSerializableBlockLoaderProps,
-} from "./shared";
+import type { JsonSerializableBlockLoaderProps } from "./shared";
+import { defaultBlockHeight, defaultBlockWidth } from "./shared";
 
 // Defines the string id and the 'props' available on our custom TLDraw shape
 export type BlockShape = TLBaseShape<

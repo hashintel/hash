@@ -5,7 +5,7 @@ import {
   DialogContentText,
   DialogTitle,
 } from "@mui/material";
-import { FunctionComponent, ReactNode } from "react";
+import type { FunctionComponent, ReactNode } from "react";
 
 import { Button } from "../shared/ui";
 

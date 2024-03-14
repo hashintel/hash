@@ -1,38 +1,33 @@
-import { EntityId } from "@blockprotocol/graph";
+import type { EntityId } from "@blockprotocol/graph";
 import { useGraphBlockModule } from "@blockprotocol/graph/react";
 import { useServiceBlockModule } from "@blockprotocol/service/react";
 import { Box, Collapse } from "@mui/material";
-import {
-  FunctionComponent,
-  useCallback,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import type { FunctionComponent } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { SizeMe } from "react-sizeme";
 import { TransitionGroup } from "react-transition-group";
 import { v4 as uuid } from "uuid";
 
 import { ChatMessage } from "./complete-chat/chat-message";
+import type { ChatModelId } from "./complete-chat/chat-model-selector";
 import {
-  ChatModelId,
   defaultChatModelId,
   isChatModelId,
 } from "./complete-chat/chat-model-selector";
 import { ChatTextField } from "./complete-chat/chat-textfield";
 import { ExamplePrompts } from "./complete-chat/example-prompts";
 import { Header } from "./complete-chat/header";
+import type { SystemPromptId } from "./complete-chat/system-prompt-selector";
 import {
   defaultSystemPromptId,
   isSystemPromptId,
-  SystemPromptId,
   systemPrompts,
 } from "./complete-chat/system-prompt-selector";
-import {
+import type {
   IncompleteOpenAiAssistantMessage,
   OpenAIChatMessage,
 } from "./complete-chat/types";
-import {
+import type {
   AIChatBlock,
   AIChatBlockProperties,
 } from "./types/generated/ai-chat-block";

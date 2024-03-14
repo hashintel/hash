@@ -1,4 +1,4 @@
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 /**

@@ -7,7 +7,7 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
-import { BaseUrl, EntityRootType } from "@local/hash-subgraph";
+import type { BaseUrl, EntityRootType } from "@local/hash-subgraph";
 import {
   getEntityTypeAndDescendantsById,
   getRoots,
@@ -17,7 +17,7 @@ import { Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
 
-import {
+import type {
   StructuralQueryEntitiesQuery,
   StructuralQueryEntitiesQueryVariables,
 } from "../graphql/api-types.gen";
@@ -28,15 +28,14 @@ import {
   isEntityUserEntity,
 } from "../lib/user-and-org";
 import { useLatestEntityTypesOptional } from "../shared/entity-types-context/hooks";
-import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
+import type { NextPageWithLayout } from "../shared/layout";
+import { getLayoutWithSidebar } from "../shared/layout";
 import { useUserOrOrg } from "../shared/use-user-or-org";
 import { EditUserProfileInfoModal } from "./[shortname].page/edit-user-profile-info-modal";
 import { ProfilePageContent } from "./[shortname].page/profile-page-content";
 import { ProfilePageHeader } from "./[shortname].page/profile-page-header";
-import {
-  parseProfilePageUrlQueryParams,
-  ProfilePageTab,
-} from "./[shortname].page/util";
+import type { ProfilePageTab } from "./[shortname].page/util";
+import { parseProfilePageUrlQueryParams } from "./[shortname].page/util";
 import { useEnabledFeatureFlags } from "./shared/use-enabled-feature-flags";
 
 const ProfilePage: NextPageWithLayout = () => {

@@ -9,23 +9,19 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { EntityId, OwnedById } from "@local/hash-subgraph";
+import type { EntityId, OwnedById } from "@local/hash-subgraph";
 import { Box, buttonClasses, styled } from "@mui/material";
 import Image from "next/image";
-import {
-  ChangeEventHandler,
-  FunctionComponent,
-  useCallback,
-  useRef,
-  useState,
-} from "react";
+import type { ChangeEventHandler, FunctionComponent } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import { useBlockProtocolArchiveEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
-import { User } from "../../../lib/user-and-org";
+import type { User } from "../../../lib/user-and-org";
 import { useFileUploads } from "../../../shared/file-upload-context";
 import { TrashRegularIcon } from "../../../shared/icons/trash-regular-icon";
 import { XMarkRegularIcon } from "../../../shared/icons/x-mark-regular-icon";
-import { Button, ButtonProps } from "../../../shared/ui";
+import type { ButtonProps } from "../../../shared/ui";
+import { Button } from "../../../shared/ui";
 import { useUpdateProfileAvatar } from "../../[shortname]/shared/use-update-profile-avatar";
 import { useAuthInfo } from "../../shared/auth-info-context";
 import { getImageUrlFromEntityProperties } from "../../shared/get-image-url-from-properties";

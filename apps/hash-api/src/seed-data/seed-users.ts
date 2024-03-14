@@ -1,13 +1,12 @@
-import { Logger } from "@local/hash-backend-utils/logger";
-import {
-  FeatureFlag,
-  featureFlags,
-} from "@local/hash-isomorphic-utils/feature-flags";
-import { AxiosError } from "axios";
+import type { Logger } from "@local/hash-backend-utils/logger";
+import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
+import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
+import type { AxiosError } from "axios";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
-import { ImpureGraphContext } from "../graph/context-types";
-import { createUser, User } from "../graph/knowledge/system-types/user";
+import type { ImpureGraphContext } from "../graph/context-types";
+import type { User } from "../graph/knowledge/system-types/user";
+import { createUser } from "../graph/knowledge/system-types/user";
 import { systemAccountId } from "../graph/system-account";
 import { isDevEnv, isTestEnv } from "../lib/env-config";
 

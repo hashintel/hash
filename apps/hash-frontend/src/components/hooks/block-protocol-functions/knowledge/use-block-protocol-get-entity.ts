@@ -1,14 +1,14 @@
 import { useLazyQuery } from "@apollo/client";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
-import { EntityRootType } from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
-import {
+import type {
   GetEntityQuery,
   GetEntityQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { GetEntityMessageCallback } from "./knowledge-shim";
+import type { GetEntityMessageCallback } from "./knowledge-shim";
 
 export const useBlockProtocolGetEntity = (): {
   getEntity: GetEntityMessageCallback;

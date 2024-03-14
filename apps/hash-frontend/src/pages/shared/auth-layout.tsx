@@ -1,5 +1,6 @@
-import { Box, BoxProps, Container } from "@mui/material";
-import { FunctionComponent, PropsWithChildren, ReactNode } from "react";
+import type { BoxProps } from "@mui/material";
+import { Box, Container } from "@mui/material";
+import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
 
 import { HashIcon } from "../../shared/icons/hash-icon";
 

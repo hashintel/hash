@@ -1,6 +1,7 @@
 import { ArrowUpRightIcon } from "@hashintel/design-system";
-import { Box, Stack, SvgIconProps, Typography } from "@mui/material";
-import { FunctionComponent, PropsWithChildren } from "react";
+import type { SvgIconProps } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
+import type { FunctionComponent, PropsWithChildren } from "react";
 
 import {
   darkModeBorderColor,

@@ -1,8 +1,8 @@
-import { ApolloClient } from "@apollo/client";
-import { VersionedUrl } from "@blockprotocol/type-system";
+import type { ApolloClient } from "@apollo/client";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
-import {
+import type {
   Entity,
   EntityId,
   EntityRootType,
@@ -13,30 +13,26 @@ import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { generateNKeysBetween } from "fractional-indexing";
 import { isEqual } from "lodash";
-import { Node } from "prosemirror-model";
+import type { Node } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
 
 import {
   getBlockCollectionResolveDepth,
   sortBlockCollectionLinks,
 } from "./block-collection";
-import { ComponentIdHashBlockMap } from "./blocks";
-import { BlockEntity } from "./entity";
-import {
-  DraftEntity,
-  EntityStore,
-  getDraftEntityByEntityId,
-  isDraftBlockEntity,
-} from "./entity-store";
+import type { ComponentIdHashBlockMap } from "./blocks";
+import type { BlockEntity } from "./entity";
+import type { DraftEntity, EntityStore } from "./entity-store";
+import { getDraftEntityByEntityId, isDraftBlockEntity } from "./entity-store";
 import {
   currentTimeInstantTemporalAxes,
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "./graph-queries";
-import {
+import type {
   Block as GqlBlock,
   GetEntityQuery,
   GetEntityQueryVariables,
@@ -47,7 +43,7 @@ import {
 } from "./graphql/api-types.gen";
 import { systemEntityTypes, systemLinkEntityTypes } from "./ontology-type-ids";
 import { isEntityNode } from "./prosemirror";
-import {
+import type {
   BlockProperties,
   HasIndexedContentProperties,
 } from "./system-types/shared";

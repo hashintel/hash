@@ -1,5 +1,5 @@
 import * as Sentry from "@sentry/node";
-import { Router } from "express";
+import type { Router } from "express";
 
 import { isProdEnv } from "./lib/env-config";
 

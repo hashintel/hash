@@ -1,10 +1,11 @@
 import { FeatherRegularIcon } from "@hashintel/design-system";
-import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph/.";
+import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph/.";
 import { Box, Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
-import { FunctionComponent, useCallback } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback } from "react";
 
-import { ButtonProps } from "../../../../../shared/ui";
+import type { ButtonProps } from "../../../../../shared/ui";
 import { AcceptDraftEntityButton } from "../../../../shared/accept-draft-entity-button";
 import { DiscardDraftEntityButton } from "../../../../shared/discard-draft-entity-button";
 

@@ -3,13 +3,14 @@
  * This file is not bundled with the library during the build process.
  */
 import { MockBlockDock } from "mock-block-dock";
-import { FunctionComponent, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { tw } from "twind";
 
 import variants from "../variants.json";
 import Component from "./index";
-import { ProviderName } from "./types";
+import type { ProviderName } from "./types";
 
 const node = document.getElementById("app");
 

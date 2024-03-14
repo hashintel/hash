@@ -1,6 +1,6 @@
-import { BlockVariant } from "@blockprotocol/core";
-import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
-import { EntityStore } from "@local/hash-isomorphic-utils/entity-store";
+import type { BlockVariant } from "@blockprotocol/core";
+import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
+import type { EntityStore } from "@local/hash-isomorphic-utils/entity-store";
 import {
   entityStorePluginState,
   subscribeToEntityStore,
@@ -9,18 +9,18 @@ import {
   findComponentNode,
   isEntityNode,
 } from "@local/hash-isomorphic-utils/prosemirror";
-import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
-import { EntityId } from "@local/hash-subgraph";
-import { Node } from "prosemirror-model";
+import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
+import type { EntityId } from "@local/hash-subgraph";
+import type { Node } from "prosemirror-model";
 import { NodeSelection, TextSelection } from "prosemirror-state";
-import { EditorView, NodeView } from "prosemirror-view";
+import type { EditorView, NodeView } from "prosemirror-view";
 import { createContext, createRef, useContext } from "react";
 
 import { getBlockDomId } from "../../../shared/get-block-dom-id";
 import { BlockContext } from "./block-context";
 import { BlockHandle } from "./block-handle";
 import { BlockHighlight } from "./block-highlight";
-import { RenderPortal } from "./block-portals";
+import type { RenderPortal } from "./block-portals";
 import { CollabPositionIndicators } from "./collab-position-indicators";
 import { CreateBlockCommentButton } from "./comments/create-block-comment-button";
 import { InsertBlock } from "./insert-block";

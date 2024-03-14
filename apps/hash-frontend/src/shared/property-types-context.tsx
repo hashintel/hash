@@ -1,13 +1,8 @@
-import { BaseUrl } from "@blockprotocol/type-system";
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { PropertyTypeWithMetadata } from "@local/hash-subgraph";
-import {
-  createContext,
-  FunctionComponent,
-  PropsWithChildren,
-  useContext,
-  useMemo,
-} from "react";
+import type { BaseUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { PropertyTypeWithMetadata } from "@local/hash-subgraph";
+import type { FunctionComponent, PropsWithChildren } from "react";
+import { createContext, useContext, useMemo } from "react";
 
 import { isTypeArchived } from "./is-archived";
 import { usePropertyTypesContextValue } from "./latest-property-types-context/use-property-types-context-value";
