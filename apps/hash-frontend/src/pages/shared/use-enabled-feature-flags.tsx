@@ -1,5 +1,6 @@
+import type {
+  FeatureFlag} from "@local/hash-isomorphic-utils/feature-flags";
 import {
-  FeatureFlag,
   featureFlags,
 } from "@local/hash-isomorphic-utils/feature-flags";
 import { useMemo } from "react";

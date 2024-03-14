@@ -1,5 +1,5 @@
 import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
-import { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
+import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,

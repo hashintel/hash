@@ -1,7 +1,7 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
 import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
-import { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
+import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,

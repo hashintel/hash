@@ -1,4 +1,4 @@
-import { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
+import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
