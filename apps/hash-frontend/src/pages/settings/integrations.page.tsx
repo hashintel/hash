@@ -1,10 +1,11 @@
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { Box, Paper, Stack, Typography } from "@mui/material";
-import { FunctionComponent, useContext } from "react";
+import type { FunctionComponent } from "react";
+import { useContext } from "react";
 
 import { isProduction } from "../../lib/config";
 import { extractOwnedById } from "../../lib/user-and-org";
-import { NextPageWithLayout } from "../../shared/layout";
+import type { NextPageWithLayout } from "../../shared/layout";
 import { Link } from "../../shared/ui";
 import { Button } from "../../shared/ui/button";
 import { WorkspaceContext } from "../shared/workspace-context";

@@ -10,19 +10,19 @@ import {
   googleEntityTypes,
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
+import type {
   AccountProperties as GoogleAccountProperties,
   GoogleSheetsIntegrationProperties,
   QueryProperties,
 } from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
-import { Entity, EntityRootType } from "@local/hash-subgraph";
+import type { Entity, EntityRootType } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
-import {
+import type {
   StructuralQueryEntitiesQuery,
   StructuralQueryEntitiesQueryVariables,
 } from "../../../../graphql/api-types.gen";

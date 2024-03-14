@@ -1,5 +1,5 @@
 import { getSecretEntitiesForIntegration } from "@local/hash-backend-utils/user-secret";
-import { GraphApi } from "@local/hash-graph-client";
+import type { GraphApi } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -10,28 +10,29 @@ import {
   googleEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
-import {
+import type { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
+import type {
   AccountProperties as GoogleAccountProperties,
   AssociatedWithAccountProperties,
   GoogleSheetsIntegrationProperties,
   HasQueryProperties,
 } from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
-import {
+import type {
   AccountId,
   Entity,
   EntityId,
   EntityRootType,
-  splitEntityId,
 } from "@local/hash-subgraph";
+import { splitEntityId } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
-import { Auth, google } from "googleapis";
+import type { Auth } from "googleapis";
+import { google } from "googleapis";
 
-import { VaultClient } from "./vault";
+import type { VaultClient } from "./vault";
 
 const googleOAuthClientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
 const googleOAuthClientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;

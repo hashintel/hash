@@ -6,7 +6,7 @@ import {
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 
 import { enabledIntegrations } from "../../../../integrations/enabled-integrations";
-import { MigrationFunction } from "../types";
+import type { MigrationFunction } from "../types";
 import {
   anyUserInstantiator,
   createSystemDataTypeIfNotExists,

@@ -1,10 +1,10 @@
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
-import { AccountProperties as GoogleAccountProperties } from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
-import { Entity } from "@local/hash-subgraph";
+import type { AccountProperties as GoogleAccountProperties } from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
+import type { Entity } from "@local/hash-subgraph";
 import Script from "next/script";
+import type { PropsWithChildren } from "react";
 import {
   createContext,
-  PropsWithChildren,
   useCallback,
   useContext,
   useMemo,

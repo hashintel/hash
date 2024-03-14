@@ -1,4 +1,4 @@
-import { EntityId } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-subgraph";
 
 type ErrorResponse = { error: string };
 

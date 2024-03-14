@@ -1,22 +1,22 @@
 import { getSecretEntitiesForIntegration } from "@local/hash-backend-utils/user-secret";
-import {
-  createUserSecretPath,
+import type {
   UserSecretService,
   VaultClient,
 } from "@local/hash-backend-utils/vault";
-import { GraphApi } from "@local/hash-graph-client";
+import { createUserSecretPath } from "@local/hash-backend-utils/vault";
+import type { GraphApi } from "@local/hash-graph-client";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { UserSecretProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
+import type { UserSecretProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type {
   AccountId,
   EntityId,
   EntityRelationAndSubject,
   OwnedById,
 } from "@local/hash-subgraph";
-import { Auth } from "googleapis";
+import type { Auth } from "googleapis";
 
 import { archiveEntity, createEntity } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";

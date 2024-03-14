@@ -1,13 +1,13 @@
 import { createGoogleOAuth2Client } from "@local/hash-backend-utils/google";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
-import {
+import type {
   GoogleOAuth2CallbackRequest,
   GoogleOAuth2CallbackResponse,
 } from "@local/hash-isomorphic-utils/google-integration";
 import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { AccountProperties as GoogleAccountProperties } from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
-import { OwnedById } from "@local/hash-subgraph";
-import { RequestHandler } from "express";
+import type { AccountProperties as GoogleAccountProperties } from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
+import type { OwnedById } from "@local/hash-subgraph";
+import type { RequestHandler } from "express";
 import { google } from "googleapis";
 
 import { createEntity } from "../../graph/knowledge/primitive/entity";

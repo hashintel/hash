@@ -8,23 +8,23 @@ import {
 } from "@local/hash-isomorphic-utils/environment";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
-import {
+import type { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
+import type {
   AccountId,
   Entity,
   EntityId,
   EntityUuid,
-  extractEntityUuidFromEntityId,
   OwnedById,
   Uuid,
 } from "@local/hash-subgraph";
-import { RequestHandler } from "express";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import type { RequestHandler } from "express";
 
 import { createEntity } from "../../graph/knowledge/primitive/entity";
+import type { LinearIntegration } from "../../graph/knowledge/system-types/linear-integration-entity";
 import {
   getLinearIntegrationByLinearOrgId,
   getLinearIntegrationFromEntity,
-  LinearIntegration,
 } from "../../graph/knowledge/system-types/linear-integration-entity";
 import { isUserMemberOfOrg } from "../../graph/knowledge/system-types/user";
 import { createUserSecret } from "../../graph/knowledge/system-types/user-secret";

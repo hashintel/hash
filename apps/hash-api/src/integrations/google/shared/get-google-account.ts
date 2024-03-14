@@ -4,11 +4,11 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { AccountProperties as GoogleAccountProperties } from "@local/hash-isomorphic-utils/system-types/google/account";
-import { AccountId, Entity } from "@local/hash-subgraph";
+import type { AccountProperties as GoogleAccountProperties } from "@local/hash-isomorphic-utils/system-types/google/account";
+import type { AccountId, Entity } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
-import { ImpureGraphFunction } from "../../../graph/context-types";
+import type { ImpureGraphFunction } from "../../../graph/context-types";
 import { getEntities } from "../../../graph/knowledge/primitive/entity";
 
 /**

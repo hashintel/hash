@@ -1,6 +1,11 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
-import { Team } from "@linear/sdk";
-import { AccountId, Entity, EntityId, OwnedById } from "@local/hash-subgraph";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { Team } from "@linear/sdk";
+import type {
+  AccountId,
+  Entity,
+  EntityId,
+  OwnedById,
+} from "@local/hash-subgraph";
 
 export type PartialEntity = {
   properties: Partial<Entity["properties"]>;

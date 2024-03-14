@@ -2,7 +2,7 @@ import {
   createGoogleOAuth2Client,
   getTokensForGoogleAccount,
 } from "@local/hash-backend-utils/google";
-import { Request, Response } from "express";
+import type { Request, Response } from "express";
 
 import { enabledIntegrations } from "../../enabled-integrations";
 import { getGoogleAccountById } from "./get-google-account";

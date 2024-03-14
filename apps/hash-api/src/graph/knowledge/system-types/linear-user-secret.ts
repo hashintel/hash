@@ -2,7 +2,7 @@ import {
   EntityTypeMismatchError,
   NotFoundError,
 } from "@local/hash-backend-utils/error";
-import { VaultClient } from "@local/hash-backend-utils/vault";
+import type { VaultClient } from "@local/hash-backend-utils/vault";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -14,15 +14,17 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
-import { UserSecretProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
+import type { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
+import type { UserSecretProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type {
   AccountId,
   Entity,
   EntityId,
   EntityRootType,
-  extractOwnedByIdFromEntityId,
   OwnedById,
+} from "@local/hash-subgraph";
+import {
+  extractOwnedByIdFromEntityId,
   splitEntityId,
 } from "@local/hash-subgraph";
 import {
@@ -31,7 +33,10 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
-import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
+import type {
+  ImpureGraphFunction,
+  PureGraphFunction,
+} from "../../context-types";
 
 export type LinearUserSecret = {
   connectionSourceName: string;

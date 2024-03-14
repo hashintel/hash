@@ -1,5 +1,6 @@
-import { AccountId } from "@local/hash-subgraph";
-import axios, { AxiosError, AxiosInstance } from "axios";
+import type { AccountId } from "@local/hash-subgraph";
+import type { AxiosError, AxiosInstance } from "axios";
+import axios from "axios";
 
 type VaultSecret<D = unknown> = {
   data: D;

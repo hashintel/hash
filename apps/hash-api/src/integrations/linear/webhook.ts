@@ -2,18 +2,13 @@ import crypto from "node:crypto";
 
 import { tupleIncludes } from "@local/advanced-types/includes";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
-import {
-  supportedLinearTypes,
-  WorkflowTypeMap,
-} from "@local/hash-backend-utils/temporal-integration-workflow-types";
-import {
-  extractEntityUuidFromEntityId,
-  OwnedById,
-  Uuid,
-} from "@local/hash-subgraph";
-import { RequestHandler } from "express";
+import type { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-integration-workflow-types";
+import { supportedLinearTypes } from "@local/hash-backend-utils/temporal-integration-workflow-types";
+import type { OwnedById, Uuid } from "@local/hash-subgraph";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import type { RequestHandler } from "express";
 
-import { ImpureGraphContext } from "../../graph/context-types";
+import type { ImpureGraphContext } from "../../graph/context-types";
 import {
   getAllLinearIntegrationsWithLinearOrgId,
   getSyncedWorkspacesForLinearIntegration,

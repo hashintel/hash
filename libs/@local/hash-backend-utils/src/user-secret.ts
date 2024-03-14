@@ -1,4 +1,4 @@
-import { GraphApi } from "@local/hash-graph-client";
+import type { GraphApi } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -8,17 +8,17 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
+import type {
   UserSecretProperties,
   UsesUserSecretProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
+import type {
   AccountId,
   Entity,
   EntityId,
   EntityRootType,
-  extractEntityUuidFromEntityId,
 } from "@local/hash-subgraph";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
   getEntityRevision,
   getRoots,

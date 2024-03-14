@@ -1,16 +1,17 @@
 import { useMutation } from "@apollo/client";
-import { MultiFilter } from "@blockprotocol/graph";
+import type { MultiFilter } from "@blockprotocol/graph";
 import { AlertModal, CheckIcon, TextField } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
-import { CreateOrUpdateSheetsIntegrationRequest } from "@local/hash-isomorphic-utils/google-integration";
+import type { CreateOrUpdateSheetsIntegrationRequest } from "@local/hash-isomorphic-utils/google-integration";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { QueryProperties } from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
-import { OwnedById } from "@local/hash-subgraph";
+import type { QueryProperties } from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
+import type { OwnedById } from "@local/hash-subgraph";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
-import { PropsWithChildren, useMemo, useState } from "react";
+import type { PropsWithChildren } from "react";
+import { useMemo, useState } from "react";
 
-import {
+import type {
   CreateEntityMutation,
   CreateEntityMutationVariables,
   UpdateEntityMutation,
@@ -27,7 +28,7 @@ import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { GoogleAccountSelect } from "./create-or-edit-sheets-integration/account-select";
 import { useGoogleAuth } from "./google-auth-context";
 import { GoogleFilePicker } from "./google-file-picker";
-import { UseSheetsIntegrationsData } from "./use-sheet-integrations";
+import type { UseSheetsIntegrationsData } from "./use-sheet-integrations";
 
 const StepContainer = ({
   children,
@@ -259,7 +260,6 @@ export const CreateOrEditSheetsIntegration = ({
           onUserChoice={(response) => {
             setAccessToken(null);
 
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
             if (response.action !== "picked" || !response.docs[0]) {
               return;
             }

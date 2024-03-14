@@ -3,8 +3,8 @@ import {
   getGoogleSheetsIntegrationEntities,
   getTokensForGoogleAccount,
 } from "@local/hash-backend-utils/google";
-import { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-integration-workflow-types";
-import {
+import type { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-integration-workflow-types";
+import type {
   CreateOrUpdateSheetsIntegrationRequest,
   CreateOrUpdateSheetsIntegrationResponse,
 } from "@local/hash-isomorphic-utils/google-integration";
@@ -14,10 +14,11 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { GoogleSheetsIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
-import { Entity, OwnedById } from "@local/hash-subgraph";
-import { RequestHandler } from "express";
-import { google, sheets_v4 } from "googleapis";
+import type { GoogleSheetsIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
+import type { Entity, OwnedById } from "@local/hash-subgraph";
+import type { RequestHandler } from "express";
+import type { sheets_v4 } from "googleapis";
+import { google } from "googleapis";
 
 import {
   archiveEntity,

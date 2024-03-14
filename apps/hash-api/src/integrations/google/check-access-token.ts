@@ -1,8 +1,8 @@
-import {
+import type {
   CheckGoogleTokenRequest,
   CheckGoogleTokenResponse,
 } from "@local/hash-isomorphic-utils/google-integration";
-import { RequestHandler } from "express";
+import type { RequestHandler } from "express";
 
 import { getGoogleAccessTokenForExpressRequest } from "./shared/get-or-check-access-token";
 
