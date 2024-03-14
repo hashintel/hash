@@ -70,8 +70,6 @@ test("user can create entity type", async ({ page }) => {
 
   await page.click('[data-testid="editbar-confirm"]');
 
-  await sleep(5_000);
-
   const ontologyChipPath = await page
     .locator('[data-testid="ontology-chip-path"]')
     .innerText();
