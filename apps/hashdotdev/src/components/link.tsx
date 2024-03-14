@@ -1,13 +1,12 @@
-import { UrlObject } from "node:url";
+import type { UrlObject } from "node:url";
 
-import {
-  Link as MuiLink,
-  LinkProps as MuiLinkProps,
-  styled,
-} from "@mui/material";
+import type { LinkProps as MuiLinkProps } from "@mui/material";
+import { Link as MuiLink, styled } from "@mui/material";
 import clsx from "clsx";
 // eslint-disable-next-line no-restricted-imports
-import NextLink, { LinkProps as NextLinkProps } from "next/link";
+import type { LinkProps as NextLinkProps } from "next/link";
+// eslint-disable-next-line no-restricted-imports
+import NextLink from "next/link";
 import { useRouter } from "next/router";
 import { forwardRef, isValidElement } from "react";
 

@@ -1,4 +1,4 @@
-import { LocalStorage } from "../../../../shared/storage";
+import type { LocalStorage } from "../../../../shared/storage";
 
 export const defaultProductionRules: LocalStorage["automaticInferenceConfig"]["rules"] =
   [

@@ -1,18 +1,16 @@
 import { useMutation } from "@apollo/client";
 import { AlertModal, FeatherRegularIcon } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import {
-  Entity,
-  EntityRootType,
-  extractDraftIdFromEntityId,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 import { getEntityRevision } from "@local/hash-subgraph/stdlib";
-import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
-import { BoxProps, Typography } from "@mui/material";
-import { FunctionComponent, useCallback, useMemo, useState } from "react";
+import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import type { BoxProps } from "@mui/material";
+import { Typography } from "@mui/material";
+import type { FunctionComponent } from "react";
+import { useCallback, useMemo, useState } from "react";
 
-import {
+import type {
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../graphql/api-types.gen";
@@ -20,7 +18,8 @@ import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.que
 import { useDraftEntities } from "../../shared/draft-entities-context";
 import { CheckRegularIcon } from "../../shared/icons/check-regular-icon";
 import { useNotificationEntities } from "../../shared/notification-entities-context";
-import { Button, ButtonProps } from "../../shared/ui";
+import type { ButtonProps } from "../../shared/ui";
+import { Button } from "../../shared/ui";
 import { LinkLabelWithSourceAndDestination } from "./link-label-with-source-and-destination";
 import { useNotificationsWithLinks } from "./notifications-with-links-context";
 

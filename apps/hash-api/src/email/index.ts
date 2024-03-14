@@ -9,7 +9,7 @@ import { URLSearchParams } from "node:url";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import dedent from "dedent";
 
-import { EmailTransporter } from "./transporters";
+import type { EmailTransporter } from "./transporters";
 
 export const sendOrgEmailInvitationToEmailAddress =
   (emailTransporter: EmailTransporter) =>

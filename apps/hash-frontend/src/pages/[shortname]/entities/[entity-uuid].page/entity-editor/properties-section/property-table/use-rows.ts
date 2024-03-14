@@ -1,13 +1,11 @@
 import { useCallback, useMemo } from "react";
 
-import {
-  ColumnSort,
-  defaultSortRows,
-} from "../../../../../../../components/grid/utils/sorting";
+import type { ColumnSort } from "../../../../../../../components/grid/utils/sorting";
+import { defaultSortRows } from "../../../../../../../components/grid/utils/sorting";
 import { useEntityEditor } from "../../entity-editor-context";
 import { fillRowIndentCalculations } from "./fill-row-indent-calculations";
 import { flattenExpandedItemsOfTree } from "./flatten";
-import { PropertyRow } from "./types";
+import type { PropertyRow } from "./types";
 import { generatePropertyRowsFromEntity } from "./use-rows/generate-property-rows-from-entity";
 
 export const useRows = () => {

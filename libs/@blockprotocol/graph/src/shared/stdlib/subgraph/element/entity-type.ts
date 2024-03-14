@@ -1,12 +1,14 @@
+import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
-  BaseUrl,
   extractBaseUrl,
   extractVersion,
-  VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 
-import { EntityTypeWithMetadata } from "../../../types/ontology/entity-type.js";
-import { OntologyTypeVertexId, Subgraph } from "../../../types/subgraph.js";
+import type { EntityTypeWithMetadata } from "../../../types/ontology/entity-type.js";
+import type {
+  OntologyTypeVertexId,
+  Subgraph,
+} from "../../../types/subgraph.js";
 import { isEntityTypeVertex } from "../../../types/subgraph/vertices.js";
 import { typedValues } from "../../../util.js";
 

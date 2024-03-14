@@ -1,6 +1,6 @@
-import { GraphResolveDepths } from "@blockprotocol/graph";
-import { VersionedUrl } from "@blockprotocol/type-system";
-import {
+import type { GraphResolveDepths } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
   DataTypeQueryToken,
   EntityQueryToken,
   EntityTypeQueryToken,
@@ -8,7 +8,7 @@ import {
   PropertyTypeQueryToken,
   Selector,
 } from "@local/hash-graph-client";
-import {
+import type {
   AccountId,
   EntityRelationAndSubject,
   QueryTemporalAxesUnresolved,
@@ -21,7 +21,7 @@ import {
   extractBaseUrl,
 } from "@local/hash-subgraph/type-system-patch";
 
-import { SubgraphFieldsFragment } from "./graphql/api-types.gen";
+import type { SubgraphFieldsFragment } from "./graphql/api-types.gen";
 import { systemPropertyTypes } from "./ontology-type-ids";
 
 export const zeroedGraphResolveDepths: GraphResolveDepths = {

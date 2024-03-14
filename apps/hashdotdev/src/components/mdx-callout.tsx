@@ -1,5 +1,5 @@
 import { Box, Stack } from "@mui/material";
-import { HTMLAttributes } from "react";
+import type { HTMLAttributes } from "react";
 
 import { CircleInfoLightIcon } from "./icons/circle-info-light-icon";
 

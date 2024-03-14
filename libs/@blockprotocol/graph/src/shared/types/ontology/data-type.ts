@@ -1,8 +1,8 @@
-import { DataType, VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { DataType, VersionedUrl } from "@blockprotocol/type-system/slim";
 
-import { QueryOperationInput } from "../entity.js";
-import { DataTypeRootType, Subgraph } from "../subgraph.js";
-import { OntologyElementMetadata } from "./metadata.js";
+import type { QueryOperationInput } from "../entity.js";
+import type { DataTypeRootType, Subgraph } from "../subgraph.js";
+import type { OntologyElementMetadata } from "./metadata.js";
 
 export type DataTypeWithMetadata = {
   schema: DataType;

@@ -1,5 +1,5 @@
 import { Box, Container, Typography, typographyClasses } from "@mui/material";
-import { FunctionComponent, ReactNode } from "react";
+import type { FunctionComponent, ReactNode } from "react";
 
 import { Button } from "../components/button";
 import { HiddenAnchorFragmentTag } from "../components/hidden-anchor-fragment-tag";
@@ -11,7 +11,7 @@ import { TeddyBearRegularIcon } from "../components/icons/teddy-bear-regular-ico
 import { WindLightIcon } from "../components/icons/wind-light-icon";
 import { Link } from "../components/link";
 import { PageLayout } from "../components/page-layout";
-import { NextPageWithLayout } from "../util/next-types";
+import type { NextPageWithLayout } from "../util/next-types";
 import { BlueStylishDivider } from "./blog/shared/blue-styled-divider";
 import { TechnologyTree } from "./roadmap/technology-tree";
 import { useCases } from "./roadmap/use-cases";

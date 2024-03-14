@@ -4,12 +4,11 @@ import {
   CloseIcon,
   FontAwesomeIcon,
 } from "@hashintel/design-system";
+import type { CircularProgressProps, LinearProgressProps } from "@mui/material";
 import {
   Box,
   CircularProgress,
-  CircularProgressProps,
   LinearProgress,
-  LinearProgressProps,
   Stack,
   Table,
   TableBody,
@@ -19,7 +18,8 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import { ReactNode, useContext, useState } from "react";
+import type { ReactNode } from "react";
+import { useContext, useState } from "react";
 
 import {
   useFileUploads,

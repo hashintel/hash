@@ -1,15 +1,12 @@
-import {
-  EntityType,
-  extractVersion,
-  PropertyType,
-} from "@blockprotocol/type-system";
-import { SizedGridColumn } from "@glideapps/glide-data-grid";
+import type { EntityType, PropertyType } from "@blockprotocol/type-system";
+import { extractVersion } from "@blockprotocol/type-system";
+import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
+import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type {
   BaseUrl,
   Entity,
   EntityId,
@@ -21,7 +18,8 @@ import { format } from "date-fns";
 import { useMemo } from "react";
 
 import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
-import { MinimalActor, useActors } from "../../../shared/use-actors";
+import type { MinimalActor } from "../../../shared/use-actors";
+import { useActors } from "../../../shared/use-actors";
 
 export interface TypeEntitiesRow {
   rowId: string;
@@ -200,7 +198,7 @@ export const useEntitiesTable = (params: {
               lastEditedBy,
               /** @todo: uncomment this when we have additional types for entities */
               // additionalTypes: "",
-              properties: propertyColumns.reduce((fields, column) => {
+              ...propertyColumns.reduce((fields, column) => {
                 if (column.id) {
                   const propertyValue = entity.properties[column.id as BaseUrl];
 

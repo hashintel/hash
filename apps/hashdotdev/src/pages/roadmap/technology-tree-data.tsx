@@ -1,8 +1,8 @@
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 
-import { StatusId } from "./statuses";
-import { UseCaseId } from "./use-cases";
-import { VariantId } from "./variants";
+import type { StatusId } from "./statuses";
+import type { UseCaseId } from "./use-cases";
+import type { VariantId } from "./variants";
 
 export type TechnologyTreeNodeData = {
   id: string;

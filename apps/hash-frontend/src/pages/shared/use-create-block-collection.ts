@@ -5,8 +5,8 @@ import {
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { BlockCollectionProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { OwnedById } from "@local/hash-subgraph";
+import type { BlockCollectionProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { OwnedById } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { generateKeyBetween } from "fractional-indexing";
 import { useCallback } from "react";

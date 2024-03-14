@@ -1,5 +1,6 @@
 import { unparse } from "papaparse";
-import { FunctionComponent, useCallback } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback } from "react";
 
 import { TableHeaderButton } from "./table-header-button";
 

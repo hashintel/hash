@@ -1,6 +1,6 @@
 import { AsteriskRegularIcon, IconButton } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import {
+import type {
   Entity,
   EntityPropertyValue,
   EntityRootType,
@@ -8,11 +8,11 @@ import {
   PropertyTypeWithMetadata,
   Subgraph,
 } from "@local/hash-subgraph";
+import type { ListItemButtonProps } from "@mui/material";
 import {
   Box,
   ListItemButton as MuiListItemButton,
   listItemButtonClasses,
-  ListItemButtonProps,
   ListItemIcon,
   ListItemText as MuiListItemText,
   listItemTextClasses,

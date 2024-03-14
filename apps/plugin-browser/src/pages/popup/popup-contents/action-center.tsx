@@ -3,20 +3,19 @@ import {
   PlusIcon,
   WandMagicSparklesIcon,
 } from "@hashintel/design-system";
+import type { SvgIconProps, TabProps as MuiTabProps } from "@mui/material";
 import {
   Box,
   Stack,
-  SvgIconProps,
   Tab as MuiTab,
-  TabProps as MuiTabProps,
   Tabs as MuiTabs,
   Typography,
 } from "@mui/material";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import type { Tabs } from "webextension-polyfill";
 
 import { createDefaultSettings } from "../../../shared/create-default-settings";
-import { LocalStorage } from "../../../shared/storage";
+import type { LocalStorage } from "../../../shared/storage";
 import {
   darkModeBorderColor,
   lightModeBorderColor,

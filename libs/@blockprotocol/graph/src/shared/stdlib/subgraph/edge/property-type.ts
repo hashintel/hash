@@ -1,10 +1,12 @@
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 
+import type {
+  OntologyTypeVertexId,
+  Subgraph,
+} from "../../../types/subgraph.js";
 import {
   isConstrainsPropertiesOnEdge,
   isConstrainsValuesOnEdge,
-  OntologyTypeVertexId,
-  Subgraph,
 } from "../../../types/subgraph.js";
 import { getOntologyEndpointsForOntologyOutwardEdge } from "./shared.js";
 

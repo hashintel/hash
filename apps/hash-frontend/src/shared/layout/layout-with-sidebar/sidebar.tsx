@@ -2,7 +2,7 @@ import { faHome } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Box, Drawer, Tooltip } from "@mui/material";
 import { useRouter } from "next/router";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { useActiveWorkspace } from "../../../pages/shared/workspace-context";

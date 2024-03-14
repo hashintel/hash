@@ -28,6 +28,7 @@ module.exports = {
   reportUnusedDisableDirectives: true,
   rules: {
     "canonical/filename-no-index": "error",
+    "@typescript-eslint/consistent-type-imports": "error",
     // overridden airbnb rules (if you wish to add to this list, please outline your reasoning here: https://www.notion.so/hashintel/HASH-dev-eslint-configuration-60c52c127d13478fbce6bb5579a6b7be)
     "no-undef-init": "off",
     "no-underscore-dangle": "off",

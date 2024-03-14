@@ -1,4 +1,4 @@
-import { PropsWithChildren } from "react";
+import type { PropsWithChildren } from "react";
 
 import { useEntityTypesContextValue } from "./provider/use-entity-types-context-value";
 import { EntityTypesContext } from "./shared/context";

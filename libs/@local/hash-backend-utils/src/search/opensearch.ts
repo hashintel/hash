@@ -1,10 +1,11 @@
-import { JsonObject } from "@blockprotocol/core";
-import { Client, ClientOptions, errors } from "@opensearch-project/opensearch";
+import type { JsonObject } from "@blockprotocol/core";
+import type { ClientOptions } from "@opensearch-project/opensearch";
+import { Client, errors } from "@opensearch-project/opensearch";
 import { DataSource } from "apollo-datasource";
 
-import { Logger } from "../logger";
+import type { Logger } from "../logger";
 import { sleep } from "../utils";
-import {
+import type {
   SearchAdapter,
   SearchField,
   SearchFieldPresence,

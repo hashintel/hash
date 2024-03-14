@@ -7,9 +7,9 @@ import {
   popperPlacementPopperNoRadius,
   TextField,
 } from "@hashintel/design-system";
+import type { BoxProps } from "@mui/material";
 import {
   Box,
-  BoxProps,
   Checkbox,
   ClickAwayListener,
   Collapse,
@@ -21,13 +21,8 @@ import {
   TableCell,
   Typography,
 } from "@mui/material";
-import {
-  FunctionComponent,
-  PropsWithChildren,
-  ReactNode,
-  useId,
-  useState,
-} from "react";
+import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
+import { useId, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   Controller,
@@ -36,7 +31,7 @@ import {
   useWatch,
 } from "react-hook-form";
 
-import { EntityTypeEditorFormData } from "../../shared/form-types";
+import type { EntityTypeEditorFormData } from "../../shared/form-types";
 import { useIsReadonly } from "../../shared/read-only-context";
 
 const useFrozenValue = <T extends ReactNode>(

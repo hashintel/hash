@@ -1,6 +1,7 @@
 import { useRouter } from "next/router";
 
-import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
+import type { NextPageWithLayout } from "../shared/layout";
+import { getLayoutWithSidebar } from "../shared/layout";
 import { useAuthInfo } from "./shared/auth-info-context";
 
 const MePage: NextPageWithLayout = () => {

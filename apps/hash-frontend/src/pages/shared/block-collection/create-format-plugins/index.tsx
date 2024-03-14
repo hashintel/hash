@@ -2,18 +2,14 @@
 
 import { toggleMark } from "prosemirror-commands";
 import { inputRules } from "prosemirror-inputrules";
-import { Mark } from "prosemirror-model";
-import {
-  EditorState,
-  NodeSelection,
-  Plugin,
-  PluginKey,
-} from "prosemirror-state";
-import { EditorView } from "prosemirror-view";
+import type { Mark } from "prosemirror-model";
+import type { EditorState } from "prosemirror-state";
+import { NodeSelection, Plugin, PluginKey } from "prosemirror-state";
+import type { EditorView } from "prosemirror-view";
 import { createRef } from "react";
 
 import { ensureMounted } from "../../../../lib/dom";
-import { RenderPortal } from "../block-portals";
+import type { RenderPortal } from "../block-portals";
 import { LinkModal } from "./link-modal";
 import { MarksTooltip } from "./marks-tooltip";
 import {

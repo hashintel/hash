@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/browser";
 
-import { LocalStorage } from "../../shared/storage";
+import type { LocalStorage } from "../../shared/storage";
 
 /**
  * Initialize Sentry. Run this as early as possible in the app.

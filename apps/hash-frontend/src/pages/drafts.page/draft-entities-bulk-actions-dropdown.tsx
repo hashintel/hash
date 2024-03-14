@@ -1,11 +1,7 @@
 import { useMutation } from "@apollo/client";
 import { AlertModal, CaretDownSolidIcon } from "@hashintel/design-system";
-import {
-  EntityId,
-  EntityRootType,
-  extractDraftIdFromEntityId,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { EntityId, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 import {
   getEntityRevision,
   getIncomingLinksForEntity,
@@ -18,9 +14,10 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { FunctionComponent, useCallback, useMemo, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback, useMemo, useState } from "react";
 
-import {
+import type {
   ArchiveEntitiesMutation,
   ArchiveEntitiesMutationVariables,
   UpdateEntitiesMutation,

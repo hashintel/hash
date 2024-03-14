@@ -1,6 +1,7 @@
 import { TextField } from "@hashintel/design-system";
 import { Box, Collapse } from "@mui/material";
-import { FormEvent, FunctionComponent, useRef, useState } from "react";
+import type { FormEvent, FunctionComponent } from "react";
+import { useRef, useState } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 
 import { useUserBlocks } from "../../../../blocks/user-blocks";

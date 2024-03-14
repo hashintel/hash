@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
-import { LOG_LEVELS, Logger, LogLevel } from "@local/hash-backend-utils/logger";
+import type { LogLevel } from "@local/hash-backend-utils/logger";
+import { LOG_LEVELS, Logger } from "@local/hash-backend-utils/logger";
 
 export const INSTANCE_ID = randomUUID();
 

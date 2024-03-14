@@ -5,7 +5,7 @@ import {
   usePopupState,
 } from "material-ui-popup-state/hooks";
 
-import { MinimalOrg } from "../../../../../lib/user-and-org";
+import type { MinimalOrg } from "../../../../../lib/user-and-org";
 import { MenuItem } from "../../../../../shared/ui/menu-item";
 import { ContextButton, contextMenuProps } from "../../../shared/context-menu";
 

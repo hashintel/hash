@@ -1,4 +1,4 @@
-import { TableExpandStatus } from "../../entity-editor-context";
+import type { TableExpandStatus } from "../../entity-editor-context";
 
 /**
  * @param tree a tree contains nested items

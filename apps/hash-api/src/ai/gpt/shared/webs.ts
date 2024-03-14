@@ -1,11 +1,9 @@
-import { AccountId } from "@local/hash-subgraph";
+import type { AccountId } from "@local/hash-subgraph";
 
-import { ImpureGraphContext } from "../../../graph/context-types";
+import type { ImpureGraphContext } from "../../../graph/context-types";
 import { getOrgMembershipOrg } from "../../../graph/knowledge/system-types/org-membership";
-import {
-  getUserOrgMemberships,
-  User,
-} from "../../../graph/knowledge/system-types/user";
+import type { User } from "../../../graph/knowledge/system-types/user";
+import { getUserOrgMemberships } from "../../../graph/knowledge/system-types/user";
 
 export type SimpleWeb = {
   uuid: string;

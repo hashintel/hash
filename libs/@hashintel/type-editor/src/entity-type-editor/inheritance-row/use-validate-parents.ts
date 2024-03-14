@@ -1,17 +1,16 @@
-import {
+import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@blockprotocol/graph";
-import { extractBaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import { extractBaseUrl } from "@blockprotocol/type-system/slim";
 import { useCallback } from "react";
 
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";
 import { usePropertyTypesOptions } from "../../shared/property-types-options-context";
 import { linkEntityTypeUrl } from "../../shared/urls";
-import {
-  InheritedValues,
-  useGetInheritedValues,
-} from "../shared/use-inherited-values";
+import type { InheritedValues } from "../shared/use-inherited-values";
+import { useGetInheritedValues } from "../shared/use-inherited-values";
 
 /**
  * Utility function used in the hook below – the same logic is used to check for both link and property duplicates.

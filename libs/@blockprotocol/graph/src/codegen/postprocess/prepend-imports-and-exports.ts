@@ -1,7 +1,7 @@
 import * as path from "node:path";
 
 import { mustBeDefined } from "../../shared/util/must-be-defined.js";
-import { PostprocessContext } from "../context/postprocess.js";
+import type { PostprocessContext } from "../context/postprocess.js";
 
 const inlineSort = <T>(
   array: T[],

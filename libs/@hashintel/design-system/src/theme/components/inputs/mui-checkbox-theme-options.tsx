@@ -1,4 +1,5 @@
-import { Components, svgIconClasses, Theme } from "@mui/material";
+import type { Components, Theme } from "@mui/material";
+import { svgIconClasses } from "@mui/material";
 
 import { CheckboxBlankIcon } from "./mui-checkbox-theme-options/checkbox-blank-icon";
 import { CheckboxCheckedIcon } from "./mui-checkbox-theme-options/checkbox-checked-icon";

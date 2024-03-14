@@ -1,11 +1,12 @@
-import { EntityTypeWithMetadata } from "@blockprotocol/graph";
-import { extractBaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import { extractBaseUrl } from "@blockprotocol/type-system/slim";
 import { useCallback } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import { getFormDataFromEntityType } from "../../get-form-data-from-entity-type";
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";
-import {
+import type {
   EntityTypeEditorFormData,
   EntityTypeEditorLinkData,
   EntityTypeEditorPropertyData,

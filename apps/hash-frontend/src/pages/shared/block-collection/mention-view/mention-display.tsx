@@ -2,7 +2,7 @@ import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entit
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
@@ -14,7 +14,8 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Popover, styled, Tooltip, Typography } from "@mui/material";
-import { FunctionComponent, useMemo, useRef, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { useEntityById } from "../../../../components/hooks/use-entity-by-id";
 import { constructPageRelativeUrl } from "../../../../lib/routes";
@@ -24,7 +25,7 @@ import { usePropertyTypes } from "../../../../shared/property-types-context";
 import { Link } from "../../../../shared/ui";
 import { useEntityIcon } from "../../../../shared/use-entity-icon";
 import { useUserOrOrg } from "../../../../shared/use-user-or-org";
-import { Mention } from "../shared/mention-suggester";
+import type { Mention } from "../shared/mention-suggester";
 
 const LinkIcon = styled(ArrowUpRightRegularIcon)(({ theme }) => ({
   marginLeft: theme.spacing(1),

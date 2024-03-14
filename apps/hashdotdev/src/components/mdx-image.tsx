@@ -1,7 +1,7 @@
 import { Box } from "@mui/system";
-import { ImageProps } from "next/dist/client/legacy/image";
+import type { ImageProps } from "next/dist/client/legacy/image";
 import Image from "next/legacy/image";
-import { FunctionComponent, HTMLProps } from "react";
+import type { FunctionComponent, HTMLProps } from "react";
 
 import { useOptionalBlogPostPhotos } from "./blog-post";
 

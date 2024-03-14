@@ -1,3 +1,3 @@
-import { BeforeCreateEntityHook } from "./create-entity-hooks";
+import type { BeforeCreateEntityHook } from "./create-entity-hooks";
 
 export const beforeCreateEntityHooks: BeforeCreateEntityHook[] = [];

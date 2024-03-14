@@ -3,12 +3,14 @@ import {
   IconButton,
   LinkTypeIcon,
 } from "@hashintel/design-system";
-import { EntityTypeWithMetadata } from "@local/hash-subgraph";
+import type { EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import { Box, BoxProps, styled, Tooltip, Typography } from "@mui/material";
+import type { BoxProps } from "@mui/material";
+import { Box, styled, Tooltip, Typography } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
-import { FunctionComponent, useRef } from "react";
+import type { FunctionComponent } from "react";
+import { useRef } from "react";
 
 import { useEntityTypesContextRequired } from "../../../entity-types-context/hooks/use-entity-types-context-required";
 import { EllipsisRegularIcon } from "../../../icons/ellipsis-regular-icon";

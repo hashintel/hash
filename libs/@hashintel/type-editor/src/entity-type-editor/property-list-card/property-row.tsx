@@ -1,6 +1,10 @@
-import { PropertyType, VersionedUrl } from "@blockprotocol/type-system/slim";
+import type {
+  PropertyType,
+  VersionedUrl,
+} from "@blockprotocol/type-system/slim";
 import { Collapse, Table, TableBody, TableCell, TableRow } from "@mui/material";
-import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { usePropertyTypesOptions } from "../../shared/property-types-options-context";
 import { useIsReadonly } from "../../shared/read-only-context";
@@ -10,7 +14,7 @@ import { EntityTypeTableRow } from "../shared/entity-type-table";
 import { generateReadonlyMessage } from "../shared/generate-readonly-message";
 import { MULTIPLE_VALUES_CELL_WIDTH } from "../shared/multiple-values-cell";
 import { TypeMenuCell } from "../shared/type-menu-cell";
-import { InheritanceData } from "../shared/use-inherited-values";
+import type { InheritanceData } from "../shared/use-inherited-values";
 import { useTypeVersions } from "../shared/use-type-versions";
 import { DisabledCheckboxCell } from "./disabled-checkbox-cell";
 import { PropertyExpectedValues } from "./property-expected-values";

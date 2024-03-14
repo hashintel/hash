@@ -1,3 +1,4 @@
+import type { SxProps, TextFieldProps, Theme } from "@mui/material";
 import {
   Box,
   Button,
@@ -5,20 +6,10 @@ import {
   Collapse,
   inputBaseClasses,
   outlinedInputClasses,
-  SxProps,
   TextField,
-  TextFieldProps,
-  Theme,
 } from "@mui/material";
-import {
-  FormEvent,
-  forwardRef,
-  FunctionComponent,
-  ReactNode,
-  useCallback,
-  useRef,
-  useState,
-} from "react";
+import type { FormEvent, FunctionComponent, ReactNode } from "react";
+import { forwardRef, useCallback, useRef, useState } from "react";
 
 import { BlockErrorMessage } from "./block-error-message";
 

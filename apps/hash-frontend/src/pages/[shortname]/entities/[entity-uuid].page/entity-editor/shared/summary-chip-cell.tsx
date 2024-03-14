@@ -1,8 +1,5 @@
-import {
-  CustomCell,
-  CustomRenderer,
-  GridCellKind,
-} from "@glideapps/glide-data-grid";
+import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
+import { GridCellKind } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
 
 import { getYCenter } from "../../../../../../components/grid/utils";

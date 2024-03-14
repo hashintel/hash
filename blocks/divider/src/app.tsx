@@ -1,7 +1,8 @@
-import { BlockComponent, useEntitySubgraph } from "@blockprotocol/graph/react";
+import type { BlockComponent } from "@blockprotocol/graph/react";
+import { useEntitySubgraph } from "@blockprotocol/graph/react";
 
 import { propertyIds } from "./property-ids";
-import { BlockEntity } from "./types/generated/block-entity";
+import type { BlockEntity } from "./types/generated/block-entity";
 
 export const App: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph },

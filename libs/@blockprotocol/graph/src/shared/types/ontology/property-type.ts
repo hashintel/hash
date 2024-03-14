@@ -1,8 +1,11 @@
-import { PropertyType, VersionedUrl } from "@blockprotocol/type-system/slim";
+import type {
+  PropertyType,
+  VersionedUrl,
+} from "@blockprotocol/type-system/slim";
 
-import { QueryOperationInput } from "../entity.js";
-import { PropertyTypeRootType, Subgraph } from "../subgraph.js";
-import { OntologyElementMetadata } from "./metadata.js";
+import type { QueryOperationInput } from "../entity.js";
+import type { PropertyTypeRootType, Subgraph } from "../subgraph.js";
+import type { OntologyElementMetadata } from "./metadata.js";
 
 export type PropertyTypeWithMetadata = {
   schema: PropertyType;

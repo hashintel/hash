@@ -1,8 +1,10 @@
-import { extractVersion, VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import { extractVersion } from "@blockprotocol/type-system";
 import { AsteriskRegularIcon } from "@hashintel/design-system";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
-import { EntityTypeWithMetadata, isBaseUrl } from "@local/hash-subgraph";
+import type { EntityTypeWithMetadata } from "@local/hash-subgraph";
+import { isBaseUrl } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
@@ -14,7 +16,8 @@ import {
 } from "@mui/material";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
-import { FunctionComponent, useCallback, useMemo } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback, useMemo } from "react";
 
 import { useAccountPages } from "../components/hooks/use-account-pages";
 import { useCreatePage } from "../components/hooks/use-create-page";
@@ -30,7 +33,8 @@ import { FileCirclePlusRegularIcon } from "../shared/icons/file-circle-plus-regu
 import { FilesLightIcon } from "../shared/icons/files-light-icon";
 import { FilesRegularIcon } from "../shared/icons/files-regular-icon";
 import { PlusRegularIcon } from "../shared/icons/plus-regular";
-import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
+import type { NextPageWithLayout } from "../shared/layout";
+import { getLayoutWithSidebar } from "../shared/layout";
 import { Button } from "../shared/ui";
 import { TabLink } from "../shared/ui/tab-link";
 import { Tabs } from "../shared/ui/tabs";

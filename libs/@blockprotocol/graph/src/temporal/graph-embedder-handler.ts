@@ -2,7 +2,7 @@ import { ModuleHandler } from "@blockprotocol/core";
 
 // @todo restore this when an issue with module resolution has been resolved
 // import graphModuleJson from "./graph-module.json" assert { type: "json" };
-import {
+import type {
   EntityRootType,
   GraphEmbedderMessageCallbacks,
   GraphEmbedderMessages,

@@ -1,12 +1,9 @@
 import "@glideapps/glide-data-grid/dist/index.css";
 
-import {
-  CompactSelection,
-  DataEditor,
+import type {
   DataEditorProps,
   DataEditorRef,
   GridCell,
-  GridCellKind,
   GridColumn,
   GridSelection,
   HeaderClickedEventArgs,
@@ -15,31 +12,31 @@ import {
   TextCell,
   Theme,
 } from "@glideapps/glide-data-grid";
-import { Box, PopperProps, useTheme } from "@mui/material";
+import {
+  CompactSelection,
+  DataEditor,
+  GridCellKind,
+} from "@glideapps/glide-data-grid";
+import type { PopperProps } from "@mui/material";
+import { Box, useTheme } from "@mui/material";
 import type { Instance as PopperInstance } from "@popperjs/core";
 import { uniqueId } from "lodash";
-import {
-  MutableRefObject,
-  Ref,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import type { MutableRefObject, Ref } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { getCellHorizontalPadding } from "./utils";
 import { ColumnFilterMenu } from "./utils/column-filter-menu";
 import { customGridIcons } from "./utils/custom-grid-icons";
-import { ColumnFilter } from "./utils/filtering";
+import type { ColumnFilter } from "./utils/filtering";
 import { InteractableManager } from "./utils/interactable-manager";
-import {
+import type {
   ColumnHeaderPath,
   Interactable,
 } from "./utils/interactable-manager/types";
 import { overrideCustomRenderers } from "./utils/override-custom-renderers";
-import { Row } from "./utils/rows";
-import { ColumnSort, defaultSortRows } from "./utils/sorting";
+import type { Row } from "./utils/rows";
+import type { ColumnSort } from "./utils/sorting";
+import { defaultSortRows } from "./utils/sorting";
 import { useDrawHeader } from "./utils/use-draw-header";
 import { useRenderGridPortal } from "./utils/use-render-grid-portal";
 

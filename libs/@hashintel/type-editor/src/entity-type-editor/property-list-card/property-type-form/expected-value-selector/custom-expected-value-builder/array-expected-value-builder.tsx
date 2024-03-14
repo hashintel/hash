@@ -2,19 +2,18 @@ import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import uniqueId from "lodash.uniqueid";
 import { usePopupState } from "material-ui-popup-state/hooks";
-import { FunctionComponent, useEffect, useMemo, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
-import {
-  CustomExpectedValueTypeId,
-  useDataTypesOptions,
-} from "../../../../../shared/data-types-options-context";
+import type { CustomExpectedValueTypeId } from "../../../../../shared/data-types-options-context";
+import { useDataTypesOptions } from "../../../../../shared/data-types-options-context";
 import { getDefaultExpectedValue } from "../../../shared/default-expected-value";
-import { CustomExpectedValue } from "../../../shared/expected-value-types";
+import type { CustomExpectedValue } from "../../../shared/expected-value-types";
 import { CustomExpectedValueSelector } from "../shared/custom-expected-value-selector";
 import { DeleteExpectedValueModal } from "../shared/delete-expected-value-modal";
 import { ExpectedValueBadge } from "../shared/expected-value-badge";
-import { ExpectedValueSelectorFormValues } from "../shared/expected-value-selector-form-values";
+import type { ExpectedValueSelectorFormValues } from "../shared/expected-value-selector-form-values";
 import { ObjectExpectedValueBuilder } from "../shared/object-expected-value-builder";
 import { ArrayMinMaxItems } from "./array-expected-value-builder/array-min-max-items";
 

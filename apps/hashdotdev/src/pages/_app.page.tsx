@@ -3,19 +3,21 @@ import "../../styles/globals.css";
 import "../../styles/prism.css";
 import "../../styles/legacy-mdx-components.scss";
 
-import { EmotionCache } from "@emotion/react";
+import type { EmotionCache } from "@emotion/react";
 import type { AppProps } from "next/app";
 import { useRouter } from "next/router";
-import { DefaultSeo, DefaultSeoProps } from "next-seo";
+import type { DefaultSeoProps } from "next-seo";
+import { DefaultSeo } from "next-seo";
 import NextNProgress from "nextjs-progressbar";
-import { FunctionComponent, useEffect } from "react";
+import type { FunctionComponent } from "react";
+import { useEffect } from "react";
 
 import siteMap from "../../sitemap.json";
 import { PageLayout } from "../components/page-layout";
 import { SITE_DESCRIPTION, SITE_SOCIAL_COVER_IMAGE_URL } from "../config";
 import { theme } from "../theme";
 import { MuiProvider } from "../theme/mui-provider";
-import { NextPageWithLayout } from "../util/next-types";
+import type { NextPageWithLayout } from "../util/next-types";
 import { SiteMapContext } from "./shared/sitemap-context";
 
 const defaultSeoProps: DefaultSeoProps = {

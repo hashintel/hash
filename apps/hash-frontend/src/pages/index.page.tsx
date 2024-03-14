@@ -2,9 +2,10 @@ import { useQuery } from "@apollo/client";
 import { Box, Typography } from "@mui/material";
 import { useMemo } from "react";
 
-import { HasAccessToHashQuery } from "../graphql/api-types.gen";
+import type { HasAccessToHashQuery } from "../graphql/api-types.gen";
 import { hasAccessToHashQuery } from "../graphql/queries/user.queries";
-import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
+import type { NextPageWithLayout } from "../shared/layout";
+import { getLayoutWithSidebar } from "../shared/layout";
 import { Link } from "../shared/ui";
 import { useAuthInfo } from "./shared/auth-info-context";
 

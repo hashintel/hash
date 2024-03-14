@@ -4,13 +4,9 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import {
-  entityIdFromOwnedByIdAndEntityUuid,
-  EntityUuid,
-  OwnedById,
-  Uuid,
-} from "@local/hash-subgraph";
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+import type { EntityUuid, OwnedById, Uuid } from "@local/hash-subgraph";
+import { entityIdFromOwnedByIdAndEntityUuid } from "@local/hash-subgraph";
 
 import { isProdEnv } from "../../../../lib/env-config";
 import { createOrUpdateMailchimpUser } from "../../../../mailchimp";
@@ -36,7 +32,7 @@ import {
 } from "../../system-types/text";
 import { getUserById } from "../../system-types/user";
 import { checkPermissionsOnEntity } from "../entity";
-import {
+import type {
   AfterCreateEntityHook,
   AfterCreateEntityHookCallback,
 } from "./create-entity-hooks";

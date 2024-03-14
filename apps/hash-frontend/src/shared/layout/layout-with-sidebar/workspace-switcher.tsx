@@ -1,6 +1,6 @@
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
 import { Avatar, FontAwesomeIcon } from "@hashintel/design-system";
-import { OwnedById } from "@local/hash-subgraph";
+import type { OwnedById } from "@local/hash-subgraph";
 import {
   Box,
   Divider,

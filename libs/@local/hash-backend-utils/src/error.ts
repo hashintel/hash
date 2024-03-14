@@ -1,5 +1,5 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
-import { BaseUrl } from "@local/hash-subgraph";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { BaseUrl } from "@local/hash-subgraph";
 
 export class EntityTypeMismatchError extends Error {
   entityId: string;

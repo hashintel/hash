@@ -1,7 +1,7 @@
-import { SizedGridColumn } from "@glideapps/glide-data-grid";
-import { DataTypeWithMetadata } from "@local/hash-subgraph";
+import type { SizedGridColumn } from "@glideapps/glide-data-grid";
+import type { DataTypeWithMetadata } from "@local/hash-subgraph";
 
-import { VerticalIndentationLineDir } from "../../../../../../../components/grid/utils/draw-vertical-indentation-line";
+import type { VerticalIndentationLineDir } from "../../../../../../../components/grid/utils/draw-vertical-indentation-line";
 
 export type PropertyRow = {
   title: string;

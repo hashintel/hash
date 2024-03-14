@@ -1,8 +1,8 @@
 import { useLazyQuery } from "@apollo/client";
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
-import {
+import type {
   CreatedAtDecisionTime,
   CreatedAtTransactionTime,
   CreatedById,
@@ -19,7 +19,7 @@ import {
 } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
-import {
+import type {
   GetEntityQuery,
   GetEntityQueryVariables,
   SubgraphAndPermissions,

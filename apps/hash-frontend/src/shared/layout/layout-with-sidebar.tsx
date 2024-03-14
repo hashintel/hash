@@ -1,6 +1,7 @@
 import { IconButton } from "@hashintel/design-system";
 import { Box, Fade, styled, Tooltip } from "@mui/material";
-import { FunctionComponent, ReactNode, useState } from "react";
+import type { FunctionComponent, ReactNode } from "react";
+import { useState } from "react";
 
 import { EditBarScroller } from "../edit-bar-scroller";
 import { SidebarToggleIcon } from "../icons";

@@ -1,13 +1,9 @@
 import { createComponent } from "@lit-labs/react";
-// eslint-disable-next-line unicorn/import-style -- React is used in createComponent()
-import React, {
-  FunctionComponent,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import type { FunctionComponent } from "react";
+// eslint-disable-next-line unicorn/import-style
+import React, { useLayoutEffect, useRef, useState } from "react";
 
-import { CustomElementDefinition } from "../util";
+import type { CustomElementDefinition } from "../util";
 
 type CustomElementLoaderProps = {
   properties: Record<string, unknown>;

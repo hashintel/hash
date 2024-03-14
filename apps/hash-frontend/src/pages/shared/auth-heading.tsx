@@ -1,4 +1,5 @@
-import { styled, Typography, TypographyProps } from "@mui/material";
+import type { TypographyProps } from "@mui/material";
+import { styled, Typography } from "@mui/material";
 import { Inter } from "next/font/google";
 /**
  * @todo: figure out how to make this re-usable in the theme, if it is

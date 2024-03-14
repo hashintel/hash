@@ -4,13 +4,13 @@ import {
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { ImageProperties } from "@local/hash-isomorphic-utils/system-types/image";
-import {
+import type { ImageProperties } from "@local/hash-isomorphic-utils/system-types/image";
+import type {
   BrowserPluginSettingsProperties,
   OrganizationProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import {
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+import type {
   Entity,
   EntityId,
   EntityRootType,
@@ -24,16 +24,13 @@ import {
   intervalForTimestamp,
 } from "@local/hash-subgraph/stdlib";
 
-import { MeQuery, MeQueryVariables } from "../graphql/api-types.gen";
+import type { MeQuery, MeQueryVariables } from "../graphql/api-types.gen";
 import { meQuery } from "../graphql/queries/user.queries";
 import { createDefaultSettings } from "./create-default-settings";
 import { createEntity } from "./create-entity";
 import { queryGraphQlApi } from "./query-graphql-api";
-import {
-  getFromLocalStorage,
-  LocalStorage,
-  setInLocalStorage,
-} from "./storage";
+import type { LocalStorage } from "./storage";
+import { getFromLocalStorage, setInLocalStorage } from "./storage";
 
 const getAvatarForEntity = (
   subgraph: Subgraph<EntityRootType>,

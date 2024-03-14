@@ -1,6 +1,6 @@
 import { isValueEmpty } from "./is-value-empty";
 import { flattenAllItemsOfTree } from "./property-table/flatten";
-import { PropertyRow } from "./property-table/types";
+import type { PropertyRow } from "./property-table/types";
 
 /**
  * flatten given property rows, and returns the value counts

@@ -1,11 +1,11 @@
-import {
+import type {
   EntityRootType,
   EntityType,
-  extractBaseUrl,
   ParseVersionedUrlError,
   Subgraph,
   VersionedUrl,
 } from "@blockprotocol/graph";
+import { extractBaseUrl } from "@blockprotocol/graph";
 import {
   getEntityTypeById,
   getIncomingLinksForEntity,
@@ -19,10 +19,11 @@ import {
   Select,
   TextField,
 } from "@mui/material";
-import { FunctionComponent, useCallback, useMemo } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback, useMemo } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 
-import {
+import type {
   BarChartCountLinkedEntitiesVariant,
   ChartDefinition,
 } from "../../types/chart-definition";

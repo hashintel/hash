@@ -1,7 +1,8 @@
 import type { BlockVariant } from "@blockprotocol/core";
-import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
+import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { Box, Popover, popoverClasses } from "@mui/material";
-import { FunctionComponent, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useState } from "react";
 
 import { PlusBoxOutlineIcon } from "../../../shared/icons/plus-box-outline-icon";
 import { BlockSuggester } from "./create-suggester/block-suggester";

@@ -1,5 +1,5 @@
 import { Box } from "@mui/material";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 
 export const MdxVideo: FunctionComponent<{
   src: string | undefined;

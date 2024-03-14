@@ -1,21 +1,18 @@
-import {
-  ENTITY_TYPE_META_SCHEMA,
-  EntityType,
-  VersionedUrl,
-} from "@blockprotocol/type-system/slim";
+import type { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
+import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system/slim";
 import { Callout, TextField } from "@hashintel/design-system";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
+import type { SxProps, Theme } from "@mui/material";
 import {
   Box,
   formHelperTextClasses,
   outlinedInputClasses,
   Stack,
-  SxProps,
-  Theme,
 } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
-import { ReactNode, useContext } from "react";
+import type { ReactNode } from "react";
+import { useContext } from "react";
 import { useForm } from "react-hook-form";
 
 import { useBlockProtocolGetEntityType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";

@@ -1,27 +1,22 @@
 import "./app.scss";
 
+import type { BlockComponent } from "@blockprotocol/graph/react";
 import {
-  BlockComponent,
   useEntitySubgraph,
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
 import { isValid, parseISO } from "date-fns";
 import * as duration from "duration-fns";
-import {
-  MouseEventHandler,
-  useCallback,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import type { MouseEventHandler } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import { calculateDurationStepLength } from "./app/calculate-duration-step-length";
 import { clamp } from "./app/clamp";
 import { DurationInput } from "./app/duration-input";
-import { TimerStatus } from "./app/timer-status";
+import type { TimerStatus } from "./app/timer-status";
 import { useAutoRefresh } from "./app/use-auto-refresh";
 import { propertyIds } from "./property-ids";
-import {
+import type {
   BlockEntity,
   TimerBlockProgressPropertyValue,
 } from "./types/generated/block-entity";

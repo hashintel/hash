@@ -1,13 +1,6 @@
 import { throttle } from "lodash";
-import {
-  FunctionComponent,
-  MouseEvent,
-  ReactNode,
-  useCallback,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-} from "react";
+import type { FunctionComponent, MouseEvent, ReactNode } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef } from "react";
 import { tw } from "twind";
 
 import { MIN_HEIGHT, MIN_WIDTH } from "../constants";

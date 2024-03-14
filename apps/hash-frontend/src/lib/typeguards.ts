@@ -1,4 +1,4 @@
-import {
+import type {
   Array,
   Object as BpObject,
   OneOf,

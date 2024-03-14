@@ -1,4 +1,4 @@
-import { ReactElement } from "react";
+import type { ReactElement } from "react";
 
 import { blockDependencies } from "../../../block.dependencies";
 import { memoizeFetchFunction } from "../../lib/memoize";

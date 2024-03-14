@@ -1,4 +1,5 @@
-import { IconButton, IconButtonProps } from "@hashintel/design-system";
+import type { IconButtonProps } from "@hashintel/design-system";
+import { IconButton } from "@hashintel/design-system";
 
 export const GrayToBlueIconButton = ({ sx, ...props }: IconButtonProps) => {
   return (

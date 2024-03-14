@@ -1,4 +1,4 @@
-import { LinkEntityAndRightEntity } from "@blockprotocol/graph";
+import type { LinkEntityAndRightEntity } from "@blockprotocol/graph";
 import {
   type BlockComponent,
   useEntitySubgraph,
@@ -21,7 +21,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
 
 import { Question } from "./question";
-import {
+import type {
   BlockEntity,
   FAQBlockOutgoingLinksByLinkEntityTypeId,
   FrequentlyAskedQuestion,

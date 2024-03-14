@@ -3,7 +3,8 @@ import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
 import { Box, Collapse, Fade, Tooltip } from "@mui/material";
 import { orderBy } from "lodash";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import { FunctionComponent, useMemo, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useMemo, useState } from "react";
 import { TransitionGroup } from "react-transition-group";
 
 import { useLatestEntityTypesOptional } from "../../entity-types-context/hooks";
@@ -13,10 +14,8 @@ import { PlusRegularIcon } from "../../icons/plus-regular";
 import { Link } from "../../ui";
 import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
 import { SearchInput } from "./account-entity-type-list/search-input";
-import {
-  SortActionsDropdown,
-  SortType,
-} from "./account-entity-type-list/sort-actions-dropdown";
+import type { SortType } from "./account-entity-type-list/sort-actions-dropdown";
+import { SortActionsDropdown } from "./account-entity-type-list/sort-actions-dropdown";
 import { NavLink } from "./nav-link";
 import { LoadingSkeleton } from "./shared/loading-skeleton";
 import { ViewAllLink } from "./view-all-link";

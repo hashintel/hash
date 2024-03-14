@@ -1,6 +1,6 @@
 import CheckIcon from "@mui/icons-material/Check";
 import { Tooltip } from "@mui/material";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 
 export const Check: FunctionComponent<{
   opacity?: number;

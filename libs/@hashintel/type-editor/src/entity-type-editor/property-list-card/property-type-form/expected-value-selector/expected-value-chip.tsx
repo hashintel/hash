@@ -1,18 +1,12 @@
 import { faEdit } from "@fortawesome/free-regular-svg-icons";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
-import {
-  Chip,
-  ChipProps,
-  FontAwesomeIcon,
-  IconButton,
-} from "@hashintel/design-system";
+import type { ChipProps } from "@hashintel/design-system";
+import { Chip, FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Box, chipClasses, Collapse, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 
-import {
-  CustomExpectedValueTypeId,
-  useDataTypesOptions,
-} from "../../../../shared/data-types-options-context";
+import type { CustomExpectedValueTypeId } from "../../../../shared/data-types-options-context";
+import { useDataTypesOptions } from "../../../../shared/data-types-options-context";
 
 interface ExpectedValueChipProps {
   expectedValueType: CustomExpectedValueTypeId;

@@ -1,5 +1,5 @@
 import { Card } from "@mui/material";
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 
 export const StyledCard = ({
   children,

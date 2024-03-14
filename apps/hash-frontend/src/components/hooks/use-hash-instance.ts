@@ -1,15 +1,13 @@
 import { useQuery } from "@apollo/client";
-import {
-  Simplified,
-  simplifyProperties,
-} from "@local/hash-isomorphic-utils/simplify-properties";
-import {
+import type { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import type {
   HASHInstance,
   HASHInstanceProperties,
 } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 import { useMemo } from "react";
 
-import {
+import type {
   GetHashInstanceEntityQueryQuery,
   GetHashInstanceEntityQueryQueryVariables,
 } from "../../graphql/api-types.gen";

@@ -1,16 +1,18 @@
 import { Box, Tab, Tabs, tabsClasses } from "@mui/material";
-import { GetStaticPaths, GetStaticProps } from "next";
+import type { GetStaticPaths, GetStaticProps } from "next";
 import { useRouter } from "next/router";
-import { MDXRemoteSerializeResult } from "next-mdx-remote";
-import { MouseEvent, useEffect, useMemo, useRef, useState } from "react";
+import type { MDXRemoteSerializeResult } from "next-mdx-remote";
+import type { MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import siteMap from "../../../sitemap.json";
 import { Button } from "../../components/button";
 import { DiscordIcon } from "../../components/icons/discord-icon";
 import { PageLayout } from "../../components/page-layout";
-import { NextPageWithLayout } from "../../util/next-types";
-import { DocsPageData, getSerializedDocsPage } from "../shared/mdx-utils";
-import { SiteMap, SiteMapPage } from "../shared/sitemap";
+import type { NextPageWithLayout } from "../../util/next-types";
+import type { DocsPageData } from "../shared/mdx-utils";
+import { getSerializedDocsPage } from "../shared/mdx-utils";
+import type { SiteMap, SiteMapPage } from "../shared/sitemap";
 import { DocsContent } from "./docs-content";
 import { DocsHomePage } from "./docs-home-page";
 import { DocsSlugIcon } from "./docs-slug-icon";

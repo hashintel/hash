@@ -1,6 +1,6 @@
 import { Box } from "@mui/material";
-import { BoxProps } from "@mui/system";
-import { FunctionComponent } from "react";
+import type { BoxProps } from "@mui/system";
+import type { FunctionComponent } from "react";
 
 import { NAV_HEIGHT } from "./navbar";
 

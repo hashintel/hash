@@ -1,10 +1,14 @@
-import { Box, BoxProps } from "@mui/material";
+import type { BoxProps } from "@mui/material";
+import { Box } from "@mui/material";
 import { useRouter } from "next/router";
-import { MDXRemote, MDXRemoteSerializeResult } from "next-mdx-remote";
-import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
+import type { MDXRemoteSerializeResult } from "next-mdx-remote";
+import { MDXRemote } from "next-mdx-remote";
+import type { FunctionComponent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { mdxComponents } from "../util/mdx-components";
-import { Heading, PageHeadingsContext } from "./context/page-headings-context";
+import type { Heading } from "./context/page-headings-context";
+import { PageHeadingsContext } from "./context/page-headings-context";
 
 type MdxPageContentProps = {
   paragraphMaxWidth?: number;
