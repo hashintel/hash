@@ -14,7 +14,7 @@ export const OneOff = ({
 }) => {
   return (
     <Box>
-      <QuickNoteAction />
+      {user.enabledFeatureFlags.includes("notes") ? <QuickNoteAction /> : null}
       <InferEntitiesAction activeTab={activeTab} user={user} />
     </Box>
   );

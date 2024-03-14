@@ -4,6 +4,7 @@ import type {
   InferenceModelName,
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
+import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   SimpleProperties,
@@ -71,6 +72,7 @@ type SimplifiedUser = Entity & {
       "email" | "displayName" | "shortname"
     >
   >;
+  enabledFeatureFlags: FeatureFlag[];
 };
 
 type UserAndLinkedData = SimplifiedUser & {
