@@ -1831,10 +1831,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 {
   "ownedById": "{{account_id}}",
   "properties": {
-    "http://localhost:3000/@alice/types/property-type/name/": "Bob",
-    "http://localhost:3000/@alice/types/property-type/height/": 1.8
   },
-  "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/person/v/2"],
+  "entityTypeIds": [],
   "draft": true,
   "relationships": [{
     "relation": "setting",
