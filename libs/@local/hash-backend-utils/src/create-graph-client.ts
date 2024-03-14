@@ -102,7 +102,9 @@ export const createGraphClient = (
         /* @todo - Do we have any useful information we can extract from `response.request`? */
         return Promise.reject(
           new Error(
-            `Encountered an error while calling the Graph API, which wasn't identified as coming from the Graph API: ${(secondaryError as Error).message},`,
+            `Encountered an error while calling the Graph API, which wasn't identified as coming from the Graph API: ${
+              (secondaryError as Error).message
+            },`,
           ),
         );
       }

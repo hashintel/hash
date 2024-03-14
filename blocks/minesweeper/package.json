@@ -9,6 +9,7 @@
   ],
   "license": "(MIT OR Apache-2.0)",
   "author": "HASH",
+  "type": "module",
   "scripts": {
     "build": "block-scripts build",
     "codegen": "block-scripts codegen && yarn format",

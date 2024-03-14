@@ -407,7 +407,17 @@ export const createEntities = async ({
                 proposedEntity,
                 operation: "create",
                 status: "failure",
-                failureReason: `Link entities must have both a sourceEntityId and a targetEntityId.${originalProposal ? `You originally proposed that entityId ${proposedEntity.entityId} should have sourceEntityId ${originalProposal.sourceEntityId?.toString() ?? ""} and targetEntityId ${originalProposal.targetEntityId?.toString() ?? ""}.` : ""}`,
+                failureReason: `Link entities must have both a sourceEntityId and a targetEntityId.${
+                  originalProposal
+                    ? `You originally proposed that entityId ${
+                        proposedEntity.entityId
+                      } should have sourceEntityId ${
+                        originalProposal.sourceEntityId?.toString() ?? ""
+                      } and targetEntityId ${
+                        originalProposal.targetEntityId?.toString() ?? ""
+                      }.`
+                    : ""
+                }`,
               };
             return;
           }

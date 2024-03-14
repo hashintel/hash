@@ -2,6 +2,7 @@
   "name": "@blocks/faq",
   "version": "0.1.3",
   "private": true,
+  "type": "module",
   "description": "Create a frequently asked questions section",
   "keywords": [
     "blockprotocol",

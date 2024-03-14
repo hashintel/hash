@@ -1,7 +1,8 @@
-import { config } from "dotenv-flow";
 import bundleAnalyzer from "@next/bundle-analyzer";
 import { withSentryConfig } from "@sentry/nextjs";
+import { config } from "dotenv-flow";
 import webpack from "webpack";
+
 // eslint-disable-next-line import/extensions
 import { buildStamp } from "./buildstamp.js";
 
@@ -60,6 +61,7 @@ const pageEntityTypeBaseUrl = "https://hash.ai/@hash/types/entity-type/page/";
  * @todo make plugin definition cleaner - some ideas in https://github.com/cyrilwanner/next-compose-plugins/issues/59
  *    next-compose plugins itself is unmaintained and leads to 'invalid config property' warnings if used
  */
+// eslint-disable-next-line import/no-default-export
 export default withSentryConfig(
   withBundleAnalyzer(
     /** @type {import('next').NextConfig} */
