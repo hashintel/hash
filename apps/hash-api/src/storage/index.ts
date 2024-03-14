@@ -196,8 +196,9 @@ export const setupFileDownloadProxyHandler = (
       res.status(400).json({
         error: `File path ${key} is invalid – should be of the form [EntityId]/[EditionTimestamp]/[Filename], with an optional leading [Prefix]/`,
       });
+      return;
     }
-    if (!entityId || !isEntityId(entityId)) {
+    if (!isEntityId(entityId)) {
       res.status(400).json({
         error: `File path contains invalid entityId ${entityId} in ${key}`,
       });

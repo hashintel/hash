@@ -272,7 +272,7 @@ export const getLatestEntityById: ImpureGraphFunction<
 
   if (!entity) {
     throw new Error(
-      `Critical: Entity with entityId ${entityId} doesn't exist or cannot be accessed by requesting user.`,
+      `Entity with entityId ${entityId} doesn't exist or cannot be accessed by requesting user.`,
     );
   }
 

@@ -5,7 +5,7 @@ import type {
   SupportedLinearUpdateInput,
 } from "@local/hash-backend-utils/linear-type-mappings";
 import { getLinearMappingByLinearType } from "@local/hash-backend-utils/linear-type-mappings";
-import type { PartialEntity } from "@local/hash-backend-utils/temporal-workflow-types";
+import type { PartialEntity } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import type { GraphApi } from "@local/hash-graph-client";
 import type {
   AccountId,
@@ -20,7 +20,7 @@ import {
   getEntitiesByLinearId,
   getEntityOutgoingLinks,
   getLatestEntityById,
-} from "./graph-requests";
+} from "../shared/graph-requests";
 
 export const mapLinearDataToEntity = <
   T extends SupportedLinearTypeNames,

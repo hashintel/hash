@@ -6,7 +6,7 @@ import type {
   PartialEntity,
   UpdateHashEntityFromLinearData,
   UpdateLinearDataWorkflow,
-} from "@local/hash-backend-utils/temporal-workflow-types";
+} from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import type { GraphApi } from "@local/hash-graph-client";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
@@ -18,15 +18,15 @@ import type {
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 
 import {
-  archiveEntity,
-  getEntitiesByLinearId,
-  getEntityOutgoingLinks,
-} from "./activities/graph-requests";
-import {
   mapHashEntityToLinearUpdateInput,
   mapLinearDataToEntity,
   mapLinearDataToEntityWithOutgoingLinks,
-} from "./activities/mappings";
+} from "./linear-activities/mappings";
+import {
+  archiveEntity,
+  getEntitiesByLinearId,
+  getEntityOutgoingLinks,
+} from "./shared/graph-requests";
 
 const createHashEntity = async (params: {
   authentication: { actorId: AccountId };
