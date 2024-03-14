@@ -214,6 +214,11 @@ export const createResearchTaskWorkflow =
         actorId: aiAssistantAccountId,
       });
 
+    /**
+     * @todo: persist the research task in the graph alongside relevant metadata
+     * (the prompt used, the web pages scraped, the time it took to complete, etc.)
+     */
+
     await Promise.all(
       createdDraftEntities.map(({ entity }) =>
         graphActivities.createEntity(aiAssistantAccountId, {
