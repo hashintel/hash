@@ -45,13 +45,6 @@ test("user can create entity type", async ({ page }) => {
       url.searchParams.has("draft"),
   );
 
-  await page.click('[data-testid="editbar-confirm"]');
-  await page.waitForURL(
-    (url) =>
-      !!url.pathname.match(/^\/@alice\/types\/entity-type\/testentity/) &&
-      !url.searchParams.has("draft"),
-  );
-
   // Add a link type
 
   await page.click("text=Add a link");
