@@ -11,16 +11,19 @@ import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
 import { createEntity, getUser } from "./shared/api-queries";
 import { loginUsingTempForm } from "./shared/login-using-temp-form";
+import type { APIRequestContext } from "./shared/runtime";
 import { expect, test } from "./shared/runtime";
 
 const createNotification = async ({
   draft,
+  requestContext,
   targetEntityTitle,
 }: {
   draft: boolean;
+  requestContext: APIRequestContext;
   targetEntityTitle: string;
 }) => {
-  const user = await getUser();
+  const user = await getUser(requestContext);
   if (!user) {
     throw new Error("Cannot create notification without authenticated user");
   }
@@ -29,16 +32,17 @@ const createNotification = async ({
     user.metadata.recordId.entityId,
   );
 
-  const targetEntity = await createEntity({
+  const targetEntity = await createEntity(requestContext, {
     draft,
     entityTypeId: systemEntityTypes.page.entityTypeId,
     ownedById,
     properties: {
       [systemPropertyTypes.title.propertyTypeBaseUrl]: targetEntityTitle,
+      [systemPropertyTypes.fractionalIndex.propertyTypeBaseUrl]: "a0",
     } as PageProperties,
   });
 
-  await createEntity({
+  await createEntity(requestContext, {
     draft: false,
     entityTypeId: systemEntityTypes.graphChangeNotification.entityTypeId,
     ownedById,
@@ -60,7 +64,7 @@ const createNotification = async ({
   return targetEntityTitle;
 };
 
-test("new notifications are shown on inbox page", async ({ page }) => {
+test.only("new notifications are shown on inbox page", async ({ page }) => {
   await loginUsingTempForm({
     page,
     userEmail: "alice@example.com",
@@ -82,6 +86,7 @@ test("new notifications are shown on inbox page", async ({ page }) => {
   /** Check notifications linked to draft entities */
   await createNotification({
     draft: true,
+    requestContext: page.request,
     targetEntityTitle: draftNotificationTitle,
   });
 
@@ -101,6 +106,7 @@ test("new notifications are shown on inbox page", async ({ page }) => {
   /** Check notifications linked to non-draft entities */
   await createNotification({
     draft: false,
+    requestContext: page.request,
     targetEntityTitle: nonDraftNotificationTitle,
   });
 
