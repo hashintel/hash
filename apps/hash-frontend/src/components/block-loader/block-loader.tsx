@@ -1,30 +1,30 @@
-import {
+import type {
   BlockGraphProperties,
   GraphEmbedderMessageCallbacks,
   Subgraph as BpSubgraph,
 } from "@blockprotocol/graph/temporal";
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
+import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
+import type { EntityStore } from "@local/hash-isomorphic-utils/entity-store";
 import {
-  EntityStore,
   getDraftEntityByEntityId,
   textualContentPropertyTypeBaseUrl,
 } from "@local/hash-isomorphic-utils/entity-store";
-import { TextualContentPropertyValue } from "@local/hash-isomorphic-utils/system-types/shared";
-import { UserPermissionsOnEntities } from "@local/hash-isomorphic-utils/types";
-import {
+import type { TextualContentPropertyValue } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { UserPermissionsOnEntities } from "@local/hash-isomorphic-utils/types";
+import type {
   Entity,
   EntityId,
   EntityPropertiesObject,
   EntityRevisionId,
   EntityRootType,
   EntityVertex,
-  isEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
+import { isEntityId } from "@local/hash-subgraph";
+import type { FunctionComponent } from "react";
 import {
-  FunctionComponent,
   useCallback,
   useContext,
   useEffect,
@@ -38,7 +38,7 @@ import { useBlockLoadedContext } from "../../blocks/on-block-loaded";
 import { useFetchBlockSubgraph } from "../../blocks/use-fetch-block-subgraph";
 import { useBlockContext } from "../../pages/shared/block-collection/block-context";
 import { WorkspaceContext } from "../../pages/shared/workspace-context";
-import {
+import type {
   ArchiveEntityMessageCallback,
   CreateEntityMessageCallback,
   UpdateEntityMessageCallback,
@@ -50,7 +50,8 @@ import { useBlockProtocolFileUpload } from "../hooks/block-protocol-functions/kn
 import { useBlockProtocolGetEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
 import { useBlockProtocolQueryEntities } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
 import { useBlockProtocolUpdateEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
-import { RemoteBlock, RemoteBlockProps } from "../remote-block/remote-block";
+import type { RemoteBlockProps } from "../remote-block/remote-block";
+import { RemoteBlock } from "../remote-block/remote-block";
 import { fetchEmbedCode } from "./fetch-embed-code";
 
 export type BlockLoaderProps = {

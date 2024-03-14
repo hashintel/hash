@@ -1,12 +1,12 @@
 import { useMutation } from "@apollo/client";
+import type { EntityId } from "@local/hash-subgraph";
 import {
-  EntityId,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
 import { useCallback, useContext } from "react";
 
-import {
+import type {
   UpdatePageMutation,
   UpdatePageMutationVariables,
 } from "../../graphql/api-types.gen";

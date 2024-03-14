@@ -1,4 +1,4 @@
-import { DrawHeaderCallback, Rectangle } from "@glideapps/glide-data-grid";
+import type { DrawHeaderCallback, Rectangle } from "@glideapps/glide-data-grid";
 
 export type InteractablePosition = {
   left: number;

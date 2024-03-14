@@ -1,8 +1,9 @@
-import { BaseUrl, EntityPropertiesObject } from "@blockprotocol/graph";
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { BaseUrl, EntityPropertiesObject } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { Box, Paper, Popper, Stack, Tooltip, Typography } from "@mui/material";
 import clsx from "clsx";
-import { HTMLAttributes, ReactNode, useRef, useState } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
+import { useRef, useState } from "react";
 
 import { Chip } from "../chip";
 import { GRID_CLICK_IGNORE_CLASS } from "../constants";

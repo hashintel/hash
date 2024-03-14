@@ -1,26 +1,20 @@
-import {
-  CompactSelection,
+import type {
   DataEditorProps,
   DataEditorRef,
-  GridCellKind,
   GridColumn,
   GridSelection,
   Rectangle,
 } from "@glideapps/glide-data-grid";
+import { CompactSelection, GridCellKind } from "@glideapps/glide-data-grid";
 import { ButtonBase, useTheme } from "@mui/material";
 import produce from "immer";
 import debounce from "lodash.debounce";
 import isEqual from "lodash.isequal";
-import {
-  FunctionComponent,
-  useCallback,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import type { FunctionComponent } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
-import { ColumnKey, RootKey } from "../../additional-types";
-import {
+import type { ColumnKey, RootKey } from "../../additional-types";
+import type {
   BlockEntity,
   TableLocalColumnPropertyValue,
 } from "../../types/generated/block-entity";

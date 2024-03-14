@@ -6,7 +6,7 @@ use graph_types::{
     owned_by_id::OwnedById,
 };
 use temporal_versioning::{
-    LeftClosedTemporalInterval, RightBoundedTemporalInterval, TemporalTagged, TimeAxis, Timestamp,
+    LeftClosedTemporalInterval, RightBoundedTemporalInterval, TimeAxis, Timestamp,
 };
 use tokio_postgres::GenericClient;
 use type_system::url::BaseUrl;
@@ -273,7 +273,7 @@ impl<C: AsClient> PostgresStore<C> {
                         },
                         right_endpoint: EntityVertexId {
                             base_id: right_endpoint_base_id,
-                            revision_id: row.get::<_, Timestamp<()>>(3).cast(),
+                            revision_id: row.get(3),
                         },
                         right_endpoint_edition_id: row.get(4),
                         edge_interval: row.get(5),

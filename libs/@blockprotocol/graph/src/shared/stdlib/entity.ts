@@ -1,4 +1,4 @@
-import { Entity, Subgraph } from "../types";
+import type { Entity, Subgraph } from "../types";
 import { getEntityTypeById } from "./subgraph/element/entity-type";
 import { getPropertyTypesByBaseUrl } from "./subgraph/element/property-type";
 

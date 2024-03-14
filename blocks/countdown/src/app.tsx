@@ -2,8 +2,8 @@ import "react-datepicker/dist/react-datepicker.css";
 import "./datepicker-override.scss";
 import "./styles.scss";
 
+import type { BlockComponent } from "@blockprotocol/graph/react";
 import {
-  BlockComponent,
   useEntitySubgraph,
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
@@ -13,7 +13,7 @@ import { CountdownTitle } from "./countdown-title";
 import { DatePickerInput } from "./date-picker-input";
 import { Display } from "./display";
 import { propertyIds } from "./property-ids";
-import { BlockEntity } from "./types/generated/block-entity";
+import type { BlockEntity } from "./types/generated/block-entity";
 
 export const App: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph, readonly },

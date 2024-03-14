@@ -1,0 +1,43 @@
+---
+title: "Developing Blocks"
+---
+
+All blocks in HASH are **Block Protocol blocks**. That means you can develop any block that adheres to the Block Protocol and it will work out-the-box, with no customization required, both within HASH as well as any other Block Protocol-enabled environment (such as WordPress).
+
+The canonical [guide to developing blocks](https://blockprotocol.org/docs/blocks/develop) can be found on the Block Protocol website.
+
+When developing Block Protocol blocks for HASH, here are HASH-specific things to keep in mind and be aware of.
+
+## Supported Features
+
+### Modules
+
+HASH supports all current **Block Protocol modules**. As a full implementer of the protocol, that means you can use any feature or functionality found in the Block Protocol specification or docs and your blocks will work perfectly in HASH. For example, ensure your blocks use:
+
+- the [Graph Module](https://blockprotocol.org/spec/graph) to access/write data in the shape of entities.
+- the [Hook Module](https://blockprotocol.org/spec/hook) to provide access to system functionality (e.g. file uploads, text-editing, etc) that HASH can provide for you.
+- the [Service Module](https://blockprotocol.org/spec/service) to interface with externally-hosted APIs, without requiring user provision of secrets
+
+Be aware that HASH’s full implementation of the Block Protocol also means that your blocks may be used in ways you have not intended. For example:
+
+- **Action Mapping:** may allow users to re-map parts of your interface to custom actions
+- **Data Mapping:** may be used to substitute a property shown in some part of your block with another, or repurpose a block to support entities of an entirely different entity type you may never have envisaged
+
+While one of the great benefits of designing blocks is that they allow for customized interfaces to be developed on an as-needed basis, specific to individual needs and use-cases, keeping your block clean and neutrally styled will ensure it works well both in its original context and other future contexts it may be useful within. See the [block design guidelines](https://hash.dev/blog/block-design) for more best-practice to keep in mind when creating blocks.
+
+## Hooks
+
+**Block Protocol hooks** are interfaces exposed by an application that blocks can inject into themselves to provide a user experience that looks and feels consistent with the environment they’re embedded into.
+
+The Block Protocol doesn’t enumerate a fixed list of hooks. Instead, it’s up to environments that implement support for the protocol to declare those that they support.
+
+Right now, HASH makes a small number of hooks available that allow you to develop blocks consistent with the overall application look and feel:
+
+- Text Interface: `text`
+- Image Interface" `image`
+
+Support for more hooks will be added in the future.
+
+## Experimental Functionality
+
+HASH serves as a testbed for future, upcoming additions to the Block Protocol. Beyond those methods outlined in the latest version of the Block Protocol specification, from time-to-time additional (experimental) methods may be made available for use within HASH. These may or may not be incorporated into the Block Protocol core specification or module specifications in the future, and are liable to be less stable than methods outlined in the latest published version of the official Block Protocol specification.

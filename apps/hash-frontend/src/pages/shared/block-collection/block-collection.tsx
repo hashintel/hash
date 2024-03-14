@@ -1,19 +1,21 @@
 import "prosemirror-view/style/prosemirror.css";
 
 import { useApolloClient } from "@apollo/client";
-import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
-import { EntityId, OwnedById } from "@local/hash-subgraph";
-import { Box, BoxProps } from "@mui/material";
-import { EditorView } from "prosemirror-view";
-import { FunctionComponent, useLayoutEffect, useRef } from "react";
+import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
+import type { EntityId, OwnedById } from "@local/hash-subgraph";
+import type { BoxProps } from "@mui/material";
+import { Box } from "@mui/material";
+import type { EditorView } from "prosemirror-view";
+import type { FunctionComponent } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { useLocalstorageState } from "rooks";
 
 import { useUserBlocks } from "../../../blocks/user-blocks";
 import { useSnackbar } from "../../../components/hooks/use-snackbar";
-import { BlockCollectionContentItem } from "../../../graphql/api-types.gen";
+import type { BlockCollectionContentItem } from "../../../graphql/api-types.gen";
 import { Button } from "../../../shared/ui";
 import { usePortals } from "./block-portals";
-import { EditorConnection } from "./collab/editor-connection";
+import type { EditorConnection } from "./collab/editor-connection";
 import { createEditorView } from "./create-editor-view";
 import { usePageContextOptional } from "./page-context";
 

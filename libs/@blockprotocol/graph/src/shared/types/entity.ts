@@ -2,9 +2,9 @@ import type {
   JsonObject as CoreJsonObject,
   JsonValue as CoreJsonValue,
 } from "@blockprotocol/core";
-import { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
 
-import {
+import type {
   EntityRootType,
   ExclusiveLimitedTemporalBound,
   InclusiveLimitedTemporalBound,
@@ -15,7 +15,7 @@ import {
   Timestamp,
   Unbounded,
 } from "../types.js";
-import { GraphResolveDepths } from "./subgraph/graph-resolve-depths.js";
+import type { GraphResolveDepths } from "./subgraph/graph-resolve-depths.js";
 
 export type JsonObject = CoreJsonObject;
 export type JsonValue = CoreJsonValue;

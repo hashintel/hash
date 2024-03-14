@@ -1,4 +1,4 @@
-import { Components, Theme } from "@mui/material";
+import type { Components, Theme } from "@mui/material";
 
 import { RadioCheckedIcon } from "./mui-radio-theme-options/radio-checked-icon";
 import { RadioUncheckedIcon } from "./mui-radio-theme-options/radio-unchecked-icon";

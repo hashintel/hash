@@ -1,4 +1,4 @@
-import { Entity, EntityId } from "@blockprotocol/graph";
+import type { Entity, EntityId } from "@blockprotocol/graph";
 import { MockBlockDock } from "mock-block-dock";
 import { createRoot } from "react-dom/client";
 
@@ -6,7 +6,7 @@ import packageJson from "../package.json";
 import { defaultChatModelId } from "./complete-chat/chat-model-selector";
 import { defaultSystemPromptId } from "./complete-chat/system-prompt-selector";
 import Component from "./index";
-import {
+import type {
   AIChatRequestMessage,
   AIChatResponseMessage,
   BlockEntity,

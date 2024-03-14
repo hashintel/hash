@@ -1,9 +1,12 @@
 import { EditableField } from "@hashintel/block-design-system";
 import { Button, faTrash, FontAwesomeIcon } from "@hashintel/design-system";
-import { Box, Fade, SxProps, Theme, Typography } from "@mui/material";
-import { FunctionComponent, useState } from "react";
+import type { SxProps, Theme } from "@mui/material";
+import { Box, Fade, Typography } from "@mui/material";
+import type { FunctionComponent } from "react";
+import { useState } from "react";
 
-import { descriptionKey, titleKey, TitleOrDescription } from "./app";
+import type { TitleOrDescription } from "./app";
+import { descriptionKey, titleKey } from "./app";
 
 interface StepProps {
   header: string;

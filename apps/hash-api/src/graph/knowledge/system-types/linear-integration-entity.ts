@@ -11,15 +11,17 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import {
+import type {
   LinearIntegrationProperties,
   SyncLinearDataWithProperties,
 } from "@local/hash-isomorphic-utils/system-types/linearintegration";
-import {
+import type {
   AccountId,
   Entity,
   EntityId,
   EntityRootType,
+} from "@local/hash-subgraph";
+import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
@@ -30,7 +32,10 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
-import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
+import type {
+  ImpureGraphFunction,
+  PureGraphFunction,
+} from "../../context-types";
 import { systemAccountId } from "../../system-account";
 import { getLatestEntityById, updateEntity } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";

@@ -1,5 +1,0 @@
-{
-  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
-  "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules"]
-}

@@ -1,4 +1,4 @@
-import { VersionedUrl } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/graph";
 
 export type BarChartCountLinkedEntitiesVariant = {
   variant: "count-links";

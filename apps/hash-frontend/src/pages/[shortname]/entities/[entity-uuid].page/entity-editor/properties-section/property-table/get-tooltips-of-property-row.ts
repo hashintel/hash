@@ -1,5 +1,5 @@
-import { CellTooltipData } from "../../../../../../../components/grid/utils/use-grid-tooltip/types";
-import { PropertyRow } from "./types";
+import type { CellTooltipData } from "../../../../../../../components/grid/utils/use-grid-tooltip/types";
+import type { PropertyRow } from "./types";
 
 export const getTooltipsOfPropertyRow = (
   row: PropertyRow,

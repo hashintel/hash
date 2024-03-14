@@ -1,4 +1,4 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import {
@@ -6,9 +6,13 @@ import {
   getMachineActorId,
 } from "@local/hash-backend-utils/machine-actors";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
-import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
-import { AccountGroupId, AccountId, OwnedById } from "@local/hash-subgraph";
+import type { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
+import type {
+  AccountGroupId,
+  AccountId,
+  OwnedById,
+} from "@local/hash-subgraph";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { enabledIntegrations } from "../../integrations/enabled-integrations";
@@ -18,7 +22,7 @@ import {
   createAccountGroup,
   createWeb,
 } from "../account-permission-management";
-import { ImpureGraphContext } from "../context-types";
+import type { ImpureGraphContext } from "../context-types";
 import { createOrg, getOrgByShortname } from "../knowledge/system-types/org";
 import { systemAccountId } from "../system-account";
 
@@ -43,6 +47,11 @@ export const owningWebs: Record<
     enabled: true,
     name: "HASH",
     websiteUrl: "https://hash.ai",
+  },
+  google: {
+    enabled: enabledIntegrations.googleSheets,
+    name: "Google",
+    websiteUrl: "https://www.google.com",
   },
   linear: {
     enabled: enabledIntegrations.linear,
@@ -165,15 +174,21 @@ export const ensureSystemWebEntitiesExist = async ({
     });
   } catch (error) {
     let displayName;
-    if (webShortname === "hash") {
-      displayName = "HASH";
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    } else if (webShortname === "linear") {
-      displayName = "Linear Integration";
-    } else {
-      throw new Error(
-        `Unhandled web shortname ${webShortname} requires a display name for the machine actor specified`,
-      );
+
+    switch (webShortname) {
+      case "hash":
+        displayName = "HASH";
+        break;
+      case "google":
+        displayName = "Google Integration";
+        break;
+      case "linear":
+        displayName = "Linear Integration";
+        break;
+      default:
+        throw new Error(
+          `Unhandled web shortname ${webShortname} requires a display name for the machine actor specified`,
+        );
     }
 
     if (error instanceof NotFoundError) {

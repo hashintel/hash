@@ -1,4 +1,4 @@
-import { InheritanceData } from "./use-inherited-values";
+import type { InheritanceData } from "./use-inherited-values";
 
 export const generateReadonlyMessage = (
   args:

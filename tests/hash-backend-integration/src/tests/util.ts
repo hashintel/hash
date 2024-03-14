@@ -1,14 +1,14 @@
 import { createKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
-import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
+import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import { migrateOntologyTypes } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized/migrate-ontology-types";
 import { createOrg } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import { createUser } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
-import { AuthenticationContext } from "@apps/hash-api/src/graphql/authentication-context";
-import { TemporalClient } from "@apps/hash-api/src/temporal";
+import type { AuthenticationContext } from "@apps/hash-api/src/graphql/authentication-context";
+import type { TemporalClient } from "@apps/hash-api/src/temporal";
 import { getRequiredEnv } from "@apps/hash-api/src/util";
-import { VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { vi } from "vitest";

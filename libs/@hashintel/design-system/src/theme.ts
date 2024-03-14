@@ -1,5 +1,6 @@
 import createCache from "@emotion/cache";
-import { createTheme, ThemeOptions } from "@mui/material";
+import type { ThemeOptions } from "@mui/material";
+import { createTheme } from "@mui/material";
 
 import { borderRadii } from "./theme/border-radii";
 import { components } from "./theme/components";

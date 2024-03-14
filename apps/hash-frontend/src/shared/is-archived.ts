@@ -1,6 +1,6 @@
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
+import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type {
   DataTypeWithMetadata,
   Entity,
   EntityTypeWithMetadata,

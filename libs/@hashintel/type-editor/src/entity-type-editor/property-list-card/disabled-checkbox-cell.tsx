@@ -1,10 +1,10 @@
 import { fluidFontClassName } from "@hashintel/design-system/theme";
+import type { TableCellProps } from "@mui/material";
 import {
   Box,
   Checkbox,
   checkboxClasses,
   svgIconClasses,
-  TableCellProps,
   Tooltip,
 } from "@mui/material";
 

@@ -62,6 +62,7 @@ const openApiSchema = {
     "/gpt/user-webs": {
       get: {
         operationId: "getUserWebs",
+        "x-openai-isConsequential:": false,
         description:
           "Retrieve a list of the webs the user belongs to, including their own personal one and any organizations they are a member of",
         responses: {
@@ -80,6 +81,7 @@ const openApiSchema = {
       post: {
         description: "Retrieve entities in a user's HASH graph",
         operationId: "queryEntities",
+        "x-openai-isConsequential:": false,
         requestBody: {
           content: {
             "application/json": {

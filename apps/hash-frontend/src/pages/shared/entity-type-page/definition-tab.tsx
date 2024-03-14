@@ -1,7 +1,7 @@
-import { EntityTypeWithMetadata } from "@blockprotocol/graph";
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { EntityTypeEditor } from "@hashintel/type-editor";
-import { OwnedById, PropertyTypeWithMetadata } from "@local/hash-subgraph";
+import type { OwnedById, PropertyTypeWithMetadata } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";

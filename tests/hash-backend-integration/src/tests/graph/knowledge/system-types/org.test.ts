@@ -1,7 +1,7 @@
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
+import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import {
   getOrgByShortname,
-  Org,
   updateOrgName,
   updateOrgShortname,
 } from "@apps/hash-api/src/graph/knowledge/system-types/org";

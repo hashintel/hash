@@ -1,10 +1,6 @@
 import { iframeResizer as iFrameResizer } from "iframe-resizer";
-import {
-  DetailedHTMLProps,
-  forwardRef,
-  IframeHTMLAttributes,
-  useEffect,
-} from "react";
+import type { DetailedHTMLProps, IframeHTMLAttributes } from "react";
+import { forwardRef, useEffect } from "react";
 
 /**
  * @todo expose the unused functions to component consumers, or use them here,

@@ -1,5 +1,6 @@
-import { Box, Stack, SxProps, Theme, Typography } from "@mui/material";
-import { FunctionComponent, PropsWithChildren, ReactNode } from "react";
+import type { SxProps, Theme } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
+import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
 
 import { Button } from "./button";
 import { Callout } from "./callout";
@@ -10,7 +11,7 @@ type AlertModalProps = {
   calloutMessage: ReactNode;
   close: () => void;
   confirmButtonText?: string;
-  header: ReactNode;
+  header?: ReactNode;
   type: "info" | "warning";
   contentStyle?: SxProps<Theme>;
 };

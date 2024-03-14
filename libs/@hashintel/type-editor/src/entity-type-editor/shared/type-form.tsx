@@ -1,8 +1,8 @@
-import { BaseUrl } from "@blockprotocol/type-system/slim";
+import type { BaseUrl } from "@blockprotocol/type-system/slim";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
+import type { ButtonProps } from "@hashintel/design-system";
 import {
   Button,
-  ButtonProps,
   FontAwesomeIcon,
   IconButton,
   Modal,
@@ -16,35 +16,29 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import {
-  bindDialog,
-  bindToggle,
-  PopupState,
-} from "material-ui-popup-state/hooks";
-import {
+import type { PopupState } from "material-ui-popup-state/hooks";
+import { bindDialog, bindToggle } from "material-ui-popup-state/hooks";
+import type {
   ComponentPropsWithoutRef,
   ComponentPropsWithRef,
-  createElement,
   ElementType,
   FormEvent,
-  forwardRef,
   ReactElement,
   ReactNode,
   Ref,
+} from "react";
+import {
+  createElement,
+  forwardRef,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
-import {
-  DeepPartial,
-  DefaultValues,
-  FormProvider,
-  useForm,
-  useFormContext,
-} from "react-hook-form";
+import type { DeepPartial, DefaultValues } from "react-hook-form";
+import { FormProvider, useForm, useFormContext } from "react-hook-form";
 
-import { TitleValidationFunction } from "../../shared/ontology-functions-context";
+import type { TitleValidationFunction } from "../../shared/ontology-functions-context";
 import { QuestionIcon } from "./question-icon";
 import { withHandler } from "./with-handler";
 

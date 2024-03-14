@@ -1,4 +1,4 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { createNotificationEntityPermissions } from "@local/hash-backend-utils/notifications";
@@ -14,32 +14,33 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { CommentNotificationProperties } from "@local/hash-isomorphic-utils/system-types/commentnotification";
-import { MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
-import { NotificationProperties } from "@local/hash-isomorphic-utils/system-types/notification";
-import { Entity, EntityId } from "@local/hash-subgraph";
+import type { CommentNotificationProperties } from "@local/hash-isomorphic-utils/system-types/commentnotification";
+import type { MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
+import type { NotificationProperties } from "@local/hash-isomorphic-utils/system-types/notification";
+import type { Entity, EntityId } from "@local/hash-subgraph";
 import {
   getOutgoingLinksForEntity,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import {
-  extractBaseUrl,
-  LinkEntity,
-} from "@local/hash-subgraph/type-system-patch";
+import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
-import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
+import type {
+  ImpureGraphFunction,
+  PureGraphFunction,
+} from "../../context-types";
+import type { CreateEntityParams } from "../primitive/entity";
 import {
   createEntity,
-  CreateEntityParams,
   getEntities,
   updateEntityProperties,
 } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";
-import { Block } from "./block";
-import { Comment } from "./comment";
-import { Page } from "./page";
-import { Text } from "./text";
-import { User } from "./user";
+import type { Block } from "./block";
+import type { Comment } from "./comment";
+import type { Page } from "./page";
+import type { Text } from "./text";
+import type { User } from "./user";
 
 type Notification = {
   archived?: boolean;

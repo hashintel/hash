@@ -1,7 +1,7 @@
 import path, { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { JsonObject } from "@blockprotocol/core";
+import type { JsonObject } from "@blockprotocol/core";
 import execa from "execa";
 import fs from "fs-extra";
 

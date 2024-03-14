@@ -28,8 +28,8 @@ use temporal_client::TemporalClient;
 use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
 use tokio_postgres::{GenericClient, Row};
 use type_system::{
-    url::{BaseUrl, VersionedUrl},
-    EntityType,
+    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    ClosedEntityType, EntityType,
 };
 use uuid::Uuid;
 
@@ -300,8 +300,8 @@ impl<C: AsClient> PostgresStore<C> {
     #[tracing::instrument(level = "debug")]
     fn create_closed_entity_type(
         entity_type_id: EntityTypeId,
-        available_types: &mut HashMap<EntityTypeId, EntityType>,
-    ) -> Result<EntityType, QueryError> {
+        available_types: &mut HashMap<EntityTypeId, ClosedEntityType>,
+    ) -> Result<ClosedEntityType, QueryError> {
         let mut current_type = available_types
             .remove(&entity_type_id)
             .ok_or_else(|| Report::new(QueryError))
@@ -309,7 +309,7 @@ impl<C: AsClient> PostgresStore<C> {
         let mut visited_ids = HashSet::from([entity_type_id]);
 
         loop {
-            for parent in current_type.inherits_from.elements.clone() {
+            for parent in current_type.inherits_from.clone() {
                 let parent_id = EntityTypeId::from_url(parent.url());
 
                 ensure!(
@@ -320,10 +320,7 @@ impl<C: AsClient> PostgresStore<C> {
                 if visited_ids.contains(&parent_id) {
                     // This may happen in case of multiple inheritance or cycles. Cycles are
                     // already checked above, so we can just skip this parent.
-                    current_type
-                        .inherits_from
-                        .elements
-                        .retain(|value| *value != parent);
+                    current_type.inherits_from.remove(&parent);
                     break;
                 }
 
@@ -339,7 +336,7 @@ impl<C: AsClient> PostgresStore<C> {
                 visited_ids.insert(parent_id);
             }
 
-            if current_type.inherits_from.elements.is_empty() {
+            if current_type.inherits_from.is_empty() {
                 break;
             }
         }
@@ -393,7 +390,12 @@ impl<C: AsClient> PostgresStore<C> {
         // The types we check either come from the graph or are provided by the user
         let mut available_schemas: HashMap<_, _> = entity_types
             .iter()
-            .map(|(id, schema)| (EntityTypeId::new(*id), schema.clone()))
+            .map(|(id, schema)| {
+                (
+                    EntityTypeId::new(*id),
+                    ClosedEntityType::from(schema.clone()),
+                )
+            })
             .chain(parent_schemas)
             .collect();
 
@@ -414,7 +416,7 @@ impl<C: AsClient> PostgresStore<C> {
 
 pub struct EntityTypeInsertion {
     pub schema: EntityType,
-    pub closed_schema: EntityType,
+    pub closed_schema: ClosedEntityType,
 }
 
 impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
@@ -726,7 +728,18 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
     {
         let old_ontology_id = EntityTypeId::from_url(&VersionedUrl {
             base_url: params.schema.id().base_url.clone(),
-            version: params.schema.id().version - 1,
+            version: OntologyTypeVersion::new(
+                params
+                    .schema
+                    .id()
+                    .version
+                    .inner()
+                    .checked_sub(1)
+                    .ok_or(UpdateError)
+                    .attach_printable(
+                        "The version of the data type is already at the lowest possible value",
+                    )?,
+            ),
         });
         authorization_api
             .check_entity_type_permission(
@@ -980,8 +993,7 @@ impl QueryRecordDecode for EntityTypeWithMetadata {
 
     fn decode(row: &Row, indices: &Self::CompilationArtifacts) -> Self {
         let record_id = OntologyTypeRecordId {
-            base_url: BaseUrl::new(row.get(indices.base_url))
-                .expect("invalid base URL returned from Postgres"),
+            base_url: row.get(indices.base_url),
             version: row.get(indices.version),
         };
 

@@ -1,4 +1,5 @@
-import { DrawCellCallback, GridCellKind } from "@glideapps/glide-data-grid";
+import type { DrawCellCallback } from "@glideapps/glide-data-grid";
+import { GridCellKind } from "@glideapps/glide-data-grid";
 import { useTheme } from "@mui/material";
 import { useCallback } from "react";
 

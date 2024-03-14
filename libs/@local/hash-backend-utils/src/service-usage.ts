@@ -1,5 +1,5 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
-import { GraphApi } from "@local/hash-graph-client";
+import type { GraphApi } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -10,11 +10,11 @@ import {
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { AggregatedUsageRecord } from "@local/hash-isomorphic-utils/service-usage";
+import type { AggregatedUsageRecord } from "@local/hash-isomorphic-utils/service-usage";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { ServiceFeatureProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { UsageRecordProperties } from "@local/hash-isomorphic-utils/system-types/usagerecord";
-import {
+import type { ServiceFeatureProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { UsageRecordProperties } from "@local/hash-isomorphic-utils/system-types/usagerecord";
+import type {
   AccountId,
   BoundedTimeInterval,
   Entity,
@@ -299,7 +299,7 @@ export const createUsageRecord = async (
       draft: false,
       ownedById: userAccountId,
       properties,
-      entityTypeId: systemEntityTypes.usageRecord.entityTypeId,
+      entityTypeIds: [systemEntityTypes.usageRecord.entityTypeId],
       relationships: entityRelationships,
     })
     .then(({ data }) => data);
@@ -312,7 +312,7 @@ export const createUsageRecord = async (
       leftEntityId: usageRecordEntityMetadata.recordId.entityId,
       rightEntityId: serviceFeatureEntity.metadata.recordId.entityId,
     },
-    entityTypeId: systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId,
+    entityTypeIds: [systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId],
     relationships: entityRelationships,
   });
 

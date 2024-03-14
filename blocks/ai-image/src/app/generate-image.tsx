@@ -12,7 +12,7 @@ import { v4 as uuid } from "uuid";
 import { generatedLinkKey, urlKey } from "../app";
 import { AbstractAiIcon } from "../icons/abstract-ai";
 import { ArrowTurnDownLeftIcon } from "../icons/arrow-turn-down-left";
-import { BlockEntity } from "../types/generated/block-entity";
+import type { BlockEntity } from "../types/generated/block-entity";
 import { BouncingDotsLoader } from "./generate-image/bouncing-dots-loader";
 import {
   DEFAULT_IMAGE_NUMBER,

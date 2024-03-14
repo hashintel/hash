@@ -1,11 +1,13 @@
-import { DataEditorRef } from "@glideapps/glide-data-grid";
-import { Popover, PopoverPosition, Typography } from "@mui/material";
+import type { DataEditorRef } from "@glideapps/glide-data-grid";
+import type { PopoverPosition } from "@mui/material";
+import { Popover, Typography } from "@mui/material";
 import { isEqual } from "lodash";
 import { bindPopover, usePopupState } from "material-ui-popup-state/hooks";
-import { RefObject, useCallback, useState } from "react";
+import type { RefObject } from "react";
+import { useCallback, useState } from "react";
 import { useWindowEventListener } from "rooks";
 
-import {
+import type {
   GridTooltip,
   TooltipCellProps,
   UseGridTooltipResponse,

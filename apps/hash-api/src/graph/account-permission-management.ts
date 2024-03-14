@@ -1,11 +1,15 @@
-import {
+import type {
   InsertAccountGroupIdParams,
   InsertAccountIdParams,
   WebOwnerSubject,
 } from "@local/hash-graph-client";
-import { AccountGroupId, AccountId, OwnedById } from "@local/hash-subgraph";
+import type {
+  AccountGroupId,
+  AccountId,
+  OwnedById,
+} from "@local/hash-subgraph";
 
-import { ImpureGraphFunction } from "./context-types";
+import type { ImpureGraphFunction } from "./context-types";
 
 export const addAccountGroupMember: ImpureGraphFunction<
   { accountId: AccountId; accountGroupId: AccountGroupId },

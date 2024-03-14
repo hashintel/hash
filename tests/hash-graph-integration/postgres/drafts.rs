@@ -5,7 +5,7 @@ use graph_types::knowledge::{
 };
 use pretty_assertions::assert_eq;
 use temporal_versioning::ClosedTemporalBound;
-use type_system::url::{BaseUrl, VersionedUrl};
+use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
 
@@ -36,7 +36,7 @@ fn person_entity_type_id() -> VersionedUrl {
             "https://blockprotocol.org/@alice/types/entity-type/person/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: 1,
+        version: OntologyTypeVersion::new(1),
     }
 }
 
@@ -61,7 +61,7 @@ async fn initial_draft() {
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(alice(), person_entity_type_id(), None, true)
+        .create_entity(alice(), vec![person_entity_type_id()], None, true)
         .await
         .expect("could not create entity");
     assert!(entity.record_id.entity_id.draft_id.is_some());
@@ -83,7 +83,7 @@ async fn initial_draft() {
         .update_entity(
             entity.record_id.entity_id,
             bob(),
-            person_entity_type_id(),
+            vec![person_entity_type_id()],
             EntityLinkOrder {
                 left_to_right: None,
                 right_to_left: None,
@@ -115,7 +115,7 @@ async fn initial_draft() {
         .update_entity(
             updated_entity.record_id.entity_id,
             charles(),
-            person_entity_type_id(),
+            vec![person_entity_type_id()],
             EntityLinkOrder {
                 left_to_right: None,
                 right_to_left: None,
@@ -166,7 +166,7 @@ async fn no_initial_draft() {
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(alice(), person_entity_type_id(), None, false)
+        .create_entity(alice(), vec![person_entity_type_id()], None, false)
         .await
         .expect("could not create entity");
     assert!(entity.record_id.entity_id.draft_id.is_none());
@@ -192,7 +192,7 @@ async fn no_initial_draft() {
             .update_entity(
                 entity.record_id.entity_id,
                 bob(),
-                person_entity_type_id(),
+                vec![person_entity_type_id()],
                 EntityLinkOrder {
                     left_to_right: None,
                     right_to_left: None,
@@ -230,7 +230,7 @@ async fn no_initial_draft() {
             .update_entity(
                 updated_entity.record_id.entity_id,
                 charles(),
-                person_entity_type_id(),
+                vec![person_entity_type_id()],
                 EntityLinkOrder {
                     left_to_right: None,
                     right_to_left: None,
@@ -267,7 +267,7 @@ async fn multiple_drafts() {
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(alice(), person_entity_type_id(), None, false)
+        .create_entity(alice(), vec![person_entity_type_id()], None, false)
         .await
         .expect("could not create entity");
     assert!(entity.record_id.entity_id.draft_id.is_none());
@@ -293,7 +293,7 @@ async fn multiple_drafts() {
             .update_entity(
                 entity.record_id.entity_id,
                 bob(),
-                person_entity_type_id(),
+                vec![person_entity_type_id()],
                 EntityLinkOrder {
                     left_to_right: None,
                     right_to_left: None,
@@ -334,7 +334,7 @@ async fn multiple_drafts() {
             .update_entity(
                 draft,
                 charles(),
-                person_entity_type_id(),
+                vec![person_entity_type_id()],
                 EntityLinkOrder {
                     left_to_right: None,
                     right_to_left: None,

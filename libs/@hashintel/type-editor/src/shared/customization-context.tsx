@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
 
-import { CustomizationOptions } from "../entity-type-editor";
+import type { CustomizationOptions } from "../entity-type-editor";
 
 export const CustomizationContext = createContext<CustomizationOptions | null>(
   null,

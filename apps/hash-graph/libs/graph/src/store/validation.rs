@@ -20,7 +20,7 @@ use tokio::sync::RwLock;
 use tokio_postgres::GenericClient;
 use type_system::{
     url::{BaseUrl, VersionedUrl},
-    DataType, EntityType, PropertyType,
+    ClosedEntityType, DataType, PropertyType,
 };
 use validation::{EntityProvider, EntityTypeProvider, OntologyTypeProvider};
 
@@ -118,7 +118,7 @@ where
 pub struct StoreCache {
     data_types: CacheHashMap<DataTypeId, DataType>,
     property_types: CacheHashMap<PropertyTypeId, PropertyType>,
-    entity_types: CacheHashMap<EntityTypeId, EntityType>,
+    entity_types: CacheHashMap<EntityTypeId, ClosedEntityType>,
 }
 
 #[derive(Debug)]
@@ -295,7 +295,7 @@ where
     async fn fetch_entity_type(
         &self,
         type_id: &VersionedUrl,
-    ) -> Result<EntityType, Report<QueryError>> {
+    ) -> Result<ClosedEntityType, Report<QueryError>> {
         let mut schemas = self
             .store
             .read_closed_schemas(
@@ -333,7 +333,7 @@ where
     }
 }
 
-impl<C, A> OntologyTypeProvider<EntityType> for StoreProvider<'_, PostgresStore<C>, A>
+impl<C, A> OntologyTypeProvider<ClosedEntityType> for StoreProvider<'_, PostgresStore<C>, A>
 where
     C: AsClient,
     A: AuthorizationApi + Sync,
@@ -342,7 +342,7 @@ where
     async fn provide_type(
         &self,
         type_id: &VersionedUrl,
-    ) -> Result<Arc<EntityType>, Report<QueryError>> {
+    ) -> Result<Arc<ClosedEntityType>, Report<QueryError>> {
         let entity_type_id = EntityTypeId::from_url(type_id);
 
         if let Some(cached) = self.cache.entity_types.get(&entity_type_id).await {

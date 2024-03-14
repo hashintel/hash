@@ -65,18 +65,18 @@ Later on in this post we apply the Sensitivity Assessor to explore this question
 
 The goal of the Sensitivity Assessor is to take the ideas software engineers use to automatically identify the locations of bugs within programs and adapt them for researchers working with simulations. Specifically, there are a few main concepts behind the Sensitivity Assessor:
 
-1.  **Test writing** — identifying if a simulation run produces the anticipated output or not. In software engineering a test case either passes or fails. In order to take advantage of automated debugging methods we need to identify if a simulation run produces the anticipated output or not. Similarly, it is important to keep in mind that the Sensitivity Assessor can only work if some runs produce the anticipated output while others do not. For cases where anticipated and unanticipated outcomes occur, the Sensitivity Assessor assists in identifying locations in the simulation that are likely contributing to these outcomes.
-1.  **Employing predicates** — a predicate is a conditional proposition including at least one variable in a researcher’s HASH simulation that can be evaluated as either true or false. Predicates are a little easier to understand with examples:
-    - `x > 0` is a predicate because it can be evaluated at a given point of time in the simulation as either true or false
-    - `y > z` is a predicate because it can be evaluated at a given point of time in the simulation as either true or false
-    - `x > 0` AND `y > z` is a predicate because it can be evaluated at a given point of time in the simulation as either true or false
-    - `4` is not a predicate because it cannot be evaluated at a given point of time in the simulation as either true or false
-    - `x` is a predicate if it reflects a boolean (true/false) value in the simulation. However, if it just reflects an integer or continuous number then it is not a predicate. This is because it cannot be evaluated at a given point of time in the simulation as either true or false.
-1.  **Predicates of many kinds** — predicates can come in different “flavors and sizes”. An important thing to keep in mind when working with the Sensitivity Assessor is that there are multiple different ways to specify what types of predicates you want to be included. For example:
-    - The predicate `x > 0` only contains one variable and it is compared to a number. Furthermore, we can specify the predicate without running the simulation (i.e. we don’t need to know every value that `x` will take on in the simulation before writing the predicate.).
-    - The predicate `x > y` contains two variables and we can specify the predicate without running the simulation (i.e. we don’t need to know every value that `x` or `y` will take on in the simulation before writing the predicate.)
-    - The predicate `x > μx + σx` (where `μx` is the average value of `x` and `σx` is the standard deviation in all the provided simulation runs) only contains one variable but requires having all the simulation runs complete to compute the values needed within the predicate (i.e. `μx` and `σx`).
-    - The predicate `y > μx + σx` (where `μx` is the average value of `x` and `σx` is the standard deviation in all the provided simulation runs) contains two variables and requires having all the simulation runs to compute the values needed within the predicate (i.e. `μx` and `σx`).
+1. **Test writing** — identifying if a simulation run produces the anticipated output or not. In software engineering a test case either passes or fails. In order to take advantage of automated debugging methods we need to identify if a simulation run produces the anticipated output or not. Similarly, it is important to keep in mind that the Sensitivity Assessor can only work if some runs produce the anticipated output while others do not. For cases where anticipated and unanticipated outcomes occur, the Sensitivity Assessor assists in identifying locations in the simulation that are likely contributing to these outcomes.
+1. **Employing predicates** — a predicate is a conditional proposition including at least one variable in a researcher’s HASH simulation that can be evaluated as either true or false. Predicates are a little easier to understand with examples:
+   - `x > 0` is a predicate because it can be evaluated at a given point of time in the simulation as either true or false
+   - `y > z` is a predicate because it can be evaluated at a given point of time in the simulation as either true or false
+   - `x > 0` AND `y > z` is a predicate because it can be evaluated at a given point of time in the simulation as either true or false
+   - `4` is not a predicate because it cannot be evaluated at a given point of time in the simulation as either true or false
+   - `x` is a predicate if it reflects a boolean (true/false) value in the simulation. However, if it just reflects an integer or continuous number then it is not a predicate. This is because it cannot be evaluated at a given point of time in the simulation as either true or false.
+1. **Predicates of many kinds** — predicates can come in different “flavors and sizes”. An important thing to keep in mind when working with the Sensitivity Assessor is that there are multiple different ways to specify what types of predicates you want to be included. For example:
+   - The predicate `x > 0` only contains one variable and it is compared to a number. Furthermore, we can specify the predicate without running the simulation (i.e. we don’t need to know every value that `x` will take on in the simulation before writing the predicate.).
+   - The predicate `x > y` contains two variables and we can specify the predicate without running the simulation (i.e. we don’t need to know every value that `x` or `y` will take on in the simulation before writing the predicate.)
+   - The predicate `x > μx + σx` (where `μx` is the average value of `x` and `σx` is the standard deviation in all the provided simulation runs) only contains one variable but requires having all the simulation runs complete to compute the values needed within the predicate (i.e. `μx` and `σx`).
+   - The predicate `y > μx + σx` (where `μx` is the average value of `x` and `σx` is the standard deviation in all the provided simulation runs) contains two variables and requires having all the simulation runs to compute the values needed within the predicate (i.e. `μx` and `σx`).
 
 ## What can the Sensitivity Assessor do for me?
 
@@ -188,7 +188,7 @@ VMASC is freely releasing its own-developed tooling for easily ingesting HASH si
 
 ### Step 1. obtain the JSON output of your simulation model
 
-The JSON output of HASH simulation experiment runs can be [downloaded within HASH Core](https://hash.ai/docs/simulation/creating-simulations/views/raw-data) or pulled directly from the generated `JSON-State` [output in HASH Engine](https://github.com/hashintel/labs/tree/main/apps/sim-engine#simulation-outputs)
+The JSON output of HASH simulation experiment runs can be [downloaded within HASH Core](https://hash.dev/docs/simulations/creating-simulations/views/raw-data) or pulled directly from the generated `JSON-State` [output in HASH Engine](https://github.com/hashintel/labs/tree/main/apps/sim-engine#simulation-outputs)
 
 ### Step 2. convert your output into a readable format
 
@@ -202,21 +202,21 @@ Figure 11: the _HASH to Sensitivity Assessor_ utility
 
 To use the _HASH to Sensitivity Assessor_:
 
-1.  Upload HASH experiment JSON file using the **Browse...** button under **Choose HASH Output (JSON)**
+1. Upload HASH experiment JSON file using the **Browse...** button under **Choose HASH Output (JSON)**
 
 - The variables from the uploaded file populate the **Name of Output Column:** selection box
 
-1.  Select one variable from the **Name of Output Column:** selection box
+1. Select one variable from the **Name of Output Column:** selection box
 
 - This is the variable to interest to gather insight into using the _Sensitivity Assessor_
 
-1.  Use the **Select a function to collapse your output column into a single value** selection box. This is the function that will be used to transform the sequence of output values, specified in the Output Column, for each simulation run into a single value. The single value returned back is based on the function chosen. See below for more details:
+1. Use the **Select a function to collapse your output column into a single value** selection box. This is the function that will be used to transform the sequence of output values, specified in the Output Column, for each simulation run into a single value. The single value returned back is based on the function chosen. See below for more details:
 
 - Every function that can be chosen is a many-to-one function. This means that it will take the entire column of values for a simulation run from the Output Column as input and return a single value back.
 - This will result in a single value generated from each experiment, corresponding to a unique simRunId.
 - Alternatively stated as: each variable's value is collected at each time step; therefore, this conversion process scans the time series to retrieve or generate one value based on the selected function.
 
-1.  Click "Download CSV To Use With Sensitivity Assessor"
+1. Click "Download CSV To Use With Sensitivity Assessor"
 
 - Runs the tool using the selections from Steps 2 & 3 and generates a CSV file
 - This file includes:
@@ -240,10 +240,10 @@ Recall the original question we set out to answer earlier in this post: “How c
 
 To track down what may be causing this outcome of interest, we ran several experiments using HASH. The experiment created in HASH was a multiparameter value sweep, varying four different parameters with three different values in each. These parameters were:
 
-1.  `recoverChance`: the probability of an agent recovering after being infected with the virus
-1.  `infectedPeople`: the minimum number of infected agents at the beginning of the simulation
-1.  `infectiousness`: the basic reproductive number of the virus (R0), representing _on average_ how many uninfected agents each agent infected with the virus will in turn infect
-1.  `peopleCount`: the total number of agents starting in the simulation
+1. `recoverChance`: the probability of an agent recovering after being infected with the virus
+1. `infectedPeople`: the minimum number of infected agents at the beginning of the simulation
+1. `infectiousness`: the basic reproductive number of the virus (R0), representing _on average_ how many uninfected agents each agent infected with the virus will in turn infect
+1. `peopleCount`: the total number of agents starting in the simulation
 
 After the experiment run finished executing, we downloaded the output as JSON, and uploaded it into the _HASH to Sensitivity Assessor_ web utility. To explore our research question, we selected the number of healthy people in the simulation run as the **Output Column** and used the “minimum” function to identify simulation runs with no healthy people in the simulated population at a point in time (see Figure 11). The CSV file produced was then loaded into the Sensitivity Assessor for analysis (see Figure 12).
 
@@ -256,8 +256,8 @@ Before beginning our work with the _Sensitivity Assessor_ we formed a number of 
 
 To identify which, if any, of these hypotheses were correct we applied the the _Sensitivity Assessor_ to generate a variety of predicates related to conditions in simulation runs that: (1) are true in runs where zero healthy individuals exist at a certain point in time and (2) are not true in simulation runs where at least one healthy individual exists at a certain point in time. The two predicates with the highest sensitivity assessments were:
 
-1.  `infectiousness` > 1.4: i.e., how many uninfected agents, on average, an infected agent will infect
-1.  `infectedPeople` > 28: i.e., the initial count of infected individuals
+1. `infectiousness` > 1.4: i.e., how many uninfected agents, on average, an infected agent will infect
+1. `infectedPeople` > 28: i.e., the initial count of infected individuals
 
 This enabled us to definitively identify what factors were contributing to runs within our HASH simulation model that contained zero healthy agents during portions of their runtime. A sufficiently high basic reproductive number of the virus along with more initial infectious agents would produce fewer areas of the landscape for healthy agents to move without risk of exposure to the virus. Agents' movement across the landscape randomly and under the identified conditions would result in the virus infecting most agents quickly. As a result, very few time steps in a simulation run under these parameters would be required for no healthy agents to remain. These results would occur independent of both the agent population size and the chance of recovery from the virus. _In our trials we explored agent population sizes from 200 to 400 in size._
 

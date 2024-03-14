@@ -2,20 +2,20 @@ import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
 import { createEntity } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
+import type { Block } from "@apps/hash-api/src/graph/knowledge/system-types/block";
 import {
-  Block,
   createBlock,
   getBlockById,
   getBlockData,
   updateBlockDataEntity,
 } from "@apps/hash-api/src/graph/knowledge/system-types/block";
-import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import {
+import type {
   Entity,
   EntityTypeWithMetadata,
   OwnedById,

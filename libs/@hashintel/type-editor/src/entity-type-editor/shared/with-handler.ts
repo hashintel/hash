@@ -1,4 +1,4 @@
-import { bindToggle, bindTrigger } from "material-ui-popup-state/hooks";
+import type { bindToggle, bindTrigger } from "material-ui-popup-state/hooks";
 
 // Call a function in addition to handling popup state on click
 export const withHandler = <

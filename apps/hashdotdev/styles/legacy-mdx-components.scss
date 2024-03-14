@@ -1,0 +1,141 @@
+.hint {
+  .hint-success,
+  .hint-info,
+  .hint-warning,
+  .hint-danger {
+    width: 100%;
+    margin: 0;
+    display: flex;
+    padding: 12px 24px;
+    padding-left: 0px;
+    position: relative;
+    margin-top: 32px;
+    border-left: 4px solid rgb(38, 203, 124);
+    border-radius: 3px;
+    margin-bottom: 32px;
+    background-color: #f5f7f9;
+
+    .markdown-wrapper > :last-child {
+      margin-bottom: 0px;
+    }
+
+    svg {
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+      margin-left: 0.8em;
+      margin-right: 0.8em;
+      color: rgb(38, 203, 124);
+    }
+  }
+
+  .hint-info {
+    border-left: 4px solid rgb(56, 132, 255);
+
+    svg {
+      color: rgb(56, 132, 255);
+    }
+  }
+
+  .hint-warning {
+    border-left: 4px solid rgb(247, 125, 5);
+
+    svg {
+      color: rgb(247, 125, 5);
+    }
+  }
+
+  .hint-danger {
+    border-left: 4px solid rgb(255, 70, 66);
+
+    svg {
+      color: rgb(255, 70, 66);
+    }
+  }
+}
+
+$font-sm: clamp(0.85rem, calc(0.17vw + 0.76rem), 0.9rem);
+
+.docs-tabs,
+.docs-text-tabs {
+  pre {
+    margin-top: 0px !important;
+    border-top-left-radius: 0px;
+  }
+
+  .tabs-headers {
+    display: flex;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    font-size: $font-sm;
+
+    max-width: calc(100vw - 30px);
+    overflow: auto;
+  }
+
+  .tabs-header {
+    cursor: pointer;
+
+    color: rgb(157, 170, 182);
+    border-width: 1px;
+    border-style: solid;
+    border-color: rgb(230, 236, 241) rgb(230, 236, 241) rgb(230, 236, 241)
+      transparent;
+
+    background-color: rgb(245, 247, 249);
+    transition: color 250ms ease-out 0s;
+    padding: 8px;
+
+    &:hover {
+      color: black;
+    }
+  }
+
+  .tabs-header.active {
+    background-color: #2d2d2d;
+    color: white;
+    border: 0px;
+  }
+}
+
+.markdown-wrapper.text-tab {
+  border: 1px solid rgb(230, 236, 241);
+  border-radius: 0px 3px 3px;
+  padding: 0px 24px;
+}
+
+.docs-text-tabs {
+  .tabs-header.active {
+    background-color: white;
+    color: black;
+    border: 0px;
+
+    border-width: 1px;
+    border-style: solid;
+    border-color: rgb(230, 236, 241);
+
+    border-bottom: 0px;
+  }
+}
+
+.embed-parent {
+  text-align: center;
+}
+
+.embed-container {
+  position: relative;
+  padding-bottom: 56.25%;
+  height: 0;
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.embed-container iframe,
+.embed-container object,
+.embed-container embed {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}

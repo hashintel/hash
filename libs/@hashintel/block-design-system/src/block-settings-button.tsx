@@ -1,5 +1,6 @@
-import { Button, buttonClasses, ButtonProps } from "@mui/material";
-import { FunctionComponent } from "react";
+import type { ButtonProps } from "@mui/material";
+import { Button, buttonClasses } from "@mui/material";
+import type { FunctionComponent } from "react";
 
 import { ChevronRightIcon, GearIcon } from "./icons/icons";
 

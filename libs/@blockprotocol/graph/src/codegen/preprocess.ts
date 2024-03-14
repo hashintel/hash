@@ -1,4 +1,4 @@
-import { PreprocessContext } from "./context.js";
+import type { PreprocessContext } from "./context.js";
 import { identifyLinkEntityTypes } from "./preprocess/identify-link-entity-types.js";
 import { removeEmptyAllOfs } from "./preprocess/remove-empty-all-ofs.js";
 import { rewriteTypeTitles } from "./preprocess/transform-type-titles.js";

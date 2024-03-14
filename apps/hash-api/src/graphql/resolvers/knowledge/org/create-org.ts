@@ -1,10 +1,10 @@
-import { Subgraph } from "@local/hash-subgraph";
+import type { Subgraph } from "@local/hash-subgraph";
 
 import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primitive/entity";
 import { createOrg } from "../../../../graph/knowledge/system-types/org";
 import { joinOrg } from "../../../../graph/knowledge/system-types/user";
-import { MutationCreateOrgArgs, ResolverFn } from "../../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../../context";
+import type { MutationCreateOrgArgs, ResolverFn } from "../../../api-types.gen";
+import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const createOrgResolver: ResolverFn<

@@ -1,21 +1,21 @@
 import path from "node:path";
 
-import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
+import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { getEntities } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
-import { EntityStructuralQuery } from "@local/hash-graph-client";
+import type { EntityStructuralQuery } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import {
+import type {
   AccountId,
   Entity,
-  ENTITY_ID_DELIMITER,
   EntityRootType,
   GraphResolveDepths,
   KnowledgeGraphEdgeKind,
   Subgraph,
 } from "@local/hash-subgraph";
+import { ENTITY_ID_DELIMITER } from "@local/hash-subgraph";
 import {
   getEntities as getEntitiesSubgraph,
   getRoots,

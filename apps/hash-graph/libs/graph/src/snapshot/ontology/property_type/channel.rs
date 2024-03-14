@@ -10,7 +10,6 @@ use futures::{
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
-use graph_types::ontology::OntologyTypeVersion;
 use postgres_types::Json;
 use uuid::Uuid;
 
@@ -89,8 +88,8 @@ impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
                 let url = data_type_ref.url();
                 PropertyTypeConstrainsValuesOnRow {
                     source_property_type_ontology_id: ontology_id,
-                    target_data_type_base_url: url.base_url.as_str().to_owned(),
-                    target_data_type_version: OntologyTypeVersion::new(url.version),
+                    target_data_type_base_url: url.base_url.clone(),
+                    target_data_type_version: url.version,
                 }
             })
             .collect();
@@ -109,8 +108,8 @@ impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
                 let url = property_type_ref.url();
                 PropertyTypeConstrainsPropertiesOnRow {
                     source_property_type_ontology_id: ontology_id,
-                    target_property_type_base_url: url.base_url.as_str().to_owned(),
-                    target_property_type_version: OntologyTypeVersion::new(url.version),
+                    target_property_type_base_url: url.base_url.clone(),
+                    target_property_type_version: url.version,
                 }
             })
             .collect();

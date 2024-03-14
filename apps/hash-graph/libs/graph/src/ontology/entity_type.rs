@@ -517,7 +517,7 @@ impl QueryPath for EntityTypeQueryPath<'_> {
             Self::Version => ParameterType::OntologyTypeVersion,
             Self::TransactionTime => ParameterType::TimeInterval,
             Self::Title | Self::Description | Self::Icon => ParameterType::Text,
-            Self::Embedding => ParameterType::Vector,
+            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
             Self::PropertyTypeEdge { path, .. } => path.expected_type(),
             Self::EntityTypeEdge { path, .. } => path.expected_type(),
             Self::EntityEdge { path, .. } => path.expected_type(),

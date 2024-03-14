@@ -1,11 +1,14 @@
 import { AiAssistantMessage } from "@hashintel/block-design-system";
 import { Box, Typography } from "@mui/material";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import { TypeAnimation } from "react-type-animation";
 
 import { AbstractAiIcon } from "../icons/abstract-ai";
 import { UserIcon } from "../icons/user";
-import { IncompleteOpenAiAssistantMessage, OpenAIChatMessage } from "./types";
+import type {
+  IncompleteOpenAiAssistantMessage,
+  OpenAIChatMessage,
+} from "./types";
 
 export const ChatMessage: FunctionComponent<{
   readonly: boolean;

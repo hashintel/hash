@@ -1,4 +1,4 @@
-import { EntityId } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-subgraph";
 
 import { useEntityEditor } from "../entity-editor/entity-editor-context";
 

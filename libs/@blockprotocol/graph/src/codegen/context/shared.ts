@@ -1,4 +1,4 @@
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 
 import { mustBeDefined } from "../../shared/util/must-be-defined.js";
 

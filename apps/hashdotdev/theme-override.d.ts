@@ -1,4 +1,4 @@
-import { CSSProperties } from "react";
+import type { CSSProperties } from "react";
 
 declare module "@mui/material/styles" {
   interface PaletteValue {
@@ -159,6 +159,8 @@ declare module "@mui/material/Button" {
 declare module "@mui/material/Paper" {
   interface PaperPropsVariantOverrides {
     yellow: true;
+    aqua: true;
+    teal: true;
   }
 }
 

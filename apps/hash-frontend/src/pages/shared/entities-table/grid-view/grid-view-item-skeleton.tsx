@@ -1,5 +1,5 @@
 import { Box, Skeleton } from "@mui/material";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 
 import { GridViewItemWrapper } from "./grid-view-item-wrapper";
 

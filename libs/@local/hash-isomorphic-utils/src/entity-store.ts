@@ -1,5 +1,5 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
-import {
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
   EntityId,
   EntityMetadata,
   EntityPropertiesObject,
@@ -7,9 +7,10 @@ import {
   LinkData,
 } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import { Draft, produce } from "immer";
+import type { Draft } from "immer";
+import { produce } from "immer";
 
-import { BlockEntity } from "./entity";
+import type { BlockEntity } from "./entity";
 import { generateDraftIdForEntity } from "./entity-store-plugin";
 import { blockProtocolPropertyTypes } from "./ontology-type-ids";
 

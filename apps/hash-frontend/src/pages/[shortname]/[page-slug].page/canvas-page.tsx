@@ -1,27 +1,18 @@
 import "@tldraw/tldraw/editor.css";
 import "@tldraw/tldraw/ui.css";
 
-import {
-  ComponentIdHashBlockMap,
-  fetchBlock,
-} from "@local/hash-isomorphic-utils/blocks";
-import { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
+import type { ComponentIdHashBlockMap } from "@local/hash-isomorphic-utils/blocks";
+import { fetchBlock } from "@local/hash-isomorphic-utils/blocks";
+import type { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
 import { Box } from "@mui/material";
 import { TldrawEditorConfig } from "@tldraw/editor";
-import {
-  App,
-  createShapeId,
-  MenuGroup,
-  menuItem,
-  Tldraw,
-  TLTranslationKey,
-  toolbarItem,
-} from "@tldraw/tldraw";
+import type { App, MenuGroup, TLTranslationKey } from "@tldraw/tldraw";
+import { createShapeId, menuItem, Tldraw, toolbarItem } from "@tldraw/tldraw";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
 import { useUserBlocks } from "../../../blocks/user-blocks";
-import { BlockCollectionContentItem } from "../../../graphql/api-types.gen";
+import type { BlockCollectionContentItem } from "../../../graphql/api-types.gen";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
 import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
 import { BlockCreationDialog } from "./canvas-page/block-creation-dialog";

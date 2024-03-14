@@ -1,5 +1,7 @@
-import { Entity, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
-import { FunctionComponent, useMemo } from "react";
+import type { Entity } from "@local/hash-subgraph";
+import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import type { FunctionComponent } from "react";
+import { useMemo } from "react";
 
 import { useOrgs } from "../../../components/hooks/use-orgs";
 import { useUsers } from "../../../components/hooks/use-users";

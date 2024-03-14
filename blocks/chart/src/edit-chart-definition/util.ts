@@ -1,4 +1,4 @@
-import { EntityType, PropertyType, Subgraph } from "@blockprotocol/graph";
+import type { EntityType, PropertyType, Subgraph } from "@blockprotocol/graph";
 import {
   getEntityTypeById,
   getPropertyTypeById,

@@ -1,19 +1,20 @@
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
-import { Logger } from "@local/hash-backend-utils/logger";
-import { Session } from "@ory/client";
-import { AxiosError } from "axios";
-import { Express, Request, RequestHandler } from "express";
+import type { Logger } from "@local/hash-backend-utils/logger";
+import type { Session } from "@ory/client";
+import type { AxiosError } from "axios";
+import type { Express, Request, RequestHandler } from "express";
 
-import { ImpureGraphContext } from "../graph/context-types";
+import type { ImpureGraphContext } from "../graph/context-types";
+import type { User } from "../graph/knowledge/system-types/user";
 import {
   createUser,
   getUserByKratosIdentityId,
-  User,
 } from "../graph/knowledge/system-types/user";
 import { systemAccountId } from "../graph/system-account";
 import { hydraAdmin } from "./ory-hydra";
-import { kratosFrontendApi, KratosUserIdentity } from "./ory-kratos";
+import type { KratosUserIdentity } from "./ory-kratos";
+import { kratosFrontendApi } from "./ory-kratos";
 import { publicUserAccountId } from "./public-user-account-id";
 
 const KRATOS_API_KEY = getRequiredEnv("KRATOS_API_KEY");

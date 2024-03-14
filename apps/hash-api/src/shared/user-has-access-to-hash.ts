@@ -1,4 +1,4 @@
-import { User } from "../graph/knowledge/system-types/user";
+import type { User } from "../graph/knowledge/system-types/user";
 
 const userEmailAllowList = process.env.USER_EMAIL_ALLOW_LIST
   ? (JSON.parse(process.env.USER_EMAIL_ALLOW_LIST) as string[])

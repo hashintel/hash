@@ -10,7 +10,7 @@ import browser from "webextension-polyfill";
  *
  * You must update the extension if you amend this file, from the extensions manager page in the browser.
  */
-import { GetSiteContentReturn, Message } from "../shared/messages";
+import type { GetSiteContentReturn, Message } from "../shared/messages";
 
 // Promise based API (see: https://github.com/mozilla/webextension-polyfill/?tab=readme-ov-file#using-the-promise-based-apis)
 // eslint-disable-next-line @typescript-eslint/require-await

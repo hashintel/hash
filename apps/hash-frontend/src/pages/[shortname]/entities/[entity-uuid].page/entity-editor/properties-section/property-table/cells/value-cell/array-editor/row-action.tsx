@@ -1,4 +1,4 @@
-import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
+import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
 import { Tooltip } from "@mui/material";

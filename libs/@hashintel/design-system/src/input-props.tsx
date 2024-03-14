@@ -1,11 +1,13 @@
 import { faCheckCircle } from "@fortawesome/free-regular-svg-icons";
 import { faCircleExclamation } from "@fortawesome/free-solid-svg-icons";
+import type {
+  InputProps,
+  TextFieldProps as MuiTextFieldProps,
+} from "@mui/material";
 import {
   InputAdornment,
   inputClasses,
-  InputProps,
   outlinedInputClasses,
-  TextFieldProps as MuiTextFieldProps,
 } from "@mui/material";
 
 import { FontAwesomeIcon } from "./fontawesome-icon";

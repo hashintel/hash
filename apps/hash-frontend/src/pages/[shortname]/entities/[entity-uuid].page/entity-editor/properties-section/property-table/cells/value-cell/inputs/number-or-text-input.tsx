@@ -1,8 +1,9 @@
-import { TextField, TextFieldProps } from "@hashintel/design-system";
-import { DataTypeWithMetadata } from "@local/hash-subgraph";
+import type { TextFieldProps } from "@hashintel/design-system";
+import { TextField } from "@hashintel/design-system";
+import type { DataTypeWithMetadata } from "@local/hash-subgraph";
 import { format, formatISO, parseISO } from "date-fns";
 
-import { CellInputProps } from "./types";
+import type { CellInputProps } from "./types";
 
 /**
  * Get the current offset from UTC according to the user's device.

@@ -1,14 +1,16 @@
 import * as fs from "node:fs/promises";
+import type { CodegenParameters } from "@blockprotocol/graph/codegen";
 import path, { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { codegen, CodegenParameters } from "@blockprotocol/graph/codegen";
-import { VersionedUrl } from "@blockprotocol/type-system";
+import { codegen } from "@blockprotocol/graph/codegen";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import slugify from "slugify";
 
 import {
   blockProtocolEntityTypes,
+  googleEntityTypes,
   linearEntityTypes,
   systemEntityTypes,
 } from "./ontology-type-ids";
@@ -109,6 +111,7 @@ const replaceInDirectory = async (
 const generateSystemTypeTypes = async () => {
   await generateTypes(systemEntityTypes, "system");
   await generateTypes(linearEntityTypes, "linear", "linear");
+  await generateTypes(googleEntityTypes, "google", "google");
   await generateTypes(
     blockProtocolEntityTypes,
     "Block Protocol",

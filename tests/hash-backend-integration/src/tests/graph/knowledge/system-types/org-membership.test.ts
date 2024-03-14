@@ -1,14 +1,14 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
-import { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
+import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
+import type { OrgMembership } from "@apps/hash-api/src/graph/knowledge/system-types/org-membership";
 import {
   createOrgMembership,
   getOrgMembershipOrg,
   getOrgMembershipUser,
-  OrgMembership,
 } from "@apps/hash-api/src/graph/knowledge/system-types/org-membership";
-import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { AuthenticationContext } from "@apps/hash-api/src/graphql/authentication-context";
+import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type { AuthenticationContext } from "@apps/hash-api/src/graphql/authentication-context";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";

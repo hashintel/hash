@@ -1,6 +1,6 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
-import { GraphApi } from "@local/hash-graph-client";
+import type { GraphApi } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -10,8 +10,8 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { systemTypeWebShortnames } from "@local/hash-isomorphic-utils/ontology-types";
-import { MachineProperties } from "@local/hash-isomorphic-utils/system-types/machine";
-import {
+import type { MachineProperties } from "@local/hash-isomorphic-utils/system-types/machine";
+import type {
   AccountId,
   EntityMetadata,
   EntityRootType,
@@ -154,8 +154,9 @@ export const createMachineActorEntity = async (
   const metadata = await context.graphApi
     .createEntity(machineAccountId, {
       draft: false,
-      entityTypeId:
+      entityTypeIds: [
         machineEntityTypeId ?? systemEntityTypes.machine.entityTypeId,
+      ],
       ownedById,
       properties: {
         "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":

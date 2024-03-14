@@ -78,7 +78,11 @@ impl PropertyType {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(
+    try_from = "raw::PropertyTypeReference",
+    into = "raw::PropertyTypeReference"
+)]
 #[repr(transparent)]
 pub struct PropertyTypeReference {
     url: VersionedUrl,

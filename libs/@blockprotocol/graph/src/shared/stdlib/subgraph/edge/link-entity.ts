@@ -1,18 +1,17 @@
-import {
+import type {
   Entity,
   EntityId,
   LinkEntityAndRightEntity,
 } from "../../../types/entity.js";
+import type { OutwardEdge, Subgraph } from "../../../types/subgraph.js";
 import {
   isHasLeftEntityEdge,
   isHasRightEntityEdge,
   isIncomingLinkEdge,
   isOutgoingLinkEdge,
   isTemporalSubgraph,
-  OutwardEdge,
-  Subgraph,
 } from "../../../types/subgraph.js";
-import { TimeInterval } from "../../../types/temporal-versioning.js";
+import type { TimeInterval } from "../../../types/temporal-versioning.js";
 import { mustBeDefined, typedEntries } from "../../../util.js";
 import {
   intervalForTimestamp,

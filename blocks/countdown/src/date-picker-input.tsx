@@ -1,11 +1,11 @@
-import {
-  forwardRef,
+import type {
   FunctionComponent,
   HTMLAttributes,
   MutableRefObject,
-  useRef,
 } from "react";
-import DatePicker, { ReactDatePickerProps } from "react-datepicker";
+import { forwardRef, useRef } from "react";
+import type { ReactDatePickerProps } from "react-datepicker";
+import DatePicker from "react-datepicker";
 
 const CalenderIcon: FunctionComponent<{ onClick: () => void }> = ({
   onClick,

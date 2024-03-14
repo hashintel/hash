@@ -54,7 +54,7 @@ use graph_types::{
     ontology::{
         DataTypeMetadata, EntityTypeMetadata, OntologyEditionProvenanceMetadata,
         OntologyProvenanceMetadata, OntologyTemporalMetadata, OntologyTypeMetadata,
-        OntologyTypeRecordId, OntologyTypeReference, OntologyTypeVersion, PropertyTypeMetadata,
+        OntologyTypeRecordId, OntologyTypeReference, PropertyTypeMetadata,
     },
     owned_by_id::OwnedById,
 };
@@ -68,7 +68,7 @@ use temporal_versioning::{
     ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
     OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, Timestamp, TransactionTime,
 };
-use type_system::url::{BaseUrl, VersionedUrl};
+use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 use utoipa::{
     openapi::{
         self, schema, ArrayBuilder, KnownFormat, Object, ObjectBuilder, OneOfBuilder, Ref, RefOr,

@@ -1,7 +1,7 @@
 import { CloseIcon } from "@hashintel/design-system";
-import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, buttonClasses } from "@mui/material";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 
 import { CheckRegularIcon } from "../../../shared/icons/check-regular-icon";
 import { AcceptDraftEntityButton } from "../../shared/accept-draft-entity-button";

@@ -13,22 +13,26 @@ import {
   pageEntityTypeFilter,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { TextToken } from "@local/hash-isomorphic-utils/types";
-import {
-  Entity,
-  EntityId,
-  extractEntityUuidFromEntityId,
-} from "@local/hash-subgraph";
+import type { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
+import type { Entity, EntityId } from "@local/hash-subgraph";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
-import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
+import type {
+  ImpureGraphFunction,
+  PureGraphFunction,
+} from "../../context-types";
 import { getEntities, getLatestEntityById } from "../primitive/entity";
 import { isEntityLinkEntity } from "../primitive/link-entity";
-import { Block, getBlockById } from "./block";
-import { Comment, getCommentById } from "./comment";
-import { getPageFromEntity, Page } from "./page";
-import { getUserById, User } from "./user";
+import type { Block } from "./block";
+import { getBlockById } from "./block";
+import type { Comment } from "./comment";
+import { getCommentById } from "./comment";
+import type { Page } from "./page";
+import { getPageFromEntity } from "./page";
+import type { User } from "./user";
+import { getUserById } from "./user";
 
 export type Text = {
   textualContent: TextToken[];

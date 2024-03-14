@@ -1,5 +1,5 @@
 import { Autocomplete, MenuItem } from "@hashintel/design-system";
-import { InferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
+import type { InferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { Stack, Typography } from "@mui/material";
 
 import {

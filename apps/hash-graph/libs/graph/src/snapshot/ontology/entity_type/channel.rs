@@ -10,8 +10,8 @@ use futures::{
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
-use graph_types::ontology::OntologyTypeVersion;
 use postgres_types::Json;
+use type_system::ClosedEntityType;
 use uuid::Uuid;
 
 use crate::snapshot::{
@@ -99,8 +99,8 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
                 let url = entity_type_ref.url();
                 EntityTypeInheritsFromRow {
                     source_entity_type_ontology_id: ontology_id,
-                    target_entity_type_base_url: url.base_url.as_str().to_owned(),
-                    target_entity_type_version: OntologyTypeVersion::new(url.version),
+                    target_entity_type_base_url: url.base_url.clone(),
+                    target_entity_type_version: url.version,
                 }
             })
             .collect();
@@ -119,8 +119,8 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
                 let url = entity_type_ref.url();
                 EntityTypeConstrainsPropertiesOnRow {
                     source_entity_type_ontology_id: ontology_id,
-                    target_property_type_base_url: url.base_url.as_str().to_owned(),
-                    target_property_type_version: OntologyTypeVersion::new(url.version),
+                    target_property_type_base_url: url.base_url.clone(),
+                    target_property_type_version: url.version,
                 }
             })
             .collect();
@@ -140,8 +140,8 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
                 let url = entity_type_ref.url();
                 EntityTypeConstrainsLinksOnRow {
                     source_entity_type_ontology_id: ontology_id,
-                    target_entity_type_base_url: url.base_url.as_str().to_owned(),
-                    target_entity_type_version: OntologyTypeVersion::new(url.version),
+                    target_entity_type_base_url: url.base_url.clone(),
+                    target_entity_type_version: url.version,
                 }
             })
             .collect();
@@ -159,8 +159,8 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
                 let url = entity_type_ref.url();
                 EntityTypeConstrainsLinkDestinationsOnRow {
                     source_entity_type_ontology_id: ontology_id,
-                    target_entity_type_base_url: url.base_url.as_str().to_owned(),
-                    target_entity_type_version: OntologyTypeVersion::new(url.version),
+                    target_entity_type_base_url: url.base_url.clone(),
+                    target_entity_type_version: url.version,
                 }
             })
             .collect();
@@ -177,7 +177,7 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
                 schema: Json(entity_type.schema.clone()),
                 // The unclosed schema is inserted initially. This will be replaced later by the
                 // closed schema.
-                closed_schema: Json(entity_type.schema),
+                closed_schema: Json(ClosedEntityType::from(entity_type.schema)),
                 label_property: entity_type
                     .metadata
                     .label_property

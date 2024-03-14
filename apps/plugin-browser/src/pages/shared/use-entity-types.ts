@@ -6,7 +6,7 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { useEffect } from "react";
 
-import {
+import type {
   GetEntityTypesQuery,
   GetEntityTypesQueryVariables,
 } from "../../graphql/api-types.gen";
@@ -30,7 +30,10 @@ export const useEntityTypes = () => {
   useEffect(() => {
     void getEntityTypesSubgraph().then((apiSubgraph) => {
       const mappedSubgraph = mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(
-        apiSubgraph as Subgraph, // @todo why is this necessary
+        // @ts-expect-error - @todo figure out why this is necessary
+        //                  - It's possible to remove the ts-expect-error when changing the entity metadata to contain
+        //                    a list of entity types
+        apiSubgraph as Subgraph,
       );
 
       const apiEntityTypes = getRoots<EntityTypeRootType>(mappedSubgraph);

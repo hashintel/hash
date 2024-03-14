@@ -8,13 +8,16 @@ import {
   styled,
   Typography,
 } from "@mui/material";
-import { FunctionComponent, ReactNode } from "react";
+import type { FunctionComponent, ReactNode } from "react";
 
 import { ArrowRightLineRegularIcon } from "../../components/icons/arrow-right-line-regular-icon";
 import { FontAwesomeIcon } from "../../components/icons/font-awesome-icon";
-import { statuses, StatusId } from "./statuses";
-import { UseCaseId, useCases } from "./use-cases";
-import { VariantId, variants } from "./variants";
+import type { StatusId } from "./statuses";
+import { statuses } from "./statuses";
+import type { UseCaseId } from "./use-cases";
+import { useCases } from "./use-cases";
+import type { VariantId } from "./variants";
+import { variants } from "./variants";
 
 const FilterHeadingTypography = styled(Typography)(({ theme }) => ({
   color: theme.palette.gray[90],

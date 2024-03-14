@@ -1,7 +1,9 @@
+cargo-features = ["edition2024"]
+
 [package]
 name = "graph"
 version = "0.0.0"
-edition = "2021"
+edition.workspace = true
 publish = false
 description = "HASH Graph API"
 
@@ -16,7 +18,7 @@ codec = { workspace = true }
 
 error-stack = { workspace = true, features = ["std", "serde"] }
 hash-status = { workspace = true }
-type-system = { workspace = true }
+type-system = { workspace = true, features = ["postgres"] }
 
 postgres-types = { workspace = true, features = ["derive", "with-serde_json-1"] }
 serde = { workspace = true, features = ["derive"] }

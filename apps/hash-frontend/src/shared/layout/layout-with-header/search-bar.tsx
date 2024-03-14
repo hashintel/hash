@@ -5,30 +5,24 @@ import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
-  Entity,
-  EntityRootType,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
-  Subgraph,
 } from "@local/hash-subgraph";
 import {
   getEntityTypeById,
   getRoots,
   isEntityRootedSubgraph,
 } from "@local/hash-subgraph/stdlib";
-import { Box, SxProps, Theme, useMediaQuery, useTheme } from "@mui/material";
-import {
-  FunctionComponent,
-  ReactNode,
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import type { SxProps, Theme } from "@mui/material";
+import { Box, useMediaQuery, useTheme } from "@mui/material";
+import type { FunctionComponent, ReactNode } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useDebounce, useKey, useOutsideClickRef } from "rooks";
 
 import { useUserOrOrgShortnameByOwnedById } from "../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
-import {
+import type {
   StructuralQueryEntitiesQuery,
   StructuralQueryEntitiesQueryVariables,
 } from "../../../graphql/api-types.gen";

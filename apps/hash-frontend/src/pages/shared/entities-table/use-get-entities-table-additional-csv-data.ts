@@ -1,31 +1,30 @@
 import { useLazyQuery } from "@apollo/client";
-import { EntityType, PropertyType } from "@blockprotocol/type-system";
+import type { EntityType, PropertyType } from "@blockprotocol/type-system";
 import {
   currentTimeInstantTemporalAxes,
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import {
+import type {
   Entity,
   EntityRootType,
   EntityTypeWithMetadata,
-  extractEntityUuidFromEntityId,
 } from "@local/hash-subgraph";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
-import {
-  extractBaseUrl,
-  LinkEntity,
-} from "@local/hash-subgraph/type-system-patch";
-import { MutableRefObject, useCallback } from "react";
+import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+import type { MutableRefObject } from "react";
+import { useCallback } from "react";
 
-import {
+import type {
   StructuralQueryEntitiesQuery,
   StructuralQueryEntitiesQueryVariables,
 } from "../../../graphql/api-types.gen";
 import { structuralQueryEntitiesQuery } from "../../../graphql/queries/knowledge/entity.queries";
-import { GetAdditionalCsvDataFunction } from "../../../shared/table-header";
-import { TypeEntitiesRow } from "./use-entities-table";
+import type { GetAdditionalCsvDataFunction } from "../../../shared/table-header";
+import type { TypeEntitiesRow } from "./use-entities-table";
 
 export const useGetEntitiesTableAdditionalCsvData = (props: {
   currentlyDisplayedRowsRef: MutableRefObject<TypeEntitiesRow[] | null>;

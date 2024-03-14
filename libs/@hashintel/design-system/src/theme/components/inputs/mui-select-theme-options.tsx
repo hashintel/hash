@@ -1,12 +1,11 @@
 import { faAngleDown } from "@fortawesome/free-solid-svg-icons";
+import type { Components, Theme } from "@mui/material";
 import {
-  Components,
   listItemAvatarClasses,
   listItemIconClasses,
   listItemSecondaryActionClasses,
   listItemTextClasses,
   outlinedInputClasses,
-  Theme,
 } from "@mui/material";
 
 import { FontAwesomeIcon } from "../../../fontawesome-icon";

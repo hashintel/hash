@@ -1,15 +1,12 @@
 import { useQuery } from "@apollo/client";
 import { PenRegularIcon } from "@hashintel/design-system";
-import { Filter } from "@local/hash-graph-client";
+import type { Filter } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
   mapGqlSubgraphFieldsFragmentToSubgraph,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import {
-  EntityId,
-  EntityRootType,
-  extractEntityUuidFromEntityId,
-} from "@local/hash-subgraph";
+import type { EntityId, EntityRootType } from "@local/hash-subgraph";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
   Box,
   breadcrumbsClasses,
@@ -21,16 +18,18 @@ import {
 import { NextSeo } from "next-seo";
 import { useMemo, useState } from "react";
 
-import {
+import type {
   StructuralQueryEntitiesQuery,
   StructuralQueryEntitiesQueryVariables,
 } from "../graphql/api-types.gen";
 import { structuralQueryEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
 import { useDraftEntities } from "../shared/draft-entities-context";
 import { BarsSortRegularIcon } from "../shared/icons/bars-sort-regular-icon";
-import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
+import type { NextPageWithLayout } from "../shared/layout";
+import { getLayoutWithSidebar } from "../shared/layout";
 import { MenuItem } from "../shared/ui";
-import { DraftEntities, SortOrder } from "./drafts.page/draft-entities";
+import type { SortOrder } from "./drafts.page/draft-entities";
+import { DraftEntities } from "./drafts.page/draft-entities";
 import { DraftEntitiesBulkActionsDropdown } from "./drafts.page/draft-entities-bulk-actions-dropdown";
 import { InlineSelect } from "./shared/inline-select";
 import { NotificationsWithLinksContextProvider } from "./shared/notifications-with-links-context";

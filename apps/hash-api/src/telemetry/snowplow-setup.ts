@@ -1,9 +1,8 @@
+import type { Emitter, Tracker } from "@snowplow/node-tracker";
 import {
   buildStructEvent,
-  Emitter,
   gotEmitter,
   HttpProtocol,
-  Tracker,
   tracker as createTracker,
 } from "@snowplow/node-tracker";
 

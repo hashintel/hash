@@ -1,14 +1,15 @@
 import { TextField } from "@hashintel/design-system";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
+import type { BoxProps } from "@mui/material";
 import {
   Box,
-  BoxProps,
   InputAdornment,
   inputAdornmentClasses,
   Typography,
   typographyClasses,
 } from "@mui/material";
-import { FunctionComponent, ReactNode, useMemo } from "react";
+import type { FunctionComponent, ReactNode } from "react";
+import { useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { SelectInput } from "../../components/forms/select-input";
@@ -17,7 +18,8 @@ import { ChevronRightRegularIcon } from "../../shared/icons/chevron-right-regula
 import { CircleRegularInfoIcon } from "../../shared/icons/circle-info-regular-icon";
 import { TriangleExclamationRegularIcon } from "../../shared/icons/triangle-exclamation-regular-icon";
 import { Button, Link } from "../../shared/ui";
-import { InvitationInfo, ORG_ROLES } from "../shared/auth-utils";
+import type { InvitationInfo } from "../shared/auth-utils";
+import { ORG_ROLES } from "../shared/auth-utils";
 
 const inputWidth = 250;
 

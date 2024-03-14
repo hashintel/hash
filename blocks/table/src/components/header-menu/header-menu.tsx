@@ -1,4 +1,4 @@
-import { Rectangle } from "@glideapps/glide-data-grid";
+import type { Rectangle } from "@glideapps/glide-data-grid";
 import { useLayer } from "react-laag";
 import { useKey } from "rooks";
 

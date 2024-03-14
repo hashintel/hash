@@ -1,6 +1,7 @@
 import { toggleMark } from "prosemirror-commands";
 import { keymap } from "prosemirror-keymap";
-import { Node, NodeSpec, NodeType, Schema } from "prosemirror-model";
+import type { Node, NodeSpec, NodeType } from "prosemirror-model";
+import { Schema } from "prosemirror-model";
 
 import { paragraphBlockComponentId } from "./blocks";
 

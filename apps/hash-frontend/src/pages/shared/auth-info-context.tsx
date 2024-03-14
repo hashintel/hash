@@ -1,25 +1,24 @@
 import { useApolloClient } from "@apollo/client";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { IsMemberOfProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
+import type { IsMemberOfProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type {
   AccountGroupId,
   EntityRootType,
-  extractEntityUuidFromEntityId,
   Subgraph,
   Timestamp,
   Uuid,
 } from "@local/hash-subgraph";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
   getOutgoingLinksForEntity,
   getRoots,
   intervalForTimestamp,
 } from "@local/hash-subgraph/stdlib";
-import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import type { FunctionComponent, ReactElement } from "react";
 import {
   createContext,
-  FunctionComponent,
-  ReactElement,
   useCallback,
   useContext,
   useMemo,
@@ -27,13 +26,10 @@ import {
 } from "react";
 
 import { useOrgsWithLinks } from "../../components/hooks/use-orgs-with-links";
-import { MeQuery } from "../../graphql/api-types.gen";
+import type { MeQuery } from "../../graphql/api-types.gen";
 import { meQuery } from "../../graphql/queries/user.queries";
-import {
-  constructUser,
-  isEntityUserEntity,
-  User,
-} from "../../lib/user-and-org";
+import type { User } from "../../lib/user-and-org";
+import { constructUser, isEntityUserEntity } from "../../lib/user-and-org";
 
 type RefetchAuthInfoFunction = () => Promise<{
   authenticatedUser?: User;

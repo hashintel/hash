@@ -1,6 +1,10 @@
+#[cfg(feature = "postgres")]
+use std::error::Error;
 use std::{fmt, num::IntErrorKind, str::FromStr};
 
 pub use error::{ParseBaseUrlError, ParseVersionedUrlError};
+#[cfg(feature = "postgres")]
+use postgres_types::{private::BytesMut, FromSql, IsNull, ToSql, Type};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 #[cfg(target_arch = "wasm32")]
 use tsify::Tsify;
@@ -13,6 +17,7 @@ mod error;
 mod wasm;
 
 #[cfg_attr(target_arch = "wasm32", derive(Tsify))]
+#[cfg_attr(feature = "postgres", derive(ToSql), postgres(transparent))]
 #[derive(Clone, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub struct BaseUrl(String);
 
@@ -105,12 +110,63 @@ impl ToSchema<'_> for BaseUrl {
     }
 }
 
+#[cfg(feature = "postgres")]
+impl<'a> FromSql<'a> for BaseUrl {
+    fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
+        Ok(Self::new(String::from_sql(ty, raw)?)?)
+    }
+
+    fn accepts(ty: &Type) -> bool {
+        <String as FromSql>::accepts(ty)
+    }
+}
+
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[repr(transparent)]
+pub struct OntologyTypeVersion(u32);
+
+impl OntologyTypeVersion {
+    #[must_use]
+    pub const fn new(inner: u32) -> Self {
+        Self(inner)
+    }
+
+    #[must_use]
+    pub const fn inner(self) -> u32 {
+        self.0
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl ToSql for OntologyTypeVersion {
+    postgres_types::accepts!(INT8);
+
+    postgres_types::to_sql_checked!();
+
+    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>>
+    where
+        Self: Sized,
+    {
+        i64::from(self.0).to_sql(ty, out)
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl<'a> FromSql<'a> for OntologyTypeVersion {
+    postgres_types::accepts!(INT8);
+
+    fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
+        Ok(Self::new(i64::from_sql(ty, raw)?.try_into()?))
+    }
+}
+
 // TODO: can we impl Tsify to turn this into a type: template string
 //  if we can then we should delete wasm::VersionedUrlPatch
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub struct VersionedUrl {
     pub base_url: BaseUrl,
-    pub version: u32,
+    pub version: OntologyTypeVersion,
 }
 
 impl VersionedUrl {
@@ -123,7 +179,7 @@ impl VersionedUrl {
         let mut url = self.base_url.to_url();
         url.path_segments_mut()
             .expect("invalid Base URL, we should have caught an invalid base already")
-            .extend(["v", &self.version.to_string()]);
+            .extend(["v", &self.version.0.to_string()]);
 
         url
     }
@@ -131,7 +187,7 @@ impl VersionedUrl {
 
 impl fmt::Display for VersionedUrl {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "{}v/{}", self.base_url.as_str(), self.version)
+        write!(fmt, "{}v/{}", self.base_url.as_str(), self.version.0)
     }
 }
 
@@ -149,33 +205,35 @@ impl FromStr for VersionedUrl {
                 Ok(Self {
                     base_url: BaseUrl::new(base_url.to_owned())
                         .map_err(ParseVersionedUrlError::InvalidBaseUrl)?,
-                    version: version.parse::<u32>().map_err(|error| match error.kind() {
-                        IntErrorKind::Empty => ParseVersionedUrlError::MissingVersion,
-                        IntErrorKind::InvalidDigit => {
-                            let invalid_digit_index =
-                                version.find(|c: char| !c.is_numeric()).unwrap_or(0);
+                    version: version.parse().map(OntologyTypeVersion).map_err(
+                        |error| match error.kind() {
+                            IntErrorKind::Empty => ParseVersionedUrlError::MissingVersion,
+                            IntErrorKind::InvalidDigit => {
+                                let invalid_digit_index =
+                                    version.find(|c: char| !c.is_numeric()).unwrap_or(0);
 
-                            if invalid_digit_index == 0 {
-                                ParseVersionedUrlError::InvalidVersion(
-                                    version.to_owned(),
-                                    error.to_string(),
-                                )
-                            } else {
-                                #[expect(
-                                    clippy::string_slice,
-                                    reason = "we just found the index of the first non-numeric \
-                                              character"
-                                )]
-                                ParseVersionedUrlError::AdditionalEndContent(
-                                    version[invalid_digit_index..].to_owned(),
-                                )
+                                if invalid_digit_index == 0 {
+                                    ParseVersionedUrlError::InvalidVersion(
+                                        version.to_owned(),
+                                        error.to_string(),
+                                    )
+                                } else {
+                                    #[expect(
+                                        clippy::string_slice,
+                                        reason = "we just found the index of the first \
+                                                  non-numeric character"
+                                    )]
+                                    ParseVersionedUrlError::AdditionalEndContent(
+                                        version[invalid_digit_index..].to_owned(),
+                                    )
+                                }
                             }
-                        }
-                        _ => ParseVersionedUrlError::InvalidVersion(
-                            version.to_owned(),
-                            error.to_string(),
-                        ),
-                    })?,
+                            _ => ParseVersionedUrlError::InvalidVersion(
+                                version.to_owned(),
+                                error.to_string(),
+                            ),
+                        },
+                    )?,
                 })
             },
         )

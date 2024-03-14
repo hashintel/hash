@@ -1,7 +1,7 @@
-import { BaseUrl } from "@local/hash-subgraph";
+import type { BaseUrl } from "@local/hash-subgraph";
 
-import { AuthenticationContext } from "../../../graphql/authentication-context";
-import { ImpureGraphContext } from "../../context-types";
+import type { AuthenticationContext } from "../../../graphql/authentication-context";
+import type { ImpureGraphContext } from "../../context-types";
 
 export type MigrationState = {
   propertyTypeVersions: Record<BaseUrl, number>;

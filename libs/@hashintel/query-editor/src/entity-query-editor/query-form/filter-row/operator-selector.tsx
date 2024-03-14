@@ -3,7 +3,7 @@ import { FormControl } from "@mui/material";
 import { useFormContext } from "react-hook-form";
 
 import { useReadonlyContext } from "../../readonly-context";
-import { FormValues } from "../../types";
+import type { FormValues } from "../../types";
 import { RHFSelect } from "./rhf-select";
 import { fieldOperators } from "./utils";
 

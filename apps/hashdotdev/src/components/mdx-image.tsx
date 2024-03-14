@@ -1,27 +1,27 @@
 import { Box } from "@mui/system";
-import { ImageProps } from "next/dist/client/legacy/image";
+import type { ImageProps } from "next/dist/client/legacy/image";
 import Image from "next/legacy/image";
-import { FunctionComponent, HTMLProps } from "react";
+import type { FunctionComponent, HTMLProps } from "react";
 
-import { useBlogPostPhotos } from "./blog-post";
+import { useOptionalBlogPostPhotos } from "./blog-post";
 
 export const mdxImageClasses = { root: "MdxImage" };
 
 export const MdxImage: FunctionComponent<
   Omit<ImageProps, "src"> & { src: string; style: HTMLProps<HTMLDivElement> }
-> = ({ src, width, height, style, blurDataURL, ...props }) => {
-  const { body } = useBlogPostPhotos();
-  const details = body[src];
+> = ({ src, style, blurDataURL, ...props }) => {
+  /**
+   * @todo: we may also want to make this context available on the `/docs` pages
+   */
+  const blogPostPhotos = useOptionalBlogPostPhotos();
 
-  // @todo figure out what this should actually be – we don't have details on body for <img> tags
-  // we should probably fetch images in img tags instead so that they appear in the body map
-  if (!details && (!src || !width || !height)) {
-    throw new Error(
-      `You must provide a src, width, and height if using a custom img tag.`,
-    );
-  }
+  const details = blogPostPhotos?.body[src];
 
-  const inline = typeof width !== "undefined" && typeof height !== "undefined";
+  const inline =
+    typeof props.width !== "undefined" && typeof props.height !== "undefined";
+
+  const width = props.width ?? details?.width;
+  const height = props.height ?? details?.height;
 
   return (
     <Box
@@ -40,15 +40,26 @@ export const MdxImage: FunctionComponent<
       }
       style={style}
     >
-      <Image
-        {...props}
-        {...details}
-        src={src.startsWith("https:") ? src : `/${src.replace(/^\//, "")}`}
-        width={width ?? details?.width}
-        height={height ?? details?.height}
-        layout={inline ? "intrinsic" : "responsive"}
-        {...(blurDataURL ? { blurDataURL, placeholder: "blur" } : {})}
-      />
+      {!width || !height ? (
+        <Box
+          sx={{
+            maxWidth: "100%",
+          }}
+          component="img"
+          src={src}
+          alt={props.alt}
+        />
+      ) : (
+        <Image
+          {...props}
+          {...details}
+          src={src.startsWith("https:") ? src : `/${src.replace(/^\//, "")}`}
+          width={width}
+          height={height}
+          layout={inline ? "intrinsic" : "responsive"}
+          {...(blurDataURL ? { blurDataURL, placeholder: "blur" } : {})}
+        />
+      )}
     </Box>
   );
 };

@@ -1,0 +1,34 @@
+---
+headtitle: Service Comparisons - HASH
+title: Comparing HASH
+description: What apps and services is HASH most like?
+---
+
+# Overview
+
+HASH combines a unique range of features and capabiltities that can make it hard to compare to other, existing applications, as represented by the sorts of [use cases](https://hash.ai/guide/introduction/use-cases) it can be used to help solve. However, if you're looking to improve your understanding of HASH and how it directly compares to the alternatives, this is the right place to be.
+
+## For individuals
+
+HASH lets you integrate your digital life in one place.
+
+WRITE UP HERE
+
+We believe in a more open web... one in which all of your data is easily understandable, and accessible, controlled by you in your own graph, and accessible to others only when you provide permission.
+
+## For businesses
+
+HASH is a collaborative, open-source "Super App" that combines functionality found in many different services today:
+
+- **A semantic data platform like Palantir:** integrate data from anywhere and structure it semantically, benefiting from complete versoin control, total provenance, and advanced data/ontology management capabilties
+- **An automation platform like Zapier:** run automations on a schedule, and in response to triggers
+- **An all-in-one workspace like Notion:** create pages and documents in a powerful block-based workspace
+- **Whiteboarding like Miro:** create canvases which you can draw upon and insert blocks onto
+- **Dashboarding like Looker or PowerBI:** build data-intensive dashboards and displays to visualize and track key metrics and KPIs
+- **Infinitely extensible like the App Store:** discover high-quality [apps](https://hash.ai/guide/apps) and add them to your web; use these with your data, without sending it off anywhere else. HASH Apps run _in_ your graph, and enable you to retain control of your data at all times.
+- Planned - **Toolbuilding:** build your own apps and tools that run in your web, atop your data
+- Planned - **Simulation:** we intend to integrate the capabilities of our standalone simulation IDE directly into HASH
+
+In some areas we are at parity with (or have already gone beyond) the capabilties of the apps listed above. In others we are rapidly catching up (e.g. expanding our library of available [integrations](https://hash.ai/guide/syncing/integrations)).
+
+Today, users loser time switching between third party applications to move between documentation and tools - and these regularly become out-of-sync. Barriers between services prevent the automation of workflows that remain stubbornly manual. And businesses spend huge amounts of cash on dozens or more SaaS applications that might be consolidated into a single platform, which costs much less, and provides a much better user experience. That platform is HASH.

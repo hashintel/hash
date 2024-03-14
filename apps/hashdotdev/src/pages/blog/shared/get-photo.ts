@@ -3,7 +3,7 @@ import { promisify } from "node:util";
 import { imageSize as legacyImageSize } from "image-size";
 import { getPlaiceholder } from "plaiceholder";
 
-import { BlogPostPagePhoto } from "../../../components/blog-post";
+import type { BlogPostPagePhoto } from "../../../components/blog-post";
 
 const imageSize = promisify(legacyImageSize);
 

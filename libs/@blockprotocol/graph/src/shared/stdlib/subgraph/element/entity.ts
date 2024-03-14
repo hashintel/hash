@@ -1,7 +1,11 @@
-import { Entity, EntityId, EntityRevisionId } from "../../../types/entity.js";
-import { Subgraph } from "../../../types/subgraph.js";
+import type {
+  Entity,
+  EntityId,
+  EntityRevisionId,
+} from "../../../types/entity.js";
+import type { Subgraph } from "../../../types/subgraph.js";
 import { isEntityVertex } from "../../../types/subgraph/vertices.js";
-import { TimeInterval } from "../../../types/temporal-versioning.js";
+import type { TimeInterval } from "../../../types/temporal-versioning.js";
 import { mustBeDefined, typedEntries, typedValues } from "../../../util.js";
 import {
   intervalContainsTimestamp,

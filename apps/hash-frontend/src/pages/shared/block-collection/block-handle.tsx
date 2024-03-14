@@ -1,14 +1,13 @@
-import { JsonObject } from "@blockprotocol/core";
+import type { JsonObject } from "@blockprotocol/core";
 import { faEllipsisVertical } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
-import {
-  EntityStore,
-  isBlockEntity,
-} from "@local/hash-isomorphic-utils/entity-store";
+import type { EntityStore } from "@local/hash-isomorphic-utils/entity-store";
+import { isBlockEntity } from "@local/hash-isomorphic-utils/entity-store";
 import { Box } from "@mui/material";
 import { bindTrigger } from "material-ui-popup-state";
 import { usePopupState } from "material-ui-popup-state/hooks";
-import { forwardRef, ForwardRefRenderFunction } from "react";
+import type { ForwardRefRenderFunction } from "react";
+import { forwardRef } from "react";
 
 import { BlockConfigMenu } from "./block-config-menu/block-config-menu";
 import { useBlockContext } from "./block-context";

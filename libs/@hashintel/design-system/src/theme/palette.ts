@@ -1,4 +1,4 @@
-import { PaletteValue, ThemeOptions } from "@mui/material";
+import type { PaletteValue, ThemeOptions } from "@mui/material";
 
 type ColorKey =
   | "gray"

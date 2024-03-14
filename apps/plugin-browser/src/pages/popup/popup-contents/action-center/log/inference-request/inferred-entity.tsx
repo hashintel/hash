@@ -8,10 +8,8 @@ import {
 } from "@hashintel/design-system";
 import { customColors } from "@hashintel/design-system/theme";
 import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/ai-inference-types";
-import {
-  formatDataValue,
-  FormattedValuePart,
-} from "@local/hash-isomorphic-utils/data-types";
+import type { FormattedValuePart } from "@local/hash-isomorphic-utils/data-types";
+import { formatDataValue } from "@local/hash-isomorphic-utils/data-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
   BaseUrl,
@@ -27,10 +25,10 @@ import {
   getPropertyTypeForEntity,
   guessSchemaForPropertyValue,
 } from "@local/hash-subgraph/stdlib";
-import { Box, Collapse, Stack, Typography } from "@mui/material";
+import { Box, Collapse, Stack, Tooltip, Typography } from "@mui/material";
 
 import { getOwnedByIdFromEntityId } from "../../../../../../shared/get-user";
-import { LocalStorage } from "../../../../../../shared/storage";
+import type { LocalStorage } from "../../../../../../shared/storage";
 import {
   darkModeBorderColor,
   darkModeInputColor,
@@ -301,35 +299,41 @@ export const InferredEntity = ({
         </Stack>
         {status === "success" ? (
           operation === "update" ? (
-            <Box title="Update made to existing entity">
-              <UpFromLineIcon
-                sx={{
-                  fill: ({ palette }) => palette.blue[60],
-                  fontSize: 14,
-                  ml: 0.5,
-                }}
-              />
-            </Box>
+            <Tooltip title="Update made to existing entity">
+              <Box sx={{ height: 14 }}>
+                <UpFromLineIcon
+                  sx={{
+                    fill: ({ palette }) => palette.blue[60],
+                    fontSize: 14,
+                    ml: 0.5,
+                  }}
+                />
+              </Box>
+            </Tooltip>
           ) : operation === "already-exists-as-proposed" ? (
-            <Box title="No changes made to existing entity">
-              <DashIcon
-                sx={{
-                  fill: ({ palette }) => palette.gray[40],
-                  fontSize: 14,
-                  ml: 0.5,
-                }}
-              />
-            </Box>
+            <Tooltip title="No changes made to existing entity">
+              <Box sx={{ height: 14 }}>
+                <DashIcon
+                  sx={{
+                    fill: ({ palette }) => palette.gray[40],
+                    fontSize: 14,
+                    ml: 0.5,
+                  }}
+                />
+              </Box>
+            </Tooltip>
           ) : (
-            <Box title="Entity created">
-              <PlusIcon
-                sx={{
-                  fontSize: 14,
-                  ml: 0.5,
-                  color: ({ palette }) => palette.green[80],
-                }}
-              />
-            </Box>
+            <Tooltip title="Entity created">
+              <Box sx={{ height: 14 }}>
+                <PlusIcon
+                  sx={{
+                    fontSize: 14,
+                    ml: 0.5,
+                    color: ({ palette }) => palette.green[80],
+                  }}
+                />
+              </Box>
+            </Tooltip>
           )
         ) : null}
       </Stack>

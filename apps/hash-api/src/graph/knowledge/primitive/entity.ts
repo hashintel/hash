@@ -1,13 +1,14 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
-import {
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
+import type {
+  EntityMetadata,
   EntityPermission,
   EntityStructuralQuery,
-  EntityType,
   Filter,
   GraphResolveDepths,
   ModifyRelationshipOperation,
 } from "@local/hash-graph-client";
-import {
+import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
@@ -16,54 +17,53 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
+import type {
   UserPermissions,
   UserPermissionsOnEntities,
 } from "@local/hash-isomorphic-utils/types";
-import {
+import type {
   AccountGroupId,
   AccountId,
   BaseUrl,
   Entity,
   EntityAuthorizationRelationship,
   EntityId,
-  EntityMetadata,
   EntityPropertiesObject,
   EntityRelationAndSubject,
   EntityRootType,
   EntityUuid,
+  OwnedById,
+  Subgraph,
+} from "@local/hash-subgraph";
+import {
   extractDraftIdFromEntityId,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   isEntityVertex,
-  OwnedById,
   splitEntityId,
-  Subgraph,
 } from "@local/hash-subgraph";
 import {
   getRoots,
+  mapGraphApiEntityMetadataToMetadata,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
-import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { ApolloError } from "apollo-server-errors";
 
 import { publicUserAccountId } from "../../../auth/public-user-account-id";
-import {
+import type {
   EntityDefinition,
   LinkedEntityDefinition,
 } from "../../../graphql/api-types.gen";
-import { TemporalClient } from "../../../temporal";
+import type { TemporalClient } from "../../../temporal";
 import { genId, linkedTreeFlatten } from "../../../util";
-import { ImpureGraphFunction } from "../../context-types";
+import type { ImpureGraphFunction } from "../../context-types";
 import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 import { afterUpdateEntityHooks } from "./entity/after-update-entity-hooks";
 import { beforeCreateEntityHooks } from "./entity/before-create-entity-hooks";
 import { beforeUpdateEntityHooks } from "./entity/before-update-entity-hooks";
-import {
-  createLinkEntity,
-  CreateLinkEntityParams,
-  isEntityLinkEntity,
-} from "./link-entity";
+import type { CreateLinkEntityParams } from "./link-entity";
+import { createLinkEntity, isEntityLinkEntity } from "./link-entity";
 
 export type CreateEntityParams = {
   ownedById: OwnedById;
@@ -119,14 +119,17 @@ export const createEntity: ImpureGraphFunction<
 
   const { data: metadata } = await graphApi.createEntity(actorId, {
     ownedById,
-    entityTypeId,
+    entityTypeIds: [entityTypeId],
     properties,
     entityUuid: overrideEntityUuid,
     draft,
     relationships: params.relationships,
   });
 
-  const entity = { properties, metadata: metadata as EntityMetadata };
+  const entity = {
+    properties,
+    metadata: mapGraphApiEntityMetadataToMetadata(metadata),
+  };
 
   for (const createOutgoingLinkParams of outgoingLinks ?? []) {
     await createLinkEntity(context, authentication, {
@@ -199,28 +202,24 @@ export const getEntities: ImpureGraphFunction<
   return await graphApi
     .getEntitiesByQuery(actorId, { query })
     .then(({ data }) => {
-      // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
-      for (const [entityId, editionMap] of Object.entries(
-        data.subgraph.vertices,
-      )) {
-        const latestEditionTimestamp = Object.keys(editionMap).sort().pop();
-
-        if (
-          (
-            editionMap[latestEditionTimestamp!]!.inner
-              .metadata as EntityMetadata
-          ).archived &&
-          // if the vertex is in the roots of the query, then it is intentionally included
-          !data.subgraph.roots.find((root) => root.baseId === entityId)
-        ) {
-          // eslint-disable-next-line no-param-reassign -- temporary hack
-          delete data.subgraph.vertices[entityId];
-        }
-      }
-
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
         data.subgraph,
       );
+      // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
+      for (const [entityId, editionMap] of typedEntries(subgraph.vertices)) {
+        const latestEditionTimestamp = typedKeys(editionMap).sort().pop()!;
+
+        if (
+          // @ts-expect-error - The subgraph vertices are entity vertices so `Timestamp` is the correct type to get
+          //                    the latest revision
+          (editionMap[latestEditionTimestamp]!.inner.metadata as EntityMetadata)
+            .archived &&
+          // if the vertex is in the roots of the query, then it is intentionally included
+          !subgraph.roots.find((root) => root.baseId === entityId)
+        ) {
+          delete subgraph.vertices[entityId];
+        }
+      }
 
       return subgraph;
     });
@@ -273,7 +272,7 @@ export const getLatestEntityById: ImpureGraphFunction<
 
   if (!entity) {
     throw new Error(
-      `Critical: Entity with entityId ${entityId} doesn't exist or cannot be accessed by requesting user.`,
+      `Entity with entityId ${entityId} doesn't exist or cannot be accessed by requesting user.`,
     );
   }
 
@@ -487,7 +486,7 @@ export const updateEntity: ImpureGraphFunction<
      *
      * @see https://app.asana.com/0/1201095311341924/1203285029221330/f
      * */
-    entityTypeId: entityTypeId ?? entity.metadata.entityTypeId,
+    entityTypeIds: [entityTypeId ?? entity.metadata.entityTypeId],
     archived: entity.metadata.archived,
     draft:
       params.draft ??
@@ -508,7 +507,7 @@ export const updateEntity: ImpureGraphFunction<
 
   return {
     ...entity,
-    metadata: metadata as EntityMetadata,
+    metadata: mapGraphApiEntityMetadataToMetadata(metadata),
     properties,
   };
 };
@@ -529,7 +528,7 @@ export const archiveEntity: ImpureGraphFunction<
      * @see https://app.asana.com/0/1201095311341924/1203285029221330/f
      * */
     draft: !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
-    entityTypeId: entity.metadata.entityTypeId,
+    entityTypeIds: [entity.metadata.entityTypeId],
     properties: entity.properties,
   });
 };
@@ -550,7 +549,7 @@ export const unarchiveEntity: ImpureGraphFunction<
      * */
     archived: false,
     draft: !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
-    entityTypeId: entity.metadata.entityTypeId,
+    entityTypeIds: [entity.metadata.entityTypeId],
     properties: entity.properties,
   });
 };
@@ -1008,15 +1007,3 @@ export const getEntityAuthorizationRelationships: ImpureGraphFunction<
           }) as EntityAuthorizationRelationship,
       ),
     );
-
-export const validateEntity: ImpureGraphFunction<
-  {
-    entityType: VersionedUrl | EntityType;
-    properties: Entity["properties"];
-    linkData?: Entity["linkData"];
-    profile: "draft" | "full";
-  },
-  Promise<void>
-> = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.validateEntity(actorId, params);
-};

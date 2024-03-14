@@ -1,4 +1,5 @@
 import { CheckIcon } from "@hashintel/design-system";
+import type { SxProps, Theme } from "@mui/material";
 import {
   Box,
   Button,
@@ -9,19 +10,10 @@ import {
   Select,
   selectClasses,
   styled,
-  SxProps,
-  Theme,
 } from "@mui/material";
 import { lowlight } from "lowlight";
-import {
-  FormEvent,
-  forwardRef,
-  FunctionComponent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import type { FormEvent, FunctionComponent } from "react";
+import { forwardRef, useCallback, useEffect, useMemo, useState } from "react";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { a11yDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
 

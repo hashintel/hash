@@ -1,24 +1,21 @@
 import { TextField } from "@hashintel/design-system";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
-import { OwnedById } from "@local/hash-subgraph";
+import type { OwnedById } from "@local/hash-subgraph";
 import { Box, buttonClasses, styled, Typography } from "@mui/material";
-import { LoginFlow } from "@ory/client";
+import type { LoginFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
-import { AxiosError } from "axios";
+import type { AxiosError } from "axios";
 import { useRouter } from "next/router";
-import {
-  FormEventHandler,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import type { FormEventHandler } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 
 import { useHashInstance } from "../components/hooks/use-hash-instance";
 import { ArrowRightToBracketRegularIcon } from "../shared/icons/arrow-right-to-bracket-regular-icon";
 import { ArrowTurnDownLeftRegularIcon } from "../shared/icons/arrow-turn-down-left-regular-icon";
-import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
-import { Button, ButtonProps } from "../shared/ui";
+import type { NextPageWithLayout } from "../shared/layout";
+import { getPlainLayout } from "../shared/layout";
+import type { ButtonProps } from "../shared/ui";
+import { Button } from "../shared/ui";
 import { AuthHeading } from "./shared/auth-heading";
 import { useAuthInfo } from "./shared/auth-info-context";
 import { AuthLayout } from "./shared/auth-layout";

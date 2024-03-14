@@ -1,12 +1,12 @@
 import { useMutation } from "@apollo/client";
 import { useCallback } from "react";
 
-import {
+import type {
   UpdatePropertyTypeMutation,
   UpdatePropertyTypeMutationVariables,
 } from "../../../../graphql/api-types.gen";
 import { updatePropertyTypeMutation } from "../../../../graphql/queries/ontology/property-type.queries";
-import { UpdatePropertyTypeMessageCallback } from "./ontology-types-shim";
+import type { UpdatePropertyTypeMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolUpdatePropertyType = (
   readonly?: boolean,

@@ -1,7 +1,11 @@
-import { VersionedUrl } from "@blockprotocol/graph";
-import { Entity, EntityId, EntityPropertiesObject } from "@local/hash-subgraph";
+import type { VersionedUrl } from "@blockprotocol/graph";
+import type {
+  Entity,
+  EntityId,
+  EntityPropertiesObject,
+} from "@local/hash-subgraph";
 
-import {
+import type {
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../graphql/api-types.gen";

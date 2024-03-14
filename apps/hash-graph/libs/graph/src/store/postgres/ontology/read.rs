@@ -3,14 +3,11 @@ use std::borrow::Cow;
 use authorization::schema::EntityTypeId;
 use error_stack::{Result, ResultExt};
 use futures::{Stream, StreamExt};
-use graph_types::ontology::{EntityTypeWithMetadata, OntologyTypeVersion};
+use graph_types::ontology::EntityTypeWithMetadata;
 use postgres_types::Json;
 use temporal_versioning::RightBoundedTemporalInterval;
 use tokio_postgres::GenericClient;
-use type_system::{
-    url::{BaseUrl, VersionedUrl},
-    EntityType,
-};
+use type_system::{url::VersionedUrl, ClosedEntityType};
 
 use crate::{
     ontology::EntityTypeQueryPath,
@@ -65,7 +62,7 @@ impl<C: AsClient> PostgresStore<C> {
         &self,
         filter: &Filter<'f, EntityTypeWithMetadata>,
         temporal_axes: Option<&'f QueryTemporalAxes>,
-    ) -> Result<impl Stream<Item = Result<(EntityTypeId, EntityType), QueryError>>, QueryError>
+    ) -> Result<impl Stream<Item = Result<(EntityTypeId, ClosedEntityType), QueryError>>, QueryError>
     {
         let mut compiler = SelectCompiler::new(temporal_axes, false);
 
@@ -171,19 +168,12 @@ impl<C: AsClient> PostgresStore<C> {
                     right_endpoint_ontology_id,
                     OntologyEdgeTraversal {
                         left_endpoint: L::from(VersionedUrl {
-                            base_url: BaseUrl::new(row.get(1)).unwrap_or_else(|error| {
-                                // The `BaseUrl` was just inserted as a parameter to the query
-                                unreachable!("invalid URL: {error}")
-                            }),
-                            version: row.get::<_, OntologyTypeVersion>(2).inner(),
+                            base_url: row.get(1),
+                            version: row.get(2),
                         }),
                         right_endpoint: R::from(VersionedUrl {
-                            base_url: BaseUrl::new(row.get(3)).unwrap_or_else(|error| {
-                                // The `BaseUrl` was already validated when it was inserted into
-                                // the database, so this should never happen.
-                                unreachable!("invalid URL: {error}")
-                            }),
-                            version: row.get::<_, OntologyTypeVersion>(4).inner(),
+                            base_url: row.get(3),
+                            version: row.get(4),
                         }),
                         right_endpoint_ontology_id,
                         resolve_depths: record_ids.resolve_depths[index],

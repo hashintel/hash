@@ -1,35 +1,33 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import { createEntity } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
-import {
-  Block,
-  createBlock,
-} from "@apps/hash-api/src/graph/knowledge/system-types/block";
+import type { Block } from "@apps/hash-api/src/graph/knowledge/system-types/block";
+import { createBlock } from "@apps/hash-api/src/graph/knowledge/system-types/block";
 import {
   addBlockToBlockCollection,
   moveBlockInBlockCollection,
   removeBlockFromBlockCollection,
 } from "@apps/hash-api/src/graph/knowledge/system-types/block-collection";
+import type { Page } from "@apps/hash-api/src/graph/knowledge/system-types/page";
 import {
   createPage,
   getAllPagesInWorkspace,
   getPageBlocks,
   getPageById,
   getPageParentPage,
-  Page,
   setPageParentPage,
 } from "@apps/hash-api/src/graph/knowledge/system-types/page";
-import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
+import type {
   HasIndexedContentProperties,
   TextProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import { OwnedById } from "@local/hash-subgraph";
-import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import type { OwnedById } from "@local/hash-subgraph";
+import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { generateKeyBetween } from "fractional-indexing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 

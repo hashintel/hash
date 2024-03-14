@@ -1,4 +1,4 @@
-import { DataEditorRef } from "@glideapps/glide-data-grid";
+import type { DataEditorRef } from "@glideapps/glide-data-grid";
 import { useMemo, useRef } from "react";
 
 import { Grid } from "../../../../../../components/grid/grid";

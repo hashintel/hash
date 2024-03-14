@@ -2,11 +2,11 @@ import { readdir } from "node:fs/promises";
 import path, { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { Logger } from "@local/hash-backend-utils/logger";
+import type { Logger } from "@local/hash-backend-utils/logger";
 
-import { ImpureGraphContext } from "../context-types";
+import type { ImpureGraphContext } from "../context-types";
 import { systemAccountId } from "../system-account";
-import {
+import type {
   MigrationFunction,
   MigrationState,
 } from "./migrate-ontology-types/types";

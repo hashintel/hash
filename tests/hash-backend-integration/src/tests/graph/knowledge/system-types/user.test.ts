@@ -3,13 +3,13 @@ import {
   kratosIdentityApi,
 } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
+import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   createUser,
   getUserByKratosIdentityId,
   getUserByShortname,
   isUserMemberOfOrg,
   joinOrg,
-  User,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";

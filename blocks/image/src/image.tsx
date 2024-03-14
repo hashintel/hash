@@ -1,11 +1,12 @@
-import { BlockComponent, useEntitySubgraph } from "@blockprotocol/graph/react";
+import type { BlockComponent } from "@blockprotocol/graph/react";
+import { useEntitySubgraph } from "@blockprotocol/graph/react";
 import { useHook, useHookBlockModule } from "@blockprotocol/hook/react";
 import { useRef, useState } from "react";
 import { setup, tw } from "twind";
 
 import { Media } from "./components/media";
 import { linkIds } from "./property-ids";
-import { BlockEntity } from "./types/generated/block-entity";
+import type { BlockEntity } from "./types/generated/block-entity";
 
 setup({ preflight: false });
 

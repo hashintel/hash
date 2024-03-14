@@ -1,13 +1,12 @@
-import { EntityId } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-subgraph";
 import { styled, TextareaAutosize } from "@mui/material";
-import {
+import type {
   ChangeEventHandler,
   FocusEventHandler,
   FunctionComponent,
   KeyboardEventHandler,
-  useEffect,
-  useState,
 } from "react";
+import { useEffect, useState } from "react";
 
 import { useUpdatePageTitle } from "../../../../components/hooks/use-update-page-title";
 import { usePageContext } from "../page-context";
