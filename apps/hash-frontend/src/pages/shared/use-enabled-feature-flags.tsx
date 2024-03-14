@@ -1,8 +1,5 @@
-import type {
-  FeatureFlag} from "@local/hash-isomorphic-utils/feature-flags";
-import {
-  featureFlags,
-} from "@local/hash-isomorphic-utils/feature-flags";
+import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
+import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
 import { useMemo } from "react";
 
 import { useAuthenticatedUser } from "./auth-info-context";
