@@ -24,7 +24,7 @@ It can be used in both TypeScript and JavaScript. In TypeScript, the definition 
 
 To build and compile the typescript sources to javascript use:
 
-```
+```sh
 npm install
 npm run build
 ```
@@ -39,12 +39,12 @@ navigate to the folder of your consuming project and run one of the following co
 
 _published:_
 
-```
+```sh
 npm install @local/internal-api-client@0.0.0-private --save
 ```
 
 _unPublished (not recommended):_
 
-```
+```sh
 npm install PATH_TO_GENERATED_PACKAGE --save
 ```

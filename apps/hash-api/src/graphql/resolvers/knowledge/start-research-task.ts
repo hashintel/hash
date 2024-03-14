@@ -2,11 +2,14 @@ import type {
   ResearchTaskWorkflowParams,
   ResearchTaskWorkflowResponse,
 } from "@local/hash-isomorphic-utils/research-task-types";
-import { OwnedById } from "@local/hash-subgraph";
+import type { OwnedById } from "@local/hash-subgraph";
 
 import { genId } from "../../../util";
-import { MutationStartResearchTaskArgs, ResolverFn } from "../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../context";
+import type {
+  MutationStartResearchTaskArgs,
+  ResolverFn,
+} from "../../api-types.gen";
+import type { LoggedInGraphQLContext } from "../../context";
 
 export const startResearchTaskResolver: ResolverFn<
   Promise<ResearchTaskWorkflowResponse>,

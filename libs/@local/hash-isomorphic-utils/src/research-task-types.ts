@@ -1,5 +1,5 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
-import { AccountId, Entity, OwnedById } from "@local/hash-subgraph";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { AccountId, Entity, OwnedById } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 
 export type ResearchTaskWorkflowParams = {

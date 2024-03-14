@@ -364,6 +364,10 @@ module "application" {
       name  = "OPENAI_API_KEY", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_openai_api_key"])
     },
+    {
+      name = "INTERNAL_API_KEY", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["internal_api_key"])
+    }
   ]
   temporal_worker_integration_image = module.temporal_worker_integration_ecr
   temporal_host                     = module.temporal.host
