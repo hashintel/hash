@@ -22,10 +22,7 @@ use authorization::{
 use error_stack::{Report, Result, ResultExt};
 use graph_types::{
     account::{AccountGroupId, AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
-    knowledge::{
-        entity::{EntityEditionId, EntityId, EntityProperties, EntityTemporalMetadata},
-        link::LinkOrder,
-    },
+    knowledge::entity::{EntityEditionId, EntityId, EntityProperties, EntityTemporalMetadata},
     ontology::{
         OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeRecordId,
     },
@@ -1124,18 +1121,13 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
 
     async fn insert_entity_records(
         &self,
-        entities: impl IntoIterator<
-            Item = (EntityProperties, Option<LinkOrder>, Option<LinkOrder>),
-            IntoIter: Send,
-        > + Send,
+        entities: impl IntoIterator<Item = EntityProperties, IntoIter: Send> + Send,
         actor_id: EditionCreatedById,
     ) -> Result<Vec<EntityEditionId>, InsertionError> {
         self.client
             .simple_query(
                 "CREATE TEMPORARY TABLE entity_editions_temp (
                     properties JSONB NOT NULL,
-                    left_to_right_order INT,
-                    right_to_left_order INT,
                     edition_created_by_id UUID NOT NULL,
                     archived BOOLEAN NOT NULL
                 );",
@@ -1148,8 +1140,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .copy_in(
                 "COPY entity_editions_temp (
                     properties,
-                    left_to_right_order,
-                    right_to_left_order,
                     edition_created_by_id,
                     archived
                 ) FROM STDIN BINARY",
@@ -1161,18 +1151,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             &[Type::JSONB, Type::INT4, Type::INT4, Type::UUID, Type::BOOL],
         );
         futures::pin_mut!(writer);
-        for (properties, left_to_right_order, right_to_left_order) in entities {
+        for properties in entities {
             let properties = serde_json::to_value(properties).change_context(InsertionError)?;
 
             writer
                 .as_mut()
-                .write(&[
-                    &properties,
-                    &left_to_right_order,
-                    &right_to_left_order,
-                    &actor_id,
-                    &false,
-                ])
+                .write(&[&properties, &actor_id, &false])
                 .await
                 .change_context(InsertionError)?;
         }
@@ -1185,16 +1169,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 "INSERT INTO entity_editions (
                     entity_edition_id,
                     properties,
-                    left_to_right_order,
-                    right_to_left_order,
                     edition_created_by_id,
                     archived
                 )
                 SELECT
                     gen_random_uuid(),
                     properties,
-                    left_to_right_order,
-                    right_to_left_order,
                     edition_created_by_id,
                     archived
                 FROM entity_editions_temp

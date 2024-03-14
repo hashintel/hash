@@ -26,7 +26,7 @@ use graph_types::{
             EntityId, EntityMetadata, EntityProperties, EntityProvenanceMetadata, EntityRecordId,
             EntityTemporalMetadata, EntityUuid,
         },
-        link::{EntityLinkOrder, LinkData},
+        link::LinkData,
     },
     owned_by_id::OwnedById,
     Embedding,
@@ -474,7 +474,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(InsertionError)?;
         }
 
-        let link_order = if let Some(link_data) = params.link_data {
+        if let Some(link_data) = params.link_data {
             transaction
                 .as_client()
                 .query(
@@ -516,14 +516,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 )
                 .await
                 .change_context(InsertionError)?;
-
-            link_data.order
-        } else {
-            EntityLinkOrder {
-                left_to_right: None,
-                right_to_left: None,
-            }
-        };
+        }
 
         let edition_created_by_id = EditionCreatedById::new(actor_id);
         let (edition_id, closed_schema) = transaction
@@ -532,7 +525,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 false,
                 &params.entity_type_ids,
                 &params.properties,
-                &link_order,
             )
             .await?;
 
@@ -808,15 +800,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     .as_ref()
                     .map(|link_data| link_data.right_entity_id),
             ));
-            entity_editions.push((
-                properties,
-                link_data
-                    .as_ref()
-                    .and_then(|link_data| link_data.order.left_to_right),
-                link_data
-                    .as_ref()
-                    .and_then(|link_data| link_data.order.right_to_left),
-            ));
+            entity_editions.push(properties);
             entity_versions.push(decision_time);
         }
 
@@ -1157,7 +1141,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 params.archived,
                 &params.entity_type_ids,
                 &params.properties,
-                &params.link_order,
             )
             .await
             .change_context(UpdateError)?;
@@ -1255,7 +1238,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         .map(|link_data| LinkData {
                             left_entity_id: link_data.left_entity_id,
                             right_entity_id: link_data.right_entity_id,
-                            order: params.link_order,
                         })
                         .as_ref()
                         .map(Cow::Borrowed),
@@ -1304,7 +1286,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                             .map(|previous_link_data| LinkData {
                                 left_entity_id: previous_link_data.left_entity_id,
                                 right_entity_id: previous_link_data.right_entity_id,
-                                order: params.link_order,
                             }),
                         metadata: entity_metadata.clone(),
                     }],
@@ -1456,7 +1437,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         archived: bool,
         entity_type_ids: &[VersionedUrl],
         properties: &EntityProperties,
-        link_order: &EntityLinkOrder,
     ) -> Result<(EntityEditionId, ClosedEntityType), InsertionError> {
         let edition_id: EntityEditionId = self
             .as_client()
@@ -1467,18 +1447,10 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                         edition_created_by_id,
                         archived,
                         properties,
-                        left_to_right_order,
-                        right_to_left_order
                     ) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5)
                     RETURNING entity_edition_id;
                 ",
-                &[
-                    &edition_created_by_id,
-                    &archived,
-                    &properties,
-                    &link_order.left_to_right,
-                    &link_order.right_to_left,
-                ],
+                &[&edition_created_by_id, &archived, &properties],
             )
             .await
             .change_context(InsertionError)?
