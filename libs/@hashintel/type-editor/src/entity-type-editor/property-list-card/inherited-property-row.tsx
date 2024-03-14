@@ -1,5 +1,5 @@
 import { usePropertyTypesOptions } from "../../shared/property-types-options-context";
-import { InheritedValues } from "../shared/use-inherited-values";
+import type { InheritedValues } from "../shared/use-inherited-values";
 import { PropertyRow } from "./property-row";
 
 export const InheritedPropertyRow = ({

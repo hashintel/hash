@@ -1,5 +1,5 @@
-import { NextComponentType } from "next";
-import { AppContext } from "next/app";
+import type { NextComponentType } from "next";
+import type { AppContext } from "next/app";
 
 // Based on the definition of `NextPage`
 export type AppPage<P = Record<string, unknown>, IP = P> = NextComponentType<

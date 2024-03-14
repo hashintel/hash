@@ -1,5 +1,6 @@
-import { TableCell, TableCellProps, Typography } from "@mui/material";
-import { ReactNode } from "react";
+import type { TableCellProps } from "@mui/material";
+import { TableCell, Typography } from "@mui/material";
+import type { ReactNode } from "react";
 
 export const Cell = ({
   children,

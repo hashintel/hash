@@ -7,14 +7,19 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import { AccountEntityId, extractAccountId } from "@local/hash-subgraph";
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+import type { AccountEntityId } from "@local/hash-subgraph";
+import { extractAccountId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { ForbiddenError } from "apollo-server-express";
 
 import { getEntities } from "../../../../graph/knowledge/primitive/entity";
-import { Query, ResolverFn, UserUsageRecords } from "../../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../../context";
+import type {
+  Query,
+  ResolverFn,
+  UserUsageRecords,
+} from "../../../api-types.gen";
+import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const getUsageRecordsResolver: ResolverFn<

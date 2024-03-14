@@ -1,12 +1,13 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { AsteriskRegularIcon } from "@hashintel/design-system";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
+import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { Box } from "@mui/material";
-import { ReactNode, useMemo } from "react";
+import type { ReactNode } from "react";
+import { useMemo } from "react";
 
 import { FileRegularIcon } from "./icons/file-regular-icon";
 import { UserIcon } from "./icons/user-icon";

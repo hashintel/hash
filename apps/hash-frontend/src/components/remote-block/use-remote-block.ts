@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
+import type { UnknownBlock } from "./load-remote-block";
 import {
   loadCrossFrameRemoteBlock,
   loadRemoteBlock,
-  UnknownBlock,
 } from "./load-remote-block";
 import { isTopWindow } from "./util";
 

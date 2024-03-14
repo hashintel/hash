@@ -9,15 +9,16 @@ import {
   useTheme,
 } from "@mui/material";
 import { useRouter } from "next/router";
-import { MDXRemoteSerializeResult } from "next-mdx-remote";
-import { FunctionComponent, ReactNode, useMemo } from "react";
+import type { MDXRemoteSerializeResult } from "next-mdx-remote";
+import type { FunctionComponent, ReactNode } from "react";
+import { useMemo } from "react";
 
 import { ChevronRightRegularIcon } from "../../components/icons/chevron-right-regular-icon";
 import { Link } from "../../components/link";
 import { MdxPageContent } from "../../components/mdx-page-content";
-import { DocsPageData } from "../shared/mdx-utils";
+import type { DocsPageData } from "../shared/mdx-utils";
 import { generatePathWithoutParams } from "../shared/page-utils";
-import { SiteMapPage } from "../shared/sitemap";
+import type { SiteMapPage } from "../shared/sitemap";
 import { PageNavLinks } from "./page-nav-links";
 import { Sidebar } from "./page-sidebar";
 

@@ -1,5 +1,5 @@
 import { Box } from "@mui/material";
-import { FunctionComponent, ReactNode } from "react";
+import type { FunctionComponent, ReactNode } from "react";
 
 import { mdxImageClasses } from "./mdx-image";
 

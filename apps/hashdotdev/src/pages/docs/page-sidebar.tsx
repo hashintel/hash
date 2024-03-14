@@ -1,6 +1,6 @@
+import type { BoxProps } from "@mui/material";
 import {
   Box,
-  BoxProps,
   Collapse,
   IconButton,
   Skeleton,
@@ -8,11 +8,9 @@ import {
   styled,
 } from "@mui/material";
 import { useRouter } from "next/router";
+import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 import {
-  Dispatch,
   Fragment,
-  FunctionComponent,
-  SetStateAction,
   useCallback,
   useLayoutEffect,
   useRef,
@@ -27,7 +25,7 @@ import {
   generatePathWithoutParams,
   pageHasSelectedSubSection,
 } from "../shared/page-utils";
-import { SiteMapPage, SiteMapPageSection } from "../shared/sitemap";
+import type { SiteMapPage, SiteMapPageSection } from "../shared/sitemap";
 import { parseHTML } from "./html-utils";
 
 export const sidebarWidth = 220;

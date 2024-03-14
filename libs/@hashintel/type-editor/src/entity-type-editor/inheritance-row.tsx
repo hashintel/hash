@@ -1,4 +1,4 @@
-import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import {
   AlertModal,
@@ -9,11 +9,12 @@ import {
   TYPE_SELECTOR_HEIGHT,
 } from "@hashintel/design-system";
 import { Box, Stack } from "@mui/material";
-import { ReactElement, useMemo, useRef, useState } from "react";
+import type { ReactElement } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import { useEntityTypesOptions } from "../shared/entity-types-options-context";
-import { EntityTypeEditorFormData } from "../shared/form-types";
+import type { EntityTypeEditorFormData } from "../shared/form-types";
 import { useIsReadonly } from "../shared/read-only-context";
 import { linkEntityTypeUrl } from "../shared/urls";
 import { InheritedTypeCard } from "./inheritance-row/inherited-type-card";

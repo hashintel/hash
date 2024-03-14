@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { readdir, readdirSync, readFile } from "fs-extra";
 import matter from "gray-matter";
-import { MDXRemoteSerializeResult } from "next-mdx-remote";
+import type { MDXRemoteSerializeResult } from "next-mdx-remote";
 import { serialize } from "next-mdx-remote/serialize";
 import remarkMdx from "remark-mdx";
 import remarkMdxDisableExplicitJsx from "remark-mdx-disable-explicit-jsx";

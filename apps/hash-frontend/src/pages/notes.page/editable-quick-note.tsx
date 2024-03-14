@@ -8,22 +8,23 @@ import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { QuickNoteProperties } from "@local/hash-isomorphic-utils/system-types/quicknote";
-import { TextToken } from "@local/hash-isomorphic-utils/types";
-import {
+import type { QuickNoteProperties } from "@local/hash-isomorphic-utils/system-types/quicknote";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
+import type {
   BaseUrl,
   Entity,
   EntityRootType,
-  extractEntityUuidFromEntityId,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { Box, Fade, Skeleton, Tooltip, Typography } from "@mui/material";
-import { FunctionComponent, useCallback, useMemo, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { useBlockProtocolUpdateEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { useAccountPages } from "../../components/hooks/use-account-pages";
-import {
+import type {
   ArchiveEntityMutation,
   ArchiveEntityMutationVariables,
   BlockCollectionContentItem,
@@ -41,10 +42,8 @@ import { Link } from "../../shared/ui";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { BlockCollection } from "../shared/block-collection/block-collection";
 import { getBlockCollectionContents } from "../shared/block-collection-contents";
-import {
-  ConvertQuickNoteToPageModal,
-  PageWithParentLink,
-} from "./convert-quick-note-to-page-modal";
+import type { PageWithParentLink } from "./convert-quick-note-to-page-modal";
+import { ConvertQuickNoteToPageModal } from "./convert-quick-note-to-page-modal";
 
 const Statistic: FunctionComponent<{ amount?: number; unit: string }> = ({
   amount,

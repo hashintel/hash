@@ -6,19 +6,22 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { CommentProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { TextToken } from "@local/hash-isomorphic-utils/types";
-import {
+import type { CommentProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
+import type {
   Entity,
   EntityId,
   EntityRelationAndSubject,
 } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
-import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
+import type {
+  ImpureGraphFunction,
+  PureGraphFunction,
+} from "../../context-types";
+import type { CreateEntityParams } from "../primitive/entity";
 import {
   createEntity,
-  CreateEntityParams,
   getEntityIncomingLinks,
   getEntityOutgoingLinks,
   getLatestEntityById,
@@ -29,9 +32,12 @@ import {
   getLinkEntityLeftEntity,
   getLinkEntityRightEntity,
 } from "../primitive/link-entity";
-import { Block, getBlockFromEntity } from "./block";
-import { getTextFromEntity, Text } from "./text";
-import { getUserFromEntity, User } from "./user";
+import type { Block } from "./block";
+import { getBlockFromEntity } from "./block";
+import type { Text } from "./text";
+import { getTextFromEntity } from "./text";
+import type { User } from "./user";
+import { getUserFromEntity } from "./user";
 
 export type Comment = {
   /**

@@ -1,7 +1,7 @@
 import { useQuery } from "@apollo/client";
-import { VersionedUrl } from "@blockprotocol/type-system";
-import { Filter } from "@local/hash-graph-client";
-import { TextProperties } from "@local/hash-isomorphic-utils/entity";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { Filter } from "@local/hash-graph-client";
+import type { TextProperties } from "@local/hash-isomorphic-utils/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
@@ -12,11 +12,9 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
-  SimpleProperties,
-  simplifyProperties,
-} from "@local/hash-isomorphic-utils/simplify-properties";
-import {
+import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import type {
   BlockProperties,
   CommentNotificationProperties,
   CommentProperties,
@@ -24,31 +22,26 @@ import {
   OccurredInEntityProperties,
   PageProperties,
 } from "@local/hash-isomorphic-utils/system-types/commentnotification";
-import { GraphChangeNotificationProperties } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
-import { MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import {
+import type { GraphChangeNotificationProperties } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
+import type { MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+import type {
   Entity,
   EntityRootType,
-  extractEntityUuidFromEntityId,
   LinkEntityAndRightEntity,
 } from "@local/hash-subgraph";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { getOutgoingLinkAndTargetEntities } from "@local/hash-subgraph/stdlib";
-import {
-  createContext,
-  FunctionComponent,
-  PropsWithChildren,
-  useContext,
-  useMemo,
-  useRef,
-} from "react";
+import type { FunctionComponent, PropsWithChildren } from "react";
+import { createContext, useContext, useMemo, useRef } from "react";
 
-import {
+import type {
   StructuralQueryEntitiesQuery,
   StructuralQueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
 import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { constructMinimalUser, MinimalUser } from "../../lib/user-and-org";
+import type { MinimalUser } from "../../lib/user-and-org";
+import { constructMinimalUser } from "../../lib/user-and-org";
 import { useNotificationEntities } from "../../shared/notification-entities-context";
 
 export type PageMentionNotification = {

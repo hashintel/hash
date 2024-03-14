@@ -1,6 +1,7 @@
 import { typedEntries } from "../../shared/util/typed-object-iter.js";
-import { CompileContext } from "../context/compile.js";
-import { CompiledTsType, redundantTypePlaceholder } from "../shared.js";
+import type { CompileContext } from "../context/compile.js";
+import type { CompiledTsType } from "../shared.js";
+import { redundantTypePlaceholder } from "../shared.js";
 
 const removePlaceholderDefinitionInCompiledTsType = (
   compiledTsType: CompiledTsType,

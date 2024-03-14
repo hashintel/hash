@@ -1,7 +1,7 @@
+import type { ModalProps } from "@hashintel/design-system";
 import {
   MagnifyingGlassRegularIcon,
   Modal,
-  ModalProps,
   PersonRunningRegularIcon,
 } from "@hashintel/design-system";
 import {
@@ -11,7 +11,7 @@ import {
   styled,
   Typography,
 } from "@mui/material";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 
 const ModalButton = styled(ButtonBase)(({ theme }) => ({
   flexGrow: 1,

@@ -1,4 +1,4 @@
-import {
+import type {
   CancelInferEntitiesRequestMessage,
   InferEntitiesResponseMessage,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
@@ -6,7 +6,7 @@ import { StatusCode } from "@local/status";
 import type { Client } from "@temporalio/client";
 import type { WebSocket } from "ws";
 
-import { User } from "../../graph/knowledge/system-types/user";
+import type { User } from "../../graph/knowledge/system-types/user";
 
 export const handleCancelInferEntitiesRequest = async ({
   socket,

@@ -1,11 +1,11 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import {
   ArrowUpRightRegularIcon,
   FontAwesomeIcon,
 } from "@hashintel/design-system";
 import { Box, Stack, Tooltip, Typography } from "@mui/material";
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { useIsReadonly } from "../../shared/read-only-context";
 import { ChipIconButton } from "../shared/chip-icon-button";

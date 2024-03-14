@@ -1,8 +1,8 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
-import { Entity } from "@local/hash-subgraph";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { Entity } from "@local/hash-subgraph";
 
-import { AuthenticationContext } from "../../../../graphql/authentication-context";
-import { ImpureGraphContext } from "../../../context-types";
+import type { AuthenticationContext } from "../../../../graphql/authentication-context";
+import type { ImpureGraphContext } from "../../../context-types";
 
 export type BeforeCreateEntityHookCallback = (params: {
   context: ImpureGraphContext;

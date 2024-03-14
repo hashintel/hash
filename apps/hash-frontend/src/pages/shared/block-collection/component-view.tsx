@@ -1,15 +1,15 @@
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { HashBlock } from "@local/hash-isomorphic-utils/blocks";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { HashBlock } from "@local/hash-isomorphic-utils/blocks";
+import type { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import {
-  BlockEntity,
   getBlockChildEntity,
   isRichTextContainingEntity,
 } from "@local/hash-isomorphic-utils/entity";
-import {
+import type {
   DraftEntity,
   EntityStore,
-  isDraftBlockEntity,
 } from "@local/hash-isomorphic-utils/entity-store";
+import { isDraftBlockEntity } from "@local/hash-isomorphic-utils/entity-store";
 import {
   addEntityStoreAction,
   entityStorePluginState,
@@ -20,23 +20,22 @@ import {
   isComponentNode,
   isParagraphNode,
 } from "@local/hash-isomorphic-utils/prosemirror";
-import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
+import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { textBlockNodeToEntityProperties } from "@local/hash-isomorphic-utils/text";
-import { EntityId } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-subgraph";
 import * as Sentry from "@sentry/nextjs";
-import { Node } from "prosemirror-model";
-import { TextSelection, Transaction } from "prosemirror-state";
-import { EditorView, NodeView } from "prosemirror-view";
+import type { Node } from "prosemirror-model";
+import type { Transaction } from "prosemirror-state";
+import { TextSelection } from "prosemirror-state";
+import type { EditorView, NodeView } from "prosemirror-view";
 
 import { BlockLoader } from "../../../components/block-loader/block-loader";
 import { ErrorBlock } from "../../../components/error-block/error-block";
 import { BlockCollectionContext } from "../block-collection-context";
 import { BlockContext } from "./block-context";
-import { RenderPortal } from "./block-portals";
-import {
-  SuggesterAction,
-  suggesterPluginKey,
-} from "./create-suggester/create-suggester";
+import type { RenderPortal } from "./block-portals";
+import type { SuggesterAction } from "./create-suggester/create-suggester";
+import { suggesterPluginKey } from "./create-suggester/create-suggester";
 
 const getChildEntity = (
   entity: DraftEntity | null | undefined,

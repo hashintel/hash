@@ -1,9 +1,9 @@
 import { Container, Typography } from "@mui/material";
-import { ErrorProps } from "next/error";
+import type { ErrorProps } from "next/error";
 
 import { Link } from "../components/link";
 import { PageLayout } from "../components/page-layout";
-import { NextPageWithLayout } from "../util/next-types";
+import type { NextPageWithLayout } from "../util/next-types";
 import { BlueStylishDivider } from "./blog/shared/blue-styled-divider";
 
 const NotFoundPage: NextPageWithLayout<ErrorProps> = () => {

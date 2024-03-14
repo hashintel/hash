@@ -7,7 +7,7 @@ import {
   typographyClasses,
   useTheme,
 } from "@mui/material";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 
 import { useNotificationEntities } from "../../notification-entities-context";
 import { Link } from "../../ui";

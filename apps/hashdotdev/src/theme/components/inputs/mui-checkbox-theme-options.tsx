@@ -1,4 +1,4 @@
-import { Components, Theme } from "@mui/material";
+import type { Components, Theme } from "@mui/material";
 
 import { SquareCheckRegularIcon } from "../../../components/icons/square-check-regular-icon";
 import { SquareRegularIcon } from "../../../components/icons/square-regular-icon";

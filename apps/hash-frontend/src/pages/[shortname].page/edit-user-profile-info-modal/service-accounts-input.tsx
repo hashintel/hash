@@ -5,14 +5,14 @@ import {
   selectClasses,
   Typography,
 } from "@mui/material";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import { Controller, useFieldArray, useFormContext } from "react-hook-form";
 
-import { ServiceAccountKind } from "../../../lib/user-and-org";
+import type { ServiceAccountKind } from "../../../lib/user-and-org";
 import { PlusRegularIcon } from "../../../shared/icons/plus-regular";
 import { XMarkRegularIcon } from "../../../shared/icons/x-mark-regular-icon";
 import { Button, MenuItem } from "../../../shared/ui";
-import { UserProfileFormData } from "./user-profile-info-form";
+import type { UserProfileFormData } from "./user-profile-info-form";
 import { urlRegex } from "./util";
 
 const serviceAccountKindOptions: Record<ServiceAccountKind, string> = {

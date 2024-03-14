@@ -1,8 +1,9 @@
 import { AsteriskRegularIcon } from "@hashintel/design-system";
-import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
 import { Box, Typography } from "@mui/material";
-import { FunctionComponent, useMemo } from "react";
+import type { FunctionComponent } from "react";
+import { useMemo } from "react";
 
 import { PlusRegularIcon } from "../../../shared/icons/plus-regular";
 

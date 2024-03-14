@@ -1,6 +1,6 @@
-import { MessageCallback, MessageReturn } from "@blockprotocol/core";
+import type { MessageCallback, MessageReturn } from "@blockprotocol/core";
 
-import {
+import type {
   CreateEntityData,
   DeleteEntityData,
   Entity,
@@ -9,8 +9,8 @@ import {
   QueryEntitiesResult,
   UpdateEntityData,
 } from "./entity.js";
-import { UploadFileData, UploadFileReturn } from "./file.js";
-import {
+import type { UploadFileData, UploadFileReturn } from "./file.js";
+import type {
   CreateEntityTypeData,
   CreatePropertyTypeData,
   EntityTypeWithMetadata,
@@ -21,12 +21,12 @@ import {
   UpdateEntityTypeData,
   UpdatePropertyTypeData,
 } from "./ontology.js";
-import {
+import type {
   GetEntityTypeData,
   QueryEntityTypesData,
   QueryEntityTypesResult,
 } from "./ontology/entity-type.js";
-import {
+import type {
   DataTypeRootType,
   EntityRootType,
   EntityTypeRootType,

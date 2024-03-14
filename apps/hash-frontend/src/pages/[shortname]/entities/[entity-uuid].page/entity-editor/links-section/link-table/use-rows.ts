@@ -1,5 +1,5 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
+import type { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
 import {
   getEntityTypeAndParentsById,
   getEntityTypeById,
@@ -16,7 +16,7 @@ import { useFileUploads } from "../../../../../../../shared/file-upload-context"
 import { generateEntityHref } from "../../../../../../shared/use-entity-href";
 import { useMarkLinkEntityToArchive } from "../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../entity-editor-context";
-import { LinkRow } from "./types";
+import type { LinkRow } from "./types";
 
 export const useRows = () => {
   const router = useRouter();

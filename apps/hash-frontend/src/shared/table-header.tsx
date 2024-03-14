@@ -1,4 +1,4 @@
-import { SizedGridColumn } from "@glideapps/glide-data-grid";
+import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import {
   CheckIcon,
   Chip,
@@ -6,17 +6,20 @@ import {
   EyeSlashIconRegular,
   IconButton,
 } from "@hashintel/design-system";
-import {
+import type {
   AccountGroupId,
   AccountId,
   DataTypeWithMetadata,
   Entity,
   EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@local/hash-subgraph";
+import {
   extractOwnedByIdFromEntityId,
   isBaseUrl,
   isExternalOntologyElementMetadata,
-  PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
+import type { SxProps, Theme, TooltipProps } from "@mui/material";
 import {
   Box,
   Checkbox,
@@ -24,36 +27,29 @@ import {
   FormControlLabel,
   formControlLabelClasses,
   styled,
-  SxProps,
-  Theme,
   Tooltip,
   tooltipClasses,
-  TooltipProps,
 } from "@mui/material";
-import {
+import type {
   Dispatch,
   FunctionComponent,
   MutableRefObject,
   ReactNode,
   SetStateAction,
-  useCallback,
-  useMemo,
-  useState,
 } from "react";
+import { useCallback, useMemo, useState } from "react";
 
-import { Row } from "../components/grid/utils/rows";
-import { MinimalUser } from "../lib/user-and-org";
-import { TypeEntitiesRow } from "../pages/shared/entities-table/use-entities-table";
-import { TypesTableRow } from "../pages/types/[[...type-kind]].page/types-table";
+import type { Row } from "../components/grid/utils/rows";
+import type { MinimalUser } from "../lib/user-and-org";
+import type { TypeEntitiesRow } from "../pages/shared/entities-table/use-entities-table";
+import type { TypesTableRow } from "../pages/types/[[...type-kind]].page/types-table";
 import { EarthAmericasRegularIcon } from "./icons/earth-americas-regular";
 import { FilterListIcon } from "./icons/filter-list-icon";
 import { HouseRegularIcon } from "./icons/house-regular-icon";
 import { MagnifyingGlassRegularIcon } from "./icons/magnifying-glass-regular-icon";
 import { BulkActionsDropdown } from "./table-header/bulk-actions-dropdown";
-import {
-  ExportToCsvButton,
-  GenerateCsvFileFunction,
-} from "./table-header/export-to-csv-button";
+import type { GenerateCsvFileFunction } from "./table-header/export-to-csv-button";
+import { ExportToCsvButton } from "./table-header/export-to-csv-button";
 import { TableHeaderButton } from "./table-header/table-header-button";
 
 export const tableHeaderHeight = 50;

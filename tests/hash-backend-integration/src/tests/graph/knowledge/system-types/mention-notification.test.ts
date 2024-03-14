@@ -4,31 +4,27 @@ import {
   getEntityOutgoingLinks,
   updateEntityProperties,
 } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
+import type { Block } from "@apps/hash-api/src/graph/knowledge/system-types/block";
+import { getBlockData } from "@apps/hash-api/src/graph/knowledge/system-types/block";
+import type { Comment } from "@apps/hash-api/src/graph/knowledge/system-types/comment";
 import {
-  Block,
-  getBlockData,
-} from "@apps/hash-api/src/graph/knowledge/system-types/block";
-import {
-  Comment,
   createComment,
   getCommentText,
 } from "@apps/hash-api/src/graph/knowledge/system-types/comment";
+import type { MentionNotification } from "@apps/hash-api/src/graph/knowledge/system-types/notification";
 import {
   archiveNotification,
   createMentionNotification,
   getMentionNotification,
-  MentionNotification,
 } from "@apps/hash-api/src/graph/knowledge/system-types/notification";
+import type { Page } from "@apps/hash-api/src/graph/knowledge/system-types/page";
 import {
   createPage,
   getPageBlocks,
-  Page,
 } from "@apps/hash-api/src/graph/knowledge/system-types/page";
-import {
-  getTextFromEntity,
-  Text,
-} from "@apps/hash-api/src/graph/knowledge/system-types/text";
-import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type { Text } from "@apps/hash-api/src/graph/knowledge/system-types/text";
+import { getTextFromEntity } from "@apps/hash-api/src/graph/knowledge/system-types/text";
+import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
@@ -36,9 +32,9 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { TextToken } from "@local/hash-isomorphic-utils/types";
-import { Entity, OwnedById } from "@local/hash-subgraph";
+import type { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
+import type { Entity, OwnedById } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { resetGraph } from "../../../test-server";

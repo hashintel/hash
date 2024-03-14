@@ -1,4 +1,4 @@
-import { ThemeOptions } from "@mui/material";
+import type { ThemeOptions } from "@mui/material";
 
 const fallbackFonts = [`Inter`, `"Helvetica"`, "sans-serif"];
 const copyFonts = fallbackFonts.join(", ");

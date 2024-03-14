@@ -1,14 +1,14 @@
 import { useLazyQuery } from "@apollo/client";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
-import { PropertyTypeRootType } from "@local/hash-subgraph";
+import type { PropertyTypeRootType } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
-import {
+import type {
   QueryPropertyTypesQuery,
   QueryPropertyTypesQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import { queryPropertyTypesQuery } from "../../../../graphql/queries/ontology/property-type.queries";
-import { QueryPropertyTypesMessageCallback } from "./ontology-types-shim";
+import type { QueryPropertyTypesMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolQueryPropertyTypes = (): {
   queryPropertyTypes: QueryPropertyTypesMessageCallback;

@@ -1,37 +1,34 @@
-import {
-  Box,
-  Container,
-  Theme,
-  Typography,
-  useMediaQuery,
-} from "@mui/material";
+import type { Theme } from "@mui/material";
+import { Box, Container, Typography, useMediaQuery } from "@mui/material";
+import type { ZoomTransform } from "d3";
 import {
   curveMonotoneX,
   line as d3Line,
   select,
   zoom as d3zoom,
   zoomIdentity,
-  ZoomTransform,
 } from "d3";
 import { graphStratify, shapeEllipse, sugiyama, tweakShape } from "d3-dag";
-import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FullScreen, useFullScreenHandle } from "react-full-screen";
 
 import { HiddenAnchorFragmentTag } from "../../components/hidden-anchor-fragment-tag";
 import { TriangleExclamationLightIcon } from "../../components/icons/triangle-exclamation-light-icon";
-import { statuses, StatusId } from "./statuses";
+import type { StatusId } from "./statuses";
+import { statuses } from "./statuses";
 import { TechnologyTreeButtons } from "./technology-tree-buttons";
-import {
-  technologyTreeData,
-  TechnologyTreeNodeData,
-} from "./technology-tree-data";
+import type { TechnologyTreeNodeData } from "./technology-tree-data";
+import { technologyTreeData } from "./technology-tree-data";
 import { TechnologyTreeFilters } from "./technology-tree-filters";
 import {
   TechnologyTreeNode,
   technologyTreeNodeWidth,
 } from "./technology-tree-node";
-import { UseCaseId, useCases } from "./use-cases";
-import { VariantId, variants } from "./variants";
+import type { UseCaseId } from "./use-cases";
+import { useCases } from "./use-cases";
+import type { VariantId } from "./variants";
+import { variants } from "./variants";
 
 const technologyTreeNodeMinHeight = 50;
 

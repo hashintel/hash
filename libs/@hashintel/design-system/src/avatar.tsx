@@ -1,5 +1,6 @@
-import { Box, BoxProps, styled } from "@mui/material";
-import { FunctionComponent } from "react";
+import type { BoxProps } from "@mui/material";
+import { Box, styled } from "@mui/material";
+import type { FunctionComponent } from "react";
 
 import { IconButton } from "./icon-button";
 import { PenRegularIcon } from "./pen-regular-icon";

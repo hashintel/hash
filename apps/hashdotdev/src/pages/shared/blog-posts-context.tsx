@@ -1,8 +1,8 @@
 import { createContext, useContext } from "react";
 
-import { BlogPostPagePhoto } from "../../components/blog-post";
-import { Page } from "../../util/mdx-util";
-import { BlogPost } from "../blog/[...blog-slug].page";
+import type { BlogPostPagePhoto } from "../../components/blog-post";
+import type { Page } from "../../util/mdx-util";
+import type { BlogPost } from "../blog/[...blog-slug].page";
 
 export type BlogIndividualPage = Page<BlogPost> & {
   photos: {

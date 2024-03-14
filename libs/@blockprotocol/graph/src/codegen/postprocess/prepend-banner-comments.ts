@@ -1,6 +1,6 @@
 import { mustBeDefined } from "../../shared/util/must-be-defined";
 import { typedKeys } from "../../shared/util/typed-object-iter.js";
-import { PostprocessContext } from "../context/postprocess.js";
+import type { PostprocessContext } from "../context/postprocess.js";
 
 const bannerComment = () => `/**
  * This file was automatically generated – do not edit it.

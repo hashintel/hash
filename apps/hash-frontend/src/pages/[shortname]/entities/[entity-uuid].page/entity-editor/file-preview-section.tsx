@@ -7,7 +7,7 @@ import {
 } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import {
@@ -17,7 +17,8 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { PropsWithChildren, useState } from "react";
+import type { PropsWithChildren } from "react";
+import { useState } from "react";
 
 import {
   useFileUploads,

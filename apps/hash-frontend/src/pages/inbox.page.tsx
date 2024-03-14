@@ -24,19 +24,21 @@ import {
   isThisYear,
   isToday,
 } from "date-fns";
-import { FunctionComponent, useCallback, useMemo } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback, useMemo } from "react";
 
 import { useUserOrOrgShortnameByOwnedById } from "../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { constructPageRelativeUrl } from "../lib/routes";
-import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
+import type { NextPageWithLayout } from "../shared/layout";
+import { getLayoutWithSidebar } from "../shared/layout";
 import { useNotificationEntities } from "../shared/notification-entities-context";
 import { Button, Link } from "../shared/ui";
-import {
+import type {
   GraphChangeNotification,
   Notification,
   PageRelatedNotification,
-  useNotificationsWithLinksContextValue,
 } from "./shared/notifications-with-links-context";
+import { useNotificationsWithLinksContextValue } from "./shared/notifications-with-links-context";
 
 const Table = styled(MuiTable)(({ theme }) => ({
   borderCollapse: "separate",

@@ -1,7 +1,5 @@
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
-import {
-  Configuration,
-  FrontendApi,
+import type {
   LoginFlow,
   RecoveryFlow,
   RegistrationFlow,
@@ -15,6 +13,7 @@ import {
   UpdateVerificationFlowBody,
   VerificationFlow,
 } from "@ory/client";
+import { Configuration, FrontendApi } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 
 export const oryKratosClient = new FrontendApi(

@@ -1,6 +1,6 @@
-import { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { Entity, EntityId } from "@local/hash-subgraph";
-import { DataSource } from "apollo-datasource";
+import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { Entity, EntityId } from "@local/hash-subgraph";
+import type { DataSource } from "apollo-datasource";
 
 export const storageTypes = ["AWS_S3", "LOCAL_FILE_SYSTEM"] as const;
 export type StorageType = (typeof storageTypes)[number];

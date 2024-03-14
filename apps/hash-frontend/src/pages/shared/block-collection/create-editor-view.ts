@@ -1,10 +1,8 @@
-import { ApolloClient } from "@apollo/client";
-import {
-  ComponentIdHashBlockMap,
-  paragraphBlockComponentId,
-} from "@local/hash-isomorphic-utils/blocks";
+import type { ApolloClient } from "@apollo/client";
+import type { ComponentIdHashBlockMap } from "@local/hash-isomorphic-utils/blocks";
+import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import { createProseMirrorState } from "@local/hash-isomorphic-utils/create-prose-mirror-state";
-import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
+import type { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import {
   addEntityStoreAction,
   entityStorePluginState,
@@ -12,17 +10,17 @@ import {
 // import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { save } from "@local/hash-isomorphic-utils/save";
-import { EntityId, OwnedById } from "@local/hash-subgraph";
+import type { EntityId, OwnedById } from "@local/hash-subgraph";
 import { debounce } from "lodash";
 // import applyDevTools from "prosemirror-dev-tools";
 import { Plugin, PluginKey } from "prosemirror-state";
-import { EditorView } from "prosemirror-view";
-import { RefObject } from "react";
+import type { EditorView } from "prosemirror-view";
+import type { RefObject } from "react";
 
-import { SnackbarManager } from "../../../components/hooks/use-snackbar";
-import { RenderPortal } from "./block-portals";
+import type { SnackbarManager } from "../../../components/hooks/use-snackbar";
+import type { RenderPortal } from "./block-portals";
 import { BlockView } from "./block-view";
-import { EditorConnection } from "./collab/editor-connection";
+import type { EditorConnection } from "./collab/editor-connection";
 import { ComponentView } from "./component-view";
 import { createErrorPlugin } from "./create-error-plugin";
 import { createFormatPlugins } from "./create-format-plugins";

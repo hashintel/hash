@@ -1,20 +1,21 @@
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   extractBaseUrl,
   extractVersion,
-  VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 import { faCopy } from "@fortawesome/free-regular-svg-icons";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
+import type { MenuItemProps } from "@hashintel/design-system";
 import {
   faCheck,
   FontAwesomeIcon,
   IconButton,
   MenuItem,
-  MenuItemProps,
   OntologyChip,
   parseUrlForOntologyChip,
 } from "@hashintel/design-system";
 import { fluidFontClassName } from "@hashintel/design-system/theme";
+import type { TooltipProps } from "@mui/material";
 import {
   Box,
   Divider,
@@ -30,7 +31,6 @@ import {
   tableRowClasses,
   Tooltip,
   tooltipClasses,
-  TooltipProps,
   Typography,
 } from "@mui/material";
 import clsx from "clsx";
@@ -39,16 +39,11 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import {
-  Fragment,
-  MouseEventHandler,
-  useCallback,
-  useId,
-  useState,
-} from "react";
+import type { MouseEventHandler } from "react";
+import { Fragment, useCallback, useId, useState } from "react";
 import { useController, useFormContext } from "react-hook-form";
 
-import { EntityTypeEditorFormData } from "../../shared/form-types";
+import type { EntityTypeEditorFormData } from "../../shared/form-types";
 import { useIsReadonly } from "../../shared/read-only-context";
 
 export const TYPE_MENU_CELL_WIDTH = 70;

@@ -11,7 +11,7 @@ import { EditorTypePicker } from "./editor-type-picker";
 import { BooleanInput } from "./inputs/boolean-input";
 import { JsonInput } from "./inputs/json-input";
 import { NumberOrTextInput } from "./inputs/number-or-text-input";
-import { EditorType, ValueCell, ValueCellEditorComponent } from "./types";
+import type { EditorType, ValueCell, ValueCellEditorComponent } from "./types";
 import {
   guessEditorTypeFromExpectedType,
   guessEditorTypeFromValue,

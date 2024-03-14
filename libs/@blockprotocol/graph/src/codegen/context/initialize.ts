@@ -1,16 +1,16 @@
-import {
+import type {
   DataType,
   EntityType,
   PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 
-import {
+import type {
   CodegenParameters,
-  processCodegenParameters,
   ProcessedCodegenParameters,
 } from "../parameters.js";
-import { LogLevel } from "../shared.js";
+import { processCodegenParameters } from "../parameters.js";
+import type { LogLevel } from "../shared.js";
 import { TypeDependencyMap } from "./shared.js";
 
 export class InitializeContext {

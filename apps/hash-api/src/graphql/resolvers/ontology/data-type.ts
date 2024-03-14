@@ -3,16 +3,16 @@ import {
   fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { DataTypeRootType, Subgraph } from "@local/hash-subgraph";
+import type { DataTypeRootType, Subgraph } from "@local/hash-subgraph";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-subgraph/stdlib";
 
 import { getDataTypeSubgraphById } from "../../../graph/ontology/primitive/data-type";
-import {
+import type {
   QueryGetDataTypeArgs,
   QueryQueryDataTypesArgs,
   ResolverFn,
 } from "../../api-types.gen";
-import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
+import type { GraphQLContext, LoggedInGraphQLContext } from "../../context";
 import { graphQLContextToImpureGraphContext } from "../util";
 
 export const queryDataTypes: ResolverFn<

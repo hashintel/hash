@@ -1,4 +1,4 @@
-import {
+import type {
   ExpectedValue,
   FlattenedCustomExpectedValueList,
 } from "./expected-value-types";

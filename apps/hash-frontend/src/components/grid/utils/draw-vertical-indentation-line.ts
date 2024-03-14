@@ -1,5 +1,4 @@
-import type { DrawArgs } from "@glideapps/glide-data-grid";
-import { CustomCell } from "@glideapps/glide-data-grid";
+import type { CustomCell, DrawArgs } from "@glideapps/glide-data-grid";
 
 import { getYCenter } from "../utils";
 

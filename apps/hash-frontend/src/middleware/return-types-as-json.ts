@@ -1,4 +1,4 @@
-import {
+import type {
   DataType,
   EntityType,
   PropertyType,
@@ -8,11 +8,9 @@ import {
   apiGraphQLEndpoint,
   frontendUrl,
 } from "@local/hash-isomorphic-utils/environment";
-import {
-  SystemTypeWebShortname,
-  systemTypeWebShortnames,
-} from "@local/hash-isomorphic-utils/ontology-types";
-import { OntologyTypeVertexId } from "@local/hash-subgraph";
+import type { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypeWebShortnames } from "@local/hash-isomorphic-utils/ontology-types";
+import type { OntologyTypeVertexId } from "@local/hash-subgraph";
 import type { ApolloError } from "apollo-server-express";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";

@@ -1,14 +1,14 @@
-import { EntityType } from "@blockprotocol/type-system";
-import {
-  ComponentIdHashBlockMap,
-  fetchBlock,
-} from "@local/hash-isomorphic-utils/blocks";
-import {
-  createContext,
+import type { EntityType } from "@blockprotocol/type-system";
+import type { ComponentIdHashBlockMap } from "@local/hash-isomorphic-utils/blocks";
+import { fetchBlock } from "@local/hash-isomorphic-utils/blocks";
+import type {
   Dispatch,
   FunctionComponent,
   ReactNode,
   SetStateAction,
+} from "react";
+import {
+  createContext,
   useCallback,
   useContext,
   useEffect,

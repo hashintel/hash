@@ -768,7 +768,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             }
             Parameter::Vector(vector) => {
                 self.artifacts.parameters.push(vector);
-                ParameterType::Vector
+                ParameterType::Vector(Box::new(ParameterType::F64))
             }
             Parameter::Any(json) => {
                 self.artifacts.parameters.push(json);

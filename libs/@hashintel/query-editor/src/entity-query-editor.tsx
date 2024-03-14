@@ -1,14 +1,21 @@
-import { EntityType, MultiFilter, PropertyType } from "@blockprotocol/graph";
+import type {
+  EntityType,
+  MultiFilter,
+  PropertyType,
+} from "@blockprotocol/graph";
 import { Button } from "@hashintel/design-system";
 import { Stack } from "@mui/material";
-import { BoxProps } from "@mui/system";
+import type { BoxProps } from "@mui/system";
 import { useState } from "react";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 
 import { QueryForm } from "./entity-query-editor/query-form";
 import { QueryPreview } from "./entity-query-editor/query-preview";
 import { ReadonlyContextProvider } from "./entity-query-editor/readonly-context";
-import { FormValues, QueryEntitiesFunc } from "./entity-query-editor/types";
+import type {
+  FormValues,
+  QueryEntitiesFunc,
+} from "./entity-query-editor/types";
 import {
   mapFormValuesToMultiFilter,
   mapMultiFilterToFormValues,

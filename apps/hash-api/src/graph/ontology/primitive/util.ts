@@ -1,18 +1,18 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
-import {
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
   ModifyRelationshipOperation,
   WebPermission,
 } from "@local/hash-graph-client";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
-import {
-  entityIdFromOwnedByIdAndEntityUuid,
+import type {
   EntityUuid,
   OwnedById,
   Uuid,
   WebAuthorizationRelationship,
 } from "@local/hash-subgraph";
+import { entityIdFromOwnedByIdAndEntityUuid } from "@local/hash-subgraph";
 
-import { ImpureGraphFunction } from "../../context-types";
+import type { ImpureGraphFunction } from "../../context-types";
 import { isSelfHostedInstance } from "../../ensure-system-graph-is-initialized/system-webs-and-entities";
 import { getOrgById } from "../../knowledge/system-types/org";
 import { getUserById } from "../../knowledge/system-types/user";

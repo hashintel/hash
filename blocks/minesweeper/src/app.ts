@@ -1,11 +1,11 @@
 import { BlockElementBase } from "@blockprotocol/graph/custom-element";
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import { PropertyValues } from "lit";
+import type { PropertyValues } from "lit";
 // eslint-disable-next-line import/extensions
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import { mine_sweeper } from "mine-sweeper-tag";
 
-import { BlockEntity } from "./types/generated/block-entity";
+import type { BlockEntity } from "./types/generated/block-entity";
 
 const colsKey: keyof BlockEntity["properties"] =
   "https://blockprotocol.org/@hash/types/property-type/number-of-columns/";

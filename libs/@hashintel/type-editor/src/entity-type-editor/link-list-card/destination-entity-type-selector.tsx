@@ -1,4 +1,4 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import {
   EntityTypeIcon,
   popperPlacementInputNoRadius,
@@ -8,14 +8,16 @@ import {
   setPopperPlacementAttribute,
   TYPE_SELECTOR_HEIGHT,
 } from "@hashintel/design-system";
-import { Box, PopperPlacementType } from "@mui/material";
-import { MouseEvent, useRef, useState } from "react";
+import type { PopperPlacementType } from "@mui/material";
+import { Box } from "@mui/material";
+import type { MouseEvent } from "react";
+import { useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useFormContext, useWatch } from "react-hook-form";
 import { useResizeObserverRef } from "rooks";
 
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";
-import { EntityTypeEditorFormData } from "../../shared/form-types";
+import type { EntityTypeEditorFormData } from "../../shared/form-types";
 import { useIsReadonly } from "../../shared/read-only-context";
 import { useFilterTypeOptions } from "../shared/use-filter-type-options";
 import { AnythingChip } from "./anything-chip";

@@ -1,6 +1,6 @@
 import { Box } from "@mui/material";
 
-import { LocalStorage } from "../../../../shared/storage";
+import type { LocalStorage } from "../../../../shared/storage";
 import { InferenceRequests } from "./log/inference-requests";
 import { Section } from "./shared/section";
 

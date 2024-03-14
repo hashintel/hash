@@ -1,10 +1,12 @@
-import {
+import type {
   BaseUrl,
   DataType,
   EntityType,
+  PropertyType,
+} from "@blockprotocol/type-system/slim";
+import {
   extractBaseUrl,
   extractVersion,
-  PropertyType,
 } from "@blockprotocol/type-system/slim";
 import ts from "typescript";
 
@@ -13,7 +15,7 @@ import {
   typedEntries,
   typedKeys,
 } from "../../shared/util/typed-object-iter.js";
-import { PreprocessContext } from "../context.js";
+import type { PreprocessContext } from "../context.js";
 import { generatedTypeSuffix } from "../shared.js";
 
 const typescriptKeywords = new Array(

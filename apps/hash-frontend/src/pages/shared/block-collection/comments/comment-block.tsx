@@ -1,4 +1,5 @@
 import { faCheckCircle } from "@fortawesome/free-regular-svg-icons";
+import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import {
   faChevronDown,
   faChevronUp,
@@ -6,7 +7,6 @@ import {
   faLink,
   faPencil,
   faTrash,
-  IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";
 import {
   Avatar,
@@ -15,25 +15,19 @@ import {
   LoadingSpinner,
 } from "@hashintel/design-system";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import { TextToken } from "@local/hash-isomorphic-utils/types";
-import { EntityId } from "@local/hash-subgraph";
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
+import type { EntityId } from "@local/hash-subgraph";
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";
 import { formatDistanceToNowStrict } from "date-fns";
 import { isEqual } from "lodash";
 import { bindTrigger } from "material-ui-popup-state";
 import { usePopupState } from "material-ui-popup-state/hooks";
-import {
-  FunctionComponent,
-  ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import type { FunctionComponent, ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useDeleteComment } from "../../../../components/hooks/use-delete-comment";
-import { PageComment } from "../../../../components/hooks/use-page-comments";
+import type { PageComment } from "../../../../components/hooks/use-page-comments";
 import { useResolveComment } from "../../../../components/hooks/use-resolve-comment";
 import { useUpdateCommentText } from "../../../../components/hooks/use-update-comment-text";
 import { PencilSlashIcon } from "../../../../shared/icons/pencil-slash-icon";

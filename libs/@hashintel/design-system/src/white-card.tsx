@@ -1,14 +1,16 @@
-import {
-  Card,
-  CardActionArea,
-  cardActionAreaClasses,
+import type {
   CardActionAreaProps,
-  CardContent,
   CardContentProps,
   SxProps,
   Theme,
 } from "@mui/material";
-import { ElementType } from "react";
+import {
+  Card,
+  CardActionArea,
+  cardActionAreaClasses,
+  CardContent,
+} from "@mui/material";
+import type { ElementType } from "react";
 
 export const WhiteCard = ({
   onClick,

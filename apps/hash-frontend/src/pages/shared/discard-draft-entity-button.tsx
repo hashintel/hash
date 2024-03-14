@@ -1,26 +1,24 @@
 import { useMutation } from "@apollo/client";
 import { AlertModal } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import {
-  Entity,
-  EntityRootType,
-  extractDraftIdFromEntityId,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 import {
   getIncomingLinksForEntity,
   getOutgoingLinksForEntity,
 } from "@local/hash-subgraph/stdlib";
-import { FunctionComponent, useCallback, useMemo, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback, useMemo, useState } from "react";
 
-import {
+import type {
   ArchiveEntityMutation,
   ArchiveEntityMutationVariables,
 } from "../../graphql/api-types.gen";
 import { archiveEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { useDraftEntities } from "../../shared/draft-entities-context";
 import { useNotificationEntities } from "../../shared/notification-entities-context";
-import { Button, ButtonProps } from "../../shared/ui";
+import type { ButtonProps } from "../../shared/ui";
+import { Button } from "../../shared/ui";
 import { useNotificationsWithLinks } from "./notifications-with-links-context";
 
 export const DiscardDraftEntityButton: FunctionComponent<

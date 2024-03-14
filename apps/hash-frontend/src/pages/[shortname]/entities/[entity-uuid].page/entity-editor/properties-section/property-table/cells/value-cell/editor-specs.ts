@@ -1,4 +1,4 @@
-import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
+import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import {
   fa100,
   faAsterisk,
@@ -14,10 +14,10 @@ import {
   faSquareCheck,
   faText,
 } from "@hashintel/design-system";
-import { CustomDataType } from "@local/hash-subgraph";
+import type { CustomDataType } from "@local/hash-subgraph";
 
-import { CustomIcon } from "../../../../../../../../../components/grid/utils/custom-grid-icons";
-import { EditorType } from "./types";
+import type { CustomIcon } from "../../../../../../../../../components/grid/utils/custom-grid-icons";
+import type { EditorType } from "./types";
 
 interface EditorSpec {
   icon: IconDefinition["icon"];

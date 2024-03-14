@@ -1,10 +1,10 @@
 import { Box, Skeleton } from "@mui/material";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 
-import { Org, User } from "../../lib/user-and-org";
+import type { Org, User } from "../../lib/user-and-org";
 import { TabLink } from "../../shared/ui/tab-link";
 import { Tabs } from "../../shared/ui/tabs";
-import { ProfilePageTab } from "./util";
+import type { ProfilePageTab } from "./util";
 
 export const ProfilePageTabs: FunctionComponent<{
   profile?: User | Org;

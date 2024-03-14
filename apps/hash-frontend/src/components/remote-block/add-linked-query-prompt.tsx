@@ -1,5 +1,5 @@
 import { Box, Typography } from "@mui/material";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 
 import { useBlockContext } from "../../pages/shared/block-collection/block-context";
 import { Button } from "../../shared/ui";

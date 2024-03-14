@@ -1,14 +1,14 @@
-import {
+import type {
   DataType,
   EntityType,
   PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 
-import { ProcessedCodegenParameters } from "../parameters.js";
-import { CompiledTsType, LogLevel } from "../shared.js";
-import { PreprocessContext } from "./preprocess.js";
-import { TypeDependencyMap } from "./shared.js";
+import type { ProcessedCodegenParameters } from "../parameters.js";
+import type { CompiledTsType, LogLevel } from "../shared.js";
+import type { PreprocessContext } from "./preprocess.js";
+import type { TypeDependencyMap } from "./shared.js";
 
 export class CompileContext {
   readonly parameters: ProcessedCodegenParameters;

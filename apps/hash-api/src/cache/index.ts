@@ -1,4 +1,4 @@
-import { CacheAdapter } from "./adapter";
+import type { CacheAdapter } from "./adapter";
 
 export type { CacheAdapter };
 

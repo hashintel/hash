@@ -2,7 +2,7 @@ import browser from "webextension-polyfill";
 
 import { setDisabledBadge, setEnabledBadge } from "../shared/badge";
 import { getUser } from "../shared/get-user";
-import {
+import type {
   GetSiteContentRequest,
   GetSiteContentReturn,
   Message,

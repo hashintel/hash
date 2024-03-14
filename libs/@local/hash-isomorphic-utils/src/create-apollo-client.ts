@@ -1,10 +1,9 @@
+import type { DefaultOptions, NormalizedCacheObject } from "@apollo/client";
 import {
   ApolloClient,
   ApolloLink,
-  DefaultOptions,
   HttpLink,
   InMemoryCache,
-  NormalizedCacheObject,
 } from "@apollo/client";
 import { onError } from "@apollo/client/link/error";
 import * as Sentry from "@sentry/browser";

@@ -1,9 +1,9 @@
-import { Entity, MultiFilter } from "@blockprotocol/graph";
+import type { Entity, MultiFilter } from "@blockprotocol/graph";
 import { LoadingSpinner } from "@hashintel/design-system";
 import { Card, List, ListItem, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 
-import { QueryEntitiesFunc } from "./types";
+import type { QueryEntitiesFunc } from "./types";
 
 interface QueryPreviewProps {
   query: MultiFilter;

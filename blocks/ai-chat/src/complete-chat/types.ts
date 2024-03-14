@@ -1,4 +1,4 @@
-import { OpenAICompleteChatData } from "@blockprotocol/service";
+import type { OpenAICompleteChatData } from "@blockprotocol/service";
 
 type OpenAiChatRole = "system" | "assistant" | "user";
 

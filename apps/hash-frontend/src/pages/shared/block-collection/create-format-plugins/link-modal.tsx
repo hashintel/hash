@@ -2,7 +2,8 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import LanguageIcon from "@mui/icons-material/Language";
 import LinkIcon from "@mui/icons-material/LinkOutlined";
 import { Box } from "@mui/material";
-import { FormEvent, FunctionComponent, useRef, useState } from "react";
+import type { FormEvent, FunctionComponent } from "react";
+import { useRef, useState } from "react";
 
 import { isValidLink } from "./util";
 

@@ -1,6 +1,8 @@
-import NextErrorComponent, { ErrorProps } from "next/error";
+import type { ErrorProps } from "next/error";
+import NextErrorComponent from "next/error";
 
-import { getLayoutWithHeader, NextPageWithLayout } from "../shared/layout";
+import type { NextPageWithLayout } from "../shared/layout";
+import { getLayoutWithHeader } from "../shared/layout";
 
 const NotFoundPage: NextPageWithLayout<ErrorProps> = () => {
   return <NextErrorComponent statusCode={404} />;

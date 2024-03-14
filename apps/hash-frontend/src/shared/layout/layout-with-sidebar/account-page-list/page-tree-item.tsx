@@ -1,11 +1,13 @@
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { DraggableAttributes } from "@dnd-kit/core";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { DraggableAttributes } from "@dnd-kit/core";
 import { faChevronRight, faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
-import { EntityId } from "@local/hash-subgraph";
-import { Box, PopoverPosition, Tooltip, Typography } from "@mui/material";
+import type { EntityId } from "@local/hash-subgraph";
+import type { PopoverPosition } from "@mui/material";
+import { Box, Tooltip, Typography } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import { CSSProperties, forwardRef, MouseEvent, useState } from "react";
+import type { CSSProperties, MouseEvent } from "react";
+import { forwardRef, useState } from "react";
 
 import { PAGE_TITLE_PLACEHOLDER } from "../../../../pages/shared/block-collection/page-title/page-title";
 import { PageIconButton } from "../../../page-icon-button";

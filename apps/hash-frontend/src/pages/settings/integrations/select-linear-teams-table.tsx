@@ -1,7 +1,7 @@
 import { Chip, Select } from "@hashintel/design-system";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
-import { EntityId } from "@local/hash-subgraph";
+import type { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
+import type { EntityId } from "@local/hash-subgraph";
 import {
   Box,
   Table,
@@ -10,23 +10,17 @@ import {
   TableHead,
   TableRow,
 } from "@mui/material";
-import {
-  Dispatch,
-  Fragment,
-  FunctionComponent,
-  SetStateAction,
-  useCallback,
-  useMemo,
-} from "react";
+import type { Dispatch, FunctionComponent, SetStateAction } from "react";
+import { Fragment, useCallback, useMemo } from "react";
 
-import {
+import type {
   GetLinearOrganizationQuery,
   SyncWithWorkspace,
 } from "../../../graphql/api-types.gen";
-import { MinimalUser, Org } from "../../../lib/user-and-org";
+import type { MinimalUser, Org } from "../../../lib/user-and-org";
 import { MenuItem } from "../../../shared/ui";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
-import { LinearIntegration } from "./use-linear-integrations";
+import type { LinearIntegration } from "./use-linear-integrations";
 
 const SelectWorkspaces: FunctionComponent<{
   selectedWorkspaceEntityIds: EntityId[];

@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { ServerRegularIcon } from "../../components/icons/server-regular-icon";
 import { SparklesRegularIcon } from "../../components/icons/sparkles-regular-icon";

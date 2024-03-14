@@ -1,15 +1,13 @@
-import { TextToken } from "@local/hash-isomorphic-utils/types";
-import { Entity, EntityId, Subgraph } from "@local/hash-subgraph";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
+import type { Entity, EntityId, Subgraph } from "@local/hash-subgraph";
 import { getEntityRevisionsByEntityId } from "@local/hash-subgraph/stdlib";
 
+import type { DraftEntity, EntityStore, EntityStoreType } from "./entity-store";
 import {
-  DraftEntity,
-  EntityStore,
-  EntityStoreType,
   isDraftBlockEntity,
   textualContentPropertyTypeBaseUrl,
 } from "./entity-store";
-import { Block } from "./graphql/api-types.gen";
+import type { Block } from "./graphql/api-types.gen";
 
 export type BlockEntity = Block;
 

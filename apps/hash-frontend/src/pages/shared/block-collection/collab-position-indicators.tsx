@@ -1,6 +1,7 @@
-import { CollabPosition } from "@local/hash-isomorphic-utils/collab";
+import type { CollabPosition } from "@local/hash-isomorphic-utils/collab";
 import { AnimatePresence, motion } from "framer-motion";
-import { FunctionComponent, useMemo } from "react";
+import type { FunctionComponent } from "react";
+import { useMemo } from "react";
 
 import { useCollabPositionContext } from "../../../contexts/collab-position-context";
 import { CollabPositionIndicator } from "./collab-position-indicator";

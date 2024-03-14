@@ -13,19 +13,14 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
-import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
-import { DraftEntity } from "@local/hash-isomorphic-utils/entity-store";
+import type { BlockEntity } from "@local/hash-isomorphic-utils/entity";
+import type { DraftEntity } from "@local/hash-isomorphic-utils/entity-store";
 import { blockProtocolLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Box, Divider, Menu, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
-import { PopupState } from "material-ui-popup-state/hooks";
-import {
-  forwardRef,
-  ForwardRefRenderFunction,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import type { PopupState } from "material-ui-popup-state/hooks";
+import type { ForwardRefRenderFunction } from "react";
+import { forwardRef, useMemo, useRef, useState } from "react";
 import { useKey } from "rooks";
 
 import { useFetchBlockSubgraph } from "../../../../blocks/use-fetch-block-subgraph";
