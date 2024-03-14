@@ -1,6 +1,5 @@
 /* eslint-disable import/first */
 
-import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import {
   monorepoRootDir,
   realtimeSyncEnabled,
@@ -22,6 +21,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
+import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
