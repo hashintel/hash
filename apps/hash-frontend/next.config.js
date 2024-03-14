@@ -1,12 +1,13 @@
-const { config } = require("dotenv-flow");
-const withBundleAnalyzer = require("@next/bundle-analyzer")({
+import { config } from "dotenv-flow";
+import bundleAnalyzer from "@next/bundle-analyzer";
+import { withSentryConfig } from "@sentry/nextjs";
+import webpack from "webpack";
+import { buildStamp } from "./buildstamp.js";
+
+const { DefinePlugin } = webpack;
+const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
 });
-const { withSentryConfig } = require("@sentry/nextjs");
-
-const { DefinePlugin } = require("webpack");
-
-const { buildStamp } = require("./buildstamp");
 
 config({ silent: true, path: "../.." });
 
@@ -58,7 +59,7 @@ const pageEntityTypeBaseUrl = "https://hash.ai/@hash/types/entity-type/page/";
  * @todo make plugin definition cleaner - some ideas in https://github.com/cyrilwanner/next-compose-plugins/issues/59
  *    next-compose plugins itself is unmaintained and leads to 'invalid config property' warnings if used
  */
-module.exports = withSentryConfig(
+export default withSentryConfig(
   withBundleAnalyzer(
     /** @type {import('next').NextConfig} */
     {
@@ -164,7 +165,7 @@ module.exports = withSentryConfig(
       webpack: (webpackConfig, { isServer }) => {
         webpackConfig.module.rules.push({
           test: /\.svg$/,
-          use: [require.resolve("@svgr/webpack")],
+          use: ["@svgr/webpack"],
         });
 
         // eslint-disable-next-line no-param-reassign

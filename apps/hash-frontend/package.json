@@ -48,7 +48,7 @@
     "@popperjs/core": "2.11.8",
     "@sentry/nextjs": "7.93.0",
     "@sentry/react": "7.93.0",
-    "@svgr/webpack": "6.2.1",
+    "@svgr/webpack": "8.1.0",
     "@tldraw/editor": "2.0.0-alpha.12",
     "@tldraw/primitives": "2.0.0-alpha.12",
     "@tldraw/tldraw": "2.0.0-alpha.12",
@@ -127,9 +127,10 @@
     "rimraf": "5.0.5",
     "sass": "1.57.1",
     "typescript": "5.1.6",
-    "webpack": "5.88.1"
+    "webpack": "5.90.3"
   },
   "engines": {
     "node": ">=v18.15.0"
   }
 }
+
