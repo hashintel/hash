@@ -228,7 +228,7 @@ export const createGraphActivities = ({
   async createEntity(
     ...params: Parameters<typeof graphApiClient.createEntity>
   ) {
-    return graphApiClient.createEntity(...params);
+    return graphApiClient.createEntity(...params).then((result) => result.data);
   },
 
   async getHashInstanceAdminAccountGroupId(authentication: {
