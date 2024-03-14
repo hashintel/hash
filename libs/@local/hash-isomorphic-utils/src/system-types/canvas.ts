@@ -2,9 +2,9 @@
  * This file was automatically generated – do not edit it.
  */
 
-import { Entity, LinkData } from "@local/hash-subgraph";
+import type { Entity, LinkData } from "@local/hash-subgraph";
 
-import {
+import type {
   ArchivedPropertyValue,
   Block,
   BlockCollection,

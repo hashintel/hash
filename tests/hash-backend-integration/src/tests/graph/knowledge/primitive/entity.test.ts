@@ -30,12 +30,11 @@ import type {
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   getRoots,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import {

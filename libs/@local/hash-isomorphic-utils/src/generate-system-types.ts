@@ -1,8 +1,8 @@
 import * as fs from "node:fs/promises";
-import type { CodegenParameters } from "@blockprotocol/graph/codegen";
 import path, { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import type { CodegenParameters } from "@blockprotocol/graph/codegen";
 import { codegen } from "@blockprotocol/graph/codegen";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
