@@ -2,7 +2,7 @@ import type { VersionedUrl } from "@blockprotocol/graph";
 import { Autocomplete, Chip, MenuItem } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { BaseUrl, EntityTypeWithMetadata } from "@local/hash-subgraph";
-import { outlinedInputClasses, Typography } from "@mui/material";
+import { outlinedInputClasses, PopperProps, Typography } from "@mui/material";
 import { useMemo } from "react";
 
 import {
@@ -28,6 +28,7 @@ const getChipLabelFromId = (id: VersionedUrl) => {
 type SelectTypesAndInferProps = {
   inputHeight: number | string;
   multiple: boolean;
+  popperPlacement?: PopperProps["placement"];
   setTargetEntityTypeIds: (params: {
     selectedEntityTypeIds: VersionedUrl[];
     linkedEntityTypeIds: VersionedUrl[];
@@ -40,6 +41,7 @@ const menuWidth = 400;
 export const EntityTypeSelector = ({
   inputHeight,
   multiple,
+  popperPlacement,
   setTargetEntityTypeIds,
   targetEntityTypeIds,
 }: SelectTypesAndInferProps) => {
@@ -135,7 +137,7 @@ export const EntityTypeSelector = ({
           },
         },
         popper: {
-          placement: "top",
+          placement: popperPlacement ?? "top",
           sx: { "& div": { boxShadow: "none" } },
         },
       }}
