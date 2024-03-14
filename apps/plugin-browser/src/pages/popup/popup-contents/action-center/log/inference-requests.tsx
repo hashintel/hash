@@ -116,7 +116,7 @@ const InferenceRequestContainer = ({
         {request.status === "pending" ? (
           <Stack alignItems="center" direction="row">
             {cancellationRequested ? (
-              <Tooltip title="Cancellation pending...">
+              <Tooltip title="Cancellation pending..." placement="top">
                 <CircularProgress
                   variant="indeterminate"
                   size={13}
@@ -124,7 +124,7 @@ const InferenceRequestContainer = ({
                 />
               </Tooltip>
             ) : (
-              <Tooltip title="Cancel request">
+              <Tooltip title="Cancel request" placement="top">
                 <IconButton
                   onClick={cancelRequest}
                   sx={{ p: 0, "&:hover": { background: "none" }, mr: 0.2 }}
@@ -143,7 +143,7 @@ const InferenceRequestContainer = ({
                 </IconButton>
               </Tooltip>
             )}
-            <Tooltip title="Job in progress...">
+            <Tooltip title="Job in progress..." placement="top">
               <CircularProgress
                 variant="indeterminate"
                 size={13}
@@ -155,7 +155,7 @@ const InferenceRequestContainer = ({
           request.status === "user-cancelled" ? (
           <Stack alignItems="center" direction="row">
             {isUnproductiveSuccessfulRequest ? (
-              <Tooltip title="No entities created or updated">
+              <Tooltip title="No entities created or updated" placement="top">
                 <Box sx={{ height: 16 }}>
                   <DashIcon
                     sx={{ height: 16, fill: ({ palette }) => palette.gray[40] }}
@@ -165,7 +165,7 @@ const InferenceRequestContainer = ({
             ) : (
               <>
                 {request.createAs === "draft" && (
-                  <Tooltip title="Draft">
+                  <Tooltip title="Draft" placement="top">
                     <Box sx={{ height: 16 }}>
                       <FeatherRegularIcon
                         aria-label="Draft"
@@ -178,7 +178,7 @@ const InferenceRequestContainer = ({
                     </Box>
                   </Tooltip>
                 )}
-                <Tooltip title="Entities successfully inferred">
+                <Tooltip title="Entities successfully inferred" placement="top">
                   <Box sx={{ height: 16 }}>
                     <CheckIcon
                       aria-label="Entities successfully inferred"
