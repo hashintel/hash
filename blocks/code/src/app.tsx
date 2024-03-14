@@ -1,5 +1,5 @@
+import type { BlockComponent } from "@blockprotocol/graph/react";
 import {
-  BlockComponent,
   useEntitySubgraph,
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
@@ -9,8 +9,9 @@ import styles from "./app.module.css";
 import { Editor } from "./editor";
 import { CopyIcon } from "./icons";
 import { propertyIds } from "./property-ids";
-import { BlockEntity } from "./types/generated/block-entity";
-import { languages, LanguageType } from "./utils";
+import type { BlockEntity } from "./types/generated/block-entity";
+import type { LanguageType } from "./utils";
+import { languages } from "./utils";
 
 export const App: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph, readonly },

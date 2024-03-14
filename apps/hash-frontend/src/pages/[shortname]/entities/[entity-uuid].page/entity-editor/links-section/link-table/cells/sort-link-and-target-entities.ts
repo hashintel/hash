@@ -1,4 +1,4 @@
-import { LinkAndTargetEntity } from "../types";
+import type { LinkAndTargetEntity } from "../types";
 
 export const sortLinkAndTargetEntities = <T extends LinkAndTargetEntity[]>(
   linkAndTargetEntities: T,

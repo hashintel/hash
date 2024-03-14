@@ -3,10 +3,11 @@ import {
   EntityTypeIcon,
   MenuItem,
 } from "@hashintel/design-system";
-import { Stack, SvgIconProps, SxProps, Theme, Typography } from "@mui/material";
-import { FunctionComponent } from "react";
+import type { SvgIconProps, SxProps, Theme } from "@mui/material";
+import { Stack, Typography } from "@mui/material";
+import type { FunctionComponent } from "react";
 
-import { LocalStorage } from "../../../../../../shared/storage";
+import type { LocalStorage } from "../../../../../../shared/storage";
 import {
   darkModeBorderColor,
   darkModeInputBackgroundColor,

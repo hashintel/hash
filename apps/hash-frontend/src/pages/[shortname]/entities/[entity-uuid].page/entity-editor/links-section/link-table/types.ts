@@ -1,6 +1,6 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
-import { SizedGridColumn } from "@glideapps/glide-data-grid";
-import {
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { SizedGridColumn } from "@glideapps/glide-data-grid";
+import type {
   Entity,
   EntityId,
   EntityRootType,

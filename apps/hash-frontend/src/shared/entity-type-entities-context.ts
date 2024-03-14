@@ -1,10 +1,10 @@
-import { ApolloQueryResult } from "@apollo/client";
-import {
+import type { ApolloQueryResult } from "@apollo/client";
+import type {
   EntityType,
   PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import {
+import type {
   BaseUrl,
   Entity,
   EntityRootType,
@@ -12,7 +12,7 @@ import {
 } from "@local/hash-subgraph";
 import { createContext, useContext } from "react";
 
-import { StructuralQueryEntitiesQuery } from "../graphql/api-types.gen";
+import type { StructuralQueryEntitiesQuery } from "../graphql/api-types.gen";
 
 export type EntityTypeEntitiesContextValue = {
   entityTypeId?: VersionedUrl;

@@ -1,7 +1,10 @@
-import type { DrawArgs } from "@glideapps/glide-data-grid";
-import { CustomCell, Rectangle } from "@glideapps/glide-data-grid";
+import type {
+  CustomCell,
+  DrawArgs,
+  Rectangle,
+} from "@glideapps/glide-data-grid";
 
-import {
+import type {
   CellPath,
   ColumnHeaderDrawArgs,
   ColumnHeaderPath,

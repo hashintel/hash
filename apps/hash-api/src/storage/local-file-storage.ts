@@ -3,9 +3,10 @@ import path from "node:path";
 import { URL } from "node:url";
 
 import appRoot from "app-root-path";
-import express, { Express } from "express";
+import type { Express } from "express";
+import express from "express";
 
-import {
+import type {
   GetFileEntityStorageKeyParams,
   PresignedDownloadRequest,
   PresignedPutUpload,

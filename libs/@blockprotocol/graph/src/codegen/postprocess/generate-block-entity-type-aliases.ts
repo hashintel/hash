@@ -1,6 +1,6 @@
 import { mustBeDefined } from "../../shared/util/must-be-defined.js";
 import { typedEntries } from "../../shared/util/typed-object-iter.js";
-import { PostprocessContext } from "../context/postprocess.js";
+import type { PostprocessContext } from "../context/postprocess.js";
 import { entityDefinitionNameForEntityType } from "../shared.js";
 
 export const generateBlockEntityTypeAliases = (

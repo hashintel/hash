@@ -10,7 +10,7 @@ import { useCallback, useRef, useState } from "react";
 
 import { contentKey } from "../app";
 import { ArrowTurnDownLeftIcon } from "../icons/arrow-turn-down-left";
-import { BlockEntity } from "../types/generated/block-entity";
+import type { BlockEntity } from "../types/generated/block-entity";
 import { BouncingDotsLoader } from "./generate-text/bouncing-dots-loader";
 import {
   DEFAULT_MODEL_ID,

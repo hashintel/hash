@@ -8,16 +8,16 @@ import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { MutationArchiveEntitiesArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-import {
+import type { MutationArchiveEntitiesArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import type {
   AccountGroupId,
   AccountId,
   Entity,
   EntityId,
   OwnedById,
-  splitEntityId,
 } from "@local/hash-subgraph";
-import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import { splitEntityId } from "@local/hash-subgraph";
+import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import {
   ApolloError,
   ForbiddenError,
@@ -45,11 +45,8 @@ import {
   isEntityLinkEntity,
   updateLinkEntity,
 } from "../../../../graph/knowledge/primitive/link-entity";
-import {
-  AccountGroupAuthorizationSubjectRelation,
-  AuthorizationSubjectKind,
+import type {
   AuthorizationViewerInput,
-  EntityAuthorizationRelation,
   EntityAuthorizationRelationship,
   MutationAddEntityEditorArgs,
   MutationAddEntityOwnerArgs,
@@ -68,7 +65,12 @@ import {
   QueryStructuralQueryEntitiesArgs,
   ResolverFn,
 } from "../../../api-types.gen";
-import { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
+import {
+  AccountGroupAuthorizationSubjectRelation,
+  AuthorizationSubjectKind,
+  EntityAuthorizationRelation,
+} from "../../../api-types.gen";
+import type { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 import { mapEntityToGQL } from "../graphql-mapping";
 import { createSubgraphAndPermissionsReturn } from "../shared/create-subgraph-and-permissions-return";

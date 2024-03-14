@@ -13,20 +13,15 @@ import {
   textBlockNodesFromTokens,
   textBlockNodeToTextTokens,
 } from "@local/hash-isomorphic-utils/text";
-import { TextToken } from "@local/hash-isomorphic-utils/types";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import { Box } from "@mui/material";
 import { debounce, isEqual } from "lodash";
 import { baseKeymap } from "prosemirror-commands";
 import { keymap } from "prosemirror-keymap";
 import { EditorState } from "prosemirror-state";
-import { EditorView } from "prosemirror-view";
-import {
-  FunctionComponent,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-} from "react";
+import type { EditorView } from "prosemirror-view";
+import type { FunctionComponent } from "react";
+import { useContext, useEffect, useLayoutEffect, useRef } from "react";
 
 import { WorkspaceContext } from "../../workspace-context";
 import { usePortals } from "../block-portals";
@@ -36,8 +31,8 @@ import {
   suggesterPluginKey,
 } from "../create-suggester/create-suggester";
 import { createTextEditorView } from "../create-text-editor-view";
+import type { CommentPlaceholderAction } from "./comment-placeholder-plugin";
 import {
-  CommentPlaceholderAction,
   commentPlaceholderPlugin,
   commentPlaceholderPluginkey,
 } from "./comment-placeholder-plugin";

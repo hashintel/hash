@@ -1,8 +1,9 @@
-import { OwnedById } from "@local/hash-subgraph";
-import { EditorState } from "prosemirror-state";
-import { DirectEditorProps, EditorView } from "prosemirror-view";
+import type { OwnedById } from "@local/hash-subgraph";
+import type { EditorState } from "prosemirror-state";
+import type { DirectEditorProps } from "prosemirror-view";
+import { EditorView } from "prosemirror-view";
 
-import { RenderPortal } from "./block-portals";
+import type { RenderPortal } from "./block-portals";
 import { clipboardTextSerializer } from "./clipboard-text-serializer";
 import { mentionNodeView } from "./mention-view/mention-node-view";
 

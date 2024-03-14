@@ -1,23 +1,24 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
+import type {
   HasSpatiallyPositionedContent,
   HasSpatiallyPositionedContentProperties,
 } from "@local/hash-isomorphic-utils/system-types/canvas";
-import {
+import type {
   HasDataProperties,
   HasIndexedContentProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import { EntityId, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
-import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import type { EntityId } from "@local/hash-subgraph";
+import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
-import { PositionInput } from "../../../graphql/api-types.gen";
-import { ImpureGraphFunction } from "../../context-types";
+import type { PositionInput } from "../../../graphql/api-types.gen";
+import type { ImpureGraphFunction } from "../../context-types";
 import {
   archiveEntity,
   getEntityOutgoingLinks,
@@ -28,7 +29,8 @@ import {
   getLinkEntityRightEntity,
   updateLinkEntity,
 } from "../primitive/link-entity";
-import { Block, getBlockFromEntity } from "./block";
+import type { Block } from "./block";
+import { getBlockFromEntity } from "./block";
 
 /**
  * Get the blocks in this blockCollection.

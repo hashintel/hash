@@ -1,11 +1,11 @@
-import { Entity } from "./entity.js";
-import { DataTypeWithMetadata } from "./ontology/data-type.js";
-import { EntityTypeWithMetadata } from "./ontology/entity-type.js";
-import { PropertyTypeWithMetadata } from "./ontology/property-type.js";
-import { Edges } from "./subgraph/edges.js";
-import { GraphResolveDepths } from "./subgraph/graph-resolve-depths.js";
-import { SubgraphTemporalAxes } from "./subgraph/temporal-axes.js";
-import {
+import type { Entity } from "./entity.js";
+import type { DataTypeWithMetadata } from "./ontology/data-type.js";
+import type { EntityTypeWithMetadata } from "./ontology/entity-type.js";
+import type { PropertyTypeWithMetadata } from "./ontology/property-type.js";
+import type { Edges } from "./subgraph/edges.js";
+import type { GraphResolveDepths } from "./subgraph/graph-resolve-depths.js";
+import type { SubgraphTemporalAxes } from "./subgraph/temporal-axes.js";
+import type {
   EntityVertexId,
   OntologyTypeVertexId,
   Vertices,

@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import { JsonObject } from "@blockprotocol/core";
+import type { JsonObject } from "@blockprotocol/core";
 import execa from "execa";
 import fs from "fs-extra";
 

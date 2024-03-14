@@ -1,6 +1,6 @@
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::knowledge::{entity::EntityProperties, link::EntityLinkOrder};
-use type_system::url::{BaseUrl, VersionedUrl};
+use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
 use crate::DatabaseTestWrapper;
 
@@ -30,7 +30,7 @@ async fn insert() {
             "https://blockprotocol.org/@alice/types/entity-type/person/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: 1,
+        version: OntologyTypeVersion::new(1),
     };
 
     let alice_metadata = api
@@ -48,7 +48,7 @@ async fn insert() {
             "https://blockprotocol.org/@alice/types/entity-type/friend-of/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: 1,
+        version: OntologyTypeVersion::new(1),
     };
 
     api.create_link_entity(
@@ -98,7 +98,7 @@ async fn get_entity_links() {
             "https://blockprotocol.org/@alice/types/entity-type/person/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: 1,
+        version: OntologyTypeVersion::new(1),
     };
 
     let friend_link_type_id = VersionedUrl {
@@ -106,7 +106,7 @@ async fn get_entity_links() {
             "https://blockprotocol.org/@alice/types/entity-type/friend-of/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: 1,
+        version: OntologyTypeVersion::new(1),
     };
 
     let acquaintance_entity_link_type_id = VersionedUrl {
@@ -114,7 +114,7 @@ async fn get_entity_links() {
             "https://blockprotocol.org/@alice/types/entity-type/acquaintance-of/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: 1,
+        version: OntologyTypeVersion::new(1),
     };
 
     let alice_metadata = api
@@ -215,7 +215,7 @@ async fn remove_link() {
             "https://blockprotocol.org/@alice/types/entity-type/person/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: 1,
+        version: OntologyTypeVersion::new(1),
     };
 
     let friend_link_type_id = VersionedUrl {
@@ -223,7 +223,7 @@ async fn remove_link() {
             "https://blockprotocol.org/@alice/types/entity-type/friend-of/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: 1,
+        version: OntologyTypeVersion::new(1),
     };
 
     let alice_metadata = api

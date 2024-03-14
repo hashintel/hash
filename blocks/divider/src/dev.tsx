@@ -2,14 +2,14 @@
  * This is the entry point for developing and debugging.
  * This file is not bundled with the block during the build process.
  */
-import { VersionedUrl } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/graph";
 import { MockBlockDock } from "mock-block-dock";
 import { createRoot } from "react-dom/client";
 
 import packageJSON from "../package.json";
 import Component from "./index";
 import { propertyIds } from "./property-ids";
-import { BlockEntity } from "./types/generated/block-entity";
+import type { BlockEntity } from "./types/generated/block-entity";
 
 const node = document.getElementById("app");
 

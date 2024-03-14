@@ -4,13 +4,12 @@ use derivative::Derivative;
 use error_stack::{bail, Context, Report, ResultExt};
 use graph_types::{
     knowledge::entity::{Entity, EntityId},
-    ontology::OntologyTypeVersion,
     Embedding,
 };
 use serde::Deserialize;
 use serde_json::{Number, Value};
 use temporal_versioning::Timestamp;
-use type_system::url::{BaseUrl, VersionedUrl};
+use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 use uuid::Uuid;
 
 use crate::{
@@ -75,7 +74,7 @@ where
             Self::Equal(
                 Some(FilterExpression::Path(<R::QueryPath<'p>>::version())),
                 Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
-                    OntologyTypeVersion::new(versioned_url.version),
+                    versioned_url.version,
                 ))),
             ),
         ])
@@ -305,14 +304,14 @@ impl Parameter<'_> {
         &mut self,
         expected: ParameterType,
     ) -> Result<(), Report<ParameterConversionError>> {
-        match (&mut *self, expected) {
+        match (&mut *self, &expected) {
             // identity
             (Parameter::Boolean(_), ParameterType::Boolean)
             | (Parameter::I32(_), ParameterType::I32)
             | (Parameter::F64(_), ParameterType::F64)
             | (Parameter::Text(_), ParameterType::Text)
-            | (Parameter::Any(_), ParameterType::Any)
-            | (Parameter::Vector(_), ParameterType::Vector) => {}
+            | (Parameter::Any(_), ParameterType::Any) => {}
+            (Parameter::Vector(_), ParameterType::Vector(rhs)) if **rhs == ParameterType::F64 => {}
 
             // Boolean conversions
             (Parameter::Boolean(bool), ParameterType::Any) => {
@@ -406,7 +405,7 @@ impl Parameter<'_> {
                                 .ok_or_else(|| {
                                     Report::new(ParameterConversionError {
                                         actual: Parameter::Vector(vector.to_owned()).into(),
-                                        expected,
+                                        expected: expected.clone(),
                                     })
                                 })
                                 .map(Value::Number)
@@ -414,7 +413,9 @@ impl Parameter<'_> {
                         .collect::<Result<_, _>>()?,
                 ));
             }
-            (Parameter::Any(Value::Array(array)), ParameterType::Vector) => {
+            (Parameter::Any(Value::Array(array)), ParameterType::Vector(rhs))
+                if **rhs == ParameterType::F64 =>
+            {
                 *self = Parameter::Vector(
                     mem::take(array)
                         .into_iter()
@@ -428,7 +429,7 @@ impl Parameter<'_> {
                                 .ok_or_else(|| {
                                     Report::new(ParameterConversionError {
                                         actual: self.to_owned().into(),
-                                        expected,
+                                        expected: expected.clone(),
                                     })
                                 })
                                 .map(|value| value as f32)
@@ -441,7 +442,7 @@ impl Parameter<'_> {
             (actual, expected) => {
                 bail!(ParameterConversionError {
                     actual: actual.to_owned().into(),
-                    expected
+                    expected: expected.clone(),
                 });
             }
         }
@@ -479,7 +480,7 @@ mod tests {
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
             )
             .expect("invalid base url"),
-            version: 1,
+            version: OntologyTypeVersion::new(1),
         };
 
         let expected = json!({

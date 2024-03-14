@@ -1,7 +1,7 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
-import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { ProvideEditorComponent } from "@glideapps/glide-data-grid";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import {
+import type {
   CreatedAtDecisionTime,
   CreatedAtTransactionTime,
   CreatedById,
@@ -9,10 +9,10 @@ import {
   Entity,
   EntityId,
   EntityRootType,
-  extractDraftIdFromEntityId,
   Subgraph,
   Timestamp,
 } from "@local/hash-subgraph";
+import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
 import produce from "immer";
@@ -23,7 +23,7 @@ import { useMarkLinkEntityToArchive } from "../../../../../shared/use-mark-link-
 import { useEntityEditor } from "../../../../entity-editor-context";
 import { AddAnotherButton } from "../../../../properties-section/property-table/cells/value-cell/array-editor/add-another-button";
 import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
-import { LinkedWithCell } from "../linked-with-cell";
+import type { LinkedWithCell } from "../linked-with-cell";
 import { sortLinkAndTargetEntities } from "../sort-link-and-target-entities";
 import { EntitySelector } from "./entity-selector";
 import { LinkedEntityListRow } from "./linked-entity-list-editor/linked-entity-list-row";

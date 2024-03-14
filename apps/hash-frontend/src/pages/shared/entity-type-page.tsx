@@ -1,26 +1,23 @@
-import { EntityTypeWithMetadata } from "@blockprotocol/graph";
+import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
 import { extractVersion } from "@blockprotocol/type-system";
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   EntityTypeIcon,
   LinkTypeIcon,
   OntologyChip,
 } from "@hashintel/design-system";
+import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 import {
-  EntityTypeEditorFormData,
   EntityTypeFormProvider,
   getEntityTypeFromFormData,
   getFormDataFromEntityType,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
 import { generateLinkMapWithConsistentSelfReferences } from "@local/hash-isomorphic-utils/ontology-types";
-import {
-  AccountId,
-  BaseUrl,
-  linkEntityTypeUrl,
-  OwnedById,
-} from "@local/hash-subgraph";
-import { Box, Container, Theme, Typography } from "@mui/material";
+import type { AccountId, BaseUrl, OwnedById } from "@local/hash-subgraph";
+import { linkEntityTypeUrl } from "@local/hash-subgraph";
+import type { Theme } from "@mui/material";
+import { Box, Container, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";

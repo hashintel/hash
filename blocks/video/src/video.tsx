@@ -1,9 +1,9 @@
-import { BlockComponent } from "@blockprotocol/graph/react";
+import type { BlockComponent } from "@blockprotocol/graph/react";
 import { useRef } from "react";
 import { setup } from "twind";
 
 import { Media } from "./components/media";
-import { BlockEntity } from "./types/generated/block-entity";
+import type { BlockEntity } from "./types/generated/block-entity";
 
 setup({ preflight: false });
 

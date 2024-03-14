@@ -2,13 +2,11 @@ use std::collections::hash_map::{RandomState, RawEntryMut};
 
 use graph_types::{
     knowledge::entity::{Entity, EntityId},
-    ontology::{
-        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyTypeVersion, PropertyTypeWithMetadata,
-    },
+    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
 };
 use serde::{Deserialize, Serialize};
 use temporal_versioning::Timestamp;
-use type_system::url::{BaseUrl, VersionedUrl};
+use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 
@@ -88,7 +86,7 @@ macro_rules! define_ontology_type_vertex_id {
             fn from(url: VersionedUrl) -> Self {
                 Self {
                     base_id: url.base_url,
-                    revision_id: OntologyTypeVersion::new(url.version),
+                    revision_id: url.version,
                 }
             }
         }

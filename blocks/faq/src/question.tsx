@@ -1,9 +1,11 @@
 import { EditableField } from "@hashintel/block-design-system";
 import { Button, faTrash, FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Collapse, Fade } from "@mui/material";
-import { FunctionComponent, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useState } from "react";
 
-import { answerKey, questionKey, QuestionOrAnswer } from "./app";
+import type { QuestionOrAnswer } from "./app";
+import { answerKey, questionKey } from "./app";
 import { CaretDownIcon } from "./icons/caret-down";
 
 interface QuestionProps {

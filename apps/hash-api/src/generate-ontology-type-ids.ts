@@ -9,7 +9,7 @@ import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import {
+import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
@@ -18,8 +18,12 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { publicUserAccountId } from "./auth/public-user-account-id";
-import { ImpureGraphContext, ImpureGraphFunction } from "./graph/context-types";
-import { getOrgByShortname, Org } from "./graph/knowledge/system-types/org";
+import type {
+  ImpureGraphContext,
+  ImpureGraphFunction,
+} from "./graph/context-types";
+import type { Org } from "./graph/knowledge/system-types/org";
+import { getOrgByShortname } from "./graph/knowledge/system-types/org";
 import { getDataTypes } from "./graph/ontology/primitive/data-type";
 import {
   getEntityTypes,

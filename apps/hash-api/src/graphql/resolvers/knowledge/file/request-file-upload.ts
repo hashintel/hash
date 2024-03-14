@@ -1,13 +1,13 @@
-import { Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import { UserInputError } from "apollo-server-errors";
 
 import { createFileFromUploadRequest } from "../../../../graph/knowledge/system-types/file";
-import {
+import type {
   MutationRequestFileUploadArgs,
   RequestFileUploadResponse,
   ResolverFn,
 } from "../../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../../context";
+import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 
 /**

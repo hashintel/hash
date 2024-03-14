@@ -9,7 +9,7 @@ use graph_types::knowledge::{
 use serde_json::Value as JsonValue;
 use thiserror::Error;
 use type_system::{
-    url::{BaseUrl, VersionedUrl},
+    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     ClosedEntityType, DataType, Object, PropertyType,
 };
 
@@ -115,7 +115,7 @@ where
                 "https://blockprotocol.org/@blockprotocol/types/entity-type/link/".to_owned(),
             )
             .expect("Not a valid URL"),
-            version: 1,
+            version: OntologyTypeVersion::new(1),
         };
         let is_link = schema.schemas.contains_key(&link_type_id);
 

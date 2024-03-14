@@ -1,9 +1,10 @@
 import { useTheme } from "@mui/material";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { DefaultSeo, DefaultSeoProps } from "next-seo";
+import type { DefaultSeoProps } from "next-seo";
+import { DefaultSeo } from "next-seo";
 import NextNProgress from "nextjs-progressbar";
-import { FunctionComponent, ReactNode } from "react";
+import type { FunctionComponent, ReactNode } from "react";
 
 import { isProduction } from "../../lib/config";
 import { useAuthInfo } from "../../pages/shared/auth-info-context";

@@ -1,4 +1,4 @@
-import { CardData } from "../types";
+import type { CardData } from "../types";
 import { CardContent } from "./card-content/card-content";
 import styles from "./styles.module.scss";
 

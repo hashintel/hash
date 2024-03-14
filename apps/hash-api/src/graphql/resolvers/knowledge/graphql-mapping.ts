@@ -1,9 +1,9 @@
-import { Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 
-import { Block } from "../../../graph/knowledge/system-types/block";
-import { Comment } from "../../../graph/knowledge/system-types/comment";
-import { Page } from "../../../graph/knowledge/system-types/page";
-import {
+import type { Block } from "../../../graph/knowledge/system-types/block";
+import type { Comment } from "../../../graph/knowledge/system-types/comment";
+import type { Page } from "../../../graph/knowledge/system-types/page";
+import type {
   Block as GQLBlock,
   Comment as GQLComment,
   Page as GQLPage,

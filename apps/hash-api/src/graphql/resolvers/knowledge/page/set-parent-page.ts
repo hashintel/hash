@@ -4,10 +4,14 @@ import {
   getPageById,
   setPageParentPage,
 } from "../../../../graph/knowledge/system-types/page";
-import { MutationSetParentPageArgs, ResolverFn } from "../../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../../context";
+import type {
+  MutationSetParentPageArgs,
+  ResolverFn,
+} from "../../../api-types.gen";
+import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
-import { mapPageToGQL, UnresolvedPageGQL } from "../graphql-mapping";
+import type { UnresolvedPageGQL } from "../graphql-mapping";
+import { mapPageToGQL } from "../graphql-mapping";
 
 export const setParentPageResolver: ResolverFn<
   Promise<UnresolvedPageGQL>,

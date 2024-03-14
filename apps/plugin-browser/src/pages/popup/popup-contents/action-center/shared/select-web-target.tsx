@@ -1,14 +1,8 @@
-import { OwnedById } from "@local/hash-subgraph";
-import {
-  FormControlLabel,
-  Radio,
-  RadioGroup,
-  Stack,
-  SxProps,
-  Theme,
-} from "@mui/material";
+import type { OwnedById } from "@local/hash-subgraph";
+import type { SxProps, Theme } from "@mui/material";
+import { FormControlLabel, Radio, RadioGroup, Stack } from "@mui/material";
 
-import { LocalStorage } from "../../../../../shared/storage";
+import type { LocalStorage } from "../../../../../shared/storage";
 import { darkModeInputColor } from "../../../../shared/style-values";
 import { WebSelector } from "./select-web-target/web-selector";
 

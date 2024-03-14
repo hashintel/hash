@@ -1,6 +1,8 @@
-import { Box, BoxProps, styled, TextField } from "@mui/material";
+import type { BoxProps } from "@mui/material";
+import { Box, styled, TextField } from "@mui/material";
 import debounce from "lodash.debounce";
-import { FunctionComponent, useMemo, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useMemo, useState } from "react";
 
 const StyledTextField = styled(TextField)(({ theme }) => ({
   "> .MuiInputBase-root > input": {

@@ -8,8 +8,9 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
-import { FunctionComponent, ReactNode } from "react";
+import type { PopupState } from "material-ui-popup-state/hooks";
+import { bindMenu } from "material-ui-popup-state/hooks";
+import type { FunctionComponent, ReactNode } from "react";
 
 import { ArrowDownAZRegularIcon } from "../../../icons/arrow-down-a-z-regular-icon";
 import { ArrowUpZARegularIcon } from "../../../icons/arrow-up-a-z-regular-icon";

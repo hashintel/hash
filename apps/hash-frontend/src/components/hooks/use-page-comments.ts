@@ -1,13 +1,13 @@
 import { useQuery } from "@apollo/client";
-import { TextToken } from "@local/hash-isomorphic-utils/types";
-import {
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
+import type {
   Entity,
   EntityId,
   EntityMetadata,
   EntityTemporalVersioningMetadata,
 } from "@local/hash-subgraph";
 
-import {
+import type {
   GetPageCommentsQuery,
   GetPageCommentsQueryVariables,
 } from "../../graphql/api-types.gen";

@@ -1,5 +1,6 @@
-import { Box, Stack, SxProps, Theme, Typography } from "@mui/material";
-import { FunctionComponent, PropsWithChildren, ReactNode } from "react";
+import type { SxProps, Theme } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
+import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
 
 import { Button } from "./button";
 import { Callout } from "./callout";

@@ -28,7 +28,6 @@ use graph_types::{
     },
     ontology::{
         OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeRecordId,
-        OntologyTypeVersion,
     },
     owned_by_id::OwnedById,
 };
@@ -40,7 +39,7 @@ use tokio_postgres::{
     binary_copy::BinaryCopyInWriter, error::SqlState, types::Type, GenericClient,
 };
 use type_system::{
-    url::{BaseUrl, VersionedUrl},
+    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     ClosedEntityType, DataTypeReference, EntityType, EntityTypeReference, PropertyType,
     PropertyTypeReference,
 };
@@ -253,14 +252,7 @@ where
 
         let optional = self
             .as_client()
-            .query_opt(
-                query,
-                &[
-                    &id.base_url.as_str(),
-                    &OntologyTypeVersion::new(id.version),
-                    &archived_by_id,
-                ],
-            )
+            .query_opt(query, &[&id.base_url, &id.version, &archived_by_id])
             .await
             .change_context(UpdateError)?;
         if let Some(row) = optional {
@@ -278,7 +270,7 @@ where
                             WHERE base_url = $1 AND version = $2
                         );
                     ",
-                    &[&id.base_url.as_str(), &OntologyTypeVersion::new(id.version)],
+                    &[&id.base_url.as_str(), &id.version],
                 )
                 .await
                 .change_context(UpdateError)?
@@ -317,14 +309,7 @@ where
         Ok(OntologyTemporalMetadata {
             transaction_time: self
                 .as_client()
-                .query_one(
-                    query,
-                    &[
-                        &id.base_url.as_str(),
-                        &OntologyTypeVersion::new(id.version),
-                        &created_by_id,
-                    ],
-                )
+                .query_one(query, &[&id.base_url, &id.version, &created_by_id])
                 .await
                 .map_err(Report::new)
                 .map_err(|report| match report.current_context().code() {
@@ -455,7 +440,7 @@ where
                     &ontology_id,
                     &Json(entity_type),
                     &Json(closed_entity_type),
-                    &label_property.map(BaseUrl::as_str),
+                    &label_property,
                     &icon,
                 ],
             )
@@ -485,8 +470,8 @@ where
                     ",
                     &[
                         &ontology_id,
-                        &property_type.url().base_url.as_str(),
-                        &OntologyTypeVersion::new(property_type.url().version),
+                        &property_type.url().base_url,
+                        &property_type.url().version,
                     ],
                 )
                 .await
@@ -508,8 +493,8 @@ where
                     ",
                     &[
                         &ontology_id,
-                        &data_type.url().base_url.as_str(),
-                        &OntologyTypeVersion::new(data_type.url().version),
+                        &data_type.url().base_url,
+                        &data_type.url().version,
                     ],
                 )
                 .await
@@ -540,8 +525,8 @@ where
                     ",
                     &[
                         &ontology_id,
-                        &property_type.url().base_url.as_str(),
-                        &OntologyTypeVersion::new(property_type.url().version),
+                        &property_type.url().base_url,
+                        &property_type.url().version,
                     ],
                 )
                 .await
@@ -563,8 +548,8 @@ where
                     ",
                     &[
                         &ontology_id,
-                        &inherits_from.url().base_url.as_str(),
-                        &OntologyTypeVersion::new(inherits_from.url().version),
+                        &inherits_from.url().base_url,
+                        &inherits_from.url().version,
                     ],
                 )
                 .await
@@ -588,8 +573,8 @@ where
                     ",
                     &[
                         &ontology_id,
-                        &link_reference.url().base_url.as_str(),
-                        &OntologyTypeVersion::new(link_reference.url().version),
+                        &link_reference.url().base_url,
+                        &link_reference.url().version,
                     ],
                 )
                 .await
@@ -611,8 +596,8 @@ where
                             ",
                             &[
                                 &ontology_id,
-                                &destination.url().base_url.as_str(),
-                                &OntologyTypeVersion::new(destination.url().version),
+                                &destination.url().base_url,
+                                &destination.url().version,
                             ],
                         )
                         .await
@@ -683,7 +668,6 @@ where
     /// - if the entry referred to by `url` does not exist.
     #[tracing::instrument(level = "debug", skip(self))]
     async fn ontology_id_by_url(&self, url: &VersionedUrl) -> Result<OntologyId, QueryError> {
-        let version = i64::from(url.version);
         Ok(self
             .client
             .as_client()
@@ -693,7 +677,7 @@ where
                 FROM ontology_ids
                 WHERE base_url = $1 AND version = $2;
                 ",
-                &[&url.base_url.as_str(), &version],
+                &[&url.base_url, &url.version],
             )
             .await
             .change_context(QueryError)
@@ -824,6 +808,15 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         url: &VersionedUrl,
         created_by_id: EditionCreatedById,
     ) -> Result<(OntologyId, OwnedById, OntologyTemporalMetadata), UpdateError> {
+        let previous_version = OntologyTypeVersion::new(
+            url.version
+                .inner()
+                .checked_sub(1)
+                .ok_or(UpdateError)
+                .attach_printable(
+                    "The version of the data type is already at the lowest possible value",
+                )?,
+        );
         let Some(owned_by_id) = self
             .as_client()
             .query_opt(
@@ -836,7 +829,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                   LIMIT 1 -- There might be multiple versions of the same ontology, but we only
                           -- care about the `web_id` which does not change when (un-)archiving.
                 ;",
-                &[&url.base_url.as_str(), &i64::from(url.version - 1)],
+                &[&url.base_url, &previous_version],
             )
             .await
             .change_context(UpdateError)?
@@ -852,7 +845,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     WHERE base_url = $1
                       AND version = $2
                   );",
-                    &[&url.base_url.as_str(), &i64::from(url.version - 1)],
+                    &[&url.base_url, &previous_version],
                 )
                 .await
                 .change_context(UpdateError)

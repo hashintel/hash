@@ -1,5 +1,5 @@
 import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
-import { RequestHandler } from "express";
+import type { RequestHandler } from "express";
 
 import { hydraAdmin } from "../../auth/ory-hydra";
 

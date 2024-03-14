@@ -1,17 +1,18 @@
-import { BaseUrl, validateBaseUrl } from "@blockprotocol/type-system/slim";
+import type { BaseUrl } from "@blockprotocol/type-system/slim";
+import { validateBaseUrl } from "@blockprotocol/type-system/slim";
 
 import { stringIsNonNegativeInteger } from "../../util.js";
-import {
+import type {
   Entity,
   EntityId,
   EntityPropertiesObject,
   EntityPropertyValue,
   EntityRevisionId,
 } from "../entity.js";
-import { OntologyTypeRevisionId } from "../ontology.js";
-import { DataTypeWithMetadata } from "../ontology/data-type.js";
-import { EntityTypeWithMetadata } from "../ontology/entity-type.js";
-import { PropertyTypeWithMetadata } from "../ontology/property-type.js";
+import type { OntologyTypeRevisionId } from "../ontology.js";
+import type { DataTypeWithMetadata } from "../ontology/data-type.js";
+import type { EntityTypeWithMetadata } from "../ontology/entity-type.js";
+import type { PropertyTypeWithMetadata } from "../ontology/property-type.js";
 
 export type DataTypeVertex = {
   kind: "dataType";

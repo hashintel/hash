@@ -1,16 +1,16 @@
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 
-import { ImpureGraphFunction } from "../../../../context-types";
-import { Block, getBlockCollectionByBlock } from "../../../system-types/block";
-import {
-  Comment,
-  getCommentAncestorBlock,
-} from "../../../system-types/comment";
-import { getPageFromEntity, Page } from "../../../system-types/page";
+import type { ImpureGraphFunction } from "../../../../context-types";
+import type { Block } from "../../../system-types/block";
+import { getBlockCollectionByBlock } from "../../../system-types/block";
+import type { Comment } from "../../../system-types/comment";
+import { getCommentAncestorBlock } from "../../../system-types/comment";
+import type { Page } from "../../../system-types/page";
+import { getPageFromEntity } from "../../../system-types/page";
+import type { Text } from "../../../system-types/text";
 import {
   getCommentByText,
   getPageAndBlockByText,
-  Text,
 } from "../../../system-types/text";
 
 export const getTextUpdateOccurredIn: ImpureGraphFunction<

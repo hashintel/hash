@@ -4,20 +4,20 @@ import {
   blockProtocolPropertyTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { EntityRootType } from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import { GraphQLError } from "graphql";
+import type { GraphQLError } from "graphql";
 import { useCallback, useState } from "react";
 
-import {
+import type {
   MeQuery,
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { meQuery } from "../../graphql/queries/user.queries";
-import { User } from "../../lib/user-and-org";
+import type { User } from "../../lib/user-and-org";
 import { useAuthInfo } from "../../pages/shared/auth-info-context";
 
 type UpdateAuthenticatedUserParams = {

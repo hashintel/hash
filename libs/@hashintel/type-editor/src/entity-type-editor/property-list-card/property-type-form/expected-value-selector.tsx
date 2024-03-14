@@ -1,4 +1,4 @@
-import { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   AutocompleteDropdown,
   Button,
@@ -8,7 +8,8 @@ import {
   TextField,
 } from "@hashintel/design-system";
 import { fluidFontClassName } from "@hashintel/design-system/theme";
-import { Autocomplete, Box, PaperProps, Typography } from "@mui/material";
+import type { PaperProps } from "@mui/material";
+import { Autocomplete, Box, Typography } from "@mui/material";
 import { useMemo, useRef, useState } from "react";
 import {
   FormProvider,
@@ -21,15 +22,15 @@ import {
 import { useDataTypesOptions } from "../../../shared/data-types-options-context";
 import { useStateCallback } from "../../shared/use-state-callback";
 import { getExpectedValueDescriptor } from "../shared/get-expected-value-descriptor";
-import { PropertyTypeFormValues } from "../shared/property-type-form-values";
+import type { PropertyTypeFormValues } from "../shared/property-type-form-values";
 import { CustomExpectedValueBuilder } from "./expected-value-selector/custom-expected-value-builder";
 import { ExpectedValueChip } from "./expected-value-selector/expected-value-chip";
+import type { CustomExpectedValueBuilderContextValue } from "./expected-value-selector/shared/custom-expected-value-builder-context";
 import {
   CustomExpectedValueBuilderContext,
-  CustomExpectedValueBuilderContextValue,
   useCustomExpectedValueBuilderContext,
 } from "./expected-value-selector/shared/custom-expected-value-builder-context";
-import { ExpectedValueSelectorFormValues } from "./expected-value-selector/shared/expected-value-selector-form-values";
+import type { ExpectedValueSelectorFormValues } from "./expected-value-selector/shared/expected-value-selector-form-values";
 
 const ExpectedValueSelectorDropdown = ({ children, ...props }: PaperProps) => {
   const { customExpectedValueBuilderOpen, handleEdit } =

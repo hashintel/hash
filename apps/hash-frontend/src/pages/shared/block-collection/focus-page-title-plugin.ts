@@ -1,5 +1,5 @@
 import { Plugin } from "prosemirror-state";
-import { RefObject } from "react";
+import type { RefObject } from "react";
 
 export const createFocusPageTitlePlugin = (
   pageTitleRef: RefObject<HTMLTextAreaElement>,

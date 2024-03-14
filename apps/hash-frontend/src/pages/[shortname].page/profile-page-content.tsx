@@ -1,11 +1,12 @@
 import { Box, Container } from "@mui/material";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 
-import { Org, User } from "../../lib/user-and-org";
+import type { Org, User } from "../../lib/user-and-org";
 import { PinnedEntityTypeTabContents } from "./pinned-entity-type-tab-contents";
 import { ProfilePageInfo } from "./profile-page-info";
 import { ProfileTab } from "./profile-tab";
-import { leftColumnWidth, ProfilePageTab } from "./util";
+import type { ProfilePageTab } from "./util";
+import { leftColumnWidth } from "./util";
 
 export const ProfilePageContent: FunctionComponent<{
   profile?: User | Org;

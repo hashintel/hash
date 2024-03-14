@@ -1,12 +1,14 @@
 import { Container, Stack, Typography } from "@mui/material";
-import { Box, TypographyProps } from "@mui/system";
+import type { TypographyProps } from "@mui/system";
+import { Box } from "@mui/system";
 import { format } from "date-fns";
 import Image from "next/legacy/image";
 import { NextSeo } from "next-seo";
-import { createContext, FunctionComponent, ReactNode, useContext } from "react";
+import type { FunctionComponent, ReactNode } from "react";
+import { createContext, useContext } from "react";
 
 import { FRONTEND_URL } from "../config";
-import { BlogPostAuthor as BlogPostAuthorType } from "../pages/blog/[...blog-slug].page";
+import type { BlogPostAuthor as BlogPostAuthorType } from "../pages/blog/[...blog-slug].page";
 import { Link } from "./link";
 import { mdxImageClasses } from "./mdx-image";
 
@@ -30,6 +32,12 @@ export const useBlogPostPhotos = () => {
   if (!context) {
     throw new Error("Missing provider");
   }
+
+  return context;
+};
+
+export const useOptionalBlogPostPhotos = () => {
+  const context = useContext(BlogPostPhotosContext);
 
   return context;
 };

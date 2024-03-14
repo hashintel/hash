@@ -1,14 +1,14 @@
-import { Logger } from "@local/hash-backend-utils/logger";
-import { SearchAdapter } from "@local/hash-backend-utils/search/adapter";
-import { VaultClient } from "@local/hash-backend-utils/vault";
+import type { Logger } from "@local/hash-backend-utils/logger";
+import type { SearchAdapter } from "@local/hash-backend-utils/search/adapter";
+import type { VaultClient } from "@local/hash-backend-utils/vault";
 
-import { CacheAdapter } from "../cache";
-import { EmailTransporter } from "../email/transporters";
-import { GraphApi } from "../graph/context-types";
-import { User } from "../graph/knowledge/system-types/user";
-import { UploadableStorageProvider } from "../storage/storage-provider";
-import { TemporalClient } from "../temporal";
-import { AuthenticationContext } from "./authentication-context";
+import type { CacheAdapter } from "../cache";
+import type { EmailTransporter } from "../email/transporters";
+import type { GraphApi } from "../graph/context-types";
+import type { User } from "../graph/knowledge/system-types/user";
+import type { UploadableStorageProvider } from "../storage/storage-provider";
+import type { TemporalClient } from "../temporal";
+import type { AuthenticationContext } from "./authentication-context";
 
 /**
  * Apollo context object with dataSources. For details see:

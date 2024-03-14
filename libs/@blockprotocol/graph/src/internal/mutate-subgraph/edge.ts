@@ -7,18 +7,20 @@ import {
 import isEqual from "lodash.isequal";
 
 import { unionOfIntervals } from "../../shared/stdlib.js";
-import { Entity, EntityId } from "../../shared/types/entity.js";
-import {
+import type { Entity, EntityId } from "../../shared/types/entity.js";
+import type {
   EntityIdWithInterval,
   EntityVertexId,
-  isEntityTypeVertex,
-  isEntityVertex,
-  isPropertyTypeVertex,
-  isTemporalSubgraph,
   OntologyTypeRevisionId,
   OntologyTypeVertexId,
   OutwardEdge,
   Subgraph,
+} from "../../shared/types/subgraph.js";
+import {
+  isEntityTypeVertex,
+  isEntityVertex,
+  isPropertyTypeVertex,
+  isTemporalSubgraph,
 } from "../../shared/types/subgraph.js";
 
 /**

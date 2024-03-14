@@ -1,10 +1,10 @@
-import { DataTypeWithMetadata } from "@local/hash-subgraph";
+import type { DataTypeWithMetadata } from "@local/hash-subgraph";
 import { useState } from "react";
 
 import { DRAFT_ROW_KEY } from "../array-editor";
 import { getEditorSpecs } from "../editor-specs";
 import { EditorTypePicker } from "../editor-type-picker";
-import { EditorType } from "../types";
+import type { EditorType } from "../types";
 import {
   guessEditorTypeFromExpectedType,
   isBlankStringOrNullish,

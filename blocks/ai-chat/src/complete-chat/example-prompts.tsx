@@ -1,6 +1,6 @@
 import { Button } from "@hashintel/design-system";
 import { Box, buttonClasses, Typography } from "@mui/material";
-import { FunctionComponent, ReactNode } from "react";
+import type { FunctionComponent, ReactNode } from "react";
 
 import { CodeIcon } from "../icons/code";
 import { CommentsQuestionsCheckIcon } from "../icons/comments-questions-check";

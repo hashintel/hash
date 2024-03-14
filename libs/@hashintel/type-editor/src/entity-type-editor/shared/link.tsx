@@ -1,5 +1,10 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
-import { HTMLProps, KeyboardEvent, MouseEvent, PropsWithChildren } from "react";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  HTMLProps,
+  KeyboardEvent,
+  MouseEvent,
+  PropsWithChildren,
+} from "react";
 
 import { useCustomizationSettings } from "../../shared/customization-context";
 

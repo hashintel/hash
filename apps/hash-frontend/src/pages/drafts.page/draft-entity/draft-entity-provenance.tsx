@@ -1,8 +1,9 @@
 import { WandMagicSparklesIcon } from "@hashintel/design-system";
-import { Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import { Box, styled, Typography } from "@mui/material";
 import { format } from "date-fns";
-import { FunctionComponent, useMemo } from "react";
+import type { FunctionComponent } from "react";
+import { useMemo } from "react";
 
 import { ClockRegularIcon } from "../../../shared/icons/clock-regular-icon";
 import { UserIcon } from "../../../shared/icons/user-icon";

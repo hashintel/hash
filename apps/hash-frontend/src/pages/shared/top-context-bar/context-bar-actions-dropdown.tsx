@@ -6,9 +6,10 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { FunctionComponent, ReactElement, useMemo } from "react";
+import type { FunctionComponent, ReactElement } from "react";
+import { useMemo } from "react";
 
-import { MenuItemProps } from "../../../shared/ui/menu-item";
+import type { MenuItemProps } from "../../../shared/ui/menu-item";
 import { ContextBarActionsContext } from "./context-bar-actions-context";
 
 export const ContextBarActionsDropdown: FunctionComponent<{

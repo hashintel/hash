@@ -1,0 +1,30 @@
+---
+title: "Entities"
+---
+
+## Introduction
+
+Every ‘thing’ in HASH is an entity. Users are entities. Organizations (which users may be grouped into) are entities. And of course the information in users’ graphs are all represented as entities.
+
+Entities have **types**.
+
+As a developer, you need to know about two types of entities:
+
+1. System entities (write-protected, cannot be modified directly)
+2. All other entities — these are the ones you’ll be interfacing with.
+
+Examples of system entities include
+
+## Webs
+
+Every user has their own **web**. Users are the sole owners of their own webs, and by default anything created in it is private, but users can choose to share information with their webs (both entities and types) with select other users, or make them public for all.
+
+Users can also create **shared webs** which multiple users may have ownership over, or write access to. By default, anything created in a shared web is visible to its members, but can be locked down more tightly (or as with individual's webs, made entirely public).
+
+## Entities & Links
+
+An entity is "anything". An **entity** might correspond to a physical thing, a concept or idea, an event or action, or really anything else you like.
+
+Link entities are a special kind of entity which describe a relationship between two other entities. For example a `Sibling` link entity might connect two `Person` entities. For brevity, elsewhere in these docs and the product we generally refer to link entities as "links", and other entities simply as "entities".
+
+All entities must have at least one [type](https://hash.dev/docs/types), which describes the information and relationships it may have.

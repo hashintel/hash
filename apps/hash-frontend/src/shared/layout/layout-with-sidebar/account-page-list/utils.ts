@@ -1,8 +1,8 @@
-import { UniqueIdentifier } from "@dnd-kit/core";
+import type { UniqueIdentifier } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
-import { EntityId } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-subgraph";
 
-import { SimplePage } from "../../../../components/hooks/use-account-pages";
+import type { SimplePage } from "../../../../components/hooks/use-account-pages";
 
 export interface TreeItem {
   page: SimplePage;

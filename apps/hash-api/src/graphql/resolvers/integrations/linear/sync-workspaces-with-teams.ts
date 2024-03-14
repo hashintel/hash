@@ -3,13 +3,10 @@ import {
   getWebMachineActorId,
 } from "@local/hash-backend-utils/machine-actors";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type { AccountId, Entity, OwnedById, Uuid } from "@local/hash-subgraph";
 import {
-  AccountId,
-  Entity,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
-  OwnedById,
-  Uuid,
 } from "@local/hash-subgraph";
 
 import {
@@ -25,11 +22,11 @@ import {
 import { getLinearUserSecretByLinearOrgId } from "../../../../graph/knowledge/system-types/linear-user-secret";
 import { systemAccountId } from "../../../../graph/system-account";
 import { Linear } from "../../../../integrations/linear";
-import {
+import type {
   MutationSyncLinearIntegrationWithWorkspacesArgs,
   ResolverFn,
 } from "../../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../../context";
+import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<

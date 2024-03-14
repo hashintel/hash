@@ -1,5 +1,5 @@
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import {
+import type {
   DataTypeWithMetadata,
   Entity,
   EntityTypeWithMetadata,

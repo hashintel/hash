@@ -3,8 +3,8 @@ import {
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { SyncLinearDataWithProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
-import { Entity } from "@local/hash-subgraph";
+import type { SyncLinearDataWithProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
+import type { Entity } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,

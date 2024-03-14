@@ -1,13 +1,13 @@
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import {
+import type {
   HasSpatiallyPositionedContent,
   HasSpatiallyPositionedContentProperties,
 } from "@local/hash-isomorphic-utils/system-types/canvas";
-import {
+import type {
   HasIndexedContent,
   HasIndexedContentProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import { GraphResolveDepths } from "@local/hash-subgraph";
+import type { GraphResolveDepths } from "@local/hash-subgraph";
 
 /**
  * Get the `hasLeftEntity` and `hasRightEntity` resolve depths for a block

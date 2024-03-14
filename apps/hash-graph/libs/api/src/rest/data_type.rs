@@ -51,7 +51,10 @@ use hash_status::Status;
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use time::OffsetDateTime;
-use type_system::{url::VersionedUrl, DataType};
+use type_system::{
+    url::{OntologyTypeVersion, VersionedUrl},
+    DataType,
+};
 use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
@@ -468,7 +471,7 @@ where
         relationships,
     }) = body;
 
-    type_to_update.version += 1;
+    type_to_update.version = OntologyTypeVersion::new(type_to_update.version.inner() + 1);
 
     let data_type = patch_id_and_parse(&type_to_update, schema).map_err(|report| {
         tracing::error!(error=?report, "Couldn't patch schema and convert to Data Type");

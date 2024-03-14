@@ -1,4 +1,8 @@
-import { EntityRootType, MultiFilter, Subgraph } from "@blockprotocol/graph";
+import type {
+  EntityRootType,
+  MultiFilter,
+  Subgraph,
+} from "@blockprotocol/graph";
 import {
   type BlockComponent,
   useEntitySubgraph,
@@ -26,11 +30,11 @@ import { EditChartDefinition } from "./edit-chart-definition";
 import { generateInitialChartDefinition as generateInitialCountLinkedEntitiesBarChartDefinition } from "./edit-chart-definition/bar-graph-definition-form/count-linked-entities-form";
 import { generateInitialChartDefinition as generateInitialGroupByPropertyBarChartDefinition } from "./edit-chart-definition/bar-graph-definition-form/group-by-property-form";
 import { EditableChartTitle } from "./edit-chart-title";
-import {
+import type {
   BarChartDefinitionVariant,
   ChartDefinition,
 } from "./types/chart-definition";
-import {
+import type {
   BlockEntity,
   BlockEntityOutgoingLinkAndTarget,
   Query,

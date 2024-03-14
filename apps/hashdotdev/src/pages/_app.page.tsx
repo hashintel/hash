@@ -1,19 +1,24 @@
 /** @sync ../components/Snippet.tsx */
 import "../../styles/globals.css";
 import "../../styles/prism.css";
+import "../../styles/legacy-mdx-components.scss";
 
-import { EmotionCache } from "@emotion/react";
+import type { EmotionCache } from "@emotion/react";
 import type { AppProps } from "next/app";
 import { useRouter } from "next/router";
-import { DefaultSeo, DefaultSeoProps } from "next-seo";
+import type { DefaultSeoProps } from "next-seo";
+import { DefaultSeo } from "next-seo";
 import NextNProgress from "nextjs-progressbar";
-import { FunctionComponent, useEffect } from "react";
+import type { FunctionComponent } from "react";
+import { useEffect } from "react";
 
+import siteMap from "../../sitemap.json";
 import { PageLayout } from "../components/page-layout";
 import { SITE_DESCRIPTION, SITE_SOCIAL_COVER_IMAGE_URL } from "../config";
 import { theme } from "../theme";
 import { MuiProvider } from "../theme/mui-provider";
-import { NextPageWithLayout } from "../util/next-types";
+import type { NextPageWithLayout } from "../util/next-types";
+import { SiteMapContext } from "./shared/sitemap-context";
 
 const defaultSeoProps: DefaultSeoProps = {
   title: "HASH.dev – HASH for Developers",
@@ -62,16 +67,18 @@ const MyApp: FunctionComponent<MyAppProps> = ({
   }, [router.events]);
 
   return (
-    <MuiProvider emotionCache={emotionCache} theme={theme}>
-      <DefaultSeo {...defaultSeoProps} />
-      <NextNProgress
-        color="#05A2C2" // @todo use theme color when we switch to Design System colors
-        height={2}
-        options={{ showSpinner: false }}
-        showOnShallow
-      />
-      {getLayout(<Component {...pageProps} />)}
-    </MuiProvider>
+    <SiteMapContext.Provider value={siteMap}>
+      <MuiProvider emotionCache={emotionCache} theme={theme}>
+        <DefaultSeo {...defaultSeoProps} />
+        <NextNProgress
+          color="#05A2C2" // @todo use theme color when we switch to Design System colors
+          height={2}
+          options={{ showSpinner: false }}
+          showOnShallow
+        />
+        {getLayout(<Component {...pageProps} />, router.asPath)}
+      </MuiProvider>
+    </SiteMapContext.Provider>
   );
 };
 

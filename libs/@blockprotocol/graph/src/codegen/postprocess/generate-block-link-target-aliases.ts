@@ -3,7 +3,7 @@ import {
   typedEntries,
   typedValues,
 } from "../../shared/util/typed-object-iter.js";
-import { PostprocessContext } from "../context/postprocess.js";
+import type { PostprocessContext } from "../context/postprocess.js";
 import { entityDefinitionNameForEntityType } from "../shared.js";
 
 export const generateBlockLinkTargetAliases = (

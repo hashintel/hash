@@ -1,6 +1,7 @@
-import { EntityTypeWithMetadata } from "@blockprotocol/graph";
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { createContext, PropsWithChildren, useContext, useMemo } from "react";
+import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { PropsWithChildren } from "react";
+import { createContext, useContext, useMemo } from "react";
 
 import { linkEntityTypeUrl } from "./urls";
 

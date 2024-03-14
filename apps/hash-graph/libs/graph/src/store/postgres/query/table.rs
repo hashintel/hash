@@ -33,6 +33,7 @@ pub enum Table {
     EntityTemporalMetadata,
     EntityEditions,
     EntityEmbeddings,
+    EntityIsOfTypeIds,
     Reference(ReferenceTable),
 }
 
@@ -297,6 +298,7 @@ impl Table {
             Self::EntityTemporalMetadata => "entity_temporal_metadata",
             Self::EntityEditions => "entity_editions",
             Self::EntityEmbeddings => "entity_embeddings",
+            Self::EntityIsOfTypeIds => "entity_is_of_type_ids",
             Self::Reference(table) => table.as_str(),
         }
     }
@@ -752,10 +754,10 @@ impl DataTypeEmbeddings {
         write!(fmt, r#"."{column}""#)
     }
 
-    pub const fn parameter_type(self) -> ParameterType {
+    pub fn parameter_type(self) -> ParameterType {
         match self {
             Self::OntologyId => ParameterType::Uuid,
-            Self::Embedding => ParameterType::Vector,
+            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
             Self::UpdatedAtTransactionTime => ParameterType::Timestamp,
             Self::Distance => ParameterType::F64,
         }
@@ -782,10 +784,10 @@ impl PropertyTypeEmbeddings {
         write!(fmt, r#"."{column}""#)
     }
 
-    pub const fn parameter_type(self) -> ParameterType {
+    pub fn parameter_type(self) -> ParameterType {
         match self {
             Self::OntologyId => ParameterType::Uuid,
-            Self::Embedding => ParameterType::Vector,
+            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
             Self::UpdatedAtTransactionTime => ParameterType::Timestamp,
             Self::Distance => ParameterType::F64,
         }
@@ -812,10 +814,10 @@ impl EntityTypeEmbeddings {
         write!(fmt, r#"."{column}""#)
     }
 
-    pub const fn parameter_type(self) -> ParameterType {
+    pub fn parameter_type(self) -> ParameterType {
         match self {
             Self::OntologyId => ParameterType::Uuid,
-            Self::Embedding => ParameterType::Vector,
+            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
             Self::UpdatedAtTransactionTime => ParameterType::Timestamp,
             Self::Distance => ParameterType::F64,
         }
@@ -848,10 +850,10 @@ impl EntityEmbeddings {
         write!(fmt, r#"."{column}""#)
     }
 
-    pub const fn parameter_type(self) -> ParameterType {
+    pub fn parameter_type(self) -> ParameterType {
         match self {
             Self::WebId | Self::EntityUuid => ParameterType::Uuid,
-            Self::Embedding => ParameterType::Vector,
+            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
             Self::Property => ParameterType::BaseUrl,
             Self::UpdatedAtTransactionTime | Self::UpdatedAtDecisionTime => {
                 ParameterType::Timestamp
@@ -947,6 +949,33 @@ impl EntityIsOfType {
         match self {
             Self::EntityEditionId | Self::EntityTypeOntologyId => ParameterType::Uuid,
             Self::InheritanceDepth => ParameterType::I32,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum EntityIsOfTypeIds {
+    EntityEditionId,
+    BaseUrls,
+    Versions,
+}
+
+impl EntityIsOfTypeIds {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let column = match self {
+            Self::EntityEditionId => "entity_edition_id",
+            Self::BaseUrls => "base_urls",
+            Self::Versions => "versions",
+        };
+        table.transpile(fmt)?;
+        write!(fmt, r#"."{column}""#)
+    }
+
+    pub fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::EntityEditionId => ParameterType::Uuid,
+            Self::BaseUrls => ParameterType::Vector(Box::new(ParameterType::BaseUrl)),
+            Self::Versions => ParameterType::Vector(Box::new(ParameterType::OntologyTypeVersion)),
         }
     }
 }
@@ -1216,6 +1245,7 @@ pub enum Column<'p> {
     EntityTypeConstrainsLinksOn(EntityTypeConstrainsLinksOn, Option<u32>),
     EntityTypeConstrainsLinkDestinationsOn(EntityTypeConstrainsLinkDestinationsOn, Option<u32>),
     EntityIsOfType(EntityIsOfType, Option<u32>),
+    EntityIsOfTypeIds(EntityIsOfTypeIds),
     EntityHasLeftEntity(EntityHasLeftEntity),
     EntityHasRightEntity(EntityHasRightEntity),
 }
@@ -1263,6 +1293,7 @@ impl<'p> Column<'p> {
             Self::EntityIsOfType(_, inheritance_depth) => {
                 Table::Reference(ReferenceTable::EntityIsOfType { inheritance_depth })
             }
+            Self::EntityIsOfTypeIds(_) => Table::EntityIsOfTypeIds,
             Self::EntityHasLeftEntity(_) => Table::Reference(ReferenceTable::EntityHasLeftEntity),
             Self::EntityHasRightEntity(_) => Table::Reference(ReferenceTable::EntityHasRightEntity),
         }
@@ -1358,6 +1389,7 @@ impl<'p> Column<'p> {
             Self::EntityIsOfType(column, inheritance_depth) => {
                 (Column::EntityIsOfType(column, inheritance_depth), None)
             }
+            Self::EntityIsOfTypeIds(column) => (Column::EntityIsOfTypeIds(column), None),
             Self::EntityHasLeftEntity(column) => (Column::EntityHasLeftEntity(column), None),
             Self::EntityHasRightEntity(column) => (Column::EntityHasRightEntity(column), None),
         }
@@ -1400,12 +1432,13 @@ impl Column<'static> {
                 column.transpile_column(table, fmt)
             }
             Self::EntityIsOfType(column, _) => column.transpile_column(table, fmt),
+            Self::EntityIsOfTypeIds(column) => column.transpile_column(table, fmt),
             Self::EntityHasLeftEntity(column) => column.transpile_column(table, fmt),
             Self::EntityHasRightEntity(column) => column.transpile_column(table, fmt),
         }
     }
 
-    pub const fn parameter_type(self) -> ParameterType {
+    pub fn parameter_type(self) -> ParameterType {
         match self {
             Self::OntologyIds(column) => column.parameter_type(),
             Self::OntologyTemporalMetadata(column) => column.parameter_type(),
@@ -1429,6 +1462,7 @@ impl Column<'static> {
             Self::EntityTypeConstrainsLinksOn(column, _) => column.parameter_type(),
             Self::EntityTypeConstrainsLinkDestinationsOn(column, _) => column.parameter_type(),
             Self::EntityIsOfType(column, _) => column.parameter_type(),
+            Self::EntityIsOfTypeIds(column) => column.parameter_type(),
             Self::EntityHasLeftEntity(column) => column.parameter_type(),
             Self::EntityHasRightEntity(column) => column.parameter_type(),
         }
@@ -1524,6 +1558,7 @@ pub enum Relation {
     DataTypeIds,
     PropertyTypeIds,
     EntityTypeIds,
+    EntityIsOfTypes,
     EntityIds,
     EntityEditions,
     DataTypeEmbeddings,
@@ -1642,6 +1677,10 @@ impl Relation {
             Self::EntityTypeIds => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
                 on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
                 join: Column::EntityTypes(EntityTypes::OntologyId),
+            }),
+            Self::EntityIsOfTypes => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
+                join: Column::EntityIsOfTypeIds(EntityIsOfTypeIds::EntityEditionId),
             }),
             Self::EntityTypeEmbeddings => {
                 ForeignKeyJoin::from_reference(ForeignKeyReference::Single {

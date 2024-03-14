@@ -1,27 +1,26 @@
-import { GridCellKind, Item } from "@glideapps/glide-data-grid";
+import type { Item } from "@glideapps/glide-data-grid";
+import { GridCellKind } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
 
-import {
-  BlankCell,
-  blankCell,
-} from "../../../../../../../components/grid/utils";
-import { UseGridTooltipResponse } from "../../../../../../../components/grid/utils/use-grid-tooltip/types";
-import { ChipCell } from "../../../../../../shared/chip-cell";
+import type { BlankCell } from "../../../../../../../components/grid/utils";
+import { blankCell } from "../../../../../../../components/grid/utils";
+import type { UseGridTooltipResponse } from "../../../../../../../components/grid/utils/use-grid-tooltip/types";
+import type { ChipCell } from "../../../../../../shared/chip-cell";
 import { useEntityEditor } from "../../entity-editor-context";
-import { SummaryChipCell } from "../../shared/summary-chip-cell";
+import type { SummaryChipCell } from "../../shared/summary-chip-cell";
 import { getPropertyCountSummary } from "../get-property-count-summary";
 import { isValueEmpty } from "../is-value-empty";
-import { ChangeTypeCell } from "./cells/change-type-cell";
-import { PropertyNameCell } from "./cells/property-name-cell";
+import type { ChangeTypeCell } from "./cells/change-type-cell";
+import type { PropertyNameCell } from "./cells/property-name-cell";
 import { getEditorSpecs } from "./cells/value-cell/editor-specs";
-import { ValueCell } from "./cells/value-cell/types";
+import type { ValueCell } from "./cells/value-cell/types";
 import {
   guessEditorTypeFromExpectedType,
   guessEditorTypeFromValue,
 } from "./cells/value-cell/utils";
 import { propertyGridIndexes } from "./constants";
 import { getTooltipsOfPropertyRow } from "./get-tooltips-of-property-row";
-import { PropertyRow } from "./types";
+import type { PropertyRow } from "./types";
 
 export const useCreateGetCellContent = (
   showTooltip: UseGridTooltipResponse["showTooltip"],

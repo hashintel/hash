@@ -1,14 +1,15 @@
 import "@glideapps/glide-data-grid/dist/index.css";
 
-import {
-  DataEditor,
+import type {
   DataEditorProps,
   DataEditorRef,
   Theme,
 } from "@glideapps/glide-data-grid";
+import { DataEditor } from "@glideapps/glide-data-grid";
 import { Box, useTheme } from "@mui/material";
 import uniqueId from "lodash.uniqueid";
-import { Ref, useEffect, useMemo, useRef, useState } from "react";
+import type { Ref } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { getScrollBarWidth } from "./get-scrollbar-width";
 import { useRenderGridPortal } from "./use-render-grid-portal";

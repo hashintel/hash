@@ -1,8 +1,7 @@
-import type { DrawArgs } from "@glideapps/glide-data-grid";
-import { CustomCell } from "@glideapps/glide-data-grid";
+import type { CustomCell, DrawArgs } from "@glideapps/glide-data-grid";
 import { typedKeys } from "@local/advanced-types/typed-entries";
 
-import {
+import type {
   CellPath,
   ColumnHeaderDrawArgs,
   ColumnHeaderPath,

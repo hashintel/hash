@@ -7,7 +7,10 @@ import { convert } from "html-to-text";
 import { dump } from "js-yaml";
 
 import { logger } from "../../logger";
-import { EmailTransporter, EmailTransporterSendMailOptions } from "./types";
+import type {
+  EmailTransporter,
+  EmailTransporterSendMailOptions,
+} from "./types";
 
 interface PlainEmailDump {
   date: string;

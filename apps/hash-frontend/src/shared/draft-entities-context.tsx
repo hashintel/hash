@@ -4,18 +4,12 @@ import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph/.";
+import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph/.";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import {
-  createContext,
-  FunctionComponent,
-  PropsWithChildren,
-  useContext,
-  useMemo,
-  useState,
-} from "react";
+import type { FunctionComponent, PropsWithChildren } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 
-import {
+import type {
   StructuralQueryEntitiesQuery,
   StructuralQueryEntitiesQueryVariables,
 } from "../graphql/api-types.gen";

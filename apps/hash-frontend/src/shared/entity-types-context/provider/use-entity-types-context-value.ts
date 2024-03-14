@@ -1,10 +1,10 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
-import { EntityTypeWithMetadata } from "@local/hash-subgraph";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { getEntityTypes } from "@local/hash-subgraph/stdlib";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { useBlockProtocolQueryEntityTypes } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-entity-types";
-import { EntityTypesContextValue } from "../shared/context-types";
+import type { EntityTypesContextValue } from "../shared/context-types";
 import {
   getParentIds,
   isSpecialEntityType,

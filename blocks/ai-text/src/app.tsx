@@ -7,7 +7,7 @@ import { theme } from "@hashintel/design-system/theme";
 import { ThemeProvider } from "@mui/material";
 
 import { GenerateText } from "./app/generate-text";
-import { BlockEntity } from "./types/generated/block-entity";
+import type { BlockEntity } from "./types/generated/block-entity";
 
 export const contentKey: keyof BlockEntity["properties"] =
   "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/";

@@ -1,11 +1,5 @@
-import {
-  createContext,
-  FunctionComponent,
-  ReactNode,
-  useContext,
-  useMemo,
-  useState,
-} from "react";
+import type { FunctionComponent, ReactNode } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 
 type SidebarContextState = {
   sidebarOpen: boolean;

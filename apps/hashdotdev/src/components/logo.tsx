@@ -1,4 +1,4 @@
-import { ComponentProps, FunctionComponent } from "react";
+import type { ComponentProps, FunctionComponent } from "react";
 
 import { HashDotDevLogo } from "./icons/hash-dot-dev-logo";
 import { Link } from "./link";
@@ -14,6 +14,6 @@ export const Logo: FunctionComponent<
     ]}
     {...props}
   >
-    <HashDotDevLogo />
+    <HashDotDevLogo sx={{ height: 19, width: 158 }} />
   </Link>
 );

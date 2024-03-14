@@ -1,4 +1,4 @@
-use std::{convert::identity, str::FromStr};
+use std::convert::identity;
 
 use graph_types::{
     knowledge::{
@@ -14,12 +14,11 @@ use temporal_versioning::{
     ClosedTemporalBound, LeftClosedTemporalInterval, TemporalTagged, TimeAxis,
 };
 use tokio_postgres::Row;
-use type_system::url::VersionedUrl;
+use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 use uuid::Uuid;
 
 use crate::{
     knowledge::EntityQueryPath,
-    ontology::EntityTypeQueryPath,
     store::{
         crud::{Sorting, VertexIdSorting},
         postgres::{
@@ -33,7 +32,7 @@ use crate::{
         NullOrdering, Ordering,
     },
     subgraph::{
-        edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
+        edges::{EdgeDirection, KnowledgeGraphEdgeKind},
         identifier::EntityVertexId,
         temporal_axes::{QueryTemporalAxes, VariableAxis},
     },
@@ -176,7 +175,8 @@ pub struct EntityRecordRowIndices {
     pub decision_time: usize,
 
     pub edition_id: usize,
-    pub type_id: usize,
+    pub type_base_urls_id: usize,
+    pub type_versions_id: usize,
 
     pub properties: usize,
 
@@ -236,9 +236,6 @@ impl QueryRecordDecode for Entity {
     type Output = Self;
 
     fn decode(row: &Row, indices: &Self::CompilationArtifacts) -> Self {
-        let entity_type_id = VersionedUrl::from_str(row.get(indices.type_id))
-            .expect("Malformed entity type ID returned from Postgres");
-
         let link_data = {
             let left_owned_by_id: Option<Uuid> = row.get(indices.left_entity_owned_by_id);
             let left_entity_uuid: Option<Uuid> = row.get(indices.left_entity_uuid);
@@ -301,7 +298,12 @@ impl QueryRecordDecode for Entity {
                     decision_time: row.get(indices.decision_time),
                     transaction_time: row.get(indices.transaction_time),
                 },
-                entity_type_ids: vec![entity_type_id],
+                entity_type_ids: row
+                    .get::<_, Vec<BaseUrl>>(indices.type_base_urls_id)
+                    .into_iter()
+                    .zip(row.get::<_, Vec<OntologyTypeVersion>>(indices.type_versions_id))
+                    .map(|(base_url, version)| VersionedUrl { base_url, version })
+                    .collect(),
                 provenance: EntityProvenanceMetadata {
                     created_by_id: row.get(indices.created_by_id),
                     created_at_transaction_time: row.get(indices.created_at_transaction_time),
@@ -363,11 +365,8 @@ impl PostgresRecord for Entity {
             ),
 
             edition_id: compiler.add_selection_path(&EntityQueryPath::EditionId),
-            type_id: compiler.add_selection_path(&EntityQueryPath::EntityTypeEdge {
-                edge_kind: SharedEdgeKind::IsOfType,
-                path: EntityTypeQueryPath::VersionedUrl,
-                inheritance_depth: Some(0),
-            }),
+            type_base_urls_id: compiler.add_selection_path(&EntityQueryPath::TypeBaseUrls),
+            type_versions_id: compiler.add_selection_path(&EntityQueryPath::TypeVersions),
 
             properties: compiler.add_selection_path(&EntityQueryPath::Properties(None)),
 

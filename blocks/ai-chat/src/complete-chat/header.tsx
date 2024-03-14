@@ -10,10 +10,13 @@ import {
   selectClasses,
   Typography,
 } from "@mui/material";
-import { FunctionComponent, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useState } from "react";
 
-import { ChatModelId, ChatModelSelector } from "./chat-model-selector";
-import { SystemPromptId, SystemPromptSelector } from "./system-prompt-selector";
+import type { ChatModelId } from "./chat-model-selector";
+import { ChatModelSelector } from "./chat-model-selector";
+import type { SystemPromptId } from "./system-prompt-selector";
+import { SystemPromptSelector } from "./system-prompt-selector";
 
 export const Header: FunctionComponent<{
   readonly: boolean;

@@ -1,16 +1,16 @@
 import { useMutation } from "@apollo/client";
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type {
   Entity,
   EntityId,
   EntityPropertiesObject,
   OwnedById,
 } from "@local/hash-subgraph";
-import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import type { PropsWithChildren } from "react";
 import {
   createContext,
-  PropsWithChildren,
   useCallback,
   useContext,
   useMemo,
@@ -18,13 +18,12 @@ import {
 } from "react";
 import { v4 as uuid } from "uuid";
 
-import { UploadFileRequestData } from "../components/hooks/block-protocol-functions/knowledge/knowledge-shim";
-import {
+import type { UploadFileRequestData } from "../components/hooks/block-protocol-functions/knowledge/knowledge-shim";
+import type {
   AddEntityViewerMutation,
   AddEntityViewerMutationVariables,
   ArchiveEntityMutation,
   ArchiveEntityMutationVariables,
-  AuthorizationSubjectKind,
   CreateEntityMutation,
   CreateEntityMutationVariables,
   CreateFileFromUrlMutation,
@@ -35,6 +34,7 @@ import {
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../graphql/api-types.gen";
+import { AuthorizationSubjectKind } from "../graphql/api-types.gen";
 import {
   addEntityViewerMutation,
   archiveEntityMutation,

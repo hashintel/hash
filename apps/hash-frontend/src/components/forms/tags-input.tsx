@@ -1,5 +1,6 @@
 import { Box } from "@mui/material";
-import { FunctionComponent, KeyboardEvent, useRef } from "react";
+import type { FunctionComponent, KeyboardEvent } from "react";
+import { useRef } from "react";
 
 type TagsInputProps = {
   minHeight?: number;

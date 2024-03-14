@@ -2,19 +2,21 @@ import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import {
+import type {
   OrganizationProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
+import type {
   Entity,
   EntityId,
-  entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
+  Subgraph,
+} from "@local/hash-subgraph";
+import {
+  entityIdFromOwnedByIdAndEntityUuid,
   extractDraftIdFromEntityId,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
-  Subgraph,
 } from "@local/hash-subgraph";
 import {
   getEntityTypeById,
@@ -23,10 +25,11 @@ import {
   getPropertyTypeForEntity,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
-import { RequestHandler } from "express";
+import type { RequestHandler } from "express";
 
 import { getLatestEntityById } from "../../graph/knowledge/primitive/entity";
-import { getUserSimpleWebs, SimpleWeb } from "./shared/webs";
+import type { SimpleWeb } from "./shared/webs";
+import { getUserSimpleWebs } from "./shared/webs";
 
 const stringifyResults = (
   items: SimpleWeb[] | SimpleEntityType[] | SimpleEntity[],

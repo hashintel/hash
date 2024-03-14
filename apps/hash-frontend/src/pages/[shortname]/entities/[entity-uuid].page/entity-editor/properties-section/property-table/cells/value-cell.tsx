@@ -1,15 +1,10 @@
-import { JsonValue } from "@blockprotocol/core";
-import {
-  CustomCell,
-  CustomRenderer,
-  GridCellKind,
-} from "@glideapps/glide-data-grid";
+import type { JsonValue } from "@blockprotocol/core";
+import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
+import { GridCellKind } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
-import {
-  formatDataValue,
-  FormattedValuePart,
-} from "@local/hash-isomorphic-utils/data-types";
-import { DataTypeWithMetadata } from "@local/hash-subgraph";
+import type { FormattedValuePart } from "@local/hash-isomorphic-utils/data-types";
+import { formatDataValue } from "@local/hash-isomorphic-utils/data-types";
+import type { DataTypeWithMetadata } from "@local/hash-subgraph";
 
 import {
   getCellHorizontalPadding,
@@ -23,7 +18,7 @@ import { isValueEmpty } from "../../is-value-empty";
 import { ArrayEditor } from "./value-cell/array-editor";
 import { getEditorSpecs } from "./value-cell/editor-specs";
 import { SingleValueEditor } from "./value-cell/single-value-editor";
-import { ValueCell } from "./value-cell/types";
+import type { ValueCell } from "./value-cell/types";
 import { guessEditorTypeFromValue } from "./value-cell/utils";
 
 const guessDataTypeFromValue = (

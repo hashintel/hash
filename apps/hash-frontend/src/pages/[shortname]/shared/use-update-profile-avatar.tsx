@@ -2,10 +2,10 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { EntityId, OwnedById } from "@local/hash-subgraph";
+import type { EntityId, OwnedById } from "@local/hash-subgraph";
 import { useCallback, useState } from "react";
 
-import { Org, User } from "../../../lib/user-and-org";
+import type { Org, User } from "../../../lib/user-and-org";
 import { useFileUploads } from "../../../shared/file-upload-context";
 import { useAuthInfo } from "../../shared/auth-info-context";
 

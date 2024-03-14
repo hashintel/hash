@@ -1,5 +1,8 @@
-import { BlockVariant } from "@blockprotocol/core";
-import { HashBlock, HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
+import type { BlockVariant } from "@blockprotocol/core";
+import type {
+  HashBlock,
+  HashBlockMeta,
+} from "@local/hash-isomorphic-utils/blocks";
 import { useMemo } from "react";
 
 import { fuzzySearchBy } from "./fuzzy-search-by";

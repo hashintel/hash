@@ -1,5 +1,6 @@
 import { Box, Stack, Typography } from "@mui/material";
-import { forwardRef, PropsWithChildren, ReactNode } from "react";
+import type { PropsWithChildren, ReactNode } from "react";
+import { forwardRef } from "react";
 
 export const SettingsPageContainer = forwardRef<
   HTMLSpanElement,

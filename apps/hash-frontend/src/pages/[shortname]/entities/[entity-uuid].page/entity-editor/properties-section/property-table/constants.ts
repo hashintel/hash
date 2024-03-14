@@ -1,4 +1,4 @@
-import { PropertyColumn, PropertyColumnKey } from "./types";
+import type { PropertyColumn, PropertyColumnKey } from "./types";
 
 export const propertyGridColumns: PropertyColumn[] = [
   {

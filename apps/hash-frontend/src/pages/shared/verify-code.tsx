@@ -1,16 +1,14 @@
 import { Box } from "@mui/material";
-import {
+import type {
   ClipboardEventHandler,
   FormEvent,
   FunctionComponent,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
 } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { KeyboardReturnIcon } from "../../shared/icons";
-import { InvitationInfo, SYNTHETIC_LOADING_TIME_MS } from "./auth-utils";
+import type { InvitationInfo } from "./auth-utils";
+import { SYNTHETIC_LOADING_TIME_MS } from "./auth-utils";
 import { InviteHeader } from "./invite-header";
 
 type VerifyCodeProps = {

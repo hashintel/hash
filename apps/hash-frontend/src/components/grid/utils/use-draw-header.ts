@@ -1,15 +1,18 @@
-import { DrawHeaderCallback, GridColumn } from "@glideapps/glide-data-grid";
+import type {
+  DrawHeaderCallback,
+  GridColumn,
+} from "@glideapps/glide-data-grid";
 import { useTheme } from "@mui/material";
 import { useCallback } from "react";
 
 import { getCellHorizontalPadding, getYCenter } from "../utils";
-import { ColumnFilter } from "./filtering";
+import type { ColumnFilter } from "./filtering";
 import { InteractableManager } from "./interactable-manager";
-import {
+import type {
   Interactable,
   InteractablePosition,
 } from "./interactable-manager/types";
-import { ColumnSort } from "./sorting";
+import type { ColumnSort } from "./sorting";
 
 export const useDrawHeader = <T extends string>(props: {
   tableId: string;

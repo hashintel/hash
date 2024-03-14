@@ -1,4 +1,4 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import {
   faAdd,
   faAsterisk,
@@ -8,8 +8,9 @@ import {
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Menu } from "@mui/material";
-import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
-import { FunctionComponent } from "react";
+import type { PopupState } from "material-ui-popup-state/hooks";
+import { bindMenu } from "material-ui-popup-state/hooks";
+import type { FunctionComponent } from "react";
 
 import { useEntityTypesContextRequired } from "../../../entity-types-context/hooks/use-entity-types-context-required";
 import { generateLinkParameters } from "../../../generate-link-parameters";

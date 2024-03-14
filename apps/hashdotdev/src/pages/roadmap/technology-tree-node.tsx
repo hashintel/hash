@@ -1,9 +1,10 @@
 import { Box, IconButton, Tooltip, Typography } from "@mui/material";
-import { Fragment, FunctionComponent, RefObject } from "react";
+import type { FunctionComponent, RefObject } from "react";
+import { Fragment } from "react";
 
 import { CircleInfoRegularIcon } from "../../components/icons/circle-info-regular-icon";
 import { statuses } from "./statuses";
-import { TechnologyTreeNodeData } from "./technology-tree-data";
+import type { TechnologyTreeNodeData } from "./technology-tree-data";
 import { useCases } from "./use-cases";
 import { variants } from "./variants";
 

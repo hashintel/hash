@@ -1,11 +1,13 @@
-import { GetStaticPaths, GetStaticProps, NextPage } from "next";
-import { MDXRemoteSerializeResult } from "next-mdx-remote";
+import type { GetStaticPaths, GetStaticProps, NextPage } from "next";
+import type { MDXRemoteSerializeResult } from "next-mdx-remote";
 
-import {
+import type {
   BlogPagePhotos,
+  BlogPostPagePhoto,
+} from "../../components/blog-post";
+import {
   BlogPostContent,
   BlogPostHead,
-  BlogPostPagePhoto,
   BlogPostPhotosContext,
 } from "../../components/blog-post";
 import { MdxPageContent } from "../../components/mdx-page-content";

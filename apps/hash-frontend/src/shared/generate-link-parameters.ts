@@ -1,6 +1,6 @@
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { sanitizeHref } from "@local/hash-isomorphic-utils/sanitize";
-import { Url } from "next/dist/shared/lib/router/router";
+import type { Url } from "next/dist/shared/lib/router/router";
 
 import { isHrefExternal } from "./is-href-external";
 

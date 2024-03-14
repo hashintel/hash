@@ -1,13 +1,13 @@
 import { ApolloError } from "apollo-server-errors";
 import oEmbedData from "oembed-providers/providers.json";
 
-import {
+import type {
   Embed,
   Maybe,
   QueryEmbedCodeArgs,
   ResolverFn,
 } from "../../api-types.gen";
-import { GraphQLContext } from "../../context";
+import type { GraphQLContext } from "../../context";
 
 oEmbedData.unshift({
   provider_name: "HASH",

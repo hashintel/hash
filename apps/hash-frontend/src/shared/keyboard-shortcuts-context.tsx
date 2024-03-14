@@ -1,7 +1,6 @@
+import type { FunctionComponent, PropsWithChildren } from "react";
 import {
   createContext,
-  FunctionComponent,
-  PropsWithChildren,
   useCallback,
   useContext,
   useEffect,

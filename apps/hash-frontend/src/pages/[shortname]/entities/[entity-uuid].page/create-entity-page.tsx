@@ -1,11 +1,9 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
-  EntityPropertiesObject,
-  extractEntityUuidFromEntityId,
-} from "@local/hash-subgraph";
+import type { EntityPropertiesObject } from "@local/hash-subgraph";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Typography } from "@mui/material";
 import { useRouter } from "next/router";

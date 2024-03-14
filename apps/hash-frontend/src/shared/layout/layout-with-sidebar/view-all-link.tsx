@@ -1,5 +1,6 @@
-import { LinkProps, Typography } from "@mui/material";
-import { FunctionComponent, ReactNode } from "react";
+import type { LinkProps } from "@mui/material";
+import { Typography } from "@mui/material";
+import type { FunctionComponent, ReactNode } from "react";
 
 import { ArrowRightIcon } from "../../icons/arrow-right";
 import { Link } from "../../ui";
