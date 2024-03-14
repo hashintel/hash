@@ -1,6 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
+  AllFilter,
   EntityMetadata,
   EntityPermission,
   EntityStructuralQuery,
@@ -239,7 +240,23 @@ export const getLatestEntityById: ImpureGraphFunction<
 > = async (context, authentication, params) => {
   const { entityId, includeDrafts = false } = params;
 
-  const [ownedById, entityUuid] = splitEntityId(entityId);
+  const [ownedById, entityUuid, draftId] = splitEntityId(entityId);
+
+  const allFilter: AllFilter["all"] = [
+    {
+      equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+    },
+    {
+      equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+    },
+    { equal: [{ path: ["archived"] }, { parameter: false }] },
+  ];
+
+  if (draftId) {
+    allFilter.push({
+      equal: [{ path: ["draftId"] }, { parameter: draftId }],
+    });
+  }
 
   const [entity, ...unexpectedEntities] = await getEntities(
     context,
@@ -247,15 +264,7 @@ export const getLatestEntityById: ImpureGraphFunction<
     {
       query: {
         filter: {
-          all: [
-            {
-              equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
-            },
-            {
-              equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
-            },
-            { equal: [{ path: ["archived"] }, { parameter: false }] },
-          ],
+          all: allFilter,
         },
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,

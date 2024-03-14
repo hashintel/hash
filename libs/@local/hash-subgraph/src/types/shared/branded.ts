@@ -61,10 +61,17 @@ export const isEntityId = (entityId: string): entityId is EntityId => {
   );
 };
 
-export const entityIdFromOwnedByIdAndEntityUuid = (
+export const entityIdFromComponents = (
   ownedById: OwnedById,
   entityUuid: EntityUuid,
+  draftId?: DraftId,
 ): EntityId => {
+  const base = `${ownedById}${ENTITY_ID_DELIMITER}${entityUuid}`;
+
+  if (draftId) {
+    return `${base}${ENTITY_ID_DELIMITER}${draftId}` as EntityId;
+  }
+
   return `${ownedById}${ENTITY_ID_DELIMITER}${entityUuid}` as EntityId;
 };
 

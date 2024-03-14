@@ -6,8 +6,10 @@ import type { FunctionComponent } from "react";
 import { useCallback } from "react";
 
 import type { ButtonProps } from "../../../../../shared/ui";
+import { Link } from "../../../../../shared/ui";
 import { AcceptDraftEntityButton } from "../../../../shared/accept-draft-entity-button";
 import { DiscardDraftEntityButton } from "../../../../shared/discard-draft-entity-button";
+import { generateEntityHref } from "../../../../shared/use-entity-href";
 
 const buttonSx: ButtonProps["sx"] = ({ palette }) => ({
   minWidth: 0,
@@ -34,17 +36,22 @@ export const DraftEntityBanner: FunctionComponent<{
   draftEntitySubgraph: Subgraph<EntityRootType>;
   isModifyingEntity?: boolean;
   onAcceptedEntity?: (entity: Entity) => void;
+  owningShortname: string;
 }> = ({
   draftEntity,
   draftEntitySubgraph,
   isModifyingEntity = false,
   onAcceptedEntity,
+  owningShortname,
 }) => {
   const router = useRouter();
 
   const handleDiscardedEntity = useCallback(() => {
     void router.push("/drafts");
   }, [router]);
+
+  const isUpdate =
+    !!draftEntity.metadata.provenance.firstNonDraftCreatedAtDecisionTime;
 
   return (
     <Box
@@ -78,11 +85,32 @@ export const DraftEntityBanner: FunctionComponent<{
             }}
           />
           This is a{" "}
-          <strong>draft {draftEntity.linkData ? "link" : "entity"}</strong>
+          <strong>
+            draft{" "}
+            {isUpdate
+              ? `update to ${draftEntity.linkData ? "a " : "an "}`
+              : "new"}
+            {draftEntity.linkData ? "link" : "entity"}
+          </strong>
+          {isUpdate && (
+            <>
+              <Box component="span"> –</Box>
+              <Link
+                href={generateEntityHref({
+                  entityId: draftEntity.metadata.recordId.entityId,
+                  includeDraftId: false,
+                  shortname: owningShortname,
+                })}
+                sx={{ fontWeight: 600, ml: 0.5 }}
+              >
+                view live version
+              </Link>
+            </>
+          )}
         </Typography>
         {isModifyingEntity ? (
           <Typography sx={{ fontSize: 14 }}>
-            Save changes in order to discard or create this entity.
+            Save or discard changes to the draft before deciding its fate
           </Typography>
         ) : (
           <Box display="flex" gap={1.5}>
@@ -102,7 +130,9 @@ export const DraftEntityBanner: FunctionComponent<{
               variant="secondary"
               sx={buttonSx}
             >
-              Create this {draftEntity.linkData ? "link" : "entity"}
+              {isUpdate
+                ? "Publish changes"
+                : `Create this ${draftEntity.linkData ? "link" : "entity"}`}
             </AcceptDraftEntityButton>
           </Box>
         )}

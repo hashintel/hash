@@ -124,7 +124,7 @@ export const GridViewItem: FunctionComponent<{
     return defaultFileIcon;
   }, [fileEntity]);
 
-  const href = useEntityHref(entity);
+  const href = useEntityHref(entity, false);
 
   const imageUrl = useMemo(() => {
     const { isImage, url } = getFileUrlFromFileProperties(entity.properties);

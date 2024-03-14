@@ -38,7 +38,7 @@ export const DraftEntity: FunctionComponent<{
 
   const [displayEntityModal, setDisplayEntityModal] = useState<boolean>(false);
 
-  const href = useEntityHref(entity);
+  const href = useEntityHref(entity, true);
 
   const label = useMemo(
     () => generateEntityLabel(subgraph, entity),

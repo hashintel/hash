@@ -76,7 +76,8 @@ export const DraftEntities: FunctionComponent<{
 
     const derived = draftEntities.map((entity) => {
       const creator = actors.find(
-        (actor) => actor.accountId === entity.metadata.provenance.createdById,
+        (actor) =>
+          actor.accountId === entity.metadata.provenance.edition.createdById,
       );
 
       if (!creator) {

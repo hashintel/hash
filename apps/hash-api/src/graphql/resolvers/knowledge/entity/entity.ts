@@ -254,7 +254,7 @@ export const getEntityResolver: ResolverFn<
   graphQLContext,
   info,
 ) => {
-  const [ownedById, entityUuid] = splitEntityId(entityId);
+  const [ownedById, entityUuid, draftId] = splitEntityId(entityId);
 
   const filter: Filter = {
     all: [
@@ -266,6 +266,11 @@ export const getEntityResolver: ResolverFn<
       },
     ],
   };
+  if (draftId) {
+    filter.all.push({
+      equal: [{ path: ["draftId"] }, { parameter: draftId }],
+    });
+  }
 
   // If an entity version is specified, the result is constrained to that version.
   // This is done by providing a time interval with the same start and end as given by the version.

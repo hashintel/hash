@@ -34,7 +34,7 @@ export const EntityPageHeader = ({
 }) => {
   const router = useRouter();
 
-  const paramsShortname = router.query.shortname;
+  const paramsShortname = router.query.shortname as string | undefined;
   const { activeWorkspace } = useContext(WorkspaceContext);
 
   const shortname = paramsShortname?.slice(1) ?? activeWorkspace?.shortname;
@@ -74,6 +74,7 @@ export const EntityPageHeader = ({
               draftEntitySubgraph={entitySubgraph}
               isModifyingEntity={isModifyingEntity}
               onAcceptedEntity={onEntityUpdated}
+              owningShortname={shortname}
             />
           </Collapse>
         </NotificationsWithLinksContextProvider>

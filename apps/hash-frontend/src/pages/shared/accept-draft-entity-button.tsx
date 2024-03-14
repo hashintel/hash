@@ -120,7 +120,16 @@ export const AcceptDraftEntityButton: FunctionComponent<
     return {};
   }, [draftEntity, draftEntitySubgraph]);
 
-  const hasLeftOrRightDraftEntity = !!draftLeftEntity || !!draftRightEntity;
+  const isUpdate =
+    !!draftEntity.metadata.provenance.firstNonDraftCreatedAtDecisionTime;
+
+  /**
+   * Links cannot be made live without live left && right entities, so if this is a draft update to a live link
+   * there must already be live left and right entities, and the user doesn't need to accept draft updates to
+   * those at the same time – they may be unwanted.
+   */
+  const hasLeftOrRightDraftEntityThatMustBeUndrafted =
+    !isUpdate && (!!draftLeftEntity || !!draftRightEntity);
 
   const [updateEntity] = useMutation<
     UpdateEntityMutation,
@@ -138,6 +147,9 @@ export const AcceptDraftEntityButton: FunctionComponent<
         notifications?.filter(
           ({ kind, occurredInEntity }) =>
             kind === "graph-change" &&
+            /**
+             * @todo this will archive other notifications re. draft updates, that may be created by other users
+             */
             occurredInEntity.metadata.recordId.entityId ===
               params.draftEntity.metadata.recordId.entityId,
         ) ?? [];
@@ -181,7 +193,7 @@ export const AcceptDraftEntityButton: FunctionComponent<
   );
 
   const handleAccept = useCallback(async () => {
-    if (hasLeftOrRightDraftEntity) {
+    if (hasLeftOrRightDraftEntityThatMustBeUndrafted) {
       setShowDraftLinkEntityWithDraftLeftOrRightEntityWarning(true);
     } else {
       const acceptedEntity = await acceptDraftEntity({ draftEntity });
@@ -189,7 +201,7 @@ export const AcceptDraftEntityButton: FunctionComponent<
     }
   }, [
     onAcceptedEntity,
-    hasLeftOrRightDraftEntity,
+    hasLeftOrRightDraftEntityThatMustBeUndrafted,
     acceptDraftEntity,
     draftEntity,
   ]);

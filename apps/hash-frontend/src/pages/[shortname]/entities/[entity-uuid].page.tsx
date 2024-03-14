@@ -4,6 +4,8 @@ import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-u
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
+  DraftId,
+  Entity,
   EntityId,
   EntityPropertiesObject,
   EntityRootType,
@@ -11,7 +13,10 @@ import type {
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
-import { entityIdFromOwnedByIdAndEntityUuid } from "@local/hash-subgraph";
+import {
+  entityIdFromComponents,
+  extractDraftIdFromEntityId,
+} from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import NextErrorComponent from "next/error";
 import { useRouter } from "next/router";
@@ -34,9 +39,59 @@ import { updateEntitySubgraphStateByEntity } from "./[entity-uuid].page/shared/u
 import { useApplyDraftLinkEntityChanges } from "./[entity-uuid].page/shared/use-apply-draft-link-entity-changes";
 import { useDraftLinkState } from "./[entity-uuid].page/shared/use-draft-link-state";
 
+/**
+ * Get the desired entity from the subgraph.
+ *
+ * A subgraph at a single point in time may have multiple versions of the entity in one of the following combinations:
+ * 1. Zero live versions (i.e. non-draft), and a single draft version – without a live entity, there is only a single draft series,
+ *    because there cannot be multiple draft series without an existing live entity to base them on top of.
+ * 2. One live version, and zero or more draft updates to that live version.
+ *
+ * In a subgraph requested for a time interval covering multiple points in time, there would potentially be multiple editions
+ * of each of the series mentioned in the above combinations (e.g. many editions of a single live series, many editions of each update series).
+ *
+ * @returns If a specific draft is requested, it is returned, otherwise nothing is returned
+ *          – we shouldn't return some other version of the entity, because requesting a draft that doesn't exist is a bug.
+ *          If no specific draft is requested, the live version is returned if it exists, otherwise the single draft that should be present.
+ */
+const getEntityFromSubgraph = (
+  subgraph: Subgraph<EntityRootType>,
+  draftId?: string,
+): Entity | undefined => {
+  const entities = getRoots(subgraph);
+
+  console.log({ entities });
+
+  if (draftId) {
+    return entities.find(
+      (entity) =>
+        extractDraftIdFromEntityId(entity.metadata.recordId.entityId) ===
+        draftId,
+    );
+  }
+
+  const liveVersion = entities.find(
+    (entity) => !extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
+  );
+
+  if (liveVersion) {
+    return liveVersion;
+  }
+
+  if (entities.length === 1) {
+    return entities[0];
+  }
+
+  throw new Error(
+    "Multiple roots present in entity subgraph without a live series – only one draft entity should be present",
+  );
+};
+
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
   const entityUuid = router.query["entity-uuid"] as EntityUuid;
+  const draftId = router.query.draftId as DraftId | undefined;
+
   const { routeNamespace } = useRouteNamespace();
   const [lazyGetEntity] = useLazyQuery<GetEntityQuery, GetEntityQueryVariables>(
     getEntityQuery,
@@ -54,7 +109,8 @@ const Page: NextPageWithLayout = () => {
   const [isReadOnly, setIsReadOnly] = useState(true);
 
   const entityFromDb =
-    entitySubgraphFromDb && getRoots(entitySubgraphFromDb)[0];
+    entitySubgraphFromDb &&
+    getEntityFromSubgraph(entitySubgraphFromDb, draftId);
 
   const [isDirty, setIsDirty] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -73,10 +129,10 @@ const Page: NextPageWithLayout = () => {
           isOfType: { outgoing: 1 },
           hasLeftEntity: { outgoing: 1, incoming: 1 },
           hasRightEntity: { outgoing: 1, incoming: 1 },
-          includeDrafts: true,
+          includeDrafts: !!draftId,
         },
       }),
-    [lazyGetEntity],
+    [draftId, lazyGetEntity],
   );
 
   const [
@@ -90,9 +146,10 @@ const Page: NextPageWithLayout = () => {
     if (routeNamespace) {
       const init = async () => {
         try {
-          const entityId = entityIdFromOwnedByIdAndEntityUuid(
+          const entityId = entityIdFromComponents(
             routeNamespace.accountId as OwnedById,
             entityUuid,
+            draftId,
           );
 
           const { data } = await getEntity(entityId);
@@ -108,7 +165,7 @@ const Page: NextPageWithLayout = () => {
               setEntitySubgraphFromDb(subgraph);
               setDraftEntitySubgraph(subgraph);
               setIsReadOnly(
-                !data.getEntity.userPermissionsOnEntities?.[entityId]?.edit,
+                !data.getEntity.userPermissionsOnEntities?.[entityId].edit,
               );
             } catch {
               setEntitySubgraphFromDb(undefined);
@@ -123,16 +180,17 @@ const Page: NextPageWithLayout = () => {
 
       void init();
     }
-  }, [entityUuid, getEntity, getEntityType, routeNamespace]);
+  }, [draftId, entityUuid, getEntity, getEntityType, routeNamespace]);
 
   const refetch = async () => {
     if (!routeNamespace || !draftEntitySubgraph) {
       return;
     }
 
-    const entityId = entityIdFromOwnedByIdAndEntityUuid(
+    const entityId = entityIdFromComponents(
       routeNamespace.accountId as OwnedById,
       entityUuid,
+      draftId,
     );
 
     const { data } = await getEntity(entityId);
@@ -166,7 +224,7 @@ const Page: NextPageWithLayout = () => {
       return;
     }
 
-    const draftEntity = getRoots(draftEntitySubgraph)[0];
+    const draftEntity = getEntityFromSubgraph(draftEntitySubgraph, draftId);
 
     if (!draftEntity) {
       return;
@@ -175,7 +233,7 @@ const Page: NextPageWithLayout = () => {
     try {
       setSavingChanges(true);
 
-      const entity = getRoots(entitySubgraphFromDb)[0]!;
+      const entity = getEntityFromSubgraph(entitySubgraphFromDb, draftId);
 
       await applyDraftLinkEntityChanges(
         entity,
@@ -208,7 +266,7 @@ const Page: NextPageWithLayout = () => {
     return <PageErrorState />;
   }
 
-  const draftEntity = getRoots(draftEntitySubgraph)[0];
+  const draftEntity = getEntityFromSubgraph(draftEntitySubgraph, draftId);
   if (!draftEntity) {
     return <NextErrorComponent statusCode={404} />;
   }

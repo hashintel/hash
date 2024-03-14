@@ -1,5 +1,6 @@
 import { useQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
 import type { Filter } from "@local/hash-graph-client";
 import type { TextProperties } from "@local/hash-isomorphic-utils/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
@@ -28,6 +29,7 @@ import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/u
 import type {
   Entity,
   EntityRootType,
+  EntityVertex,
   LinkEntityAndRightEntity,
 } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
@@ -120,12 +122,12 @@ export const useNotificationsWithLinksContextValue =
     const getNotificationEntitiesFilter = useMemo<Filter>(
       () => ({
         any:
-          notificationEntities?.map((draftEntity) => ({
+          notificationEntities?.map((entity) => ({
             equal: [
               { path: ["uuid"] },
               {
                 parameter: extractEntityUuidFromEntityId(
-                  draftEntity.metadata.recordId.entityId,
+                  entity.metadata.recordId.entityId,
                 ),
               },
             ],
@@ -347,7 +349,10 @@ export const useNotificationsWithLinksContextValue =
               ),
             );
 
-            if (!occurredInEntityLink) {
+            const linkRightEntityId =
+              occurredInEntityLink?.linkEntity[0]?.linkData?.rightEntityId;
+
+            if (!occurredInEntityLink || !linkRightEntityId) {
               throw new Error(
                 `Graph change notification "${entityId}" is missing required links`,
               );
@@ -366,8 +371,45 @@ export const useNotificationsWithLinksContextValue =
               );
             }
 
-            const occurredInEntity = occurredInEntityLink.rightEntity[0];
+            let occurredInEntity: Entity | undefined;
+            for (const [vertexKey, editionMap] of typedEntries(
+              outgoingLinksSubgraph.vertices,
+            )) {
+              /**
+               * The created/updated record might be a draft, in which case it is keyed in the subgraph by `${entityId}~${draftId}`.
+               * We need to find the vertex that _starts with_ the entityId and contains an edition at the exact timestamp from the link.
+               * Needing to do this is sa limitation caused by:
+               * 1. The fact that links only point to the entire Entity, not any specific edition or draft series of it
+               * 2. The logic for returning linked entities from the subgraph library will just return the non-draft entity if it is found
+               */
+              if (!vertexKey.startsWith(linkRightEntityId)) {
+                continue;
+              }
+
+              /**
+               * We have a candidate – this might be one of multiple draft series for the entity, or the single live series.
+               * We match the timestamp logged in the link to the editions of the entity.
+               * This may result in a false positive if the live entity and any of its drafts have editions at the exact same timestamp.
+               */
+              occurredInEntity = typedValues(editionMap)
+                .flat()
+                .find(
+                  (vertex): vertex is EntityVertex =>
+                    vertex.kind === "entity" &&
+                    vertex.inner.metadata.temporalVersioning.decisionTime.start
+                      .limit === occurredInEntityEditionTimestamp,
+                )?.inner;
+
+              if (occurredInEntity) {
+                break;
+              }
+            }
+
             if (!occurredInEntity) {
+              console.log("no entity", {
+                occurredInEntityLink,
+                vertices: outgoingLinksSubgraph.vertices,
+              });
               // @todo archive the notification when the entity it occurred in is archived
               return null;
             }
