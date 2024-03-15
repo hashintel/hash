@@ -36,6 +36,8 @@ pub enum EntityValidationError {
     UnexpectedLinkData,
     #[error("The entity is a link but does not contain link data")]
     MissingLinkData,
+    #[error("Entities without a type are not allowed")]
+    EmptyEntityTypes,
     #[error("the validator was unable to read the entity type `{ids:?}`")]
     EntityTypeRetrieval { ids: Vec<VersionedUrl> },
     #[error("the validator was unable to read the entity `{id}`")]
@@ -153,6 +155,9 @@ where
     ) -> Result<(), Report<Self::Error>> {
         let mut status: Result<(), Report<EntityValidationError>> = Ok(());
 
+        if self.metadata.entity_type_ids.is_empty() {
+            extend_report!(status, EntityValidationError::EmptyEntityTypes);
+        }
         if let Err(error) = self.properties.validate(schema, profile, provider).await {
             extend_report!(status, error);
         }

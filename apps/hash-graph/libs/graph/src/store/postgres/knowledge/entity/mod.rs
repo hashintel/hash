@@ -719,7 +719,14 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             }
         };
 
-        let mut status: Result<(), validation::EntityValidationError> = Ok(());
+        let mut status: Result<(), validation::EntityValidationError> = if schema.schemas.is_empty()
+        {
+            Err(Report::new(
+                validation::EntityValidationError::EmptyEntityTypes,
+            ))
+        } else {
+            Ok(())
+        };
 
         let validator_provider = StoreProvider {
             store: self,
