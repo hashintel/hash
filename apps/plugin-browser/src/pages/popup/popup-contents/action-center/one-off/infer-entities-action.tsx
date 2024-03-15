@@ -110,6 +110,9 @@ export const InferEntitiesAction = ({
           <EntityTypeSelector
             inputHeight="auto"
             multiple
+            popperPlacement={
+              user.enabledFeatureFlags.includes("notes") ? "top" : "bottom"
+            }
             setTargetEntityTypeIds={({
               selectedEntityTypeIds,
               linkedEntityTypeIds,
