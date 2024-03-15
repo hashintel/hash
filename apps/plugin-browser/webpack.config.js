@@ -8,10 +8,11 @@ import CopyWebpackPlugin from "copy-webpack-plugin";
 import dotenv from "dotenv-flow";
 import fileSystem from "fs-extra";
 import HtmlWebpackPlugin from "html-webpack-plugin";
+// eslint-disable-next-line unicorn/prefer-node-protocol
+import processBrowser from "process/browser";
 import ReactRefreshTypeScript from "react-refresh-typescript";
 import TerserPlugin from "terser-webpack-plugin";
 import webpack from "webpack";
-import processBrowser from "process/browser";
 
 dotenv.config();
 
