@@ -61,4 +61,7 @@ export const scalars = {
   Uuid: "@local/hash-subgraph#Uuid",
 
   OntologyTemporalMetadata: "@local/hash-graph-client#OntologyTemporalMetadata",
+
+  ResearchTaskResult:
+    "@local/hash-isomorphic-utils/research-task-types#ResearchTaskWorkflowResponse",
 };

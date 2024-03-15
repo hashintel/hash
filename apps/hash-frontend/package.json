@@ -39,6 +39,7 @@
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
+    "@local/status": "0.0.0-private",
     "@mui/icons-material": "5.14.11",
     "@mui/material": "5.14.11",
     "@mui/system": "5.14.11",

@@ -13,6 +13,8 @@ export const entityTypedef = gql`
   scalar UserPermissions
   scalar UserPermissionsOnEntities
 
+  scalar ResearchTaskResult
+
   type SubgraphAndPermissions {
     userPermissionsOnEntities: UserPermissionsOnEntities!
     subgraph: Subgraph!
@@ -273,5 +275,10 @@ export const entityTypedef = gql`
       accountGroupId: AccountGroupId!
       accountId: AccountId!
     ): Boolean!
+
+    startResearchTask(
+      prompt: String!
+      entityTypeIds: [VersionedUrl!]!
+    ): ResearchTaskResult!
   }
 `;

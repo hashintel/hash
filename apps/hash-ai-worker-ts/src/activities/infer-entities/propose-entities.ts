@@ -1,55 +1,46 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { createGraphChangeNotification } from "@local/hash-backend-utils/notifications";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/ai-inference-types";
-import type { AccountId, Entity, OwnedById } from "@local/hash-subgraph";
+import type { AccountId } from "@local/hash-subgraph";
+import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 import type OpenAI from "openai";
 
-import { getResultsFromInferenceState } from "./get-results-from-inference-state";
 import type {
   CompletionPayload,
   DereferencedEntityTypesByTypeId,
   InferenceState,
 } from "./inference-types";
 import { log } from "./log";
-import { createEntities } from "./persist-entities/create-entities";
-import type {
-  ProposedEntityCreationsByType,
-  ProposedEntityUpdatesByType,
-} from "./persist-entities/generate-persist-entities-tools";
-import {
-  generatePersistEntitiesTools,
-  validateProposedEntitiesByType,
-} from "./persist-entities/generate-persist-entities-tools";
-import { updateEntities } from "./persist-entities/update-entities";
+import type { ProposedEntityCreationsByType } from "./persist-entities/generate-persist-entities-tools";
+import { validateProposedEntitiesByType } from "./persist-entities/generate-persist-entities-tools";
+import { generateProposeEntitiesTools } from "./propose-entities/generate-propose-entities-tools";
+import { extractErrorMessage } from "./shared/extract-validation-failure-details";
 import { firstUserMessageIndex } from "./shared/first-user-message-index";
 import { getOpenAiResponse } from "./shared/get-open-ai-response";
 import { stringify } from "./stringify";
 
-export const persistEntities = async (params: {
-  authentication: { machineActorId: AccountId };
-  createAs: "draft" | "live";
+/**
+ * This method is based on the logic from the existing `persistEntities` method, which
+ * would ideally be reconciled to reduce code duplication. The primary difference
+ * is that instead of persisting entities in the graph (by creating or updating an existing
+ * entity), it pushes the entities to the `proposedEntities` array in the `InferenceState`.
+ */
+export const proposeEntities = async (params: {
   completionPayload: CompletionPayload;
   entityTypes: DereferencedEntityTypesByTypeId;
   inferenceState: InferenceState;
+  validationActorId: AccountId;
   graphApiClient: GraphApi;
   originalPromptMessages: OpenAI.ChatCompletionMessageParam[];
-  ownedById: OwnedById;
-  requestUuid: string;
-  requestingUserAccountId: AccountId;
-}): Promise<InferEntitiesReturn> => {
+}): Promise<Status<InferenceState>> => {
   const {
-    authentication,
     completionPayload,
-    createAs,
     entityTypes,
-    inferenceState,
+    validationActorId,
     graphApiClient,
+    inferenceState,
     originalPromptMessages,
-    ownedById,
-    requestingUserAccountId,
   } = params;
 
   const {
@@ -68,12 +59,7 @@ export const persistEntities = async (params: {
 
     return {
       code: StatusCode.ResourceExhausted,
-      contents: [
-        {
-          results: getResultsFromInferenceState(inferenceState),
-          usage: inferenceState.usage,
-        },
-      ],
+      contents: [inferenceState],
       message: `Maximum number of iterations reached.`,
     };
   }
@@ -117,9 +103,7 @@ export const persistEntities = async (params: {
     )}.`,
   );
 
-  const entityTypeIds = Object.keys(entityTypes);
-
-  const tools = generatePersistEntitiesTools(Object.values(entityTypes));
+  const tools = generateProposeEntitiesTools(Object.values(entityTypes));
 
   const entitiesToUpdate = inProgressEntityIds.filter(
     (inProgressEntityId) =>
@@ -164,12 +148,7 @@ export const persistEntities = async (params: {
   if (openAiResponse.code !== StatusCode.Ok) {
     return {
       ...openAiResponse,
-      contents: [
-        {
-          results: getResultsFromInferenceState(inferenceState),
-          usage: inferenceState.usage,
-        },
-      ],
+      contents: [inferenceState],
     };
   }
 
@@ -208,7 +187,7 @@ export const persistEntities = async (params: {
       ...retryMessages,
     ];
 
-    return persistEntities({
+    return proposeEntities({
       ...params,
       inferenceState: {
         ...inferenceState,
@@ -221,28 +200,6 @@ export const persistEntities = async (params: {
     });
   };
 
-  const createInferredEntityNotification = async ({
-    entity,
-    operation,
-  }: {
-    entity: Entity;
-    operation: "create" | "update";
-  }) => {
-    const entityEditionTimestamp =
-      entity.metadata.temporalVersioning.decisionTime.start.limit;
-
-    await createGraphChangeNotification(
-      { graphApi: graphApiClient },
-      authentication,
-      {
-        changedEntityId: entity.metadata.recordId.entityId,
-        changedEntityEditionId: entityEditionTimestamp,
-        notifiedUserAccountId: requestingUserAccountId,
-        operation,
-      },
-    );
-  };
-
   switch (finish_reason) {
     case "stop": {
       const errorMessage = `AI Model returned 'stop' finish reason, with message: ${
@@ -253,12 +210,7 @@ export const persistEntities = async (params: {
 
       return {
         code: StatusCode.Unknown,
-        contents: [
-          {
-            results: getResultsFromInferenceState(inferenceState),
-            usage: latestUsage,
-          },
-        ],
+        contents: [inferenceState],
         message:
           message.content ?? "No entities could be inferred from the page.",
       };
@@ -273,12 +225,7 @@ export const persistEntities = async (params: {
       if (!toolCallId) {
         return {
           code: StatusCode.ResourceExhausted,
-          contents: [
-            {
-              results: getResultsFromInferenceState(inferenceState),
-              usage: latestUsage,
-            },
-          ],
+          contents: [inferenceState],
           message:
             "The maximum amount of tokens was reached before the model returned a completion, with no tool call to respond to.",
         };
@@ -307,12 +254,7 @@ export const persistEntities = async (params: {
 
       return {
         code: StatusCode.InvalidArgument,
-        contents: [
-          {
-            results: getResultsFromInferenceState(inferenceState),
-            usage: latestUsage,
-          },
-        ],
+        contents: [inferenceState],
         message: "The content filter was triggered",
       };
     }
@@ -326,12 +268,7 @@ export const persistEntities = async (params: {
 
         return {
           code: StatusCode.Internal,
-          contents: [
-            {
-              results: getResultsFromInferenceState(inferenceState),
-              usage: latestUsage,
-            },
-          ],
+          contents: [inferenceState],
           message: errorMessage,
         };
       }
@@ -413,6 +350,113 @@ export const persistEntities = async (params: {
               modelProvidedArgument,
             ) as ProposedEntityCreationsByType;
             validateProposedEntitiesByType(proposedEntitiesByType, false);
+
+            let retryMessageContent = "";
+            let requiresOriginalContextForRetry = false;
+
+            /**
+             * Check if any proposed entities are invalid according to the Graph API,
+             * to prevent a validation error when creating the entity in the graph.
+             */
+            const invalidProposedEntities = await Promise.all(
+              Object.entries(proposedEntitiesByType).map(
+                async ([entityTypeId, proposedEntitiesOfType]) => {
+                  const invalidProposedEntitiesOfType = await Promise.all(
+                    proposedEntitiesOfType.map(async (proposedEntityOfType) => {
+                      try {
+                        await graphApiClient.validateEntity(validationActorId, {
+                          entityTypes: [entityTypeId],
+                          profile: "draft",
+                          properties: proposedEntityOfType.properties ?? {},
+                        });
+
+                        return [];
+                      } catch (error) {
+                        const invalidReason = `${extractErrorMessage(error)}.`;
+
+                        return {
+                          invalidProposedEntity: proposedEntityOfType,
+                          invalidReason,
+                        };
+                      }
+                    }),
+                  ).then((invalidProposals) => invalidProposals.flat());
+
+                  return invalidProposedEntitiesOfType;
+                },
+              ),
+            ).then((invalidProposals) => invalidProposals.flat());
+
+            if (invalidProposedEntities.length > 0) {
+              retryMessageContent += dedent(`
+                Some of the entities you suggested for creation were invalid. Please review their properties and try again. 
+                The entities you should review and make a 'create_entities' call for are:
+                ${invalidProposedEntities
+                  .map(
+                    ({ invalidProposedEntity, invalidReason }) => `
+                  your proposed entity: ${stringify(invalidProposedEntity)}
+                  invalid reason: ${invalidReason}
+                `,
+                  )
+                  .join("\n")}
+              `);
+              requiresOriginalContextForRetry = true;
+            }
+
+            const validProposedEntities = Object.values(proposedEntitiesByType)
+              .flat()
+              .filter(
+                ({ entityId }) =>
+                  !invalidProposedEntities.some(
+                    ({
+                      invalidProposedEntity: { entityId: invalidEntityId },
+                    }) => invalidEntityId === entityId,
+                  ),
+              );
+
+            log(
+              `Proposed ${validProposedEntities.length} valid additional entities.`,
+            );
+            log(
+              `Proposed ${invalidProposedEntities.length} invalid additional entities.`,
+            );
+
+            for (const proposedEntity of validProposedEntities) {
+              inferenceState.inProgressEntityIds =
+                inferenceState.inProgressEntityIds.filter(
+                  (inProgressEntityId) =>
+                    inProgressEntityId !== proposedEntity.entityId,
+                );
+            }
+
+            inferenceState.proposedEntityCreationsByType = Object.entries(
+              proposedEntitiesByType,
+            ).reduce(
+              (prev, [entityTypeId, proposedEntitiesOfType]) => ({
+                ...prev,
+                [entityTypeId]: [
+                  ...(prev[entityTypeId as VersionedUrl] ?? []),
+                  ...proposedEntitiesOfType.filter(
+                    ({ entityId }) =>
+                      !invalidProposedEntities.some(
+                        ({
+                          invalidProposedEntity: { entityId: invalidEntityId },
+                        }) => invalidEntityId === entityId,
+                      ),
+                  ),
+                ],
+              }),
+              inferenceState.proposedEntityCreationsByType,
+            );
+
+            if (retryMessageContent) {
+              retryMessages.push({
+                role: "tool",
+                tool_call_id: toolCallId,
+                content: retryMessageContent,
+                requiresOriginalContext: requiresOriginalContextForRetry,
+              });
+            }
           } catch (err) {
             log(
               `Model provided invalid argument to create_entities function. Argument provided: ${stringify(
@@ -429,267 +473,18 @@ export const persistEntities = async (params: {
             });
             continue;
           }
-
-          const providedEntityTypes = Object.keys(proposedEntitiesByType);
-          const notRequestedTypes = providedEntityTypes.filter(
-            (providedEntityTypeId) =>
-              !entityTypeIds.includes(providedEntityTypeId as VersionedUrl),
-          );
-
-          let retryMessageContent = "";
-          let requiresOriginalContextForRetry = false;
-
-          if (notRequestedTypes.length > 0) {
-            retryMessageContent += `You provided entities of types ${notRequestedTypes.join(
-              ", ",
-            )}, which were not requested. Please try again without them\n`;
-          }
-
-          try {
-            const {
-              creationSuccesses,
-              creationFailures,
-              updateCandidates,
-              unchangedEntities,
-            } = await createEntities({
-              actorId: authentication.machineActorId,
-              createAsDraft: createAs === "draft",
-              graphApiClient,
-              inferenceState,
-              log,
-              ownedById,
-              proposedEntitiesByType,
-              requestedEntityTypes: entityTypes,
-            });
-
-            log(`Creation successes: ${stringify(creationSuccesses)}`);
-            log(`Creation failures: ${stringify(creationFailures)}`);
-            log(`Update candidates: ${stringify(updateCandidates)}`);
-
-            const successes = Object.values(creationSuccesses);
-            const failures = Object.values(creationFailures);
-            const unchangeds = Object.values(unchangedEntities);
-            const updates = Object.values(updateCandidates);
-
-            for (const result of [
-              ...successes,
-              ...failures,
-              ...unchangeds,
-              ...updates,
-            ]) {
-              inferenceState.resultsByTemporaryId[
-                result.proposedEntity.entityId
-              ] = result;
-
-              if (result.status === "success") {
-                inferenceState.inProgressEntityIds =
-                  inferenceState.inProgressEntityIds.filter(
-                    (inProgressEntityId) =>
-                      inProgressEntityId !== result.proposedEntity.entityId,
-                  );
-              }
-            }
-
-            for (const success of successes) {
-              void createInferredEntityNotification({
-                entity: success.entity,
-                operation: "create",
-              });
-            }
-
-            if (failures.length > 0) {
-              retryMessageContent += dedent(`
-                Some of the entities you suggested for creation were invalid. Please review their properties and try again. 
-                The entities you should review and make a 'create_entities' call for are:
-                ${failures
-                  .map(
-                    (failure) => `
-                  your proposed entity: ${stringify(failure.proposedEntity)}
-                  failure reason: ${failure.failureReason}
-                `,
-                  )
-                  .join("\n")}
-              `);
-              requiresOriginalContextForRetry = true;
-            }
-
-            if (updates.length > 0) {
-              retryMessageContent += dedent(`
-              Some of the entities you suggest for creation already exist. Please review their properties and call update_entities
-              to update them instead. Please include ALL properties when updating, including any you aren't changing.
-              The entities you should update are:
-              ${updates
-                .map(
-                  (updateCandidate) => `
-                your proposed entity: ${stringify(
-                  updateCandidate.proposedEntity,
-                )}
-                updateEntityId to use: ${
-                  updateCandidate.entity.metadata.recordId.entityId
-                }
-                entityTypeId: ${updateCandidate.entity.metadata.entityTypeId}
-                Current properties: ${stringify(
-                  updateCandidate.entity.properties,
-                )}
-              `,
-                )
-                .join("\n")}
-              `);
-            }
-
-            if (retryMessageContent) {
-              retryMessages.push({
-                role: "tool",
-                tool_call_id: toolCallId,
-                content: retryMessageContent,
-                requiresOriginalContext: requiresOriginalContextForRetry,
-              });
-            }
-          } catch (err) {
-            const errorMessage = `Error creating entities: ${
-              (err as Error).message
-            }`;
-            log(errorMessage);
-
-            return {
-              code: StatusCode.Internal,
-              contents: [
-                {
-                  results: getResultsFromInferenceState(inferenceState),
-                  usage: latestUsage,
-                },
-              ],
-              message: errorMessage,
-            };
-          }
-        }
-
-        if (functionName === "update_entities") {
-          let proposedEntityUpdatesByType: ProposedEntityUpdatesByType;
-          try {
-            proposedEntityUpdatesByType = JSON.parse(
-              modelProvidedArgument,
-            ) as ProposedEntityUpdatesByType;
-
-            validateProposedEntitiesByType(proposedEntityUpdatesByType, true);
-          } catch (err) {
-            log(
-              `Model provided invalid argument to update_entities function. Argument provided: ${stringify(
-                modelProvidedArgument,
-              )}`,
-            );
-
-            retryMessages.push({
-              content:
-                "You provided an invalid argument to update_entities. Please try again",
-              role: "tool",
-              tool_call_id: toolCallId,
-              requiresOriginalContext: true,
-            });
-            continue;
-          }
-
-          const providedEntityTypes = Object.keys(proposedEntityUpdatesByType);
-          const notRequestedTypes = providedEntityTypes.filter(
-            (providedEntityTypeId) =>
-              !entityTypeIds.includes(providedEntityTypeId as VersionedUrl),
-          );
-
-          if (notRequestedTypes.length > 0) {
-            retryMessages.push({
-              content: `You provided entities of types ${notRequestedTypes.join(
-                ", ",
-              )} for update, which were not requested. Please try again`,
-              role: "tool",
-              tool_call_id: toolCallId,
-              requiresOriginalContext: true,
-            });
-            continue;
-          }
-
-          try {
-            const { updateSuccesses, updateFailures } = await updateEntities({
-              actorId: authentication.machineActorId,
-              graphApiClient,
-              log,
-              ownedById,
-              proposedEntityUpdatesByType,
-              requestedEntityTypes: entityTypes,
-            });
-
-            const successes = Object.values(updateSuccesses);
-            const failures = Object.values(updateFailures);
-
-            log(`Update successes: ${stringify(updateSuccesses)}`);
-            log(`Update failures: ${stringify(updateFailures)}`);
-
-            for (const success of successes) {
-              void createInferredEntityNotification({
-                entity: success.entity,
-                operation: "update",
-              });
-
-              inferenceState.inProgressEntityIds =
-                inferenceState.inProgressEntityIds.filter(
-                  (inProgressEntityId) =>
-                    inProgressEntityId !== success.proposedEntity.entityId,
-                );
-            }
-
-            for (const result of [...successes, ...failures]) {
-              inferenceState.resultsByTemporaryId[
-                result.proposedEntity.entityId
-              ] = result;
-            }
-
-            /**
-             * Sometimes the model decides to propose updates for entities that it hasn't been asked to.
-             * These will fail because we are not tracking an entityId to update for them.
-             * It tends to do this for entities which it's already provided some other response for.
-             */
-            const failuresToRetry = failures.filter((failure) =>
-              inProgressEntityIds.includes(failure.proposedEntity.entityId),
-            );
-            if (failuresToRetry.length > 0) {
-              retryMessages.push({
-                role: "tool",
-                tool_call_id: toolCallId,
-                content: dedent(`
-                  Some of the entities you suggested for update were invalid. Please review their properties and try again. 
-                  The entities you should review and make a 'update_entities' call for are:
-                  ${failuresToRetry
-                    .map(
-                      (failure) => `
-                    your proposed entity: ${stringify(failure.proposedEntity)}
-                    failure reason: ${failure.failureReason}
-                  `,
-                    )
-                    .join("\n")}
-                `),
-                requiresOriginalContext: true,
-              });
-            }
-          } catch (err) {
-            return {
-              code: StatusCode.Internal,
-              contents: [
-                {
-                  results: getResultsFromInferenceState(inferenceState),
-                  usage: latestUsage,
-                },
-              ],
-              message: `Error update entities: ${(err as Error).message}`,
-            };
-          }
         }
       }
 
-      if (
-        inferenceState.proposedEntitySummaries.find(
+      const remainingEntitySummaries =
+        inferenceState.proposedEntitySummaries.filter(
           (entity) => !entity.takenFromQueue,
-        )
-      ) {
-        log(`Entities remain to be inferred, continuing.`);
+        );
+
+      if (remainingEntitySummaries.length > 0) {
+        log(
+          `${remainingEntitySummaries.length} entities remain to be inferred, continuing.`,
+        );
         retryMessages.push({
           content:
             "There are other entities you haven't yet provided details for",
@@ -699,11 +494,13 @@ export const persistEntities = async (params: {
       }
 
       if (retryMessages.length === 0) {
-        const results = getResultsFromInferenceState(inferenceState);
-        log(`Returning results: ${stringify(results)}`);
+        log(
+          `Returning proposed entities: ${stringify(inferenceState.proposedEntityCreationsByType)}`,
+        );
+
         return {
           code: StatusCode.Ok,
-          contents: [{ results, usage: latestUsage }],
+          contents: [inferenceState],
         };
       }
 
@@ -743,12 +540,7 @@ export const persistEntities = async (params: {
 
   return {
     code: StatusCode.Internal,
-    contents: [
-      {
-        results: getResultsFromInferenceState(inferenceState),
-        usage: latestUsage,
-      },
-    ],
+    contents: [inferenceState],
     message: errorMessage,
   };
 };
