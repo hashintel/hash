@@ -1,3 +1,5 @@
+import { beforeAll, describe, expect, test } from "vitest";
+
 import type { DataType, ParseDataTypeError } from "../src/main";
 import { TypeSystemInitializer, validateDataType } from "../src/main";
 

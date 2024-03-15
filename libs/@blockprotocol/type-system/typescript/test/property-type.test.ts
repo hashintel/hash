@@ -1,3 +1,5 @@
+import { beforeAll, describe, expect, test } from "vitest";
+
 import type { ParsePropertyTypeError, PropertyType } from "../src/main";
 import { TypeSystemInitializer, validatePropertyType } from "../src/main";
 

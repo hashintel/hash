@@ -1,3 +1,5 @@
+import { beforeAll, describe, expect, test } from "vitest";
+
 import type {
   BaseUrl,
   ParseBaseUrlError,

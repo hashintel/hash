@@ -1,3 +1,5 @@
+import { beforeAll, describe, expect, test } from "vitest";
+
 import type { EntityType, ParseEntityTypeError } from "../src/main";
 import { TypeSystemInitializer, validateEntityType } from "../src/main";
 
