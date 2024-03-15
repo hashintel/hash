@@ -42,7 +42,7 @@ use graph_types::{
             EntityMetadata, EntityProperties, EntityProvenanceMetadata, EntityRecordId,
             EntityTemporalMetadata, EntityUuid,
         },
-        link::{EntityLinkOrder, LinkData, LinkOrder},
+        link::LinkData,
     },
     owned_by_id::OwnedById,
     Embedding,
@@ -116,13 +116,11 @@ use crate::rest::{
             EntityMetadata,
             EntityProvenanceMetadata,
             EntityEditionProvenanceMetadata,
-            EntityLinkOrder,
             EntityProperties,
             EntityRecordId,
             EntityTemporalMetadata,
             EntityQueryToken,
             LinkData,
-            LinkOrder,
         )
     ),
     tags(
@@ -463,8 +461,6 @@ struct UpdateEntityRequest {
     properties: EntityProperties,
     entity_id: EntityId,
     entity_type_ids: Vec<VersionedUrl>,
-    #[serde(flatten)]
-    order: EntityLinkOrder,
     archived: bool,
     draft: bool,
     #[serde(default)]
@@ -508,7 +504,6 @@ where
         properties,
         entity_id,
         entity_type_ids,
-        order: link_order,
         archived,
         draft,
         decision_time,
@@ -530,7 +525,6 @@ where
                 decision_time,
                 entity_type_ids,
                 properties,
-                link_order,
                 archived,
                 draft,
             },

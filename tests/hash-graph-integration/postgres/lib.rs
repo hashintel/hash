@@ -60,7 +60,7 @@ use graph_types::{
     account::AccountId,
     knowledge::{
         entity::{Entity, EntityId, EntityMetadata, EntityProperties, EntityUuid},
-        link::{EntityLinkOrder, LinkData},
+        link::LinkData,
     },
     ontology::{
         DataTypeMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
@@ -762,7 +762,6 @@ impl DatabaseApi<'_> {
         entity_id: EntityId,
         properties: EntityProperties,
         entity_type_ids: Vec<VersionedUrl>,
-        link_order: EntityLinkOrder,
         draft: bool,
     ) -> Result<EntityMetadata, UpdateError> {
         self.store
@@ -775,7 +774,6 @@ impl DatabaseApi<'_> {
                     decision_time: Some(generate_decision_time()),
                     entity_type_ids,
                     properties,
-                    link_order,
                     archived: false,
                     draft,
                 },
@@ -805,10 +803,6 @@ impl DatabaseApi<'_> {
                     link_data: Some(LinkData {
                         left_entity_id,
                         right_entity_id,
-                        order: EntityLinkOrder {
-                            left_to_right: None,
-                            right_to_left: None,
-                        },
                     }),
                     draft: false,
                     relationships: [],
@@ -983,7 +977,6 @@ impl DatabaseApi<'_> {
         entity_id: EntityId,
         properties: EntityProperties,
         entity_type_ids: Vec<VersionedUrl>,
-        link_order: EntityLinkOrder,
     ) -> Result<EntityMetadata, UpdateError> {
         self.store
             .update_entity(
@@ -997,7 +990,6 @@ impl DatabaseApi<'_> {
                     draft: false,
                     entity_type_ids,
                     properties,
-                    link_order,
                 },
             )
             .await

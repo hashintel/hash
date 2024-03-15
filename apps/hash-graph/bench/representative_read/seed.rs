@@ -14,7 +14,7 @@ use graph_types::{
     account::AccountId,
     knowledge::{
         entity::{EntityProperties, EntityUuid},
-        link::{EntityLinkOrder, LinkData},
+        link::LinkData,
     },
     owned_by_id::OwnedById,
 };
@@ -211,10 +211,6 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
                             Some(LinkData {
                                 left_entity_id: left_entity_metadata.record_id.entity_id,
                                 right_entity_id: right_entity_metadata.record_id.entity_id,
-                                order: EntityLinkOrder {
-                                    left_to_right: None,
-                                    right_to_left: None,
-                                },
                             }),
                             None,
                         )

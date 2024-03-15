@@ -6,7 +6,7 @@ use graph_types::{
             Entity, EntityEditionProvenanceMetadata, EntityId, EntityMetadata,
             EntityProvenanceMetadata, EntityRecordId, EntityUuid,
         },
-        link::{EntityLinkOrder, LinkData},
+        link::LinkData,
     },
     owned_by_id::OwnedById,
 };
@@ -184,8 +184,6 @@ pub struct EntityRecordRowIndices {
     pub left_entity_owned_by_id: usize,
     pub right_entity_uuid: usize,
     pub right_entity_owned_by_id: usize,
-    pub left_to_right_order: usize,
-    pub right_to_left_order: usize,
 
     pub created_by_id: usize,
     pub created_at_transaction_time: usize,
@@ -262,10 +260,6 @@ impl QueryRecordDecode for Entity {
                         owned_by_id: OwnedById::new(right_owned_by_id),
                         entity_uuid: EntityUuid::new(right_entity_uuid),
                         draft_id: None,
-                    },
-                    order: EntityLinkOrder {
-                        left_to_right: row.get(indices.left_to_right_order),
-                        right_to_left: row.get(indices.right_to_left_order),
                     },
                 }),
                 (None, None, None, None) => None,
@@ -374,8 +368,6 @@ impl PostgresRecord for Entity {
             left_entity_owned_by_id: compiler.add_selection_path(&paths.left_owned_by_id),
             right_entity_uuid: compiler.add_selection_path(&paths.right_entity_uuid),
             right_entity_owned_by_id: compiler.add_selection_path(&paths.right_owned_by_id),
-            left_to_right_order: compiler.add_selection_path(&EntityQueryPath::LeftToRightOrder),
-            right_to_left_order: compiler.add_selection_path(&EntityQueryPath::RightToLeftOrder),
 
             created_by_id: compiler.add_selection_path(&EntityQueryPath::CreatedById),
             created_at_transaction_time: compiler

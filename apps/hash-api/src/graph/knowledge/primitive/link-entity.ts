@@ -28,9 +28,7 @@ export type CreateLinkEntityParams = {
   owner?: AccountId | AccountGroupId;
   draft?: boolean;
   leftEntityId: EntityId;
-  leftToRightOrder?: number;
   rightEntityId: EntityId;
-  rightToLeftOrder?: number;
   relationships: EntityRelationAndSubject[];
 };
 
@@ -43,9 +41,7 @@ export const isEntityLinkEntity = (entity: Entity): entity is LinkEntity =>
  * @param params.ownedById - the id of the account who owns the new link entity
  * @param params.linkEntityTypeId - the link entity type ID of the link entity
  * @param params.leftEntityId - the ID of the left entity
- * @param params.leftToRightOrder (optional) - the left to right order of the link entity
  * @param params.rightEntityId - the ID of the right entity
- * @param params.rightToLeftOrder (optional) - the right to left order of the link entity
  * @param params.actorId - the id of the account that is creating the link
  */
 export const createLinkEntity: ImpureGraphFunction<
@@ -56,9 +52,7 @@ export const createLinkEntity: ImpureGraphFunction<
     ownedById,
     linkEntityTypeId,
     leftEntityId,
-    leftToRightOrder,
     rightEntityId,
-    rightToLeftOrder,
     properties = {},
     draft = false,
   } = params;
@@ -85,9 +79,7 @@ export const createLinkEntity: ImpureGraphFunction<
 
   const linkData: LinkData = {
     leftEntityId,
-    leftToRightOrder,
     rightEntityId,
-    rightToLeftOrder,
   };
 
   const { data: metadata } = await context.graphApi.createEntity(
@@ -126,21 +118,17 @@ export const createLinkEntity: ImpureGraphFunction<
  *
  * @param params.linkEntity - the link entity being updated
  * @param params.properties (optional) - the updated properties object of the link entity
- * @param params.leftToRightOrder (optional) - the updated left to right order of the link entity
- * @param params.rightToLeftOrder (optional) - the updated right to left order of the link entity
  * @param params.actorId - the id of the account that is updating the entity
  */
 export const updateLinkEntity: ImpureGraphFunction<
   {
     linkEntity: LinkEntity;
     properties?: EntityPropertiesObject;
-    leftToRightOrder?: number;
-    rightToLeftOrder?: number;
     draft?: boolean;
   },
   Promise<LinkEntity>
 > = async ({ graphApi }, { actorId }, params) => {
-  const { leftToRightOrder, rightToLeftOrder, linkEntity } = params;
+  const { linkEntity } = params;
 
   const properties = params.properties ?? linkEntity.properties;
 
@@ -152,18 +140,12 @@ export const updateLinkEntity: ImpureGraphFunction<
     draft:
       params.draft ??
       !!extractDraftIdFromEntityId(linkEntity.metadata.recordId.entityId),
-    leftToRightOrder,
-    rightToLeftOrder,
   });
 
   return {
     metadata: mapGraphApiEntityMetadataToMetadata(metadata),
     properties,
-    linkData: {
-      ...linkEntity.linkData,
-      leftToRightOrder,
-      rightToLeftOrder,
-    },
+    linkData: linkEntity.linkData,
   };
 };
 
