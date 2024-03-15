@@ -1,6 +1,7 @@
 {
   "name": "@blocks/kanban-board",
   "version": "0.0.2",
+  "private": true,
   "description": "Capture information in cards, and drag cards flexibly between customizable columns",
   "keywords": [
     "blockprotocol",

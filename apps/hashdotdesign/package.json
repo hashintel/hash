@@ -1,6 +1,7 @@
 {
   "name": "@apps/hashdotdesign",
   "version": "0.0.0",
+  "private": true,
   "description": "HASH design system storybook",
   "sideEffects": false,
   "scripts": {
