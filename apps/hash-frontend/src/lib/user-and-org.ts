@@ -66,7 +66,7 @@ export type MinimalUser = {
   entity: Entity;
   accountId: AccountId;
   accountSignupComplete: boolean;
-  enabledFeatureFlags: FeatureFlag[];
+  enabledFeatureFlags: ("pages" | "canvases" | "documents" | "notes")[];
   pinnedEntityTypeBaseUrls?: BaseUrl[];
   shortname?: string;
   displayName?: string;
@@ -89,8 +89,8 @@ export const constructMinimalUser = (params: {
 
   const { shortname, displayName, pinnedEntityTypeBaseUrl } = simpleProperties;
 
-  const enabledFeatureFlags =
-    (simpleProperties.enabledFeatureFlags as FeatureFlag[] | undefined) ?? [];
+  const enabledFeatureFlags = (simpleProperties.enabledFeatureFlags ??
+    []) as FeatureFlag[];
 
   const accountSignupComplete = !!shortname && !!displayName;
 
@@ -102,13 +102,13 @@ export const constructMinimalUser = (params: {
       userEntity.metadata.recordId.entityId as AccountEntityId,
     ),
     accountSignupComplete,
+    ...simpleProperties,
     enabledFeatureFlags,
     ...(pinnedEntityTypeBaseUrl
       ? {
           pinnedEntityTypeBaseUrls: pinnedEntityTypeBaseUrl as BaseUrl[],
         }
       : {}),
-    ...simpleProperties,
   };
 };
 
