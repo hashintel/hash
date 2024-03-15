@@ -52,6 +52,11 @@ locals {
       ],
     )
 
+    secrets = [
+      for env_name, ssm_param in aws_ssm_parameter.temporal_worker_integration_env_vars :
+      { name = env_name, valueFrom = ssm_param.arn }
+    ]
+
     essential = true
   }
 }
