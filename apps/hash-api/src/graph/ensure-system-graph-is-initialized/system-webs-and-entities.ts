@@ -48,6 +48,11 @@ export const owningWebs: Record<
     name: "HASH",
     websiteUrl: "https://hash.ai",
   },
+  google: {
+    enabled: enabledIntegrations.googleSheets,
+    name: "Google",
+    websiteUrl: "https://www.google.com",
+  },
   linear: {
     enabled: enabledIntegrations.linear,
     name: "Linear",
@@ -169,15 +174,21 @@ export const ensureSystemWebEntitiesExist = async ({
     });
   } catch (error) {
     let displayName;
-    if (webShortname === "hash") {
-      displayName = "HASH";
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    } else if (webShortname === "linear") {
-      displayName = "Linear Integration";
-    } else {
-      throw new Error(
-        `Unhandled web shortname ${webShortname} requires a display name for the machine actor specified`,
-      );
+
+    switch (webShortname) {
+      case "hash":
+        displayName = "HASH";
+        break;
+      case "google":
+        displayName = "Google Integration";
+        break;
+      case "linear":
+        displayName = "Linear Integration";
+        break;
+      default:
+        throw new Error(
+          `Unhandled web shortname ${webShortname} requires a display name for the machine actor specified`,
+        );
     }
 
     if (error instanceof NotFoundError) {

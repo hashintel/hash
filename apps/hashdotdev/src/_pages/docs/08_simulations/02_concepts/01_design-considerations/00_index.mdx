@@ -23,9 +23,9 @@ This process happens in private: given the same inbox, starting [**state**](/doc
 
 ## Benefits of the Actor Model
 
-1.  **Predictability**: how each agent behaves can easily be reasoned about from the messages it starts each time step with. You do not have to worry about race conditions, side effects, or locking access to resources while others attempt to access them. The agent can process its complete inbox for a time step in private, deciding what to do based on all the messages it has received.
+1. **Predictability**: how each agent behaves can easily be reasoned about from the messages it starts each time step with. You do not have to worry about race conditions, side effects, or locking access to resources while others attempt to access them. The agent can process its complete inbox for a time step in private, deciding what to do based on all the messages it has received.
 
-1.  **Scalability**: the actor model allows us to have millions of agents running on dozens of servers, enabling much bigger simulations than other approaches which need to have agents communicate in the middle of a time step. HASH has been designed from the ground up to enable you to model entire countries without having to worry about the underlying infrastructure.
+1. **Scalability**: the actor model allows us to have millions of agents running on dozens of servers, enabling much bigger simulations than other approaches which need to have agents communicate in the middle of a time step. HASH has been designed from the ground up to enable you to model entire countries without having to worry about the underlying infrastructure.
 
 > “The big idea is 'messaging' … The key in making great and growable systems is much more to design how its modules communicate rather than what their internal properties and behaviors should be.”  
 > **Alan Kay**

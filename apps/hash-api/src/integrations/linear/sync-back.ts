@@ -1,7 +1,8 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { linearTypeMappings } from "@local/hash-backend-utils/linear-type-mappings";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
-import type { UpdateLinearDataWorkflow } from "@local/hash-backend-utils/temporal-workflow-types";
+import type { UpdateLinearDataWorkflow } from "@local/hash-backend-utils/temporal-integration-workflow-types";
+import { createVaultClient } from "@local/hash-backend-utils/vault";
 import type { GraphApi } from "@local/hash-graph-client";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { Entity, EntityUuid, Uuid } from "@local/hash-subgraph";
@@ -18,7 +19,6 @@ import { getLinearSecretValueByHashWorkspaceId } from "../../graph/knowledge/sys
 import { systemAccountId } from "../../graph/system-account";
 import { createTemporalClient } from "../../temporal";
 import { genId } from "../../util";
-import { createVaultClient } from "../../vault";
 
 const supportedLinearEntityTypeIds = linearTypeMappings.map(
   ({ hashEntityTypeId }) => hashEntityTypeId as VersionedUrl,

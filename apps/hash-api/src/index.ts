@@ -24,6 +24,7 @@ import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
+import { createVaultClient } from "@local/hash-backend-utils/vault";
 import * as Sentry from "@sentry/node";
 import { json } from "body-parser";
 import cors from "cors";
@@ -60,6 +61,10 @@ import {
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
+import { checkGoogleAccessToken } from "./integrations/google/check-access-token";
+import { createOrUpdateSheetsIntegration } from "./integrations/google/create-or-update-sheets-integration";
+import { getGoogleAccessToken } from "./integrations/google/get-access-token";
+import { googleOAuthCallback } from "./integrations/google/oauth-callback";
 import { oAuthLinear, oAuthLinearCallback } from "./integrations/linear/oauth";
 import { linearWebhook } from "./integrations/linear/webhook";
 import { createIntegrationSyncBackWatcher } from "./integrations/sync-back-watcher";
@@ -85,13 +90,12 @@ import {
 import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { createTemporalClient } from "./temporal";
 import { getRequiredEnv } from "./util";
-import { createVaultClient } from "./vault";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
 const baseRateLimitOptions: Partial<RateLimitOptions> = {
-  windowMs: process.env.NODE_ENV === "test" ? 1000 : 1000 * 20, // 20 seconds
-  limit: 5, // Limit each IP to 5 requests every 20 seconds
+  windowMs: process.env.NODE_ENV === "test" ? 1000 : 1000 * 30, // 30 seconds
+  limit: 10, // Limit each IP to 10 requests every 30 seconds
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 };
@@ -511,6 +515,19 @@ const main = async () => {
   app.get("/oauth/linear", authRouteRateLimiter, oAuthLinear);
   app.get("/oauth/linear/callback", authRouteRateLimiter, oAuthLinearCallback);
   app.post("/webhooks/linear", linearWebhook);
+
+  app.post("/oauth/google/callback", authRouteRateLimiter, googleOAuthCallback);
+  app.post("/oauth/google/token", authRouteRateLimiter, getGoogleAccessToken);
+  app.post(
+    "/oauth/google/check-token",
+    authRouteRateLimiter,
+    checkGoogleAccessToken,
+  );
+  app.post(
+    "/integrations/google/sheets",
+    authRouteRateLimiter,
+    createOrUpdateSheetsIntegration,
+  );
 
   // Endpoints used by HashGPT or in support of it
   app.post("/gpt/entities/query", gptQueryEntities);
