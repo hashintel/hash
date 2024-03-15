@@ -355,7 +355,7 @@ export const createUser: ImpureGraphFunction<
       : {}),
     ...(enabledFeatureFlags
       ? {
-          "https://hash.ai/@hash/types/property-type/enabled-feature-flag/":
+          "https://hash.ai/@hash/types/property-type/enabled-feature-flags/":
             enabledFeatureFlags,
         }
       : {}),

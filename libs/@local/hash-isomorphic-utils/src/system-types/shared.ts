@@ -197,9 +197,9 @@ export type DraftNotePropertyValue = TextDataType;
 export type EmailPropertyValue = TextDataType;
 
 /**
- * An identifier for a feature flag that is enabled.
+ * A list of identifiers for a feature flags that are enabled.
  */
-export type EnabledFeatureFlagPropertyValue = TextDataType;
+export type EnabledFeatureFlagsPropertyValue = TextDataType[];
 
 /**
  * An identifier for an edition of an entity
@@ -899,7 +899,7 @@ export type UserProperties2 = {
     EmailPropertyValue,
     ...EmailPropertyValue[],
   ];
-  "https://hash.ai/@hash/types/property-type/enabled-feature-flag/"?: EnabledFeatureFlagPropertyValue[];
+  "https://hash.ai/@hash/types/property-type/enabled-feature-flags/"?: EnabledFeatureFlagsPropertyValue;
   "https://hash.ai/@hash/types/property-type/kratos-identity-id/": KratosIdentityIdPropertyValue;
   "https://hash.ai/@hash/types/property-type/location/"?: LocationPropertyValue;
   /**

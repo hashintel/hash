@@ -19,22 +19,23 @@ const migrate: MigrationFunction = async ({
   migrationState,
 }) => {
   /**
-   * Step 1. Create the `enabledFeatureFlag` property type
+   * Step 1. Create the `enabledFeatureFlags` property type
    */
 
-  const enabledFeatureFlagPropertyType =
+  const enabledFeatureFlagsPropertyType =
     await createSystemPropertyTypeIfNotExists(context, authentication, {
       propertyTypeDefinition: {
-        title: "Enabled Feature Flag",
-        description: "An identifier for a feature flag that is enabled.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        title: "Enabled Feature Flags",
+        description:
+          "A list of identifiers for a feature flags that are enabled.",
+        possibleValues: [{ primitiveDataType: "text", array: true }],
       },
       webShortname: "hash",
       migrationState,
     });
 
   /**
-   * Step 2: Add the `enabledFeatureFlag` property type to the `User` entity type
+   * Step 2: Add the `enabledFeatureFlags` property type to the `User` entity type
    */
 
   const currentUserEntityTypeId = getCurrentHashSystemEntityTypeId({
@@ -54,11 +55,8 @@ const migrate: MigrationFunction = async ({
     ...userEntityTypeSchema,
     properties: {
       ...userEntityTypeSchema.properties,
-      [extractBaseUrl(enabledFeatureFlagPropertyType.schema.$id)]: {
-        type: "array",
-        items: {
-          $ref: enabledFeatureFlagPropertyType.schema.$id,
-        },
+      [extractBaseUrl(enabledFeatureFlagsPropertyType.schema.$id)]: {
+        $ref: enabledFeatureFlagsPropertyType.schema.$id,
       },
     },
   };

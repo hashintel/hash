@@ -72,8 +72,11 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
 
       const user = getRoots(subgraph)[0];
 
-      const { email, shortname, displayName, enabledFeatureFlag } =
-        simplifyProperties(user.properties as UserProperties);
+      const simpleProperties = simplifyProperties(
+        user.properties as UserProperties,
+      );
+
+      const { email, shortname, displayName } = simpleProperties;
 
       if (!shortname || !displayName) {
         // User has not completed signup
@@ -213,7 +216,8 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
       });
 
       const enabledFeatureFlags =
-        (enabledFeatureFlag as FeatureFlag[] | undefined) ?? [];
+        (simpleProperties.enabledFeatureFlags as FeatureFlag[] | undefined) ??
+        [];
 
       return {
         ...user,

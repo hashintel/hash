@@ -381,11 +381,11 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/email/v/1",
     propertyTypeBaseUrl: "https://hash.ai/@hash/types/property-type/email/",
   },
-  enabledFeatureFlag: {
+  enabledFeatureFlags: {
     propertyTypeId:
-      "https://hash.ai/@hash/types/property-type/enabled-feature-flag/v/1",
+      "https://hash.ai/@hash/types/property-type/enabled-feature-flags/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@hash/types/property-type/enabled-feature-flag/",
+      "https://hash.ai/@hash/types/property-type/enabled-feature-flags/",
   },
   entityEditionId: {
     propertyTypeId:

@@ -87,15 +87,10 @@ export const constructMinimalUser = (params: {
 
   const simpleProperties = simplifyProperties(userEntity.properties);
 
-  const {
-    shortname,
-    displayName,
-    pinnedEntityTypeBaseUrl,
-    enabledFeatureFlag,
-  } = simpleProperties;
+  const { shortname, displayName, pinnedEntityTypeBaseUrl } = simpleProperties;
 
   const enabledFeatureFlags =
-    (enabledFeatureFlag as FeatureFlag[] | undefined) ?? [];
+    (simpleProperties.enabledFeatureFlags as FeatureFlag[] | undefined) ?? [];
 
   const accountSignupComplete = !!shortname && !!displayName;
 
