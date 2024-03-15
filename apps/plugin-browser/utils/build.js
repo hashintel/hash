@@ -4,7 +4,7 @@ import path from "node:path";
 import webpack from "webpack";
 import ZipPlugin from "zip-webpack-plugin";
 
-import config from "../webpack.config";
+import config from "../webpack.config.js";
 
 process.env.BABEL_ENV = "production";
 process.env.ASSET_PATH = "/";
