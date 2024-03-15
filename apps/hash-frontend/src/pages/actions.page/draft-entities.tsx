@@ -1,11 +1,13 @@
 import { Skeleton } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type {
+  BaseUrl,
   Entity,
   EntityId,
   EntityRootType,
   Subgraph,
 } from "@local/hash-subgraph";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Container, Divider, Typography } from "@mui/material";
 import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 import {
@@ -28,6 +30,7 @@ import {
   DraftEntitiesFilters,
   filterDraftEntities,
   generateDefaultFilterState,
+  getDraftEntityTypes,
   isFilerStateDefaultFilterState,
 } from "./draft-entities/draft-entities-filters";
 import { DraftEntity } from "./draft-entity";
@@ -93,16 +96,78 @@ export const DraftEntities: FunctionComponent<{
     return derived;
   }, [actors, draftEntities]);
 
+  const [
+    previouslyEvaluatedDraftEntityTypeBaseUrls,
+    setPreviouslyEvaluatedDraftEntityTypeBaseUrls,
+  ] = useState<BaseUrl[]>();
+
   if (
     !filterState &&
     draftEntitiesWithCreators &&
     draftEntitiesWithLinkedDataSubgraph
   ) {
-    setFilterState(
-      generateDefaultFilterState({
-        draftEntitiesWithCreators,
-        draftEntitiesSubgraph: draftEntitiesWithLinkedDataSubgraph,
-      }),
+    const newDraftFilterState = generateDefaultFilterState({
+      draftEntitiesWithCreators,
+      draftEntitiesSubgraph: draftEntitiesWithLinkedDataSubgraph,
+    });
+
+    // Note that the initial filter state includes all draft entity type Base URLs
+    setPreviouslyEvaluatedDraftEntityTypeBaseUrls(
+      newDraftFilterState.entityTypeBaseUrls,
+    );
+
+    setFilterState(newDraftFilterState);
+  }
+
+  const rootEntityTypesInSubgraph = useMemo(
+    () =>
+      draftEntitiesWithCreators && draftEntitiesWithLinkedDataSubgraph
+        ? getDraftEntityTypes({
+            draftEntities: draftEntitiesWithCreators.map(
+              ({ entity }) => entity,
+            ),
+            draftEntitiesSubgraph: draftEntitiesWithLinkedDataSubgraph,
+          })
+        : undefined,
+    [draftEntitiesWithCreators, draftEntitiesWithLinkedDataSubgraph],
+  );
+
+  const newDraftEntityTypeBaseUrls = useMemo(
+    () =>
+      rootEntityTypesInSubgraph &&
+      previouslyEvaluatedDraftEntityTypeBaseUrls &&
+      rootEntityTypesInSubgraph
+        .map((entityType) => extractBaseUrl(entityType.schema.$id))
+        .filter(
+          (entityTypeBaseUrl) =>
+            !previouslyEvaluatedDraftEntityTypeBaseUrls.includes(
+              entityTypeBaseUrl,
+            ),
+        ),
+    [rootEntityTypesInSubgraph, previouslyEvaluatedDraftEntityTypeBaseUrls],
+  );
+
+  if (newDraftEntityTypeBaseUrls && newDraftEntityTypeBaseUrls.length > 0) {
+    /**
+     * If a draft entity of a new type has been added to the subgraph,
+     * we want to add it to the filter state so that the entity isn't
+     * filtered out of view when it has been added.
+     */
+    setPreviouslyEvaluatedDraftEntityTypeBaseUrls((prev) => [
+      ...(prev ?? []),
+      ...newDraftEntityTypeBaseUrls,
+    ]);
+
+    setFilterState((prev) =>
+      prev
+        ? {
+            ...prev,
+            entityTypeBaseUrls: [
+              ...prev.entityTypeBaseUrls,
+              ...newDraftEntityTypeBaseUrls,
+            ],
+          }
+        : prev,
     );
   }
 

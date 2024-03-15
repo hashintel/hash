@@ -78,7 +78,7 @@ export type DraftEntityFilterState = {
   lastEditedTimeRange: LastEditedTimeRanges;
 };
 
-const getDraftEntityTypes = (params: {
+export const getDraftEntityTypes = (params: {
   draftEntities: Entity[];
   draftEntitiesSubgraph: Subgraph<EntityRootType>;
 }): EntityTypeWithMetadata[] =>
@@ -112,13 +112,13 @@ const getDraftEntityTypes = (params: {
         entityTypeId,
       );
 
-      if (!entityType) {
-        throw new Error(
-          `Could not find entity type ${entityTypeId} in draft entities subgraph`,
-        );
-      }
-      return entityType;
-    });
+      /**
+       * We account for the subgraph not yet containing the entity type
+       * of a new draft entity, as the subgraph may be outdated.
+       */
+      return entityType ?? [];
+    })
+    .flat();
 
 const getDraftEntitySources = (params: {
   draftEntitiesWithCreators: {
