@@ -36,9 +36,21 @@ export const validateBaseUrl = (
       };
     }
   } catch (err) {
+    // I don't know why we're doing this, but it's in the original code
+    // this simply enforces that when stringifying the error, the keys are sorted
+    let inner;
+    if (typeof err === "object" && err !== null) {
+      inner = JSON.stringify(err, Object.keys(err).sort());
+    } else {
+      inner = JSON.stringify(err);
+    }
+
     return {
       type: "Err",
-      inner: { reason: "UrlParseError", inner: JSON.stringify(err) },
+      inner: {
+        reason: "UrlParseError",
+        inner,
+      },
     };
   }
 };

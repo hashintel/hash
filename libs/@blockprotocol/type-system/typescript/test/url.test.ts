@@ -1,3 +1,4 @@
+import stringify from "json-stable-stringify";
 import { beforeAll, describe, expect, test } from "vitest";
 
 import type { BaseUrl, VersionedUrl } from "../src/main";
