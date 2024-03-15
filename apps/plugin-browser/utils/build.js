@@ -1,11 +1,11 @@
 process.env.BABEL_ENV = "production";
 process.env.ASSET_PATH = "/";
 
-const webpack = require("webpack");
-const path = require("node:path");
-const fs = require("node:fs");
-const ZipPlugin = require("zip-webpack-plugin");
-const config = require("../webpack.config");
+import webpack from "webpack";
+import path from "node:path";
+import fs from "node:fs";
+import ZipPlugin from "zip-webpack-plugin";
+import config from "../webpack.config";
 
 delete config.custom;
 

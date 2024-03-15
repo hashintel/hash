@@ -3,10 +3,10 @@ process.env.BABEL_ENV = "development";
 process.env.NODE_ENV = "development";
 process.env.ASSET_PATH = "/";
 
-const WebpackDevServer = require("webpack-dev-server");
-const webpack = require("webpack");
-const path = require("node:path");
-const config = require("../webpack.config");
+import WebpackDevServer from "webpack-dev-server";
+import webpack from "webpack";
+import path from "node:path";
+import config from "../webpack.config";
 
 const excludeEntriesToHotReload = ["background", "content"];
 
