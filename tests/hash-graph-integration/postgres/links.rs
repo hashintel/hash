@@ -254,13 +254,9 @@ async fn remove_link() {
             .is_empty()
     );
 
-    api.archive_entity(
-        link_entity_metadata.record_id.entity_id,
-        EntityProperties::empty(),
-        vec![friend_link_type_id],
-    )
-    .await
-    .expect("could not remove link");
+    api.archive_entity(link_entity_metadata.record_id.entity_id)
+        .await
+        .expect("could not remove link");
 
     assert!(
         api.get_latest_entity_links(alice_metadata.record_id.entity_id)

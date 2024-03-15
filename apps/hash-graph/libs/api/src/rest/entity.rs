@@ -27,7 +27,7 @@ use graph::{
     store::{
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
         knowledge::{
-            CreateEntityRequest, GetEntityParams, UpdateEntityEmbeddingsParams, UpdateEntityParams,
+            CreateEntityRequest, GetEntityParams, PatchEntityParams, UpdateEntityEmbeddingsParams,
             ValidateEntityParams,
         },
         AccountStore, EntityQueryCursor, EntityQuerySorting, EntityQuerySortingRecord, EntityStore,
@@ -47,10 +47,12 @@ use graph_types::{
     owned_by_id::OwnedById,
     Embedding,
 };
+use json_patch::{
+    AddOperation, CopyOperation, MoveOperation, PatchOperation, RemoveOperation, ReplaceOperation,
+    TestOperation,
+};
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
-use temporal_versioning::{DecisionTime, Timestamp};
-use type_system::url::VersionedUrl;
 use utoipa::{OpenApi, ToSchema};
 use validation::ValidationProfile;
 
@@ -66,7 +68,7 @@ use crate::rest::{
         validate_entity,
         check_entity_permission,
         get_entities_by_query,
-        update_entity,
+        patch_entity,
         update_entity_embeddings,
 
         get_entity_authorization_relationships,
@@ -83,12 +85,20 @@ use crate::rest::{
             ValidateEntityParams,
             EntityValidationType,
             ValidationProfile,
-            UpdateEntityRequest,
             Embedding,
             UpdateEntityEmbeddingsParams,
             EntityEmbedding,
             EntityQueryToken,
             EntityStructuralQuery,
+
+            PatchEntityParams,
+            PatchOperation,
+            AddOperation,
+            ReplaceOperation,
+            RemoveOperation,
+            CopyOperation,
+            MoveOperation,
+            TestOperation,
 
             EntityRelationAndSubject,
             EntityPermission,
@@ -140,7 +150,7 @@ impl RoutedResource for EntityResource {
         Router::new().nest(
             "/entities",
             Router::new()
-                .route("/", post(create_entity::<S, A>).put(update_entity::<S, A>))
+                .route("/", post(create_entity::<S, A>).patch(patch_entity::<S, A>))
                 .route(
                     "/relationships",
                     post(modify_entity_authorization_relationships::<A>),
@@ -455,21 +465,8 @@ where
     }))
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-struct UpdateEntityRequest {
-    properties: EntityProperties,
-    entity_id: EntityId,
-    entity_type_ids: Vec<VersionedUrl>,
-    archived: bool,
-    draft: bool,
-    #[serde(default)]
-    #[schema(nullable = false)]
-    decision_time: Option<Timestamp<DecisionTime>>,
-}
-
 #[utoipa::path(
-    put,
+    patch,
     path = "/entities",
     tag = "Entity",
     params(
@@ -483,32 +480,23 @@ struct UpdateEntityRequest {
         (status = 404, description = "Entity ID or Entity Type URL was not found"),
         (status = 500, description = "Store error occurred"),
     ),
-    request_body = UpdateEntityRequest,
+    request_body = PatchEntityParams,
 )]
 #[tracing::instrument(
     level = "info",
     skip(store_pool, authorization_api_pool, temporal_client)
 )]
-async fn update_entity<S, A>(
+async fn patch_entity<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
-    body: Json<UpdateEntityRequest>,
+    Json(params): Json<PatchEntityParams>,
 ) -> Result<Json<EntityMetadata>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let Json(UpdateEntityRequest {
-        properties,
-        entity_id,
-        entity_type_ids,
-        archived,
-        draft,
-        decision_time,
-    }) = body;
-
     let mut store = store_pool.acquire().await.map_err(report_to_response)?;
     let mut authorization_api = authorization_api_pool
         .acquire()
@@ -516,18 +504,11 @@ where
         .map_err(report_to_response)?;
 
     store
-        .update_entity(
+        .patch_entity(
             actor_id,
             &mut authorization_api,
             temporal_client.as_deref(),
-            UpdateEntityParams {
-                entity_id,
-                decision_time,
-                entity_type_ids,
-                properties,
-                archived,
-                draft,
-            },
+            params,
         )
         .await
         .map_err(|report| {

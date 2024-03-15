@@ -32,7 +32,7 @@ use graph::{
     ontology::EntityTypeQueryPath,
     store::{
         account::{InsertAccountIdParams, InsertWebIdParams},
-        knowledge::{CreateEntityParams, GetEntityParams, UpdateEntityParams},
+        knowledge::{CreateEntityParams, GetEntityParams, PatchEntityParams},
         ontology::{
             CreateDataTypeParams, CreateEntityTypeParams, CreatePropertyTypeParams,
             GetDataTypesParams, GetEntityTypesParams, GetPropertyTypesParams,
@@ -757,27 +757,12 @@ impl DatabaseApi<'_> {
         }
     }
 
-    pub async fn update_entity(
+    pub async fn patch_entity(
         &mut self,
-        entity_id: EntityId,
-        properties: EntityProperties,
-        entity_type_ids: Vec<VersionedUrl>,
-        draft: bool,
+        params: PatchEntityParams,
     ) -> Result<EntityMetadata, UpdateError> {
         self.store
-            .update_entity(
-                self.account_id,
-                &mut NoAuthorization,
-                None,
-                UpdateEntityParams {
-                    entity_id,
-                    decision_time: Some(generate_decision_time()),
-                    entity_type_ids,
-                    properties,
-                    archived: false,
-                    draft,
-                },
-            )
+            .patch_entity(self.account_id, &mut NoAuthorization, None, params)
             .await
     }
 
@@ -972,24 +957,19 @@ impl DatabaseApi<'_> {
             .collect())
     }
 
-    async fn archive_entity(
-        &mut self,
-        entity_id: EntityId,
-        properties: EntityProperties,
-        entity_type_ids: Vec<VersionedUrl>,
-    ) -> Result<EntityMetadata, UpdateError> {
+    async fn archive_entity(&mut self, entity_id: EntityId) -> Result<EntityMetadata, UpdateError> {
         self.store
-            .update_entity(
+            .patch_entity(
                 self.account_id,
                 &mut NoAuthorization,
                 None,
-                UpdateEntityParams {
+                PatchEntityParams {
                     entity_id,
                     decision_time: None,
-                    archived: true,
-                    draft: false,
-                    entity_type_ids,
-                    properties,
+                    archived: Some(true),
+                    draft: None,
+                    entity_type_ids: vec![],
+                    properties: vec![],
                 },
             )
             .await
