@@ -221,12 +221,10 @@ export const persistEntities = async (params: {
     });
   };
 
-  const createInferredEntityNotification = async ({
+  const createInferredEntityUpdateNotification = async ({
     entity,
-    operation,
   }: {
     entity: Entity;
-    operation: "create" | "update";
   }) => {
     const entityEditionTimestamp =
       entity.metadata.temporalVersioning.decisionTime.start.limit;
@@ -238,7 +236,7 @@ export const persistEntities = async (params: {
         changedEntityId: entity.metadata.recordId.entityId,
         changedEntityEditionId: entityEditionTimestamp,
         notifiedUserAccountId: requestingUserAccountId,
-        operation,
+        operation: "update",
       },
     );
   };
@@ -489,13 +487,6 @@ export const persistEntities = async (params: {
               }
             }
 
-            for (const success of successes) {
-              void createInferredEntityNotification({
-                entity: success.entity,
-                operation: "create",
-              });
-            }
-
             if (failures.length > 0) {
               retryMessageContent += dedent(`
                 Some of the entities you suggested for creation were invalid. Please review their properties and try again. 
@@ -623,9 +614,8 @@ export const persistEntities = async (params: {
             log(`Update failures: ${stringify(updateFailures)}`);
 
             for (const success of successes) {
-              void createInferredEntityNotification({
+              void createInferredEntityUpdateNotification({
                 entity: success.entity,
-                operation: "update",
               });
 
               inferenceState.inProgressEntityIds =
