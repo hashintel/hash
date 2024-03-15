@@ -66,7 +66,7 @@ export type MinimalUser = {
   entity: Entity;
   accountId: AccountId;
   accountSignupComplete: boolean;
-  enabledFeatureFlags: ("pages" | "canvases" | "documents" | "notes")[];
+  enabledFeatureFlags: FeatureFlag[];
   pinnedEntityTypeBaseUrls?: BaseUrl[];
   shortname?: string;
   displayName?: string;
