@@ -1,4 +1,5 @@
-import path from "node:path";
+import path, { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import ReactRefreshWebpackPlugin from "@pmmmwh/react-refresh-webpack-plugin";
 import { sentryWebpackPlugin } from "@sentry/webpack-plugin";
@@ -25,6 +26,9 @@ const env = {
 const ASSET_PATH = process.env.ASSET_PATH || "/";
 
 const alias = {};
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const secretsPath = path.join(__dirname, `secrets.${env.NODE_ENV}.js`);
 

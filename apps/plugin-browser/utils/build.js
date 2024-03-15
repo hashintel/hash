@@ -4,6 +4,7 @@ import path from "node:path";
 import webpack from "webpack";
 import ZipPlugin from "zip-webpack-plugin";
 
+// eslint-disable-next-line import/extensions
 import config from "../webpack.config.js";
 
 process.env.BABEL_ENV = "production";
