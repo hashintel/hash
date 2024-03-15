@@ -194,14 +194,14 @@ describe("Link entity", () => {
         acquaintanceRightEntity = entity;
       }),
     ]);
-  });
 
-  afterAll(async () => {
-    await deleteKratosIdentity({
-      kratosIdentityId: testUser.kratosIdentityId,
-    });
+    return async () => {
+      await deleteKratosIdentity({
+        kratosIdentityId: testUser.kratosIdentityId,
+      });
 
-    await resetGraph();
+      await resetGraph();
+    };
   });
 
   let linkEntityFriend: LinkEntity;

@@ -81,17 +81,16 @@ beforeAll(async () => {
       operation: "create",
     },
   ]);
-});
 
-afterAll(async () => {
-  await deleteKratosIdentity({
-    kratosIdentityId: testUser.kratosIdentityId,
-  });
-  await deleteKratosIdentity({
-    kratosIdentityId: testUser2.kratosIdentityId,
-  });
-
-  await resetGraph();
+  return async () => {
+    await deleteKratosIdentity({
+      kratosIdentityId: testUser.kratosIdentityId,
+    });
+    await deleteKratosIdentity({
+      kratosIdentityId: testUser2.kratosIdentityId,
+    });
+    await resetGraph();
+  };
 });
 
 describe("Data type CRU", () => {
