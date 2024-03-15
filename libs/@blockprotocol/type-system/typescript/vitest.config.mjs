@@ -1,7 +1,13 @@
 /// <reference types="vitest" />
 import { defineConfig } from "vitest/config";
+import wasm from "vite-plugin-wasm";
+import topLevelAwait from "vite-plugin-top-level-await";
 
 export default defineConfig({
+  plugins: [],
+  build: {
+    target: "esnext",
+  },
   test: {
     coverage: {
       enabled: process.env.TEST_COVERAGE === "true",
@@ -12,4 +18,5 @@ export default defineConfig({
     },
     environment: "node",
   },
+  assetsInclude: ["**/*.wasm"],
 });

@@ -1,7 +1,8 @@
 import { beforeAll, describe, expect, test } from "vitest";
 
 import type { DataType, ParseDataTypeError } from "../src/main";
-import { TypeSystemInitializer, validateDataType } from "../src/main";
+import { validateDataType } from "../src/main";
+import { initialize } from "./shared";
 
 const primitiveDataTypes: DataType[] = [
   {
@@ -131,7 +132,7 @@ const brokenTypes: [unknown, ParseDataTypeError][] = [
 ];
 
 beforeAll(async () => {
-  await TypeSystemInitializer.initialize();
+  await initialize();
 });
 
 describe("validateDataType", () => {

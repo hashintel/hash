@@ -1,57 +1,22 @@
 import { beforeAll, describe, expect, test } from "vitest";
 
-import type {
-  BaseUrl,
-  ParseBaseUrlError,
-  ParseVersionedUrlError,
-  VersionedUrl,
-} from "../src/main";
+import type { BaseUrl, VersionedUrl } from "../src/main";
 import {
   extractBaseUrl,
   extractVersion,
-  TypeSystemInitializer,
   validateBaseUrl,
   validateVersionedUrl,
 } from "../src/main";
+import { initialize } from "./shared";
 
-const invalidBaseUrlCases: [string, ParseBaseUrlError][] = [
-  ["http://example.com", { reason: "MissingTrailingSlash" }],
-  [
-    "\\example\\..\\demo/.\\/",
-    {
-      reason: "UrlParseError",
-      inner:
-        '{"input":"\\\\example\\\\..\\\\demo/.\\\\/","code":"ERR_INVALID_URL"}',
-    },
-  ],
-  [
-    "https://ex ample.org/",
-    {
-      reason: "UrlParseError",
-      inner: '{"input":"https://ex ample.org/","code":"ERR_INVALID_URL"}',
-    },
-  ],
-  [
-    "example/",
-    {
-      reason: "UrlParseError",
-      inner: '{"input":"example/","code":"ERR_INVALID_URL"}',
-    },
-  ],
-  [
-    "https://example.com:demo/",
-    {
-      reason: "UrlParseError",
-      inner: '{"input":"https://example.com:demo/","code":"ERR_INVALID_URL"}',
-    },
-  ],
-  [
-    "http://[www.example.com]/",
-    {
-      reason: "UrlParseError",
-      inner: '{"input":"http://[www.example.com]/","code":"ERR_INVALID_URL"}',
-    },
-  ],
+const invalidBaseUrlCases: string[] = [
+  "http://example.com",
+  "\\example\\..\\demo/.\\/",
+  "https://ex ample.org/",
+  "example/",
+  "https://example.com:demo/",
+  "http://[www.example.com]/",
+
   /** @todo - This was a regression when moving to a JS implementation. */
   // ["data:text/plain,Hello?World#/", { reason: "CannotBeABase" }],
 ];
@@ -67,47 +32,20 @@ describe("validateBaseUrl", () => {
     expect(validateBaseUrl(input)).toEqual({ type: "Ok", inner: input });
   });
 
-  test.each(invalidBaseUrlCases)(
-    "`parseBaseUrl(%s)` errors",
-    (input, expected) => {
-      expect(validateBaseUrl(input)).toEqual({ type: "Err", inner: expected });
-    },
-  );
+  test.each(invalidBaseUrlCases)("`parseBaseUrl(%s)` errors", (input) => {
+    expect(validateBaseUrl(input)).toMatchSnapshot();
+  });
 });
 
-const invalidVersionedUrlCases: [string, ParseVersionedUrlError][] = [
-  [
-    "example/v/2",
-    {
-      reason: "InvalidBaseUrl",
-      inner: {
-        reason: "UrlParseError",
-        inner: '{"input":"example/","code":"ERR_INVALID_URL"}',
-      },
-    },
-  ],
-  ["http://example.com", { reason: "IncorrectFormatting" }],
-  ["http://example.com/v/", { reason: "MissingVersion" }],
-  ["http://example.com/v/0.2", { reason: "AdditionalEndContent", inner: ".2" }],
-  [
-    "http://example.com/v//20",
-    {
-      reason: "InvalidVersion",
-      inner: ["/20", "invalid digit found in string"],
-    },
-  ],
-  [
-    "http://example.com/v/30/1",
-    { reason: "AdditionalEndContent", inner: "/1" },
-  ],
-  [
-    "http://example.com/v/foo",
-    {
-      reason: "InvalidVersion",
-      inner: ["foo", "invalid digit found in string"],
-    },
-  ],
-  [`http://exampl${"e".repeat(2028)}.com/v/1`, { reason: "TooLong" }],
+const invalidVersionedUrlCases: string[] = [
+  "example/v/2",
+  "http://example.com",
+  "http://example.com/v/",
+  "http://example.com/v/0.2",
+  "http://example.com/v//20",
+  "http://example.com/v/30/1",
+  "http://example.com/v/foo",
+  `http://exampl${"e".repeat(2028)}.com/v/1`,
 ];
 
 describe("validateVersionedUrl", () => {
@@ -122,11 +60,8 @@ describe("validateVersionedUrl", () => {
 
   test.each(invalidVersionedUrlCases)(
     "validateVersionedUrl(%s) returns errors",
-    (input, expected) => {
-      expect(validateVersionedUrl(input)).toEqual({
-        type: "Err",
-        inner: expected,
-      });
+    (input) => {
+      expect(validateVersionedUrl(input)).toMatchSnapshot();
     },
   );
 });
@@ -158,7 +93,7 @@ const extractVersionCases: [VersionedUrl, number][] = [
 ];
 
 beforeAll(async () => {
-  await TypeSystemInitializer.initialize();
+  await initialize();
 });
 
 describe("extractVersion", () => {
