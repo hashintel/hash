@@ -1,5 +1,5 @@
 import type { DataTypeWithMetadata } from "@local/hash-subgraph";
-import { isPlainObject } from "lodash";
+import isPlainObject from "lodash/isPlainObject";
 
 import type { EditorType } from "./types";
 

@@ -1,7 +1,7 @@
 import type { Entity as BpEntity } from "@blockprotocol/graph";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity, EntityPropertiesObject } from "@local/hash-subgraph";
-import camelCase from "lodash/fp/camelCase";
+import camelCase from "lodash/camelCase";
 
 /** @see https://stackoverflow.com/a/65015868/17217717 */
 type CamelCase<S extends string> = S extends
@@ -38,9 +38,7 @@ export type Simplified<T extends Entity | BpEntity> = Omit<T, "properties"> & {
 export const simplifyProperties = <T extends EntityPropertiesObject>(
   properties: T,
 ): SimpleProperties<T> => {
-  // @ todo: this makes additional assumptions about the structure of the key.
-  //  This should be done more consistently, like through a branded type that
-  //  introduces well-known URL structures (this approach is used turbine)
+  // this function is only called with property objects that follow the HASH URL/bp scheme
   return typedEntries(properties).reduce((acc, [key, value]) => {
     // fallback to a non-simplified key if the key is not in the expected format
     const id = key.split("/").at(-2);
