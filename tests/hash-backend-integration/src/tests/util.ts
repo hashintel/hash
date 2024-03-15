@@ -1,4 +1,3 @@
-import { vi } from "vitest";
 import { createKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
@@ -12,6 +11,7 @@ import { getRequiredEnv } from "@apps/hash-api/src/util";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { vi } from "vitest";
 
 export const textDataTypeId =
   "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1" as VersionedUrl;

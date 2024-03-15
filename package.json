@@ -61,7 +61,6 @@
     ]
   },
   "prettier": {
-    "editorconfig": false,
     "plugins": [
       "prettier-plugin-packagejson",
       "prettier-plugin-sh",
