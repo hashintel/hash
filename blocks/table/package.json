@@ -30,7 +30,7 @@
     "trailingComma": "all"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.3.3",
+    "@blockprotocol/graph": "0.3.4-canary-20240313191438",
     "@glideapps/glide-data-grid": "6.0.3",
     "@hashintel/block-design-system": "0.0.1",
     "@mui/material": "5.14.11",

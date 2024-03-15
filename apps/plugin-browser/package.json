@@ -25,7 +25,7 @@
     "lint:tsc": "tsc --noEmit"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.3.3",
+    "@blockprotocol/graph": "0.3.4-canary-20240313191438",
     "@hashintel/block-design-system": "0.0.1",
     "@hashintel/design-system": "0.0.7",
     "@local/advanced-types": "0.0.0-private",
