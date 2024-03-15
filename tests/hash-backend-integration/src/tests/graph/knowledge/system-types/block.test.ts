@@ -89,14 +89,14 @@ describe("Block", () => {
       entityTypeId: dummyEntityType.schema.$id,
       relationships: createDefaultAuthorizationRelationships(authentication),
     });
-  });
 
-  afterAll(async () => {
-    await deleteKratosIdentity({
-      kratosIdentityId: testUser.kratosIdentityId,
-    });
+    return async () => {
+      await deleteKratosIdentity({
+        kratosIdentityId: testUser.kratosIdentityId,
+      });
 
-    await resetGraph();
+      await resetGraph();
+    };
   });
 
   it("can create a Block", async () => {

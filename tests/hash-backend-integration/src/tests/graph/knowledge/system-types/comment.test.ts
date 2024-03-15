@@ -87,14 +87,14 @@ describe("Comment", () => {
     });
 
     testBlock = pageBlocks[0]!.rightEntity;
-  });
 
-  afterAll(async () => {
-    await deleteKratosIdentity({
-      kratosIdentityId: testUser.kratosIdentityId,
-    });
+    return async () => {
+      await deleteKratosIdentity({
+        kratosIdentityId: testUser.kratosIdentityId,
+      });
 
-    await resetGraph();
+      await resetGraph();
+    };
   });
 
   it("createComment method can create a comment", async () => {

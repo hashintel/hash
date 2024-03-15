@@ -195,17 +195,17 @@ describe("Entity CRU", () => {
         },
       ],
     });
-  });
 
-  afterAll(async () => {
-    await deleteKratosIdentity({
-      kratosIdentityId: testUser.kratosIdentityId,
-    });
-    await deleteKratosIdentity({
-      kratosIdentityId: testUser2.kratosIdentityId,
-    });
+    return async () => {
+      await deleteKratosIdentity({
+        kratosIdentityId: testUser.kratosIdentityId,
+      });
+      await deleteKratosIdentity({
+        kratosIdentityId: testUser2.kratosIdentityId,
+      });
 
-    await resetGraph();
+      await resetGraph();
+    };
   });
 
   let createdEntity: Entity;

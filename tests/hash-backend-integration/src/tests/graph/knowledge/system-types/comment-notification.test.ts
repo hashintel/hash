@@ -70,17 +70,17 @@ describe("Comment Notification", () => {
         orgEntityId: testOrg.entity.metadata.recordId.entityId,
       },
     );
-  });
 
-  afterAll(async () => {
-    await deleteKratosIdentity({
-      kratosIdentityId: triggerUser.kratosIdentityId,
-    });
-    await deleteKratosIdentity({
-      kratosIdentityId: recipientUser.kratosIdentityId,
-    });
+    return async () => {
+      await deleteKratosIdentity({
+        kratosIdentityId: triggerUser.kratosIdentityId,
+      });
+      await deleteKratosIdentity({
+        kratosIdentityId: recipientUser.kratosIdentityId,
+      });
 
-    await resetGraph();
+      await resetGraph();
+    };
   });
 
   it("can create a comment notification when a comment is left on a page", async () => {

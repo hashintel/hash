@@ -13,6 +13,7 @@ export default defineConfig({
       "src/tests/graph/**/*.test.ts",
       "src/tests/subgraph/**/*.test.ts",
     ],
+    isolate: false,
     setupFiles: ["src/tests/load-test-env.ts"],
     testTimeout: 60_000,
     poolOptions: {

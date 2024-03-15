@@ -31,10 +31,10 @@ describe("Hash Instance", () => {
   beforeAll(async () => {
     await TypeSystemInitializer.initialize();
     await ensureSystemGraphIsInitialized({ logger, context: graphContext });
-  });
 
-  afterAll(async () => {
-    await resetGraph();
+    return async () => {
+      await resetGraph();
+    };
   });
 
   let hashInstance: HashInstance;
