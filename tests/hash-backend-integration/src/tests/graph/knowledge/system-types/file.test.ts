@@ -1,3 +1,4 @@
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import {
@@ -11,8 +12,6 @@ import type { EntityId, OwnedById, Timestamp } from "@local/hash-subgraph";
 
 import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
-
-jest.setTimeout(60000);
 
 const logger = new Logger({
   mode: "dev",
@@ -50,9 +49,9 @@ describe("File", () => {
     const uploadUrl = "mock-upload-url";
 
     graphContext.uploadProvider = {
-      getFileEntityStorageKey: jest.fn(() => fileKey),
-      presignDownload: jest.fn(() => Promise.resolve(downloadUrl)),
-      presignUpload: jest.fn(() =>
+      getFileEntityStorageKey: vi.fn(() => fileKey),
+      presignDownload: vi.fn(() => Promise.resolve(downloadUrl)),
+      presignUpload: vi.fn(() =>
         Promise.resolve({
           fileStorageProperties: {
             key: fileKey,

@@ -1,8 +1,7 @@
+import { afterAll, describe, expect, it } from "vitest";
 import path from "node:path";
 
 import { resetGraph, restoreSnapshot } from "../test-server";
-
-jest.setTimeout(60000);
 
 afterAll(async () => {
   await resetGraph();

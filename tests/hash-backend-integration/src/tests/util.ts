@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import { createKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
@@ -42,7 +43,7 @@ export const createTestImpureGraphContext = (): ImpureGraphContext<
 
   const mockedTemporalClient = {
     workflow: {
-      execute: jest.fn(),
+      execute: vi.fn(),
     },
   } as unknown as TemporalClient;
 

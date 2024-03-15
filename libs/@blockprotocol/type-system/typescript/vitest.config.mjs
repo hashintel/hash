@@ -16,5 +16,4 @@ export default defineConfig({
     },
     environment: "node",
   },
-  assetsInclude: ["**/*.wasm"],
 });

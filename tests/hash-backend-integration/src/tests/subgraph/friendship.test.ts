@@ -1,3 +1,4 @@
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import path from "node:path";
 
 import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
@@ -52,8 +53,6 @@ import {
 
 import { resetGraph, restoreSnapshot } from "../test-server";
 import { createTestImpureGraphContext } from "../util";
-
-jest.setTimeout(60000);
 
 export const temporalAxesForTimestamp = (
   decisionTime: Timestamp | null,

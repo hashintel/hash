@@ -1,3 +1,4 @@
+import { it } from "vitest";
 import "./load-test-env";
 
 import { AwsSesEmailTransporter } from "@apps/hash-api/src/email/transporters";
