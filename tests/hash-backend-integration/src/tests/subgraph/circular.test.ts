@@ -1,4 +1,3 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import path from "node:path";
 
 import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
@@ -21,6 +20,7 @@ import {
   getEntities as getEntitiesSubgraph,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph, restoreSnapshot } from "../test-server";
 import { createTestImpureGraphContext } from "../util";

@@ -1,4 +1,3 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import { createEntity } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
@@ -22,6 +21,7 @@ import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { OwnedById } from "@local/hash-subgraph";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import {

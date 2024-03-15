@@ -1,4 +1,3 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { publicUserAccountId } from "@apps/hash-api/src/auth/public-user-account-id";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import {
@@ -15,6 +14,7 @@ import {
   isUserHashInstanceAdmin,
 } from "@local/hash-backend-utils/hash-instance";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";

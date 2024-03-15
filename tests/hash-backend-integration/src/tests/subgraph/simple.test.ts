@@ -1,5 +1,6 @@
-import { afterAll, describe, expect, it } from "vitest";
 import path from "node:path";
+
+import { afterAll, describe, expect, it } from "vitest";
 
 import { resetGraph, restoreSnapshot } from "../test-server";
 

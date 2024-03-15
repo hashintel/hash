@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, test } from "vitest";
 
 import type { ParsePropertyTypeError, PropertyType } from "../src/main";
-import { TypeSystemInitializer, validatePropertyType } from "../src/main";
+import { validatePropertyType } from "../src/main";
 import { initialize } from "./shared";
 
 const propertyTypes: PropertyType[] = [

@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, test } from "vitest";
 
 import type { EntityType, ParseEntityTypeError } from "../src/main";
-import { TypeSystemInitializer, validateEntityType } from "../src/main";
+import { validateEntityType } from "../src/main";
 import { initialize } from "./shared";
 
 const entityTypes: EntityType[] = [

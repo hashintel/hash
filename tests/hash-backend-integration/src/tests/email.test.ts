@@ -1,9 +1,9 @@
-import { it } from "vitest";
 import "./load-test-env";
 
 import { AwsSesEmailTransporter } from "@apps/hash-api/src/email/transporters";
 import { getAwsRegion } from "@apps/hash-api/src/lib/aws-config";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
+import { it } from "vitest";
 
 if (process.env.HASH_DEV_INTEGRATION_EMAIL) {
   const to = process.env.HASH_DEV_INTEGRATION_EMAIL;
