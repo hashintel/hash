@@ -1,8 +1,8 @@
 import type { EditableGridCell, Item } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import set from "lodash/set";
 import cloneDeep from "lodash/cloneDeep";
+import set from "lodash/set";
 import { useCallback } from "react";
 
 import { useEntityEditor } from "../../entity-editor-context";
