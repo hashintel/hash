@@ -11,6 +11,7 @@ import HtmlWebpackPlugin from "html-webpack-plugin";
 import ReactRefreshTypeScript from "react-refresh-typescript";
 import TerserPlugin from "terser-webpack-plugin";
 import webpack from "webpack";
+import processBrowser from "process/browser";
 
 dotenv.config();
 
@@ -115,7 +116,7 @@ const options = {
         exclude: /node_modules/,
         use: [
           {
-            loader: require.resolve("ts-loader"),
+            loader: "ts-loader",
             options: {
               getCustomTransformers: () => ({
                 before: [isDevelopment && ReactRefreshTypeScript()].filter(
@@ -150,7 +151,7 @@ const options = {
       .map((extension) => `.${extension}`)
       .concat([".js", ".jsx", ".ts", ".tsx", ".css"]),
     fallback: {
-      "process/browser": require.resolve("process/browser"),
+      "process/browser": processBrowser,
     },
   },
   plugins: [
