@@ -819,58 +819,6 @@
           }
         }
       },
-      "put": {
-        "tags": [
-          "Graph",
-          "Entity"
-        ],
-        "operationId": "update_entity",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/AccountId"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateEntityParams"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "The metadata of the updated entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EntityMetadata"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Entity ID or Entity Type URL was not found"
-          },
-          "422": {
-            "description": "Provided request body is invalid"
-          },
-          "423": {
-            "description": "The entity that should be updated was unexpectedly updated at the same time"
-          },
-          "500": {
-            "description": "Store error occurred"
-          }
-        }
-      },
       "patch": {
         "tags": [
           "Graph",
@@ -6363,42 +6311,6 @@
           "updatedAtTransactionTime": {
             "$ref": "#/components/schemas/Timestamp"
           }
-        },
-        "additionalProperties": false
-      },
-      "UpdateEntityParams": {
-        "type": "object",
-        "required": [
-          "entityId",
-          "entityTypeIds",
-          "properties",
-          "archived",
-          "draft"
-        ],
-        "properties": {
-          "archived": {
-            "type": "boolean"
-          },
-          "decisionTime": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/Timestamp"
-              }
-            ]
-          },
-          "draft": {
-            "type": "boolean"
-          },
-          "entityId": {
-            "$ref": "#/components/schemas/EntityId"
-          },
-          "entityTypeIds": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/VersionedUrl"
-            }
-          },
-          "properties": {}
         },
         "additionalProperties": false
       },
