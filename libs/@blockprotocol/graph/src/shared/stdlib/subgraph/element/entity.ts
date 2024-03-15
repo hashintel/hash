@@ -68,7 +68,6 @@ const getRevisionsForEntity = <Temporal extends boolean>(
 
   if (draftEntityIds.length > 0) {
     /**
-     * Return a combined version of all the draft editions of this entity present in the subgraph.
      * Return a combined object of all the draft editions of this entity present in the subgraph.
      * There may be multiple draft editions with the same timestamp, if:
      * 1. There are multiple draft series for the entity (i.e. multiple draftId where `${baseEntityId}~${draftId}`)
