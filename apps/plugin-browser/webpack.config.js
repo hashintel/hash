@@ -1,14 +1,15 @@
-import dotenv from "dotenv-flow";
-import webpack from "webpack";
 import path from "node:path";
-import fileSystem from "fs-extra";
-import CopyWebpackPlugin from "copy-webpack-plugin";
-import HtmlWebpackPlugin from "html-webpack-plugin";
-import TerserPlugin from "terser-webpack-plugin";
-import { CleanWebpackPlugin } from "clean-webpack-plugin";
+
 import ReactRefreshWebpackPlugin from "@pmmmwh/react-refresh-webpack-plugin";
-import ReactRefreshTypeScript from "react-refresh-typescript";
 import { sentryWebpackPlugin } from "@sentry/webpack-plugin";
+import { CleanWebpackPlugin } from "clean-webpack-plugin";
+import CopyWebpackPlugin from "copy-webpack-plugin";
+import dotenv from "dotenv-flow";
+import fileSystem from "fs-extra";
+import HtmlWebpackPlugin from "html-webpack-plugin";
+import ReactRefreshTypeScript from "react-refresh-typescript";
+import TerserPlugin from "terser-webpack-plugin";
+import webpack from "webpack";
 
 dotenv.config();
 

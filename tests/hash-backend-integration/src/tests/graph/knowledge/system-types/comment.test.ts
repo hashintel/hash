@@ -21,7 +21,7 @@ import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { OwnedById } from "@local/hash-subgraph";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import {

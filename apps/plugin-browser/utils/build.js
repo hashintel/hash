@@ -1,11 +1,13 @@
-process.env.BABEL_ENV = "production";
-process.env.ASSET_PATH = "/";
+import fs from "node:fs";
+import path from "node:path";
 
 import webpack from "webpack";
-import path from "node:path";
-import fs from "node:fs";
 import ZipPlugin from "zip-webpack-plugin";
+
 import config from "../webpack.config";
+
+process.env.BABEL_ENV = "production";
+process.env.ASSET_PATH = "/";
 
 delete config.custom;
 

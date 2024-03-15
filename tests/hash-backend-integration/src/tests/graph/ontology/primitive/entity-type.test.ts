@@ -30,7 +30,7 @@ import {
   isOwnedOntologyElementMetadata,
   linkEntityTypeUrl,
 } from "@local/hash-subgraph";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import {
