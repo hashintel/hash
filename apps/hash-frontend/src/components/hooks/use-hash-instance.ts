@@ -5,7 +5,7 @@ import type {
   HASHInstance,
   HASHInstanceProperties,
 } from "@local/hash-isomorphic-utils/system-types/hashinstance";
-import type { Entity } from "@local/hash-subgraph/.";
+import type { Entity } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import type {
