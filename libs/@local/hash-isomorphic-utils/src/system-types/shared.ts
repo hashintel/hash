@@ -950,6 +950,23 @@ export type UserSecretProperties = {
   "https://hash.ai/@hash/types/property-type/vault-path/": VaultPathPropertyValue;
 };
 
+export type UsesUserSecret = Entity<UsesUserSecretProperties> & {
+  linkData: LinkData;
+};
+
+export type UsesUserSecretOutgoingLinkAndTarget = never;
+
+export type UsesUserSecretOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * The user secret something uses.
+ */
+export type UsesUserSecretProperties = UsesUserSecretProperties1 &
+  UsesUserSecretProperties2;
+export type UsesUserSecretProperties1 = LinkProperties;
+
+export type UsesUserSecretProperties2 = {};
+
 /**
  * The path to a secret in Hashicorp Vault.
  */

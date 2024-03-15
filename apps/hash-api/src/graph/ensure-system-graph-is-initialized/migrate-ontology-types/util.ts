@@ -33,6 +33,7 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolDataTypes,
+  googleEntityTypes,
   systemEntityTypes,
   systemLinkEntityTypes,
   systemPropertyTypes,
@@ -847,7 +848,7 @@ export const getCurrentHashSystemEntityTypeId = ({
   return versionedUrlFromComponents(entityTypeBaseUrl, entityTypeVersion);
 };
 
-export const getExistingHashLinkEntityTypeId = ({
+export const getCurrentHashLinkEntityTypeId = ({
   linkEntityTypeKey,
   migrationState,
 }: {
@@ -872,7 +873,7 @@ export const getExistingHashLinkEntityTypeId = ({
   );
 };
 
-export const getExistingHashPropertyTypeId = ({
+export const getCurrentHashPropertyTypeId = ({
   propertyTypeKey,
   migrationState,
 }: {
@@ -1279,6 +1280,19 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
 
         let shouldRemoveTemporaryMachineActorPermission = false;
 
+        if (
+          baseUrl === systemEntityTypes.userSecret.entityTypeBaseUrl ||
+          baseUrl ===
+            systemLinkEntityTypes.usesUserSecret.linkEntityTypeBaseUrl ||
+          baseUrl === googleEntityTypes.account.entityTypeBaseUrl
+        ) {
+          /**
+           *These entities are only editable by the bot that created them
+           */
+          updateAuthentication = {
+            actorId: entity.metadata.provenance.createdById,
+          };
+        }
         if (baseUrl === systemEntityTypes.machine.entityTypeBaseUrl) {
           /**
            * If we are updating machine entities, we use the account ID

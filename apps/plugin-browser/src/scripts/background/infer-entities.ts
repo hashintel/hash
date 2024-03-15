@@ -194,6 +194,7 @@ export const inferEntities = async (
 
   await setInferenceRequestValue((currentValue) => [
     {
+      createAs,
       createdAt: new Date().toISOString(),
       entityTypeIds,
       requestUuid,

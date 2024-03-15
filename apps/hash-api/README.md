@@ -31,6 +31,13 @@ The HASH Backend API service is configured using the following environment varia
   - `HASH_REDIS_HOST`: the hostname for the Redis server.
   - `HASH_REDIS_PORT`: the port number of the Redis server.
 - `FRONTEND_URL`: The URL the frontend is hosted on.
+- Vault
+  - `HASH_VAULT_HOST`: The host address (including protocol) that the Vault server is running on, e.g. `http://127.0.0.1`
+  - `HASH_VAULT_PORT`: The port that the Vault server is running on, e.g. `8200`
+  - `HASH_VAULT_ROOT_TOKEN`: The token to authenticate with the Vault server.
+- Google integration
+  - `GOOGLE_OAUTH_CLIENT_ID`: the client ID for the Google OAuth application.
+  - `GOOGLE_OAUTH_CLIENT_SECRET`: the client secret for the Google OAuth application.
 - OpenSearch:
   - `HASH_OPENSEARCH_ENABLED`: (default: `false`) whether OpenSearch is used or not. `true` or `false`.
   - `HASH_OPENSEARCH_HOST`: the hostname of the OpenSearch cluster to connect to.
