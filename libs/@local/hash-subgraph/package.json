@@ -37,10 +37,10 @@
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
-    "@types/jest": "29.5.12",
     "@types/uuid": "8.3.0",
     "@vitest/coverage-istanbul": "1.4.0",
     "typescript": "5.1.6",
     "vitest": "1.4.0"
   }
 }
+

@@ -54,7 +54,7 @@
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "prepublishOnly": "yarn build:wasm && yarn test && yarn build:bundle",
-    "test": "jest"
+    "test": "vitest --run"
   },
   "dependencies": {
     "@blockprotocol/type-system-rs": "0.0.0-private"
@@ -65,7 +65,6 @@
     "@rollup/plugin-node-resolve": "15.2.3",
     "@rollup/plugin-typescript": "11.1.6",
     "@rollup/plugin-wasm": "6.0.1",
-    "@types/jest": "29.5.12",
     "@types/react": "18.0.26",
     "@vitest/coverage-istanbul": "1.4.0",
     "eslint": "8.57.0",
@@ -76,3 +75,4 @@
     "vitest": "1.4.0"
   }
 }
+
