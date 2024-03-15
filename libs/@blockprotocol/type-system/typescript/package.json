@@ -72,10 +72,7 @@
     "rollup": "4.12.0",
     "tslib": "2.4.1",
     "typescript": "5.1.6",
-    "vite-plugin-top-level-await": "1.4.1",
-    "vite-plugin-wasm": "3.3.0",
     "vite-plugin-wasm-pack": "0.1.12",
     "vitest": "1.4.0"
   }
 }
-
