@@ -2,6 +2,7 @@ import * as DataTypeUrl from "../DataTypeUrl";
 import { type DataType } from "../DataType";
 import { AST } from "@effect/schema";
 import { Option } from "effect";
+import { pruneUndefinedShallow } from "../../internal/schema";
 
 export interface BaseDataTypeSchema {
   $schema: "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type";
@@ -9,7 +10,7 @@ export interface BaseDataTypeSchema {
   $id: DataTypeUrl.DataTypeUrl;
 
   title: string;
-  description?: string | undefined;
+  description?: string;
 
   type: string;
 }
@@ -30,15 +31,17 @@ export function makeBase(
   const annotations = AST.getJSONSchemaAnnotation(type.schema.ast);
   console.log("Annotations:", annotations);
 
-  return Option.some({
-    $schema:
-      "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-    kind: "dataType",
-    $id: type.id,
+  return Option.some(
+    pruneUndefinedShallow({
+      $schema:
+        "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+      kind: "dataType",
+      $id: type.id,
 
-    title: properties.title,
-    description: properties.description,
-  });
+      title: properties.title,
+      description: properties.description,
+    }),
+  );
 }
 
 interface ConstantDataTypeSchema<T> {

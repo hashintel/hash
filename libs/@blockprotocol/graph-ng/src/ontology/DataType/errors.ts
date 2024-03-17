@@ -1,16 +1,13 @@
 import { Data } from "effect";
 
+export type UnsupportedType = "any" | "bigint" | "symbol" | "object";
+
 export type UnsupportedKeyword =
-  | "never"
-  | "unknown"
-  | "any"
-  | "symbol"
   | "undefined"
   | "void"
-  | "unique symbol"
-  | "tuple"
-  | "type"
-  | "object";
+  | "never"
+  | "unknown"
+  | "unique symbol";
 
 export type UnsupportedLiteral = "bigint";
 
@@ -19,11 +16,16 @@ export type TypeLiteralReason =
   | "index signature required"
   | "more than one index signature";
 
+export type ExpectedJsonAnnotationType = "string" | "number";
+
 export type ValidationErrorReason = Data.TaggedEnum<{
   UnsupportedKeyword: {
     keyword: UnsupportedKeyword;
   };
-  CustomTypeNotSupported: {};
+  UnsupportedType: {
+    type: UnsupportedType;
+  };
+  UnsupportedDeclaredType: {};
   UnionNotSupported: {};
   CyclicSchema: {};
   TypeLiteral: {
@@ -35,6 +37,17 @@ export type ValidationErrorReason = Data.TaggedEnum<{
   UnsupportedLiteral: {
     literal: UnsupportedLiteral;
   };
+  UnsupportedJsonAnnotationType: {
+    field: string;
+
+    optional: boolean;
+    expected: ExpectedJsonAnnotationType;
+    received: string;
+  };
+  MixedEnum: {};
+  EmptyEnum: {};
+  FloatingPointEnum: {};
+  NonConsecutiveIntegerEnum: {};
 }>;
 export const EncodeErrorReason = Data.taggedEnum<ValidationErrorReason>();
 
@@ -47,9 +60,15 @@ export class EncodeError extends Data.TaggedError(
     });
   }
 
-  static customTypeNotSupported(): EncodeError {
+  static unsupportedType(type: UnsupportedType): EncodeError {
     return new EncodeError({
-      reason: EncodeErrorReason.CustomTypeNotSupported(),
+      reason: EncodeErrorReason.UnsupportedType({ type }),
+    });
+  }
+
+  static unsupportedDeclaredType(): EncodeError {
+    return new EncodeError({
+      reason: EncodeErrorReason.UnsupportedDeclaredType(),
     });
   }
 
@@ -86,6 +105,47 @@ export class EncodeError extends Data.TaggedError(
   static unsupportedLiteral(literal: UnsupportedLiteral): EncodeError {
     return new EncodeError({
       reason: EncodeErrorReason.UnsupportedLiteral({ literal }),
+    });
+  }
+
+  static unsupportedJsonAnnotationType(
+    field: string,
+
+    optional: boolean,
+    expected: ExpectedJsonAnnotationType,
+    received: string,
+  ): EncodeError {
+    return new EncodeError({
+      reason: EncodeErrorReason.UnsupportedJsonAnnotationType({
+        field,
+        optional,
+        expected,
+        received,
+      }),
+    });
+  }
+
+  static mixedEnum(): EncodeError {
+    return new EncodeError({
+      reason: EncodeErrorReason.MixedEnum(),
+    });
+  }
+
+  static emptyEnum(): EncodeError {
+    return new EncodeError({
+      reason: EncodeErrorReason.EmptyEnum(),
+    });
+  }
+
+  static floatingPointEnum(): EncodeError {
+    return new EncodeError({
+      reason: EncodeErrorReason.FloatingPointEnum(),
+    });
+  }
+
+  static nonConsecutiveIntegerEnum(): EncodeError {
+    return new EncodeError({
+      reason: EncodeErrorReason.NonConsecutiveIntegerEnum(),
     });
   }
 }
