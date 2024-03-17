@@ -13,4 +13,4 @@ virtue = "0.0.16"
 syn = "2.0.53"
 
 [dev-dependencies]
-trybuild = "1.0.89"
+trybuild = "1.0.90"
