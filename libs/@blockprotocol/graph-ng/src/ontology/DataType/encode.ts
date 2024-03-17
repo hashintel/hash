@@ -6,14 +6,13 @@ import {
   Predicate,
   ReadonlyRecord,
   Tuple,
-  String,
   ReadonlyArray,
   pipe,
-  flow,
   Order,
 } from "effect";
 import { AST } from "@effect/schema";
 import {
+  ArrayDataTypeSchema,
   BooleanDataTypeSchema,
   DataTypeSchema,
   IntegerDataTypeSchema,
@@ -24,6 +23,7 @@ import {
 } from "./schema";
 import { EncodeError } from "./errors";
 import * as DataType from "../DataType";
+import * as Json from "../../internal/Json";
 import { JsonSchema7 } from "@effect/schema/JSONSchema";
 import {
   escapeStringRegexp,
@@ -439,6 +439,65 @@ function encodeTemplateLiteral(
   return Either.right(schema);
 }
 
+function encodeTupleType(
+  ast: AST.TupleType,
+  context: Context,
+): Either.Either<DataTypeSchema, EncodeError> {
+  // BlockProtocol only supports arrays, not tuples, therefore we error out
+  // if rest is more than 1, then it is for [a, b, ...rest, c, d], where c, d are rest[1] and rest[2]
+  // respectively. This - again - means that we have a tuple, not an array.
+  if (ast.elements.length !== 0 || ast.rest.length !== 1) {
+    return Either.left(EncodeError.unsupportedType("tuple"));
+  }
+
+  const element = ast.rest[0]!;
+  // we currently do not support nested types in arrays, so the value must be Json.Value (so completely untyped)
+  if (!Json.isValueAST(element)) {
+    return Either.left(EncodeError.notEmptyList());
+  }
+
+  // because it's never we don't need to check the length of the array
+  const minLength = context.jsonSchema.additional.minLength;
+  const maxLength = context.jsonSchema.additional.maxLength;
+
+  if (!isNumberOrUndefined(minLength)) {
+    return Either.left(
+      EncodeError.unsupportedJsonAnnotationType(
+        "minLength",
+        true,
+        "number",
+        typeof minLength,
+      ),
+    );
+  }
+
+  if (!isNumberOrUndefined(maxLength)) {
+    return Either.left(
+      EncodeError.unsupportedJsonAnnotationType(
+        "maxLength",
+        true,
+        "number",
+        typeof maxLength,
+      ),
+    );
+  }
+
+  const maybeBase = makeBase(context.root, context.jsonSchema);
+  if (Option.isNone(maybeBase)) {
+    return Either.left(EncodeError.noTitle());
+  }
+
+  const base = maybeBase.value;
+
+  const schema = {
+    ...base,
+    type: "array",
+    const: [],
+  } satisfies ArrayDataTypeSchema;
+
+  return Either.right(schema);
+}
+
 function encode(
   ast: AST.AST,
   context: Context,
@@ -486,8 +545,11 @@ function encode(
     case "Refinement":
       return encode(ast.from, localContext);
     case "TupleType":
+      return encodeTupleType(ast, localContext);
     case "TypeLiteral":
     case "Union":
+      // single element unions are automatically flattened
+      return Either.left(EncodeError.unsupportedUnion());
     case "Suspend":
     case "Transformation":
       throw new Error("Not implemented");

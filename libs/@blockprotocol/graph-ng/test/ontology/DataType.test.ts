@@ -2,7 +2,8 @@ import { describe, test, expect } from "vitest";
 import * as S from "@effect/schema/Schema";
 import * as DataType from "../../src/ontology/DataType";
 import * as DataTypeUrl from "../../src/ontology/DataTypeUrl";
-import { Either, Option } from "effect";
+import * as Json from "../../src/internal/Json";
+import { Either } from "effect";
 
 describe("literal", () => {
   describe("encode", () => {
@@ -679,5 +680,66 @@ describe("template literal", () => {
         "type": "string",
       }
     `);
+  });
+});
+
+describe("union", () => {
+  describe("encode", () => {
+    test("single", () => {
+      const union = DataType.make(
+        DataTypeUrl.parseOrThrow("https://example.com/union/v/1"),
+        S.union(S.literal(123)).pipe(S.title("A union")),
+      );
+
+      const literal = Either.getOrThrow(union);
+      expect(DataType.toSchema(literal)).toMatchInlineSnapshot(`
+        {
+          "$id": "https://example.com/union/v/1",
+          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+          "const": 123,
+          "kind": "dataType",
+          "title": "A union",
+          "type": "number",
+        }
+      `);
+    });
+
+    test("multiple", () => {
+      const union = DataType.make(
+        DataTypeUrl.parseOrThrow("https://example.com/union/v/1"),
+        S.union(S.literal(123), S.literal("abc")).pipe(S.title("A union")),
+      );
+
+      const error = Either.flip(union).pipe(Either.getOrThrow);
+      expect(error.reason).toMatchInlineSnapshot(`
+        {
+          "_tag": "UnsupportedUnion",
+        }
+      `);
+    });
+  });
+});
+
+describe("array", () => {
+  describe("encode", () => {
+    test("empty list", () => {
+      // the only type that BP 0.3 supports
+      const array = DataType.make(
+        DataTypeUrl.parseOrThrow("https://example.com/array/v/1"),
+        S.array(Json.Value).pipe(S.title("An empty array")),
+      );
+
+      const literal = Either.getOrThrow(array);
+      expect(DataType.toSchema(literal)).toMatchInlineSnapshot(`
+        {
+          "$id": "https://example.com/array/v/1",
+          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+          "const": [],
+          "kind": "dataType",
+          "title": "An empty array",
+          "type": "array",
+        }
+      `);
+    });
   });
 });

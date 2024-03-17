@@ -1,6 +1,6 @@
 import { Data } from "effect";
 
-export type UnsupportedType = "any" | "bigint" | "symbol" | "object";
+export type UnsupportedType = "any" | "bigint" | "symbol" | "object" | "tuple";
 
 export type UnsupportedKeyword =
   | "undefined"
@@ -26,7 +26,7 @@ export type ValidationErrorReason = Data.TaggedEnum<{
     type: UnsupportedType;
   };
   UnsupportedDeclaredType: {};
-  UnionNotSupported: {};
+  UnsupportedUnion: {};
   CyclicSchema: {};
   TypeLiteral: {
     reason: TypeLiteralReason;
@@ -48,6 +48,7 @@ export type ValidationErrorReason = Data.TaggedEnum<{
   EmptyEnum: {};
   FloatingPointEnum: {};
   NonConsecutiveIntegerEnum: {};
+  NotEmptyList: {};
 }>;
 export const EncodeErrorReason = Data.taggedEnum<ValidationErrorReason>();
 
@@ -72,9 +73,9 @@ export class EncodeError extends Data.TaggedError(
     });
   }
 
-  static unionNotSupported(): EncodeError {
+  static unsupportedUnion(): EncodeError {
     return new EncodeError({
-      reason: EncodeErrorReason.UnionNotSupported(),
+      reason: EncodeErrorReason.UnsupportedUnion(),
     });
   }
 
@@ -146,6 +147,12 @@ export class EncodeError extends Data.TaggedError(
   static nonConsecutiveIntegerEnum(): EncodeError {
     return new EncodeError({
       reason: EncodeErrorReason.NonConsecutiveIntegerEnum(),
+    });
+  }
+
+  static notEmptyList(): EncodeError {
+    return new EncodeError({
+      reason: EncodeErrorReason.NotEmptyList(),
     });
   }
 }
