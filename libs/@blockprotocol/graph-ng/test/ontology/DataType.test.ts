@@ -1,9 +1,9 @@
-import { describe, test, expect } from "vitest";
 import * as S from "@effect/schema/Schema";
-import * as DataType from "../../src/ontology/DataType";
-import * as DataTypeUrl from "../../src/ontology/DataTypeUrl";
-import * as Json from "../../src/internal/Json";
 import { Either } from "effect";
+import { describe, expect, test } from "vitest";
+
+import * as DataType from "../../src/ontology/DataType.js";
+import * as DataTypeUrl from "../../src/ontology/DataTypeUrl.js";
 
 describe("literal", () => {
   describe("encode", () => {
@@ -726,7 +726,7 @@ describe("array", () => {
       // the only type that BP 0.3 supports
       const array = DataType.make(
         DataTypeUrl.parseOrThrow("https://example.com/array/v/1"),
-        S.array(Json.Value).pipe(S.title("An empty array")),
+        S.tuple().pipe(S.title("An empty array")),
       );
 
       const literal = Either.getOrThrow(array);
@@ -737,6 +737,36 @@ describe("array", () => {
           "const": [],
           "kind": "dataType",
           "title": "An empty array",
+          "type": "array",
+        }
+      `);
+    });
+
+    test("tuple", () => {
+      const array = DataType.make(
+        DataTypeUrl.parseOrThrow("https://example.com/array/v/1"),
+        S.tuple(S.literal(123), S.literal("abc")).pipe(S.title("A tuple")),
+      );
+
+      const error = Either.flip(array).pipe(Either.getOrThrow);
+      expect(error.reason).toMatchInlineSnapshot(`
+        {
+          "_tag": "UnsupportedType",
+          "type": "tuple",
+        }
+      `);
+    });
+
+    test("array", () => {
+      const array = DataType.make(
+        DataTypeUrl.parseOrThrow("https://example.com/array/v/1"),
+        S.array(S.literal(123)).pipe(S.title("An array")),
+      );
+
+      const error = Either.flip(array).pipe(Either.getOrThrow);
+      expect(error.reason).toMatchInlineSnapshot(`
+        {
+          "_tag": "UnsupportedType",
           "type": "array",
         }
       `);

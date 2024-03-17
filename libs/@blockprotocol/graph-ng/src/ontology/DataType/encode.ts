@@ -1,16 +1,24 @@
+import { AST } from "@effect/schema";
 import {
   Brand,
   Either,
   HashSet,
   Option,
+  Order,
+  pipe,
   Predicate,
+  ReadonlyArray,
   ReadonlyRecord,
   Tuple,
-  ReadonlyArray,
-  pipe,
-  Order,
 } from "effect";
-import { AST } from "@effect/schema";
+
+import {
+  escapeStringRegexp,
+  pruneUndefinedShallow,
+  UndefinedOnPartialShallow,
+} from "../../internal/schema.js";
+import * as DataType from "../DataType.js";
+import { EncodeError } from "./errors.js";
 import {
   ArrayDataTypeSchema,
   BooleanDataTypeSchema,
@@ -20,17 +28,7 @@ import {
   NullDataTypeSchema,
   NumberDataTypeSchema,
   StringDataTypeSchema,
-} from "./schema";
-import { EncodeError } from "./errors";
-import * as DataType from "../DataType";
-import * as Json from "../../internal/Json";
-import { JsonSchema7 } from "@effect/schema/JSONSchema";
-import {
-  escapeStringRegexp,
-  pruneUndefinedShallow,
-  UndefinedOnPartialShallow,
-} from "../../internal/schema";
-import { TypeAnnotationId } from "@effect/schema/AST";
+} from "./schema.js";
 
 type ASTHash = Brand.Branded<number, "ASTHash">;
 const ASTHash = Brand.nominal<ASTHash>();
@@ -49,7 +47,7 @@ interface JsonSchema {
   readonly title?: string;
   readonly description?: string;
 
-  readonly additional: Record<string, any>;
+  readonly additional: Record<string, unknown>;
 }
 
 function getJsonSchema(ast: AST.Annotated): JsonSchema {
@@ -58,9 +56,9 @@ function getJsonSchema(ast: AST.Annotated): JsonSchema {
     description: AST.getDescriptionAnnotation(ast),
   });
 
-  const additional = AST.getJSONSchemaAnnotation(
-    ast,
-  ) as Option.Option<JsonSchema7>;
+  const additional = AST.getJSONSchemaAnnotation(ast) as Option.Option<
+    Record<string, unknown>
+  >;
 
   return { ...record, additional: Option.getOrElse(additional, () => ({})) };
 }
@@ -75,14 +73,10 @@ function updateJsonSchema(current: JsonSchema, ast: AST.Annotated): JsonSchema {
   };
 }
 
-const isNumberOrUndefined = Predicate.or(
-  Predicate.isUndefined,
-  Predicate.isNumber,
-);
-const isStringOrUndefined = Predicate.or(
-  Predicate.isUndefined,
-  Predicate.isString,
-);
+const isNumberOrUndefined: (value: unknown) => value is number | undefined =
+  Predicate.or(Predicate.isUndefined, Predicate.isNumber) as never;
+const isStringOrUndefined: (value: unknown) => value is string | undefined =
+  Predicate.or(Predicate.isUndefined, Predicate.isString) as never;
 
 interface Context {
   readonly root: DataType.DataType<unknown>;
@@ -309,8 +303,9 @@ function encodeNumber(
   } satisfies UndefinedOnPartialShallow<
     NumberDataTypeSchema | IntegerDataTypeSchema
   >;
+  const schema = pruneUndefinedShallow(partialSchema);
 
-  return Either.right(pruneUndefinedShallow(partialSchema));
+  return Either.right(schema);
 }
 
 function encodeBoolean(
@@ -443,43 +438,13 @@ function encodeTupleType(
   ast: AST.TupleType,
   context: Context,
 ): Either.Either<DataTypeSchema, EncodeError> {
-  // BlockProtocol only supports arrays, not tuples, therefore we error out
-  // if rest is more than 1, then it is for [a, b, ...rest, c, d], where c, d are rest[1] and rest[2]
-  // respectively. This - again - means that we have a tuple, not an array.
-  if (ast.elements.length !== 0 || ast.rest.length !== 1) {
+  // BlockProtocol only supports `emptyList`, so an empty tuple
+  if (ast.elements.length !== 0) {
     return Either.left(EncodeError.unsupportedType("tuple"));
   }
 
-  const element = ast.rest[0]!;
-  // we currently do not support nested types in arrays, so the value must be Json.Value (so completely untyped)
-  if (!Json.isValueAST(element)) {
-    return Either.left(EncodeError.notEmptyList());
-  }
-
-  // because it's never we don't need to check the length of the array
-  const minLength = context.jsonSchema.additional.minLength;
-  const maxLength = context.jsonSchema.additional.maxLength;
-
-  if (!isNumberOrUndefined(minLength)) {
-    return Either.left(
-      EncodeError.unsupportedJsonAnnotationType(
-        "minLength",
-        true,
-        "number",
-        typeof minLength,
-      ),
-    );
-  }
-
-  if (!isNumberOrUndefined(maxLength)) {
-    return Either.left(
-      EncodeError.unsupportedJsonAnnotationType(
-        "maxLength",
-        true,
-        "number",
-        typeof maxLength,
-      ),
-    );
+  if (ast.rest.length !== 0) {
+    return Either.left(EncodeError.unsupportedType("array"));
   }
 
   const maybeBase = makeBase(context.root, context.jsonSchema);
@@ -563,8 +528,8 @@ export function encodeSchema(
   if (!Predicate.isFunction(annotation)) {
     return Either.left(EncodeError.dataTypeMalformed());
   }
-  const dataType = annotation();
 
+  const dataType: unknown = annotation();
   if (!DataType.isDataType(dataType)) {
     return Either.left(EncodeError.dataTypeMalformed());
   }

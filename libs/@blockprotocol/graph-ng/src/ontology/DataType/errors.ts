@@ -1,6 +1,12 @@
 import { Data } from "effect";
 
-export type UnsupportedType = "any" | "bigint" | "symbol" | "object" | "tuple";
+export type UnsupportedType =
+  | "any"
+  | "bigint"
+  | "symbol"
+  | "object"
+  | "tuple"
+  | "array";
 
 export type UnsupportedKeyword =
   | "undefined"
@@ -48,7 +54,6 @@ export type ValidationErrorReason = Data.TaggedEnum<{
   EmptyEnum: {};
   FloatingPointEnum: {};
   NonConsecutiveIntegerEnum: {};
-  NotEmptyList: {};
 }>;
 export const EncodeErrorReason = Data.taggedEnum<ValidationErrorReason>();
 
@@ -147,12 +152,6 @@ export class EncodeError extends Data.TaggedError(
   static nonConsecutiveIntegerEnum(): EncodeError {
     return new EncodeError({
       reason: EncodeErrorReason.NonConsecutiveIntegerEnum(),
-    });
-  }
-
-  static notEmptyList(): EncodeError {
-    return new EncodeError({
-      reason: EncodeErrorReason.NotEmptyList(),
     });
   }
 }

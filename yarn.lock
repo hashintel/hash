@@ -2769,6 +2769,11 @@
   dependencies:
     tslib "^2.0.0"
 
+"@effect/language-service@0.1.0":
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/@effect/language-service/-/language-service-0.1.0.tgz#4cb93995b8dd0938339816de3aaef0210d4c3573"
+  integrity sha512-BnlM8LlaqCAYgdRfxlbR7gXGh/FD1scL1fPgNVJEPoOM08od1jtJz+iKhwfaud8TPnnhZR+TED2h5ynjanLeCQ==
+
 "@effect/schema@0.64.5":
   version "0.64.5"
   resolved "https://registry.yarnpkg.com/@effect/schema/-/schema-0.64.5.tgz#b38cdedf19612fc2681f522c4383ed9ff3256e92"

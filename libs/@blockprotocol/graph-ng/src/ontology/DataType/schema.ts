@@ -1,17 +1,23 @@
-import * as DataTypeUrl from "../DataTypeUrl";
-import { type DataType } from "../DataType";
 import { AST } from "@effect/schema";
 import { Option } from "effect";
-import { pruneUndefinedShallow } from "../../internal/schema";
 
-export interface BaseDataTypeSchema {
+import {
+  pruneUndefinedShallow,
+  UndefinedOnPartialShallow,
+} from "../../internal/schema.js";
+import { type DataType } from "../DataType.js";
+import * as DataTypeUrl from "../DataTypeUrl.js";
+
+interface TypelessDataTypeSchema {
   $schema: "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type";
   kind: "dataType";
   $id: DataTypeUrl.DataTypeUrl;
 
   title: string;
   description?: string;
+}
 
+export interface BaseDataTypeSchema extends TypelessDataTypeSchema {
   type: string;
 }
 
@@ -23,7 +29,7 @@ interface BaseProperties {
 export function makeBase(
   type: DataType<unknown>,
   properties: BaseProperties,
-): Option.Option<Omit<BaseDataTypeSchema, "type">> {
+): Option.Option<TypelessDataTypeSchema> {
   if (properties.title === undefined) {
     return Option.none();
   }
@@ -40,7 +46,7 @@ export function makeBase(
 
       title: properties.title,
       description: properties.description,
-    }),
+    } satisfies UndefinedOnPartialShallow<TypelessDataTypeSchema>),
   );
 }
 

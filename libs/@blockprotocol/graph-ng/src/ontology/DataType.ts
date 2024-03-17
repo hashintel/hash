@@ -1,3 +1,4 @@
+import * as S from "@effect/schema/Schema";
 import {
   Either,
   Equal,
@@ -7,12 +8,12 @@ import {
   Pipeable,
   Predicate,
 } from "effect";
-import * as S from "@effect/schema/Schema";
-import * as DataTypeUrl from "./DataTypeUrl";
-import * as Json from "../internal/Json";
-import { EncodeError } from "./DataType/errors";
-import { encodeSchema } from "./DataType/encode";
-import { DataTypeSchema } from "./DataType/schema";
+
+import * as Json from "../internal/Json.js";
+import { encodeSchema } from "./DataType/encode.js";
+import { EncodeError } from "./DataType/errors.js";
+import { DataTypeSchema } from "./DataType/schema.js";
+import * as DataTypeUrl from "./DataTypeUrl.js";
 
 const TypeId: unique symbol = Symbol.for(
   "@blockprotocol/graph/ontology/DataType",
@@ -60,6 +61,7 @@ const DataTypeProto: Omit<DataTypeImpl<unknown>, "id" | "schema"> = {
     return this.toJSON();
   },
   pipe() {
+    // eslint-disable-next-line prefer-rest-params
     Pipeable.pipeArguments(this, arguments);
   },
 
@@ -69,6 +71,7 @@ const DataTypeProto: Omit<DataTypeImpl<unknown>, "id" | "schema"> = {
     return Hash.cached(this, hash);
   },
   [Equal.symbol]<T>(this: DataType<T>, that: unknown): boolean {
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     if (!isDataType(that)) {
       return false;
     }
@@ -85,14 +88,17 @@ function makeImpl<T>(
   id: DataTypeUrl.DataTypeUrl,
   schema: S.Schema<T, Json.Value>,
 ): DataTypeImpl<T> {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const impl = Object.create(DataTypeProto);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   impl.id = id;
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   impl.schema = schema.annotations({
-    [AnnotationId]: () => impl,
+    [AnnotationId]: () => impl as DataType<unknown>,
   });
 
-  return impl;
+  return impl as DataTypeImpl<T>;
 }
 
 function toSchemaImpl<T>(
@@ -123,4 +129,4 @@ export function toSchema<T>(dataType: DataType<T>): DataTypeSchema {
   return Either.getOrThrow(schema);
 }
 
-export { DataTypeSchema as Schema };
+export type { DataTypeSchema as Schema };
