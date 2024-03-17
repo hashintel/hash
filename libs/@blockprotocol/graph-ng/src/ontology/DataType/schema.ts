@@ -1,4 +1,3 @@
-import { AST } from "@effect/schema";
 import { Option } from "effect";
 
 import {
@@ -33,9 +32,6 @@ export function makeBase(
   if (properties.title === undefined) {
     return Option.none();
   }
-
-  const annotations = AST.getJSONSchemaAnnotation(type.schema.ast);
-  console.log("Annotations:", annotations);
 
   return Option.some(
     pruneUndefinedShallow({

@@ -13,9 +13,8 @@ describe("literal", () => {
         S.literal(123).pipe(S.title("A constant number of value `123`")),
       );
 
-      const literal = Either.getOrThrow(numberLiteral);
-
-      expect(DataType.toSchema(literal)).toMatchInlineSnapshot(`
+      const dataType = Either.getOrThrow(numberLiteral);
+      expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
         {
           "$id": "https://example.com/number-123/v/1",
           "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -33,9 +32,8 @@ describe("literal", () => {
         S.literal("abc").pipe(S.title("A constant string of value `abc`")),
       );
 
-      const literal = Either.getOrThrow(stringLiteral);
-
-      expect(DataType.toSchema(literal)).toMatchInlineSnapshot(`
+      const dataType = Either.getOrThrow(stringLiteral);
+      expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
         {
           "$id": "https://example.com/string-abc/v/1",
           "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -53,9 +51,8 @@ describe("literal", () => {
         S.literal(true).pipe(S.title("A constant boolean of value `true`")),
       );
 
-      const literal = Either.getOrThrow(booleanLiteral);
-
-      expect(DataType.toSchema(literal)).toMatchInlineSnapshot(`
+      const dataType = Either.getOrThrow(booleanLiteral);
+      expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
         {
           "$id": "https://example.com/boolean-true/v/1",
           "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -73,9 +70,8 @@ describe("literal", () => {
         S.literal(null).pipe(S.title("A constant null value")),
       );
 
-      const literal = Either.getOrThrow(nullLiteral);
-
-      expect(DataType.toSchema(literal)).toMatchInlineSnapshot(`
+      const dataType = Either.getOrThrow(nullLiteral);
+      expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
         {
           "$id": "https://example.com/null/v/1",
           "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -271,9 +267,8 @@ describe("string", () => {
         S.string,
       );
 
-      const literal = Either.getOrThrow(string);
-
-      expect(DataType.toSchema(literal)).toMatchInlineSnapshot(`
+      const dataType = Either.getOrThrow(string);
+      expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
         {
           "$id": "https://example.com/string/v/1",
           "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -291,9 +286,8 @@ describe("string", () => {
         S.string.pipe(S.minLength(5)),
       );
 
-      const literal = Either.getOrThrow(string);
-
-      expect(DataType.toSchema(literal)).toMatchInlineSnapshot(`
+      const dataType = Either.getOrThrow(string);
+      expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
         {
           "$id": "https://example.com/string/v/1",
           "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -312,9 +306,8 @@ describe("string", () => {
         S.string.pipe(S.maxLength(5)),
       );
 
-      const literal = Either.getOrThrow(string);
-
-      expect(DataType.toSchema(literal)).toMatchInlineSnapshot(`
+      const dataType = Either.getOrThrow(string);
+      expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
         {
           "$id": "https://example.com/string/v/1",
           "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -333,9 +326,8 @@ describe("string", () => {
         S.string.pipe(S.pattern(/abc/)),
       );
 
-      const literal = Either.getOrThrow(string);
-
-      expect(DataType.toSchema(literal)).toMatchInlineSnapshot(`
+      const dataType = Either.getOrThrow(string);
+      expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
         {
           "$id": "https://example.com/string/v/1",
           "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -360,9 +352,8 @@ describe("number", () => {
         S.number,
       );
 
-      const literal = Either.getOrThrow(number);
-
-      expect(DataType.toSchema(literal)).toMatchInlineSnapshot(`
+      const dataType = Either.getOrThrow(number);
+      expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
         {
           "$id": "https://example.com/number/v/1",
           "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -380,9 +371,8 @@ describe("number", () => {
         S.Int,
       );
 
-      const literal = Either.getOrThrow(number);
-
-      expect(DataType.toSchema(literal)).toMatchInlineSnapshot(`
+      const dataType = Either.getOrThrow(number);
+      expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
         {
           "$id": "https://example.com/number/v/1",
           "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -400,9 +390,8 @@ describe("number", () => {
         S.number.pipe(S.multipleOf(5)),
       );
 
-      const literal = Either.getOrThrow(number);
-
-      expect(DataType.toSchema(literal)).toMatchInlineSnapshot(`
+      const dataType = Either.getOrThrow(number);
+      expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
         {
           "$id": "https://example.com/number/v/1",
           "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -421,9 +410,8 @@ describe("number", () => {
         S.number.pipe(S.greaterThanOrEqualTo(5)),
       );
 
-      const literal = Either.getOrThrow(number);
-
-      expect(DataType.toSchema(literal)).toMatchInlineSnapshot(`
+      const dataType = Either.getOrThrow(number);
+      expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
         {
           "$id": "https://example.com/number/v/1",
           "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -442,9 +430,8 @@ describe("number", () => {
         S.number.pipe(S.lessThanOrEqualTo(5)),
       );
 
-      const literal = Either.getOrThrow(number);
-
-      expect(DataType.toSchema(literal)).toMatchInlineSnapshot(`
+      const dataType = Either.getOrThrow(number);
+      expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
         {
           "$id": "https://example.com/number/v/1",
           "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -484,9 +471,8 @@ describe("number", () => {
         S.number.pipe(S.lessThan(5)),
       );
 
-      const literal = Either.getOrThrow(number);
-
-      expect(DataType.toSchema(literal)).toMatchInlineSnapshot(`
+      const dataType = Either.getOrThrow(number);
+      expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
         {
           "$id": "https://example.com/number/v/1",
           "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -508,9 +494,8 @@ describe("boolean", () => {
       S.boolean,
     );
 
-    const literal = Either.getOrThrow(boolean);
-
-    expect(DataType.toSchema(literal)).toMatchInlineSnapshot(`
+    const dataType = Either.getOrThrow(boolean);
+    expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
         {
           "$id": "https://example.com/boolean/v/1",
           "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -536,9 +521,8 @@ describe("enums", () => {
         S.enums(Fruits).pipe(S.title("A fruit")),
       );
 
-      const literal = Either.getOrThrow(enums);
-
-      expect(DataType.toSchema(literal)).toMatchInlineSnapshot(`
+      const dataType = Either.getOrThrow(enums);
+      expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
         {
           "$id": "https://example.com/enums/v/1",
           "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -604,9 +588,8 @@ describe("enums", () => {
         S.enums(Fruits).pipe(S.title("A fruit")),
       );
 
-      const literal = Either.getOrThrow(enums);
-
-      expect(DataType.toSchema(literal)).toMatchInlineSnapshot(`
+      const dataType = Either.getOrThrow(enums);
+      expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
         {
           "$id": "https://example.com/enums/v/1",
           "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -668,9 +651,8 @@ describe("template literal", () => {
       ),
     );
 
-    const literal = Either.getOrThrow(templateLiteral);
-
-    expect(DataType.toSchema(literal)).toMatchInlineSnapshot(`
+    const dataType = Either.getOrThrow(templateLiteral);
+    expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
       {
         "$id": "https://example.com/template-literal/v/1",
         "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -691,8 +673,8 @@ describe("union", () => {
         S.union(S.literal(123)).pipe(S.title("A union")),
       );
 
-      const literal = Either.getOrThrow(union);
-      expect(DataType.toSchema(literal)).toMatchInlineSnapshot(`
+      const dataType = Either.getOrThrow(union);
+      expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
         {
           "$id": "https://example.com/union/v/1",
           "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -729,8 +711,8 @@ describe("array", () => {
         S.tuple().pipe(S.title("An empty array")),
       );
 
-      const literal = Either.getOrThrow(array);
-      expect(DataType.toSchema(literal)).toMatchInlineSnapshot(`
+      const dataType = Either.getOrThrow(array);
+      expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
         {
           "$id": "https://example.com/array/v/1",
           "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -768,6 +750,113 @@ describe("array", () => {
         {
           "_tag": "UnsupportedType",
           "type": "array",
+        }
+      `);
+    });
+  });
+});
+
+describe("suspend", () => {
+  describe("encode", () => {
+    test("standard", () => {
+      const Indirection = S.suspend(() => S.number);
+
+      const suspend = DataType.make(
+        DataTypeUrl.parseOrThrow("https://example.com/suspend/v/1"),
+        Indirection.pipe(S.title("A suspend")),
+      );
+
+      const dataType = Either.getOrThrow(suspend);
+      expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
+        {
+          "$id": "https://example.com/suspend/v/1",
+          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+          "description": "a number",
+          "kind": "dataType",
+          "title": "number",
+          "type": "number",
+        }
+      `);
+    });
+    test("double", () => {
+      const IndirectionA = S.suspend(() => S.number);
+      const IndirectionB = S.suspend(() => IndirectionA);
+
+      const suspend = DataType.make(
+        DataTypeUrl.parseOrThrow("https://example.com/suspend/v/1"),
+        IndirectionB.pipe(S.title("A suspend")),
+      );
+
+      const dataType = Either.getOrThrow(suspend);
+      expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
+        {
+          "$id": "https://example.com/suspend/v/1",
+          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+          "description": "a number",
+          "kind": "dataType",
+          "title": "number",
+          "type": "number",
+        }
+      `);
+    });
+
+    test("triple", () => {
+      const IndirectionA = S.suspend(() => S.number);
+      const IndirectionB = S.suspend(() => IndirectionA);
+      const IndirectionC = S.suspend(() => IndirectionB);
+
+      const suspend = DataType.make(
+        DataTypeUrl.parseOrThrow("https://example.com/suspend/v/1"),
+        IndirectionC.pipe(S.title("A suspend")),
+      );
+
+      const dataType = Either.getOrThrow(suspend);
+      expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
+        {
+          "$id": "https://example.com/suspend/v/1",
+          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+          "description": "a number",
+          "kind": "dataType",
+          "title": "number",
+          "type": "number",
+        }
+      `);
+    });
+
+    test("cyclic", () => {
+      type Value = number;
+      const Schema = S.suspend((): S.Schema<Value> => Schema);
+
+      const suspend = DataType.make(
+        DataTypeUrl.parseOrThrow("https://example.com/suspend/v/1"),
+        Schema.pipe(S.title("A suspend")),
+      );
+
+      const error = Either.flip(suspend).pipe(Either.getOrThrow);
+      expect(error.reason).toMatchInlineSnapshot(`
+        {
+          "_tag": "CyclicSchema",
+        }
+      `);
+    });
+
+    test("cyclic: triple", () => {
+      type Value = number;
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      const SchemaA = S.suspend((): S.Schema<Value> => SchemaB);
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      const SchemaB = S.suspend((): S.Schema<Value> => SchemaC);
+      const SchemaC = S.suspend((): S.Schema<Value> => SchemaA);
+
+      const suspend = DataType.make(
+        DataTypeUrl.parseOrThrow("https://example.com/suspend/v/1"),
+        SchemaA.pipe(S.title("A suspend")),
+      );
+
+      const error = Either.flip(suspend).pipe(Either.getOrThrow);
+      expect(error.reason).toMatchInlineSnapshot(`
+        {
+          "_tag": "CyclicSchema",
         }
       `);
     });

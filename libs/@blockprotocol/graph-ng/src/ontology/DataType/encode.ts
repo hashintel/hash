@@ -516,8 +516,9 @@ function encode(
       // single element unions are automatically flattened
       return Either.left(EncodeError.unsupportedUnion());
     case "Suspend":
+      return encode(ast.f(), localContext);
     case "Transformation":
-      throw new Error("Not implemented");
+      return encode(ast.from, localContext);
   }
 }
 
