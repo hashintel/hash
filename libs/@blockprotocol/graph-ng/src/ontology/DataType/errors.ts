@@ -12,6 +12,8 @@ export type UnsupportedKeyword =
   | "type"
   | "object";
 
+export type UnsupportedLiteral = "bigint";
+
 export type TypeLiteralReason =
   | "property signature present"
   | "index signature required"
@@ -23,27 +25,67 @@ export type ValidationErrorReason = Data.TaggedEnum<{
   };
   CustomTypeNotSupported: {};
   UnionNotSupported: {};
-  RecursiveTypeNotSupported: {};
+  CyclicSchema: {};
   TypeLiteral: {
     reason: TypeLiteralReason;
   };
+  // The DataType annotation is missing
+  DataTypeMalformed: {};
+  NoTitle: {};
+  UnsupportedLiteral: {
+    literal: UnsupportedLiteral;
+  };
 }>;
-export const ValidationErrorReason = Data.taggedEnum<ValidationErrorReason>();
+export const EncodeErrorReason = Data.taggedEnum<ValidationErrorReason>();
 
-export class ValidationError extends Data.TaggedError(
+export class EncodeError extends Data.TaggedError(
   "@blockprotocol/graph/DataType/ValidationError",
-)<{ reason: ValidationErrorReason }> {}
+)<{ reason: ValidationErrorReason }> {
+  static unsupportedKeyword(keyword: UnsupportedKeyword): EncodeError {
+    return new EncodeError({
+      reason: EncodeErrorReason.UnsupportedKeyword({ keyword }),
+    });
+  }
 
-export function unsupportedKeyword(
-  keyword: UnsupportedKeyword,
-): ValidationError {
-  return new ValidationError({
-    reason: ValidationErrorReason.UnsupportedKeyword({ keyword }),
-  });
-}
+  static customTypeNotSupported(): EncodeError {
+    return new EncodeError({
+      reason: EncodeErrorReason.CustomTypeNotSupported(),
+    });
+  }
 
-export function typeLiteral(reason: TypeLiteralReason): ValidationError {
-  return new ValidationError({
-    reason: ValidationErrorReason.TypeLiteral({ reason }),
-  });
+  static unionNotSupported(): EncodeError {
+    return new EncodeError({
+      reason: EncodeErrorReason.UnionNotSupported(),
+    });
+  }
+
+  static cyclicSchema(): EncodeError {
+    return new EncodeError({
+      reason: EncodeErrorReason.CyclicSchema(),
+    });
+  }
+
+  static typeLiteral(reason: TypeLiteralReason): EncodeError {
+    return new EncodeError({
+      reason: EncodeErrorReason.TypeLiteral({ reason }),
+    });
+  }
+
+  static dataTypeMalformed(): EncodeError {
+    return new EncodeError({
+      reason: EncodeErrorReason.DataTypeMalformed(),
+    });
+  }
+
+  static noTitle(): EncodeError {
+    return new EncodeError({
+      reason: EncodeErrorReason.NoTitle(),
+    });
+  }
+
+  static unsupportedLiteral(literal: UnsupportedLiteral): EncodeError {
+    return new EncodeError({
+      reason: EncodeErrorReason.UnsupportedLiteral({ literal }),
+    });
+  }
 }

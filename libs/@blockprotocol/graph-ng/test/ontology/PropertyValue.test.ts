@@ -85,9 +85,9 @@ test("single oneOf object type", () => {
     [VersionedUrl.base(DescriptionProperty.id)]: "description",
   });
 
-  let value = result["a"];
-  let value = result["b"];
-  let value = result[VersionedUrl.base(DescriptionProperty.id)];
+  // let value = result["a"];
+  // let value = result["b"];
+  // let value = result[VersionedUrl.base(DescriptionProperty.id)];
 
   expectTypeOf(result).toMatchTypeOf<{
     [key in VersionedUrl.Base<

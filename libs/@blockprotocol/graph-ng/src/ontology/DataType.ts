@@ -12,18 +12,21 @@ import {
 import * as S from "@effect/schema/Schema";
 import * as DataTypeUrl from "./DataTypeUrl";
 import * as Json from "../internal/Json";
-import {
-  typeLiteral,
-  unsupportedKeyword,
-  ValidationError,
-  ValidationErrorReason,
-} from "./DataType/errors";
-import { AST } from "@effect/schema";
+import { EncodeError } from "./DataType/errors";
+import { encodeSchema } from "./DataType/encode";
+import { DataTypeSchema } from "./DataType/schema";
 
 const TypeId: unique symbol = Symbol.for(
   "@blockprotocol/graph/ontology/DataType",
 );
 export type TypeId = typeof TypeId;
+
+/** @internal */
+export const AnnotationId: unique symbol = Symbol.for(
+  "@blockprotocol/graph/ontology/DataType/Annotation",
+);
+/** @internal */
+export type AnnotationId = typeof AnnotationId;
 
 interface Annotations {}
 
@@ -41,11 +44,11 @@ export interface DataType<T>
 
 interface DataTypeImpl<T> extends DataType<T> {}
 
-const DataTypeProto: DataTypeImpl<unknown> = {
+const DataTypeProto: Omit<DataTypeImpl<unknown>, "id" | "schema"> = {
   [TypeId]: TypeId,
   annotations: {},
 
-  toJSON(): unknown {
+  toJSON(this: DataTypeImpl<unknown>): unknown {
     return {
       _id: "DataType",
       id: this.id,
@@ -76,137 +79,50 @@ const DataTypeProto: DataTypeImpl<unknown> = {
   },
 };
 
-export interface Schema {
-  readonly $schema: "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type";
-  readonly kind: "dataType";
-
-  readonly $id: DataTypeUrl.DataTypeUrl;
-
-  readonly title: string;
-  readonly description?: string;
-
-  readonly type: string;
-}
-
 export function isDataType(value: unknown): value is DataType<unknown> {
   return Predicate.hasProperty(value, TypeId);
 }
 
-export function validate(
-  schema: S.Schema<unknown, Json.Value>,
-): Either.Either<null, ValidationError> {
-  const ast = schema.ast;
-  const hashes = HashSet.make(AST.hash(ast));
+function makeImpl<T>(
+  id: DataTypeUrl.DataTypeUrl,
+  schema: S.Schema<T, Json.Value>,
+): DataTypeImpl<T> {
+  const impl = Object.create(DataTypeProto);
+  impl.id = id;
 
-  return validateAST(ast, hashes);
+  impl.schema = schema.annotations({
+    [AnnotationId]: () => impl,
+  });
+
+  return impl;
 }
 
-function validateASTParameter(
-  ast: AST.Parameter,
-  hashes: HashSet.HashSet<number>,
-): Either.Either<null, ValidationError> {
-  switch (ast._tag) {
-    case "StringKeyword":
-      break;
-    case "SymbolKeyword":
-      return Either.left(unsupportedKeyword("symbol"));
-    case "TemplateLiteral":
-      break;
-    case "Refinement":
-      return validateAST(ast.from, hashes);
-  }
-
-  return Either.right(null);
+function toSchemaImpl<T>(
+  schema: S.Schema<T, Json.Value>,
+): Either.Either<DataTypeSchema, EncodeError> {
+  return encodeSchema(schema.ast);
 }
 
-// TODO: tbh already create the AST for the schema
-function validateAST(
-  ast: AST.AST,
-  hashes: HashSet.HashSet<number>,
-): Either.Either<null, ValidationError> {
-  switch (ast._tag) {
-    case "Literal":
-    case "StringKeyword":
-    case "NumberKeyword":
-    case "BooleanKeyword":
-    case "BigIntKeyword":
-    case "TemplateLiteral":
-    case "Enums":
-      break;
+export function make<T, E extends Json.Value>(
+  id: DataTypeUrl.DataTypeUrl,
+  schema: S.Schema<T, E>,
+): Either.Either<DataType<T>, EncodeError> {
+  // E is invariant in schema, therefore we cannot "easily" cast, this is kinda a hack, but whatever
+  const covariantSchema = schema as unknown as S.Schema<T, Json.Value>;
 
-    case "Declaration":
-      // custom types, they are not supported
-      return Either.left(
-        new ValidationError({
-          reason: ValidationErrorReason.CustomTypeNotSupported(),
-        }),
-      );
-    case "UniqueSymbol":
-      return Either.left(unsupportedKeyword("unique symbol"));
-    case "VoidKeyword":
-      return Either.left(unsupportedKeyword("void"));
-    case "NeverKeyword":
-      return Either.left(unsupportedKeyword("never"));
-    case "UnknownKeyword":
-      return Either.left(unsupportedKeyword("unknown"));
-    case "AnyKeyword":
-      return Either.left(unsupportedKeyword("any"));
-    case "UndefinedKeyword":
-      return Either.left(unsupportedKeyword("undefined"));
-    case "SymbolKeyword":
-      return Either.left(unsupportedKeyword("symbol"));
-    case "ObjectKeyword":
-      return Either.left(unsupportedKeyword("object"));
+  const impl = makeImpl(id, covariantSchema);
 
-    case "Refinement":
-      return validateAST(ast.from, hashes);
-    case "TupleType":
-      if (ast.elements.length !== 0 || ast.rest.length !== 1) {
-        return Either.left(unsupportedKeyword("tuple"));
-      }
-      break;
-    case "TypeLiteral":
-      // includes things like: record and struct, struct we don't support, record we do
-      if (ast.propertySignatures.length !== 0) {
-        return Either.left(typeLiteral("property signature present"));
-      }
-
-      if (ast.indexSignatures.length === 0) {
-        return Either.left(typeLiteral("index signature required"));
-      }
-
-      if (ast.indexSignatures.length > 1) {
-        return Either.left(typeLiteral("more than one index signature"));
-      }
-
-      const signature = ast.indexSignatures[0]!;
-
-      validateAST(signature.type, hashes).pipe(
-        Either.andThen(() => validateASTParameter(signature.parameter, hashes)),
-      );
-      break;
-    case "Union":
-      return Either.left(
-        new ValidationError({
-          reason: ValidationErrorReason.UnionNotSupported(),
-        }),
-      );
-    case "Suspend":
-      const childAst = ast.f();
-      const childHash = AST.hash(childAst);
-
-      if (HashSet.has(hashes, childHash)) {
-        return Either.left(
-          new ValidationError({
-            reason: ValidationErrorReason.RecursiveTypeNotSupported(),
-          }),
-        );
-      }
-
-      return validateAST(childAst, HashSet.add(hashes, childHash));
-    case "Transformation":
-      return validateAST(ast.from, hashes);
-  }
-
-  return Either.right(null);
+  return pipe(
+    toSchemaImpl(impl.schema),
+    Either.map(() => impl),
+  );
 }
+
+export function toSchema<T>(dataType: DataType<T>): DataTypeSchema {
+  const schema = toSchemaImpl(dataType.schema);
+
+  // the value has been validated in `make<T>`
+  return Either.getOrThrow(schema);
+}
+
+export { DataTypeSchema as Schema };
