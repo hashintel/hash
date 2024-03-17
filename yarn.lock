@@ -2769,10 +2769,10 @@
   dependencies:
     tslib "^2.0.0"
 
-"@effect/schema@0.63.4":
-  version "0.63.4"
-  resolved "https://registry.yarnpkg.com/@effect/schema/-/schema-0.63.4.tgz#94a0aaa33bb5d8a4ee514c216194baaa6ccd8dc6"
-  integrity sha512-59b7N0XntkfivwhTSutyP13t1utlbJ9wDWDwEdAivNPpXBfpUlAWnZw7MAi86qI8J1LVz3ZDlz5p0pkDSu7p9g==
+"@effect/schema@0.64.5":
+  version "0.64.5"
+  resolved "https://registry.yarnpkg.com/@effect/schema/-/schema-0.64.5.tgz#b38cdedf19612fc2681f522c4383ed9ff3256e92"
+  integrity sha512-yYhwdYkGyj4GEepuo7kNvhtYqi3UxdbFR3A+W3/Ln9cKQa0WGJP8v6jKuSBpAJKz8aFuFVsJ6wRtrx1pgjE0OQ==
 
 "@emoji-mart/react@1.0.1":
   version "1.0.1"
@@ -8635,9 +8635,9 @@
     csstype "^3.0.2"
 
 "@types/react@^17.0.39":
-  version "17.0.76"
-  resolved "https://registry.yarnpkg.com/@types/react/-/react-17.0.76.tgz#bfdf762046699e265655cd8f67a51beab6cd1e80"
-  integrity sha512-w9Aq+qeszGYoQM0hgFcdsAODGJdogadBDiitPm+zjBFJ0mLymvn2qSXsDaLJUndFRqqXk1FQfa9avHUBk1JhJQ==
+  version "17.0.78"
+  resolved "https://registry.yarnpkg.com/@types/react/-/react-17.0.78.tgz#b03712ff8af0eac1c3d925bedde9bfd965159585"
+  integrity sha512-n6FXs3v6JF0RRp3/cE/eW+5d3XjngFomVuYXjNFFhOa2G6umSx2mMOvvVLpw13RKBozCh3otdnejzXa99pMS+A==
   dependencies:
     "@types/prop-types" "*"
     "@types/scheduler" "*"
@@ -12984,10 +12984,10 @@ ee-first@1.1.1:
   resolved "https://registry.yarnpkg.com/ee-first/-/ee-first-1.1.1.tgz#590c61156b0ae2f4f0255732a158b266bc56b21d"
   integrity "sha1-WQxhFWsK4vTwJVcyoViyZrxWsh0= sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow=="
 
-effect@2.4.3:
-  version "2.4.3"
-  resolved "https://registry.yarnpkg.com/effect/-/effect-2.4.3.tgz#c447bb7020fd45154a2e9d216e45e5323531b744"
-  integrity sha512-OmIgfNgQMZsQt5l7qLQqLOUxIXq7ku8/RK3Wv3LqxSE2zMyU1mHXof5QeyCt7m9sXv3Vui52Urk1vVsEd2szMQ==
+effect@2.4.7:
+  version "2.4.7"
+  resolved "https://registry.yarnpkg.com/effect/-/effect-2.4.7.tgz#c0cefa86e71d7f3d15a53d2c2441dabd646b124e"
+  integrity sha512-4YOPi4r7nLFJAK1W/l7FM3fptZBtrJkqa5Rh2u7gkFCECn+RiwuQ8KYPm8sf4RFIp+fSQXGA87GIDtyxrz0mbA==
 
 ejs@^3.1.8:
   version "3.1.8"

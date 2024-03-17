@@ -13,11 +13,12 @@ import * as S from "@effect/schema/Schema";
 import * as DataTypeUrl from "./DataTypeUrl";
 import * as Json from "../internal/Json";
 import {
+  typeLiteral,
   unsupportedKeyword,
   ValidationError,
   ValidationErrorReason,
 } from "./DataType/errors";
-import { AST, Format } from "@effect/schema";
+import { AST } from "@effect/schema";
 
 const TypeId: unique symbol = Symbol.for(
   "@blockprotocol/graph/ontology/DataType",
@@ -48,15 +49,11 @@ const DataTypeProto: DataTypeImpl<unknown> = {
     return {
       _id: "DataType",
       id: this.id,
-      // schema: this.schema.toJSON(), <- TODO: next minor release
+      schema: this.schema.ast.toJSON(),
     };
   },
   toString(this: DataTypeImpl<unknown>): string {
-    return Inspectable.format({
-      _id: "DataType",
-      id: this.id,
-      schema: Format.format(this.schema),
-    });
+    return Inspectable.format(this.toJSON());
   },
   [Inspectable.NodeInspectSymbol]() {
     return this.toJSON();
@@ -104,6 +101,25 @@ export function validate(
   return validateAST(ast, hashes);
 }
 
+function validateASTParameter(
+  ast: AST.Parameter,
+  hashes: HashSet.HashSet<number>,
+): Either.Either<null, ValidationError> {
+  switch (ast._tag) {
+    case "StringKeyword":
+      break;
+    case "SymbolKeyword":
+      return Either.left(unsupportedKeyword("symbol"));
+    case "TemplateLiteral":
+      break;
+    case "Refinement":
+      return validateAST(ast.from, hashes);
+  }
+
+  return Either.right(null);
+}
+
+// TODO: tbh already create the AST for the schema
 function validateAST(
   ast: AST.AST,
   hashes: HashSet.HashSet<number>,
@@ -144,13 +160,30 @@ function validateAST(
 
     case "Refinement":
       return validateAST(ast.from, hashes);
-    case "Tuple":
-      if (ast.elements.length !== 0 || Option.isNone(ast.rest)) {
+    case "TupleType":
+      if (ast.elements.length !== 0 || ast.rest.length !== 1) {
         return Either.left(unsupportedKeyword("tuple"));
       }
       break;
     case "TypeLiteral":
       // includes things like: record and struct, struct we don't support, record we do
+      if (ast.propertySignatures.length !== 0) {
+        return Either.left(typeLiteral("property signature present"));
+      }
+
+      if (ast.indexSignatures.length === 0) {
+        return Either.left(typeLiteral("index signature required"));
+      }
+
+      if (ast.indexSignatures.length > 1) {
+        return Either.left(typeLiteral("more than one index signature"));
+      }
+
+      const signature = ast.indexSignatures[0]!;
+
+      validateAST(signature.type, hashes).pipe(
+        Either.andThen(() => validateASTParameter(signature.parameter, hashes)),
+      );
       break;
     case "Union":
       return Either.left(
@@ -170,8 +203,8 @@ function validateAST(
         );
       }
 
-      return validateAST(ast.f(), HashSet.add(hashes, childHash));
-    case "Transform":
+      return validateAST(childAst, HashSet.add(hashes, childHash));
+    case "Transformation":
       return validateAST(ast.from, hashes);
   }
 

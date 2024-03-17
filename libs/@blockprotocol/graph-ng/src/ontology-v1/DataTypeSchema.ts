@@ -15,4 +15,4 @@ export const DataTypeSchema = S.struct({
   type: S.string,
 });
 
-export type DataTypeSchema = S.Schema.To<typeof DataTypeSchema>;
+export type DataTypeSchema = S.Schema.Type<typeof DataTypeSchema>;

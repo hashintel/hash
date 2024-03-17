@@ -12,6 +12,11 @@ export type UnsupportedKeyword =
   | "type"
   | "object";
 
+export type TypeLiteralReason =
+  | "property signature present"
+  | "index signature required"
+  | "more than one index signature";
+
 export type ValidationErrorReason = Data.TaggedEnum<{
   UnsupportedKeyword: {
     keyword: UnsupportedKeyword;
@@ -19,6 +24,9 @@ export type ValidationErrorReason = Data.TaggedEnum<{
   CustomTypeNotSupported: {};
   UnionNotSupported: {};
   RecursiveTypeNotSupported: {};
+  TypeLiteral: {
+    reason: TypeLiteralReason;
+  };
 }>;
 export const ValidationErrorReason = Data.taggedEnum<ValidationErrorReason>();
 
@@ -31,5 +39,11 @@ export function unsupportedKeyword(
 ): ValidationError {
   return new ValidationError({
     reason: ValidationErrorReason.UnsupportedKeyword({ keyword }),
+  });
+}
+
+export function typeLiteral(reason: TypeLiteralReason): ValidationError {
+  return new ValidationError({
+    reason: ValidationErrorReason.TypeLiteral({ reason }),
   });
 }

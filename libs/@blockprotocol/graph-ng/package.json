@@ -10,9 +10,9 @@
     "lint:tsc": "tsc --noEmit"
   },
   "dependencies": {
-    "@effect/schema": "0.63.4",
+    "@effect/schema": "0.64.5",
     "@js-temporal/polyfill": "0.4.4",
-    "effect": "2.4.3",
+    "effect": "2.4.7",
     "typescript": "5.3.3"
   },
   "devDependencies": {
