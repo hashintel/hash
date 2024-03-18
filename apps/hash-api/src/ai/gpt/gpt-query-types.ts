@@ -5,6 +5,12 @@ import type { RequestHandler } from "express";
 import type { SimpleEntityType } from "./shared/entity-types";
 import { getSimpleEntityType } from "./shared/entity-types";
 import { stringifyResults } from "./shared/stringify-results";
+import {
+  CreateEmbeddingsParams,
+  CreateEmbeddingsReturn,
+} from "@local/hash-isomorphic-utils/ai-inference-types";
+import { genId } from "../../util";
+import { typedValues } from "@local/advanced-types/typed-entries";
 
 export type GptQueryTypesRequestBody = {
   /**
@@ -50,6 +56,22 @@ export const gptQueryTypes: RequestHandler<
 
   const { query, webUuids } = req.body;
 
+  const semanticSearchString = query
+    ? await req.context.temporalClient.workflow
+        .execute<
+          (params: CreateEmbeddingsParams) => Promise<CreateEmbeddingsReturn>
+        >("createEmbeddings", {
+          taskQueue: "ai",
+          args: [
+            {
+              input: [query],
+            },
+          ],
+          workflowId: genId(),
+        })
+        .then(({ embeddings }) => embeddings[0])
+    : null;
+
   const queryResponse: GptQueryTypesResponseBody = await req.context.graphApi
     .getEntityTypesByQuery(user.accountId, {
       filter: {
@@ -63,18 +85,17 @@ export const gptQueryTypes: RequestHandler<
                 },
               ]
             : []),
-          ...(query
+          ...(semanticSearchString
             ? [
                 {
                   cosineDistance: [
                     { path: ["embedding"] },
-                    { parameter: query },
+                    { parameter: semanticSearchString },
                     { parameter: 0.9 },
                   ],
                 },
               ]
             : []),
-          { equal: [{ path: ["archived"] }, { parameter: false }] },
         ],
       },
       includeDrafts: false,
@@ -95,32 +116,20 @@ export const gptQueryTypes: RequestHandler<
 
       const subgraph = mapGraphApiSubgraphToSubgraph(response.data);
 
-      const vertices = Object.values(subgraph.vertices)
-        .map((vertex) => Object.values(vertex))
+      const vertices = typedValues(subgraph.vertices)
+        .map((vertex) => typedValues(vertex))
         .flat();
 
       for (const vertex of vertices) {
         if (vertex.kind === "entityType") {
           const entityType = entityTypes.find(
-            (type) => type.entityTypeId === vertex.inner.metadata.entityTypeId,
+            (type) => type.entityTypeId === vertex.inner.schema.$id,
           );
 
           if (!entityType) {
-            /**
-             * Resolve details of the entity type that the entity belongs to
-             */
-            const simpleEntityType = entityTypes.find(
-              (type) =>
-                type.entityTypeId === vertex.inner.metadata.entityTypeId,
+            entityTypes.push(
+              getSimpleEntityType(subgraph, vertex.inner.schema.$id),
             );
-            if (!simpleEntityType) {
-              entityTypes.push(
-                getSimpleEntityType(
-                  subgraph,
-                  vertex.inner.metadata.entityTypeId,
-                ),
-              );
-            }
           }
         }
       }
