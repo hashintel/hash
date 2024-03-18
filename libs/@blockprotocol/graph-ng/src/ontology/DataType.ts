@@ -12,7 +12,7 @@ import {
 import * as Json from "../Json.js";
 import { decodeSchema } from "./DataType/decode.js";
 import { encodeSchema } from "./DataType/encode.js";
-import { DecodeError, EncodeError } from "./DataType/errors.js";
+import { DecodeError, EncodeError } from "./DataType/error.js";
 import { DataTypeSchema } from "./DataType/schema.js";
 import * as DataTypeUrl from "./DataTypeUrl.js";
 
@@ -26,17 +26,19 @@ export const AnnotationId: unique symbol = Symbol.for(
   "@blockprotocol/graph/ontology/DataType/Annotation",
 );
 
-export interface DataType<T>
+export interface DataType<Out, In extends Json.Value = Json.Value>
   extends Equal.Equal,
     Pipeable.Pipeable,
     Inspectable.Inspectable {
   [TypeId]: TypeId;
 
   readonly id: DataTypeUrl.DataTypeUrl;
-  readonly schema: S.Schema<T, Json.Value>;
+  readonly schema: S.Schema<Out, In>;
 }
 
-interface DataTypeImpl<T> extends DataType<T> {}
+// TODO: cache possibility?!
+interface DataTypeImpl<Out, In extends Json.Value = Json.Value>
+  extends DataType<Out, In> {}
 
 const DataTypeProto: Omit<DataTypeImpl<unknown>, "id" | "schema"> = {
   [TypeId]: TypeId,
@@ -67,7 +69,7 @@ const DataTypeProto: Omit<DataTypeImpl<unknown>, "id" | "schema"> = {
       Hash.cached(this),
     );
   },
-  [Equal.symbol]<T>(this: DataType<T>, that: unknown): boolean {
+  [Equal.symbol]<T, E>(this: DataType<T, E>, that: unknown): boolean {
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     if (!isDataType(that)) {
       return false;
@@ -81,10 +83,10 @@ export function isDataType(value: unknown): value is DataType<unknown> {
   return Predicate.hasProperty(value, TypeId);
 }
 
-function makeImpl<T>(
+function makeImpl<Out, In extends Json.Value>(
   id: DataTypeUrl.DataTypeUrl,
-  schema: S.Schema<T, Json.Value>,
-): DataTypeImpl<T> {
+  schema: S.Schema<Out, In>,
+): DataTypeImpl<Out, In> {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const impl = Object.create(DataTypeProto);
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -95,23 +97,20 @@ function makeImpl<T>(
     [AnnotationId]: () => impl as DataType<unknown>,
   });
 
-  return impl as DataTypeImpl<T>;
+  return impl as DataTypeImpl<Out, In>;
 }
 
-function toSchemaImpl<T>(
-  schema: S.Schema<T, Json.Value>,
+function toSchemaImpl<Out, In>(
+  schema: S.Schema<Out, In>,
 ): Either.Either<DataTypeSchema, EncodeError> {
   return encodeSchema(schema.ast);
 }
 
-export function make<T, E extends Json.Value>(
+export function make<Out, In extends Json.Value>(
   id: DataTypeUrl.DataTypeUrl,
-  schema: S.Schema<T, E>,
-): Either.Either<DataType<T>, EncodeError> {
-  // E is invariant in schema, therefore we cannot "easily" cast, this is kinda a hack, but whatever
-  const covariantSchema = schema as unknown as S.Schema<T, Json.Value>;
-
-  const impl = makeImpl(id, covariantSchema);
+  schema: S.Schema<Out, In>,
+): Either.Either<DataType<Out, In>, EncodeError> {
+  const impl = makeImpl(id, schema);
 
   return pipe(
     toSchemaImpl(impl.schema),
@@ -119,17 +118,17 @@ export function make<T, E extends Json.Value>(
   );
 }
 
-export function makeOrThrow<T, E extends Json.Value>(
+export function makeOrThrow<Out, In extends Json.Value>(
   id: DataTypeUrl.DataTypeUrl,
-  schema: S.Schema<T, E>,
-): DataType<T> {
+  schema: S.Schema<Out, In>,
+): DataType<Out, In> {
   return Either.getOrThrow(make(id, schema));
 }
 
-export function parse<I extends string, T, E extends Json.Value>(
+export function parse<I extends string, Out, In extends Json.Value>(
   id: I,
-  schema: S.Schema<T, E>,
-): Either.Either<DataType<T>, EncodeError> {
+  schema: S.Schema<Out, In>,
+): Either.Either<DataType<Out, In>, EncodeError> {
   return pipe(
     DataTypeUrl.parse(id),
     Either.mapLeft((error) => EncodeError.invalidUrl(error)),
@@ -137,14 +136,16 @@ export function parse<I extends string, T, E extends Json.Value>(
   );
 }
 
-export function parseOrThrow<I extends string, T, E extends Json.Value>(
+export function parseOrThrow<I extends string, Out, In extends Json.Value>(
   id: I,
-  schema: S.Schema<T, E>,
-): DataType<T> {
+  schema: S.Schema<Out, In>,
+): DataType<Out, In> {
   return Either.getOrThrow(parse(id, schema));
 }
 
-export function toSchema<T>(dataType: DataType<T>): DataTypeSchema {
+export function toSchema<Out, In extends Json.Value>(
+  dataType: DataType<Out, In>,
+): DataTypeSchema {
   const schema = toSchemaImpl(dataType.schema);
 
   // the value has been validated in `make<T>`
@@ -155,15 +156,10 @@ export function fromSchema(
   schema: DataTypeSchema,
 ): Either.Either<DataType<Json.Value>, DecodeError> {
   return Either.gen(function* (_) {
-    const id = yield* _(
-      DataTypeUrl.parse(schema.$id),
-      Either.mapLeft((cause) => DecodeError.invalidUrl(cause)),
-    );
-
     const inner = decodeSchema(schema);
 
     const dataType = yield* _(
-      make(id, inner),
+      make(schema.$id, inner),
       Either.mapLeft((cause) => DecodeError.encode(cause)),
     );
 

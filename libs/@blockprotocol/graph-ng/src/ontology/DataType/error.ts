@@ -152,9 +152,6 @@ export class EncodeError extends Data.TaggedError(
 }
 
 export type DecodeErrorReason = Data.TaggedEnum<{
-  InvalidUrl: {
-    cause: ParseError;
-  };
   Encode: {
     cause: EncodeError;
   };
@@ -165,12 +162,6 @@ export const DecodeErrorReason = Data.taggedEnum<DecodeErrorReason>();
 export class DecodeError extends Data.TaggedError(
   "@blockprotocol/graph/DataType/DecodeError",
 )<{ reason: DecodeErrorReason }> {
-  static invalidUrl(cause: ParseError): DecodeError {
-    return new DecodeError({
-      reason: DecodeErrorReason.InvalidUrl({ cause }),
-    });
-  }
-
   static encode(cause: EncodeError): DecodeError {
     return new DecodeError({
       reason: DecodeErrorReason.Encode({ cause }),

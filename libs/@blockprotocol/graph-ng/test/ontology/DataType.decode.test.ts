@@ -2,11 +2,12 @@ import { Either } from "effect";
 import { describe, expect, test } from "vitest";
 
 import * as DataType from "../../src/ontology/DataType.js";
+import { DataTypeUrl } from "../../src/ontology/index.js";
 
 describe("literal", () => {
   test("`number`", () => {
     const schema = {
-      $id: "https://example.com/number-123/v/1",
+      $id: DataTypeUrl.parseOrThrow("https://example.com/number-123/v/1"),
       $schema:
         "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
       const: 123,
@@ -23,7 +24,7 @@ describe("literal", () => {
 
   test("`string`", () => {
     const schema = {
-      $id: "https://example.com/string-abc/v/1",
+      $id: DataTypeUrl.parseOrThrow("https://example.com/string-abc/v/1"),
       $schema:
         "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
       const: "abc",
@@ -40,7 +41,7 @@ describe("literal", () => {
 
   test("`boolean`", () => {
     const schema = {
-      $id: "https://example.com/boolean-true/v/1",
+      $id: DataTypeUrl.parseOrThrow("https://example.com/boolean-true/v/1"),
       $schema:
         "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
       const: true,
@@ -57,7 +58,7 @@ describe("literal", () => {
 
   test("`null`", () => {
     const schema = {
-      $id: "https://example.com/null/v/1",
+      $id: DataTypeUrl.parseOrThrow("https://example.com/null/v/1"),
       $schema:
         "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
       const: null,
@@ -75,7 +76,7 @@ describe("literal", () => {
 
 describe("string", () => {
   const base = {
-    $id: "https://example.com/string/v/1",
+    $id: DataTypeUrl.parseOrThrow("https://example.com/string/v/1"),
     $schema:
       "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
     description: "a string",
@@ -141,7 +142,7 @@ describe("string", () => {
 
 describe("number", () => {
   const base = {
-    $id: "https://example.com/number/v/1",
+    $id: DataTypeUrl.parseOrThrow("https://example.com/number/v/1"),
     $schema:
       "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
     description: "a number",
@@ -243,7 +244,7 @@ describe("number", () => {
 
 test("boolean", () => {
   const schema = {
-    $id: "https://example.com/boolean/v/1",
+    $id: DataTypeUrl.parseOrThrow("https://example.com/boolean/v/1"),
     $schema:
       "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
     description: "a boolean",
@@ -260,7 +261,7 @@ test("boolean", () => {
 
 test("null", () => {
   const schema = {
-    $id: "https://example.com/null/v/1",
+    $id: DataTypeUrl.parseOrThrow("https://example.com/null/v/1"),
     $schema:
       "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
     description: "a null",
@@ -277,7 +278,7 @@ test("null", () => {
 
 test("array", () => {
   const schema = {
-    $id: "https://example.com/array/v/1",
+    $id: DataTypeUrl.parseOrThrow("https://example.com/array/v/1"),
     $schema:
       "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
     description: "an array",
@@ -295,7 +296,7 @@ test("array", () => {
 
 test("object", () => {
   const schema = {
-    $id: "https://example.com/object/v/1",
+    $id: DataTypeUrl.parseOrThrow("https://example.com/object/v/1"),
     $schema:
       "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
     description: "an object",

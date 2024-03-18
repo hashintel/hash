@@ -1,25 +1,14 @@
 import { AST } from "@effect/schema";
-import {
-  Brand,
-  Either,
-  HashSet,
-  Option,
-  Order,
-  pipe,
-  Predicate,
-  ReadonlyArray,
-  ReadonlyRecord,
-  Tuple,
-} from "effect";
+import { Either, Order, pipe, Predicate, ReadonlyArray, Tuple } from "effect";
 
-import * as Json from "../../Json.js";
 import {
   escapeStringRegexp,
   pruneUndefinedShallow,
   UndefinedOnPartialShallow,
 } from "../../internal/schema.js";
+import * as Json from "../../Json.js";
 import * as DataType from "../DataType.js";
-import { EncodeError } from "./errors.js";
+import { EncodeError } from "./error.js";
 import {
   ArrayDataTypeSchema,
   BooleanDataTypeSchema,
@@ -31,49 +20,9 @@ import {
   ObjectDataTypeSchema,
   StringDataTypeSchema,
 } from "./schema.js";
+import * as EncodeContext from "../internal/EncodeContext.js";
 
-type ASTHash = Brand.Branded<number, "ASTHash">;
-const ASTHash = Brand.nominal<ASTHash>();
-
-type PathComponent =
-  | {
-      _tag: "Entry";
-      key: string;
-    }
-  | {
-      _tag: "Index";
-      index: number;
-    };
-
-interface JsonSchema {
-  readonly title?: string;
-  readonly description?: string;
-
-  readonly additional: Record<string, unknown>;
-}
-
-function getJsonSchema(ast: AST.Annotated): JsonSchema {
-  const record = ReadonlyRecord.getSomes({
-    title: AST.getTitleAnnotation(ast),
-    description: AST.getDescriptionAnnotation(ast),
-  });
-
-  const additional = AST.getJSONSchemaAnnotation(ast) as Option.Option<
-    Record<string, unknown>
-  >;
-
-  return { ...record, additional: Option.getOrElse(additional, () => ({})) };
-}
-
-function updateJsonSchema(current: JsonSchema, ast: AST.Annotated): JsonSchema {
-  const update = getJsonSchema(ast);
-
-  return {
-    ...current,
-    ...update,
-    additional: { ...current.additional, ...update.additional },
-  };
-}
+type Context = EncodeContext.EncodeContext<DataType.DataType<unknown>>;
 
 const isNumberOrUndefined: (value: unknown) => value is number | undefined =
   Predicate.or(Predicate.isUndefined, Predicate.isNumber) as never;
@@ -114,34 +63,6 @@ function asStringOrUndefined(
       typeof value,
     ),
   );
-}
-
-interface Context {
-  readonly root: DataType.DataType<unknown>;
-  readonly traversed: HashSet.HashSet<ASTHash>;
-  readonly path: ReadonlyArray<PathComponent>;
-
-  readonly jsonSchema: JsonSchema;
-}
-
-function hashNode(ast: AST.AST): ASTHash {
-  return ASTHash(AST.hash(ast));
-}
-
-function traverse(
-  ast: AST.AST,
-  context: Context,
-): Either.Either<Context, EncodeError> {
-  if (HashSet.has(context.traversed, hashNode(ast))) {
-    return Either.left(EncodeError.cyclicSchema());
-  }
-
-  return Either.right({
-    root: context.root,
-    traversed: HashSet.add(context.traversed, hashNode(ast)),
-    path: context.path,
-    jsonSchema: updateJsonSchema(context.jsonSchema, ast),
-  });
 }
 
 function encodeLiteral(
@@ -476,7 +397,7 @@ function encode(
   ast: AST.AST,
   context: Context,
 ): Either.Either<DataTypeSchema, EncodeError> {
-  const traverseResult = traverse(ast, context);
+  const traverseResult = EncodeContext.visit(ast, context);
   if (Either.isLeft(traverseResult)) {
     return Either.left(traverseResult.left);
   }
@@ -549,10 +470,5 @@ export function encodeSchema(
     );
   }
 
-  return encode(ast, {
-    root: dataType,
-    jsonSchema: getJsonSchema(ast),
-    traversed: HashSet.empty(),
-    path: [],
-  });
+  return encode(ast, EncodeContext.make(dataType));
 }

@@ -1,8 +1,18 @@
 import * as S from "@effect/schema/Schema";
-import { Equal, Hash, Inspectable, pipe, Pipeable, Predicate } from "effect";
+import {
+  Either,
+  Equal,
+  Hash,
+  Inspectable,
+  pipe,
+  Pipeable,
+  Predicate,
+} from "effect";
 
-import * as Json from "../Json.js";
 import * as PropertyTypeUrl from "./PropertyTypeUrl.js";
+import { PropertyTypeSchema } from "./PropertyType/schema.js";
+import { EncodeError } from "./PropertyType/error.js";
+import { encodeSchema } from "./PropertyType/encode.js";
 
 const TypeId: unique symbol = Symbol.for(
   "@blockprotocol/graph/ontology/PropertyType",
@@ -14,17 +24,17 @@ export const AnnotationId: unique symbol = Symbol.for(
   "@blockprotocol/graph/ontology/PropertyType/Annotation",
 );
 
-export interface PropertyType<T>
+export interface PropertyType<Out, In = Out>
   extends Equal.Equal,
     Pipeable.Pipeable,
     Inspectable.Inspectable {
   [TypeId]: TypeId;
 
   readonly id: PropertyTypeUrl.PropertyTypeUrl;
-  readonly schema: S.Schema<T, Json.Value>;
+  readonly schema: S.Schema<Out, In>;
 }
 
-interface PropertyTypeImpl<T> extends PropertyType<T> {}
+interface PropertyTypeImpl<Out, In = Out> extends PropertyType<Out, In> {}
 
 const PropertyTypeProto: Omit<PropertyTypeImpl<unknown>, "id" | "schema"> = {
   [TypeId]: TypeId,
@@ -69,10 +79,10 @@ export function isPropertyType(value: unknown): value is PropertyType<unknown> {
   return Predicate.hasProperty(value, TypeId);
 }
 
-function makeImpl<T>(
+function makeImpl<Out, In>(
   id: PropertyTypeUrl.PropertyTypeUrl,
-  schema: S.Schema<T, Json.Value>,
-): PropertyType<T> {
+  schema: S.Schema<Out, In>,
+): PropertyType<Out, In> {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const impl = Object.create(PropertyTypeProto);
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -82,5 +92,58 @@ function makeImpl<T>(
     [AnnotationId]: () => impl as PropertyType<unknown>,
   });
 
-  return impl as PropertyType<T>;
+  return impl as PropertyType<Out, In>;
 }
+
+function toSchemaImpl<Out, In>(
+  impl: S.Schema<Out, In>,
+): Either.Either<PropertyTypeSchema, EncodeError> {
+  return encodeSchema(impl.ast);
+}
+
+export function make<Out, In>(
+  id: PropertyTypeUrl.PropertyTypeUrl,
+  schema: S.Schema<Out, In>,
+): Either.Either<PropertyType<Out, In>, EncodeError> {
+  const impl = makeImpl(id, schema);
+
+  return pipe(
+    toSchemaImpl(impl.schema),
+    Either.map(() => impl),
+  );
+}
+
+export function makeOrThrow<Out, In>(
+  id: PropertyTypeUrl.PropertyTypeUrl,
+  schema: S.Schema<Out, In>,
+): PropertyType<Out, In> {
+  return Either.getOrThrow(make(id, schema));
+}
+
+export function parse<I extends string, Out, In>(
+  id: I,
+  schema: S.Schema<Out, In>,
+): Either.Either<PropertyType<Out, In>, EncodeError> {
+  return pipe(
+    PropertyTypeUrl.parse(id),
+    Either.mapLeft((error) => EncodeError.invalidUrl(error)),
+    Either.andThen((id) => make(id, schema)),
+  );
+}
+
+export function parseOrThrow<I extends string, Out, In>(
+  id: I,
+  schema: S.Schema<Out, In>,
+): PropertyType<Out, In> {
+  return Either.getOrThrow(parse(id, schema));
+}
+
+export function toSchema<Out, In>(
+  propertyType: PropertyType<Out, In>,
+): Either.Either<PropertyTypeSchema, EncodeError> {
+  return toSchemaImpl(propertyType.schema);
+}
+
+// TODO: fromSchema
+
+export type { PropertyTypeSchema as Schema };

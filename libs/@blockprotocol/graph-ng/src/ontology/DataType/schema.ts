@@ -5,12 +5,13 @@ import {
   UndefinedOnPartialShallow,
 } from "../../internal/schema.js";
 import { type DataType } from "../DataType.js";
-import { EncodeError } from "./errors.js";
+import { EncodeError } from "./error.js";
+import * as DataTypeUrl from "../DataTypeUrl.js";
 
 interface TypelessDataTypeSchema {
   $schema: "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type";
   kind: "dataType";
-  $id: string;
+  $id: DataTypeUrl.DataTypeUrl;
 
   title: string;
   description?: string;
