@@ -1,3 +1,4 @@
+import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import type {
   DataTypeStructuralQuery,
   EntityQueryCursor,
@@ -222,5 +223,20 @@ export const createGraphActivities = ({
   // eslint-disable-next-line @typescript-eslint/require-await
   async getSubgraphEntities(params: { subgraph: Subgraph }): Promise<Entity[]> {
     return getEntities(params.subgraph);
+  },
+
+  async createEntity(
+    ...params: Parameters<typeof graphApiClient.createEntity>
+  ) {
+    return graphApiClient.createEntity(...params).then((result) => result.data);
+  },
+
+  async getHashInstanceAdminAccountGroupId(authentication: {
+    actorId: AccountId;
+  }) {
+    return getHashInstanceAdminAccountGroupId(
+      { graphApi: graphApiClient },
+      authentication,
+    );
   },
 });

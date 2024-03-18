@@ -10,6 +10,7 @@ mod drafts;
 mod entity;
 mod entity_type;
 mod links;
+mod multi_type;
 mod property_type;
 mod sorting;
 
@@ -59,7 +60,7 @@ use graph_types::{
     account::AccountId,
     knowledge::{
         entity::{Entity, EntityId, EntityMetadata, EntityProperties, EntityUuid},
-        link::{EntityLinkOrder, LinkData},
+        link::LinkData,
     },
     ontology::{
         DataTypeMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
@@ -617,6 +618,66 @@ impl DatabaseApi<'_> {
         Ok((entities, cursor))
     }
 
+    pub async fn get_entities_by_type(
+        &self,
+        entity_type_id: &VersionedUrl,
+    ) -> Result<Vec<Entity>, QueryError> {
+        let (mut subgraph, _) = self
+            .store
+            .get_entity(
+                self.account_id,
+                &NoAuthorization,
+                GetEntityParams {
+                    query: StructuralQuery {
+                        filter: Filter::All(vec![
+                            Filter::Equal(
+                                Some(FilterExpression::Path(EntityQueryPath::EntityTypeEdge {
+                                    edge_kind: SharedEdgeKind::IsOfType,
+                                    path: EntityTypeQueryPath::BaseUrl,
+                                    inheritance_depth: Some(0),
+                                })),
+                                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                                    entity_type_id.base_url.as_str(),
+                                )))),
+                            ),
+                            Filter::Equal(
+                                Some(FilterExpression::Path(EntityQueryPath::EntityTypeEdge {
+                                    edge_kind: SharedEdgeKind::IsOfType,
+                                    path: EntityTypeQueryPath::Version,
+                                    inheritance_depth: Some(0),
+                                })),
+                                Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
+                                    entity_type_id.version,
+                                ))),
+                            ),
+                        ]),
+                        graph_resolve_depths: GraphResolveDepths::default(),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
+                        },
+                        include_drafts: false,
+                    },
+                    sorting: EntityQuerySorting {
+                        paths: Vec::new(),
+                        cursor: None,
+                    },
+                    limit: None,
+                },
+            )
+            .await?;
+        Ok(subgraph
+            .roots
+            .into_iter()
+            .filter_map(|vertex_id| {
+                let GraphElementVertexId::KnowledgeGraph(vertex_id) = vertex_id else {
+                    panic!("unexpected vertex id found: {vertex_id:?}");
+                };
+                subgraph.vertices.entities.remove(&vertex_id)
+            })
+            .collect())
+    }
+
     pub async fn get_entity_by_timestamp(
         &self,
         entity_id: EntityId,
@@ -701,7 +762,6 @@ impl DatabaseApi<'_> {
         entity_id: EntityId,
         properties: EntityProperties,
         entity_type_ids: Vec<VersionedUrl>,
-        link_order: EntityLinkOrder,
         draft: bool,
     ) -> Result<EntityMetadata, UpdateError> {
         self.store
@@ -714,7 +774,6 @@ impl DatabaseApi<'_> {
                     decision_time: Some(generate_decision_time()),
                     entity_type_ids,
                     properties,
-                    link_order,
                     archived: false,
                     draft,
                 },
@@ -744,10 +803,6 @@ impl DatabaseApi<'_> {
                     link_data: Some(LinkData {
                         left_entity_id,
                         right_entity_id,
-                        order: EntityLinkOrder {
-                            left_to_right: None,
-                            right_to_left: None,
-                        },
                     }),
                     draft: false,
                     relationships: [],
@@ -922,7 +977,6 @@ impl DatabaseApi<'_> {
         entity_id: EntityId,
         properties: EntityProperties,
         entity_type_ids: Vec<VersionedUrl>,
-        link_order: EntityLinkOrder,
     ) -> Result<EntityMetadata, UpdateError> {
         self.store
             .update_entity(
@@ -936,7 +990,6 @@ impl DatabaseApi<'_> {
                     draft: false,
                     entity_type_ids,
                     properties,
-                    link_order,
                 },
             )
             .await

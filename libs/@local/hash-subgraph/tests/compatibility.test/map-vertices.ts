@@ -280,8 +280,6 @@ const mapLinkData = (linkData: LinkDataGraphApi): LinkData => {
   return {
     leftEntityId: linkData.leftEntityId as EntityId,
     rightEntityId: linkData.rightEntityId as EntityId,
-    leftToRightOrder: linkData.leftToRightOrder,
-    rightToLeftOrder: linkData.rightToLeftOrder,
   };
 };
 

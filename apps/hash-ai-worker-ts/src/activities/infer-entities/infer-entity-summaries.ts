@@ -23,14 +23,12 @@ import { log } from "./log";
 import { getOpenAiResponse } from "./shared/get-open-ai-response";
 import { stringify } from "./stringify";
 
-type InferEntitySummariesReturn = Status<InferenceState>;
-
 export const inferEntitySummaries = async (params: {
   completionPayload: CompletionPayload;
   entityTypes: DereferencedEntityTypesByTypeId;
   inferenceState: InferenceState;
   providedOrRerequestedEntityTypes: Set<VersionedUrl>;
-}): Promise<InferEntitySummariesReturn> => {
+}): Promise<Status<InferenceState>> => {
   const {
     completionPayload,
     entityTypes,

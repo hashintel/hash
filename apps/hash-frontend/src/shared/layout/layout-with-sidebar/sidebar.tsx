@@ -10,6 +10,7 @@ import {
 } from "react";
 
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
+import { useEnabledFeatureFlags } from "../../../pages/shared/use-enabled-feature-flags";
 import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
 import { useDraftEntities } from "../../draft-entities-context";
 import { SidebarToggleIcon } from "../../icons";
@@ -42,6 +43,8 @@ export const PageSidebar: FunctionComponent = () => {
   const { activeWorkspaceOwnedById } = useActiveWorkspace();
   const { routePageEntityUuid } =
     useRoutePageInfo({ allowUndefined: true }) ?? {};
+
+  const enabledFeatureFlags = useEnabledFeatureFlags();
 
   const { hashInstance } = useHashInstance();
 
@@ -78,14 +81,18 @@ export const PageSidebar: FunctionComponent = () => {
           },
         ],
       },
-      {
-        title: "Notes",
-        href: "/notes",
-        icon: <NoteIcon sx={{ fontSize: 16 }} />,
-        tooltipTitle: "",
-      },
+      ...(enabledFeatureFlags.notes
+        ? [
+            {
+              title: "Notes",
+              href: "/notes",
+              icon: <NoteIcon sx={{ fontSize: 16 }} />,
+              tooltipTitle: "",
+            },
+          ]
+        : []),
     ];
-  }, [draftEntities, numberOfUnreadNotifications]);
+  }, [draftEntities, numberOfUnreadNotifications, enabledFeatureFlags]);
 
   return (
     <Drawer
@@ -192,7 +199,8 @@ export const PageSidebar: FunctionComponent = () => {
         {activeWorkspaceOwnedById ? (
           <>
             {/* PAGES */}
-            {hashInstance?.properties.pagesAreEnabled ? (
+            {hashInstance?.properties.pagesAreEnabled &&
+            enabledFeatureFlags.pages ? (
               <AccountPageList
                 currentPageEntityUuid={routePageEntityUuid}
                 ownedById={activeWorkspaceOwnedById}

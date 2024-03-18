@@ -298,7 +298,7 @@ export const persistEntities = async (params: {
       });
     }
 
-    case "content_filter":
+    case "content_filter": {
       log(
         `The content filter was triggered on attempt ${iterationCount} with input: ${stringify(
           completionPayload.messages,
@@ -315,6 +315,7 @@ export const persistEntities = async (params: {
         ],
         message: "The content filter was triggered",
       };
+    }
 
     case "tool_calls": {
       if (!toolCalls) {

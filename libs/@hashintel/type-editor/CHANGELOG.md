@@ -1,5 +1,24 @@
 # @hashintel/type-editor
 
+## 0.0.25
+
+### Patch Changes
+
+- [#2937](https://github.com/hashintel/hash/pull/2937) [`b76516a82`](https://github.com/hashintel/hash/commit/b76516a82a039ea141309f27c9882f2777befd16) Thanks [@CiaranMn](https://github.com/CiaranMn)! - update detection of link types to account for inheritance
+
+- [#3784](https://github.com/hashintel/hash/pull/3784) [`c9c00b499`](https://github.com/hashintel/hash/commit/c9c00b4994abf6df67a6e3d07183331baee981ee) Thanks [@CiaranMn](https://github.com/CiaranMn)! - take data type options as prop, not fixed list
+
+- [#2909](https://github.com/hashintel/hash/pull/2909) [`2594988cc`](https://github.com/hashintel/hash/commit/2594988cc6078318847f5ec96d19d03f5c082b04) Thanks [@CiaranMn](https://github.com/CiaranMn)! - add 'extends' section and handle inherited properties and links
+
+- [#3984](https://github.com/hashintel/hash/pull/3984) [`98bb2a554`](https://github.com/hashintel/hash/commit/98bb2a55482f14423c4c3977066e7bef0c404715) Thanks [@CiaranMn](https://github.com/CiaranMn)! - show / edit label property in type editor
+
+- [#2966](https://github.com/hashintel/hash/pull/2966) [`4c30e84ea`](https://github.com/hashintel/hash/commit/4c30e84ea521812e9ea41299afbe02c33787a886) Thanks [@CiaranMn](https://github.com/CiaranMn)! - validate type parents
+
+- [#2972](https://github.com/hashintel/hash/pull/2972) [`765cc9816`](https://github.com/hashintel/hash/commit/765cc98162d5208eca9a4c6dd753b3ff28a4d0f8) Thanks [@CiaranMn](https://github.com/CiaranMn)! - add icons to type selectors
+
+- Updated dependencies [[`34e770e21`](https://github.com/hashintel/hash/commit/34e770e2163eaf7a1ed60818d148cc17dba83d93), [`4c30e84ea`](https://github.com/hashintel/hash/commit/4c30e84ea521812e9ea41299afbe02c33787a886), [`964f46f70`](https://github.com/hashintel/hash/commit/964f46f709198c836b6e83f478ef0962a3de1d7e), [`5a45182d1`](https://github.com/hashintel/hash/commit/5a45182d18e69681b8f69f6220fdcd8573bfaf7e), [`890d138d8`](https://github.com/hashintel/hash/commit/890d138d8523a7c9604786094a4156e19e638f09), [`765cc9816`](https://github.com/hashintel/hash/commit/765cc98162d5208eca9a4c6dd753b3ff28a4d0f8), [`2594988cc`](https://github.com/hashintel/hash/commit/2594988cc6078318847f5ec96d19d03f5c082b04)]:
+  - @hashintel/design-system@0.0.8
+
 ## 0.0.24
 
 ### Patch Changes

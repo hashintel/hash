@@ -78,7 +78,7 @@ export const ActionCenter = ({
   const [inferenceRequests] = useStorageSync("inferenceRequests", []);
 
   return (
-    <Box sx={{ maxWidth: "100%", width: popupWidth }}>
+    <Box sx={{ maxWidth: "100%", width: popupWidth, minHeight: 400 }}>
       <Stack
         component="header"
         direction="row"

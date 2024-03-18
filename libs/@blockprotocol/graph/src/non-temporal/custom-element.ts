@@ -119,8 +119,6 @@ export abstract class BlockElementBase<
         entityId: blockEntity.metadata.recordId.entityId,
         entityTypeId: blockEntity.metadata.entityTypeId,
         properties,
-        leftToRightOrder: blockEntity.linkData?.leftToRightOrder,
-        rightToLeftOrder: blockEntity.linkData?.rightToLeftOrder,
       },
     });
   }

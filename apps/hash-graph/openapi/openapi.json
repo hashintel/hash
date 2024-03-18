@@ -3295,26 +3295,6 @@
           }
         }
       },
-      "EntityLinkOrder": {
-        "type": "object",
-        "properties": {
-          "leftToRightOrder": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/LinkOrder"
-              }
-            ]
-          },
-          "rightToLeftOrder": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/LinkOrder"
-              }
-            ]
-          }
-        },
-        "additionalProperties": false
-      },
       "EntityMetadata": {
         "type": "object",
         "description": "The metadata of an [`Entity`] record.",
@@ -3495,9 +3475,7 @@
           "incomingLinks",
           "outgoingLinks",
           "leftEntity",
-          "rightEntity",
-          "leftToRightOrder",
-          "rightToLeftOrder"
+          "rightEntity"
         ]
       },
       "EntityRecordId": {
@@ -4698,31 +4676,21 @@
         }
       },
       "LinkData": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/EntityLinkOrder"
-          },
-          {
-            "type": "object",
-            "required": [
-              "leftEntityId",
-              "rightEntityId"
-            ],
-            "properties": {
-              "leftEntityId": {
-                "$ref": "#/components/schemas/EntityId"
-              },
-              "rightEntityId": {
-                "$ref": "#/components/schemas/EntityId"
-              }
-            }
-          }
+        "type": "object",
+        "description": "The associated information for 'Link' entities",
+        "required": [
+          "leftEntityId",
+          "rightEntityId"
         ],
-        "description": "The associated information for 'Link' entities"
-      },
-      "LinkOrder": {
-        "type": "integer",
-        "format": "int32"
+        "properties": {
+          "leftEntityId": {
+            "$ref": "#/components/schemas/EntityId"
+          },
+          "rightEntityId": {
+            "$ref": "#/components/schemas/EntityId"
+          }
+        },
+        "additionalProperties": false
       },
       "LoadExternalDataTypeRequest": {
         "oneOf": [
@@ -6076,48 +6044,41 @@
         "additionalProperties": false
       },
       "UpdateEntityRequest": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/EntityLinkOrder"
+        "type": "object",
+        "required": [
+          "properties",
+          "entityId",
+          "entityTypeIds",
+          "archived",
+          "draft"
+        ],
+        "properties": {
+          "archived": {
+            "type": "boolean"
           },
-          {
-            "type": "object",
-            "required": [
-              "properties",
-              "entityId",
-              "entityTypeIds",
-              "archived",
-              "draft"
-            ],
-            "properties": {
-              "archived": {
-                "type": "boolean"
-              },
-              "decisionTime": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/Timestamp"
-                  }
-                ]
-              },
-              "draft": {
-                "type": "boolean"
-              },
-              "entityId": {
-                "$ref": "#/components/schemas/EntityId"
-              },
-              "entityTypeIds": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/VersionedUrl"
-                }
-              },
-              "properties": {
-                "$ref": "#/components/schemas/EntityProperties"
+          "decisionTime": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
               }
+            ]
+          },
+          "draft": {
+            "type": "boolean"
+          },
+          "entityId": {
+            "$ref": "#/components/schemas/EntityId"
+          },
+          "entityTypeIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
             }
+          },
+          "properties": {
+            "$ref": "#/components/schemas/EntityProperties"
           }
-        ]
+        }
       },
       "UpdateEntityTypeEmbeddingParams": {
         "type": "object",

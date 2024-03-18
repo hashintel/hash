@@ -67,7 +67,7 @@ locals {
   worker_task_defs = [
     {
       task_def = local.temporal_worker_integration_service_container_def
-      env_vars = []
+      env_vars = aws_ssm_parameter.temporal_worker_integration_env_vars
       ecr_arn  = var.temporal_worker_integration_image.ecr_arn
     }
   ]
@@ -265,6 +265,15 @@ resource "aws_iam_role" "execution_role" {
             Action   = ["ssm:GetParameters"]
             Resource = concat(
               flatten([for def in local.graph_task_defs : [for _, env_var in def.env_vars : env_var.arn]])
+            )
+          }
+        ],
+        [
+          {
+            Effect   = "Allow"
+            Action   = ["ssm:GetParameters"]
+            Resource = concat(
+              flatten([for def in local.worker_task_defs : [for _, env_var in def.env_vars : env_var.arn]])
             )
           }
         ],

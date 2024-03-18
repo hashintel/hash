@@ -175,28 +175,6 @@ const bpMultiFilterFieldPathToPathExpression = (
 
           return ["linkData", "rightEntityId"];
         }
-
-        // case `LeftToRightOrder`
-        if (linkDataRoot === "leftToRightOrder") {
-          if (linkDataRest.length > 0) {
-            throw new InvalidEntityQueryError(
-              `Invalid filter field path, unable to index inside \`linkData.leftToRightOrder\``,
-            );
-          }
-
-          return ["linkData", "leftToRightOrder"];
-        }
-
-        // case `RightToLeftOrder`
-        if (linkDataRoot === "rightToLeftOrder") {
-          if (linkDataRest.length > 0) {
-            throw new InvalidEntityQueryError(
-              `Invalid filter field path, unable to index inside \`linkData.rightToLeftOrder\``,
-            );
-          }
-
-          return ["linkData", "rightToLeftOrder"];
-        }
       }
 
       if (pathRoot === "incomingLinks" || pathRoot === "outgoingLinks") {
