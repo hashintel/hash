@@ -41,6 +41,7 @@ import { Tabs } from "../shared/ui/tabs";
 import { useUserPermissionsOnEntityType } from "../shared/use-user-permissions-on-entity-type";
 import { EntitiesTable } from "./shared/entities-table";
 import { TopContextBar } from "./shared/top-context-bar";
+import { useEnabledFeatureFlags } from "./shared/use-enabled-feature-flags";
 import { useActiveWorkspace } from "./shared/workspace-context";
 
 const contentMaxWidth = 1000;
@@ -125,11 +126,15 @@ export const CreateButtons: FunctionComponent<{
     return entityType?.schema.$id === systemEntityTypes.canvas.entityTypeId;
   }, [entityType]);
 
+  const enabledFeatureFlags = useEnabledFeatureFlags();
+
   return isViewAllPagesPage ||
     isViewAllDocumentsPage ||
     isViewAllCanvasesPage ? (
     <Box display="flex" gap={3}>
-      {isViewAllPagesPage || isViewAllDocumentsPage ? (
+      {(isViewAllPagesPage || isViewAllDocumentsPage) &&
+      enabledFeatureFlags.pages &&
+      enabledFeatureFlags.documents ? (
         <CreateButton
           variant="tertiary_quiet"
           endIcon={<FileCirclePlusRegularIcon />}
@@ -138,7 +143,9 @@ export const CreateButtons: FunctionComponent<{
           Create new document
         </CreateButton>
       ) : null}
-      {isViewAllPagesPage || isViewAllCanvasesPage ? (
+      {(isViewAllPagesPage || isViewAllCanvasesPage) &&
+      enabledFeatureFlags.pages &&
+      enabledFeatureFlags.canvases ? (
         <CreateButton
           variant="tertiary_quiet"
           sx={{

@@ -3,9 +3,9 @@ import type { EntityMetadata, GraphApi } from "@local/hash-graph-client";
 import type { InferenceTokenUsage } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { AccountId } from "@local/hash-subgraph";
 
-import type { PermittedOpenAiModel } from "./inference-types";
+import type { PermittedOpenAiModel } from "./infer-entities/inference-types";
 
-export const createInferenceUsageRecord = async ({
+export const createInferenceUsageRecordActivity = async ({
   aiAssistantAccountId,
   graphApiClient,
   modelName,

@@ -1,6 +1,7 @@
 {
   "name": "@blockprotocol/type-system",
   "version": "0.1.2-canary.0",
+  "private": true,
   "description": "Definitions of types within the Block Protocol Type System",
   "homepage": "https://blockprotocol.org",
   "repository": {

@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 
 import { useAccountPages } from "../../../../components/hooks/use-account-pages";
 import { useCreatePage } from "../../../../components/hooks/use-create-page";
+import { useEnabledFeatureFlags } from "../../../../pages/shared/use-enabled-feature-flags";
 import { useActiveWorkspace } from "../../../../pages/shared/workspace-context";
 import { CanvasIcon } from "../../../icons/canvas-icon";
 import { FilesLinesRegularIcon } from "../../../icons/file-lines-regular-icon";
@@ -46,30 +47,36 @@ export const CreatePageMenuItems = ({ onClick }: { onClick: () => void }) => {
     [createUntitledPage, loading, popupState, lastRootPageIndex],
   );
 
+  const enabledFeatureFlags = useEnabledFeatureFlags();
+
   return (
     <>
-      <MenuItem
-        onClick={() => {
-          void addPage("canvas");
-          onClick();
-        }}
-      >
-        <ListItemIcon>
-          <CanvasIcon />
-        </ListItemIcon>
-        <ListItemText primary="Canvas" />
-      </MenuItem>
-      <MenuItem
-        onClick={() => {
-          void addPage("document");
-          onClick();
-        }}
-      >
-        <ListItemIcon>
-          <FilesLinesRegularIcon />
-        </ListItemIcon>
-        <ListItemText primary="Document" />
-      </MenuItem>
+      {enabledFeatureFlags.canvases ? (
+        <MenuItem
+          onClick={() => {
+            void addPage("canvas");
+            onClick();
+          }}
+        >
+          <ListItemIcon>
+            <CanvasIcon />
+          </ListItemIcon>
+          <ListItemText primary="Canvas" />
+        </MenuItem>
+      ) : null}
+      {enabledFeatureFlags.documents ? (
+        <MenuItem
+          onClick={() => {
+            void addPage("document");
+            onClick();
+          }}
+        >
+          <ListItemIcon>
+            <FilesLinesRegularIcon />
+          </ListItemIcon>
+          <ListItemText primary="Document" />
+        </MenuItem>
+      ) : null}
     </>
   );
 };

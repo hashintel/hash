@@ -27,8 +27,8 @@
   },
   "dependencies": {
     "@blockprotocol/graph": "0.3.4-canary-20240313191438",
-    "@hashintel/block-design-system": "0.0.1",
-    "@hashintel/design-system": "0.0.7",
+    "@hashintel/block-design-system": "0.0.2",
+    "@hashintel/design-system": "0.0.8",
     "@mui/material": "5.14.11",
     "echarts": "^5.3.2",
     "lodash.debounce": "4.0.8",
