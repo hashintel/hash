@@ -24,8 +24,6 @@ export type TypeId = typeof TypeId;
 export const AnnotationId: unique symbol = Symbol.for(
   "@blockprotocol/graph/ontology/DataType/Annotation",
 );
-/** @internal */
-export type AnnotationId = typeof AnnotationId;
 
 interface Annotations {}
 

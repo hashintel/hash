@@ -1,6 +1,5 @@
 import { AST } from "@effect/schema";
 import {
-  absurd,
   Brand,
   Either,
   HashSet,
@@ -18,6 +17,7 @@ import {
   pruneUndefinedShallow,
   UndefinedOnPartialShallow,
 } from "../../internal/schema.js";
+import * as Json from "../../internal/Json.js";
 import * as DataType from "../DataType.js";
 import { EncodeError } from "./errors.js";
 import {
@@ -423,12 +423,53 @@ function encodeTypeLiteral(
   ast: AST.TypeLiteral,
   context: Context,
 ): Either.Either<ObjectDataTypeSchema, EncodeError> {
-  // we only support opaque objects, that means where we have records with exactly one index signature
-  // of {[key: string]: Json.Value}
-  // structs are not supported by DataTypes, but by PropertyTypes and EntityTypes
-  if (ReadonlyArray.isNonEmptyReadonlyArray(ast.propertySignatures)) {
-    return Either.left(EncodeError.unsupportedType("struct"));
-  }
+  return Either.gen(function* (_) {
+    // we only support opaque objects, that means where we have records with exactly one index signature
+    // of {[key: string]: Json.Value}
+    // structs are not supported by DataTypes, but by PropertyTypes and EntityTypes
+    if (ReadonlyArray.isNonEmptyReadonlyArray(ast.propertySignatures)) {
+      yield* _(Either.left(EncodeError.unsupportedType("struct")));
+    }
+
+    if (ReadonlyArray.isEmptyReadonlyArray(ast.indexSignatures)) {
+      yield* _(
+        Either.left(EncodeError.malformedRecord("index signature required")),
+      );
+    }
+
+    if (ast.indexSignatures.length > 1) {
+      yield* _(
+        Either.left(
+          EncodeError.malformedRecord("more than one index signature"),
+        ),
+      );
+    }
+
+    const signature = ast.indexSignatures[0]!;
+    if (signature.parameter._tag !== "StringKeyword") {
+      yield* _(
+        Either.left(EncodeError.malformedRecord("parameter must be a string")),
+      );
+    }
+
+    // the value must be a Json.Value node
+    if (!Json.isValueAST(signature.type)) {
+      yield* _(
+        Either.left(
+          EncodeError.malformedRecord("value is not of type `Json.Value`"),
+        ),
+      );
+    }
+
+    const base = yield* _(makeBase(context.root, context.jsonSchema));
+
+    const schema = {
+      ...base,
+      type: "object",
+    } satisfies ObjectDataTypeSchema;
+
+    return schema;
+  });
 }
 
 function encode(
@@ -480,6 +521,7 @@ function encode(
     case "TupleType":
       return encodeTupleType(ast, localContext);
     case "TypeLiteral":
+      return encodeTypeLiteral(ast, localContext);
     case "Union":
       // single element unions are automatically flattened
       return Either.left(EncodeError.unsupportedNode("Union"));

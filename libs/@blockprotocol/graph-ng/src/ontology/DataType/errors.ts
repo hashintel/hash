@@ -20,16 +20,13 @@ export type UnsupportedNode = "Declaration" | "Union";
 
 export type UnsupportedLiteral = "bigint";
 
-export type TypeLiteralReason =
-  | "property signature present"
-  | "index signature required"
-  | "more than one index signature";
-
 export type ExpectedJsonAnnotationType = "string" | "number";
 
 export type MalformedRecordReason =
   | "index signature required"
-  | "more than one index signature";
+  | "more than one index signature"
+  | "parameter must be a string"
+  | "value is not of type `Json.Value`";
 
 export type MalformedEnumReason =
   | "non-consecutive integer values"
@@ -53,9 +50,7 @@ export type ValidationErrorReason = Data.TaggedEnum<{
     node: UnsupportedNode;
   };
   CyclicSchema: {};
-  TypeLiteral: {
-    reason: TypeLiteralReason;
-  };
+
   MalformedDataType: {
     reason: MalformedDataTypeReason;
   };
@@ -105,12 +100,6 @@ export class EncodeError extends Data.TaggedError(
     });
   }
 
-  static typeLiteral(reason: TypeLiteralReason): EncodeError {
-    return new EncodeError({
-      reason: EncodeErrorReason.TypeLiteral({ reason }),
-    });
-  }
-
   static malformedDataType(reason: MalformedDataTypeReason): EncodeError {
     return new EncodeError({
       reason: EncodeErrorReason.MalformedDataType({ reason }),
@@ -143,6 +132,12 @@ export class EncodeError extends Data.TaggedError(
   static malformedEnum(reason: MalformedEnumReason): EncodeError {
     return new EncodeError({
       reason: EncodeErrorReason.MalformedEnum({ reason }),
+    });
+  }
+
+  static malformedRecord(reason: MalformedRecordReason): EncodeError {
+    return new EncodeError({
+      reason: EncodeErrorReason.MalformedRecord({ reason }),
     });
   }
 }
