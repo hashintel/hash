@@ -4,7 +4,7 @@ import { describe, expect, test } from "vitest";
 
 import * as DataType from "../../src/ontology/DataType.js";
 import * as DataTypeUrl from "../../src/ontology/DataTypeUrl.js";
-import * as Json from "../../src/internal/Json.js";
+import * as Json from "../../src/Json.js";
 
 describe("literal", () => {
   test("`number`", () => {

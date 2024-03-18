@@ -1,6 +1,6 @@
 import * as S from "@effect/schema/Schema";
 
-import * as Json from "../../internal/Json.js";
+import * as Json from "../../Json.js";
 import { parseOrThrow } from "../DataType.js";
 
 export const Boolean = {

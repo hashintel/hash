@@ -12,7 +12,7 @@ import {
   Tuple,
 } from "effect";
 
-import * as Json from "../../internal/Json.js";
+import * as Json from "../../Json.js";
 import {
   escapeStringRegexp,
   pruneUndefinedShallow,

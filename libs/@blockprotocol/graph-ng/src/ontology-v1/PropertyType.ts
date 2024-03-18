@@ -5,7 +5,7 @@ import * as PropertyTypeUrl from "./PropertyTypeUrl";
 import { Brand, Function, Predicate } from "effect";
 import * as VersionedUrl from "../VersionedUrl";
 import * as Property from "../knowledge/Property";
-import * as Json from "../internal/Json";
+import * as Json from "../Json.js";
 
 interface OneOfFrom<T> {
   oneOf: ReadonlyArray<T>;

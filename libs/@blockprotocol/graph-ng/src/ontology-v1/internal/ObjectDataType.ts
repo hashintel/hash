@@ -3,7 +3,7 @@ import * as S from "@effect/schema/Schema";
 import { Predicate } from "effect";
 import { identity } from "effect/Function";
 
-import * as Json from "../../internal/Json";
+import * as Json from "../../Json.js";
 
 const Value = S.record(S.string, Json.Value);
 const ValueEquivalence = Equivalence.make(Value);

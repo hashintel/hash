@@ -10,7 +10,7 @@ import * as NumberDataType from "./internal/NumberDataType";
 import * as ObjectDataType from "./internal/ObjectDataType";
 import * as StringDataType from "./internal/StringDataType";
 import { DataTypeValue } from "./DataTypeValue";
-import * as Json from "../internal/Json";
+import * as Json from "../Json.js";
 
 const TypeId: unique symbol = Symbol.for(
   "@blockprotocol/graph/ontology/DataType",

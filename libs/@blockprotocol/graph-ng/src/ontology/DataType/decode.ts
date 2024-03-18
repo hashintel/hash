@@ -2,7 +2,7 @@ import { AST } from "@effect/schema";
 import * as S from "@effect/schema/Schema";
 import { Function, Option, pipe, Predicate } from "effect";
 
-import * as Json from "../../internal/Json.js";
+import * as Json from "../../Json.js";
 import {
   ArrayDataTypeSchema,
   BooleanDataTypeSchema,

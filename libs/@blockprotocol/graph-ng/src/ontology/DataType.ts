@@ -9,7 +9,7 @@ import {
   Predicate,
 } from "effect";
 
-import * as Json from "../internal/Json.js";
+import * as Json from "../Json.js";
 import { decodeSchema } from "./DataType/decode.js";
 import { encodeSchema } from "./DataType/encode.js";
 import { DecodeError, EncodeError } from "./DataType/errors.js";
@@ -26,8 +26,6 @@ export const AnnotationId: unique symbol = Symbol.for(
   "@blockprotocol/graph/ontology/DataType/Annotation",
 );
 
-interface Annotations {}
-
 export interface DataType<T>
   extends Equal.Equal,
     Pipeable.Pipeable,
@@ -36,15 +34,12 @@ export interface DataType<T>
 
   readonly id: DataTypeUrl.DataTypeUrl;
   readonly schema: S.Schema<T, Json.Value>;
-
-  readonly annotations: Annotations;
 }
 
 interface DataTypeImpl<T> extends DataType<T> {}
 
 const DataTypeProto: Omit<DataTypeImpl<unknown>, "id" | "schema"> = {
   [TypeId]: TypeId,
-  annotations: {},
 
   toJSON(this: DataTypeImpl<unknown>): unknown {
     return {
@@ -59,15 +54,18 @@ const DataTypeProto: Omit<DataTypeImpl<unknown>, "id" | "schema"> = {
   [Inspectable.NodeInspectSymbol]() {
     return this.toJSON();
   },
+
   pipe() {
     // eslint-disable-next-line prefer-rest-params
     Pipeable.pipeArguments(this, arguments);
   },
 
   [Hash.symbol](this: DataTypeImpl<unknown>) {
-    const hash = pipe(Hash.hash(TypeId), Hash.combine(Hash.hash(this.id)));
-
-    return Hash.cached(this, hash);
+    return pipe(
+      Hash.hash(TypeId),
+      Hash.combine(Hash.hash(this.id)),
+      Hash.cached(this),
+    );
   },
   [Equal.symbol]<T>(this: DataType<T>, that: unknown): boolean {
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
