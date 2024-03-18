@@ -9,10 +9,10 @@ import {
   Predicate,
 } from "effect";
 
-import * as PropertyTypeUrl from "./PropertyTypeUrl.js";
-import { PropertyTypeSchema } from "./PropertyType/schema.js";
-import { EncodeError } from "./PropertyType/error.js";
 import { encodeSchema } from "./PropertyType/encode.js";
+import { EncodeError } from "./PropertyType/error.js";
+import { PropertyTypeSchema } from "./PropertyType/schema.js";
+import * as PropertyTypeUrl from "./PropertyTypeUrl.js";
 
 const TypeId: unique symbol = Symbol.for(
   "@blockprotocol/graph/ontology/PropertyType",
