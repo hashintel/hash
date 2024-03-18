@@ -13,7 +13,6 @@ import type {
   SetStateAction,
 } from "react";
 import { Fragment, useContext, useEffect, useState } from "react";
-import AnimateHeight from "react-animate-height";
 
 import {
   generatePathWithoutParams,
@@ -152,7 +151,7 @@ const MobileNavNestedPage = <T extends SiteMapPage | SiteMapPageSection>({
         </ListItemButton>
       </Link>
       {hasChildren ? (
-        <AnimateHeight height={isOpen ? "auto" : 0} duration={300}>
+        isOpen ? (
           <List component="div" disablePadding>
             {(itemIsPage(item) ? item.sections : item.subSections).map(
               (subSection, index) => (
@@ -186,7 +185,7 @@ const MobileNavNestedPage = <T extends SiteMapPage | SiteMapPageSection>({
                 ))
               : null}
           </List>
-        </AnimateHeight>
+        ) : null
       ) : null}
     </>
   );
