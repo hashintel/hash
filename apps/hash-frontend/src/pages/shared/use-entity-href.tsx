@@ -30,5 +30,5 @@ export const useEntityHref = (entity: Entity, includeDraftId: boolean) => {
       includeDraftId,
       entityId: entity.metadata.recordId.entityId,
     });
-  }, [getOwnerForEntity, entity]);
+  }, [getOwnerForEntity, entity, includeDraftId]);
 };

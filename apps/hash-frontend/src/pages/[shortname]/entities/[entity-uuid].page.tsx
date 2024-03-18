@@ -66,8 +66,6 @@ const getEntityFromSubgraph = (
 ): Entity | undefined => {
   const entities = getRoots(subgraph);
 
-  console.log({ entities });
-
   if (draftId) {
     return entities.find(
       (entity) =>
@@ -192,7 +190,7 @@ const Page: NextPageWithLayout = () => {
               setEntitySubgraphFromDb(subgraph);
               setDraftEntitySubgraph(subgraph);
               setIsReadOnly(
-                !data.getEntity.userPermissionsOnEntities?.[entityId].edit,
+                !data.getEntity.userPermissionsOnEntities?.[entityId]?.edit,
               );
             } catch {
               setEntitySubgraphFromDb(undefined);
@@ -261,6 +259,9 @@ const Page: NextPageWithLayout = () => {
       setSavingChanges(true);
 
       const entity = getEntityFromSubgraph(entitySubgraphFromDb, draftId);
+      if (!entity) {
+        throw new Error(`entity ${draftId} not found in subgraph`);
+      }
 
       await applyDraftLinkEntityChanges(
         entity,
