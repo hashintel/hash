@@ -1,5 +1,5 @@
-import { Data } from "effect";
 import { ParseError } from "@effect/schema/ParseResult";
+import { Data } from "effect";
 
 export type UnsupportedType =
   | "any"
@@ -40,7 +40,7 @@ export type MalformedDataTypeReason =
   | "[INTERNAL] annotation is not a DataType"
   | "title annotation missing";
 
-export type ValidationErrorReason = Data.TaggedEnum<{
+export type EncodeErrorReason = Data.TaggedEnum<{
   UnsupportedKeyword: {
     keyword: UnsupportedKeyword;
   };
@@ -74,11 +74,11 @@ export type ValidationErrorReason = Data.TaggedEnum<{
     reason: MalformedRecordReason;
   };
 }>;
-export const EncodeErrorReason = Data.taggedEnum<ValidationErrorReason>();
+export const EncodeErrorReason = Data.taggedEnum<EncodeErrorReason>();
 
 export class EncodeError extends Data.TaggedError(
-  "@blockprotocol/graph/DataType/ValidationError",
-)<{ reason: ValidationErrorReason }> {
+  "@blockprotocol/graph/DataType/EncodeError",
+)<{ reason: EncodeErrorReason }> {
   static unsupportedKeyword(keyword: UnsupportedKeyword): EncodeError {
     return new EncodeError({
       reason: EncodeErrorReason.UnsupportedKeyword({ keyword }),
@@ -147,6 +147,33 @@ export class EncodeError extends Data.TaggedError(
   static invalidUrl(cause: ParseError): EncodeError {
     return new EncodeError({
       reason: EncodeErrorReason.InvalidUrl({ cause }),
+    });
+  }
+}
+
+export type DecodeErrorReason = Data.TaggedEnum<{
+  InvalidUrl: {
+    cause: ParseError;
+  };
+  Encode: {
+    cause: EncodeError;
+  };
+}>;
+
+export const DecodeErrorReason = Data.taggedEnum<DecodeErrorReason>();
+
+export class DecodeError extends Data.TaggedError(
+  "@blockprotocol/graph/DataType/DecodeError",
+)<{ reason: DecodeErrorReason }> {
+  static invalidUrl(cause: ParseError): DecodeError {
+    return new DecodeError({
+      reason: DecodeErrorReason.InvalidUrl({ cause }),
+    });
+  }
+
+  static encode(cause: EncodeError): DecodeError {
+    return new DecodeError({
+      reason: DecodeErrorReason.Encode({ cause }),
     });
   }
 }

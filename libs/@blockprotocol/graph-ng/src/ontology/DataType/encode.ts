@@ -12,12 +12,12 @@ import {
   Tuple,
 } from "effect";
 
+import * as Json from "../../internal/Json.js";
 import {
   escapeStringRegexp,
   pruneUndefinedShallow,
   UndefinedOnPartialShallow,
 } from "../../internal/schema.js";
-import * as Json from "../../internal/Json.js";
 import * as DataType from "../DataType.js";
 import { EncodeError } from "./errors.js";
 import {
@@ -362,7 +362,7 @@ function encodeEnums(
     }
 
     // we know the array is non-empty;
-    const minimum = numbers[0]!;
+    const minimum = numbers[0];
     const maximum = numbers.at(-1)!;
 
     const schema = {
@@ -445,7 +445,7 @@ function encodeTypeLiteral(
       );
     }
 
-    const signature = ast.indexSignatures[0]!;
+    const signature = ast.indexSignatures[0];
     if (signature.parameter._tag !== "StringKeyword") {
       yield* _(
         Either.left(EncodeError.malformedRecord("parameter must be a string")),

@@ -45,7 +45,7 @@ describe("literal", () => {
       `);
   });
 
-  test("`bool`", () => {
+  test("`boolean`", () => {
     const booleanLiteral = DataType.make(
       DataTypeUrl.parseOrThrow("https://example.com/boolean-true/v/1"),
       S.literal(true).pipe(S.title("A constant boolean of value `true`")),
@@ -496,6 +496,24 @@ test("boolean", () => {
         "type": "boolean",
       }
     `);
+});
+
+test("null", () => {
+  const nullType = DataType.make(
+    DataTypeUrl.parseOrThrow("https://example.com/null/v/1"),
+    S.null.pipe(S.title("A null")),
+  );
+
+  const dataType = Either.getOrThrow(nullType);
+  expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
+    {
+      "$id": "https://example.com/null/v/1",
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+      "kind": "dataType",
+      "title": "A null",
+      "type": "null",
+    }
+  `);
 });
 
 describe("enums", () => {

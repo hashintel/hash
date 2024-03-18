@@ -10,8 +10,9 @@ import {
 } from "effect";
 
 import * as Json from "../internal/Json.js";
+import { decodeSchema } from "./DataType/decode.js";
 import { encodeSchema } from "./DataType/encode.js";
-import { EncodeError } from "./DataType/errors.js";
+import { DecodeError, EncodeError } from "./DataType/errors.js";
 import { DataTypeSchema } from "./DataType/schema.js";
 import * as DataTypeUrl from "./DataTypeUrl.js";
 
@@ -150,6 +151,26 @@ export function toSchema<T>(dataType: DataType<T>): DataTypeSchema {
 
   // the value has been validated in `make<T>`
   return Either.getOrThrow(schema);
+}
+
+export function fromSchema(
+  schema: DataTypeSchema,
+): Either.Either<DataType<Json.Value>, DecodeError> {
+  return Either.gen(function* (_) {
+    const id = yield* _(
+      DataTypeUrl.parse(schema.$id),
+      Either.mapLeft((cause) => DecodeError.invalidUrl(cause)),
+    );
+
+    const inner = decodeSchema(schema);
+
+    const dataType = yield* _(
+      make(id, inner),
+      Either.mapLeft((cause) => DecodeError.encode(cause)),
+    );
+
+    return dataType;
+  });
 }
 
 export type { DataTypeSchema as Schema };

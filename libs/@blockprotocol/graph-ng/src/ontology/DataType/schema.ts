@@ -5,13 +5,12 @@ import {
   UndefinedOnPartialShallow,
 } from "../../internal/schema.js";
 import { type DataType } from "../DataType.js";
-import * as DataTypeUrl from "../DataTypeUrl.js";
 import { EncodeError } from "./errors.js";
 
 interface TypelessDataTypeSchema {
   $schema: "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type";
   kind: "dataType";
-  $id: DataTypeUrl.DataTypeUrl;
+  $id: string;
 
   title: string;
   description?: string;
@@ -49,11 +48,11 @@ export function makeBase(
   );
 }
 
-interface ConstantDataTypeSchema<T> {
+export interface ConstantDataTypeSchema<T> {
   const?: T;
 }
 
-interface NumericTypeSchema extends ConstantDataTypeSchema<number> {
+export interface NumericDataTypeSchema extends ConstantDataTypeSchema<number> {
   multipleOf?: number;
 
   minimum?: number;
@@ -64,13 +63,13 @@ interface NumericTypeSchema extends ConstantDataTypeSchema<number> {
 
 export interface NumberDataTypeSchema
   extends BaseDataTypeSchema,
-    NumericTypeSchema {
+    NumericDataTypeSchema {
   type: "number";
 }
 
 export interface IntegerDataTypeSchema
   extends BaseDataTypeSchema,
-    NumericTypeSchema {
+    NumericDataTypeSchema {
   type: "integer";
 }
 
