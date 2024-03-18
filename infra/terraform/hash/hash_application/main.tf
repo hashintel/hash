@@ -277,6 +277,16 @@ resource "aws_iam_role" "execution_role" {
             )
           }
         ],
+        [
+          # Allow assigning tags to clusters, services etc – https://docs.aws.amazon.com/AmazonECS/latest/developerguide/supported-iam-actions-tagging.html
+          {
+            Action: [
+              "ecs:TagResource"
+            ],
+            Effect: "Allow",
+            Resource: "*",
+          }
+        ]
       ])
     })
   }

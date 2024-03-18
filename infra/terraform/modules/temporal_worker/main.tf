@@ -41,7 +41,17 @@ resource "aws_iam_role" "execution_role" {
           Effect   = "Allow"
           Action   = ["ssm:GetParameters"]
           Resource = [for _, env_var in local.shared_secrets : env_var.valueFrom]
-        }] : []
+        }] : [],
+        [
+          # Allow assigning tags to clusters, services etc – https://docs.aws.amazon.com/AmazonECS/latest/developerguide/supported-iam-actions-tagging.html
+          {
+            Action: [
+              "ecs:TagResource"
+            ],
+            Effect: "Allow",
+            Resource: "*",
+          }
+        ]
       ])
     })
   }
