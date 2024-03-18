@@ -490,11 +490,13 @@ export const persistEntities = async (params: {
               }
             }
 
-            for (const success of successes) {
-              void createInferredEntityNotification({
-                entity: success.entity,
-                operation: "create",
-              });
+            if (createAs === "live") {
+              for (const success of successes) {
+                void createInferredEntityNotification({
+                  entity: success.entity,
+                  operation: "create",
+                });
+              }
             }
 
             if (failures.length > 0) {
@@ -624,10 +626,12 @@ export const persistEntities = async (params: {
             log(`Update failures: ${stringify(updateFailures)}`);
 
             for (const success of successes) {
-              void createInferredEntityNotification({
-                entity: success.entity,
-                operation: "update",
-              });
+              if (createAs === "live") {
+                void createInferredEntityNotification({
+                  entity: success.entity,
+                  operation: "update",
+                });
+              }
 
               inferenceState.inProgressEntityIds =
                 inferenceState.inProgressEntityIds.filter(
