@@ -186,6 +186,7 @@ mod tests {
     }
 
     impl EntityProvider for Provider {
+        #[expect(refining_impl_trait)]
         async fn provide_entity(
             &self,
             entity_id: EntityId,
@@ -198,6 +199,7 @@ mod tests {
     }
 
     impl EntityTypeProvider for Provider {
+        #[expect(refining_impl_trait)]
         async fn is_parent_of(
             &self,
             child: &VersionedUrl,
@@ -214,6 +216,7 @@ mod tests {
     }
 
     impl OntologyTypeProvider<ClosedEntityType> for Provider {
+        #[expect(refining_impl_trait)]
         async fn provide_type(
             &self,
             type_id: &VersionedUrl,
@@ -227,6 +230,7 @@ mod tests {
     }
 
     impl OntologyTypeProvider<PropertyType> for Provider {
+        #[expect(refining_impl_trait)]
         async fn provide_type(
             &self,
             type_id: &VersionedUrl,
@@ -240,6 +244,7 @@ mod tests {
     }
 
     impl OntologyTypeProvider<DataType> for Provider {
+        #[expect(refining_impl_trait)]
         async fn provide_type(
             &self,
             type_id: &VersionedUrl,
