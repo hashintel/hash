@@ -759,8 +759,11 @@ impl DatabaseApi<'_> {
 
     pub async fn patch_entity(
         &mut self,
-        params: PatchEntityParams,
+        mut params: PatchEntityParams,
     ) -> Result<EntityMetadata, UpdateError> {
+        if params.decision_time.is_none() {
+            params.decision_time = Some(generate_decision_time());
+        }
         self.store
             .patch_entity(self.account_id, &mut NoAuthorization, None, params)
             .await
@@ -965,7 +968,7 @@ impl DatabaseApi<'_> {
                 None,
                 PatchEntityParams {
                     entity_id,
-                    decision_time: None,
+                    decision_time: Some(generate_decision_time()),
                     archived: Some(true),
                     draft: None,
                     entity_type_ids: vec![],

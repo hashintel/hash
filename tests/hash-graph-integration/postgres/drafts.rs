@@ -65,6 +65,7 @@ async fn initial_draft() {
         .expect("could not create entity");
     assert!(entity.record_id.entity_id.draft_id.is_some());
     assert!(check_entity_exists(&api, entity.record_id.entity_id).await);
+    assert!(entity.record_id.entity_id.draft_id.is_some());
     assert!(
         entity
             .provenance
@@ -98,6 +99,7 @@ async fn initial_draft() {
         entity.record_id.entity_id
     );
     assert!(check_entity_exists(&api, updated_entity.record_id.entity_id).await);
+    assert!(updated_entity.record_id.entity_id.draft_id.is_some());
     assert!(
         updated_entity
             .provenance
@@ -113,7 +115,7 @@ async fn initial_draft() {
 
     let updated_live_entity = api
         .patch_entity(PatchEntityParams {
-            entity_id: entity.record_id.entity_id,
+            entity_id: updated_entity.record_id.entity_id,
             properties: vec![PatchOperation::Replace(ReplaceOperation {
                 path: String::new(),
                 value: serde_json::to_value(charles()).expect("could not serialize entity"),
@@ -138,6 +140,7 @@ async fn initial_draft() {
 
     assert!(!check_entity_exists(&api, updated_entity.record_id.entity_id).await);
     assert!(check_entity_exists(&api, updated_live_entity.record_id.entity_id).await);
+    assert!(updated_live_entity.record_id.entity_id.draft_id.is_none());
 
     let ClosedTemporalBound::Inclusive(undraft_transaction_time) = updated_live_entity
         .temporal_versioning
@@ -230,7 +233,7 @@ async fn no_initial_draft() {
 
         let updated_live_entity = api
             .patch_entity(PatchEntityParams {
-                entity_id: entity.record_id.entity_id,
+                entity_id: updated_entity.record_id.entity_id,
                 properties: vec![PatchOperation::Replace(ReplaceOperation {
                     path: String::new(),
                     value: serde_json::to_value(charles()).expect("could not serialize entity"),
@@ -247,6 +250,7 @@ async fn no_initial_draft() {
             entity.record_id.entity_id,
             updated_live_entity.record_id.entity_id
         );
+        assert!(updated_live_entity.record_id.entity_id.draft_id.is_none());
         assert!(!check_entity_exists(&api, updated_entity.record_id.entity_id).await);
         assert!(check_entity_exists(&api, updated_live_entity.record_id.entity_id).await);
         assert_eq!(
@@ -336,7 +340,7 @@ async fn multiple_drafts() {
     for draft in drafts {
         let updated_live_entity = api
             .patch_entity(PatchEntityParams {
-                entity_id: entity.record_id.entity_id,
+                entity_id: draft,
                 properties: vec![PatchOperation::Replace(ReplaceOperation {
                     path: String::new(),
                     value: serde_json::to_value(charles()).expect("could not serialize entity"),
