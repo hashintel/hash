@@ -1166,7 +1166,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .await
             .change_context(UpdateError)?;
 
-        println!("draft state: {} -> {}", was_draft_before, draft);
         let temporal_versioning = match (was_draft_before, draft) {
             (true, true) | (false, false) => {
                 // regular update
