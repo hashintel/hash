@@ -1,9 +1,9 @@
 use std::str::FromStr;
 
+use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::knowledge::entity::{Entity, EntityProperties};
 use pretty_assertions::assert_eq;
-use graph::store::knowledge::PatchEntityParams;
 use type_system::url::VersionedUrl;
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
