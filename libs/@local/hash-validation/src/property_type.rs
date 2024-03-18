@@ -1,4 +1,4 @@
-use core::{borrow::Borrow, pin::Pin};
+use core::borrow::Borrow;
 use std::{collections::HashMap, num::NonZeroUsize};
 
 use error_stack::{bail, Report, ResultExt};
@@ -370,7 +370,7 @@ where
         value: &'a JsonValue,
         profile: ValidationProfile,
         provider: &'a P,
-    ) -> Pin<Box<dyn Future<Output = Result<(), Report<Self::Error>>> + Send + '_>> {
+    ) -> impl Future<Output = Result<(), Report<Self::Error>>> + Send + '_ {
         Box::pin(async move {
             match (value, self) {
                 (value, Self::DataTypeReference(reference)) => reference
