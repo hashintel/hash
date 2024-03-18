@@ -1,4 +1,5 @@
 import { Data } from "effect";
+import { ParseError } from "@effect/schema/ParseResult";
 
 export type UnsupportedType =
   | "any"
@@ -50,7 +51,6 @@ export type ValidationErrorReason = Data.TaggedEnum<{
     node: UnsupportedNode;
   };
   CyclicSchema: {};
-
   MalformedDataType: {
     reason: MalformedDataTypeReason;
   };
@@ -63,6 +63,9 @@ export type ValidationErrorReason = Data.TaggedEnum<{
     optional: boolean;
     expected: ExpectedJsonAnnotationType;
     received: string;
+  };
+  InvalidUrl: {
+    cause: ParseError;
   };
   MalformedEnum: {
     reason: MalformedEnumReason;
@@ -138,6 +141,12 @@ export class EncodeError extends Data.TaggedError(
   static malformedRecord(reason: MalformedRecordReason): EncodeError {
     return new EncodeError({
       reason: EncodeErrorReason.MalformedRecord({ reason }),
+    });
+  }
+
+  static invalidUrl(cause: ParseError): EncodeError {
+    return new EncodeError({
+      reason: EncodeErrorReason.InvalidUrl({ cause }),
     });
   }
 }

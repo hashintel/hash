@@ -120,6 +120,31 @@ export function make<T, E extends Json.Value>(
   );
 }
 
+export function makeOrThrow<T, E extends Json.Value>(
+  id: DataTypeUrl.DataTypeUrl,
+  schema: S.Schema<T, E>,
+): DataType<T> {
+  return Either.getOrThrow(make(id, schema));
+}
+
+export function parse<I extends string, T, E extends Json.Value>(
+  id: I,
+  schema: S.Schema<T, E>,
+): Either.Either<DataType<T>, EncodeError> {
+  return pipe(
+    DataTypeUrl.parse(id),
+    Either.mapLeft((error) => EncodeError.invalidUrl(error)),
+    Either.andThen((url) => make(url, schema)),
+  );
+}
+
+export function parseOrThrow<I extends string, T, E extends Json.Value>(
+  id: I,
+  schema: S.Schema<T, E>,
+): DataType<T> {
+  return Either.getOrThrow(parse(id, schema));
+}
+
 export function toSchema<T>(dataType: DataType<T>): DataTypeSchema {
   const schema = toSchemaImpl(dataType.schema);
 
