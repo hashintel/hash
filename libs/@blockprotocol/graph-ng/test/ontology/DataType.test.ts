@@ -220,7 +220,8 @@ describe("types", () => {
       const error = Either.flip(declaration).pipe(Either.getOrThrow);
       expect(error.reason).toMatchInlineSnapshot(`
         {
-          "_tag": "UnsupportedDeclaredType",
+          "_tag": "UnsupportedNode",
+          "node": "Declaration",
         }
       `);
     });
@@ -496,15 +497,15 @@ describe("boolean", () => {
 
     const dataType = Either.getOrThrow(boolean);
     expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
-        {
-          "$id": "https://example.com/boolean/v/1",
-          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-          "description": "a boolean",
-          "kind": "dataType",
-          "title": "boolean",
-          "type": "boolean",
-        }
-      `);
+      {
+        "$id": "https://example.com/boolean/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+        "description": "a boolean",
+        "kind": "dataType",
+        "title": "boolean",
+        "type": "boolean",
+      }
+    `);
   });
 });
 
@@ -550,7 +551,8 @@ describe("enums", () => {
       expect(error.reason).toMatchInlineSnapshot(
         `
         {
-          "_tag": "NonConsecutiveIntegerEnum",
+          "_tag": "MalformedEnum",
+          "reason": "non-consecutive integer values",
         }
       `,
       );
@@ -571,7 +573,8 @@ describe("enums", () => {
       expect(error.reason).toMatchInlineSnapshot(
         `
         {
-          "_tag": "FloatingPointEnum",
+          "_tag": "MalformedEnum",
+          "reason": "floating point values",
         }
       `,
       );
@@ -616,7 +619,8 @@ describe("enums", () => {
       expect(error.reason).toMatchInlineSnapshot(
         `
         {
-          "_tag": "MixedEnum",
+          "_tag": "MalformedEnum",
+          "reason": "mixed",
         }
       `,
       );
@@ -634,7 +638,8 @@ describe("enums", () => {
       expect(error.reason).toMatchInlineSnapshot(
         `
         {
-          "_tag": "EmptyEnum",
+          "_tag": "MalformedEnum",
+          "reason": "empty",
         }
       `,
       );
@@ -695,7 +700,8 @@ describe("union", () => {
       const error = Either.flip(union).pipe(Either.getOrThrow);
       expect(error.reason).toMatchInlineSnapshot(`
         {
-          "_tag": "UnsupportedUnion",
+          "_tag": "UnsupportedNode",
+          "node": "Union",
         }
       `);
     });

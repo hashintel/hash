@@ -1,5 +1,8 @@
+import { AST } from "@effect/schema";
+import { TypeAnnotationId } from "@effect/schema/AST";
 import * as Equivalence from "@effect/schema/Equivalence";
 import * as S from "@effect/schema/Schema";
+import { Option } from "effect";
 
 /** @internal */
 const TypeId: unique symbol = Symbol.for("@blockprotocol/graph/Json/Value");
@@ -26,3 +29,13 @@ export const Value: S.Schema<Value> = S.union(
 ).annotations({ typeId: TypeId });
 
 export const ValueEquivalence = Equivalence.make(Value);
+
+export function isValueAST(value: AST.AST): boolean {
+  const annotation = AST.getAnnotation(value, TypeAnnotationId);
+  if (Option.isNone(annotation)) {
+    return false;
+  }
+
+  const typeId = annotation.value;
+  return typeId === TypeId;
+}

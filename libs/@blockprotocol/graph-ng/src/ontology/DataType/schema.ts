@@ -1,4 +1,4 @@
-import { Option } from "effect";
+import { Either } from "effect";
 
 import {
   pruneUndefinedShallow,
@@ -6,6 +6,7 @@ import {
 } from "../../internal/schema.js";
 import { type DataType } from "../DataType.js";
 import * as DataTypeUrl from "../DataTypeUrl.js";
+import { EncodeError } from "./errors.js";
 
 interface TypelessDataTypeSchema {
   $schema: "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type";
@@ -28,12 +29,14 @@ interface BaseProperties {
 export function makeBase(
   type: DataType<unknown>,
   properties: BaseProperties,
-): Option.Option<TypelessDataTypeSchema> {
+): Either.Either<TypelessDataTypeSchema, EncodeError> {
   if (properties.title === undefined) {
-    return Option.none();
+    return Either.left(
+      EncodeError.malformedDataType("title annotation missing"),
+    );
   }
 
-  return Option.some(
+  return Either.right(
     pruneUndefinedShallow({
       $schema:
         "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",

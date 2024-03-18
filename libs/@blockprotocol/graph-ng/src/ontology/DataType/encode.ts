@@ -1,5 +1,6 @@
 import { AST } from "@effect/schema";
 import {
+  absurd,
   Brand,
   Either,
   HashSet,
@@ -27,6 +28,7 @@ import {
   makeBase,
   NullDataTypeSchema,
   NumberDataTypeSchema,
+  ObjectDataTypeSchema,
   StringDataTypeSchema,
 } from "./schema.js";
 
@@ -78,6 +80,42 @@ const isNumberOrUndefined: (value: unknown) => value is number | undefined =
 const isStringOrUndefined: (value: unknown) => value is string | undefined =
   Predicate.or(Predicate.isUndefined, Predicate.isString) as never;
 
+function asNumberOrUndefined(
+  key: string,
+  value: unknown,
+): Either.Either<number | undefined, EncodeError> {
+  if (isNumberOrUndefined(value)) {
+    return Either.right(value);
+  }
+
+  return Either.left(
+    EncodeError.unsupportedJsonAnnotationType(
+      key,
+      true,
+      "number",
+      typeof value,
+    ),
+  );
+}
+
+function asStringOrUndefined(
+  key: string,
+  value: unknown,
+): Either.Either<string | undefined, EncodeError> {
+  if (isStringOrUndefined(value)) {
+    return Either.right(value);
+  }
+
+  return Either.left(
+    EncodeError.unsupportedJsonAnnotationType(
+      key,
+      true,
+      "string",
+      typeof value,
+    ),
+  );
+}
+
 interface Context {
   readonly root: DataType.DataType<unknown>;
   readonly traversed: HashSet.HashSet<ASTHash>;
@@ -110,357 +148,287 @@ function encodeLiteral(
   ast: AST.Literal,
   context: Context,
 ): Either.Either<DataTypeSchema, EncodeError> {
-  const maybeBase = makeBase(context.root, context.jsonSchema);
-  if (Option.isNone(maybeBase)) {
-    return Either.left(EncodeError.noTitle());
-  }
-  const base = maybeBase.value;
+  return Either.gen(function* (_) {
+    const base = yield* _(makeBase(context.root, context.jsonSchema));
 
-  const literal = ast.literal;
+    const literal = ast.literal;
 
-  if (Predicate.isString(literal)) {
-    const schema = {
-      ...base,
-      type: "string",
-      const: literal,
-    } satisfies StringDataTypeSchema;
+    if (Predicate.isString(literal)) {
+      return {
+        ...base,
+        type: "string",
+        const: literal,
+      } satisfies StringDataTypeSchema;
+    }
 
-    return Either.right(schema);
-  }
+    if (Predicate.isNumber(literal)) {
+      return {
+        ...base,
+        type: "number",
+        const: literal,
+      } satisfies NumberDataTypeSchema;
+    }
 
-  if (Predicate.isNumber(literal)) {
-    const schema = {
-      ...base,
-      type: "number",
-      const: literal,
-    } satisfies NumberDataTypeSchema;
+    if (Predicate.isBoolean(literal)) {
+      return {
+        ...base,
+        type: "boolean",
+        const: literal,
+      } satisfies BooleanDataTypeSchema;
+    }
 
-    return Either.right(schema);
-  }
+    if (Predicate.isNull(literal)) {
+      return {
+        ...base,
+        type: "null",
+      } satisfies NullDataTypeSchema;
+    }
 
-  if (Predicate.isBoolean(literal)) {
-    const schema = {
-      ...base,
-      type: "boolean",
-      const: literal,
-    } satisfies BooleanDataTypeSchema;
-
-    return Either.right(schema);
-  }
-
-  if (Predicate.isNull(literal)) {
-    const schema = {
-      ...base,
-      type: "null",
-    } satisfies NullDataTypeSchema;
-
-    return Either.right(schema);
-  }
-
-  return Either.left(EncodeError.unsupportedLiteral("bigint"));
+    return yield* _(Either.left(EncodeError.unsupportedLiteral("bigint")));
+  });
 }
 
 function encodeString(
   context: Context,
 ): Either.Either<StringDataTypeSchema, EncodeError> {
-  const minLength = context.jsonSchema.additional.minLength;
-  const maxLength = context.jsonSchema.additional.maxLength;
-  const pattern = context.jsonSchema.additional.pattern;
-
-  const maybeBase = makeBase(context.root, context.jsonSchema);
-  if (Option.isNone(maybeBase)) {
-    return Either.left(EncodeError.noTitle());
-  }
-
-  const base = maybeBase.value;
-
-  if (!isNumberOrUndefined(minLength)) {
-    return Either.left(
-      EncodeError.unsupportedJsonAnnotationType(
-        "minLength",
-        true,
-        "number",
-        typeof minLength,
-      ),
+  return Either.gen(function* (_) {
+    const minLength = yield* _(
+      asNumberOrUndefined("minLength", context.jsonSchema.additional.minLength),
     );
-  }
 
-  if (!isNumberOrUndefined(maxLength)) {
-    return Either.left(
-      EncodeError.unsupportedJsonAnnotationType(
-        "maxLength",
-        true,
-        "number",
-        typeof maxLength,
-      ),
+    const maxLength = yield* _(
+      asNumberOrUndefined("maxLength", context.jsonSchema.additional.maxLength),
     );
-  }
 
-  if (!isStringOrUndefined(pattern)) {
-    return Either.left(
-      EncodeError.unsupportedJsonAnnotationType(
-        "pattern",
-        true,
-        "string",
-        typeof pattern,
-      ),
+    const pattern = yield* _(
+      asStringOrUndefined("pattern", context.jsonSchema.additional.pattern),
     );
-  }
 
-  const partialSchema = {
-    ...base,
-    type: "string",
-    minLength,
-    maxLength,
-    pattern,
-  } satisfies UndefinedOnPartialShallow<StringDataTypeSchema>;
+    const base = yield* _(makeBase(context.root, context.jsonSchema));
 
-  return Either.right(pruneUndefinedShallow(partialSchema));
+    const partialSchema = {
+      ...base,
+      type: "string",
+      minLength,
+      maxLength,
+      pattern,
+    } satisfies UndefinedOnPartialShallow<StringDataTypeSchema>;
+
+    return pruneUndefinedShallow(partialSchema);
+  });
 }
 
 function encodeNumber(
   context: Context,
 ): Either.Either<NumberDataTypeSchema | IntegerDataTypeSchema, EncodeError> {
-  const type = context.jsonSchema.additional.type;
-  const isInteger = type === "integer";
+  return Either.gen(function* (_) {
+    const type = context.jsonSchema.additional.type;
+    const isInteger = type === "integer";
 
-  const multipleOf = context.jsonSchema.additional.multipleOf;
-  const minimum = context.jsonSchema.additional.minimum;
-  const maximum = context.jsonSchema.additional.maximum;
-  const exclusiveMinimum = context.jsonSchema.additional.exclusiveMinimum;
-  const exclusiveMaximum = context.jsonSchema.additional.exclusiveMaximum;
-
-  const maybeBase = makeBase(context.root, context.jsonSchema);
-  if (Option.isNone(maybeBase)) {
-    return Either.left(EncodeError.noTitle());
-  }
-
-  const base = maybeBase.value;
-
-  if (!isNumberOrUndefined(multipleOf)) {
-    return Either.left(
-      EncodeError.unsupportedJsonAnnotationType(
+    const multipleOf = yield* _(
+      asNumberOrUndefined(
         "multipleOf",
-        true,
-        "number",
-        typeof multipleOf,
+        context.jsonSchema.additional.multipleOf,
       ),
     );
-  }
-
-  if (!isNumberOrUndefined(minimum)) {
-    return Either.left(
-      EncodeError.unsupportedJsonAnnotationType(
-        "minimum",
-        true,
-        "number",
-        typeof minimum,
-      ),
+    const minimum = yield* _(
+      asNumberOrUndefined("minimum", context.jsonSchema.additional.minimum),
     );
-  }
-
-  if (!isNumberOrUndefined(maximum)) {
-    return Either.left(
-      EncodeError.unsupportedJsonAnnotationType(
-        "maximum",
-        true,
-        "number",
-        typeof maximum,
-      ),
+    const maximum = yield* _(
+      asNumberOrUndefined("maximum", context.jsonSchema.additional.maximum),
     );
-  }
-
-  if (!isNumberOrUndefined(exclusiveMinimum)) {
-    return Either.left(
-      EncodeError.unsupportedJsonAnnotationType(
+    const exclusiveMinimum = yield* _(
+      asNumberOrUndefined(
         "exclusiveMinimum",
-        true,
-        "number",
-        typeof exclusiveMinimum,
+        context.jsonSchema.additional.exclusiveMinimum,
       ),
     );
-  }
-
-  if (!isNumberOrUndefined(exclusiveMaximum)) {
-    return Either.left(
-      EncodeError.unsupportedJsonAnnotationType(
+    const exclusiveMaximum = yield* _(
+      asNumberOrUndefined(
         "exclusiveMaximum",
-        true,
-        "number",
-        typeof exclusiveMaximum,
+        context.jsonSchema.additional.exclusiveMaximum,
       ),
     );
-  }
 
-  const partialSchema = {
-    ...base,
-    type: isInteger ? "integer" : "number",
-    multipleOf,
-    minimum,
-    maximum,
-    exclusiveMinimum,
-    exclusiveMaximum,
-  } satisfies UndefinedOnPartialShallow<
-    NumberDataTypeSchema | IntegerDataTypeSchema
-  >;
-  const schema = pruneUndefinedShallow(partialSchema);
+    const base = yield* _(makeBase(context.root, context.jsonSchema));
 
-  return Either.right(schema);
+    const partialSchema = {
+      ...base,
+      type: isInteger ? "integer" : "number",
+      multipleOf,
+      minimum,
+      maximum,
+      exclusiveMinimum,
+      exclusiveMaximum,
+    } satisfies UndefinedOnPartialShallow<
+      NumberDataTypeSchema | IntegerDataTypeSchema
+    >;
+
+    return pruneUndefinedShallow(partialSchema);
+  });
 }
 
 function encodeBoolean(
   context: Context,
 ): Either.Either<BooleanDataTypeSchema, EncodeError> {
-  const maybeBase = makeBase(context.root, context.jsonSchema);
-  if (Option.isNone(maybeBase)) {
-    return Either.left(EncodeError.noTitle());
-  }
+  return Either.gen(function* (_) {
+    const base = yield* _(makeBase(context.root, context.jsonSchema));
 
-  const base = maybeBase.value;
+    const schema = {
+      ...base,
+      type: "boolean",
+    } satisfies BooleanDataTypeSchema;
 
-  const schema = {
-    ...base,
-    type: "boolean",
-  } satisfies BooleanDataTypeSchema;
-
-  return Either.right(schema);
+    return schema;
+  });
 }
 
 function encodeEnums(
   ast: AST.Enums,
   context: Context,
 ): Either.Either<StringDataTypeSchema | IntegerDataTypeSchema, EncodeError> {
-  const variants = ast.enums;
+  return Either.gen(function* (_) {
+    const values = ast.enums.map(Tuple.getSecond);
 
-  // we differentiate between string and number enums, mixed enums are not supported
-  const values = variants.map(Tuple.getSecond);
-  const stringValues = values.filter(Predicate.isString);
-  const numberValues = values.filter(Predicate.isNumber);
-
-  if (variants.length === 0) {
     // while not necessarily an error, an empty enum is a never type, therefore we cannot encode it
     // as never types are not supported in DataType schemas
-    return Either.left(EncodeError.emptyEnum());
-  }
+    if (values.length === 0) {
+      yield* _(Either.left(EncodeError.malformedEnum("empty")));
+    }
 
-  if (stringValues.length > 0 && numberValues.length > 0) {
-    return Either.left(EncodeError.mixedEnum());
-  }
+    // we differentiate between string and number enums
+    const stringValues = values.filter(Predicate.isString);
+    const numberValues = values.filter(Predicate.isNumber);
 
-  const maybeBase = makeBase(context.root, context.jsonSchema);
-  if (Option.isNone(maybeBase)) {
-    return Either.left(EncodeError.noTitle());
-  }
+    const isStringEnum = ReadonlyArray.isNonEmptyArray(stringValues);
+    const isNumberEnum = ReadonlyArray.isNonEmptyArray(numberValues);
 
-  const base = maybeBase.value;
+    // ...mixed enums are not supported
+    if (isStringEnum && isNumberEnum) {
+      yield* _(Either.left(EncodeError.malformedEnum("mixed")));
+    }
 
-  if (stringValues.length > 0) {
-    // BP does not support `enum` as a keyword, therefore we have to use `pattern` instead
-    // we escape the strings and join them with a pipe
-    const pattern = pipe(
-      stringValues,
-      ReadonlyArray.map(escapeStringRegexp),
-      ReadonlyArray.map((_) => `(${_})`),
-      ReadonlyArray.join("|"),
-      (_) => `^${_}$`,
+    const base = yield* _(makeBase(context.root, context.jsonSchema));
+
+    if (isStringEnum) {
+      // BP does not support `enum` as a keyword, therefore we have to use `pattern` instead
+      // we escape the strings and join them with a pipe
+      const pattern = pipe(
+        stringValues,
+        ReadonlyArray.map(escapeStringRegexp),
+        // eslint-disable-next-line @typescript-eslint/no-shadow
+        ReadonlyArray.map((_) => `(${_})`),
+        ReadonlyArray.join("|"),
+        // eslint-disable-next-line @typescript-eslint/no-shadow
+        (_) => `^${_}$`,
+      );
+
+      const schema = {
+        ...base,
+        type: "string",
+        pattern,
+      } satisfies StringDataTypeSchema;
+
+      return schema;
+    }
+
+    // we first see if all the values are integers, in that case we sort them and see if they are consecutive
+    // if they are we can use minimum and maximum to define the range
+    // otherwise we error out
+    const numbers = pipe(
+      numberValues,
+      ReadonlyArray.sort(Order.number),
+      ReadonlyArray.filter(Number.isInteger),
     );
+
+    if (numbers.length !== numberValues.length) {
+      yield* _(Either.left(EncodeError.malformedEnum("floating point values")));
+    }
+
+    // we create a window of 2 and check if the difference is 1
+    // [n, n + 1], [n + 1, n + 2], [n + 2, n + 3], ...
+    const isConsecutive = pipe(
+      numbers,
+      ReadonlyArray.zip(ReadonlyArray.drop(numbers, 1)),
+      ReadonlyArray.every(([a, b]) => a + 1 === b),
+    );
+
+    if (!isConsecutive) {
+      yield* _(
+        Either.left(
+          EncodeError.malformedEnum("non-consecutive integer values"),
+        ),
+      );
+    }
+
+    // we know the array is non-empty;
+    const minimum = numbers[0]!;
+    const maximum = numbers.at(-1)!;
 
     const schema = {
       ...base,
-      type: "string",
-      pattern,
-    } satisfies StringDataTypeSchema;
+      type: "integer",
+      minimum,
+      maximum,
+    } satisfies IntegerDataTypeSchema;
 
-    return Either.right(schema);
-  }
-
-  // we first see if all the values are integers, in that case we sort them and see if they are consecutive
-  // if they are we can use minimum and maximum to define the range
-  // otherwise we error out
-  const numbers = pipe(
-    numberValues,
-    ReadonlyArray.sort(Order.number),
-    ReadonlyArray.filter(Number.isInteger),
-  );
-
-  if (numbers.length !== numberValues.length) {
-    return Either.left(EncodeError.floatingPointEnum());
-  }
-
-  // we create a window of 2 and check if the difference is 1
-  // [n, n + 1], [n + 1, n + 2], [n + 2, n + 3], ...
-  const isConsecutive = pipe(
-    numbers,
-    ReadonlyArray.zip(ReadonlyArray.drop(numbers, 1)),
-    ReadonlyArray.every(([a, b]) => a + 1 === b),
-  );
-
-  if (!isConsecutive) {
-    return Either.left(EncodeError.nonConsecutiveIntegerEnum());
-  }
-
-  // we know the array is non-empty;
-  const minimum = numbers[0]!;
-  const maximum = numbers.at(-1)!;
-
-  const schema = {
-    ...base,
-    type: "integer",
-    minimum,
-    maximum,
-  } satisfies IntegerDataTypeSchema;
-
-  return Either.right(schema);
+    return schema;
+  });
 }
 
 function encodeTemplateLiteral(
   ast: AST.TemplateLiteral,
   context: Context,
 ): Either.Either<StringDataTypeSchema, EncodeError> {
-  // TODO: make this error out instead?!
-  const maybeBase = makeBase(context.root, context.jsonSchema);
-  if (Option.isNone(maybeBase)) {
-    return Either.left(EncodeError.noTitle());
-  }
+  return Either.gen(function* (_) {
+    const base = yield* _(makeBase(context.root, context.jsonSchema));
 
-  const base = maybeBase.value;
+    const schema = {
+      ...base,
+      type: "string",
+      pattern: AST.getTemplateLiteralRegExp(ast).source,
+    } satisfies StringDataTypeSchema;
 
-  const schema = {
-    ...base,
-    type: "string",
-    pattern: AST.getTemplateLiteralRegExp(ast).source,
-  } satisfies StringDataTypeSchema;
-
-  return Either.right(schema);
+    return schema;
+  });
 }
 
 function encodeTupleType(
   ast: AST.TupleType,
   context: Context,
 ): Either.Either<DataTypeSchema, EncodeError> {
-  // BlockProtocol only supports `emptyList`, so an empty tuple
-  if (ast.elements.length !== 0) {
-    return Either.left(EncodeError.unsupportedType("tuple"));
+  return Either.gen(function* (_) {
+    // BlockProtocol only supports `emptyList`, so an empty tuple
+    if (ast.elements.length !== 0) {
+      yield* _(Either.left(EncodeError.unsupportedType("tuple")));
+    }
+
+    if (ast.rest.length !== 0) {
+      yield* _(Either.left(EncodeError.unsupportedType("array")));
+    }
+
+    const base = yield* _(makeBase(context.root, context.jsonSchema));
+
+    const schema = {
+      ...base,
+      type: "array",
+      const: [],
+    } satisfies ArrayDataTypeSchema;
+
+    return schema;
+  });
+}
+
+function encodeTypeLiteral(
+  ast: AST.TypeLiteral,
+  context: Context,
+): Either.Either<ObjectDataTypeSchema, EncodeError> {
+  // we only support opaque objects, that means where we have records with exactly one index signature
+  // of {[key: string]: Json.Value}
+  // structs are not supported by DataTypes, but by PropertyTypes and EntityTypes
+  if (ReadonlyArray.isNonEmptyReadonlyArray(ast.propertySignatures)) {
+    return Either.left(EncodeError.unsupportedType("struct"));
   }
-
-  if (ast.rest.length !== 0) {
-    return Either.left(EncodeError.unsupportedType("array"));
-  }
-
-  const maybeBase = makeBase(context.root, context.jsonSchema);
-  if (Option.isNone(maybeBase)) {
-    return Either.left(EncodeError.noTitle());
-  }
-
-  const base = maybeBase.value;
-
-  const schema = {
-    ...base,
-    type: "array",
-    const: [],
-  } satisfies ArrayDataTypeSchema;
-
-  return Either.right(schema);
 }
 
 function encode(
@@ -480,7 +448,7 @@ function encode(
     case "UndefinedKeyword":
       return Either.left(EncodeError.unsupportedKeyword("undefined"));
     case "Declaration":
-      return Either.left(EncodeError.unsupportedDeclaredType());
+      return Either.left(EncodeError.unsupportedNode("Declaration"));
     case "UniqueSymbol":
       return Either.left(EncodeError.unsupportedKeyword("unique symbol"));
     case "VoidKeyword":
@@ -514,7 +482,7 @@ function encode(
     case "TypeLiteral":
     case "Union":
       // single element unions are automatically flattened
-      return Either.left(EncodeError.unsupportedUnion());
+      return Either.left(EncodeError.unsupportedNode("Union"));
     case "Suspend":
       return encode(ast.f(), localContext);
     case "Transformation":
@@ -527,12 +495,16 @@ export function encodeSchema(
 ): Either.Either<DataTypeSchema, EncodeError> {
   const annotation: unknown = ast.annotations[DataType.AnnotationId];
   if (!Predicate.isFunction(annotation)) {
-    return Either.left(EncodeError.dataTypeMalformed());
+    return Either.left(
+      EncodeError.malformedDataType("[INTERNAL] annotation missing"),
+    );
   }
 
   const dataType: unknown = annotation();
   if (!DataType.isDataType(dataType)) {
-    return Either.left(EncodeError.dataTypeMalformed());
+    return Either.left(
+      EncodeError.malformedDataType("[INTERNAL] annotation is not a DataType"),
+    );
   }
 
   return encode(ast, {

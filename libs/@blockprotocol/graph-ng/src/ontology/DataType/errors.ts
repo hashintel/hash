@@ -6,7 +6,8 @@ export type UnsupportedType =
   | "symbol"
   | "object"
   | "tuple"
-  | "array";
+  | "array"
+  | "struct";
 
 export type UnsupportedKeyword =
   | "undefined"
@@ -14,6 +15,8 @@ export type UnsupportedKeyword =
   | "never"
   | "unknown"
   | "unique symbol";
+
+export type UnsupportedNode = "Declaration" | "Union";
 
 export type UnsupportedLiteral = "bigint";
 
@@ -24,6 +27,21 @@ export type TypeLiteralReason =
 
 export type ExpectedJsonAnnotationType = "string" | "number";
 
+export type MalformedRecordReason =
+  | "index signature required"
+  | "more than one index signature";
+
+export type MalformedEnumReason =
+  | "non-consecutive integer values"
+  | "floating point values"
+  | "empty"
+  | "mixed";
+
+export type MalformedDataTypeReason =
+  | "[INTERNAL] annotation missing"
+  | "[INTERNAL] annotation is not a DataType"
+  | "title annotation missing";
+
 export type ValidationErrorReason = Data.TaggedEnum<{
   UnsupportedKeyword: {
     keyword: UnsupportedKeyword;
@@ -31,15 +49,16 @@ export type ValidationErrorReason = Data.TaggedEnum<{
   UnsupportedType: {
     type: UnsupportedType;
   };
-  UnsupportedDeclaredType: {};
-  UnsupportedUnion: {};
+  UnsupportedNode: {
+    node: UnsupportedNode;
+  };
   CyclicSchema: {};
   TypeLiteral: {
     reason: TypeLiteralReason;
   };
-  // The DataType annotation is missing
-  DataTypeMalformed: {};
-  NoTitle: {};
+  MalformedDataType: {
+    reason: MalformedDataTypeReason;
+  };
   UnsupportedLiteral: {
     literal: UnsupportedLiteral;
   };
@@ -50,10 +69,12 @@ export type ValidationErrorReason = Data.TaggedEnum<{
     expected: ExpectedJsonAnnotationType;
     received: string;
   };
-  MixedEnum: {};
-  EmptyEnum: {};
-  FloatingPointEnum: {};
-  NonConsecutiveIntegerEnum: {};
+  MalformedEnum: {
+    reason: MalformedEnumReason;
+  };
+  MalformedRecord: {
+    reason: MalformedRecordReason;
+  };
 }>;
 export const EncodeErrorReason = Data.taggedEnum<ValidationErrorReason>();
 
@@ -72,15 +93,9 @@ export class EncodeError extends Data.TaggedError(
     });
   }
 
-  static unsupportedDeclaredType(): EncodeError {
+  static unsupportedNode(node: UnsupportedNode): EncodeError {
     return new EncodeError({
-      reason: EncodeErrorReason.UnsupportedDeclaredType(),
-    });
-  }
-
-  static unsupportedUnion(): EncodeError {
-    return new EncodeError({
-      reason: EncodeErrorReason.UnsupportedUnion(),
+      reason: EncodeErrorReason.UnsupportedNode({ node }),
     });
   }
 
@@ -96,15 +111,9 @@ export class EncodeError extends Data.TaggedError(
     });
   }
 
-  static dataTypeMalformed(): EncodeError {
+  static malformedDataType(reason: MalformedDataTypeReason): EncodeError {
     return new EncodeError({
-      reason: EncodeErrorReason.DataTypeMalformed(),
-    });
-  }
-
-  static noTitle(): EncodeError {
-    return new EncodeError({
-      reason: EncodeErrorReason.NoTitle(),
+      reason: EncodeErrorReason.MalformedDataType({ reason }),
     });
   }
 
@@ -131,27 +140,9 @@ export class EncodeError extends Data.TaggedError(
     });
   }
 
-  static mixedEnum(): EncodeError {
+  static malformedEnum(reason: MalformedEnumReason): EncodeError {
     return new EncodeError({
-      reason: EncodeErrorReason.MixedEnum(),
-    });
-  }
-
-  static emptyEnum(): EncodeError {
-    return new EncodeError({
-      reason: EncodeErrorReason.EmptyEnum(),
-    });
-  }
-
-  static floatingPointEnum(): EncodeError {
-    return new EncodeError({
-      reason: EncodeErrorReason.FloatingPointEnum(),
-    });
-  }
-
-  static nonConsecutiveIntegerEnum(): EncodeError {
-    return new EncodeError({
-      reason: EncodeErrorReason.NonConsecutiveIntegerEnum(),
+      reason: EncodeErrorReason.MalformedEnum({ reason }),
     });
   }
 }
