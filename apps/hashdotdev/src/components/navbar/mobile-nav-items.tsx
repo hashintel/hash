@@ -12,7 +12,7 @@ import type {
   ReactElement,
   SetStateAction,
 } from "react";
-import { Fragment, useContext, useEffect, useState } from "react";
+import { Fragment, useContext, useEffect, useMemo, useState } from "react";
 
 import {
   generatePathWithoutParams,
@@ -49,34 +49,48 @@ const MobileNavNestedPage = <T extends SiteMapPage | SiteMapPageSection>({
   onClose,
   hydrationFriendlyAsPath,
 }: MobileNavNestedPageProps<T>) => {
-  const pathWithoutParams = generatePathWithoutParams(hydrationFriendlyAsPath);
+  const pathWithoutParams = useMemo(
+    () => generatePathWithoutParams(hydrationFriendlyAsPath),
+    [hydrationFriendlyAsPath],
+  );
 
   const { title } = item;
 
   const isRoot = depth === 0;
 
-  const href = itemIsPage(item)
-    ? item.href
-    : `${parentPageHref}#${item.anchor}`;
+  const href = useMemo(
+    () => (itemIsPage(item) ? item.href : `${parentPageHref}#${item.anchor}`),
+    [item, parentPageHref],
+  );
 
-  const isSelected =
-    pathWithoutParams === href ||
-    (itemIsPage(item) &&
-      pageHasOpenSubPage({
-        pathWithoutParams,
-        subPages: item.subPages,
-      }));
+  const isSelected = useMemo(
+    () =>
+      pathWithoutParams === href ||
+      (itemIsPage(item) &&
+        pageHasOpenSubPage({
+          pathWithoutParams,
+          subPages: item.subPages,
+        })),
+    [pathWithoutParams, href, item],
+  );
 
-  const hasChildren = itemIsPage(item)
-    ? item.subPages.length > 0 || item.sections.length > 0
-    : item.subSections.length > 0;
+  const hasChildren = useMemo(
+    () =>
+      itemIsPage(item)
+        ? item.subPages.length > 0 || item.sections.length > 0
+        : item.subSections.length > 0,
+    [item],
+  );
 
-  const isOpen =
-    hasChildren &&
-    expandedItems.some(
-      (expandedItem) =>
-        expandedItem.href === href && expandedItem.depth === depth,
-    );
+  const isOpen = useMemo(
+    () =>
+      hasChildren &&
+      expandedItems.some(
+        (expandedItem) =>
+          expandedItem.href === href && expandedItem.depth === depth,
+      ),
+    [expandedItems, depth, href, hasChildren],
+  );
 
   return (
     <>
