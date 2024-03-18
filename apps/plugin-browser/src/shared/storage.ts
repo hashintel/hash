@@ -4,6 +4,7 @@ import type {
   InferenceModelName,
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
+import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   SimpleProperties,
@@ -53,6 +54,7 @@ export type InferenceStatus =
   | InferenceCompleteStatus;
 
 export type PageEntityInference = InferenceStatus & {
+  createAs: "draft" | "live";
   createdAt: string;
   entityTypeIds: VersionedUrl[];
   finishedAt?: string;
@@ -71,6 +73,7 @@ type SimplifiedUser = Entity & {
       "email" | "displayName" | "shortname"
     >
   >;
+  enabledFeatureFlags: FeatureFlag[];
 };
 
 type UserAndLinkedData = SimplifiedUser & {

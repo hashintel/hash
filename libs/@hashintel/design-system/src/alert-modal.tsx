@@ -11,7 +11,7 @@ type AlertModalProps = {
   calloutMessage: ReactNode;
   close: () => void;
   confirmButtonText?: string;
-  header: ReactNode;
+  header?: ReactNode;
   type: "info" | "warning";
   contentStyle?: SxProps<Theme>;
 };

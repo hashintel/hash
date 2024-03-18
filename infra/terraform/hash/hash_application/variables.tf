@@ -167,6 +167,15 @@ variable "temporal_worker_integration_image" {
   description = "URL of the docker image for the Temporal integration worker"
 }
 
+variable "temporal_worker_integration_env_vars" {
+  type = list(object({
+    name   = string,
+    secret = bool,
+    value  = string
+  }))
+  description = "A list of environment variables to save as system parameters and inject into the Temporal integration worker"
+}
+
 variable "ses_verified_domain_identity" {
   type        = string
   description = "A verified AWS SES identity to use for email sending in the application."

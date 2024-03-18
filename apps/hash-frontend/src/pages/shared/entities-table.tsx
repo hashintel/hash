@@ -144,6 +144,8 @@ export const EntitiesTable: FunctionComponent<{
   useEffect(() => {
     if (isDisplayingFilesOnly) {
       setView("Grid");
+    } else {
+      setView("Table");
     }
   }, [isDisplayingFilesOnly]);
 
@@ -337,8 +339,7 @@ export const EntitiesTable: FunctionComponent<{
             };
           }
 
-          const propertyCellValue =
-            columnId && row.properties && row.properties[columnId];
+          const propertyCellValue = columnId && row[columnId];
 
           if (propertyCellValue) {
             return {

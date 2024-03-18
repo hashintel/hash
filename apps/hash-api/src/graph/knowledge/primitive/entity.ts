@@ -281,7 +281,7 @@ export const getLatestEntityById: ImpureGraphFunction<
 
   if (!entity) {
     throw new Error(
-      `Critical: Entity with entityId ${entityId} doesn't exist or cannot be accessed by requesting user.`,
+      `Entity with entityId ${entityId} doesn't exist or cannot be accessed by requesting user.`,
     );
   }
 
@@ -316,6 +316,7 @@ export const getOrCreateEntity: ImpureGraphFunction<
     try {
       entity = await getLatestEntityById(context, authentication, {
         entityId: existingEntityId,
+        includeDrafts: true,
       });
     } catch {
       throw new ApolloError(
@@ -442,7 +443,6 @@ export const createEntityWithLinks: ImpureGraphFunction<
           linkEntityTypeId: link.meta.linkEntityTypeId,
           leftEntityId: parentEntity.entity.metadata.recordId.entityId,
           rightEntityId: entity.metadata.recordId.entityId,
-          leftToRightOrder: link.meta.index ?? undefined,
           ownedById,
           relationships,
           draft,

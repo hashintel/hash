@@ -177,3 +177,13 @@ export const getEntityAuthorizationRelationshipsQuery = gql`
     }
   }
 `;
+
+export const startResearchTaskMutation = gql`
+  mutation startResearchTask(
+    $prompt: String!
+    $entityTypeIds: [VersionedUrl!]!
+  ) {
+    # This is a scalar, which has no selection.
+    startResearchTask(prompt: $prompt, entityTypeIds: $entityTypeIds)
+  }
+`;

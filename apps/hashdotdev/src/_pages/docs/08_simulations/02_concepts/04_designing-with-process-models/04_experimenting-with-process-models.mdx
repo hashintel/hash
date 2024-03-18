@@ -36,25 +36,25 @@ To do that, we'll set service_agents as a global parameter.
   describes how and why to use globals.
 </Hint>
 
-1.  Add a property to globals.json.
+1. Add a property to globals.json.
 
-    **globals.json**
+   **globals.json**
 
-    ```json
-    {
-      "num_service_agents": 6
-    }
-    ```
+   ```json
+   {
+     "num_service_agents": 6
+   }
+   ```
 
-1.  Replace the property on the process model with the global parameter.
+1. Replace the property on the process model with the global parameter.
 
-    ```javascript
-    // create_process.js
+   ```javascript
+   // create_process.js
 
-    "service_agents": Math.floor(context.globals().num_service_agents),
-    ```
+   "service_agents": Math.floor(context.globals().num_service_agents),
+   ```
 
-1.  Create an experiment and use the parameter as the field for the experiment
+1. Create an experiment and use the parameter as the field for the experiment
 
 ![Experiment model](https://cdn-us1.hash.ai/site/docs/process+models+experiment.png)
 

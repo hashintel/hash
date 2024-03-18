@@ -32,6 +32,7 @@ export const getLinearOrganizationResolver: ResolverFn<
   const vaultSecret = await vault.read<{ value: string }>({
     secretMountPath: "secret",
     path: linearSecretEntity.vaultPath,
+    userAccountId: user.accountId,
   });
 
   const apiKey = vaultSecret.data.value;

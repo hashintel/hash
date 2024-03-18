@@ -15,8 +15,10 @@
     "start": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/main.ts"
   },
   "dependencies": {
+    "@blockprotocol/graph": "0.3.3",
     "@blockprotocol/type-system": "0.1.1",
     "@linear/sdk": "6.0.0",
+    "@local/advanced-types": "0.0.0-private",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
@@ -27,6 +29,7 @@
     "agentkeepalive": "4.2.1",
     "axios": "1.6.0",
     "dotenv-flow": "3.2.0",
+    "googleapis": "133.0.0",
     "tsx": "3.13.0",
     "typescript": "5.1.6"
   },

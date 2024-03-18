@@ -6,7 +6,7 @@ use graph_types::{
     account::AccountId,
     knowledge::{
         entity::{Entity, EntityEmbedding, EntityId, EntityMetadata, EntityProperties, EntityUuid},
-        link::{EntityLinkOrder, LinkData},
+        link::LinkData,
     },
     owned_by_id::OwnedById,
 };
@@ -222,8 +222,6 @@ pub struct UpdateEntityParams {
     pub decision_time: Option<Timestamp<DecisionTime>>,
     pub entity_type_ids: Vec<VersionedUrl>,
     pub properties: EntityProperties,
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub link_order: EntityLinkOrder,
     pub archived: bool,
     pub draft: bool,
 }

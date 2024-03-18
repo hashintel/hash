@@ -41,6 +41,9 @@ process.env.NEXT_PUBLIC_NOTIFICATION_POLL_INTERVAL =
 
 process.env.NEXT_PUBLIC_SELF_HOSTED_HASH = process.env.SELF_HOSTED_HASH ?? "";
 
+process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID =
+  process.env.GOOGLE_OAUTH_CLIENT_ID ?? "";
+
 const apiUrl = process.env.NEXT_PUBLIC_API_ORIGIN ?? "http://localhost:5001";
 
 const apiDomain = new URL(apiUrl).hostname;

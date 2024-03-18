@@ -867,8 +867,6 @@ impl EntityEmbeddings {
 pub enum EntityEditions<'p> {
     EditionId,
     Properties(Option<JsonField<'p>>),
-    LeftToRightOrder,
-    RightToLeftOrder,
     EditionCreatedById,
     Archived,
 }
@@ -877,7 +875,7 @@ impl<'p> EntityEditions<'p> {
     pub const fn nullable(self) -> bool {
         match self {
             Self::EditionId | Self::Archived | Self::EditionCreatedById => false,
-            Self::Properties(_) | Self::LeftToRightOrder | Self::RightToLeftOrder => true,
+            Self::Properties(_) => true,
         }
     }
 
@@ -887,8 +885,6 @@ impl<'p> EntityEditions<'p> {
     ) -> (EntityEditions<'static>, Option<&'p (dyn ToSql + Sync)>) {
         match self {
             Self::EditionId => (EntityEditions::EditionId, None),
-            Self::LeftToRightOrder => (EntityEditions::LeftToRightOrder, None),
-            Self::RightToLeftOrder => (EntityEditions::RightToLeftOrder, None),
             Self::EditionCreatedById => (EntityEditions::EditionCreatedById, None),
             Self::Archived => (EntityEditions::Archived, None),
             Self::Properties(None) => (EntityEditions::Properties(None), None),
@@ -908,8 +904,6 @@ impl EntityEditions<'static> {
             Self::Properties(Some(path)) => {
                 return transpile_json_field(path, "properties", table, fmt);
             }
-            Self::LeftToRightOrder => "left_to_right_order",
-            Self::RightToLeftOrder => "right_to_left_order",
             Self::EditionCreatedById => "edition_created_by_id",
             Self::Archived => "archived",
         };
@@ -921,7 +915,6 @@ impl EntityEditions<'static> {
         match self {
             Self::EditionId | Self::EditionCreatedById => ParameterType::Uuid,
             Self::Properties(_) => ParameterType::Any,
-            Self::LeftToRightOrder | Self::RightToLeftOrder => ParameterType::I32,
             Self::Archived => ParameterType::Boolean,
         }
     }

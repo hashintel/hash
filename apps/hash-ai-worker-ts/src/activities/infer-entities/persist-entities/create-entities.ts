@@ -1,4 +1,3 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
   AllFilter,
@@ -26,8 +25,11 @@ import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-subgraph/stdlib
 import isMatch from "lodash.ismatch";
 
 import { createEntityEmbeddings } from "../../shared/embeddings";
-import type { DereferencedEntityType } from "../dereference-entity-type";
-import type { InferenceState, UpdateCandidate } from "../inference-types";
+import type {
+  DereferencedEntityTypesByTypeId,
+  InferenceState,
+  UpdateCandidate,
+} from "../inference-types";
 import { extractErrorMessage } from "../shared/extract-validation-failure-details";
 import { getEntityByFilter } from "../shared/get-entity-by-filter";
 import { stringify } from "../stringify";
@@ -59,10 +61,7 @@ export const createEntities = async ({
   inferenceState: InferenceState;
   log: (message: string) => void;
   proposedEntitiesByType: ProposedEntityCreationsByType;
-  requestedEntityTypes: Record<
-    VersionedUrl,
-    { isLink: boolean; schema: DereferencedEntityType }
-  >;
+  requestedEntityTypes: DereferencedEntityTypesByTypeId;
   ownedById: OwnedById;
 }): Promise<EntityStatusMap> => {
   const nonLinkEntityTypes = Object.values(requestedEntityTypes).filter(

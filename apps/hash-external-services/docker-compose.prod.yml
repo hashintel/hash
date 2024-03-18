@@ -111,12 +111,19 @@ services:
       HASH_REDIS_HOST: "redis"
       HASH_REDIS_PORT: "6379"
 
+      HASH_VAULT_HOST: "http://vault"
+      HASH_VAULT_PORT: "${HASH_VAULT_PORT}"
+      HASH_VAULT_ROOT_TOKEN: "${HASH_VAULT_ROOT_TOKEN}"
+
       HASH_OPENSEARCH_ENABLED: "false"
       HASH_INTEGRATION_QUEUE_NAME: "${HASH_INTEGRATION_QUEUE_NAME}"
 
       HASH_KRATOS_PUBLIC_URL: "http://kratos:4433"
       HASH_KRATOS_ADMIN_URL: "http://kratos:4434"
       KRATOS_API_KEY: "${KRATOS_API_KEY}"
+
+      GOOGLE_OAUTH_CLIENT_ID: "${GOOGLE_OAUTH_CLIENT_ID}"
+      GOOGLE_OAUTH_CLIENT_SECRET: "${GOOGLE_OAUTH_CLIENT_SECRET}"
     ports:
       - "5001:5001"
 
@@ -126,6 +133,7 @@ services:
       dockerfile: infra/docker/frontend/prod/Dockerfile
       args:
         FRONTEND_URL: "${FRONTEND_URL}"
+        GOOGLE_OAUTH_CLIENT_ID: "${GOOGLE_OAUTH_CLIENT_ID}"
         # At build-time (client-side) we use the public API origin that is
         # outside the docker network.
         API_ORIGIN: "${API_ORIGIN}"

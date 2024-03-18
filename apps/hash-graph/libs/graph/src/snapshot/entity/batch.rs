@@ -239,8 +239,6 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                         SELECT
                             entity_edition_id UUID,
                             properties JSONB,
-                            left_to_right_order INT4,
-                            right_to_left_order INT4,
                             edition_created_by_id UUID,
                             archived BOOLEAN
                         FROM entity_editions_tmp;

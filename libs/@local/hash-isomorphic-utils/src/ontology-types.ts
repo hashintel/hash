@@ -1,6 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { EntityTypeReference } from "@blockprotocol/type-system/dist/cjs";
-import type { EntityType } from "@blockprotocol/type-system/dist/cjs-slim/index-slim";
+import type { EntityType } from "@blockprotocol/type-system/slim";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { slugifyTypeTitle } from "@local/hash-isomorphic-utils/slugify-type-title";
 import type { BaseUrl } from "@local/hash-subgraph";
@@ -13,7 +13,7 @@ import { frontendUrl } from "./environment";
 
 export type SchemaKind = "data-type" | "property-type" | "entity-type";
 
-export const systemTypeWebShortnames = ["hash", "linear"] as const;
+export const systemTypeWebShortnames = ["hash", "google", "linear"] as const;
 export type SystemTypeWebShortname = (typeof systemTypeWebShortnames)[number];
 
 /**
@@ -129,3 +129,45 @@ export const generateLinkMapWithConsistentSelfReferences = (
     },
     {},
   );
+
+const hashFormattedVersionedUrlRegExp =
+  /https?:\/\/.+\/@(.+)\/types\/(entity-type|data-type|property-type)\/.+\/v\/\d+$/;
+
+export type DeconstructedVersionedUrl = {
+  baseUrl: string;
+  hostname: string;
+  kind?: SchemaKind;
+  isHashFormatted: boolean;
+  version: number;
+  webShortname?: string;
+};
+
+export const deconstructVersionedUrl = (
+  url: VersionedUrl,
+): {
+  baseUrl: string;
+  hostname: string;
+  kind?: SchemaKind;
+  isHashFormatted: boolean;
+  version: number;
+  webShortname?: string;
+} => {
+  const { baseUrl, version } = componentsFromVersionedUrl(url);
+
+  const matchArray = baseUrl.match(hashFormattedVersionedUrlRegExp);
+
+  const isHashFormatted = !!matchArray;
+
+  const [_url, webShortname, kind] = matchArray ?? [];
+
+  const urlObject = new URL(baseUrl);
+
+  return {
+    baseUrl,
+    hostname: urlObject.hostname,
+    isHashFormatted,
+    kind: kind as SchemaKind | undefined,
+    version,
+    webShortname,
+  };
+};

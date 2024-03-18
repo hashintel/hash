@@ -24,12 +24,12 @@ export const systemEntityTypes = {
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/canvas/",
   },
   comment: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/comment/v/4",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/comment/v/5",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/comment/",
   },
   commentNotification: {
     entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/comment-notification/v/4",
+      "https://hash.ai/@hash/types/entity-type/comment-notification/v/5",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/comment-notification/",
   },
@@ -60,6 +60,12 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/github-account/",
   },
+  googleSheetsIntegration: {
+    entityTypeId:
+      "https://hash.ai/@hash/types/entity-type/google-sheets-integration/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/google-sheets-integration/",
+  },
   graphChangeNotification: {
     entityTypeId:
       "https://hash.ai/@hash/types/entity-type/graph-change-notification/v/1",
@@ -82,7 +88,7 @@ export const systemEntityTypes = {
   },
   linearIntegration: {
     entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/linear-integration/v/5",
+      "https://hash.ai/@hash/types/entity-type/linear-integration/v/6",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/linear-integration/",
   },
@@ -98,7 +104,7 @@ export const systemEntityTypes = {
   },
   mentionNotification: {
     entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/mention-notification/v/4",
+      "https://hash.ai/@hash/types/entity-type/mention-notification/v/5",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/mention-notification/",
   },
@@ -167,7 +173,7 @@ export const systemEntityTypes = {
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/usage-record/",
   },
   user: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/user/v/4",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/user/v/5",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/user/",
   },
   userSecret: {
@@ -177,6 +183,12 @@ export const systemEntityTypes = {
 } as const;
 
 export const systemLinkEntityTypes = {
+  associatedWithAccount: {
+    linkEntityTypeId:
+      "https://hash.ai/@hash/types/entity-type/associated-with-account/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/associated-with-account/",
+  },
   authoredBy: {
     linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/authored-by/v/1",
     linkEntityTypeBaseUrl:
@@ -349,6 +361,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/connection-source-name/",
   },
+  dataAudience: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/data-audience/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/data-audience/",
+  },
   deletedAt: {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/deleted-at/v/1",
     propertyTypeBaseUrl:
@@ -362,6 +380,12 @@ export const systemPropertyTypes = {
   email: {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/email/v/1",
     propertyTypeBaseUrl: "https://hash.ai/@hash/types/property-type/email/",
+  },
+  enabledFeatureFlags: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/enabled-feature-flags/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/enabled-feature-flags/",
   },
   entityEditionId: {
     propertyTypeId:
@@ -379,6 +403,10 @@ export const systemPropertyTypes = {
       "https://hash.ai/@hash/types/property-type/feature-name/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/feature-name/",
+  },
+  fileId: {
+    propertyTypeId: "https://hash.ai/@hash/types/property-type/file-id/v/1",
+    propertyTypeBaseUrl: "https://hash.ai/@hash/types/property-type/file-id/",
   },
   fileStorageBucket: {
     propertyTypeId:
@@ -623,6 +651,12 @@ export const systemPropertyTypes = {
 } as const;
 
 export const systemDataTypes = {
+  actorType: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/actor-type/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/actor-type/",
+    title: "Actor Type",
+    description: "The type of thing that can, should or will act on something.",
+  },
   centimeters: {
     dataTypeId: "https://hash.ai/@hash/types/data-type/centimeters/v/1",
     dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/centimeters/",
@@ -691,6 +725,24 @@ export const systemDataTypes = {
     dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/uri/",
     title: "URI",
     description: "A unique identifier for a resource (e.g. a URL, or URN).",
+  },
+} as const;
+
+export const googleEntityTypes = {
+  account: {
+    entityTypeId: "https://hash.ai/@google/types/entity-type/account/v/1",
+    entityTypeBaseUrl: "https://hash.ai/@google/types/entity-type/account/",
+  },
+} as const;
+
+export const googleLinkEntityTypes = {} as const;
+
+export const googlePropertyTypes = {
+  accountId: {
+    propertyTypeId:
+      "https://hash.ai/@google/types/property-type/account-id/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@google/types/property-type/account-id/",
   },
 } as const;
 

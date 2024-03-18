@@ -19,14 +19,14 @@ import type { NextPageWithLayout } from "../../../shared/layout";
 import { Button } from "../../../shared/ui";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { getSettingsLayout } from "../shared/settings-layout";
-import type { LinearOrganizationTeamsWithWorkspaces } from "./select-linear-teams-table";
+import type { LinearOrganizationTeamsWithWorkspaces } from "./linear/select-linear-teams-table";
 import {
   mapLinearOrganizationToLinearOrganizationTeamsWithWorkspaces,
   mapLinearOrganizationToSyncWithWorkspacesInputVariable,
   SelectLinearTeamsTable,
-} from "./select-linear-teams-table";
-import type { LinearIntegration } from "./use-linear-integrations";
-import { useLinearIntegrations } from "./use-linear-integrations";
+} from "./linear/select-linear-teams-table";
+import type { LinearIntegration } from "./linear/use-linear-integrations";
+import { useLinearIntegrations } from "./linear/use-linear-integrations";
 
 const LinearConnections: FunctionComponent<{
   connectedLinearOrganizations: GetLinearOrganizationQuery["getLinearOrganization"][];
