@@ -155,10 +155,11 @@ const MobileNavNestedPage = <T extends SiteMapPage | SiteMapPageSection>({
         <AnimateHeight height={isOpen ? "auto" : 0} duration={300}>
           <List component="div" disablePadding>
             {(itemIsPage(item) ? item.sections : item.subSections).map(
-              (subSection) => (
+              (subSection, index) => (
                 <MobileNavNestedPage<SiteMapPageSection>
                   hydrationFriendlyAsPath={hydrationFriendlyAsPath}
-                  key={subSection.anchor}
+                  // eslint-disable-next-line react/no-array-index-key
+                  key={`${subSection.anchor}-${index}`}
                   depth={depth + 1}
                   parentPageHref={
                     itemIsPage(item) ? item.href : (parentPageHref as string)
