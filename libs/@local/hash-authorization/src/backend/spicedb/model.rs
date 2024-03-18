@@ -1,4 +1,4 @@
-use std::{ error::Error, fmt};
+use std::{error::Error, fmt};
 
 use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 

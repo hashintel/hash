@@ -1,4 +1,4 @@
-use core::{borrow::Borrow};
+use core::borrow::Borrow;
 use std::{collections::HashMap, num::NonZeroUsize};
 
 use error_stack::{bail, Report, ResultExt};
