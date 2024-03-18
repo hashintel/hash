@@ -78,6 +78,10 @@ async fn seed_db(
             property_type::BLURB_V1,
             property_type::PUBLISHED_ON_V1,
             property_type::AGE_V1,
+            property_type::FAVORITE_SONG_V1,
+            property_type::FAVORITE_FILM_V1,
+            property_type::HOBBY_V1,
+            property_type::INTERESTS_V1,
         ],
         [
             entity_type::LINK_V1,

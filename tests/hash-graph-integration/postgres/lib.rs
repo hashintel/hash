@@ -13,6 +13,7 @@ mod links;
 mod multi_type;
 mod property_type;
 mod sorting;
+mod partial_updates;
 
 use std::{borrow::Cow, str::FromStr};
 
