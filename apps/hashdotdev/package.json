@@ -50,6 +50,7 @@
     "plaiceholder": "2.5.0",
     "prismjs": "1.29.0",
     "react": "18.2.0",
+    "react-animate-height": "3.2.3",
     "react-dom": "18.2.0",
     "react-full-screen": "1.1.1",
     "react-html-parser": "2.0.2",

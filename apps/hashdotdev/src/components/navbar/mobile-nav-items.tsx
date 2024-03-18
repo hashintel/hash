@@ -1,5 +1,4 @@
 import {
-  Collapse,
   Divider,
   IconButton,
   List,
@@ -14,6 +13,7 @@ import type {
   SetStateAction,
 } from "react";
 import { Fragment, useContext, useEffect, useState } from "react";
+import AnimateHeight from "react-animate-height";
 
 import {
   generatePathWithoutParams,
@@ -152,7 +152,7 @@ const MobileNavNestedPage = <T extends SiteMapPage | SiteMapPageSection>({
         </ListItemButton>
       </Link>
       {hasChildren ? (
-        <Collapse in={isOpen} timeout="auto" mountOnEnter>
+        <AnimateHeight height={isOpen ? "auto" : 0} duration={300}>
           <List component="div" disablePadding>
             {(itemIsPage(item) ? item.sections : item.subSections).map(
               (subSection) => (
@@ -185,7 +185,7 @@ const MobileNavNestedPage = <T extends SiteMapPage | SiteMapPageSection>({
                 ))
               : null}
           </List>
-        </Collapse>
+        </AnimateHeight>
       ) : null}
     </>
   );
