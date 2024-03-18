@@ -98,8 +98,6 @@ export type EntityMetadata = Subtype<
 export type LinkData = Subtype<
   LinkDataBp,
   {
-    leftToRightOrder?: number;
-    rightToLeftOrder?: number;
     leftEntityId: EntityId;
     rightEntityId: EntityId;
   }

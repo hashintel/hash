@@ -1,6 +1,7 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
 import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
+import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -239,6 +240,7 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
  *
  * @param params.emails - the emails of the user
  * @param params.kratosIdentityId - the kratos identity id of the user
+ * @param params.enabledFeatureFlags (optional) - the feature flags enabled for the user
  * @param params.isInstanceAdmin (optional) - whether or not the user is an instance admin of the HASH instance (defaults to `false`)
  * @param params.shortname (optional) - the shortname of the user
  * @param params.displayName (optional) - the display name of the user
@@ -248,6 +250,7 @@ export const createUser: ImpureGraphFunction<
   {
     emails: string[];
     kratosIdentityId: string;
+    enabledFeatureFlags?: FeatureFlag[];
     shortname?: string;
     displayName?: string;
     isInstanceAdmin?: boolean;
@@ -259,6 +262,7 @@ export const createUser: ImpureGraphFunction<
     emails,
     kratosIdentityId,
     shortname,
+    enabledFeatureFlags,
     displayName,
     isInstanceAdmin = false,
   } = params;
@@ -347,6 +351,12 @@ export const createUser: ImpureGraphFunction<
       ? {
           "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
             displayName,
+        }
+      : {}),
+    ...(enabledFeatureFlags
+      ? {
+          "https://hash.ai/@hash/types/property-type/enabled-feature-flags/":
+            enabledFeatureFlags,
         }
       : {}),
   };

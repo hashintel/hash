@@ -70,8 +70,6 @@ export type EntityMetadata<Temporal extends boolean> = {
   : { temporalVersioning?: never });
 
 export type LinkData = {
-  leftToRightOrder?: number;
-  rightToLeftOrder?: number;
   leftEntityId: EntityId;
   rightEntityId: EntityId;
 };
@@ -112,7 +110,7 @@ export type UpdateEntityData = {
   entityId: EntityId;
   entityTypeId: VersionedUrl;
   properties: EntityPropertiesObject;
-} & Pick<LinkData, "leftToRightOrder" | "rightToLeftOrder">;
+};
 
 export type DeleteEntityData = {
   entityId: EntityId;

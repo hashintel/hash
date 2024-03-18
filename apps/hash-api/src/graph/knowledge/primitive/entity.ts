@@ -434,7 +434,6 @@ export const createEntityWithLinks: ImpureGraphFunction<
           linkEntityTypeId: link.meta.linkEntityTypeId,
           leftEntityId: parentEntity.entity.metadata.recordId.entityId,
           rightEntityId: entity.metadata.recordId.entityId,
-          leftToRightOrder: link.meta.index ?? undefined,
           ownedById,
           relationships,
           draft,

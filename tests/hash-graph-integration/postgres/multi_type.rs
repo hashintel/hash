@@ -1,10 +1,7 @@
 use std::str::FromStr;
 
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::{
-    entity::{Entity, EntityProperties},
-    link::EntityLinkOrder,
-};
+use graph_types::knowledge::entity::{Entity, EntityProperties};
 use pretty_assertions::assert_eq;
 use type_system::url::VersionedUrl;
 
@@ -86,10 +83,6 @@ async fn initial_person() {
             entity_metadata.record_id.entity_id,
             alice(),
             vec![person_entity_type_id(), org_entity_type_id()],
-            EntityLinkOrder {
-                left_to_right: None,
-                right_to_left: None,
-            },
             false,
         )
         .await
@@ -160,10 +153,6 @@ async fn create_multi() {
             entity_metadata.record_id.entity_id,
             alice(),
             vec![person_entity_type_id()],
-            EntityLinkOrder {
-                left_to_right: None,
-                right_to_left: None,
-            },
             false,
         )
         .await

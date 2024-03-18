@@ -1,8 +1,5 @@
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::{
-    entity::{EntityId, EntityProperties},
-    link::EntityLinkOrder,
-};
+use graph_types::knowledge::entity::{EntityId, EntityProperties};
 use pretty_assertions::assert_eq;
 use temporal_versioning::ClosedTemporalBound;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
@@ -84,10 +81,6 @@ async fn initial_draft() {
             entity.record_id.entity_id,
             bob(),
             vec![person_entity_type_id()],
-            EntityLinkOrder {
-                left_to_right: None,
-                right_to_left: None,
-            },
             true,
         )
         .await
@@ -116,10 +109,6 @@ async fn initial_draft() {
             updated_entity.record_id.entity_id,
             charles(),
             vec![person_entity_type_id()],
-            EntityLinkOrder {
-                left_to_right: None,
-                right_to_left: None,
-            },
             false,
         )
         .await
@@ -193,10 +182,6 @@ async fn no_initial_draft() {
                 entity.record_id.entity_id,
                 bob(),
                 vec![person_entity_type_id()],
-                EntityLinkOrder {
-                    left_to_right: None,
-                    right_to_left: None,
-                },
                 true,
             )
             .await
@@ -231,10 +216,6 @@ async fn no_initial_draft() {
                 updated_entity.record_id.entity_id,
                 charles(),
                 vec![person_entity_type_id()],
-                EntityLinkOrder {
-                    left_to_right: None,
-                    right_to_left: None,
-                },
                 false,
             )
             .await
@@ -294,10 +275,6 @@ async fn multiple_drafts() {
                 entity.record_id.entity_id,
                 bob(),
                 vec![person_entity_type_id()],
-                EntityLinkOrder {
-                    left_to_right: None,
-                    right_to_left: None,
-                },
                 true,
             )
             .await
@@ -331,16 +308,7 @@ async fn multiple_drafts() {
 
     for draft in drafts {
         let updated_live_entity = api
-            .update_entity(
-                draft,
-                charles(),
-                vec![person_entity_type_id()],
-                EntityLinkOrder {
-                    left_to_right: None,
-                    right_to_left: None,
-                },
-                false,
-            )
+            .update_entity(draft, charles(), vec![person_entity_type_id()], false)
             .await
             .expect("could not update entity");
 

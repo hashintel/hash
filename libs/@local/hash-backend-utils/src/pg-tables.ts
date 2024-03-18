@@ -11,8 +11,6 @@ type EntityEditionRecord = {
   archived: boolean;
   entityEditionId: Uuid;
   properties: JsonObject;
-  leftToRightOrder?: number;
-  rightToLeftOrder?: number;
   editionCreatedById?: EditionCreatedById; // the UUID of the user who created this edition
 };
 
@@ -34,8 +32,6 @@ export const entityEditionRecordFromRealtimeMessage = (
     archived: obj.archived as boolean,
     entityEditionId: obj.entity_edition_id as Uuid,
     properties: JSON.parse(obj.properties as string) as JsonObject,
-    leftToRightOrder: obj.left_to_right_order as number | undefined,
-    rightToLeftOrder: obj.right_to_left_order as number | undefined,
     editionCreatedById: obj.edition_created_by_id as
       | EditionCreatedById
       | undefined,

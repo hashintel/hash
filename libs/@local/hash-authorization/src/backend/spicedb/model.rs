@@ -1,4 +1,4 @@
-use std::{collections::HashMap, error::Error, fmt};
+use std::{error::Error, fmt};
 
 use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 
@@ -92,18 +92,6 @@ impl From<ModifyRelationshipOperation> for RelationshipUpdateOperation {
             ModifyRelationshipOperation::Delete => Self::Delete,
         }
     }
-}
-
-/// Represents a reference to a caveat to be used by caveated relationships.
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase", bound = "")]
-pub(crate) struct ContextualizedCaveat<'a> {
-    /// The name of the caveat expression to use, as defined in the schema.
-    caveat_name: &'a str,
-    /// Consists of key-value pairs that will be injected at evaluation time.
-    ///
-    /// The keys must match the arguments defined on the caveat in the schema.
-    context: HashMap<&'a str, serde_json::Value>,
 }
 
 #[derive(Debug, Copy, Clone, Deserialize)]

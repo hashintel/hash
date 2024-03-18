@@ -1,5 +1,5 @@
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::{entity::EntityProperties, link::EntityLinkOrder};
+use graph_types::knowledge::entity::EntityProperties;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
 use crate::DatabaseTestWrapper;
@@ -258,10 +258,6 @@ async fn remove_link() {
         link_entity_metadata.record_id.entity_id,
         EntityProperties::empty(),
         vec![friend_link_type_id],
-        EntityLinkOrder {
-            left_to_right: None,
-            right_to_left: None,
-        },
     )
     .await
     .expect("could not remove link");
