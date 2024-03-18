@@ -1,16 +1,16 @@
+import { typedValues } from "@local/advanced-types/typed-entries";
+import type {
+  CreateEmbeddingsParams,
+  CreateEmbeddingsReturn,
+} from "@local/hash-isomorphic-utils/ai-inference-types";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-subgraph/stdlib";
 import type { RequestHandler } from "express";
 
+import { genId } from "../../util";
 import type { SimpleEntityType } from "./shared/entity-types";
 import { getSimpleEntityType } from "./shared/entity-types";
 import { stringifyResults } from "./shared/stringify-results";
-import {
-  CreateEmbeddingsParams,
-  CreateEmbeddingsReturn,
-} from "@local/hash-isomorphic-utils/ai-inference-types";
-import { genId } from "../../util";
-import { typedValues } from "@local/advanced-types/typed-entries";
 
 export type GptQueryTypesRequestBody = {
   /**
