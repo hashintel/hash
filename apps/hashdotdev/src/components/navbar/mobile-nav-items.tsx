@@ -152,7 +152,7 @@ const MobileNavNestedPage = <T extends SiteMapPage | SiteMapPageSection>({
         </ListItemButton>
       </Link>
       {hasChildren ? (
-        <Collapse in={isOpen} timeout="auto" unmountOnExit>
+        <Collapse in={isOpen} timeout="auto" mountOnEnter>
           <List component="div" disablePadding>
             {(itemIsPage(item) ? item.sections : item.subSections).map(
               (subSection) => (
