@@ -1,4 +1,5 @@
 import {
+  Collapse,
   Divider,
   IconButton,
   List,
@@ -165,7 +166,7 @@ const MobileNavNestedPage = <T extends SiteMapPage | SiteMapPageSection>({
         </ListItemButton>
       </Link>
       {hasChildren ? (
-        isOpen ? (
+        <Collapse in={isOpen} timeout="auto" unmountOnExit>
           <List component="div" disablePadding>
             {(itemIsPage(item) ? item.sections : item.subSections).map(
               (subSection, index) => (
@@ -199,7 +200,7 @@ const MobileNavNestedPage = <T extends SiteMapPage | SiteMapPageSection>({
                 ))
               : null}
           </List>
-        ) : null
+        </Collapse>
       ) : null}
     </>
   );
