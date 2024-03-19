@@ -220,8 +220,7 @@ _The tests require a running instance of `hash-external-services`. see [here](#e
 yarn test:backend-integration
 ```
 
-We plan to use Playwright [API testing](https://playwright.dev/docs/test-api-testing/) feature instead of Jest.
-Thus, `yarn test:backend-integration` and `yarn test:playwright` will probably converge.
+We originally planned to use Playwright [API testing](https://playwright.dev/docs/test-api-testing/) feature instead of Jest (subsequently replaced by Vitest), which would have led to the convergence of `yarn test:backend-integration` and `yarn test:playwright` -- this may still happen.
 
 ### Playwright tests
 
@@ -266,8 +265,9 @@ See `yarn test:playwright --help` for more info.
 
 ### Unit tests
 
-Unit tests are executed by [Jest](https://jestjs.io) and use [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/) to cover the UI.
-They can be launched at any time with this command:
+Unit tests are executed by [Vitest](https://vitest.dev/), which we use in place of Jest, due to its improved WebAssembly compatibility.
+
+Unit tests can be launched at any time with this command:
 
 ```sh
 yarn test:unit
