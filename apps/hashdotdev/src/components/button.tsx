@@ -1,13 +1,14 @@
+import type { ButtonProps as MuiButtonProps } from "@mui/material";
 import {
   Box,
   // eslint-disable-next-line no-restricted-imports
   Button as MuiButton,
-  ButtonProps as MuiButtonProps,
   useTheme,
 } from "@mui/material";
 // eslint-disable-next-line no-restricted-imports
 import Link from "next/link";
-import { forwardRef, FunctionComponent, ReactNode, useMemo } from "react";
+import type { FunctionComponent, ReactNode } from "react";
+import { forwardRef, useMemo } from "react";
 
 import { isHrefExternal } from "./link";
 import { LoadingSpinner } from "./loading-spinner";

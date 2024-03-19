@@ -1,12 +1,12 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
-import { EntityId } from "@local/hash-subgraph";
+import type { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
+import type { EntityId } from "@local/hash-subgraph";
 import { Box, Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import {
+import type {
   GetLinearOrganizationQuery,
   GetLinearOrganizationQueryVariables,
   SyncLinearIntegrationWithWorkspacesMutation,
@@ -16,17 +16,17 @@ import {
   getLinearOrganizationQuery,
   syncLinearIntegrationWithWorkspacesMutation,
 } from "../../../../graphql/queries/integrations/linear.queries";
-import { NextPageWithLayout } from "../../../../shared/layout";
+import type { NextPageWithLayout } from "../../../../shared/layout";
 import { Button } from "../../../../shared/ui";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { getSettingsLayout } from "../../shared/settings-layout";
+import type { LinearOrganizationTeamsWithWorkspaces } from "./select-linear-teams-table";
 import {
-  LinearOrganizationTeamsWithWorkspaces,
   mapLinearOrganizationToLinearOrganizationTeamsWithWorkspaces,
   mapLinearOrganizationToSyncWithWorkspacesInputVariable,
   SelectLinearTeamsTable,
-} from "../select-linear-teams-table";
-import { useLinearIntegrations } from "../use-linear-integrations";
+} from "./select-linear-teams-table";
+import { useLinearIntegrations } from "./use-linear-integrations";
 
 const NewLinearIntegrationPage: NextPageWithLayout = () => {
   const router = useRouter();

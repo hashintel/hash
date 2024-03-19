@@ -1,6 +1,6 @@
 import { ModuleHandler } from "@blockprotocol/core";
 
-import {
+import type {
   GetEntityData as GetEntityDataGeneral,
   QueryEntitiesData as QueryEntitiesDataGeneral,
 } from "../shared/types/entity.js";
@@ -12,7 +12,7 @@ import {
  * @see https://app.asana.com/0/1202542409311090/1202614421149286/f
  */
 // import graphModuleJson from "./graph-module.json" assert { type: "json" };
-import {
+import type {
   CreateEntityData,
   CreateResourceError,
   DataTypeRootType,

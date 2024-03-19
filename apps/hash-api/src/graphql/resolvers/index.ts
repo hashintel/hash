@@ -4,7 +4,7 @@ import {
   addAccountGroupMember,
   removeAccountGroupMember,
 } from "../../graph/account-permission-management";
-import {
+import type {
   EntityAuthorizationSubject,
   MutationResolvers,
   QueryResolvers,
@@ -60,6 +60,7 @@ import {
   canUserEdit,
   checkUserPermissionsOnEntity,
 } from "./knowledge/shared/check-permissions";
+import { startResearchTaskResolver } from "./knowledge/start-research-task";
 import { getUsageRecordsResolver } from "./knowledge/user/get-usage-records";
 import { hasAccessToHashResolver } from "./knowledge/user/has-access-to-hash";
 import { isShortnameTakenResolver } from "./knowledge/user/is-shortname-taken";
@@ -195,6 +196,8 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     syncLinearIntegrationWithWorkspaces: loggedInAndSignedUpMiddleware(
       syncLinearIntegrationWithWorkspacesMutation,
     ),
+
+    startResearchTask: loggedInAndSignedUpMiddleware(startResearchTaskResolver),
   },
 
   JSONObject: JSONObjectResolver,

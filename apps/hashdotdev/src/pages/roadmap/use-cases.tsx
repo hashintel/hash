@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { BinaryLightIcon } from "../../components/icons/binary-light-icon";
 import { BrainLightIcon } from "../../components/icons/brain-light-icon";

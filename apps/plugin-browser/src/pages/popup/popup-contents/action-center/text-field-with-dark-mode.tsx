@@ -1,4 +1,5 @@
-import { TextField, TextFieldProps } from "@hashintel/design-system";
+import type { TextFieldProps } from "@hashintel/design-system";
+import { TextField } from "@hashintel/design-system";
 import { outlinedInputClasses } from "@mui/material";
 
 import {

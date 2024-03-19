@@ -3,15 +3,15 @@ import {
   faChevronRight,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
+import type { BoxProps } from "@mui/material";
 import {
-  BoxProps,
   ListItem,
   ListItemButton,
   listItemButtonClasses,
   ListItemText,
   listItemTextClasses,
 } from "@mui/material";
-import { FunctionComponent, PropsWithChildren } from "react";
+import type { FunctionComponent, PropsWithChildren } from "react";
 
 export const MentionSuggesterSubheading: FunctionComponent<
   PropsWithChildren & {

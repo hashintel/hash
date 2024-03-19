@@ -1,14 +1,14 @@
 import { faPlay } from "@fortawesome/free-solid-svg-icons";
+import type { BoxProps } from "@mui/material";
 import {
   Box,
-  BoxProps,
   Container,
   Divider,
   Grid,
   Typography,
   typographyClasses,
 } from "@mui/material";
-import { FunctionComponent, ReactNode } from "react";
+import type { FunctionComponent, ReactNode } from "react";
 
 import { ArrowRightRegularIcon } from "../../components/icons/arrow-right-regular-icon";
 import { EarthAmericasRegularIcon } from "../../components/icons/earth-americas-regular-icon";

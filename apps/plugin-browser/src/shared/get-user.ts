@@ -1,16 +1,17 @@
+import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { ImageProperties } from "@local/hash-isomorphic-utils/system-types/image";
-import {
+import type { ImageProperties } from "@local/hash-isomorphic-utils/system-types/image";
+import type {
   BrowserPluginSettingsProperties,
   OrganizationProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import {
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+import type {
   Entity,
   EntityId,
   EntityRootType,
@@ -24,16 +25,13 @@ import {
   intervalForTimestamp,
 } from "@local/hash-subgraph/stdlib";
 
-import { MeQuery, MeQueryVariables } from "../graphql/api-types.gen";
+import type { MeQuery, MeQueryVariables } from "../graphql/api-types.gen";
 import { meQuery } from "../graphql/queries/user.queries";
 import { createDefaultSettings } from "./create-default-settings";
 import { createEntity } from "./create-entity";
 import { queryGraphQlApi } from "./query-graphql-api";
-import {
-  getFromLocalStorage,
-  LocalStorage,
-  setInLocalStorage,
-} from "./storage";
+import type { LocalStorage } from "./storage";
+import { getFromLocalStorage, setInLocalStorage } from "./storage";
 
 const getAvatarForEntity = (
   subgraph: Subgraph<EntityRootType>,
@@ -74,9 +72,11 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
 
       const user = getRoots(subgraph)[0];
 
-      const { email, shortname, displayName } = simplifyProperties(
+      const simpleProperties = simplifyProperties(
         user.properties as UserProperties,
       );
+
+      const { email, shortname, displayName } = simpleProperties;
 
       if (!shortname || !displayName) {
         // User has not completed signup
@@ -215,6 +215,10 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         };
       });
 
+      const enabledFeatureFlags =
+        (simpleProperties.enabledFeatureFlags as FeatureFlag[] | undefined) ??
+        [];
+
       return {
         ...user,
         avatar: userAvatar,
@@ -224,6 +228,7 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
           displayName,
           shortname,
         },
+        enabledFeatureFlags,
         settingsEntityId,
         webOwnedById: getOwnedByIdFromEntityId(user.metadata.recordId.entityId),
       };

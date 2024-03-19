@@ -1,11 +1,9 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { publicUserAccountId } from "@apps/hash-api/src/auth/public-user-account-id";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
-import { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
-import {
-  joinOrg,
-  User,
-} from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
+import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   createPropertyType,
   getPropertyTypeById,
@@ -18,12 +16,9 @@ import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { ConstructPropertyTypeParams } from "@local/hash-isomorphic-utils/types";
-import {
-  isOwnedOntologyElementMetadata,
-  OwnedById,
-  PropertyTypeWithMetadata,
-} from "@local/hash-subgraph";
+import type { ConstructPropertyTypeParams } from "@local/hash-isomorphic-utils/types";
+import type { OwnedById, PropertyTypeWithMetadata } from "@local/hash-subgraph";
+import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
 
 import { resetGraph } from "../../../test-server";
 import {

@@ -1,9 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 import { formatDistance } from "date-fns";
-import ReactHtmlParser, {
-  convertNodeToElement,
-  Transform,
-} from "react-html-parser";
+import type { Transform } from "react-html-parser";
+import ReactHtmlParser, { convertNodeToElement } from "react-html-parser";
 
 import { Link } from "../../components/link";
 

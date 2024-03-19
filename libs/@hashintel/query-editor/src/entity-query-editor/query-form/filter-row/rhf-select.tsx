@@ -1,11 +1,12 @@
-import { Select, SelectProps } from "@hashintel/design-system";
-import { ReactNode } from "react";
-import {
-  Controller,
+import type { SelectProps } from "@hashintel/design-system";
+import { Select } from "@hashintel/design-system";
+import type { ReactNode } from "react";
+import type {
   FieldPath,
   FieldValues,
   UseControllerProps,
 } from "react-hook-form";
+import { Controller } from "react-hook-form";
 
 interface RHFSelectProps<
   TFieldValues extends FieldValues,

@@ -1,14 +1,14 @@
-import {
+import type {
   DataType,
   EntityType,
   PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 
-import { ProcessedCodegenParameters } from "../parameters.js";
-import { CompiledTsType, LogLevel } from "../shared.js";
-import { CompileContext } from "./compile.js";
-import { TypeDependencyMap } from "./shared";
+import type { ProcessedCodegenParameters } from "../parameters.js";
+import type { CompiledTsType, LogLevel } from "../shared.js";
+import type { CompileContext } from "./compile.js";
+import type { TypeDependencyMap } from "./shared";
 
 type IdentifierSource = { definingPath: string } & (
   | {

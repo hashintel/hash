@@ -1,3 +1,4 @@
+import type { BoxProps } from "@mui/material";
 import {
   Box,
   Fade,
@@ -5,17 +6,18 @@ import {
   Typography,
   typographyClasses,
 } from "@mui/material";
-import { FunctionComponent, ReactNode } from "react";
+import type { FunctionComponent, ReactNode } from "react";
 
 import { Link } from "../../ui";
 
 type NavLinkProps = {
-  icon: ReactNode;
   title: string;
   href: string;
+  icon?: ReactNode;
   count?: number;
   active?: boolean;
   tooltipTitle: string;
+  sx?: BoxProps["sx"];
 };
 
 export const TopNavLink: FunctionComponent<NavLinkProps> = ({
@@ -25,59 +27,63 @@ export const TopNavLink: FunctionComponent<NavLinkProps> = ({
   active,
   count,
   tooltipTitle,
+  sx,
 }) => {
   return (
     <Tooltip title={tooltipTitle}>
       <Link
         href={href}
         noLinkStyle
-        sx={({ palette, transitions, spacing }) => ({
-          display: "flex",
-          alignItems: "center",
-          padding: spacing(1, 1.75),
-          borderRadius: "4px",
-          mx: 0.75,
-          transition: transitions.create("background-color"),
+        sx={[
+          ({ palette, transitions, spacing }) => ({
+            display: "flex",
+            alignItems: "center",
+            padding: spacing(1, 1.75),
+            borderRadius: "4px",
+            mx: 0.75,
+            transition: transitions.create("background-color"),
 
-          [`& > .${typographyClasses.root}, & svg`]: {
-            transition: transitions.create("color"),
-          },
+            [`& > .${typographyClasses.root}, & svg`]: {
+              transition: transitions.create("color"),
+            },
 
-          "& svg": {
-            color: palette.gray[50],
-          },
-
-          [`& > .${typographyClasses.root}`]: {
-            color: palette.gray[70],
-            "&.count": {
+            "& svg": {
               color: palette.gray[50],
             },
-          },
 
-          "&:hover": {
-            backgroundColor: palette.gray[20],
-
-            [`& > svg, & > .${typographyClasses.root}`]: {
-              color: palette.gray[80],
+            [`& > .${typographyClasses.root}`]: {
+              color: palette.gray[70],
               "&.count": {
-                color: palette.gray[60],
+                color: palette.gray[50],
               },
             },
-          },
 
-          "&:focus-visible": {
-            outline: `2px solid ${palette.blue[70]}`,
-            outlineOffset: 2,
-          },
+            "&:hover": {
+              backgroundColor: palette.gray[20],
 
-          ...(active && {
-            backgroundColor: palette.gray[30],
-
-            [`& svg, & > .${typographyClasses.root}`]: {
-              color: palette.gray[90],
+              [`& > svg, & > .${typographyClasses.root}`]: {
+                color: palette.gray[80],
+                "&.count": {
+                  color: palette.gray[60],
+                },
+              },
             },
+
+            "&:focus-visible": {
+              outline: `2px solid ${palette.blue[70]}`,
+              outlineOffset: 2,
+            },
+
+            ...(active && {
+              backgroundColor: palette.gray[30],
+
+              [`& svg, & > .${typographyClasses.root}`]: {
+                color: palette.gray[90],
+              },
+            }),
           }),
-        })}
+          ...(Array.isArray(sx) ? sx : [sx]),
+        ]}
       >
         <Box
           sx={{

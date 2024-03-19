@@ -1,7 +1,6 @@
+import type { FunctionComponent, ReactNode } from "react";
 import {
   createContext,
-  FunctionComponent,
-  ReactNode,
   useCallback,
   useContext,
   useMemo,

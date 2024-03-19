@@ -1,10 +1,12 @@
-import {
+import type {
   GetResultsFromCancelledInferenceRequestQuery,
-  inferenceModelNames,
   InferEntitiesCallerParams,
   InferEntitiesRequestMessage,
   InferEntitiesResponseMessage,
   InferEntitiesReturn,
+} from "@local/hash-isomorphic-utils/ai-inference-types";
+import {
+  inferenceModelNames,
   inferEntitiesUserArgumentKeys,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { StatusCode } from "@local/status";
@@ -15,7 +17,7 @@ import type {
 } from "@temporalio/client";
 import type { WebSocket } from "ws";
 
-import { User } from "../../graph/knowledge/system-types/user";
+import type { User } from "../../graph/knowledge/system-types/user";
 import { logger } from "../../logger";
 
 export const handleInferEntitiesRequest = async ({

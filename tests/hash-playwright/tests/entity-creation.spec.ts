@@ -75,6 +75,7 @@ test("user can update values on property table", async ({ page }) => {
   await clickOnValueCell(page, canvas, 0);
 
   const profileUrl = "https://github.com/Example";
+  await sleep(200);
 
   await page.keyboard.type(profileUrl);
   await page.keyboard.press("Enter");

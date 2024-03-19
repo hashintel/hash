@@ -1,7 +1,9 @@
-import { BlockVariant } from "@blockprotocol/core";
-import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
-import { Box, SxProps, Theme, Typography } from "@mui/material";
-import { FunctionComponent, useMemo } from "react";
+import type { BlockVariant } from "@blockprotocol/core";
+import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
+import type { SxProps, Theme } from "@mui/material";
+import { Box, Typography } from "@mui/material";
+import type { FunctionComponent } from "react";
+import { useMemo } from "react";
 
 import { useUserBlocks } from "../../../../blocks/user-blocks";
 import { WarnIcon } from "../../../../shared/icons";

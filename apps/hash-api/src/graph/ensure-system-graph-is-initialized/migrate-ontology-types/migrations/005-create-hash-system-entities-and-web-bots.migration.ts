@@ -4,7 +4,8 @@ import {
   createWebMachineActor,
   getWebMachineActorId,
 } from "@local/hash-backend-utils/machine-actors";
-import { AccountId, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import type { AccountId } from "@local/hash-subgraph";
+import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
 import { logger } from "../../../../logger";
 import { createHashInstance } from "../../../knowledge/system-types/hash-instance";
@@ -13,7 +14,7 @@ import {
   ensureSystemWebEntitiesExist,
   owningWebs,
 } from "../../system-webs-and-entities";
-import { MigrationFunction } from "../types";
+import type { MigrationFunction } from "../types";
 import {
   getCurrentHashSystemEntityTypeId,
   getExistingUsersAndOrgs,

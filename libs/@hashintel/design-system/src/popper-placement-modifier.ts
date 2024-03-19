@@ -1,6 +1,6 @@
-import { PopperProps } from "@mui/material";
-import { Theme } from "@mui/system";
-import { SystemStyleObject } from "@mui/system/styleFunctionSx/styleFunctionSx";
+import type { PopperProps } from "@mui/material";
+import type { Theme } from "@mui/system";
+import type { SystemStyleObject } from "@mui/system/styleFunctionSx/styleFunctionSx";
 
 const popperPositionDataAttribute = "data-popper-placement";
 

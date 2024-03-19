@@ -13,6 +13,8 @@ export const entityTypedef = gql`
   scalar UserPermissions
   scalar UserPermissionsOnEntities
 
+  scalar ResearchTaskResult
+
   type SubgraphAndPermissions {
     userPermissionsOnEntities: UserPermissionsOnEntities!
     subgraph: Subgraph!
@@ -159,14 +161,6 @@ export const entityTypedef = gql`
     """
     updatedProperties: EntityPropertiesObject!
     """
-    The updated left to right order of the link entity (if updating a link entity).
-    """
-    leftToRightOrder: Int
-    """
-    The updated right to left order of the link entity (if updating a link entity).
-    """
-    rightToLeftOrder: Int
-    """
     The new type of the updated entity
     """
     entityTypeId: VersionedUrl
@@ -281,5 +275,10 @@ export const entityTypedef = gql`
       accountGroupId: AccountGroupId!
       accountId: AccountId!
     ): Boolean!
+
+    startResearchTask(
+      prompt: String!
+      entityTypeIds: [VersionedUrl!]!
+    ): ResearchTaskResult!
   }
 `;

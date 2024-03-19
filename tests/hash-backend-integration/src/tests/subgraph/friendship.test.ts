@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
+import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { getEntities } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import {
   archiveDataType,
@@ -18,8 +18,8 @@ import {
   getPropertyTypes,
   unarchivePropertyType,
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import { VersionedUrl } from "@blockprotocol/type-system";
-import {
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
   DataTypeStructuralQuery,
   EntityStructuralQuery,
   EntityTypeStructuralQuery,
@@ -30,16 +30,16 @@ import {
   fullDecisionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import {
+import type {
   AccountId,
   BaseUrl,
   Entity,
   EntityTypeWithMetadata,
-  linkEntityTypeUrl,
   OntologyTypeVertexId,
   QueryTemporalAxesUnresolved,
   Timestamp,
 } from "@local/hash-subgraph";
+import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import {
   getEntityTypes as getEntityTypesFromSubgraph,
   getIncomingLinksForEntity,

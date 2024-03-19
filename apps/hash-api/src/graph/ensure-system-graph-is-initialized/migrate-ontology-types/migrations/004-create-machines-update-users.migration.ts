@@ -1,15 +1,15 @@
-import { EntityType } from "@blockprotocol/type-system";
+import type { EntityType } from "@blockprotocol/type-system";
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { getEntityTypeById } from "../../../ontology/primitive/entity-type";
 import { systemAccountId } from "../../../system-account";
-import { MigrationFunction } from "../types";
+import type { MigrationFunction } from "../types";
 import {
   anyUserInstantiator,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
+  getCurrentHashLinkEntityTypeId,
   getCurrentHashSystemEntityTypeId,
-  getExistingHashLinkEntityTypeId,
   updateSystemEntityType,
   upgradeDependenciesInHashEntityType,
 } from "../util";
@@ -117,7 +117,7 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const currentOccurredInEntityEntityTypeId = getExistingHashLinkEntityTypeId({
+  const currentOccurredInEntityEntityTypeId = getCurrentHashLinkEntityTypeId({
     linkEntityTypeKey: "occurredInEntity",
     migrationState,
   });

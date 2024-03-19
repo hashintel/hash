@@ -1,4 +1,4 @@
-import { ThemeOptions } from "@mui/material";
+import type { ThemeOptions } from "@mui/material";
 
 export const borderRadii: ThemeOptions["borderRadii"] = {
   none: "0px",

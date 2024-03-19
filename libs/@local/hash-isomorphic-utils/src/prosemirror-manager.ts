@@ -1,28 +1,23 @@
-import { BlockVariant, JsonObject } from "@blockprotocol/core";
-import { TextualContentPropertyValue } from "@local/hash-isomorphic-utils/system-types/shared";
-import { TextToken } from "@local/hash-isomorphic-utils/types";
-import { EntityId, OwnedById } from "@local/hash-subgraph";
-import { Node, Schema } from "prosemirror-model";
-import { EditorState, Transaction } from "prosemirror-state";
-import { EditorProps, EditorView } from "prosemirror-view";
+import type { BlockVariant, JsonObject } from "@blockprotocol/core";
+import type { TextualContentPropertyValue } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
+import type { EntityId, OwnedById } from "@local/hash-subgraph";
+import type { Node, Schema } from "prosemirror-model";
+import type { EditorState, Transaction } from "prosemirror-state";
+import type { EditorProps, EditorView } from "prosemirror-view";
 
+import type { HashBlock } from "./blocks";
 import {
   areComponentsCompatible,
   fetchBlock,
-  HashBlock,
   isBlockWithTextualContentProperty,
   prepareBlockCache,
 } from "./blocks";
-import {
-  BlockEntity,
-  getBlockChildEntity,
-  isRichTextContainingEntity,
-} from "./entity";
+import type { BlockEntity } from "./entity";
+import { getBlockChildEntity, isRichTextContainingEntity } from "./entity";
+import type { DraftEntity, EntityStore, EntityStoreType } from "./entity-store";
 import {
   createEntityStore,
-  DraftEntity,
-  EntityStore,
-  EntityStoreType,
   isBlockEntity,
   isDraftBlockEntity,
   textualContentPropertyTypeBaseUrl,

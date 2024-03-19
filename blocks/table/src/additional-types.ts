@@ -1,4 +1,4 @@
-import {
+import type {
   BlockEntity,
   TableLocalColumnPropertyValue,
 } from "./types/generated/block-entity";

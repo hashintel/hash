@@ -1,4 +1,4 @@
-import { LinkEntityAndRightEntity } from "@blockprotocol/graph";
+import type { LinkEntityAndRightEntity } from "@blockprotocol/graph";
 import {
   type BlockComponent,
   useEntitySubgraph,
@@ -14,7 +14,7 @@ import { SizeMe } from "react-sizeme";
 import { v4 as uuid } from "uuid";
 
 import { Step } from "./step";
-import {
+import type {
   BlockEntity,
   HasHowToBlockIntroduction,
   HowToBlockIntroduction,

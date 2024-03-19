@@ -1,16 +1,12 @@
-import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import {
-  Entity,
-  EntityRootType,
-  extractDraftIdFromEntityId,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { ProvideEditorComponent } from "@glideapps/glide-data-grid";
+import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import { useMarkLinkEntityToArchive } from "../../../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../../../entity-editor-context";
-import { LinkedWithCell } from "../linked-with-cell";
+import type { LinkedWithCell } from "../linked-with-cell";
 import { EntitySelector } from "./entity-selector";
 import {
   createDraftLinkEntity,

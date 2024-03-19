@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import { Entity, LinkData } from "@blockprotocol/graph";
+import type { Entity, LinkData } from "@blockprotocol/graph";
 
 export type Actor = Entity<ActorProperties>;
 
@@ -195,6 +195,11 @@ export type DraftNotePropertyValue = TextDataType;
  * An email address
  */
 export type EmailPropertyValue = TextDataType;
+
+/**
+ * A list of identifiers for a feature flags that are enabled.
+ */
+export type EnabledFeatureFlagsPropertyValue = TextDataType[];
 
 /**
  * An identifier for an edition of an entity
@@ -894,6 +899,7 @@ export type UserProperties2 = {
     EmailPropertyValue,
     ...EmailPropertyValue[],
   ];
+  "https://hash.ai/@hash/types/property-type/enabled-feature-flags/"?: EnabledFeatureFlagsPropertyValue;
   "https://hash.ai/@hash/types/property-type/kratos-identity-id/": KratosIdentityIdPropertyValue;
   "https://hash.ai/@hash/types/property-type/location/"?: LocationPropertyValue;
   /**
@@ -943,6 +949,23 @@ export type UserSecretProperties = {
   "https://hash.ai/@hash/types/property-type/expired-at/": ExpiredAtPropertyValue;
   "https://hash.ai/@hash/types/property-type/vault-path/": VaultPathPropertyValue;
 };
+
+export type UsesUserSecret = Entity<UsesUserSecretProperties> & {
+  linkData: LinkData;
+};
+
+export type UsesUserSecretOutgoingLinkAndTarget = never;
+
+export type UsesUserSecretOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * The user secret something uses.
+ */
+export type UsesUserSecretProperties = UsesUserSecretProperties1 &
+  UsesUserSecretProperties2;
+export type UsesUserSecretProperties1 = LinkProperties;
+
+export type UsesUserSecretProperties2 = {};
 
 /**
  * The path to a secret in Hashicorp Vault.

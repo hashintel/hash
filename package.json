@@ -44,6 +44,7 @@
     "lint:prettier": "prettier --check --ignore-unknown .",
     "lint:tsc": "turbo --continue lint:tsc --",
     "lint:yarn-deduplicate": "yarn-deduplicate --fail --list --strategy=fewer",
+    "migrate:graph": "yarn workspace @apps/hash-graph migrate",
     "postinstall": "turbo run postinstall; patch-package --error-on-warn && husky install .config/husky",
     "seed-data:opensearch": "yarn workspace @apps/hash-search-loader clear-opensearch",
     "seed-data:redis": "yarn workspace @apps/hash-realtime clear-redis",
@@ -51,7 +52,8 @@
     "test": "npm-run-all --continue-on-error \"test:*\"",
     "test:unit": "turbo run test:unit --",
     "test:integration": "turbo run test:integration --",
-    "test:system": "turbo run test:system --"
+    "test:system": "turbo run test:system --",
+    "prune-node-modules": "find . -type d -name \"node_modules\" -exec rm -rf {} +"
   },
   "lint-staged": {
     "**": [

@@ -9,36 +9,30 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
-  Entity,
-  EntityId,
-  EntityRootType,
-  isEntityId,
-  splitEntityId,
-} from "@local/hash-subgraph";
+import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { Entity, EntityId, EntityRootType } from "@local/hash-subgraph";
+import { isEntityId, splitEntityId } from "@local/hash-subgraph";
 import {
   getRoots,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
-import { Express } from "express";
+import type { Express } from "express";
 
 import { getActorIdFromRequest } from "../auth/get-actor-id";
-import { CacheAdapter } from "../cache";
-import { ImpureGraphContext } from "../graph/context-types";
-import { AuthenticationContext } from "../graphql/authentication-context";
+import type { CacheAdapter } from "../cache";
+import type { ImpureGraphContext } from "../graph/context-types";
+import type { AuthenticationContext } from "../graphql/authentication-context";
 import { getAwsS3Config } from "../lib/aws-config";
 import { LOCAL_FILE_UPLOAD_PATH } from "../lib/config";
 import { logger } from "../logger";
 import { AwsS3StorageProvider } from "./aws-s3-storage-provider";
 import { LocalFileSystemStorageProvider } from "./local-file-storage";
-import {
-  isStorageType,
+import type {
   StorageProvider,
-  storageProviderLookup,
   StorageType,
   UploadableStorageProvider,
 } from "./storage-provider";
+import { isStorageType, storageProviderLookup } from "./storage-provider";
 
 export * from "./aws-s3-storage-provider";
 export * from "./storage-provider";
@@ -202,8 +196,9 @@ export const setupFileDownloadProxyHandler = (
       res.status(400).json({
         error: `File path ${key} is invalid – should be of the form [EntityId]/[EditionTimestamp]/[Filename], with an optional leading [Prefix]/`,
       });
+      return;
     }
-    if (!entityId || !isEntityId(entityId)) {
+    if (!isEntityId(entityId)) {
       res.status(400).json({
         error: `File path contains invalid entityId ${entityId} in ${key}`,
       });

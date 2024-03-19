@@ -1,6 +1,6 @@
 import { v4 as uuid } from "uuid";
 
-import { MessageFromBlockFramer, MessageFromFramedBlock } from "../types";
+import type { MessageFromBlockFramer, MessageFromFramedBlock } from "../types";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PromiseFn = (val: any) => void;

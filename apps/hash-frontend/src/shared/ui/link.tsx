@@ -1,12 +1,14 @@
+import type { LinkProps as MuiLinkProps } from "@mui/material";
 import {
   // eslint-disable-next-line no-restricted-imports
   Link as MuiLink,
-  LinkProps as MuiLinkProps,
   styled,
 } from "@mui/material";
 import clsx from "clsx";
 // eslint-disable-next-line no-restricted-imports
-import NextLink, { LinkProps as NextLinkProps } from "next/link";
+import type { LinkProps as NextLinkProps } from "next/link";
+// eslint-disable-next-line no-restricted-imports
+import NextLink from "next/link";
 import { useRouter } from "next/router";
 import { forwardRef, isValidElement } from "react";
 

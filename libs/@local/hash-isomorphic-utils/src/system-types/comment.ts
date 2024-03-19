@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import {
+import type {
   Actor,
   ActorOutgoingLinkAndTarget,
   ActorOutgoingLinksByLinkEntityTypeId,
@@ -41,6 +41,7 @@ import {
   DisplayNamePropertyValue,
   DraftNotePropertyValue,
   EmailPropertyValue,
+  EnabledFeatureFlagsPropertyValue,
   File,
   FileHashPropertyValue,
   FileNamePropertyValue,
@@ -193,6 +194,7 @@ export type {
   DisplayNamePropertyValue,
   DraftNotePropertyValue,
   EmailPropertyValue,
+  EnabledFeatureFlagsPropertyValue,
   File,
   FileHashPropertyValue,
   FileNamePropertyValue,

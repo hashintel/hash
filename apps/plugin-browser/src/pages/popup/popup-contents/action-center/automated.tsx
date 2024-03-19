@@ -6,7 +6,7 @@ import {
   Typography,
 } from "@mui/material";
 
-import { LocalStorage } from "../../../../shared/storage";
+import type { LocalStorage } from "../../../../shared/storage";
 import { SelectScope } from "./automated/select-scope";
 import { ModelSelector } from "./shared/model-selector";
 import { Section } from "./shared/section";

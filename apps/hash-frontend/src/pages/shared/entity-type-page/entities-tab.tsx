@@ -2,7 +2,8 @@ import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { Box, Paper } from "@mui/material";
-import { FunctionComponent, useContext, useMemo } from "react";
+import type { FunctionComponent } from "react";
+import { useContext, useMemo } from "react";
 
 import { useEntityTypeEntitiesContext } from "../../../shared/entity-type-entities-context";
 import { SectionEmptyState } from "../../[shortname]/shared/section-empty-state";

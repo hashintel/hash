@@ -1,12 +1,13 @@
 import { faCircleExclamation } from "@fortawesome/free-solid-svg-icons";
+import type { TextFieldProps as MuiTextFieldProps } from "@mui/material";
 import {
   Box,
   Collapse,
   FormHelperText,
   TextField as MuiTextField,
-  TextFieldProps as MuiTextFieldProps,
 } from "@mui/material";
-import { FunctionComponent, ReactNode, useEffect, useState } from "react";
+import type { FunctionComponent, ReactNode } from "react";
+import { useEffect, useState } from "react";
 
 import { FontAwesomeIcon } from "./icons/font-awesome-icon";
 

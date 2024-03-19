@@ -2,17 +2,23 @@ import { useLazyQuery } from "@apollo/client";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
-import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
+  blockProtocolEntityTypes,
+  systemEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type {
   EntityId,
-  entityIdFromOwnedByIdAndEntityUuid,
   EntityPropertiesObject,
   EntityRootType,
   EntityUuid,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
+import { entityIdFromOwnedByIdAndEntityUuid } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import NextErrorComponent from "next/error";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useState } from "react";
@@ -20,14 +26,12 @@ import { useCallback, useEffect, useState } from "react";
 import { useBlockProtocolUpdateEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { useBlockProtocolGetEntityType } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
 import { PageErrorState } from "../../../components/page-error-state";
-import {
+import type {
   GetEntityQuery,
   GetEntityQueryVariables,
 } from "../../../graphql/api-types.gen";
-import {
-  getLayoutWithSidebar,
-  NextPageWithLayout,
-} from "../../../shared/layout";
+import type { NextPageWithLayout } from "../../../shared/layout";
+import { getLayoutWithSidebar } from "../../../shared/layout";
 import { EditBar } from "../shared/edit-bar";
 import { useRouteNamespace } from "../shared/use-route-namespace";
 import { EntityEditorPage } from "./[entity-uuid].page/entity-editor-page";
@@ -40,6 +44,7 @@ const Page: NextPageWithLayout = () => {
   const router = useRouter();
   const entityUuid = router.query["entity-uuid"] as EntityUuid;
   const { routeNamespace } = useRouteNamespace();
+
   const [lazyGetEntity] = useLazyQuery<GetEntityQuery, GetEntityQueryVariables>(
     getEntityQuery,
     { fetchPolicy: "cache-and-network" },
@@ -57,6 +62,26 @@ const Page: NextPageWithLayout = () => {
 
   const entityFromDb =
     entitySubgraphFromDb && getRoots(entitySubgraphFromDb)[0];
+
+  /**
+   * If the user is viewing a `User` entity, redirect to its profile page.
+   *
+   * @todo: reconsider this once we have property level permissions, where
+   * we can prevent users from directly modifying specific user entity properties.
+   */
+  useEffect(() => {
+    if (
+      entityFromDb &&
+      extractBaseUrl(entityFromDb.metadata.entityTypeId) ===
+        systemEntityTypes.user.entityTypeBaseUrl
+    ) {
+      const { shortname } = simplifyProperties(
+        entityFromDb.properties as UserProperties,
+      );
+
+      void router.push(shortname ? `/@${shortname}` : "/");
+    }
+  }, [entityFromDb, router]);
 
   const [isDirty, setIsDirty] = useState(false);
   const [loading, setLoading] = useState(true);

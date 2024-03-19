@@ -1,16 +1,16 @@
-import {
+import type {
   EntityType,
   PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { BaseUrl } from "@local/hash-subgraph";
+import type { BaseUrl } from "@local/hash-subgraph";
 import {
   getEntityTypeAndParentsById,
   getPropertyTypeById,
 } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
-import { EntityTypeEntitiesContextValue } from "../entity-type-entities-context";
+import type { EntityTypeEntitiesContextValue } from "../entity-type-entities-context";
 import { useEntityTypeEntities } from "../use-entity-type-entities";
 
 export const useEntityTypeEntitiesContextValue = (params: {

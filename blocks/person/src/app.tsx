@@ -1,8 +1,9 @@
 import "./index.css";
 
-import { BlockComponent } from "@blockprotocol/graph/react";
+import type { BlockComponent } from "@blockprotocol/graph/react";
 import DOMPurify from "dompurify";
-import { CSSProperties, useMemo, useRef } from "react";
+import type { CSSProperties } from "react";
+import { useMemo, useRef } from "react";
 
 import { LinkIcon } from "./icons/link-icon";
 import { MailIcon } from "./icons/mail-icon";

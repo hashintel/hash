@@ -1,9 +1,9 @@
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 
 import { isProdEnv } from "../../../../../lib/env-config";
 import { createOrUpdateMailchimpUser } from "../../../../../mailchimp";
-import { UpdateEntityHookCallback } from "../update-entity-hooks";
+import type { UpdateEntityHookCallback } from "../update-entity-hooks";
 
 export const userAfterUpdateEntityHookCallback: UpdateEntityHookCallback =
   async ({ entity }) => {

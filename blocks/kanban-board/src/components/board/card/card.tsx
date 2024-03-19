@@ -2,7 +2,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import clsx from "clsx";
 
-import { CardData, UpdateCardContentCallback } from "../types";
+import type { CardData, UpdateCardContentCallback } from "../types";
 import { CardContent } from "./card-content/card-content";
 import styles from "./styles.module.scss";
 

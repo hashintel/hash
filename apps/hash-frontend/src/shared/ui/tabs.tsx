@@ -1,9 +1,10 @@
+import type { TabsProps as MuiTabsProps } from "@mui/material";
 import {
   // eslint-disable-next-line no-restricted-imports
   Tabs as MuiTabs,
-  TabsProps as MuiTabsProps,
 } from "@mui/material";
-import { FunctionComponent, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useState } from "react";
 
 import { useFontLoadedCallback } from "../../components/hooks/use-font-loaded-callback";
 

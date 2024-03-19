@@ -2,9 +2,9 @@
  * This file was automatically generated – do not edit it.
  */
 
-import { Entity, LinkData } from "@blockprotocol/graph";
+import type { Entity, LinkData } from "@blockprotocol/graph";
 
-import {
+import type {
   Actor,
   ActorOutgoingLinkAndTarget,
   ActorOutgoingLinksByLinkEntityTypeId,
@@ -44,6 +44,7 @@ import {
   DisplayNamePropertyValue,
   DraftNotePropertyValue,
   EmailPropertyValue,
+  EnabledFeatureFlagsPropertyValue,
   EntityEditionIdPropertyValue,
   File,
   FileHashPropertyValue,
@@ -223,6 +224,7 @@ export type {
   DisplayNamePropertyValue,
   DraftNotePropertyValue,
   EmailPropertyValue,
+  EnabledFeatureFlagsPropertyValue,
   EntityEditionIdPropertyValue,
   File,
   FileHashPropertyValue,

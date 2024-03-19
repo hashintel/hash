@@ -1,12 +1,6 @@
 import { Box } from "@mui/material";
-import {
-  Children,
-  cloneElement,
-  FunctionComponent,
-  isValidElement,
-  ReactElement,
-  ReactNode,
-} from "react";
+import type { FunctionComponent, ReactElement, ReactNode } from "react";
+import { Children, cloneElement, isValidElement } from "react";
 
 import { InfoCard } from "./info-card";
 

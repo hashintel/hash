@@ -1,12 +1,12 @@
-import {
+import type {
   EntityType,
   EntityTypeReference,
-  extractBaseUrl,
   PropertyTypeReference,
   ValueOrArray,
 } from "@blockprotocol/type-system/slim";
+import { extractBaseUrl } from "@blockprotocol/type-system/slim";
 
-import { EntityTypeEditorFormData } from "./shared/form-types";
+import type { EntityTypeEditorFormData } from "./shared/form-types";
 
 export const getEntityTypeFromFormData = (
   data: EntityTypeEditorFormData,

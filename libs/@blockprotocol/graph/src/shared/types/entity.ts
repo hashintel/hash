@@ -2,9 +2,9 @@ import type {
   JsonObject as CoreJsonObject,
   JsonValue as CoreJsonValue,
 } from "@blockprotocol/core";
-import { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
 
-import {
+import type {
   EntityRootType,
   ExclusiveLimitedTemporalBound,
   InclusiveLimitedTemporalBound,
@@ -15,7 +15,7 @@ import {
   Timestamp,
   Unbounded,
 } from "../types.js";
-import { GraphResolveDepths } from "./subgraph/graph-resolve-depths.js";
+import type { GraphResolveDepths } from "./subgraph/graph-resolve-depths.js";
 
 export type JsonObject = CoreJsonObject;
 export type JsonValue = CoreJsonValue;
@@ -70,8 +70,6 @@ export type EntityMetadata<Temporal extends boolean> = {
   : { temporalVersioning?: never });
 
 export type LinkData = {
-  leftToRightOrder?: number;
-  rightToLeftOrder?: number;
   leftEntityId: EntityId;
   rightEntityId: EntityId;
 };
@@ -112,7 +110,7 @@ export type UpdateEntityData = {
   entityId: EntityId;
   entityTypeId: VersionedUrl;
   properties: EntityPropertiesObject;
-} & Pick<LinkData, "leftToRightOrder" | "rightToLeftOrder">;
+};
 
 export type DeleteEntityData = {
   entityId: EntityId;

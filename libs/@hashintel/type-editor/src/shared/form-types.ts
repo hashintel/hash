@@ -1,4 +1,4 @@
-import { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
 
 type EntityTypeEditorTypeData = {
   $id: VersionedUrl;

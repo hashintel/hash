@@ -1,13 +1,13 @@
+import type { PropsWithChildren } from "react";
 import {
   createContext,
-  PropsWithChildren,
   useCallback,
   useContext,
   useMemo,
   useState,
 } from "react";
 
-import { EntityEditorProps } from "../entity-editor";
+import type { EntityEditorProps } from "../entity-editor";
 
 export type TableExpandStatus = Record<string, boolean>;
 

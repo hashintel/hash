@@ -1,11 +1,10 @@
+import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
-  BaseUrl,
   extractBaseUrl,
   extractVersion,
-  VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 
-import {
+import type {
   OntologyOutwardEdge,
   OntologyToOntologyOutwardEdge,
   OntologyTypeRevisionId,

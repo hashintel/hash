@@ -23,9 +23,11 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { FunctionComponent, useContext } from "react";
+import type { FunctionComponent } from "react";
+import { useContext } from "react";
 
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
+import { useEnabledFeatureFlags } from "../../../pages/shared/use-enabled-feature-flags";
 import { WorkspaceContext } from "../../../pages/shared/workspace-context";
 import { HashtagRegularIcon } from "../../icons/hashtag-regular-icon";
 import { InfinitySolidIcon } from "../../icons/infinity-solid-icon";
@@ -43,6 +45,8 @@ const ActionsDropdownInner: FunctionComponent = () => {
     variant: "popover",
     popupId: "actions-dropdown-menu",
   });
+
+  const enabledFeatureFlags = useEnabledFeatureFlags();
 
   return (
     <Box>
@@ -95,7 +99,8 @@ const ActionsDropdownInner: FunctionComponent = () => {
         >
           Create New
         </Typography>
-        {hashInstance?.properties.pagesAreEnabled ? (
+        {hashInstance?.properties.pagesAreEnabled &&
+        enabledFeatureFlags.pages ? (
           <CreatePageMenuItems onClick={popupState.close} />
         ) : null}
         <MenuItem href="/new/entity" onClick={popupState.close}>

@@ -1,7 +1,7 @@
 import { Box } from "@mui/material";
-import { Tabs } from "webextension-polyfill";
+import type { Tabs } from "webextension-polyfill";
 
-import { LocalStorage } from "../../../../shared/storage";
+import type { LocalStorage } from "../../../../shared/storage";
 import { InferEntitiesAction } from "./one-off/infer-entities-action";
 import { QuickNoteAction } from "./one-off/quick-note-action";
 
@@ -14,7 +14,7 @@ export const OneOff = ({
 }) => {
   return (
     <Box>
-      <QuickNoteAction />
+      {user.enabledFeatureFlags.includes("notes") ? <QuickNoteAction /> : null}
       <InferEntitiesAction activeTab={activeTab} user={user} />
     </Box>
   );

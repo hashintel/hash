@@ -2,17 +2,15 @@
  * This module contains type definitions for tables in the Postgres database. Column
  * names are converted from snake_case to camelCase for consistency.
  */
-import { JsonObject } from "@blockprotocol/core";
-import { EditionCreatedById, Uuid } from "@local/hash-subgraph";
+import type { JsonObject } from "@blockprotocol/core";
+import type { EditionCreatedById, Uuid } from "@local/hash-subgraph";
 
-import { Wal2JsonMsg } from "./wal2json";
+import type { Wal2JsonMsg } from "./wal2json";
 
 type EntityEditionRecord = {
   archived: boolean;
   entityEditionId: Uuid;
   properties: JsonObject;
-  leftToRightOrder?: number;
-  rightToLeftOrder?: number;
   editionCreatedById?: EditionCreatedById; // the UUID of the user who created this edition
 };
 
@@ -34,8 +32,6 @@ export const entityEditionRecordFromRealtimeMessage = (
     archived: obj.archived as boolean,
     entityEditionId: obj.entity_edition_id as Uuid,
     properties: JSON.parse(obj.properties as string) as JsonObject,
-    leftToRightOrder: obj.left_to_right_order as number | undefined,
-    rightToLeftOrder: obj.right_to_left_order as number | undefined,
     editionCreatedById: obj.edition_created_by_id as
       | EditionCreatedById
       | undefined,

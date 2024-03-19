@@ -1,4 +1,4 @@
-import { SpriteProps } from "@glideapps/glide-data-grid";
+import type { SpriteProps } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
 
 export const customGridIcons = {

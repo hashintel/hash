@@ -1,13 +1,13 @@
-import { EntityType } from "@blockprotocol/type-system";
+import type { EntityType } from "@blockprotocol/type-system";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { BaseUrl } from "@local/hash-subgraph/.";
+import type { BaseUrl } from "@local/hash-subgraph/.";
 
 import { getEntityTypeById } from "../../../ontology/primitive/entity-type";
-import { MigrationFunction } from "../types";
+import type { MigrationFunction } from "../types";
 import {
   getCurrentHashSystemEntityTypeId,
   updateSystemEntityType,

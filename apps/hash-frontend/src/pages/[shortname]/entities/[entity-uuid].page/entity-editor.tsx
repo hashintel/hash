@@ -1,4 +1,4 @@
-import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
 import { useMemo } from "react";
@@ -10,7 +10,7 @@ import { LinkSection } from "./entity-editor/link-section";
 import { LinksSection } from "./entity-editor/links-section";
 import { PropertiesSection } from "./entity-editor/properties-section";
 import { TypesSection } from "./entity-editor/types-section";
-import { DraftLinkState } from "./shared/use-draft-link-state";
+import type { DraftLinkState } from "./shared/use-draft-link-state";
 
 export interface EntityEditorProps extends DraftLinkState {
   isDirty: boolean;

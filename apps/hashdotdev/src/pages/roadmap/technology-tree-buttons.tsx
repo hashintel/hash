@@ -1,5 +1,5 @@
 import { Box, IconButton, styled } from "@mui/material";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 
 import { ArrowDownLeftAndArrowUpRightToCenterIcon } from "../../components/icons/arrow-down-left-and-arrow-up-right-to-center-icon";
 import { ArrowUpRightAndArrowDownLeftFromCenterIcon } from "../../components/icons/arrow-up-right-and-arrow-down-left-from-center-icon";

@@ -1,8 +1,9 @@
 import { Modal } from "@hashintel/design-system";
-import { Box, ModalProps } from "@mui/material";
-import { FunctionComponent } from "react";
+import type { ModalProps } from "@mui/material";
+import { Box } from "@mui/material";
+import type { FunctionComponent } from "react";
 
-import { User } from "../../lib/user-and-org";
+import type { User } from "../../lib/user-and-org";
 import { UserProfileInfoForm } from "./edit-user-profile-info-modal/user-profile-info-form";
 import { UserProfileInfoModalHeader } from "./edit-user-profile-info-modal/user-profile-info-modal-header";
 

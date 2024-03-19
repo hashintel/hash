@@ -8,20 +8,14 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { NotificationProperties } from "@local/hash-isomorphic-utils/system-types/commentnotification";
-import { Entity, EntityRootType } from "@local/hash-subgraph";
+import type { NotificationProperties } from "@local/hash-isomorphic-utils/system-types/commentnotification";
+import type { Entity, EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import {
-  createContext,
-  FunctionComponent,
-  PropsWithChildren,
-  useCallback,
-  useContext,
-  useMemo,
-} from "react";
+import type { FunctionComponent, PropsWithChildren } from "react";
+import { createContext, useCallback, useContext, useMemo } from "react";
 
 import { useBlockProtocolUpdateEntity } from "../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
-import {
+import type {
   StructuralQueryEntitiesQuery,
   StructuralQueryEntitiesQueryVariables,
   UpdateEntitiesMutation,

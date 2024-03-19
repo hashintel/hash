@@ -1,13 +1,8 @@
-import { EntityUuid } from "@local/hash-subgraph";
-import { NextParsedUrlQuery } from "next/dist/server/request-meta";
+import type { EntityUuid } from "@local/hash-subgraph";
+import type { NextParsedUrlQuery } from "next/dist/server/request-meta";
 import { useRouter } from "next/router";
-import {
-  createContext,
-  FunctionComponent,
-  ReactNode,
-  useContext,
-  useMemo,
-} from "react";
+import type { FunctionComponent, ReactNode } from "react";
+import { createContext, useContext, useMemo } from "react";
 
 type RoutePageInfo = {
   routePageEntityUuid: EntityUuid;

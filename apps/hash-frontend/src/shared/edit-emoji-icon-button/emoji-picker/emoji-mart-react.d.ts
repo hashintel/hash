@@ -1,6 +1,6 @@
 declare module "@emoji-mart/react" {
-  import { PickerProps } from "emoji-mart";
-  import { FunctionComponent } from "react";
+  import type { PickerProps } from "emoji-mart";
+  import type { FunctionComponent } from "react";
 
   const ReactComponent: FunctionComponent<PickerProps>;
 

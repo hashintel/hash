@@ -1,12 +1,14 @@
 import { TextField } from "@hashintel/design-system";
 import { Box, Container, Typography } from "@mui/material";
-import { SettingsFlow } from "@ory/client";
+import type { SettingsFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
-import { AxiosError } from "axios";
+import type { AxiosError } from "axios";
 import { useRouter } from "next/router";
-import { FormEventHandler, useEffect, useState } from "react";
+import type { FormEventHandler } from "react";
+import { useEffect, useState } from "react";
 
-import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
+import type { NextPageWithLayout } from "../shared/layout";
+import { getPlainLayout } from "../shared/layout";
 import { Button } from "../shared/ui";
 import {
   gatherUiNodeValuesFromFlow,

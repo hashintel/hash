@@ -1,4 +1,4 @@
-import { Components, Theme } from "@mui/material";
+import type { Components, Theme } from "@mui/material";
 
 // @todo why isn't this working?
 export const MuiAvatarThemeOptions: Components<Theme>["MuiAvatar"] = {

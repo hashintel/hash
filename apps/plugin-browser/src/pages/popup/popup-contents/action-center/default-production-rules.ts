@@ -1,6 +1,6 @@
 import { productionCrunchbaseCompanyId } from "@local/hash-isomorphic-utils/production-crunchbase-company-id";
 
-import { LocalStorage } from "../../../../shared/storage";
+import type { LocalStorage } from "../../../../shared/storage";
 
 export const defaultProductionRules: LocalStorage["automaticInferenceConfig"]["rules"] =
   [

@@ -1,8 +1,7 @@
-import { OwnedById } from "@local/hash-subgraph";
+import type { OwnedById } from "@local/hash-subgraph";
+import type { FunctionComponent, ReactElement } from "react";
 import {
   createContext,
-  FunctionComponent,
-  ReactElement,
   useCallback,
   useContext,
   useEffect,
@@ -11,7 +10,7 @@ import {
 } from "react";
 
 import { localStorageKeys } from "../../lib/config";
-import { MinimalUser, Org } from "../../lib/user-and-org";
+import type { MinimalUser, Org } from "../../lib/user-and-org";
 import { useAuthInfo } from "./auth-info-context";
 
 export type WorkspaceContextValue = {

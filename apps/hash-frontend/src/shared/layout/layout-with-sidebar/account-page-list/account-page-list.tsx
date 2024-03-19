@@ -1,14 +1,16 @@
-import {
-  closestCenter,
-  DndContext,
+import type {
   DragEndEvent,
   DragMoveEvent,
   DragOverEvent,
-  DragOverlay,
   DragStartEvent,
+  UniqueIdentifier,
+} from "@dnd-kit/core";
+import {
+  closestCenter,
+  DndContext,
+  DragOverlay,
   MeasuringStrategy,
   PointerSensor,
-  UniqueIdentifier,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -18,20 +20,14 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { IconButton } from "@hashintel/design-system";
+import type { EntityUuid, OwnedById } from "@local/hash-subgraph";
 import {
-  EntityUuid,
   extractEntityUuidFromEntityId,
   isEntityId,
-  OwnedById,
 } from "@local/hash-subgraph";
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";
-import {
-  FunctionComponent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import type { FunctionComponent } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocalstorageState } from "rooks";
 
 import { useAccountPages } from "../../../../components/hooks/use-account-pages";
@@ -41,18 +37,19 @@ import { useCreateSubPage } from "../../../../components/hooks/use-create-sub-pa
 import { useReorderPage } from "../../../../components/hooks/use-reorder-page";
 import { useUserOrOrgShortnameByOwnedById } from "../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { constructPageRelativeUrl } from "../../../../lib/routes";
+import { useEnabledFeatureFlags } from "../../../../pages/shared/use-enabled-feature-flags";
 import { PlusRegularIcon } from "../../../icons/plus-regular";
 import { NavLink } from "../nav-link";
 import { LoadingSkeleton } from "../shared/loading-skeleton";
 import { ViewAllLink } from "../view-all-link";
 import { AccountPageListItem } from "./account-page-list-item";
 import { IDENTATION_WIDTH } from "./page-tree-item";
+import type { TreeItem } from "./utils";
 import {
   getLastIndex,
   getProjection,
   getTreeItemList,
   isPageCollapsed,
-  TreeItem,
 } from "./utils";
 
 type AccountPageListProps = {
@@ -113,6 +110,8 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     setTreeItems(getTreeItemList(data));
   }
 
+  const enabledFeatureFlags = useEnabledFeatureFlags();
+
   // @todo handle loading/error states properly
   const addPage = useCallback(async () => {
     if (loading) {
@@ -120,12 +119,15 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     }
 
     try {
-      await createUntitledPage(getLastIndex(treeItems), "document");
+      await createUntitledPage(
+        getLastIndex(treeItems),
+        enabledFeatureFlags.documents ? "document" : "canvas",
+      );
     } catch (err) {
       // eslint-disable-next-line no-console -- TODO: consider using logger
       console.error("Could not create page: ", err);
     }
-  }, [createUntitledPage, loading, treeItems]);
+  }, [createUntitledPage, loading, treeItems, enabledFeatureFlags]);
 
   const handleToggle = (nodeId: string) => {
     setExpandedPageIds((expandedIds) =>

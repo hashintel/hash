@@ -1,12 +1,14 @@
 import { TextField } from "@hashintel/design-system";
 import { Box, Container, Typography } from "@mui/material";
-import { VerificationFlow } from "@ory/client";
+import type { VerificationFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { useRouter } from "next/router";
-import { FormEventHandler, useEffect, useState } from "react";
+import type { FormEventHandler } from "react";
+import { useEffect, useState } from "react";
 
 import { useLogoutFlow } from "../components/hooks/use-logout-flow";
-import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
+import type { NextPageWithLayout } from "../shared/layout";
+import { getPlainLayout } from "../shared/layout";
 import { Button } from "../shared/ui";
 import {
   gatherUiNodeValuesFromFlow,

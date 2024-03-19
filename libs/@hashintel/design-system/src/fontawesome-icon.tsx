@@ -1,5 +1,6 @@
-import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
-import { SvgIcon, SvgIconProps } from "@mui/material";
+import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
+import type { SvgIconProps } from "@mui/material";
+import { SvgIcon } from "@mui/material";
 import clsx from "clsx";
 import { forwardRef } from "react";
 

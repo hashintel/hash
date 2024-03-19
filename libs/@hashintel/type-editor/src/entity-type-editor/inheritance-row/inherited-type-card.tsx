@@ -1,10 +1,11 @@
 import { extractVersion } from "@blockprotocol/graph";
-import { EntityType, extractBaseUrl } from "@blockprotocol/type-system/slim";
+import type { EntityType } from "@blockprotocol/type-system/slim";
+import { extractBaseUrl } from "@blockprotocol/type-system/slim";
 import { TypeCard } from "@hashintel/design-system";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";
-import { EntityTypeEditorFormData } from "../../shared/form-types";
+import type { EntityTypeEditorFormData } from "../../shared/form-types";
 import { useIsReadonly } from "../../shared/read-only-context";
 import { Link } from "../shared/link";
 import { useTypeVersions } from "../shared/use-type-versions";

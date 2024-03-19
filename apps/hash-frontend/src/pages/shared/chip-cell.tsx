@@ -1,14 +1,12 @@
-import { faAsterisk, IconDefinition } from "@fortawesome/free-solid-svg-icons";
-import {
-  CustomCell,
-  CustomRenderer,
-  GridCellKind,
-} from "@glideapps/glide-data-grid";
+import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
+import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
+import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
+import { GridCellKind } from "@glideapps/glide-data-grid";
 import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
 import { customColors } from "@hashintel/design-system/theme";
 import { Box } from "@mui/material";
 
-import { CustomIcon } from "../../components/grid/utils/custom-grid-icons";
+import type { CustomIcon } from "../../components/grid/utils/custom-grid-icons";
 import { drawCellFadeOutGradient } from "../../components/grid/utils/draw-cell-fade-out-gradient";
 import { drawChipWithIcon } from "../../components/grid/utils/draw-chip-with-icon";
 

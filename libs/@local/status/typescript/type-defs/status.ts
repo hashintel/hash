@@ -2,6 +2,7 @@
     - https://github.com/googleapis/googleapis/blob/master/google/rpc/status.proto
  */
 
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- this is an enum, 'import type' breaks scripts/codegen
 import { StatusCode } from "./status-code";
 
 /**

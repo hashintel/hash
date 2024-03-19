@@ -1,6 +1,6 @@
 import { Box, Stack } from "@mui/material";
 import { Container } from "@mui/system";
-import { PropsWithChildren, ReactNode } from "react";
+import type { PropsWithChildren, ReactNode } from "react";
 
 /**
  * We'll change `[entity-uuid].page.tsx` to a tabbed page,

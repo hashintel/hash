@@ -1,14 +1,13 @@
 import { entityStorePluginState } from "@local/hash-isomorphic-utils/entity-store-plugin";
 import { mapValues } from "lodash";
 import { keymap } from "prosemirror-keymap";
-import { Node } from "prosemirror-model";
+import type { Node } from "prosemirror-model";
+import type { Command, Transaction } from "prosemirror-state";
 import {
-  Command,
   EditorState,
   NodeSelection,
   Plugin,
   TextSelection,
-  Transaction,
 } from "prosemirror-state";
 import { Mapping } from "prosemirror-transform";
 

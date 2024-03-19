@@ -6,16 +6,16 @@
  * package and be removed from here.
  */
 
-import { MessageCallback, MessageReturn } from "@blockprotocol/core";
-import {
+import type { MessageCallback, MessageReturn } from "@blockprotocol/core";
+import type {
   CreateResourceError,
   QueryOperationInput,
   ReadOrModifyResourceError,
   UploadFileData as BpUploadFileData,
 } from "@blockprotocol/graph";
-import { VersionedUrl } from "@blockprotocol/type-system";
-import { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/shared";
+import type {
   Entity,
   EntityId,
   EntityPropertiesObject,
@@ -24,7 +24,7 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 
-import {
+import type {
   FileEntityCreationInput,
   FileEntityUpdateInput,
 } from "../../../../graphql/api-types.gen";
@@ -57,7 +57,7 @@ export type UpdateEntityData = {
   entityId: EntityId;
   entityTypeId: VersionedUrl;
   properties: EntityPropertiesObject;
-} & Pick<LinkData, "leftToRightOrder" | "rightToLeftOrder">;
+};
 
 export type UpdateEntityMessageCallback = MessageCallback<
   UpdateEntityData,

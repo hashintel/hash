@@ -1,9 +1,9 @@
-import { PropertyTypeRootType } from "@local/hash-subgraph";
+import type { PropertyTypeRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useBlockProtocolQueryPropertyTypes } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-property-types";
-import { PropertyTypesContextValues } from "../property-types-context";
+import type { PropertyTypesContextValues } from "../property-types-context";
 
 export const usePropertyTypesContextValue = (params?: {
   includeArchived?: boolean;

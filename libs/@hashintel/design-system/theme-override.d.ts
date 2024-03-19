@@ -1,5 +1,5 @@
-import { Components } from "@mui/material";
-import { CSSProperties } from "react";
+import type { Components } from "@mui/material";
+import type { CSSProperties } from "react";
 
 declare module "@mui/material/styles" {
   interface ShadowSizes {

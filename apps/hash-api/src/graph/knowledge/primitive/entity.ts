@@ -1,6 +1,6 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
-import {
+import type {
   EntityMetadata,
   EntityPermission,
   EntityStructuralQuery,
@@ -8,7 +8,7 @@ import {
   GraphResolveDepths,
   ModifyRelationshipOperation,
 } from "@local/hash-graph-client";
-import {
+import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
@@ -17,11 +17,11 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
+import type {
   UserPermissions,
   UserPermissionsOnEntities,
 } from "@local/hash-isomorphic-utils/types";
-import {
+import type {
   AccountGroupId,
   AccountId,
   BaseUrl,
@@ -32,39 +32,37 @@ import {
   EntityRelationAndSubject,
   EntityRootType,
   EntityUuid,
-  extractDraftIdFromEntityId,
+  OwnedById,
+  Subgraph,
+} from "@local/hash-subgraph";
+import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   isEntityVertex,
-  OwnedById,
   splitEntityId,
-  Subgraph,
 } from "@local/hash-subgraph";
 import {
   getRoots,
   mapGraphApiEntityMetadataToMetadata,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
-import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { ApolloError } from "apollo-server-errors";
 
 import { publicUserAccountId } from "../../../auth/public-user-account-id";
-import {
+import type {
   EntityDefinition,
   LinkedEntityDefinition,
 } from "../../../graphql/api-types.gen";
-import { TemporalClient } from "../../../temporal";
+import type { TemporalClient } from "../../../temporal";
 import { genId, linkedTreeFlatten } from "../../../util";
-import { ImpureGraphFunction } from "../../context-types";
+import type { ImpureGraphFunction } from "../../context-types";
 import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 import { afterUpdateEntityHooks } from "./entity/after-update-entity-hooks";
 import { beforeCreateEntityHooks } from "./entity/before-create-entity-hooks";
 import { beforeUpdateEntityHooks } from "./entity/before-update-entity-hooks";
-import {
-  createLinkEntity,
-  CreateLinkEntityParams,
-  isEntityLinkEntity,
-} from "./link-entity";
+import type { CreateLinkEntityParams } from "./link-entity";
+import { createLinkEntity, isEntityLinkEntity } from "./link-entity";
 
 export type CreateEntityParams = {
   ownedById: OwnedById;
@@ -273,7 +271,7 @@ export const getLatestEntityById: ImpureGraphFunction<
 
   if (!entity) {
     throw new Error(
-      `Critical: Entity with entityId ${entityId} doesn't exist or cannot be accessed by requesting user.`,
+      `Entity with entityId ${entityId} doesn't exist or cannot be accessed by requesting user.`,
     );
   }
 
@@ -308,6 +306,7 @@ export const getOrCreateEntity: ImpureGraphFunction<
     try {
       entity = await getLatestEntityById(context, authentication, {
         entityId: existingEntityId,
+        includeDrafts: true,
       });
     } catch {
       throw new ApolloError(
@@ -434,7 +433,6 @@ export const createEntityWithLinks: ImpureGraphFunction<
           linkEntityTypeId: link.meta.linkEntityTypeId,
           leftEntityId: parentEntity.entity.metadata.recordId.entityId,
           rightEntityId: entity.metadata.recordId.entityId,
-          leftToRightOrder: link.meta.index ?? undefined,
           ownedById,
           relationships,
           draft,
@@ -480,19 +478,17 @@ export const updateEntity: ImpureGraphFunction<
   const { graphApi } = context;
   const { actorId } = authentication;
 
-  const { data: metadata } = await graphApi.updateEntity(actorId, {
+  const { data: metadata } = await graphApi.patchEntity(actorId, {
     entityId: entity.metadata.recordId.entityId,
-    /**
-     * @todo: this field could be optional when updating an entity
-     *
-     * @see https://app.asana.com/0/1201095311341924/1203285029221330/f
-     * */
-    entityTypeIds: [entityTypeId ?? entity.metadata.entityTypeId],
-    archived: entity.metadata.archived,
-    draft:
-      params.draft ??
-      !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
-    properties,
+    entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
+    draft: params.draft,
+    properties: [
+      {
+        op: "replace",
+        path: "",
+        value: params.properties,
+      },
+    ],
   });
 
   for (const afterUpdateHook of afterUpdateEntityHooks) {
@@ -520,17 +516,9 @@ export const archiveEntity: ImpureGraphFunction<
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
   const { entity } = params;
-  await graphApi.updateEntity(actorId, {
+  await graphApi.patchEntity(actorId, {
     entityId: entity.metadata.recordId.entityId,
     archived: true,
-    /**
-     * @todo: these fields shouldn't be required when archiving an entity
-     *
-     * @see https://app.asana.com/0/1201095311341924/1203285029221330/f
-     * */
-    draft: !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
-    entityTypeIds: [entity.metadata.entityTypeId],
-    properties: entity.properties,
   });
 };
 
@@ -541,17 +529,9 @@ export const unarchiveEntity: ImpureGraphFunction<
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
   const { entity } = params;
-  await graphApi.updateEntity(actorId, {
+  await graphApi.patchEntity(actorId, {
     entityId: entity.metadata.recordId.entityId,
-    /**
-     * @todo: these fields shouldn't be required when archiving an entity
-     *
-     * @see https://app.asana.com/0/1201095311341924/1203285029221330/f
-     * */
     archived: false,
-    draft: !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
-    entityTypeIds: [entity.metadata.entityTypeId],
-    properties: entity.properties,
   });
 };
 

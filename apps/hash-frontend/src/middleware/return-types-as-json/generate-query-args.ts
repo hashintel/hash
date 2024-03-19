@@ -1,7 +1,7 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
-import { DocumentNode } from "graphql";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { DocumentNode } from "graphql";
 
-import {
+import type {
   GetDataTypeQueryVariables,
   GetEntityTypeQueryVariables,
   GetPropertyTypeQueryVariables,

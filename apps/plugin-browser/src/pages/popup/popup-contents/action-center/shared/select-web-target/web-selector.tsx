@@ -1,9 +1,9 @@
 import { Autocomplete, MenuItem } from "@hashintel/design-system";
-import { OwnedById } from "@local/hash-subgraph";
+import type { OwnedById } from "@local/hash-subgraph";
 import { Stack, Typography } from "@mui/material";
-import { ReactElement } from "react";
+import type { ReactElement } from "react";
 
-import { LocalStorage } from "../../../../../../shared/storage";
+import type { LocalStorage } from "../../../../../../shared/storage";
 import {
   darkModeBorderColor,
   darkModeInputBackgroundColor,

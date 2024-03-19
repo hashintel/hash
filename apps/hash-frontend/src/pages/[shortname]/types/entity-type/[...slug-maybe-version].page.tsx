@@ -1,14 +1,12 @@
-import { EntityTypeWithMetadata } from "@blockprotocol/graph";
+import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
 import { validateEntityType } from "@blockprotocol/type-system";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 
-import {
-  getLayoutWithSidebar,
-  NextPageWithLayout,
-} from "../../../../shared/layout";
+import type { NextPageWithLayout } from "../../../../shared/layout";
+import { getLayoutWithSidebar } from "../../../../shared/layout";
 import { EntityTypePage } from "../../../shared/entity-type-page";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { getEntityTypeBaseUrl } from "./[...slug-maybe-version].page/get-entity-type-base-url";

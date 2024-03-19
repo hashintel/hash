@@ -1,18 +1,19 @@
 import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
+import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { Image } from "@local/hash-isomorphic-utils/system-types/image";
-import {
+import type { Image } from "@local/hash-isomorphic-utils/system-types/image";
+import type {
   IsMemberOfProperties,
   OrganizationProperties,
   ProfileBioProperties,
   ServiceAccountProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import {
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+import type {
   AccountEntityId,
   AccountGroupEntityId,
   AccountGroupId,
@@ -20,12 +21,11 @@ import {
   BaseUrl,
   Entity,
   EntityRootType,
-  extractAccountGroupId,
-  extractAccountId,
   OwnedById,
   Subgraph,
   Timestamp,
 } from "@local/hash-subgraph";
+import { extractAccountGroupId, extractAccountId } from "@local/hash-subgraph";
 import {
   getIncomingLinksForEntity,
   getLeftEntityForLinkEntity,
@@ -35,7 +35,7 @@ import {
   intervalCompareWithInterval,
   intervalForTimestamp,
 } from "@local/hash-subgraph/stdlib";
-import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
 export const constructMinimalOrg = (params: {
   orgEntity: Entity<OrganizationProperties>;
@@ -66,6 +66,7 @@ export type MinimalUser = {
   entity: Entity;
   accountId: AccountId;
   accountSignupComplete: boolean;
+  enabledFeatureFlags: FeatureFlag[];
   pinnedEntityTypeBaseUrls?: BaseUrl[];
   shortname?: string;
   displayName?: string;
@@ -88,6 +89,9 @@ export const constructMinimalUser = (params: {
 
   const { shortname, displayName, pinnedEntityTypeBaseUrl } = simpleProperties;
 
+  const enabledFeatureFlags = (simpleProperties.enabledFeatureFlags ??
+    []) as FeatureFlag[];
+
   const accountSignupComplete = !!shortname && !!displayName;
 
   return {
@@ -98,12 +102,13 @@ export const constructMinimalUser = (params: {
       userEntity.metadata.recordId.entityId as AccountEntityId,
     ),
     accountSignupComplete,
+    ...simpleProperties,
+    enabledFeatureFlags,
     ...(pinnedEntityTypeBaseUrl
       ? {
           pinnedEntityTypeBaseUrls: pinnedEntityTypeBaseUrl as BaseUrl[],
         }
       : {}),
-    ...simpleProperties,
   };
 };
 
@@ -278,7 +283,6 @@ export type User = MinimalUser & {
     profileBioEntity: Entity<ProfileBioProperties>;
   };
   hasServiceAccounts: UserServiceAccount[];
-  isInstanceAdmin: boolean;
   memberOf: {
     linkEntity: Entity<IsMemberOfProperties>;
     org: Org;
@@ -468,11 +472,6 @@ export const constructUser = (params: {
       };
     });
 
-  /**
-   * @todo: determine whether a user is an instance admin from the subgraph
-   */
-  const isInstanceAdmin = false;
-
   const joinedAt = new Date(
     userEntity.metadata.provenance.createdAtDecisionTime,
   );
@@ -485,7 +484,6 @@ export const constructUser = (params: {
     hasServiceAccounts,
     joinedAt,
     memberOf,
-    isInstanceAdmin,
     emails: [
       {
         address: primaryEmailAddress,

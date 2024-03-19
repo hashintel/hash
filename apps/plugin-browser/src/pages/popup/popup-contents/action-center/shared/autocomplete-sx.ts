@@ -1,9 +1,8 @@
+import type { SxProps, Theme } from "@mui/material";
 import {
   autocompleteClasses,
   menuItemClasses,
   outlinedInputClasses,
-  SxProps,
-  Theme,
 } from "@mui/material";
 
 import {

@@ -5,13 +5,8 @@ import "prismjs/components/prism-json";
 import "prismjs/components/prism-json5";
 
 import { Box, GlobalStyles } from "@mui/material";
-import {
-  ChangeEvent,
-  KeyboardEvent,
-  useCallback,
-  useEffect,
-  useRef,
-} from "react";
+import type { ChangeEvent, KeyboardEvent } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 interface JsonEditorProps {
   value: string;

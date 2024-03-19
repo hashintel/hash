@@ -1,10 +1,11 @@
-import { linkEntityTypeUrl, OwnedById } from "@local/hash-subgraph";
+import type { OwnedById } from "@local/hash-subgraph";
+import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 
 import { logger } from "../../../../logger";
 import { createEntity } from "../../../knowledge/primitive/entity";
 import { getOrgByShortname } from "../../../knowledge/system-types/org";
-import { MigrationFunction } from "../types";
+import type { MigrationFunction } from "../types";
 import {
   anyUserInstantiator,
   createSystemEntityTypeIfNotExists,

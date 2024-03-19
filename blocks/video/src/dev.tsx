@@ -3,7 +3,7 @@
  * This file is not bundled with the library during the build process.
  */
 
-import {
+import type {
   Entity,
   RemoteFileEntityProperties,
   VersionedUrl,
@@ -14,7 +14,10 @@ import { createRoot } from "react-dom/client";
 import packageJSON from "../package.json";
 import Component from "./index";
 import { linkIds, propertyIds } from "./property-ids";
-import { BlockEntity, DisplaysMediaFile } from "./types/generated/block-entity";
+import type {
+  BlockEntity,
+  DisplaysMediaFile,
+} from "./types/generated/block-entity";
 
 const node = document.getElementById("app");
 

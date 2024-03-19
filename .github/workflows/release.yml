@@ -19,7 +19,7 @@ jobs:
       - uses: ./.github/actions/warm-up-repo
 
       - name: Create Release Pull Request or Publish to npm
-        uses: changesets/action@e2f8e964d080ae97c874b19e27b12e0a8620fb6c # v1.4.6
+        uses: changesets/action@aba318e9165b45b7948c60273e0b72fce0a64eb9 # v1.4.7
         with:
           publish: yarn changeset publish
         env:
@@ -27,7 +27,7 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@68c1f353baff8aeb637650eb6b01d9c8c95f383a
+        uses: rtCamp/action-slack-notify@df21811e2c616364d99fc0211db875993489a4ea
         if: ${{ failure() }}
         env:
           SLACK_LINK_NAMES: true

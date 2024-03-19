@@ -1,8 +1,5 @@
-import {
-  CustomCell,
-  CustomRenderer,
-  GridCellKind,
-} from "@glideapps/glide-data-grid";
+import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
+import { GridCellKind } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
 
 import {
@@ -10,7 +7,7 @@ import {
   getYCenter,
 } from "../../../../../../../../components/grid/utils";
 import { drawCellFadeOutGradient } from "../../../../../../../../components/grid/utils/draw-cell-fade-out-gradient";
-import { LinkRow } from "../types";
+import type { LinkRow } from "../types";
 
 export interface LinkCellProps {
   readonly kind: "link-cell";

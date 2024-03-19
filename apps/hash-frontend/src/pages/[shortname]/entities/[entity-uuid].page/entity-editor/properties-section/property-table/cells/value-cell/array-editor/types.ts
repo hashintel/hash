@@ -1,4 +1,4 @@
-import { EditorType } from "../types";
+import type { EditorType } from "../types";
 
 export interface SortableItem {
   value: unknown;

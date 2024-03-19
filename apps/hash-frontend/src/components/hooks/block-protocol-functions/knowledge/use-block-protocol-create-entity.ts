@@ -1,8 +1,8 @@
 import { useMutation } from "@apollo/client";
-import { OwnedById } from "@local/hash-subgraph";
+import type { OwnedById } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
-import {
+import type {
   CreateEntityMutation,
   CreateEntityMutationVariables,
 } from "../../../../graphql/api-types.gen";
@@ -12,7 +12,7 @@ import {
 } from "../../../../graphql/queries/knowledge/entity.queries";
 import { useActiveWorkspace } from "../../../../pages/shared/workspace-context";
 import { generateUseEntityTypeEntitiesQueryVariables } from "../../../../shared/use-entity-type-entities";
-import { CreateEntityMessageCallback } from "./knowledge-shim";
+import type { CreateEntityMessageCallback } from "./knowledge-shim";
 
 export const useBlockProtocolCreateEntity = (
   ownedById: OwnedById | null,

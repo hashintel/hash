@@ -1,10 +1,11 @@
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { BaseUrl, Entity } from "@local/hash-subgraph";
+import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { BaseUrl, Entity } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Typography } from "@mui/material";
-import { FunctionComponent, ReactNode, useMemo } from "react";
+import type { FunctionComponent, ReactNode } from "react";
+import { useMemo } from "react";
 
 import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { FileAudioLightIcon } from "../../../../shared/icons/file-audio-light-icon";

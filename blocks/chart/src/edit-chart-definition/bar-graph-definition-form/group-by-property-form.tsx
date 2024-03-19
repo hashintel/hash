@@ -1,11 +1,11 @@
-import {
+import type {
   EntityRootType,
   EntityType,
-  extractBaseUrl,
   PropertyType,
   Subgraph,
   VersionedUrl,
 } from "@blockprotocol/graph";
+import { extractBaseUrl } from "@blockprotocol/graph";
 import { getEntityTypeById, getRoots } from "@blockprotocol/graph/stdlib";
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
 import {
@@ -15,10 +15,11 @@ import {
   Select,
   TextField,
 } from "@mui/material";
-import { FunctionComponent, useMemo } from "react";
+import type { FunctionComponent } from "react";
+import { useMemo } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 
-import {
+import type {
   BarChartGroupByPropertyVariant,
   ChartDefinition,
 } from "../../types/chart-definition";

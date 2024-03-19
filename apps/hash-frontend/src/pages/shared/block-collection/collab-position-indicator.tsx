@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { FunctionComponent, ReactNode } from "react";
+import type { FunctionComponent, ReactNode } from "react";
 
 interface CollabPositionIndicatorProps {
   backgroundColor: string;

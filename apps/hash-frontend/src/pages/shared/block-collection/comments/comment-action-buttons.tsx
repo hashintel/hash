@@ -1,5 +1,6 @@
-import { Box, SxProps, Theme } from "@mui/material";
-import { FunctionComponent } from "react";
+import type { SxProps, Theme } from "@mui/material";
+import { Box } from "@mui/material";
+import type { FunctionComponent } from "react";
 
 import { Button } from "../../../../shared/ui";
 

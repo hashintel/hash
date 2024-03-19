@@ -1,14 +1,15 @@
 import { Button, CaretDownSolidIcon } from "@hashintel/design-system";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import { useMemo, useState } from "react";
-import browser, { Tabs } from "webextension-polyfill";
+import type { Tabs } from "webextension-polyfill";
+import browser from "webextension-polyfill";
 
 import { createDefaultSettings } from "../../../../../shared/create-default-settings";
-import {
+import type {
   GetSiteContentRequest,
   GetSiteContentReturn,
 } from "../../../../../shared/messages";
-import { LocalStorage } from "../../../../../shared/storage";
+import type { LocalStorage } from "../../../../../shared/storage";
 import { sendMessageToBackground } from "../../../../shared/messages";
 import { borderColors } from "../../../../shared/style-values";
 import { useStorageSync } from "../../../../shared/use-storage-sync";
@@ -109,6 +110,9 @@ export const InferEntitiesAction = ({
           <EntityTypeSelector
             inputHeight="auto"
             multiple
+            popperPlacement={
+              user.enabledFeatureFlags.includes("notes") ? "top" : "bottom"
+            }
             setTargetEntityTypeIds={({
               selectedEntityTypeIds,
               linkedEntityTypeIds,

@@ -1,8 +1,8 @@
-import {
+import type {
   PropertyTypeReference,
   ValueOrArray,
 } from "@blockprotocol/type-system";
-import {
+import type {
   BaseUrl,
   Entity,
   EntityRootType,
@@ -15,7 +15,7 @@ import {
   isPropertyValueArray,
   isPropertyValuePropertyObject,
 } from "../../../../../../../../../lib/typeguards";
-import { PropertyRow } from "../../types";
+import type { PropertyRow } from "../../types";
 import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property-type";
 
 /**

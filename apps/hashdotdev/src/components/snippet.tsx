@@ -17,9 +17,10 @@ import "prismjs/components/prism-rust";
 import "prismjs/components/prism-typescript";
 import "prismjs/components/prism-fsharp";
 
-import { Box, BoxProps } from "@mui/material";
+import type { BoxProps } from "@mui/material";
+import { Box } from "@mui/material";
 import Prism from "prismjs";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 
 type SnippetProps = {
   source: string;

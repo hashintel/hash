@@ -1,12 +1,12 @@
 import { LitElement } from "lit";
 
-import {
+import type {
   BlockGraphProperties,
   Entity,
   EntityPropertiesObject,
-  GraphBlockHandler,
   LinkEntityAndRightEntity,
 } from "./main.js";
+import { GraphBlockHandler } from "./main.js";
 import { getOutgoingLinkAndTargetEntities, getRoots } from "./stdlib.js";
 
 export interface BlockElementBase<
@@ -119,8 +119,6 @@ export abstract class BlockElementBase<
         entityId: blockEntity.metadata.recordId.entityId,
         entityTypeId: blockEntity.metadata.entityTypeId,
         properties,
-        leftToRightOrder: blockEntity.linkData?.leftToRightOrder,
-        rightToLeftOrder: blockEntity.linkData?.rightToLeftOrder,
       },
     });
   }

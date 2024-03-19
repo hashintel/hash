@@ -1,4 +1,5 @@
-import { Components, dividerClasses, Theme } from "@mui/material";
+import type { Components, Theme } from "@mui/material";
+import { dividerClasses } from "@mui/material";
 
 export const MuiMenuThemeOptions: Components<Theme>["MuiMenu"] = {
   defaultProps: {
