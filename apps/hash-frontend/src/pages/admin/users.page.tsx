@@ -54,8 +54,9 @@ const AdminUsersPage: NextPageWithLayout = () => {
         >
           <TableRow>
             <TableCell>User</TableCell>
-            <TableCell>Display Name</TableCell>
-            <TableCell>Date Created</TableCell>
+            <TableCell>Display name</TableCell>
+            <TableCell>Email address</TableCell>
+            <TableCell>Date created</TableCell>
           </TableRow>
         </TableHead>
         <TableBody
@@ -66,33 +67,41 @@ const AdminUsersPage: NextPageWithLayout = () => {
           }}
         >
           {users
-            ? users.map(({ shortname, displayName, entity }) => (
-                <TableRow key={entity.metadata.recordId.entityId}>
-                  <TableCell>
-                    {shortname ? (
-                      <Link
-                        sx={{ fontWeight: 700, textDecoration: "none" }}
-                        href={`/admin/users/${extractEntityUuidFromEntityId(entity.metadata.recordId.entityId)}`}
-                      >
-                        @{shortname}
-                      </Link>
-                    ) : (
-                      noValueTableCellContent
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {displayName ?? noValueTableCellContent}
-                  </TableCell>
-                  <TableCell>
-                    {format(
-                      new Date(
-                        entity.metadata.provenance.createdAtDecisionTime,
-                      ),
-                      "yyyy-MM-dd",
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
+            ? users.map(({ shortname, displayName, entity }) => {
+                const [email] =
+                  entity.properties[
+                    "https://hash.ai/@hash/types/property-type/email/"
+                  ];
+
+                return (
+                  <TableRow key={entity.metadata.recordId.entityId}>
+                    <TableCell>
+                      {shortname ? (
+                        <Link
+                          sx={{ fontWeight: 700, textDecoration: "none" }}
+                          href={`/admin/users/${extractEntityUuidFromEntityId(entity.metadata.recordId.entityId)}`}
+                        >
+                          @{shortname}
+                        </Link>
+                      ) : (
+                        noValueTableCellContent
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {displayName ?? noValueTableCellContent}
+                    </TableCell>
+                    <TableCell>{email}</TableCell>
+                    <TableCell>
+                      {format(
+                        new Date(
+                          entity.metadata.provenance.createdAtDecisionTime,
+                        ),
+                        "yyyy-MM-dd",
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             : "Loading..."}
         </TableBody>
       </Table>
