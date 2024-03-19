@@ -23,7 +23,7 @@
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/node": "20.11.29",
+    "@types/node": "18.15.13",
     "eslint": "8.57.0"
   }
 }
