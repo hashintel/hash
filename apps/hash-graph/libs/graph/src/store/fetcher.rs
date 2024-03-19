@@ -42,8 +42,8 @@ use crate::{
         account::{InsertAccountGroupIdParams, InsertAccountIdParams, InsertWebIdParams},
         crud::{QueryResult, Read, ReadPaginated, Sorting},
         knowledge::{
-            CreateEntityParams, EntityQueryCursor, GetEntityParams, UpdateEntityEmbeddingsParams,
-            UpdateEntityParams, ValidateEntityError, ValidateEntityParams,
+            CreateEntityParams, EntityQueryCursor, GetEntityParams, PatchEntityParams,
+            UpdateEntityEmbeddingsParams, ValidateEntityError, ValidateEntityParams,
         },
         ontology::{
             ArchiveDataTypeParams, ArchiveEntityTypeParams, ArchivePropertyTypeParams,
@@ -1311,12 +1311,12 @@ where
             .await
     }
 
-    async fn update_entity<Au: AuthorizationApi + Send + Sync>(
+    async fn patch_entity<Au: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
         temporal_client: Option<&TemporalClient>,
-        params: UpdateEntityParams,
+        params: PatchEntityParams,
     ) -> Result<EntityMetadata, UpdateError> {
         for entity_type_id in &params.entity_type_ids {
             self.insert_external_types_by_reference(
@@ -1335,7 +1335,7 @@ where
         }
 
         self.store
-            .update_entity(actor_id, authorization_api, temporal_client, params)
+            .patch_entity(actor_id, authorization_api, temporal_client, params)
             .await
     }
 

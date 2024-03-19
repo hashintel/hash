@@ -56,6 +56,7 @@ import {
   TOP_CONTEXT_BAR_HEIGHT,
   TopContextBar,
 } from "../shared/top-context-bar";
+import { useEnabledFeatureFlags } from "../shared/use-enabled-feature-flags";
 import { CanvasPageBlock } from "./[page-slug].page/canvas-page";
 import { ArchiveMenuItem } from "./shared/archive-menu-item";
 
@@ -183,6 +184,8 @@ const Page: NextPageWithLayout<PageProps> = () => {
     "normal",
   );
 
+  const enabledFeatureFlags = useEnabledFeatureFlags();
+
   if (!isPageParsedUrlQuery(query)) {
     throw new Error(
       `Invalid page URL query parameters: ${JSON.stringify(query)}.`,
@@ -305,13 +308,21 @@ const Page: NextPageWithLayout<PageProps> = () => {
     page.properties as PageProperties,
   );
 
+  const isCanvasPage =
+    page.metadata.entityTypeId === systemEntityTypes.canvas.entityTypeId;
+
+  const isDocumentPage =
+    page.metadata.entityTypeId === systemEntityTypes.document.entityTypeId;
+
   const canUserEdit = userPermissionsOnEntities[pageEntityId]?.edit ?? false;
+
+  const readonly = !(
+    (isDocumentPage && enabledFeatureFlags.documents && canUserEdit) ||
+    (isCanvasPage && enabledFeatureFlags.canvases && canUserEdit)
+  );
 
   const isSafari = isSafariBrowser();
   const pageTitle = isSafari && icon ? `${icon} ${title}` : title;
-
-  const isCanvasPage =
-    page.metadata.entityTypeId === systemEntityTypes.canvas.entityTypeId;
 
   return (
     <>
@@ -394,7 +405,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
                 <PageTitle
                   value={title}
                   pageEntityId={pageEntityId}
-                  readonly={!canUserEdit}
+                  readonly={readonly}
                 />
                 {/*
             Commented out Version Dropdown and Transfer Page buttons.
@@ -488,7 +499,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
                         ".ProseMirror": {
                           ...getPageSectionContainerStyles({
                             pageComments,
-                            readonly: !canUserEdit,
+                            readonly,
                           }),
                         },
                       }}

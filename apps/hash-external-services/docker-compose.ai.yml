@@ -15,6 +15,7 @@ services:
       OPENAI_API_KEY: "${OPENAI_API_KEY}"
       HASH_GRAPH_API_HOST: graph
       HASH_GRAPH_API_PORT: "${HASH_GRAPH_API_PORT}"
+      INTERNAL_API_KEY: "${INTERNAL_API_KEY}"
     tmpfs:
       - /tmp
     read_only: false

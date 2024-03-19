@@ -30,11 +30,9 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 vec![Relation::EntityIds]
             }
             Self::Embedding => vec![Relation::EntityEmbeddings],
-            Self::Properties(_)
-            | Self::LeftToRightOrder
-            | Self::RightToLeftOrder
-            | Self::EditionCreatedById
-            | Self::Archived => vec![Relation::EntityEditions],
+            Self::Properties(_) | Self::EditionCreatedById | Self::Archived => {
+                vec![Relation::EntityEditions]
+            }
             Self::TypeBaseUrls | Self::TypeVersions => vec![Relation::EntityIsOfTypes],
             Self::EntityTypeEdge {
                 edge_kind: SharedEdgeKind::IsOfType,
@@ -143,8 +141,6 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 Column::EntityHasRightEntity(EntityHasRightEntity::RightEntityWebId)
             }
             Self::EntityEdge { path, .. } => path.terminating_column(),
-            Self::LeftToRightOrder => Column::EntityEditions(EntityEditions::LeftToRightOrder),
-            Self::RightToLeftOrder => Column::EntityEditions(EntityEditions::RightToLeftOrder),
             Self::Properties(path) => path.as_ref().map_or(
                 Column::EntityEditions(EntityEditions::Properties(None)),
                 |path| {

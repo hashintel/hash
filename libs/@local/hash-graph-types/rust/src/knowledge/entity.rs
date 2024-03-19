@@ -1,6 +1,10 @@
 #[cfg(feature = "postgres")]
 use std::error::Error;
-use std::{collections::HashMap, fmt, str::FromStr};
+use std::{
+    collections::{hash_map, HashMap},
+    fmt,
+    str::FromStr,
+};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
@@ -84,6 +88,15 @@ impl fmt::Display for DraftId {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema), schema(value_type = Object))]
 pub struct EntityProperties(HashMap<BaseUrl, serde_json::Value>);
+
+impl IntoIterator for EntityProperties {
+    type IntoIter = hash_map::IntoIter<BaseUrl, serde_json::Value>;
+    type Item = (BaseUrl, serde_json::Value);
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
 
 #[cfg(feature = "postgres")]
 impl ToSql for EntityProperties {

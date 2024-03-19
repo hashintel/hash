@@ -1,14 +1,19 @@
 import { faHome } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
-import { Box, Drawer, Tooltip } from "@mui/material";
+import { Box, Collapse, Drawer, Tooltip } from "@mui/material";
 import { useRouter } from "next/router";
-import type { FunctionComponent } from "react";
+import {
+  Fragment,
+  type FunctionComponent,
+  type ReactNode,
+  useMemo,
+} from "react";
 
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
+import { useEnabledFeatureFlags } from "../../../pages/shared/use-enabled-feature-flags";
 import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
 import { useDraftEntities } from "../../draft-entities-context";
 import { SidebarToggleIcon } from "../../icons";
-import { FeatherLightIcon } from "../../icons/feather-light-icon";
 import { InboxIcon } from "../../icons/inbox-icon";
 import { NoteIcon } from "../../icons/note-icon";
 import { useNotificationEntities } from "../../notification-entities-context";
@@ -23,6 +28,15 @@ import { WorkspaceSwitcher } from "./workspace-switcher";
 
 export const SIDEBAR_WIDTH = 260;
 
+type NavLinkDefinition = {
+  title: string;
+  href: string;
+  icon?: ReactNode;
+  tooltipTitle?: string;
+  count?: number;
+  children?: Omit<NavLinkDefinition, "children" | "icon">[];
+};
+
 export const PageSidebar: FunctionComponent = () => {
   const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebarContext();
@@ -30,11 +44,55 @@ export const PageSidebar: FunctionComponent = () => {
   const { routePageEntityUuid } =
     useRoutePageInfo({ allowUndefined: true }) ?? {};
 
+  const enabledFeatureFlags = useEnabledFeatureFlags();
+
   const { hashInstance } = useHashInstance();
 
   const { numberOfUnreadNotifications } = useNotificationEntities();
 
   const { draftEntities } = useDraftEntities();
+
+  const navLinks = useMemo<NavLinkDefinition[]>(() => {
+    const numberOfPendingActions = draftEntities?.length ?? 0;
+
+    return [
+      {
+        title: "Home",
+        href: "/",
+        icon: <FontAwesomeIcon icon={faHome} />,
+        tooltipTitle: "",
+      },
+      {
+        title: "Inbox",
+        href: "/inbox",
+        icon: <InboxIcon sx={{ fontSize: 16 }} />,
+        tooltipTitle: "",
+        count: (numberOfUnreadNotifications ?? 0) + numberOfPendingActions,
+        children: [
+          {
+            title: "Notifications",
+            href: "/inbox",
+            count: numberOfUnreadNotifications,
+          },
+          {
+            title: "Actions",
+            href: "/actions",
+            count: numberOfPendingActions,
+          },
+        ],
+      },
+      ...(enabledFeatureFlags.notes
+        ? [
+            {
+              title: "Notes",
+              href: "/notes",
+              icon: <NoteIcon sx={{ fontSize: 16 }} />,
+              tooltipTitle: "",
+            },
+          ]
+        : []),
+    ];
+  }, [draftEntities, numberOfUnreadNotifications, enabledFeatureFlags]);
 
   return (
     <Drawer
@@ -75,36 +133,48 @@ export const PageSidebar: FunctionComponent = () => {
           </IconButton>
         </Tooltip>
       </Box>
-      <TopNavLink
-        icon={<FontAwesomeIcon icon={faHome} />}
-        title="Home"
-        href="/"
-        tooltipTitle=""
-        active={router.pathname === "/[shortname]"}
-      />
-      <TopNavLink
-        icon={<InboxIcon sx={{ fontSize: 16 }} />}
-        title="Inbox"
-        href="/inbox"
-        tooltipTitle=""
-        count={numberOfUnreadNotifications}
-        active={router.pathname === "/inbox"}
-      />
-      <TopNavLink
-        icon={<FeatherLightIcon sx={{ fontSize: 16 }} />}
-        title="Drafts"
-        href="/drafts"
-        tooltipTitle=""
-        count={draftEntities?.length}
-        active={router.pathname === "/drafts"}
-      />
-      <TopNavLink
-        icon={<NoteIcon sx={{ fontSize: 16 }} />}
-        title="Notes"
-        href="/notes"
-        tooltipTitle=""
-        active={router.pathname === "/notes"}
-      />
+      {navLinks.map((navLink) => {
+        const isActive =
+          router.pathname === navLink.href ||
+          navLink.children?.some(
+            (childNavLink) => router.pathname === childNavLink.href,
+          );
+
+        return (
+          <Fragment key={navLink.href}>
+            <TopNavLink
+              icon={navLink.icon}
+              title={navLink.title}
+              href={navLink.href}
+              tooltipTitle={navLink.tooltipTitle ?? ""}
+              count={navLink.count}
+              active={isActive}
+            />
+            <Collapse in={isActive}>
+              {navLink.children?.map((childNavLink) => {
+                const isChildActive = router.pathname === childNavLink.href;
+
+                return (
+                  <TopNavLink
+                    key={childNavLink.href}
+                    title={childNavLink.title}
+                    href={childNavLink.href}
+                    tooltipTitle={childNavLink.tooltipTitle ?? ""}
+                    count={childNavLink.count}
+                    active={isChildActive}
+                    sx={{
+                      "&:hover": {
+                        background: "transparent",
+                      },
+                      ...(isChildActive ? { background: "transparent" } : {}),
+                    }}
+                  />
+                );
+              })}
+            </Collapse>
+          </Fragment>
+        );
+      })}
       {/* 
         Commented out nav links whose functionality have not been 
         implemented yet
@@ -129,7 +199,8 @@ export const PageSidebar: FunctionComponent = () => {
         {activeWorkspaceOwnedById ? (
           <>
             {/* PAGES */}
-            {hashInstance?.properties.pagesAreEnabled ? (
+            {hashInstance?.properties.pagesAreEnabled &&
+            enabledFeatureFlags.pages ? (
               <AccountPageList
                 currentPageEntityUuid={routePageEntityUuid}
                 ownedById={activeWorkspaceOwnedById}

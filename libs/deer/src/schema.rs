@@ -261,6 +261,7 @@ pub(crate) mod visitor {
     use crate::{schema::Reflection, Document, Schema};
 
     // TODO: below here these are temporary until stdlib is implemented
+    #[allow(dead_code)]
     pub(crate) struct BoolSchema;
     impl Reflection for BoolSchema {
         fn schema(_: &mut Document) -> Schema {
@@ -268,6 +269,7 @@ pub(crate) mod visitor {
         }
     }
 
+    #[allow(dead_code)]
     pub(crate) struct StringSchema;
     impl Reflection for StringSchema {
         fn schema(_: &mut Document) -> Schema {

@@ -15,7 +15,6 @@ import type {
   EntityId,
   OwnedById,
 } from "@local/hash-subgraph";
-import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 
 import {
   mapHashEntityToLinearUpdateInput,
@@ -225,14 +224,15 @@ const createOrUpdateHashEntity = async (params: {
       ),
     };
 
-    await graphApiClient.updateEntity(params.authentication.actorId, {
-      archived: false,
+    await graphApiClient.patchEntity(params.authentication.actorId, {
       entityId: existingEntity.metadata.recordId.entityId,
-      entityTypeIds: [existingEntity.metadata.entityTypeId],
-      properties: mergedProperties,
-      draft: !!extractDraftIdFromEntityId(
-        existingEntity.metadata.recordId.entityId,
-      ),
+      properties: [
+        {
+          op: "replace",
+          path: "",
+          value: mergedProperties,
+        },
+      ],
     });
   }
 
