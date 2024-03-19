@@ -35,6 +35,11 @@ const nextConfig = {
         permanent: true,
       },
       {
+        source: "/docs/simulations/create/views/:path*",
+        destination: "/docs/simulations/run/simulation/outputs/:path*",
+        permanent: true,
+      },
+      {
         source: "/docs/simulations/create/agent-based-modeling-basics-1",
         destination: "/docs/simulations/create/abm",
         permanent: true,
