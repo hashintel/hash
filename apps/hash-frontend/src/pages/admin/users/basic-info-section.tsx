@@ -70,6 +70,13 @@ export const BasicInfoSection: FunctionComponent<{
         control={control}
         name="enabledFeatureFlags"
         render={({ field }) => (
+          /**
+           * Currently the height of this component is fixed, instead of dynamically
+           * increasing based on the number of chips that are currently selected.
+           *
+           * @todo: support dynamic height in the theme system `Autocomplete` component,
+           * or use the base MUI `Autocomplete` component instead.
+           */
           <Autocomplete<FeatureFlag, true, false>
             multiple
             value={field.value}
