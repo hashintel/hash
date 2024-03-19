@@ -1,11 +1,14 @@
 import { describe, expect, test } from "vitest";
 import * as DataType from "../../src/ontology/DataType.js";
 import * as BuiltIn from "../../src/ontology/DataType/BuiltIn.js";
+import { Effect } from "effect";
 
 describe("v1", () => {
   describe("schema", () => {
     test("Boolean", () => {
-      expect(DataType.toSchema(BuiltIn.Boolean.v1)).toMatchInlineSnapshot(`
+      const schema = Effect.runSync(DataType.toSchema(BuiltIn.Boolean.v1));
+
+      expect(schema).toMatchInlineSnapshot(`
         {
           "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
           "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -18,7 +21,9 @@ describe("v1", () => {
     });
 
     test("EmptyList", () => {
-      expect(DataType.toSchema(BuiltIn.EmptyList.v1)).toMatchInlineSnapshot(`
+      const schema = Effect.runSync(DataType.toSchema(BuiltIn.EmptyList.v1));
+
+      expect(schema).toMatchInlineSnapshot(`
         {
           "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/v/1",
           "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -32,7 +37,9 @@ describe("v1", () => {
     });
 
     test("Null", () => {
-      expect(DataType.toSchema(BuiltIn.Null.v1)).toMatchInlineSnapshot(`
+      const schema = Effect.runSync(DataType.toSchema(BuiltIn.Null.v1));
+
+      expect(schema).toMatchInlineSnapshot(`
         {
           "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/null/v/1",
           "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -45,7 +52,9 @@ describe("v1", () => {
     });
 
     test("Number", () => {
-      expect(DataType.toSchema(BuiltIn.Number.v1)).toMatchInlineSnapshot(`
+      const schema = Effect.runSync(DataType.toSchema(BuiltIn.Number.v1));
+
+      expect(schema).toMatchInlineSnapshot(`
         {
           "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
           "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -58,7 +67,9 @@ describe("v1", () => {
     });
 
     test("Opaque", () => {
-      expect(DataType.toSchema(BuiltIn.Opaque.v1)).toMatchInlineSnapshot(`
+      const schema = Effect.runSync(DataType.toSchema(BuiltIn.Opaque.v1));
+
+      expect(schema).toMatchInlineSnapshot(`
         {
           "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
           "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -71,7 +82,9 @@ describe("v1", () => {
     });
 
     test("Text", () => {
-      expect(DataType.toSchema(BuiltIn.Text.v1)).toMatchInlineSnapshot(`
+      const schema = Effect.runSync(DataType.toSchema(BuiltIn.Text.v1));
+
+      expect(schema).toMatchInlineSnapshot(`
         {
           "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",

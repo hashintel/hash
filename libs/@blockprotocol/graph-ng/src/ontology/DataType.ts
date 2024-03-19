@@ -1,6 +1,6 @@
 import * as S from "@effect/schema/Schema";
 import {
-  Either,
+  Effect,
   Equal,
   Hash,
   Inspectable,
@@ -15,6 +15,7 @@ import { encodeSchema } from "./DataType/encode.js";
 import { DecodeError, EncodeError } from "./DataType/error.js";
 import { DataTypeSchema } from "./DataType/schema.js";
 import * as DataTypeUrl from "./DataTypeUrl.js";
+import { globalValue } from "effect/GlobalValue";
 
 const TypeId: unique symbol = Symbol.for(
   "@blockprotocol/graph/ontology/DataType",
@@ -79,6 +80,11 @@ const DataTypeProto: Omit<DataTypeImpl<unknown>, "id" | "schema"> = {
   },
 };
 
+const schemaStorage = globalValue(
+  Symbol.for("@blockprotocol/graph/ontology/DataType/schemaStorage"),
+  () => new Map<DataType<unknown>, DataTypeSchema>(),
+);
+
 export function isDataType(value: unknown): value is DataType<unknown> {
   return Predicate.hasProperty(value, TypeId);
 }
@@ -102,37 +108,37 @@ function makeImpl<Out, In extends Json.Value>(
 
 function toSchemaImpl<Out, In>(
   schema: S.Schema<Out, In>,
-): Either.Either<DataTypeSchema, EncodeError> {
+): Effect.Effect<DataTypeSchema, EncodeError> {
   return encodeSchema(schema.ast);
 }
 
 export function make<Out, In extends Json.Value>(
   id: DataTypeUrl.DataTypeUrl,
   schema: S.Schema<Out, In>,
-): Either.Either<DataType<Out, In>, EncodeError> {
-  const impl = makeImpl(id, schema);
-
-  return pipe(
-    toSchemaImpl(impl.schema),
-    Either.map(() => impl),
-  );
+): Effect.Effect<DataType<Out, In>, EncodeError> {
+  return Effect.gen(function* (_) {
+    const impl = makeImpl(id, schema);
+    const compiled = yield* _(toSchemaImpl(impl.schema));
+    schemaStorage.set(impl as unknown as DataType<unknown>, compiled);
+    return impl;
+  });
 }
 
 export function makeOrThrow<Out, In extends Json.Value>(
   id: DataTypeUrl.DataTypeUrl,
   schema: S.Schema<Out, In>,
 ): DataType<Out, In> {
-  return Either.getOrThrow(make(id, schema));
+  return Effect.runSync(make(id, schema));
 }
 
 export function parse<I extends string, Out, In extends Json.Value>(
   id: I,
   schema: S.Schema<Out, In>,
-): Either.Either<DataType<Out, In>, EncodeError> {
+): Effect.Effect<DataType<Out, In>, EncodeError> {
   return pipe(
     DataTypeUrl.parse(id),
-    Either.mapLeft((error) => EncodeError.invalidUrl(error)),
-    Either.andThen((url) => make(url, schema)),
+    Effect.mapError((error) => EncodeError.invalidUrl(error)),
+    Effect.andThen((url) => make(url, schema)),
   );
 }
 
@@ -140,27 +146,29 @@ export function parseOrThrow<I extends string, Out, In extends Json.Value>(
   id: I,
   schema: S.Schema<Out, In>,
 ): DataType<Out, In> {
-  return Either.getOrThrow(parse(id, schema));
+  return Effect.runSync(parse(id, schema));
 }
 
 export function toSchema<Out, In extends Json.Value>(
   dataType: DataType<Out, In>,
-): DataTypeSchema {
-  const schema = toSchemaImpl(dataType.schema);
+): Effect.Effect<DataTypeSchema, EncodeError> {
+  const unknownDataType = dataType as unknown as DataType<unknown>;
+  if (schemaStorage.has(unknownDataType)) {
+    return Effect.succeed(schemaStorage.get(unknownDataType)!);
+  }
 
-  // the value has been validated in `make<T>`
-  return Either.getOrThrow(schema);
+  return toSchemaImpl(dataType.schema);
 }
 
 export function fromSchema(
   schema: DataTypeSchema,
-): Either.Either<DataType<Json.Value>, DecodeError> {
-  return Either.gen(function* (_) {
+): Effect.Effect<DataType<Json.Value>, DecodeError> {
+  return Effect.gen(function* (_) {
     const inner = decodeSchema(schema);
 
     const dataType = yield* _(
       make(schema.$id, inner),
-      Either.mapLeft((cause) => DecodeError.encode(cause)),
+      Effect.mapError((cause) => DecodeError.encode(cause)),
     );
 
     return dataType;

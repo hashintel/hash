@@ -1,4 +1,4 @@
-import { Either } from "effect";
+import { Effect } from "effect";
 import { describe, expect, test } from "vitest";
 
 import * as DataType from "../../src/ontology/DataType.js";
@@ -17,7 +17,7 @@ describe("literal", () => {
     } satisfies DataType.Schema;
 
     const result = DataType.fromSchema(schema);
-    const dataType = Either.getOrThrow(result);
+    const dataType = Effect.runSync(result);
 
     expect(dataType).toMatchSnapshot();
   });
@@ -34,7 +34,7 @@ describe("literal", () => {
     } satisfies DataType.Schema;
 
     const result = DataType.fromSchema(schema);
-    const dataType = Either.getOrThrow(result);
+    const dataType = Effect.runSync(result);
 
     expect(dataType).toMatchSnapshot();
   });
@@ -51,7 +51,7 @@ describe("literal", () => {
     } satisfies DataType.Schema;
 
     const result = DataType.fromSchema(schema);
-    const dataType = Either.getOrThrow(result);
+    const dataType = Effect.runSync(result);
 
     expect(dataType).toMatchSnapshot();
   });
@@ -68,7 +68,7 @@ describe("literal", () => {
     } satisfies DataType.Schema;
 
     const result = DataType.fromSchema(schema);
-    const dataType = Either.getOrThrow(result);
+    const dataType = Effect.runSync(result);
 
     expect(dataType).toMatchSnapshot();
   });
@@ -88,7 +88,7 @@ describe("string", () => {
   test("standard", () => {
     const schema = base;
     const result = DataType.fromSchema(schema);
-    const dataType = Either.getOrThrow(result);
+    const dataType = Effect.runSync(result);
 
     expect(dataType).toMatchSnapshot();
   });
@@ -99,7 +99,7 @@ describe("string", () => {
       minLength: 1,
     } satisfies DataType.Schema;
     const result = DataType.fromSchema(schema);
-    const dataType = Either.getOrThrow(result);
+    const dataType = Effect.runSync(result);
 
     expect(dataType).toMatchSnapshot();
   });
@@ -110,7 +110,7 @@ describe("string", () => {
       maxLength: 10,
     } satisfies DataType.Schema;
     const result = DataType.fromSchema(schema);
-    const dataType = Either.getOrThrow(result);
+    const dataType = Effect.runSync(result);
 
     expect(dataType).toMatchSnapshot();
   });
@@ -121,7 +121,7 @@ describe("string", () => {
       pattern: "^[a-z]+$",
     } satisfies DataType.Schema;
     const result = DataType.fromSchema(schema);
-    const dataType = Either.getOrThrow(result);
+    const dataType = Effect.runSync(result);
 
     expect(dataType).toMatchSnapshot();
   });
@@ -134,7 +134,7 @@ describe("string", () => {
       pattern: "^[a-z]+$",
     } satisfies DataType.Schema;
     const result = DataType.fromSchema(schema);
-    const dataType = Either.getOrThrow(result);
+    const dataType = Effect.runSync(result);
 
     expect(dataType).toMatchSnapshot();
   });
@@ -154,7 +154,7 @@ describe("number", () => {
   test("number", () => {
     const schema = base;
     const result = DataType.fromSchema(schema);
-    const dataType = Either.getOrThrow(result);
+    const dataType = Effect.runSync(result);
 
     expect(dataType).toMatchSnapshot();
   });
@@ -165,7 +165,7 @@ describe("number", () => {
       type: "integer",
     } satisfies DataType.Schema;
     const result = DataType.fromSchema(schema);
-    const dataType = Either.getOrThrow(result);
+    const dataType = Effect.runSync(result);
 
     expect(dataType).toMatchSnapshot();
   });
@@ -176,7 +176,7 @@ describe("number", () => {
       multipleOf: 2,
     } satisfies DataType.Schema;
     const result = DataType.fromSchema(schema);
-    const dataType = Either.getOrThrow(result);
+    const dataType = Effect.runSync(result);
 
     expect(dataType).toMatchSnapshot();
   });
@@ -187,7 +187,7 @@ describe("number", () => {
       minimum: 0,
     } satisfies DataType.Schema;
     const result = DataType.fromSchema(schema);
-    const dataType = Either.getOrThrow(result);
+    const dataType = Effect.runSync(result);
 
     expect(dataType).toMatchSnapshot();
   });
@@ -198,7 +198,7 @@ describe("number", () => {
       maximum: 100,
     } satisfies DataType.Schema;
     const result = DataType.fromSchema(schema);
-    const dataType = Either.getOrThrow(result);
+    const dataType = Effect.runSync(result);
 
     expect(dataType).toMatchSnapshot();
   });
@@ -209,7 +209,7 @@ describe("number", () => {
       exclusiveMinimum: 0,
     } satisfies DataType.Schema;
     const result = DataType.fromSchema(schema);
-    const dataType = Either.getOrThrow(result);
+    const dataType = Effect.runSync(result);
 
     expect(dataType).toMatchSnapshot();
   });
@@ -220,7 +220,7 @@ describe("number", () => {
       exclusiveMaximum: 100,
     } satisfies DataType.Schema;
     const result = DataType.fromSchema(schema);
-    const dataType = Either.getOrThrow(result);
+    const dataType = Effect.runSync(result);
 
     expect(dataType).toMatchSnapshot();
   });
@@ -236,7 +236,7 @@ describe("number", () => {
       exclusiveMaximum: 100,
     } satisfies DataType.Schema;
     const result = DataType.fromSchema(schema);
-    const dataType = Either.getOrThrow(result);
+    const dataType = Effect.runSync(result);
 
     expect(dataType).toMatchSnapshot();
   });
@@ -254,7 +254,7 @@ test("boolean", () => {
   } satisfies DataType.Schema;
 
   const result = DataType.fromSchema(schema);
-  const dataType = Either.getOrThrow(result);
+  const dataType = Effect.runSync(result);
 
   expect(dataType).toMatchSnapshot();
 });
@@ -271,7 +271,7 @@ test("null", () => {
   } satisfies DataType.Schema;
 
   const result = DataType.fromSchema(schema);
-  const dataType = Either.getOrThrow(result);
+  const dataType = Effect.runSync(result);
 
   expect(dataType).toMatchSnapshot();
 });
@@ -289,7 +289,7 @@ test("array", () => {
   } satisfies DataType.Schema;
 
   const result = DataType.fromSchema(schema);
-  const dataType = Either.getOrThrow(result);
+  const dataType = Effect.runSync(result);
 
   expect(dataType).toMatchSnapshot();
 });
@@ -306,7 +306,7 @@ test("object", () => {
   } satisfies DataType.Schema;
 
   const result = DataType.fromSchema(schema);
-  const dataType = Either.getOrThrow(result);
+  const dataType = Effect.runSync(result);
 
   expect(dataType).toMatchSnapshot();
 });

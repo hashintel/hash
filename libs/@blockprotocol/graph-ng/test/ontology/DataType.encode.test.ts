@@ -1,10 +1,11 @@
 import * as S from "@effect/schema/Schema";
-import { Either } from "effect";
+import { Effect } from "effect";
 import { describe, expect, test } from "vitest";
 
 import * as DataType from "../../src/ontology/DataType.js";
 import * as DataTypeUrl from "../../src/ontology/DataTypeUrl.js";
 import * as Json from "../../src/Json.js";
+import { runError } from "../utils.js";
 
 describe("literal", () => {
   test("`number`", () => {
@@ -13,17 +14,19 @@ describe("literal", () => {
       S.literal(123).pipe(S.title("A constant number of value `123`")),
     );
 
-    const dataType = Either.getOrThrow(numberLiteral);
-    expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
-        {
-          "$id": "https://example.com/number-123/v/1",
-          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-          "const": 123,
-          "kind": "dataType",
-          "title": "A constant number of value \`123\`",
-          "type": "number",
-        }
-      `);
+    const dataType = Effect.runSync(numberLiteral);
+    const schema = Effect.runSync(DataType.toSchema(dataType));
+
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://example.com/number-123/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+        "const": 123,
+        "kind": "dataType",
+        "title": "A constant number of value \`123\`",
+        "type": "number",
+      }
+    `);
   });
 
   test("`string`", () => {
@@ -32,17 +35,19 @@ describe("literal", () => {
       S.literal("abc").pipe(S.title("A constant string of value `abc`")),
     );
 
-    const dataType = Either.getOrThrow(stringLiteral);
-    expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
-        {
-          "$id": "https://example.com/string-abc/v/1",
-          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-          "const": "abc",
-          "kind": "dataType",
-          "title": "A constant string of value \`abc\`",
-          "type": "string",
-        }
-      `);
+    const dataType = Effect.runSync(stringLiteral);
+    const schema = Effect.runSync(DataType.toSchema(dataType));
+
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://example.com/string-abc/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+        "const": "abc",
+        "kind": "dataType",
+        "title": "A constant string of value \`abc\`",
+        "type": "string",
+      }
+    `);
   });
 
   test("`boolean`", () => {
@@ -51,17 +56,19 @@ describe("literal", () => {
       S.literal(true).pipe(S.title("A constant boolean of value `true`")),
     );
 
-    const dataType = Either.getOrThrow(booleanLiteral);
-    expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
-        {
-          "$id": "https://example.com/boolean-true/v/1",
-          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-          "const": true,
-          "kind": "dataType",
-          "title": "A constant boolean of value \`true\`",
-          "type": "boolean",
-        }
-      `);
+    const dataType = Effect.runSync(booleanLiteral);
+    const schema = Effect.runSync(DataType.toSchema(dataType));
+
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://example.com/boolean-true/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+        "const": true,
+        "kind": "dataType",
+        "title": "A constant boolean of value \`true\`",
+        "type": "boolean",
+      }
+    `);
   });
 
   test("`null`", () => {
@@ -70,16 +77,18 @@ describe("literal", () => {
       S.literal(null).pipe(S.title("A constant null value")),
     );
 
-    const dataType = Either.getOrThrow(nullLiteral);
-    expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
-        {
-          "$id": "https://example.com/null/v/1",
-          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-          "kind": "dataType",
-          "title": "A constant null value",
-          "type": "null",
-        }
-      `);
+    const dataType = Effect.runSync(nullLiteral);
+    const schema = Effect.runSync(DataType.toSchema(dataType));
+
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://example.com/null/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+        "kind": "dataType",
+        "title": "A constant null value",
+        "type": "null",
+      }
+    `);
   });
 
   test("`bigint`", () => {
@@ -89,13 +98,20 @@ describe("literal", () => {
       S.literal(123n).pipe(S.title("A constant bigint of value `123n`")),
     );
 
-    const error = Either.flip(bigIntLiteral).pipe(Either.getOrThrow);
-    expect(error.reason).toMatchInlineSnapshot(`
-        {
-          "_tag": "UnsupportedLiteral",
-          "literal": "bigint",
-        }
-      `);
+    const error = runError(bigIntLiteral);
+    expect(error).toMatchInlineSnapshot(`
+      {
+        "_id": "Cause",
+        "_tag": "Fail",
+        "failure": {
+          "_tag": "@blockprotocol/graph/DataType/EncodeError",
+          "reason": {
+            "_tag": "UnsupportedLiteral",
+            "literal": "bigint",
+          },
+        },
+      }
+    `);
   });
 });
 
@@ -107,11 +123,18 @@ describe("keywords", () => {
       S.undefined.pipe(S.title("A constant undefined value")),
     );
 
-    const error = Either.flip(undefinedType).pipe(Either.getOrThrow);
-    expect(error.reason).toMatchInlineSnapshot(`
+    const error = runError(undefinedType);
+    expect(error).toMatchInlineSnapshot(`
       {
-        "_tag": "UnsupportedKeyword",
-        "keyword": "undefined",
+        "_id": "Cause",
+        "_tag": "Fail",
+        "failure": {
+          "_tag": "@blockprotocol/graph/DataType/EncodeError",
+          "reason": {
+            "_tag": "UnsupportedKeyword",
+            "keyword": "undefined",
+          },
+        },
       }
     `);
   });
@@ -123,13 +146,20 @@ describe("keywords", () => {
       S.void.pipe(S.title("A constant void value")),
     );
 
-    const error = Either.flip(voidType).pipe(Either.getOrThrow);
-    expect(error.reason).toMatchInlineSnapshot(`
-        {
-          "_tag": "UnsupportedKeyword",
-          "keyword": "void",
-        }
-      `);
+    const error = runError(voidType);
+    expect(error).toMatchInlineSnapshot(`
+      {
+        "_id": "Cause",
+        "_tag": "Fail",
+        "failure": {
+          "_tag": "@blockprotocol/graph/DataType/EncodeError",
+          "reason": {
+            "_tag": "UnsupportedKeyword",
+            "keyword": "void",
+          },
+        },
+      }
+    `);
   });
 
   test("`never`", () => {
@@ -138,11 +168,18 @@ describe("keywords", () => {
       S.never.pipe(S.title("A constant never value")),
     );
 
-    const error = Either.flip(neverType).pipe(Either.getOrThrow);
-    expect(error.reason).toMatchInlineSnapshot(`
+    const error = runError(neverType);
+    expect(error).toMatchInlineSnapshot(`
       {
-        "_tag": "UnsupportedKeyword",
-        "keyword": "never",
+        "_id": "Cause",
+        "_tag": "Fail",
+        "failure": {
+          "_tag": "@blockprotocol/graph/DataType/EncodeError",
+          "reason": {
+            "_tag": "UnsupportedKeyword",
+            "keyword": "never",
+          },
+        },
       }
     `);
   });
@@ -154,11 +191,18 @@ describe("keywords", () => {
       S.unknown.pipe(S.title("A constant unknown value")),
     );
 
-    const error = Either.flip(unknownType).pipe(Either.getOrThrow);
-    expect(error.reason).toMatchInlineSnapshot(`
+    const error = runError(unknownType);
+    expect(error).toMatchInlineSnapshot(`
       {
-        "_tag": "UnsupportedKeyword",
-        "keyword": "unknown",
+        "_id": "Cause",
+        "_tag": "Fail",
+        "failure": {
+          "_tag": "@blockprotocol/graph/DataType/EncodeError",
+          "reason": {
+            "_tag": "UnsupportedKeyword",
+            "keyword": "unknown",
+          },
+        },
       }
     `);
   });
@@ -169,13 +213,20 @@ describe("keywords", () => {
       S.any.pipe(S.title("A constant any value")),
     );
 
-    const error = Either.flip(anyType).pipe(Either.getOrThrow);
-    expect(error.reason).toMatchInlineSnapshot(`
-        {
-          "_tag": "UnsupportedType",
-          "type": "any",
-        }
-      `);
+    const error = runError(anyType);
+    expect(error).toMatchInlineSnapshot(`
+      {
+        "_id": "Cause",
+        "_tag": "Fail",
+        "failure": {
+          "_tag": "@blockprotocol/graph/DataType/EncodeError",
+          "reason": {
+            "_tag": "UnsupportedType",
+            "type": "any",
+          },
+        },
+      }
+    `);
   });
 
   test("unique symbol", () => {
@@ -187,13 +238,20 @@ describe("keywords", () => {
       S.uniqueSymbolFromSelf(symbol).pipe(S.title("A unique symbol")),
     );
 
-    const error = Either.flip(uniqueSymbol).pipe(Either.getOrThrow);
-    expect(error.reason).toMatchInlineSnapshot(`
-        {
-          "_tag": "UnsupportedKeyword",
-          "keyword": "unique symbol",
-        }
-      `);
+    const error = runError(uniqueSymbol);
+    expect(error).toMatchInlineSnapshot(`
+      {
+        "_id": "Cause",
+        "_tag": "Fail",
+        "failure": {
+          "_tag": "@blockprotocol/graph/DataType/EncodeError",
+          "reason": {
+            "_tag": "UnsupportedKeyword",
+            "keyword": "unique symbol",
+          },
+        },
+      }
+    `);
   });
 });
 
@@ -213,13 +271,20 @@ describe("types", () => {
       FileFromSelf.pipe(S.title("A custom declaration")),
     );
 
-    const error = Either.flip(declaration).pipe(Either.getOrThrow);
-    expect(error.reason).toMatchInlineSnapshot(`
-        {
-          "_tag": "UnsupportedNode",
-          "node": "Declaration",
-        }
-      `);
+    const error = runError(declaration);
+    expect(error).toMatchInlineSnapshot(`
+      {
+        "_id": "Cause",
+        "_tag": "Fail",
+        "failure": {
+          "_tag": "@blockprotocol/graph/DataType/EncodeError",
+          "reason": {
+            "_tag": "UnsupportedNode",
+            "node": "Declaration",
+          },
+        },
+      }
+    `);
   });
 
   test("bigint", () => {
@@ -229,13 +294,20 @@ describe("types", () => {
       S.bigintFromSelf.pipe(S.title("A bigint")),
     );
 
-    const error = Either.flip(bigInt).pipe(Either.getOrThrow);
-    expect(error.reason).toMatchInlineSnapshot(`
-        {
-          "_tag": "UnsupportedType",
-          "type": "bigint",
-        }
-      `);
+    const error = runError(bigInt);
+    expect(error).toMatchInlineSnapshot(`
+      {
+        "_id": "Cause",
+        "_tag": "Fail",
+        "failure": {
+          "_tag": "@blockprotocol/graph/DataType/EncodeError",
+          "reason": {
+            "_tag": "UnsupportedType",
+            "type": "bigint",
+          },
+        },
+      }
+    `);
   });
 
   test("object", () => {
@@ -245,13 +317,20 @@ describe("types", () => {
       S.object,
     );
 
-    const error = Either.flip(object).pipe(Either.getOrThrow);
-    expect(error.reason).toMatchInlineSnapshot(`
-        {
-          "_tag": "UnsupportedType",
-          "type": "object",
-        }
-      `);
+    const error = runError(object);
+    expect(error).toMatchInlineSnapshot(`
+      {
+        "_id": "Cause",
+        "_tag": "Fail",
+        "failure": {
+          "_tag": "@blockprotocol/graph/DataType/EncodeError",
+          "reason": {
+            "_tag": "UnsupportedType",
+            "type": "object",
+          },
+        },
+      }
+    `);
   });
 });
 
@@ -262,17 +341,19 @@ describe("string", () => {
       S.string,
     );
 
-    const dataType = Either.getOrThrow(string);
-    expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
-        {
-          "$id": "https://example.com/string/v/1",
-          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-          "description": "a string",
-          "kind": "dataType",
-          "title": "string",
-          "type": "string",
-        }
-      `);
+    const dataType = Effect.runSync(string);
+    const schema = Effect.runSync(DataType.toSchema(dataType));
+
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://example.com/string/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+        "description": "a string",
+        "kind": "dataType",
+        "title": "string",
+        "type": "string",
+      }
+    `);
   });
 
   test("minLength", () => {
@@ -281,18 +362,20 @@ describe("string", () => {
       S.string.pipe(S.minLength(5)),
     );
 
-    const dataType = Either.getOrThrow(string);
-    expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
-        {
-          "$id": "https://example.com/string/v/1",
-          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-          "description": "a string",
-          "kind": "dataType",
-          "minLength": 5,
-          "title": "string",
-          "type": "string",
-        }
-      `);
+    const dataType = Effect.runSync(string);
+    const schema = Effect.runSync(DataType.toSchema(dataType));
+
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://example.com/string/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+        "description": "a string",
+        "kind": "dataType",
+        "minLength": 5,
+        "title": "string",
+        "type": "string",
+      }
+    `);
   });
 
   test("maxLength", () => {
@@ -301,18 +384,20 @@ describe("string", () => {
       S.string.pipe(S.maxLength(5)),
     );
 
-    const dataType = Either.getOrThrow(string);
-    expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
-        {
-          "$id": "https://example.com/string/v/1",
-          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-          "description": "a string",
-          "kind": "dataType",
-          "maxLength": 5,
-          "title": "string",
-          "type": "string",
-        }
-      `);
+    const dataType = Effect.runSync(string);
+    const schema = Effect.runSync(DataType.toSchema(dataType));
+
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://example.com/string/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+        "description": "a string",
+        "kind": "dataType",
+        "maxLength": 5,
+        "title": "string",
+        "type": "string",
+      }
+    `);
   });
 
   test("pattern", () => {
@@ -321,18 +406,20 @@ describe("string", () => {
       S.string.pipe(S.pattern(/abc/)),
     );
 
-    const dataType = Either.getOrThrow(string);
-    expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
-        {
-          "$id": "https://example.com/string/v/1",
-          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-          "description": "a string",
-          "kind": "dataType",
-          "pattern": "abc",
-          "title": "string",
-          "type": "string",
-        }
-      `);
+    const dataType = Effect.runSync(string);
+    const schema = Effect.runSync(DataType.toSchema(dataType));
+
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://example.com/string/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+        "description": "a string",
+        "kind": "dataType",
+        "pattern": "abc",
+        "title": "string",
+        "type": "string",
+      }
+    `);
   });
 
   // TODO: test -> wrong annotation type
@@ -345,17 +432,19 @@ describe("number", () => {
       S.number,
     );
 
-    const dataType = Either.getOrThrow(number);
-    expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
-        {
-          "$id": "https://example.com/number/v/1",
-          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-          "description": "a number",
-          "kind": "dataType",
-          "title": "number",
-          "type": "number",
-        }
-      `);
+    const dataType = Effect.runSync(number);
+    const schema = Effect.runSync(DataType.toSchema(dataType));
+
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://example.com/number/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+        "description": "a number",
+        "kind": "dataType",
+        "title": "number",
+        "type": "number",
+      }
+    `);
   });
 
   test("integer", () => {
@@ -364,17 +453,19 @@ describe("number", () => {
       S.Int,
     );
 
-    const dataType = Either.getOrThrow(number);
-    expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
-        {
-          "$id": "https://example.com/number/v/1",
-          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-          "description": "a number",
-          "kind": "dataType",
-          "title": "number",
-          "type": "integer",
-        }
-      `);
+    const dataType = Effect.runSync(number);
+    const schema = Effect.runSync(DataType.toSchema(dataType));
+
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://example.com/number/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+        "description": "a number",
+        "kind": "dataType",
+        "title": "number",
+        "type": "integer",
+      }
+    `);
   });
 
   test("multipleOf", () => {
@@ -383,18 +474,20 @@ describe("number", () => {
       S.number.pipe(S.multipleOf(5)),
     );
 
-    const dataType = Either.getOrThrow(number);
-    expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
-        {
-          "$id": "https://example.com/number/v/1",
-          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-          "description": "a number",
-          "kind": "dataType",
-          "multipleOf": 5,
-          "title": "number",
-          "type": "number",
-        }
-      `);
+    const dataType = Effect.runSync(number);
+    const schema = Effect.runSync(DataType.toSchema(dataType));
+
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://example.com/number/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+        "description": "a number",
+        "kind": "dataType",
+        "multipleOf": 5,
+        "title": "number",
+        "type": "number",
+      }
+    `);
   });
 
   test("minimum", () => {
@@ -403,18 +496,20 @@ describe("number", () => {
       S.number.pipe(S.greaterThanOrEqualTo(5)),
     );
 
-    const dataType = Either.getOrThrow(number);
-    expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
-        {
-          "$id": "https://example.com/number/v/1",
-          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-          "description": "a number",
-          "kind": "dataType",
-          "minimum": 5,
-          "title": "number",
-          "type": "number",
-        }
-      `);
+    const dataType = Effect.runSync(number);
+    const schema = Effect.runSync(DataType.toSchema(dataType));
+
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://example.com/number/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+        "description": "a number",
+        "kind": "dataType",
+        "minimum": 5,
+        "title": "number",
+        "type": "number",
+      }
+    `);
   });
 
   test("maximum", () => {
@@ -423,18 +518,20 @@ describe("number", () => {
       S.number.pipe(S.lessThanOrEqualTo(5)),
     );
 
-    const dataType = Either.getOrThrow(number);
-    expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
-        {
-          "$id": "https://example.com/number/v/1",
-          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-          "description": "a number",
-          "kind": "dataType",
-          "maximum": 5,
-          "title": "number",
-          "type": "number",
-        }
-      `);
+    const dataType = Effect.runSync(number);
+    const schema = Effect.runSync(DataType.toSchema(dataType));
+
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://example.com/number/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+        "description": "a number",
+        "kind": "dataType",
+        "maximum": 5,
+        "title": "number",
+        "type": "number",
+      }
+    `);
   });
 
   test("exclusiveMinimum", () => {
@@ -443,19 +540,21 @@ describe("number", () => {
       S.number.pipe(S.greaterThan(5)),
     );
 
-    const literal = Either.getOrThrow(number);
+    const dataType = Effect.runSync(number);
 
-    expect(DataType.toSchema(literal)).toMatchInlineSnapshot(`
-        {
-          "$id": "https://example.com/number/v/1",
-          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-          "description": "a number",
-          "exclusiveMinimum": 5,
-          "kind": "dataType",
-          "title": "number",
-          "type": "number",
-        }
-      `);
+    const schema = Effect.runSync(DataType.toSchema(dataType));
+
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://example.com/number/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+        "description": "a number",
+        "exclusiveMinimum": 5,
+        "kind": "dataType",
+        "title": "number",
+        "type": "number",
+      }
+    `);
   });
 
   test("exclusiveMaximum", () => {
@@ -464,18 +563,20 @@ describe("number", () => {
       S.number.pipe(S.lessThan(5)),
     );
 
-    const dataType = Either.getOrThrow(number);
-    expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
-        {
-          "$id": "https://example.com/number/v/1",
-          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-          "description": "a number",
-          "exclusiveMaximum": 5,
-          "kind": "dataType",
-          "title": "number",
-          "type": "number",
-        }
-      `);
+    const dataType = Effect.runSync(number);
+    const schema = Effect.runSync(DataType.toSchema(dataType));
+
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://example.com/number/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+        "description": "a number",
+        "exclusiveMaximum": 5,
+        "kind": "dataType",
+        "title": "number",
+        "type": "number",
+      }
+    `);
   });
 });
 
@@ -485,17 +586,19 @@ test("boolean", () => {
     S.boolean,
   );
 
-  const dataType = Either.getOrThrow(boolean);
-  expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
-      {
-        "$id": "https://example.com/boolean/v/1",
-        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-        "description": "a boolean",
-        "kind": "dataType",
-        "title": "boolean",
-        "type": "boolean",
-      }
-    `);
+  const dataType = Effect.runSync(boolean);
+  const schema = Effect.runSync(DataType.toSchema(dataType));
+
+  expect(schema).toMatchInlineSnapshot(`
+    {
+      "$id": "https://example.com/boolean/v/1",
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+      "description": "a boolean",
+      "kind": "dataType",
+      "title": "boolean",
+      "type": "boolean",
+    }
+  `);
 });
 
 test("null", () => {
@@ -504,8 +607,10 @@ test("null", () => {
     S.null.pipe(S.title("A null")),
   );
 
-  const dataType = Either.getOrThrow(nullType);
-  expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
+  const dataType = Effect.runSync(nullType);
+  const schema = Effect.runSync(DataType.toSchema(dataType));
+
+  expect(schema).toMatchInlineSnapshot(`
     {
       "$id": "https://example.com/null/v/1",
       "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -528,18 +633,20 @@ describe("enums", () => {
       S.enums(Fruits).pipe(S.title("A fruit")),
     );
 
-    const dataType = Either.getOrThrow(enums);
-    expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
-        {
-          "$id": "https://example.com/enums/v/1",
-          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-          "kind": "dataType",
-          "maximum": 1,
-          "minimum": 0,
-          "title": "A fruit",
-          "type": "integer",
-        }
-      `);
+    const dataType = Effect.runSync(enums);
+    const schema = Effect.runSync(DataType.toSchema(dataType));
+
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://example.com/enums/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+        "kind": "dataType",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "A fruit",
+        "type": "integer",
+      }
+    `);
   });
 
   test("numeric (holes)", () => {
@@ -553,14 +660,21 @@ describe("enums", () => {
       S.enums(Fruits).pipe(S.title("A fruit")),
     );
 
-    const error = Either.flip(enums).pipe(Either.getOrThrow);
-    expect(error.reason).toMatchInlineSnapshot(
+    const error = runError(enums);
+    expect(error).toMatchInlineSnapshot(
       `
-        {
-          "_tag": "MalformedEnum",
-          "reason": "non-consecutive integer values",
-        }
-      `,
+      {
+        "_id": "Cause",
+        "_tag": "Fail",
+        "failure": {
+          "_tag": "@blockprotocol/graph/DataType/EncodeError",
+          "reason": {
+            "_tag": "MalformedEnum",
+            "reason": "non-consecutive integer values",
+          },
+        },
+      }
+    `,
     );
   });
 
@@ -575,14 +689,21 @@ describe("enums", () => {
       S.enums(Fruits).pipe(S.title("A fruit")),
     );
 
-    const error = Either.flip(enums).pipe(Either.getOrThrow);
-    expect(error.reason).toMatchInlineSnapshot(
+    const error = runError(enums);
+    expect(error).toMatchInlineSnapshot(
       `
-        {
-          "_tag": "MalformedEnum",
-          "reason": "floating point values",
-        }
-      `,
+      {
+        "_id": "Cause",
+        "_tag": "Fail",
+        "failure": {
+          "_tag": "@blockprotocol/graph/DataType/EncodeError",
+          "reason": {
+            "_tag": "MalformedEnum",
+            "reason": "floating point values",
+          },
+        },
+      }
+    `,
     );
   });
 
@@ -597,17 +718,19 @@ describe("enums", () => {
       S.enums(Fruits).pipe(S.title("A fruit")),
     );
 
-    const dataType = Either.getOrThrow(enums);
-    expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
-        {
-          "$id": "https://example.com/enums/v/1",
-          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-          "kind": "dataType",
-          "pattern": "^(apple)|(banana)$",
-          "title": "A fruit",
-          "type": "string",
-        }
-      `);
+    const dataType = Effect.runSync(enums);
+    const schema = Effect.runSync(DataType.toSchema(dataType));
+
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://example.com/enums/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+        "kind": "dataType",
+        "pattern": "^(apple)|(banana)$",
+        "title": "A fruit",
+        "type": "string",
+      }
+    `);
   });
 
   test("mixed", () => {
@@ -621,14 +744,21 @@ describe("enums", () => {
       S.enums(Fruits).pipe(S.title("A fruit")),
     );
 
-    const error = Either.flip(enums).pipe(Either.getOrThrow);
-    expect(error.reason).toMatchInlineSnapshot(
+    const error = runError(enums);
+    expect(error).toMatchInlineSnapshot(
       `
-        {
-          "_tag": "MalformedEnum",
-          "reason": "mixed",
-        }
-      `,
+      {
+        "_id": "Cause",
+        "_tag": "Fail",
+        "failure": {
+          "_tag": "@blockprotocol/graph/DataType/EncodeError",
+          "reason": {
+            "_tag": "MalformedEnum",
+            "reason": "mixed",
+          },
+        },
+      }
+    `,
     );
   });
 
@@ -640,14 +770,21 @@ describe("enums", () => {
       S.enums(Fruits).pipe(S.title("A fruit")),
     );
 
-    const error = Either.flip(enums).pipe(Either.getOrThrow);
-    expect(error.reason).toMatchInlineSnapshot(
+    const error = runError(enums);
+    expect(error).toMatchInlineSnapshot(
       `
-        {
-          "_tag": "MalformedEnum",
-          "reason": "empty",
-        }
-      `,
+      {
+        "_id": "Cause",
+        "_tag": "Fail",
+        "failure": {
+          "_tag": "@blockprotocol/graph/DataType/EncodeError",
+          "reason": {
+            "_tag": "MalformedEnum",
+            "reason": "empty",
+          },
+        },
+      }
+    `,
     );
   });
 });
@@ -660,17 +797,19 @@ test("template literal", () => {
     ),
   );
 
-  const dataType = Either.getOrThrow(templateLiteral);
-  expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
-      {
-        "$id": "https://example.com/template-literal/v/1",
-        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-        "kind": "dataType",
-        "pattern": "^123.*$",
-        "title": "A template literal",
-        "type": "string",
-      }
-    `);
+  const dataType = Effect.runSync(templateLiteral);
+  const schema = Effect.runSync(DataType.toSchema(dataType));
+
+  expect(schema).toMatchInlineSnapshot(`
+    {
+      "$id": "https://example.com/template-literal/v/1",
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+      "kind": "dataType",
+      "pattern": "^123.*$",
+      "title": "A template literal",
+      "type": "string",
+    }
+  `);
 });
 
 describe("union", () => {
@@ -680,17 +819,19 @@ describe("union", () => {
       S.union(S.literal(123)).pipe(S.title("A union")),
     );
 
-    const dataType = Either.getOrThrow(union);
-    expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
-        {
-          "$id": "https://example.com/union/v/1",
-          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-          "const": 123,
-          "kind": "dataType",
-          "title": "A union",
-          "type": "number",
-        }
-      `);
+    const dataType = Effect.runSync(union);
+    const schema = Effect.runSync(DataType.toSchema(dataType));
+
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://example.com/union/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+        "const": 123,
+        "kind": "dataType",
+        "title": "A union",
+        "type": "number",
+      }
+    `);
   });
 
   test("multiple", () => {
@@ -699,13 +840,21 @@ describe("union", () => {
       S.union(S.literal(123), S.literal("abc")).pipe(S.title("A union")),
     );
 
-    const error = Either.flip(union).pipe(Either.getOrThrow);
-    expect(error.reason).toMatchInlineSnapshot(`
-        {
-          "_tag": "UnsupportedNode",
-          "node": "Union",
-        }
-      `);
+    const error = runError(union);
+
+    expect(error).toMatchInlineSnapshot(`
+      {
+        "_id": "Cause",
+        "_tag": "Fail",
+        "failure": {
+          "_tag": "@blockprotocol/graph/DataType/EncodeError",
+          "reason": {
+            "_tag": "UnsupportedNode",
+            "node": "Union",
+          },
+        },
+      }
+    `);
   });
 });
 
@@ -717,17 +866,19 @@ describe("array", () => {
       S.tuple().pipe(S.title("An empty array")),
     );
 
-    const dataType = Either.getOrThrow(array);
-    expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
-        {
-          "$id": "https://example.com/array/v/1",
-          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-          "const": [],
-          "kind": "dataType",
-          "title": "An empty array",
-          "type": "array",
-        }
-      `);
+    const dataType = Effect.runSync(array);
+    const schema = Effect.runSync(DataType.toSchema(dataType));
+
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://example.com/array/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+        "const": [],
+        "kind": "dataType",
+        "title": "An empty array",
+        "type": "array",
+      }
+    `);
   });
 
   test("tuple", () => {
@@ -736,13 +887,20 @@ describe("array", () => {
       S.tuple(S.literal(123), S.literal("abc")).pipe(S.title("A tuple")),
     );
 
-    const error = Either.flip(array).pipe(Either.getOrThrow);
-    expect(error.reason).toMatchInlineSnapshot(`
-        {
-          "_tag": "UnsupportedType",
-          "type": "tuple",
-        }
-      `);
+    const error = runError(array);
+    expect(error).toMatchInlineSnapshot(`
+      {
+        "_id": "Cause",
+        "_tag": "Fail",
+        "failure": {
+          "_tag": "@blockprotocol/graph/DataType/EncodeError",
+          "reason": {
+            "_tag": "UnsupportedType",
+            "type": "tuple",
+          },
+        },
+      }
+    `);
   });
 
   test("array", () => {
@@ -751,13 +909,20 @@ describe("array", () => {
       S.array(S.literal(123)).pipe(S.title("An array")),
     );
 
-    const error = Either.flip(array).pipe(Either.getOrThrow);
-    expect(error.reason).toMatchInlineSnapshot(`
-        {
-          "_tag": "UnsupportedType",
-          "type": "array",
-        }
-      `);
+    const error = runError(array);
+    expect(error).toMatchInlineSnapshot(`
+      {
+        "_id": "Cause",
+        "_tag": "Fail",
+        "failure": {
+          "_tag": "@blockprotocol/graph/DataType/EncodeError",
+          "reason": {
+            "_tag": "UnsupportedType",
+            "type": "array",
+          },
+        },
+      }
+    `);
   });
 });
 
@@ -770,17 +935,19 @@ describe("suspend", () => {
       Indirection.pipe(S.title("A suspend")),
     );
 
-    const dataType = Either.getOrThrow(suspend);
-    expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
-        {
-          "$id": "https://example.com/suspend/v/1",
-          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-          "description": "a number",
-          "kind": "dataType",
-          "title": "number",
-          "type": "number",
-        }
-      `);
+    const dataType = Effect.runSync(suspend);
+    const schema = Effect.runSync(DataType.toSchema(dataType));
+
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://example.com/suspend/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+        "description": "a number",
+        "kind": "dataType",
+        "title": "number",
+        "type": "number",
+      }
+    `);
   });
   test("double", () => {
     const IndirectionA = S.suspend(() => S.number);
@@ -791,17 +958,19 @@ describe("suspend", () => {
       IndirectionB.pipe(S.title("A suspend")),
     );
 
-    const dataType = Either.getOrThrow(suspend);
-    expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
-        {
-          "$id": "https://example.com/suspend/v/1",
-          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-          "description": "a number",
-          "kind": "dataType",
-          "title": "number",
-          "type": "number",
-        }
-      `);
+    const dataType = Effect.runSync(suspend);
+    const schema = Effect.runSync(DataType.toSchema(dataType));
+
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://example.com/suspend/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+        "description": "a number",
+        "kind": "dataType",
+        "title": "number",
+        "type": "number",
+      }
+    `);
   });
 
   test("triple", () => {
@@ -814,17 +983,19 @@ describe("suspend", () => {
       IndirectionC.pipe(S.title("A suspend")),
     );
 
-    const dataType = Either.getOrThrow(suspend);
-    expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
-        {
-          "$id": "https://example.com/suspend/v/1",
-          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-          "description": "a number",
-          "kind": "dataType",
-          "title": "number",
-          "type": "number",
-        }
-      `);
+    const dataType = Effect.runSync(suspend);
+    const schema = Effect.runSync(DataType.toSchema(dataType));
+
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://example.com/suspend/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+        "description": "a number",
+        "kind": "dataType",
+        "title": "number",
+        "type": "number",
+      }
+    `);
   });
 
   test("cyclic", () => {
@@ -836,11 +1007,18 @@ describe("suspend", () => {
       Schema.pipe(S.title("A suspend")),
     );
 
-    const error = Either.flip(suspend).pipe(Either.getOrThrow);
-    expect(error.reason).toMatchInlineSnapshot(`
+    const error = runError(suspend);
+    expect(error).toMatchInlineSnapshot(`
       {
-        "_tag": "Visit",
-        "cause": [VisitError],
+        "_id": "Cause",
+        "_tag": "Fail",
+        "failure": {
+          "_tag": "@blockprotocol/graph/DataType/EncodeError",
+          "reason": {
+            "_tag": "Visit",
+            "cause": [VisitError],
+          },
+        },
       }
     `);
   });
@@ -858,11 +1036,18 @@ describe("suspend", () => {
       SchemaA.pipe(S.title("A suspend")),
     );
 
-    const error = Either.flip(suspend).pipe(Either.getOrThrow);
-    expect(error.reason).toMatchInlineSnapshot(`
+    const error = runError(suspend);
+    expect(error).toMatchInlineSnapshot(`
       {
-        "_tag": "Visit",
-        "cause": [VisitError],
+        "_id": "Cause",
+        "_tag": "Fail",
+        "failure": {
+          "_tag": "@blockprotocol/graph/DataType/EncodeError",
+          "reason": {
+            "_tag": "Visit",
+            "cause": [VisitError],
+          },
+        },
       }
     `);
   });
@@ -875,16 +1060,18 @@ describe("TypeLiteral", () => {
       S.record(S.string, Json.Value).pipe(S.title("A record")),
     );
 
-    const dataType = Either.getOrThrow(record);
-    expect(DataType.toSchema(dataType)).toMatchInlineSnapshot(`
-        {
-          "$id": "https://example.com/record/v/1",
-          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-          "kind": "dataType",
-          "title": "A record",
-          "type": "object",
-        }
-      `);
+    const dataType = Effect.runSync(record);
+    const schema = Effect.runSync(DataType.toSchema(dataType));
+
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://example.com/record/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+        "kind": "dataType",
+        "title": "A record",
+        "type": "object",
+      }
+    `);
   });
 
   test("record: literal key", () => {
@@ -893,13 +1080,22 @@ describe("TypeLiteral", () => {
       S.record(S.literal("key"), Json.Value).pipe(S.title("A record")),
     );
 
-    const error = Either.flip(record).pipe(Either.getOrThrow);
-    expect(error.reason).toMatchInlineSnapshot(`
+    const error = runError(record);
+    expect(error).toMatchInlineSnapshot(
+      `
       {
-        "_tag": "UnsupportedType",
-        "type": "struct",
+        "_id": "Cause",
+        "_tag": "Fail",
+        "failure": {
+          "_tag": "@blockprotocol/graph/DataType/EncodeError",
+          "reason": {
+            "_tag": "UnsupportedType",
+            "type": "struct",
+          },
+        },
       }
-    `);
+    `,
+    );
   });
 
   test("record: template key", () => {
@@ -910,11 +1106,18 @@ describe("TypeLiteral", () => {
       ),
     );
 
-    const error = Either.flip(record).pipe(Either.getOrThrow);
-    expect(error.reason).toMatchInlineSnapshot(`
+    const error = runError(record);
+    expect(error).toMatchInlineSnapshot(`
       {
-        "_tag": "MalformedRecord",
-        "reason": "parameter must be a string",
+        "_id": "Cause",
+        "_tag": "Fail",
+        "failure": {
+          "_tag": "@blockprotocol/graph/DataType/EncodeError",
+          "reason": {
+            "_tag": "MalformedRecord",
+            "reason": "parameter must be a string",
+          },
+        },
       }
     `);
   });
@@ -925,11 +1128,18 @@ describe("TypeLiteral", () => {
       S.record(S.string, S.Int).pipe(S.title("A record")),
     );
 
-    const error = Either.flip(record).pipe(Either.getOrThrow);
-    expect(error.reason).toMatchInlineSnapshot(`
+    const error = runError(record);
+    expect(error).toMatchInlineSnapshot(`
       {
-        "_tag": "MalformedRecord",
-        "reason": "value is not of type \`Json.Value\`",
+        "_id": "Cause",
+        "_tag": "Fail",
+        "failure": {
+          "_tag": "@blockprotocol/graph/DataType/EncodeError",
+          "reason": {
+            "_tag": "MalformedRecord",
+            "reason": "value is not of type \`Json.Value\`",
+          },
+        },
       }
     `);
   });
@@ -942,11 +1152,18 @@ describe("TypeLiteral", () => {
       }).pipe(S.title("A struct")),
     );
 
-    const error = Either.flip(struct).pipe(Either.getOrThrow);
-    expect(error.reason).toMatchInlineSnapshot(`
+    const error = runError(struct);
+    expect(error).toMatchInlineSnapshot(`
       {
-        "_tag": "UnsupportedType",
-        "type": "struct",
+        "_id": "Cause",
+        "_tag": "Fail",
+        "failure": {
+          "_tag": "@blockprotocol/graph/DataType/EncodeError",
+          "reason": {
+            "_tag": "UnsupportedType",
+            "type": "struct",
+          },
+        },
       }
     `);
   });

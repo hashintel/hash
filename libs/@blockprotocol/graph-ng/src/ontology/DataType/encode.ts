@@ -1,5 +1,13 @@
 import { AST } from "@effect/schema";
-import { Either, Order, pipe, Predicate, ReadonlyArray, Tuple } from "effect";
+import {
+  Effect,
+  Either,
+  Order,
+  pipe,
+  Predicate,
+  ReadonlyArray,
+  Tuple,
+} from "effect";
 
 import {
   escapeStringRegexp,
@@ -109,10 +117,10 @@ function encodeLiteral(
   });
 }
 
-function encodeString(
+const encodeString = (
   context: Context,
-): Either.Either<StringDataTypeSchema, EncodeError> {
-  return Either.gen(function* (_) {
+): Effect.Effect<StringDataTypeSchema, EncodeError> =>
+  Effect.gen(function* (_) {
     const minLength = yield* _(
       asNumberOrUndefined("minLength", context.jsonSchema.additional.minLength),
     );
@@ -137,12 +145,11 @@ function encodeString(
 
     return pruneUndefinedShallow(partialSchema);
   });
-}
 
-function encodeNumber(
+const encodeNumber = (
   context: Context,
-): Either.Either<NumberDataTypeSchema | IntegerDataTypeSchema, EncodeError> {
-  return Either.gen(function* (_) {
+): Effect.Effect<NumberDataTypeSchema | IntegerDataTypeSchema, EncodeError> =>
+  Effect.gen(function* (_) {
     const type = context.jsonSchema.additional.type;
     const isInteger = type === "integer";
 
@@ -187,34 +194,30 @@ function encodeNumber(
 
     return pruneUndefinedShallow(partialSchema);
   });
-}
 
-function encodeBoolean(
+const encodeBoolean = (
   context: Context,
-): Either.Either<BooleanDataTypeSchema, EncodeError> {
-  return Either.gen(function* (_) {
+): Effect.Effect<BooleanDataTypeSchema, EncodeError> =>
+  Effect.gen(function* (_) {
     const base = yield* _(makeBase(context.root, context.jsonSchema));
 
-    const schema = {
+    return {
       ...base,
       type: "boolean",
     } satisfies BooleanDataTypeSchema;
-
-    return schema;
   });
-}
 
-function encodeEnums(
+const encodeEnums = (
   ast: AST.Enums,
   context: Context,
-): Either.Either<StringDataTypeSchema | IntegerDataTypeSchema, EncodeError> {
-  return Either.gen(function* (_) {
+): Effect.Effect<StringDataTypeSchema | IntegerDataTypeSchema, EncodeError> =>
+  Effect.gen(function* (_) {
     const values = ast.enums.map(Tuple.getSecond);
 
     // while not necessarily an error, an empty enum is a never type, therefore we cannot encode it
     // as never types are not supported in DataType schemas
     if (values.length === 0) {
-      yield* _(Either.left(EncodeError.malformedEnum("empty")));
+      return yield* _(EncodeError.malformedEnum("empty"));
     }
 
     // we differentiate between string and number enums
@@ -226,7 +229,7 @@ function encodeEnums(
 
     // ...mixed enums are not supported
     if (isStringEnum && isNumberEnum) {
-      yield* _(Either.left(EncodeError.malformedEnum("mixed")));
+      return yield* _(EncodeError.malformedEnum("mixed"));
     }
 
     const base = yield* _(makeBase(context.root, context.jsonSchema));
@@ -244,13 +247,11 @@ function encodeEnums(
         (_) => `^${_}$`,
       );
 
-      const schema = {
+      return {
         ...base,
         type: "string",
         pattern,
       } satisfies StringDataTypeSchema;
-
-      return schema;
     }
 
     // we first see if all the values are integers, in that case we sort them and see if they are consecutive
@@ -263,7 +264,7 @@ function encodeEnums(
     );
 
     if (numbers.length !== numberValues.length) {
-      yield* _(Either.left(EncodeError.malformedEnum("floating point values")));
+      return yield* _(EncodeError.malformedEnum("floating point values"));
     }
 
     // we create a window of 2 and check if the difference is 1
@@ -275,10 +276,8 @@ function encodeEnums(
     );
 
     if (!isConsecutive) {
-      yield* _(
-        Either.left(
-          EncodeError.malformedEnum("non-consecutive integer values"),
-        ),
+      return yield* _(
+        EncodeError.malformedEnum("non-consecutive integer values"),
       );
     }
 
@@ -286,189 +285,173 @@ function encodeEnums(
     const minimum = numbers[0];
     const maximum = numbers.at(-1)!;
 
-    const schema = {
+    return {
       ...base,
       type: "integer",
       minimum,
       maximum,
     } satisfies IntegerDataTypeSchema;
-
-    return schema;
   });
-}
 
-function encodeTemplateLiteral(
+const encodeTemplateLiteral = (
   ast: AST.TemplateLiteral,
   context: Context,
-): Either.Either<StringDataTypeSchema, EncodeError> {
-  return Either.gen(function* (_) {
+): Effect.Effect<StringDataTypeSchema, EncodeError> =>
+  Effect.gen(function* (_) {
     const base = yield* _(makeBase(context.root, context.jsonSchema));
 
-    const schema = {
+    return {
       ...base,
       type: "string",
       pattern: AST.getTemplateLiteralRegExp(ast).source,
     } satisfies StringDataTypeSchema;
-
-    return schema;
   });
-}
 
-function encodeTupleType(
+const encodeTupleType = (
   ast: AST.TupleType,
   context: Context,
-): Either.Either<DataTypeSchema, EncodeError> {
-  return Either.gen(function* (_) {
+): Effect.Effect<ArrayDataTypeSchema, EncodeError> =>
+  Effect.gen(function* (_) {
     // BlockProtocol only supports `emptyList`, so an empty tuple
     if (ast.elements.length !== 0) {
-      yield* _(Either.left(EncodeError.unsupportedType("tuple")));
+      yield* _(EncodeError.unsupportedType("tuple"));
     }
 
     if (ast.rest.length !== 0) {
-      yield* _(Either.left(EncodeError.unsupportedType("array")));
+      return yield* _(EncodeError.unsupportedType("array"));
     }
 
     const base = yield* _(makeBase(context.root, context.jsonSchema));
 
-    const schema = {
+    return {
       ...base,
       type: "array",
       const: [],
     } satisfies ArrayDataTypeSchema;
-
-    return schema;
   });
-}
 
-function encodeTypeLiteral(
+const encodeTypeLiteral = (
   ast: AST.TypeLiteral,
   context: Context,
-): Either.Either<ObjectDataTypeSchema, EncodeError> {
-  return Either.gen(function* (_) {
+): Effect.Effect<ObjectDataTypeSchema, EncodeError> =>
+  Effect.gen(function* (_) {
     // we only support opaque objects, that means where we have records with exactly one index signature
     // of {[key: string]: Json.Value}
     // structs are not supported by DataTypes, but by PropertyTypes and EntityTypes
     if (ReadonlyArray.isNonEmptyReadonlyArray(ast.propertySignatures)) {
-      yield* _(Either.left(EncodeError.unsupportedType("struct")));
+      return yield* _(EncodeError.unsupportedType("struct"));
     }
 
     if (ReadonlyArray.isEmptyReadonlyArray(ast.indexSignatures)) {
-      yield* _(
-        Either.left(EncodeError.malformedRecord("index signature required")),
-      );
+      return yield* _(EncodeError.malformedRecord("index signature required"));
     }
 
     if (ast.indexSignatures.length > 1) {
-      yield* _(
-        Either.left(
-          EncodeError.malformedRecord("more than one index signature"),
-        ),
+      return yield* _(
+        EncodeError.malformedRecord("more than one index signature"),
       );
     }
 
     const signature = ast.indexSignatures[0];
     if (signature.parameter._tag !== "StringKeyword") {
-      yield* _(
-        Either.left(EncodeError.malformedRecord("parameter must be a string")),
+      return yield* _(
+        EncodeError.malformedRecord("parameter must be a string"),
       );
     }
 
     // the value must be a Json.Value node
     if (!Json.isValueAST(signature.type)) {
-      yield* _(
-        Either.left(
-          EncodeError.malformedRecord("value is not of type `Json.Value`"),
-        ),
+      return yield* _(
+        EncodeError.malformedRecord("value is not of type `Json.Value`"),
       );
     }
 
     const base = yield* _(makeBase(context.root, context.jsonSchema));
 
-    const schema = {
+    return {
       ...base,
       type: "object",
     } satisfies ObjectDataTypeSchema;
-
-    return schema;
   });
-}
 
-function encode(
+const encode = (
   ast: AST.AST,
-  context: Context,
-): Either.Either<DataTypeSchema, EncodeError> {
-  const traverseResult = EncodeContext.visit(ast, context);
-  if (Either.isLeft(traverseResult)) {
-    return Either.left(EncodeError.visit(traverseResult.left));
-  }
+  parentContext: Context,
+): Effect.Effect<DataTypeSchema, EncodeError> =>
+  Effect.gen(function* (_) {
+    const context = yield* _(
+      EncodeContext.visit(ast, parentContext),
+      Effect.mapError(EncodeError.visit),
+    );
 
-  const localContext = traverseResult.right;
+    switch (ast._tag) {
+      case "Literal":
+        return yield* _(encodeLiteral(ast, context));
+      case "UndefinedKeyword":
+        return yield* _(EncodeError.unsupportedKeyword("undefined"));
+      case "Declaration":
+        return yield* _(EncodeError.unsupportedNode("Declaration"));
+      case "UniqueSymbol":
+        return yield* _(EncodeError.unsupportedKeyword("unique symbol"));
+      case "VoidKeyword":
+        return yield* _(EncodeError.unsupportedKeyword("void"));
+      case "NeverKeyword":
+        return yield* _(EncodeError.unsupportedKeyword("never"));
+      case "UnknownKeyword":
+        return yield* _(EncodeError.unsupportedKeyword("unknown"));
+      case "AnyKeyword":
+        return yield* _(EncodeError.unsupportedType("any"));
+      case "StringKeyword":
+        return yield* _(encodeString(context));
+      case "NumberKeyword":
+        return yield* _(encodeNumber(context));
+      case "BooleanKeyword":
+        return yield* _(encodeBoolean(context));
+      case "BigIntKeyword":
+        return yield* _(EncodeError.unsupportedType("bigint"));
+      case "SymbolKeyword":
+        return yield* _(EncodeError.unsupportedType("symbol"));
+      case "ObjectKeyword":
+        return yield* _(EncodeError.unsupportedType("object"));
+      case "Enums":
+        return yield* _(encodeEnums(ast, context));
+      case "TemplateLiteral":
+        return yield* _(encodeTemplateLiteral(ast, context));
+      case "Refinement":
+        return yield* _(encode(ast.from, context));
+      case "TupleType":
+        return yield* _(encodeTupleType(ast, context));
+      case "TypeLiteral":
+        return yield* _(encodeTypeLiteral(ast, context));
+      case "Union":
+        // single element unions are automatically flattened
+        return yield* _(EncodeError.unsupportedNode("Union"));
+      case "Suspend":
+        return yield* _(encode(ast.f(), context));
+      case "Transformation":
+        return yield* _(encode(ast.from, context));
+    }
+  });
 
-  switch (ast._tag) {
-    case "Literal":
-      return encodeLiteral(ast, localContext);
-    case "UndefinedKeyword":
-      return Either.left(EncodeError.unsupportedKeyword("undefined"));
-    case "Declaration":
-      return Either.left(EncodeError.unsupportedNode("Declaration"));
-    case "UniqueSymbol":
-      return Either.left(EncodeError.unsupportedKeyword("unique symbol"));
-    case "VoidKeyword":
-      return Either.left(EncodeError.unsupportedKeyword("void"));
-    case "NeverKeyword":
-      return Either.left(EncodeError.unsupportedKeyword("never"));
-    case "UnknownKeyword":
-      return Either.left(EncodeError.unsupportedKeyword("unknown"));
-    case "AnyKeyword":
-      return Either.left(EncodeError.unsupportedType("any"));
-    case "StringKeyword":
-      return encodeString(localContext);
-    case "NumberKeyword":
-      return encodeNumber(localContext);
-    case "BooleanKeyword":
-      return encodeBoolean(localContext);
-    case "BigIntKeyword":
-      return Either.left(EncodeError.unsupportedType("bigint"));
-    case "SymbolKeyword":
-      return Either.left(EncodeError.unsupportedType("symbol"));
-    case "ObjectKeyword":
-      return Either.left(EncodeError.unsupportedType("object"));
-    case "Enums":
-      return encodeEnums(ast, localContext);
-    case "TemplateLiteral":
-      return encodeTemplateLiteral(ast, localContext);
-    case "Refinement":
-      return encode(ast.from, localContext);
-    case "TupleType":
-      return encodeTupleType(ast, localContext);
-    case "TypeLiteral":
-      return encodeTypeLiteral(ast, localContext);
-    case "Union":
-      // single element unions are automatically flattened
-      return Either.left(EncodeError.unsupportedNode("Union"));
-    case "Suspend":
-      return encode(ast.f(), localContext);
-    case "Transformation":
-      return encode(ast.from, localContext);
-  }
-}
-
-export function encodeSchema(
+export const encodeSchema = (
   ast: AST.AST,
-): Either.Either<DataTypeSchema, EncodeError> {
-  const annotation: unknown = ast.annotations[DataType.AnnotationId];
-  if (!Predicate.isFunction(annotation)) {
-    return Either.left(
-      EncodeError.malformedDataType("[INTERNAL] annotation missing"),
-    );
-  }
+): Effect.Effect<DataTypeSchema, EncodeError> =>
+  Effect.gen(function* (_) {
+    const annotation: unknown = ast.annotations[DataType.AnnotationId];
+    if (!Predicate.isFunction(annotation)) {
+      return yield* _(
+        EncodeError.malformedDataType("[INTERNAL] annotation missing"),
+      );
+    }
 
-  const dataType: unknown = annotation();
-  if (!DataType.isDataType(dataType)) {
-    return Either.left(
-      EncodeError.malformedDataType("[INTERNAL] annotation is not a DataType"),
-    );
-  }
+    const dataType: unknown = annotation();
+    if (!DataType.isDataType(dataType)) {
+      return yield* _(
+        EncodeError.malformedDataType(
+          "[INTERNAL] annotation is not a DataType",
+        ),
+      );
+    }
 
-  return encode(ast, EncodeContext.make(dataType));
-}
+    return yield* _(encode(ast, EncodeContext.make(dataType)));
+  });
