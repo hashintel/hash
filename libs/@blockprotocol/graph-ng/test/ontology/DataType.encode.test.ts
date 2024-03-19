@@ -838,10 +838,11 @@ describe("suspend", () => {
 
     const error = Either.flip(suspend).pipe(Either.getOrThrow);
     expect(error.reason).toMatchInlineSnapshot(`
-        {
-          "_tag": "CyclicSchema",
-        }
-      `);
+      {
+        "_tag": "Visit",
+        "cause": [VisitError],
+      }
+    `);
   });
 
   test("cyclic: triple", () => {
@@ -859,10 +860,11 @@ describe("suspend", () => {
 
     const error = Either.flip(suspend).pipe(Either.getOrThrow);
     expect(error.reason).toMatchInlineSnapshot(`
-        {
-          "_tag": "CyclicSchema",
-        }
-      `);
+      {
+        "_tag": "Visit",
+        "cause": [VisitError],
+      }
+    `);
   });
 });
 
