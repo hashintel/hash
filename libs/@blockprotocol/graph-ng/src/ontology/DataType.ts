@@ -1,10 +1,11 @@
+import { AST } from "@effect/schema";
 import * as S from "@effect/schema/Schema";
 import {
   Effect,
-  Option,
   Equal,
   Hash,
   Inspectable,
+  Option,
   pipe,
   Pipeable,
   Predicate,
@@ -17,7 +18,6 @@ import { encodeSchema } from "./DataType/encode.js";
 import { DecodeError, EncodeError, InternalError } from "./DataType/error.js";
 import { DataTypeSchema } from "./DataType/schema.js";
 import * as DataTypeUrl from "./DataTypeUrl.js";
-import { AST } from "@effect/schema";
 
 const TypeId: unique symbol = Symbol.for(
   "@blockprotocol/graph/ontology/DataType",
@@ -191,7 +191,7 @@ export const tryFromAST = (
       return yield* _(InternalError.annotation("expected function"));
     }
 
-    const dataType = annotation.value();
+    const dataType: unknown = annotation.value();
     if (!isDataType(dataType)) {
       return yield* _(
         InternalError.annotation("expected function to return `DataType`"),
@@ -206,5 +206,9 @@ export const getFromAST = (
   ast: AST.AST,
 ): Effect.Effect<Option.Option<DataType<unknown>>> =>
   pipe(tryFromAST(ast), Effect.option);
+
+/** @internal */
+export const isAST = (ast: AST.AST): boolean =>
+  AST.getAnnotation(ast, AnnotationId).pipe(Option.isSome);
 
 export type { DataTypeSchema as Schema };

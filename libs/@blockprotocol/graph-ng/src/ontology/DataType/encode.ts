@@ -33,6 +33,7 @@ import {
   ObjectDataTypeSchema,
   StringDataTypeSchema,
 } from "./schema.js";
+import { VisitAST } from "../internal/EncodeContext.js";
 
 type Context = EncodeContext.EncodeContext<DataType.DataType<unknown>>;
 
@@ -337,18 +338,18 @@ const encodeTypeLiteral = (
   });
 
 const encode = (
-  ast: AST.AST,
+  ast: VisitAST,
   parentContext: Context,
 ): Effect.Effect<DataTypeSchema, EncodeError> =>
   Effect.gen(function* (_) {
-    const context = yield* _(
+    const { node, context } = yield* _(
       EncodeContext.visit(ast, parentContext),
       Effect.mapError(EncodeError.visit),
     );
 
-    switch (ast._tag) {
+    switch (node._tag) {
       case "Literal":
-        return yield* _(encodeLiteral(ast, context));
+        return yield* _(encodeLiteral(node, context));
       case "UndefinedKeyword":
         return yield* _(EncodeError.unsupportedKeyword("undefined"));
       case "Declaration":
@@ -376,22 +377,22 @@ const encode = (
       case "ObjectKeyword":
         return yield* _(EncodeError.unsupportedType("object"));
       case "Enums":
-        return yield* _(encodeEnums(ast, context));
+        return yield* _(encodeEnums(node, context));
       case "TemplateLiteral":
-        return yield* _(encodeTemplateLiteral(ast, context));
+        return yield* _(encodeTemplateLiteral(node, context));
       case "Refinement":
-        return yield* _(encode(ast.from, context));
+        return yield* _(encode(node.from, context));
       case "TupleType":
-        return yield* _(encodeTupleType(ast, context));
+        return yield* _(encodeTupleType(node, context));
       case "TypeLiteral":
-        return yield* _(encodeTypeLiteral(ast, context));
+        return yield* _(encodeTypeLiteral(node, context));
       case "Union":
         // single element unions are automatically flattened
         return yield* _(EncodeError.unsupportedNode("Union"));
       case "Suspend":
-        return yield* _(encode(ast.f(), context));
+        return yield* _(encode(node.f, context));
       case "Transformation":
-        return yield* _(encode(ast.from, context));
+        return yield* _(encode(node.from, context));
     }
   });
 

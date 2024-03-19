@@ -1,42 +1,36 @@
 import { AST } from "@effect/schema";
 import {
-  Option,
-  Either,
-  pipe,
-  Stream,
-  Effect,
   Chunk,
-  ReadonlyArray,
+  Effect,
   Equivalence,
+  Option,
+  pipe,
   Predicate,
+  ReadonlyArray,
   ReadonlyRecord,
+  Stream,
 } from "effect";
 
+import * as VersionedUrl from "../../VersionedUrl.js";
+import * as DataType from "../DataType.js";
+import { asNumberOrUndefined } from "../internal/encode.js";
 import * as EncodeContext from "../internal/EncodeContext.js";
 import * as PropertyType from "../PropertyType.js";
 import { EncodeError } from "./error.js";
 import {
+  Array,
   ArrayOfPropertyValues,
   DataTypeReference,
-  PropertyTypeSchema,
-  PropertyValues,
-  Array,
-  PropertyTypeReference,
-  PropertyTypeObjectValue,
+  makeBase,
   OneOf,
   PropertyTypeObject,
-  makeBase,
+  PropertyTypeObjectValue,
+  PropertyTypeReference,
+  PropertyTypeSchema,
+  PropertyValues,
 } from "./schema.js";
-import * as DataType from "../DataType.js";
-import { asNumberOrUndefined } from "../internal/encode.js";
-import * as VersionedUrl from "../../VersionedUrl.js";
 
 type Context = EncodeContext.EncodeContext<PropertyType.PropertyType<unknown>>;
-
-type PreparedAST = Exclude<
-  AST.AST,
-  AST.Refinement | AST.Suspend | AST.Transformation
->;
 
 // TODO: test
 const flattenedUnionStream = (
@@ -51,9 +45,9 @@ const flattenedUnionStream = (
           return Stream.make(node);
         }
 
-        const context = yield* _(
+        const { context } = yield* _(
           EncodeContext.visit(node, currentContext),
-          Either.mapLeft(EncodeError.visit),
+          Effect.mapError(EncodeError.visit),
         );
 
         return flattenedUnionStream(node.types, context);
@@ -76,17 +70,50 @@ const flattenUnion = (
     return AST.Union.make(children, ast.annotations);
   });
 
+const pruneUndefined = (ast: AST.AST): AST.AST => {
+  if (!AST.isUnion(ast)) {
+    return ast;
+  }
+
+  const types = ast.types.filter((type) => !AST.isUndefinedKeyword(type));
+  return AST.Union.make(types, ast.annotations);
+};
+
 const prepare = (
-  ast: AST.AST,
+  ast: AST.AST | (() => AST.AST),
   parentContext: Context,
-): Effect.Effect<{ node: PreparedAST; context: Context }, EncodeError> =>
+): Effect.Effect<{ node: AST.AST; context: Context }, EncodeError> =>
   Effect.gen(function* (_) {
-    const context = yield* _(
+    const { node, context, staleContext } = yield* _(
       EncodeContext.visit(ast, parentContext),
       Effect.mapError(EncodeError.visit),
     );
 
-    switch (ast._tag) {
+    // do not continue to prepare if the node is a PropertyType or DataType
+    // How this works:
+    // We can only refer to ourselves (create a loop) if we suspend.
+    // If we naively check if a node is a `PropertyType` or `DataType` we would immediately abort,
+    // because the first node is always a `PropertyType`, therefore we have an additional check at suspenseDepth === 0
+    // to check if the referenced `PropertyType` is us, if that's the case we continue, otherwise we return.
+    if (DataType.isAST(node)) {
+      // we choose to take the `staleContext` as to not pollute the `context` with `DataType` information
+      return { node, context: staleContext };
+    }
+
+    const maybePropertyType = yield* _(PropertyType.getFromAST(node));
+    if (Option.isSome(maybePropertyType)) {
+      if (context.state.suspenseDepth > 0) {
+        return { node, context: staleContext };
+      }
+
+      // suspenseDepth === 0
+
+      if (maybePropertyType.value.id !== parentContext.root.id) {
+        return { node, context: staleContext };
+      }
+    }
+
+    switch (node._tag) {
       case "UndefinedKeyword":
       case "Declaration":
       case "Literal":
@@ -103,21 +130,21 @@ const prepare = (
       case "ObjectKeyword":
       case "Enums":
       case "TemplateLiteral":
-        return { node: ast, context };
+        return { node, context };
       case "Refinement":
-        return yield* _(prepare(ast.from, context));
+        return yield* _(prepare(node.from, context));
       case "TupleType":
       case "TypeLiteral":
-        return { node: ast, context };
+        return { node, context };
       case "Union":
         return yield* _(
-          flattenUnion(ast, context),
-          Effect.andThen((ast) => prepare(ast, context)),
+          flattenUnion(node, context),
+          Effect.andThen((flat) => prepare(flat, context)),
         );
       case "Suspend":
-        return yield* _(prepare(ast.f(), context));
+        return yield* _(prepare(node.f, context));
       case "Transformation":
-        return yield* _(prepare(ast.from, context));
+        return yield* _(prepare(node.from, context));
     }
   });
 
@@ -138,8 +165,10 @@ const encodeOneOf = <T>(ast: AST.AST, parentContext: Context, map: MapFn<T>) =>
 
     return yield* _(
       stream,
-      Stream.mapEffect((node) => prepare(node, context)),
-      Stream.mapEffect(({ node, context }) => map(node, context)),
+      Stream.mapEffect((child) => prepare(child, context)),
+      Stream.mapEffect(({ node: child, context: childContext }) =>
+        map(child, childContext),
+      ),
       Stream.runCollect,
       Effect.map(Chunk.toReadonlyArray),
     );
@@ -213,6 +242,7 @@ const encodeArrayOfPropertyValues = (
     maxItems: maxItemsOverride,
   }: { minItems: Option.Option<number>; maxItems: Option.Option<number> },
 ): Effect.Effect<ArrayOfPropertyValues, EncodeError> =>
+  // eslint-disable-next-line func-names
   Effect.gen(function* (_) {
     return yield* _(
       encodeArray(
@@ -221,6 +251,7 @@ const encodeArrayOfPropertyValues = (
         { minItems: minItemsOverride, maxItems: maxItemsOverride },
         (node, context) =>
           pipe(
+            // eslint-disable-next-line @typescript-eslint/no-use-before-define
             encodeOneOf(node, context, encodePropertyValues),
             Effect.map((oneOf) => ({ oneOf })),
           ),
@@ -276,7 +307,9 @@ const arrayChildNode = (
         elements,
         ReadonlyArray.map((element) => element.type),
         ReadonlyArray.map(AST.hash),
-        ReadonlyArray.every(Equivalence.number),
+        ReadonlyArray.dedupe,
+        ReadonlyArray.length,
+        (length) => length === 1,
       );
 
       if (!areEqual) {
@@ -302,17 +335,19 @@ const arrayChildNode = (
 
 const encodePropertyTypeObjectValue = (
   ast: AST.AST,
-  context: Context,
+  parentContext: Context,
 ): Effect.Effect<PropertyTypeObjectValue, EncodeError> =>
   Effect.gen(function* (_) {
-    const arrayType = yield* _(arrayChildNode(ast));
+    const { node, context } = yield* _(prepare(ast, parentContext));
+
+    const arrayType = yield* _(arrayChildNode(node));
     if (Option.isSome(arrayType)) {
       const { child, minItems, maxItems } = arrayType.value;
 
       return yield* _(
-        encodeArray(child, context, { minItems, maxItems }, (node) =>
+        encodeArray(child, context, { minItems, maxItems }, (value) =>
           pipe(
-            PropertyType.tryFromAST(node),
+            PropertyType.tryFromAST(value),
             Effect.mapError(() =>
               EncodeError.malformedPropertyObject(
                 "expected PropertyType as value",
@@ -352,6 +387,7 @@ const encodePropertyTypeObject = (
     const properties = yield* _(
       Stream.make(...ast.propertySignatures),
       Stream.mapEffect((property) =>
+        // eslint-disable-next-line @typescript-eslint/no-shadow
         Effect.gen(function* (_) {
           const name = property.name;
           if (!Predicate.isString(name)) {
@@ -360,7 +396,11 @@ const encodePropertyTypeObject = (
             );
           }
 
-          const type = property.type;
+          // if optional remove the undefined value from the union type
+          const type = property.isOptional
+            ? pruneUndefined(property.type)
+            : property.type;
+
           const value = yield* _(encodePropertyTypeObjectValue(type, context));
 
           const ref = Predicate.hasProperty(value, "$ref")

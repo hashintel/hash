@@ -35,7 +35,7 @@ export const EncodeErrorReason = Data.taggedEnum<EncodeErrorReason>();
 export class EncodeError extends Data.TaggedError(
   "@blockprotocol/graph/PropertyType/EncodeError",
 )<{ reason: EncodeErrorReason }> {
-  static internal(cause: InternalError): EncodeError {
+  static internal(this: void, cause: InternalError): EncodeError {
     return new EncodeError({
       reason: EncodeErrorReason.Internal({ cause }),
     });

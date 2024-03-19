@@ -16,6 +16,7 @@ import { EncodeError } from "./PropertyType/error.js";
 import { PropertyTypeSchema } from "./PropertyType/schema.js";
 import * as PropertyTypeUrl from "./PropertyTypeUrl.js";
 import { InternalError } from "./DataType/error.js";
+import * as DataType from "./DataType.js";
 
 const TypeId: unique symbol = Symbol.for(
   "@blockprotocol/graph/ontology/PropertyType",
@@ -90,6 +91,7 @@ function makeImpl<Out, In>(
   const impl = Object.create(PropertyTypeProto);
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   impl.id = id;
+
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   impl.schema = schema.annotations({
     [AnnotationId]: () => impl as PropertyType<unknown>,
@@ -161,7 +163,7 @@ export const tryFromAST = (
       return yield* _(InternalError.annotation("expected function"));
     }
 
-    const propertyType = annotation.value();
+    const propertyType: unknown = annotation.value();
     if (!isPropertyType(propertyType)) {
       return yield* _(
         InternalError.annotation("expected function to return `DataType`"),
@@ -177,6 +179,13 @@ export const getFromAST = (
 ): Effect.Effect<Option.Option<PropertyType<unknown>>> =>
   pipe(tryFromAST(ast), Effect.option);
 
+/** @internal */
+export const isAST = (ast: AST.AST): boolean =>
+  AST.getAnnotation(ast, AnnotationId).pipe(Option.isSome);
+
 // TODO: fromSchema
+
+export const isolate = <A, I>(schema: S.Schema<A, I>): S.Schema<A, I> =>
+  DataType.isAST(schema.ast) ? schema.pipe(S.filter(() => true)) : schema;
 
 export type { PropertyTypeSchema as Schema };
