@@ -1,5 +1,7 @@
+use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::knowledge::entity::EntityProperties;
+use json_patch::{PatchOperation, ReplaceOperation};
 use temporal_versioning::ClosedTemporalBound;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
@@ -124,18 +126,17 @@ async fn update() {
         .expect("could not create entity");
 
     let v2_metadata = api
-        .update_entity(
-            v1_metadata.record_id.entity_id,
-            page_v2.clone(),
-            vec![VersionedUrl {
-                base_url: BaseUrl::new(
-                    "https://blockprotocol.org/@alice/types/entity-type/page/".to_owned(),
-                )
-                .expect("couldn't construct Base URL"),
-                version: OntologyTypeVersion::new(1),
-            }],
-            false,
-        )
+        .patch_entity(PatchEntityParams {
+            entity_id: v1_metadata.record_id.entity_id,
+            properties: vec![PatchOperation::Replace(ReplaceOperation {
+                path: String::new(),
+                value: serde_json::to_value(&page_v2).expect("could not serialize entity"),
+            })],
+            entity_type_ids: vec![],
+            archived: None,
+            draft: None,
+            decision_time: None,
+        })
         .await
         .expect("could not update entity");
 

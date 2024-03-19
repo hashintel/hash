@@ -36,7 +36,6 @@ import type {
   Subgraph,
 } from "@local/hash-subgraph";
 import {
-  extractDraftIdFromEntityId,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   isEntityVertex,
@@ -479,19 +478,17 @@ export const updateEntity: ImpureGraphFunction<
   const { graphApi } = context;
   const { actorId } = authentication;
 
-  const { data: metadata } = await graphApi.updateEntity(actorId, {
+  const { data: metadata } = await graphApi.patchEntity(actorId, {
     entityId: entity.metadata.recordId.entityId,
-    /**
-     * @todo: this field could be optional when updating an entity
-     *
-     * @see https://app.asana.com/0/1201095311341924/1203285029221330/f
-     * */
-    entityTypeIds: [entityTypeId ?? entity.metadata.entityTypeId],
-    archived: entity.metadata.archived,
-    draft:
-      params.draft ??
-      !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
-    properties,
+    entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
+    draft: params.draft,
+    properties: [
+      {
+        op: "replace",
+        path: "",
+        value: params.properties,
+      },
+    ],
   });
 
   for (const afterUpdateHook of afterUpdateEntityHooks) {
@@ -519,17 +516,9 @@ export const archiveEntity: ImpureGraphFunction<
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
   const { entity } = params;
-  await graphApi.updateEntity(actorId, {
+  await graphApi.patchEntity(actorId, {
     entityId: entity.metadata.recordId.entityId,
     archived: true,
-    /**
-     * @todo: these fields shouldn't be required when archiving an entity
-     *
-     * @see https://app.asana.com/0/1201095311341924/1203285029221330/f
-     * */
-    draft: !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
-    entityTypeIds: [entity.metadata.entityTypeId],
-    properties: entity.properties,
   });
 };
 
@@ -540,17 +529,9 @@ export const unarchiveEntity: ImpureGraphFunction<
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
   const { entity } = params;
-  await graphApi.updateEntity(actorId, {
+  await graphApi.patchEntity(actorId, {
     entityId: entity.metadata.recordId.entityId,
-    /**
-     * @todo: these fields shouldn't be required when archiving an entity
-     *
-     * @see https://app.asana.com/0/1201095311341924/1203285029221330/f
-     * */
     archived: false,
-    draft: !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
-    entityTypeIds: [entity.metadata.entityTypeId],
-    properties: entity.properties,
   });
 };
 

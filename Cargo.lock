@@ -1014,6 +1014,7 @@ dependencies = [
  "graph-test-data",
  "graph-types",
  "hash-status",
+ "json-patch",
  "mime",
  "postgres-types",
  "refinery",
@@ -1057,6 +1058,7 @@ dependencies = [
  "http-body-util",
  "hyper 1.2.0",
  "include_dir",
+ "json-patch",
  "mime",
  "opentelemetry 0.21.0",
  "opentelemetry_sdk 0.21.2",
@@ -1110,6 +1112,7 @@ dependencies = [
  "graph",
  "graph-test-data",
  "graph-types",
+ "json-patch",
  "pretty_assertions",
  "rand",
  "serde",
@@ -1594,6 +1597,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "29c15563dc2726973df627357ce0c9ddddbea194836909d655df6a75d2cf296d"
 dependencies = [
  "wasm-bindgen",
+]
+
+[[package]]
+name = "json-patch"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "55ff1e1486799e3f64129f8ccad108b38290df9cd7015cd31bed17239f0789d6"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror",
+ "utoipa",
 ]
 
 [[package]]

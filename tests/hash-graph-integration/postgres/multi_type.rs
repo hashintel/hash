@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::knowledge::entity::{Entity, EntityProperties};
 use pretty_assertions::assert_eq;
@@ -79,12 +80,14 @@ async fn initial_person() {
     );
 
     let updated_entity_metadata = api
-        .update_entity(
-            entity_metadata.record_id.entity_id,
-            alice(),
-            vec![person_entity_type_id(), org_entity_type_id()],
-            false,
-        )
+        .patch_entity(PatchEntityParams {
+            entity_id: entity_metadata.record_id.entity_id,
+            decision_time: None,
+            entity_type_ids: vec![person_entity_type_id(), org_entity_type_id()],
+            properties: vec![],
+            draft: None,
+            archived: None,
+        })
         .await
         .expect("could not create entity");
 
@@ -149,12 +152,14 @@ async fn create_multi() {
     );
 
     let updated_entity_metadata = api
-        .update_entity(
-            entity_metadata.record_id.entity_id,
-            alice(),
-            vec![person_entity_type_id()],
-            false,
-        )
+        .patch_entity(PatchEntityParams {
+            entity_id: entity_metadata.record_id.entity_id,
+            decision_time: None,
+            entity_type_ids: vec![person_entity_type_id()],
+            properties: vec![],
+            draft: None,
+            archived: None,
+        })
         .await
         .expect("could not create entity");
 
