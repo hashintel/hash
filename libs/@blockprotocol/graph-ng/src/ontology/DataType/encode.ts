@@ -16,6 +16,11 @@ import {
 } from "../../internal/schema.js";
 import * as Json from "../../Json.js";
 import * as DataType from "../DataType.js";
+import {
+  asNumberOrUndefined,
+  asStringOrUndefined,
+} from "../internal/encode.js";
+import * as EncodeContext from "../internal/EncodeContext.js";
 import { EncodeError } from "./error.js";
 import {
   ArrayDataTypeSchema,
@@ -28,11 +33,6 @@ import {
   ObjectDataTypeSchema,
   StringDataTypeSchema,
 } from "./schema.js";
-import * as EncodeContext from "../internal/EncodeContext.js";
-import {
-  asNumberOrUndefined,
-  asStringOrUndefined,
-} from "../internal/encode.js";
 
 type Context = EncodeContext.EncodeContext<DataType.DataType<unknown>>;
 

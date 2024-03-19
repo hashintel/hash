@@ -235,7 +235,8 @@ const arrayChildNode = (
     child: AST.AST;
     minItems: Option.Option<number>;
     maxItems: Option.Option<number>;
-  }>
+  }>,
+  EncodeError
 > =>
   Effect.gen(function* (_) {
     if (!AST.isTupleType(node)) {
@@ -248,18 +249,26 @@ const arrayChildNode = (
 
     if (elements.length !== 0 && rest.length !== 0) {
       // TODO: needs test
-      throw new Error("elements and rest at the same time are not supported");
+      return yield* _(
+        EncodeError.malformedArray("tuple with rest elements are unsupported"),
+      );
     }
 
     if (rest.length > 1) {
       // TODO: needs test
-      throw new Error("rest with trailing elements is not supported");
+      return yield* _(
+        EncodeError.malformedArray(
+          "tuple with trailing elements are unsupported",
+        ),
+      );
     }
 
     if (elements.length > 0) {
       // any optional elements are not allowed
       if (elements.some((element) => element.isOptional)) {
-        throw new Error("optional elements are not allowed");
+        return yield* _(
+          EncodeError.malformedArray("optional tuple elements are unsupported"),
+        );
       }
 
       // see if the elements are all the same
@@ -272,7 +281,9 @@ const arrayChildNode = (
 
       if (!areEqual) {
         // TODO: needs test
-        throw new Error("tuple elements need to be the same");
+        return yield* _(
+          EncodeError.malformedArray("tuple elements must be the same"),
+        );
       }
 
       return Option.some({
@@ -302,9 +313,11 @@ const encodePropertyTypeObjectValue = (
         encodeArray(child, context, { minItems, maxItems }, (node) =>
           pipe(
             PropertyType.tryFromAST(node),
-            Effect.mapError((error) => {
-              throw new Error("Not implemented");
-            }),
+            Effect.mapError(() =>
+              EncodeError.malformedPropertyObject(
+                "expected PropertyType as value",
+              ),
+            ),
             Effect.map(encodePropertyTypeReference),
           ),
         ),
@@ -313,9 +326,9 @@ const encodePropertyTypeObjectValue = (
 
     const propertyType = yield* _(
       PropertyType.tryFromAST(ast),
-      Effect.mapError((error) => {
-        throw new Error("Not implemented");
-      }),
+      Effect.mapError(() =>
+        EncodeError.malformedPropertyObject("expected PropertyType as value"),
+      ),
     );
 
     return encodePropertyTypeReference(propertyType);
@@ -326,13 +339,14 @@ const encodePropertyTypeObject = (
   context: Context,
 ): Effect.Effect<PropertyTypeObject, EncodeError> =>
   Effect.gen(function* (_) {
-    // TODO: ensure that each key is the base of the property object it is in
     if (!AST.isTypeLiteral(ast)) {
-      throw new Error("expected TypeLiteral");
+      return yield* _(EncodeError.unableToEncode(ast));
     }
 
     if (ast.indexSignatures.length > 0) {
-      throw new Error("no anonymous records allowed");
+      return yield* _(
+        EncodeError.malformedPropertyObject("records are unsupported"),
+      );
     }
 
     const properties = yield* _(
@@ -341,7 +355,9 @@ const encodePropertyTypeObject = (
         Effect.gen(function* (_) {
           const name = property.name;
           if (!Predicate.isString(name)) {
-            return yield* _(EncodeError.malformedRecord("expected string key"));
+            return yield* _(
+              EncodeError.malformedPropertyObject("expected string key"),
+            );
           }
 
           const type = property.type;
@@ -353,7 +369,11 @@ const encodePropertyTypeObject = (
           const base = VersionedUrl.base(ref);
 
           if (base !== name) {
-            throw new Error("expected base to be the same as name");
+            return yield* _(
+              EncodeError.malformedPropertyObject(
+                "key is not BaseUrl of PropertyTypeUrl",
+              ),
+            );
           }
 
           return [name, value] as const;

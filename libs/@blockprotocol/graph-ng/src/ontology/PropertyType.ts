@@ -10,11 +10,11 @@ import {
   Predicate,
 } from "effect";
 
+import { AST } from "@effect/schema";
 import { encodeSchema } from "./PropertyType/encode.js";
 import { EncodeError } from "./PropertyType/error.js";
 import { PropertyTypeSchema } from "./PropertyType/schema.js";
 import * as PropertyTypeUrl from "./PropertyTypeUrl.js";
-import { AST } from "@effect/schema";
 import { InternalError } from "./DataType/error.js";
 
 const TypeId: unique symbol = Symbol.for(
