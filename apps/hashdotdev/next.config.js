@@ -21,7 +21,7 @@ const nextConfig = {
       */
       {
         source: "/docs/simulations/concepts/:path",
-        destination: "/docs/simulations/create/advanced",
+        destination: "/docs/simulations/create/design-considerations/:path",
         permanent: true,
       },
       {
@@ -77,6 +77,31 @@ const nextConfig = {
       {
         source: "/docs/simulations/create/libraries/python-packages",
         destination: "/docs/simulations/create/libraries/third-party",
+        permanent: true,
+      },
+      {
+        source: "/docs/simulations/advanced/design-considerations",
+        destination: "/docs/simulations/design-considerations/actor-model",
+        permanent: true,
+      },
+      {
+        source: "/docs/simulations/advanced/design-considerations/managing-resource-access",
+        destination: "/docs/simulations/design-considerations/resource-access",
+        permanent: true,
+      },
+      {
+        source: "/docs/simulations/advanced/designing-for-different-timescales",
+        destination: "/docs/simulations/design-considerations/timescales",
+        permanent: true,
+      },
+      {
+        source: "/docs/simulations/advanced/designing-with-distributions",
+        destination: "/docs/simulations/design-considerations/distributions",
+        permanent: true,
+      },
+      {
+        source: "/docs/simulations/advanced/verification-and-validation",
+        destination: "/docs/simulations/design-considerations/verify-validate",
         permanent: true,
       },
       /**
