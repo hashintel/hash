@@ -63,6 +63,10 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
 
   const handleQueryEntities = useCallback(
     async (multiFilter: MultiFilter) => {
+      /**
+       * When this is changed to a structural query, if drafts are included
+       * then there may be multiple roots for a single entity (a live and zero or more draft updates)
+       */
       const res = await queryEntities({
         data: {
           operation: { multiFilter },
