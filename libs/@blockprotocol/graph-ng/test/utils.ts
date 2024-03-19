@@ -1,4 +1,4 @@
-import { Effect, Exit, pipe, Option, Cause } from "effect";
+import { Cause, Effect, Exit, Option, pipe } from "effect";
 
 export const runError = <T, E>(effect: Effect.Effect<T, E>): Cause.Cause<E> =>
   pipe(
