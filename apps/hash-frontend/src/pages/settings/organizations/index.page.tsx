@@ -8,7 +8,7 @@ import { useRef } from "react";
 import type { NextPageWithLayout } from "../../../shared/layout";
 import { Button } from "../../../shared/ui/button";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
-import { getSettingsLayout } from "../shared/settings-layout";
+import { getSettingsLayout } from "../../shared/settings-layout";
 import { SettingsPageContainer } from "../shared/settings-page-container";
 import { OrgRow } from "./index.page/org-row";
 import { Cell } from "./shared/cell";

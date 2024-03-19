@@ -9,7 +9,7 @@ import { useOrgs } from "../../../../components/hooks/use-orgs";
 import type { NextPageWithLayout } from "../../../../shared/layout";
 import { useUserPermissionsOnEntity } from "../../../../shared/use-user-permissions-on-entity";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
-import { getSettingsLayout } from "../../shared/settings-layout";
+import { getSettingsLayout } from "../../../shared/settings-layout";
 import { SettingsPageContainer } from "../../shared/settings-page-container";
 import type { OrgFormData } from "../shared/org-form";
 import { OrgForm } from "../shared/org-form";

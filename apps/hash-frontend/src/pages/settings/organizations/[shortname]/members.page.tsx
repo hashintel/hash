@@ -14,7 +14,7 @@ import { useEffect, useRef, useState } from "react";
 import type { NextPageWithLayout } from "../../../../shared/layout";
 import { useUserPermissionsOnEntity } from "../../../../shared/use-user-permissions-on-entity";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
-import { getSettingsLayout } from "../../shared/settings-layout";
+import { getSettingsLayout } from "../../../shared/settings-layout";
 import { SettingsPageContainer } from "../../shared/settings-page-container";
 import { Cell } from "../shared/cell";
 import { OrgTable } from "../shared/org-table";
