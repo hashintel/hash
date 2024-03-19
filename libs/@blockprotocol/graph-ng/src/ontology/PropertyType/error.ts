@@ -31,7 +31,7 @@ export class EncodeError extends Data.TaggedError(
     });
   }
 
-  static visit(cause: VisitError): EncodeError {
+  static visit(this: void, cause: VisitError): EncodeError {
     return new EncodeError({
       reason: EncodeErrorReason.Visit({ cause }),
     });

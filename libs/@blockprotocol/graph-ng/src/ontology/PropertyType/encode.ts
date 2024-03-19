@@ -1,5 +1,5 @@
 import { AST } from "@effect/schema";
-import { Either } from "effect";
+import { Either, pipe, ReadonlyArray, Function, Stream, Effect } from "effect";
 
 import * as EncodeContext from "../internal/EncodeContext.js";
 import * as PropertyType from "../PropertyType.js";
@@ -12,6 +12,70 @@ type PreparedAST = Exclude<
   AST.AST,
   AST.Refinement | AST.Suspend | AST.Transformation
 >;
+
+function flattenUnion(
+  ast: AST.Union,
+  parentContext: Context,
+): Either.Either<AST.Union, EncodeError> {
+  const types = ast.types;
+
+  function flattenUnionImpl(
+    types: readonly AST.AST[],
+    parentContext: Context,
+  ): Either.Either<AST.AST, EncodeError> {
+    // this could be modelled with `Stream.Stream`, but that would mean we buy into the whole effect system until the
+    // top which is a bit overkill (for now?!)
+    const children = [];
+
+    for (const child of types) {
+      if (!AST.isUnion(child)) {
+        children.push(child);
+        continue;
+      }
+
+      const context = EncodeContext.visit(child, parentContext);
+      if (Either.isLeft(context)) {
+        return Either.left(EncodeError.visit(context.left));
+      }
+
+      const result = flattenUnionImpl(child.types, context.right);
+      if (Either.isLeft(result)) {
+        return result;
+      }
+
+      children.push(result.right);
+    }
+
+    const map = pipe(
+      types,
+      ReadonlyArray.map((type) =>
+        Either.gen(function* (_) {
+          if (!AST.isUnion(type)) {
+            return [type];
+          }
+
+          const context = yield* _(
+            EncodeContext.visit(type, parentContext),
+            Either.mapLeft(EncodeError.visit),
+          );
+
+          const result = yield* _(flattenUnionImpl(type.types, context));
+          return result;
+        }),
+      ),
+      Either.all,
+    );
+
+    if (Either.isLeft(map)) {
+      return Either.left(map.left);
+    }
+
+    return Either.right(pipe(map.right, ReadonlyArray.flatten));
+  }
+
+  // recursively flatten unions, by adding their items to the stack
+  return pipe(types, ReadonlyArray.flatMap);
+}
 
 function prepare(
   ast: AST.AST,
@@ -47,6 +111,7 @@ function prepare(
     case "TupleType":
     case "TypeLiteral":
     case "Union":
+      // flatten unions
       return Either.right(ast);
     case "Suspend":
       return prepare(ast.f(), context);
