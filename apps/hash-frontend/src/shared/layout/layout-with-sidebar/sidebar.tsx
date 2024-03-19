@@ -99,8 +99,7 @@ export const PageSidebar: FunctionComponent = () => {
         ? [
             {
               title: "Instance Administration",
-              /** @todo: redirect to the admin homepage instead */
-              href: "/admin/users",
+              href: "/admin",
               icon: <CogLightIcon sx={{ fontSize: 16 }} />,
               tooltipTitle: "",
             },

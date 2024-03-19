@@ -151,11 +151,7 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
           <ListItemText primary="Settings" />
         </MenuItem>
         {isInstanceAdmin ? (
-          <MenuItem
-            /** @todo: redirect to the admin homepage instead */
-            href="/admin/users"
-            onClick={() => popupState.close()}
-          >
+          <MenuItem href="/admin" onClick={() => popupState.close()}>
             <ListItemText primary="Instance Settings" />
           </MenuItem>
         ) : null}
