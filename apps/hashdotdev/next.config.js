@@ -25,6 +25,26 @@ const nextConfig = {
         permanent: true,
       },
       {
+        source: "/docs/simulations/create/advanced/designing-with-process-models",
+        destination: "/docs/simulations/create/libraries/process",
+        permanent: true,
+      },
+      {
+        source: "/docs/simulations/create/advanced/designing-with-the-material-handling-libraries",
+        destination: "/docs/simulations/create/libraries/material",
+        permanent: true,
+      },
+      {
+        source: "/docs/simulations/create/advanced/physics",
+        destination: "/docs/simulations/create/libraries/physics",
+        permanent: true,
+      },
+      {
+        source: "/docs/simulations/create/advanced/designing-with-system-dynamics-models",
+        destination: "/docs/simulations/create/libraries/system-dynamics",
+        permanent: true,
+      },
+      {
         source: "/docs/simulations/creating-simulations/:path*",
         destination: "/docs/simulations/create/:path*",
         permanent: true,
