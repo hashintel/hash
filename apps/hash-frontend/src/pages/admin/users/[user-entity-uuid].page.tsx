@@ -1,11 +1,17 @@
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import type { AccountId, EntityRootType } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Typography } from "@mui/material";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
-import { useUsers } from "../../../components/hooks/use-users";
+import {
+  constructMinimalUser,
+  isEntityUserEntity,
+} from "../../../lib/user-and-org";
 import type { NextPageWithLayout } from "../../../shared/layout";
 import { Link } from "../../../shared/ui";
+import { useUserOrOrg } from "../../../shared/use-user-or-org";
 import { SettingsPageContainer } from "../../settings/shared/settings-page-container";
 import { getAdminLayout } from "../admin-page-layout";
 import { BasicInfoSection } from "./basic-info-section";
@@ -13,23 +19,41 @@ import { BasicInfoSection } from "./basic-info-section";
 const AdminUserPage: NextPageWithLayout = () => {
   const router = useRouter();
 
-  const { users } = useUsers();
+  const userEntityUuid = router.query["user-entity-uuid"] as
+    | AccountId
+    | undefined;
+
+  const { userOrOrg, refetch, loading } = useUserOrOrg({
+    accountOrAccountGroupId: userEntityUuid,
+  });
 
   const user = useMemo(() => {
-    const userEntityUuid = router.query["user-entity-uuid"] as
-      | string
-      | undefined;
-
-    if (!userEntityUuid) {
+    if (!userOrOrg || !isEntityUserEntity(userOrOrg)) {
       return undefined;
     }
 
-    return users?.find(
-      ({ entity }) =>
-        extractEntityUuidFromEntityId(entity.metadata.recordId.entityId) ===
-        userEntityUuid,
+    return constructMinimalUser({ userEntity: userOrOrg });
+  }, [userOrOrg]);
+
+  const refetchUser = useCallback(async () => {
+    const {
+      data: {
+        structuralQueryEntities: { subgraph: refetchedSubgraph },
+      },
+    } = await refetch();
+
+    const [rootEntity] = getRoots(
+      mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(refetchedSubgraph),
     );
-  }, [router, users]);
+
+    if (!rootEntity || !isEntityUserEntity(rootEntity)) {
+      throw new Error(
+        "The refetched user entity subgraph does not contain the user entity.",
+      );
+    }
+
+    return constructMinimalUser({ userEntity: rootEntity });
+  }, [refetch]);
 
   return user ? (
     <SettingsPageContainer
@@ -53,12 +77,12 @@ const AdminUserPage: NextPageWithLayout = () => {
       }
       sectionLabel="Basic Information"
     >
-      <BasicInfoSection user={user} />
+      <BasicInfoSection user={user} refetchUser={refetchUser} />
     </SettingsPageContainer>
-  ) : users ? (
-    <Typography>Could not find user</Typography>
-  ) : (
+  ) : loading ? (
     <Typography>Loading...</Typography>
+  ) : (
+    <Typography>Could not find user</Typography>
   );
 };
 

@@ -14,7 +14,8 @@ type BasicInfoFormData = Pick<MinimalUser, "enabledFeatureFlags">;
 
 export const BasicInfoSection: FunctionComponent<{
   user: MinimalUser;
-}> = ({ user }) => {
+  refetchUser: () => Promise<MinimalUser>;
+}> = ({ user, refetchUser }) => {
   const {
     control,
     handleSubmit,
@@ -49,6 +50,10 @@ export const BasicInfoSection: FunctionComponent<{
           properties: updatedProperties,
         },
       });
+
+      const refetchedUser = await refetchUser();
+
+      reset(refetchedUser);
     } catch (err) {
       setSubmissionError(
         typeof err === "string" ? err : (err as Error).message,
