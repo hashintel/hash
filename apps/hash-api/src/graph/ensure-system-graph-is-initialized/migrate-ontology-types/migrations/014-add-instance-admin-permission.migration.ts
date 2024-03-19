@@ -51,7 +51,7 @@ const migrate: MigrationFunction = async ({
             kind: "entity",
             resourceId: userEntity.metadata.recordId.entityId,
           },
-          relation: "editor",
+          relation: "administrator",
           subject: {
             kind: "accountGroup",
             subjectId: hashInstanceAdminsAccountGroupId,

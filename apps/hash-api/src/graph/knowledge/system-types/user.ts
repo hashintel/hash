@@ -403,13 +403,6 @@ export const createUser: ImpureGraphFunction<
           },
         },
         {
-          relation: "editor",
-          subject: {
-            kind: "accountGroup",
-            subjectId: hashInstanceAdminsAccountGroupId,
-          },
-        },
-        {
           relation: "setting",
           subject: {
             kind: "setting",
