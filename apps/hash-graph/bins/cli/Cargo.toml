@@ -39,7 +39,7 @@ tokio-postgres = { version = "0.7.10", default-features = false }
 tokio-serde = { version = "0.8", features = ["json"] }
 tokio-util = { workspace = true, features = ["codec"] }
 tracing = { workspace = true }
-uuid = "1.7.0"
+uuid = "1.8.0"
 
 [features]
 test-server = ["graph-api/test-server"]
