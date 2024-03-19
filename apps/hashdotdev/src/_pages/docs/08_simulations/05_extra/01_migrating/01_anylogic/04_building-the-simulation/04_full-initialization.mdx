@@ -12,7 +12,7 @@ In the AnyLogic model, the agents are initialized from a database. When the simu
 
 ![](https://cdn-us1.hash.ai/site/docs/image%20%2828%29.png)
 
-In HASH, we provide similar functionality through the [HASH Index](/platform/index) \(hIndex\). The hIndex is a place you can find existing data or upload your own \(privately or publicly\). In this case, we’ve created an [example dataset](/@hash/ex) for the simulation that contains a network representation of the system. Now in the simulation we can upload the dataset and, in a create function, spin up agents with those properties.
+In HASH, we provide similar functionality through the [HASH Index](/platform/index) \(hIndex\). The hIndex is a place you can find existing data or upload your own \(privately or publicly\). In this case, we’ve created an [example dataset](https://simulation.hash.ai/@hash/ex) for the simulation that contains a network representation of the system. Now in the simulation we can upload the dataset and, in a create function, spin up agents with those properties.
 
 ```python
 # initialize.py
@@ -37,7 +37,7 @@ Our creator function will parse the dataset and assign the necessary properties 
 
 ## Initializing from Historical Data
 
-We'll use another dataset to determine the demand **Retailers** experience. The U.S Energy Information Administration has a database that includes historical gasoline supply. We'll import [that dataset](/@useia/petrol-and-liquids) and write a behavior to process the data, and allow our `initialize.js` file to use it in assigning the `avg_demand` for **Retailers**
+We'll use another dataset to determine the demand **Retailers** experience. The U.S Energy Information Administration has a database that includes historical gasoline supply. We'll import [that dataset](https://simulation.hash.ai/@useia/petrol-and-liquids) and write a behavior to process the data, and allow our `initialize.js` file to use it in assigning the `avg_demand` for **Retailers**
 
 ```javascript
 // process_data.js

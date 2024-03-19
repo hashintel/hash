@@ -124,7 +124,7 @@ If you're familiar with graph theory, you can think of standard entities as vert
 
 **Data types** describe a space of possible valid values (e.g. `string`, `number` or `boolean`). They allow for validation logic to be shared amongst different kinds of property types which represent semantically different things.
 
-At the moment, data types are fixed and defined in the specification, but we're working towards unlocking user-defined custom data types (e.g. numbers within a certain range, or strings matching a certain pattern) beyond those already found in the Block Protocol's [graph module specification](https://blockprotocol.org/docs/spec/graph). Read the [draft RFC](https://github.com/blockprotocol/blockprotocol/pull/355) to learn more.
+At the moment, data types are fixed and defined in the specification, but we're working towards unlocking user-defined custom data types (e.g. numbers within a certain range, or strings matching a certain pattern) beyond those already found in the Block Protocol's [graph module specification](https://blockprotocol.org/spec/graph). Read the [draft RFC](https://github.com/blockprotocol/blockprotocol/pull/355) to learn more.
 
 #### What else?
 
@@ -136,7 +136,7 @@ Building a simulation or other model from a set of strongly typed data equally i
 
 In all agent-to-agent communications (human-human, machine-machine, and human-machine), ontologies of types enable improved mutual understanding by formalizing and standardizing definitions of things and streamlining communication around them.
 
-Asking for model outputs to be provided in accordance with sets of user-created types helps keep generative models focused, and improves the usability of their outputs. The fact that OpenAI raced to release [function calling](https://platform.openai.com/docs/guides/gpt/function-calling) before making fine-tuning generally available with its GPT-3.5 and GPT-4 models was indicative of the demand for structured outputs from generative models, and the difficulty current-generation foundation models have (absent fine-tuning) to reliably adhere to even _explicit_ system prompts and user instructions.
+Asking for model outputs to be provided in accordance with sets of user-created types helps keep generative models focused, and improves the usability of their outputs. The fact that OpenAI raced to release [function calling](https://platform.openai.com/docs/guides/function-calling) before making fine-tuning generally available with its GPT-3.5 and GPT-4 models was indicative of the demand for structured outputs from generative models, and the difficulty current-generation foundation models have (absent fine-tuning) to reliably adhere to even _explicit_ system prompts and user instructions.
 
 In a world where it is easier than ever to create new [blocks](https://blockprotocol.org/hub) and [simulations](https://hash.ai/simulation) with natural language code generators, the potential for a proliferation of standalone software that is **difficult to rely on** or **interconnect in predictable and verifiable ways** becomes huge.
 

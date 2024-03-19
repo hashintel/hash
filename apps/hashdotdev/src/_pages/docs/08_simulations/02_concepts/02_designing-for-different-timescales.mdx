@@ -31,7 +31,7 @@ The important features of a DES simulation are:
 
 When an event occurs, specific agents in a simulation need to take certain actions, and when they've completed those actions, pause until the next appropriate event.
 
-The most common way to implement this in HASH is through a manager agent - it's how we've implemented the [shared discrete event library](/@hash/des) you can import into your simulation. Alternatively you can roll your own manager agent to handle different timescales.
+The most common way to implement this in HASH is through a manager agent - it's how we've implemented the [shared discrete event library](https://simulation.hash.ai/@hash/des) you can import into your simulation. Alternatively you can roll your own manager agent to handle different timescales.
 
 ### Managers
 
@@ -43,7 +43,7 @@ A ManagerAgent in this role - lets call it TimeManager - has a basic design:
 - The agents that are signaled by the time manager will need a behavior that can handle this message; most likely it will change the agents behavior array`state.behaviors = ['time_handler.js']`
 - The time manager, if it receives a message that the faster agent has finished, will send a restart message to the other messages.
 
-In essence the time manager is specifying which agents run on any given time-step based on business logic. [Here's an example simulation using a generic time manager](/@hash/time-management).
+In essence the time manager is specifying which agents run on any given time-step based on business logic. [Here's an example simulation using a generic time manager](https://simulation.hash.ai/@hash/time-management).
 
 ## Delays
 

@@ -10,7 +10,7 @@ This approach avoids common state management bugs that crop up in other paradigm
 
 Agent _C_ now needs to determine which agent should receive the resources, sending a message to the winning agent and a message to the losing agent.
 
-An example of this type of pattern is in [Sugarscape](/@hash/sugarscape), in which agents search for and collect “sugar”. When an agent moves to a patch of sugar it sends a message to the patch, requesting sugar \(line 31 in `sugar_agent.js`\).
+An example of this type of pattern is in [Sugarscape](https://simulation.hash.ai/@hash/sugarscape), in which agents search for and collect “sugar”. When an agent moves to a patch of sugar it sends a message to the patch, requesting sugar \(line 31 in `sugar_agent.js`\).
 
 ```javascript
 // sugar_agent.js
