@@ -8,9 +8,9 @@ import { PeopleGroupIcon } from "../../shared/icons/people-group-icon";
 import { PlugSolidIcon } from "../../shared/icons/plug-solid-icon";
 import { LayoutWithSidebar } from "../../shared/layout/layout-with-sidebar";
 import { useAuthenticatedUser } from "./auth-info-context";
-import { TopContextBar } from "./top-context-bar";
 import type { SidebarItemData } from "./settings-layout/settings-sidebar";
 import { SettingsSidebar } from "./settings-layout/settings-sidebar";
+import { TopContextBar } from "./top-context-bar";
 
 const generateMenuLinks = (
   organizations: { org: Org }[],
