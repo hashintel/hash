@@ -29,6 +29,7 @@ import {
   addEntityAdministrator,
   addEntityEditor,
   archiveEntity,
+  canUserReadEntity,
   checkEntityPermission,
   createEntityWithLinks,
   getEntities,
@@ -108,20 +109,20 @@ export const createEntityResolver: ResolverFn<
   if (linkData) {
     const { leftEntityId, rightEntityId } = linkData;
 
-    const [leftEntity, rightEntity] = await Promise.all([
-      getLatestEntityById(context, authentication, {
+    await Promise.all([
+      canUserReadEntity(context, authentication, {
         entityId: leftEntityId,
         includeDrafts: draft ?? false,
       }),
-      getLatestEntityById(context, authentication, {
+      canUserReadEntity(context, authentication, {
         entityId: rightEntityId,
         includeDrafts: draft ?? false,
       }),
     ]);
 
     entity = await createLinkEntity(context, authentication, {
-      leftEntityId: leftEntity.metadata.recordId.entityId,
-      rightEntityId: rightEntity.metadata.recordId.entityId,
+      leftEntityId,
+      rightEntityId,
       properties,
       linkEntityTypeId: entityTypeId,
       ownedById: ownedById ?? (user.accountId as OwnedById),
@@ -343,7 +344,6 @@ export const updateEntityResolver: ResolverFn<
 
   const entity = await getLatestEntityById(context, authentication, {
     entityId,
-    includeDrafts: true,
   });
 
   let updatedEntity: Entity;
@@ -396,7 +396,6 @@ export const archiveEntityResolver: ResolverFn<
 
   const entity = await getLatestEntityById(context, authentication, {
     entityId,
-    includeDrafts: true,
   });
 
   await archiveEntity(context, authentication, { entity });
@@ -422,7 +421,6 @@ export const archiveEntitiesResolver: ResolverFn<
       try {
         const entity = await getLatestEntityById(context, authentication, {
           entityId,
-          includeDrafts: true,
         });
 
         await archiveEntity(context, authentication, { entity });
