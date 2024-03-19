@@ -1,9 +1,6 @@
 use graph_types::{
     account::{CreatedById, EditionCreatedById},
-    knowledge::{
-        entity::{DraftId, EntityEditionId, EntityProperties, EntityUuid},
-        link::LinkOrder,
-    },
+    knowledge::entity::{DraftId, EntityEditionId, EntityProperties, EntityUuid},
     owned_by_id::OwnedById,
     Embedding,
 };
@@ -36,8 +33,6 @@ pub struct EntityDraftRow {
 pub struct EntityEditionRow {
     pub entity_edition_id: EntityEditionId,
     pub properties: EntityProperties,
-    pub left_to_right_order: Option<LinkOrder>,
-    pub right_to_left_order: Option<LinkOrder>,
     pub edition_created_by_id: EditionCreatedById,
     pub archived: bool,
 }

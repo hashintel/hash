@@ -819,12 +819,12 @@
           }
         }
       },
-      "put": {
+      "patch": {
         "tags": [
           "Graph",
           "Entity"
         ],
-        "operationId": "update_entity",
+        "operationId": "patch_entity",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -840,7 +840,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateEntityRequest"
+                "$ref": "#/components/schemas/PatchEntityParams"
               }
             }
           },
@@ -2622,6 +2622,23 @@
         "type": "string",
         "format": "uuid"
       },
+      "AddOperation": {
+        "type": "object",
+        "description": "JSON Patch 'add' operation representation",
+        "required": [
+          "path",
+          "value"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "JSON-Pointer value [RFC6901](https://tools.ietf.org/html/rfc6901) that references a location\nwithin the target document where the operation is performed."
+          },
+          "value": {
+            "description": "Value to add to the target location."
+          }
+        }
+      },
       "ArchiveDataTypeParams": {
         "type": "object",
         "required": [
@@ -2686,6 +2703,24 @@
         ],
         "discriminator": {
           "propertyName": "kind"
+        }
+      },
+      "CopyOperation": {
+        "type": "object",
+        "description": "JSON Patch 'copy' operation representation",
+        "required": [
+          "from",
+          "path"
+        ],
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "JSON-Pointer value [RFC6901](https://tools.ietf.org/html/rfc6901) that references a location\nto copy value from."
+          },
+          "path": {
+            "type": "string",
+            "description": "JSON-Pointer value [RFC6901](https://tools.ietf.org/html/rfc6901) that references a location\nwithin the target document where the operation is performed."
+          }
         }
       },
       "CreateDataTypeRequest": {
@@ -3295,26 +3330,6 @@
           }
         }
       },
-      "EntityLinkOrder": {
-        "type": "object",
-        "properties": {
-          "leftToRightOrder": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/LinkOrder"
-              }
-            ]
-          },
-          "rightToLeftOrder": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/LinkOrder"
-              }
-            ]
-          }
-        },
-        "additionalProperties": false
-      },
       "EntityMetadata": {
         "type": "object",
         "description": "The metadata of an [`Entity`] record.",
@@ -3495,9 +3510,7 @@
           "incomingLinks",
           "outgoingLinks",
           "leftEntity",
-          "rightEntity",
-          "leftToRightOrder",
-          "rightToLeftOrder"
+          "rightEntity"
         ]
       },
       "EntityRecordId": {
@@ -4698,31 +4711,21 @@
         }
       },
       "LinkData": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/EntityLinkOrder"
-          },
-          {
-            "type": "object",
-            "required": [
-              "leftEntityId",
-              "rightEntityId"
-            ],
-            "properties": {
-              "leftEntityId": {
-                "$ref": "#/components/schemas/EntityId"
-              },
-              "rightEntityId": {
-                "$ref": "#/components/schemas/EntityId"
-              }
-            }
-          }
+        "type": "object",
+        "description": "The associated information for 'Link' entities",
+        "required": [
+          "leftEntityId",
+          "rightEntityId"
         ],
-        "description": "The associated information for 'Link' entities"
-      },
-      "LinkOrder": {
-        "type": "integer",
-        "format": "int32"
+        "properties": {
+          "leftEntityId": {
+            "$ref": "#/components/schemas/EntityId"
+          },
+          "rightEntityId": {
+            "$ref": "#/components/schemas/EntityId"
+          }
+        },
+        "additionalProperties": false
       },
       "LoadExternalDataTypeRequest": {
         "oneOf": [
@@ -4975,6 +4978,24 @@
           },
           "resource": {
             "$ref": "#/components/schemas/OwnedById"
+          }
+        }
+      },
+      "MoveOperation": {
+        "type": "object",
+        "description": "JSON Patch 'move' operation representation",
+        "required": [
+          "from",
+          "path"
+        ],
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "JSON-Pointer value [RFC6901](https://tools.ietf.org/html/rfc6901) that references a location\nto move value from."
+          },
+          "path": {
+            "type": "string",
+            "description": "JSON-Pointer value [RFC6901](https://tools.ietf.org/html/rfc6901) that references a location\nwithin the target document where the operation is performed."
           }
         }
       },
@@ -5261,6 +5282,177 @@
       "OwnedById": {
         "type": "string",
         "format": "uuid"
+      },
+      "PatchEntityParams": {
+        "type": "object",
+        "required": [
+          "entityId"
+        ],
+        "properties": {
+          "archived": {
+            "type": "boolean"
+          },
+          "decisionTime": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            ]
+          },
+          "draft": {
+            "type": "boolean"
+          },
+          "entityId": {
+            "$ref": "#/components/schemas/EntityId"
+          },
+          "entityTypeIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            }
+          },
+          "properties": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PatchOperation"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "PatchOperation": {
+        "oneOf": [
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AddOperation"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "op"
+                ],
+                "properties": {
+                  "op": {
+                    "type": "string",
+                    "enum": [
+                      "add"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RemoveOperation"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "op"
+                ],
+                "properties": {
+                  "op": {
+                    "type": "string",
+                    "enum": [
+                      "remove"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReplaceOperation"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "op"
+                ],
+                "properties": {
+                  "op": {
+                    "type": "string",
+                    "enum": [
+                      "replace"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MoveOperation"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "op"
+                ],
+                "properties": {
+                  "op": {
+                    "type": "string",
+                    "enum": [
+                      "move"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CopyOperation"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "op"
+                ],
+                "properties": {
+                  "op": {
+                    "type": "string",
+                    "enum": [
+                      "copy"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TestOperation"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "op"
+                ],
+                "properties": {
+                  "op": {
+                    "type": "string",
+                    "enum": [
+                      "test"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "description": "JSON Patch single patch operation",
+        "discriminator": {
+          "propertyName": "op"
+        }
       },
       "PermissionResponse": {
         "type": "object",
@@ -5793,6 +5985,36 @@
         ],
         "description": "Defines the two possible combinations of pinned/variable temporal axes that are used in queries\nthat return [`Subgraph`]s.\n\nThe [`VariableTemporalAxisUnresolved`] is optionally bounded, in the absence of provided\nbounds an inclusive bound at the timestamp at point of resolving is assumed.\n\n[`Subgraph`]: crate::subgraph::Subgraph"
       },
+      "RemoveOperation": {
+        "type": "object",
+        "description": "JSON Patch 'remove' operation representation",
+        "required": [
+          "path"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "JSON-Pointer value [RFC6901](https://tools.ietf.org/html/rfc6901) that references a location\nwithin the target document where the operation is performed."
+          }
+        }
+      },
+      "ReplaceOperation": {
+        "type": "object",
+        "description": "JSON Patch 'replace' operation representation",
+        "required": [
+          "path",
+          "value"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "JSON-Pointer value [RFC6901](https://tools.ietf.org/html/rfc6901) that references a location\nwithin the target document where the operation is performed."
+          },
+          "value": {
+            "description": "Value to replace with."
+          }
+        }
+      },
       "RightBoundedTemporalInterval": {
         "type": "object",
         "required": [
@@ -5923,6 +6145,23 @@
         ],
         "discriminator": {
           "propertyName": "kind"
+        }
+      },
+      "TestOperation": {
+        "type": "object",
+        "description": "JSON Patch 'test' operation representation",
+        "required": [
+          "path",
+          "value"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "JSON-Pointer value [RFC6901](https://tools.ietf.org/html/rfc6901) that references a location\nwithin the target document where the operation is performed."
+          },
+          "value": {
+            "description": "Value to test against."
+          }
         }
       },
       "Timestamp": {
@@ -6074,50 +6313,6 @@
           }
         },
         "additionalProperties": false
-      },
-      "UpdateEntityRequest": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/EntityLinkOrder"
-          },
-          {
-            "type": "object",
-            "required": [
-              "properties",
-              "entityId",
-              "entityTypeIds",
-              "archived",
-              "draft"
-            ],
-            "properties": {
-              "archived": {
-                "type": "boolean"
-              },
-              "decisionTime": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/Timestamp"
-                  }
-                ]
-              },
-              "draft": {
-                "type": "boolean"
-              },
-              "entityId": {
-                "$ref": "#/components/schemas/EntityId"
-              },
-              "entityTypeIds": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/VersionedUrl"
-                }
-              },
-              "properties": {
-                "$ref": "#/components/schemas/EntityProperties"
-              }
-            }
-          }
-        ]
       },
       "UpdateEntityTypeEmbeddingParams": {
         "type": "object",

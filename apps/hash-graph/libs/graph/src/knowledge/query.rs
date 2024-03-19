@@ -385,32 +385,6 @@ pub enum EntityQueryPath<'p> {
         path: Box<Self>,
         direction: EdgeDirection,
     },
-    /// Corresponds to [`EntityLinkOrder::left_to_right`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
-    /// let path = EntityQueryPath::deserialize(json!(["leftToRightOrder"]))?;
-    /// assert_eq!(path, EntityQueryPath::LeftToRightOrder);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`EntityLinkOrder::left_to_right`]: graph_types::knowledge::link::EntityLinkOrder::left_to_right
-    LeftToRightOrder,
-    /// Corresponds to [`EntityLinkOrder::right_to_left`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
-    /// let path = EntityQueryPath::deserialize(json!(["rightToLeftOrder"]))?;
-    /// assert_eq!(path, EntityQueryPath::RightToLeftOrder);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`EntityLinkOrder::right_to_left`]: graph_types::knowledge::link::EntityLinkOrder::right_to_left
-    RightToLeftOrder,
     /// Corresponds to [`Entity::properties`].
     ///
     /// Deserializes from `["properties", ...]` where `...` is a path to a property URL of an
@@ -503,8 +477,6 @@ impl fmt::Display for EntityQueryPath<'_> {
                 path,
                 direction: EdgeDirection::Incoming,
             } => write!(fmt, "incomingLinks.{path}"),
-            Self::LeftToRightOrder => fmt.write_str("leftToRightOrder"),
-            Self::RightToLeftOrder => fmt.write_str("rightToLeftOrder"),
         }
     }
 }
@@ -529,7 +501,6 @@ impl QueryPath for EntityQueryPath<'_> {
             | Self::FirstNonDraftCreatedAtTransactionTime => ParameterType::Timestamp,
             Self::Properties(_) => ParameterType::Any,
             Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
-            Self::LeftToRightOrder | Self::RightToLeftOrder => ParameterType::I32,
             Self::Archived => ParameterType::Boolean,
             Self::EntityTypeEdge { path, .. } => path.expected_type(),
             Self::EntityEdge { path, .. } => path.expected_type(),
@@ -561,8 +532,6 @@ pub enum EntityQueryToken {
     OutgoingLinks,
     LeftEntity,
     RightEntity,
-    LeftToRightOrder,
-    RightToLeftOrder,
 }
 
 /// Deserializes an [`EntityQueryPath`] from a string sequence.
@@ -576,8 +545,7 @@ impl EntityQueryPathVisitor {
         "one of `uuid`, `editionId`, `draftId`, `archived`, `ownedById`, `editionCreatedById`, \
          `createdById`, `createdAtTransactionTime`, `createdAtDecisionTime`, \
          `firstNonDraftCreatedAtTransactionTime`, `firstNonDraftCreatedAtDecisionTime`, `type`, \
-         `properties`, `embedding`, `incomingLinks`, `outgoingLinks`, `leftEntity`, \
-         `rightEntity`, `leftToRightOrder`, `rightToLeftOrder`";
+         `properties`, `embedding`, `incomingLinks`, `outgoingLinks`, `leftEntity`, `rightEntity`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -661,8 +629,6 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
                 path: Box::new(Self::new(self.position).visit_seq(seq)?),
                 direction: EdgeDirection::Incoming,
             },
-            EntityQueryToken::LeftToRightOrder => EntityQueryPath::LeftToRightOrder,
-            EntityQueryToken::RightToLeftOrder => EntityQueryPath::RightToLeftOrder,
         };
 
         if !parameters.is_empty() {
@@ -812,8 +778,6 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
                 edge_kind,
                 direction,
             },
-            EntityQueryPath::LeftToRightOrder => EntityQueryPath::LeftToRightOrder,
-            EntityQueryPath::RightToLeftOrder => EntityQueryPath::RightToLeftOrder,
             EntityQueryPath::Properties(path) => {
                 EntityQueryPath::Properties(path.map(JsonPath::into_owned))
             }

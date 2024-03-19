@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/block-design-system",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Block Design System",
   "bugs": {
     "url": "https://github.com/hashintel/hash/issues"
@@ -25,9 +25,9 @@
     "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.3.3",
+    "@blockprotocol/graph": "0.3.4-canary-20240313191438",
     "@blockprotocol/type-system": "0.1.1",
-    "@hashintel/design-system": "0.0.7",
+    "@hashintel/design-system": "0.0.8",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "lowlight": "2.8.1",
     "react-syntax-highlighter": "15.5.0",

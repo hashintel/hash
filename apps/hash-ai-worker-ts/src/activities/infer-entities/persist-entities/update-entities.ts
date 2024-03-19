@@ -124,12 +124,17 @@ export const updateEntities = async ({
             });
 
             const { data: updateEntityMetadata } =
-              await graphApiClient.updateEntity(actorId, {
-                archived: existingEntity.metadata.archived,
+              await graphApiClient.patchEntity(actorId, {
                 draft,
                 entityTypeIds: [entityTypeId],
                 entityId: updateEntityId,
-                properties: newProperties,
+                properties: [
+                  {
+                    op: "replace",
+                    path: "",
+                    value: newProperties,
+                  },
+                ],
               });
 
             const metadata =

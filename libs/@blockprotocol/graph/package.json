@@ -1,6 +1,7 @@
 {
   "name": "@blockprotocol/graph",
   "version": "0.3.4-canary.0",
+  "private": true,
   "description": "Implementation of the Block Protocol Graph service specification for blocks and embedding applications",
   "keywords": [
     "blockprotocol",

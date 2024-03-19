@@ -298,7 +298,7 @@ export const persistEntities = async (params: {
       });
     }
 
-    case "content_filter":
+    case "content_filter": {
       log(
         `The content filter was triggered on attempt ${iterationCount} with input: ${stringify(
           completionPayload.messages,
@@ -315,6 +315,7 @@ export const persistEntities = async (params: {
         ],
         message: "The content filter was triggered",
       };
+    }
 
     case "tool_calls": {
       if (!toolCalls) {
@@ -489,11 +490,13 @@ export const persistEntities = async (params: {
               }
             }
 
-            for (const success of successes) {
-              void createInferredEntityNotification({
-                entity: success.entity,
-                operation: "create",
-              });
+            if (createAs === "live") {
+              for (const success of successes) {
+                void createInferredEntityNotification({
+                  entity: success.entity,
+                  operation: "create",
+                });
+              }
             }
 
             if (failures.length > 0) {
@@ -623,10 +626,12 @@ export const persistEntities = async (params: {
             log(`Update failures: ${stringify(updateFailures)}`);
 
             for (const success of successes) {
-              void createInferredEntityNotification({
-                entity: success.entity,
-                operation: "update",
-              });
+              if (createAs === "live") {
+                void createInferredEntityNotification({
+                  entity: success.entity,
+                  operation: "update",
+                });
+              }
 
               inferenceState.inProgressEntityIds =
                 inferenceState.inProgressEntityIds.filter(

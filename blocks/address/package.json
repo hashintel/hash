@@ -30,12 +30,12 @@
     "trailingComma": "all"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.3.3",
+    "@blockprotocol/graph": "0.3.4-canary-20240313191438",
     "@blockprotocol/service": "0.1.4",
     "@fortawesome/free-regular-svg-icons": "6.0.0",
     "@fortawesome/free-solid-svg-icons": "6.0.0",
-    "@hashintel/block-design-system": "0.0.1",
-    "@hashintel/design-system": "0.0.7",
+    "@hashintel/block-design-system": "0.0.2",
+    "@hashintel/design-system": "0.0.8",
     "@mui/material": "5.14.11",
     "lodash.debounce": "4.0.8",
     "react-sizeme": "3.0.2",

@@ -36,6 +36,7 @@ import { ProfilePageContent } from "./[shortname].page/profile-page-content";
 import { ProfilePageHeader } from "./[shortname].page/profile-page-header";
 import type { ProfilePageTab } from "./[shortname].page/util";
 import { parseProfilePageUrlQueryParams } from "./[shortname].page/util";
+import { useEnabledFeatureFlags } from "./shared/use-enabled-feature-flags";
 
 const ProfilePage: NextPageWithLayout = () => {
   const router = useRouter();
@@ -80,12 +81,17 @@ const ProfilePage: NextPageWithLayout = () => {
 
   const profileNotFound = !profile && !loading;
 
+  const enabledFeatureFlags = useEnabledFeatureFlags();
+
   const pinnedEntityTypeBaseUrls = useMemo<BaseUrl[]>(
-    () => [
-      systemEntityTypes.page.entityTypeBaseUrl as BaseUrl,
-      ...(profile?.pinnedEntityTypeBaseUrls ?? []),
-    ],
-    [profile],
+    () =>
+      [
+        enabledFeatureFlags.pages
+          ? (systemEntityTypes.page.entityTypeBaseUrl as BaseUrl)
+          : [],
+        ...(profile?.pinnedEntityTypeBaseUrls ?? []),
+      ].flat(),
+    [profile, enabledFeatureFlags],
   );
 
   const baseTabs = useMemo<ProfilePageTab[]>(

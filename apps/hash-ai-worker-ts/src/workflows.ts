@@ -28,6 +28,7 @@ import {
 import type { CreateEmbeddingResponse } from "openai/resources";
 
 import type { createAiActivities, createGraphActivities } from "./activities";
+import { createResearchTaskWorkflow } from "./workflows/research-task-workflow";
 
 const aiActivities = proxyActivities<ReturnType<typeof createAiActivities>>({
   cancellationType: ActivityCancellationType.WAIT_CANCELLATION_COMPLETED,
@@ -593,3 +594,8 @@ export const parseTextFromFile = async (
 ): Promise<void> => {
   await aiActivities.parseTextFromFileActivity(params);
 };
+
+export const researchTask = createResearchTaskWorkflow({
+  aiActivities,
+  graphActivities,
+});

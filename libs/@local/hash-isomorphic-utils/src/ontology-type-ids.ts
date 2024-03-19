@@ -24,12 +24,12 @@ export const systemEntityTypes = {
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/canvas/",
   },
   comment: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/comment/v/4",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/comment/v/5",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/comment/",
   },
   commentNotification: {
     entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/comment-notification/v/4",
+      "https://hash.ai/@hash/types/entity-type/comment-notification/v/5",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/comment-notification/",
   },
@@ -88,7 +88,7 @@ export const systemEntityTypes = {
   },
   linearIntegration: {
     entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/linear-integration/v/5",
+      "https://hash.ai/@hash/types/entity-type/linear-integration/v/6",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/linear-integration/",
   },
@@ -104,7 +104,7 @@ export const systemEntityTypes = {
   },
   mentionNotification: {
     entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/mention-notification/v/4",
+      "https://hash.ai/@hash/types/entity-type/mention-notification/v/5",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/mention-notification/",
   },
@@ -173,7 +173,7 @@ export const systemEntityTypes = {
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/usage-record/",
   },
   user: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/user/v/4",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/user/v/5",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/user/",
   },
   userSecret: {
@@ -380,6 +380,12 @@ export const systemPropertyTypes = {
   email: {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/email/v/1",
     propertyTypeBaseUrl: "https://hash.ai/@hash/types/property-type/email/",
+  },
+  enabledFeatureFlags: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/enabled-feature-flags/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/enabled-feature-flags/",
   },
   entityEditionId: {
     propertyTypeId:
