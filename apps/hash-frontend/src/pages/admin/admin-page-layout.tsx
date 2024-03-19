@@ -2,9 +2,15 @@ import { faPerson } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
-import { type PropsWithChildren, type ReactElement, useMemo } from "react";
+import {
+  type PropsWithChildren,
+  type ReactElement,
+  useEffect,
+  useMemo,
+} from "react";
 
 import { LayoutWithSidebar } from "../../shared/layout/layout-with-sidebar";
+import { useAuthenticatedUser } from "../shared/auth-info-context";
 import type { SidebarItemData } from "../shared/settings-layout/settings-sidebar";
 import { SettingsSidebar } from "../shared/settings-layout/settings-sidebar";
 import { TopContextBar } from "../shared/top-context-bar";
@@ -38,6 +44,21 @@ const AdminLayout = ({ children }: PropsWithChildren) => {
       ),
     [router],
   );
+
+  const { isInstanceAdmin } = useAuthenticatedUser();
+
+  useEffect(() => {
+    /**
+     * Redirect non instance admins away from `/admin` pages
+     */
+    if (typeof isInstanceAdmin === "boolean" && !isInstanceAdmin) {
+      void router.push("/");
+    }
+  }, [router, isInstanceAdmin]);
+
+  if (!isInstanceAdmin) {
+    return null;
+  }
 
   return (
     <LayoutWithSidebar fullWidth>

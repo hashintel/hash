@@ -44,7 +44,7 @@ type RefetchAuthInfoFunction = () => Promise<{
 
 type AuthInfoContextValue = {
   authenticatedUser?: User;
-  isInstanceAdmin: boolean;
+  isInstanceAdmin: boolean | undefined;
   refetch: RefetchAuthInfoFunction;
 };
 
@@ -178,7 +178,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
 
   const isInstanceAdmin = useMemo(() => {
     if (!userPermissionsOnHashInstance) {
-      return false;
+      return undefined;
     }
 
     return userPermissionsOnHashInstance.checkUserPermissionsOnEntity.edit;
