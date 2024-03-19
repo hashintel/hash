@@ -16,6 +16,10 @@ async fn seed(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
                 property_type::NAME_V1,
                 property_type::AGE_V1,
                 property_type::TEXT_V1,
+                property_type::FAVORITE_SONG_V1,
+                property_type::FAVORITE_FILM_V1,
+                property_type::HOBBY_V1,
+                property_type::INTERESTS_V1,
             ],
             [
                 entity_type::PERSON_V1,
