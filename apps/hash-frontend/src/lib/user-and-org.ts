@@ -63,7 +63,7 @@ export const constructMinimalOrg = (params: {
 
 export type MinimalUser = {
   kind: "user";
-  entity: Entity;
+  entity: Entity<UserProperties>;
   accountId: AccountId;
   accountSignupComplete: boolean;
   enabledFeatureFlags: FeatureFlag[];
