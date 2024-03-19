@@ -74,6 +74,11 @@ const nextConfig = {
         destination: "/docs/simulations/run/cloud",
         permanent: true,
       },
+      {
+        source: "/docs/simulations/create/libraries/python-packages",
+        destination: "/docs/simulations/create/libraries/third-party",
+        permanent: true,
+      },
       /**
        * License page redirects
        */
