@@ -46,6 +46,7 @@ struct DatastoreEntitiesMetadata {
     pub link_entity_metadata_list: Vec<EntityMetadata>,
 }
 
+#[expect(clippy::too_many_lines)]
 async fn seed_db(
     account_id: AccountId,
     store_wrapper: &mut StoreWrapper,
