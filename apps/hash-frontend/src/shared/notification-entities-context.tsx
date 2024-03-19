@@ -94,7 +94,7 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
         },
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: true,
+        includeDrafts: false,
       },
     },
     skip: !authenticatedUser,

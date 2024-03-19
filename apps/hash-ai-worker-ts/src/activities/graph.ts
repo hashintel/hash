@@ -63,7 +63,7 @@ export const createGraphActivities = ({
             ],
           },
           graphResolveDepths: zeroedGraphResolveDepths,
-          includeDrafts: true,
+          includeDrafts: false,
           temporalAxes: currentTimeInstantTemporalAxes,
         },
       })
