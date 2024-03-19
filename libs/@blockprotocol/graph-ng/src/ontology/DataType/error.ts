@@ -1,6 +1,7 @@
 import { ParseError } from "@effect/schema/ParseResult";
 import { Data } from "effect";
 import { VisitError } from "../internal/EncodeContext.js";
+import { JsonSchemaTypeError } from "../internal/encode.js";
 
 export type UnsupportedType =
   | "any"
@@ -22,7 +23,7 @@ export type UnsupportedNode = "Declaration" | "Union";
 
 export type UnsupportedLiteral = "bigint";
 
-export type ExpectedJsonAnnotationType = "string" | "number";
+export type IncompleteReason = "missing title";
 
 export type MalformedRecordReason =
   | "index signature required"
@@ -35,11 +36,6 @@ export type MalformedEnumReason =
   | "floating point values"
   | "empty"
   | "mixed";
-
-export type MalformedDataTypeReason =
-  | "[INTERNAL] annotation missing"
-  | "[INTERNAL] annotation is not a DataType"
-  | "title annotation missing";
 
 export type EncodeErrorReason = Data.TaggedEnum<{
   UnsupportedKeyword: {
@@ -54,18 +50,14 @@ export type EncodeErrorReason = Data.TaggedEnum<{
   Visit: {
     cause: VisitError;
   };
-  MalformedDataType: {
-    reason: MalformedDataTypeReason;
+  Internal: {
+    cause: InternalError;
   };
   UnsupportedLiteral: {
     literal: UnsupportedLiteral;
   };
-  UnsupportedJsonAnnotationType: {
-    field: string;
-
-    optional: boolean;
-    expected: ExpectedJsonAnnotationType;
-    received: string;
+  JsonSchema: {
+    cause: JsonSchemaTypeError;
   };
   InvalidUrl: {
     cause: ParseError;
@@ -75,6 +67,9 @@ export type EncodeErrorReason = Data.TaggedEnum<{
   };
   MalformedRecord: {
     reason: MalformedRecordReason;
+  };
+  Incomplete: {
+    reason: IncompleteReason;
   };
 }>;
 export const EncodeErrorReason = Data.taggedEnum<EncodeErrorReason>();
@@ -106,9 +101,9 @@ export class EncodeError extends Data.TaggedError(
     });
   }
 
-  static malformedDataType(reason: MalformedDataTypeReason): EncodeError {
+  static internal(this: void, cause: InternalError): EncodeError {
     return new EncodeError({
-      reason: EncodeErrorReason.MalformedDataType({ reason }),
+      reason: EncodeErrorReason.Internal({ cause }),
     });
   }
 
@@ -118,20 +113,9 @@ export class EncodeError extends Data.TaggedError(
     });
   }
 
-  static unsupportedJsonAnnotationType(
-    field: string,
-
-    optional: boolean,
-    expected: ExpectedJsonAnnotationType,
-    received: string,
-  ): EncodeError {
+  static jsonSchema(this: void, cause: JsonSchemaTypeError): EncodeError {
     return new EncodeError({
-      reason: EncodeErrorReason.UnsupportedJsonAnnotationType({
-        field,
-        optional,
-        expected,
-        received,
-      }),
+      reason: EncodeErrorReason.JsonSchema({ cause }),
     });
   }
 
@@ -152,6 +136,12 @@ export class EncodeError extends Data.TaggedError(
       reason: EncodeErrorReason.InvalidUrl({ cause }),
     });
   }
+
+  static incomplete(reason: IncompleteReason): EncodeError {
+    return new EncodeError({
+      reason: EncodeErrorReason.Incomplete({ reason }),
+    });
+  }
 }
 
 export type DecodeErrorReason = Data.TaggedEnum<{
@@ -168,6 +158,28 @@ export class DecodeError extends Data.TaggedError(
   static encode(cause: EncodeError): DecodeError {
     return new DecodeError({
       reason: DecodeErrorReason.Encode({ cause }),
+    });
+  }
+}
+
+export type AnnotationErrorReason =
+  | "missing"
+  | "expected function"
+  | "expected function to return `DataType`";
+
+export type InternalErrorReason = Data.TaggedEnum<{
+  Annotation: {
+    reason: AnnotationErrorReason;
+  };
+}>;
+export const InternalErrorReason = Data.taggedEnum<InternalErrorReason>();
+
+export class InternalError extends Data.TaggedError(
+  "@blockprotocol/graph/DataType/InternalError",
+)<{ reason: InternalErrorReason }> {
+  static annotation(reason: AnnotationErrorReason): InternalError {
+    return new InternalError({
+      reason: InternalErrorReason.Annotation({ reason }),
     });
   }
 }

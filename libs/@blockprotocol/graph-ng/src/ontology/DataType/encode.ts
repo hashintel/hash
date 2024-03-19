@@ -29,49 +29,12 @@ import {
   StringDataTypeSchema,
 } from "./schema.js";
 import * as EncodeContext from "../internal/EncodeContext.js";
+import {
+  asNumberOrUndefined,
+  asStringOrUndefined,
+} from "../internal/encode.js";
 
 type Context = EncodeContext.EncodeContext<DataType.DataType<unknown>>;
-
-const isNumberOrUndefined: (value: unknown) => value is number | undefined =
-  Predicate.or(Predicate.isUndefined, Predicate.isNumber) as never;
-const isStringOrUndefined: (value: unknown) => value is string | undefined =
-  Predicate.or(Predicate.isUndefined, Predicate.isString) as never;
-
-function asNumberOrUndefined(
-  key: string,
-  value: unknown,
-): Either.Either<number | undefined, EncodeError> {
-  if (isNumberOrUndefined(value)) {
-    return Either.right(value);
-  }
-
-  return Either.left(
-    EncodeError.unsupportedJsonAnnotationType(
-      key,
-      true,
-      "number",
-      typeof value,
-    ),
-  );
-}
-
-function asStringOrUndefined(
-  key: string,
-  value: unknown,
-): Either.Either<string | undefined, EncodeError> {
-  if (isStringOrUndefined(value)) {
-    return Either.right(value);
-  }
-
-  return Either.left(
-    EncodeError.unsupportedJsonAnnotationType(
-      key,
-      true,
-      "string",
-      typeof value,
-    ),
-  );
-}
 
 function encodeLiteral(
   ast: AST.Literal,
@@ -122,15 +85,18 @@ const encodeString = (
 ): Effect.Effect<StringDataTypeSchema, EncodeError> =>
   Effect.gen(function* (_) {
     const minLength = yield* _(
-      asNumberOrUndefined("minLength", context.jsonSchema.additional.minLength),
+      asNumberOrUndefined(context.jsonSchema.additional, "minLength"),
+      Effect.mapError(EncodeError.jsonSchema),
     );
 
     const maxLength = yield* _(
-      asNumberOrUndefined("maxLength", context.jsonSchema.additional.maxLength),
+      asNumberOrUndefined(context.jsonSchema.additional, "maxLength"),
+      Effect.mapError(EncodeError.jsonSchema),
     );
 
     const pattern = yield* _(
-      asStringOrUndefined("pattern", context.jsonSchema.additional.pattern),
+      asStringOrUndefined(context.jsonSchema.additional, "pattern"),
+      Effect.mapError(EncodeError.jsonSchema),
     );
 
     const base = yield* _(makeBase(context.root, context.jsonSchema));
@@ -154,28 +120,24 @@ const encodeNumber = (
     const isInteger = type === "integer";
 
     const multipleOf = yield* _(
-      asNumberOrUndefined(
-        "multipleOf",
-        context.jsonSchema.additional.multipleOf,
-      ),
+      asNumberOrUndefined(context.jsonSchema.additional, "multipleOf"),
+      Effect.mapError(EncodeError.jsonSchema),
     );
     const minimum = yield* _(
-      asNumberOrUndefined("minimum", context.jsonSchema.additional.minimum),
+      asNumberOrUndefined(context.jsonSchema.additional, "minimum"),
+      Effect.mapError(EncodeError.jsonSchema),
     );
     const maximum = yield* _(
-      asNumberOrUndefined("maximum", context.jsonSchema.additional.maximum),
+      asNumberOrUndefined(context.jsonSchema.additional, "maximum"),
+      Effect.mapError(EncodeError.jsonSchema),
     );
     const exclusiveMinimum = yield* _(
-      asNumberOrUndefined(
-        "exclusiveMinimum",
-        context.jsonSchema.additional.exclusiveMinimum,
-      ),
+      asNumberOrUndefined(context.jsonSchema.additional, "exclusiveMinimum"),
+      Effect.mapError(EncodeError.jsonSchema),
     );
     const exclusiveMaximum = yield* _(
-      asNumberOrUndefined(
-        "exclusiveMaximum",
-        context.jsonSchema.additional.exclusiveMaximum,
-      ),
+      asNumberOrUndefined(context.jsonSchema.additional, "exclusiveMaximum"),
+      Effect.mapError(EncodeError.jsonSchema),
     );
 
     const base = yield* _(makeBase(context.root, context.jsonSchema));
@@ -437,21 +399,10 @@ export const encodeSchema = (
   ast: AST.AST,
 ): Effect.Effect<DataTypeSchema, EncodeError> =>
   Effect.gen(function* (_) {
-    const annotation: unknown = ast.annotations[DataType.AnnotationId];
-    if (!Predicate.isFunction(annotation)) {
-      return yield* _(
-        EncodeError.malformedDataType("[INTERNAL] annotation missing"),
-      );
-    }
-
-    const dataType: unknown = annotation();
-    if (!DataType.isDataType(dataType)) {
-      return yield* _(
-        EncodeError.malformedDataType(
-          "[INTERNAL] annotation is not a DataType",
-        ),
-      );
-    }
+    const dataType = yield* _(
+      DataType.tryFromAST(ast),
+      Effect.mapError(EncodeError.internal),
+    );
 
     return yield* _(encode(ast, EncodeContext.make(dataType)));
   });

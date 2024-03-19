@@ -1,6 +1,7 @@
 import * as S from "@effect/schema/Schema";
 import {
   Effect,
+  Option,
   Equal,
   Hash,
   Inspectable,
@@ -8,14 +9,15 @@ import {
   Pipeable,
   Predicate,
 } from "effect";
+import { globalValue } from "effect/GlobalValue";
 
 import * as Json from "../Json.js";
 import { decodeSchema } from "./DataType/decode.js";
 import { encodeSchema } from "./DataType/encode.js";
-import { DecodeError, EncodeError } from "./DataType/error.js";
+import { DecodeError, EncodeError, InternalError } from "./DataType/error.js";
 import { DataTypeSchema } from "./DataType/schema.js";
 import * as DataTypeUrl from "./DataTypeUrl.js";
-import { globalValue } from "effect/GlobalValue";
+import { AST } from "@effect/schema";
 
 const TypeId: unique symbol = Symbol.for(
   "@blockprotocol/graph/ontology/DataType",
@@ -174,5 +176,35 @@ export function fromSchema(
     return dataType;
   });
 }
+
+/** @internal */
+export const tryFromAST = (
+  ast: AST.AST,
+): Effect.Effect<DataType<unknown>, InternalError> =>
+  Effect.gen(function* (_) {
+    const annotation = AST.getAnnotation(ast, AnnotationId);
+    if (Option.isNone(annotation)) {
+      return yield* _(InternalError.annotation("missing"));
+    }
+
+    if (!Predicate.isFunction(annotation.value)) {
+      return yield* _(InternalError.annotation("expected function"));
+    }
+
+    const dataType = annotation.value();
+    if (!isDataType(dataType)) {
+      return yield* _(
+        InternalError.annotation("expected function to return `DataType`"),
+      );
+    }
+
+    return dataType;
+  });
+
+/** @internal */
+export const getFromAST = (
+  ast: AST.AST,
+): Effect.Effect<Option.Option<DataType<unknown>>> =>
+  pipe(tryFromAST(ast), Effect.option);
 
 export type { DataTypeSchema as Schema };

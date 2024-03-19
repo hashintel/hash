@@ -7,6 +7,7 @@ import {
 import { type DataType } from "../DataType.js";
 import { EncodeError } from "./error.js";
 import * as DataTypeUrl from "../DataTypeUrl.js";
+import { BaseProperties } from "../internal/EncodeContext.js";
 
 interface TypelessDataTypeSchema {
   $schema: "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type";
@@ -21,19 +22,12 @@ export interface BaseDataTypeSchema extends TypelessDataTypeSchema {
   type: string;
 }
 
-interface BaseProperties {
-  title?: string;
-  description?: string;
-}
-
 export function makeBase(
   type: DataType<unknown>,
   properties: BaseProperties,
 ): Either.Either<TypelessDataTypeSchema, EncodeError> {
   if (properties.title === undefined) {
-    return Either.left(
-      EncodeError.malformedDataType("title annotation missing"),
-    );
+    return Either.left(EncodeError.incomplete("missing title"));
   }
 
   return Either.right(

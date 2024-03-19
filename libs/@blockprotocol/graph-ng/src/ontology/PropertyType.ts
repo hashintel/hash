@@ -1,9 +1,10 @@
 import * as S from "@effect/schema/Schema";
 import {
-  Either,
+  Effect,
   Equal,
   Hash,
   Inspectable,
+  Option,
   pipe,
   Pipeable,
   Predicate,
@@ -13,6 +14,8 @@ import { encodeSchema } from "./PropertyType/encode.js";
 import { EncodeError } from "./PropertyType/error.js";
 import { PropertyTypeSchema } from "./PropertyType/schema.js";
 import * as PropertyTypeUrl from "./PropertyTypeUrl.js";
+import { AST } from "@effect/schema";
+import { InternalError } from "./DataType/error.js";
 
 const TypeId: unique symbol = Symbol.for(
   "@blockprotocol/graph/ontology/PropertyType",
@@ -97,19 +100,19 @@ function makeImpl<Out, In>(
 
 function toSchemaImpl<Out, In>(
   impl: S.Schema<Out, In>,
-): Either.Either<PropertyTypeSchema, EncodeError> {
+): Effect.Effect<PropertyTypeSchema, EncodeError> {
   return encodeSchema(impl.ast);
 }
 
 export function make<Out, In>(
   id: PropertyTypeUrl.PropertyTypeUrl,
   schema: S.Schema<Out, In>,
-): Either.Either<PropertyType<Out, In>, EncodeError> {
+): Effect.Effect<PropertyType<Out, In>, EncodeError> {
   const impl = makeImpl(id, schema);
 
   return pipe(
     toSchemaImpl(impl.schema),
-    Either.map(() => impl),
+    Effect.map(() => impl),
   );
 }
 
@@ -117,17 +120,17 @@ export function makeOrThrow<Out, In>(
   id: PropertyTypeUrl.PropertyTypeUrl,
   schema: S.Schema<Out, In>,
 ): PropertyType<Out, In> {
-  return Either.getOrThrow(make(id, schema));
+  return Effect.runSync(make(id, schema));
 }
 
 export function parse<I extends string, Out, In>(
   id: I,
   schema: S.Schema<Out, In>,
-): Either.Either<PropertyType<Out, In>, EncodeError> {
+): Effect.Effect<PropertyType<Out, In>, EncodeError> {
   return pipe(
     PropertyTypeUrl.parse(id),
-    Either.mapLeft((error) => EncodeError.invalidUrl(error)),
-    Either.andThen((id) => make(id, schema)),
+    Effect.mapError((error) => EncodeError.invalidUrl(error)),
+    Effect.andThen((id) => make(id, schema)),
   );
 }
 
@@ -135,14 +138,44 @@ export function parseOrThrow<I extends string, Out, In>(
   id: I,
   schema: S.Schema<Out, In>,
 ): PropertyType<Out, In> {
-  return Either.getOrThrow(parse(id, schema));
+  return Effect.runSync(parse(id, schema));
 }
 
 export function toSchema<Out, In>(
   propertyType: PropertyType<Out, In>,
-): Either.Either<PropertyTypeSchema, EncodeError> {
+): Effect.Effect<PropertyTypeSchema, EncodeError> {
   return toSchemaImpl(propertyType.schema);
 }
+
+/** @internal */
+export const tryFromAST = (
+  ast: AST.AST,
+): Effect.Effect<PropertyType<unknown>, InternalError> =>
+  Effect.gen(function* (_) {
+    const annotation = AST.getAnnotation(ast, AnnotationId);
+    if (Option.isNone(annotation)) {
+      return yield* _(InternalError.annotation("missing"));
+    }
+
+    if (!Predicate.isFunction(annotation.value)) {
+      return yield* _(InternalError.annotation("expected function"));
+    }
+
+    const propertyType = annotation.value();
+    if (!isPropertyType(propertyType)) {
+      return yield* _(
+        InternalError.annotation("expected function to return `DataType`"),
+      );
+    }
+
+    return propertyType;
+  });
+
+/** @internal */
+export const getFromAST = (
+  ast: AST.AST,
+): Effect.Effect<Option.Option<PropertyType<unknown>>> =>
+  pipe(tryFromAST(ast), Effect.option);
 
 // TODO: fromSchema
 

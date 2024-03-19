@@ -2,26 +2,29 @@ import { ParseError } from "@effect/schema/ParseResult";
 import { Data } from "effect";
 
 import { VisitError } from "../internal/EncodeContext.js";
+import { JsonSchemaTypeError } from "../internal/encode.js";
+import { InternalError } from "../DataType/error.js";
 
-export type MalformedPropertyTypeReason =
-  | "[INTERNAL] annotation missing"
-  | "[INTERNAL] annotation is not a PropertyType";
+export type MalformedRecordReason = "expected string key";
+
+export type IncompleteReason = "missing title";
 
 export type EncodeErrorReason = Data.TaggedEnum<{
-  MalformedPropertyType: { reason: MalformedPropertyTypeReason };
+  Internal: { cause: InternalError };
   InvalidUrl: { cause: ParseError };
   Visit: { cause: VisitError };
+  JsonSchema: { cause: JsonSchemaTypeError };
+  MalformedRecord: { reason: MalformedRecordReason };
+  Incomplete: { reason: IncompleteReason };
 }>;
 export const EncodeErrorReason = Data.taggedEnum<EncodeErrorReason>();
 
 export class EncodeError extends Data.TaggedError(
   "@blockprotocol/graph/PropertyType/EncodeError",
 )<{ reason: EncodeErrorReason }> {
-  static malformedPropertyType(
-    reason: MalformedPropertyTypeReason,
-  ): EncodeError {
+  static internal(cause: InternalError): EncodeError {
     return new EncodeError({
-      reason: EncodeErrorReason.MalformedPropertyType({ reason }),
+      reason: EncodeErrorReason.Internal({ cause }),
     });
   }
 
@@ -34,6 +37,24 @@ export class EncodeError extends Data.TaggedError(
   static visit(this: void, cause: VisitError): EncodeError {
     return new EncodeError({
       reason: EncodeErrorReason.Visit({ cause }),
+    });
+  }
+
+  static jsonSchema(this: void, cause: JsonSchemaTypeError): EncodeError {
+    return new EncodeError({
+      reason: EncodeErrorReason.JsonSchema({ cause }),
+    });
+  }
+
+  static malformedRecord(reason: MalformedRecordReason): EncodeError {
+    return new EncodeError({
+      reason: EncodeErrorReason.MalformedRecord({ reason }),
+    });
+  }
+
+  static incomplete(reason: IncompleteReason): EncodeError {
+    return new EncodeError({
+      reason: EncodeErrorReason.Incomplete({ reason }),
     });
   }
 }

@@ -12,6 +12,11 @@ type PathComponent =
       index: number;
     };
 
+export interface BaseProperties {
+  title?: string;
+  description?: string;
+}
+
 interface JsonSchema {
   readonly title?: string;
   readonly description?: string;
