@@ -1,0 +1,22 @@
+---
+title: Running simulations
+---
+
+## Introduction
+
+There are two ways to run simulations: (1) by initiating a single **simulation run**; or (2) by initiating an **experiment run**.
+
+A _simulation run_ refers to a single execution of a simulation, with a fixed set of starting parameters defined by the user.
+
+An _experiment run_ involves the execution of more than one simulation run. Many of these will typically occur in parallel, and the number of runs may be fixed in advance, or varied depending on the experiment's goals and the data returned.
+
+## Runtime environments
+
+Right now, you can run a simulation built for HASH in one of two ways:
+
+1. **with a GUI**, using hCore: locally on your machine, hosted on a server, or running out of a object storage bucket (recommended). hCore provides a visual user interface for editing and executing simulations, as well as orchestrating runs and viewing simulation outputs.
+1. **headlessly**, using hEngine: locally on your machine, or on a dedicated server.
+
+Previously, we offered an additoinal way to run simulations, **hCloud**, our hosted simulation execution service. You can [read more about it here](/docs/simulations/run/cloud).
+
+In the future, we plan to replace the separated hCore, hEngine and hCloud products with a fully-integrated simulation modeling experience in HASH. [Read more >](/docs/simulations)

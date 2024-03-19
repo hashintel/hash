@@ -16,19 +16,22 @@ const nextConfig = {
 
   async redirects() {
     return [
+      /**
+       * Docs pages
+      */
       {
-        source: "/labs",
-        destination: "/blog?label=labs",
-        permanent: false,
-      },
-      {
-        source: "/contact",
-        destination: "https://hash.ai/contact",
+        source: "/docs/simulations/create/agent-based-modeling-basics-1",
+        destination: "/docs/simulations/create/abm",
         permanent: true,
       },
       {
-        source: "/discord",
-        destination: "https://hash.ai/discord",
+        source: "/docs/simulations/create/h.cloud",
+        destination: "/docs/simulations/run/cloud",
+        permanent: true,
+      },
+      {
+        source: "/docs/simulations/creating-simulations/:path*",
+        destination: "/docs/simulations/create/:path*",
         permanent: true,
       },
       /**
@@ -45,12 +48,31 @@ const nextConfig = {
         permanent: true,
       },
       /**
-       * Temporarily redirect the `/docs` home page to the first tab of the
-       * `/docs` pages.
+       * General page redirects
+      */
+      {
+        source: "/discord",
+        destination: "https://hash.ai/discord",
+        permanent: true,
+      },
+      {
+        source: "/contact",
+        destination: "https://hash.ai/contact",
+        permanent: true,
+      },
+      /**
+       * Temporary redirects
+       * 1) the `/docs` home page to the first tab of `/docs`
+       * 2) `/labs` while we wait on its existence
        */
       {
         source: "/docs",
         destination: "/docs/get-started",
+        permanent: false,
+      },
+      {
+        source: "/labs",
+        destination: "/blog?label=labs",
         permanent: false,
       },
     ];
