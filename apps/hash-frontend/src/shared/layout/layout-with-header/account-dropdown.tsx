@@ -16,20 +16,20 @@ import {
 import type { FunctionComponent } from "react";
 import { useMemo } from "react";
 
-import type { User } from "../../../lib/user-and-org";
+import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
 import { getImageUrlFromEntityProperties } from "../../../pages/shared/get-image-url-from-properties";
 import { Link, MenuItem } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";
 
 type AccountDropdownProps = {
   logout: () => void;
-  authenticatedUser: User;
 };
 
 export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
   logout,
-  authenticatedUser,
 }) => {
+  const { authenticatedUser, isInstanceAdmin } = useAuthenticatedUser();
+
   const popupState = usePopupState({
     variant: "popover",
     popupId: "account-dropdown-menu",
@@ -150,6 +150,15 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
         <MenuItem href="/settings" onClick={() => popupState.close()}>
           <ListItemText primary="Settings" />
         </MenuItem>
+        {isInstanceAdmin ? (
+          <MenuItem
+            /** @todo: redirect to the admin homepage instead */
+            href="/admin/users"
+            onClick={() => popupState.close()}
+          >
+            <ListItemText primary="Instance Settings" />
+          </MenuItem>
+        ) : null}
         <MenuItem
           href="/settings/integrations"
           onClick={() => popupState.close()}

@@ -104,10 +104,7 @@ export const PageHeader: FunctionComponent = () => {
                 />
               </Link>
             </Tooltip>
-            <AccountDropdown
-              logout={logout}
-              authenticatedUser={authenticatedUser}
-            />
+            <AccountDropdown logout={logout} />
           </Box>
         ) : (
           <Box>
