@@ -44,7 +44,7 @@ tower-http = { version = "0.5.2", features = ["trace"] }
 tracing = { workspace = true }
 tracing-opentelemetry = "0.22.0"
 utoipa = "4.2.0"
-uuid = "1.7.0"
+uuid = "1.8.0"
 
 [features]
 test-server = ["dep:tokio", "dep:tokio-postgres", "dep:tokio-util", "dep:codec"]
