@@ -65,7 +65,7 @@ Another problem that can arise is managing timescales. In the example above it w
 
 <Hint style="info">
   We discuss similar situations in [Designing for Different
-  Timescales](/docs/simulation/concepts/designing-for-different-timescales).
+  Timescales](/docs/simulations/concepts/designing-for-different-timescales).
 </Hint>
 
 The best solution here is often to leverage manager agents to help resolve these conflicts. A manager agent acts as a matcher, receiving requests from every requesting agent and every provider, before looping through to match requests with providers, and messaging each the `agent_id` of their counterpart.

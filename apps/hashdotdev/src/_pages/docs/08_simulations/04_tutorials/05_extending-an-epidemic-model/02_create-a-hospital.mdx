@@ -101,15 +101,15 @@ Open up the `init.json` file. It should look like:
 
 <Hint style="info">
   See [Initializing
-  Agents](/docs/simulation/creating-simulations/anatomy-of-an-agent/initial-state)
+  Agents](/docs/simulations/create/anatomy-of-an-agent/initial-state)
   for more on init.json and creator agents.
 </Hint>
 
 This setup agent has four behaviors attached to it which will help populate our world. In order:
 
-- First run `@hash/create-scatters/create_scatters.js`. This is a [shared behavior](/docs/simulation/creating-simulations/behaviors/) \([hIndex](https://simulation.hash.ai/@hash/create-scatters)\) that, when added to an agent, will create all of the associated `scatter_templates`. It's called _scatter_ because it's scattering the child agents around the map.
+- First run `@hash/create-scatters/create_scatters.js`. This is a [shared behavior](/docs/simulations/create/behaviors/) \([hIndex](https://simulation.hash.ai/@hash/create-scatters)\) that, when added to an agent, will create all of the associated `scatter_templates`. It's called _scatter_ because it's scattering the child agents around the map.
 - Second it will run `create_people`, a behavior local to this simulation. In this behavior we've defined our people agents and associated them with their homes, offices, and groceries.
-- Third is the `@hash/create-agents/create_agents.js` - another shared behavior \([hIndex](https://simulation.hash.ai/@hash/create-agents)\). In our previous two functions we didn't fully create our agents, we just added them to an agents object on the "creator agent". This third behavior iterates through that object and sends messages to the [reserved hash keyword create_agent](/docs/simulation/creating-simulations/agent-messages/built-in-message-handlers) to instantiate all of our new agents.
+- Third is the `@hash/create-agents/create_agents.js` - another shared behavior \([hIndex](https://simulation.hash.ai/@hash/create-agents)\). In our previous two functions we didn't fully create our agents, we just added them to an agents object on the "creator agent". This third behavior iterates through that object and sends messages to the [reserved hash keyword create_agent](/docs/simulations/create/agent-messages/built-in-message-handlers) to instantiate all of our new agents.
 - Finally the agent runs `@hash/remove-self/remove_self.js`, which will appropriately enough remove itself from the simulation. We don't want to constantly be generating new grocery stores, which is what we'd end up with here otherwise!
 
 This kind of 'creator agent' pattern is a common and recommended method for generating lots of agents. It’s worth double-checking to make sure fully understand what's going on in this step.

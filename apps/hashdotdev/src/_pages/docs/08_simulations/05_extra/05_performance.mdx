@@ -10,7 +10,7 @@ There are several possible reasons your simulation is running slowly. Broadly we
 - **Compute**: Your agents' behaviors are performing expensive calculations.
 - **Hardware**: Your local compute isn't powerful enough to run the underlying HASH environment.
 
-Below we explain these common performance bottlenecks and solutions you can use to improve your simulation's performance. Alternatively you can use [hCloud](/docs/simulation/creating-simulations/h.cloud) to run simulations on dedicated remote hardware and stream these results back to your local machine.
+Below we explain these common performance bottlenecks and solutions you can use to improve your simulation's performance. Alternatively you can use [hCloud](/docs/simulations/create/h.cloud) to run simulations on dedicated remote hardware and stream these results back to your local machine.
 
 We're also happy to chat through techniques to improve your simulation's performance in our [HASH community Discord](/discord) and [support forum](https://hash.community/).
 
@@ -31,7 +31,7 @@ For handling large datasets, consider preprocessing the data, for instance in an
 
 Each agent runs its array of behaviors every time step - if a behavior is performing very complex calculations, it can slow down the simulation as a whole.
 
-The most common expensive behavior we see is using many agents with large `"search_radius"`. If an agent has a [search radius](/docs/simulation/creating-simulations/anatomy-of-an-agent/context#neighbors), the HASH engine will calculate the neighbors for the agent, which is how`context.neighbors()` will return the agents neighbors. Calculating neighbors involves searching over the simulation state, which can be expensive when many agents are calling neighbors.
+The most common expensive behavior we see is using many agents with large `"search_radius"`. If an agent has a [search radius](/docs/simulations/create/anatomy-of-an-agent/context#neighbors), the HASH engine will calculate the neighbors for the agent, which is how`context.neighbors()` will return the agents neighbors. Calculating neighbors involves searching over the simulation state, which can be expensive when many agents are calling neighbors.
 
 Often you can use messages to communicate between agents and request information instead of relying on retrieving many neighbors. Alternatively you might consider creating a manager agent that has a search radius which calls `context.neighbors()` and stores the results which other agents can retrieve by messaging the manager agent.
 
@@ -46,7 +46,7 @@ Other common reasons for slowdown are not specific to HASH's Engine, but are gen
 
 ## Hardware
 
-hCore is designed to be run on a wide variety of machines but it prefers modern hardware. You can find out more over on our [System Requirements](/docs/simulation/extra/specs-requirements) page.
+hCore is designed to be run on a wide variety of machines but it prefers modern hardware. You can find out more over on our [System Requirements](/docs/simulations/extra/specs-requirements) page.
 
 ## Identifying Performance Issues
 

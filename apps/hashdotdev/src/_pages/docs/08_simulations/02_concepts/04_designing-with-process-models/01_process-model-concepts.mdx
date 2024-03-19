@@ -28,12 +28,12 @@ With the HASH process library, we provide ready made behaviors for implementing 
 
 <Hint style="info">
   The full list of process blocks and their parameters are listed in [Process
-  Blocks](/docs/simulation/concepts/designing-with-process-models/process-blocks).
+  Blocks](/docs/simulations/concepts/designing-with-process-models/process-blocks).
 </Hint>
 
 These blocks are published behaviors that you use in the `behaviors` array just like any others, and they execute in sequence. **Objects** are passed through the different blocks, representing a product on an assembly line, a bill being processed, etc. Each blocks in the `behaviors` array has a queue linked to it, where those objects are temporarily stored.
 
-Additionally, you can add your custom blocks to [perform custom logic](/docs/simulation/concepts/designing-with-process-models/custom-behaviors). Create a new behavior, or fork the custom behavior, and add in your own code.
+Additionally, you can add your custom blocks to [perform custom logic](/docs/simulations/concepts/designing-with-process-models/custom-behaviors). Create a new behavior, or fork the custom behavior, and add in your own code.
 
 ```javascript
 // @hash/process/custom_process_template.js

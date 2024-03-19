@@ -1,6 +1,6 @@
 ---
 title: Behaviors
-slug: simulation/creating-simulations/behaviors
+slug: simulation/create/behaviors
 objectId: 98e7aaf1-5ff1-47a6-bec4-b6bfe7415fd9
 description: Giving agents agency and specifying laws of the universe
 ---
@@ -20,8 +20,8 @@ Behaviors are pure functions in the form of: `(current_state, context) => { // u
 
 <Hint style="warning">
   To run your simulation [with
-  hCloud](/docs/simulation/creating-simulations/h.cloud), you'll need to [define
-  Behavior Keys](/docs/simulation/creating-simulations/behaviors/behavior-keys/)
+  hCloud](/docs/simulations/create/h.cloud), you'll need to [define
+  Behavior Keys](/docs/simulations/create/behaviors/behavior-keys/)
   for each behavior in your simulation.
 </Hint>
 
@@ -55,5 +55,5 @@ def behavior(state, context):
 <Hint style="info">
   Agents can use behaviors to create new agents by sending a message to the
   special `hash` agent. This is covered more in-depth in
-  [Messages](/docs/simulation/creating-simulations/agent-messages/built-in-message-handlers#creating-agents-via-messages).
+  [Messages](/docs/simulations/create/agent-messages/built-in-message-handlers#creating-agents-via-messages).
 </Hint>

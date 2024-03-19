@@ -22,6 +22,19 @@ const nextConfig = {
         permanent: false,
       },
       {
+        source: "/contact",
+        destination: "https://hash.ai/contact",
+        permanent: true,
+      },
+      {
+        source: "/discord",
+        destination: "https://hash.ai/discord",
+        permanent: true,
+      },
+      /**
+       * License page redirects
+       */
+      {
         source: "/license",
         destination: "https://hash.ai/legal/developers/license",
         permanent: true,

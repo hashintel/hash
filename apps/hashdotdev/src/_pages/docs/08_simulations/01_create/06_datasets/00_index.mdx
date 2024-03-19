@@ -1,6 +1,6 @@
 ---
 title: Datasets
-slug: simulation/creating-simulations/datasets
+slug: simulation/create/datasets
 objectId: d784acc8-ffd5-4299-8e54-ab64011b3cea
 ---
 
@@ -26,8 +26,8 @@ There are also third-party datasets published in hIndex you can add to your proj
 
 <Hint style="info">
   **Coming soon:** data syncing from remote sources is currently only achievable
-  through [HASH Engine](/platform/engine), but will be soon be available in
-  [HASH Core](/platform/core), via [HASH](/platform/hash).
+  through [HASH Engine](https://hash.ai/platform/engine), but will be soon be available in
+  [HASH Core](https://hash.ai/platform/core), via [HASH](https://hash.ai/platform/hash).
 </Hint>
 
 <Hint style="success">
@@ -64,7 +64,7 @@ context.data()["dataset-path.csv"];
   datasets ingestible by HASH.
 </Hint>
 
-If you wish to explore the universe of data available in HASH outside of hCore, you can do so directly [within hIndex](/data?sort=popularity). As with behaviors, we encourage you to tag data in hIndex with the type of '[Thing](/schemas/Thing)' it represents. This ensures that the data can subsequently be easily discovered and reused.
+If you wish to explore the universe of data available in HASH outside of hCore, you can do so directly [within hIndex](https://simulation.hash.ai/data?sort=popularity). As with behaviors, we encourage you to tag data in hIndex with the type of '[Thing](https://simulation.hash.ai/schemas/Thing)' it represents. This ensures that the data can subsequently be easily discovered and reused.
 
 ### Using data to initialize agents
 
@@ -95,7 +95,7 @@ let json_data = selected.map(row => ({
 json_data.forEach(e => agents.push(e))
 ```
 
-A third behavior, `create_agents.js`, then iterates through the agents array and [initializes the agents](/docs/simulation/tutorials/phase-1-building-a-simple-hotelling-model-in-2d/initialization).
+A third behavior, `create_agents.js`, then iterates through the agents array and [initializes the agents](/docs/simulations/tutorials/phase-1-building-a-simple-hotelling-model-in-2d/initialization).
 
 Now the simulation has a collection of agents with unique positions derived from real world data.
 
@@ -112,5 +112,5 @@ Datasets can be used to calibrate a model to find the parameters that best match
 
 <Hint style="success">
   Read more and see an example in the [Complex Metrics section on Validating and
-  Calibrating.](/docs/simulation/creating-simulations/experiments/optimization-experiments/complex-metrics#validating-and-calibrating)
+  Calibrating.](/docs/simulations/create/experiments/optimization-experiments/complex-metrics#validating-and-calibrating)
 </Hint>

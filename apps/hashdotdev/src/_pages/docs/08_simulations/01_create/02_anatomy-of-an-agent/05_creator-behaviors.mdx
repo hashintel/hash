@@ -1,6 +1,6 @@
 ---
 title: Creator Behaviors
-slug: simulation/creating-simulations/anatomy-of-an-agent/creator-behaviors
+slug: simulation/create/anatomy-of-an-agent/creator-behaviors
 objectId: 5c121b23-ffea-46b4-a8ab-d9cfdc4bf32e
 description: Initializing simulations by using creator behaviors
 ---
@@ -21,8 +21,8 @@ description: Initializing simulations by using creator behaviors
 
 With "creator" agents you can create agents that create other agents. For example, by accessing published behaviors, we can very easily generate common agent placements. These behaviors can be found in the lower left corner; search for and then click on them to add them to your simulation:
 
-- `Create Grids (@hash/create-grids/create_grids.js)`: copy an agent to every unit within the [topology](/docs/simulation/creating-simulations/configuration/topology) bounds
-- `Create Scatters (@hash/create-scatters/create_scatters.js)`: copy an agent to random locations within the [topology](/docs/simulation/creating-simulations/configuration/topology) bounds
+- `Create Grids (@hash/create-grids/create_grids.js)`: copy an agent to every unit within the [topology](/docs/simulations/create/configuration/topology) bounds
+- `Create Scatters (@hash/create-scatters/create_scatters.js)`: copy an agent to random locations within the [topology](/docs/simulations/create/configuration/topology) bounds
 - `Create Stacks (@hash/create-stacks/create_stacks.js)`: copy an agent multiple times to the same location
 
 Take a look at how we can use published behaviors in the following example, where \[rabbits forage for food and reproduce\]\([https://hash.ai/@hash/rabbits-grass-weeds](https://simulation.hash.ai/@hash/rabbits-grass-weeds), while grass and weeds grow around them:
