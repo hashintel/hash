@@ -30,6 +30,7 @@ import {
   isOwnedOntologyElementMetadata,
   linkEntityTypeUrl,
 } from "@local/hash-subgraph";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import {
@@ -38,8 +39,6 @@ import {
   createTestUser,
   textDataTypeId,
 } from "../../../util";
-
-jest.setTimeout(60000);
 
 const logger = new Logger({
   mode: "dev",
