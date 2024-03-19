@@ -20,6 +20,21 @@ const nextConfig = {
        * Docs pages
       */
       {
+        source: "/docs/simulations/creating-simulations/:path*",
+        destination: "/docs/simulations/create/:path*",
+        permanent: true,
+      },
+      {
+        source: "/docs/simulations/create/experiment/:path*",
+        destination: "/docs/simulations/run/experiment/:path*",
+        permanent: true,
+      },
+      {
+        source: "/docs/simulations/create/anatomy-of-an-agent/:path*",
+        destination: "/docs/simulations/create/agents/:path*",
+        permanent: true,
+      },
+      {
         source: "/docs/simulations/create/agent-based-modeling-basics-1",
         destination: "/docs/simulations/create/abm",
         permanent: true,
@@ -27,11 +42,6 @@ const nextConfig = {
       {
         source: "/docs/simulations/create/h.cloud",
         destination: "/docs/simulations/run/cloud",
-        permanent: true,
-      },
-      {
-        source: "/docs/simulations/creating-simulations/:path*",
-        destination: "/docs/simulations/create/:path*",
         permanent: true,
       },
       /**

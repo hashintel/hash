@@ -31,7 +31,7 @@ For handling large datasets, consider preprocessing the data, for instance in an
 
 Each agent runs its array of behaviors every time step - if a behavior is performing very complex calculations, it can slow down the simulation as a whole.
 
-The most common expensive behavior we see is using many agents with large `"search_radius"`. If an agent has a [search radius](/docs/simulations/create/anatomy-of-an-agent/context#neighbors), the HASH engine will calculate the neighbors for the agent, which is how`context.neighbors()` will return the agents neighbors. Calculating neighbors involves searching over the simulation state, which can be expensive when many agents are calling neighbors.
+The most common expensive behavior we see is using many agents with large `"search_radius"`. If an agent has a [search radius](/docs/simulations/create/agents/context#neighbors), the HASH engine will calculate the neighbors for the agent, which is how`context.neighbors()` will return the agents neighbors. Calculating neighbors involves searching over the simulation state, which can be expensive when many agents are calling neighbors.
 
 Often you can use messages to communicate between agents and request information instead of relying on retrieving many neighbors. Alternatively you might consider creating a manager agent that has a search radius which calls `context.neighbors()` and stores the results which other agents can retrieve by messaging the manager agent.
 
