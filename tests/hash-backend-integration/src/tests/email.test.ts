@@ -5,23 +5,24 @@ import { getAwsRegion } from "@apps/hash-api/src/lib/aws-config";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { it } from "vitest";
 
-if (process.env.HASH_DEV_INTEGRATION_EMAIL) {
+it("can send an email", async ({ skip }) => {
+  if (process.env.HASH_DEV_INTEGRATION_EMAIL === undefined) {
+    skip();
+    return;
+  }
+
   const to = process.env.HASH_DEV_INTEGRATION_EMAIL;
-  it("can send an email", async () => {
-    const emailTransporter = new AwsSesEmailTransporter({
-      from: `${getRequiredEnv("SYSTEM_EMAIL_SENDER_NAME")} <${getRequiredEnv(
-        "SYSTEM_EMAIL_ADDRESS",
-      )}>`,
-      region: getAwsRegion(),
-      subjectPrefix: "[INTEGRATION TESTS] ",
-    });
-    await emailTransporter.sendMail({
-      to,
-      subject: "HASH 'can send email' integration test",
-      html: `time: ${new Date().toISOString()}`,
-    });
+
+  const emailTransporter = new AwsSesEmailTransporter({
+    from: `${getRequiredEnv("SYSTEM_EMAIL_SENDER_NAME")} <${getRequiredEnv(
+      "SYSTEM_EMAIL_ADDRESS",
+    )}>`,
+    region: getAwsRegion(),
+    subjectPrefix: "[INTEGRATION TESTS] ",
   });
-} else {
-  // Need at least one test otherwise jest will complain
-  it("always passes", () => undefined);
-}
+  await emailTransporter.sendMail({
+    to,
+    subject: "HASH 'can send email' integration test",
+    html: `time: ${new Date().toISOString()}`,
+  });
+});
