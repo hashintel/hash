@@ -1,6 +1,5 @@
-import { Brand, Either, HashSet, Option, ReadonlyRecord } from "effect";
 import { AST } from "@effect/schema";
-import { EncodeError } from "../DataType/error.js";
+import { Brand, Data, Either, HashSet, Option, ReadonlyRecord } from "effect";
 import { globalValue } from "effect/GlobalValue";
 
 type PathComponent =
@@ -88,12 +87,27 @@ export function make<T>(root: T): EncodeContext<T> {
   };
 }
 
+type VisitErrorReason = Data.TaggedEnum<{
+  CyclicSchema: {};
+}>;
+const VisitErrorReason = Data.taggedEnum<VisitErrorReason>();
+
+export class VisitError extends Data.TaggedError("VisitError")<{
+  reason: VisitErrorReason;
+}> {
+  static cyclicSchema(): VisitError {
+    return new VisitError({
+      reason: VisitErrorReason.CyclicSchema(),
+    });
+  }
+}
+
 export function visit<T>(
   ast: AST.AST,
   context: EncodeContext<T>,
-): Either.Either<EncodeContext<T>, EncodeError> {
+): Either.Either<EncodeContext<T>, VisitError> {
   if (hasHash(context, ast)) {
-    return Either.left(EncodeError.cyclicSchema());
+    return Either.left(VisitError.cyclicSchema());
   }
 
   return Either.right({

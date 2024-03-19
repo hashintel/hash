@@ -1,5 +1,6 @@
 import { ParseError } from "@effect/schema/ParseResult";
 import { Data } from "effect";
+import { VisitError } from "../internal/EncodeContext.js";
 
 export type UnsupportedType =
   | "any"
@@ -50,7 +51,9 @@ export type EncodeErrorReason = Data.TaggedEnum<{
   UnsupportedNode: {
     node: UnsupportedNode;
   };
-  CyclicSchema: {};
+  Visit: {
+    cause: VisitError;
+  };
   MalformedDataType: {
     reason: MalformedDataTypeReason;
   };
@@ -97,9 +100,9 @@ export class EncodeError extends Data.TaggedError(
     });
   }
 
-  static cyclicSchema(): EncodeError {
+  static visit(this: void, cause: VisitError): EncodeError {
     return new EncodeError({
-      reason: EncodeErrorReason.CyclicSchema(),
+      reason: EncodeErrorReason.Visit({ cause }),
     });
   }
 

@@ -387,6 +387,34 @@ exports[`object 1`] = `
           },
           "types": [
             {
+              "_tag": "StringKeyword",
+              "annotations": {
+                "Symbol(@effect/schema/annotation/Description)": "a string",
+                "Symbol(@effect/schema/annotation/Title)": "string",
+              },
+            },
+            {
+              "_tag": "NumberKeyword",
+              "annotations": {
+                "Symbol(@effect/schema/annotation/Description)": "a number",
+                "Symbol(@effect/schema/annotation/Title)": "number",
+              },
+            },
+            {
+              "_tag": "BooleanKeyword",
+              "annotations": {
+                "Symbol(@effect/schema/annotation/Description)": "a boolean",
+                "Symbol(@effect/schema/annotation/Title)": "boolean",
+              },
+            },
+            {
+              "_tag": "Literal",
+              "annotations": {
+                "Symbol(@effect/schema/annotation/Identifier)": "null",
+              },
+              "literal": null,
+            },
+            {
               "_tag": "TypeLiteral",
               "annotations": {},
               "indexSignatures": [
@@ -408,6 +436,34 @@ exports[`object 1`] = `
                         "Symbol(@effect/schema/annotation/Type)": Symbol(@blockprotocol/graph/Json/Value),
                       },
                       "types": [
+                        {
+                          "_tag": "StringKeyword",
+                          "annotations": {
+                            "Symbol(@effect/schema/annotation/Description)": "a string",
+                            "Symbol(@effect/schema/annotation/Title)": "string",
+                          },
+                        },
+                        {
+                          "_tag": "NumberKeyword",
+                          "annotations": {
+                            "Symbol(@effect/schema/annotation/Description)": "a number",
+                            "Symbol(@effect/schema/annotation/Title)": "number",
+                          },
+                        },
+                        {
+                          "_tag": "BooleanKeyword",
+                          "annotations": {
+                            "Symbol(@effect/schema/annotation/Description)": "a boolean",
+                            "Symbol(@effect/schema/annotation/Title)": "boolean",
+                          },
+                        },
+                        {
+                          "_tag": "Literal",
+                          "annotations": {
+                            "Symbol(@effect/schema/annotation/Identifier)": "null",
+                          },
+                          "literal": null,
+                        },
                         {
                           "_tag": "TypeLiteral",
                           "annotations": {},
@@ -439,34 +495,6 @@ exports[`object 1`] = `
                             },
                           ],
                         },
-                        {
-                          "_tag": "StringKeyword",
-                          "annotations": {
-                            "Symbol(@effect/schema/annotation/Description)": "a string",
-                            "Symbol(@effect/schema/annotation/Title)": "string",
-                          },
-                        },
-                        {
-                          "_tag": "NumberKeyword",
-                          "annotations": {
-                            "Symbol(@effect/schema/annotation/Description)": "a number",
-                            "Symbol(@effect/schema/annotation/Title)": "number",
-                          },
-                        },
-                        {
-                          "_tag": "BooleanKeyword",
-                          "annotations": {
-                            "Symbol(@effect/schema/annotation/Description)": "a boolean",
-                            "Symbol(@effect/schema/annotation/Title)": "boolean",
-                          },
-                        },
-                        {
-                          "_tag": "Literal",
-                          "annotations": {
-                            "Symbol(@effect/schema/annotation/Identifier)": "null",
-                          },
-                          "literal": null,
-                        },
                       ],
                     },
                   },
@@ -489,6 +517,34 @@ exports[`object 1`] = `
                       "Symbol(@effect/schema/annotation/Type)": Symbol(@blockprotocol/graph/Json/Value),
                     },
                     "types": [
+                      {
+                        "_tag": "StringKeyword",
+                        "annotations": {
+                          "Symbol(@effect/schema/annotation/Description)": "a string",
+                          "Symbol(@effect/schema/annotation/Title)": "string",
+                        },
+                      },
+                      {
+                        "_tag": "NumberKeyword",
+                        "annotations": {
+                          "Symbol(@effect/schema/annotation/Description)": "a number",
+                          "Symbol(@effect/schema/annotation/Title)": "number",
+                        },
+                      },
+                      {
+                        "_tag": "BooleanKeyword",
+                        "annotations": {
+                          "Symbol(@effect/schema/annotation/Description)": "a boolean",
+                          "Symbol(@effect/schema/annotation/Title)": "boolean",
+                        },
+                      },
+                      {
+                        "_tag": "Literal",
+                        "annotations": {
+                          "Symbol(@effect/schema/annotation/Identifier)": "null",
+                        },
+                        "literal": null,
+                      },
                       {
                         "_tag": "TypeLiteral",
                         "annotations": {},
@@ -520,66 +576,10 @@ exports[`object 1`] = `
                           },
                         ],
                       },
-                      {
-                        "_tag": "StringKeyword",
-                        "annotations": {
-                          "Symbol(@effect/schema/annotation/Description)": "a string",
-                          "Symbol(@effect/schema/annotation/Title)": "string",
-                        },
-                      },
-                      {
-                        "_tag": "NumberKeyword",
-                        "annotations": {
-                          "Symbol(@effect/schema/annotation/Description)": "a number",
-                          "Symbol(@effect/schema/annotation/Title)": "number",
-                        },
-                      },
-                      {
-                        "_tag": "BooleanKeyword",
-                        "annotations": {
-                          "Symbol(@effect/schema/annotation/Description)": "a boolean",
-                          "Symbol(@effect/schema/annotation/Title)": "boolean",
-                        },
-                      },
-                      {
-                        "_tag": "Literal",
-                        "annotations": {
-                          "Symbol(@effect/schema/annotation/Identifier)": "null",
-                        },
-                        "literal": null,
-                      },
                     ],
                   },
                 },
               ],
-            },
-            {
-              "_tag": "StringKeyword",
-              "annotations": {
-                "Symbol(@effect/schema/annotation/Description)": "a string",
-                "Symbol(@effect/schema/annotation/Title)": "string",
-              },
-            },
-            {
-              "_tag": "NumberKeyword",
-              "annotations": {
-                "Symbol(@effect/schema/annotation/Description)": "a number",
-                "Symbol(@effect/schema/annotation/Title)": "number",
-              },
-            },
-            {
-              "_tag": "BooleanKeyword",
-              "annotations": {
-                "Symbol(@effect/schema/annotation/Description)": "a boolean",
-                "Symbol(@effect/schema/annotation/Title)": "boolean",
-              },
-            },
-            {
-              "_tag": "Literal",
-              "annotations": {
-                "Symbol(@effect/schema/annotation/Identifier)": "null",
-              },
-              "literal": null,
             },
           ],
         },

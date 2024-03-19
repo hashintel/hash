@@ -1,38 +1,52 @@
 import { describe, test } from "vitest";
 
 describe("DataType", () => {
-  test("standard", () => {});
-  test("not actual DataType", () => {});
+  test.todo("standard", () => {});
+  test.todo("not actual DataType", () => {});
 });
 
 describe("PropertyObject", () => {
-  test("nested PropertyType", () => {});
-  test("array of PropertyTypes", () => {});
-  test("multiple keys - nested PropertyTypes", () => {});
-  test("multiple keys - array of PropertyTypes", () => {});
-  test("multiple keys - mixed", () => {});
+  test.todo("nested PropertyType", () => {});
+  test.todo("array of PropertyTypes", () => {});
+  test.todo("multiple keys - nested PropertyTypes", () => {});
+  test.todo("multiple keys - array of PropertyTypes", () => {});
+  test.todo("multiple keys - mixed", () => {});
 
-  test("incorrect keys", () => {});
-  test("value is not nested or array of nested", () => {});
+  test.todo("incorrect keys", () => {});
+  test.todo("value is not nested or array of nested", () => {});
 });
 
 describe("ArrayOfPropertyValues", () => {
-  test("DataType", () => {});
-  test("PropertyObject", () => {});
-  test("ArrayOfPropertyValues", () => {});
+  test.todo("DataType", () => {});
+  test.todo("PropertyObject", () => {});
+  test.todo("ArrayOfPropertyValues", () => {});
 
-  test("multiple oneOf", () => {});
+  test.todo("multiple oneOf", () => {});
 
-  test("inner not PropertyValues", () => {});
+  test.todo("inner not PropertyValues", () => {});
 });
 
 describe("oneOf: PropertyValues", () => {
-  test("DataType + PropertyObject", () => {});
-  test("DataType + ArrayOfPropertyValues", () => {});
-  test("PropertyObject + ArrayOfPropertyValues", () => {});
-  test("DataType + PropertyObject + ArrayOfPropertyValues", () => {});
-  test("DataType + PropertyObject + DataType + PropertyObject", () => {});
-  test("DataType + PropertyObject + DataType + ArrayOfPropertyValues", () => {});
+  test.todo("DataType + PropertyObject", () => {});
+  test.todo("DataType + ArrayOfPropertyValues", () => {});
+  test.todo("PropertyObject + ArrayOfPropertyValues", () => {});
+  test.todo("DataType + PropertyObject + ArrayOfPropertyValues", () => {});
+  test.todo("DataType + PropertyObject + DataType + PropertyObject", () => {});
+  test.todo(
+    "DataType + PropertyObject + DataType + ArrayOfPropertyValues",
+    () => {},
+  );
 
-  test("inner not DataType/PropertyObject/ArrayOfPropertyValues", () => {});
+  test.todo(
+    "inner not DataType/PropertyObject/ArrayOfPropertyValues",
+    () => {},
+  );
+
+  test.todo("refinement applied to union", () => {});
+  test.todo("transformation applied to union", () => {});
+  test.todo("suspense applied to union", () => {});
+  test.todo(
+    "refinement + transformation + suspense applied to union",
+    () => {},
+  );
 });

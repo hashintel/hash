@@ -399,7 +399,7 @@ function encode(
 ): Either.Either<DataTypeSchema, EncodeError> {
   const traverseResult = EncodeContext.visit(ast, context);
   if (Either.isLeft(traverseResult)) {
-    return Either.left(traverseResult.left);
+    return Either.left(EncodeError.visit(traverseResult.left));
   }
 
   const localContext = traverseResult.right;
