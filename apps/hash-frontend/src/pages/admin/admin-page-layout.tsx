@@ -51,7 +51,7 @@ const AdminLayout = ({ children }: PropsWithChildren) => {
     /**
      * Redirect non instance admins away from `/admin` pages
      */
-    if (typeof isInstanceAdmin === "boolean" && !isInstanceAdmin) {
+    if (isInstanceAdmin === false) {
       void router.push("/");
     }
   }, [router, isInstanceAdmin]);
