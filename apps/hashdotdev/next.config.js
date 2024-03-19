@@ -18,19 +18,21 @@ const nextConfig = {
     return [
       /**
        * Docs pages
-      */
+       */
       {
         source: "/docs/simulations/concepts/:path",
         destination: "/docs/simulations/create/design-considerations/:path",
         permanent: true,
       },
       {
-        source: "/docs/simulations/create/advanced/designing-with-process-models",
+        source:
+          "/docs/simulations/create/advanced/designing-with-process-models",
         destination: "/docs/simulations/create/libraries/process",
         permanent: true,
       },
       {
-        source: "/docs/simulations/create/advanced/designing-with-the-material-handling-libraries",
+        source:
+          "/docs/simulations/create/advanced/designing-with-the-material-handling-libraries",
         destination: "/docs/simulations/create/libraries/material",
         permanent: true,
       },
@@ -40,7 +42,8 @@ const nextConfig = {
         permanent: true,
       },
       {
-        source: "/docs/simulations/create/advanced/designing-with-system-dynamics-models",
+        source:
+          "/docs/simulations/create/advanced/designing-with-system-dynamics-models",
         destination: "/docs/simulations/create/libraries/system-dynamics",
         permanent: true,
       },
@@ -81,32 +84,39 @@ const nextConfig = {
       },
       {
         source: "/docs/simulations/advanced/design-considerations",
-        destination: "/docs/simulations/create/design-considerations/actor-model",
+        destination:
+          "/docs/simulations/create/design-considerations/actor-model",
         permanent: true,
       },
       {
-        source: "/docs/simulations/advanced/design-considerations/managing-resource-access",
-        destination: "/docs/simulations/create/design-considerations/resource-access",
+        source:
+          "/docs/simulations/advanced/design-considerations/managing-resource-access",
+        destination:
+          "/docs/simulations/create/design-considerations/resource-access",
         permanent: true,
       },
       {
         source: "/docs/simulations/advanced/designing-for-different-timescales",
-        destination: "/docs/simulations/create/design-considerations/timescales",
+        destination:
+          "/docs/simulations/create/design-considerations/timescales",
         permanent: true,
       },
       {
         source: "/docs/simulations/advanced/designing-with-distributions",
-        destination: "/docs/simulations/create/design-considerations/distributions",
+        destination:
+          "/docs/simulations/create/design-considerations/distributions",
         permanent: true,
       },
       {
         source: "/docs/simulations/advanced/verification-and-validation",
-        destination: "/docs/simulations/create/design-considerations/verify-validate",
+        destination:
+          "/docs/simulations/create/design-considerations/verify-validate",
         permanent: true,
       },
       {
         source: "/docs/simulations/extra/determinism",
-        destination: "/docs/simulations/create/design-considerations/determinism",
+        destination:
+          "/docs/simulations/create/design-considerations/determinism",
         permanent: true,
       },
       {
@@ -139,7 +149,7 @@ const nextConfig = {
       },
       /**
        * General page redirects
-      */
+       */
       {
         source: "/discord",
         destination: "https://hash.ai/discord",
