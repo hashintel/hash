@@ -1147,6 +1147,33 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let entity_type_ids = if params.entity_type_ids.is_empty() {
             previous_entity.metadata.entity_type_ids
         } else {
+            let previous_entity_types = previous_entity
+                .metadata
+                .entity_type_ids
+                .into_iter()
+                .collect::<HashSet<_>>();
+
+            for entity_type_id in &params.entity_type_ids {
+                // Instantiation permission is only checked for new entity types.
+                if previous_entity_types.contains(entity_type_id) {
+                    continue;
+                }
+
+                let entity_type_id = EntityTypeId::from_url(entity_type_id);
+                authorization_api
+                    .check_entity_type_permission(
+                        actor_id,
+                        EntityTypePermission::Instantiate,
+                        entity_type_id,
+                        Consistency::FullyConsistent,
+                    )
+                    .await
+                    .change_context(UpdateError)?
+                    .assert_permission()
+                    .change_context(UpdateError)
+                    .attach(StatusCode::PermissionDenied)?;
+            }
+
             params.entity_type_ids
         };
         let mut properties =
