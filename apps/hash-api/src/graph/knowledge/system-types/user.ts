@@ -1,5 +1,8 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
+import {
+  getHashInstance,
+  getHashInstanceAdminAccountGroupId,
+} from "@local/hash-backend-utils/hash-instance";
 import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import {
@@ -50,6 +53,7 @@ import {
   createEntity,
   getEntityOutgoingLinks,
   getLatestEntityById,
+  modifyEntityAuthorizationRelationships,
 } from "../primitive/entity";
 import {
   shortnameIsInvalid,
@@ -434,6 +438,27 @@ export const createUser: ImpureGraphFunction<
       },
     ],
   );
+
+  const hashInstanceAdminsAccountGroupId =
+    await getHashInstanceAdminAccountGroupId(ctx, authentication);
+
+  /** Grant permissions to hash instance admins to edit the user entity */
+  await modifyEntityAuthorizationRelationships(ctx, authentication, [
+    {
+      operation: "create",
+      relationship: {
+        resource: {
+          kind: "entity",
+          resourceId: entity.metadata.recordId.entityId,
+        },
+        relation: "editor",
+        subject: {
+          kind: "accountGroup",
+          subjectId: hashInstanceAdminsAccountGroupId,
+        },
+      },
+    },
+  ]);
 
   const user = getUserFromEntity({ entity });
 
