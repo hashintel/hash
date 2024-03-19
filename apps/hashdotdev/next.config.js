@@ -81,27 +81,47 @@ const nextConfig = {
       },
       {
         source: "/docs/simulations/advanced/design-considerations",
-        destination: "/docs/simulations/design-considerations/actor-model",
+        destination: "/docs/simulations/create/design-considerations/actor-model",
         permanent: true,
       },
       {
         source: "/docs/simulations/advanced/design-considerations/managing-resource-access",
-        destination: "/docs/simulations/design-considerations/resource-access",
+        destination: "/docs/simulations/create/design-considerations/resource-access",
         permanent: true,
       },
       {
         source: "/docs/simulations/advanced/designing-for-different-timescales",
-        destination: "/docs/simulations/design-considerations/timescales",
+        destination: "/docs/simulations/create/design-considerations/timescales",
         permanent: true,
       },
       {
         source: "/docs/simulations/advanced/designing-with-distributions",
-        destination: "/docs/simulations/design-considerations/distributions",
+        destination: "/docs/simulations/create/design-considerations/distributions",
         permanent: true,
       },
       {
         source: "/docs/simulations/advanced/verification-and-validation",
-        destination: "/docs/simulations/design-considerations/verify-validate",
+        destination: "/docs/simulations/create/design-considerations/verify-validate",
+        permanent: true,
+      },
+      {
+        source: "/docs/simulations/extra/determinism",
+        destination: "/docs/simulations/create/design-considerations/determinism",
+        permanent: true,
+      },
+      {
+        source: "/docs/simulations/extra/design-considerations",
+        destination: "/docs/simulations/create/design-considerations",
+        permanent: true,
+      },
+      {
+        source: "/docs/simulations/extra/performance",
+        destination: "/docs/simulations/run/performance",
+        permanent: true,
+      },
+      {
+        source: "/docs/simulations/extra/migrating",
+        destination: "/docs/simulations/tutorials/migrating",
         permanent: true,
       },
       /**
