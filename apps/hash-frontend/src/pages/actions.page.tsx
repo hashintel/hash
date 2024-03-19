@@ -28,9 +28,9 @@ import { BarsSortRegularIcon } from "../shared/icons/bars-sort-regular-icon";
 import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar } from "../shared/layout";
 import { MenuItem } from "../shared/ui";
-import type { SortOrder } from "./drafts.page/draft-entities";
-import { DraftEntities } from "./drafts.page/draft-entities";
-import { DraftEntitiesBulkActionsDropdown } from "./drafts.page/draft-entities-bulk-actions-dropdown";
+import type { SortOrder } from "./actions.page/draft-entities";
+import { DraftEntities } from "./actions.page/draft-entities";
+import { DraftEntitiesBulkActionsDropdown } from "./actions.page/draft-entities-bulk-actions-dropdown";
 import { InlineSelect } from "./shared/inline-select";
 import { NotificationsWithLinksContextProvider } from "./shared/notifications-with-links-context";
 import { TopContextBar } from "./shared/top-context-bar";
@@ -40,7 +40,7 @@ const sortOrderHumanReadable: Record<SortOrder, string> = {
   "created-at-desc": "creation date/time (newest first)",
 };
 
-const DraftsPage: NextPageWithLayout = () => {
+const ActionsPage: NextPageWithLayout = () => {
   const [selectedDraftEntityIds, setSelectedDraftEntityIds] = useState<
     EntityId[]
   >([]);
@@ -204,9 +204,9 @@ const DraftsPage: NextPageWithLayout = () => {
   );
 };
 
-DraftsPage.getLayout = (page) =>
+ActionsPage.getLayout = (page) =>
   getLayoutWithSidebar(page, {
     fullWidth: true,
   });
 
-export default DraftsPage;
+export default ActionsPage;

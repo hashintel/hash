@@ -1,15 +1,18 @@
-import { Box, useMediaQuery, useTheme } from "@mui/material";
+import { Box, Tooltip, useMediaQuery, useTheme } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
 
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { useLogoutFlow } from "../../../components/hooks/use-logout-flow";
 import { useAuthInfo } from "../../../pages/shared/auth-info-context";
+import { useDraftEntities } from "../../draft-entities-context";
+import { CheckRegularIcon } from "../../icons/check-regular-icon";
 import { HashLockup } from "../../icons/hash-lockup";
 import { Button, Link } from "../../ui";
 import { AccountDropdown } from "./account-dropdown";
 import { ActionsDropdown } from "./actions-dropdown";
 import { NotificationsDropdown } from "./notifications-dropdown";
 import { SearchBar } from "./search-bar";
+import { HeaderIconButtonWithCount } from "./shared/header-icon-button-with-count";
 
 const Nav: FunctionComponent<{ children?: ReactNode }> = ({ children }) => (
   <Box
@@ -34,6 +37,7 @@ export const PageHeader: FunctionComponent = () => {
   const { authenticatedUser } = useAuthInfo();
   const { hashInstance } = useHashInstance();
   const { logout } = useLogoutFlow();
+  const { draftEntities } = useDraftEntities();
 
   return (
     <Box
@@ -90,6 +94,16 @@ export const PageHeader: FunctionComponent = () => {
           >
             <ActionsDropdown />
             <NotificationsDropdown />
+            <Tooltip title="Actions" placement="bottom">
+              <Link noLinkStyle href="/actions">
+                <HeaderIconButtonWithCount
+                  icon={
+                    <CheckRegularIcon sx={{ color: theme.palette.blue[70] }} />
+                  }
+                  count={draftEntities?.length}
+                />
+              </Link>
+            </Tooltip>
             <AccountDropdown
               logout={logout}
               authenticatedUser={authenticatedUser}

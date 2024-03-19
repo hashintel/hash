@@ -20,7 +20,11 @@ const generateEntityRootedSubgraph = (
 ) => {
   const entityRoot = subgraph.roots.find(
     ({ baseId }) => baseId === entity.metadata.recordId.entityId,
-  )!;
+  );
+
+  if (!entityRoot) {
+    return undefined;
+  }
 
   return {
     ...subgraph,
@@ -46,8 +50,11 @@ export const DraftEntity: FunctionComponent<{
   );
 
   const [entityRootedSubgraph, setEntityRootedSubgraph] = useState<
-    Subgraph<EntityRootType>
+    Subgraph<EntityRootType> | undefined
   >(generateEntityRootedSubgraph(entity, subgraph));
+
+  const previouslyEvaluatedSubgraph =
+    useRef<Subgraph<EntityRootType>>(subgraph);
 
   const previouslyEvaluatedEntity = useRef<Entity>(entity);
 
@@ -71,6 +78,27 @@ export const DraftEntity: FunctionComponent<{
     entity.metadata.recordId.editionId
   ) {
     previouslyEvaluatedEntity.current = entity;
+    previouslyEvaluatedSubgraph.current = subgraph;
+    setEntityRootedSubgraph(generateEntityRootedSubgraph(entity, subgraph));
+  }
+
+  /**
+   * If the current `subgraph` has a root which is not present
+   * in the previously evaluated subgraph, then we need to re-evaluate
+   * the entity rooted subgraph.
+   */
+  if (
+    subgraph.roots.some(
+      (root) =>
+        previouslyEvaluatedSubgraph.current.roots.find(
+          (previouslyEvaluatedRoot) =>
+            previouslyEvaluatedRoot.baseId === root.baseId &&
+            previouslyEvaluatedRoot.revisionId === root.revisionId,
+        ) === undefined,
+    )
+  ) {
+    previouslyEvaluatedEntity.current = entity;
+    previouslyEvaluatedSubgraph.current = subgraph;
     setEntityRootedSubgraph(generateEntityRootedSubgraph(entity, subgraph));
   }
 
@@ -97,15 +125,17 @@ export const DraftEntity: FunctionComponent<{
               paddingRight: 1.5,
             }}
           />
-          <EditEntityModal
-            open={displayEntityModal}
-            entitySubgraph={entityRootedSubgraph}
-            onClose={() => setDisplayEntityModal(false)}
-            onSubmit={() => {
-              void refetch();
-              setDisplayEntityModal(false);
-            }}
-          />
+          {entityRootedSubgraph ? (
+            <EditEntityModal
+              open={displayEntityModal}
+              entitySubgraph={entityRootedSubgraph}
+              onClose={() => setDisplayEntityModal(false)}
+              onSubmit={() => {
+                void refetch();
+                setDisplayEntityModal(false);
+              }}
+            />
+          ) : null}
           <Link
             noLinkStyle
             href={href}

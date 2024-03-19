@@ -43,7 +43,7 @@ export const DraftEntityBanner: FunctionComponent<{
   const router = useRouter();
 
   const handleDiscardedEntity = useCallback(() => {
-    void router.push("/drafts");
+    void router.push("/actions");
   }, [router]);
 
   return (
