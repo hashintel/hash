@@ -65,6 +65,7 @@
     "@rollup/plugin-node-resolve": "15.2.3",
     "@rollup/plugin-typescript": "11.1.6",
     "@rollup/plugin-wasm": "6.0.1",
+    "@types/node": "20.11.29",
     "@types/react": "18.0.26",
     "@vitest/coverage-istanbul": "1.4.0",
     "eslint": "8.57.0",
@@ -76,3 +77,4 @@
     "vitest": "1.4.0"
   }
 }
+
