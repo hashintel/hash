@@ -12,13 +12,14 @@ import { useRouter } from "next/router";
 import type { FunctionComponent, ReactNode } from "react";
 import { useCallback, useEffect, useState } from "react";
 
-import { Link } from "../../../../shared/ui/link";
+import { Link } from "../../../shared/ui/link";
 
 export type SidebarItemData = {
   // allow for items to have a conceptual href that doesn't exist but represents their position in the hierarchy
   activeIfPathStartsWith?: string;
   children?: SidebarItemData[];
   label: string;
+  pageTitle?: string;
   href: string;
   icon?: FunctionComponent<SvgIconProps> | ReactNode;
   parentHref?: string;
@@ -192,8 +193,10 @@ const SidebarItem = ({
 
 export const SettingsSidebar = ({
   menuItems,
+  heading,
 }: {
   menuItems: SidebarItemData[];
+  heading: ReactNode;
 }) => {
   const router = useRouter();
 
@@ -274,13 +277,14 @@ export const SettingsSidebar = ({
         sx={({ palette }) => ({
           color: palette.gray[80],
           display: "block",
+          textTransform: "uppercase",
           fontWeight: 600,
           letterSpacing: 0.6,
           mb: 2,
           pl: 2,
         })}
       >
-        ACCOUNT
+        {heading}
       </Typography>
       {rootItems.map((item, index) => (
         <SidebarItem

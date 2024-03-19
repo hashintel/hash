@@ -3,14 +3,14 @@ import { useRouter } from "next/router";
 import type { PropsWithChildren, ReactElement } from "react";
 import { useMemo } from "react";
 
-import type { Org } from "../../../lib/user-and-org";
-import { PeopleGroupIcon } from "../../../shared/icons/people-group-icon";
-import { PlugSolidIcon } from "../../../shared/icons/plug-solid-icon";
-import { LayoutWithSidebar } from "../../../shared/layout/layout-with-sidebar";
-import { useAuthenticatedUser } from "../../shared/auth-info-context";
-import { TopContextBar } from "../../shared/top-context-bar";
+import type { Org } from "../../lib/user-and-org";
+import { PeopleGroupIcon } from "../../shared/icons/people-group-icon";
+import { PlugSolidIcon } from "../../shared/icons/plug-solid-icon";
+import { LayoutWithSidebar } from "../../shared/layout/layout-with-sidebar";
+import { useAuthenticatedUser } from "./auth-info-context";
 import type { SidebarItemData } from "./settings-layout/settings-sidebar";
 import { SettingsSidebar } from "./settings-layout/settings-sidebar";
+import { TopContextBar } from "./top-context-bar";
 
 const generateMenuLinks = (
   organizations: { org: Org }[],
@@ -140,7 +140,7 @@ const SettingsLayout = ({ children }: PropsWithChildren) => {
       </Box>
       <Container sx={{ ...containerSx, py: 6 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-          <SettingsSidebar menuItems={menuItems} />
+          <SettingsSidebar heading="Account" menuItems={menuItems} />
           <Box sx={{ flex: 1 }}>{children}</Box>
         </Box>
       </Container>

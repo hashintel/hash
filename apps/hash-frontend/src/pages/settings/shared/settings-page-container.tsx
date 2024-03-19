@@ -31,7 +31,13 @@ export const SettingsPageContainer = forwardRef<
             alignItems="center"
             justifyContent="space-between"
           >
-            <Typography ref={ref} variant="h2" mt={-1} fontWeight="bold">
+            <Typography
+              ref={ref}
+              variant="h2"
+              mt={-1}
+              fontWeight="bold"
+              sx={{ display: "flex", alignItems: "center" }}
+            >
               {heading}
             </Typography>
             {topRightElement}

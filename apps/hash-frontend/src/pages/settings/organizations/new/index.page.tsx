@@ -1,7 +1,7 @@
 import { NextSeo } from "next-seo";
 
 import type { NextPageWithLayout } from "../../../../shared/layout";
-import { getSettingsLayout } from "../../shared/settings-layout";
+import { getSettingsLayout } from "../../../shared/settings-layout";
 import { SettingsPageContainer } from "../../shared/settings-page-container";
 import { CreateOrgForm } from "./index.page/create-org-form";
 

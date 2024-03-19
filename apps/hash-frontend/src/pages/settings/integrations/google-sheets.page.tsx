@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import type { NextPageWithLayout } from "../../../shared/layout";
 import { Button } from "../../../shared/ui/button";
-import { getSettingsLayout } from "../shared/settings-layout";
+import { getSettingsLayout } from "../../shared/settings-layout";
 import { CreateOrEditSheetsIntegration } from "./google-sheets/create-or-edit-sheets-integration";
 import { GoogleAuthProvider } from "./google-sheets/google-auth-context";
 import type { UseSheetsIntegrationsData } from "./google-sheets/use-sheet-integrations";
