@@ -28,7 +28,7 @@
     "node-fetch": "2.7.0"
   },
   "devDependencies": {
-    "@blockprotocol/graph": "0.3.4-canary-20240313191438",
+    "@blockprotocol/graph": "0.3.4",
     "@graphql-codegen/cli": "5.0.0",
     "@graphql-codegen/introspection": "2.2.3",
     "@graphql-codegen/typescript": "2.8.7",

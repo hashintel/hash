@@ -25,7 +25,7 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.0.18",
+    "@blockprotocol/graph": "0.3.4",
     "dompurify": "2.3.6"
   },
   "devDependencies": {
