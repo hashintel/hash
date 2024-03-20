@@ -2,13 +2,13 @@
   "recommendations": [
     "Codecov.codecov",
     "davidanson.vscode-markdownlint",
-    "esbenp.prettier-vscode",
-    "ms-playwright.playwright",
-    "orta.vscode-jest",
     "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
     "GraphQL.vscode-graphql",
     "GraphQL.vscode-graphql-syntax",
     "hashicorp.terraform",
-    "ms-vscode.vscode-typescript-next"
+    "ms-playwright.playwright",
+    "ms-vscode.vscode-typescript-next",
+    "vitest.explorer"
   ]
 }
