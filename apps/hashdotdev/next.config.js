@@ -134,6 +134,41 @@ const nextConfig = {
         destination: "/docs/simulations/tutorials/migrating",
         permanent: true,
       },
+      {
+        source: "/docs/simulations/extra/troubleshooting/error-reference",
+        destination: "/docs/simulations/run/errors",
+        permanent: true,
+      },
+      {
+        source: "/docs/simulations/extra/shortcuts",
+        destination: "/docs/simulations/ide/shortcuts",
+        permanent: true,
+      },
+      {
+        source: "/docs/simulations/extra/specs-requirements",
+        destination: "/docs/simulations/ide/system-requirements",
+        permanent: true,
+      },
+      {
+        source: "/docs/simulations/extra/shortcuts",
+        destination: "/docs/simulations/ide/shortcuts",
+        permanent: true,
+      },
+      {
+        source: "/docs/simulations/extra/memory-management",
+        destination: "/docs/simulations/ide/memory",
+        permanent: true,
+      },
+      {
+        source: "/docs/simulations/extra/troubleshooting",
+        destination: "/docs/simulations/ide/troubleshooting",
+        permanent: true,
+      },
+      {
+        source: "/docs/simulations/extra/",
+        destination: "/docs/simulations/tutorials/",
+        permanent: true,
+      },
       /**
        * License page redirects
        */

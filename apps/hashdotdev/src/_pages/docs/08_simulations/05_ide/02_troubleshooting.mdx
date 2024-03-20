@@ -1,33 +1,18 @@
 ---
-title: Troubleshooting & Debugging
-slug: simulation/extra/troubleshooting
-objectId: 114101d4-8aab-4aad-b191-d19f260a3cc3
-description: Debugging simulation logic and application crashes
+title: "Troubleshooting Crashes"
+description: "Debugging simulation logic and application crashes"
 ---
+
+## Errors vs crashes
 
 There are two types of errors you may encounter when using hCore:
 
-- **errors in simulation logic**: a red message when running a simulation.
-- **errors at the application level:** a crash which requires a refresh or other browser action.
+- **errors in simulation logic**: a red message when running a simulation. See [debugging errors](/docs/simulations/run/errors) for more.
+- **errors at the application level:** a crash which requires a refresh or other browser action. See below.
 
-## Debugging simulation errors
+## Troubleshooting application crashes
 
-<Embed
-  type="youtube"
-  url="https://youtu.be/lqEZk0Xp51U"
-  caption="Debugging tutorial"
-/>
-
-A few tips for debugging simulation errors:
-
-- You can use `console.log()` in JavaScript behaviors or `print()` in Python behaviors to output the value of a variable or an expression to the developer console \(**Ctrl+Shift+J** on Windows, or **Cmd+Option+J** on Mac\).
-- The Raw Output panel displays the full state of your simulation, which can be useful for figuring out what's going on. Keep in mind though it generates it for the last completed time-step - if your simulation has an error in the middle of a time-step the Raw Output panel will only show you the state that you entered the time-step with.
-- Often it's easiest to debug simulations with the bare minimum number of agents, to make it easier to track what's going on. Try reducing the number you create to simplify.
-- Please see the [error reference](/docs/simulations/extra/troubleshooting/error-reference) for an explanation of specific errors.
-
-## Troubleshooting crashes
-
-Despite our best efforts, sometimes hCore crashes with a screen that looks like this:
+From time to time, hCore might crash displaying a screen that looks like the below:
 
 ![](https://cdn-us1.hash.ai/site/docs/screenshot-2021-06-15-at-10.24.37.png)
 
