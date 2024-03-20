@@ -3,15 +3,17 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    environment: "node",
     coverage: {
-      provider: "istanbul",
       enabled: process.env.TEST_COVERAGE === "true",
-      include: ["**/*.{c,m,}{j,t}s{x,}", "!**/node_modules/**", "!**/dist/**"],
+      provider: "istanbul",
+      reporter: ["lcov", "text"],
+      include: ["**/*.{c,m,}{j,t}s{x,}"],
+      exclude: ["**/node_modules/**", "**/dist/**"],
     },
-    include: ["tests/**/*.test.ts"],
-    // recreating DB takes longer than the default 5 seconds.
-    // The chosen default give a lot of room to the integration test.
+    environment: "node",
     testTimeout: 60_000,
+    typecheck: {
+      enabled: true,
+    },
   },
 });

@@ -3,11 +3,13 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    environment: "node",
     coverage: {
-      provider: "istanbul",
       enabled: process.env.TEST_COVERAGE === "true",
-      include: ["**/*.{c,m,}{j,t}s{x,}", "!**/node_modules/**", "!**/dist/**"],
+      provider: "istanbul",
+      reporter: ["lcov", "text"],
+      include: ["**/*.{c,m,}{j,t}s{x,}"],
+      exclude: ["**/node_modules/**", "**/dist/**"],
     },
+    environment: "node",
   },
 });
