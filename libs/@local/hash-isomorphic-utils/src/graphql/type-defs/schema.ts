@@ -8,6 +8,7 @@ import { blockCollectionTypedef } from "./knowledge/block-collection.typedef";
 import { commentTypedef } from "./knowledge/comment.typedef";
 import { entityTypedef } from "./knowledge/entity.typedef";
 import { fileTypedef } from "./knowledge/file.typedef";
+import { flowTypedef } from "./knowledge/flow.typedef";
 import { hashInstanceTypedef } from "./knowledge/hash-instance.typedef";
 import { orgTypedef } from "./knowledge/org.typedef";
 import { pageTypedef } from "./knowledge/page.typedef";
@@ -38,15 +39,16 @@ const baseSchema = gql`
 const ontology = [dataTypeTypedef, propertyTypeTypedef, entityTypeTypedef];
 
 const knowledge = [
-  entityTypedef,
-  blockTypedef,
-  pageTypedef,
   blockCollectionTypedef,
+  blockTypedef,
   commentTypedef,
-  userTypedef,
-  orgTypedef,
-  hashInstanceTypedef,
+  entityTypedef,
   fileTypedef,
+  flowTypedef,
+  hashInstanceTypedef,
+  orgTypedef,
+  pageTypedef,
+  userTypedef,
 ];
 
 // This needs to be called 'schema' to be picked up by codegen -
