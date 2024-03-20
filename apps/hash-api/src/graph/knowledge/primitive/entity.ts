@@ -284,7 +284,12 @@ export const getLatestEntityById: ImpureGraphFunction<
      * ...whether the prioritisation is fixed behavior or varied by parameter.
      */
     allFilter.push({
-      equal: [{ path: ["draftId"] }, { parameter: null }],
+      equal: [
+        { path: ["draftId"] },
+        // @ts-expect-error -- Support null in Path parameter in structural queries in Node
+        //                     see https://linear.app/hash/issue/H-1207
+        null,
+      ],
     });
   }
 
