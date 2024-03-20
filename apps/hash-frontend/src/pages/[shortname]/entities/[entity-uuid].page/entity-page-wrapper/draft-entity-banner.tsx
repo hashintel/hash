@@ -89,7 +89,7 @@ export const DraftEntityBanner: FunctionComponent<{
             draft{" "}
             {isUpdate
               ? `update to ${draftEntity.linkData ? "a " : "an "}`
-              : "new"}
+              : "new "}
             {draftEntity.linkData ? "link" : "entity"}
           </strong>
           {isUpdate && (
