@@ -169,6 +169,16 @@ const nextConfig = {
         destination: "/docs/simulations/tutorials/",
         permanent: true,
       },
+      {
+        source: "/docs/simulations/api/hcore",
+        destination: "/docs/simulations/api/",
+        permanent: true,
+      },
+      {
+        source: "/docs/simulations/api/register-for-access",
+        destination: "/docs/simulations/api/access",
+        permanent: true,
+      },
       /**
        * License page redirects
        */

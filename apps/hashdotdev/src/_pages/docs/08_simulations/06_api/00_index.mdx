@@ -1,8 +1,9 @@
 ---
-title: hCore Message API
-slug: simulation/api/hcore
-objectId: 6388d0b1-43c3-4331-9cd7-8a70feaa0d16
+title: API
+description: Application Programming Interface for HASH simulations
 ---
+
+## hCore Message API
 
 hCore provides a messaging API for embedded instances of hCore. You can use the messaging API to edit and set a simulation files and to read the state of a simulation. We'd love your [feedback](https://hash.ai/contact) on this feature.
 
@@ -25,7 +26,7 @@ All hCore messages use the [postMessage technique for messaging between iFrames]
 );
 ```
 
-## updateFile
+### updateFile
 
 Update the contents of a simulation file to the contents defined in the message payload.
 
@@ -41,7 +42,7 @@ Update the contents of a simulation file to the contents defined in the message 
 }
 ```
 
-## sendState
+### sendState
 
 Request the current state of the simulation. Will return a message with `type: "state"` and the full state as a dictionary under `contents`, where the key is the time step and the value an array of agent objects.
 
@@ -83,7 +84,7 @@ Request the current state of the simulation. Will return a message with `type: "
 </Tab>
 </Tabs>
 
-## initialize
+### initialize
 
 Request that HASH send a message every time a file changes. If you send this to a framed hCore, it will send a message with `type: "files"` and `content: file[]` every time changes are made to a source file.
 
@@ -104,7 +105,7 @@ Request that HASH send a message every time a file changes. If you send this to 
 
 </Tabs>
 
-## resetAndRun
+### resetAndRun
 
 Trigger hCore to reset the simulation, generate a new simulation run, and start it playing.
 
