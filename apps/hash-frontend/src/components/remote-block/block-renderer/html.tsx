@@ -1,5 +1,5 @@
-import type { HtmlBlockDefinition } from "@blockprotocol/core";
-import { renderHtmlBlock } from "@blockprotocol/core";
+import type { HtmlBlockDefinition } from "@blockprotocol/core/html";
+import { renderHtmlBlock } from "@blockprotocol/core/html";
 import type { FunctionComponent } from "react";
 import { useEffect, useRef, useState } from "react";
 
