@@ -406,10 +406,6 @@ export const useNotificationsWithLinksContextValue =
             }
 
             if (!occurredInEntity) {
-              console.log("no entity", {
-                occurredInEntityLink,
-                vertices: outgoingLinksSubgraph.vertices,
-              });
               // @todo archive the notification when the entity it occurred in is archived
               return null;
             }
