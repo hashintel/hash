@@ -209,7 +209,7 @@ export const SearchBar: FunctionComponent = () => {
           inheritsFrom: { outgoing: 255 },
           isOfType: { outgoing: 1 },
         },
-        includeDrafts: true,
+        includeDrafts: false,
       },
       includePermissions: false,
     },
