@@ -34,7 +34,7 @@ In our example, we will plot a histogram of the total portfolio value of all of 
 
 Because our agents’ portfolios can contain options (which may be nonlinear in nature), we can use a technique called **Monte Carlo simulation** to calculate the expected Value at Risk (VaR). By ‘nonlinear’ we mean that a change in something’s input is not necessarily proportional to a change in its output. This is true of most options.
 
-In addition to running single simulation runs, HASH enables simultaneous simulation runs with different parameters, called [experiments](https://hash.dev/docs/simulations/create/experiments), that collate the graphed output over different runs. We can run an experiment by clicking the experiment button at the bottom of the screen.
+In addition to running single simulation runs, HASH enables simultaneous simulation runs with different parameters, called [experiments](https://hash.dev/docs/simulations/run/experiment), that collate the graphed output over different runs. We can run an experiment by clicking the experiment button at the bottom of the screen.
 
 To use the Monte Carlo method, we start by creating a Monte Carlo experiment, varying the interest rate as a normally distributed variable that represents market conditions. We can take a look at the trend lines of the total portfolio value, and see how the distribution looks. We can see that the value of the portfolio varies widely according to interest rate. In the worst case scenarios, the value of the portfolio drops by around 1/3rd, suggesting this is our value at risk.
 
