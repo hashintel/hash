@@ -20,7 +20,11 @@ import type {
   EntityTypeWithMetadata,
   Subgraph,
 } from "@local/hash-subgraph";
-import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
+import {
+  entityIdFromComponents,
+  extractDraftIdFromEntityId,
+  splitEntityId,
+} from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { PaperProps } from "@mui/material";
 import { Stack, Typography } from "@mui/material";
@@ -153,18 +157,68 @@ export const EntitySelector = ({
     if (!entitiesSubgraph) {
       return [];
     }
-    return [...getRoots(entitiesSubgraph)]
-      .filter(
-        (entity) =>
-          !entityIdsToFilterOut?.includes(entity.metadata.recordId.entityId) &&
-          !entity.metadata.archived,
-      )
+    const subgraphRoots = getRoots(entitiesSubgraph);
+
+    const hasLiveVersion: Record<EntityId, boolean> = {};
+
+    return subgraphRoots
+      .filter((entity) => {
+        const rootEntityId = entity.metadata.recordId.entityId;
+
+        if (entity.metadata.archived) {
+          return false;
+        }
+
+        if (entityIdsToFilterOut?.includes(rootEntityId)) {
+          return false;
+        }
+
+        if (includeDrafts) {
+          /**
+           * If we have included drafts in the query, we may have multiple roots for a single entity,
+           * in the case where it has a 'live' (non-draft) version and one or more unarchived draft updates.
+           *
+           * We only want one result, which should be the live version if it exists, or the single draft if there's no live.
+           * Entities without a live version can't have multiple drafts because there's nothing to fork multiple from.
+           */
+          const [ownedById, entityUuid, draftId] = splitEntityId(rootEntityId);
+          if (!draftId) {
+            /** If there is no draftId, this is the live version, which is always preferred in the selector */
+            hasLiveVersion[rootEntityId] = true;
+            return true;
+          }
+
+          /** This has a draftId, and therefore is only permitted if there is no live version */
+          const liveEntityId = entityIdFromComponents(ownedById, entityUuid);
+          if (hasLiveVersion[liveEntityId]) {
+            /**
+             * We already checked for this entityId and there is a live version
+             */
+            return false;
+          }
+          if (
+            subgraphRoots.some(
+              (possiblyLiveEntity) =>
+                possiblyLiveEntity.metadata.recordId.entityId === liveEntityId,
+            )
+          ) {
+            hasLiveVersion[liveEntityId] = true;
+            return false;
+          }
+          /**
+           * We don't bother to memoize a false result because there will only one draft version if there isn't a live,
+           * and therefore we're not going to see this liveEntityId again in the loop.
+           */
+        }
+
+        return true;
+      })
       .sort((a, b) =>
         a.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
           b.metadata.temporalVersioning.decisionTime.start.limit,
         ),
       );
-  }, [entitiesSubgraph, entityIdsToFilterOut]);
+  }, [entitiesSubgraph, entityIdsToFilterOut, includeDrafts]);
 
   const onCreateNew = () => {
     if (!expectedEntityTypes[0]) {
