@@ -265,7 +265,7 @@ See `yarn test:playwright --help` for more info.
 
 ### Unit tests
 
-Unit tests are executed by [Vitest](https://vitest.dev/), which we use in place of Jest, due to its improved WebAssembly compatibility.
+Unit tests are executed by [Vitest](https://vitest.dev/), which we use in place of Jest, due to its improved TS/ESM compatibility.
 
 Unit tests can be launched at any time with this command:
 
