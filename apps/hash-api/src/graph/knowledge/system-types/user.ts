@@ -1,6 +1,7 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
+import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
+import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -15,7 +16,6 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import type {
   AccountEntityId,
-  AccountGroupId,
   AccountId,
   Entity,
   EntityId,
@@ -26,7 +26,6 @@ import type {
 import {
   extractAccountId,
   extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
 import {
   getRoots,
@@ -239,6 +238,7 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
  *
  * @param params.emails - the emails of the user
  * @param params.kratosIdentityId - the kratos identity id of the user
+ * @param params.enabledFeatureFlags (optional) - the feature flags enabled for the user
  * @param params.isInstanceAdmin (optional) - whether or not the user is an instance admin of the HASH instance (defaults to `false`)
  * @param params.shortname (optional) - the shortname of the user
  * @param params.displayName (optional) - the display name of the user
@@ -248,6 +248,7 @@ export const createUser: ImpureGraphFunction<
   {
     emails: string[];
     kratosIdentityId: string;
+    enabledFeatureFlags?: FeatureFlag[];
     shortname?: string;
     displayName?: string;
     isInstanceAdmin?: boolean;
@@ -259,6 +260,7 @@ export const createUser: ImpureGraphFunction<
     emails,
     kratosIdentityId,
     shortname,
+    enabledFeatureFlags,
     displayName,
     isInstanceAdmin = false,
   } = params;
@@ -349,12 +351,13 @@ export const createUser: ImpureGraphFunction<
             displayName,
         }
       : {}),
+    ...(enabledFeatureFlags
+      ? {
+          "https://hash.ai/@hash/types/property-type/enabled-feature-flags/":
+            enabledFeatureFlags,
+        }
+      : {}),
   };
-
-  const hashInstance = await getHashInstance(ctx, authentication);
-  const hashInstanceAdmins = extractOwnedByIdFromEntityId(
-    hashInstance.entity.metadata.recordId.entityId,
-  ) as AccountGroupId;
 
   /** Grant permissions to the web machine actor to create a user entity */
   await ctx.graphApi.modifyEntityTypeAuthorizationRelationships(
@@ -374,6 +377,9 @@ export const createUser: ImpureGraphFunction<
     ],
   );
 
+  const hashInstanceAdminsAccountGroupId =
+    await getHashInstanceAdminAccountGroupId(ctx, authentication);
+
   const entity = await createEntity(
     ctx,
     { actorId: userWebMachineActorId },
@@ -387,7 +393,7 @@ export const createUser: ImpureGraphFunction<
           relation: "administrator",
           subject: {
             kind: "accountGroup",
-            subjectId: hashInstanceAdmins,
+            subjectId: hashInstanceAdminsAccountGroupId,
           },
         },
         {

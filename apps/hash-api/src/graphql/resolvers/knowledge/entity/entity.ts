@@ -106,8 +106,7 @@ export const createEntityResolver: ResolverFn<
   let entity: Entity | LinkEntity;
 
   if (linkData) {
-    const { leftEntityId, leftToRightOrder, rightEntityId, rightToLeftOrder } =
-      linkData;
+    const { leftEntityId, rightEntityId } = linkData;
 
     const [leftEntity, rightEntity] = await Promise.all([
       getLatestEntityById(context, authentication, {
@@ -122,9 +121,7 @@ export const createEntityResolver: ResolverFn<
 
     entity = await createLinkEntity(context, authentication, {
       leftEntityId: leftEntity.metadata.recordId.entityId,
-      leftToRightOrder: leftToRightOrder ?? undefined,
       rightEntityId: rightEntity.metadata.recordId.entityId,
-      rightToLeftOrder: rightToLeftOrder ?? undefined,
       properties,
       linkEntityTypeId: entityTypeId,
       ownedById: ownedById ?? (user.accountId as OwnedById),
@@ -322,16 +319,7 @@ export const updateEntityResolver: ResolverFn<
   MutationUpdateEntityArgs
 > = async (
   _,
-  {
-    entityUpdate: {
-      draft,
-      entityId,
-      updatedProperties,
-      leftToRightOrder,
-      rightToLeftOrder,
-      entityTypeId,
-    },
-  },
+  { entityUpdate: { draft, entityId, updatedProperties, entityTypeId } },
   graphQLContext,
 ) => {
   const { authentication, user } = graphQLContext;
@@ -359,17 +347,9 @@ export const updateEntityResolver: ResolverFn<
     updatedEntity = await updateLinkEntity(context, authentication, {
       linkEntity: entity,
       properties: updatedProperties,
-      leftToRightOrder: leftToRightOrder ?? undefined,
-      rightToLeftOrder: rightToLeftOrder ?? undefined,
       draft: draft ?? undefined,
     });
   } else {
-    if (leftToRightOrder || rightToLeftOrder) {
-      throw new UserInputError(
-        `Cannot update the left to right order or right to left order of entity with ID ${entity.metadata.recordId.entityId} because it isn't a link.`,
-      );
-    }
-
     updatedEntity = await updateEntity(context, authentication, {
       entity,
       entityTypeId: entityTypeId ?? undefined,

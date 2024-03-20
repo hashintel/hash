@@ -1,5 +1,5 @@
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::{entity::EntityProperties, link::EntityLinkOrder};
+use graph_types::knowledge::entity::EntityProperties;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
 use crate::DatabaseTestWrapper;
@@ -14,7 +14,14 @@ async fn insert() {
     let mut api = database
         .seed(
             [data_type::TEXT_V1, data_type::NUMBER_V1],
-            [property_type::NAME_V1, property_type::AGE_V1],
+            [
+                property_type::NAME_V1,
+                property_type::AGE_V1,
+                property_type::FAVORITE_SONG_V1,
+                property_type::FAVORITE_FILM_V1,
+                property_type::HOBBY_V1,
+                property_type::INTERESTS_V1,
+            ],
             [
                 entity_type::LINK_V1,
                 entity_type::link::FRIEND_OF_V1,
@@ -82,7 +89,14 @@ async fn get_entity_links() {
     let mut api = database
         .seed(
             [data_type::TEXT_V1, data_type::NUMBER_V1],
-            [property_type::NAME_V1, property_type::AGE_V1],
+            [
+                property_type::NAME_V1,
+                property_type::AGE_V1,
+                property_type::FAVORITE_SONG_V1,
+                property_type::FAVORITE_FILM_V1,
+                property_type::HOBBY_V1,
+                property_type::INTERESTS_V1,
+            ],
             [
                 entity_type::LINK_V1,
                 entity_type::link::FRIEND_OF_V1,
@@ -199,7 +213,14 @@ async fn remove_link() {
     let mut api = database
         .seed(
             [data_type::TEXT_V1, data_type::NUMBER_V1],
-            [property_type::NAME_V1, property_type::AGE_V1],
+            [
+                property_type::NAME_V1,
+                property_type::AGE_V1,
+                property_type::FAVORITE_SONG_V1,
+                property_type::FAVORITE_FILM_V1,
+                property_type::HOBBY_V1,
+                property_type::INTERESTS_V1,
+            ],
             [
                 entity_type::LINK_V1,
                 entity_type::link::FRIEND_OF_V1,
@@ -254,17 +275,9 @@ async fn remove_link() {
             .is_empty()
     );
 
-    api.archive_entity(
-        link_entity_metadata.record_id.entity_id,
-        EntityProperties::empty(),
-        vec![friend_link_type_id],
-        EntityLinkOrder {
-            left_to_right: None,
-            right_to_left: None,
-        },
-    )
-    .await
-    .expect("could not remove link");
+    api.archive_entity(link_entity_metadata.record_id.entity_id)
+        .await
+        .expect("could not remove link");
 
     assert!(
         api.get_latest_entity_links(alice_metadata.record_id.entity_id)

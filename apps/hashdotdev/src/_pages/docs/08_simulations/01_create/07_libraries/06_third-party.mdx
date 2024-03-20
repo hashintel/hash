@@ -1,0 +1,30 @@
+---
+title: "Third-Party Libraries"
+description: "Python packages and libraries support in HASH"
+---
+
+## Third-Party Behaviors
+
+Simulation behaviors developed by other users can be [found on hIndex](https://simulation.hash.ai/behaviors).
+
+## Third-Party Packages
+
+### hEngine
+
+hEngine can be used in conjunction with any third-party library or code via your normal package manager. Care should be taken to avoid weakening simulation reproducibility guarantees while using third-party packages.
+
+### hCore
+
+hCore does not support importing third-party JavaScript packages or Rust crates, but does, however, provide limited support for a subset of Python libraries. We run Python3 in the browser through [Pyodide](https://github.com/iodide-project/pyodide) and [currently support all of the packages that Pyodide does](https://github.com/iodide-project/pyodide/tree/master/packages).
+
+**The packages below have proven particularly popular with modelers using HASH:**
+
+{/* prettier-ignore */}
+| Package | Version | Description |
+| :--- | :--- | :--- |
+| [NetworkX](https://networkx.github.io/documentation/networkx-2.2/) | 2.2 | Graphs and networks |
+| [pandas](https://pandas.pydata.org/pandas-docs/version/1.0.5/) | 1.0.5 | Data transformation and analysis |
+| [scikit-learn](https://scikit-learn.org/0.20/) | 0.20.1 | Machine Learning |
+| [NumPy](https://docs.scipy.org/doc/numpy-1.15.4/reference/) | 1.15.4 | Base library for scientific computing in Python |
+| [SciPy](https://docs.scipy.org/doc/scipy-0.17.1/reference/) | 0.17.1 | Optimization, linear algebra, and statistics |
+| [uncertainties](https://pythonhosted.org/uncertainties/index.html) | 3.1.2 | Numbers with uncertainties |

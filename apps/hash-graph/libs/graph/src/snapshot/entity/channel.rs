@@ -102,12 +102,6 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
             .start_send_unpin(EntityEditionRow {
                 entity_edition_id: entity.metadata.record_id.edition_id,
                 properties: entity.properties,
-                left_to_right_order: entity
-                    .link_data
-                    .and_then(|link_data| link_data.order.left_to_right),
-                right_to_left_order: entity
-                    .link_data
-                    .and_then(|link_data| link_data.order.right_to_left),
                 edition_created_by_id: entity.metadata.provenance.edition.created_by_id,
                 archived: entity.metadata.archived,
             })

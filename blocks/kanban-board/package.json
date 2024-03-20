@@ -1,6 +1,7 @@
 {
   "name": "@blocks/kanban-board",
   "version": "0.0.2",
+  "private": true,
   "type": "module",
   "description": "Capture information in cards, and drag cards flexibly between customizable columns",
   "keywords": [
@@ -30,11 +31,11 @@
     "trailingComma": "all"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.3.4-canary-20240312191227",
+    "@blockprotocol/graph": "0.3.4-canary-20240313191438",
     "@dnd-kit/core": "6.0.8",
     "@dnd-kit/sortable": "7.0.2",
     "@dnd-kit/utilities": "3.2.1",
-    "@hashintel/block-design-system": "0.0.1",
+    "@hashintel/block-design-system": "0.0.2",
     "@mui/material": "5.14.11",
     "clsx": "1.2.1",
     "lodash.clonedeep": "4.5.0",

@@ -1,4 +1,5 @@
 import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
+import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -62,9 +63,10 @@ export const constructMinimalOrg = (params: {
 
 export type MinimalUser = {
   kind: "user";
-  entity: Entity;
+  entity: Entity<UserProperties>;
   accountId: AccountId;
   accountSignupComplete: boolean;
+  enabledFeatureFlags: FeatureFlag[];
   pinnedEntityTypeBaseUrls?: BaseUrl[];
   shortname?: string;
   displayName?: string;
@@ -87,6 +89,9 @@ export const constructMinimalUser = (params: {
 
   const { shortname, displayName, pinnedEntityTypeBaseUrl } = simpleProperties;
 
+  const enabledFeatureFlags = (simpleProperties.enabledFeatureFlags ??
+    []) as FeatureFlag[];
+
   const accountSignupComplete = !!shortname && !!displayName;
 
   return {
@@ -97,12 +102,13 @@ export const constructMinimalUser = (params: {
       userEntity.metadata.recordId.entityId as AccountEntityId,
     ),
     accountSignupComplete,
+    ...simpleProperties,
+    enabledFeatureFlags,
     ...(pinnedEntityTypeBaseUrl
       ? {
           pinnedEntityTypeBaseUrls: pinnedEntityTypeBaseUrl as BaseUrl[],
         }
       : {}),
-    ...simpleProperties,
   };
 };
 
@@ -277,7 +283,6 @@ export type User = MinimalUser & {
     profileBioEntity: Entity<ProfileBioProperties>;
   };
   hasServiceAccounts: UserServiceAccount[];
-  isInstanceAdmin: boolean;
   memberOf: {
     linkEntity: Entity<IsMemberOfProperties>;
     org: Org;
@@ -467,11 +472,6 @@ export const constructUser = (params: {
       };
     });
 
-  /**
-   * @todo: determine whether a user is an instance admin from the subgraph
-   */
-  const isInstanceAdmin = false;
-
   const joinedAt = new Date(
     userEntity.metadata.provenance.createdAtDecisionTime,
   );
@@ -484,7 +484,6 @@ export const constructUser = (params: {
     hasServiceAccounts,
     joinedAt,
     memberOf,
-    isInstanceAdmin,
     emails: [
       {
         address: primaryEmailAddress,

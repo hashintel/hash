@@ -49,9 +49,9 @@ describe("File", () => {
     const uploadUrl = "mock-upload-url";
 
     graphContext.uploadProvider = {
-      getFileEntityStorageKey: jest.fn(() => fileKey),
-      presignDownload: jest.fn(() => Promise.resolve(downloadUrl)),
-      presignUpload: jest.fn(() =>
+      getFileEntityStorageKey: vi.fn(() => fileKey),
+      presignDownload: vi.fn(() => Promise.resolve(downloadUrl)),
+      presignUpload: vi.fn(() =>
         Promise.resolve({
           fileStorageProperties: {
             key: fileKey,

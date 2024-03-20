@@ -57,7 +57,7 @@ export type UpdateEntityData = {
   entityId: EntityId;
   entityTypeId: VersionedUrl;
   properties: EntityPropertiesObject;
-} & Pick<LinkData, "leftToRightOrder" | "rightToLeftOrder">;
+};
 
 export type UpdateEntityMessageCallback = MessageCallback<
   UpdateEntityData,

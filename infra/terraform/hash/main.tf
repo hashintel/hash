@@ -347,6 +347,9 @@ module "application" {
     { name = "HASH_REDIS_PORT", secret = false, value = module.redis.node.port },
     { name = "HASH_REDIS_ENCRYPTED_TRANSIT", secret = false, value = "true" },
     { name = "HASH_INTEGRATION_QUEUE_NAME", secret = false, value = "integration" },
+    { name = "HASH_VAULT_HOST", secret = true, value =  sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_host"]) },
+    { name = "HASH_VAULT_PORT", secret = true, value =  sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_port"]) },
+    { name = "HASH_VAULT_ROOT_TOKEN", secret = true, value =  sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_root_token"]) },
     #    { name = "LINEAR_CLIENT_ID", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["linear_client_id"]) },
     #    { name = "LINEAR_CLIENT_SECRET", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["linear_client_secret"]) },
     {
@@ -364,8 +367,17 @@ module "application" {
       name  = "OPENAI_API_KEY", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_openai_api_key"])
     },
+    {
+      name = "INTERNAL_API_KEY", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["internal_api_key"])
+    }
   ]
   temporal_worker_integration_image = module.temporal_worker_integration_ecr
+  temporal_worker_integration_env_vars = [
+    { name = "HASH_VAULT_HOST", secret = true, value =  sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_host"]) },
+    { name = "HASH_VAULT_PORT", secret = true, value =  sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_port"]) },
+    { name = "HASH_VAULT_ROOT_TOKEN", secret = true, value =  sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_root_token"]) },
+  ]
   temporal_host                     = module.temporal.host
   temporal_port                     = module.temporal.port
   spicedb_image                     = {

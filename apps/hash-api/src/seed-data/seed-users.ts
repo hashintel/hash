@@ -1,4 +1,6 @@
 import type { Logger } from "@local/hash-backend-utils/logger";
+import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
+import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
 import type { AxiosError } from "axios";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
@@ -12,6 +14,7 @@ type SeededUser = {
   email: string;
   shortname: string;
   displayName: string;
+  enabledFeatureFlags?: FeatureFlag[];
   isInstanceAdmin?: boolean;
   // If not set, default to "password"
   password?: string;
@@ -27,6 +30,8 @@ const devUsers: readonly SeededUser[] = [
   {
     email: "alice@example.com",
     shortname: "alice",
+    // Alice has all feature flags enabled
+    enabledFeatureFlags: Array.from(featureFlags),
     displayName: "Alice",
   },
   {
@@ -66,6 +71,7 @@ export const ensureUsersAreSeeded = async ({
       email,
       shortname,
       displayName,
+      enabledFeatureFlags,
       password = "password",
       isInstanceAdmin,
     } = usersToSeed[index]!;
@@ -105,6 +111,7 @@ export const ensureUsersAreSeeded = async ({
         emails,
         kratosIdentityId,
         isInstanceAdmin,
+        enabledFeatureFlags,
         shortname,
         displayName,
       });

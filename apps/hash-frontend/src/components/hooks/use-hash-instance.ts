@@ -1,10 +1,14 @@
 import { useQuery } from "@apollo/client";
-import type { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
+import type {
+  SimpleProperties,
+  Simplified,
+} from "@local/hash-isomorphic-utils/simplify-properties";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
   HASHInstance,
   HASHInstanceProperties,
 } from "@local/hash-isomorphic-utils/system-types/hashinstance";
+import type { Entity } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import type {
@@ -18,7 +22,7 @@ import { getHashInstanceEntityQuery } from "../../graphql/queries/knowledge/hash
  */
 export const useHashInstance = (): {
   loading: boolean;
-  hashInstance?: Simplified<HASHInstance>;
+  hashInstance?: Entity<SimpleProperties<HASHInstanceProperties>>;
 } => {
   const { data, loading } = useQuery<
     GetHashInstanceEntityQueryQuery,
@@ -29,7 +33,12 @@ export const useHashInstance = (): {
 
   const { hashInstanceEntity } = data ?? {};
 
-  const hashInstance = useMemo<Simplified<HASHInstance> | undefined>(() => {
+  const hashInstance = useMemo<
+    | (Omit<Entity, "properties"> & {
+        properties: Simplified<HASHInstance>["properties"];
+      })
+    | undefined
+  >(() => {
     if (!hashInstanceEntity) {
       return undefined;
     }

@@ -6,10 +6,11 @@ use graph_types::{
     account::AccountId,
     knowledge::{
         entity::{Entity, EntityEmbedding, EntityId, EntityMetadata, EntityProperties, EntityUuid},
-        link::{EntityLinkOrder, LinkData},
+        link::LinkData,
     },
     owned_by_id::OwnedById,
 };
+use json_patch::PatchOperation;
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
@@ -161,9 +162,9 @@ impl<'s> Sorting for EntityQuerySorting<'s> {
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(
-    feature = "utoipa",
-    derive(utoipa::ToSchema),
-    aliases(CreateEntityRequest = CreateEntityParams<Vec<EntityRelationAndSubject>>),
+feature = "utoipa",
+derive(utoipa::ToSchema),
+aliases(CreateEntityRequest = CreateEntityParams < Vec < EntityRelationAndSubject >>),
 )]
 #[serde(
     rename_all = "camelCase",
@@ -212,20 +213,26 @@ pub struct GetEntityParams<'a> {
     pub limit: Option<usize>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct UpdateEntityParams {
+pub struct PatchEntityParams {
     pub entity_id: EntityId,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub decision_time: Option<Timestamp<DecisionTime>>,
-    pub entity_type_ids: Vec<VersionedUrl>,
-    pub properties: EntityProperties,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub link_order: EntityLinkOrder,
-    pub archived: bool,
-    pub draft: bool,
+    pub entity_type_ids: Vec<VersionedUrl>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub properties: Vec<PatchOperation>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub draft: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub archived: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -326,24 +333,12 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
         Output = Result<(Subgraph, Option<EntityQueryCursor<'static>>), Report<QueryError>>,
     > + Send;
 
-    /// Update an existing [`Entity`].
-    ///
-    /// # Errors
-    ///
-    /// - if the [`Entity`] doesn't exist
-    /// - if the [`EntityType`] doesn't exist
-    /// - if the [`Entity`] is not valid with respect to its [`EntityType`]
-    /// - if the account referred to by `actor_id` does not exist
-    ///
-    /// [`EntityType`]: type_system::EntityType
-    // TODO: Allow partial updates to avoid setting the `draft` and `archived` state here
-    //   see https://linear.app/hash/issue/H-1455
-    fn update_entity<A: AuthorizationApi + Send + Sync>(
+    fn patch_entity<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
         temporal_client: Option<&TemporalClient>,
-        params: UpdateEntityParams,
+        params: PatchEntityParams,
     ) -> impl Future<Output = Result<EntityMetadata, Report<UpdateError>>> + Send;
 
     fn update_entity_embeddings<A: AuthorizationApi + Send + Sync>(

@@ -27,11 +27,11 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.3.4-canary-20240312191227",
+    "@blockprotocol/graph": "0.3.4-canary-20240313191438",
     "@dnd-kit/core": "6.0.8",
     "@dnd-kit/sortable": "7.0.2",
     "@dnd-kit/utilities": "3.2.1",
-    "@hashintel/design-system": "0.0.7",
+    "@hashintel/design-system": "0.0.8",
     "@mui/icons-material": "5.14.11",
     "@mui/material": "5.14.11",
     "immer": "9.0.6",

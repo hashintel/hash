@@ -1,6 +1,7 @@
 {
   "name": "@blockprotocol/type-system",
   "version": "0.1.2-canary.0",
+  "private": true,
   "description": "Definitions of types within the Block Protocol Type System",
   "homepage": "https://blockprotocol.org",
   "repository": {
@@ -54,7 +55,7 @@
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "prepublishOnly": "yarn build:wasm && yarn test && yarn build:bundle",
-    "test": "node --experimental-vm-modules $(yarn bin jest)"
+    "test:unit": "vitest --run"
   },
   "dependencies": {
     "@blockprotocol/type-system-rs": "0.0.0-private"
@@ -65,14 +66,15 @@
     "@rollup/plugin-node-resolve": "15.2.3",
     "@rollup/plugin-typescript": "11.1.6",
     "@rollup/plugin-wasm": "6.0.1",
-    "@types/jest": "29.5.12",
+    "@types/node": "18.15.13",
     "@types/react": "18.0.26",
+    "@vitest/coverage-istanbul": "1.4.0",
     "eslint": "8.57.0",
-    "jest": "29.7.0",
     "react": "18.2.0",
     "rollup": "4.12.0",
-    "ts-jest": "29.1.2",
     "tslib": "2.4.1",
-    "typescript": "5.1.6"
+    "typescript": "5.1.6",
+    "vite-plugin-wasm-pack": "0.1.12",
+    "vitest": "1.4.0"
   }
 }

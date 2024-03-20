@@ -28,7 +28,7 @@
     "node-fetch": "2.7.0"
   },
   "devDependencies": {
-    "@blockprotocol/graph": "0.3.4-canary-20240312191227",
+    "@blockprotocol/graph": "0.3.4-canary-20240313191438",
     "@graphql-codegen/cli": "5.0.0",
     "@graphql-codegen/introspection": "2.2.3",
     "@graphql-codegen/typescript": "2.8.7",
@@ -36,11 +36,11 @@
     "@graphql-codegen/typescript-resolvers": "2.7.12",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/jest": "29.5.12",
     "@types/node-fetch": "^2.6.2",
+    "@vitest/coverage-istanbul": "1.4.0",
     "eslint": "8.57.0",
     "rimraf": "5.0.5",
     "typescript": "5.1.6",
-    "vitest": "1.3.1"
+    "vitest": "1.4.0"
   }
 }

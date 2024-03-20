@@ -19,7 +19,7 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "test:unit": "node --experimental-vm-modules $(yarn bin jest)"
+    "test:unit": "vitest --run"
   },
   "dependencies": {
     "@blockprotocol/core": "0.1.2",
@@ -45,12 +45,11 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/dotenv-flow": "3.2.0",
-    "@types/jest": "29.5.12",
     "@types/node": "18.15.13",
     "@types/wait-on": "5.3.1",
+    "@vitest/coverage-istanbul": "1.4.0",
     "eslint": "8.57.0",
-    "jest": "29.7.0",
-    "ts-jest": "29.1.2",
-    "typescript": "5.1.6"
+    "typescript": "5.1.6",
+    "vitest": "1.4.0"
   }
 }

@@ -1,0 +1,146 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`validateBaseUrl > \`parseBaseUrl(\\example\\..\\demo/.\\/)\` errors 1`] = `
+{
+  "inner": {
+    "inner": "{"code":"ERR_INVALID_URL","input":"\\\\example\\\\..\\\\demo/.\\\\/"}",
+    "reason": "UrlParseError",
+  },
+  "type": "Err",
+}
+`;
+
+exports[`validateBaseUrl > \`parseBaseUrl(example/)\` errors 1`] = `
+{
+  "inner": {
+    "inner": "{"code":"ERR_INVALID_URL","input":"example/"}",
+    "reason": "UrlParseError",
+  },
+  "type": "Err",
+}
+`;
+
+exports[`validateBaseUrl > \`parseBaseUrl(http://[www.example.com]/)\` errors 1`] = `
+{
+  "inner": {
+    "inner": "{"code":"ERR_INVALID_URL","input":"http://[www.example.com]/"}",
+    "reason": "UrlParseError",
+  },
+  "type": "Err",
+}
+`;
+
+exports[`validateBaseUrl > \`parseBaseUrl(http://example.com)\` errors 1`] = `
+{
+  "inner": {
+    "reason": "MissingTrailingSlash",
+  },
+  "type": "Err",
+}
+`;
+
+exports[`validateBaseUrl > \`parseBaseUrl(https://ex ample.org/)\` errors 1`] = `
+{
+  "inner": {
+    "inner": "{"code":"ERR_INVALID_URL","input":"https://ex ample.org/"}",
+    "reason": "UrlParseError",
+  },
+  "type": "Err",
+}
+`;
+
+exports[`validateBaseUrl > \`parseBaseUrl(https://example.com:demo/)\` errors 1`] = `
+{
+  "inner": {
+    "inner": "{"code":"ERR_INVALID_URL","input":"https://example.com:demo/"}",
+    "reason": "UrlParseError",
+  },
+  "type": "Err",
+}
+`;
+
+exports[`validateVersionedUrl > validateVersionedUrl(example/v/2) returns errors 1`] = `
+{
+  "inner": {
+    "inner": {
+      "inner": "{"code":"ERR_INVALID_URL","input":"example/"}",
+      "reason": "UrlParseError",
+    },
+    "reason": "InvalidBaseUrl",
+  },
+  "type": "Err",
+}
+`;
+
+exports[`validateVersionedUrl > validateVersionedUrl(http://example.com) returns errors 1`] = `
+{
+  "inner": {
+    "reason": "IncorrectFormatting",
+  },
+  "type": "Err",
+}
+`;
+
+exports[`validateVersionedUrl > validateVersionedUrl(http://example.com/v/) returns errors 1`] = `
+{
+  "inner": {
+    "reason": "MissingVersion",
+  },
+  "type": "Err",
+}
+`;
+
+exports[`validateVersionedUrl > validateVersionedUrl(http://example.com/v//20) returns errors 1`] = `
+{
+  "inner": {
+    "inner": [
+      "/20",
+      "invalid digit found in string",
+    ],
+    "reason": "InvalidVersion",
+  },
+  "type": "Err",
+}
+`;
+
+exports[`validateVersionedUrl > validateVersionedUrl(http://example.com/v/0.2) returns errors 1`] = `
+{
+  "inner": {
+    "inner": ".2",
+    "reason": "AdditionalEndContent",
+  },
+  "type": "Err",
+}
+`;
+
+exports[`validateVersionedUrl > validateVersionedUrl(http://example.com/v/30/1) returns errors 1`] = `
+{
+  "inner": {
+    "inner": "/1",
+    "reason": "AdditionalEndContent",
+  },
+  "type": "Err",
+}
+`;
+
+exports[`validateVersionedUrl > validateVersionedUrl(http://example.com/v/foo) returns errors 1`] = `
+{
+  "inner": {
+    "inner": [
+      "foo",
+      "invalid digit found in string",
+    ],
+    "reason": "InvalidVersion",
+  },
+  "type": "Err",
+}
+`;
+
+exports[`validateVersionedUrl > validateVersionedUrl(http://exampleeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.com/v/1) returns errors 1`] = `
+{
+  "inner": {
+    "reason": "TooLong",
+  },
+  "type": "Err",
+}
+`;
