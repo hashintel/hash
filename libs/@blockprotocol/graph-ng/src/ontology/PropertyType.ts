@@ -283,7 +283,4 @@ export const isAST = (ast: AST.AST): boolean =>
 
 // TODO: fromSchema
 
-export const isolate = <A, I>(schema: S.Schema<A, I>): S.Schema<A, I> =>
-  DataType.isAST(schema.ast) ? schema.pipe(S.filter(() => true)) : schema;
-
 export type { PropertyTypeSchema as Schema };

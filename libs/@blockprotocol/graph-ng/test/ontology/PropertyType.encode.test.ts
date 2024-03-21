@@ -72,14 +72,14 @@ describe("PropertyObject", () => {
     PropertyTypeUrl.parseOrThrow(
       "https://blockprotocol.org/@blockprotocol/types/property-type/description/v/1",
     ),
-    BuiltIn.Text.v1.schema.pipe(PropertyType.isolate, S.title("Description")),
+    BuiltIn.Text.v1.pipe(O.dataType, S.title("Description")),
   ).pipe(Effect.runSync);
 
   const displayName = PropertyType.make(
     PropertyTypeUrl.parseOrThrow(
       "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/v/1",
     ),
-    BuiltIn.Text.v1.schema.pipe(PropertyType.isolate, S.title("Display Name")),
+    BuiltIn.Text.v1.pipe(O.dataType, S.title("Display Name")),
   ).pipe(Effect.runSync);
 
   test("nested PropertyType", () => {
@@ -89,7 +89,7 @@ describe("PropertyObject", () => {
       ),
       S.struct({
         "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
-          description.schema,
+          O.propertyType(description),
       }).pipe(S.title("File Properties")),
     ).pipe(Effect.runSync);
 
@@ -123,7 +123,7 @@ describe("PropertyObject", () => {
       ),
       S.struct({
         "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
-          S.optional(description.schema),
+          S.optional(O.propertyType(description)),
       }).pipe(S.title("File Properties")),
     ).pipe(Effect.runSync);
 
@@ -156,7 +156,7 @@ describe("PropertyObject", () => {
       ),
       S.struct({
         "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
-          S.array(description.schema),
+          S.array(O.propertyType(description)),
       }).pipe(S.title("File Properties")),
     ).pipe(Effect.runSync);
 
@@ -193,7 +193,7 @@ describe("PropertyObject", () => {
       ),
       S.struct({
         "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
-          S.optional(S.array(description.schema)),
+          S.optional(S.array(O.propertyType(description))),
       }).pipe(S.title("File Properties")),
     ).pipe(Effect.runSync);
 
@@ -228,7 +228,7 @@ describe("PropertyObject", () => {
       ),
       S.struct({
         "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
-          S.array(description.schema).pipe(S.minItems(1)),
+          S.array(O.propertyType(description)).pipe(S.minItems(1)),
       }).pipe(S.title("File Properties")),
     ).pipe(Effect.runSync);
 
@@ -266,7 +266,7 @@ describe("PropertyObject", () => {
       ),
       S.struct({
         "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
-          S.array(description.schema).pipe(S.maxItems(1)),
+          S.array(O.propertyType(description)).pipe(S.maxItems(1)),
       }).pipe(S.title("File Properties")),
     ).pipe(Effect.runSync);
 
@@ -304,7 +304,7 @@ describe("PropertyObject", () => {
       ),
       S.struct({
         "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
-          S.tuple(description.schema, description.schema),
+          S.tuple(O.propertyType(description), O.propertyType(description)),
       }).pipe(S.title("File Properties")),
     ).pipe(Effect.runSync);
 
@@ -343,7 +343,7 @@ describe("PropertyObject", () => {
       ),
       S.struct({
         "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
-          S.tuple(description.schema, displayName.schema),
+          S.tuple(O.propertyType(description), O.propertyType(displayName)),
       }).pipe(S.title("File Properties")),
     );
 
@@ -369,7 +369,7 @@ describe("PropertyObject", () => {
       ),
       S.struct({
         "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
-          S.tuple([], description.schema, displayName.schema),
+          S.tuple([], O.propertyType(description), O.propertyType(displayName)),
       }).pipe(S.title("File Properties")),
     );
 
@@ -395,7 +395,7 @@ describe("PropertyObject", () => {
       ),
       S.struct({
         "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
-          S.tuple(S.optionalElement(description.schema)),
+          S.tuple(S.optionalElement(O.propertyType(description))),
       }).pipe(S.title("File Properties")),
     );
 
@@ -422,9 +422,9 @@ describe("PropertyObject", () => {
       ),
       S.struct({
         "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
-          description.schema,
+          O.propertyType(description),
         "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-          displayName.schema,
+          O.propertyType(displayName),
       }).pipe(S.title("File Properties")),
     ).pipe(Effect.runSync);
 
@@ -462,9 +462,9 @@ describe("PropertyObject", () => {
       ),
       S.struct({
         "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
-          S.array(description.schema),
+          S.array(O.propertyType(description)),
         "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-          S.array(displayName.schema),
+          S.array(O.propertyType(displayName)),
       }).pipe(S.title("File Properties")),
     ).pipe(Effect.runSync);
 
@@ -508,9 +508,9 @@ describe("PropertyObject", () => {
       ),
       S.struct({
         "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
-          description.schema,
+          O.propertyType(description),
         "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-          S.array(displayName.schema),
+          S.array(O.propertyType(displayName)),
       }).pipe(S.title("File Properties")),
     ).pipe(Effect.runSync);
 
@@ -594,7 +594,7 @@ describe("PropertyObject", () => {
         "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/v/1",
       ),
       S.struct({
-        description: description.schema,
+        description: O.propertyType(description),
       }).pipe(S.title("File Properties")),
     );
 
@@ -646,14 +646,14 @@ describe("ArrayOfPropertyValues", () => {
     PropertyTypeUrl.parseOrThrow(
       "https://blockprotocol.org/@blockprotocol/types/property-type/description/v/1",
     ),
-    BuiltIn.Text.v1.schema.pipe(PropertyType.isolate, S.title("Description")),
+    BuiltIn.Text.v1.pipe(O.dataType, S.title("Description")),
   ).pipe(Effect.runSync);
 
   const displayName = PropertyType.make(
     PropertyTypeUrl.parseOrThrow(
       "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/v/1",
     ),
-    BuiltIn.Text.v1.schema.pipe(PropertyType.isolate, S.title("Display Name")),
+    BuiltIn.Text.v1.pipe(O.dataType, S.title("Display Name")),
   ).pipe(Effect.runSync);
 
   test("DataType", () => {
@@ -661,7 +661,7 @@ describe("ArrayOfPropertyValues", () => {
       PropertyTypeUrl.parseOrThrow(
         "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/v/1",
       ),
-      S.array(BuiltIn.Text.v1.schema).pipe(S.title("File Properties")),
+      S.array(O.dataType(BuiltIn.Text.v1)).pipe(S.title("File Properties")),
     ).pipe(Effect.runSync);
 
     const schema = Effect.runSync(PropertyType.toSchema(fileProperties));
@@ -695,9 +695,9 @@ describe("ArrayOfPropertyValues", () => {
       S.array(
         S.struct({
           "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
-            description.schema,
+            O.propertyType(description),
           "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-            displayName.schema,
+            O.propertyType(displayName),
         }),
       ).pipe(S.title("File Properties")),
     ).pipe(Effect.runSync);
@@ -741,7 +741,9 @@ describe("ArrayOfPropertyValues", () => {
       PropertyTypeUrl.parseOrThrow(
         "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/v/1",
       ),
-      S.array(S.array(BuiltIn.Text.v1.schema)).pipe(S.title("File Properties")),
+      S.array(S.array(O.dataType(BuiltIn.Text.v1))).pipe(
+        S.title("File Properties"),
+      ),
     ).pipe(Effect.runSync);
 
     const schema = Effect.runSync(PropertyType.toSchema(fileProperties));
@@ -778,7 +780,7 @@ describe("ArrayOfPropertyValues", () => {
       PropertyTypeUrl.parseOrThrow(
         "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/v/1",
       ),
-      S.array(S.array(BuiltIn.Text.v1.schema).pipe(S.maxItems(1))).pipe(
+      S.array(S.array(O.dataType(BuiltIn.Text.v1)).pipe(S.maxItems(1))).pipe(
         S.maxItems(2),
         S.title("File Properties"),
       ),
@@ -822,7 +824,7 @@ describe("ArrayOfPropertyValues", () => {
       PropertyTypeUrl.parseOrThrow(
         "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/v/1",
       ),
-      S.array(S.union(BuiltIn.Text.v1.schema, S.undefined)).pipe(
+      S.array(S.union(O.dataType(BuiltIn.Text.v1), S.undefined)).pipe(
         S.title("File Properties"),
       ),
     );
@@ -852,7 +854,7 @@ describe("ArrayOfPropertyValues", () => {
       PropertyTypeUrl.parseOrThrow(
         "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/v/1",
       ),
-      S.array(BuiltIn.Text.v1.schema).pipe(
+      S.array(O.dataType(BuiltIn.Text.v1)).pipe(
         S.minItems(2),
         S.title("File Properties"),
       ),
@@ -887,7 +889,7 @@ describe("ArrayOfPropertyValues", () => {
       PropertyTypeUrl.parseOrThrow(
         "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/v/1",
       ),
-      S.array(BuiltIn.Text.v1.schema).pipe(
+      S.array(O.dataType(BuiltIn.Text.v1)).pipe(
         S.maxItems(2),
         S.title("File Properties"),
       ),
@@ -922,7 +924,7 @@ describe("ArrayOfPropertyValues", () => {
       PropertyTypeUrl.parseOrThrow(
         "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/v/1",
       ),
-      S.tuple(BuiltIn.Text.v1.schema, BuiltIn.Text.v1.schema).pipe(
+      S.tuple(O.dataType(BuiltIn.Text.v1), O.dataType(BuiltIn.Text.v1)).pipe(
         S.title("File Properties"),
       ),
     ).pipe(Effect.runSync);
@@ -956,7 +958,7 @@ describe("ArrayOfPropertyValues", () => {
       PropertyTypeUrl.parseOrThrow(
         "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/v/1",
       ),
-      S.tuple(BuiltIn.Text.v1.schema, BuiltIn.Number.v1.schema).pipe(
+      S.tuple(O.dataType(BuiltIn.Text.v1), O.dataType(BuiltIn.Number.v1)).pipe(
         S.title("File Properties"),
       ),
     );
@@ -981,9 +983,11 @@ describe("ArrayOfPropertyValues", () => {
       PropertyTypeUrl.parseOrThrow(
         "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/v/1",
       ),
-      S.tuple([], BuiltIn.Text.v1.schema, BuiltIn.Text.v1.schema).pipe(
-        S.title("File Properties"),
-      ),
+      S.tuple(
+        [],
+        O.dataType(BuiltIn.Text.v1),
+        O.dataType(BuiltIn.Text.v1),
+      ).pipe(S.title("File Properties")),
     );
 
     const error = runError(fileProperties);
@@ -1006,7 +1010,7 @@ describe("ArrayOfPropertyValues", () => {
       PropertyTypeUrl.parseOrThrow(
         "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/v/1",
       ),
-      S.tuple(S.optionalElement(BuiltIn.Text.v1.schema)).pipe(
+      S.tuple(S.optionalElement(O.dataType(BuiltIn.Text.v1))).pipe(
         S.title("File Properties"),
       ),
     );
@@ -1034,10 +1038,10 @@ describe("ArrayOfPropertyValues", () => {
       ),
       S.array(
         S.union(
-          BuiltIn.Text.v1.schema,
+          O.dataType(BuiltIn.Text.v1),
           S.struct({
             "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
-              description.schema,
+              O.propertyType(description),
           }),
         ),
       ).pipe(S.title("File Properties")),

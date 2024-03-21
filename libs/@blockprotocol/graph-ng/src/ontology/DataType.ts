@@ -70,7 +70,7 @@ const DataTypeProto: Omit<DataTypeImpl<unknown>, "id" | "schema"> = {
 
   pipe() {
     // eslint-disable-next-line prefer-rest-params
-    Pipeable.pipeArguments(this, arguments);
+    return Pipeable.pipeArguments(this, arguments);
   },
 
   [Hash.symbol](this: DataTypeImpl<unknown>) {
