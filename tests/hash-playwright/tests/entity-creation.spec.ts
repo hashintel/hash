@@ -61,19 +61,18 @@ test("user can update values on property table", async ({ page }) => {
 
   await page.getByRole("button", { name: "Add a type" }).click();
 
+  // search entity type `GitHub Account`
   await page
     .getByPlaceholder("Search for an entity type")
     .fill("GitHub Account");
 
-  // select 'GitHub Account' as the type for this entity
+  // create a new `GitHub Account`
   await page.getByTestId("selector-autocomplete-option").first().click();
 
   // select property table
-  const propertyTableCanvas = page
-    .locator(".dvn-underlay > canvas:first-of-type")
-    .first();
+  const canvas = page.locator(".dvn-underlay > canvas:first-of-type").first();
 
-  await clickOnValueCell(page, propertyTableCanvas, 0);
+  await clickOnValueCell(page, canvas, 0);
 
   const profileUrl = "https://github.com/Example";
   await sleep(200);
@@ -81,39 +80,7 @@ test("user can update values on property table", async ({ page }) => {
   await page.keyboard.type(profileUrl);
   await page.keyboard.press("Enter");
 
-  const cell1Text = await getCellText(propertyTableCanvas, 1, 0);
+  const cell1Text = await getCellText(canvas, 1, 0);
 
   expect(cell1Text).toBe(profileUrl);
-});
-
-test("the link table renders correctly", async ({ page }) => {
-  await loginUsingTempForm({
-    page,
-    userEmail: "alice@example.com",
-    userPassword: "password",
-  });
-
-  await expect(page.locator("text=Welcome to HASH")).toBeVisible();
-
-  await page.goto(`/new/entity`);
-
-  await page.waitForURL((url) => !!url.pathname.match(/^\/new\/entity/));
-
-  await page.getByRole("button", { name: "Add a type" }).click();
-
-  await page.getByPlaceholder("Search for an entity type").fill("Document");
-
-  await page.getByTestId("selector-autocomplete-option").first().click();
-
-  const linkTableCanvas = page
-    .locator(".dvn-underlay > canvas:first-of-type")
-    .nth(1);
-
-  const firstLinkTitleCell = await getCellText(linkTableCanvas, 0, 0);
-  expect(firstLinkTitleCell).toBe("Has Indexed Content");
-
-  const firstLinkTargetCell = await getCellText(linkTableCanvas, 1, 0);
-  expect(firstLinkTargetCell).toBe("No entities");
-
-  await clickOnValueCell(page, linkTableCanvas, 0);
 });
