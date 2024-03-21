@@ -78,7 +78,7 @@ const Hero: FunctionComponent = () => (
         <Typography mb={2} sx={{ lineHeight: 1.5 }}>
           We’re developing two open-source projects in parallel — the{" "}
           <strong>Block Protocol</strong> standard, and the{" "}
-          <strong>HASH</strong>
+          <strong>HASH</strong>{" "}
           platform — to help everybody make better decisions.
         </Typography>
         <Typography sx={{ lineHeight: 1.5 }}>
