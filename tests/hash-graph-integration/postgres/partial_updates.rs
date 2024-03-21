@@ -1,8 +1,11 @@
-use std::{collections::HashSet, str::FromStr};
+use std::{
+    collections::{HashMap, HashSet},
+    str::FromStr,
+};
 
 use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::entity::EntityProperties;
+use graph_types::knowledge::entity::{Property, PropertyObject};
 use json_patch::{
     AddOperation, CopyOperation, MoveOperation, PatchOperation, RemoveOperation, ReplaceOperation,
     TestOperation,
@@ -64,7 +67,7 @@ fn film_property_type_id() -> BaseUrl {
         .expect("couldn't construct Base URL")
 }
 
-fn alice() -> EntityProperties {
+fn alice() -> PropertyObject {
     serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity")
 }
 
@@ -99,8 +102,8 @@ async fn properties_add() {
         .expect("could not get entity");
     let properties = entity.properties.properties();
     assert_eq!(properties.len(), 2);
-    assert_eq!(properties[&name_property_type_id()], "Alice");
-    assert_eq!(properties[&age_property_type_id()], 30);
+    assert_eq!(properties[&name_property_type_id()], json!("Alice"));
+    assert_eq!(properties[&age_property_type_id()], json!(30));
 }
 
 #[tokio::test]
@@ -166,7 +169,7 @@ async fn properties_replace() {
         .expect("could not get entity");
     let properties = entity.properties.properties();
     assert_eq!(properties.len(), 1);
-    assert_eq!(properties[&name_property_type_id()], "Bob");
+    assert_eq!(properties[&name_property_type_id()], json!("Bob"));
 }
 
 #[tokio::test]
@@ -289,7 +292,7 @@ async fn properties_copy() {
         .expect("could not get entity");
     let properties = entity.properties.properties();
     assert_eq!(properties.len(), 2);
-    assert_eq!(properties[&name_property_type_id()], "Alice");
+    assert_eq!(properties[&name_property_type_id()], json!("Alice"));
     assert_eq!(
         properties[&interests_property_type_id()],
         json!({ film_property_type_id().as_str(): "Alice" })
@@ -303,7 +306,7 @@ async fn type_ids() {
 
     let entity = api
         .create_entity(
-            EntityProperties::empty(),
+            PropertyObject::empty(),
             vec![person_entity_type_id()],
             None,
             false,

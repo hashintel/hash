@@ -23,7 +23,7 @@ use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{EntityMetadata, EntityProperties},
+        entity::{EntityMetadata, PropertyObject},
         link::LinkData,
     },
     owned_by_id::OwnedById,
@@ -106,7 +106,7 @@ async fn seed_db(
     )
     .await;
 
-    let properties: EntityProperties =
+    let properties: PropertyObject =
         serde_json::from_str(entity::BOOK_V1).expect("could not parse entity");
     let entity_type: EntityType =
         serde_json::from_str(entity_type::BOOK_V1).expect("could not parse entity type");

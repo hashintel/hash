@@ -8,7 +8,7 @@
 pub mod error;
 
 pub use self::{
-    data_type::{DataTypeConstraint, DataValidationError, JsonSchemaValueType},
+    data_type::{DataTypeConstraint, DataValidationError},
     entity_type::EntityValidationError,
     property_type::PropertyValidationError,
 };
@@ -123,7 +123,7 @@ pub trait EntityProvider {
 mod tests {
     use std::collections::HashMap;
 
-    use graph_types::knowledge::entity::EntityProperties;
+    use graph_types::knowledge::entity::{Property, PropertyObject};
     use serde_json::Value as JsonValue;
     use thiserror::Error;
     use type_system::{DataType, EntityType, PropertyType};
@@ -286,7 +286,7 @@ mod tests {
         );
 
         let entity =
-            serde_json::from_str::<EntityProperties>(entity).expect("failed to read entity string");
+            serde_json::from_str::<PropertyObject>(entity).expect("failed to read entity string");
 
         entity.validate(&entity_type, profile, &provider).await
     }
@@ -299,6 +299,7 @@ mod tests {
         profile: ValidationProfile,
     ) -> Result<(), Report<PropertyValidationError>> {
         install_error_stack_hooks();
+        let property = Property::deserialize(property).expect("failed to deserialize property");
 
         let provider = Provider::new(
             [],
@@ -324,9 +325,11 @@ mod tests {
     ) -> Result<(), Report<DataValidationError>> {
         install_error_stack_hooks();
 
+        let property: Property =
+            serde_json::from_value(data).expect("failed to deserialize data into property");
         let data_type: DataType =
             serde_json::from_str(data_type).expect("failed to parse data type");
 
-        data.validate(&data_type, profile, &()).await
+        property.validate(&data_type, profile, &()).await
     }
 }

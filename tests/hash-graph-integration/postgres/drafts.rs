@@ -1,6 +1,6 @@
 use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::entity::{EntityId, EntityProperties};
+use graph_types::knowledge::entity::{EntityId, PropertyObject};
 use json_patch::{PatchOperation, ReplaceOperation};
 use pretty_assertions::assert_eq;
 use temporal_versioning::ClosedTemporalBound;
@@ -43,13 +43,13 @@ fn person_entity_type_id() -> VersionedUrl {
     }
 }
 
-fn alice() -> EntityProperties {
+fn alice() -> PropertyObject {
     serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity")
 }
-fn bob() -> EntityProperties {
+fn bob() -> PropertyObject {
     serde_json::from_str(entity::PERSON_BOB_V1).expect("could not parse entity")
 }
-fn charles() -> EntityProperties {
+fn charles() -> PropertyObject {
     serde_json::from_str(entity::PERSON_CHARLES_V1).expect("could not parse entity")
 }
 

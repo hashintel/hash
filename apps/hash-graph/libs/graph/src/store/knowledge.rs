@@ -5,7 +5,7 @@ use error_stack::Report;
 use graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{Entity, EntityEmbedding, EntityId, EntityMetadata, EntityProperties, EntityUuid},
+        entity::{Entity, EntityEmbedding, EntityId, EntityMetadata, EntityUuid, PropertyObject},
         link::LinkData,
     },
     owned_by_id::OwnedById,
@@ -180,7 +180,7 @@ pub struct CreateEntityParams<R> {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub decision_time: Option<Timestamp<DecisionTime>>,
     pub entity_type_ids: Vec<VersionedUrl>,
-    pub properties: EntityProperties,
+    pub properties: PropertyObject,
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_data: Option<LinkData>,
@@ -195,7 +195,7 @@ pub struct ValidateEntityParams<'a> {
     #[serde(borrow)]
     pub entity_types: EntityValidationType<'a>,
     #[serde(borrow)]
-    pub properties: Cow<'a, EntityProperties>,
+    pub properties: Cow<'a, PropertyObject>,
     #[serde(borrow, default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_data: Option<Cow<'a, LinkData>>,
@@ -255,7 +255,7 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
     /// # Errors:
     ///
     /// - if the [`EntityType`] doesn't exist
-    /// - if the [`EntityProperties`] is not valid with respect to the specified [`EntityType`]
+    /// - if the [`PropertyObject`] is not valid with respect to the specified [`EntityType`]
     /// - if the account referred to by `owned_by_id` does not exist
     /// - if an [`EntityUuid`] was supplied and already exists in the store
     ///
@@ -308,7 +308,7 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
             Item = (
                 OwnedById,
                 Option<EntityUuid>,
-                EntityProperties,
+                PropertyObject,
                 Option<LinkData>,
                 Option<Timestamp<DecisionTime>>,
             ),

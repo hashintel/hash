@@ -23,8 +23,8 @@ use graph_types::{
     knowledge::{
         entity::{
             DraftId, Entity, EntityEditionId, EntityEditionProvenanceMetadata, EntityEmbedding,
-            EntityId, EntityMetadata, EntityProperties, EntityProvenanceMetadata, EntityRecordId,
-            EntityTemporalMetadata, EntityUuid,
+            EntityId, EntityMetadata, EntityProvenanceMetadata, EntityRecordId,
+            EntityTemporalMetadata, EntityUuid, PropertyObject,
         },
         link::LinkData,
     },
@@ -32,7 +32,7 @@ use graph_types::{
     Embedding,
 };
 use hash_status::StatusCode;
-use json_patch::patch;
+use json_patch::{diff, patch};
 use postgres_types::{Json, ToSql};
 use temporal_client::TemporalClient;
 use temporal_versioning::{
@@ -766,7 +766,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             Item = (
                 OwnedById,
                 Option<EntityUuid>,
-                EntityProperties,
+                PropertyObject,
                 Option<LinkData>,
                 Option<Timestamp<DecisionTime>>,
             ),
@@ -1178,7 +1178,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         };
         let mut properties =
             serde_json::to_value(previous_entity.properties).change_context(UpdateError)?;
+        let old_properties = properties.clone();
         patch(&mut properties, &params.properties).change_context(UpdateError)?;
+        let diff = diff(&old_properties, &properties);
+        println!("diff: {diff:#}");
         let properties = serde_json::from_value(properties).change_context(UpdateError)?;
 
         let link_data = previous_entity.link_data;
@@ -1472,7 +1475,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         edition_created_by_id: EditionCreatedById,
         archived: bool,
         entity_type_ids: &[VersionedUrl],
-        properties: &EntityProperties,
+        properties: &PropertyObject,
     ) -> Result<(EntityEditionId, ClosedEntityType), InsertionError> {
         let edition_id: EntityEditionId = self
             .as_client()

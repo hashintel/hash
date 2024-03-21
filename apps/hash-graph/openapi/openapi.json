@@ -2800,7 +2800,7 @@
             "$ref": "#/components/schemas/OwnedById"
           },
           "properties": {
-            "$ref": "#/components/schemas/EntityProperties"
+            "$ref": "#/components/schemas/PropertyObject"
           },
           "relationships": {
             "type": "array",
@@ -3187,7 +3187,7 @@
             "$ref": "#/components/schemas/EntityMetadata"
           },
           "properties": {
-            "$ref": "#/components/schemas/EntityProperties"
+            "$ref": "#/components/schemas/PropertyObject"
           }
         }
       },
@@ -3394,10 +3394,6 @@
           "update",
           "view"
         ]
-      },
-      "EntityProperties": {
-        "type": "object",
-        "description": "The properties of an entity.\n\nWhen expressed as JSON, this should validate against its respective entity type(s)."
       },
       "EntityProvenanceMetadata": {
         "type": "object",
@@ -5465,6 +5461,10 @@
           }
         }
       },
+      "PropertyObject": {
+        "type": "object",
+        "description": "The properties of an entity.\n\nWhen expressed as JSON, this should validate against its respective entity type(s)."
+      },
       "PropertyTypeEditorSubject": {
         "oneOf": [
           {
@@ -6442,7 +6442,7 @@
             "$ref": "#/components/schemas/ValidationProfile"
           },
           "properties": {
-            "$ref": "#/components/schemas/EntityProperties"
+            "$ref": "#/components/schemas/PropertyObject"
           }
         },
         "additionalProperties": false

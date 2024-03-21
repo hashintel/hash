@@ -1,13 +1,14 @@
 use std::collections::HashSet;
 
 use error_stack::Report;
-use graph_types::knowledge::entity::EntityProperties;
+use graph_types::knowledge::entity::{Property, PropertyObject};
 use serde_json::Value as JsonValue;
 use type_system::{url::VersionedUrl, ClosedEntityType, DataType, PropertyType};
 
 pub fn install_error_stack_hooks() {
     Report::install_debug_hook::<Actual>(|actual, context| match actual {
         Actual::Json(json) => context.push_body(format!("actual: {json:#}")),
+        Actual::Property(json) => context.push_body(format!("actual: {json:#}")),
         Actual::Properties(properties) => {
             if let Ok(json) = serde_json::to_value(properties) {
                 context.push_body(format!("actual: {json:#}"));
@@ -59,7 +60,8 @@ pub fn install_error_stack_hooks() {
 #[derive(Debug)]
 pub enum Actual {
     Json(JsonValue),
-    Properties(EntityProperties),
+    Property(Property),
+    Properties(PropertyObject),
 }
 
 #[derive(Debug)]
