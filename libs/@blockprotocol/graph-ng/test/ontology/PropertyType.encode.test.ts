@@ -1138,10 +1138,118 @@ describe("oneOf: PropertyValues", () => {
 });
 
 describe("PropertyType.object", () => {
-  test.todo("PropertyType.object - single child", () => {});
-  test.todo("PropertyType.object - multiple children", () => {});
-  test.todo("PropertyType.object - array single child", () => {});
-  test.todo("PropertyType.object - array multiple children", () => {});
-  test.todo("PropertyType.object - mixed", () => {});
-  test.todo("PropertyType.object - suspend", () => {});
+  const description = PropertyType.make(
+    PropertyTypeUrl.parseOrThrow(
+      "https://blockprotocol.org/@blockprotocol/types/property-type/description/v/1",
+    ),
+    BuiltIn.Text.v1.pipe(O.dataType, S.title("Description")),
+  ).pipe(Effect.runSync);
+
+  const displayName = PropertyType.make(
+    PropertyTypeUrl.parseOrThrow(
+      "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/v/1",
+    ),
+    BuiltIn.Text.v1.pipe(O.dataType, S.title("Display Name")),
+  ).pipe(Effect.runSync);
+
+  test("propertyObject - no children", () => {
+    const propertyObject = O.propertyObject();
+    const result = S.decodeSync(propertyObject)({});
+
+    expect(result).toMatchInlineSnapshot(`{}`);
+  });
+
+  test("propertyObject - single child", () => {
+    const propertyObject = O.propertyObject(description);
+    const result = S.decodeSync(propertyObject)({
+      "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
+        "hello",
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/description/": "hello",
+      }
+    `);
+  });
+  test("propertyObject - multiple children", () => {
+    const propertyObject = O.propertyObject(description, displayName);
+    const result = S.decodeSync(propertyObject)({
+      "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
+        "hello",
+      "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+        "world",
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/description/": "hello",
+        "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": "world",
+      }
+    `);
+  });
+  test("propertyObject - array single child", () => {
+    const propertyObject = O.propertyObject(O.propertyArray(description));
+    const result = S.decodeSync(propertyObject)({
+      "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
+        ["hello", "world"],
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/description/": [
+          "hello",
+          "world",
+        ],
+      }
+    `);
+  });
+  test("propertyObject - array multiple children", () => {
+    const propertyObject = O.propertyObject(
+      O.propertyArray(description),
+      O.propertyArray(displayName),
+    );
+    const result = S.decodeSync(propertyObject)({
+      "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
+        ["hello", "world"],
+      "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+        ["foo", "bar"],
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/description/": [
+          "hello",
+          "world",
+        ],
+        "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": [
+          "foo",
+          "bar",
+        ],
+      }
+    `);
+  });
+  test("propertyObject - mixed", () => {
+    const propertyObject = O.propertyObject(
+      description,
+      O.propertyArray(displayName),
+    );
+    const result = S.decodeSync(propertyObject)({
+      "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
+        "hello",
+      "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+        ["foo", "bar"],
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/description/": "hello",
+        "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": [
+          "foo",
+          "bar",
+        ],
+      }
+    `);
+  });
+  test.todo("propertyObject - suspend", () => {});
 });

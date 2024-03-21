@@ -9,7 +9,8 @@ const TypeId: unique symbol = Symbol.for("@blockprotocol/graph/VersionedUrl");
 export type TypeId = typeof TypeId;
 
 export const Pattern = /^(.+\/)v\/(\d+)$/;
-export type Pattern<T extends string> = `${T}/v/${number}`;
+// the trailing slash is part of `T` therefore omitted in pattern.
+export type Pattern<T extends string> = `${T}v/${number}`;
 
 export type VersionedUrl<T extends string = string> = Pattern<T> &
   Brand.Brand<TypeId>;
@@ -41,6 +42,7 @@ export function parseOrThrow<T extends string>(
 type BrandBase<T> =
   T extends Pattern<infer U> ? U & Brand.Brand<BaseUrl.TypeId> : never;
 export type Base<T> = BrandBase<Brand.Brand.Unbranded<T>>;
+
 export function base<T extends VersionedUrl>(value: T): Base<T> {
   // the value is never null or undefined, because `Schema` guarantees a well-formed value.
   const match = value.match(Pattern)!;
