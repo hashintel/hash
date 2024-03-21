@@ -101,7 +101,12 @@ test("the link table renders correctly", async ({ page }) => {
 
   await page.getByRole("button", { name: "Add a type" }).click();
 
-  await page.getByPlaceholder("Search for an entity type").fill("Document");
+  /**
+   * Get the `Document` type
+   */
+  await page
+    .getByPlaceholder("Search for an entity type")
+    .fill("document format");
 
   await page.getByTestId("selector-autocomplete-option").first().click();
 
@@ -109,9 +114,9 @@ test("the link table renders correctly", async ({ page }) => {
     .locator(".dvn-underlay > canvas:first-of-type")
     .nth(1);
 
-  const firstLinkTitleCell = await getCellText(linkTableCanvas, 0, 0);
-  expect(firstLinkTitleCell).toBe("Has Indexed Content");
+  const firstLinkTitleCellText = await getCellText(linkTableCanvas, 0, 0);
+  expect(firstLinkTitleCellText).toBe("Has Indexed Content");
 
-  const firstLinkTargetCell = await getCellText(linkTableCanvas, 1, 0);
-  expect(firstLinkTargetCell).toBe("No entities");
+  const firstExpectedTargetTypeText = await getCellText(linkTableCanvas, 2, 0);
+  expect(firstExpectedTargetTypeText).toBe("Block");
 });
