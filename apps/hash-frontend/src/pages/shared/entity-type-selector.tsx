@@ -61,6 +61,16 @@ export const EntityTypeSelector: FunctionComponent<{
       }}
       autoFocus={autoFocus}
       options={filteredEntityTypes ?? []}
+      filterOptions={(options, { inputValue }) => {
+        return options.filter((option) => {
+          const { title, description } = option.schema;
+          const lowercaseInput = inputValue.toLowerCase();
+          return (
+            description?.toLowerCase().includes(lowercaseInput) ??
+            title.toLowerCase().includes(lowercaseInput)
+          );
+        });
+      }}
       optionToRenderData={({
         schema: { $id, title, description },
         metadata: { icon },
