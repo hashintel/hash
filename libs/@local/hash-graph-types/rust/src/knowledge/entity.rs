@@ -2,7 +2,8 @@
 use std::error::Error;
 use std::{
     collections::{hash_map, HashMap},
-    fmt, io,
+    fmt, io, iter,
+    iter::once,
     str::FromStr,
 };
 
@@ -11,6 +12,7 @@ use bytes::BytesMut;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, ToSql, Type};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde_json::Value as JsonValue;
 use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, Timestamp, TransactionTime};
 use type_system::{
     url::{BaseUrl, VersionedUrl},
@@ -93,6 +95,145 @@ pub enum Property {
     Value(serde_json::Value),
 }
 
+#[derive(Debug)]
+pub enum PropertyElement<'a> {
+    Object {
+        key: &'a BaseUrl,
+        property: &'a Property,
+    },
+    Array {
+        index: usize,
+        property: &'a Property,
+    },
+    Value(&'a serde_json::Value),
+}
+
+#[derive(Debug)]
+enum IterationYield<'a> {
+    Push(PropertyPathElement<'a>),
+    Pop,
+    Value(&'a JsonValue),
+}
+
+impl Property {
+    #[must_use]
+    pub fn json_type(&self) -> JsonSchemaValueType {
+        match self {
+            Self::Array(_) => JsonSchemaValueType::Array,
+            Self::Object(_) => JsonSchemaValueType::Object,
+            Self::Value(property) => JsonSchemaValueType::from(property),
+        }
+    }
+
+    fn base_urls_impl<'a>(&'a self) -> Box<dyn Iterator<Item = IterationYield<'a>> + '_> {
+        match self {
+            Self::Array(array) => {
+                Box::new(array.iter().enumerate().flat_map(|(index, property)| {
+                    once(IterationYield::Push(PropertyPathElement::Index(index)))
+                        .chain(property.base_urls_impl())
+                        .chain(once(IterationYield::Pop))
+                }))
+            }
+            Self::Object(object) => Box::new(object.0.iter().flat_map(|(key, property)| {
+                once(IterationYield::Push(PropertyPathElement::Property(key)))
+                    .chain(property.base_urls_impl())
+                    .chain(once(IterationYield::Pop))
+            })),
+            Self::Value(property) => Box::new(once(IterationYield::Value(property))),
+        }
+    }
+
+    pub fn base_urls(&self) -> impl Iterator<Item = (Vec<PropertyPathElement<'_>>, &JsonValue)> {
+        let mut elements = Vec::new();
+        let mut iter = self.base_urls_impl();
+        iter::from_fn(move || {
+            loop {
+                match iter.next()? {
+                    IterationYield::Push(element) => {
+                        elements.push(element);
+                    }
+                    IterationYield::Pop => {
+                        elements.pop();
+                    }
+                    IterationYield::Value(value) => {
+                        break Some((elements.clone(), value));
+                    }
+                }
+            }
+        })
+        // struct Iter<'a> {
+        //     elements: Vec<PropertyPathElement<'a>>,
+        //     iter: Box<dyn Iterator<Item = IterationYield<'a>> + 'a>,
+        // }
+        //
+        // impl<'a> Iterator for Iter<'a>
+        // where
+        //     Self: 'a,
+        // {
+        //     type Item = (Vec<PropertyPathElement<'a>>, &'a JsonValue);
+        //
+        //     fn next(&mut self) -> Option<Self::Item> {
+        //         loop {
+        //             match self.iter.next()? {
+        //                 IterationYield::Push(element) => {
+        //                     self.elements.push(element);
+        //                 }
+        //                 IterationYield::Pop => {
+        //                     self.elements.pop();
+        //                 }
+        //                 IterationYield::Value(value) => {
+        //                     break Some((self.elements.clone(), value));
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
+        //
+        // Iter {
+        //     elements: Vec::new(),
+        //     iter: self.base_urls_impl(),
+        // }
+        // enum PropertyIteratorElement<'a, A, O> {
+        //     Array(A),
+        //     Object(O),
+        //     Value(std::iter::Once<&'a JsonValue>),
+        // }
+        // struct PropertyIterator<'a> {
+        //     element: PropertyIteratorElement<'a>,
+        //     path: Vec<PropertyPathElement<'a>>,
+        // }
+        //
+        // impl<'a, A, O> Iterator for PropertyIterator<'a, A, O>
+        // {
+        //     type Item = (&'a [PropertyPathElement<'a>], Option<&'a JsonValue>);
+        //
+        //     fn next(&mut self) -> Option<Self::Item> {
+        //         match self.element {
+        //             Self::Array(array) => array
+        //                 .next()
+        //                 .map(|(idx, property)| (Some(PropertyPathElement::Index(idx)),
+        // property)),             Self::Object(object) => object.next().map(|(key,
+        // property)| {                 (Some(PropertyPathElement::Property(key)), property)
+        //             }),
+        //             Self::Value(value) => value.next().map(|value| (None, value)),
+        //         }
+        //     }
+        // }
+
+        // match self {
+        //     Self::Array(array) => PropertyIterator::Array(array.iter().enumerate()),
+        //     Self::Object(object) => {
+        //         PropertyIterator::Object(object.0.iter().flat_map(|(key, value)| {
+        //             value
+        //                 .properties()
+        //                 .map(move |(path, value)| (Some(PropertyPathElement::Property(key)),
+        // value))         }))
+        //     }
+        //     Self::Value(property) => PropertyIterator::Value(once(property)),
+        // }
+    }
+}
+
 impl fmt::Display for Property {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Inspired by `serde_json`
@@ -119,17 +260,6 @@ impl fmt::Display for Property {
     }
 }
 
-impl Property {
-    #[must_use]
-    pub fn json_type(&self) -> JsonSchemaValueType {
-        match self {
-            Self::Array(_) => JsonSchemaValueType::Array,
-            Self::Object(_) => JsonSchemaValueType::Object,
-            Self::Value(property) => JsonSchemaValueType::from(property),
-        }
-    }
-}
-
 impl PartialEq<serde_json::Value> for Property {
     fn eq(&self, other: &serde_json::Value) -> bool {
         match self {
@@ -140,19 +270,7 @@ impl PartialEq<serde_json::Value> for Property {
                     false
                 }
             }
-            Self::Object(object) => {
-                if let serde_json::Value::Object(other_object) = other {
-                    let object = object.properties();
-                    object.len() == other_object.len()
-                        && object.iter().zip(other_object).all(
-                            |((a_key, a_value), (b_key, b_value))| {
-                                a_key.as_str() == b_key && a_value == b_value
-                            },
-                        )
-                } else {
-                    false
-                }
-            }
+            Self::Object(object) => object == other,
             Self::Value(value) => value == other,
         }
     }
@@ -165,14 +283,20 @@ impl PartialEq<serde_json::Value> for Property {
 #[cfg_attr(feature = "utoipa", derive(ToSchema), schema(value_type = Object))]
 pub struct PropertyObject(HashMap<BaseUrl, Property>);
 
-// impl IntoIterator for EntityProperties {
-//     type IntoIter = hash_map::IntoIter<BaseUrl, serde_json::Value>;
-//     type Item = (BaseUrl, serde_json::Value);
-//
-//     fn into_iter(self) -> Self::IntoIter {
-//         self.0.into_iter()
-//     }
-// }
+impl PartialEq<JsonValue> for PropertyObject {
+    fn eq(&self, other: &JsonValue) -> bool {
+        let JsonValue::Object(other_object) = other else {
+            return false;
+        };
+
+        self.0.len() == other_object.len()
+            && self.0.iter().all(|(key, value)| {
+                other_object
+                    .get(key.as_str())
+                    .map_or(false, |other_value| value == other_value)
+            })
+    }
+}
 
 #[cfg(feature = "postgres")]
 impl ToSql for PropertyObject {
