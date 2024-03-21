@@ -51,16 +51,44 @@ export const flowTypedef = gql`
   type StepRun {
     """
     id for the step
+    @todo do we also want nodeId to link it to the Step Definition, where there might be multiple steps per node definition
+          in the case of spawning multiple parallel executions of a particular action?
     """
     stepId: String!
     """
-    When the step was started
+    The type of step, i.e a name for what action it is performing, e.g. Persist Entities
+    @todo do we need this? it can be derived from the step definition.
+    @todo is this actually stepName, and we want a separate stepType of Action, Trigger etc?
     """
-    startTime: String!
+    stepType: String!
     """
-    When the step completed
+    When the step was LAST scheduled for execution - this may have happened previously if a previous execution failed.
+    See https://docs.temporal.io/activities#activity-execution for execution details
     """
-    closeTime: String
+    scheduledAt: String!
+    """
+    When execution of a step was LAST started - there may be earlier executions which failed.
+    Note that this event is not written to the history until execution completes (successfully or unsuccessfully)
+    """
+    startedAt: String
+    """
+    Starting at 1, the number of times execution of this step has been attempted.
+    """
+    attempt: Int!
+    """
+    When the step last execution attempt finished, either successfully or unsuccessfully.
+    Another execution may yet be scheduled – check retryState.
+    """
+    closedAt: String
+    """
+    If the last execution failed, what retry policy applies.
+    """
+    retryState: String
+    """
+    Details of the last failure, if any.
+    The step may still be running if it has been retried since the last failure.
+    """
+    lastFailure: ArbitraryJsonData
     """
     The status of the step
     """
@@ -91,15 +119,15 @@ export const flowTypedef = gql`
     """
     When the run was triggered
     """
-    startTime: String!
+    startedAt: String!
     """
     When the run began executing
     """
-    executionTime: String
+    executedAt: String
     """
     When the run stopped
     """
-    closeTime: String
+    closedAt: String
     """
     Inputs to the flow run
     """
@@ -108,9 +136,13 @@ export const flowTypedef = gql`
     Outputs of the flow run
     """
     outputs: ArbitraryJsonData
+    """
+    The steps in the flow
+    """
+    steps: [StepRun!]!
   }
 
   extend type Query {
-    getFlowRuns: [FlowRun!]!
+    getFlowRuns(flowTypes: [String!]): [FlowRun!]!
   }
 `;

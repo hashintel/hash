@@ -52,6 +52,7 @@
     "@sentry/node": "7.93.0",
     "@snowplow/node-tracker": "3.3.1",
     "@temporalio/client": "1.8.1",
+    "@temporalio/proto": "1.8.1",
     "@types/ws": "8.5.10",
     "agentkeepalive": "4.2.1",
     "apollo-datasource": "3.3.2",

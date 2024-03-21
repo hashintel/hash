@@ -4,7 +4,7 @@
     "allowJs": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "lib": ["dom", "es2022"],
+    "lib": ["dom", "es2023"],
     "module": "ESNext",
     "moduleResolution": "node",
     "noUncheckedIndexedAccess": true,
