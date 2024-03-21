@@ -66,7 +66,7 @@ export const EntityTypeSelector: FunctionComponent<{
           const { title, description } = option.schema;
           const lowercaseInput = inputValue.toLowerCase();
           return (
-            description?.toLowerCase().includes(lowercaseInput) ??
+            !!description?.toLowerCase().includes(lowercaseInput) ||
             title.toLowerCase().includes(lowercaseInput)
           );
         });
