@@ -159,7 +159,7 @@ export const createEntities = async ({
             generateVersionedUrlMatchingFilter(entityTypeId),
           ] satisfies AllFilter["all"];
 
-          const maximumSemanticDistance = 0.5;
+          const maximumSemanticDistance = 0.6;
 
           /**
            * First find suitable specific properties to match on

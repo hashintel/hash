@@ -170,7 +170,7 @@ const getSearchBarResponsiveStyles = (
 /**
  * The maximum distance between the search query and an entity's embedding for it to appear in results
  */
-const maximumSemanticDistance = 0.8;
+const maximumSemanticDistance = 0.75;
 
 export const SearchBar: FunctionComponent = () => {
   const theme = useTheme();
