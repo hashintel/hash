@@ -333,7 +333,48 @@ describe("PropertyObject", () => {
   test.todo("multiple keys - array of PropertyTypes", () => {});
   test.todo("multiple keys - mixed", () => {});
 
-  test.todo("recursive PropertyType", () => {});
+  test("recursive PropertyType", () => {
+    interface FileProperties {
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/": FileProperties;
+    }
+
+    const lazyFileProperties = PropertyType.makeLazy(
+      PropertyTypeUrl.parseOrThrow(
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/v/1",
+      ),
+      S.struct({
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/":
+          S.suspend((): S.Schema<FileProperties> => lazyFileProperties.schema),
+      }).pipe(S.title("File Properties")),
+    );
+
+    const fileProperties = Effect.runSync(
+      PropertyType.validateLazy(lazyFileProperties),
+    );
+
+    const schema = Effect.runSync(PropertyType.toSchema(fileProperties));
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+        "kind": "propertyType",
+        "oneOf": [
+          {
+            "properties": {
+              "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/": {
+                "$ref": "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/v/1",
+              },
+            },
+            "required": [
+              "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/",
+            ],
+            "type": "object",
+          },
+        ],
+        "title": "File Properties",
+      }
+    `);
+  });
 
   test.todo("incorrect keys", () => {});
   test.todo("value is not nested or array of nested", () => {});

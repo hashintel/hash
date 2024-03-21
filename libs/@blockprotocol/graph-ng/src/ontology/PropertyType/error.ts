@@ -74,6 +74,7 @@ export class EncodeError extends Data.TaggedError(
   }
 
   static incomplete(reason: IncompleteReason): EncodeError {
+    console.log("reason", reason);
     return new EncodeError({
       reason: EncodeErrorReason.Incomplete({ reason }),
     });

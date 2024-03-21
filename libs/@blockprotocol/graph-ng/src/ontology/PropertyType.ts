@@ -1,3 +1,4 @@
+import { AST } from "@effect/schema";
 import * as S from "@effect/schema/Schema";
 import {
   Effect,
@@ -10,18 +11,22 @@ import {
   Predicate,
 } from "effect";
 
-import { AST } from "@effect/schema";
+import * as DataType from "./DataType.js";
+import { InternalError } from "./DataType/error.js";
 import { encodeSchema } from "./PropertyType/encode.js";
 import { EncodeError } from "./PropertyType/error.js";
 import { PropertyTypeSchema } from "./PropertyType/schema.js";
 import * as PropertyTypeUrl from "./PropertyTypeUrl.js";
-import { InternalError } from "./DataType/error.js";
-import * as DataType from "./DataType.js";
 
 const TypeId: unique symbol = Symbol.for(
   "@blockprotocol/graph/ontology/PropertyType",
 );
 export type TypeId = typeof TypeId;
+
+const LazyTypeId: unique symbol = Symbol.for(
+  "@blockprotocol/graph/ontology/LazyPropertyType",
+);
+export type LazyTypeId = typeof LazyTypeId;
 
 /** @internal */
 export const AnnotationId: unique symbol = Symbol.for(
@@ -32,13 +37,23 @@ export interface PropertyType<Out, In = Out>
   extends Equal.Equal,
     Pipeable.Pipeable,
     Inspectable.Inspectable {
-  [TypeId]: TypeId;
+  readonly [TypeId]: TypeId;
 
   readonly id: PropertyTypeUrl.PropertyTypeUrl;
   readonly schema: S.Schema<Out, In>;
 }
 
+export interface LazyPropertyType<Out, In = Out> {
+  readonly [LazyTypeId]: LazyTypeId;
+  readonly schema: S.Schema<Out, In>;
+}
+
 interface PropertyTypeImpl<Out, In = Out> extends PropertyType<Out, In> {}
+
+interface LazyPropertyTypeImpl<Out, In = Out>
+  extends LazyPropertyType<Out, In> {
+  readonly impl: PropertyTypeImpl<Out, In>;
+}
 
 const PropertyTypeProto: Omit<PropertyTypeImpl<unknown>, "id" | "schema"> = {
   [TypeId]: TypeId,
@@ -111,6 +126,30 @@ export function make<Out, In>(
   schema: S.Schema<Out, In>,
 ): Effect.Effect<PropertyType<Out, In>, EncodeError> {
   const impl = makeImpl(id, schema);
+
+  return pipe(
+    toSchemaImpl(impl.schema),
+    Effect.map(() => impl),
+  );
+}
+
+export function makeLazy<Out, In>(
+  id: PropertyTypeUrl.PropertyTypeUrl,
+  schema: S.Schema<Out, In>,
+): LazyPropertyType<Out, In> {
+  const impl = makeImpl(id, schema);
+
+  return {
+    [LazyTypeId]: LazyTypeId,
+    schema: impl.schema,
+    impl,
+  } satisfies LazyPropertyTypeImpl<Out, In> as LazyPropertyType<Out, In>;
+}
+
+export function validateLazy<Out, In>(
+  lazyPropertyType: LazyPropertyType<Out, In>,
+): Effect.Effect<PropertyType<Out, In>, EncodeError> {
+  const { impl } = lazyPropertyType as LazyPropertyTypeImpl<Out, In>;
 
   return pipe(
     toSchemaImpl(impl.schema),

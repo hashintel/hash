@@ -359,7 +359,7 @@ const encodePropertyTypeObjectValue = (
     }
 
     const propertyType = yield* _(
-      PropertyType.tryFromAST(ast),
+      PropertyType.tryFromAST(node),
       Effect.mapError(() =>
         EncodeError.malformedPropertyObject("expected PropertyType as value"),
       ),
