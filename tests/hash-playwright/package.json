@@ -2,6 +2,7 @@
   "name": "@tests/hash-playwright",
   "version": "0.0.0-private",
   "private": true,
+  "type": "module",
   "scripts": {
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "fix:eslint": "eslint --fix .",
