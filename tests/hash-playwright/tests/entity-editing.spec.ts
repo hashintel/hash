@@ -21,6 +21,7 @@ const getCellText = async (
   return text;
 };
 
+/** Keep in sync with gridRowHeight */
 const ROW_HEIGHT = 42;
 
 const clickOnValueCell = async (
