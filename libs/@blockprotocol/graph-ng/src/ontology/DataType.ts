@@ -2,6 +2,7 @@ import { AST } from "@effect/schema";
 import * as S from "@effect/schema/Schema";
 import {
   Effect,
+  Either,
   Equal,
   Hash,
   Inspectable,
@@ -29,19 +30,26 @@ export const AnnotationId: unique symbol = Symbol.for(
   "@blockprotocol/graph/ontology/DataType/Annotation",
 );
 
-export interface DataType<Out, In extends Json.Value = Json.Value>
-  extends Equal.Equal,
+export interface DataType<
+  Out,
+  In extends Json.Value = Json.Value,
+  Id extends DataTypeUrl.DataTypeUrl = DataTypeUrl.DataTypeUrl,
+  Context = never,
+> extends Equal.Equal,
     Pipeable.Pipeable,
     Inspectable.Inspectable {
   [TypeId]: TypeId;
 
-  readonly id: DataTypeUrl.DataTypeUrl;
-  readonly schema: S.Schema<Out, In>;
+  readonly id: Id;
+  readonly schema: S.Schema<Out, In, Context>;
 }
 
-// TODO: cache possibility?!
-interface DataTypeImpl<Out, In extends Json.Value = Json.Value>
-  extends DataType<Out, In> {}
+interface DataTypeImpl<
+  Out,
+  In extends Json.Value = Json.Value,
+  Id extends DataTypeUrl.DataTypeUrl = DataTypeUrl.DataTypeUrl,
+  Context = never,
+> extends DataType<Out, In, Id, Context> {}
 
 const DataTypeProto: Omit<DataTypeImpl<unknown>, "id" | "schema"> = {
   [TypeId]: TypeId,
@@ -91,10 +99,12 @@ export function isDataType(value: unknown): value is DataType<unknown> {
   return Predicate.hasProperty(value, TypeId);
 }
 
-function makeImpl<Out, In extends Json.Value>(
-  id: DataTypeUrl.DataTypeUrl,
-  schema: S.Schema<Out, In>,
-): DataTypeImpl<Out, In> {
+function makeImpl<
+  Out,
+  In extends Json.Value,
+  Id extends DataTypeUrl.DataTypeUrl,
+  R,
+>(id: Id, schema: S.Schema<Out, In, R>): DataTypeImpl<Out, In, Id, R> {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const impl = Object.create(DataTypeProto);
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -105,19 +115,24 @@ function makeImpl<Out, In extends Json.Value>(
     [AnnotationId]: () => impl as DataType<unknown>,
   });
 
-  return impl as DataTypeImpl<Out, In>;
+  return impl as DataTypeImpl<Out, In, Id, R>;
 }
 
-function toSchemaImpl<Out, In>(
-  schema: S.Schema<Out, In>,
+function toSchemaImpl<Out, In extends Json.Value, R>(
+  schema: S.Schema<Out, In, R>,
 ): Effect.Effect<DataTypeSchema, EncodeError> {
   return encodeSchema(schema.ast);
 }
 
-export function make<Out, In extends Json.Value>(
-  id: DataTypeUrl.DataTypeUrl,
-  schema: S.Schema<Out, In>,
-): Effect.Effect<DataType<Out, In>, EncodeError> {
+export function make<
+  Out,
+  In extends Json.Value,
+  Id extends DataTypeUrl.DataTypeUrl,
+  R = never,
+>(
+  id: Id,
+  schema: S.Schema<Out, In, R>,
+): Effect.Effect<DataType<Out, In, Id, R>, EncodeError> {
   return Effect.gen(function* (_) {
     const impl = makeImpl(id, schema);
     const compiled = yield* _(toSchemaImpl(impl.schema));
@@ -126,17 +141,27 @@ export function make<Out, In extends Json.Value>(
   });
 }
 
-export function makeOrThrow<Out, In extends Json.Value>(
-  id: DataTypeUrl.DataTypeUrl,
-  schema: S.Schema<Out, In>,
-): DataType<Out, In> {
+export function makeOrThrow<
+  Out,
+  In extends Json.Value,
+  Id extends DataTypeUrl.DataTypeUrl,
+  R = never,
+>(id: Id, schema: S.Schema<Out, In, R>): DataType<Out, In, Id, R> {
   return Effect.runSync(make(id, schema));
 }
 
-export function parse<I extends string, Out, In extends Json.Value>(
-  id: I,
+export function parse<Out, In extends Json.Value, Id extends string, R = never>(
+  id: Id,
   schema: S.Schema<Out, In>,
-): Effect.Effect<DataType<Out, In>, EncodeError> {
+): Effect.Effect<
+  DataType<
+    Out,
+    In,
+    Either.Either.Right<ReturnType<typeof DataTypeUrl.parse<Id>>>,
+    R
+  >,
+  EncodeError
+> {
   return pipe(
     DataTypeUrl.parse(id),
     Effect.mapError((error) => EncodeError.invalidUrl(error)),
@@ -144,15 +169,30 @@ export function parse<I extends string, Out, In extends Json.Value>(
   );
 }
 
-export function parseOrThrow<I extends string, Out, In extends Json.Value>(
-  id: I,
+export function parseOrThrow<
+  Out,
+  In extends Json.Value,
+  Id extends string,
+  R = never,
+>(
+  id: Id,
   schema: S.Schema<Out, In>,
-): DataType<Out, In> {
+): DataType<
+  Out,
+  In,
+  Either.Either.Right<ReturnType<typeof DataTypeUrl.parse<Id>>>,
+  R
+> {
   return Effect.runSync(parse(id, schema));
 }
 
-export function toSchema<Out, In extends Json.Value>(
-  dataType: DataType<Out, In>,
+export function toSchema<
+  Out,
+  In extends Json.Value,
+  Id extends DataTypeUrl.DataTypeUrl,
+  R,
+>(
+  dataType: DataType<Out, In, Id, R>,
 ): Effect.Effect<DataTypeSchema, EncodeError> {
   const unknownDataType = dataType as unknown as DataType<unknown>;
   if (schemaStorage.has(unknownDataType)) {

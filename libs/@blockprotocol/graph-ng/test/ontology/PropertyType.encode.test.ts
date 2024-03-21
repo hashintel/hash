@@ -3,6 +3,7 @@ import { Effect } from "effect";
 import { describe, expect, test } from "vitest";
 
 import * as BuiltIn from "../../src/ontology/DataType/BuiltIn.js";
+import * as O from "../../src/ontology/OntologySchema.js";
 import * as PropertyType from "../../src/ontology/PropertyType.js";
 import * as PropertyTypeUrl from "../../src/ontology/PropertyTypeUrl.js";
 import { runError } from "../utils.js";
@@ -13,7 +14,7 @@ describe("DataType", () => {
       PropertyTypeUrl.parseOrThrow(
         "https://blockprotocol.org/@blockprotocol/types/property-type/description/v/1",
       ),
-      BuiltIn.Text.v1.schema.pipe(PropertyType.isolate, S.title("Description")),
+      O.dataType(BuiltIn.Text.v1).pipe(S.title("Description")),
     );
 
     const propertyType = Effect.runSync(description);
@@ -1026,9 +1027,85 @@ describe("ArrayOfPropertyValues", () => {
     `);
   });
 
-  test.todo("mixed", () => {});
+  test("mixed", () => {
+    const fileProperties = PropertyType.make(
+      PropertyTypeUrl.parseOrThrow(
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/v/1",
+      ),
+      S.array(
+        S.union(
+          BuiltIn.Text.v1.schema,
+          S.struct({
+            "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
+              description.schema,
+          }),
+        ),
+      ).pipe(S.title("File Properties")),
+    ).pipe(Effect.runSync);
 
-  test.todo("inner not PropertyValues", () => {});
+    const schema = Effect.runSync(PropertyType.toSchema(fileProperties));
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+        "kind": "propertyType",
+        "oneOf": [
+          {
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                },
+                {
+                  "properties": {
+                    "https://blockprotocol.org/@blockprotocol/types/property-type/description/": {
+                      "$ref": "https://blockprotocol.org/@blockprotocol/types/property-type/description/v/1",
+                    },
+                  },
+                  "required": [
+                    "https://blockprotocol.org/@blockprotocol/types/property-type/description/",
+                  ],
+                  "type": "object",
+                },
+              ],
+            },
+            "type": "array",
+          },
+        ],
+        "title": "File Properties",
+      }
+    `);
+  });
+
+  test("inner not PropertyValues", () => {
+    const fileProperties = PropertyType.make(
+      PropertyTypeUrl.parseOrThrow(
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/v/1",
+      ),
+      S.array(S.string).pipe(S.title("File Properties")),
+    );
+
+    const error = runError(fileProperties);
+    expect(error).toMatchInlineSnapshot(`
+      {
+        "_id": "Cause",
+        "_tag": "Fail",
+        "failure": {
+          "_tag": "@blockprotocol/graph/PropertyType/EncodeError",
+          "reason": {
+            "_tag": "UnableToEncode",
+            "node": {
+              "_tag": "StringKeyword",
+              "annotations": {
+                "Symbol(@effect/schema/annotation/Description)": "a string",
+                "Symbol(@effect/schema/annotation/Title)": "string",
+              },
+            },
+          },
+        },
+      }
+    `);
+  });
 });
 
 describe("oneOf: PropertyValues", () => {

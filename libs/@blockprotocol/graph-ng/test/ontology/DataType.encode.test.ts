@@ -2,9 +2,9 @@ import * as S from "@effect/schema/Schema";
 import { Effect } from "effect";
 import { describe, expect, test } from "vitest";
 
+import * as Json from "../../src/Json.js";
 import * as DataType from "../../src/ontology/DataType.js";
 import * as DataTypeUrl from "../../src/ontology/DataTypeUrl.js";
-import * as Json from "../../src/Json.js";
 import { runError } from "../utils.js";
 
 describe("literal", () => {
