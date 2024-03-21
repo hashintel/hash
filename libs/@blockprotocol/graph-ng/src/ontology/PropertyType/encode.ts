@@ -138,7 +138,7 @@ const prepare = (
       case "Union":
         return yield* _(
           flattenUnion(node, context),
-          Effect.andThen((flat) => prepare(flat, context)),
+          Effect.andThen((flat) => ({ node: flat, context })),
         );
       case "Suspend":
         return yield* _(prepare(node.f, context));
@@ -278,14 +278,12 @@ const arrayChildNode = (
     const rest = node.rest;
 
     if (elements.length !== 0 && rest.length !== 0) {
-      // TODO: needs test
       return yield* _(
         EncodeError.malformedArray("tuple with rest elements are unsupported"),
       );
     }
 
     if (rest.length > 1) {
-      // TODO: needs test
       return yield* _(
         EncodeError.malformedArray(
           "tuple with trailing elements are unsupported",
@@ -312,7 +310,6 @@ const arrayChildNode = (
       );
 
       if (!areEqual) {
-        // TODO: needs test
         return yield* _(
           EncodeError.malformedArray("tuple elements must be the same"),
         );
