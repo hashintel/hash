@@ -141,15 +141,16 @@ export const AcceptDraftEntityButton: FunctionComponent<
   const { markNotificationAsRead } = useNotificationEntities();
   const { notifications } = useNotificationsWithLinks();
 
+  /**
+   * Notifications are no longer created for draft entities, but they will exist for existing draft entities.
+   * Can be removed in the future – change to stop notifs for draft entities made in March 2024.
+   */
   const markRelatedGraphChangeNotificationsAsRead = useCallback(
     async (params: { draftEntity: Entity }) => {
       const relatedGraphChangeNotifications =
         notifications?.filter(
           ({ kind, occurredInEntity }) =>
             kind === "graph-change" &&
-            /**
-             * @todo this will archive other notifications re. draft updates, that may be created by other users
-             */
             occurredInEntity.metadata.recordId.entityId ===
               params.draftEntity.metadata.recordId.entityId,
         ) ?? [];
