@@ -114,6 +114,4 @@ test("the link table renders correctly", async ({ page }) => {
 
   const firstLinkTargetCell = await getCellText(linkTableCanvas, 1, 0);
   expect(firstLinkTargetCell).toBe("No entities");
-
-  await clickOnValueCell(page, linkTableCanvas, 0);
 });
