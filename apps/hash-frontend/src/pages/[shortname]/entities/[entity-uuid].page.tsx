@@ -46,52 +46,6 @@ import { updateEntitySubgraphStateByEntity } from "./[entity-uuid].page/shared/u
 import { useApplyDraftLinkEntityChanges } from "./[entity-uuid].page/shared/use-apply-draft-link-entity-changes";
 import { useDraftLinkState } from "./[entity-uuid].page/shared/use-draft-link-state";
 
-/**
- * Get the desired entity from the subgraph.
- *
- * A subgraph at a single point in time may have multiple versions of the entity in one of the following combinations:
- * 1. Zero live versions (i.e. non-draft), and a single draft version – without a live entity, there is only a single draft series,
- *    because there cannot be multiple draft series without an existing live entity to base them on top of.
- * 2. One live version, and zero or more draft updates to that live version.
- *
- * In a subgraph requested for a time interval covering multiple points in time, there would potentially be multiple editions
- * of each of the series mentioned in the above combinations (e.g. many editions of a single live series, many editions of each update series).
- *
- * @returns If a specific draft is requested, it is returned, otherwise nothing is returned
- *          – we shouldn't return some other version of the entity, because requesting a draft that doesn't exist is a bug.
- *          If no specific draft is requested, the live version is returned if it exists, otherwise the single draft that should be present.
- */
-const getEntityFromSubgraph = (
-  subgraph: Subgraph<EntityRootType>,
-  draftId?: string,
-): Entity | undefined => {
-  const entities = getRoots(subgraph);
-
-  if (draftId) {
-    return entities.find(
-      (entity) =>
-        extractDraftIdFromEntityId(entity.metadata.recordId.entityId) ===
-        draftId,
-    );
-  }
-
-  const liveVersion = entities.find(
-    (entity) => !extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
-  );
-
-  if (liveVersion) {
-    return liveVersion;
-  }
-
-  if (entities.length === 1) {
-    return entities[0];
-  }
-
-  throw new Error(
-    "Multiple roots present in entity subgraph without a live series – only one draft entity should be present",
-  );
-};
-
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
   const entityUuid = router.query["entity-uuid"] as EntityUuid;
@@ -115,8 +69,7 @@ const Page: NextPageWithLayout = () => {
   const [isReadOnly, setIsReadOnly] = useState(true);
 
   const entityFromDb =
-    entitySubgraphFromDb &&
-    getEntityFromSubgraph(entitySubgraphFromDb, draftId);
+    entitySubgraphFromDb && getRoots(entitySubgraphFromDb)[0];
 
   /**
    * If the user is viewing a `User` entity, redirect to its profile page.
@@ -251,7 +204,7 @@ const Page: NextPageWithLayout = () => {
       return;
     }
 
-    const draftEntity = getEntityFromSubgraph(draftEntitySubgraph, draftId);
+    const draftEntity = getRoots(draftEntitySubgraph)[0];
 
     if (!draftEntity) {
       return;
@@ -260,9 +213,9 @@ const Page: NextPageWithLayout = () => {
     try {
       setSavingChanges(true);
 
-      const entity = getEntityFromSubgraph(entitySubgraphFromDb, draftId);
+      const entity = getRoots(entitySubgraphFromDb)[0];
       if (!entity) {
-        throw new Error(`entity ${draftId} not found in subgraph`);
+        throw new Error(`entity not found in subgraph`);
       }
 
       await applyDraftLinkEntityChanges(
@@ -328,7 +281,7 @@ const Page: NextPageWithLayout = () => {
     return <PageErrorState />;
   }
 
-  const draftEntity = getEntityFromSubgraph(draftEntitySubgraph, draftId);
+  const draftEntity = getRoots(draftEntitySubgraph)[0];
   if (!draftEntity) {
     return <NextErrorComponent statusCode={404} />;
   }
