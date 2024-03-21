@@ -1,9 +1,9 @@
 import * as S from "@effect/schema/Schema";
 import { Brand, Either } from "effect";
 
+import { ParseError } from "@effect/schema/ParseResult";
 import * as BaseUrl from "./BaseUrl.js";
 import * as Url from "./internal/Url.js";
-import { ParseError } from "@effect/schema/ParseResult";
 
 const TypeId: unique symbol = Symbol.for("@blockprotocol/graph/VersionedUrl");
 export type TypeId = typeof TypeId;
@@ -38,9 +38,8 @@ export function parseOrThrow<T extends string>(
   return Either.getOrThrow(parse(value));
 }
 
-type BrandBase<T> = T extends Pattern<infer U>
-  ? U & Brand.Brand<BaseUrl.TypeId>
-  : never;
+type BrandBase<T> =
+  T extends Pattern<infer U> ? U & Brand.Brand<BaseUrl.TypeId> : never;
 export type Base<T> = BrandBase<Brand.Brand.Unbranded<T>>;
 export function base<T extends VersionedUrl>(value: T): Base<T> {
   // the value is never null or undefined, because `Schema` guarantees a well-formed value.
@@ -55,5 +54,5 @@ export function version(value: VersionedUrl): number {
   const match = value.match(Pattern)!;
 
   // again, value is guaranteed to be a number, because `Schema` guarantees a well-formed value.
-  return parseInt(match[2]!, 10);
+  return parseInt(match[2], 10);
 }

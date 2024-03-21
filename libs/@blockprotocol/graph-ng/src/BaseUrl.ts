@@ -1,7 +1,7 @@
 import * as S from "@effect/schema/Schema";
 import { Brand } from "effect";
 
-import * as Url from "./internal/Url";
+import * as Url from "./internal/Url.js";
 
 const TypeId: unique symbol = Symbol.for("@blockprotocol/graph/BaseUrl");
 export type TypeId = typeof TypeId;

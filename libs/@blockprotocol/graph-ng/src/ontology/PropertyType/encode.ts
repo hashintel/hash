@@ -2,7 +2,6 @@ import { AST } from "@effect/schema";
 import {
   Chunk,
   Effect,
-  Equivalence,
   Option,
   pipe,
   Predicate,
