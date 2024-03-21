@@ -143,7 +143,6 @@ export const useEntityTypeEntities = (params: {
       )
     : undefined;
 
-  /** @todo consumers should handle there potentially being many of a single entity (live and drafts) */
   const entities = useMemo(
     () => (subgraph ? getRoots(subgraph) : undefined),
     [subgraph],
