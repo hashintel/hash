@@ -378,7 +378,7 @@ export const useNotificationsWithLinksContextValue =
               /**
                * The created/updated record might be a draft, in which case it is keyed in the subgraph by `${entityId}~${draftId}`.
                * We need to find the vertex that _starts with_ the entityId and contains an edition at the exact timestamp from the link.
-               * Needing to do this is sa limitation caused by:
+               * Needing to do this is a limitation caused by:
                * 1. The fact that links only point to the entire Entity, not any specific edition or draft series of it
                * 2. The logic for returning linked entities from the subgraph library will just return the non-draft entity if it is found
                */
