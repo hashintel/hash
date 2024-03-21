@@ -27,11 +27,15 @@ const parseHistoryItemPayload = (
 const eventTimeIsoStringFromEvent = (
   event?: temporal.api.history.v1.IHistoryEvent,
 ) => {
-  if (!event?.eventTime?.seconds) {
+  const { eventTime } = event ?? {};
+  if (!eventTime?.seconds) {
     return;
   }
 
-  return new Date(event.eventTime.seconds.toInt() * 1000).toISOString();
+  return new Date(
+    eventTime.seconds.toInt() * 1000 +
+      (eventTime.nanos ? eventTime.nanos / 1_000_000 : 0),
+  ).toISOString();
 };
 
 /**
@@ -86,7 +90,6 @@ const getActivityStartedDetails = (
     | temporal.api.history.v1.IActivityTaskTimedOutEventAttributes
     | temporal.api.history.v1.IActivityTaskFailedEventAttributes,
 ) => {
-  console.log({ attributes });
   const { scheduledEventId } = attributes;
 
   const scheduledEvent = events.findLast(
