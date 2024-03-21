@@ -1,11 +1,15 @@
 import fs from "node:fs";
-import path from "node:path";
+import path, { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import webpack from "webpack";
 import ZipPlugin from "zip-webpack-plugin";
 
 // eslint-disable-next-line import/extensions
 import config from "../webpack.config.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 process.env.BABEL_ENV = "production";
 process.env.ASSET_PATH = "/";
