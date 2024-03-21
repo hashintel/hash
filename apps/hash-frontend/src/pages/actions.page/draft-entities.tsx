@@ -198,10 +198,10 @@ export const DraftEntities: FunctionComponent<{
             filterState,
           }).sort((a, b) => {
             const aCreatedAt = new Date(
-              a.entity.metadata.provenance.createdAtDecisionTime,
+              a.entity.metadata.temporalVersioning.decisionTime.start.limit,
             );
             const bCreatedAt = new Date(
-              b.entity.metadata.provenance.createdAtDecisionTime,
+              b.entity.metadata.temporalVersioning.decisionTime.start.limit,
             );
 
             return aCreatedAt.getTime() === bCreatedAt.getTime()
