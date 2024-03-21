@@ -1,5 +1,8 @@
+import { beforeAll, describe, expect, test } from "vitest";
+
 import type { EntityType, ParseEntityTypeError } from "../src/main";
-import { TypeSystemInitializer, validateEntityType } from "../src/main";
+import { validateEntityType } from "../src/main";
+import { initialize } from "./shared";
 
 const entityTypes: EntityType[] = [
   {
@@ -523,7 +526,7 @@ const brokenTypes: [any, ParseEntityTypeError][] = [
 ];
 
 beforeAll(async () => {
-  await TypeSystemInitializer.initialize();
+  await initialize();
 });
 
 describe("validateEntityType", () => {

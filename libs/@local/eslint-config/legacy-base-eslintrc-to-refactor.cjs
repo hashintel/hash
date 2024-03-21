@@ -6,7 +6,6 @@ module.exports = {
   plugins: [
     "@typescript-eslint",
     "canonical",
-    "jest",
     "react-hooks",
     "simple-import-sort",
     "unicorn",
@@ -303,10 +302,8 @@ module.exports = {
         "**/__mocks__/**",
         "**/testUtils/**",
         "*.test.{j,t}s{x,}",
-        "jest.setup.ts",
       ],
       env: {
-        "jest/globals": true,
         node: true,
       },
       rules: {

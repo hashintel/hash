@@ -1,38 +1,60 @@
 ---
-title: Overview
+title: Simulations
 slug: simulation
 objectId: d9e39386-bfd1-4bfb-a647-4d07e93b6150
 description: Getting started with simulations in HASH
 ---
 
-[HASH](/) was designed as an end-to-end solution for quickly creating massive, rich, real-time simulations.
-
 <Hint style="warning">
 
-We're still working on support for simulations in HASH. The docs in this section refer to building agent-based models that run in hEngine and hCore, standalone tools we've released (for use by developers) which exist independently of the main HASH application.
+The docs in this section refer to building agent-based models that run in hEngine and hCore, standalone tools we've released (for use by developers) which exist independently of the main HASH application. The capabilities they provide access to will be integrated into HASH at a later date.
 
 </Hint>
 
-You can use HASH's simulation tools to build rich, detailed, agent-based simulations of [factory floors](/@hash/warehouse-conveyor1), [business processes](/@hash/interconnected-call-center), [public policy decisions](/@b/sir-infection-network-w-rapid-tests), or any other type of complex system you can imagine.
+## Overview
+
+[HASH](/) is designed as an end-to-end solution for quickly creating massive, rich, real-time simulations.
+
+Currently, as a developer you can use HASH's standalone simulation tools to build rich, detailed, agent-based simulations of [factory floors](https://simulation.hash.ai/@hash/warehouse-conveyor1), [business processes](https://simulation.hash.ai/@hash/interconnected-call-center), [public policy decisions](https://simulation.hash.ai/@b/sir-infection-network-w-rapid-tests), or any other type of complex system you can imagine.
 
 Our simulation docs are split into:
 
-- Create
-- Discover
-- Run
+- [Creating a simulation](/docs/simulations/create)
+- [Running simulations](/docs/simulations/run)
 
 ## Future Plans
 
-Functionality various 'views' (geospatial/3D, charting/plotting)
-Entities in webs can be easily accessed via the HASH API, and instantiated directly in simulations without data processing.
+While HASH's simulation engine (hEngine) and IDE (hCore) currently exist as standalone projects, their functionality will be integrated to the core HASH application.
+
+This will allow us to offer a number of key improvements over simulations currently runnable using hEngine and hCore.
+
+### Better, easier-to-create simulations
+
+With Generative AI, we're able to deliver a much-improved agent-based modeling experience:
+
+- **More easily define simulation behaviors:** domain experts will be able to define agents' behaviors using natural language, convertible to Python/JavaScript/Rust code executable in HASH.
+- **Ready-to-go simulation agents:** simulation variables, agents and their attributes can be be instantiated at the point of need, based on semantic [entities](https://hash.ai/guide/entities) already in your [web](https://hash.ai/guide/webs), without the need for any data pre-processing.
+- **Runtime dynamism:** unhandled scenarios that occur within simulations can be automatically handeld by allowing generative AI to program an agents' next steps.
+- **Generative 3D assets:** unique 3D-generated representations of entities can be generated based on its attributes, bringing visualizations to life (custom meshes, textures, and in the future animations)
+
+### More powerful simulations
+
+- **Human-in-the-loop simulation:** unhandled scenarios that occur within simulations can be identified, and execution paused for domain expert input.
+- **Automatic continuous calibration:** models' initial states are automatically inferred based on the latest live data in a HASH web.
+- **Cloud execution platform:** simulation runs and experiments will be executable as part of [flows](https://hash.ai/guide/flows). _Previously available as [hCloud](https://hash.dev/docs/simulations/run/cloud)._
+
+### More useful outputs
+
+- **Better views:** existing, seprated views (Geospatial/3D and the Step Explorer/Charts) will be integrated into more powerful, combined views -- allowing 3D assets to be overlaid on maps, and providing access to more featureful charts and graphs.
+- **API-accessible outputs:** entities in webs can be easily accessed via the HASH API.
 
 ## Getting Started
 
-As a new user, the best way to learn more about agent-based modeling is to [read up on the basics](/docs/simulation/creating-simulations/agent-based-modeling-basics-1), and try your hand at the [simulation tutorials](/docs/simulation/tutorials/hello-hash). You can also browse our public registry of [pre-built HASH models](/models?sort=popularity&query=%40hash) to find ones with interesting dynamics that you can freely use and adapt for your own needs.
+As a new user, the best way to learn more about agent-based modeling is to [read up on the basics](/docs/simulations/create/abm), and try your hand at the [simulation tutorials](/docs/simulations/tutorials/hello-hash). You can also browse our public registry of [pre-built HASH models](/models?sort=popularity&query=%40hash) to find ones with interesting dynamics that you can freely use and adapt for your own needs.
 
 If you've used other simulation modeling software before, you might find that models built in HASH are a little different to those you're used to seeing.
 
-HASH leverages composable [agents](/docs/simulation/creating-simulations/anatomy-of-an-agent/), [behaviors](/docs/simulation/creating-simulations/behaviors/) and types to make it fast and easy to create realistic, well-calibrated simulations.
+HASH leverages composable [agents](/docs/simulations/create/agents/), [behaviors](/docs/simulations/create/behaviors/) and types to make it fast and easy to create realistic, well-calibrated simulations.
 
 ## Simulation Engine
 
@@ -40,8 +62,8 @@ HASH leverages composable [agents](/docs/simulation/creating-simulations/anatomy
 
 ## Simulation IDE
 
-**hCore** is a browser-based integrated development environment (IDE) for building agent-based models and running simulations. It provides a temporary graphical user interface for working with simulations until such time as they are natively supported within HASH itself. hCore will ultimately be deprecated, and is no longer officially maintained.
+[**hCore**](/docs/simulations/ide) is a browser-based integrated development environment (IDE) for building agent-based models and running simulations. It provides a temporary graphical user interface for working with simulations until such time as they are natively supported within HASH itself. hCore will ultimately be deprecated, and is no longer officially supported by HASH.
 
 ## Getting Help
 
-If you need help or support with simulations, check out our [community support forum](https://hash.ai/discord), or reach out to us directly via our [contact page](https://hash.ai/contact).
+We're not yet offering general support for developing simulations in HASH. However, if you need help with a simulation, or have questions about using HASH for simulations, feel free to [contact us](https://hash.ai/contact) directly at any time, or ask a question on our [Discord community forum](https://hash.ai/discord).

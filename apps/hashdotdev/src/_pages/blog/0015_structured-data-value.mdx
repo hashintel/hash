@@ -1,8 +1,8 @@
 ---
 authors:
-  - name: David Wilkinson
+  - name: Dei Vilkinsons
     jobTitle: CEO & Founder, HASH
-    photo: blog/authors/david-wilkinson.jpg
+    photo: blog/authors/dei-vilkinsons.webp
 postPhoto: blog/0015_structured-data-value/0015_structured-data-value.webp
 title: "The long-term value of structured data"
 subtitle: "Structured data's evolving, persistent value in a world with large machine learning models"
@@ -72,11 +72,11 @@ The first big blocker we encountered was the shape of folks' existing data. Of a
 
 The second major blocker to mainstream development and adoption of simulation is one of coordination. Simulations have historically required handoff between:
 
-1.  data engineers and analysts who make the data available which is required to instantiate 'agents' in a simulation, and hydrate them with 'properties' that describe them accurately;
-2.  programmers who're able to encode subject matter expertise _in code_ that provides 'behavioral logic' to the agents, and define the environment within which they reside;
-3.  domain experts, who understand how the target system functions, and can actually provide the subject matter expertise and model design required;
-4.  data scientists, who run the actual experiments required to derive real insight from probabilistic models; and
-5.  decision makers, who are understandably deeply skeptical of whiz-bang simulation models that promise to predict the future. It's "shit in, shit out" with these things, and with so many steps and people involved, by the time a model has been built and experiments run it's entirely fair (and a good idea) to have questions about model integrity.
+1. data engineers and analysts who make the data available which is required to instantiate 'agents' in a simulation, and hydrate them with 'properties' that describe them accurately;
+2. programmers who're able to encode subject matter expertise _in code_ that provides 'behavioral logic' to the agents, and define the environment within which they reside;
+3. domain experts, who understand how the target system functions, and can actually provide the subject matter expertise and model design required;
+4. data scientists, who run the actual experiments required to derive real insight from probabilistic models; and
+5. decision makers, who are understandably deeply skeptical of whiz-bang simulation models that promise to predict the future. It's "shit in, shit out" with these things, and with so many steps and people involved, by the time a model has been built and experiments run it's entirely fair (and a good idea) to have questions about model integrity.
 
 The number of different stakeholders, and amount of multi-party communication involved in a single iteration loop required to make simulation models accurate _and useful_ often proved killer to getting simulations off the ground. The average model has historically required many such iterations.
 
@@ -124,7 +124,7 @@ If you're familiar with graph theory, you can think of standard entities as vert
 
 **Data types** describe a space of possible valid values (e.g. `string`, `number` or `boolean`). They allow for validation logic to be shared amongst different kinds of property types which represent semantically different things.
 
-At the moment, data types are fixed and defined in the specification, but we're working towards unlocking user-defined custom data types (e.g. numbers within a certain range, or strings matching a certain pattern) beyond those already found in the Block Protocol's [graph module specification](https://blockprotocol.org/docs/spec/graph). Read the [draft RFC](https://github.com/blockprotocol/blockprotocol/pull/355) to learn more.
+At the moment, data types are fixed and defined in the specification, but we're working towards unlocking user-defined custom data types (e.g. numbers within a certain range, or strings matching a certain pattern) beyond those already found in the Block Protocol's [graph module specification](https://blockprotocol.org/spec/graph). Read the [draft RFC](https://github.com/blockprotocol/blockprotocol/pull/355) to learn more.
 
 #### What else?
 
@@ -136,7 +136,7 @@ Building a simulation or other model from a set of strongly typed data equally i
 
 In all agent-to-agent communications (human-human, machine-machine, and human-machine), ontologies of types enable improved mutual understanding by formalizing and standardizing definitions of things and streamlining communication around them.
 
-Asking for model outputs to be provided in accordance with sets of user-created types helps keep generative models focused, and improves the usability of their outputs. The fact that OpenAI raced to release [function calling](https://platform.openai.com/docs/guides/gpt/function-calling) before making fine-tuning generally available with its GPT-3.5 and GPT-4 models was indicative of the demand for structured outputs from generative models, and the difficulty current-generation foundation models have (absent fine-tuning) to reliably adhere to even _explicit_ system prompts and user instructions.
+Asking for model outputs to be provided in accordance with sets of user-created types helps keep generative models focused, and improves the usability of their outputs. The fact that OpenAI raced to release [function calling](https://platform.openai.com/docs/guides/function-calling) before making fine-tuning generally available with its GPT-3.5 and GPT-4 models was indicative of the demand for structured outputs from generative models, and the difficulty current-generation foundation models have (absent fine-tuning) to reliably adhere to even _explicit_ system prompts and user instructions.
 
 In a world where it is easier than ever to create new [blocks](https://blockprotocol.org/hub) and [simulations](https://hash.ai/simulation) with natural language code generators, the potential for a proliferation of standalone software that is **difficult to rely on** or **interconnect in predictable and verifiable ways** becomes huge.
 
