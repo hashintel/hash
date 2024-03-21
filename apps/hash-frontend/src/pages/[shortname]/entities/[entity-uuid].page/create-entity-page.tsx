@@ -159,7 +159,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
         setDraftLinksToArchive={setDraftLinksToArchive}
         entitySubgraph={draftEntitySubgraph}
         readonly={false}
-        replaceWithLatestDbVersion={async () => {}}
+        onEntityUpdated={() => {}}
       />
     </>
   );

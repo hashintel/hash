@@ -138,7 +138,7 @@ export const EditEntityModal = ({
 
       <EntityEditor
         readonly={false}
-        replaceWithLatestDbVersion={async () => {}}
+        onEntityUpdated={() => {}}
         entitySubgraph={localEntitySubgraph}
         setEntity={(entity) => {
           setIsDirty(true);

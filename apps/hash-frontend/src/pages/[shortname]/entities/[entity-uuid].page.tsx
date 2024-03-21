@@ -37,6 +37,7 @@ import type {
 } from "../../../graphql/api-types.gen";
 import type { NextPageWithLayout } from "../../../shared/layout";
 import { getLayoutWithSidebar } from "../../../shared/layout";
+import { generateEntityHref } from "../../shared/use-entity-href";
 import { EditBar } from "../shared/edit-bar";
 import { useRouteNamespace } from "../shared/use-route-namespace";
 import { EntityEditorPage } from "./[entity-uuid].page/entity-editor-page";
@@ -190,6 +191,7 @@ const Page: NextPageWithLayout = () => {
               setEntitySubgraphFromDb(subgraph);
               setDraftEntitySubgraph(subgraph);
               setIsReadOnly(
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                 !data.getEntity.userPermissionsOnEntities?.[entityId]?.edit,
               );
             } catch {
@@ -207,7 +209,7 @@ const Page: NextPageWithLayout = () => {
     }
   }, [draftId, entityUuid, getEntity, getEntityType, routeNamespace]);
 
-  const refetch = async () => {
+  const refetch = useCallback(async () => {
     if (!routeNamespace || !draftEntitySubgraph) {
       return;
     }
@@ -228,7 +230,7 @@ const Page: NextPageWithLayout = () => {
 
     setEntitySubgraphFromDb(subgraph);
     setDraftEntitySubgraph(subgraph);
-  };
+  }, [draftEntitySubgraph, draftId, entityUuid, getEntity, routeNamespace]);
 
   const resetDraftState = () => {
     setIsDirty(false);
@@ -286,6 +288,38 @@ const Page: NextPageWithLayout = () => {
     resetDraftState();
   };
 
+  const onEntityUpdated = useCallback(
+    (entity: Entity) => {
+      if (!routeNamespace?.shortname) {
+        return;
+      }
+
+      const { entityId } = entity.metadata.recordId;
+      const latestDraftId = extractDraftIdFromEntityId(entityId);
+
+      if (latestDraftId !== draftId) {
+        /**
+         * If the entity either no longer has a draftId when it did before,
+         * or has a draftId when it didn't before,
+         * we need to update the router params. This will trigger the effect which fetches the entity.
+         */
+        const entityHref = generateEntityHref({
+          shortname: routeNamespace.shortname,
+          entityId,
+          includeDraftId: !!latestDraftId,
+        });
+        void router.push(entityHref);
+        return;
+      }
+
+      /**
+       * If the entityId hasn't changed we can just refetch
+       */
+      void refetch();
+    },
+    [draftId, refetch, router, routeNamespace],
+  );
+
   if (loading) {
     return <EntityPageLoadingState />;
   }
@@ -336,7 +370,7 @@ const Page: NextPageWithLayout = () => {
       setDraftLinksToArchive={setDraftLinksToArchive}
       entitySubgraph={draftEntitySubgraph}
       readonly={isReadOnly}
-      replaceWithLatestDbVersion={refetch}
+      onEntityUpdated={(entity) => onEntityUpdated(entity)}
       setEntity={(changedEntity) => {
         setIsDirty(true);
         updateEntitySubgraphStateByEntity(
