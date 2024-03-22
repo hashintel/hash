@@ -2,7 +2,7 @@ import type {
   Client as TemporalClient,
   WorkflowExecutionInfo,
 } from "@temporalio/client";
-import { temporal } from "@temporalio/proto";
+import * as proto from "@temporalio/proto";
 
 import { isProdEnv } from "../../../lib/env-config";
 import type {
@@ -16,7 +16,7 @@ import { FlowStepStatus } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
 
 const parseHistoryItemPayload = (
-  inputOrResults: temporal.api.common.v1.IPayloads | null | undefined,
+  inputOrResults: proto.temporal.api.common.v1.IPayloads | null | undefined,
 ) =>
   inputOrResults?.payloads
     ?.map(({ data }) => {
@@ -28,7 +28,7 @@ const parseHistoryItemPayload = (
     .filter((item) => item !== undefined);
 
 const eventTimeIsoStringFromEvent = (
-  event?: temporal.api.history.v1.IHistoryEvent,
+  event?: proto.temporal.api.history.v1.IHistoryEvent,
 ) => {
   const { eventTime } = event ?? {};
   if (!eventTime?.seconds) {
@@ -45,14 +45,14 @@ const eventTimeIsoStringFromEvent = (
  * Get details from an ActivityTaskScheduledEvent
  */
 const getActivityScheduledDetails = (
-  event: temporal.api.history.v1.IHistoryEvent,
+  event: proto.temporal.api.history.v1.IHistoryEvent,
 ) => {
   if (
     event.eventType !==
-    temporal.api.enums.v1.EventType.EVENT_TYPE_ACTIVITY_TASK_SCHEDULED
+    proto.temporal.api.enums.v1.EventType.EVENT_TYPE_ACTIVITY_TASK_SCHEDULED
   ) {
     throw new Error(
-      `Unexpected event type ${event.eventType}, expected ${temporal.api.enums.v1.EventType.EVENT_TYPE_ACTIVITY_TASK_SCHEDULED}`,
+      `Unexpected event type ${event.eventType}, expected ${proto.temporal.api.enums.v1.EventType.EVENT_TYPE_ACTIVITY_TASK_SCHEDULED}`,
     );
   }
 
@@ -84,14 +84,14 @@ const getActivityScheduledDetails = (
  * and tells us when it was last scheduled.
  */
 const getActivityStartedDetails = (
-  events: temporal.api.history.v1.IHistoryEvent[],
+  events: proto.temporal.api.history.v1.IHistoryEvent[],
   attributes:
-    | temporal.api.history.v1.IActivityTaskStartedEventAttributes
-    | temporal.api.history.v1.IActivityTaskCompletedEventAttributes
-    | temporal.api.history.v1.IActivityTaskCanceledEventAttributes
-    | temporal.api.history.v1.IActivityTaskCancelRequestedEventAttributes
-    | temporal.api.history.v1.IActivityTaskTimedOutEventAttributes
-    | temporal.api.history.v1.IActivityTaskFailedEventAttributes,
+    | proto.temporal.api.history.v1.IActivityTaskStartedEventAttributes
+    | proto.temporal.api.history.v1.IActivityTaskCompletedEventAttributes
+    | proto.temporal.api.history.v1.IActivityTaskCanceledEventAttributes
+    | proto.temporal.api.history.v1.IActivityTaskCancelRequestedEventAttributes
+    | proto.temporal.api.history.v1.IActivityTaskTimedOutEventAttributes
+    | proto.temporal.api.history.v1.IActivityTaskFailedEventAttributes,
 ) => {
   const { scheduledEventId } = attributes;
 
@@ -99,7 +99,8 @@ const getActivityStartedDetails = (
     (item) =>
       item.eventId?.toString() === scheduledEventId?.toString() &&
       item.eventType ===
-        temporal.api.enums.v1.EventType.EVENT_TYPE_ACTIVITY_TASK_SCHEDULED,
+        proto.temporal.api.enums.v1.EventType
+          .EVENT_TYPE_ACTIVITY_TASK_SCHEDULED,
   );
 
   if (!scheduledEvent) {
@@ -112,7 +113,8 @@ const getActivityStartedDetails = (
   const startedEvent = events.findLast(
     (item) =>
       item.eventType ===
-        temporal.api.enums.v1.EventType.EVENT_TYPE_ACTIVITY_TASK_STARTED &&
+        proto.temporal.api.enums.v1.EventType
+          .EVENT_TYPE_ACTIVITY_TASK_STARTED &&
       item.activityTaskStartedEventAttributes?.scheduledEventId?.toString() ===
         scheduledEventId?.toString(),
   );
@@ -142,7 +144,8 @@ const mapTemporalWorkflowToFlowStatus = async (
     events?.find(
       (event) =>
         event.eventType ===
-        temporal.api.enums.v1.EventType.EVENT_TYPE_WORKFLOW_EXECUTION_STARTED,
+        proto.temporal.api.enums.v1.EventType
+          .EVENT_TYPE_WORKFLOW_EXECUTION_STARTED,
     )?.workflowExecutionStartedEventAttributes?.input,
   );
 
@@ -150,7 +153,8 @@ const mapTemporalWorkflowToFlowStatus = async (
     events?.find(
       (event) =>
         event.eventType ===
-        temporal.api.enums.v1.EventType.EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED,
+        proto.temporal.api.enums.v1.EventType
+          .EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED,
     )?.workflowExecutionCompletedEventAttributes?.result,
   );
 
@@ -211,20 +215,21 @@ const mapTemporalWorkflowToFlowStatus = async (
       stepMap[activityId] = activityRecord;
 
       switch (event.eventType) {
-        case temporal.api.enums.v1.EventType
+        case proto.temporal.api.enums.v1.EventType
           .EVENT_TYPE_ACTIVITY_TASK_SCHEDULED: {
           activityRecord.status = FlowStepStatus.Scheduled;
           break;
         }
 
-        case temporal.api.enums.v1.EventType.EVENT_TYPE_ACTIVITY_TASK_STARTED: {
+        case proto.temporal.api.enums.v1.EventType
+          .EVENT_TYPE_ACTIVITY_TASK_STARTED: {
           activityRecord.status = FlowStepStatus.Started;
           activityRecord.lastFailure =
             event.activityTaskStartedEventAttributes?.lastFailure;
           break;
         }
 
-        case temporal.api.enums.v1.EventType
+        case proto.temporal.api.enums.v1.EventType
           .EVENT_TYPE_ACTIVITY_TASK_COMPLETED: {
           activityRecord.status = FlowStepStatus.Completed;
           activityRecord.outputs =
@@ -235,7 +240,8 @@ const mapTemporalWorkflowToFlowStatus = async (
           break;
         }
 
-        case temporal.api.enums.v1.EventType.EVENT_TYPE_ACTIVITY_TASK_FAILED: {
+        case proto.temporal.api.enums.v1.EventType
+          .EVENT_TYPE_ACTIVITY_TASK_FAILED: {
           activityRecord.status = FlowStepStatus.Failed;
           activityRecord.lastFailure =
             event.activityTaskFailedEventAttributes?.failure;
@@ -245,7 +251,7 @@ const mapTemporalWorkflowToFlowStatus = async (
           break;
         }
 
-        case temporal.api.enums.v1.EventType
+        case proto.temporal.api.enums.v1.EventType
           .EVENT_TYPE_ACTIVITY_TASK_TIMED_OUT: {
           activityRecord.status = FlowStepStatus.TimedOut;
           activityRecord.lastFailure =
@@ -256,14 +262,14 @@ const mapTemporalWorkflowToFlowStatus = async (
           break;
         }
 
-        case temporal.api.enums.v1.EventType
+        case proto.temporal.api.enums.v1.EventType
           .EVENT_TYPE_ACTIVITY_TASK_CANCELED: {
           activityRecord.status = FlowStepStatus.Canceled;
           activityRecord.closedAt = eventTimeIsoStringFromEvent(event);
           break;
         }
 
-        case temporal.api.enums.v1.EventType
+        case proto.temporal.api.enums.v1.EventType
           .EVENT_TYPE_ACTIVITY_TASK_CANCEL_REQUESTED: {
           activityRecord.status = FlowStepStatus.CancelRequested;
           break;
