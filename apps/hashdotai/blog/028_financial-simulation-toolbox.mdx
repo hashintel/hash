@@ -313,7 +313,7 @@ We use the Black-Scholes equation to value the options based on parameters inclu
 
 To write your own strategy, all you have to do is write a new behavior file in JavaScript, modeled on the strategies written above. The agent’s behavior should take in a **state** and **context** as input, and use the `context.neighbours` to view the agent’s neighbours which will be its trading partners.
 
-The agent can only modify its own state. To learn more about how behaviors work, we recommend you check out the [docs](https://hash.dev/docs/simulations/creating-simulations/anatomy-of-an-agent).
+The agent can only modify its own state. To learn more about how behaviors work, we recommend you check out the [docs](https://hash.dev/docs/simulations/create/agents).
 
 To make a trade, simply set the parameters `trade`, `price` and `trade_partner` using your own code, and add it to the array `state.trades`.
 

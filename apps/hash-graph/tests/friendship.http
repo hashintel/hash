@@ -1768,7 +1768,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 %}
 
 ### Update Person entity
-PUT http://127.0.0.1:4000/entities
+PATCH http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
@@ -1776,11 +1776,13 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 {
   "entityId": "{{person_a_entity_id}}",
   "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/person/v/2"],
-  "properties": {
-    "http://localhost:3000/@alice/types/property-type/name/": "Alice Allison 3"
-  },
-  "archived": false,
-  "draft": false
+  "properties": [
+    {
+      "op": "replace",
+      "path": "/http:~1~1localhost:3000~1@alice~1types~1property-type~1name~1",
+      "value": "Alice Allison 3"
+    }
+  ]
 }
 
 > {%
@@ -2063,7 +2065,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 %}
 
 ### Publish second person entity
-PUT http://127.0.0.1:4000/entities
+PATCH http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
@@ -2071,11 +2073,13 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 {
   "entityId": "{{person_b_entity_id}}",
   "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/person/v/2"],
-  "properties": {
-    "http://localhost:3000/@alice/types/property-type/name/": "Bob"
-  },
-  "archived": false,
-  "draft": false
+  "properties": [
+    {
+      "op": "replace",
+      "path": "/http:~1~1localhost:3000~1@alice~1types~1property-type~1name~1",
+      "value": "Bob"
+    }
+  ]
 }
 
 > {%
@@ -2086,7 +2090,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 %}
 
 ### publish Link entity
-PUT http://127.0.0.1:4000/entities
+PATCH http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
@@ -2094,8 +2098,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 {
   "entityId": "{{link_entity_id}}",
   "entityTypeIds": ["{{friendship_link_entity_type_id}}"],
-  "properties": {},
-  "archived": false,
   "draft": false
 }
 
@@ -2269,19 +2271,14 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 %}
 
 ### Archive an entity
-PUT http://127.0.0.1:4000/entities
+PATCH http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "entityId": "{{person_b_entity_id}}",
-  "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/person/v/1"],
-  "properties": {
-    "http://localhost:3000/@alice/types/property-type/name/": "Bob"
-  },
-  "archived": true,
-  "draft": false
+  "archived": true
 }
 
 > {%
@@ -2423,7 +2420,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         }
       }
     },
-    "includeDrafts": false
+    "includeDrafts": true
   }
 }
 
@@ -2868,20 +2865,22 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 %}
 
 ### Update third Person entity
-PUT http://127.0.0.1:4000/entities
+PATCH http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "entityId": "{{person_c_entity_id}}",
+  "decisionTime": "2020-01-02T00:00:00.000Z",
   "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/person/v/2"],
-  "properties": {
-    "http://localhost:3000/@alice/types/property-type/name/": "Charles 2 draft"
-  },
-  "archived": false,
-  "draft": true,
-  "decisionTime": "2020-01-02T00:00:00.000Z"
+  "properties": [
+    {
+      "op": "replace",
+      "path": "/http:~1~1localhost:3000~1@alice~1types~1property-type~1name~1",
+      "value": "Charles 2 draft"
+    }
+  ]
 }
 
 > {%
@@ -2892,20 +2891,22 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 %}
 
 ### Publish third Person entity
-PUT http://127.0.0.1:4000/entities
+PATCH http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "entityId": "{{person_c_entity_id_draft}}",
-  "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/person/v/2"],
-  "properties": {
-    "http://localhost:3000/@alice/types/property-type/name/": "Charles 2"
-  },
-  "archived": false,
-  "draft": false,
-  "decisionTime": "2020-01-03T00:00:00.000Z"
+  "decisionTime": "2020-01-03T00:00:00.000Z",
+  "properties": [
+    {
+      "op": "replace",
+      "path": "/http:~1~1localhost:3000~1@alice~1types~1property-type~1name~1",
+      "value": "Charles 2"
+    }
+  ],
+  "draft": false
 }
 
 > {%

@@ -19,6 +19,7 @@ import {
 import type { ConstructPropertyTypeParams } from "@local/hash-isomorphic-utils/types";
 import type { OwnedById, PropertyTypeWithMetadata } from "@local/hash-subgraph";
 import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import {
@@ -27,8 +28,6 @@ import {
   createTestUser,
   textDataTypeId,
 } from "../../../util";
-
-jest.setTimeout(60000);
 
 const logger = new Logger({
   mode: "dev",

@@ -32,6 +32,7 @@ use graph_types::{
     Embedding,
 };
 use hash_status::StatusCode;
+use json_patch::patch;
 use postgres_types::{Json, ToSql};
 use temporal_client::TemporalClient;
 use temporal_versioning::{
@@ -51,7 +52,7 @@ use crate::{
         error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
         knowledge::{
             CreateEntityParams, EntityQueryCursor, EntityQuerySorting, EntityValidationType,
-            GetEntityParams, UpdateEntityEmbeddingsParams, UpdateEntityParams, ValidateEntityError,
+            GetEntityParams, PatchEntityParams, UpdateEntityEmbeddingsParams, ValidateEntityError,
             ValidateEntityParams,
         },
         postgres::{
@@ -1048,12 +1049,12 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     }
 
     #[tracing::instrument(level = "info", skip(self, authorization_api, temporal_client, params))]
-    async fn update_entity<A: AuthorizationApi + Send + Sync>(
+    async fn patch_entity<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
         temporal_client: Option<&TemporalClient>,
-        mut params: UpdateEntityParams,
+        mut params: PatchEntityParams,
     ) -> Result<EntityMetadata, UpdateError> {
         let entity_type_ids = params
             .entity_type_ids
@@ -1141,18 +1142,31 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .entity_id
             .draft_id
             .is_some();
+        let draft = params.draft.unwrap_or(was_draft_before);
+        let archived = params.archived.unwrap_or(previous_entity.metadata.archived);
+        let entity_type_ids = if params.entity_type_ids.is_empty() {
+            previous_entity.metadata.entity_type_ids
+        } else {
+            params.entity_type_ids
+        };
+        let mut properties =
+            serde_json::to_value(previous_entity.properties).change_context(UpdateError)?;
+        patch(&mut properties, &params.properties).change_context(UpdateError)?;
+        let properties = serde_json::from_value(properties).change_context(UpdateError)?;
+
+        let link_data = previous_entity.link_data;
 
         let (edition_id, closed_schema) = transaction
             .insert_entity_edition(
                 EditionCreatedById::new(actor_id),
-                params.archived,
-                &params.entity_type_ids,
-                &params.properties,
+                archived,
+                &entity_type_ids,
+                &properties,
             )
             .await
             .change_context(UpdateError)?;
 
-        let temporal_versioning = match (was_draft_before, params.draft) {
+        let temporal_versioning = match (was_draft_before, draft) {
             (true, true) | (false, false) => {
                 // regular update
                 transaction
@@ -1193,14 +1207,14 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         .as_client()
                         .query_one(
                             "
-                        UPDATE entity_ids
-                        SET first_non_draft_created_at_decision_time = $1,
-                            first_non_draft_created_at_transaction_time = now()
-                        WHERE web_id = $2
-                          AND entity_uuid = $3
-                        RETURNING first_non_draft_created_at_decision_time, \
-                             first_non_draft_created_at_transaction_time;
-                        ",
+                            UPDATE entity_ids
+                            SET first_non_draft_created_at_decision_time = $1,
+                                first_non_draft_created_at_transaction_time = now()
+                            WHERE web_id = $2
+                              AND entity_uuid = $3
+                            RETURNING first_non_draft_created_at_decision_time,
+                                      first_non_draft_created_at_transaction_time;
+                            ",
                             &[
                                 &locked_row.updated_at_decision_time,
                                 &params.entity_id.owned_by_id,
@@ -1226,7 +1240,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             }
         };
 
-        let validation_profile = if params.draft {
+        let validation_profile = if draft {
             ValidationProfile::Draft
         } else {
             ValidationProfile::Full
@@ -1239,15 +1253,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 Consistency::FullyConsistent,
                 ValidateEntityParams {
                     entity_types: EntityValidationType::ClosedSchema(Cow::Borrowed(&closed_schema)),
-                    properties: Cow::Borrowed(&params.properties),
-                    link_data: previous_entity
-                        .link_data
-                        .map(|link_data| LinkData {
-                            left_entity_id: link_data.left_entity_id,
-                            right_entity_id: link_data.right_entity_id,
-                        })
-                        .as_ref()
-                        .map(Cow::Borrowed),
+                    properties: Cow::Borrowed(&properties),
+                    link_data: link_data.as_ref().map(Cow::Borrowed),
                     profile: validation_profile,
                 },
             )
@@ -1263,7 +1270,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 edition_id,
             },
             temporal_versioning,
-            entity_type_ids: params.entity_type_ids,
+            entity_type_ids,
             provenance: EntityProvenanceMetadata {
                 created_by_id: previous_entity.metadata.provenance.created_by_id,
                 created_at_transaction_time: previous_entity
@@ -1280,20 +1287,15 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     created_by_id: EditionCreatedById::new(actor_id),
                 },
             },
-            archived: params.archived,
+            archived,
         };
         if let Some(temporal_client) = temporal_client {
             temporal_client
                 .start_update_entity_embeddings_workflow(
                     actor_id,
                     &[Entity {
-                        properties: params.properties,
-                        link_data: previous_entity
-                            .link_data
-                            .map(|previous_link_data| LinkData {
-                                left_entity_id: previous_link_data.left_entity_id,
-                                right_entity_id: previous_link_data.right_entity_id,
-                            }),
+                        properties,
+                        link_data,
                         metadata: entity_metadata.clone(),
                     }],
                 )

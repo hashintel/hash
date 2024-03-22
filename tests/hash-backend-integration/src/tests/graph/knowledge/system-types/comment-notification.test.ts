@@ -18,6 +18,7 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import type { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { OwnedById } from "@local/hash-subgraph";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import {
@@ -26,8 +27,6 @@ import {
   createTestUser,
   waitForAfterHookTriggerToComplete,
 } from "../../../util";
-
-jest.setTimeout(60000);
 
 const logger = new Logger({
   mode: "dev",

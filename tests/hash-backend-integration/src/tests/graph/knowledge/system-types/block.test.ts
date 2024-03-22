@@ -20,11 +20,10 @@ import type {
   EntityTypeWithMetadata,
   OwnedById,
 } from "@local/hash-subgraph";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
-
-jest.setTimeout(60000);
 
 const logger = new Logger({
   mode: "dev",

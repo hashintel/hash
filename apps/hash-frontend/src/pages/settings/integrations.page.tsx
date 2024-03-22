@@ -8,8 +8,8 @@ import { extractOwnedById } from "../../lib/user-and-org";
 import type { NextPageWithLayout } from "../../shared/layout";
 import { Link } from "../../shared/ui";
 import { Button } from "../../shared/ui/button";
+import { getSettingsLayout } from "../shared/settings-layout";
 import { WorkspaceContext } from "../shared/workspace-context";
-import { getSettingsLayout } from "./shared/settings-layout";
 import { SettingsPageContainer } from "./shared/settings-page-container";
 
 type IntegrationCardProps = {
