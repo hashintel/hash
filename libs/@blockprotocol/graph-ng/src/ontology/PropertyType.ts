@@ -18,6 +18,7 @@ import { encodeSchema } from "./PropertyType/encode.js";
 import { EncodeError } from "./PropertyType/error.js";
 import { PropertyTypeSchema } from "./PropertyType/schema.js";
 import * as PropertyTypeUrl from "./PropertyTypeUrl.js";
+import { globalValue } from "effect/GlobalValue";
 
 const TypeId: unique symbol = Symbol.for(
   "@blockprotocol/graph/ontology/PropertyType",
@@ -51,7 +52,6 @@ export interface PropertyType<
 export interface LazyPropertyType<
   Out,
   In = Out,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Id extends PropertyTypeUrl.PropertyTypeUrl = PropertyTypeUrl.PropertyTypeUrl,
   R = never,
 > {
@@ -115,6 +115,11 @@ const PropertyTypeProto: Omit<PropertyTypeImpl<unknown>, "id" | "schema"> = {
   },
 };
 
+const schemaStorage = globalValue(
+  Symbol.for("@blockprotocol/graph/ontology/PropertyType/schemaStorage"),
+  () => new WeakMap<PropertyType<unknown>, PropertyTypeSchema>(),
+);
+
 export function isPropertyType(value: unknown): value is PropertyType<unknown> {
   return Predicate.hasProperty(value, TypeId);
 }
@@ -157,6 +162,9 @@ export function make<
 
   return pipe(
     toSchemaImpl(impl.schema),
+    Effect.tap((schema) =>
+      schemaStorage.set(impl as unknown as PropertyType<unknown>, schema),
+    ),
     Effect.map(() => impl),
   );
 }
@@ -246,6 +254,11 @@ export function toSchema<
 >(
   propertyType: PropertyType<Out, In, Id, R>,
 ): Effect.Effect<PropertyTypeSchema, EncodeError> {
+  const unknownDataType = propertyType as unknown as PropertyType<unknown>;
+  if (schemaStorage.has(unknownDataType)) {
+    return Effect.succeed(schemaStorage.get(unknownDataType)!);
+  }
+
   return toSchemaImpl(propertyType.schema);
 }
 

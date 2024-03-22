@@ -102,19 +102,19 @@ export const DecodeErrorReason = Data.taggedEnum<DecodeErrorReason>();
 export class DecodeError extends Data.TaggedError(
   "@blockprotocol/graph/PropertyType/DecodeError",
 )<{ reason: DecodeErrorReason }> {
-  static encode(cause: EncodeError): DecodeError {
+  static encode(this: void, cause: EncodeError): DecodeError {
     return new DecodeError({
       reason: DecodeErrorReason.Encode({ cause }),
     });
   }
 
-  static fetchDataType(cause: unknown): DecodeError {
+  static fetchDataType(this: void, cause: unknown): DecodeError {
     return new DecodeError({
       reason: DecodeErrorReason.FetchDataType({ cause }),
     });
   }
 
-  static fetchPropertyType(cause: unknown): DecodeError {
+  static fetchPropertyType(this: void, cause: unknown): DecodeError {
     return new DecodeError({
       reason: DecodeErrorReason.FetchPropertyType({ cause }),
     });
