@@ -48,6 +48,8 @@ const createNotification = async ({
     ownedById,
     properties: {
       "https://hash.ai/@hash/types/property-type/graph-change-type/": "create",
+      "https://hash.ai/@hash/types/property-type/entity-edition-id/":
+        targetEntity.metadata.temporalVersioning.decisionTime.start.limit,
     } as GraphChangeNotificationProperties,
     linkedEntities: [
       {
@@ -64,7 +66,7 @@ const createNotification = async ({
   return targetEntityTitle;
 };
 
-test("new notifications are shown on inbox page", async ({ page }) => {
+test.only("new notifications are shown on inbox page", async ({ page }) => {
   await loginUsingTempForm({
     page,
     userEmail: "alice@example.com",

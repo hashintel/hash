@@ -37,6 +37,7 @@ import type {
   Subgraph,
 } from "@local/hash-subgraph";
 import {
+  extractDraftIdFromEntityId,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   isEntityVertex,
@@ -509,7 +510,10 @@ export const createEntityWithLinks: ImpureGraphFunction<
           rightEntityId: entity.metadata.recordId.entityId,
           ownedById,
           relationships,
-          draft,
+          draft:
+            /** If either side of the link is a draft entity, the link entity must be draft also */
+            draft ||
+            !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
         });
       }
     }),
