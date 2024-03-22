@@ -1136,6 +1136,7 @@ dependencies = [
  "bytes",
  "graph-test-data",
  "postgres-types",
+    "pretty_assertions",
  "serde",
  "serde_json",
  "temporal-versioning",

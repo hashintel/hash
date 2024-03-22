@@ -33,6 +33,12 @@ impl fmt::Display for BaseUrl {
     }
 }
 
+impl From<BaseUrl> for String {
+    fn from(base_url: BaseUrl) -> Self {
+        base_url.0
+    }
+}
+
 impl BaseUrl {
     /// Creates a new [`BaseUrl`] from a given URL string
     ///

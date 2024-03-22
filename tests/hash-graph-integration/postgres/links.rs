@@ -1,5 +1,5 @@
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::entity::PropertyObject;
+use graph_types::knowledge::entity::EntityProperties;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
 use crate::DatabaseTestWrapper;
@@ -8,7 +8,7 @@ use crate::DatabaseTestWrapper;
 async fn insert() {
     let alice = serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity");
     let bob = serde_json::from_str(entity::PERSON_BOB_V1).expect("could not parse entity");
-    let friend_of = PropertyObject::empty();
+    let friend_of = EntityProperties::empty();
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
@@ -147,7 +147,7 @@ async fn get_entity_links() {
         .expect("could not create entity");
 
     api.create_link_entity(
-        PropertyObject::empty(),
+        EntityProperties::empty(),
         vec![friend_link_type_id.clone()],
         None,
         alice_metadata.record_id.entity_id,
@@ -157,7 +157,7 @@ async fn get_entity_links() {
     .expect("could not create link");
 
     api.create_link_entity(
-        PropertyObject::empty(),
+        EntityProperties::empty(),
         vec![acquaintance_entity_link_type_id.clone()],
         None,
         alice_metadata.record_id.entity_id,
@@ -259,7 +259,7 @@ async fn remove_link() {
 
     let link_entity_metadata = api
         .create_link_entity(
-            PropertyObject::empty(),
+            EntityProperties::empty(),
             vec![friend_link_type_id.clone()],
             None,
             alice_metadata.record_id.entity_id,

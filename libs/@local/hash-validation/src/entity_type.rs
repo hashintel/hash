@@ -3,7 +3,7 @@ use std::borrow::Borrow;
 use error_stack::{Report, ResultExt};
 use futures::{stream, StreamExt, TryStreamExt};
 use graph_types::knowledge::{
-    entity::{Entity, EntityId, PropertyObject},
+    entity::{Entity, EntityId, EntityProperties},
     link::LinkData,
 };
 use thiserror::Error;
@@ -47,7 +47,7 @@ pub enum EntityValidationError {
     InvalidLinkTargetId { target_types: Vec<VersionedUrl> },
 }
 
-impl<P> Schema<PropertyObject, P> for ClosedEntityType
+impl<P> Schema<EntityProperties, P> for ClosedEntityType
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -55,7 +55,7 @@ where
 
     async fn validate_value<'a>(
         &'a self,
-        value: &'a PropertyObject,
+        value: &'a EntityProperties,
         profile: ValidationProfile,
         provider: &'a P,
     ) -> Result<(), Report<EntityValidationError>> {
@@ -64,7 +64,7 @@ where
         //   see https://linear.app/hash/issue/BP-33
         Object::<_, 0>::new(self.properties.clone(), self.required.clone())
             .expect("`Object` was already validated")
-            .validate_value(value, profile, provider)
+            .validate_value(value.properties(), profile, provider)
             .await
             .change_context(EntityValidationError::InvalidProperties)
             .attach_lazy(|| Expected::EntityType(self.clone()))
@@ -72,7 +72,7 @@ where
     }
 }
 
-impl<P> Validate<ClosedEntityType, P> for PropertyObject
+impl<P> Validate<ClosedEntityType, P> for EntityProperties
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {

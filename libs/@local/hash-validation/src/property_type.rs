@@ -1,8 +1,8 @@
 use core::borrow::Borrow;
-use std::num::NonZeroUsize;
+use std::{collections::HashMap, num::NonZeroUsize};
 
 use error_stack::{bail, Report, ResultExt};
-use graph_types::knowledge::entity::{Property, PropertyObject};
+use graph_types::knowledge::entity::Property;
 use thiserror::Error;
 use type_system::{
     url::{BaseUrl, VersionedUrl},
@@ -250,7 +250,7 @@ where
     }
 }
 
-impl<P, const MIN: usize> Schema<PropertyObject, P>
+impl<P, const MIN: usize> Schema<HashMap<BaseUrl, Property>, P>
     for Object<ValueOrArray<PropertyTypeReference>, MIN>
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
@@ -259,13 +259,13 @@ where
 
     async fn validate_value<'a>(
         &'a self,
-        value: &'a PropertyObject,
+        value: &'a HashMap<BaseUrl, Property>,
         profile: ValidationProfile,
         provider: &'a P,
     ) -> Result<(), Report<Self::Error>> {
         let mut status: Result<(), Report<Self::Error>> = Ok(());
 
-        for (key, property) in value.properties() {
+        for (key, property) in value {
             if let Some(object_schema) = self.properties().get(key) {
                 if let Err(report) = object_schema
                     .validate_value(property, profile, provider)
@@ -288,7 +288,7 @@ where
 
         if profile == ValidationProfile::Full {
             for required_property in self.required() {
-                if !value.properties().contains_key(required_property) {
+                if !value.contains_key(required_property) {
                     extend_report!(
                         status,
                         PropertyValidationError::MissingRequiredProperty {

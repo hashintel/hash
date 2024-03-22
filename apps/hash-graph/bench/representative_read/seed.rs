@@ -13,7 +13,7 @@ use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{EntityUuid, PropertyObject},
+        entity::{EntityProperties, EntityUuid},
         link::LinkData,
     },
     owned_by_id::OwnedById,
@@ -164,7 +164,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
     let mut total_link_entities = 0;
     let mut entity_uuids = Vec::new();
     for (entity_type_str, entity_str, quantity) in SEED_ENTITIES {
-        let properties: PropertyObject =
+        let properties: EntityProperties =
             serde_json::from_str(entity_str).expect("could not parse entity");
         let entity_type: EntityType =
             serde_json::from_str(entity_type_str).expect("could not parse entity type");
@@ -207,7 +207,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
                         (
                             OwnedById::new(account_id.into_uuid()),
                             None,
-                            PropertyObject::empty(),
+                            EntityProperties::empty(),
                             Some(LinkData {
                                 left_entity_id: left_entity_metadata.record_id.entity_id,
                                 right_entity_id: right_entity_metadata.record_id.entity_id,

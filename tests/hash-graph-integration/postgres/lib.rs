@@ -60,7 +60,7 @@ use graph::{
 use graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{Entity, EntityId, EntityMetadata, EntityUuid, PropertyObject},
+        entity::{Entity, EntityId, EntityMetadata, EntityProperties, EntityUuid},
         link::LinkData,
     },
     ontology::{
@@ -523,7 +523,7 @@ impl DatabaseApi<'_> {
 
     pub async fn create_entity(
         &mut self,
-        properties: PropertyObject,
+        properties: EntityProperties,
         entity_type_ids: Vec<VersionedUrl>,
         entity_uuid: Option<EntityUuid>,
         draft: bool,
@@ -772,7 +772,7 @@ impl DatabaseApi<'_> {
 
     async fn create_link_entity(
         &mut self,
-        properties: PropertyObject,
+        properties: EntityProperties,
         entity_type_ids: Vec<VersionedUrl>,
         entity_uuid: Option<EntityUuid>,
         left_entity_id: EntityId,

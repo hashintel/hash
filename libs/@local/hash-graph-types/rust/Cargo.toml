@@ -23,6 +23,7 @@ uuid = { version = "1.8.0", default-features = false, features = ["serde"] }
 
 [dev-dependencies]
 graph-test-data = { workspace = true }
+pretty_assertions = "1.4.0"
 
 [features]
 postgres = ["dep:postgres-types", "temporal-versioning/postgres"]

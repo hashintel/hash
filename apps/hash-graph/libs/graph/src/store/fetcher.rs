@@ -14,7 +14,7 @@ use error_stack::{Report, Result, ResultExt};
 use graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{EntityMetadata, EntityUuid, PropertyObject},
+        entity::{EntityMetadata, EntityProperties, EntityUuid},
         link::LinkData,
     },
     ontology::{
@@ -1275,7 +1275,7 @@ where
             Item = (
                 OwnedById,
                 Option<EntityUuid>,
-                PropertyObject,
+                EntityProperties,
                 Option<LinkData>,
                 Option<Timestamp<DecisionTime>>,
             ),

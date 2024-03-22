@@ -1,6 +1,6 @@
 use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::entity::PropertyObject;
+use graph_types::knowledge::entity::EntityProperties;
 use json_patch::{PatchOperation, ReplaceOperation};
 use temporal_versioning::ClosedTemporalBound;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
@@ -9,7 +9,7 @@ use crate::DatabaseTestWrapper;
 
 #[tokio::test]
 async fn insert() {
-    let person: PropertyObject =
+    let person: EntityProperties =
         serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity");
 
     let mut database = DatabaseTestWrapper::new().await;
@@ -61,7 +61,7 @@ async fn insert() {
 
 #[tokio::test]
 async fn query() {
-    let organization: PropertyObject =
+    let organization: EntityProperties =
         serde_json::from_str(entity::ORGANIZATION_V1).expect("could not parse entity");
 
     let mut database = DatabaseTestWrapper::new().await;
@@ -101,9 +101,9 @@ async fn query() {
 
 #[tokio::test]
 async fn update() {
-    let page_v1: PropertyObject =
+    let page_v1: EntityProperties =
         serde_json::from_str(entity::PAGE_V1).expect("could not parse entity");
-    let page_v2: PropertyObject =
+    let page_v2: EntityProperties =
         serde_json::from_str(entity::PAGE_V2).expect("could not parse entity");
 
     let mut database = DatabaseTestWrapper::new().await;

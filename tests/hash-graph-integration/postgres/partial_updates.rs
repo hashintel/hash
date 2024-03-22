@@ -1,11 +1,8 @@
-use std::{
-    collections::{HashMap, HashSet},
-    str::FromStr,
-};
+use std::{collections::HashSet, str::FromStr};
 
 use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::entity::{Property, PropertyObject};
+use graph_types::knowledge::entity::EntityProperties;
 use json_patch::{
     AddOperation, CopyOperation, MoveOperation, PatchOperation, RemoveOperation, ReplaceOperation,
     TestOperation,
@@ -67,7 +64,7 @@ fn film_property_type_id() -> BaseUrl {
         .expect("couldn't construct Base URL")
 }
 
-fn alice() -> PropertyObject {
+fn alice() -> EntityProperties {
     serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity")
 }
 
@@ -306,7 +303,7 @@ async fn type_ids() {
 
     let entity = api
         .create_entity(
-            PropertyObject::empty(),
+            EntityProperties::empty(),
             vec![person_entity_type_id()],
             None,
             false,

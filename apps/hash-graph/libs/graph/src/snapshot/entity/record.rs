@@ -1,7 +1,7 @@
 use authorization::schema::EntityRelationAndSubject;
 use graph_types::{
     knowledge::{
-        entity::{EntityId, EntityMetadata, EntityUuid, PropertyObject},
+        entity::{EntityId, EntityMetadata, EntityProperties, EntityUuid},
         link::LinkData,
     },
     Embedding,
@@ -13,7 +13,7 @@ use type_system::url::BaseUrl;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntitySnapshotRecord {
-    pub properties: PropertyObject,
+    pub properties: EntityProperties,
     pub metadata: EntityMetadata,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub link_data: Option<LinkData>,
