@@ -85,15 +85,6 @@ type StepInputSource = {
       fallbackValue?: Payload;
     }
   /**
-   * An output provided by the trigger that started the flow
-   * (e.g. `userVisitedWebPageTrigger` provides a `visitedWebPAge` output)
-   */
-  | {
-      kind: "flow-trigger";
-      triggerOutputName: string;
-      fallbackValue?: Payload;
-    }
-  /**
    * A hardcoded value in the flow definition, which is constant
    * for all flow runs.
    */
@@ -112,7 +103,10 @@ type StepInputSource = {
 
 export type FlowDefinition = {
   name: string;
-  trigger: TriggerDefinition;
+  trigger: {
+    definition: TriggerDefinition;
+    outputs?: OutputDefinition[];
+  };
   nodes: {
     nodeId: string;
     definition: DeepReadOnly<StepDefinition>;

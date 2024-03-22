@@ -15,7 +15,9 @@ type OutputNameForTrigger<T extends keyof typeof triggerDefinitions> =
 
 export const researchTaskFlowDefinition: FlowDefinition = {
   name: "Research Task",
-  trigger: triggerDefinitions.userTrigger,
+  trigger: {
+    definition: triggerDefinitions.userTrigger,
+  },
   nodes: [
     {
       nodeId: "0",
@@ -89,7 +91,9 @@ export const researchTaskFlowDefinition: FlowDefinition = {
 
 export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
   name: "Infer User Entities from Web Page Flow",
-  trigger: triggerDefinitions.userVisitedWebPageTrigger,
+  trigger: {
+    definition: triggerDefinitions.userVisitedWebPageTrigger,
+  },
   nodes: [
     {
       nodeId: "0",
@@ -98,8 +102,9 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
         {
           inputName:
             "content" satisfies InputNameForAction<"inferEntitiesFromContent">,
-          kind: "flow-trigger",
-          triggerOutputName:
+          kind: "step-output",
+          sourceNodeId: "trigger",
+          sourceNodeOutputName:
             "visitedWebPage" satisfies OutputNameForTrigger<"userVisitedWebPageTrigger">,
           // kind: "hardcoded",
           // value: {

@@ -47,9 +47,12 @@ export const validateFlowDefinition = (flow: FlowDefinition) => {
       const errorPrefix = `Node "${node.nodeId}" with input "${inputSource.inputName}" `;
 
       if (inputSource.kind === "step-output") {
-        const sourceNode = flow.nodes.find(
-          ({ nodeId }) => nodeId === inputSource.sourceNodeId,
-        );
+        const sourceNode =
+          inputSource.sourceNodeId === "trigger"
+            ? flow.trigger
+            : flow.nodes.find(
+                ({ nodeId }) => nodeId === inputSource.sourceNodeId,
+              );
 
         if (!sourceNode) {
           throw new Error(
@@ -57,7 +60,7 @@ export const validateFlowDefinition = (flow: FlowDefinition) => {
           );
         }
 
-        const matchingSourceNodeOutput = sourceNode.definition.outputs.find(
+        const matchingSourceNodeOutput = sourceNode.definition.outputs?.find(
           (output) => output.name === inputSource.sourceNodeOutputName,
         );
 
@@ -74,26 +77,6 @@ export const validateFlowDefinition = (flow: FlowDefinition) => {
         ) {
           throw new Error(
             `${errorPrefix}references an output "${inputSource.sourceNodeOutputName}" of node "${inputSource.sourceNodeId}" that does not match the expected payload kinds of the input`,
-          );
-        }
-      } else if (inputSource.kind === "flow-trigger") {
-        const matchingTriggerOutput = flow.trigger.outputs?.find(
-          (output) => output.name === inputSource.triggerOutputName,
-        );
-
-        if (!matchingTriggerOutput) {
-          throw new Error(
-            `${errorPrefix}references an output "${inputSource.triggerOutputName}" of the trigger that does not exist`,
-          );
-        }
-
-        if (
-          !matchingDefinitionInput.oneOfPayloadKinds.includes(
-            matchingTriggerOutput.payloadKind,
-          )
-        ) {
-          throw new Error(
-            `${errorPrefix}references an output "${inputSource.triggerOutputName}" of the trigger that does not match the expected payload kinds of the input`,
           );
         }
       } else if (inputSource.kind === "hardcoded") {
