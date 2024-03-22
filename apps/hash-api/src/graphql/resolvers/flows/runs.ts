@@ -17,12 +17,14 @@ import type { GraphQLContext } from "../../context";
 const parseHistoryItemPayload = (
   inputOrResults: temporal.api.common.v1.IPayloads | null | undefined,
 ) =>
-  inputOrResults?.payloads?.map(({ data }) => {
-    if (!data?.toString()) {
-      return null;
-    }
-    return JSON.parse(data.toString());
-  });
+  inputOrResults?.payloads
+    ?.map(({ data }) => {
+      if (!data) {
+        return data;
+      }
+      return JSON.parse(data.toString());
+    })
+    .filter((item) => item !== undefined);
 
 const eventTimeIsoStringFromEvent = (
   event?: temporal.api.history.v1.IHistoryEvent,
