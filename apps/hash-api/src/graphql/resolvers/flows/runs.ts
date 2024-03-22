@@ -289,7 +289,7 @@ const mapTemporalWorkflowToFlowStatus = async (
 
 export const getFlowRuns: ResolverFn<
   FlowRun[],
-  never,
+  Record<string, never>,
   GraphQLContext,
   QueryGetFlowRunsArgs
 > = async (_parent, args, context) => {
