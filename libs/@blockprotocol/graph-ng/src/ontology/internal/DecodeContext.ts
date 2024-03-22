@@ -25,6 +25,9 @@ export function make<T, E, R = never>(
   };
 }
 
-export function hydrate<T>(context: DecodeContext<T>, ref: PropertyType<any>) {
+export function hydrate<T, R>(
+  context: DecodeContext<T, R>,
+  ref: PropertyType<unknown, Json.Value>,
+) {
   MutableRef.set(context.type, ref);
 }

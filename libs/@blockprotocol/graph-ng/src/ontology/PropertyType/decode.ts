@@ -22,6 +22,7 @@ import {
   Function,
 } from "effect";
 import { DecodeError } from "./error.js";
+import { PropertyType } from "../PropertyType.js";
 
 type Context<R> = DecodeContext.DecodeContext<PropertyTypeUrl, R>;
 
@@ -154,7 +155,14 @@ const encodeOneOfPropertyValues = <R>(
 export const decodeSchema = <E, R>(
   schema: PropertyTypeSchema,
   store: OntologyStore<E, R>,
-): Effect.Effect<S.Schema<unknown, Json.Value>, DecodeError, R> =>
+): Effect.Effect<
+  {
+    schema: S.Schema<unknown, Json.Value>;
+    hydrate: (type: PropertyType<unknown, Json.Value>) => void;
+  },
+  DecodeError,
+  R
+> =>
   Effect.gen(function* (_) {
     const context = DecodeContext.make(schema.$id, store);
 
@@ -166,5 +174,11 @@ export const decodeSchema = <E, R>(
           ? S.description(schema.description)
           : Function.identity,
       ),
+      Effect.map((schema) => ({
+        schema,
+        hydrate: (type: PropertyType<unknown, Json.Value>) => {
+          DecodeContext.hydrate(context, type);
+        },
+      })),
     );
   });
