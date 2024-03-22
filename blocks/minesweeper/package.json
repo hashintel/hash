@@ -32,7 +32,8 @@
     "block-scripts": "0.3.4",
     "mock-block-dock": "0.1.9",
     "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "react-dom": "18.2.0",
+    "typescript": "5.1.6"
   },
   "block-scripts": {
     "port": 63212
