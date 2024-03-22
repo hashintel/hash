@@ -38,6 +38,7 @@ import { customAlphabet } from "nanoid";
 
 import { gptGetUserWebs } from "./ai/gpt/gpt-get-user-webs";
 import { gptQueryEntities } from "./ai/gpt/gpt-query-entities";
+import { gptQueryTypes } from "./ai/gpt/gpt-query-types";
 import { upsertGptOauthClient } from "./ai/gpt/upsert-gpt-oauth-client";
 import { openInferEntitiesWebSocket } from "./ai/infer-entities-websocket";
 import {
@@ -531,6 +532,7 @@ const main = async () => {
 
   // Endpoints used by HashGPT or in support of it
   app.post("/gpt/entities/query", gptQueryEntities);
+  app.post("/gpt/entities/query-types", gptQueryTypes);
   app.get("/gpt/user-webs", gptGetUserWebs);
   app.post("/gpt/upsert-gpt-oauth-client", upsertGptOauthClient);
 
