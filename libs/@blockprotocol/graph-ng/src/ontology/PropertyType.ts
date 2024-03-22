@@ -270,12 +270,14 @@ export const fromSchema = <E, R>(
   store: OntologyStore<E, R>,
 ): Effect.Effect<PropertyType<unknown, Json.Value>, DecodeError, R> =>
   Effect.gen(function* (_) {
-    const inner = yield* _(decodeSchema(schema, store));
+    const { schema: inner, hydrate } = yield* _(decodeSchema(schema, store));
 
     const propertyType = yield* _(
       make(schema.$id, inner),
       Effect.mapError((cause) => DecodeError.encode(cause)),
     );
+
+    hydrate(propertyType);
 
     return propertyType;
   });
