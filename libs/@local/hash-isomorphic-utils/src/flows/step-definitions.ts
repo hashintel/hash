@@ -14,8 +14,8 @@ export const triggerDefinitions = {
     name: "User Visited Web Page Trigger",
     outputs: [
       {
-        payloadKind: "WebPage",
-        name: "visitedWebPage" as const,
+        payloadKind: "Text",
+        name: "visitedWebPageUrl" as const,
         array: false,
       },
     ],
@@ -58,6 +58,25 @@ export const actionDefinitions = {
         payloadKind: "WebPage",
         name: "webPage",
         array: true,
+      },
+    ],
+  },
+  getWebPageByUrl: {
+    name: "Get Web Page From URL",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "url",
+        required: true,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        payloadKind: "WebPage",
+        name: "webPage",
+        array: false,
       },
     ],
   },

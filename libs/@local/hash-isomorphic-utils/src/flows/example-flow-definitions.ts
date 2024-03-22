@@ -113,15 +113,33 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
   nodes: [
     {
       nodeId: "0",
+      definition: actionDefinitions.getWebPageByUrl,
+      inputSources: [
+        {
+          inputName: "url" satisfies InputNameForAction<"getWebPageByUrl">,
+          kind: "step-output",
+          sourceNodeId: "trigger",
+          sourceNodeOutputName:
+            "visitedWebPageUrl" satisfies OutputNameForTrigger<"userVisitedWebPageTrigger">,
+          // kind: "hardcoded",
+          // value: {
+          //   kind: "Text",
+          //   value: "https://example.com",
+          // },
+        },
+      ],
+    },
+    {
+      nodeId: "1",
       definition: actionDefinitions.inferEntitiesFromContent,
       inputSources: [
         {
           inputName:
             "content" satisfies InputNameForAction<"inferEntitiesFromContent">,
           kind: "step-output",
-          sourceNodeId: "trigger",
+          sourceNodeId: "0",
           sourceNodeOutputName:
-            "visitedWebPage" satisfies OutputNameForTrigger<"userVisitedWebPageTrigger">,
+            "webPage" satisfies OutputNameForAction<"getWebPageByUrl">,
           // kind: "hardcoded",
           // value: {
           //   kind: "WebPage",
@@ -145,14 +163,14 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
       ],
     },
     {
-      nodeId: "1",
+      nodeId: "2",
       definition: actionDefinitions.persistEntity,
       inputSources: [
         {
           inputName:
             "proposedEntity" satisfies InputNameForAction<"persistEntity">,
           kind: "step-output",
-          sourceNodeId: "0",
+          sourceNodeId: "1",
           sourceNodeOutputName:
             "proposedEntities" satisfies OutputNameForAction<"inferEntitiesFromContent">,
         },

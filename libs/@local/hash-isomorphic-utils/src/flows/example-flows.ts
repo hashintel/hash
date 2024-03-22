@@ -1,4 +1,7 @@
-import { researchTaskFlowDefinition } from "./example-flow-definitions";
+import {
+  inferUserEntitiesFromWebPageFlowDefinition,
+  researchTaskFlowDefinition,
+} from "./example-flow-definitions";
 import { triggerDefinitions } from "./step-definitions";
 import type { Flow } from "./types";
 
@@ -19,8 +22,8 @@ export const researchTaskFlow: Flow = {
   steps: [],
 };
 
-export const inferUserEntitiesFromWebPageFlowDefinition: Flow = {
-  flowId: "researchTaskFlow",
+export const inferUserEntitiesFromWebPageFlow: Flow = {
+  flowId: "inferUserEntitiesFromWebPageFlow",
   trigger: {
     definition: triggerDefinitions.userVisitedWebPageTrigger,
     outputs: [
@@ -38,7 +41,7 @@ export const inferUserEntitiesFromWebPageFlowDefinition: Flow = {
       },
     ],
   },
-  definition: researchTaskFlowDefinition,
+  definition: inferUserEntitiesFromWebPageFlowDefinition,
   inputs: {
     stepNodeId: "0",
     inputName: "prompt",
