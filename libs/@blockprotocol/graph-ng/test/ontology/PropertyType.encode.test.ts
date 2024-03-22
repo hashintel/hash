@@ -7,6 +7,7 @@ import * as O from "../../src/ontology/OntologySchema.js";
 import * as PropertyType from "../../src/ontology/PropertyType.js";
 import * as PropertyTypeUrl from "../../src/ontology/PropertyTypeUrl.js";
 import { runError } from "../utils.js";
+import { LazyPropertyType } from "../../src/ontology/PropertyType.js";
 
 describe("DataType", () => {
   test("standard", () => {
@@ -1137,7 +1138,7 @@ describe("oneOf: PropertyValues", () => {
   );
 });
 
-describe("PropertyType.object", () => {
+describe("O.propertyObject", () => {
   const description = PropertyType.make(
     PropertyTypeUrl.parseOrThrow(
       "https://blockprotocol.org/@blockprotocol/types/property-type/description/v/1",
@@ -1152,14 +1153,14 @@ describe("PropertyType.object", () => {
     BuiltIn.Text.v1.pipe(O.dataType, S.title("Display Name")),
   ).pipe(Effect.runSync);
 
-  test("propertyObject - no children", () => {
+  test("no children", () => {
     const propertyObject = O.propertyObject();
     const result = S.decodeSync(propertyObject)({});
 
     expect(result).toMatchInlineSnapshot(`{}`);
   });
 
-  test("propertyObject - single child", () => {
+  test("single child", () => {
     const propertyObject = O.propertyObject(description);
     const result = S.decodeSync(propertyObject)({
       "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
@@ -1172,7 +1173,7 @@ describe("PropertyType.object", () => {
       }
     `);
   });
-  test("propertyObject - multiple children", () => {
+  test("multiple children", () => {
     const propertyObject = O.propertyObject(description, displayName);
     const result = S.decodeSync(propertyObject)({
       "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
@@ -1188,7 +1189,7 @@ describe("PropertyType.object", () => {
       }
     `);
   });
-  test("propertyObject - array single child", () => {
+  test("array single child", () => {
     const propertyObject = O.propertyObject(O.propertyArray(description));
     const result = S.decodeSync(propertyObject)({
       "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
@@ -1204,7 +1205,7 @@ describe("PropertyType.object", () => {
       }
     `);
   });
-  test("propertyObject - array multiple children", () => {
+  test("array multiple children", () => {
     const propertyObject = O.propertyObject(
       O.propertyArray(description),
       O.propertyArray(displayName),
@@ -1229,7 +1230,7 @@ describe("PropertyType.object", () => {
       }
     `);
   });
-  test("propertyObject - mixed", () => {
+  test("mixed", () => {
     const propertyObject = O.propertyObject(
       description,
       O.propertyArray(displayName),
@@ -1251,5 +1252,113 @@ describe("PropertyType.object", () => {
       }
     `);
   });
-  test.todo("propertyObject - suspend", () => {});
+  test("suspend", () => {
+    const filePropertiesUrl = PropertyTypeUrl.parseOrThrow(
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/v/1",
+    );
+
+    type FileProperties =
+      | {
+          "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/": FileProperties;
+        }
+      | string;
+
+    const filePropertiesLazy: LazyPropertyType<
+      FileProperties,
+      FileProperties,
+      typeof filePropertiesUrl
+    > = PropertyType.makeLazy(
+      filePropertiesUrl,
+      S.union(
+        O.propertyObject({
+          id: filePropertiesUrl,
+          fn: () => filePropertiesLazy,
+        }),
+        O.dataType(BuiltIn.Text.v1),
+      ).pipe(S.title("File Properties")),
+    );
+    const fileProperties = Effect.runSync(
+      PropertyType.validateLazy(filePropertiesLazy),
+    );
+
+    const result = S.decodeSync(fileProperties.schema)({
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/":
+        {
+          "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/":
+            "hello",
+        },
+    });
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/": {
+          "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/": "hello",
+        },
+      }
+    `);
+  });
+  test("suspend array", () => {
+    const filePropertiesUrl = PropertyTypeUrl.parseOrThrow(
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/v/1",
+    );
+
+    type FileProperties =
+      | {
+          "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/": readonly FileProperties[];
+        }
+      | string;
+
+    const filePropertiesLazy: LazyPropertyType<
+      FileProperties,
+      FileProperties,
+      typeof filePropertiesUrl
+    > = PropertyType.makeLazy(
+      filePropertiesUrl,
+      S.union(
+        O.propertyObject(
+          O.propertyArray({
+            id: filePropertiesUrl,
+            fn: () => filePropertiesLazy,
+          }),
+        ),
+        O.dataType(BuiltIn.Text.v1),
+      ).pipe(S.title("File Properties")),
+    );
+
+    const fileProperties = Effect.runSync(
+      PropertyType.validateLazy(filePropertiesLazy),
+    );
+
+    const result = S.decodeSync(fileProperties.schema)({
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/":
+        [
+          {
+            "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/":
+              [
+                "hello",
+                {
+                  "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/":
+                    ["world"],
+                },
+              ],
+          },
+        ],
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/": [
+          {
+            "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/": [
+              "hello",
+              {
+                "https://blockprotocol.org/@blockprotocol/types/property-type/file-properties/": [
+                  "world",
+                ],
+              },
+            ],
+          },
+        ],
+      }
+    `);
+  });
 });

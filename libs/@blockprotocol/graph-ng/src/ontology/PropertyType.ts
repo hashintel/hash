@@ -56,6 +56,7 @@ export interface LazyPropertyType<
   R = never,
 > {
   readonly [LazyTypeId]: LazyTypeId;
+  readonly id: Id;
   readonly schema: S.Schema<Out, In, R>;
 }
 
@@ -170,6 +171,7 @@ export function makeLazy<
 
   return {
     [LazyTypeId]: LazyTypeId,
+    id: impl.id,
     schema: impl.schema,
     impl,
   } satisfies LazyPropertyTypeImpl<Out, In, Id, R> as LazyPropertyType<
