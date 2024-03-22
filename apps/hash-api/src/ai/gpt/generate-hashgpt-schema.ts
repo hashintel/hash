@@ -1,8 +1,12 @@
 import { writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import * as generator from "ts-json-schema-generator";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const config = {
   diagnostics: false,

@@ -368,7 +368,10 @@ export const recursivelyGetDocsPages = (params: {
         title: titleDerivedFromDirectoryName,
         titleDerivedFromDirectoryName,
         /** @todo: this should probably be removed */
-        href: `/${pathToDirectory.replace(/\d+_/g, "")}/${fileNameWithoutIndex}`,
+        href: `/${pathToDirectory.replace(
+          /\d+_/g,
+          "",
+        )}/${fileNameWithoutIndex}`,
         sections: [],
         subPages: recursivelyGetDocsPages({
           pathToDirectory: `${pathToDirectory}/${directoryItem}`,

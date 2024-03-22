@@ -34,7 +34,11 @@ const createPropertyEmbeddingInput = (params: {
   propertyTypeSchema: Pick<PropertyType, "title">;
   propertyValue: EntityPropertyValue;
 }): string => {
-  return `${params.propertyTypeSchema.title}: ${typeof params.propertyValue === "string" ? params.propertyValue : JSON.stringify(params.propertyValue)}`;
+  return `${params.propertyTypeSchema.title}: ${
+    typeof params.propertyValue === "string"
+      ? params.propertyValue
+      : JSON.stringify(params.propertyValue)
+  }`;
 };
 
 /**
