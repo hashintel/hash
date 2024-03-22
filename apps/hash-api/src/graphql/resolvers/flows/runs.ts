@@ -4,6 +4,7 @@ import type {
 } from "@temporalio/client";
 import { temporal } from "@temporalio/proto";
 
+import { isProdEnv } from "../../../lib/env-config";
 import type {
   FlowRun,
   FlowRunStatus,
@@ -295,6 +296,10 @@ export const getFlowRuns: ResolverFn<
   GraphQLContext,
   QueryGetFlowRunsArgs
 > = async (_parent, args, context) => {
+  if (isProdEnv) {
+    throw new Error("Not yet available");
+  }
+
   const workflows: FlowRun[] = [];
 
   const { flowTypes } = args;
