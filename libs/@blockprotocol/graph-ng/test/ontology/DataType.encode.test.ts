@@ -1168,3 +1168,31 @@ describe("TypeLiteral", () => {
     `);
   });
 });
+
+test("transformation", () => {
+  const inner = S.transform(
+    S.literal(123),
+    S.literal("123"),
+    (value) => value.toString() as never,
+    (value) => +value as never,
+  );
+
+  const transformation = DataType.make(
+    DataTypeUrl.parseOrThrow("https://example.com/transformation/v/1"),
+    inner.pipe(S.title("A transformation")),
+  ).pipe(Effect.runSync);
+
+  const schema = Effect.runSync(DataType.toSchema(transformation));
+  expect(schema).toMatchInlineSnapshot(`
+    {
+      "$id": "https://example.com/transformation/v/1",
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+      "const": 123,
+      "kind": "dataType",
+      "title": "A transformation",
+      "type": "number",
+    }
+  `);
+});
+
+// TODO: transformation

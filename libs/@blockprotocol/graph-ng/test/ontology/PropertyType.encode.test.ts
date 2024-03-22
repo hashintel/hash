@@ -1,5 +1,5 @@
 import * as S from "@effect/schema/Schema";
-import { Effect } from "effect";
+import { Effect, Predicate } from "effect";
 import { describe, expect, test } from "vitest";
 
 import * as BuiltIn from "../../src/ontology/DataType/BuiltIn.js";
@@ -1114,28 +1114,357 @@ describe("ArrayOfPropertyValues", () => {
 });
 
 describe("oneOf: PropertyValues", () => {
-  test.todo("DataType + PropertyObject", () => {});
-  test.todo("DataType + ArrayOfPropertyValues", () => {});
-  test.todo("PropertyObject + ArrayOfPropertyValues", () => {});
-  test.todo("DataType + PropertyObject + ArrayOfPropertyValues", () => {});
-  test.todo("DataType + PropertyObject + DataType + PropertyObject", () => {});
-  test.todo(
-    "DataType + PropertyObject + DataType + ArrayOfPropertyValues",
-    () => {},
-  );
+  const description = PropertyType.make(
+    PropertyTypeUrl.parseOrThrow(
+      "https://blockprotocol.org/@blockprotocol/types/property-type/description/v/1",
+    ),
+    BuiltIn.Text.v1.pipe(O.dataType, S.title("Description")),
+  ).pipe(Effect.runSync);
 
-  test.todo(
-    "inner not DataType/PropertyObject/ArrayOfPropertyValues",
-    () => {},
-  );
+  const displayName = PropertyType.make(
+    PropertyTypeUrl.parseOrThrow(
+      "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/v/1",
+    ),
+    BuiltIn.Text.v1.pipe(O.dataType, S.title("Display Name")),
+  ).pipe(Effect.runSync);
 
-  test.todo("refinement applied to union", () => {});
-  test.todo("transformation applied to union", () => {});
-  test.todo("suspense applied to union", () => {});
-  test.todo(
-    "refinement + transformation + suspense applied to union",
-    () => {},
-  );
+  const fileProperties = S.struct({
+    "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
+      O.propertyType(description),
+    "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+      O.propertyType(displayName),
+  });
+
+  test("DataType + PropertyObject", () => {
+    const file = PropertyType.make(
+      PropertyTypeUrl.parseOrThrow(
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file/v/1",
+      ),
+      S.union(O.dataType(BuiltIn.Text.v1), fileProperties).pipe(
+        S.title("File"),
+      ),
+    ).pipe(Effect.runSync);
+
+    const schema = Effect.runSync(PropertyType.toSchema(file));
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/file/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+        "kind": "propertyType",
+        "oneOf": [
+          {
+            "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+          {
+            "properties": {
+              "https://blockprotocol.org/@blockprotocol/types/property-type/description/": {
+                "$ref": "https://blockprotocol.org/@blockprotocol/types/property-type/description/v/1",
+              },
+              "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": {
+                "$ref": "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/v/1",
+              },
+            },
+            "required": [
+              "https://blockprotocol.org/@blockprotocol/types/property-type/description/",
+              "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/",
+            ],
+            "type": "object",
+          },
+        ],
+        "title": "File",
+      }
+    `);
+  });
+
+  test("DataType + ArrayOfPropertyValues", () => {
+    const file = PropertyType.make(
+      PropertyTypeUrl.parseOrThrow(
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file/v/1",
+      ),
+      S.union(O.dataType(BuiltIn.Text.v1), S.array(fileProperties)).pipe(
+        S.title("File"),
+      ),
+    ).pipe(Effect.runSync);
+
+    const schema = Effect.runSync(PropertyType.toSchema(file));
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/file/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+        "kind": "propertyType",
+        "oneOf": [
+          {
+            "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+          {
+            "items": {
+              "oneOf": [
+                {
+                  "properties": {
+                    "https://blockprotocol.org/@blockprotocol/types/property-type/description/": {
+                      "$ref": "https://blockprotocol.org/@blockprotocol/types/property-type/description/v/1",
+                    },
+                    "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": {
+                      "$ref": "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/v/1",
+                    },
+                  },
+                  "required": [
+                    "https://blockprotocol.org/@blockprotocol/types/property-type/description/",
+                    "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/",
+                  ],
+                  "type": "object",
+                },
+              ],
+            },
+            "type": "array",
+          },
+        ],
+        "title": "File",
+      }
+    `);
+  });
+  test("PropertyObject + ArrayOfPropertyValues", () => {
+    const file = PropertyType.make(
+      PropertyTypeUrl.parseOrThrow(
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file/v/1",
+      ),
+      S.union(fileProperties, S.array(fileProperties)).pipe(S.title("File")),
+    ).pipe(Effect.runSync);
+
+    const schema = Effect.runSync(PropertyType.toSchema(file));
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/file/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+        "kind": "propertyType",
+        "oneOf": [
+          {
+            "properties": {
+              "https://blockprotocol.org/@blockprotocol/types/property-type/description/": {
+                "$ref": "https://blockprotocol.org/@blockprotocol/types/property-type/description/v/1",
+              },
+              "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": {
+                "$ref": "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/v/1",
+              },
+            },
+            "required": [
+              "https://blockprotocol.org/@blockprotocol/types/property-type/description/",
+              "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/",
+            ],
+            "type": "object",
+          },
+          {
+            "items": {
+              "oneOf": [
+                {
+                  "properties": {
+                    "https://blockprotocol.org/@blockprotocol/types/property-type/description/": {
+                      "$ref": "https://blockprotocol.org/@blockprotocol/types/property-type/description/v/1",
+                    },
+                    "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": {
+                      "$ref": "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/v/1",
+                    },
+                  },
+                  "required": [
+                    "https://blockprotocol.org/@blockprotocol/types/property-type/description/",
+                    "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/",
+                  ],
+                  "type": "object",
+                },
+              ],
+            },
+            "type": "array",
+          },
+        ],
+        "title": "File",
+      }
+    `);
+  });
+  test("DataType + PropertyObject + ArrayOfPropertyValues", () => {
+    const file = PropertyType.make(
+      PropertyTypeUrl.parseOrThrow(
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file/v/1",
+      ),
+      S.union(
+        O.dataType(BuiltIn.Text.v1),
+        fileProperties,
+        S.array(fileProperties),
+      ).pipe(S.title("File")),
+    ).pipe(Effect.runSync);
+
+    const schema = Effect.runSync(PropertyType.toSchema(file));
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/file/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+        "kind": "propertyType",
+        "oneOf": [
+          {
+            "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+          {
+            "properties": {
+              "https://blockprotocol.org/@blockprotocol/types/property-type/description/": {
+                "$ref": "https://blockprotocol.org/@blockprotocol/types/property-type/description/v/1",
+              },
+              "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": {
+                "$ref": "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/v/1",
+              },
+            },
+            "required": [
+              "https://blockprotocol.org/@blockprotocol/types/property-type/description/",
+              "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/",
+            ],
+            "type": "object",
+          },
+          {
+            "items": {
+              "oneOf": [
+                {
+                  "properties": {
+                    "https://blockprotocol.org/@blockprotocol/types/property-type/description/": {
+                      "$ref": "https://blockprotocol.org/@blockprotocol/types/property-type/description/v/1",
+                    },
+                    "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": {
+                      "$ref": "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/v/1",
+                    },
+                  },
+                  "required": [
+                    "https://blockprotocol.org/@blockprotocol/types/property-type/description/",
+                    "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/",
+                  ],
+                  "type": "object",
+                },
+              ],
+            },
+            "type": "array",
+          },
+        ],
+        "title": "File",
+      }
+    `);
+  });
+
+  test("inner not DataType/PropertyObject/ArrayOfPropertyValues", () => {
+    const file = PropertyType.make(
+      PropertyTypeUrl.parseOrThrow(
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file/v/1",
+      ),
+      S.union(O.dataType(BuiltIn.Text.v1), S.number).pipe(S.title("File")),
+    );
+
+    const error = runError(file);
+    expect(error).toMatchInlineSnapshot(`
+      {
+        "_id": "Cause",
+        "_tag": "Fail",
+        "failure": {
+          "_tag": "@blockprotocol/graph/PropertyType/EncodeError",
+          "reason": {
+            "_tag": "UnableToEncode",
+            "node": {
+              "_tag": "NumberKeyword",
+              "annotations": {
+                "Symbol(@effect/schema/annotation/Description)": "a number",
+                "Symbol(@effect/schema/annotation/Title)": "number",
+              },
+            },
+          },
+        },
+      }
+    `);
+  });
+
+  test("refinement applied to union", () => {
+    const file = PropertyType.make(
+      PropertyTypeUrl.parseOrThrow(
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file/v/1",
+      ),
+      S.union(O.dataType(BuiltIn.Text.v1), O.dataType(BuiltIn.Number.v1))
+        .pipe(S.filter((n) => (Predicate.isNumber(n) ? n > 0 : true)))
+        .pipe(S.title("File")),
+    ).pipe(Effect.runSync);
+
+    const schema = Effect.runSync(PropertyType.toSchema(file));
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/file/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+        "kind": "propertyType",
+        "oneOf": [
+          {
+            "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+          {
+            "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+          },
+        ],
+        "title": "File",
+      }
+    `);
+  });
+  test("transformation applied to union", () => {
+    const inner = S.transform(
+      S.union(O.dataType(BuiltIn.Text.v1), O.dataType(BuiltIn.Number.v1)),
+      S.number,
+      (value) => (Predicate.isString(value) ? value.length : value),
+      (value) => value,
+    );
+
+    const file = PropertyType.make(
+      PropertyTypeUrl.parseOrThrow(
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file/v/1",
+      ),
+      inner.pipe(S.title("File")),
+    ).pipe(Effect.runSync);
+
+    const schema = Effect.runSync(PropertyType.toSchema(file));
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/file/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+        "kind": "propertyType",
+        "oneOf": [
+          {
+            "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+          {
+            "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+          },
+        ],
+        "title": "File",
+      }
+    `);
+  });
+  test.todo("suspense applied to union", () => {
+    const file = PropertyType.make(
+      PropertyTypeUrl.parseOrThrow(
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file/v/1",
+      ),
+      S.union(
+        S.suspend(() => O.dataType(BuiltIn.Text.v1)),
+        O.dataType(BuiltIn.Number.v1),
+      ).pipe(S.title("File")),
+    ).pipe(Effect.runSync);
+
+    const schema = Effect.runSync(PropertyType.toSchema(file));
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/file/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+        "kind": "propertyType",
+        "oneOf": [
+          {
+            "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+          {
+            "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+          },
+        ],
+        "title": "File",
+      }
+    `);
+  });
 });
 
 describe("O.propertyObject", () => {
