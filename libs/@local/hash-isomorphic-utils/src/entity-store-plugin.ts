@@ -7,7 +7,7 @@ import type {
 } from "@local/hash-subgraph";
 import type { Draft } from "immer";
 import { castDraft, produce } from "immer";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import type { Node } from "prosemirror-model";
 import type { EditorState, Transaction } from "prosemirror-state";
 import { Plugin, PluginKey } from "prosemirror-state";

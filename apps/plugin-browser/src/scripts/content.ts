@@ -12,27 +12,26 @@ import browser from "webextension-polyfill";
  */
 import type { GetSiteContentReturn, Message } from "../shared/messages";
 
-browser.runtime.onMessage.addListener(
-  (message: Message, _sender, sendResponse) => {
-    if (message.type === "get-site-content") {
-      const docContent =
-        document.querySelector("main") ?? document.querySelector("body");
+// Promise based API (see: https://github.com/mozilla/webextension-polyfill/?tab=readme-ov-file#using-the-promise-based-apis)
+// eslint-disable-next-line @typescript-eslint/require-await
+browser.runtime.onMessage.addListener(async (message: Message, _sender) => {
+  if (message.type === "get-site-content") {
+    const docContent =
+      document.querySelector("main") ?? document.querySelector("body");
 
-      /**
-       * Take the URL without any anchor hash on the assumption that it does not affect page content.
-       * Helps avoid making duplicate requests for the same page.
-       */
-      const urlObject = new URL(window.location.href);
-      const pageUrl = urlObject.href.replace(urlObject.hash, "");
+    /**
+     * Take the URL without any anchor hash on the assumption that it does not affect page content.
+     * Helps avoid making duplicate requests for the same page.
+     */
+    const urlObject = new URL(window.location.href);
+    const pageUrl = urlObject.href.replace(urlObject.hash, "");
 
-      sendResponse({
-        innerText: docContent?.innerText ?? "",
-        pageTitle: document.title,
-        pageUrl,
-      } satisfies GetSiteContentReturn);
-      return;
-    }
+    return {
+      innerText: docContent?.innerText ?? "",
+      pageTitle: document.title,
+      pageUrl,
+    } satisfies GetSiteContentReturn;
+  }
 
-    sendResponse(`Unrecognised message type ${message.type}`);
-  },
-);
+  return `Unrecognised message type ${message.type}`;
+});

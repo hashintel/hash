@@ -15,6 +15,7 @@
   },
   "license": "(MIT OR Apache-2.0)",
   "author": "HASH",
+  "type": "module",
   "scripts": {
     "build": "block-scripts build",
     "codegen": "block-scripts codegen && yarn format",
@@ -26,7 +27,7 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.3.4-canary-20240314113521",
+    "@blockprotocol/graph": "0.3.4",
     "date-fns": "2.28.0",
     "react-datepicker": "4.7.0"
   },

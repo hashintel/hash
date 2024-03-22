@@ -15,6 +15,7 @@
     "name": "HASH",
     "url": "https://hash.ai"
   },
+  "type": "module",
   "main": "src/main.ts",
   "types": "src/main.ts",
   "scripts": {
@@ -25,7 +26,7 @@
     "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.3.4-canary-20240314113521",
+    "@blockprotocol/graph": "0.3.4",
     "@blockprotocol/type-system": "0.1.1",
     "@hashintel/design-system": "0.0.8",
     "@local/hash-isomorphic-utils": "0.0.0-private",
