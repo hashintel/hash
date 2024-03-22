@@ -77,8 +77,12 @@ export type StepDefinition = ActionDefinition;
 
 type StepInputSource = {
   inputName: string;
-} & (
-  | {
+} & /**
+ * This refers to an output from a previous step, and can also refer
+ * to outputs from the `trigger` by specifying `sourceNodeId: "trigger"`.
+ *
+ */
+(| {
       kind: "step-output";
       sourceNodeId: string;
       sourceNodeOutputName: string;
