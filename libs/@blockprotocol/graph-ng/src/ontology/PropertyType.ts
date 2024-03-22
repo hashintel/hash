@@ -15,9 +15,12 @@ import { globalValue } from "effect/GlobalValue";
 
 import { InternalError } from "./DataType/error.js";
 import { encodeSchema } from "./PropertyType/encode.js";
-import { EncodeError } from "./PropertyType/error.js";
+import * as Json from "../Json.js";
+import { DecodeError, EncodeError } from "./PropertyType/error.js";
 import { PropertyTypeSchema } from "./PropertyType/schema.js";
 import * as PropertyTypeUrl from "./PropertyTypeUrl.js";
+import { decodeSchema } from "./PropertyType/decode.js";
+import { OntologyStore } from "./OntologyStore.js";
 
 const TypeId: unique symbol = Symbol.for(
   "@blockprotocol/graph/ontology/PropertyType",
@@ -261,6 +264,21 @@ export function toSchema<
 
   return toSchemaImpl(propertyType.schema);
 }
+
+export const fromSchema = <E, R>(
+  schema: PropertyTypeSchema,
+  store: OntologyStore<E, R>,
+): Effect.Effect<PropertyType<unknown, Json.Value>, DecodeError, R> =>
+  Effect.gen(function* (_) {
+    const inner = yield* _(decodeSchema(schema, store));
+
+    const propertyType = yield* _(
+      make(schema.$id, inner),
+      Effect.mapError((cause) => DecodeError.encode(cause)),
+    );
+
+    return propertyType;
+  });
 
 /** @internal */
 export const tryFromAST = (
