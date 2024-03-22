@@ -1,4 +1,8 @@
-import type { ActionDefinition, TriggerDefinition } from "./types";
+import type {
+  ActionDefinition,
+  DeepReadOnly,
+  TriggerDefinition,
+} from "./types";
 
 export const triggerDefinitions = {
   userTrigger: {
@@ -25,7 +29,7 @@ export const actionDefinitions = {
     inputs: [
       {
         oneOfPayloadKinds: ["Text"],
-        name: "prompt" as const,
+        name: "prompt",
         required: true,
         array: false,
       },
@@ -33,7 +37,7 @@ export const actionDefinitions = {
     outputs: [
       {
         payloadKind: "Text",
-        name: "query" as const,
+        name: "query",
         array: false,
       },
     ],
@@ -44,7 +48,7 @@ export const actionDefinitions = {
     inputs: [
       {
         oneOfPayloadKinds: ["Text"],
-        name: "query" as const,
+        name: "query",
         required: true,
         array: false,
       },
@@ -52,7 +56,7 @@ export const actionDefinitions = {
     outputs: [
       {
         payloadKind: "WebPage",
-        name: "webPage" as const,
+        name: "webPage",
         array: true,
       },
     ],
@@ -63,13 +67,13 @@ export const actionDefinitions = {
     inputs: [
       {
         oneOfPayloadKinds: ["Text", "WebPage"],
-        name: "content" as const,
+        name: "content",
         required: true,
         array: false,
       },
       {
         oneOfPayloadKinds: ["VersionedUrl"],
-        name: "entityTypeIds" as const,
+        name: "entityTypeIds",
         required: true,
         array: true,
       },
@@ -77,7 +81,7 @@ export const actionDefinitions = {
     outputs: [
       {
         payloadKind: "ProposedEntity",
-        name: "proposedEntities" as const,
+        name: "proposedEntities",
         array: true,
       },
     ],
@@ -88,7 +92,7 @@ export const actionDefinitions = {
     inputs: [
       {
         oneOfPayloadKinds: ["ProposedEntity"],
-        name: "proposedEntity" as const,
+        name: "proposedEntity",
         required: true,
         array: false,
       },
@@ -96,9 +100,9 @@ export const actionDefinitions = {
     outputs: [
       {
         payloadKind: "Entity",
-        name: "persistedEntity" as const,
+        name: "persistedEntity",
         array: false,
       },
     ],
   },
-} satisfies Record<string, ActionDefinition>;
+} as const satisfies Record<string, DeepReadOnly<ActionDefinition>>;

@@ -3,6 +3,10 @@ import type { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
 
 import type { ProposedEntity } from "../ai-inference-types";
 
+export type DeepReadOnly<T> = {
+  readonly [key in keyof T]: DeepReadOnly<T[key]>;
+};
+
 /**
  * Payload
  */
@@ -111,7 +115,7 @@ export type FlowDefinition = {
   trigger: TriggerDefinition;
   nodes: {
     nodeId: string;
-    definition: StepDefinition;
+    definition: DeepReadOnly<StepDefinition>;
     inputSources: StepInputSource[];
     retryCount?: number;
   }[];
