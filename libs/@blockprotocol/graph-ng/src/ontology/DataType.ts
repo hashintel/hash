@@ -195,8 +195,9 @@ export function toSchema<
   dataType: DataType<Out, In, Id, R>,
 ): Effect.Effect<DataTypeSchema, EncodeError> {
   const unknownDataType = dataType as unknown as DataType<unknown>;
-  if (schemaStorage.has(unknownDataType)) {
-    return Effect.succeed(schemaStorage.get(unknownDataType)!);
+  const cached = schemaStorage.get(unknownDataType);
+  if (cached !== undefined) {
+    return Effect.succeed(cached);
   }
 
   return toSchemaImpl(dataType.schema);

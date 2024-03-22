@@ -11,14 +11,13 @@ import {
   Pipeable,
   Predicate,
 } from "effect";
+import { globalValue } from "effect/GlobalValue";
 
-import * as DataType from "./DataType.js";
 import { InternalError } from "./DataType/error.js";
 import { encodeSchema } from "./PropertyType/encode.js";
 import { EncodeError } from "./PropertyType/error.js";
 import { PropertyTypeSchema } from "./PropertyType/schema.js";
 import * as PropertyTypeUrl from "./PropertyTypeUrl.js";
-import { globalValue } from "effect/GlobalValue";
 
 const TypeId: unique symbol = Symbol.for(
   "@blockprotocol/graph/ontology/PropertyType",
@@ -255,8 +254,9 @@ export function toSchema<
   propertyType: PropertyType<Out, In, Id, R>,
 ): Effect.Effect<PropertyTypeSchema, EncodeError> {
   const unknownDataType = propertyType as unknown as PropertyType<unknown>;
-  if (schemaStorage.has(unknownDataType)) {
-    return Effect.succeed(schemaStorage.get(unknownDataType)!);
+  const cached = schemaStorage.get(unknownDataType);
+  if (cached !== undefined) {
+    return Effect.succeed(cached);
   }
 
   return toSchemaImpl(propertyType.schema);
