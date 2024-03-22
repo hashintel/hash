@@ -1381,7 +1381,9 @@ describe("oneOf: PropertyValues", () => {
         "https://blockprotocol.org/@blockprotocol/types/property-type/file/v/1",
       ),
       S.union(O.dataType(BuiltIn.Text.v1), O.dataType(BuiltIn.Number.v1))
-        .pipe(S.filter((n) => (Predicate.isNumber(n) ? n > 0 : true)))
+        .pipe(
+          S.filter((value) => (Predicate.isNumber(value) ? value > 0 : true)),
+        )
         .pipe(S.title("File")),
     ).pipe(Effect.runSync);
 

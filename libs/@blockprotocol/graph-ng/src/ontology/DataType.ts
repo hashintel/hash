@@ -204,7 +204,7 @@ export function toSchema<
 
 export function fromSchema(
   schema: DataTypeSchema,
-): Effect.Effect<DataType<Json.Value>, DecodeError> {
+): Effect.Effect<DataType<unknown>, DecodeError> {
   return Effect.gen(function* (_) {
     const inner = decodeSchema(schema);
 

@@ -74,7 +74,7 @@ export interface EncodeContext<T> {
 
 const hashCollection = globalValue(
   Symbol.for(
-    "@blockprotoco/graph/ontology/internal/EncodeContext/hashCollection",
+    "@blockprotocol/graph/ontology/internal/EncodeContext/hashCollection",
   ),
   () => new WeakMap<AST.AST, NodeHash>(),
 );

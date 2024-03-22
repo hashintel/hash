@@ -109,7 +109,9 @@ function decodeObjectDataTypeSchema() {
   return S.record(S.string, Json.Value);
 }
 
-function decodeSchemaImpl(schema: DataTypeSchema): S.Schema<Json.Value> {
+function decodeSchemaImpl(
+  schema: DataTypeSchema,
+): S.Schema<unknown, Json.Value> {
   switch (schema.type) {
     case "number":
       return decodeNumberDataTypeSchema(schema) as never;
@@ -128,7 +130,9 @@ function decodeSchemaImpl(schema: DataTypeSchema): S.Schema<Json.Value> {
   }
 }
 
-export function decodeSchema(schema: DataTypeSchema): S.Schema<Json.Value> {
+export function decodeSchema(
+  schema: DataTypeSchema,
+): S.Schema<unknown, Json.Value> {
   return decodeSchemaImpl(schema).pipe(
     S.title(schema.title),
     Predicate.isNotUndefined(schema.description)

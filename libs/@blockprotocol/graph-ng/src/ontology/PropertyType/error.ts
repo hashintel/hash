@@ -74,7 +74,6 @@ export class EncodeError extends Data.TaggedError(
   }
 
   static incomplete(reason: IncompleteReason): EncodeError {
-    console.log("reason", reason);
     return new EncodeError({
       reason: EncodeErrorReason.Incomplete({ reason }),
     });
@@ -83,6 +82,41 @@ export class EncodeError extends Data.TaggedError(
   static unableToEncode(node: AST.AST): EncodeError {
     return new EncodeError({
       reason: EncodeErrorReason.UnableToEncode({ node }),
+    });
+  }
+}
+
+export type DecodeErrorReason = Data.TaggedEnum<{
+  Encode: {
+    cause: EncodeError;
+  };
+  FetchDataType: {
+    cause: unknown;
+  };
+  FetchPropertyType: {
+    cause: unknown;
+  };
+}>;
+export const DecodeErrorReason = Data.taggedEnum<DecodeErrorReason>();
+
+export class DecodeError extends Data.TaggedError(
+  "@blockprotocol/graph/PropertyType/DecodeError",
+)<{ reason: DecodeErrorReason }> {
+  static encode(cause: EncodeError): DecodeError {
+    return new DecodeError({
+      reason: DecodeErrorReason.Encode({ cause }),
+    });
+  }
+
+  static fetchDataType(cause: unknown): DecodeError {
+    return new DecodeError({
+      reason: DecodeErrorReason.FetchDataType({ cause }),
+    });
+  }
+
+  static fetchPropertyType(cause: unknown): DecodeError {
+    return new DecodeError({
+      reason: DecodeErrorReason.FetchPropertyType({ cause }),
     });
   }
 }
