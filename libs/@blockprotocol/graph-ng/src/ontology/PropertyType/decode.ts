@@ -1,5 +1,19 @@
 import * as S from "@effect/schema/Schema";
+import {
+  Effect,
+  Function,
+  MutableRef,
+  Predicate,
+  ReadonlyArray,
+  ReadonlyRecord,
+} from "effect";
+
 import * as Json from "../../Json.js";
+import * as DecodeContext from "../internal/DecodeContext.js";
+import { OntologyStore } from "../OntologyStore.js";
+import { PropertyType } from "../PropertyType.js";
+import { PropertyTypeUrl } from "../PropertyTypeUrl.js";
+import { DecodeError } from "./error.js";
 import {
   ArrayOfPropertyValues,
   DataTypeReference,
@@ -10,19 +24,6 @@ import {
   PropertyTypeSchema,
   PropertyValues,
 } from "./schema.js";
-import { OntologyStore } from "../OntologyStore.js";
-import * as DecodeContext from "../internal/DecodeContext.js";
-import { PropertyTypeUrl } from "../PropertyTypeUrl.js";
-import {
-  Effect,
-  MutableRef,
-  Predicate,
-  ReadonlyArray,
-  ReadonlyRecord,
-  Function,
-} from "effect";
-import { DecodeError } from "./error.js";
-import { PropertyType } from "../PropertyType.js";
 
 type Context<R> = DecodeContext.DecodeContext<PropertyTypeUrl, R>;
 
@@ -36,7 +37,7 @@ const encodeDataTypeReference = <R>(
       Effect.mapError(DecodeError.fetchDataType),
     );
 
-    return dataType.schema;
+    return dataType.schema.pipe(S.filter(() => true));
   });
 
 const encodePropertyTypeReference = <R>(
@@ -92,7 +93,15 @@ const encodePropertyTypeObject = <R>(
       ReadonlyRecord.toEntries(schema.properties),
       ReadonlyArray.map(([key, value]) =>
         encodePropertyTypeObjectValue(value, context).pipe(
-          Effect.andThen((value) => [key, value] as const),
+          Effect.andThen(
+            (valueSchema) =>
+              [
+                key,
+                schema.required.includes(key)
+                  ? valueSchema
+                  : S.optional(valueSchema),
+              ] as const,
+          ),
         ),
       ),
       Effect.all,
@@ -108,6 +117,7 @@ const encodeArrayOfPropertyValues = <R>(
   context: Context<R>,
 ): Effect.Effect<S.Schema<unknown, Json.Value>, DecodeError, R> =>
   Effect.gen(function* (_) {
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     const inner = yield* _(encodeOneOfPropertyValues(schema.items, context));
 
     return S.array(inner).pipe(

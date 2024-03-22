@@ -37,9 +37,11 @@ export const AnnotationId: unique symbol = Symbol.for(
   "@blockprotocol/graph/ontology/PropertyType/Annotation",
 );
 
+// The `in` default here might overconstrain the `In` value, then again each PropertyType **must**
+// be able to decode from a `Json.Value`.
 export interface PropertyType<
   Out,
-  In = Out,
+  In = Json.Value,
   Id extends PropertyTypeUrl.PropertyTypeUrl = PropertyTypeUrl.PropertyTypeUrl,
   R = never,
 > extends Equal.Equal,
@@ -53,7 +55,7 @@ export interface PropertyType<
 
 export interface LazyPropertyType<
   Out,
-  In = Out,
+  In = Json.Value,
   Id extends PropertyTypeUrl.PropertyTypeUrl = PropertyTypeUrl.PropertyTypeUrl,
   R = never,
 > {
@@ -64,7 +66,7 @@ export interface LazyPropertyType<
 
 interface PropertyTypeImpl<
   Out,
-  In = Out,
+  In = Json.Value,
   Id extends PropertyTypeUrl.PropertyTypeUrl = PropertyTypeUrl.PropertyTypeUrl,
   R = never,
 > extends PropertyType<Out, In, Id, R> {}
@@ -151,6 +153,31 @@ function toSchemaImpl<Out, In, R = never>(
   return encodeSchema(impl.ast);
 }
 
+function makeHydrate<
+  Out,
+  In,
+  Id extends PropertyTypeUrl.PropertyTypeUrl,
+  R = never,
+>(
+  id: Id,
+  schema: S.Schema<Out, In, R>,
+  onHydrate: (propertyType: PropertyType<Out, In, Id, R>) => void,
+): Effect.Effect<PropertyType<Out, In, Id, R>, EncodeError> {
+  const impl = makeImpl(id, schema);
+  onHydrate(impl);
+
+  return pipe(
+    toSchemaImpl(impl.schema),
+    Effect.tap((propertySchema) =>
+      schemaStorage.set(
+        impl as unknown as PropertyType<unknown>,
+        propertySchema,
+      ),
+    ),
+    Effect.map(() => impl),
+  );
+}
+
 export function make<
   Out,
   In,
@@ -160,15 +187,7 @@ export function make<
   id: Id,
   schema: S.Schema<Out, In, R>,
 ): Effect.Effect<PropertyType<Out, In, Id, R>, EncodeError> {
-  const impl = makeImpl(id, schema);
-
-  return pipe(
-    toSchemaImpl(impl.schema),
-    Effect.tap((schema) =>
-      schemaStorage.set(impl as unknown as PropertyType<unknown>, schema),
-    ),
-    Effect.map(() => impl),
-  );
+  return makeHydrate(id, schema, () => {});
 }
 
 export function makeLazy<
@@ -273,11 +292,9 @@ export const fromSchema = <E, R>(
     const { schema: inner, hydrate } = yield* _(decodeSchema(schema, store));
 
     const propertyType = yield* _(
-      make(schema.$id, inner),
+      makeHydrate(schema.$id, inner, hydrate),
       Effect.mapError((cause) => DecodeError.encode(cause)),
     );
-
-    hydrate(propertyType);
 
     return propertyType;
   });

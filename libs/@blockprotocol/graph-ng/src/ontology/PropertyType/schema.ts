@@ -1,13 +1,14 @@
-import * as DataTypeUrl from "../DataTypeUrl.js";
-import * as PropertyTypeUrl from "../PropertyTypeUrl.js";
 import { Either } from "effect";
-import { EncodeError } from "./error.js";
+
 import {
   pruneUndefinedShallow,
   UndefinedOnPartialShallow,
 } from "../../internal/schema.js";
+import * as DataTypeUrl from "../DataTypeUrl.js";
 import { BaseProperties } from "../internal/EncodeContext.js";
 import { PropertyType } from "../PropertyType.js";
+import * as PropertyTypeUrl from "../PropertyTypeUrl.js";
+import { EncodeError } from "./error.js";
 
 export interface IncompletePropertyTypeSchema {
   $schema: "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type";

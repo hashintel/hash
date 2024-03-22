@@ -1,0 +1,202 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ArrayOfPropertyValues 1`] = `
+[
+  "123",
+]
+`;
+
+exports[`ArrayOfPropertyValues 2`] = `
+[Error: File
+└─ [0]
+   └─ <refinement schema>
+      └─ From side refinement failure
+         └─ Expected An ordered sequence of characters, actual 123]
+`;
+
+exports[`ArrayOfPropertyValues: mixed 1`] = `
+[
+  "123",
+  123,
+]
+`;
+
+exports[`ArrayOfPropertyValues: mixed 2`] = `
+[Error: File
+└─ [0]
+   └─ <refinement schema> | <refinement schema>
+      ├─ Union member
+      │  └─ <refinement schema>
+      │     └─ From side refinement failure
+      │        └─ Expected An ordered sequence of characters, actual []
+      └─ Union member
+         └─ <refinement schema>
+            └─ From side refinement failure
+               └─ Expected An arithmetical value (in the Real number system), actual []]
+`;
+
+exports[`DataType 1`] = `
+{
+  "_id": "PropertyType",
+  "id": "https://blockprotocol.org/@blockprotocol/types/property-type/description/v/1",
+  "schema": {
+    "_tag": "Refinement",
+    "annotations": {
+      "Symbol(@blockprotocol/graph/ontology/PropertyType/Annotation)": [Function],
+      "Symbol(@effect/schema/annotation/Title)": "Description",
+    },
+    "from": {
+      "_tag": "StringKeyword",
+      "annotations": {
+        "Symbol(@blockprotocol/graph/ontology/DataType/Annotation)": [Function],
+        "Symbol(@effect/schema/annotation/Description)": "An ordered sequence of characters",
+        "Symbol(@effect/schema/annotation/Title)": "Text",
+      },
+    },
+  },
+}
+`;
+
+exports[`DataType 2`] = `
+[Error: Description
+└─ From side refinement failure
+   └─ Expected An ordered sequence of characters, actual 123]
+`;
+
+exports[`DataType: type does not exist 1`] = `
+{
+  "_id": "Cause",
+  "_tag": "Fail",
+  "failure": {
+    "_tag": "@blockprotocol/graph/PropertyType/DecodeError",
+    "reason": {
+      "_tag": "FetchDataType",
+      "cause": [NoSuchElementException],
+    },
+  },
+}
+`;
+
+exports[`PropertyObject 1`] = `
+{
+  "_id": "PropertyType",
+  "id": "https://blockprotocol.org/@blockprotocol/types/property-type/file/v/1",
+  "schema": {
+    "_tag": "TypeLiteral",
+    "annotations": {
+      "Symbol(@blockprotocol/graph/ontology/PropertyType/Annotation)": [Function],
+      "Symbol(@effect/schema/annotation/Title)": "File",
+    },
+    "indexSignatures": [],
+    "propertySignatures": [
+      {
+        "annotations": {},
+        "isOptional": false,
+        "isReadonly": true,
+        "name": "https://blockprotocol.org/@blockprotocol/types/property-type/description/",
+        "type": {
+          "_tag": "Refinement",
+          "annotations": {
+            "Symbol(@blockprotocol/graph/ontology/PropertyType/Annotation)": [Function],
+            "Symbol(@effect/schema/annotation/Title)": "Description",
+          },
+          "from": {
+            "_tag": "StringKeyword",
+            "annotations": {
+              "Symbol(@blockprotocol/graph/ontology/DataType/Annotation)": [Function],
+              "Symbol(@effect/schema/annotation/Description)": "An ordered sequence of characters",
+              "Symbol(@effect/schema/annotation/Title)": "Text",
+            },
+          },
+        },
+      },
+    ],
+  },
+}
+`;
+
+exports[`PropertyObject 2`] = `
+{
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/": "123",
+}
+`;
+
+exports[`PropertyObject 3`] = `
+[Error: File
+└─ ["https://blockprotocol.org/@blockprotocol/types/property-type/description/"]
+   └─ Description
+      └─ From side refinement failure
+         └─ Expected An ordered sequence of characters, actual 123]
+`;
+
+exports[`PropertyObject: optional 1`] = `{}`;
+
+exports[`PropertyObject: optional 2`] = `
+{
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/": "123",
+}
+`;
+
+exports[`PropertyObject: optional 3`] = `
+[Error: File
+└─ ["https://blockprotocol.org/@blockprotocol/types/property-type/description/"]
+   └─ Description | undefined
+      ├─ Union member
+      │  └─ Description
+      │     └─ From side refinement failure
+      │        └─ Expected An ordered sequence of characters, actual 123
+      └─ Union member
+         └─ Expected undefined, actual 123]
+`;
+
+exports[`PropertyObject: type does not exist 1`] = `
+{
+  "_id": "Cause",
+  "_tag": "Fail",
+  "failure": {
+    "_tag": "@blockprotocol/graph/PropertyType/DecodeError",
+    "reason": {
+      "_tag": "FetchPropertyType",
+      "cause": [NoSuchElementException],
+    },
+  },
+}
+`;
+
+exports[`mixed 1`] = `
+[
+  "123",
+]
+`;
+
+exports[`mixed 2`] = `
+[
+  {
+    "https://blockprotocol.org/@blockprotocol/types/property-type/description/": "123",
+  },
+]
+`;
+
+exports[`mixed 3`] = `
+[Error: File
+└─ [0]
+   └─ <refinement schema> | { https://blockprotocol.org/@blockprotocol/types/property-type/description/: Description }
+      ├─ Union member
+      │  └─ <refinement schema>
+      │     └─ From side refinement failure
+      │        └─ Expected An ordered sequence of characters, actual 123
+      └─ Union member
+         └─ Expected { https://blockprotocol.org/@blockprotocol/types/property-type/description/: Description }, actual 123]
+`;
+
+exports[`recursive 1`] = `[Error: Expected File, actual 123]`;
+
+exports[`recursive 2`] = `
+{
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file/": {
+    "https://blockprotocol.org/@blockprotocol/types/property-type/file/": {
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file/": {},
+    },
+  },
+}
+`;

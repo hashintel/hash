@@ -1,7 +1,8 @@
 import { MutableRef } from "effect";
-import { PropertyType } from "../PropertyType.js";
-import { OntologyStore } from "../OntologyStore.js";
+
 import * as Json from "../../Json.js";
+import { OntologyStore } from "../OntologyStore.js";
+import { PropertyType } from "../PropertyType.js";
 
 export interface DecodeContext<T, R = never> {
   readonly root: T;

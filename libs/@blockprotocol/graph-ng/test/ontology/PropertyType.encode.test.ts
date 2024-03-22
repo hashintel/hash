@@ -1438,7 +1438,7 @@ describe("oneOf: PropertyValues", () => {
       }
     `);
   });
-  test.todo("suspense applied to union", () => {
+  test("suspense applied to union", () => {
     const file = PropertyType.make(
       PropertyTypeUrl.parseOrThrow(
         "https://blockprotocol.org/@blockprotocol/types/property-type/file/v/1",
