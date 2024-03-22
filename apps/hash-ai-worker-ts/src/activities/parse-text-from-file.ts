@@ -3,7 +3,6 @@ import type { GraphApi } from "@local/hash-graph-client";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import type { DOCXDocumentProperties } from "@local/hash-isomorphic-utils/system-types/docxdocument";
-import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 import isDocker from "is-docker";
 import officeParser from "officeparser";
 
@@ -82,14 +81,15 @@ export const parseTextFromFile = async (
         textualContent,
     } as DOCXDocumentProperties;
 
-    await graphApiClient.updateEntity(webMachineActorId, {
+    await graphApiClient.patchEntity(webMachineActorId, {
       entityId: fileEntity.metadata.recordId.entityId,
-      entityTypeIds: [fileEntity.metadata.entityTypeId],
-      properties: updatedProperties,
-      archived: fileEntity.metadata.archived,
-      draft:
-        extractDraftIdFromEntityId(fileEntity.metadata.recordId.entityId) !==
-        undefined,
+      properties: [
+        {
+          op: "replace",
+          path: "",
+          value: updatedProperties,
+        },
+      ],
     });
   }
 };

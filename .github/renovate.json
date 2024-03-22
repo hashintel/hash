@@ -73,8 +73,9 @@
     {
       "matchDepTypes": ["devDependencies"],
       "matchPackagePatterns": [
-        "^jest-",
-        "jest$",
+        "^@vitest/",
+        "^vite-",
+        "vitest$",
         "lint-staged",
         "lockfile-lint",
         "markdownlint-cli",
@@ -121,9 +122,9 @@
       "dependencyDashboardApproval": false
     },
     {
-      "groupName": "Jest npm packages",
+      "groupName": "Vitest npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^jest-", "jest$"],
+      "matchPackagePatterns": ["^@vitest-", "^vite-", "vitest$"],
       "dependencyDashboardApproval": false
     },
     {

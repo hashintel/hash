@@ -8,6 +8,7 @@ import {
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import {
@@ -15,8 +16,6 @@ import {
   createTestOrg,
   generateRandomShortname,
 } from "../../../util";
-
-jest.setTimeout(60000);
 
 const logger = new Logger({
   mode: "dev",

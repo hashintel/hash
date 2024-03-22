@@ -1,5 +1,5 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
+import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import {
@@ -16,7 +16,6 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import type {
   AccountEntityId,
-  AccountGroupId,
   AccountId,
   Entity,
   EntityId,
@@ -27,7 +26,6 @@ import type {
 import {
   extractAccountId,
   extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
 import {
   getRoots,
@@ -361,11 +359,6 @@ export const createUser: ImpureGraphFunction<
       : {}),
   };
 
-  const hashInstance = await getHashInstance(ctx, authentication);
-  const hashInstanceAdmins = extractOwnedByIdFromEntityId(
-    hashInstance.entity.metadata.recordId.entityId,
-  ) as AccountGroupId;
-
   /** Grant permissions to the web machine actor to create a user entity */
   await ctx.graphApi.modifyEntityTypeAuthorizationRelationships(
     systemAccountId,
@@ -384,6 +377,9 @@ export const createUser: ImpureGraphFunction<
     ],
   );
 
+  const hashInstanceAdminsAccountGroupId =
+    await getHashInstanceAdminAccountGroupId(ctx, authentication);
+
   const entity = await createEntity(
     ctx,
     { actorId: userWebMachineActorId },
@@ -397,7 +393,7 @@ export const createUser: ImpureGraphFunction<
           relation: "administrator",
           subject: {
             kind: "accountGroup",
-            subjectId: hashInstanceAdmins,
+            subjectId: hashInstanceAdminsAccountGroupId,
           },
         },
         {

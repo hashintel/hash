@@ -198,16 +198,8 @@ export const archiveEntity = async (params: {
   entity: Entity;
 }) => {
   const { graphApiClient, authentication, entity } = params;
-  await graphApiClient.updateEntity(authentication.actorId, {
+  await graphApiClient.patchEntity(authentication.actorId, {
     entityId: entity.metadata.recordId.entityId,
     archived: true,
-    /**
-     * @todo: these fields shouldn't be required when archiving an entity
-     *
-     * @see https://app.asana.com/0/1201095311341924/1203285029221330/f
-     * */
-    entityTypeIds: [entity.metadata.entityTypeId],
-    properties: entity.properties,
-    draft: false,
   });
 };

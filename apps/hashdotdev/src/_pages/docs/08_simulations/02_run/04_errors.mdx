@@ -1,0 +1,87 @@
+---
+title: "Debugging Errors"
+description: "Errors you may encounter and how to fix them"
+---
+
+## Overview
+
+Errors can occur in simulations for lots of reasons. This page provides practical instructions for debugging simulations, and a quick-reference guide to some of the more common types of errors you may experience.
+
+## Debugging simulation errors
+
+<Embed
+  type="youtube"
+  url="https://youtu.be/lqEZk0Xp51U"
+  caption="Debugging tutorial"
+/>
+
+**Tips for debugging simulation errors:**
+
+- You can use `console.log()` in JavaScript behaviors or `print()` in Python behaviors to output the value of a variable or an expression to the developer console \(**Ctrl+Shift+J** on Windows, or **Cmd+Option+J** on Mac\).
+- The Raw Output panel displays the full state of your simulation, which can be useful for figuring out what's going on. Keep in mind though it generates it for the last completed time-step - if your simulation has an error in the middle of a time-step the Raw Output panel will only show you the state that you entered the time-step with.
+- Often it's easiest to debug simulations with the bare minimum number of agents, to make it easier to track what's going on. Try reducing the number you create to simplify.
+- Please see the error reference below for explanations of commonly-experienced errors.
+
+## Common Errors
+
+You may see a red error message pop up when running a simulation - here's some of the most common, and how to fix them.
+
+<table className="docs-table">
+  <thead>
+    <tr>
+      <th className="text-left">Error</th>
+      <th className="text-left">Explanation</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td className="text-left">
+        ReferenceError: behavior is not defined <em>or</em>
+        <br />
+        Can&#x2019;t find variable: behavior
+      </td>
+      <td className="text-left">
+        Every HASH behavior file must have a function signature with a function
+        named behavior().
+        <br />
+        If it is not properly defined, you&apos;ll see this error.
+      </td>
+    </tr>
+    <tr>
+      <td className="text-left">
+        ERROR running simulation: <code>[error]</code> did not match any variant
+        of untagged enum OutboundMessage
+      </td>
+      <td className="text-left">
+        <span>All </span>
+        <a href="/docs/simulation/create/agent-messages/">messages</a>
+        <span>
+          {" "}
+          must have a <code>to</code> and <code>type</code> field this error indicates
+          the type is missing.
+        </span>
+      </td>
+    </tr>
+    <tr>
+      <td className="text-left">D is not a function.</td>
+      <td className="text-left">
+        Check{" "}
+        <a href="/docs/simulation/run/simulation/outputs/analysis/">analysis</a>
+        .json - this can indicate you referenced an output that doesn&apos;t exist
+        or used an incorrect operation.
+      </td>
+    </tr>
+    <tr>
+      <td className="text-left">
+        Agent &quot;<code>[agent id]</code>&quot; doesn&apos;t have a position.
+      </td>
+      <td className="text-left">
+        Many operations on agents require a physical location on the x,y plane
+        for example searching for neighbors. This error will be thrown if there
+        is no position defined for the agent.
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+We're expanding this list with more errors, explanations, and fixes. If you encounter an error that is unclear, [let us know](/discord).
