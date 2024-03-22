@@ -26,14 +26,14 @@ import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
 import * as Sentry from "@sentry/node";
-import { json } from "body-parser";
+import bodyParser from "body-parser";
 import cors from "cors";
 import proxy from "express-http-proxy";
 import type { Options as RateLimitOptions } from "express-rate-limit";
 import { rateLimit } from "express-rate-limit";
 import helmet from "helmet";
 import { StatsD } from "hot-shots";
-import { createHttpTerminator } from "http-terminator";
+import httpTerminator from "http-terminator";
 import { customAlphabet } from "nanoid";
 
 import { gptGetUserWebs } from "./ai/gpt/gpt-get-user-webs";
@@ -257,7 +257,7 @@ const main = async () => {
     app.set("trust proxy", 1);
   }
 
-  const jsonParser = json({
+  const jsonParser = bodyParser.json({
     // default is 100kb
     limit: "16mb",
   });
@@ -565,8 +565,10 @@ const main = async () => {
   // close active connections. This can result in the server hanging indefinitely. We
   // use the `http-terminator` library to shut down the server properly.
   const httpServer = http.createServer(app);
-  const httpTerminator = createHttpTerminator({ server: httpServer });
-  shutdown.addCleanup("HTTP Server", async () => httpTerminator.terminate());
+  const terminator = httpTerminator.createHttpTerminator({
+    server: httpServer,
+  });
+  shutdown.addCleanup("HTTP Server", async () => terminator.terminate());
 
   openInferEntitiesWebSocket({
     context,

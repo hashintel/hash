@@ -147,7 +147,9 @@ export const buildSubgraph = <Temporal extends boolean>(
 
   if (missingRootVertexIds.length > 0) {
     throw new Error(
-      `Internal implementation error, could not find VertexId for root RecordId(s): ${missingRootVertexIds.join(", ")}`,
+      `Internal implementation error, could not find VertexId for root RecordId(s): ${missingRootVertexIds.join(
+        ", ",
+      )}`,
     );
   }
 

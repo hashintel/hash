@@ -4,6 +4,7 @@
   "private": true,
   "description": "API and data store for HASH",
   "license": "AGPL-3.0",
+  "type": "module",
   "scripts": {
     "build:docker": "docker buildx build --tag hash-api --file ../../infra/docker/api/prod/Dockerfile ../../ --load",
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
@@ -24,7 +25,7 @@
     "@aws-sdk/credential-provider-node": "3.436.0",
     "@aws-sdk/s3-presigned-post": "3.436.0",
     "@aws-sdk/s3-request-presigner": "3.436.0",
-    "@blockprotocol/core": "0.1.2",
+    "@blockprotocol/core": "0.1.3",
     "@blockprotocol/type-system": "0.1.1",
     "@graphql-tools/schema": "8.5.0",
     "@linear/sdk": "6.0.0",
@@ -96,7 +97,7 @@
     "ws": "8.15.1"
   },
   "devDependencies": {
-    "@blockprotocol/graph": "0.3.4-canary-20240313191438",
+    "@blockprotocol/graph": "0.3.4",
     "@graphql-codegen/cli": "5.0.0",
     "@graphql-codegen/introspection": "2.2.3",
     "@graphql-codegen/typescript": "2.8.7",

@@ -122,7 +122,9 @@ export const PropertyTitleCell = ({
         <Tooltip
           title={
             inheritanceChain
-              ? `Inherited from ${inheritanceChain[inheritanceChain.length - 1]!.schema.title}`
+              ? `Inherited from ${
+                  inheritanceChain[inheritanceChain.length - 1]!.schema.title
+                }`
               : ""
           }
         >

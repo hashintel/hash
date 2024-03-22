@@ -1,14 +1,18 @@
-require("dotenv-flow").config();
-const webpack = require("webpack");
-const path = require("node:path");
-const fileSystem = require("fs-extra");
-const CopyWebpackPlugin = require("copy-webpack-plugin");
-const HtmlWebpackPlugin = require("html-webpack-plugin");
-const TerserPlugin = require("terser-webpack-plugin");
-const { CleanWebpackPlugin } = require("clean-webpack-plugin");
-const ReactRefreshWebpackPlugin = require("@pmmmwh/react-refresh-webpack-plugin");
-const ReactRefreshTypeScript = require("react-refresh-typescript");
-const { sentryWebpackPlugin } = require("@sentry/webpack-plugin");
+import path, { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import ReactRefreshWebpackPlugin from "@pmmmwh/react-refresh-webpack-plugin";
+import { sentryWebpackPlugin } from "@sentry/webpack-plugin";
+import { CleanWebpackPlugin } from "clean-webpack-plugin";
+import CopyWebpackPlugin from "copy-webpack-plugin";
+import dotenv from "dotenv-flow";
+import fileSystem from "fs-extra";
+import HtmlWebpackPlugin from "html-webpack-plugin";
+import ReactRefreshTypeScript from "react-refresh-typescript";
+import TerserPlugin from "terser-webpack-plugin";
+import webpack from "webpack";
+
+dotenv.config();
 
 const env = {
   API_ORIGIN: process.env.API_ORIGIN || "https://app-api.hash.ai",
@@ -22,6 +26,9 @@ const env = {
 const ASSET_PATH = process.env.ASSET_PATH || "/";
 
 const alias = {};
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const secretsPath = path.join(__dirname, `secrets.${env.NODE_ENV}.js`);
 
@@ -108,7 +115,7 @@ const options = {
         exclude: /node_modules/,
         use: [
           {
-            loader: require.resolve("ts-loader"),
+            loader: "ts-loader",
             options: {
               getCustomTransformers: () => ({
                 before: [isDevelopment && ReactRefreshTypeScript()].filter(
@@ -127,15 +134,19 @@ const options = {
             loader: "source-map-loader",
           },
           {
-            loader: require.resolve("babel-loader"),
+            loader: "babel-loader",
             options: {
-              plugins: [
-                isDevelopment && require.resolve("react-refresh/babel"),
-              ].filter(Boolean),
+              plugins: [isDevelopment && "react-refresh/babel"].filter(Boolean),
             },
           },
         ],
         exclude: /node_modules/,
+      },
+      {
+        test: /\.m?js/,
+        resolve: {
+          fullySpecified: false,
+        },
       },
     ],
   },
@@ -144,9 +155,6 @@ const options = {
     extensions: fileExtensions
       .map((extension) => `.${extension}`)
       .concat([".js", ".jsx", ".ts", ".tsx", ".css"]),
-    fallback: {
-      "process/browser": require.resolve("process/browser"),
-    },
   },
   plugins: [
     isDevelopment && new ReactRefreshWebpackPlugin(),
@@ -247,4 +255,4 @@ if (!isDevelopment) {
   };
 }
 
-module.exports = options;
+export default options;
