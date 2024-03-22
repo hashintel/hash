@@ -12805,13 +12805,21 @@ ecdsa-sig-formatter@1.0.11, ecdsa-sig-formatter@^1.0.11:
   dependencies:
     safe-buffer "^5.0.1"
 
-echarts@5.4.1, echarts@^5.3.2, echarts@^5.3.3:
+echarts@5.4.1:
   version "5.4.1"
   resolved "https://registry.yarnpkg.com/echarts/-/echarts-5.4.1.tgz#d7f65a584d78beff62568d878b16151b3381811c"
   integrity sha512-9ltS3M2JB0w2EhcYjCdmtrJ+6haZcW6acBolMGIuf01Hql1yrIV01L1aRj7jsaaIULJslEP9Z3vKlEmnJaWJVQ==
   dependencies:
     tslib "2.3.0"
     zrender "5.4.1"
+
+echarts@5.5.0, echarts@^5.3.3:
+  version "5.5.0"
+  resolved "https://registry.yarnpkg.com/echarts/-/echarts-5.5.0.tgz#c13945a7f3acdd67c134d8a9ac67e917830113ac"
+  integrity sha512-rNYnNCzqDAPCr4m/fqyUFv7fD9qIsd50S6GDFgO1DxZhncCsNsG7IfUlAlvZe5oSEQxtsjnHiUuppzccry93Xw==
+  dependencies:
+    tslib "2.3.0"
+    zrender "5.5.0"
 
 edit-json-file@^1.7.0:
   version "1.7.0"
@@ -15687,10 +15695,10 @@ https-proxy-agent@^7.0.0, https-proxy-agent@^7.0.1, https-proxy-agent@^7.0.2, ht
     agent-base "^7.0.2"
     debug "4"
 
-httpyac@6.11.5:
-  version "6.11.5"
-  resolved "https://registry.yarnpkg.com/httpyac/-/httpyac-6.11.5.tgz#7187604afd7a36dda940e1ba35f7b8ce2d1b364f"
-  integrity sha512-JYXadQVy3/PNgB8FtsazjYfFpW+4ispGJqtijw28nSWAzXVtUwoyRi0wMLe7wxDOT0zM/tvOaM69OLaft1OxzQ==
+httpyac@6.12.0:
+  version "6.12.0"
+  resolved "https://registry.yarnpkg.com/httpyac/-/httpyac-6.12.0.tgz#9912d02f4f7a7bbb1125e9c23c8c24fcfd261726"
+  integrity sha512-NZxqPANniilbO5Izam6Ibd6OoH+XJfbI2cy8lErM7vAbNtbxmBqrf0XQnr63q9FaT9UAPf/J5sIsEYOnwsi6aw==
   dependencies:
     "@cloudamqp/amqp-client" "^2.1.1"
     "@grpc/grpc-js" "^1.10.1"
@@ -26121,6 +26129,13 @@ zrender@5.4.1:
   version "5.4.1"
   resolved "https://registry.yarnpkg.com/zrender/-/zrender-5.4.1.tgz#892f864b885c71e1dc25dcb3c7a4ba42678d3f11"
   integrity sha512-M4Z05BHWtajY2241EmMPHglDQAJ1UyHQcYsxDNzD9XLSkPDqMq4bB28v9Pb4mvHnVQ0GxyTklZ/69xCFP6RXBA==
+  dependencies:
+    tslib "2.3.0"
+
+zrender@5.5.0:
+  version "5.5.0"
+  resolved "https://registry.yarnpkg.com/zrender/-/zrender-5.5.0.tgz#54d0d6c4eda81a96d9f60a9cd74dc48ea026bc1e"
+  integrity sha512-O3MilSi/9mwoovx77m6ROZM7sXShR/O/JIanvzTwjN3FORfLSr81PsUGd7jlaYOeds9d8tw82oP44+3YucVo+w==
   dependencies:
     tslib "2.3.0"
 

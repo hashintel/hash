@@ -22,6 +22,22 @@ const {
   .createGenerator(config)
   .createSchema("GptQueryEntitiesResponseBody");
 
+const { $ref: queryTypesRequestRef, definitions: queryTypesRequestDefs } =
+  generator
+    .createGenerator({
+      ...config,
+      path: resolve(__dirname, "gpt-query-types.ts"),
+    })
+    .createSchema("GptQueryTypesRequestBody");
+
+const { $ref: queryTypesResponseRef, definitions: queryTypesResponseDefs } =
+  generator
+    .createGenerator({
+      ...config,
+      path: resolve(__dirname, "gpt-query-types.ts"),
+    })
+    .createSchema("GptQueryTypesResponseBody");
+
 const { $ref: getUserWebsResponseRef, definitions: getUserWebsResponseDefs } =
   generator
     .createGenerator({
@@ -34,6 +50,8 @@ const components = {
   schemas: {
     ...queryEntitiesRequestDefs,
     ...queryEntitiesResponseDefs,
+    ...queryTypesRequestDefs,
+    ...queryTypesResponseDefs,
     ...getUserWebsResponseDefs,
   },
 };
@@ -91,6 +109,31 @@ const openApiSchema = {
             content: {
               "application/json": {
                 schema: { $ref: queryEntitiesResponseRef },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/gpt/entities/query-types": {
+      post: {
+        description:
+          "Retrieve entity types which match a semantic query, or which belong to a specific web",
+        operationId: "queryTypes",
+        "x-openai-isConsequential:": false,
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: { $ref: queryTypesRequestRef },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "response",
+            content: {
+              "application/json": {
+                schema: { $ref: queryTypesResponseRef },
               },
             },
           },
