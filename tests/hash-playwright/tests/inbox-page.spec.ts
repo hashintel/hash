@@ -66,7 +66,7 @@ const createNotification = async ({
   return targetEntityTitle;
 };
 
-test.only("new notifications are shown on inbox page", async ({ page }) => {
+test("new notifications are shown on inbox page", async ({ page }) => {
   await loginUsingTempForm({
     page,
     userEmail: "alice@example.com",
