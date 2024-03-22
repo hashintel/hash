@@ -49,7 +49,7 @@ export const gptQueryTypes: RequestHandler<
     return;
   }
 
-  if (!user.shortname) {
+  if (!user.isAccountSignupComplete) {
     res.status(401).send({ error: "User has not completed signup." });
     return;
   }
