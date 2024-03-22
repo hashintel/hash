@@ -1,10 +1,14 @@
-// Do this as the first thing so that any code reading it knows the right env.
-import path from "node:path";
+import path, { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import webpack from "webpack";
 import WebpackDevServer from "webpack-dev-server";
 
-import config from "../webpack.config";
+// eslint-disable-next-line import/extensions
+import config from "../webpack.config.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 process.env.BABEL_ENV = "development";
 process.env.NODE_ENV = "development";
