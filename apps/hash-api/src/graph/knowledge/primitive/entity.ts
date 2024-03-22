@@ -308,7 +308,7 @@ export const getLatestEntityById: ImpureGraphFunction<
   ).then(getRoots);
 
   if (unexpectedEntities.length > 0) {
-    const errorMessage = `Latest entity with entityId ${entityId} returned more than one result with ids: ${unexpectedEntities.map((entity) => entity.metadata.recordId.entityId).join(", ")}`;
+    const errorMessage = `Latest entity with entityId ${entityId} returned more than one result with ids: ${unexpectedEntities.map((unexpectedEntity) => unexpectedEntity.metadata.recordId.entityId).join(", ")}`;
     throw new Error(errorMessage);
   }
 
@@ -443,8 +443,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
    */
   const entities = await Promise.all(
     entitiesInTree.map(async (definition) => {
-      const { existingEntityId, parentIndex, meta, ...creationParameters } =
-        definition;
+      const { existingEntityId, parentIndex, meta } = definition;
 
       if (
         !existingEntityId &&

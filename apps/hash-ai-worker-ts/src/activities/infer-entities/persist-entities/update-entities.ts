@@ -11,7 +11,6 @@ import type {
   OwnedById,
 } from "@local/hash-subgraph";
 import {
-  extractDraftIdFromEntityId,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";

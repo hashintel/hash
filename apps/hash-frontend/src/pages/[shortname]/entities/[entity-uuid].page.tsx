@@ -144,7 +144,6 @@ const Page: NextPageWithLayout = () => {
               setEntitySubgraphFromDb(subgraph);
               setDraftEntitySubgraph(subgraph);
               setIsReadOnly(
-                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                 !data.getEntity.userPermissionsOnEntities?.[entityId]?.edit,
               );
             } catch {
