@@ -60,7 +60,18 @@ export const validateFlowDefinition = (flow: FlowDefinition) => {
           );
         }
 
-        const matchingSourceNodeOutput = sourceNode.definition.outputs?.find(
+        const sourceNodeOutputs = [
+          ...(sourceNode.definition.outputs ?? []),
+          /**
+           * `outputs` may be defined on the source node itself as instead
+           * of the definition, for example for a "User Trigger".
+           */
+          ...("outputs" in sourceNode && sourceNode.outputs
+            ? sourceNode.outputs ?? []
+            : []),
+        ];
+
+        const matchingSourceNodeOutput = sourceNodeOutputs.find(
           (output) => output.name === inputSource.sourceNodeOutputName,
         );
 
@@ -79,6 +90,7 @@ export const validateFlowDefinition = (flow: FlowDefinition) => {
             `${errorPrefix}references an output "${inputSource.sourceNodeOutputName}" of node "${inputSource.sourceNodeId}" that does not match the expected payload kinds of the input`,
           );
         }
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       } else if (inputSource.kind === "hardcoded") {
         if (
           !matchingDefinitionInput.oneOfPayloadKinds.includes(

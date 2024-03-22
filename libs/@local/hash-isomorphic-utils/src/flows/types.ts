@@ -92,13 +92,6 @@ type StepInputSource = {
       kind: "hardcoded";
       value: Payload;
     }
-  /**
-   * A value provided when the flow run is started, probably by the user
-   */
-  | {
-      kind: "flow-input";
-      fallbackValue?: Payload;
-    }
 );
 
 export type FlowDefinition = {

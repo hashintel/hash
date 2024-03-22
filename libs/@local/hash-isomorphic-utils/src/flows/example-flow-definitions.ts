@@ -17,6 +17,18 @@ export const researchTaskFlowDefinition: FlowDefinition = {
   name: "Research Task",
   trigger: {
     definition: triggerDefinitions.userTrigger,
+    outputs: [
+      {
+        payloadKind: "Text",
+        name: "prompt" as const,
+        array: false,
+      },
+      {
+        payloadKind: "VersionedUrl",
+        name: "entityTypeIds",
+        array: true,
+      },
+    ],
   },
   nodes: [
     {
@@ -25,7 +37,9 @@ export const researchTaskFlowDefinition: FlowDefinition = {
       inputSources: [
         {
           inputName: "prompt" satisfies InputNameForAction<"generateWebQuery">,
-          kind: "flow-input",
+          kind: "step-output",
+          sourceNodeId: "trigger",
+          sourceNodeOutputName: "prompt",
           // kind: "hardcoded",
           // value: {
           //   kind: "Text",
@@ -62,7 +76,9 @@ export const researchTaskFlowDefinition: FlowDefinition = {
         {
           inputName:
             "entityTypeIds" satisfies InputNameForAction<"inferEntitiesFromContent">,
-          kind: "flow-input",
+          kind: "step-output",
+          sourceNodeId: "trigger",
+          sourceNodeOutputName: "entityTypeIds",
           // kind: "hardcoded",
           // value: {
           //   kind: "VersionedUrl",
