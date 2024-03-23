@@ -1198,6 +1198,14 @@ name = "harpc"
 version = "0.1.0"
 
 [[package]]
+name = "harpc-wire"
+version = "0.1.0"
+dependencies = [
+ "bytes",
+ "uuid",
+]
+
+[[package]]
 name = "hash-graph"
 version = "0.0.0"
 dependencies = [
