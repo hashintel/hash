@@ -17,6 +17,12 @@
 //! even if another service request is being made.
 //!
 //! A single packet can never exceed 64KiB in size.
+//!
+//! TODO: session authentication must happen with a special `RequestId` (0x00) and must be done
+//! _before_ any other request.
+//! Responses are identified by the `RequestId` allowing for multiple requests to be made at the
+//! same time.
+//! PreflightResponse returns if user has been already authorized, or not.
 
 use bytes::Bytes;
 
