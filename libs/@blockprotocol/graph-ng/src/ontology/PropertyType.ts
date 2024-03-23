@@ -13,14 +13,14 @@ import {
 } from "effect";
 import { globalValue } from "effect/GlobalValue";
 
-import { InternalError } from "./DataType/error.js";
-import { encodeSchema } from "./PropertyType/encode.js";
 import * as Json from "../Json.js";
+import { InternalError } from "./DataType/error.js";
+import { OntologyStore } from "./OntologyStore.js";
+import { decodeSchema } from "./PropertyType/decode.js";
+import { encodeSchema } from "./PropertyType/encode.js";
 import { DecodeError, EncodeError } from "./PropertyType/error.js";
 import { PropertyTypeSchema } from "./PropertyType/schema.js";
 import * as PropertyTypeUrl from "./PropertyTypeUrl.js";
-import { decodeSchema } from "./PropertyType/decode.js";
-import { OntologyStore } from "./OntologyStore.js";
 
 const TypeId: unique symbol = Symbol.for(
   "@blockprotocol/graph/ontology/PropertyType",
