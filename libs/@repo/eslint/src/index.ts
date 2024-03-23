@@ -12,7 +12,7 @@ interface NoRestrictedImportsPath {
 }
 
 interface NoRestrictedImportsPattern {
-  importNames: [string, ...string[]];
+  importNames?: [string, ...string[]];
   group: [string, ...string[]];
   importNamePattern?: string;
   message?: string;
@@ -106,7 +106,7 @@ const preventAbbreviations =
               checkDefaultAndNamespaceImports: true,
               checkShorthandImports: "internal",
               extendDefaultReplacements: true,
-              replacement: {
+              replacements: {
                 // Offensive terms
                 whitelist: {
                   include: true,
@@ -175,8 +175,13 @@ const preventAbbreviations =
                 args: false,
                 param: false,
                 params: false,
+                props: false,
                 docs: false,
                 db: false,
+
+                // Look in the future:
+                // really want to remove this, but it's too ingrained in our codebase
+                i: false,
 
                 // Not part of `eslint-plugin-unicorn`, copied from `xo`
                 // with some modifications
@@ -237,11 +242,95 @@ const preventAbbreviations =
       },
     ]);
 
+const importOrder =
+  () =>
+  (config: FlatESLintConfig[]): FlatESLintConfig[] =>
+    defineFlatConfig([
+      ...config,
+      {
+        rules: {
+          "import/order": ["error", { "newlines-between": "always" }],
+        },
+      },
+    ]);
+
+const unicorn =
+  () =>
+  (config: FlatESLintConfig[]): FlatESLintConfig[] =>
+    defineFlatConfig([
+      ...config,
+      {
+        rules: {
+          // I disagree why this is a bad idea, the documentation describes
+          // reduce as hard-to-read and less-performant.
+          // `Array#reduce()` is only less performant if used with an internal
+          // spread operator. It's also a very common pattern in functional
+          // programming.
+          "unicorn/no-array-reduce": "off",
+        },
+      },
+    ]);
+
+const jsx =
+  () =>
+  (config: FlatESLintConfig[]): FlatESLintConfig[] =>
+    defineFlatConfig([
+      ...config,
+      {
+        rules: {
+          // typescript ensures that spread props are of the correct type
+          "react/jsx-props-no-spreading": "off",
+        },
+      },
+    ]);
+
+const builtIn =
+  () =>
+  (config: FlatESLintConfig[]): FlatESLintConfig[] =>
+    defineFlatConfig([
+      ...config,
+      {
+        rules: {
+          // Reason: Nesting ternary expressions can make code more difficult to understand.
+          // While true they are a staple of JS and too integrated into our codebase to remove.
+          // furthermore, `prettier` removes this concern by formatting them in a way that is easy to read.
+          "no-nested-ternary": "off",
+        },
+      },
+    ]);
+
+const react =
+  () =>
+  (config: FlatESLintConfig[]): FlatESLintConfig[] =>
+    defineFlatConfig([
+      ...config,
+      {
+        rules: {
+          // Personal preference
+          "react/no-multi-comp": "off",
+        },
+      },
+    ]);
+
+const typescript =
+  () =>
+  (config: FlatESLintConfig[]): FlatESLintConfig[] =>
+    defineFlatConfig([
+      ...config,
+      {
+        rules: {
+          // While a good idea, there are just too many places where this isn't the case yet
+          "@typescript-eslint/explicit-module-boundary-types": "off",
+        },
+      },
+    ]);
+
 export function create(options: Options): FlatESLintConfig[] {
   const sheriffOptions = {
     react: false,
     next: options.enabled.frontend,
-    lodash: true,
+    // I want to move away from lodash, not add more of it
+    lodash: false,
     playwright: options.enabled.playwright,
     jest: false,
     vitest: options.enabled.tests,
@@ -251,6 +340,12 @@ export function create(options: Options): FlatESLintConfig[] {
     sheriff(sheriffOptions),
     noRestrictedImports(options.noRestrictedImports),
     preventAbbreviations(),
+    importOrder(),
+    unicorn(),
+    jsx(),
+    builtIn(),
+    react(),
+    typescript(),
     defineFlatConfig,
   );
 }
