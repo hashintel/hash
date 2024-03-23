@@ -15,7 +15,7 @@ members = [
     "libs/@local/temporal-client",
     "libs/@local/temporal-versioning",
     "tests/hash-graph-integration",
-    "tests/hash-graph-test-data/rust",
+    "tests/hash-graph-test-data/rust", "libs/@local/harpc",
 ]
 exclude = [
     "libs/antsi",
