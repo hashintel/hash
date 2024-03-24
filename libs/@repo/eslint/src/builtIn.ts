@@ -78,7 +78,8 @@ export const builtIn =
             "error",
             {
               props: true,
-              ignorePropertyModificationsForRegex: ["^draft"],
+              ignorePropertyModificationsForRegex:
+                options.draftVariableRegex?.() ?? [],
             },
           ],
         },

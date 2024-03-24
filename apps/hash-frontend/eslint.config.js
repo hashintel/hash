@@ -65,4 +65,5 @@ export default create({
       ],
     },
   ],
+  draftVariableRegex: () => ["^draft"],
 });

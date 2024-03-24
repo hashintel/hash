@@ -39,6 +39,7 @@ export interface Options {
     tests: boolean;
   };
   noRestrictedImports?: () => NoRestrictedImportsRule[];
+  draftVariableRegex?: () => string[];
 }
 
 export const create = (options: Options): FlatESLintConfig[] => {
