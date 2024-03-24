@@ -1,0 +1,28 @@
+{
+  "name": "@repo/eslint",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Shared ESLint configuration",
+  "repository": "https://github.com/hashintel/hash",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup"
+  },
+  "dependencies": {
+    "effect": "2.4.11",
+    "eslint": "8.57.0",
+    "eslint-config-sheriff": "18.1.0",
+    "eslint-define-config": "2.1.0",
+    "typescript": "5.4.3"
+  },
+  "devDependencies": {
+    "@types/eslint": "8.56.6",
+    "tsup": "8.0.2"
+  }
+}
