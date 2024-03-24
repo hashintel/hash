@@ -25,7 +25,9 @@ const namingConvention = ({ tsx }: { tsx: boolean }): Linter.RuleEntry => [
   // but they cannot be unused.
   {
     selector: "variable",
-    format: ["camelCase", "UPPER_CASE"],
+    format: ["camelCase", "UPPER_CASE", tsx && "StrictPascalCase"].filter(
+      Predicate.isString,
+    ),
     modifiers: ["const", "global"],
     leadingUnderscore: "forbid",
     trailingUnderscore: "forbid",
