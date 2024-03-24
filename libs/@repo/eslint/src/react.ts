@@ -28,6 +28,7 @@ export const react =
             {
               props: "always",
               children: "never",
+              // eslint-disable-next-line unicorn/prevent-abbreviations
               propElementValues: "always",
             },
           ],

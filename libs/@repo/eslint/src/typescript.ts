@@ -33,15 +33,8 @@ const namingConvention = ({ tsx }: { tsx: boolean }): Linter.RuleEntry => [
     leadingUnderscore: "forbid",
     trailingUnderscore: "forbid",
   },
+  // TODO: consider enabling this rule in the future:
   // https://typescript-eslint.io/rules/naming-convention/#enforce-that-boolean-variables-are-prefixed-with-an-allowed-verb
-  {
-    selector: "variable",
-    types: ["boolean"],
-    format: ["PascalCase"],
-    prefix: ["contains", "is", "has", "should", "can"],
-    leadingUnderscore: "forbid",
-    trailingUnderscore: "forbid",
-  },
   {
     selector: "variable",
     modifiers: ["destructured"],
