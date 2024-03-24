@@ -23,7 +23,14 @@ export const react =
           "react/no-multi-comp": "off",
           // Non-curly braces can lead to confusion and ambiguity
           // N.B. This is a quite subjective rule
-          "react/jsx-curly-brace-presence": ["error", "always"],
+          "react/jsx-curly-brace-presence": [
+            "error",
+            {
+              props: "always",
+              children: "never",
+              propElementValues: "always",
+            },
+          ],
         },
       },
     ]);
