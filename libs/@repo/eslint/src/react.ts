@@ -1,10 +1,13 @@
-import { defineFlatConfig, FlatESLintConfig } from "eslint-define-config";
-import { Options } from "./index.js";
+import { defineFlatConfig, type FlatESLintConfig } from "eslint-define-config";
+
+import type { Options } from "./index.js";
 
 export const react =
   (options: Options) =>
   (config: FlatESLintConfig[]): FlatESLintConfig[] => {
-    if (!options.enabled.frontend) return config;
+    if (!options.enabled.frontend) {
+      return config;
+    }
 
     return defineFlatConfig([
       ...config,

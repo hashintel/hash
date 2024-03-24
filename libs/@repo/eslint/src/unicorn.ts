@@ -1,4 +1,5 @@
-import { defineFlatConfig, FlatESLintConfig } from "eslint-define-config";
+/* eslint-disable unicorn/prevent-abbreviations */
+import { defineFlatConfig, type FlatESLintConfig } from "eslint-define-config";
 
 const preventAbbreviations = (): FlatESLintConfig => ({
   rules: {
@@ -142,20 +143,18 @@ const preventAbbreviations = (): FlatESLintConfig => ({
   },
 });
 
-export const unicorn =
-  () =>
-  (config: FlatESLintConfig[]): FlatESLintConfig[] =>
-    defineFlatConfig([
-      ...config,
-      {
-        rules: {
-          // I disagree why this is a bad idea, the documentation describes
-          // reduce as hard-to-read and less-performant.
-          // `Array#reduce()` is only less performant if used with an internal
-          // spread operator. It's also a very common pattern in functional
-          // programming.
-          "unicorn/no-array-reduce": "off",
-        },
+export const unicorn = (config: FlatESLintConfig[]): FlatESLintConfig[] =>
+  defineFlatConfig([
+    ...config,
+    {
+      rules: {
+        // I disagree why this is a bad idea, the documentation describes
+        // reduce as hard-to-read and less-performant.
+        // `Array#reduce()` is only less performant if used with an internal
+        // spread operator. It's also a very common pattern in functional
+        // programming.
+        "unicorn/no-array-reduce": "off",
       },
-      preventAbbreviations(),
-    ]);
+    },
+    preventAbbreviations(),
+  ]);

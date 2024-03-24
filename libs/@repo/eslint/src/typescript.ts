@@ -1,6 +1,7 @@
-import { Linter } from "eslint";
+import type { Linter } from "eslint";
 import { Predicate } from "effect";
-import { defineFlatConfig, FlatESLintConfig } from "eslint-define-config";
+import { defineFlatConfig, type FlatESLintConfig } from "eslint-define-config";
+
 import { JS_EXTENSIONS, JSX_EXTENSIONS } from "./index.js";
 
 const namingConvention = ({ tsx }: { tsx: boolean }): Linter.RuleEntry => [
@@ -77,46 +78,44 @@ const namingConvention = ({ tsx }: { tsx: boolean }): Linter.RuleEntry => [
   },
 ];
 
-export const typescript =
-  () =>
-  (config: FlatESLintConfig[]): FlatESLintConfig[] => {
-    return defineFlatConfig([
-      ...config,
-      {
-        rules: {
-          // While a good idea, there are just too many places where this isn't the case yet
-          "@typescript-eslint/explicit-module-boundary-types": "off",
-          // Allow unused variables that start with an underscore (goes hand in hand with
-          // the naming convention)
-          "@typescript-eslint/no-unused-vars": [
-            "error",
-            {
-              args: "all",
-              argsIgnorePattern: "^_",
-              caughtErrors: "all",
-              caughtErrorsIgnorePattern: "^_",
-              destructuredArrayIgnorePattern: "^_",
-              varsIgnorePattern: "^_",
-              ignoreRestSiblings: true,
-            },
-          ],
-        },
+export const typescript = (config: FlatESLintConfig[]): FlatESLintConfig[] =>
+  defineFlatConfig([
+    ...config,
+    {
+      rules: {
+        // While a good idea, there are just too many places where this isn't the case yet
+        "@typescript-eslint/explicit-module-boundary-types": "off",
+        // Allow unused variables that start with an underscore (goes hand in hand with
+        // the naming convention)
+        "@typescript-eslint/no-unused-vars": [
+          "error",
+          {
+            args: "all",
+            argsIgnorePattern: "^_",
+            caughtErrors: "all",
+            caughtErrorsIgnorePattern: "^_",
+            destructuredArrayIgnorePattern: "^_",
+            // eslint-disable-next-line unicorn/prevent-abbreviations
+            varsIgnorePattern: "^_",
+            ignoreRestSiblings: true,
+          },
+        ],
       },
-      {
-        files: [`**/*{${JS_EXTENSIONS}}`],
-        rules: {
-          "@typescript-eslint/naming-convention": namingConvention({
-            tsx: false,
-          }),
-        },
+    },
+    {
+      files: [`**/*{${JS_EXTENSIONS}}`],
+      rules: {
+        "@typescript-eslint/naming-convention": namingConvention({
+          tsx: false,
+        }),
       },
-      {
-        files: [`**/*{${JSX_EXTENSIONS}}`],
-        rules: {
-          "@typescript-eslint/naming-convention": namingConvention({
-            tsx: true,
-          }),
-        },
+    },
+    {
+      files: [`**/*{${JSX_EXTENSIONS}}`],
+      rules: {
+        "@typescript-eslint/naming-convention": namingConvention({
+          tsx: true,
+        }),
       },
-    ]);
-  };
+    },
+  ]);

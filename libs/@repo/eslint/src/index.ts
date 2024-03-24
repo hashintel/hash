@@ -1,11 +1,10 @@
-import { defineFlatConfig } from "eslint-define-config";
-import sheriff from "eslint-config-sheriff";
-
-import type { FlatESLintConfig } from "eslint-define-config";
+import { defineFlatConfig, type FlatESLintConfig } from "eslint-define-config";
+import { sheriff } from "eslint-config-sheriff";
 import { pipe } from "effect";
+
 import { builtIn } from "./builtIn.js";
 import { unicorn } from "./unicorn.js";
-import { import_ } from "./import.js";
+import { importPlugin } from "./import.js";
 import { react } from "./react.js";
 import { typescript } from "./typescript.js";
 import { stylistic } from "./stylistic.js";
@@ -42,7 +41,7 @@ export interface Options {
   noRestrictedImports?: () => NoRestrictedImportsRule[];
 }
 
-export function create(options: Options): FlatESLintConfig[] {
+export const create = (options: Options): FlatESLintConfig[] => {
   const sheriffOptions = {
     react: false,
     next: options.enabled.frontend,
@@ -53,16 +52,14 @@ export function create(options: Options): FlatESLintConfig[] {
     vitest: options.enabled.tests,
   };
 
-  const x_ = 12;
-
   return pipe(
     sheriff(sheriffOptions),
-    builtIn(options),
-    import_(),
-    unicorn(),
-    react(options),
-    typescript(),
-    stylistic(),
     defineFlatConfig,
+    builtIn(options),
+    importPlugin,
+    unicorn,
+    react(options),
+    typescript,
+    stylistic,
   );
-}
+};

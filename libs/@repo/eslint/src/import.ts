@@ -1,13 +1,12 @@
-import { defineFlatConfig, FlatESLintConfig } from "eslint-define-config";
+import { defineFlatConfig, type FlatESLintConfig } from "eslint-define-config";
 
-export const import_ =
-  () =>
-  (config: FlatESLintConfig[]): FlatESLintConfig[] =>
-    defineFlatConfig([
-      ...config,
-      {
-        rules: {
-          "import/order": ["error", { "newlines-between": "always" }],
-        },
+export const importPlugin = (config: FlatESLintConfig[]): FlatESLintConfig[] =>
+  defineFlatConfig([
+    ...config,
+    {
+      rules: {
+        "import/order": ["error", { "newlines-between": "always" }],
+        "import/no-useless-path-segments": ["error", { noUselessIndex: false }],
       },
-    ]);
+    },
+  ]);

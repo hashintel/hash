@@ -1,6 +1,15 @@
-import { defineFlatConfig, FlatESLintConfig } from "eslint-define-config";
+import { defineFlatConfig, type FlatESLintConfig } from "eslint-define-config";
 import { Option, pipe, Predicate, ReadonlyArray } from "effect";
-import { NoRestrictedImportsRule, Options } from "./index.js";
+
+import type { NoRestrictedImportsRule, Options } from "./index.js";
+
+const mergeRestrictedImports = (
+  current: NoRestrictedImportsRule,
+  override: NoRestrictedImportsRule,
+): NoRestrictedImportsRule => ({
+  paths: [...(current.paths ?? []), ...(override.paths ?? [])],
+  patterns: [...(current.patterns ?? []), ...(override.patterns ?? [])],
+});
 
 const noRestrictedImports = (
   config: FlatESLintConfig[],
@@ -35,22 +44,14 @@ const noRestrictedImports = (
     throw new Error("expected patterns to be an array of objects");
   }
 
-  function apply(
-    current: NoRestrictedImportsRule,
-    override: NoRestrictedImportsRule,
-  ): NoRestrictedImportsRule {
-    return {
-      paths: [...(current.paths ?? []), ...(override.paths ?? [])],
-      patterns: [...(current.patterns ?? []), ...(override.patterns ?? [])],
-    };
-  }
+  const currentRule = current as NoRestrictedImportsRule;
 
   return defineFlatConfig([
     {
       rules: {
         "no-restricted-imports": [
           "error",
-          overrides().reduce(apply, current as NoRestrictedImportsRule),
+          overrides().reduce(mergeRestrictedImports, currentRule),
         ],
       },
     } satisfies FlatESLintConfig,
