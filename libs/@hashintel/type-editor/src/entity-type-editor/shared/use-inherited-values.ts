@@ -99,7 +99,9 @@ const addInheritedValuesForEntityType = (
       throw new Error(
         `Link type '${versionedUrlToTitle(
           duplicateLinkKey,
-        )}' found on two parents: '${duplicateInheritedFrom.schema.title}' and '${
+        )}' found on two parents: '${
+          duplicateInheritedFrom.schema.title
+        }' and '${
           entityType.schema.title
         }'. Please remove it from one in order to have both as a parent.`,
       );
@@ -127,7 +129,9 @@ const addInheritedValuesForEntityType = (
       throw new Error(
         `Property type '${versionedUrlToTitle(
           duplicatePropertyKey,
-        )}' found on two parents: '${duplicateInheritedFrom.schema.title}' and '${
+        )}' found on two parents: '${
+          duplicateInheritedFrom.schema.title
+        }' and '${
           entityType.schema.title
         }'. Please remove it from one in order to have both as a parent.`,
       );

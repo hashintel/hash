@@ -11,7 +11,7 @@ import {
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { save } from "@local/hash-isomorphic-utils/save";
 import type { EntityId, OwnedById } from "@local/hash-subgraph";
-import { debounce } from "lodash";
+import debounce from "lodash/debounce";
 // import applyDevTools from "prosemirror-dev-tools";
 import { Plugin, PluginKey } from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";

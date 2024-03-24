@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { Entity, LinkData } from "@blockprotocol/graph";
+import type { Entity, LinkData } from "@local/hash-subgraph";
 
 import type {
   ArchivedPropertyValue,

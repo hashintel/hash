@@ -63,7 +63,7 @@ jobs:
           env: ${{ matrix.env }}
 
       - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@4e5fb42d249be6a45a298f3c9543b111b02f7907
+        uses: rtCamp/action-slack-notify@72c987ec9674843e8a882c6beb4fb043c1ea926e
         if: ${{ failure() }}
         env:
           SLACK_LINK_NAMES: true

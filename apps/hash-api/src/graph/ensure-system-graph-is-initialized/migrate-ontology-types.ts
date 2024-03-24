@@ -1,5 +1,6 @@
 import { readdir } from "node:fs/promises";
-import path from "node:path";
+import path, { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import type { Logger } from "@local/hash-backend-utils/logger";
 
@@ -9,6 +10,9 @@ import type {
   MigrationFunction,
   MigrationState,
 } from "./migrate-ontology-types/types";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 /**
  * Migrate the ontology types in the Graph API.

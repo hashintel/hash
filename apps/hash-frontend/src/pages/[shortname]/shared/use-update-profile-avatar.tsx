@@ -2,7 +2,7 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { EntityId, OwnedById } from "@local/hash-subgraph";
+import type { OwnedById } from "@local/hash-subgraph";
 import { useCallback, useState } from "react";
 
 import type { Org, User } from "../../../lib/user-and-org";
@@ -46,8 +46,8 @@ export const useUpdateProfileAvatar = (props: {
           ...(existingAvatarImageEntity
             ? {
                 fileEntityUpdateInput: {
-                  existingFileEntityId: existingAvatarImageEntity.metadata
-                    .recordId.entityId as EntityId,
+                  existingFileEntityId:
+                    existingAvatarImageEntity.metadata.recordId.entityId,
                 },
               }
             : {

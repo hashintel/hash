@@ -34,7 +34,7 @@ import {
   getRoots,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import {
@@ -195,17 +195,17 @@ describe("Entity CRU", () => {
         },
       ],
     });
-  });
 
-  afterAll(async () => {
-    await deleteKratosIdentity({
-      kratosIdentityId: testUser.kratosIdentityId,
-    });
-    await deleteKratosIdentity({
-      kratosIdentityId: testUser2.kratosIdentityId,
-    });
+    return async () => {
+      await deleteKratosIdentity({
+        kratosIdentityId: testUser.kratosIdentityId,
+      });
+      await deleteKratosIdentity({
+        kratosIdentityId: testUser2.kratosIdentityId,
+      });
 
-    await resetGraph();
+      await resetGraph();
+    };
   });
 
   let createdEntity: Entity;

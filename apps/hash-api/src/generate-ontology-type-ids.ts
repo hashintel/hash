@@ -2,6 +2,8 @@ import "@local/hash-backend-utils/environment";
 
 import { writeFile } from "node:fs/promises";
 import * as path from "node:path";
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { Logger } from "@local/hash-backend-utils/logger";
@@ -31,6 +33,9 @@ import {
 } from "./graph/ontology/primitive/entity-type";
 import { getPropertyTypes } from "./graph/ontology/primitive/property-type";
 import { getRequiredEnv } from "./util";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const outputFileName = "ontology-type-ids.ts";
 

@@ -10,7 +10,7 @@ proc-macro = true
 
 [dependencies]
 virtue = "0.0.16"
-syn = "2.0.53"
+syn = "2.0.55"
 
 [dev-dependencies]
 trybuild = "1.0.90"
