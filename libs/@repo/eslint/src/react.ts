@@ -21,6 +21,8 @@ export const react =
           "react/jsx-props-no-spreading": "off",
           // Personal preference
           "react/no-multi-comp": "off",
+          // Personal preference, ensures that the code is more readable
+          "react/jsx-boolean-value": "error",
           // Non-curly braces can lead to confusion and ambiguity
           // N.B. This is a quite subjective rule
           "react/jsx-curly-brace-presence": [

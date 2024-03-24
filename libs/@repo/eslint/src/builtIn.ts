@@ -73,6 +73,14 @@ export const builtIn =
           // Generators cannot be written as arrow functions, therefore are
           // allowed to be anonymous to accommodate effect.
           "func-names": ["error", "always", { generators: "as-needed" }],
+          // This is the same as sheriff's rule but allows for drafts to be modified
+          "no-param-reassign": [
+            "error",
+            {
+              props: true,
+              ignorePropertyModificationsForRegex: ["^draft"],
+            },
+          ],
         },
       },
       ...noRestrictedImports(config, options.noRestrictedImports ?? (() => [])),

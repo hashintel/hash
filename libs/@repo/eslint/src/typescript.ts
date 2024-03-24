@@ -10,7 +10,7 @@ const namingConvention = ({ tsx }: { tsx: boolean }): Linter.RuleEntry => [
   {
     selector: "default",
     format: ["camelCase", tsx && "StrictPascalCase"].filter(Predicate.isString),
-    leadingUnderscore: "forbid",
+    leadingUnderscore: "allow",
     trailingUnderscore: "forbid",
   },
   {
@@ -19,6 +19,15 @@ const namingConvention = ({ tsx }: { tsx: boolean }): Linter.RuleEntry => [
     modifiers: ["const"],
     types: ["string", "number"],
     leadingUnderscore: "allow",
+    trailingUnderscore: "forbid",
+  },
+  // allow constant variables in the global scope to be in UPPER_CASE,
+  // but they cannot be unused.
+  {
+    selector: "variable",
+    format: ["camelCase", "UPPER_CASE"],
+    modifiers: ["const", "global"],
+    leadingUnderscore: "forbid",
     trailingUnderscore: "forbid",
   },
   {
