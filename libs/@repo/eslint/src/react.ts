@@ -13,7 +13,11 @@ export const react =
       ...config,
       {
         rules: {
-          // typescript ensures that spread props are of the correct type
+          // disallows the use of `dangerouslySetInnerHTML`
+          "react/no-danger": "error",
+          // We make use of quite a few HOCs
+          // Typescript ensures that the props are passed correctly
+          // TODO: investigate if we want to enable this in the future
           "react/jsx-props-no-spreading": "off",
           // Personal preference
           "react/no-multi-comp": "off",

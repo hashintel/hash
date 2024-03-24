@@ -84,6 +84,7 @@ export const typescript = (config: FlatESLintConfig[]): FlatESLintConfig[] =>
     {
       rules: {
         // While a good idea, there are just too many places where this isn't the case yet
+        // TODO: consider introducing this rule in the future
         "@typescript-eslint/explicit-module-boundary-types": "off",
         // Allow unused variables that start with an underscore (goes hand in hand with
         // the naming convention)
