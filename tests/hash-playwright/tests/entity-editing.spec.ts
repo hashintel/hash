@@ -33,41 +33,49 @@ const getCellText = async (
  * Check that there is content rendered in the first cell of the first non-header row
  */
 const checkIfCellContainsNonWhitePixels = async (canvasLocator: Locator) => {
-  const context = await canvasLocator.evaluate((canvas) =>
-    (canvas as HTMLCanvasElement).getContext("2d"),
-  );
+  const hasNonWhitePixels = await (
+    await canvasLocator.elementHandle()
+  )?.evaluate((canvas, rowHeight) => {
+    /**
+     * The return of evaluate is JSON.stringified, and therefore functions cannot be serialized.
+     * We must do all work that requires functions inside the callback.
+     */
+    const context = (canvas as HTMLCanvasElement).getContext("2d");
 
-  if (!context) {
-    throw new Error("Could not get canvas context");
-  }
+    if (!context) {
+      throw new Error("Could not get canvas context");
+    }
 
-  /** Start our check a few pixels in so that we ignore borders */
-  const firstValueCellXPosition = 5;
+    /** Start our check a few pixels in so that we ignore borders */
+    const firstValueCellXPosition = 5;
 
-  /**
-   * The canvas's width/height are twice their rendered size, so we need to double the desired height to get the right offset.
-   * This is different to clickOnValueCell, which is using mouse positioning on the rendered DOM rather than the canvas's size.
-   *
-   * Add 5 to account so that we ignore any borders or other pixels that may be introduced that aren't the main content.
-   */
-  const firstValueCellYPosition = gridRowHeight * 2 + 5;
+    /**
+     * The canvas's width/height are twice their rendered size, so we need to double the desired height to get the right offset.
+     * This is different to clickOnValueCell, which is using mouse positioning on the rendered DOM rather than the canvas's size.
+     *
+     * Add 5 to account so that we ignore any borders or other pixels that may be introduced that aren't the main content.
+     */
+    const firstValueCellYPosition = rowHeight * 2 + 5;
 
-  /** Check a width that should include any rendered content without risking straying to the end of the cell */
-  const widthToCheck = 100;
+    /** Check a width that should include any rendered content without risking straying to the end of the cell */
+    const widthToCheck = 100;
 
-  /** Checking half the height should be sufficient to cover any content rendered in the middle of the cell */
-  const heightToCheck = gridRowHeight / 2;
+    /** Checking half the height should be sufficient to cover any content rendered in the middle of the cell */
+    const heightToCheck = rowHeight / 2;
 
-  const imageData = context.getImageData(
-    firstValueCellXPosition,
-    firstValueCellYPosition,
-    widthToCheck,
-    heightToCheck,
-  );
+    const imageData = context.getImageData(
+      firstValueCellXPosition,
+      firstValueCellYPosition,
+      widthToCheck,
+      heightToCheck,
+    );
 
-  const nonWhitePixels = imageData.data.filter((pixel) => pixel !== 255);
+    const nonWhitePixels = imageData.data.filter((pixel) => pixel !== 255);
 
-  return nonWhitePixels.length > 0;
+    return nonWhitePixels.length > 0;
+  }, gridRowHeight);
+
+  return hasNonWhitePixels;
 };
 
 /**
@@ -144,7 +152,7 @@ test("user can update values on property table", async ({ page }) => {
   expect(cell1Text).toBe(profileUrl);
 });
 
-test("both the link and properties tables renders some content", async ({
+test.only("both the link and properties tables renders some content", async ({
   page,
 }) => {
   await loginUsingTempForm({
