@@ -260,7 +260,7 @@ const Page: NextPageWithLayout = () => {
           entityId,
           includeDraftId: !!latestDraftId,
         });
-        void router.push(entityHref);
+        void router.replace(entityHref);
         return;
       }
 
