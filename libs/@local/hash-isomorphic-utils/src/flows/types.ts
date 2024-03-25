@@ -1,7 +1,9 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
-
-import type { ProposedEntity } from "../ai-inference-types";
+import type {
+  Entity,
+  EntityPropertiesObject,
+  EntityTypeWithMetadata,
+} from "@local/hash-subgraph";
 
 export type DeepReadOnly<T> = {
   readonly [key in keyof T]: DeepReadOnly<T[key]>;
@@ -17,15 +19,20 @@ export type WebPage = {
   textContent: string;
 };
 
+export type ProposedEntity = {
+  entityTypeId: VersionedUrl;
+  properties: EntityPropertiesObject;
+};
+
 export type PayloadKindValues = {
-  Text: string;
-  Number: number;
-  Boolean: boolean;
-  ProposedEntity: ProposedEntity;
-  Entity: Entity;
-  WebPage: WebPage;
-  EntityType: EntityTypeWithMetadata;
-  VersionedUrl: VersionedUrl;
+  Text: string | string[];
+  Number: number | number[];
+  Boolean: boolean | boolean[];
+  ProposedEntity: ProposedEntity | ProposedEntity[];
+  Entity: Entity | Entity[];
+  WebPage: WebPage | WebPage[];
+  EntityType: EntityTypeWithMetadata | EntityTypeWithMetadata[];
+  VersionedUrl: VersionedUrl | VersionedUrl[];
 };
 
 export type PayloadKind = keyof PayloadKindValues;
@@ -119,12 +126,12 @@ export type FlowDefinition = {
 
 export type StepInput = {
   inputName: string;
-  payload: Payload | Payload[];
+  payload: Payload;
 };
 
 export type StepOutput = {
   outputName: string;
-  payload: Payload | Payload[];
+  payload: Payload;
 };
 
 export type Step = {

@@ -4,7 +4,10 @@ import type {
   InputNameForAction,
   OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/step-definitions";
-import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  ProposedEntity,
+  WebPage,
+} from "@local/hash-isomorphic-utils/flows/types";
 import type { OwnedById } from "@local/hash-subgraph/.";
 import { StatusCode } from "@local/status";
 
@@ -95,9 +98,14 @@ export const inferEntitiesFromContentAction: FlowActionActivity<{
     };
   }
 
-  const proposedEntities = Object.values(
+  const proposedEntities: ProposedEntity[] = Object.entries(
     status.contents[0]!.proposedEntityCreationsByType,
-  ).flat();
+  ).flatMap(([entityTypeId, proposedEntitiesByType]) =>
+    proposedEntitiesByType.map(({ properties }) => ({
+      entityTypeId: entityTypeId as VersionedUrl,
+      properties: properties ?? {},
+    })),
+  );
 
   return {
     code: StatusCode.Ok,
