@@ -260,8 +260,10 @@ export const CreateOrEditSheetsIntegration = ({
           onUserChoice={(response) => {
             setAccessToken(null);
 
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-            if (response.action !== "picked" || !response.docs[0]) {
+            if (
+              response.action !== google.picker.Action.PICKED ||
+              !response.docs[0]
+            ) {
               return;
             }
 

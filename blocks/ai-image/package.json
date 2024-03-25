@@ -2,6 +2,7 @@
   "name": "@blocks/ai-image",
   "version": "0.1.2",
   "private": true,
+  "type": "module",
   "description": "Generate any image you can put into words, in just a few seconds",
   "keywords": [
     "blockprotocol",
@@ -30,7 +31,7 @@
     "trailingComma": "all"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.3.4-canary-20240313191438",
+    "@blockprotocol/graph": "0.3.4",
     "@blockprotocol/service": "0.1.4",
     "@hashintel/block-design-system": "0.0.2",
     "@hashintel/design-system": "0.0.8",
@@ -47,7 +48,8 @@
     "mock-block-dock": "0.1.9",
     "prettier": "3.2.5",
     "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "react-dom": "18.2.0",
+    "typescript": "5.1.6"
   },
   "peerDependencies": {
     "react": "^18.0.0",

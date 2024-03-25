@@ -27,7 +27,7 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@df21811e2c616364d99fc0211db875993489a4ea
+        uses: rtCamp/action-slack-notify@72c987ec9674843e8a882c6beb4fb043c1ea926e
         if: ${{ failure() }}
         env:
           SLACK_LINK_NAMES: true

@@ -17,6 +17,7 @@ import type {
   OwnedById,
 } from "@local/hash-subgraph";
 import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import {
@@ -25,8 +26,6 @@ import {
   createTestUser,
   textDataTypeId,
 } from "../../../util";
-
-jest.setTimeout(60000);
 
 const logger = new Logger({
   mode: "dev",
@@ -82,17 +81,16 @@ beforeAll(async () => {
       operation: "create",
     },
   ]);
-});
 
-afterAll(async () => {
-  await deleteKratosIdentity({
-    kratosIdentityId: testUser.kratosIdentityId,
-  });
-  await deleteKratosIdentity({
-    kratosIdentityId: testUser2.kratosIdentityId,
-  });
-
-  await resetGraph();
+  return async () => {
+    await deleteKratosIdentity({
+      kratosIdentityId: testUser.kratosIdentityId,
+    });
+    await deleteKratosIdentity({
+      kratosIdentityId: testUser2.kratosIdentityId,
+    });
+    await resetGraph();
+  };
 });
 
 describe("Data type CRU", () => {

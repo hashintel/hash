@@ -9,7 +9,7 @@ import type {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getPropertyTypeById } from "@local/hash-subgraph/stdlib";
-import { get } from "lodash";
+import get from "lodash/get";
 
 import {
   isPropertyValueArray,

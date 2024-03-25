@@ -9,6 +9,7 @@
  */
 
 import type { Subgraph as SubgraphGraphApi } from "@local/hash-graph-client";
+import { test } from "vitest";
 
 import type { Subgraph } from "../src/main";
 import {

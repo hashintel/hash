@@ -1,5 +1,8 @@
+import { beforeAll, describe, expect, test } from "vitest";
+
 import type { ParsePropertyTypeError, PropertyType } from "../src/main";
-import { TypeSystemInitializer, validatePropertyType } from "../src/main";
+import { validatePropertyType } from "../src/main";
+import { initialize } from "./shared";
 
 const propertyTypes: PropertyType[] = [
   {
@@ -351,7 +354,7 @@ const brokenTypes: [any, ParsePropertyTypeError][] = [
 ];
 
 beforeAll(async () => {
-  await TypeSystemInitializer.initialize();
+  await initialize();
 });
 
 describe("validatePropertyType", () => {

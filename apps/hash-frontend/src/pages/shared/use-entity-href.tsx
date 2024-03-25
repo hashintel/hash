@@ -8,7 +8,9 @@ export const generateEntityHref = (params: {
   entityId: EntityId;
   shortname: string;
 }) =>
-  `/@${params.shortname}/entities/${extractEntityUuidFromEntityId(params.entityId)}`;
+  `/@${params.shortname}/entities/${extractEntityUuidFromEntityId(
+    params.entityId,
+  )}`;
 
 export const useEntityHref = (entity: Entity) => {
   const getOwnerForEntity = useGetOwnerForEntity();

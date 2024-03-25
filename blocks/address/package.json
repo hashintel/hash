@@ -2,6 +2,7 @@
   "name": "@blocks/address",
   "version": "0.1.2",
   "private": true,
+  "type": "module",
   "description": "Search for an address using the Mapbox Address Autofill and Mapbox Static Images APIs",
   "keywords": [
     "blockprotocol",
@@ -30,7 +31,7 @@
     "trailingComma": "all"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.3.4-canary-20240313191438",
+    "@blockprotocol/graph": "0.3.4",
     "@blockprotocol/service": "0.1.4",
     "@fortawesome/free-regular-svg-icons": "6.0.0",
     "@fortawesome/free-solid-svg-icons": "6.0.0",
@@ -51,7 +52,8 @@
     "mock-block-dock": "0.1.9",
     "prettier": "3.2.5",
     "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "react-dom": "18.2.0",
+    "typescript": "5.1.6"
   },
   "peerDependencies": {
     "react": "^18.0.0",
