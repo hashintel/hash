@@ -152,7 +152,7 @@ test("user can update values on property table", async ({ page }) => {
   expect(cell1Text).toBe(profileUrl);
 });
 
-test.only("both the link and properties tables renders some content", async ({
+test("both the link and properties tables renders some content", async ({
   page,
 }) => {
   await loginUsingTempForm({
