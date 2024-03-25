@@ -1,5 +1,8 @@
 import * as http from "node:http";
+import { createRequire } from "node:module";
 import * as path from "node:path";
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
@@ -13,6 +16,11 @@ import * as googleActivities from "./google-activities";
 import * as graphActivities from "./graph-activities";
 import * as linearActivities from "./linear-activities";
 import * as workflows from "./workflows";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const require = createRequire(import.meta.url);
 
 // This is a workaround to ensure that all functions defined in WorkflowTypeMap are exported from the workflows file
 // They must be individually exported from the file, and it's impossible to check completeness of exports in the file itself

@@ -21,7 +21,9 @@ export const stringifyPropertyValue = (propertyValue: unknown): string => {
        * If the property value is an array, we stringify each element and
        * join them with a comma surrounding them with square brackets
        */
-      return `[${propertyValue.map((value) => stringifyPropertyValue(value)).join(", ")}]`;
+      return `[${propertyValue
+        .map((value) => stringifyPropertyValue(value))
+        .join(", ")}]`;
     } else {
       // If the property value is an object, we stringify it
       return JSON.stringify(propertyValue);

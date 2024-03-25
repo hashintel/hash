@@ -11,6 +11,7 @@ import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user"
 import type { AuthenticationContext } from "@apps/hash-api/src/graphql/authentication-context";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import {
@@ -18,8 +19,6 @@ import {
   createTestOrg,
   createTestUser,
 } from "../../../util";
-
-jest.setTimeout(60000);
 
 const logger = new Logger({
   mode: "dev",
@@ -48,14 +47,14 @@ describe("OrgMembership", () => {
       "orgMembershipTest",
       logger,
     );
-  });
 
-  afterAll(async () => {
-    await deleteKratosIdentity({
-      kratosIdentityId: testUser.kratosIdentityId,
-    });
+    return async () => {
+      await deleteKratosIdentity({
+        kratosIdentityId: testUser.kratosIdentityId,
+      });
 
-    await resetGraph();
+      await resetGraph();
+    };
   });
 
   let testOrgMembership: OrgMembership;

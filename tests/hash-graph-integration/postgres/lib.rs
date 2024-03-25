@@ -1,4 +1,4 @@
-#![feature(associated_type_bounds, lint_reasons)]
+#![feature(lint_reasons)]
 #![allow(
     clippy::missing_panics_doc,
     clippy::missing_errors_doc,
@@ -11,6 +11,7 @@ mod entity;
 mod entity_type;
 mod links;
 mod multi_type;
+mod partial_updates;
 mod property_type;
 mod sorting;
 

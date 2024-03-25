@@ -4,6 +4,7 @@
   "private": true,
   "description": "Realtime streaming update server from the HASH datstore",
   "license": "AGPL-3.0",
+  "type": "module",
   "scripts": {
     "clear-redis": "tsx ./src/scripts/clear-redis.ts",
     "dev": "yarn clear-redis && NODE_ENV=development NODE_OPTIONS=--max-old-space-size=2048 tsx watch --clear-screen=false ./src/index.ts",

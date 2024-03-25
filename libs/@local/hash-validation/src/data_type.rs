@@ -497,6 +497,7 @@ impl<P: Sync> Schema<JsonValue, P> for DataType {
                     self.additional_properties(),
                     JsonSchemaValueType::Integer,
                     JsonValue::as_i64,
+                    #[expect(clippy::integer_division_remainder_used)]
                     |number, multiple| number % multiple == 0,
                 )?;
             }

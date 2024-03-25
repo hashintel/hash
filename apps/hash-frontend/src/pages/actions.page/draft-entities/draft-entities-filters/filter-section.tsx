@@ -119,7 +119,11 @@ const SelectAllSwitch = styled(Switch)(() => ({
   [`& .${switchClasses.switchBase}`]: {
     margin: selectAllSwitchGutter,
     [`&.${switchClasses.checked}`]: {
-      transform: `translateX(${calculateSwitchTranslateDistance({ width: selectAllSwitchWidth, thumbSize: selectAllSwitchThumbSize, gutter: selectAllSwitchGutter })}px)`,
+      transform: `translateX(${calculateSwitchTranslateDistance({
+        width: selectAllSwitchWidth,
+        thumbSize: selectAllSwitchThumbSize,
+        gutter: selectAllSwitchGutter,
+      })}px)`,
     },
   },
   [`& .${switchClasses.thumb}`]: {

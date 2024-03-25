@@ -67,7 +67,9 @@ export const createApolloClient = (params?: {
 
     return fetch(
       operationName
-        ? `${typeof uri === "string" ? uri : JSON.stringify(uri)}?${operationName}`
+        ? `${
+            typeof uri === "string" ? uri : JSON.stringify(uri)
+          }?${operationName}`
         : uri,
       options,
     );

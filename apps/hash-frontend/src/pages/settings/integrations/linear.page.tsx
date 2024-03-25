@@ -18,7 +18,7 @@ import {
 import type { NextPageWithLayout } from "../../../shared/layout";
 import { Button } from "../../../shared/ui";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
-import { getSettingsLayout } from "../shared/settings-layout";
+import { getSettingsLayout } from "../../shared/settings-layout";
 import type { LinearOrganizationTeamsWithWorkspaces } from "./linear/select-linear-teams-table";
 import {
   mapLinearOrganizationToLinearOrganizationTeamsWithWorkspaces,
