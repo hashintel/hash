@@ -99,7 +99,7 @@ const ReplaceFile = ({
         const {
           createdEntities: { fileEntity },
         } = response;
-        onEntityUpdated(fileEntity);
+        onEntityUpdated?.(fileEntity);
       }
     } finally {
       setFileBeingUploaded(null);

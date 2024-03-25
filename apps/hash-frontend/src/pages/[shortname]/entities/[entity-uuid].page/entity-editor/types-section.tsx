@@ -92,7 +92,7 @@ export const TypesSection = () => {
       });
 
       if (res.data) {
-        onEntityUpdated(res.data);
+        onEntityUpdated?.(res.data);
         setNewVersion(undefined);
       }
     } finally {
