@@ -604,7 +604,7 @@ mod tests {
     use super::*;
 
     fn test_entity(json: &str) {
-        let json_value = serde_json::to_value(json).expect("invalid JSON");
+        let json_value: serde_json::Value = serde_json::from_str(json).expect("invalid JSON");
 
         let properties: EntityProperties =
             serde_json::from_value(json_value.clone()).expect("invalid entity");
