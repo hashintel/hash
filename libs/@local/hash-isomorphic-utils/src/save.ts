@@ -15,7 +15,7 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { generateNKeysBetween } from "fractional-indexing";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import type { Node } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
 

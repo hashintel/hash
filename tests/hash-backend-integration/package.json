@@ -4,6 +4,7 @@
   "private": true,
   "description": "Integration tests for HASH",
   "license": "AGPL-3.0",
+  "type": "module",
   "scripts": {
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "fix:eslint": "eslint --fix .",
@@ -27,9 +28,7 @@
     "node-fetch": "2.7.0"
   },
   "devDependencies": {
-    "@babel/preset-env": "7.23.9",
-    "@babel/preset-typescript": "7.23.3",
-    "@blockprotocol/graph": "0.3.4-canary-20240313191438",
+    "@blockprotocol/graph": "0.3.4",
     "@graphql-codegen/cli": "5.0.0",
     "@graphql-codegen/introspection": "2.2.3",
     "@graphql-codegen/typescript": "2.8.7",

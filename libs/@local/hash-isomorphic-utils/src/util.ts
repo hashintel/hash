@@ -1,5 +1,5 @@
 // @todo this should be defined elsewhere
-import { uniq } from "lodash";
+import uniq from "lodash/uniq";
 
 /**
  * This behaves differently from the type `{}`, and will error if you set more properties on it.

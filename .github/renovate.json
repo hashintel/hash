@@ -171,7 +171,8 @@
       "groupName": "Rust toolchains",
       "commitMessageTopic": "Rust toolchains",
       "reviewers": ["team:Rust"],
-      "dependencyDashboardApproval": false
+      "dependencyDashboardApproval": false,
+      "schedule": ["before 11am"]
     },
     {
       "matchManagers": ["cargo"],

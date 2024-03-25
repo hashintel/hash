@@ -115,7 +115,9 @@ const EntityResult: FunctionComponent<{
     <ResultItem>
       <Link
         noLinkStyle
-        href={`/@${entityOwningShortname}/entities/${extractEntityUuidFromEntityId(entityId)}`}
+        href={`/@${entityOwningShortname}/entities/${extractEntityUuidFromEntityId(
+          entityId,
+        )}`}
       >
         {generateEntityLabel(subgraph, entity)}
       </Link>

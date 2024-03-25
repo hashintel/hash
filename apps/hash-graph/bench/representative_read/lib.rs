@@ -1,4 +1,4 @@
-#![feature(custom_test_frameworks, lint_reasons, associated_type_bounds)]
+#![feature(custom_test_frameworks, lint_reasons)]
 #![test_runner(criterion::runner)]
 #![allow(
     clippy::print_stderr,

@@ -29,7 +29,7 @@ import type {
 import type { OwnedById } from "@local/hash-subgraph";
 import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { generateKeyBetween } from "fractional-indexing";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
@@ -50,14 +50,14 @@ describe("Page", () => {
     await ensureSystemGraphIsInitialized({ logger, context: graphContext });
 
     testUser = await createTestUser(graphContext, "pageTest", logger);
-  });
 
-  afterAll(async () => {
-    await deleteKratosIdentity({
-      kratosIdentityId: testUser.kratosIdentityId,
-    });
+    return async () => {
+      await deleteKratosIdentity({
+        kratosIdentityId: testUser.kratosIdentityId,
+      });
 
-    await resetGraph();
+      await resetGraph();
+    };
   });
 
   const createTestBlock = async () => {
