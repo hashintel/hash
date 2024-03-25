@@ -34,7 +34,7 @@ export interface NoRestrictedImportsRule {
 
 export interface Options {
   enabled: {
-    frontend: "next" | "react" | boolean;
+    frontend: "next" | "react" | false;
     playwright: boolean;
     tests: boolean;
   };
@@ -45,8 +45,7 @@ export interface Options {
 export const create = (options: Options): FlatESLintConfig[] => {
   const sheriffOptions = {
     react: options.enabled.frontend === "react",
-    next:
-      options.enabled.frontend === "next" || options.enabled.frontend === true,
+    next: options.enabled.frontend === "next",
     // I want to move away from lodash, not add more of it
     lodash: false,
     playwright: options.enabled.playwright,
