@@ -97,6 +97,7 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
                 path={`${owner}/entities/${entityUuid}`}
               />
             }
+            onEntityUpdated={null}
           />
         }
       >

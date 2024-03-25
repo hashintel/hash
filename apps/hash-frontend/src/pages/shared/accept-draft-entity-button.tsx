@@ -73,7 +73,7 @@ export const AcceptDraftEntityButton: FunctionComponent<
   {
     draftEntity: Entity;
     draftEntitySubgraph: Subgraph<EntityRootType>;
-    onAcceptedEntity?: (acceptedEntity: Entity) => void;
+    onAcceptedEntity: ((acceptedEntity: Entity) => void) | null;
   } & ButtonProps
 > = ({
   draftEntity,

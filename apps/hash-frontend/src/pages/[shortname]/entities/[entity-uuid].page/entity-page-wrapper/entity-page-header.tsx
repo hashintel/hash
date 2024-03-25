@@ -25,7 +25,7 @@ export const EntityPageHeader = ({
 }: {
   entity?: Entity;
   entitySubgraph?: Subgraph<EntityRootType>;
-  onEntityUpdated?: (entity: Entity) => void;
+  onEntityUpdated: ((entity: Entity) => void) | null;
   entityLabel: string;
   lightTitle?: boolean;
   chip: ReactNode;

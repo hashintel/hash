@@ -35,7 +35,7 @@ export const DraftEntityBanner: FunctionComponent<{
   draftEntity: Entity;
   draftEntitySubgraph: Subgraph<EntityRootType>;
   isModifyingEntity?: boolean;
-  onAcceptedEntity?: (entity: Entity) => void;
+  onAcceptedEntity: ((entity: Entity) => void) | null;
   owningShortname: string;
 }> = ({
   draftEntity,

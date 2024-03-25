@@ -39,6 +39,7 @@ export const DraftEntityActionButtons: FunctionComponent<{
         size="xs"
         variant="primary"
         startIcon={<CheckRegularIcon />}
+        onAcceptedEntity={null}
       >
         Accept
       </AcceptDraftEntityButton>
