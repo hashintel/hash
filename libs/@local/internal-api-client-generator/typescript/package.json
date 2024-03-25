@@ -16,6 +16,7 @@
   },
   "license": "Unlicense",
   "author": "OpenAPI-Generator Contributors",
+  "type": "module",
   "main": "index.ts",
   "scripts": {
     "build": "tsc --outDir dist/",

@@ -74,7 +74,9 @@ export const getDerivedPayloadFromMostRecentEmail = async (
 
   if (typeof mostRecentEmailDump !== "object") {
     throw new Error(
-      `Expected most recent email to be an object, got ${JSON.stringify(mostRecentEmailDump)}`,
+      `Expected most recent email to be an object, got ${JSON.stringify(
+        mostRecentEmailDump,
+      )}`,
     );
   }
 

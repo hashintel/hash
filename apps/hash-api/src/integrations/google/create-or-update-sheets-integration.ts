@@ -352,7 +352,9 @@ export const createOrUpdateSheetsIntegration: RequestHandler<
       res.json({ integrationEntityId });
     } catch (err) {
       res.status(500).send({
-        error: `Error triggering workflow ${workflow}: ${(err as Error).message}`,
+        error: `Error triggering workflow ${workflow}: ${
+          (err as Error).message
+        }`,
       });
     }
   };

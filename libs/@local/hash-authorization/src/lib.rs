@@ -1,5 +1,4 @@
 #![feature(
-    associated_type_bounds,
     exhaustive_patterns,
     impl_trait_in_assoc_type,
     lint_reasons,

@@ -1,3 +1,7 @@
+import * as fs from "node:fs/promises";
+import path, { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import type { CodegenParameters } from "@blockprotocol/graph/codegen";
 import { codegen } from "@blockprotocol/graph/codegen";
 import type { VersionedUrl } from "@blockprotocol/type-system";
@@ -10,6 +14,9 @@ import {
   linearEntityTypes,
   systemEntityTypes,
 } from "./ontology-type-ids";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const generateTypes = async (
   typeMap: Record<string, { entityTypeId: VersionedUrl }>,
@@ -65,6 +72,36 @@ const generateTypes = async (
   console.log(`Done generating ${label} types.`);
 };
 
+const replaceInFile = async (
+  filePath: string,
+  search: RegExp,
+  replace: string,
+) => {
+  const contents = await fs.readFile(filePath, "utf-8");
+  const result = contents.replace(search, replace);
+
+  await fs.writeFile(filePath, result, "utf-8");
+};
+
+const replaceInDirectory = async (
+  directoryPath: string,
+  search: RegExp,
+  replace: string,
+) => {
+  const children = await fs.readdir(directoryPath);
+
+  for (const child of children) {
+    const childPath = path.join(directoryPath, child);
+    const stats = await fs.stat(childPath);
+
+    if (stats.isDirectory()) {
+      await replaceInDirectory(childPath, search, replace);
+    } else if (path.extname(childPath) === ".ts") {
+      await replaceInFile(childPath, search, replace);
+    }
+  }
+};
+
 /**
  * Generate TypeScript types for the system types. The API and frontend must be running, i.e. `yarn dev`
  *
@@ -79,6 +116,14 @@ const generateSystemTypeTypes = async () => {
     blockProtocolEntityTypes,
     "Block Protocol",
     "blockprotocol",
+  );
+
+  // replace every `@blockprotocol/graph` import with `@local/hash-subgraph` by recursively running through the
+  // resulting files.
+  await replaceInDirectory(
+    path.join(__dirname, "system-types"),
+    /@blockprotocol\/graph/g,
+    "@local/hash-subgraph",
   );
 };
 

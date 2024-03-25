@@ -1,5 +1,4 @@
 #![allow(unused_attributes, unreachable_pub)] // This file is used as module in other tests
-#![feature(associated_type_bounds)]
 
 use authorization::backend::{SpiceDbOpenApi, ZanzibarBackend};
 

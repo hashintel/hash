@@ -9,6 +9,7 @@
   ],
   "license": "(MIT OR Apache-2.0)",
   "author": "HASH",
+  "type": "module",
   "scripts": {
     "build": "block-scripts build",
     "codegen": "block-scripts codegen && yarn format",
@@ -20,7 +21,7 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.3.4-canary-20240313191438",
+    "@blockprotocol/graph": "0.3.4",
     "lit": "^2.4.1",
     "mine-sweeper-tag": "1.0.6"
   },
@@ -31,7 +32,8 @@
     "block-scripts": "0.3.4",
     "mock-block-dock": "0.1.9",
     "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "react-dom": "18.2.0",
+    "typescript": "5.1.6"
   },
   "block-scripts": {
     "port": 63212
