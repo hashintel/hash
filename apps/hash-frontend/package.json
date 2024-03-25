@@ -47,6 +47,7 @@
     "@ory/client": "1.1.41",
     "@ory/integrations": "1.1.4",
     "@popperjs/core": "2.11.8",
+    "@reactflow/background": "11.3.9",
     "@sentry/nextjs": "7.93.0",
     "@sentry/react": "7.93.0",
     "@svgr/webpack": "8.1.0",
@@ -93,6 +94,7 @@
     "react-hook-form": "7.48.2",
     "react-responsive-carousel": "3.2.23",
     "react-transition-group": "4.4.5",
+    "reactflow": "11.10.4",
     "rooks": "7.14.1",
     "safe-stable-stringify": "2.4.3",
     "setimmediate": "1.0.5",
@@ -134,3 +136,4 @@
     "node": ">= v20"
   }
 }
+
