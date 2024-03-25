@@ -1144,20 +1144,22 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .is_some();
         let draft = params.draft.unwrap_or(was_draft_before);
         let archived = params.archived.unwrap_or(previous_entity.metadata.archived);
-        let entity_type_ids = if params.entity_type_ids.is_empty() {
-            previous_entity.metadata.entity_type_ids
+        let (entity_type_ids, entity_types_updated) = if params.entity_type_ids.is_empty() {
+            (previous_entity.metadata.entity_type_ids, false)
         } else {
             let previous_entity_types = previous_entity
                 .metadata
                 .entity_type_ids
-                .into_iter()
+                .iter()
                 .collect::<HashSet<_>>();
+            let new_entity_types = params.entity_type_ids.iter().collect::<HashSet<_>>();
 
-            for entity_type_id in &params.entity_type_ids {
-                // Instantiation permission is only checked for new entity types.
-                if previous_entity_types.contains(entity_type_id) {
-                    continue;
-                }
+            let added_types = new_entity_types.difference(&previous_entity_types);
+            let removed_types = previous_entity_types.difference(&new_entity_types);
+
+            let mut has_changed = false;
+            for entity_type_id in added_types.chain(removed_types) {
+                has_changed = true;
 
                 let entity_type_id = EntityTypeId::from_url(entity_type_id);
                 authorization_api
@@ -1174,18 +1176,32 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     .attach(StatusCode::PermissionDenied)?;
             }
 
-            params.entity_type_ids
+            (params.entity_type_ids, has_changed)
         };
         let mut properties =
             serde_json::to_value(&previous_entity.properties).change_context(UpdateError)?;
         patch(&mut properties, &params.properties).change_context(UpdateError)?;
         let properties = serde_json::from_value(properties).change_context(UpdateError)?;
+        #[expect(clippy::needless_collect, reason = "Will be used later")]
         let diff = previous_entity
             .properties
             .diff(&properties, &mut PropertyPath::default())
             .collect::<Vec<_>>();
 
-        println!("diff: {diff:#?}");
+        if diff.is_empty()
+            && was_draft_before == draft
+            && archived == previous_entity.metadata.archived
+            && !entity_types_updated
+        {
+            // No changes were made to the entity.
+            return Ok(EntityMetadata {
+                record_id: previous_entity.metadata.record_id,
+                temporal_versioning: previous_entity.metadata.temporal_versioning,
+                entity_type_ids,
+                provenance: previous_entity.metadata.provenance,
+                archived,
+            });
+        }
 
         let link_data = previous_entity.link_data;
 
