@@ -175,11 +175,11 @@ export const EntitySelector = ({
 
         if (includeDrafts) {
           /**
-           * If we have included drafts in the query, we may have multiple roots for a single entity,
+           * If we have included drafts in the query, we may have multiple roots for a single entity for the current time,
            * in the case where it has a 'live' (non-draft) version and one or more unarchived draft updates.
            *
            * We only want one result, which should be the live version if it exists, or the single draft if there's no live.
-           * Entities without a live version can't have multiple drafts because there's nothing to fork multiple from.
+           * Entities without a live version can't have multiple drafts at a point in time because there's nothing to fork multiple from.
            */
           const [ownedById, entityUuid, draftId] = splitEntityId(rootEntityId);
           if (!draftId) {
