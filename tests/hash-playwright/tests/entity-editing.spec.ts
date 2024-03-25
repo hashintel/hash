@@ -1,3 +1,4 @@
+import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 
 import { loginUsingTempForm } from "./shared/login-using-temp-form";
@@ -5,6 +6,13 @@ import { resetDb } from "./shared/reset-db";
 import type { Locator, Page } from "./shared/runtime";
 import { expect, test } from "./shared/runtime";
 
+/**
+ * This gets the text for the requested cell in the hidden html table,
+ * which replicates the rendered content for accessibility and testing purposes.
+ *
+ * The presence of a value in the HTML table does not guarantee that it is rendered on the canvas,
+ * which depends on the canvas cell renderers correctly taking the value and drawing it.
+ */
 const getCellText = async (
   canvas: Locator,
   /** zero-based (first column -> 0) */
@@ -21,9 +29,50 @@ const getCellText = async (
   return text;
 };
 
-/** Keep in sync with gridRowHeight */
-const ROW_HEIGHT = 42;
+/**
+ * Check that there is content rendered in the first cell of the first non-header row
+ */
+const checkIfCellContainsNonWhitePixels = async (canvasLocator: Locator) => {
+  const context = await canvasLocator.evaluate((canvas) =>
+    (canvas as HTMLCanvasElement).getContext("2d"),
+  );
 
+  if (!context) {
+    throw new Error("Could not get canvas context");
+  }
+
+  /** Start our check a few pixels in so that we ignore borders */
+  const firstValueCellXPosition = 5;
+
+  /**
+   * The canvas's width/height are twice their rendered size, so we need to double the desired height to get the right offset.
+   * This is different to clickOnValueCell, which is using mouse positioning on the rendered DOM rather than the canvas's size.
+   *
+   * Add 5 to account so that we ignore any borders or other pixels that may be introduced that aren't the main content.
+   */
+  const firstValueCellYPosition = gridRowHeight * 2 + 5;
+
+  /** Check a width that should include any rendered content without risking straying to the end of the cell */
+  const widthToCheck = 100;
+
+  /** Checking half the height should be sufficient to cover any content rendered in the middle of the cell */
+  const heightToCheck = gridRowHeight / 2;
+
+  const imageData = context.getImageData(
+    firstValueCellXPosition,
+    firstValueCellYPosition,
+    widthToCheck,
+    heightToCheck,
+  );
+
+  const nonWhitePixels = imageData.data.filter((pixel) => pixel !== 255);
+
+  return nonWhitePixels.length > 0;
+};
+
+/**
+ * Click on the cell containing the value in the properties table
+ */
 const clickOnValueCell = async (
   page: Page,
   canvas: Locator,
@@ -36,8 +85,13 @@ const clickOnValueCell = async (
     throw new Error("canvasPos not found");
   }
 
-  const cellY = canvasPos.y + 20 + ROW_HEIGHT * (rowIndex + 1);
+  /** The Y offset for the center of the requested row */
+  const cellY =
+    canvasPos.y + gridRowHeight * (rowIndex + 1) + gridRowHeight / 2;
+
+  /** The X offset for somewhere in the second column, which holds property values */
   const cellX = canvasPos.x + 300;
+
   await page.mouse.move(cellX, cellY);
   await page.mouse.click(cellX, cellY);
 };
@@ -69,7 +123,6 @@ test("user can update values on property table", async ({ page }) => {
   // select 'GitHub Account' as the type for this entity
   await page.getByTestId("selector-autocomplete-option").first().click();
 
-  // select property table
   const propertyTableCanvas = page
     .locator(".dvn-underlay > canvas:first-of-type")
     .first();
@@ -82,12 +135,18 @@ test("user can update values on property table", async ({ page }) => {
   await page.keyboard.type(profileUrl);
   await page.keyboard.press("Enter");
 
+  /**
+   * Check that the hidden accessibility / testing HTML table contains the correct value.
+   * This tests that the value has been successfully entered, but not that it is rendered.
+   */
   const cell1Text = await getCellText(propertyTableCanvas, 1, 0);
 
   expect(cell1Text).toBe(profileUrl);
 });
 
-test("the link table renders correctly", async ({ page }) => {
+test("both the link and properties tables renders some content", async ({
+  page,
+}) => {
   await loginUsingTempForm({
     page,
     userEmail: "alice@example.com",
@@ -103,7 +162,7 @@ test("the link table renders correctly", async ({ page }) => {
   await page.getByRole("button", { name: "Add a type" }).click();
 
   /**
-   * Get the `Document` type
+   * Get the `Document` type ('document format' appears in its description but not that of other types mentioning 'Document')
    */
   await page
     .getByPlaceholder("Search for an entity type")
@@ -115,9 +174,17 @@ test("the link table renders correctly", async ({ page }) => {
     .locator(".dvn-underlay > canvas:first-of-type")
     .nth(1);
 
-  const firstLinkTitleCellText = await getCellText(linkTableCanvas, 0, 0);
-  expect(firstLinkTitleCellText).toBe("Has Indexed Content");
+  const linkTableHasRenderedContent =
+    await checkIfCellContainsNonWhitePixels(linkTableCanvas);
 
-  const firstExpectedTargetTypeText = await getCellText(linkTableCanvas, 2, 0);
-  expect(firstExpectedTargetTypeText).toBe("Block");
+  expect(linkTableHasRenderedContent).toEqual(true);
+
+  const propertyTableCanvas = page
+    .locator(".dvn-underlay > canvas:first-of-type")
+    .first();
+
+  const propertyTableHasRenderedContent =
+    await checkIfCellContainsNonWhitePixels(propertyTableCanvas);
+
+  expect(propertyTableHasRenderedContent).toEqual(true);
 });
