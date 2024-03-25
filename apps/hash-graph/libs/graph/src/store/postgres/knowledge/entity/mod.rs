@@ -1161,19 +1161,22 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             for entity_type_id in added_types.chain(removed_types) {
                 has_changed = true;
 
-                let entity_type_id = EntityTypeId::from_url(entity_type_id);
-                authorization_api
-                    .check_entity_type_permission(
-                        actor_id,
-                        EntityTypePermission::Instantiate,
-                        entity_type_id,
-                        Consistency::FullyConsistent,
-                    )
-                    .await
-                    .change_context(UpdateError)?
-                    .assert_permission()
-                    .change_context(UpdateError)
-                    .attach(StatusCode::PermissionDenied)?;
+                let _entity_type_id = EntityTypeId::from_url(entity_type_id);
+                // TODO: Re-enable this check once the migration in the Node API properly assigns
+                //       the `Instantiate` permissions.
+                //   see https://linear.app/hash/issue/H-2468
+                // authorization_api
+                //     .check_entity_type_permission(
+                //         actor_id,
+                //         EntityTypePermission::Instantiate,
+                //         entity_type_id,
+                //         Consistency::FullyConsistent,
+                //     )
+                //     .await
+                //     .change_context(UpdateError)?
+                //     .assert_permission()
+                //     .change_context(UpdateError)
+                //     .attach(StatusCode::PermissionDenied)?;
             }
 
             (params.entity_type_ids, has_changed)
