@@ -69,7 +69,7 @@ export const entityIdFromComponents = (
   const base = `${ownedById}${ENTITY_ID_DELIMITER}${entityUuid}`;
 
   if (draftId) {
-    return `${base}${ENTITY_ID_DELIMITER}${draftId}` as EntityId;
+    return base as EntityId;
   }
 
   return `${ownedById}${ENTITY_ID_DELIMITER}${entityUuid}` as EntityId;
