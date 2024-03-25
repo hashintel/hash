@@ -2,7 +2,6 @@ import type {
   InputNameForAction,
   OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/step-definitions";
-import type { Payload } from "@local/hash-isomorphic-utils/flows/types";
 import { StatusCode } from "@local/status";
 
 import { getWebPageActivity } from "../get-web-page-activity";
@@ -16,7 +15,7 @@ export const getWebPageByUrlAction: FlowActionActivity = async ({ inputs }) => {
       inputName === ("url" satisfies InputNameForAction<"getWebPageByUrl">),
   )!;
 
-  const url = (urlStepInput.payload as Payload).value as string;
+  const url = urlStepInput.payload.value as string;
 
   /**
    * @todo: consider moving implementation directly into this method,
