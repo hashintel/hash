@@ -11,6 +11,7 @@ import { NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 
 import { createAiActivities, createGraphActivities } from "./activities";
+import { createFlowActionActivities } from "./activities/flow-action-activites";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -74,6 +75,9 @@ async function run() {
         graphApiClient,
       }),
       ...createGraphActivities({
+        graphApiClient,
+      }),
+      ...createFlowActionActivities({
         graphApiClient,
       }),
     },

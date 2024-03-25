@@ -22,6 +22,11 @@ export const triggerDefinitions = {
   },
 } satisfies Record<string, TriggerDefinition>;
 
+export type OutputNameForTrigger<T extends keyof typeof triggerDefinitions> =
+  (typeof triggerDefinitions)[T] extends { outputs: { name: string }[] }
+    ? (typeof triggerDefinitions)[T]["outputs"][number]["name"]
+    : never;
+
 export const actionDefinitions = {
   generateWebQuery: {
     name: "Generate Web Query",
@@ -125,3 +130,11 @@ export const actionDefinitions = {
     ],
   },
 } as const satisfies Record<string, DeepReadOnly<ActionDefinition>>;
+
+export type ActionName = keyof typeof actionDefinitions;
+
+export type InputNameForAction<T extends keyof typeof actionDefinitions> =
+  (typeof actionDefinitions)[T]["inputs"][number]["name"];
+
+export type OutputNameForAction<T extends keyof typeof actionDefinitions> =
+  (typeof actionDefinitions)[T]["outputs"][number]["name"];

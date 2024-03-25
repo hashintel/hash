@@ -24,7 +24,7 @@ import { createEntitiesActivity } from "./activities/create-entities-activity";
 import { createInferenceUsageRecordActivity } from "./activities/create-inference-usage-record-activity";
 import { getAiAssistantAccountIdActivity } from "./activities/get-ai-assistant-account-id-activity";
 import { getDereferencedEntityTypesActivity } from "./activities/get-dereferenced-entity-types-activity";
-import { getTextFromWebPageActivity } from "./activities/get-text-from-web-page-activity";
+import { getWebPageActivity } from "./activities/get-web-page-activity";
 import { getWebSearchResultsActivity } from "./activities/get-web-search-results-activity";
 import { inferEntitiesActivity } from "./activities/infer-entities";
 import { inferEntitiesFromWebPageActivity } from "./activities/infer-entities-from-web-page-activity";
@@ -119,7 +119,7 @@ export const createAiActivities = ({
 
   getWebSearchResultsActivity,
 
-  getTextFromWebPageActivity,
+  getWebPageActivity,
 
   async getDereferencedEntityTypesActivity(
     params: Omit<

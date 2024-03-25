@@ -1,17 +1,11 @@
 import { systemEntityTypes } from "../ontology-type-ids";
+import type {
+  InputNameForAction,
+  OutputNameForAction,
+  OutputNameForTrigger,
+} from "./step-definitions";
 import { actionDefinitions, triggerDefinitions } from "./step-definitions";
 import type { FlowDefinition } from "./types";
-
-type InputNameForAction<T extends keyof typeof actionDefinitions> =
-  (typeof actionDefinitions)[T]["inputs"][number]["name"];
-
-type OutputNameForAction<T extends keyof typeof actionDefinitions> =
-  (typeof actionDefinitions)[T]["outputs"][number]["name"];
-
-type OutputNameForTrigger<T extends keyof typeof triggerDefinitions> =
-  (typeof triggerDefinitions)[T] extends { outputs: { name: string }[] }
-    ? (typeof triggerDefinitions)[T]["outputs"][number]["name"]
-    : never;
 
 export const researchTaskFlowDefinition: FlowDefinition = {
   name: "Research Task",

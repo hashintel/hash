@@ -11,7 +11,6 @@ import type { createAiActivities, createGraphActivities } from "../activities";
 import type {
   InferenceState,
   PermittedOpenAiModel,
-  WebPage,
 } from "../activities/infer-entities/inference-types";
 
 type AiActivities = ActivityInterfaceFor<ReturnType<typeof createAiActivities>>;
@@ -88,15 +87,10 @@ export const createResearchTaskWorkflow =
     const proposedEntitiesStatuses = await Promise.all(
       webSearchResults
         .slice(0, maximumNumberOfWebSearchResults)
-        .map(async ({ url, title }) => {
-          const webPageTextContent =
-            await aiActivities.getTextFromWebPageActivity({ url });
-
-          const webPage: WebPage = {
-            title,
+        .map(async ({ url }) => {
+          const webPage = await aiActivities.getWebPageActivity({
             url,
-            textContent: webPageTextContent,
-          };
+          });
 
           /**
            * @todo: consider unifying the inference state between the web-pages,
