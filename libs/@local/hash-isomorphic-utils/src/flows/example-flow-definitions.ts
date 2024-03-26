@@ -3,8 +3,8 @@ import type {
   InputNameForAction,
   OutputNameForAction,
   OutputNameForTrigger,
-} from "./step-definitions";
-import { actionDefinitions, triggerDefinitions } from "./step-definitions";
+} from "./node-definitions";
+import { actionDefinitions, triggerDefinitions } from "./node-definitions";
 import type { FlowDefinition } from "./types";
 
 export const researchTaskFlowDefinition: FlowDefinition = {
@@ -27,12 +27,12 @@ export const researchTaskFlowDefinition: FlowDefinition = {
   nodes: [
     {
       nodeId: "0",
-      kind: "step",
+      kind: "action",
       actionDefinition: actionDefinitions.generateWebQuery,
       inputSources: [
         {
           inputName: "prompt" satisfies InputNameForAction<"generateWebQuery">,
-          kind: "step-output",
+          kind: "node-output",
           sourceNodeId: "trigger",
           sourceNodeOutputName: "prompt",
           // kind: "hardcoded",
@@ -45,12 +45,12 @@ export const researchTaskFlowDefinition: FlowDefinition = {
     },
     {
       nodeId: "1",
-      kind: "step",
+      kind: "action",
       actionDefinition: actionDefinitions.webSearch,
       inputSources: [
         {
           inputName: "query" satisfies InputNameForAction<"webSearch">,
-          kind: "step-output",
+          kind: "node-output",
           sourceNodeId: "0",
           sourceNodeOutputName:
             "query" satisfies OutputNameForAction<"generateWebQuery">,
@@ -59,13 +59,13 @@ export const researchTaskFlowDefinition: FlowDefinition = {
     },
     {
       nodeId: "2",
-      kind: "step",
+      kind: "action",
       actionDefinition: actionDefinitions.inferEntitiesFromContent,
       inputSources: [
         {
           inputName:
             "content" satisfies InputNameForAction<"inferEntitiesFromContent">,
-          kind: "step-output",
+          kind: "node-output",
           sourceNodeId: "1",
           sourceNodeOutputName:
             "webPage" satisfies OutputNameForAction<"webSearch">,
@@ -73,7 +73,7 @@ export const researchTaskFlowDefinition: FlowDefinition = {
         {
           inputName:
             "entityTypeIds" satisfies InputNameForAction<"inferEntitiesFromContent">,
-          kind: "step-output",
+          kind: "node-output",
           sourceNodeId: "trigger",
           sourceNodeOutputName: "entityTypeIds",
           // kind: "hardcoded",
@@ -88,12 +88,12 @@ export const researchTaskFlowDefinition: FlowDefinition = {
     {
       nodeId: "3",
       actionDefinition: actionDefinitions.persistEntity,
-      kind: "step",
+      kind: "action",
       inputSources: [
         {
           inputName:
             "proposedEntity" satisfies InputNameForAction<"persistEntity">,
-          kind: "step-output",
+          kind: "node-output",
           sourceNodeId: "2",
           sourceNodeOutputName:
             "proposedEntities" satisfies OutputNameForAction<"inferEntitiesFromContent">,
@@ -111,12 +111,12 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
   nodes: [
     {
       nodeId: "0",
-      kind: "step",
+      kind: "action",
       actionDefinition: actionDefinitions.getWebPageByUrl,
       inputSources: [
         {
           inputName: "url" satisfies InputNameForAction<"getWebPageByUrl">,
-          kind: "step-output",
+          kind: "node-output",
           sourceNodeId: "trigger",
           sourceNodeOutputName:
             "visitedWebPageUrl" satisfies OutputNameForTrigger<"userVisitedWebPageTrigger">,
@@ -130,13 +130,13 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
     },
     {
       nodeId: "1",
-      kind: "step",
+      kind: "action",
       actionDefinition: actionDefinitions.inferEntitiesFromContent,
       inputSources: [
         {
           inputName:
             "content" satisfies InputNameForAction<"inferEntitiesFromContent">,
-          kind: "step-output",
+          kind: "node-output",
           sourceNodeId: "0",
           sourceNodeOutputName:
             "webPage" satisfies OutputNameForAction<"getWebPageByUrl">,
@@ -167,15 +167,15 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
       kind: "parallel-group",
       inputSourceToParallelizeOn: {
         inputName: "proposedEntities",
-        kind: "step-output",
+        kind: "node-output",
         sourceNodeId: "1",
         sourceNodeOutputName:
           "proposedEntities" satisfies OutputNameForAction<"inferEntitiesFromContent">,
       },
-      steps: [
+      nodes: [
         {
           nodeId: "2.0",
-          kind: "step",
+          kind: "action",
           actionDefinition: actionDefinitions.persistEntity,
           inputSources: [
             {
@@ -187,8 +187,8 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
         },
       ],
       aggregateOutput: {
-        stepNodeId: "2.0",
-        stepOutputName:
+        nodeId: "2.0",
+        nodeOutputName:
           "persistedEntity" satisfies OutputNameForAction<"persistEntity">,
         name: "persistedEntities" as const,
         payloadKind: "Entity",

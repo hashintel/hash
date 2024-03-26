@@ -2,7 +2,7 @@ import {
   inferUserEntitiesFromWebPageFlowDefinition,
   researchTaskFlowDefinition,
 } from "./example-flow-definitions";
-import { triggerDefinitions } from "./step-definitions";
+import { triggerDefinitions } from "./node-definitions";
 import type { Flow } from "./types";
 
 export const researchTaskFlow: Flow = {
@@ -12,14 +12,14 @@ export const researchTaskFlow: Flow = {
   },
   definition: researchTaskFlowDefinition,
   inputs: {
-    stepNodeId: "0",
+    nodeId: "0",
     inputName: "prompt",
     payload: {
       kind: "Text",
       value: "Get board members of Apple Inc.",
     },
   },
-  steps: [],
+  nodes: [],
 };
 
 export const inferUserEntitiesFromWebPageFlow: Flow = {
@@ -43,12 +43,12 @@ export const inferUserEntitiesFromWebPageFlow: Flow = {
   },
   definition: inferUserEntitiesFromWebPageFlowDefinition,
   inputs: {
-    stepNodeId: "0",
+    nodeId: "0",
     inputName: "prompt",
     payload: {
       kind: "Text",
       value: "Get board members of Apple Inc.",
     },
   },
-  steps: [],
+  nodes: [],
 };

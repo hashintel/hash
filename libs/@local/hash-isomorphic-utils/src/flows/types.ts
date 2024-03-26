@@ -54,7 +54,7 @@ export type ArrayPayload = {
 export type Payload = SingularPayload | ArrayPayload;
 
 /**
- * Step Definition
+ * Node Definition
  */
 
 export type InputDefinition = {
@@ -94,10 +94,10 @@ export type NodeInputSource<P extends Payload = Payload> = {
 } & (
   | {
       /**
-       * This refers to an output from a previous step, and can also refer
+       * This refers to an output from a previous node, and can also refer
        * to outputs from the `trigger` by specifying `sourceNodeId: "trigger"`.
        */
-      kind: "step-output";
+      kind: "node-output";
       sourceNodeId: string;
       sourceNodeOutputName: string;
       fallbackValue?: P;
@@ -112,10 +112,10 @@ export type NodeInputSource<P extends Payload = Payload> = {
     }
 );
 
-type StepNodeDefinition<
+export type ActionNodeDefinition<
   AdditionalInputSources extends { inputName: string } | null = null,
 > = {
-  kind: "step";
+  kind: "action";
   nodeId: string;
   actionDefinition: DeepReadOnly<ActionDefinition>;
   inputSources: AdditionalInputSources extends null
@@ -124,20 +124,20 @@ type StepNodeDefinition<
   retryCount?: number;
 };
 
-type ParallelGroupDefinition = {
+export type ParallelGroupDefinition = {
   kind: "parallel-group";
   nodeId: string;
   /**
    * The input source to parallelize on must expect an `ArrayPayload`,
-   * so that each item in the array can be processed by the steps in
+   * so that each item in the array can be processed by the nodes in
    * parallel.
    */
   inputSourceToParallelizeOn: NodeInputSource<ArrayPayload>;
   /**
-   * The steps that will be executed in parallel branches for each payload
+   * The nodes that will be executed in parallel branches for each payload
    * item in the provided `ArrayPayload`.
    */
-  steps: StepNodeDefinition<{
+  nodes: ActionNodeDefinition<{
     /**
      * This additional input source refers to the dispersed input
      * for a parallel group.
@@ -151,19 +151,19 @@ type ParallelGroupDefinition = {
    */
   aggregateOutput: OutputDefinition<true> & {
     /**
-     * The node ID for the step in the parallel group that will produce the
+     * The node ID for the node in the parallel group that will produce the
      * _singular_ output that will ber aggregated in an array as the
      * output for the parallel group.
      */
-    stepNodeId: string;
+    nodeId: string;
     /**
      * The name of the output that will be aggregated in an array from the
      */
-    stepOutputName: string;
+    nodeOutputName: string;
   };
 };
 
-type NodeDefinition = StepNodeDefinition | ParallelGroupDefinition;
+type NodeDefinition = ActionNodeDefinition | ParallelGroupDefinition;
 
 export type FlowDefinition = {
   name: string;
@@ -188,8 +188,9 @@ export type NodeOutput = {
   payload: Payload;
 };
 
-export type StepNode = {
-  stepId: string;
+export type ActionNode = {
+  actionId: string;
+  kind: "action";
   actionDefinition: DeepReadOnly<ActionDefinition>;
   retries?: number;
   inputs?: NodeInput[];
@@ -198,12 +199,13 @@ export type StepNode = {
 
 export type ParallelGroupNode = {
   parallelGroupId: string;
+  kind: "parallel-group";
   inputToParallelizeOn?: NodeInput;
-  steps?: StepNode[];
+  nodes?: Exclude<FlowNode, ParallelGroupNode>[];
   aggregateOutput?: NodeOutput;
 };
 
-export type FlowNode = StepNode | ParallelGroupNode;
+export type FlowNode = ActionNode | ParallelGroupNode;
 
 /**
  * Flow
@@ -215,7 +217,7 @@ export type FlowTrigger = {
 };
 
 type FlowInput = {
-  stepNodeId: string;
+  nodeId: string;
   inputName: string;
   payload: Payload;
 };
