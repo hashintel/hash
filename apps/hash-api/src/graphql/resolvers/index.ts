@@ -13,6 +13,7 @@ import type {
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
 import { getFlowRuns } from "./flows/runs";
+import { startFlow } from "./flows/start-flow";
 import { getLinearOrganizationResolver } from "./integrations/linear/linear-organization";
 import { syncLinearIntegrationWithWorkspacesMutation } from "./integrations/linear/sync-workspaces-with-teams";
 import { blocksResolver } from "./knowledge/block/block";
@@ -182,6 +183,8 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     removeEntityViewer: loggedInAndSignedUpMiddleware(
       removeEntityViewerResolver,
     ),
+
+    startFlow: loggedInAndSignedUpMiddleware(startFlow),
 
     addAccountGroupMember: (_, { accountId, accountGroupId }, context) =>
       addAccountGroupMember(context.dataSources, context.authentication, {
