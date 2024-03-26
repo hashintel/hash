@@ -2649,6 +2649,18 @@
     enabled "2.0.x"
     kuler "^2.0.0"
 
+"@dagrejs/dagre@1.1.1":
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@dagrejs/dagre/-/dagre-1.1.1.tgz#77c6521864f2996ac5e7a63ff9058d9781a3d9e6"
+  integrity sha512-AQfT6pffEuPE32weFzhS/u3UpX+bRXUARIXL7UqLaxz497cN8pjuBlX6axO4IIECE2gBV8eLFQkGCtKX5sDaUA==
+  dependencies:
+    "@dagrejs/graphlib" "2.2.1"
+
+"@dagrejs/graphlib@2.2.1":
+  version "2.2.1"
+  resolved "https://registry.yarnpkg.com/@dagrejs/graphlib/-/graphlib-2.2.1.tgz#29b34038335573d312ec972ce5cd59fa2232a3b6"
+  integrity sha512-xJsN1v6OAxXk6jmNdM+OS/bBE8nDCwM0yDNprXR18ZNatL6to9ggod9+l2XtiLhXfLm0NkE7+Er/cpdlM+SkUA==
+
 "@discoveryjs/json-ext@0.5.7", "@discoveryjs/json-ext@^0.5.0", "@discoveryjs/json-ext@^0.5.3":
   version "0.5.7"
   resolved "https://registry.yarnpkg.com/@discoveryjs/json-ext/-/json-ext-0.5.7.tgz#1d572bfbbe14b7704e0ba0f39b74815b84870d70"
@@ -13141,6 +13153,11 @@ element-resize-detector@^1.2.2:
   integrity sha512-Fl5Ftk6WwXE0wqCgNoseKWndjzZlDCwuPTcoVZfCP9R3EHQF8qUtr3YUPNETegRBOKqQKPW3n4kiIWngGi8tKg==
   dependencies:
     batch-processor "1.0.0"
+
+elkjs@0.9.2:
+  version "0.9.2"
+  resolved "https://registry.yarnpkg.com/elkjs/-/elkjs-0.9.2.tgz#3d4ef6f17fde06a5d7eaa3063bb875e25e59e972"
+  integrity sha512-2Y/RaA1pdgSHpY0YG4TYuYCD2wh97CRvu22eLG3Kz0pgQ/6KbIFTxsTnDc4MH/6hFlg2L/9qXrDMG0nMjP63iw==
 
 emoji-mart@5.2.1:
   version "5.2.1"

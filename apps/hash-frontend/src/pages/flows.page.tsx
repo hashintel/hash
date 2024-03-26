@@ -1,4 +1,5 @@
 import type { NextPageWithLayout } from "next";
+import { ReactFlowProvider } from "reactflow";
 
 import { getLayoutWithSidebar } from "../shared/layout";
 import { FlowDefinition } from "./flows.page/flow-definition";
@@ -7,7 +8,9 @@ import { FlowDefinitionsContextProvider } from "./flows.page/flow-definition/sha
 const FlowsPage: NextPageWithLayout = () => {
   return (
     <FlowDefinitionsContextProvider>
-      <FlowDefinition />
+      <ReactFlowProvider>
+        <FlowDefinition />
+      </ReactFlowProvider>
     </FlowDefinitionsContextProvider>
   );
 };

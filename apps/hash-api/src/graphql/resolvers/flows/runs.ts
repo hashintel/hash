@@ -20,7 +20,7 @@ const parseHistoryItemPayload = (
 ) =>
   inputOrResults?.payloads
     ?.map(({ data }) => {
-      if (!data) {
+      if (!data || !data.toString()) {
         return data;
       }
 
@@ -144,6 +144,8 @@ const mapTemporalWorkflowToFlowStatus = async (
   );
 
   const { events } = await handle.fetchHistory();
+
+  console.log({ proto, temporal: proto.temporal });
 
   const workflowInputs = parseHistoryItemPayload(
     events?.find(
