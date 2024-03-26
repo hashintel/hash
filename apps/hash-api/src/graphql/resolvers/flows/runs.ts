@@ -20,7 +20,7 @@ const parseHistoryItemPayload = (
 ) =>
   inputOrResults?.payloads
     ?.map(({ data }) => {
-      if (!data) {
+      if (!data || !data.toString()) {
         return data;
       }
 
@@ -144,6 +144,8 @@ const mapTemporalWorkflowToFlowStatus = async (
   );
 
   const { events } = await handle.fetchHistory();
+
+  console.log({ proto, temporal: proto.temporal });
 
   const workflowInputs = parseHistoryItemPayload(
     events?.find(
@@ -322,7 +324,9 @@ export const getFlowRuns: ResolverFn<
            * Can also filter by runId, useful for e.g. getting all Temporal runIds for a given user
            * and then retrieving a list of details from Temporal
            */
-          query: `WorkflowType IN (${flowTypes.map((type) => `'${type}'`).join(", ")})`,
+          query: `WorkflowType IN (${flowTypes
+            .map((type) => `'${type}'`)
+            .join(", ")})`,
         }
       : {},
   );
