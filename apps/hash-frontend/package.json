@@ -110,6 +110,7 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@next/bundle-analyzer": "12.3.1",
+    "@repo/eslint": "0.0.0-private",
     "@types/dotenv-flow": "3.2.0",
     "@types/emoji-mart": "3.0.9",
     "@types/gapi": "0.0.47",
@@ -134,3 +135,4 @@
     "node": ">=v18.15.0"
   }
 }
+

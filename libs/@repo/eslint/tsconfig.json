@@ -1,0 +1,12 @@
+{
+  // TODO: hook this into the global TS config
+  "compilerOptions": {
+    "strict": true,
+    "allowJs": false,
+    "exactOptionalPropertyTypes": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext"
+  },
+  "include": ["src"],
+  "exclude": ["node-modules", "dist"]
+}
