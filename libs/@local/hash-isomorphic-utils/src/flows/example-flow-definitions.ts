@@ -27,7 +27,8 @@ export const researchTaskFlowDefinition: FlowDefinition = {
   nodes: [
     {
       nodeId: "0",
-      definition: actionDefinitions.generateWebQuery,
+      kind: "step",
+      actionDefinition: actionDefinitions.generateWebQuery,
       inputSources: [
         {
           inputName: "prompt" satisfies InputNameForAction<"generateWebQuery">,
@@ -44,7 +45,8 @@ export const researchTaskFlowDefinition: FlowDefinition = {
     },
     {
       nodeId: "1",
-      definition: actionDefinitions.webSearch,
+      kind: "step",
+      actionDefinition: actionDefinitions.webSearch,
       inputSources: [
         {
           inputName: "query" satisfies InputNameForAction<"webSearch">,
@@ -57,7 +59,8 @@ export const researchTaskFlowDefinition: FlowDefinition = {
     },
     {
       nodeId: "2",
-      definition: actionDefinitions.inferEntitiesFromContent,
+      kind: "step",
+      actionDefinition: actionDefinitions.inferEntitiesFromContent,
       inputSources: [
         {
           inputName:
@@ -84,7 +87,8 @@ export const researchTaskFlowDefinition: FlowDefinition = {
     },
     {
       nodeId: "3",
-      definition: actionDefinitions.persistEntity,
+      actionDefinition: actionDefinitions.persistEntity,
+      kind: "step",
       inputSources: [
         {
           inputName:
@@ -107,7 +111,8 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
   nodes: [
     {
       nodeId: "0",
-      definition: actionDefinitions.getWebPageByUrl,
+      kind: "step",
+      actionDefinition: actionDefinitions.getWebPageByUrl,
       inputSources: [
         {
           inputName: "url" satisfies InputNameForAction<"getWebPageByUrl">,
@@ -125,7 +130,8 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
     },
     {
       nodeId: "1",
-      definition: actionDefinitions.inferEntitiesFromContent,
+      kind: "step",
+      actionDefinition: actionDefinitions.inferEntitiesFromContent,
       inputSources: [
         {
           inputName:
@@ -158,17 +164,36 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
     },
     {
       nodeId: "2",
-      definition: actionDefinitions.persistEntity,
-      inputSources: [
+      kind: "parallel-group",
+      inputSourceToParallelizeOn: {
+        inputName: "proposedEntities",
+        kind: "step-output",
+        sourceNodeId: "1",
+        sourceNodeOutputName:
+          "proposedEntities" satisfies OutputNameForAction<"inferEntitiesFromContent">,
+      },
+      steps: [
         {
-          inputName:
-            "proposedEntity" satisfies InputNameForAction<"persistEntity">,
-          kind: "step-output",
-          sourceNodeId: "1",
-          sourceNodeOutputName:
-            "proposedEntities" satisfies OutputNameForAction<"inferEntitiesFromContent">,
+          nodeId: "2.0",
+          kind: "step",
+          actionDefinition: actionDefinitions.persistEntity,
+          inputSources: [
+            {
+              inputName:
+                "proposedEntity" satisfies InputNameForAction<"persistEntity">,
+              kind: "parallel-group-input",
+            },
+          ],
         },
       ],
+      aggregateOutput: {
+        stepNodeId: "2.0",
+        stepOutputName:
+          "persistedEntity" satisfies OutputNameForAction<"persistEntity">,
+        name: "persistedEntities" as const,
+        payloadKind: "Entity",
+        array: true,
+      },
     },
   ],
 };
