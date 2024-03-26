@@ -168,6 +168,7 @@ type NodeDefinition = ActionNodeDefinition | ParallelGroupDefinition;
 export type FlowDefinition = {
   name: string;
   trigger: {
+    kind: "trigger";
     definition: TriggerDefinition;
     outputs?: OutputDefinition[];
   };

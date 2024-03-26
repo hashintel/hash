@@ -11,6 +11,7 @@ export const researchTaskFlowDefinition: FlowDefinition = {
   name: "Research Task",
   trigger: {
     definition: triggerDefinitions.userTrigger,
+    kind: "trigger",
     outputs: [
       {
         payloadKind: "Text",
@@ -59,46 +60,64 @@ export const researchTaskFlowDefinition: FlowDefinition = {
     },
     {
       nodeId: "2",
-      kind: "action",
-      actionDefinition: actionDefinitions.inferEntitiesFromContent,
-      inputSources: [
+      kind: "parallel-group",
+      inputSourceToParallelizeOn: {
+        inputName: "webSearchResults",
+        kind: "node-output",
+        sourceNodeId: "1",
+        sourceNodeOutputName:
+          "webPage" satisfies OutputNameForAction<"webSearch">,
+      },
+      nodes: [
         {
-          inputName:
-            "content" satisfies InputNameForAction<"inferEntitiesFromContent">,
-          kind: "node-output",
-          sourceNodeId: "1",
-          sourceNodeOutputName:
-            "webPage" satisfies OutputNameForAction<"webSearch">,
+          nodeId: "2.1",
+          kind: "action",
+          actionDefinition: actionDefinitions.inferEntitiesFromContent,
+          inputSources: [
+            {
+              inputName:
+                "content" satisfies InputNameForAction<"inferEntitiesFromContent">,
+              kind: "parallel-group-input",
+            },
+            {
+              inputName:
+                "entityTypeIds" satisfies InputNameForAction<"inferEntitiesFromContent">,
+              kind: "node-output",
+              sourceNodeId: "trigger",
+              sourceNodeOutputName: "entityTypeIds",
+              // kind: "hardcoded",
+              // value: {
+              //   kind: "VersionedUrl",
+              //   /** @todo: use a different type here */
+              //   value: systemEntityTypes.user.entityTypeId,
+              // },
+            },
+          ],
         },
         {
-          inputName:
-            "entityTypeIds" satisfies InputNameForAction<"inferEntitiesFromContent">,
-          kind: "node-output",
-          sourceNodeId: "trigger",
-          sourceNodeOutputName: "entityTypeIds",
-          // kind: "hardcoded",
-          // value: {
-          //   kind: "VersionedUrl",
-          //   /** @todo: use a different type here */
-          //   value: systemEntityTypes.user.entityTypeId,
-          // },
+          nodeId: "2.2",
+          actionDefinition: actionDefinitions.persistEntity,
+          kind: "action",
+          inputSources: [
+            {
+              inputName:
+                "proposedEntity" satisfies InputNameForAction<"persistEntity">,
+              kind: "node-output",
+              sourceNodeId: "2.1",
+              sourceNodeOutputName:
+                "proposedEntities" satisfies OutputNameForAction<"inferEntitiesFromContent">,
+            },
+          ],
         },
       ],
-    },
-    {
-      nodeId: "3",
-      actionDefinition: actionDefinitions.persistEntity,
-      kind: "action",
-      inputSources: [
-        {
-          inputName:
-            "proposedEntity" satisfies InputNameForAction<"persistEntity">,
-          kind: "node-output",
-          sourceNodeId: "2",
-          sourceNodeOutputName:
-            "proposedEntities" satisfies OutputNameForAction<"inferEntitiesFromContent">,
-        },
-      ],
+      aggregateOutput: {
+        nodeId: "2.2",
+        nodeOutputName:
+          "persistedEntity" satisfies OutputNameForAction<"persistEntity">,
+        name: "persistedEntities" as const,
+        payloadKind: "Entity",
+        array: true,
+      },
     },
   ],
 };
@@ -106,6 +125,7 @@ export const researchTaskFlowDefinition: FlowDefinition = {
 export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
   name: "Infer User Entities from Web Page Flow",
   trigger: {
+    kind: "trigger",
     definition: triggerDefinitions.userVisitedWebPageTrigger,
   },
   nodes: [
