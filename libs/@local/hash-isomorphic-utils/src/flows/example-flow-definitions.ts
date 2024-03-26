@@ -151,7 +151,7 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
           kind: "hardcoded",
           value: {
             kind: "VersionedUrl",
-            value: systemEntityTypes.user.entityTypeId,
+            value: [systemEntityTypes.user.entityTypeId],
           },
         },
       ],

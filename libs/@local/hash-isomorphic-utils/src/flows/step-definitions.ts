@@ -131,7 +131,7 @@ export const actionDefinitions = {
   },
 } as const satisfies Record<string, DeepReadOnly<ActionDefinition>>;
 
-export type ActionName = keyof typeof actionDefinitions;
+export type ActionId = keyof typeof actionDefinitions;
 
 export type InputNameForAction<T extends keyof typeof actionDefinitions> =
   (typeof actionDefinitions)[T]["inputs"][number]["name"];
