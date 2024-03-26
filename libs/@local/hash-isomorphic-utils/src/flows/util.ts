@@ -3,87 +3,87 @@ import type { FlowDefinition } from "./types";
 
 /**
  * Validates a flow definition to ensure:
- * - Each node has a unique ID.
- * - Required inputs for each node are met and valid.
- * - Input sources (other node outputs, flow triggers, hardcoded values) exist and match expected types.
+ * - Each step has a unique ID.
+ * - Required inputs for each step are met and valid.
+ * - Input sources (other step outputs, flow triggers, hardcoded values) exist and match expected types.
  *
  * @param flow The flow definition to validate.
  * @returns true if the flow definition passes all validation checks.
  */
 export const validateFlowDefinition = (flow: FlowDefinition) => {
-  const nodeIds = new Set<string>();
+  const stepIds = new Set<string>();
 
-  const flowNodesWithNestedNodes = [
-    ...flow.nodes,
-    ...flow.nodes.flatMap((node) =>
-      node.kind === "parallel-group" ? node.nodes : [],
+  const flowStepsWithNestedSteps = [
+    ...flow.steps,
+    ...flow.steps.flatMap((step) =>
+      step.kind === "parallel-group" ? step.steps : [],
     ),
   ];
 
-  for (const node of flowNodesWithNestedNodes) {
-    if (nodeIds.has(node.nodeId)) {
-      throw new Error(`Duplicate node id: ${node.nodeId}`);
+  for (const step of flowStepsWithNestedSteps) {
+    if (stepIds.has(step.stepId)) {
+      throw new Error(`Duplicate step id: ${step.stepId}`);
     }
-    nodeIds.add(node.nodeId);
+    stepIds.add(step.stepId);
 
-    if (node.kind === "parallel-group") {
-      const { inputSourceToParallelizeOn } = node;
+    if (step.kind === "parallel-group") {
+      const { inputSourceToParallelizeOn } = step;
 
-      const errorPrefix = `Parallel group node "${node.nodeId}" `;
+      const errorPrefix = `Parallel group step "${step.stepId}" `;
 
-      if (inputSourceToParallelizeOn.kind === "node-output") {
-        const { sourceNodeId, sourceNodeOutputName } =
+      if (inputSourceToParallelizeOn.kind === "step-output") {
+        const { sourceStepId, sourceStepOutputName } =
           inputSourceToParallelizeOn;
-        const sourceNode =
-          sourceNodeId === "trigger"
+        const sourceStep =
+          sourceStepId === "trigger"
             ? flow.trigger
-            : flowNodesWithNestedNodes.find(
-                ({ nodeId }) => nodeId === sourceNodeId,
+            : flowStepsWithNestedSteps.find(
+                ({ stepId }) => stepId === sourceStepId,
               );
 
-        if (!sourceNode) {
+        if (!sourceStep) {
           throw new Error(
-            `${errorPrefix}references a source node "${sourceNodeId}" that does not exist`,
+            `${errorPrefix}references a source step "${sourceStepId}" that does not exist`,
           );
         }
 
-        const sourceNodeOutputs = [
-          ...(sourceNode.kind === "action"
-            ? sourceNode.actionDefinition.outputs
+        const sourceStepOutputs = [
+          ...(sourceStep.kind === "action"
+            ? sourceStep.actionDefinition.outputs
             : []),
-          ...(sourceNode.kind === "trigger"
+          ...(sourceStep.kind === "trigger"
             ? [
-                ...(sourceNode.definition.outputs ?? []),
-                ...(sourceNode.outputs ?? []),
+                ...(sourceStep.definition.outputs ?? []),
+                ...(sourceStep.outputs ?? []),
               ]
             : []),
-          ...(sourceNode.kind === "parallel-group"
-            ? [sourceNode.aggregateOutput]
+          ...(sourceStep.kind === "parallel-group"
+            ? [sourceStep.aggregateOutput]
             : []),
         ];
 
-        const matchingSourceNodeOutput = sourceNodeOutputs.find(
-          (output) => output.name === sourceNodeOutputName,
+        const matchingSourceStepOutput = sourceStepOutputs.find(
+          (output) => output.name === sourceStepOutputName,
         );
 
-        if (!matchingSourceNodeOutput) {
+        if (!matchingSourceStepOutput) {
           throw new Error(
-            `${errorPrefix}parallelizes on an output "${sourceNodeOutputName}" of node "${sourceNodeId}" that does not exist`,
+            `${errorPrefix}parallelizes on an output "${sourceStepOutputName}" of step "${sourceStepId}" that does not exist`,
           );
         }
 
-        if (!matchingSourceNodeOutput.array) {
+        if (!matchingSourceStepOutput.array) {
           throw new Error(
-            `${errorPrefix}parallelizes an output "${sourceNodeOutputName}" of node "${sourceNodeId}" that is not an array`,
+            `${errorPrefix}parallelizes an output "${sourceStepOutputName}" of step "${sourceStepId}" that is not an array`,
           );
         }
 
-        const { nodes: childNodes } = node;
+        const { steps: childSteps } = step;
 
-        for (const childActionNode of childNodes) {
-          for (const childActionInputSource of childActionNode.inputSources) {
+        for (const childActionStep of childSteps) {
+          for (const childActionInputSource of childActionStep.inputSources) {
             if (childActionInputSource.kind === "parallel-group-input") {
-              const { actionDefinition } = childActionNode;
+              const { actionDefinition } = childActionStep;
 
               const matchingDefinitionInput = actionDefinition.inputs.find(
                 (input) => input.name === childActionInputSource.inputName,
@@ -91,23 +91,23 @@ export const validateFlowDefinition = (flow: FlowDefinition) => {
 
               if (!matchingDefinitionInput) {
                 throw new Error(
-                  `Action node "${childActionNode.nodeId}" in parallel group "${node.nodeId}" has an input source for input "${childActionInputSource.inputName}" that is not defined in its action definition`,
+                  `Action step "${childActionStep.stepId}" in parallel group "${step.stepId}" has an input source for input "${childActionInputSource.inputName}" that is not defined in its action definition`,
                 );
               }
 
               if (matchingDefinitionInput.array) {
                 throw new Error(
-                  `Action node "${childActionNode.nodeId}" in parallel group "${node.nodeId}" references an input "${childActionInputSource.inputName}" that is an array`,
+                  `Action step "${childActionStep.stepId}" in parallel group "${step.stepId}" references an input "${childActionInputSource.inputName}" that is an array`,
                 );
               }
 
               if (
                 !matchingDefinitionInput.oneOfPayloadKinds.includes(
-                  matchingSourceNodeOutput.payloadKind,
+                  matchingSourceStepOutput.payloadKind,
                 )
               ) {
                 throw new Error(
-                  `Action node "${childActionNode.nodeId}" in parallel group "${node.nodeId}" references an output "${sourceNodeOutputName}" of node "${sourceNodeId}" that does not match the expected payload kinds of the input`,
+                  `Action step "${childActionStep.stepId}" in parallel group "${step.stepId}" references an output "${sourceStepOutputName}" of step "${sourceStepId}" that does not match the expected payload kinds of the input`,
                 );
               }
             }
@@ -120,36 +120,36 @@ export const validateFlowDefinition = (flow: FlowDefinition) => {
          */
       }
 
-      const { aggregateOutput } = node;
+      const { aggregateOutput } = step;
 
-      const childNodeUsedForAggregateOutput = node.nodes.find(
-        (childNode) => childNode.nodeId === aggregateOutput.nodeId,
+      const childStepUsedForAggregateOutput = step.steps.find(
+        (childStep) => childStep.stepId === aggregateOutput.stepId,
       );
 
-      if (!childNodeUsedForAggregateOutput) {
+      if (!childStepUsedForAggregateOutput) {
         throw new Error(
-          `${errorPrefix}references an aggregate output source node "${aggregateOutput.nodeId}" that does not exist in is child nodes`,
+          `${errorPrefix}references an aggregate output source step "${aggregateOutput.stepId}" that does not exist in is child steps`,
         );
       }
 
-      const childNodeOutput =
-        childNodeUsedForAggregateOutput.actionDefinition.outputs.find(
-          (output) => output.name === aggregateOutput.nodeOutputName,
+      const childStepOutput =
+        childStepUsedForAggregateOutput.actionDefinition.outputs.find(
+          (output) => output.name === aggregateOutput.stepOutputName,
         );
 
-      if (!childNodeOutput) {
+      if (!childStepOutput) {
         throw new Error(
-          `${errorPrefix}references an aggregate output source node output "${aggregateOutput.nodeOutputName}" that does not exist in its child node`,
+          `${errorPrefix}references an aggregate output source step output "${aggregateOutput.stepOutputName}" that does not exist in its child step`,
         );
       }
 
-      if (childNodeOutput.array) {
+      if (childStepOutput.array) {
         throw new Error(
-          `${errorPrefix}references an aggregate output source node output "${aggregateOutput.nodeOutputName}" that is an array`,
+          `${errorPrefix}references an aggregate output source step output "${aggregateOutput.stepOutputName}" that is an array`,
         );
       }
-    } else if (node.kind === "action") {
-      const { actionDefinition, inputSources } = node;
+    } else if (step.kind === "action") {
+      const { actionDefinition, inputSources } = step;
 
       const requiredInputs = actionDefinition.inputs.filter(
         ({ required }) => required,
@@ -162,7 +162,7 @@ export const validateFlowDefinition = (flow: FlowDefinition) => {
 
         if (!matchingInputSource) {
           throw new Error(
-            `Action node "${node.nodeId}" is missing required input "${requiredInput.name}"`,
+            `Action step "${step.stepId}" is missing required input "${requiredInput.name}"`,
           );
         }
       }
@@ -174,60 +174,60 @@ export const validateFlowDefinition = (flow: FlowDefinition) => {
 
         if (!matchingDefinitionInput) {
           throw new Error(
-            `Action node "${node.nodeId}" has an input source for input "${inputSource.inputName}" that is not defined in its action definition`,
+            `Action step "${step.stepId}" has an input source for input "${inputSource.inputName}" that is not defined in its action definition`,
           );
         }
 
-        const errorPrefix = `Action node "${node.nodeId}" with input "${inputSource.inputName}" `;
+        const errorPrefix = `Action step "${step.stepId}" with input "${inputSource.inputName}" `;
 
-        if (inputSource.kind === "node-output") {
-          const { sourceNodeId } = inputSource;
+        if (inputSource.kind === "step-output") {
+          const { sourceStepId } = inputSource;
 
-          const sourceNode =
-            sourceNodeId === "trigger"
+          const sourceStep =
+            sourceStepId === "trigger"
               ? flow.trigger
-              : flowNodesWithNestedNodes.find(
-                  ({ nodeId }) => nodeId === sourceNodeId,
+              : flowStepsWithNestedSteps.find(
+                  ({ stepId }) => stepId === sourceStepId,
                 );
 
-          if (!sourceNode) {
+          if (!sourceStep) {
             throw new Error(
-              `${errorPrefix}references a source node "${sourceNodeId}" that does not exist`,
+              `${errorPrefix}references a source step "${sourceStepId}" that does not exist`,
             );
           }
 
-          const sourceNodeOutputs = [
-            ...(sourceNode.kind === "action"
-              ? sourceNode.actionDefinition.outputs
+          const sourceStepOutputs = [
+            ...(sourceStep.kind === "action"
+              ? sourceStep.actionDefinition.outputs
               : []),
-            ...(sourceNode.kind === "trigger"
+            ...(sourceStep.kind === "trigger"
               ? [
-                  ...(sourceNode.definition.outputs ?? []),
-                  ...(sourceNode.outputs ?? []),
+                  ...(sourceStep.definition.outputs ?? []),
+                  ...(sourceStep.outputs ?? []),
                 ]
               : []),
-            ...(sourceNode.kind === "parallel-group"
-              ? [sourceNode.aggregateOutput]
+            ...(sourceStep.kind === "parallel-group"
+              ? [sourceStep.aggregateOutput]
               : []),
           ];
 
-          const matchingSourceNodeOutput = sourceNodeOutputs.find(
-            (output) => output.name === inputSource.sourceNodeOutputName,
+          const matchingSourceStepOutput = sourceStepOutputs.find(
+            (output) => output.name === inputSource.sourceStepOutputName,
           );
 
-          if (!matchingSourceNodeOutput) {
+          if (!matchingSourceStepOutput) {
             throw new Error(
-              `${errorPrefix}references an output "${inputSource.sourceNodeOutputName}" of node "${inputSource.sourceNodeId}" that does not exist`,
+              `${errorPrefix}references an output "${inputSource.sourceStepOutputName}" of step "${inputSource.sourceStepId}" that does not exist`,
             );
           }
 
           if (
             !matchingDefinitionInput.oneOfPayloadKinds.includes(
-              matchingSourceNodeOutput.payloadKind,
+              matchingSourceStepOutput.payloadKind,
             )
           ) {
             throw new Error(
-              `${errorPrefix}references an output "${inputSource.sourceNodeOutputName}" of node "${inputSource.sourceNodeId}" that does not match the expected payload kinds of the input`,
+              `${errorPrefix}references an output "${inputSource.sourceStepOutputName}" of step "${inputSource.sourceStepId}" that does not match the expected payload kinds of the input`,
             );
           }
         } else if (inputSource.kind === "hardcoded") {

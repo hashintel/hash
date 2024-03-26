@@ -3,8 +3,8 @@ import type {
   InputNameForAction,
   OutputNameForAction,
   OutputNameForTrigger,
-} from "./node-definitions";
-import { actionDefinitions, triggerDefinitions } from "./node-definitions";
+} from "./step-definitions";
+import { actionDefinitions, triggerDefinitions } from "./step-definitions";
 import type { FlowDefinition } from "./types";
 
 export const researchTaskFlowDefinition: FlowDefinition = {
@@ -25,17 +25,17 @@ export const researchTaskFlowDefinition: FlowDefinition = {
       },
     ],
   },
-  nodes: [
+  steps: [
     {
-      nodeId: "0",
+      stepId: "0",
       kind: "action",
       actionDefinition: actionDefinitions.generateWebQuery,
       inputSources: [
         {
           inputName: "prompt" satisfies InputNameForAction<"generateWebQuery">,
-          kind: "node-output",
-          sourceNodeId: "trigger",
-          sourceNodeOutputName: "prompt",
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "prompt",
           // kind: "hardcoded",
           // value: {
           //   kind: "Text",
@@ -45,32 +45,32 @@ export const researchTaskFlowDefinition: FlowDefinition = {
       ],
     },
     {
-      nodeId: "1",
+      stepId: "1",
       kind: "action",
       actionDefinition: actionDefinitions.webSearch,
       inputSources: [
         {
           inputName: "query" satisfies InputNameForAction<"webSearch">,
-          kind: "node-output",
-          sourceNodeId: "0",
-          sourceNodeOutputName:
+          kind: "step-output",
+          sourceStepId: "0",
+          sourceStepOutputName:
             "query" satisfies OutputNameForAction<"generateWebQuery">,
         },
       ],
     },
     {
-      nodeId: "2",
+      stepId: "2",
       kind: "parallel-group",
       inputSourceToParallelizeOn: {
         inputName: "webSearchResults",
-        kind: "node-output",
-        sourceNodeId: "1",
-        sourceNodeOutputName:
+        kind: "step-output",
+        sourceStepId: "1",
+        sourceStepOutputName:
           "webPage" satisfies OutputNameForAction<"webSearch">,
       },
-      nodes: [
+      steps: [
         {
-          nodeId: "2.1",
+          stepId: "2.1",
           kind: "action",
           actionDefinition: actionDefinitions.inferEntitiesFromContent,
           inputSources: [
@@ -82,9 +82,9 @@ export const researchTaskFlowDefinition: FlowDefinition = {
             {
               inputName:
                 "entityTypeIds" satisfies InputNameForAction<"inferEntitiesFromContent">,
-              kind: "node-output",
-              sourceNodeId: "trigger",
-              sourceNodeOutputName: "entityTypeIds",
+              kind: "step-output",
+              sourceStepId: "trigger",
+              sourceStepOutputName: "entityTypeIds",
               // kind: "hardcoded",
               // value: {
               //   kind: "VersionedUrl",
@@ -95,24 +95,24 @@ export const researchTaskFlowDefinition: FlowDefinition = {
           ],
         },
         {
-          nodeId: "2.2",
+          stepId: "2.2",
           actionDefinition: actionDefinitions.persistEntity,
           kind: "action",
           inputSources: [
             {
               inputName:
                 "proposedEntity" satisfies InputNameForAction<"persistEntity">,
-              kind: "node-output",
-              sourceNodeId: "2.1",
-              sourceNodeOutputName:
+              kind: "step-output",
+              sourceStepId: "2.1",
+              sourceStepOutputName:
                 "proposedEntities" satisfies OutputNameForAction<"inferEntitiesFromContent">,
             },
           ],
         },
       ],
       aggregateOutput: {
-        nodeId: "2.2",
-        nodeOutputName:
+        stepId: "2.2",
+        stepOutputName:
           "persistedEntity" satisfies OutputNameForAction<"persistEntity">,
         name: "persistedEntities" as const,
         payloadKind: "Entity",
@@ -128,17 +128,17 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
     kind: "trigger",
     definition: triggerDefinitions.userVisitedWebPageTrigger,
   },
-  nodes: [
+  steps: [
     {
-      nodeId: "0",
+      stepId: "0",
       kind: "action",
       actionDefinition: actionDefinitions.getWebPageByUrl,
       inputSources: [
         {
           inputName: "url" satisfies InputNameForAction<"getWebPageByUrl">,
-          kind: "node-output",
-          sourceNodeId: "trigger",
-          sourceNodeOutputName:
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName:
             "visitedWebPageUrl" satisfies OutputNameForTrigger<"userVisitedWebPageTrigger">,
           // kind: "hardcoded",
           // value: {
@@ -149,16 +149,16 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
       ],
     },
     {
-      nodeId: "1",
+      stepId: "1",
       kind: "action",
       actionDefinition: actionDefinitions.inferEntitiesFromContent,
       inputSources: [
         {
           inputName:
             "content" satisfies InputNameForAction<"inferEntitiesFromContent">,
-          kind: "node-output",
-          sourceNodeId: "0",
-          sourceNodeOutputName:
+          kind: "step-output",
+          sourceStepId: "0",
+          sourceStepOutputName:
             "webPage" satisfies OutputNameForAction<"getWebPageByUrl">,
           // kind: "hardcoded",
           // value: {
@@ -183,18 +183,18 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
       ],
     },
     {
-      nodeId: "2",
+      stepId: "2",
       kind: "parallel-group",
       inputSourceToParallelizeOn: {
         inputName: "proposedEntities",
-        kind: "node-output",
-        sourceNodeId: "1",
-        sourceNodeOutputName:
+        kind: "step-output",
+        sourceStepId: "1",
+        sourceStepOutputName:
           "proposedEntities" satisfies OutputNameForAction<"inferEntitiesFromContent">,
       },
-      nodes: [
+      steps: [
         {
-          nodeId: "2.0",
+          stepId: "2.0",
           kind: "action",
           actionDefinition: actionDefinitions.persistEntity,
           inputSources: [
@@ -207,8 +207,8 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
         },
       ],
       aggregateOutput: {
-        nodeId: "2.0",
-        nodeOutputName:
+        stepId: "2.0",
+        stepOutputName:
           "persistedEntity" satisfies OutputNameForAction<"persistEntity">,
         name: "persistedEntities" as const,
         payloadKind: "Entity",
