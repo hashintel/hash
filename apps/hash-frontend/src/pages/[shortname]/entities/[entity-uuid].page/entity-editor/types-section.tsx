@@ -16,8 +16,7 @@ import { useEntityEditor } from "./entity-editor-context";
 import { EntityTypeUpdateModal } from "./types-section/entity-type-update-modal";
 
 export const TypesSection = () => {
-  const { entitySubgraph, replaceWithLatestDbVersion, readonly } =
-    useEntityEditor();
+  const { entitySubgraph, onEntityUpdated, readonly } = useEntityEditor();
 
   const entity = getRoots(entitySubgraph)[0]!;
   const { updateEntity } = useBlockProtocolUpdateEntity();
@@ -93,7 +92,7 @@ export const TypesSection = () => {
       });
 
       if (res.data) {
-        await replaceWithLatestDbVersion();
+        onEntityUpdated?.(res.data);
         setNewVersion(undefined);
       }
     } finally {

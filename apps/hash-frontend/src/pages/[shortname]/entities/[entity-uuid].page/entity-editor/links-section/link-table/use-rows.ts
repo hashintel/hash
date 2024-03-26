@@ -1,5 +1,6 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
+import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 import {
   getEntityTypeAndParentsById,
   getEntityTypeById,
@@ -37,6 +38,9 @@ export const useRows = () => {
         generateEntityHref({
           shortname,
           entityId: entity.metadata.recordId.entityId,
+          includeDraftId: !!extractDraftIdFromEntityId(
+            entity.metadata.recordId.entityId,
+          ),
         }),
       );
     },

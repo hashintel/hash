@@ -1,6 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
+  AllFilter,
   EntityMetadata,
   EntityPermission,
   EntityStructuralQuery,
@@ -36,6 +37,7 @@ import type {
   Subgraph,
 } from "@local/hash-subgraph";
 import {
+  extractDraftIdFromEntityId,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   isEntityVertex,
@@ -225,20 +227,71 @@ export const getEntities: ImpureGraphFunction<
 };
 
 /**
- * Get the latest version of an entity by its entity ID.
+ * Get the latest edition of an entity by its entityId. See notes on params.
  *
- * @param params.entityId - the id of the entity
+ * This function does NOT implement:
+ * 1. The ability to get the latest draft version without knowing its id.
+ * 2. The ability to get ALL versions of an entity at a given timestamp, i.e. if there is a live and one or more drafts
+ *    – use {@link getEntities} instead, includeDrafts, and match on its ownedById and uuid
+ *
+ * @param params.entityId the id of the entity, in one of the following formats:
+ *    - `[webUuid]~[entityUuid]` for the 'live', non-draft version of the entity
+ *    - `[webUuid]~[entityUuid]~[draftUuid]` for a specific draft series identified by the draftUuid.
+ *    - Each entity may have either no live version and a single draft series, or one live version and zero to many
+ *   draft series representing potential updates to the entity.
+ *
+ * @throws Error if one of the following is true:
+ *   1. if the entityId does not exist or is inaccessible to the requesting user
+ *   2. if there is somehow more than one edition for the requested entityId at the current time, which is an internal
+ *   fault
  */
 export const getLatestEntityById: ImpureGraphFunction<
   {
     entityId: EntityId;
-    includeDrafts?: boolean;
   },
   Promise<Entity>
 > = async (context, authentication, params) => {
-  const { entityId, includeDrafts = false } = params;
+  const { entityId } = params;
 
-  const [ownedById, entityUuid] = splitEntityId(entityId);
+  const [ownedById, entityUuid, draftId] = splitEntityId(entityId);
+
+  const allFilter: AllFilter["all"] = [
+    {
+      equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+    },
+    {
+      equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+    },
+    { equal: [{ path: ["archived"] }, { parameter: false }] },
+  ];
+
+  if (draftId) {
+    /**
+     * If the requested entityId includes a draftId, we know we're looking for a specific draft
+     */
+    allFilter.push({
+      equal: [{ path: ["draftId"] }, { parameter: draftId }],
+    });
+  } else {
+    /**
+     * If the entityId does NOT contain a draftId, EXCLUDE any draft versions of the entity.
+     * Otherwise, a request for an entityId unqualified by a draftId might return a live version
+     * and one or more draft versions, which is currently an error in the function.
+     *
+     * We could alternatively handle this and prioritise a specific version, e.g.
+     * - the live version
+     * - the latest version by the time the edition was created, whether that is a draft or live
+     * ...whether the prioritisation is fixed behavior or varied by parameter.
+     */
+    allFilter.push({
+      equal: [
+        { path: ["draftId"] },
+        // @ts-expect-error -- Support null in Path parameter in structural queries in Node
+        //                     see https://linear.app/hash/issue/H-1207
+        null,
+      ],
+    });
+  }
 
   const [entity, ...unexpectedEntities] = await getEntities(
     context,
@@ -246,27 +299,18 @@ export const getLatestEntityById: ImpureGraphFunction<
     {
       query: {
         filter: {
-          all: [
-            {
-              equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
-            },
-            {
-              equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
-            },
-            { equal: [{ path: ["archived"] }, { parameter: false }] },
-          ],
+          all: allFilter,
         },
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts,
+        includeDrafts: !!draftId,
       },
     },
   ).then(getRoots);
 
   if (unexpectedEntities.length > 0) {
-    throw new Error(
-      `Critical: Latest entity with entityId ${entityId} returned more than one result.`,
-    );
+    const errorMessage = `Latest entity with entityId ${entityId} returned more than one result with ids: ${unexpectedEntities.map((unexpectedEntity) => unexpectedEntity.metadata.recordId.entityId).join(", ")}`;
+    throw new Error(errorMessage);
   }
 
   if (!entity) {
@@ -279,65 +323,72 @@ export const getLatestEntityById: ImpureGraphFunction<
 };
 
 /**
- * Get or create an entity given either by new entity properties or a reference
- * to an existing entity.
+ * Check whether the requested entityId exists and is accessible by the requesting user.
+ * Useful when creating links to check that a given entityId is a valid link target without needing its contents.
  *
- * @param params.ownedById the id of owner of the entity
- * @param params.entityDefinition the definition of how to get or create the entity (excluding any linked entities)
- * @param params.actorId - the id of the account that is creating the entity
+ * If the existence of ONLY a draft version is acceptable, pass includeDrafts: true.
+ *
+ * @param params.entityId the id of the entity, in one of the following formats:
+ *    - `[webUuid]~[entityUuid]` for the 'live', non-draft version of the entity
+ *    - `[webUuid]~[entityUuid]~[draftUuid]` for a specific draft series identified by the draftUuid.
+ *    - Each entity may have either no live version and a single draft series, or one live version and zero to many
+ *   draft series representing potential updates to the entity.
+ * @param params.includeDrafts
+ *    - count the existence of a draft as the entity existing.
+ *    - this parameter will be treated as `true` if an entityId CONTAINING a draftUuid is passed
+ *    - useful for when creating a draft link or link to/from a draft entity, because a draft source/target is permissible
+ *
+ * @returns true if at least one version of the entity exists
+ * @throws Error if the entity does not exist as far as the requesting user is concerned
  */
-export const getOrCreateEntity: ImpureGraphFunction<
+export const canUserReadEntity: ImpureGraphFunction<
   {
-    ownedById: OwnedById;
-    entityDefinition: Omit<EntityDefinition, "linkedEntities">;
-    relationships: EntityRelationAndSubject[];
-    draft?: boolean;
+    entityId: EntityId;
+    includeDrafts: boolean;
   },
-  Promise<Entity>,
-  false,
-  true
+  Promise<boolean>
 > = async (context, authentication, params) => {
-  const { entityDefinition, ownedById, relationships, draft } = params;
-  const { entityProperties, existingEntityId } = entityDefinition;
+  const { entityId, includeDrafts } = params;
 
-  let entity;
+  const [ownedById, entityUuid, draftId] = splitEntityId(entityId);
 
-  if (existingEntityId) {
-    try {
-      entity = await getLatestEntityById(context, authentication, {
-        entityId: existingEntityId,
-        includeDrafts: true,
-      });
-    } catch {
-      throw new ApolloError(
-        `Entity ${existingEntityId} not found`,
-        "NOT_FOUND",
-      );
-    }
-  } else if (entityProperties) {
-    const { entityTypeId } = entityDefinition;
+  const allFilter: AllFilter["all"] = [
+    {
+      equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+    },
+    {
+      equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+    },
+    { equal: [{ path: ["archived"] }, { parameter: false }] },
+  ];
 
-    if (!entityTypeId) {
-      throw new ApolloError(
-        `Given no valid type identifier. Must be one of entityTypeId`,
-        "NOT_FOUND",
-      );
-    }
-
-    entity = await createEntity(context, authentication, {
-      ownedById,
-      entityTypeId,
-      properties: entityProperties,
-      relationships,
-      draft,
+  if (draftId) {
+    /**
+     * If the requested entityId includes a draftId, we know we're looking for a specific draft
+     */
+    allFilter.push({
+      equal: [{ path: ["draftId"] }, { parameter: draftId }],
     });
-  } else {
+  }
+
+  const entities = await getEntities(context, authentication, {
+    query: {
+      filter: {
+        all: allFilter,
+      },
+      graphResolveDepths: zeroedGraphResolveDepths,
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: !!draftId || includeDrafts,
+    },
+  }).then(getRoots);
+
+  if (entities.length === 0) {
     throw new Error(
-      `entityType and one of entityId OR entityProperties must be provided`,
+      `Entity with entityId ${entityId} doesn't exist or cannot be accessed by requesting user.`,
     );
   }
 
-  return entity;
+  return true;
 };
 
 /**
@@ -387,26 +438,50 @@ export const createEntityWithLinks: ImpureGraphFunction<
   );
 
   /**
-   * @todo Once the graph API validates the required links of entities on creation, this may have to be reworked in order
-   *   to create valid entities.
-   *   this code currently creates entities first, then links them together.
-   *   See https://app.asana.com/0/1202805690238892/1203046447168478/f
+   * @todo Once the graph API validates the required links of entities on creation, this may have to be reworked in
+   *   order to create valid entities. this code currently creates entities first, then links them together. See
+   *   https://app.asana.com/0/1202805690238892/1203046447168478/f
    */
   const entities = await Promise.all(
-    entitiesInTree.map(async (definition) => ({
-      link: definition.meta
-        ? {
-            parentIndex: definition.parentIndex,
-            meta: definition.meta,
-          }
-        : undefined,
-      entity: await getOrCreateEntity(context, authentication, {
-        ownedById,
-        entityDefinition: definition,
-        relationships,
-        draft,
-      }),
-    })),
+    entitiesInTree.map(async (definition) => {
+      const { existingEntityId, parentIndex, meta } = definition;
+
+      if (
+        !existingEntityId &&
+        (!definition.entityProperties || !definition.entityTypeId)
+      ) {
+        throw new Error(
+          `One of existingEntityId or (entityProperties && entityTypeId) must be provided in linked entity definition: ${JSON.stringify(definition)}`,
+        );
+      }
+
+      /**
+       * This will throw an error if existingEntityId does not have a draftId and there is no live version of the entity being linked to.
+       * We currently only use this field for updating block collections, which do not link to draft entities, but would need changing if we change this.
+       * H-2430 which would introduce draft/live versions of pages which may affect this.
+       */
+      const entity = existingEntityId
+        ? await getLatestEntityById(context, authentication, {
+            entityId: existingEntityId,
+          })
+        : await createEntity(context, authentication, {
+            properties: definition.entityProperties!,
+            entityTypeId: definition.entityTypeId!,
+            ownedById,
+            relationships,
+            draft,
+          });
+
+      return {
+        link: meta
+          ? {
+              parentIndex,
+              meta,
+            }
+          : undefined,
+        entity,
+      };
+    }),
   );
 
   let rootEntity: Entity;
@@ -435,7 +510,10 @@ export const createEntityWithLinks: ImpureGraphFunction<
           rightEntityId: entity.metadata.recordId.entityId,
           ownedById,
           relationships,
-          draft,
+          draft:
+            /** If either side of the link is a draft entity, the link entity must be draft also */
+            draft ||
+            !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
         });
       }
     }),
@@ -790,13 +868,12 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
   {
     entity: Entity;
     graphResolveDepths: Partial<GraphResolveDepths>;
-    includeDrafts?: boolean;
   },
   Promise<Subgraph<EntityRootType>>,
   false,
   true
 > = async (context, authentication, params) => {
-  const { entity, graphResolveDepths, includeDrafts = false } = params;
+  const { entity, graphResolveDepths } = params;
 
   return await getEntities(context, authentication, {
     query: {
@@ -830,7 +907,7 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
         ...graphResolveDepths,
       },
       temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
+      includeDrafts: false,
     },
   });
 };

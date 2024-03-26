@@ -2,7 +2,7 @@ import type { SvgIconProps } from "@mui/material";
 import { SvgIcon } from "@mui/material";
 import type { FunctionComponent } from "react";
 
-export const ArrowUpIcon: FunctionComponent<SvgIconProps> = (props) => {
+export const ArrowUpRegularIcon: FunctionComponent<SvgIconProps> = (props) => {
   return (
     <SvgIcon
       width="384"

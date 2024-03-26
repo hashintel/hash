@@ -17,7 +17,7 @@ import type {
   Subgraph,
 } from "@local/hash-subgraph";
 import {
-  entityIdFromOwnedByIdAndEntityUuid,
+  entityIdFromComponents,
   extractDraftIdFromEntityId,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
@@ -342,7 +342,7 @@ export const gptQueryEntities: RequestHandler<
               req.context,
               { actorId: user.accountId },
               {
-                entityId: entityIdFromOwnedByIdAndEntityUuid(
+                entityId: entityIdFromComponents(
                   webOwnedById,
                   webOwnedById as unknown as EntityUuid,
                 ),

@@ -7,7 +7,7 @@ import type { GraphApi } from "@local/hash-graph-client";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { Entity, EntityUuid, Uuid } from "@local/hash-subgraph";
 import {
-  entityIdFromOwnedByIdAndEntityUuid,
+  entityIdFromComponents,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
 import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
@@ -99,7 +99,7 @@ export const processEntityChange = async (
    *
    * @todo: fix this so that it works for users and orgs
    */
-  const hashWorkspaceEntityId = entityIdFromOwnedByIdAndEntityUuid(
+  const hashWorkspaceEntityId = entityIdFromComponents(
     owningAccountUuId,
     owningAccountUuId as Uuid as EntityUuid,
   );
