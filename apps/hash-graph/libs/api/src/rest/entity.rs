@@ -126,7 +126,7 @@ use crate::rest::{
             EntityMetadata,
             EntityProvenanceMetadata,
             EntityEditionProvenanceMetadata,
-        EntityProperties,
+            EntityProperties,
             EntityRecordId,
             EntityTemporalMetadata,
             EntityQueryToken,
