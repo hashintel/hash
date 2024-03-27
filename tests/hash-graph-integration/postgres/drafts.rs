@@ -46,9 +46,11 @@ fn person_entity_type_id() -> VersionedUrl {
 fn alice() -> EntityProperties {
     serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity")
 }
+
 fn bob() -> EntityProperties {
     serde_json::from_str(entity::PERSON_BOB_V1).expect("could not parse entity")
 }
+
 fn charles() -> EntityProperties {
     serde_json::from_str(entity::PERSON_CHARLES_V1).expect("could not parse entity")
 }

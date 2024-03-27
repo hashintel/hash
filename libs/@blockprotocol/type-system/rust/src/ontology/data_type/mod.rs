@@ -1,7 +1,9 @@
+use core::fmt;
 use std::{collections::HashMap, ptr};
 
 pub use error::ParseDataTypeError;
 use serde::{Deserialize, Serialize};
+use serde_json::Value as JsonValue;
 
 use crate::{
     url::{BaseUrl, VersionedUrl},
@@ -13,18 +15,57 @@ pub(in crate::ontology) mod raw;
 #[cfg(target_arch = "wasm32")]
 mod wasm;
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum JsonSchemaValueType {
+    Null,
+    Boolean,
+    Number,
+    Integer,
+    String,
+    Array,
+    Object,
+}
+
+impl fmt::Display for JsonSchemaValueType {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Null => fmt.write_str("null"),
+            Self::Boolean => fmt.write_str("boolean"),
+            Self::Number => fmt.write_str("number"),
+            Self::Integer => fmt.write_str("integer"),
+            Self::String => fmt.write_str("string"),
+            Self::Array => fmt.write_str("array"),
+            Self::Object => fmt.write_str("object"),
+        }
+    }
+}
+
+impl From<&JsonValue> for JsonSchemaValueType {
+    fn from(value: &JsonValue) -> Self {
+        match value {
+            JsonValue::Null => Self::Null,
+            JsonValue::Bool(_) => Self::Boolean,
+            JsonValue::Number(_) => Self::Number,
+            JsonValue::String(_) => Self::String,
+            JsonValue::Array(_) => Self::Array,
+            JsonValue::Object(_) => Self::Object,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "raw::DataType", into = "raw::DataType")]
 pub struct DataType {
     id: VersionedUrl,
     title: String,
     description: Option<String>,
-    json_type: String,
+    json_type: JsonSchemaValueType,
     /// Properties which are not currently strongly typed.
     ///
     /// The data type meta-schema currently allows arbitrary, untyped properties. This is a
     /// catch-all field to store all non-typed data.
-    additional_properties: HashMap<String, serde_json::Value>,
+    additional_properties: HashMap<String, JsonValue>,
 }
 
 impl DataType {
@@ -33,8 +74,8 @@ impl DataType {
         id: VersionedUrl,
         title: String,
         description: Option<String>,
-        json_type: String,
-        additional_properties: HashMap<String, serde_json::Value>,
+        json_type: JsonSchemaValueType,
+        additional_properties: HashMap<String, JsonValue>,
     ) -> Self {
         Self {
             id,
@@ -61,17 +102,17 @@ impl DataType {
     }
 
     #[must_use]
-    pub fn json_type(&self) -> &str {
-        &self.json_type
+    pub const fn json_type(&self) -> JsonSchemaValueType {
+        self.json_type
     }
 
     #[must_use]
-    pub const fn additional_properties(&self) -> &HashMap<String, serde_json::Value> {
+    pub const fn additional_properties(&self) -> &HashMap<String, JsonValue> {
         &self.additional_properties
     }
 
     #[must_use]
-    pub fn additional_properties_mut(&mut self) -> &mut HashMap<String, serde_json::Value> {
+    pub fn additional_properties_mut(&mut self) -> &mut HashMap<String, JsonValue> {
         &mut self.additional_properties
     }
 }

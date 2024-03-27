@@ -1,4 +1,5 @@
 #![feature(lint_reasons)]
+#![feature(gen_blocks)]
 
 pub mod knowledge;
 pub mod ontology;

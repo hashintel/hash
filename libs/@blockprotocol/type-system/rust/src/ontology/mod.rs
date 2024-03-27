@@ -12,7 +12,7 @@ pub mod url;
 
 mod shared;
 
-pub use data_type::{DataType, DataTypeReference, ParseDataTypeError};
+pub use data_type::{DataType, DataTypeReference, JsonSchemaValueType, ParseDataTypeError};
 pub use entity_type::{
     links::{Links, MaybeOrderedArray, ParseLinksError},
     ClosedEntityType, ClosedEntityTypeSchemaData, EntityType, EntityTypeReference,
