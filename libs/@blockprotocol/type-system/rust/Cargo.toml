@@ -15,7 +15,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 postgres-types = { workspace = true, features = ["derive"], optional = true }
 serde = { version = "1.0.197", features = ["derive"] }
-serde_json = "1.0.114"
+serde_json = "1.0.115"
 thiserror = "1.0.58"
 tsify = "0.4.5"
 url = "2.5.0"
