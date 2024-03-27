@@ -57,6 +57,7 @@ import type {
   EntityDefinition,
   LinkedEntityDefinition,
 } from "../../../graphql/api-types.gen";
+import { isTestEnv } from "../../../lib/env-config";
 import type { TemporalClient } from "../../../temporal";
 import { genId, linkedTreeFlatten } from "../../../util";
 import type { ImpureGraphFunction } from "../../context-types";
@@ -201,11 +202,13 @@ export const getEntities: ImpureGraphFunction<
     }
   }
 
-  const isRequesterAdmin = await isUserHashInstanceAdmin(
-    { graphApi },
-    { actorId },
-    { userAccountId: actorId },
-  );
+  const isRequesterAdmin = isTestEnv
+    ? false
+    : await isUserHashInstanceAdmin(
+        { graphApi },
+        { actorId },
+        { userAccountId: actorId },
+      );
 
   return await graphApi
     .getEntitiesByQuery(actorId, { query })
