@@ -5,6 +5,8 @@ import type {
   EntityTypeWithMetadata,
 } from "@local/hash-subgraph";
 
+import type { ActionDefinitionId } from "./step-definitions";
+
 export type DeepReadOnly<T> = {
   readonly [key in keyof T]: DeepReadOnly<T[key]>;
 };
@@ -80,6 +82,7 @@ export type TriggerDefinition = {
 
 export type ActionDefinition = {
   kind: "action";
+  actionDefinitionId: ActionDefinitionId;
   name: string;
   inputs: InputDefinition[];
   outputs: OutputDefinition[];
@@ -117,7 +120,7 @@ export type ActionStepDefinition<
 > = {
   kind: "action";
   stepId: string;
-  actionDefinition: DeepReadOnly<ActionDefinition>;
+  actionDefinitionId: ActionDefinitionId;
   inputSources: AdditionalInputSources extends null
     ? StepInputSource[]
     : (StepInputSource | AdditionalInputSources)[];
@@ -203,7 +206,7 @@ export type StepOutput<P extends Payload = Payload> = {
 export type ActionStep = {
   stepId: string;
   kind: "action";
-  actionDefinition: DeepReadOnly<ActionDefinition>;
+  actionDefinitionId: ActionDefinitionId;
   retries?: number;
   inputs?: StepInput[];
   outputs?: StepOutput[];

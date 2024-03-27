@@ -1,3 +1,4 @@
+import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/step-definitions";
 import type {
   ArrayPayload,
   DeepReadOnly,
@@ -66,10 +67,9 @@ export const passOutputsToUnprocessedSteps = (params: {
             outputName === matchingInputSource.sourceStepOutputName,
         )!;
 
-        const matchingInputDefinition =
-          unprocessedStep.actionDefinition.inputs.find(
-            ({ name }) => matchingInputSource.inputName === name,
-          )!;
+        const matchingInputDefinition = actionDefinitions[
+          unprocessedStep.actionDefinitionId
+        ].inputs.find(({ name }) => matchingInputSource.inputName === name)!;
 
         if (matchingOutputDefinition.array === matchingInputDefinition.array) {
           /**

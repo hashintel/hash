@@ -19,7 +19,7 @@ const initializeActionStep = (params: {
   return {
     stepId: stepDefinition.stepId,
     kind: "action",
-    actionDefinition: stepDefinition.actionDefinition,
+    actionDefinitionId: stepDefinition.actionDefinitionId,
     inputs: stepDefinition.inputSources.flatMap((inputSource) => {
       if (inputSource.kind === "step-output") {
         if (inputSource.sourceStepId === "trigger") {

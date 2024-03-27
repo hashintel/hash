@@ -1,5 +1,5 @@
 import type { GraphApi } from "@local/hash-graph-client";
-import type { ActionId } from "@local/hash-isomorphic-utils/flows/step-definitions";
+import type { ActionDefinitionId } from "@local/hash-isomorphic-utils/flows/step-definitions";
 
 import { generateWebQueryAction } from "./flow-action-activities/generate-web-query-action";
 import { getWebPageByUrlAction } from "./flow-action-activities/get-web-page-by-url-action";
@@ -12,7 +12,7 @@ export const createFlowActionActivities = ({
   graphApiClient,
 }: {
   graphApiClient: GraphApi;
-}): Record<`${ActionId}Action`, FlowActionActivity> => ({
+}): Record<`${ActionDefinitionId}Action`, FlowActionActivity> => ({
   generateWebQueryAction,
   webSearchAction,
   getWebPageByUrlAction,

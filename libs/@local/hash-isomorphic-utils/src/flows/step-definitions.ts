@@ -27,8 +27,19 @@ export type OutputNameForTrigger<T extends keyof typeof triggerDefinitions> =
     ? (typeof triggerDefinitions)[T]["outputs"][number]["name"]
     : never;
 
-export const actionDefinitions = {
+const actionDefinitionIds = [
+  "generateWebQuery",
+  "webSearch",
+  "getWebPageByUrl",
+  "inferEntitiesFromContent",
+  "persistEntity",
+] as const;
+
+export type ActionDefinitionId = (typeof actionDefinitionIds)[number];
+
+const actionDefinitionsAsConst = {
   generateWebQuery: {
+    actionDefinitionId: "generateWebQuery",
     name: "Generate Web Query",
     kind: "action",
     inputs: [
@@ -48,6 +59,7 @@ export const actionDefinitions = {
     ],
   },
   webSearch: {
+    actionDefinitionId: "webSearch",
     name: "Web Search",
     kind: "action",
     inputs: [
@@ -67,6 +79,7 @@ export const actionDefinitions = {
     ],
   },
   getWebPageByUrl: {
+    actionDefinitionId: "getWebPageByUrl",
     name: "Get Web Page From URL",
     kind: "action",
     inputs: [
@@ -86,6 +99,7 @@ export const actionDefinitions = {
     ],
   },
   inferEntitiesFromContent: {
+    actionDefinitionId: "inferEntitiesFromContent",
     name: "Infer Entities From Content",
     kind: "action",
     inputs: [
@@ -111,6 +125,7 @@ export const actionDefinitions = {
     ],
   },
   persistEntity: {
+    actionDefinitionId: "persistEntity",
     name: "Persist Entity",
     kind: "action",
     inputs: [
@@ -129,12 +144,17 @@ export const actionDefinitions = {
       },
     ],
   },
-} as const satisfies Record<string, DeepReadOnly<ActionDefinition>>;
+} as const satisfies Record<ActionDefinitionId, DeepReadOnly<ActionDefinition>>;
 
-export type ActionId = keyof typeof actionDefinitions;
+export const actionDefinitions = actionDefinitionsAsConst as unknown as Record<
+  ActionDefinitionId,
+  ActionDefinition
+>;
 
-export type InputNameForAction<T extends keyof typeof actionDefinitions> =
-  (typeof actionDefinitions)[T]["inputs"][number]["name"];
+export type InputNameForAction<
+  T extends keyof typeof actionDefinitionsAsConst,
+> = (typeof actionDefinitionsAsConst)[T]["inputs"][number]["name"];
 
-export type OutputNameForAction<T extends keyof typeof actionDefinitions> =
-  (typeof actionDefinitions)[T]["outputs"][number]["name"];
+export type OutputNameForAction<
+  T extends keyof typeof actionDefinitionsAsConst,
+> = (typeof actionDefinitionsAsConst)[T]["outputs"][number]["name"];

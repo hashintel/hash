@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
+import { actionDefinitions } from "./step-definitions";
 import type { FlowDefinition } from "./types";
 
 /**
@@ -49,7 +50,7 @@ export const validateFlowDefinition = (flow: FlowDefinition) => {
 
         const sourceStepOutputs = [
           ...(sourceStep.kind === "action"
-            ? sourceStep.actionDefinition.outputs
+            ? actionDefinitions[sourceStep.actionDefinitionId].outputs
             : []),
           ...(sourceStep.kind === "trigger"
             ? [
@@ -83,9 +84,11 @@ export const validateFlowDefinition = (flow: FlowDefinition) => {
         for (const childActionStep of childSteps) {
           for (const childActionInputSource of childActionStep.inputSources) {
             if (childActionInputSource.kind === "parallel-group-input") {
-              const { actionDefinition } = childActionStep;
+              const { actionDefinitionId } = childActionStep;
 
-              const matchingDefinitionInput = actionDefinition.inputs.find(
+              const matchingDefinitionInput = actionDefinitions[
+                actionDefinitionId
+              ].inputs.find(
                 (input) => input.name === childActionInputSource.inputName,
               );
 
@@ -132,10 +135,11 @@ export const validateFlowDefinition = (flow: FlowDefinition) => {
         );
       }
 
-      const childStepOutput =
-        childStepUsedForAggregateOutput.actionDefinition.outputs.find(
-          (output) => output.name === aggregateOutput.stepOutputName,
-        );
+      const childStepOutput = actionDefinitions[
+        childStepUsedForAggregateOutput.actionDefinitionId
+      ].outputs.find(
+        (output) => output.name === aggregateOutput.stepOutputName,
+      );
 
       if (!childStepOutput) {
         throw new Error(
@@ -149,11 +153,11 @@ export const validateFlowDefinition = (flow: FlowDefinition) => {
         );
       }
     } else if (step.kind === "action") {
-      const { actionDefinition, inputSources } = step;
+      const { actionDefinitionId, inputSources } = step;
 
-      const requiredInputs = actionDefinition.inputs.filter(
-        ({ required }) => required,
-      );
+      const requiredInputs = actionDefinitions[
+        actionDefinitionId
+      ].inputs.filter(({ required }) => required);
 
       for (const requiredInput of requiredInputs) {
         const matchingInputSource = inputSources.find(
@@ -168,9 +172,9 @@ export const validateFlowDefinition = (flow: FlowDefinition) => {
       }
 
       for (const inputSource of inputSources) {
-        const matchingDefinitionInput = actionDefinition.inputs.find(
-          (input) => input.name === inputSource.inputName,
-        );
+        const matchingDefinitionInput = actionDefinitions[
+          actionDefinitionId
+        ].inputs.find((input) => input.name === inputSource.inputName);
 
         if (!matchingDefinitionInput) {
           throw new Error(
@@ -198,7 +202,7 @@ export const validateFlowDefinition = (flow: FlowDefinition) => {
 
           const sourceStepOutputs = [
             ...(sourceStep.kind === "action"
-              ? sourceStep.actionDefinition.outputs
+              ? actionDefinitions[sourceStep.actionDefinitionId].outputs
               : []),
             ...(sourceStep.kind === "trigger"
               ? [

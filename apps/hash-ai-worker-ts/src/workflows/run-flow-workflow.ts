@@ -1,6 +1,6 @@
 import {
+  type ActionDefinitionId,
   actionDefinitions,
-  type ActionId,
 } from "@local/hash-isomorphic-utils/flows/step-definitions";
 import type {
   RunFlowWorkflowParams,
@@ -37,9 +37,9 @@ const doesFlowStepHaveSatisfiedDependencies = (step: FlowStep) => {
      * An action step has satisfied dependencies if all of its required inputs
      * have been provided.
      */
-    const requiredInputs = step.actionDefinition.inputs.filter(
-      (input) => input.required,
-    );
+    const requiredInputs = actionDefinitions[
+      step.actionDefinitionId
+    ].inputs.filter((input) => input.required);
 
     return requiredInputs.every((requiredInput) =>
       step.inputs?.some(({ inputName }) => requiredInput.name === inputName),
@@ -47,7 +47,7 @@ const doesFlowStepHaveSatisfiedDependencies = (step: FlowStep) => {
   } else {
     /**
      * A parallel group step has satisfied dependencies if the input it
-     * parrllelizes over has been provided.
+     * parallelizes over has been provided.
      */
 
     const { inputToParallelizeOn } = step;
@@ -64,13 +64,13 @@ const getAllStepsInFlow = (flow: Flow): FlowStep[] => [
 ];
 
 const proxyActionActivity = (params: {
-  actionId: ActionId;
+  actionDefinitionId: ActionDefinitionId;
   maximumAttempts: number;
   activityId: string;
 }) => {
-  const { actionId, maximumAttempts, activityId } = params;
+  const { actionDefinitionId, maximumAttempts, activityId } = params;
 
-  const { [`${actionId}Action` as const]: action } = proxyActivities<
+  const { [`${actionDefinitionId}Action` as const]: action } = proxyActivities<
     ReturnType<typeof createFlowActionActivities>
   >({
     cancellationType: ActivityCancellationType.WAIT_CANCELLATION_COMPLETED,
@@ -133,19 +133,14 @@ export const runFlowWorkflow = async (
         flow,
       });
 
-      const actionId = Object.entries(actionDefinitions).find(
-        ([_actionName, definition]) =>
-          definition.name === currentStep.actionDefinition.name,
-      )?.[0];
-
       const actionActivity = proxyActionActivity({
-        actionId: actionId as ActionId,
+        actionDefinitionId: currentStep.actionDefinitionId,
         maximumAttempts: actionStepDefinition.retryCount ?? 1,
         activityId: currentStep.stepId,
       });
 
       log(
-        `Step ${currentStepId}: executing "${currentStep.actionDefinition.name}" action with ${(currentStep.inputs ?? []).length} inputs`,
+        `Step ${currentStepId}: executing "${currentStep.actionDefinitionId}" action with ${(currentStep.inputs ?? []).length} inputs`,
       );
 
       const actionResponse = await actionActivity({
@@ -155,12 +150,12 @@ export const runFlowWorkflow = async (
 
       if (actionResponse.code !== StatusCode.Ok) {
         log(
-          `Step ${currentStepId}: error executing "${currentStep.actionDefinition.name}" action`,
+          `Step ${currentStepId}: error executing "${currentStep.actionDefinitionId}" action`,
         );
 
         processStepErrors[currentStepId] = {
           code: StatusCode.Internal,
-          message: `Action ${currentStep.actionDefinition.name} failed with status code ${actionResponse.code}: ${actionResponse.message}`,
+          message: `Action ${currentStep.actionDefinitionId} failed with status code ${actionResponse.code}: ${actionResponse.message}`,
         };
 
         return;
@@ -169,7 +164,7 @@ export const runFlowWorkflow = async (
       const { outputs } = actionResponse.contents[0]!;
 
       log(
-        `Step ${currentStepId}: obtained ${outputs.length} outputs from "${currentStep.actionDefinition.name}" action`,
+        `Step ${currentStepId}: obtained ${outputs.length} outputs from "${currentStep.actionDefinitionId}" action`,
       );
 
       currentStep.outputs = outputs;
@@ -188,7 +183,8 @@ export const runFlowWorkflow = async (
         outputs,
         unprocessedSteps,
         stepId: currentStepId,
-        outputDefinitions: currentStep.actionDefinition.outputs,
+        outputDefinitions:
+          actionDefinitions[currentStep.actionDefinitionId].outputs,
       });
 
       if (status.code !== StatusCode.Ok) {
@@ -229,7 +225,7 @@ export const runFlowWorkflow = async (
           parallelGroupStepDefinitions.map<ActionStep>((stepDefinition) => ({
             stepId: `${stepDefinition.stepId}~${index}`,
             kind: "action",
-            actionDefinition: stepDefinition.actionDefinition,
+            actionDefinitionId: stepDefinition.actionDefinitionId,
             /**
              * There is some code duplication here with the existing `initializeActionStep`
              * method.

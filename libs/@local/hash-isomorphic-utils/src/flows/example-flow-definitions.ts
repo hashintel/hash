@@ -4,7 +4,7 @@ import type {
   OutputNameForAction,
   OutputNameForTrigger,
 } from "./step-definitions";
-import { actionDefinitions, triggerDefinitions } from "./step-definitions";
+import { triggerDefinitions } from "./step-definitions";
 import type { FlowDefinition } from "./types";
 
 export const researchTaskFlowDefinition: FlowDefinition = {
@@ -29,7 +29,7 @@ export const researchTaskFlowDefinition: FlowDefinition = {
     {
       stepId: "0",
       kind: "action",
-      actionDefinition: actionDefinitions.generateWebQuery,
+      actionDefinitionId: "generateWebQuery",
       inputSources: [
         {
           inputName: "prompt" satisfies InputNameForAction<"generateWebQuery">,
@@ -47,7 +47,7 @@ export const researchTaskFlowDefinition: FlowDefinition = {
     {
       stepId: "1",
       kind: "action",
-      actionDefinition: actionDefinitions.webSearch,
+      actionDefinitionId: "webSearch",
       inputSources: [
         {
           inputName: "query" satisfies InputNameForAction<"webSearch">,
@@ -72,7 +72,7 @@ export const researchTaskFlowDefinition: FlowDefinition = {
         {
           stepId: "2.1",
           kind: "action",
-          actionDefinition: actionDefinitions.inferEntitiesFromContent,
+          actionDefinitionId: "inferEntitiesFromContent",
           inputSources: [
             {
               inputName:
@@ -96,7 +96,7 @@ export const researchTaskFlowDefinition: FlowDefinition = {
         },
         {
           stepId: "2.2",
-          actionDefinition: actionDefinitions.persistEntity,
+          actionDefinitionId: "persistEntity",
           kind: "action",
           inputSources: [
             {
@@ -142,7 +142,7 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
     {
       stepId: "0",
       kind: "action",
-      actionDefinition: actionDefinitions.getWebPageByUrl,
+      actionDefinitionId: "getWebPageByUrl",
       inputSources: [
         {
           inputName: "url" satisfies InputNameForAction<"getWebPageByUrl">,
@@ -161,7 +161,7 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
     {
       stepId: "1",
       kind: "action",
-      actionDefinition: actionDefinitions.inferEntitiesFromContent,
+      actionDefinitionId: "inferEntitiesFromContent",
       inputSources: [
         {
           inputName:
@@ -206,7 +206,7 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
         {
           stepId: "2.0",
           kind: "action",
-          actionDefinition: actionDefinitions.persistEntity,
+          actionDefinitionId: "persistEntity",
           inputSources: [
             {
               inputName:
