@@ -33,13 +33,26 @@ const CustomHandle = ({
 };
 
 export const Handles = ({
+  inputSources,
   stepDefinition,
-}: Pick<NodeData, "stepDefinition">) => {
-  const { outputs = [] } = stepDefinition;
+}: Pick<NodeData, "inputSources" | "stepDefinition">) => {
+  if (!stepDefinition && inputSources.length === 0) {
+    return null;
+  }
 
-  const inputs = stepDefinition.kind === "trigger" ? [] : stepDefinition.inputs;
+  const { outputs = [] } = stepDefinition ?? {};
 
-  console.log({ stepDefinition, outputs, inputs });
+  const inputs =
+    stepDefinition?.kind === "trigger"
+      ? []
+      : stepDefinition?.inputs ??
+        /**
+         * If we don't have any inputs on the step but we do have inputSources,
+         * this is a parallel-group that refers to arbitrary inputs from other steps
+         */
+        inputSources.map((source) => ({
+          name: source.inputName,
+        }));
 
   return (
     <Box>

@@ -4,20 +4,20 @@ import type { Label } from "@dagrejs/dagre";
 import Dagre from "@dagrejs/dagre";
 import { Box } from "@mui/material";
 import { BackgroundVariant } from "@reactflow/background";
-import { useEffect, useLayoutEffect, useMemo } from "react";
+import { useLayoutEffect, useMemo } from "react";
 import type { Edge, Node } from "reactflow";
 import ReactFlow, { Background, Controls, useReactFlow } from "reactflow";
 
-import { ActionNode } from "./flow-definition/action-node";
+import { CustomNode } from "./flow-definition/custom-node";
 import { useFlowDefinitionsContext } from "./flow-definition/shared/flow-definitions-context";
 import type { NodeData } from "./flow-definition/shared/types";
-import { TriggerNode } from "./flow-definition/trigger-node";
 
 const graph = new Dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
 
 const nodeTypes = {
-  action: ActionNode,
-  trigger: TriggerNode,
+  action: CustomNode,
+  "parallel-group": CustomNode,
+  trigger: CustomNode,
 };
 
 export const FlowDefinition = () => {
@@ -51,18 +51,50 @@ export const FlowDefinition = () => {
     ];
 
     derivedNodes.push(
-      ...selectedFlow.nodes.map((node, index) => ({
-        id: node.nodeId,
-        data: {
-          stepDefinition: JSON.parse(JSON.stringify(node.definition)),
-          label: node.definition.name,
-          inputSources: node.inputSources,
-        },
-        type: node.definition.kind,
-        position: { x: 0, y: 0 },
-        height: 100,
-        width: 200,
-      })),
+      ...selectedFlow.steps.flatMap((node) => {
+        const rootNode = {
+          id: node.stepId,
+          data: {
+            stepDefinition:
+              node.kind === "action" ? node.actionDefinition : null,
+            label:
+              node.kind === "action"
+                ? node.actionDefinition.name
+                : "UNLABELLED",
+            inputSources:
+              node.kind === "parallel-group"
+                ? [node.inputSourceToParallelizeOn]
+                : node.inputSources,
+          },
+          type: node.kind,
+          position: { x: 0, y: 0 },
+          height: 100,
+          width: 200,
+        };
+
+        const stepNodes: Node<NodeData>[] = [rootNode];
+
+        if (node.kind === "parallel-group") {
+          stepNodes.push(
+            ...node.steps.map((step) => ({
+              id: step.stepId,
+              data: {
+                stepDefinition: step.actionDefinition,
+                label: step.actionDefinition.name,
+                inputSources: step.inputSources,
+              },
+              type: "action",
+              parentNode: rootNode.id,
+              extent: "parent" as const,
+              position: { x: 0, y: 0 },
+              height: 100,
+              width: 200,
+            })),
+          );
+        }
+
+        return stepNodes;
+      }),
     );
 
     const derivedEdges: Edge[] = [];
@@ -70,17 +102,15 @@ export const FlowDefinition = () => {
       for (const inputSource of node.data.inputSources) {
         if (inputSource.kind === "step-output") {
           derivedEdges.push({
-            id: `${inputSource.sourceNodeId}-${node.id}`,
-            source: inputSource.sourceNodeId,
-            sourceHandle: inputSource.sourceNodeOutputName,
+            id: `${inputSource.sourceStepId}-${node.id}`,
+            source: inputSource.sourceStepId,
+            sourceHandle: inputSource.sourceStepOutputName,
             target: node.id,
             targetHandle: inputSource.inputName,
           });
         }
       }
     }
-
-    console.log({ derivedEdges });
 
     graph.setGraph({ rankdir: "LR" });
 
@@ -109,6 +139,8 @@ export const FlowDefinition = () => {
   useLayoutEffect(() => {
     fitView();
   });
+
+  console.log({ edges });
 
   return (
     <div style={{ width: "100%", height: "calc(100vh - 200px)" }}>

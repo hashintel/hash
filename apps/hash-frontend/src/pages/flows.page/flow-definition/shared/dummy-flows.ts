@@ -1,8 +1,10 @@
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
-import {
-  actionDefinitions,
+import type {
   InputNameForAction,
   OutputNameForAction,
+} from "@local/hash-isomorphic-utils/flows/step-definitions";
+import {
+  actionDefinitions,
   triggerDefinitions,
 } from "@local/hash-isomorphic-utils/flows/step-definitions";
 
@@ -10,6 +12,7 @@ export const dummyFlows: FlowDefinition[] = [
   {
     name: "Parallel dependencies",
     trigger: {
+      kind: "trigger",
       definition: triggerDefinitions.userTrigger,
       outputs: [
         {
@@ -19,72 +22,76 @@ export const dummyFlows: FlowDefinition[] = [
         },
       ],
     },
-    nodes: [
+    steps: [
       {
-        nodeId: "0",
-        definition: actionDefinitions.generateWebQuery,
+        stepId: "0",
+        kind: "action",
+        actionDefinition: actionDefinitions.generateWebQuery,
         inputSources: [
           {
             inputName:
               "prompt" satisfies InputNameForAction<"generateWebQuery">,
             kind: "step-output",
-            sourceNodeId: "trigger",
-            sourceNodeOutputName: "prompt",
+            sourceStepId: "trigger",
+            sourceStepOutputName: "prompt",
           },
         ],
       },
       {
-        nodeId: "1",
-        definition: actionDefinitions.webSearch,
+        stepId: "1",
+        kind: "action",
+        actionDefinition: actionDefinitions.webSearch,
         inputSources: [
           {
             inputName:
               "prompt" satisfies InputNameForAction<"generateWebQuery">,
             kind: "step-output",
-            sourceNodeId: "trigger",
-            sourceNodeOutputName: "prompt",
+            sourceStepId: "trigger",
+            sourceStepOutputName: "prompt",
           },
         ],
       },
       {
-        nodeId: "2",
-        definition: actionDefinitions.inferEntitiesFromContent,
+        stepId: "2",
+        kind: "action",
+        actionDefinition: actionDefinitions.inferEntitiesFromContent,
         inputSources: [
           {
             inputName:
               "content" satisfies InputNameForAction<"inferEntitiesFromContent">,
             kind: "step-output",
-            sourceNodeId: "0",
-            sourceNodeOutputName:
+            sourceStepId: "0",
+            sourceStepOutputName:
               "webPage" satisfies OutputNameForAction<"webSearch">,
           },
           {
             inputName:
               "entityTypeIds" satisfies InputNameForAction<"inferEntitiesFromContent">,
             kind: "step-output",
-            sourceNodeId: "1",
-            sourceNodeOutputName: "entityTypeIds",
+            sourceStepId: "1",
+            sourceStepOutputName: "entityTypeIds",
           },
         ],
       },
       {
-        nodeId: "3",
-        definition: actionDefinitions.inferEntitiesFromContent,
+        stepId: "3",
+        kind: "action",
+        actionDefinition: actionDefinitions.inferEntitiesFromContent,
         inputSources: [
           {
             inputName:
               "content" satisfies InputNameForAction<"inferEntitiesFromContent">,
             kind: "step-output",
-            sourceNodeId: "0",
-            sourceNodeOutputName:
+            sourceStepId: "0",
+            sourceStepOutputName:
               "webPage" satisfies OutputNameForAction<"webSearch">,
           },
           {
             inputName:
               "entityTypeIds" satisfies InputNameForAction<"inferEntitiesFromContent">,
             kind: "step-output",
-            sourceNodeId: "1",
-            sourceNodeOutputName: "entityTypeIds",
+            sourceStepId: "1",
+            sourceStepOutputName: "entityTypeIds",
           },
         ],
       },

@@ -163,7 +163,7 @@ export type ParallelGroupStepDefinition = {
   };
 };
 
-type StepDefinition = ActionStepDefinition | ParallelGroupStepDefinition;
+export type StepDefinition = ActionStepDefinition | ParallelGroupStepDefinition;
 
 export type FlowDefinition = {
   name: string;
