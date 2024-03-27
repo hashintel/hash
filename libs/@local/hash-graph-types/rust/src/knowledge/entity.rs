@@ -433,6 +433,7 @@ impl PropertyPath<'_> {
     }
 }
 
+#[cfg(feature = "postgres")]
 impl<'k> FromSql<'k> for PropertyPath<'k> {
     fn from_sql(ty: &Type, raw: &'k [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
         Ok(Self {
@@ -456,6 +457,7 @@ impl<'k> FromSql<'k> for PropertyPath<'k> {
     }
 }
 
+#[cfg(feature = "postgres")]
 impl ToSql for PropertyPath<'_> {
     postgres_types::to_sql_checked!();
 
