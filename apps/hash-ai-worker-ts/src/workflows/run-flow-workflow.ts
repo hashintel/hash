@@ -375,7 +375,7 @@ export const runFlowWorkflow = async (
     };
   }
 
-  if (processedSteps.length !== flow.steps.length) {
+  if (processedSteps.length !== getAllStepsInFlow(flow).length) {
     return {
       code: StatusCode.Unknown,
       message: "Not all steps in the flows were processed.",
