@@ -5,8 +5,8 @@ import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { AccountId } from "@local/hash-subgraph";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-subgraph/stdlib";
 
 import { dereferenceEntityType } from "./infer-entities/dereference-entity-type";
 import type { DereferencedEntityTypesByTypeId } from "./infer-entities/inference-types";
@@ -41,7 +41,7 @@ export const getDereferencedEntityTypesActivity = async (params: {
   for (const entityTypeId of entityTypeIds) {
     entityTypes[entityTypeId] = dereferenceEntityType(
       entityTypeId,
-      mapGraphApiSubgraphToSubgraph(entityTypesSubgraph),
+      mapGraphApiSubgraphToSubgraph(entityTypesSubgraph, actorId),
     );
   }
 

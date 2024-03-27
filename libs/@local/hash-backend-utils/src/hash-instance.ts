@@ -12,6 +12,7 @@ import {
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 import type {
   AccountGroupId,
@@ -19,10 +20,7 @@ import type {
   Entity,
   EntityRootType,
 } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 
 export type HashInstance = {
   entity: Entity;
@@ -71,6 +69,7 @@ export const getHashInstance = async (
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
         data.subgraph,
+        actorId,
       );
 
       return getRoots(subgraph);

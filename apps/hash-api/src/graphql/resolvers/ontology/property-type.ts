@@ -4,13 +4,13 @@ import {
   fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   OwnedById,
   PropertyTypeRootType,
   PropertyTypeWithMetadata,
   Subgraph,
 } from "@local/hash-subgraph";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-subgraph/stdlib";
 
 import {
   archivePropertyType,
@@ -114,7 +114,10 @@ export const queryPropertyTypesResolver: ResolverFn<
     },
   );
 
-  const subgraph = mapGraphApiSubgraphToSubgraph<PropertyTypeRootType>(data);
+  const subgraph = mapGraphApiSubgraphToSubgraph<PropertyTypeRootType>(
+    data,
+    authentication.actorId,
+  );
 
   return subgraph;
 };

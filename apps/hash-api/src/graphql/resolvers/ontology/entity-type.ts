@@ -4,6 +4,7 @@ import {
   fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { UserPermissionsOnEntityType } from "@local/hash-isomorphic-utils/types";
 import type {
   BaseUrl,
@@ -12,7 +13,6 @@ import type {
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-subgraph/stdlib";
 
 import {
   archiveEntityType,
@@ -121,7 +121,10 @@ export const queryEntityTypesResolver: ResolverFn<
     },
   );
 
-  const subgraph = mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(data);
+  const subgraph = mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(
+    data,
+    authentication.actorId,
+  );
 
   return subgraph;
 };

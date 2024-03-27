@@ -4,6 +4,7 @@ import type {
   InferredEntityUpdateFailure,
   InferredEntityUpdateSuccess,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
+import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   AccountId,
   Entity,
@@ -14,7 +15,6 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
-import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-subgraph/stdlib";
 
 import type { DereferencedEntityType } from "../dereference-entity-type";
 import { extractErrorMessage } from "../shared/extract-validation-failure-details";

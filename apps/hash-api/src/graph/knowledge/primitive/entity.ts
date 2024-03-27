@@ -1,5 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
+import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
 import type {
   AllFilter,
   EntityMetadata,
@@ -18,6 +19,10 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  mapGraphApiEntityMetadataToMetadata,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   UserPermissions,
   UserPermissionsOnEntities,
@@ -43,11 +48,7 @@ import {
   isEntityVertex,
   splitEntityId,
 } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiEntityMetadataToMetadata,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { ApolloError } from "apollo-server-errors";
 
@@ -200,11 +201,19 @@ export const getEntities: ImpureGraphFunction<
     }
   }
 
+  const isRequesterAdmin = await isUserHashInstanceAdmin(
+    { graphApi },
+    { actorId },
+    { userAccountId: actorId },
+  );
+
   return await graphApi
     .getEntitiesByQuery(actorId, { query })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
         data.subgraph,
+        actorId,
+        isRequesterAdmin,
       );
       // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
       for (const [entityId, editionMap] of typedEntries(subgraph.vertices)) {
@@ -336,7 +345,8 @@ export const getLatestEntityById: ImpureGraphFunction<
  * @param params.includeDrafts
  *    - count the existence of a draft as the entity existing.
  *    - this parameter will be treated as `true` if an entityId CONTAINING a draftUuid is passed
- *    - useful for when creating a draft link or link to/from a draft entity, because a draft source/target is permissible
+ *    - useful for when creating a draft link or link to/from a draft entity, because a draft source/target is
+ *   permissible
  *
  * @returns true if at least one version of the entity exists
  * @throws Error if the entity does not exist as far as the requesting user is concerned
@@ -456,9 +466,10 @@ export const createEntityWithLinks: ImpureGraphFunction<
       }
 
       /**
-       * This will throw an error if existingEntityId does not have a draftId and there is no live version of the entity being linked to.
-       * We currently only use this field for updating block collections, which do not link to draft entities, but would need changing if we change this.
-       * H-2430 which would introduce draft/live versions of pages which may affect this.
+       * This will throw an error if existingEntityId does not have a draftId and there is no live version of the
+       * entity being linked to. We currently only use this field for updating block collections, which do not link to
+       * draft entities, but would need changing if we change this. H-2430 which would introduce draft/live versions of
+       * pages which may affect this.
        */
       const entity = existingEntityId
         ? await getLatestEntityById(context, authentication, {

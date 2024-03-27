@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   AccountGroupId,
   AccountId,
@@ -9,7 +10,6 @@ import type {
   LinkData,
   OwnedById,
 } from "@local/hash-subgraph";
-import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-subgraph/stdlib";
 import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
 import type { ImpureGraphFunction } from "../../context-types";
