@@ -330,7 +330,7 @@ export const runFlowWorkflow = async (
       code: StatusCode.FailedPrecondition,
       message:
         "No steps have satisfied dependencies when initializing the flow.",
-      contents: [{ flow }],
+      contents: [],
     };
   }
 
@@ -366,7 +366,6 @@ export const runFlowWorkflow = async (
         "One or more errors occurred while processing the steps in the flow.",
       contents: [
         {
-          flow,
           stepErrors: Object.entries(processStepErrors).map(
             ([stepId, status]) => ({ ...status, contents: [{ stepId }] }),
           ),
@@ -379,12 +378,70 @@ export const runFlowWorkflow = async (
     return {
       code: StatusCode.Unknown,
       message: "Not all steps in the flows were processed.",
-      contents: [{ flow }],
+      contents: [],
     };
   }
 
+  for (const outputDefinition of flow.definition.outputs) {
+    const step = getAllStepsInFlow(flow).find(
+      (flowStep) => flowStep.stepId === outputDefinition.stepId,
+    );
+
+    const errorPrefix = `Error processing output definition ${outputDefinition.name}, `;
+
+    if (!step) {
+      return {
+        code: StatusCode.NotFound,
+        message: `${errorPrefix}no step found with id ${outputDefinition.stepId}`,
+        contents: [],
+      };
+    }
+
+    if (step.kind === "action") {
+      const output = step.outputs?.find(
+        ({ outputName }) => outputName === outputDefinition.stepOutputName,
+      );
+
+      if (!output) {
+        return {
+          code: StatusCode.NotFound,
+          message: `${errorPrefix}, there is no output with name ${outputDefinition.stepOutputName} in step ${step.stepId}`,
+          contents: [],
+        };
+      }
+
+      flow.outputs = [
+        ...(flow.outputs ?? []),
+        {
+          outputName: outputDefinition.name,
+          payload: output.payload,
+        },
+      ];
+    } else {
+      const output = step.aggregateOutput;
+
+      if (!output) {
+        return {
+          code: StatusCode.NotFound,
+          message: `${errorPrefix}, no aggregate output found in step ${step.stepId}`,
+          contents: [],
+        };
+      }
+
+      flow.outputs = [
+        ...(flow.outputs ?? []),
+        {
+          outputName: outputDefinition.name,
+          payload: output.payload,
+        },
+      ];
+    }
+  }
+
+  const flowOutputs = flow.outputs ?? [];
+
   return {
     code: StatusCode.Ok,
-    contents: [{ flow }],
+    contents: [{ flowOutputs }],
   };
 };

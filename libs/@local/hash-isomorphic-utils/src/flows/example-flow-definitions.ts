@@ -120,6 +120,16 @@ export const researchTaskFlowDefinition: FlowDefinition = {
       },
     },
   ],
+  outputs: [
+    {
+      stepId: "2",
+      stepOutputName:
+        "persistedEntity" satisfies OutputNameForAction<"persistEntity">,
+      name: "persistedEntities" as const,
+      payloadKind: "Entity",
+      array: true,
+    },
+  ],
 };
 
 export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
@@ -214,6 +224,16 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
         payloadKind: "Entity",
         array: true,
       },
+    },
+  ],
+  outputs: [
+    {
+      stepId: "2",
+      stepOutputName:
+        "persistedEntity" satisfies OutputNameForAction<"persistEntity">,
+      name: "persistedEntities" as const,
+      payloadKind: "Entity",
+      array: true,
     },
   ],
 };

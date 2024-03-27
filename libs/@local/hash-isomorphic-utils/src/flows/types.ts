@@ -173,6 +173,17 @@ export type FlowDefinition = {
     outputs?: OutputDefinition[];
   };
   steps: StepDefinition[];
+  outputs: (OutputDefinition & {
+    /**
+     * The step ID for the step in the flow that will produce the
+     * output.
+     */
+    stepId: string;
+    /**
+     * The name of the output in the step
+     */
+    stepOutputName: string;
+  })[];
 };
 
 /**
@@ -229,4 +240,5 @@ export type Flow = {
   definition: FlowDefinition;
   inputs?: FlowInput;
   steps: FlowStep[];
+  outputs?: StepOutput[];
 };
