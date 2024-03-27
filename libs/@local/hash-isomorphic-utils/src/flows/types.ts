@@ -179,18 +179,18 @@ export type FlowDefinition = {
  * Flow Step
  */
 
-export type StepInput = {
+export type StepInput<P extends Payload = Payload> = {
   inputName: string;
-  payload: Payload;
+  payload: P;
 };
 
-export type StepOutput = {
+export type StepOutput<P extends Payload = Payload> = {
   outputName: string;
-  payload: Payload;
+  payload: P;
 };
 
 export type ActionStep = {
-  actionId: string;
+  stepId: string;
   kind: "action";
   actionDefinition: DeepReadOnly<ActionDefinition>;
   retries?: number;
@@ -199,11 +199,11 @@ export type ActionStep = {
 };
 
 export type ParallelGroupStep = {
-  parallelGroupId: string;
+  stepId: string;
   kind: "parallel-group";
-  inputToParallelizeOn?: StepInput;
+  inputToParallelizeOn?: StepInput<ArrayPayload>;
   steps?: Exclude<FlowStep, ParallelGroupStep>[];
-  aggregateOutput?: StepOutput;
+  aggregateOutput?: StepOutput<ArrayPayload>;
 };
 
 export type FlowStep = ActionStep | ParallelGroupStep;
