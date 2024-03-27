@@ -13,6 +13,7 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import type {
   AccountEntityId,
@@ -27,10 +28,7 @@ import {
   extractAccountId,
   extractEntityUuidFromEntityId,
 } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type {
@@ -164,6 +162,7 @@ export const getUserByShortname: ImpureGraphFunction<
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
         data.subgraph,
+        actorId,
       );
 
       return getRoots(subgraph);
@@ -219,6 +218,8 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
         data.subgraph,
+        null,
+        true,
       );
 
       return getRoots(subgraph);

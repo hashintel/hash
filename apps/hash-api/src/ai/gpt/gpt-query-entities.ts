@@ -6,6 +6,7 @@ import type {
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   OrganizationProperties,
   UserProperties,
@@ -26,7 +27,6 @@ import {
   getEntityTypeById,
   getOutgoingLinksForEntity,
   getPropertyTypeForEntity,
-  mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
 import type { RequestHandler } from "express";
 
@@ -310,7 +310,10 @@ export const gptQueryEntities: RequestHandler<
         { user },
       );
 
-      const subgraph = mapGraphApiSubgraphToSubgraph(response.data.subgraph);
+      const subgraph = mapGraphApiSubgraphToSubgraph(
+        response.data.subgraph,
+        user.accountId,
+      );
 
       const vertices = Object.values(subgraph.vertices)
         .map((vertex) => Object.values(vertex))

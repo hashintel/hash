@@ -10,6 +10,7 @@ import type {
   InferredEntityMatchesExisting,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { generateVersionedUrlMatchingFilter } from "@local/hash-isomorphic-utils/graph-queries";
+import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   AccountId,
   BaseUrl,
@@ -21,7 +22,6 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
-import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-subgraph/stdlib";
 import isMatch from "lodash.ismatch";
 
 import { createEntityEmbeddings } from "../../shared/embeddings";
