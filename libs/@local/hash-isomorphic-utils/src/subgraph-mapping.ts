@@ -47,8 +47,6 @@ export const mapGraphApiEntityMetadataToMetadata = (
 
 const restrictedPropertyBaseUrls: string[] = [
   systemPropertyTypes.email.propertyTypeBaseUrl,
-  systemPropertyTypes.automaticInferenceConfiguration.propertyTypeBaseUrl,
-  systemPropertyTypes.manualInferenceConfiguration.propertyTypeBaseUrl,
 ];
 
 export const mapGraphApiEntityToEntity = (
