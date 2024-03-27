@@ -26,7 +26,7 @@ criterion-macro = "0.4.0"
 futures = { workspace = true }
 rand = "0.8.5"
 serde = { version = "1.0.197", features = ["derive"] }
-serde_json = "1.0.114"
+serde_json = "1.0.115"
 tokio = { workspace = true, features = ["macros"] }
 tokio-postgres = { version = "0.7.10", default-features = false }
 uuid = { version = "1.8.0", features = ["v4", "serde"] }
