@@ -1,6 +1,7 @@
 import path from "node:path";
 
 import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
+import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import { getEntities } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import {
   archiveDataType,
@@ -19,6 +20,7 @@ import {
   unarchivePropertyType,
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { Logger } from "@local/hash-backend-utils/logger";
 import type {
   DataTypeStructuralQuery,
   EntityStructuralQuery,
@@ -134,7 +136,7 @@ const linkFilter: EntityStructuralQuery["filter"] = {
   ],
 };
 
-let graphContext: ImpureGraphContext;
+let graphContext: ImpureGraphContext<true, true>;
 
 let friendshipEntityType: EntityTypeWithMetadata;
 
@@ -146,10 +148,17 @@ const authentication = {
   actorId: "00000000-0001-0000-0000-000000000000" as AccountId,
 };
 
+const logger = new Logger({
+  mode: "dev",
+  level: "debug",
+  serviceName: "integration-tests",
+});
+
 beforeAll(async () => {
   await restoreSnapshot(path.join(__dirname, "pass", "friendship.jsonl"));
 
   graphContext = createTestImpureGraphContext();
+  await ensureSystemGraphIsInitialized({ logger, context: graphContext });
 
   friendshipEntityType = await getEntityTypeById(graphContext, authentication, {
     entityTypeId: `${friendshipTypeBaseId}v/1`,

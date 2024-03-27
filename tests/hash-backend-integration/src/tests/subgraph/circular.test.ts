@@ -1,7 +1,9 @@
 import path from "node:path";
 
 import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
+import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import { getEntities } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
+import { Logger } from "@local/hash-backend-utils/logger";
 import type { EntityStructuralQuery } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -66,7 +68,7 @@ const createQuery = (
     includeDrafts: false,
   };
 };
-let graphContext: ImpureGraphContext;
+let graphContext: ImpureGraphContext<true, true>;
 
 let entity_a: Entity;
 let entity_b: Entity;
@@ -85,10 +87,17 @@ const authentication = {
   actorId: "00000000-0001-0000-0000-000000000000" as AccountId,
 };
 
+const logger = new Logger({
+  mode: "dev",
+  level: "debug",
+  serviceName: "integration-tests",
+});
+
 beforeAll(async () => {
   await restoreSnapshot(path.join(__dirname, "pass", "circular.jsonl"));
 
   graphContext = createTestImpureGraphContext();
+  await ensureSystemGraphIsInitialized({ logger, context: graphContext });
 
   const entities = await getEntities(graphContext, authentication, {
     query: {
