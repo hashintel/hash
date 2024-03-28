@@ -8,6 +8,8 @@ const __dirname = dirname(__filename);
 
 const monorepoRootDir = path.resolve(__dirname, "../../../../");
 
+export * from "@playwright/test";
+
 export const test = base.extend<{
   context: BrowserContext;
   extensionId: string;

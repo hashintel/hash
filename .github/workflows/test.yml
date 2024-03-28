@@ -1,6 +1,13 @@
 name: Test
 
 on:
+  #  workflow_dispatch:
+  #    inputs:
+  #      includeCostIncurringTests:
+  #        default: false
+  #        description: "Whether or not to run tests that incur API costs"
+  #        required: true
+  #        type: boolean
   pull_request:
   push:
     branches:
@@ -349,11 +356,11 @@ jobs:
 
           SERVICES="hydra kratos redis spicedb"
 
-          if [[ ${{ steps.tests.outputs.external-service-graph == 'true' }} == 'true' ]]; then
+          if [[ ${{ steps.tests.outputs.external-service-graph }} == 'true' ]]; then
             SERVICES="$SERVICES graph"
           fi
           if [[ ${{ steps.tests.outputs.external-service-ai-worker-ts }} == 'true' ]]; then
-              echo 'OPENAI_API_KEY=dummy' >> .env.local
+              echo 'OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}' >> .env.local
               SERVICES="$SERVICES hash-temporal-worker-ts"
           fi
           if [[ ${{ steps.tests.outputs.external-service-worker-integration }} == 'true' ]]; then
@@ -493,13 +500,26 @@ jobs:
       - name: Launch external services
         run: |
           turbo codegen --filter '@apps/hash-external-services'
-          echo 'OPENAI_API_KEY=dummy' >> .env.local
+          echo 'OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}' >> .env.local
           yarn workspace @apps/hash-external-services deploy up --wait
 
       - name: Launch HASH-API
         run: |
           turbo run build --filter "@apps/hash-api"
           yarn workspace @apps/hash-api start-test 2>&1 | tee var/logs/backend.log & 
+          yarn wait-on --timeout 120000 http://0.0.0.0:5001
+
+      - name: Re-launch external services to support loading hash.ai types as external
+        run: |
+          turbo codegen --filter '@apps/hash-external-services'
+          echo 'HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN="(?:http://localhost:3000)/@(?P<shortname>[\\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type))/[\\w\\-_%]+/"' \
+            >> .env.local
+          yarn workspace @apps/hash-external-services deploy up --wait
+
+      - name: Re-launch HASH-API to support loading hash.ai types as external
+        run: |
+          kill -9 $(lsof -t -i:5001)
+          SELF_HOSTED_HASH=true yarn workspace @apps/hash-api start-test 2>&1 | tee var/logs/backend.log & 
           yarn wait-on --timeout 120000 http://0.0.0.0:5001
 
       - name: Launch frontend
@@ -512,8 +532,10 @@ jobs:
         run: df -h
 
       - name: Run tests
+        env:
+          INCLUDE_COST_INCURRING_TESTS: ${{ inputs.includeCostIncurringTests }}
         run: |
-          turbo run test:system --filter "${{ matrix.package }}"
+          INCLUDE_COST_INCURRING_TESTS=true turbo run test:system --filter "${{ matrix.package }}"
 
       - name: Show disk usage
         run: df -h

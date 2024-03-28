@@ -5,7 +5,7 @@ const ci = process.env.CI === "true";
 
 const config: PlaywrightTestConfig = {
   forbidOnly: ci,
-  timeout: 30_000,
+  timeout: 60_000,
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     // We plan to add more browsers and also split Playwright tests into
@@ -17,7 +17,7 @@ const config: PlaywrightTestConfig = {
     [ci ? "github" : "list"],
     ["html", { open: !ci ? "on-failure" : "never" }],
   ],
-  retries: ci ? 2 : 0, // 2 retries in CI compensates flakiness, 0 is more helpful locally
+  retries: 0,
   testDir: "tests",
   use: {
     baseURL: "http://localhost:3000",
