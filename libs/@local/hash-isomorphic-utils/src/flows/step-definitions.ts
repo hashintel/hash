@@ -1,6 +1,8 @@
 import type {
   ActionDefinition,
   DeepReadOnly,
+  PayloadKindValues,
+  StepInput,
   TriggerDefinition,
 } from "./types";
 
@@ -158,3 +160,43 @@ export type InputNameForAction<
 export type OutputNameForAction<
   T extends keyof typeof actionDefinitionsAsConst,
 > = (typeof actionDefinitionsAsConst)[T]["outputs"][number]["name"];
+
+export type InputPayloadKindForAction<
+  T extends ActionDefinitionId,
+  N extends InputNameForAction<T>,
+> = Extract<
+  (typeof actionDefinitionsAsConst)[T]["inputs"][number],
+  { name: N }
+>["oneOfPayloadKinds"][number];
+
+type SimplifiedActionInputsObject<T extends ActionDefinitionId> = {
+  [N in InputNameForAction<T>]: PayloadKindValues[InputPayloadKindForAction<
+    T,
+    N
+  >];
+};
+
+export const getSimplifiedActionInputs = <
+  T extends ActionDefinitionId,
+>(params: {
+  inputs: StepInput[];
+  actionType: T;
+}): SimplifiedActionInputsObject<T> => {
+  const { inputs, actionType } = params;
+
+  return inputs.reduce((acc, input) => {
+    const inputName = input.inputName as InputNameForAction<T>;
+    if (
+      actionDefinitionsAsConst[actionType].inputs.some(
+        ({ name }) => name === inputName,
+      )
+    ) {
+      acc[inputName] = input.payload
+        .value as PayloadKindValues[InputPayloadKindForAction<
+        T,
+        typeof inputName
+      >];
+    }
+    return acc;
+  }, {} as SimplifiedActionInputsObject<T>);
+};

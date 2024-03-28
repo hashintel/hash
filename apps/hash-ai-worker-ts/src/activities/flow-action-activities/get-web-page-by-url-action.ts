@@ -1,6 +1,6 @@
-import type {
-  InputNameForAction,
-  OutputNameForAction,
+import {
+  getSimplifiedActionInputs,
+  type OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/step-definitions";
 import { StatusCode } from "@local/status";
 
@@ -8,14 +8,10 @@ import { getWebPageActivity } from "../get-web-page-activity";
 import type { FlowActionActivity } from "./types";
 
 export const getWebPageByUrlAction: FlowActionActivity = async ({ inputs }) => {
-  /** @todo: implement validation for inputs */
-
-  const urlStepInput = inputs.find(
-    ({ inputName }) =>
-      inputName === ("url" satisfies InputNameForAction<"getWebPageByUrl">),
-  )!;
-
-  const url = urlStepInput.payload.value as string;
+  const { url } = getSimplifiedActionInputs({
+    inputs,
+    actionType: "getWebPageByUrl",
+  });
 
   /**
    * @todo: consider moving implementation directly into this method,

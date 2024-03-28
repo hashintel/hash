@@ -1,13 +1,11 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import type {
-  InputNameForAction,
-  OutputNameForAction,
+import {
+  getSimplifiedActionInputs,
+  type InputNameForAction,
+  type OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/step-definitions";
-import type {
-  ProposedEntity,
-  WebPage,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import type { OwnedById } from "@local/hash-subgraph/.";
 import { StatusCode } from "@local/status";
 
@@ -20,13 +18,10 @@ import type { FlowActionActivity } from "./types";
 export const inferEntitiesFromContentAction: FlowActionActivity<{
   graphApiClient: GraphApi;
 }> = async ({ inputs, graphApiClient, userAuthentication }) => {
-  const contentInput = inputs.find(
-    ({ inputName }) =>
-      inputName ===
-      ("content" satisfies InputNameForAction<"inferEntitiesFromContent">),
-  )!;
-
-  const content = contentInput.payload.value as WebPage | string;
+  const { content } = getSimplifiedActionInputs({
+    inputs,
+    actionType: "inferEntitiesFromContent",
+  });
 
   if (typeof content === "string") {
     return {
