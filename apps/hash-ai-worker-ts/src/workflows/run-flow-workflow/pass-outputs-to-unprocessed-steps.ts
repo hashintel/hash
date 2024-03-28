@@ -3,7 +3,6 @@ import type {
   ArrayPayload,
   DeepReadOnly,
   Flow,
-  FlowStep,
   OutputDefinition,
   Payload,
   StepInputSource,
@@ -12,6 +11,7 @@ import type {
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 
+import { getAllStepsInFlow } from "./get-all-steps-in-flow";
 import { getStepDefinitionFromFlow } from "./get-step-definition-from-flow";
 
 /**
@@ -23,9 +23,16 @@ export const passOutputsToUnprocessedSteps = (params: {
   stepId: string;
   outputDefinitions: DeepReadOnly<OutputDefinition[]>;
   outputs: StepOutput[];
-  unprocessedSteps: FlowStep[];
+  processedStepIds: string[];
 }): Omit<Status<never>, "contents"> => {
-  const { flow, stepId, unprocessedSteps, outputs, outputDefinitions } = params;
+  const { flow, stepId, processedStepIds, outputs, outputDefinitions } = params;
+
+  const unprocessedSteps = getAllStepsInFlow(flow).filter(
+    (step) =>
+      !processedStepIds.some(
+        (processedStepId) => processedStepId === step.stepId,
+      ),
+  );
 
   for (const unprocessedStep of unprocessedSteps) {
     if (unprocessedStep.kind === "action") {
@@ -144,6 +151,19 @@ export const passOutputsToUnprocessedSteps = (params: {
           payload: matchingOutput.payload as ArrayPayload,
         };
       }
+    }
+  }
+
+  const processedSteps = getAllStepsInFlow(flow).filter((step) =>
+    processedStepIds.some((processedStepId) => processedStepId === step.stepId),
+  );
+
+  for (const processedStep of processedSteps) {
+    if (processedStep.kind === "parallel-group") {
+      const unprocessedParallelGroupStepDefinition = getStepDefinitionFromFlow({
+        step: processedStep,
+        flow,
+      });
 
       /**
        * If the current step is a parallel step in the unprocessed parallel group,
@@ -153,7 +173,7 @@ export const passOutputsToUnprocessedSteps = (params: {
 
       const { aggregateOutput } = unprocessedParallelGroupStepDefinition;
 
-      const isCurrentStepInParallelGroup = unprocessedStep.steps?.some(
+      const isCurrentStepInParallelGroup = processedStep.steps?.some(
         (step) => step.stepId === stepId,
       );
 
@@ -170,20 +190,23 @@ export const passOutputsToUnprocessedSteps = (params: {
         const aggregateOutputPayload: ArrayPayload = {
           kind: aggregateOutput.payloadKind,
           value: [
-            ...(unprocessedStep.aggregateOutput?.payload.value ?? []),
+            ...(processedStep.aggregateOutput?.payload.value ?? []),
             matchingOutput.payload.value,
           ],
         } as ArrayPayload;
 
-        unprocessedStep.aggregateOutput = {
+        const { inputSourceToParallelizeOn } =
+          unprocessedParallelGroupStepDefinition;
+
+        processedStep.aggregateOutput = {
           outputName: inputSourceToParallelizeOn.inputName,
           payload: aggregateOutputPayload,
         };
 
         if (
-          unprocessedStep.inputToParallelizeOn &&
-          unprocessedStep.inputToParallelizeOn.payload.value.length ===
-            unprocessedStep.aggregateOutput.payload.value.length
+          processedStep.inputToParallelizeOn &&
+          processedStep.inputToParallelizeOn.payload.value.length ===
+            processedStep.aggregateOutput.payload.value.length
         ) {
           /**
            * If the number of items in the input that were parallelized on is
@@ -194,12 +217,12 @@ export const passOutputsToUnprocessedSteps = (params: {
            */
           return passOutputsToUnprocessedSteps({
             flow,
-            stepId: unprocessedStep.stepId,
+            stepId: processedStep.stepId,
             outputDefinitions: [
               unprocessedParallelGroupStepDefinition.aggregateOutput,
             ],
-            outputs: [unprocessedStep.aggregateOutput],
-            unprocessedSteps,
+            outputs: [processedStep.aggregateOutput],
+            processedStepIds,
           });
         }
       }

@@ -229,8 +229,7 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
   outputs: [
     {
       stepId: "2",
-      stepOutputName:
-        "persistedEntity" satisfies OutputNameForAction<"persistEntity">,
+      stepOutputName: "persistedEntities",
       name: "persistedEntities" as const,
       payloadKind: "Entity",
       array: true,

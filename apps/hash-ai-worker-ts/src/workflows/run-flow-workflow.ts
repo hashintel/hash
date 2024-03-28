@@ -8,7 +8,6 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type {
   ActionStep,
-  Flow,
   FlowStep,
   Payload,
 } from "@local/hash-isomorphic-utils/flows/types";
@@ -22,6 +21,7 @@ import {
 } from "@temporalio/workflow";
 
 import type { createFlowActionActivities } from "../activities/flow-action-activites";
+import { getAllStepsInFlow } from "./run-flow-workflow/get-all-steps-in-flow";
 import { getStepDefinitionFromFlow } from "./run-flow-workflow/get-step-definition-from-flow";
 import { initializeFlow } from "./run-flow-workflow/initialize-flow";
 import { passOutputsToUnprocessedSteps } from "./run-flow-workflow/pass-outputs-to-unprocessed-steps";
@@ -55,13 +55,6 @@ const doesFlowStepHaveSatisfiedDependencies = (step: FlowStep) => {
     return !!inputToParallelizeOn;
   }
 };
-
-const getAllStepsInFlow = (flow: Flow): FlowStep[] => [
-  ...flow.steps,
-  ...flow.steps.flatMap((step) =>
-    step.kind === "parallel-group" ? step.steps ?? [] : [],
-  ),
-];
 
 const proxyActionActivity = (params: {
   actionDefinitionId: ActionDefinitionId;
@@ -107,7 +100,7 @@ export const runFlowWorkflow = async (
     flowId: workflowId,
   });
 
-  const processedSteps: FlowStep[] = [];
+  const processedStepIds: string[] = [];
   const processStepErrors: Record<string, Omit<Status<never>, "contents">> = {};
 
   // Function to process a single step
@@ -169,19 +162,12 @@ export const runFlowWorkflow = async (
 
       currentStep.outputs = outputs;
 
-      processedSteps.push(currentStep);
-
-      const unprocessedSteps = getAllStepsInFlow(flow).filter(
-        (step) =>
-          !processedSteps.some(
-            (processedStep) => processedStep.stepId === step.stepId,
-          ),
-      );
+      processedStepIds.push(currentStep.stepId);
 
       const status = passOutputsToUnprocessedSteps({
         flow,
         outputs,
-        unprocessedSteps,
+        processedStepIds,
         stepId: currentStepId,
         outputDefinitions:
           actionDefinitions[currentStep.actionDefinitionId].outputs,
@@ -313,7 +299,7 @@ export const runFlowWorkflow = async (
        * steps may not have finished executing, so that the step is not re-evaluated
        * in a subsequent iteration of `processSteps`.
        */
-      processedSteps.push(currentStep);
+      processedStepIds.push(currentStep.stepId);
     }
   };
 
@@ -335,8 +321,8 @@ export const runFlowWorkflow = async (
     const stepsToProcess = getAllStepsInFlow(flow).filter(
       (step) =>
         doesFlowStepHaveSatisfiedDependencies(step) &&
-        !processedSteps.some(
-          (processedStep) => processedStep.stepId === step.stepId,
+        !processedStepIds.some(
+          (processedStepId) => processedStepId === step.stepId,
         ),
     );
 
@@ -370,7 +356,7 @@ export const runFlowWorkflow = async (
     };
   }
 
-  if (processedSteps.length !== getAllStepsInFlow(flow).length) {
+  if (processedStepIds.length !== getAllStepsInFlow(flow).length) {
     return {
       code: StatusCode.Unknown,
       message: "Not all steps in the flows were processed.",
@@ -401,7 +387,7 @@ export const runFlowWorkflow = async (
       if (!output) {
         return {
           code: StatusCode.NotFound,
-          message: `${errorPrefix}, there is no output with name ${outputDefinition.stepOutputName} in step ${step.stepId}`,
+          message: `${errorPrefix}there is no output with name ${outputDefinition.stepOutputName} in step ${step.stepId}`,
           contents: [],
         };
       }
@@ -419,7 +405,7 @@ export const runFlowWorkflow = async (
       if (!output) {
         return {
           code: StatusCode.NotFound,
-          message: `${errorPrefix}, no aggregate output found in step ${step.stepId}`,
+          message: `${errorPrefix}no aggregate output found in step ${step.stepId}`,
           contents: [],
         };
       }
