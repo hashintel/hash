@@ -2,7 +2,6 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import {
   getSimplifiedActionInputs,
-  type InputNameForAction,
   type OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/step-definitions";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
@@ -18,7 +17,7 @@ import type { FlowActionActivity } from "./types";
 export const inferEntitiesFromContentAction: FlowActionActivity<{
   graphApiClient: GraphApi;
 }> = async ({ inputs, graphApiClient, userAuthentication }) => {
-  const { content } = getSimplifiedActionInputs({
+  const { content, entityTypeIds } = getSimplifiedActionInputs({
     inputs,
     actionType: "inferEntitiesFromContent",
   });
@@ -31,14 +30,6 @@ export const inferEntitiesFromContentAction: FlowActionActivity<{
       contents: [],
     };
   }
-
-  const entityTypeIdsInput = inputs.find(
-    ({ inputName }) =>
-      inputName ===
-      ("entityTypeIds" satisfies InputNameForAction<"inferEntitiesFromContent">),
-  );
-
-  const entityTypeIds = entityTypeIdsInput!.payload.value as VersionedUrl[];
 
   const aiAssistantAccountId = await getAiAssistantAccountIdActivity({
     authentication: userAuthentication,

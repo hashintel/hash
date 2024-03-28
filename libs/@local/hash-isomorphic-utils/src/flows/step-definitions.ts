@@ -169,11 +169,18 @@ export type InputPayloadKindForAction<
   { name: N }
 >["oneOfPayloadKinds"][number];
 
+type InputPayloadType<
+  T extends ActionDefinitionId,
+  N extends InputNameForAction<T>,
+> = Extract<
+  (typeof actionDefinitionsAsConst)[T]["inputs"][number],
+  { name: N }
+>["array"] extends true
+  ? PayloadKindValues[InputPayloadKindForAction<T, N>][]
+  : PayloadKindValues[InputPayloadKindForAction<T, N>];
+
 type SimplifiedActionInputsObject<T extends ActionDefinitionId> = {
-  [N in InputNameForAction<T>]: PayloadKindValues[InputPayloadKindForAction<
-    T,
-    N
-  >];
+  [N in InputNameForAction<T>]: InputPayloadType<T, N>;
 };
 
 export const getSimplifiedActionInputs = <
@@ -182,21 +189,16 @@ export const getSimplifiedActionInputs = <
   inputs: StepInput[];
   actionType: T;
 }): SimplifiedActionInputsObject<T> => {
-  const { inputs, actionType } = params;
+  const { inputs } = params;
 
   return inputs.reduce((acc, input) => {
     const inputName = input.inputName as InputNameForAction<T>;
-    if (
-      actionDefinitionsAsConst[actionType].inputs.some(
-        ({ name }) => name === inputName,
-      )
-    ) {
-      acc[inputName] = input.payload
-        .value as PayloadKindValues[InputPayloadKindForAction<
-        T,
-        typeof inputName
-      >];
-    }
+
+    acc[inputName] = input.payload.value as InputPayloadType<
+      T,
+      typeof inputName
+    >;
+
     return acc;
   }, {} as SimplifiedActionInputsObject<T>);
 };
