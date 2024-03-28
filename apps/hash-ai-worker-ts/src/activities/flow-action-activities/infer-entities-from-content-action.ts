@@ -1,5 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
+import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
@@ -10,6 +11,7 @@ import { StatusCode } from "@local/status";
 
 import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity";
 import { getDereferencedEntityTypesActivity } from "../get-dereferenced-entity-types-activity";
+import { modelAliasToSpecificModel } from "../infer-entities";
 import type { InferenceState } from "../infer-entities/inference-types";
 import { inferEntitiesFromWebPageActivity } from "../infer-entities-from-web-page-activity";
 import type { FlowActionActivity } from "./types";
@@ -17,7 +19,7 @@ import type { FlowActionActivity } from "./types";
 export const inferEntitiesFromContentAction: FlowActionActivity<{
   graphApiClient: GraphApi;
 }> = async ({ inputs, graphApiClient, userAuthentication }) => {
-  const { content, entityTypeIds } = getSimplifiedActionInputs({
+  const { content, entityTypeIds, model } = getSimplifiedActionInputs({
     inputs,
     actionType: "inferEntitiesFromContent",
   });
@@ -64,14 +66,21 @@ export const inferEntitiesFromContentAction: FlowActionActivity<{
     usage: [],
   };
 
+  if (!isInferenceModelName(model)) {
+    return {
+      code: StatusCode.InvalidArgument,
+      message: `Invalid inference model name: ${model}`,
+      contents: [],
+    };
+  }
+
   const status = await inferEntitiesFromWebPageActivity({
     graphApiClient,
     webPage: content,
     /** @todo: expose this via an input for the action */
     // relevantEntitiesPrompt: prompt,
     validationActorId: userAuthentication.actorId,
-    /** @todo: expose this via an input for the action */
-    model: "gpt-4-1106-preview",
+    model: modelAliasToSpecificModel[model],
     entityTypes,
     inferenceState: webPageInferenceState,
   });

@@ -117,6 +117,16 @@ const actionDefinitionsAsConst = {
         required: true,
         array: true,
       },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "model",
+        required: true,
+        default: {
+          kind: "Text",
+          value: "gpt-4-turbo",
+        },
+        array: false,
+      },
     ],
     outputs: [
       {
