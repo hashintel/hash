@@ -30,6 +30,9 @@ export const inferenceModelNames = [
 
 export type InferenceModelName = (typeof inferenceModelNames)[number];
 
+export const isInferenceModelName = (tbd: string): tbd is InferenceModelName =>
+  inferenceModelNames.includes(tbd as InferenceModelName);
+
 export type InferEntitiesUserArguments = Subtype<
   Record<InferEntitiesUserArgumentKey, unknown>,
   {
