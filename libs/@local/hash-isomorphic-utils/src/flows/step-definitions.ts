@@ -127,6 +127,12 @@ const actionDefinitionsAsConst = {
         },
         array: false,
       },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "relevantEntitiesPrompt",
+        required: false,
+        array: false,
+      },
     ],
     outputs: [
       {
@@ -182,12 +188,23 @@ export type InputPayloadKindForAction<
 type InputPayloadType<
   T extends ActionDefinitionId,
   N extends InputNameForAction<T>,
-> = Extract<
-  (typeof actionDefinitionsAsConst)[T]["inputs"][number],
-  { name: N }
->["array"] extends true
-  ? PayloadKindValues[InputPayloadKindForAction<T, N>][]
-  : PayloadKindValues[InputPayloadKindForAction<T, N>];
+> =
+  Extract<
+    (typeof actionDefinitionsAsConst)[T]["inputs"][number],
+    { name: N }
+  > extends { required: true; array: true }
+    ? PayloadKindValues[InputPayloadKindForAction<T, N>][]
+    : Extract<
+          (typeof actionDefinitionsAsConst)[T]["inputs"][number],
+          { name: N }
+        > extends { required: false; array: true }
+      ? PayloadKindValues[InputPayloadKindForAction<T, N>][] | undefined
+      : Extract<
+            (typeof actionDefinitionsAsConst)[T]["inputs"][number],
+            { name: N }
+          > extends { required: true; array: false }
+        ? PayloadKindValues[InputPayloadKindForAction<T, N>]
+        : PayloadKindValues[InputPayloadKindForAction<T, N>] | undefined;
 
 type SimplifiedActionInputsObject<T extends ActionDefinitionId> = {
   [N in InputNameForAction<T>]: InputPayloadType<T, N>;

@@ -19,10 +19,11 @@ import type { FlowActionActivity } from "./types";
 export const inferEntitiesFromContentAction: FlowActionActivity<{
   graphApiClient: GraphApi;
 }> = async ({ inputs, graphApiClient, userAuthentication }) => {
-  const { content, entityTypeIds, model } = getSimplifiedActionInputs({
-    inputs,
-    actionType: "inferEntitiesFromContent",
-  });
+  const { content, entityTypeIds, model, relevantEntitiesPrompt } =
+    getSimplifiedActionInputs({
+      inputs,
+      actionType: "inferEntitiesFromContent",
+    });
 
   if (typeof content === "string") {
     return {
@@ -77,8 +78,7 @@ export const inferEntitiesFromContentAction: FlowActionActivity<{
   const status = await inferEntitiesFromWebPageActivity({
     graphApiClient,
     webPage: content,
-    /** @todo: expose this via an input for the action */
-    // relevantEntitiesPrompt: prompt,
+    relevantEntitiesPrompt,
     validationActorId: userAuthentication.actorId,
     model: modelAliasToSpecificModel[model],
     entityTypes,
