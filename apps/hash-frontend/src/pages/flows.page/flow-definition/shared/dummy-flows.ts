@@ -20,6 +20,11 @@ export const dummyFlows: FlowDefinition[] = [
           name: "prompt",
           array: false,
         },
+        {
+          payloadKind: "Text",
+          name: "entityTypes",
+          array: false,
+        },
       ],
     },
     steps: [
@@ -90,8 +95,8 @@ export const dummyFlows: FlowDefinition[] = [
             inputName:
               "entityTypeIds" satisfies InputNameForAction<"inferEntitiesFromContent">,
             kind: "step-output",
-            sourceStepId: "1",
-            sourceStepOutputName: "entityTypeIds",
+            sourceStepId: "trigger",
+            sourceStepOutputName: "entityTypes",
           },
         ],
       },

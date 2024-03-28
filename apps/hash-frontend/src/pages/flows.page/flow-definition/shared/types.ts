@@ -19,4 +19,4 @@ export type NodeData = {
     | ParallelGroupStepDefinition["steps"][number]["inputSources"];
 };
 
-export type CustomNode = Node<NodeData>;
+export type CustomNodeType = Node<NodeData>;
