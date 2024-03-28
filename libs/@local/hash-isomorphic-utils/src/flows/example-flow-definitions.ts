@@ -1,8 +1,6 @@
-import { systemEntityTypes } from "../ontology-type-ids";
 import type {
   InputNameForAction,
   OutputNameForAction,
-  OutputNameForTrigger,
 } from "./step-definitions";
 import { triggerDefinitions } from "./step-definitions";
 import type { FlowDefinition } from "./types";
@@ -150,7 +148,19 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
   name: "Infer User Entities from Web Page Flow",
   trigger: {
     kind: "trigger",
-    definition: triggerDefinitions.userVisitedWebPageTrigger,
+    definition: triggerDefinitions.userTrigger,
+    outputs: [
+      {
+        payloadKind: "Text",
+        name: "visitedWebPageUrl",
+        array: false,
+      },
+      {
+        payloadKind: "VersionedUrl",
+        name: "entityTypeIds",
+        array: true,
+      },
+    ],
   },
   steps: [
     {
@@ -162,8 +172,7 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
           inputName: "url" satisfies InputNameForAction<"getWebPageByUrl">,
           kind: "step-output",
           sourceStepId: "trigger",
-          sourceStepOutputName:
-            "visitedWebPageUrl" satisfies OutputNameForTrigger<"userVisitedWebPageTrigger">,
+          sourceStepOutputName: "visitedWebPageUrl",
           // kind: "hardcoded",
           // value: {
           //   kind: "Text",
@@ -198,11 +207,9 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
         {
           inputName:
             "entityTypeIds" satisfies InputNameForAction<"inferEntitiesFromContent">,
-          kind: "hardcoded",
-          value: {
-            kind: "VersionedUrl",
-            value: [systemEntityTypes.user.entityTypeId],
-          },
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "entityTypeIds",
         },
       ],
     },
