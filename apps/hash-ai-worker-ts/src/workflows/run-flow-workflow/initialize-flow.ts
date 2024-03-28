@@ -1,3 +1,4 @@
+import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/step-definitions";
 import type {
   ActionStep,
   ActionStepDefinition,
@@ -16,37 +17,61 @@ const initializeActionStep = (params: {
 }): ActionStep => {
   const { stepDefinition, flowTrigger } = params;
 
+  const actionDefinition = actionDefinitions[stepDefinition.actionDefinitionId];
+
   return {
     stepId: stepDefinition.stepId,
     kind: "action",
     actionDefinitionId: stepDefinition.actionDefinitionId,
-    inputs: stepDefinition.inputSources.flatMap((inputSource) => {
-      if (inputSource.kind === "step-output") {
-        if (inputSource.sourceStepId === "trigger") {
-          const matchingTriggerOutput = flowTrigger.outputs?.find(
-            ({ outputName }) => outputName === inputSource.sourceStepOutputName,
-          );
+    inputs: [
+      ...stepDefinition.inputSources.flatMap((inputSource) => {
+        if (inputSource.kind === "step-output") {
+          if (inputSource.sourceStepId === "trigger") {
+            const matchingTriggerOutput = flowTrigger.outputs?.find(
+              ({ outputName }) =>
+                outputName === inputSource.sourceStepOutputName,
+            );
 
-          if (matchingTriggerOutput) {
-            return {
-              inputName: inputSource.inputName,
-              payload: matchingTriggerOutput.payload,
-            };
+            if (matchingTriggerOutput) {
+              return {
+                inputName: inputSource.inputName,
+                payload: matchingTriggerOutput.payload,
+              };
+            }
           }
+          /**
+           * @todo: consider whether some nodes may have outputs before
+           * nodes have been processed
+           */
+        } else {
+          return {
+            inputName: inputSource.inputName,
+            payload: inputSource.value,
+          };
         }
-        /**
-         * @todo: consider whether some nodes may have outputs before
-         * nodes have been processed
-         */
-      } else {
-        return {
-          inputName: inputSource.inputName,
-          payload: inputSource.value,
-        };
-      }
 
-      return [];
-    }),
+        return [];
+      }),
+      /**
+       * For inputs without input sources, use the default value specified
+       * in the action definition if it exists.
+       */
+      ...actionDefinition.inputs
+        .filter(
+          ({ name }) =>
+            !stepDefinition.inputSources.some(
+              ({ inputName }) => inputName === name,
+            ),
+        )
+        .flatMap((inputWithoutInputSource) =>
+          inputWithoutInputSource.default
+            ? {
+                inputName: inputWithoutInputSource.name,
+                payload: inputWithoutInputSource.default,
+              }
+            : [],
+        ),
+    ],
     outputs: [],
   };
 };

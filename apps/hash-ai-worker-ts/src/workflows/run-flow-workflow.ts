@@ -208,85 +208,111 @@ export const runFlowWorkflow = async (
 
       const newSteps = arrayToParallelizeOn.flatMap(
         (parallelizedValue, index) =>
-          parallelGroupStepDefinitions.map<ActionStep>((stepDefinition) => ({
-            stepId: `${stepDefinition.stepId}~${index}`,
-            kind: "action",
-            actionDefinitionId: stepDefinition.actionDefinitionId,
-            /**
-             * There is some code duplication here with the existing `initializeActionStep`
-             * method.
-             *
-             * @todo: consider making the `initializeActionStep` method re-usable here
-             */
-            inputs: stepDefinition.inputSources.flatMap((inputSource) => {
-              if (inputSource.kind === "parallel-group-input") {
-                const payload: Payload = {
-                  kind: inputToParallelizeOn.payload.kind,
-                  value: parallelizedValue,
-                  /** @todo: figure out why this isn't assignable */
-                } as Payload;
+          parallelGroupStepDefinitions.map<ActionStep>((stepDefinition) => {
+            const actionDefinition =
+              actionDefinitions[stepDefinition.actionDefinitionId];
 
-                return {
-                  inputName: inputSource.inputName,
-                  payload,
-                };
-              } else if (inputSource.kind === "step-output") {
-                if (inputSource.sourceStepId === "trigger") {
-                  /**
-                   * If the input source refers to the trigger, pass
-                   * any referred to outputs from the trigger as inputs
-                   * to the new step.
-                   */
-                  const matchingTriggerOutput = trigger.outputs?.find(
-                    ({ outputName }) =>
-                      outputName === inputSource.sourceStepOutputName,
-                  );
+            return {
+              stepId: `${stepDefinition.stepId}~${index}`,
+              kind: "action",
+              actionDefinitionId: stepDefinition.actionDefinitionId,
+              /**
+               * There is some code duplication here with the existing `initializeActionStep`
+               * method.
+               *
+               * @todo: consider making the `initializeActionStep` method re-usable here
+               */
+              inputs: [
+                ...stepDefinition.inputSources.flatMap((inputSource) => {
+                  if (inputSource.kind === "parallel-group-input") {
+                    const payload: Payload = {
+                      kind: inputToParallelizeOn.payload.kind,
+                      value: parallelizedValue,
+                      /** @todo: figure out why this isn't assignable */
+                    } as Payload;
 
-                  if (matchingTriggerOutput) {
                     return {
                       inputName: inputSource.inputName,
-                      payload: matchingTriggerOutput.payload,
+                      payload,
                     };
-                  }
-                } else {
-                  /**
-                   * If the input source refers to a step output, pass
-                   * the referred to output from the step as an input to
-                   * the new step.
-                   */
-                  const sourceStep = getAllStepsInFlow(flow).find(
-                    (step) => step.stepId === inputSource.sourceStepId,
-                  );
+                  } else if (inputSource.kind === "step-output") {
+                    if (inputSource.sourceStepId === "trigger") {
+                      /**
+                       * If the input source refers to the trigger, pass
+                       * any referred to outputs from the trigger as inputs
+                       * to the new step.
+                       */
+                      const matchingTriggerOutput = trigger.outputs?.find(
+                        ({ outputName }) =>
+                          outputName === inputSource.sourceStepOutputName,
+                      );
 
-                  const sourceStepOutputs =
-                    sourceStep?.kind === "action"
-                      ? sourceStep.outputs ?? []
-                      : sourceStep?.aggregateOutput
-                        ? [sourceStep.aggregateOutput]
-                        : [];
+                      if (matchingTriggerOutput) {
+                        return {
+                          inputName: inputSource.inputName,
+                          payload: matchingTriggerOutput.payload,
+                        };
+                      }
+                    } else {
+                      /**
+                       * If the input source refers to a step output, pass
+                       * the referred to output from the step as an input to
+                       * the new step.
+                       */
+                      const sourceStep = getAllStepsInFlow(flow).find(
+                        (step) => step.stepId === inputSource.sourceStepId,
+                      );
 
-                  const matchingSourceStepOutput = sourceStepOutputs.find(
-                    ({ outputName }) =>
-                      outputName === inputSource.sourceStepOutputName,
-                  );
+                      const sourceStepOutputs =
+                        sourceStep?.kind === "action"
+                          ? sourceStep.outputs ?? []
+                          : sourceStep?.aggregateOutput
+                            ? [sourceStep.aggregateOutput]
+                            : [];
 
-                  if (matchingSourceStepOutput) {
+                      const matchingSourceStepOutput = sourceStepOutputs.find(
+                        ({ outputName }) =>
+                          outputName === inputSource.sourceStepOutputName,
+                      );
+
+                      if (matchingSourceStepOutput) {
+                        return {
+                          inputName: inputSource.inputName,
+                          payload: matchingSourceStepOutput.payload,
+                        };
+                      }
+                    }
+                  } else {
                     return {
                       inputName: inputSource.inputName,
-                      payload: matchingSourceStepOutput.payload,
+                      payload: inputSource.value,
                     };
                   }
-                }
-              } else {
-                return {
-                  inputName: inputSource.inputName,
-                  payload: inputSource.value,
-                };
-              }
 
-              return [];
-            }),
-          })),
+                  return [];
+                }),
+                /**
+                 * For inputs without input sources, use the default value specified
+                 * in the action definition if it exists.
+                 */
+                ...actionDefinition.inputs
+                  .filter(
+                    ({ name }) =>
+                      !stepDefinition.inputSources.some(
+                        ({ inputName }) => inputName === name,
+                      ),
+                  )
+                  .flatMap((inputWithoutInputSource) =>
+                    inputWithoutInputSource.default
+                      ? {
+                          inputName: inputWithoutInputSource.name,
+                          payload: inputWithoutInputSource.default,
+                        }
+                      : [],
+                  ),
+              ],
+            };
+          }),
       );
 
       /**

@@ -164,7 +164,7 @@ export const validateFlowDefinition = (flow: FlowDefinition) => {
           (inputSource) => inputSource.inputName === requiredInput.name,
         );
 
-        if (!matchingInputSource) {
+        if (!matchingInputSource && !requiredInput.default) {
           throw new Error(
             `Action step "${step.stepId}" is missing required input "${requiredInput.name}"`,
           );

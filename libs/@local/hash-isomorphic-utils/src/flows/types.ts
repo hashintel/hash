@@ -65,6 +65,7 @@ export type InputDefinition = {
   oneOfPayloadKinds: PayloadKind[];
   array: boolean;
   required: boolean;
+  default?: Payload;
 };
 
 export type OutputDefinition<A extends boolean = boolean> = {
