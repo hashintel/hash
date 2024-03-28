@@ -62,22 +62,36 @@ export const researchTaskFlowDefinition: FlowDefinition = {
       stepId: "2",
       kind: "parallel-group",
       inputSourceToParallelizeOn: {
-        inputName: "webSearchResults",
+        inputName: "webPageUrls",
         kind: "step-output",
         sourceStepId: "1",
         sourceStepOutputName:
-          "webPage" satisfies OutputNameForAction<"webSearch">,
+          "webPageUrls" satisfies OutputNameForAction<"webSearch">,
       },
       steps: [
         {
           stepId: "2.1",
+          kind: "action",
+          actionDefinitionId: "getWebPageByUrl",
+          inputSources: [
+            {
+              inputName: "url" satisfies InputNameForAction<"getWebPageByUrl">,
+              kind: "parallel-group-input",
+            },
+          ],
+        },
+        {
+          stepId: "2.2",
           kind: "action",
           actionDefinitionId: "inferEntitiesFromContent",
           inputSources: [
             {
               inputName:
                 "content" satisfies InputNameForAction<"inferEntitiesFromContent">,
-              kind: "parallel-group-input",
+              kind: "step-output",
+              sourceStepId: "2.1",
+              sourceStepOutputName:
+                "webPage" satisfies OutputNameForAction<"getWebPageByUrl">,
             },
             {
               inputName:
@@ -95,7 +109,7 @@ export const researchTaskFlowDefinition: FlowDefinition = {
           ],
         },
         {
-          stepId: "2.2",
+          stepId: "2.3",
           actionDefinitionId: "persistEntity",
           kind: "action",
           inputSources: [
@@ -103,7 +117,7 @@ export const researchTaskFlowDefinition: FlowDefinition = {
               inputName:
                 "proposedEntity" satisfies InputNameForAction<"persistEntity">,
               kind: "step-output",
-              sourceStepId: "2.1",
+              sourceStepId: "2.2",
               sourceStepOutputName:
                 "proposedEntities" satisfies OutputNameForAction<"inferEntitiesFromContent">,
             },
@@ -111,7 +125,7 @@ export const researchTaskFlowDefinition: FlowDefinition = {
         },
       ],
       aggregateOutput: {
-        stepId: "2.2",
+        stepId: "2.3",
         stepOutputName:
           "persistedEntity" satisfies OutputNameForAction<"persistEntity">,
         name: "persistedEntities" as const,
