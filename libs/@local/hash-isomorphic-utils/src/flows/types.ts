@@ -5,7 +5,10 @@ import type {
   EntityTypeWithMetadata,
 } from "@local/hash-subgraph";
 
-import type { ActionDefinitionId } from "./step-definitions";
+import type {
+  ActionDefinitionId,
+  TriggerDefinitionId,
+} from "./step-definitions";
 
 export type DeepReadOnly<T> = {
   readonly [key in keyof T]: DeepReadOnly<T[key]>;
@@ -77,6 +80,7 @@ export type OutputDefinition<A extends boolean = boolean> = {
 
 export type TriggerDefinition = {
   kind: "trigger";
+  triggerDefinitionId: TriggerDefinitionId;
   name: string;
   outputs?: OutputDefinition[];
 };
@@ -173,7 +177,7 @@ export type FlowDefinition = {
   name: string;
   trigger: {
     kind: "trigger";
-    definition: TriggerDefinition;
+    triggerDefinitionId: TriggerDefinitionId;
     outputs?: OutputDefinition[];
   };
   steps: StepDefinition[];
@@ -228,7 +232,7 @@ export type FlowStep = ActionStep | ParallelGroupStep;
  */
 
 export type FlowTrigger = {
-  definition: DeepReadOnly<TriggerDefinition>;
+  triggerDefinitionId: TriggerDefinitionId;
   outputs?: StepOutput[];
 };
 

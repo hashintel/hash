@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
-import { actionDefinitions } from "./step-definitions";
+import { actionDefinitions, triggerDefinitions } from "./step-definitions";
 import type { FlowDefinition } from "./types";
 
 /**
@@ -54,7 +54,8 @@ export const validateFlowDefinition = (flow: FlowDefinition) => {
             : []),
           ...(sourceStep.kind === "trigger"
             ? [
-                ...(sourceStep.definition.outputs ?? []),
+                ...(triggerDefinitions[sourceStep.triggerDefinitionId]
+                  .outputs ?? []),
                 ...(sourceStep.outputs ?? []),
               ]
             : []),
@@ -206,7 +207,8 @@ export const validateFlowDefinition = (flow: FlowDefinition) => {
               : []),
             ...(sourceStep.kind === "trigger"
               ? [
-                  ...(sourceStep.definition.outputs ?? []),
+                  ...(triggerDefinitions[sourceStep.triggerDefinitionId]
+                    .outputs ?? []),
                   ...(sourceStep.outputs ?? []),
                 ]
               : []),

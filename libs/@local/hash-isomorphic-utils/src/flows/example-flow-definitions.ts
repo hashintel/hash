@@ -2,13 +2,12 @@ import type {
   InputNameForAction,
   OutputNameForAction,
 } from "./step-definitions";
-import { triggerDefinitions } from "./step-definitions";
 import type { FlowDefinition } from "./types";
 
 export const researchTaskFlowDefinition: FlowDefinition = {
   name: "Research Task",
   trigger: {
-    definition: triggerDefinitions.userTrigger,
+    triggerDefinitionId: "userTrigger",
     kind: "trigger",
     outputs: [
       {
@@ -148,7 +147,7 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
   name: "Infer User Entities from Web Page Flow",
   trigger: {
     kind: "trigger",
-    definition: triggerDefinitions.userTrigger,
+    triggerDefinitionId: "userTrigger",
     outputs: [
       {
         payloadKind: "Text",

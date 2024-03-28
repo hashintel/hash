@@ -6,13 +6,19 @@ import type {
   TriggerDefinition,
 } from "./types";
 
-export const triggerDefinitions = {
+const triggerIds = ["userTrigger", "userVisitedWebPageTrigger"] as const;
+
+export type TriggerDefinitionId = (typeof triggerIds)[number];
+
+const triggerDefinitionsAsConst = {
   userTrigger: {
     kind: "trigger",
+    triggerDefinitionId: "userTrigger",
     name: "User Trigger",
   },
   userVisitedWebPageTrigger: {
     kind: "trigger",
+    triggerDefinitionId: "userVisitedWebPageTrigger",
     name: "User Visited Web Page Trigger",
     outputs: [
       {
@@ -22,12 +28,24 @@ export const triggerDefinitions = {
       },
     ],
   },
-} satisfies Record<string, TriggerDefinition>;
+} as const satisfies Record<
+  TriggerDefinitionId,
+  DeepReadOnly<TriggerDefinition>
+>;
 
-export type OutputNameForTrigger<T extends keyof typeof triggerDefinitions> =
-  (typeof triggerDefinitions)[T] extends { outputs: { name: string }[] }
-    ? (typeof triggerDefinitions)[T]["outputs"][number]["name"]
-    : never;
+export type OutputNameForTrigger<
+  T extends keyof typeof triggerDefinitionsAsConst,
+> = (typeof triggerDefinitionsAsConst)[T] extends {
+  outputs: { name: string }[];
+}
+  ? (typeof triggerDefinitionsAsConst)[T]["outputs"][number]["name"]
+  : never;
+
+export const triggerDefinitions =
+  triggerDefinitionsAsConst as unknown as Record<
+    TriggerDefinitionId,
+    TriggerDefinition
+  >;
 
 const actionDefinitionIds = [
   "generateWebQuery",

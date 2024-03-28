@@ -86,7 +86,7 @@ export const initializeFlow = (params: {
   return {
     flowId,
     trigger: {
-      definition: flowTrigger.definition,
+      triggerDefinitionId: flowTrigger.triggerDefinitionId,
       outputs: flowTrigger.outputs,
     },
     definition: flowDefinition,
