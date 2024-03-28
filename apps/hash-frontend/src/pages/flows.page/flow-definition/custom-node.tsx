@@ -1,21 +1,26 @@
 import { Typography } from "@mui/material";
 import type { NodeProps } from "reactflow";
 
+import { Handles } from "./shared/handles";
 import { NodeContainer } from "./shared/node-container";
 import type { NodeData } from "./shared/types";
-import { Handles } from "./shared/handles";
 
 export const CustomNode = ({
   data,
   selected,
   ...rest
 }: NodeProps<NodeData>) => {
-  console.log(data.label, { data, rest });
+  const isParallel = data.inputSources.find(
+    (input) => input.kind === "parallel-group-input",
+  );
 
   return (
     <NodeContainer selected={selected}>
-      <Typography sx={{ mx: 4, textAlign: "center", fontSize: 14 }}>
+      <Typography
+        sx={{ mx: 3, textAlign: "center", fontSize: 12, fontWeight: 600 }}
+      >
         {data.label}
+        {isParallel ? "[]" : ""}
       </Typography>
       <Handles
         inputSources={data.inputSources}

@@ -12,6 +12,8 @@ export type FlowDefinitionsContextType = {
   setFlowDefinitions: (flowDefinitions: FlowDefinition[]) => void;
   selectedFlow: FlowDefinition;
   setSelectedFlow: (flow: FlowDefinition) => void;
+  direction: "DOWN" | "RIGHT";
+  setDirection: (direction: "DOWN" | "RIGHT") => void;
 };
 
 export const FlowDefinitionsContext =
@@ -19,8 +21,8 @@ export const FlowDefinitionsContext =
 
 const exampleFlows: FlowDefinition[] = [
   ...dummyFlows,
-  researchTaskFlowDefinition,
   inferUserEntitiesFromWebPageFlowDefinition,
+  researchTaskFlowDefinition,
 ];
 
 export const FlowDefinitionsContextProvider = ({
@@ -30,14 +32,18 @@ export const FlowDefinitionsContextProvider = ({
     useState<FlowDefinition[]>(exampleFlows);
   const [selectedFlow, setSelectedFlow] = useState(exampleFlows[0]!);
 
+  const [direction, setDirection] = useState<"DOWN" | "RIGHT">("RIGHT");
+
   const context = useMemo<FlowDefinitionsContextType>(
     () => ({
       flowDefinitions,
       setFlowDefinitions,
       selectedFlow,
       setSelectedFlow,
+      direction,
+      setDirection,
     }),
-    [flowDefinitions, selectedFlow],
+    [flowDefinitions, selectedFlow, direction],
   );
 
   return (
