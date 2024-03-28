@@ -67,7 +67,7 @@ impl From<EntityTypeWithMetadata> for OntologyVertex {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, PartialEq, Serialize, ToSchema)]
 #[serde(tag = "kind", content = "inner")]
 #[serde(rename_all = "camelCase")]
 pub(crate) enum KnowledgeGraphVertex {
@@ -75,7 +75,7 @@ pub(crate) enum KnowledgeGraphVertex {
     Entity(Entity),
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, PartialEq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 #[serde(untagged)]
 #[expect(dead_code, reason = "This is used in the generated OpenAPI spec")]

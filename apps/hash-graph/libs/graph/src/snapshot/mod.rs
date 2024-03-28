@@ -97,6 +97,7 @@ pub enum AuthorizationRelation {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", deny_unknown_fields)]
+#[expect(clippy::large_enum_variant)]
 pub enum SnapshotEntry {
     Snapshot(SnapshotMetadata),
     Account(Account),

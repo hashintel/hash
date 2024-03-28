@@ -4,9 +4,10 @@ use graph_types::{
     knowledge::{
         entity::{
             Entity, EntityEditionProvenanceMetadata, EntityId, EntityMetadata,
-            EntityProvenanceMetadata, EntityRecordId, EntityUuid,
+            EntityProvenanceMetadata, EntityRecordId, EntityUuid, PropertyPath,
         },
         link::LinkData,
+        Confidence,
     },
     owned_by_id::OwnedById,
 };
@@ -192,6 +193,12 @@ pub struct EntityRecordRowIndices {
     pub first_non_draft_created_at_decision_time: usize,
     pub edition_created_by_id: usize,
 
+    pub entity_confidence: usize,
+    pub left_entity_confidence: usize,
+    pub right_entity_confidence: usize,
+    pub property_paths: usize,
+    pub property_confidences: usize,
+
     pub archived: usize,
 }
 
@@ -261,6 +268,8 @@ impl QueryRecordDecode for Entity {
                         entity_uuid: EntityUuid::new(right_entity_uuid),
                         draft_id: None,
                     },
+                    left_entity_confidence: row.get(indices.left_entity_confidence),
+                    right_entity_confidence: row.get(indices.right_entity_confidence),
                 }),
                 (None, None, None, None) => None,
                 _ => unreachable!(
@@ -310,6 +319,19 @@ impl QueryRecordDecode for Entity {
                         created_by_id: row.get(indices.edition_created_by_id),
                     },
                 },
+                confidence: row.get(indices.entity_confidence),
+                property_confidence: row
+                    .get::<_, Option<Vec<PropertyPath<'_>>>>(indices.property_paths)
+                    .unwrap_or_default()
+                    .into_iter()
+                    .zip(
+                        row.get::<_, Option<Vec<Option<Confidence>>>>(indices.property_confidences)
+                            .unwrap_or_default(),
+                    )
+                    .filter_map(|(path, confidence)| {
+                        confidence.map(|confidence| (path.into_owned(), confidence))
+                    })
+                    .collect(),
                 archived: row.get(indices.archived),
             },
         }
@@ -380,6 +402,15 @@ impl PostgresRecord for Entity {
                 .add_selection_path(&EntityQueryPath::FirstNonDraftCreatedAtDecisionTime),
             edition_created_by_id: compiler
                 .add_selection_path(&EntityQueryPath::EditionCreatedById),
+
+            entity_confidence: compiler.add_selection_path(&EntityQueryPath::EntityConfidence),
+            left_entity_confidence: compiler
+                .add_selection_path(&EntityQueryPath::LeftEntityConfidence),
+            right_entity_confidence: compiler
+                .add_selection_path(&EntityQueryPath::RightEntityConfidence),
+            property_paths: compiler.add_selection_path(&EntityQueryPath::PropertyPaths),
+            property_confidences: compiler
+                .add_selection_path(&EntityQueryPath::PropertyConfidences),
 
             archived: compiler.add_selection_path(&EntityQueryPath::Archived),
         }

@@ -116,6 +116,28 @@ pub enum EntityQueryPath<'p> {
     /// [`EntityType`]: type_system::EntityType
     /// [`EntityTypeEdge`]: Self::EntityTypeEdge
     TypeVersions,
+    /// The confidence value for the [`Entity`].
+    ///
+    /// It's currently not possible to query for the entity confidence value directly.
+    EntityConfidence,
+    /// The confidence value for the [`Entity`]'s left entity link.
+    ///
+    /// It's currently not possible to query for the entity confidence value directly.
+    LeftEntityConfidence,
+    /// The confidence value for the [`Entity`]'s right entity link.
+    ///
+    /// It's currently not possible to query for the entity confidence value directly.
+    RightEntityConfidence,
+    /// The list of all property pointers of an [`Entity`].
+    ///
+    /// It's currently not possible to query for the list of property pointers directly.
+    PropertyPaths,
+    /// The list of all confidence values belonging to [`PropertyPaths`]' properties.
+    ///
+    /// It's currently not possible to query for the list of confidence values directly.
+    ///
+    /// [`PropertyPaths`]: Self::PropertyPaths
+    PropertyConfidences,
     /// The timestamp of the transaction time when the [`Entity`] was _first inserted_ into the
     /// database.
     ///
@@ -477,6 +499,11 @@ impl fmt::Display for EntityQueryPath<'_> {
                 path,
                 direction: EdgeDirection::Incoming,
             } => write!(fmt, "incomingLinks.{path}"),
+            Self::EntityConfidence => fmt.write_str("entityConfidence"),
+            Self::LeftEntityConfidence => fmt.write_str("leftEntityConfidence"),
+            Self::RightEntityConfidence => fmt.write_str("rightEntityConfidence"),
+            Self::PropertyPaths => fmt.write_str("propertyPaths"),
+            Self::PropertyConfidences => fmt.write_str("propertyConfidences"),
         }
     }
 }
@@ -500,7 +527,13 @@ impl QueryPath for EntityQueryPath<'_> {
             | Self::FirstNonDraftCreatedAtDecisionTime
             | Self::FirstNonDraftCreatedAtTransactionTime => ParameterType::Timestamp,
             Self::Properties(_) => ParameterType::Any,
-            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
+            Self::EntityConfidence | Self::LeftEntityConfidence | Self::RightEntityConfidence => {
+                ParameterType::F64
+            }
+            Self::PropertyPaths => ParameterType::Vector(Box::new(ParameterType::Text)),
+            Self::PropertyConfidences | Self::Embedding => {
+                ParameterType::Vector(Box::new(ParameterType::F64))
+            }
             Self::Archived => ParameterType::Boolean,
             Self::EntityTypeEdge { path, .. } => path.expected_type(),
             Self::EntityEdge { path, .. } => path.expected_type(),
@@ -741,26 +774,26 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
     #[must_use]
     pub fn into_owned(self) -> EntityQueryPath<'static> {
         match self {
-            EntityQueryPath::Uuid => EntityQueryPath::Uuid,
-            EntityQueryPath::OwnedById => EntityQueryPath::OwnedById,
-            EntityQueryPath::DraftId => EntityQueryPath::DraftId,
-            EntityQueryPath::EditionId => EntityQueryPath::EditionId,
-            EntityQueryPath::DecisionTime => EntityQueryPath::DecisionTime,
-            EntityQueryPath::TransactionTime => EntityQueryPath::TransactionTime,
-            EntityQueryPath::TypeBaseUrls => EntityQueryPath::TypeBaseUrls,
-            EntityQueryPath::TypeVersions => EntityQueryPath::TypeVersions,
-            EntityQueryPath::CreatedAtTransactionTime => EntityQueryPath::CreatedAtTransactionTime,
-            EntityQueryPath::CreatedAtDecisionTime => EntityQueryPath::CreatedAtDecisionTime,
-            EntityQueryPath::FirstNonDraftCreatedAtTransactionTime => {
+            Self::Uuid => EntityQueryPath::Uuid,
+            Self::OwnedById => EntityQueryPath::OwnedById,
+            Self::DraftId => EntityQueryPath::DraftId,
+            Self::EditionId => EntityQueryPath::EditionId,
+            Self::DecisionTime => EntityQueryPath::DecisionTime,
+            Self::TransactionTime => EntityQueryPath::TransactionTime,
+            Self::TypeBaseUrls => EntityQueryPath::TypeBaseUrls,
+            Self::TypeVersions => EntityQueryPath::TypeVersions,
+            Self::CreatedAtTransactionTime => EntityQueryPath::CreatedAtTransactionTime,
+            Self::CreatedAtDecisionTime => EntityQueryPath::CreatedAtDecisionTime,
+            Self::FirstNonDraftCreatedAtTransactionTime => {
                 EntityQueryPath::FirstNonDraftCreatedAtTransactionTime
             }
-            EntityQueryPath::FirstNonDraftCreatedAtDecisionTime => {
+            Self::FirstNonDraftCreatedAtDecisionTime => {
                 EntityQueryPath::FirstNonDraftCreatedAtDecisionTime
             }
-            EntityQueryPath::Archived => EntityQueryPath::Archived,
-            EntityQueryPath::EditionCreatedById => EntityQueryPath::EditionCreatedById,
-            EntityQueryPath::CreatedById => EntityQueryPath::CreatedById,
-            EntityQueryPath::EntityTypeEdge {
+            Self::Archived => EntityQueryPath::Archived,
+            Self::EditionCreatedById => EntityQueryPath::EditionCreatedById,
+            Self::CreatedById => EntityQueryPath::CreatedById,
+            Self::EntityTypeEdge {
                 path,
                 edge_kind,
                 inheritance_depth,
@@ -769,7 +802,7 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
                 edge_kind,
                 inheritance_depth,
             },
-            EntityQueryPath::EntityEdge {
+            Self::EntityEdge {
                 path,
                 edge_kind,
                 direction,
@@ -778,10 +811,13 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
                 edge_kind,
                 direction,
             },
-            EntityQueryPath::Properties(path) => {
-                EntityQueryPath::Properties(path.map(JsonPath::into_owned))
-            }
-            EntityQueryPath::Embedding => EntityQueryPath::Embedding,
+            Self::Properties(path) => EntityQueryPath::Properties(path.map(JsonPath::into_owned)),
+            Self::Embedding => EntityQueryPath::Embedding,
+            Self::EntityConfidence => EntityQueryPath::EntityConfidence,
+            Self::LeftEntityConfidence => EntityQueryPath::LeftEntityConfidence,
+            Self::RightEntityConfidence => EntityQueryPath::RightEntityConfidence,
+            Self::PropertyPaths => EntityQueryPath::PropertyPaths,
+            Self::PropertyConfidences => EntityQueryPath::PropertyConfidences,
         }
     }
 }

@@ -16,7 +16,7 @@ use validation::{Validate, ValidationProfile};
 use crate::{
     snapshot::{
         entity::{
-            table::{EntityDraftRow, EntityEmbeddingRow, EntityIsOfTypeRow},
+            table::{EntityDraftRow, EntityEmbeddingRow, EntityIsOfTypeRow, EntityPropertyRow},
             EntityEditionRow, EntityIdRow, EntityLinkEdgeRow, EntityTemporalMetadataRow,
         },
         WriteBatch,
@@ -34,6 +34,7 @@ pub enum EntityRowBatch {
     Type(Vec<EntityIsOfTypeRow>),
     TemporalMetadata(Vec<EntityTemporalMetadataRow>),
     Links(Vec<EntityLinkEdgeRow>),
+    Property(Vec<EntityPropertyRow>),
     Relations(Vec<(EntityUuid, EntityRelationAndSubject)>),
     Embeddings(Vec<EntityEmbeddingRow>),
 }
@@ -62,6 +63,10 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                         (LIKE entity_is_of_type INCLUDING ALL)
                         ON COMMIT DROP;
 
+                    CREATE TEMPORARY TABLE entity_property_tmp
+                        (LIKE entity_property INCLUDING ALL)
+                        ON COMMIT DROP;
+
                     CREATE TEMPORARY TABLE entity_temporal_metadata_tmp
                         (LIKE entity_temporal_metadata INCLUDING ALL)
                         ON COMMIT DROP;
@@ -73,8 +78,10 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                         entity_uuid UUID NOT NULL,
                         left_web_id UUID NOT NULL,
                         left_entity_uuid UUID NOT NULL,
+                        left_entity_confidence DOUBLE PRECISION,
                         right_web_id UUID NOT NULL,
-                        right_entity_uuid UUID NOT NULL
+                        right_entity_uuid UUID NOT NULL,
+                        right_entity_confidence DOUBLE PRECISION
                     ) ON COMMIT DROP;
 
                     CREATE TEMPORARY TABLE entity_embeddings_tmp
@@ -196,6 +203,23 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                     tracing::info!("Read {} entity links", rows.len());
                 }
             }
+            Self::Property(proeperties) => {
+                let rows = client
+                    .query(
+                        "
+                            INSERT INTO entity_property_tmp
+                            SELECT DISTINCT * FROM UNNEST($1::entity_property[])
+                            ON CONFLICT DO NOTHING
+                            RETURNING 1;
+                        ",
+                        &[&proeperties],
+                    )
+                    .await
+                    .change_context(InsertionError)?;
+                if !rows.is_empty() {
+                    tracing::info!("Read {} entity properties", rows.len());
+                }
+            }
             Self::Relations(relations) => {
                 authorization_api
                     .touch_relationships(relations)
@@ -264,6 +288,9 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                             right_web_id UUID,
                             right_entity_uuid UUID
                         FROM entity_link_edges_tmp;
+
+                    INSERT INTO entity_property
+                        SELECT * FROM entity_property_tmp;
 
                     INSERT INTO entity_embeddings
                         SELECT * FROM entity_embeddings_tmp;

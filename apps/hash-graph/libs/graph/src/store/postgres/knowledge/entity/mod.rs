@@ -286,6 +286,7 @@ impl<C: AsClient> PostgresStore<C> {
                 "
                     DELETE FROM entity_has_left_entity;
                     DELETE FROM entity_has_right_entity;
+                    DELETE FROM entity_property;
                     DELETE FROM entity_is_of_type;
                     DELETE FROM entity_temporal_metadata;
                     DELETE FROM entity_editions;
@@ -615,6 +616,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 },
                 temporal_versioning,
                 archived: false,
+                confidence: None,
+                property_confidence: HashMap::new(),
             };
             if let Some(temporal_client) = temporal_client {
                 temporal_client
@@ -901,6 +904,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     },
                     temporal_versioning,
                     archived: false,
+                    confidence: None,
+                    property_confidence: HashMap::new(),
                 },
             )
             .collect())
@@ -1203,6 +1208,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_type_ids,
                 provenance: previous_entity.metadata.provenance,
                 archived,
+                confidence: previous_entity.metadata.confidence,
+                property_confidence: previous_entity.metadata.property_confidence,
             });
         }
 
@@ -1339,6 +1346,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     created_by_id: EditionCreatedById::new(actor_id),
                 },
             },
+            confidence: None,
+            property_confidence: HashMap::new(),
             archived,
         };
         if let Some(temporal_client) = temporal_client {

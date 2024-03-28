@@ -211,6 +211,8 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
                             Some(LinkData {
                                 left_entity_id: left_entity_metadata.record_id.entity_id,
                                 right_entity_id: right_entity_metadata.record_id.entity_id,
+                                left_entity_confidence: None,
+                                right_entity_confidence: None,
                             }),
                             None,
                         )
