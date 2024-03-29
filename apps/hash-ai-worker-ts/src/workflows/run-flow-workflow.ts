@@ -20,7 +20,7 @@ import {
   workflowInfo,
 } from "@temporalio/workflow";
 
-import type { createFlowActionActivities } from "../activities/flow-action-activites";
+import type { createFlowActionActivities } from "../activities/flow-action-activities";
 import { getAllStepsInFlow } from "./run-flow-workflow/get-all-steps-in-flow";
 import { getStepDefinitionFromFlow } from "./run-flow-workflow/get-step-definition-from-flow";
 import { initializeFlow } from "./run-flow-workflow/initialize-flow";
