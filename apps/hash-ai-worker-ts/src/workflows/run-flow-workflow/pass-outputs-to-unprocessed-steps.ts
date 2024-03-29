@@ -131,9 +131,11 @@ export const passOutputsToUnprocessedSteps = (params: {
       const { inputSourceToParallelizeOn } =
         unprocessedParallelGroupStepDefinition;
 
+      const [currentStepIdWithoutIndex] = stepId.split("~");
+
       if (
         inputSourceToParallelizeOn.kind === "step-output" &&
-        stepId === inputSourceToParallelizeOn.sourceStepId
+        currentStepIdWithoutIndex === inputSourceToParallelizeOn.sourceStepId
       ) {
         /**
          * If the unprocessed parallel group step depends on the output of
@@ -195,11 +197,8 @@ export const passOutputsToUnprocessedSteps = (params: {
           ].flat(),
         } as ArrayPayload;
 
-        const { inputSourceToParallelizeOn } =
-          unprocessedParallelGroupStepDefinition;
-
         processedStep.aggregateOutput = {
-          outputName: inputSourceToParallelizeOn.inputName,
+          outputName: aggregateOutput.name,
           payload: aggregateOutputPayload,
         };
 

@@ -5,6 +5,7 @@ import type {
   FlowStep,
   ParallelGroupStepDefinition,
 } from "@local/hash-isomorphic-utils/flows/types";
+import { getAllStepDefinitionsInFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
 
 /**
  * @todo: consider a more ergonomic way from mapping a step to its
@@ -21,15 +22,14 @@ export const getStepDefinitionFromFlow = <T extends FlowStep>(params: {
   : ParallelGroupStepDefinition => {
   const { step, flow } = params;
 
-  const allStepDefinitions = [
-    ...flow.definition.steps,
-    ...flow.definition.steps.flatMap((stepDefinition) =>
-      stepDefinition.kind === "parallel-group" ? stepDefinition.steps : [],
-    ),
-  ];
+  const allStepDefinitions = getAllStepDefinitionsInFlowDefinition(
+    flow.definition,
+  );
+
+  const [stepIdWithoutIndex] = step.stepId.split("~");
 
   const flowDefinitionNode = allStepDefinitions.find(
-    ({ stepId }) => stepId === step.stepId.split("~")[0],
+    ({ stepId }) => stepId === stepIdWithoutIndex,
   );
 
   if (!flowDefinitionNode) {

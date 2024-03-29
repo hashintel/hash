@@ -290,7 +290,7 @@ const getAllStepDefinitionsInParallelGroupDefinition = (
   ),
 ];
 
-const getAllStepDefinitionsInFlowDefinition = (flow: FlowDefinition) => [
+export const getAllStepDefinitionsInFlowDefinition = (flow: FlowDefinition) => [
   ...flow.steps,
   ...flow.steps.flatMap((step) =>
     step.kind === "parallel-group"

@@ -8,19 +8,37 @@ import type {
   FlowStep,
   FlowTrigger,
   ParallelGroupStep,
+  ParallelGroupStepDefinition,
+  Payload,
   StepInput,
 } from "@local/hash-isomorphic-utils/flows/types";
 
-const initializeActionStep = (params: {
+import { getAllStepsInFlow } from "./get-all-steps-in-flow";
+
+export const initializeActionStep = (params: {
   flowTrigger: FlowTrigger;
-  stepDefinition: ActionStepDefinition;
+  stepDefinition:
+    | ActionStepDefinition
+    | ActionStepDefinition<{
+        inputName: string;
+        kind: "parallel-group-input";
+      }>;
+  overrideStepId?: string;
+  existingFlow?: Flow;
+  parallelGroupInputPayload?: Payload;
 }): ActionStep => {
-  const { stepDefinition, flowTrigger } = params;
+  const {
+    overrideStepId,
+    stepDefinition,
+    flowTrigger,
+    existingFlow,
+    parallelGroupInputPayload,
+  } = params;
 
   const actionDefinition = actionDefinitions[stepDefinition.actionDefinitionId];
 
   return {
-    stepId: stepDefinition.stepId,
+    stepId: overrideStepId ?? stepDefinition.stepId,
     kind: "action",
     actionDefinitionId: stepDefinition.actionDefinitionId,
     inputs: [
@@ -38,11 +56,46 @@ const initializeActionStep = (params: {
                 payload: matchingTriggerOutput.payload,
               };
             }
+          } else if (existingFlow) {
+            /**
+             * If the input source refers to a step output, pass
+             * the referred to output from the step as an input to
+             * the new step.
+             */
+            const sourceStep = getAllStepsInFlow(existingFlow).find(
+              (step) => step.stepId === inputSource.sourceStepId,
+            );
+
+            const sourceStepOutputs =
+              sourceStep?.kind === "action"
+                ? sourceStep.outputs ?? []
+                : sourceStep?.aggregateOutput
+                  ? [sourceStep.aggregateOutput]
+                  : [];
+
+            const matchingSourceStepOutput = sourceStepOutputs.find(
+              ({ outputName }) =>
+                outputName === inputSource.sourceStepOutputName,
+            );
+
+            if (matchingSourceStepOutput) {
+              return {
+                inputName: inputSource.inputName,
+                payload: matchingSourceStepOutput.payload,
+              };
+            }
           }
-          /**
-           * @todo: consider whether some nodes may have outputs before
-           * nodes have been processed
-           */
+        } else if (inputSource.kind === "parallel-group-input") {
+          if (!parallelGroupInputPayload) {
+            throw new Error(
+              `Expected a parallel group input payload when initializing step with step definition id ${stepDefinition.stepId}`,
+            );
+          }
+
+          return {
+            inputName: inputSource.inputName,
+            payload: parallelGroupInputPayload,
+          };
         } else {
           return {
             inputName: inputSource.inputName,
@@ -76,6 +129,47 @@ const initializeActionStep = (params: {
   };
 };
 
+export const initializeParallelGroup = (params: {
+  flowTrigger: FlowTrigger;
+  stepDefinition: ParallelGroupStepDefinition;
+}): ParallelGroupStep => {
+  const { stepDefinition, flowTrigger } = params;
+
+  let initialInputToParallelizeOn: StepInput<ArrayPayload> | undefined;
+
+  if (
+    stepDefinition.inputSourceToParallelizeOn.kind === "step-output" &&
+    stepDefinition.inputSourceToParallelizeOn.sourceStepId === "trigger"
+  ) {
+    const { sourceStepOutputName } = stepDefinition.inputSourceToParallelizeOn;
+
+    const matchingTriggerOutput = flowTrigger.outputs?.find(
+      ({ outputName }) => outputName === sourceStepOutputName,
+    );
+
+    if (matchingTriggerOutput) {
+      if (Array.isArray(matchingTriggerOutput.payload.value)) {
+        initialInputToParallelizeOn = {
+          inputName: stepDefinition.inputSourceToParallelizeOn.inputName,
+          payload: matchingTriggerOutput.payload as ArrayPayload,
+        };
+      }
+    }
+  } else if (stepDefinition.inputSourceToParallelizeOn.kind === "hardcoded") {
+    initialInputToParallelizeOn = {
+      inputName: stepDefinition.inputSourceToParallelizeOn.inputName,
+      payload: stepDefinition.inputSourceToParallelizeOn.value,
+    };
+  }
+
+  return {
+    stepId: stepDefinition.stepId,
+    kind: "parallel-group",
+    inputToParallelizeOn: initialInputToParallelizeOn,
+    /** @todo: consider initializing the child steps here? */
+  } satisfies ParallelGroupStep;
+};
+
 export const initializeFlow = (params: {
   flowId: string;
   flowDefinition: FlowDefinition;
@@ -94,42 +188,7 @@ export const initializeFlow = (params: {
       if (stepDefinition.kind === "action") {
         return initializeActionStep({ flowTrigger, stepDefinition });
       } else {
-        let initialInputToParallelizeOn: StepInput<ArrayPayload> | undefined;
-
-        if (
-          stepDefinition.inputSourceToParallelizeOn.kind === "step-output" &&
-          stepDefinition.inputSourceToParallelizeOn.sourceStepId === "trigger"
-        ) {
-          const { sourceStepOutputName } =
-            stepDefinition.inputSourceToParallelizeOn;
-
-          const matchingTriggerOutput = flowTrigger.outputs?.find(
-            ({ outputName }) => outputName === sourceStepOutputName,
-          );
-
-          if (matchingTriggerOutput) {
-            if (Array.isArray(matchingTriggerOutput.payload.value)) {
-              initialInputToParallelizeOn = {
-                inputName: stepDefinition.inputSourceToParallelizeOn.inputName,
-                payload: matchingTriggerOutput.payload as ArrayPayload,
-              };
-            }
-          }
-        } else if (
-          stepDefinition.inputSourceToParallelizeOn.kind === "hardcoded"
-        ) {
-          initialInputToParallelizeOn = {
-            inputName: stepDefinition.inputSourceToParallelizeOn.inputName,
-            payload: stepDefinition.inputSourceToParallelizeOn.value,
-          };
-        }
-
-        return {
-          stepId: stepDefinition.stepId,
-          kind: "parallel-group",
-          inputToParallelizeOn: initialInputToParallelizeOn,
-          /** @todo: consider initializing the child steps here? */
-        } satisfies ParallelGroupStep;
+        return initializeParallelGroup({ flowTrigger, stepDefinition });
       }
     }),
   };

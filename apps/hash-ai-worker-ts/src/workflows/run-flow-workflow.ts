@@ -7,7 +7,6 @@ import type {
   RunFlowWorkflowResponse,
 } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type {
-  ActionStep,
   FlowStep,
   Payload,
 } from "@local/hash-isomorphic-utils/flows/types";
@@ -23,7 +22,11 @@ import {
 import type { createFlowActionActivities } from "../activities/flow-action-activities";
 import { getAllStepsInFlow } from "./run-flow-workflow/get-all-steps-in-flow";
 import { getStepDefinitionFromFlow } from "./run-flow-workflow/get-step-definition-from-flow";
-import { initializeFlow } from "./run-flow-workflow/initialize-flow";
+import {
+  initializeActionStep,
+  initializeFlow,
+  initializeParallelGroup,
+} from "./run-flow-workflow/initialize-flow";
 import { passOutputsToUnprocessedSteps } from "./run-flow-workflow/pass-outputs-to-unprocessed-steps";
 
 const log = (message: string) => {
@@ -78,7 +81,7 @@ const proxyActionActivity = (params: {
 export const runFlowWorkflow = async (
   params: RunFlowWorkflowParams,
 ): Promise<RunFlowWorkflowResponse> => {
-  const { flowDefinition, trigger, userAuthentication } = params;
+  const { flowDefinition, flowTrigger, userAuthentication } = params;
 
   try {
     validateFlowDefinition(flowDefinition);
@@ -96,7 +99,7 @@ export const runFlowWorkflow = async (
 
   const flow = initializeFlow({
     flowDefinition,
-    flowTrigger: trigger,
+    flowTrigger,
     flowId: workflowId,
   });
 
@@ -141,6 +144,12 @@ export const runFlowWorkflow = async (
         userAuthentication,
       });
 
+      /**
+       * Consider the step processed, even if the action failed to prevent
+       * an infinite loop of retries.
+       */
+      processedStepIds.push(currentStep.stepId);
+
       if (actionResponse.code !== StatusCode.Ok) {
         log(
           `Step ${currentStepId}: error executing "${currentStep.actionDefinitionId}" action`,
@@ -161,8 +170,6 @@ export const runFlowWorkflow = async (
       );
 
       currentStep.outputs = outputs;
-
-      processedStepIds.push(currentStep.stepId);
 
       const status = passOutputsToUnprocessedSteps({
         flow,
@@ -208,110 +215,23 @@ export const runFlowWorkflow = async (
 
       const newSteps = arrayToParallelizeOn.flatMap(
         (parallelizedValue, index) =>
-          parallelGroupStepDefinitions.map<ActionStep>((stepDefinition) => {
-            const actionDefinition =
-              actionDefinitions[stepDefinition.actionDefinitionId];
+          parallelGroupStepDefinitions.map((stepDefinition) => {
+            if (stepDefinition.kind === "action") {
+              const parallelGroupInputPayload: Payload = {
+                kind: inputToParallelizeOn.payload.kind,
+                value: parallelizedValue,
+                /** @todo: figure out why this isn't assignable */
+              } as Payload;
 
-            return {
-              stepId: `${stepDefinition.stepId}~${index}`,
-              kind: "action",
-              actionDefinitionId: stepDefinition.actionDefinitionId,
-              /**
-               * There is some code duplication here with the existing `initializeActionStep`
-               * method.
-               *
-               * @todo: consider making the `initializeActionStep` method re-usable here
-               */
-              inputs: [
-                ...stepDefinition.inputSources.flatMap((inputSource) => {
-                  if (inputSource.kind === "parallel-group-input") {
-                    const payload: Payload = {
-                      kind: inputToParallelizeOn.payload.kind,
-                      value: parallelizedValue,
-                      /** @todo: figure out why this isn't assignable */
-                    } as Payload;
-
-                    return {
-                      inputName: inputSource.inputName,
-                      payload,
-                    };
-                  } else if (inputSource.kind === "step-output") {
-                    if (inputSource.sourceStepId === "trigger") {
-                      /**
-                       * If the input source refers to the trigger, pass
-                       * any referred to outputs from the trigger as inputs
-                       * to the new step.
-                       */
-                      const matchingTriggerOutput = trigger.outputs?.find(
-                        ({ outputName }) =>
-                          outputName === inputSource.sourceStepOutputName,
-                      );
-
-                      if (matchingTriggerOutput) {
-                        return {
-                          inputName: inputSource.inputName,
-                          payload: matchingTriggerOutput.payload,
-                        };
-                      }
-                    } else {
-                      /**
-                       * If the input source refers to a step output, pass
-                       * the referred to output from the step as an input to
-                       * the new step.
-                       */
-                      const sourceStep = getAllStepsInFlow(flow).find(
-                        (step) => step.stepId === inputSource.sourceStepId,
-                      );
-
-                      const sourceStepOutputs =
-                        sourceStep?.kind === "action"
-                          ? sourceStep.outputs ?? []
-                          : sourceStep?.aggregateOutput
-                            ? [sourceStep.aggregateOutput]
-                            : [];
-
-                      const matchingSourceStepOutput = sourceStepOutputs.find(
-                        ({ outputName }) =>
-                          outputName === inputSource.sourceStepOutputName,
-                      );
-
-                      if (matchingSourceStepOutput) {
-                        return {
-                          inputName: inputSource.inputName,
-                          payload: matchingSourceStepOutput.payload,
-                        };
-                      }
-                    }
-                  } else {
-                    return {
-                      inputName: inputSource.inputName,
-                      payload: inputSource.value,
-                    };
-                  }
-
-                  return [];
-                }),
-                /**
-                 * For inputs without input sources, use the default value specified
-                 * in the action definition if it exists.
-                 */
-                ...actionDefinition.inputs
-                  .filter(
-                    ({ name }) =>
-                      !stepDefinition.inputSources.some(
-                        ({ inputName }) => inputName === name,
-                      ),
-                  )
-                  .flatMap((inputWithoutInputSource) =>
-                    inputWithoutInputSource.default
-                      ? {
-                          inputName: inputWithoutInputSource.name,
-                          payload: inputWithoutInputSource.default,
-                        }
-                      : [],
-                  ),
-              ],
-            };
+              return initializeActionStep({
+                flowTrigger,
+                stepDefinition,
+                overrideStepId: `${stepDefinition.stepId}~${index}`,
+                parallelGroupInputPayload,
+              });
+            } else {
+              return initializeParallelGroup({ flowTrigger, stepDefinition });
+            }
           }),
       );
 
@@ -338,7 +258,7 @@ export const runFlowWorkflow = async (
       code: StatusCode.FailedPrecondition,
       message:
         "No steps have satisfied dependencies when initializing the flow.",
-      contents: [],
+      contents: [{ flow }],
     };
   }
 
@@ -374,6 +294,7 @@ export const runFlowWorkflow = async (
         "One or more errors occurred while processing the steps in the flow.",
       contents: [
         {
+          flow,
           stepErrors: Object.entries(processStepErrors).map(
             ([stepId, status]) => ({ ...status, contents: [{ stepId }] }),
           ),
@@ -386,7 +307,7 @@ export const runFlowWorkflow = async (
     return {
       code: StatusCode.Unknown,
       message: "Not all steps in the flows were processed.",
-      contents: [],
+      contents: [{ flow }],
     };
   }
 
@@ -401,7 +322,7 @@ export const runFlowWorkflow = async (
       return {
         code: StatusCode.NotFound,
         message: `${errorPrefix}no step found with id ${outputDefinition.stepId}`,
-        contents: [],
+        contents: [{ flow }],
       };
     }
 
