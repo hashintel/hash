@@ -1,3 +1,4 @@
+import type { InferenceModelName } from "../ai-inference-types";
 import type {
   ActionDefinition,
   DeepReadOnly,
@@ -48,7 +49,7 @@ export const triggerDefinitions =
   >;
 
 const actionDefinitionIds = [
-  "generateWebQuery",
+  "generateWebQueries",
   "webSearch",
   "getWebPageByUrl",
   "inferEntitiesFromContent",
@@ -57,9 +58,11 @@ const actionDefinitionIds = [
 
 export type ActionDefinitionId = (typeof actionDefinitionIds)[number];
 
+const defaultModel: InferenceModelName = "gpt-4-turbo";
+
 const actionDefinitionsAsConst = {
-  generateWebQuery: {
-    actionDefinitionId: "generateWebQuery",
+  generateWebQueries: {
+    actionDefinitionId: "generateWebQueries",
     name: "Generate Web Query",
     kind: "action",
     inputs: [
@@ -69,12 +72,22 @@ const actionDefinitionsAsConst = {
         required: true,
         array: false,
       },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "model",
+        required: true,
+        array: false,
+        default: {
+          kind: "Text",
+          value: defaultModel,
+        },
+      },
     ],
     outputs: [
       {
         payloadKind: "Text",
-        name: "query",
-        array: false,
+        name: "queries",
+        array: true,
       },
     ],
   },
@@ -151,7 +164,7 @@ const actionDefinitionsAsConst = {
         required: true,
         default: {
           kind: "Text",
-          value: "gpt-4-turbo",
+          value: defaultModel,
         },
         array: false,
       },
