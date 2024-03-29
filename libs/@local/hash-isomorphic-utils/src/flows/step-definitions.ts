@@ -89,6 +89,16 @@ const actionDefinitionsAsConst = {
         required: true,
         array: false,
       },
+      {
+        oneOfPayloadKinds: ["Number"],
+        name: "numberOfSearchResults",
+        required: true,
+        array: false,
+        default: {
+          kind: "Number",
+          value: 3,
+        },
+      },
     ],
     outputs: [
       {

@@ -5,7 +5,7 @@ import { internalApi } from "../shared/internal-api-client";
 import type { FlowActionActivity } from "./types";
 
 export const webSearchAction: FlowActionActivity = async ({ inputs }) => {
-  const { query } = getSimplifiedActionInputs({
+  const { query, numberOfSearchResults } = getSimplifiedActionInputs({
     inputs,
     actionType: "webSearch",
   });
@@ -14,7 +14,9 @@ export const webSearchAction: FlowActionActivity = async ({ inputs }) => {
     data: { webSearchResults },
   } = await internalApi.getWebSearchResults(query);
 
-  const webPagesUrls = webSearchResults.map(({ url }) => url);
+  const webPagesUrls = webSearchResults
+    .map(({ url }) => url)
+    .slice(0, numberOfSearchResults);
 
   return {
     code: StatusCode.Ok,
