@@ -192,7 +192,7 @@ export const passOutputsToUnprocessedSteps = (params: {
           value: [
             ...(processedStep.aggregateOutput?.payload.value ?? []),
             matchingOutput.payload.value,
-          ],
+          ].flat(),
         } as ArrayPayload;
 
         const { inputSourceToParallelizeOn } =

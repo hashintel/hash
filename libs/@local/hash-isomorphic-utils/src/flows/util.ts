@@ -147,12 +147,6 @@ export const validateFlowDefinition = (flow: FlowDefinition) => {
           `${errorPrefix}references an aggregate output source step output "${aggregateOutput.stepOutputName}" that does not exist in its child step`,
         );
       }
-
-      if (childStepOutput.array) {
-        throw new Error(
-          `${errorPrefix}references an aggregate output source step output "${aggregateOutput.stepOutputName}" that is an array`,
-        );
-      }
     } else if (step.kind === "action") {
       const { actionDefinitionId, inputSources } = step;
 
