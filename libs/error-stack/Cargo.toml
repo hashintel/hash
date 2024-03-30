@@ -28,7 +28,7 @@ spin = { version = "0.9", default-features = false, optional = true, features = 
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.115"
 futures = { version = "0.3.30", default-features = false, features = ["executor"] }
-trybuild = "1.0.90"
+trybuild = "1.0.91"
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 insta = { version = "1.38.0", features = ['filters', 'ron'] }
