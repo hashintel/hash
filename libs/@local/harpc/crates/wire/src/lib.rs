@@ -1,6 +1,8 @@
-mod authorization;
-mod request;
-mod version;
+pub mod encode;
+pub mod encoding;
+pub mod protocol;
+pub mod request;
+pub mod version;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
