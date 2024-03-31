@@ -13,7 +13,7 @@ runs:
   steps:
     - uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
       with:
-        node-version: 18 ## aligned with Node version on Vercel
+        node-version: 20 ## aligned with Node version on Vercel
         # cache: yarn ## Currently disabled because of frequent timeouts
 
     - name: Install WASM tools
