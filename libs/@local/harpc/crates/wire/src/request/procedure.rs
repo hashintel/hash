@@ -3,7 +3,7 @@ use std::io;
 use error_stack::{Report, Result};
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 
-use crate::encode::Encode;
+use crate::codec::Encode;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ProcedureId(u16);
@@ -44,5 +44,28 @@ impl Encode for Procedure {
 
     async fn encode(&self, write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
         self.id.encode(write).await
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::ProcedureId;
+    use crate::codec::test::assert_encode;
+
+    #[tokio::test]
+    async fn encode_id() {
+        let id = ProcedureId::new(0x1234);
+
+        // encoding should be BE
+        assert_encode(&id, &[0x12, 0x34]).await;
+    }
+
+    #[tokio::test]
+    async fn encode() {
+        let id = ProcedureId::new(0x1234);
+        let procedure = super::Procedure { id };
+
+        // encoding should be BE
+        assert_encode(&procedure, &[0x12, 0x34]).await;
     }
 }

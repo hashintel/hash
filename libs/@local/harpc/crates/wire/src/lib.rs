@@ -1,5 +1,7 @@
 #![cfg_attr(test, feature(async_fn_track_caller))]
-pub mod encode;
+#![feature(lint_reasons)]
+pub mod codec;
+
 pub mod encoding;
 pub mod protocol;
 pub mod request;

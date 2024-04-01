@@ -3,7 +3,7 @@ cargo-features = ["edition2024"]
 [package]
 name = "harpc-wire"
 version = "0.1.0"
-edition = "2021"
+edition.workspace = true
 
 [dependencies]
 borsh = { version = "1.4.0", features = ["borsh-derive"] }
@@ -13,8 +13,10 @@ error-stack.workspace = true
 futures.workspace = true
 futures-stream = "0.0.0"
 graph-types.workspace = true
+thiserror = "1.0.58"
 tokio = { workspace = true, features = ["io-util"] }
 uuid = { version = "1.8.0", features = ["borsh"] }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt", "macros"] }
+uuid = { version = "1.8.0", features = ["v4"] }

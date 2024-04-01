@@ -4,7 +4,7 @@ use error_stack::Result;
 use graph_types::account::AccountId;
 use tokio::io::AsyncWrite;
 
-use crate::encode::Encode;
+use crate::codec::Encode;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Authorization {

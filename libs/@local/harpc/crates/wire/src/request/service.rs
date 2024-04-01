@@ -3,7 +3,7 @@ use std::io;
 use error_stack::Result;
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 
-use crate::{encode::Encode, version::Version};
+use crate::{codec::Encode, version::Version};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ServiceId(u16);
@@ -80,7 +80,7 @@ impl Encode for Service {
 #[cfg(test)]
 mod test {
     use crate::{
-        encode::test::{assert_encode, encode_value},
+        codec::test::{assert_encode, encode_value},
         request::service::{Service, ServiceId, ServiceVersion},
         version::Version,
     };

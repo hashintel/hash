@@ -3,7 +3,7 @@ use std::io;
 use error_stack::{Report, Result};
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 
-use crate::encode::Encode;
+use crate::codec::Encode;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Version {
@@ -23,7 +23,7 @@ impl Encode for Version {
 #[cfg(test)]
 mod test {
     use super::Version;
-    use crate::encode::test::assert_encode;
+    use crate::codec::test::assert_encode;
 
     #[tokio::test]
     async fn encode() {
