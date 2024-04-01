@@ -1,5 +1,5 @@
 import type { GraphApi } from "@local/hash-graph-client";
-import type { ActionDefinitionId } from "@local/hash-isomorphic-utils/flows/step-definitions";
+import type { ActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
 
 import { generateWebQueriesAction } from "./flow-activities/generate-web-queries-action";
 import { getWebPageByUrlAction } from "./flow-activities/get-web-page-by-url-action";

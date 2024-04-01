@@ -4,7 +4,7 @@ import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
-} from "@local/hash-isomorphic-utils/flows/step-definitions";
+} from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import type { OwnedById } from "@local/hash-subgraph/.";
 import { StatusCode } from "@local/status";

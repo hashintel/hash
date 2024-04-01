@@ -1,11 +1,87 @@
+import type { EntityUuid } from "@local/hash-subgraph";
+
 import type {
   InputNameForAction,
   OutputNameForAction,
-} from "./step-definitions";
+} from "./action-definitions";
 import type { FlowDefinition } from "./types";
+
+export const customDefinition: FlowDefinition = {
+  name: "Custom",
+  flowDefinitionId: "custom" as EntityUuid,
+  trigger: {
+    triggerDefinitionId: "userTrigger",
+    kind: "trigger",
+    outputs: [
+      {
+        payloadKind: "Text",
+        name: "prompt" as const,
+        array: false,
+      },
+    ],
+  },
+  steps: [
+    {
+      stepId: "1",
+      kind: "action",
+      actionDefinitionId: "generateWebQueries",
+      inputSources: [
+        {
+          inputName:
+            "prompt" satisfies InputNameForAction<"generateWebQueries">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "prompt",
+        },
+      ],
+    },
+    {
+      stepId: "2",
+      kind: "parallel-group",
+      inputSourceToParallelizeOn: {
+        inputName: "queries",
+        kind: "step-output",
+        sourceStepId: "1",
+        sourceStepOutputName:
+          "queries" satisfies OutputNameForAction<"generateWebQueries">,
+      },
+      steps: [
+        {
+          stepId: "2.1",
+          kind: "action",
+          actionDefinitionId: "webSearch",
+          inputSources: [
+            {
+              inputName: "query" satisfies InputNameForAction<"webSearch">,
+              kind: "parallel-group-input",
+            },
+          ],
+        },
+      ],
+      aggregateOutput: {
+        stepId: "2.1",
+        stepOutputName:
+          "webPageUrls" satisfies OutputNameForAction<"webSearch">,
+        name: "webPageUrls" as const,
+        payloadKind: "VersionedUrl",
+        array: true,
+      },
+    },
+  ],
+  outputs: [
+    {
+      stepId: "2",
+      stepOutputName: "webPageUrls",
+      name: "webPageUrls" as const,
+      payloadKind: "VersionedUrl",
+      array: true,
+    },
+  ],
+};
 
 export const researchTaskFlowDefinition: FlowDefinition = {
   name: "Research Task",
+  flowDefinitionId: "research-task" as EntityUuid,
   trigger: {
     triggerDefinitionId: "userTrigger",
     kind: "trigger",
@@ -26,10 +102,11 @@ export const researchTaskFlowDefinition: FlowDefinition = {
     {
       stepId: "0",
       kind: "action",
-      actionDefinitionId: "generateWebQuery",
+      actionDefinitionId: "generateWebQueries",
       inputSources: [
         {
-          inputName: "prompt" satisfies InputNameForAction<"generateWebQuery">,
+          inputName:
+            "prompt" satisfies InputNameForAction<"generateWebQueries">,
           kind: "step-output",
           sourceStepId: "trigger",
           sourceStepOutputName: "prompt",
@@ -49,9 +126,8 @@ export const researchTaskFlowDefinition: FlowDefinition = {
         {
           inputName: "query" satisfies InputNameForAction<"webSearch">,
           kind: "step-output",
-          sourceStepId: "0",
-          sourceStepOutputName:
-            "query" satisfies OutputNameForAction<"generateWebQuery">,
+          sourceStepId: "trigger",
+          sourceStepOutputName: "prompt",
         },
       ],
     },
@@ -103,28 +179,52 @@ export const researchTaskFlowDefinition: FlowDefinition = {
               //   value: systemEntityTypes.user.entityTypeId,
               // },
             },
+            {
+              inputName:
+                "relevantEntitiesPrompt" satisfies InputNameForAction<"inferEntitiesFromContent">,
+              kind: "step-output",
+              sourceStepId: "trigger",
+              sourceStepOutputName: "prompt",
+            },
           ],
         },
         {
           stepId: "2.3",
-          actionDefinitionId: "persistEntity",
-          kind: "action",
-          inputSources: [
+          kind: "parallel-group",
+          inputSourceToParallelizeOn: {
+            inputName: "proposedEntity",
+            kind: "step-output",
+            sourceStepId: "2.2",
+            sourceStepOutputName:
+              "proposedEntities" satisfies OutputNameForAction<"inferEntitiesFromContent">,
+          },
+          steps: [
             {
-              inputName:
-                "proposedEntity" satisfies InputNameForAction<"persistEntity">,
-              kind: "step-output",
-              sourceStepId: "2.2",
-              sourceStepOutputName:
-                "proposedEntities" satisfies OutputNameForAction<"inferEntitiesFromContent">,
+              stepId: "2.3.1",
+              kind: "action",
+              actionDefinitionId: "persistEntity",
+              inputSources: [
+                {
+                  inputName:
+                    "proposedEntity" satisfies InputNameForAction<"persistEntity">,
+                  kind: "parallel-group-input",
+                },
+              ],
             },
           ],
+          aggregateOutput: {
+            stepId: "2.3.1",
+            stepOutputName:
+              "persistedEntity" satisfies OutputNameForAction<"persistEntity">,
+            name: "persistedEntities" as const,
+            payloadKind: "Entity",
+            array: true,
+          },
         },
       ],
       aggregateOutput: {
         stepId: "2.3",
-        stepOutputName:
-          "persistedEntity" satisfies OutputNameForAction<"persistEntity">,
+        stepOutputName: "persistedEntities",
         name: "persistedEntities" as const,
         payloadKind: "Entity",
         array: true,
@@ -145,6 +245,7 @@ export const researchTaskFlowDefinition: FlowDefinition = {
 
 export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
   name: "Infer User Entities from Web Page Flow",
+  flowDefinitionId: "infer-user-entities-from-web-page" as EntityUuid,
   trigger: {
     kind: "trigger",
     triggerDefinitionId: "userTrigger",

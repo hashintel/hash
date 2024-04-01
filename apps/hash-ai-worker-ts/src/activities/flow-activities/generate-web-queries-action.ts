@@ -1,5 +1,5 @@
 import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
-import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/step-definitions";
+import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 import type OpenAI from "openai";

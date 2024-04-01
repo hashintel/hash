@@ -1,4 +1,4 @@
-import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/step-definitions";
+import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   ActionStep,
   ActionStepDefinition,

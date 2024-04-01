@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
-import { actionDefinitions, triggerDefinitions } from "./step-definitions";
+import { actionDefinitions } from "./action-definitions";
+import { triggerDefinitions } from "./trigger-definitions";
 import type {
   ActionStepDefinition,
   FlowDefinition,

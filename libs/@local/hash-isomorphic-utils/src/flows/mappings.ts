@@ -3,7 +3,7 @@ import type { Entity, EntityId } from "@local/hash-subgraph";
 import { simplifyProperties } from "../simplify-properties";
 import type { FlowProperties } from "../system-types/flow";
 import type { FlowDefinitionProperties } from "../system-types/flowdefinition";
-import type { TriggerDefinitionId } from "./step-definitions";
+import type { TriggerDefinitionId } from "./trigger-definitions";
 import type { Flow, FlowDefinition, OutputDefinition } from "./types";
 
 export const mapFlowDefinitionToEntityProperties = (

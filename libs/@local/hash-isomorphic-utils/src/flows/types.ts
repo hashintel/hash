@@ -6,10 +6,8 @@ import type {
   EntityUuid,
 } from "@local/hash-subgraph";
 
-import type {
-  ActionDefinitionId,
-  TriggerDefinitionId,
-} from "./step-definitions";
+import type { ActionDefinitionId } from "./action-definitions";
+import type { TriggerDefinitionId } from "./trigger-definitions";
 
 export type DeepReadOnly<T> = {
   readonly [key in keyof T]: DeepReadOnly<T[key]>;

@@ -1,4 +1,4 @@
-import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/step-definitions";
+import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 
 import { internalApi } from "../shared/internal-api-client";

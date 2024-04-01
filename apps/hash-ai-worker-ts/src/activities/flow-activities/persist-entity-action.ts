@@ -2,7 +2,7 @@ import type { GraphApi } from "@local/hash-graph-client";
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
-} from "@local/hash-isomorphic-utils/flows/step-definitions";
+} from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { Entity } from "@local/hash-subgraph";
 import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-subgraph/stdlib";
 import { StatusCode } from "@local/status";

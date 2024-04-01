@@ -1,7 +1,7 @@
 import {
   type ActionDefinitionId,
   actionDefinitions,
-} from "@local/hash-isomorphic-utils/flows/step-definitions";
+} from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   RunFlowWorkflowParams,
   RunFlowWorkflowResponse,

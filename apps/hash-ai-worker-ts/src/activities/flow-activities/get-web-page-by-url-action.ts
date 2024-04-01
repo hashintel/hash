@@ -1,7 +1,7 @@
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
-} from "@local/hash-isomorphic-utils/flows/step-definitions";
+} from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 
 import { getWebPageActivity } from "../get-web-page-activity";
