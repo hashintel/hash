@@ -177,14 +177,24 @@ export type ParallelGroupStepDefinition = {
 
 export type StepDefinition = ActionStepDefinition | ParallelGroupStepDefinition;
 
+type FlowDefinitionTrigger =
+  | {
+      kind: "trigger";
+      triggerDefinitionId: Exclude<TriggerDefinitionId, "scheduledTrigger">;
+      outputs?: OutputDefinition[];
+    }
+  | {
+      kind: "scheduled";
+      triggerDefinitionId: "scheduledTrigger";
+      active: boolean;
+      cronSchedule: string;
+      outputs?: OutputDefinition[];
+    };
+
 export type FlowDefinition = {
   name: string;
   flowDefinitionId: EntityUuid;
-  trigger: {
-    kind: "trigger";
-    triggerDefinitionId: TriggerDefinitionId;
-    outputs?: OutputDefinition[];
-  };
+  trigger: FlowDefinitionTrigger;
   steps: StepDefinition[];
   outputs: (OutputDefinition & {
     /**

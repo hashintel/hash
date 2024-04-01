@@ -7,7 +7,11 @@ import type {
   TriggerDefinition,
 } from "./types";
 
-const triggerIds = ["userTrigger", "userVisitedWebPageTrigger"] as const;
+const triggerIds = [
+  "userTrigger",
+  "userVisitedWebPageTrigger",
+  "scheduledTrigger",
+] as const;
 
 export type TriggerDefinitionId = (typeof triggerIds)[number];
 
@@ -25,6 +29,18 @@ const triggerDefinitionsAsConst = {
       {
         payloadKind: "Text",
         name: "visitedWebPageUrl" as const,
+        array: false,
+      },
+    ],
+  },
+  scheduledTrigger: {
+    kind: "trigger",
+    triggerDefinitionId: "scheduledTrigger",
+    name: "Scheduled Trigger",
+    outputs: [
+      {
+        payloadKind: "Text",
+        name: "scheduledAtTime" as const,
         array: false,
       },
     ],
