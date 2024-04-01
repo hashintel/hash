@@ -330,7 +330,10 @@ type PropertyTypeDefinition = {
   possibleValues: {
     dataTypeId?: VersionedUrl;
     primitiveDataType?: PrimitiveDataTypeKey;
-    propertyTypeObjectProperties?: { [_ in string]: { $ref: VersionedUrl } };
+    propertyTypeObjectProperties?: Record<
+      string,
+      ValueOrArray<PropertyTypeReference>
+    >;
     propertyTypeObjectRequiredProperties?: BaseUrl[];
     array?: boolean;
   }[];

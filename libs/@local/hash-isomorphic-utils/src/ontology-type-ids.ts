@@ -55,6 +55,10 @@ export const systemEntityTypes = {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/file/v/2",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/file/",
   },
+  flow: {
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/flow/v/1",
+    entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/flow/",
+  },
   githubAccount: {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/github-account/v/1",
     entityTypeBaseUrl:
@@ -444,6 +448,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/file-storage-region/",
   },
+  flowDefinitionId: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/flow-definition-id/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/flow-definition-id/",
+  },
   fractionalIndex: {
     propertyTypeId:
       "https://hash.ai/@hash/types/property-type/fractional-index/v/1",
@@ -477,6 +487,10 @@ export const systemPropertyTypes = {
       "https://hash.ai/@hash/types/property-type/input-unit-count/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/input-unit-count/",
+  },
+  inputs: {
+    propertyTypeId: "https://hash.ai/@hash/types/property-type/inputs/v/1",
+    propertyTypeBaseUrl: "https://hash.ai/@hash/types/property-type/inputs/",
   },
   kratosIdentityId: {
     propertyTypeId:
@@ -524,6 +538,10 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/organization-name/",
   },
+  output: {
+    propertyTypeId: "https://hash.ai/@hash/types/property-type/output/v/1",
+    propertyTypeBaseUrl: "https://hash.ai/@hash/types/property-type/output/",
+  },
   outputUnitCost: {
     propertyTypeId:
       "https://hash.ai/@hash/types/property-type/output-unit-cost/v/1",
@@ -535,6 +553,10 @@ export const systemPropertyTypes = {
       "https://hash.ai/@hash/types/property-type/output-unit-count/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/output-unit-count/",
+  },
+  outputs: {
+    propertyTypeId: "https://hash.ai/@hash/types/property-type/outputs/v/1",
+    propertyTypeBaseUrl: "https://hash.ai/@hash/types/property-type/outputs/",
   },
   pagesAreEnabled: {
     propertyTypeId:
@@ -596,6 +618,10 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/shortname/v/1",
     propertyTypeBaseUrl: "https://hash.ai/@hash/types/property-type/shortname/",
   },
+  step: {
+    propertyTypeId: "https://hash.ai/@hash/types/property-type/step/v/1",
+    propertyTypeBaseUrl: "https://hash.ai/@hash/types/property-type/step/",
+  },
   summary: {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/summary/v/1",
     propertyTypeBaseUrl: "https://hash.ai/@hash/types/property-type/summary/",
@@ -603,6 +629,16 @@ export const systemPropertyTypes = {
   title: {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/title/v/1",
     propertyTypeBaseUrl: "https://hash.ai/@hash/types/property-type/title/",
+  },
+  trigger: {
+    propertyTypeId: "https://hash.ai/@hash/types/property-type/trigger/v/1",
+    propertyTypeBaseUrl: "https://hash.ai/@hash/types/property-type/trigger/",
+  },
+  triggerDefinitionId: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/trigger-definition-id/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/trigger-definition-id/",
   },
   uploadCompletedAt: {
     propertyTypeId:
