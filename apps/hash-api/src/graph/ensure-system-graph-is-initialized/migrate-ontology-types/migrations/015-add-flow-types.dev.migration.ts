@@ -1,3 +1,5 @@
+import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
 import type { MigrationFunction } from "../types";
 import {
   anyUserInstantiator,
@@ -14,12 +16,6 @@ const migrate: MigrationFunction = async ({
    * Step 1: create the `Flow Definition` entity type.
    */
 
-  /** @todo */
-
-  /**
-   * Step 2: create the `Flow` entity type.
-   */
-
   const triggerDefinitionIdPropertyType =
     await createSystemPropertyTypeIfNotExists(context, authentication, {
       propertyTypeDefinition: {
@@ -31,15 +27,55 @@ const migrate: MigrationFunction = async ({
       migrationState,
     });
 
-  const inputsPropertyType = await createSystemPropertyTypeIfNotExists(
+  const outputDefinitionsPropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Output Definitions",
+        description: "The output definitions of something.",
+        possibleValues: [
+          {
+            primitiveDataType: "object",
+            array: true,
+          },
+        ],
+      },
+      webShortname: "hash",
+      migrationState,
+    });
+
+  const triggerDefinitionPropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Trigger Definition",
+        description: "The trigger definition of a flow.",
+        possibleValues: [
+          {
+            propertyTypeObjectProperties: {
+              [triggerDefinitionIdPropertyType.metadata.recordId.baseUrl]: {
+                $ref: triggerDefinitionIdPropertyType.schema.$id,
+              },
+              [outputDefinitionsPropertyType.metadata.recordId.baseUrl]: {
+                $ref: outputDefinitionsPropertyType.schema.$id,
+              },
+            },
+            propertyTypeObjectRequiredProperties: [
+              triggerDefinitionIdPropertyType.metadata.recordId.baseUrl,
+            ],
+          },
+        ],
+      },
+      webShortname: "hash",
+      migrationState,
+    });
+
+  const stepDefinitionsPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
     {
       propertyTypeDefinition: {
-        title: "Inputs",
-        description: "The inputs of something.",
+        title: "Step Definitions",
+        description: "The step definitions of a flow.",
         possibleValues: [
-          /** @todo: consider constraining this type further */
           {
             primitiveDataType: "object",
             array: true,
@@ -50,6 +86,43 @@ const migrate: MigrationFunction = async ({
       migrationState,
     },
   );
+
+  const _flowDefinitionEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        title: "Flow Definition",
+        description: "The definition of  a HASH flow.",
+        properties: [
+          {
+            propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
+            required: true,
+          },
+          {
+            propertyType: triggerDefinitionPropertyType,
+            required: true,
+          },
+          {
+            propertyType: stepDefinitionsPropertyType,
+            required: true,
+          },
+          {
+            propertyType: outputDefinitionsPropertyType,
+            required: true,
+          },
+        ],
+      },
+
+      webShortname: "hash",
+      migrationState,
+      instantiator: anyUserInstantiator,
+    },
+  );
+
+  /**
+   * Step 2: create the `Flow` entity type.
+   */
 
   const outputsPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -150,9 +223,6 @@ const migrate: MigrationFunction = async ({
           {
             propertyType: stepsPropertyType,
             required: true,
-          },
-          {
-            propertyType: inputsPropertyType,
           },
           {
             propertyType: outputsPropertyType,

@@ -4,9 +4,13 @@
 
 import type { Entity } from "@local/hash-subgraph";
 
-import type { ObjectDataType, TextDataType } from "./shared";
+import type {
+  ObjectDataType,
+  TextDataType,
+  TriggerDefinitionIDPropertyValue,
+} from "./shared";
 
-export type { ObjectDataType, TextDataType };
+export type { ObjectDataType, TextDataType, TriggerDefinitionIDPropertyValue };
 
 export type Flow = Entity<FlowProperties>;
 
@@ -24,16 +28,10 @@ export type FlowOutgoingLinksByLinkEntityTypeId = {};
  */
 export type FlowProperties = {
   "https://hash.ai/@hash/types/property-type/flow-definition-id/": FlowDefinitionIDPropertyValue;
-  "https://hash.ai/@hash/types/property-type/inputs/"?: InputsPropertyValue;
   "https://hash.ai/@hash/types/property-type/outputs/"?: OutputsPropertyValue;
   "https://hash.ai/@hash/types/property-type/step/": StepPropertyValue;
   "https://hash.ai/@hash/types/property-type/trigger/": TriggerPropertyValue;
 };
-
-/**
- * The inputs of something.
- */
-export type InputsPropertyValue = ObjectDataType[];
 
 /**
  * The outputs of something.
@@ -46,13 +44,9 @@ export type OutputsPropertyValue = ObjectDataType[];
 export type StepPropertyValue = ObjectDataType[];
 
 /**
- * The ID of the trigger definition.
- */
-export type TriggerDefinitionIDPropertyValue = TextDataType;
-
-/**
  * The trigger of a flow.
  */
 export type TriggerPropertyValue = {
+  "https://hash.ai/@hash/types/property-type/outputs/"?: OutputsPropertyValue;
   "https://hash.ai/@hash/types/property-type/trigger-definition-id/": TriggerDefinitionIDPropertyValue;
 };
