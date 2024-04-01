@@ -1263,6 +1263,7 @@ dependencies = [
  "error-stack",
  "futures",
  "futures-stream",
+ "graph-types",
  "tokio",
  "uuid",
 ]

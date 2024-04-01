@@ -1,20 +1,6 @@
+#![cfg_attr(test, feature(async_fn_track_caller))]
 pub mod encode;
 pub mod encoding;
 pub mod protocol;
 pub mod request;
 pub mod version;
-
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}

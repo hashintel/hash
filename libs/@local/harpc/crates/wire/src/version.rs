@@ -19,3 +19,15 @@ impl Encode for Version {
         write.write_u8(self.minor).await.map_err(Report::from)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::Version;
+    use crate::encode::test::assert_encode;
+
+    #[tokio::test]
+    async fn encode() {
+        let version = Version { major: 1, minor: 2 };
+        assert_encode(&version, &[1, 2]).await;
+    }
+}

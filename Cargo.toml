@@ -50,8 +50,6 @@ graph-api.path = "apps/hash-graph/libs/api"
 validation.path = "libs/@local/hash-validation"
 hash-tracing.path = "libs/@local/tracing"
 type-system.path = "libs/@blockprotocol/type-system/rust"
-harpc.path = "libs/@local/harpc"
-harpc-wire.path = "libs/@local/harpc/crates/wire"
 
 # External dependencies owned by HASH
 error-stack = { version = "0.4.1", default-features = false }

@@ -9,15 +9,18 @@ use crate::{encode::Encode, version::Version};
 pub struct ServiceId(u16);
 
 impl ServiceId {
-    pub fn new(value: u16) -> Self {
+    #[must_use]
+    pub const fn new(value: u16) -> Self {
         Self(value)
     }
 
-    pub fn value(&self) -> u16 {
+    #[must_use]
+    pub const fn value(self) -> u16 {
         self.0
     }
 
-    pub fn is_reserved(&self) -> bool {
+    #[must_use]
+    pub const fn is_reserved(self) -> bool {
         // 0xFxxx are reserved for internal use
         self.0 & 0xF000 == 0xF000
     }
@@ -35,15 +38,18 @@ impl Encode for ServiceId {
 pub struct ServiceVersion(Version);
 
 impl ServiceVersion {
-    pub fn new(major: u8, minor: u8) -> Self {
+    #[must_use]
+    pub const fn new(major: u8, minor: u8) -> Self {
         Self(Version { major, minor })
     }
 
-    pub fn major(&self) -> u8 {
+    #[must_use]
+    pub const fn major(self) -> u8 {
         self.0.major
     }
 
-    pub fn minor(&self) -> u8 {
+    #[must_use]
+    pub const fn minor(self) -> u8 {
         self.0.minor
     }
 }
@@ -51,7 +57,7 @@ impl ServiceVersion {
 impl Encode for ServiceVersion {
     type Error = io::Error;
 
-    async fn encode(&self, mut write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
         self.0.encode(write).await
     }
 }
@@ -68,5 +74,47 @@ impl Encode for Service {
     async fn encode(&self, mut write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
         self.id.encode(&mut write).await?;
         self.version.encode(write).await
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{
+        encode::test::{assert_encode, encode_value},
+        request::service::{Service, ServiceId, ServiceVersion},
+        version::Version,
+    };
+
+    #[tokio::test]
+    async fn encode_id() {
+        let id = ServiceId::new(0x1234);
+        // value should be encoded in big-endian
+        assert_encode(&id, &[0x12, 0x34]).await;
+    }
+
+    #[tokio::test]
+    async fn encode_version() {
+        let version = ServiceVersion::new(1, 2);
+
+        assert_encode(&version, &[1, 2]).await;
+
+        // encoding should match that of Version
+        let expected = encode_value(&Version {
+            major: version.major(),
+            minor: version.minor(),
+        })
+        .await;
+
+        assert_encode(&version, &expected).await;
+    }
+
+    #[tokio::test]
+    async fn encode() {
+        let service = Service {
+            id: ServiceId::new(0x1234),
+            version: ServiceVersion::new(0x56, 0x78),
+        };
+
+        assert_encode(&service, &[0x12, 0x34, 0x56, 0x78]).await;
     }
 }

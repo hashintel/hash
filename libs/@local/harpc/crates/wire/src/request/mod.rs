@@ -1,17 +1,16 @@
 pub use bytes::Bytes;
 
-use self::{
-    authorization::Authorization, flags::RequestFlags, procedure::Procedure, service::Service,
-};
+use self::{begin::RequestBegin, flags::RequestFlags, frame::RequestFrame, id::RequestId};
 use crate::protocol::Protocol;
 
 pub mod authorization;
+pub mod begin;
 pub mod flags;
+pub mod frame;
+pub mod id;
+pub mod payload;
 pub mod procedure;
 pub mod service;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct RequestId(u16);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RequestHeader {
@@ -19,24 +18,6 @@ pub struct RequestHeader {
     request_id: RequestId,
 
     flags: RequestFlags,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RequestPayload(Bytes);
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RequestBegin {
-    service: Service,
-    procedure: Procedure,
-
-    authorization: Option<Authorization>,
-
-    payload: RequestPayload,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RequestFrame {
-    payload: RequestPayload,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

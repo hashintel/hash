@@ -9,15 +9,18 @@ use crate::encode::Encode;
 pub struct ProcedureId(u16);
 
 impl ProcedureId {
-    pub fn new(value: u16) -> Self {
+    #[must_use]
+    pub const fn new(value: u16) -> Self {
         Self(value)
     }
 
-    pub fn value(&self) -> u16 {
+    #[must_use]
+    pub const fn value(self) -> u16 {
         self.0
     }
 
-    pub fn is_reserved(&self) -> bool {
+    #[must_use]
+    pub const fn is_reserved(self) -> bool {
         // 0xFxxx are reserved for internal use
         self.0 & 0xF000 == 0xF000
     }
@@ -39,7 +42,7 @@ pub struct Procedure {
 impl Encode for Procedure {
     type Error = io::Error;
 
-    async fn encode(&self, mut write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
         self.id.encode(write).await
     }
 }
