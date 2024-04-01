@@ -183,7 +183,7 @@ export const initializeFlow = (params: {
       triggerDefinitionId: flowTrigger.triggerDefinitionId,
       outputs: flowTrigger.outputs,
     },
-    definition: flowDefinition,
+    flowDefinitionId: flowDefinition.flowDefinitionId,
     steps: flowDefinition.steps.map<FlowStep>((stepDefinition) => {
       if (stepDefinition.kind === "action") {
         return initializeActionStep({ flowTrigger, stepDefinition });

@@ -1,7 +1,7 @@
 import type {
   ActionStep,
   ActionStepDefinition,
-  Flow,
+  FlowDefinition,
   FlowStep,
   ParallelGroupStepDefinition,
 } from "@local/hash-isomorphic-utils/flows/types";
@@ -11,20 +11,21 @@ import { getAllStepDefinitionsInFlowDefinition } from "@local/hash-isomorphic-ut
  * @todo: consider a more ergonomic way from mapping a step to its
  * corresponding flow definition node
  */
-export const getStepDefinitionFromFlow = <T extends FlowStep>(params: {
+export const getStepDefinitionFromFlowDefinition = <
+  T extends FlowStep,
+>(params: {
   step: T;
-  flow: Flow;
+  flowDefinition: FlowDefinition;
 }): T extends ActionStep
   ? ActionStepDefinition<{
       inputName: string;
       kind: "parallel-group-input";
     }>
   : ParallelGroupStepDefinition => {
-  const { step, flow } = params;
+  const { step, flowDefinition } = params;
 
-  const allStepDefinitions = getAllStepDefinitionsInFlowDefinition(
-    flow.definition,
-  );
+  const allStepDefinitions =
+    getAllStepDefinitionsInFlowDefinition(flowDefinition);
 
   const [stepIdWithoutIndex] = step.stepId.split("~");
 

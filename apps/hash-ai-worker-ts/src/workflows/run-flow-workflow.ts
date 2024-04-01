@@ -21,7 +21,7 @@ import {
 
 import type { createFlowActionActivities } from "../activities/flow-action-activities";
 import { getAllStepsInFlow } from "./run-flow-workflow/get-all-steps-in-flow";
-import { getStepDefinitionFromFlow } from "./run-flow-workflow/get-step-definition-from-flow";
+import { getStepDefinitionFromFlowDefinition } from "./run-flow-workflow/get-step-definition-from-flow";
 import {
   initializeActionStep,
   initializeFlow,
@@ -124,9 +124,9 @@ export const runFlowWorkflow = async (
     }
 
     if (currentStep.kind === "action") {
-      const actionStepDefinition = getStepDefinitionFromFlow({
+      const actionStepDefinition = getStepDefinitionFromFlowDefinition({
         step: currentStep,
-        flow,
+        flowDefinition,
       });
 
       const actionActivity = proxyActionActivity({
@@ -173,6 +173,7 @@ export const runFlowWorkflow = async (
 
       const status = passOutputsToUnprocessedSteps({
         flow,
+        flowDefinition,
         outputs,
         processedStepIds,
         stepId: currentStepId,
@@ -192,9 +193,9 @@ export const runFlowWorkflow = async (
 
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     } else if (currentStep.kind === "parallel-group") {
-      const parallelGroupStepDefinition = getStepDefinitionFromFlow({
+      const parallelGroupStepDefinition = getStepDefinitionFromFlowDefinition({
         step: currentStep,
-        flow,
+        flowDefinition,
       });
 
       const { inputToParallelizeOn } = currentStep;
@@ -311,7 +312,7 @@ export const runFlowWorkflow = async (
     };
   }
 
-  for (const outputDefinition of flow.definition.outputs) {
+  for (const outputDefinition of flowDefinition.outputs) {
     const step = getAllStepsInFlow(flow).find(
       (flowStep) => flowStep.stepId === outputDefinition.stepId,
     );

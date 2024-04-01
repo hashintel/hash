@@ -3,6 +3,7 @@ import type {
   ArrayPayload,
   DeepReadOnly,
   Flow,
+  FlowDefinition,
   OutputDefinition,
   Payload,
   StepInputSource,
@@ -12,7 +13,7 @@ import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 
 import { getAllStepsInFlow } from "./get-all-steps-in-flow";
-import { getStepDefinitionFromFlow } from "./get-step-definition-from-flow";
+import { getStepDefinitionFromFlowDefinition } from "./get-step-definition-from-flow";
 
 /**
  * This method is used to pass the outputs of a step to any unprocessed steps
@@ -20,12 +21,20 @@ import { getStepDefinitionFromFlow } from "./get-step-definition-from-flow";
  */
 export const passOutputsToUnprocessedSteps = (params: {
   flow: Flow;
+  flowDefinition: FlowDefinition;
   stepId: string;
   outputDefinitions: DeepReadOnly<OutputDefinition[]>;
   outputs: StepOutput[];
   processedStepIds: string[];
 }): Omit<Status<never>, "contents"> => {
-  const { flow, stepId, processedStepIds, outputs, outputDefinitions } = params;
+  const {
+    flow,
+    flowDefinition,
+    stepId,
+    processedStepIds,
+    outputs,
+    outputDefinitions,
+  } = params;
 
   const unprocessedSteps = getAllStepsInFlow(flow).filter(
     (step) =>
@@ -36,10 +45,11 @@ export const passOutputsToUnprocessedSteps = (params: {
 
   for (const unprocessedStep of unprocessedSteps) {
     if (unprocessedStep.kind === "action") {
-      const unprocessedActionStepDefinition = getStepDefinitionFromFlow({
-        step: unprocessedStep,
-        flow,
-      });
+      const unprocessedActionStepDefinition =
+        getStepDefinitionFromFlowDefinition({
+          step: unprocessedStep,
+          flowDefinition,
+        });
 
       const { inputSources } = unprocessedActionStepDefinition;
 
@@ -123,10 +133,11 @@ export const passOutputsToUnprocessedSteps = (params: {
         }
       }
     } else {
-      const unprocessedParallelGroupStepDefinition = getStepDefinitionFromFlow({
-        step: unprocessedStep,
-        flow,
-      });
+      const unprocessedParallelGroupStepDefinition =
+        getStepDefinitionFromFlowDefinition({
+          step: unprocessedStep,
+          flowDefinition,
+        });
 
       const { inputSourceToParallelizeOn } =
         unprocessedParallelGroupStepDefinition;
@@ -162,10 +173,11 @@ export const passOutputsToUnprocessedSteps = (params: {
 
   for (const processedStep of processedSteps) {
     if (processedStep.kind === "parallel-group") {
-      const unprocessedParallelGroupStepDefinition = getStepDefinitionFromFlow({
-        step: processedStep,
-        flow,
-      });
+      const unprocessedParallelGroupStepDefinition =
+        getStepDefinitionFromFlowDefinition({
+          step: processedStep,
+          flowDefinition,
+        });
 
       /**
        * If the current step is a parallel step in the unprocessed parallel group,
@@ -216,6 +228,7 @@ export const passOutputsToUnprocessedSteps = (params: {
            */
           return passOutputsToUnprocessedSteps({
             flow,
+            flowDefinition,
             stepId: processedStep.stepId,
             outputDefinitions: [
               unprocessedParallelGroupStepDefinition.aggregateOutput,
