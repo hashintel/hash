@@ -1,9 +1,9 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
   Entity,
-  EntityId,
   EntityPropertiesObject,
   EntityTypeWithMetadata,
+  EntityUuid,
 } from "@local/hash-subgraph";
 
 import type {
@@ -179,7 +179,7 @@ export type StepDefinition = ActionStepDefinition | ParallelGroupStepDefinition;
 
 export type FlowDefinition = {
   name: string;
-  flowDefinitionId: EntityId;
+  flowDefinitionId: EntityUuid;
   trigger: {
     kind: "trigger";
     triggerDefinitionId: TriggerDefinitionId;
@@ -242,9 +242,9 @@ export type FlowTrigger = {
 };
 
 export type Flow = {
-  flowId: string;
+  flowId: EntityUuid;
   trigger: FlowTrigger;
-  flowDefinitionId: EntityId;
+  flowDefinitionId: EntityUuid;
   steps: FlowStep[];
   outputs?: StepOutput[];
 };

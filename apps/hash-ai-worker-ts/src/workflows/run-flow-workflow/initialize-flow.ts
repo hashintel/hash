@@ -12,6 +12,7 @@ import type {
   Payload,
   StepInput,
 } from "@local/hash-isomorphic-utils/flows/types";
+import type { EntityUuid } from "@local/hash-subgraph";
 
 import { getAllStepsInFlow } from "./get-all-steps-in-flow";
 
@@ -171,7 +172,7 @@ export const initializeParallelGroup = (params: {
 };
 
 export const initializeFlow = (params: {
-  flowId: string;
+  flowId: EntityUuid;
   flowDefinition: FlowDefinition;
   flowTrigger: FlowTrigger;
 }): Flow => {

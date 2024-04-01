@@ -1,12 +1,13 @@
 import type { GraphApi } from "@local/hash-graph-client";
 import type { ActionDefinitionId } from "@local/hash-isomorphic-utils/flows/step-definitions";
 
-import { generateWebQueriesAction } from "./flow-action-activities/generate-web-queries-action";
-import { getWebPageByUrlAction } from "./flow-action-activities/get-web-page-by-url-action";
-import { inferEntitiesFromContentAction } from "./flow-action-activities/infer-entities-from-content-action";
-import { persistEntityAction } from "./flow-action-activities/persist-entity-action";
-import type { FlowActionActivity } from "./flow-action-activities/types";
-import { webSearchAction } from "./flow-action-activities/web-search-action";
+import { generateWebQueriesAction } from "./flow-activities/generate-web-queries-action";
+import { getWebPageByUrlAction } from "./flow-activities/get-web-page-by-url-action";
+import { inferEntitiesFromContentAction } from "./flow-activities/infer-entities-from-content-action";
+import { persistEntityAction } from "./flow-activities/persist-entity-action";
+import { createPersistFlowActivity } from "./flow-activities/persist-entity-activity";
+import type { FlowActionActivity } from "./flow-activities/types";
+import { webSearchAction } from "./flow-activities/web-search-action";
 
 export const createFlowActionActivities = ({
   graphApiClient,
@@ -29,4 +30,13 @@ export const createFlowActionActivities = ({
   ) {
     return persistEntityAction({ ...params, graphApiClient });
   },
+});
+
+export const createFlowActivities = ({
+  graphApiClient,
+}: {
+  graphApiClient: GraphApi;
+}) => ({
+  ...createFlowActionActivities({ graphApiClient }),
+  persistFlowActivity: createPersistFlowActivity({ graphApiClient }),
 });

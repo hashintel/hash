@@ -11,6 +11,7 @@ import type {
   Payload,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { validateFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
+import type { EntityUuid } from "@local/hash-subgraph/.";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import {
@@ -19,7 +20,10 @@ import {
   workflowInfo,
 } from "@temporalio/workflow";
 
-import type { createFlowActionActivities } from "../activities/flow-action-activities";
+import type {
+  createFlowActionActivities,
+  createFlowActivities,
+} from "../activities/flow-activities";
 import { getAllStepsInFlow } from "./run-flow-workflow/get-all-steps-in-flow";
 import { getStepDefinitionFromFlowDefinition } from "./run-flow-workflow/get-step-definition-from-flow";
 import {
@@ -58,6 +62,14 @@ const doesFlowStepHaveSatisfiedDependencies = (step: FlowStep) => {
     return !!inputToParallelizeOn;
   }
 };
+
+const flowActivities = proxyActivities<ReturnType<typeof createFlowActivities>>(
+  {
+    cancellationType: ActivityCancellationType.WAIT_CANCELLATION_COMPLETED,
+    startToCloseTimeout: "3600 second", // 1 hour
+    retry: { maximumAttempts: 1 },
+  },
+);
 
 const proxyActionActivity = (params: {
   actionDefinitionId: ActionDefinitionId;
@@ -100,8 +112,10 @@ export const runFlowWorkflow = async (
   const flow = initializeFlow({
     flowDefinition,
     flowTrigger,
-    flowId: workflowId,
+    flowId: workflowId as EntityUuid,
   });
+
+  await flowActivities.persistFlowActivity({ flow, userAuthentication });
 
   const processedStepIds: string[] = [];
   const processStepErrors: Record<string, Omit<Status<never>, "contents">> = {};
@@ -280,6 +294,8 @@ export const runFlowWorkflow = async (
 
     await Promise.all(stepsToProcess.map((step) => processStep(step.stepId)));
 
+    await flowActivities.persistFlowActivity({ flow, userAuthentication });
+
     // Recursively call processSteps until all steps are processed
     await processSteps();
   };
@@ -367,6 +383,8 @@ export const runFlowWorkflow = async (
       ];
     }
   }
+
+  await flowActivities.persistFlowActivity({ flow, userAuthentication });
 
   const flowOutputs = flow.outputs ?? [];
 
