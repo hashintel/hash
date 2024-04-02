@@ -10,7 +10,7 @@ publish = false
 [dependencies]
 deer = { path = ".." }
 error-stack = { git = "https://github.com/hashintel/hash", rev = "0829935", default_features = false }
-serde_json = { version = "1.0.114", default_features = false, features = ['alloc'] }
+serde_json = { version = "1.0.115", default_features = false, features = ['alloc'] }
 serde = { version = "1.0.197", default_features = false, features = ['alloc'] }
 bitvec = { version = "1", default_features = false, features = ['alloc', 'atomic'] }
 num-traits = "0.2.18"

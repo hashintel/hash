@@ -10,7 +10,7 @@ import type {
   Uuid,
   WebAuthorizationRelationship,
 } from "@local/hash-subgraph";
-import { entityIdFromOwnedByIdAndEntityUuid } from "@local/hash-subgraph";
+import { entityIdFromComponents } from "@local/hash-subgraph";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { isSelfHostedInstance } from "../../ensure-system-graph-is-initialized/system-webs-and-entities";
@@ -37,13 +37,13 @@ export const getWebShortname: ImpureGraphFunction<
 > = async (ctx, authentication, params) => {
   const namespace = (
     (await getUserById(ctx, authentication, {
-      entityId: entityIdFromOwnedByIdAndEntityUuid(
+      entityId: entityIdFromComponents(
         params.accountOrAccountGroupId as Uuid as OwnedById,
         params.accountOrAccountGroupId as Uuid as EntityUuid,
       ),
     }).catch(() => undefined)) ??
     (await getOrgById(ctx, authentication, {
-      entityId: entityIdFromOwnedByIdAndEntityUuid(
+      entityId: entityIdFromComponents(
         params.accountOrAccountGroupId as Uuid as OwnedById,
         params.accountOrAccountGroupId as Uuid as EntityUuid,
       ),

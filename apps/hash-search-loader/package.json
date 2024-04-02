@@ -4,6 +4,7 @@
   "private": true,
   "description": "Loads changes from the hash/realtime package stream into the search service",
   "license": "AGPL-3.0",
+  "type": "module",
   "scripts": {
     "clear-opensearch": "yarn tsx ./src/scripts/clear-opensearch.ts",
     "dev": "echo 'Opensearch currently disabled'",

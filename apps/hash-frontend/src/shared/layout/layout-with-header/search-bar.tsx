@@ -115,7 +115,9 @@ const EntityResult: FunctionComponent<{
     <ResultItem>
       <Link
         noLinkStyle
-        href={`/@${entityOwningShortname}/entities/${extractEntityUuidFromEntityId(entityId)}`}
+        href={`/@${entityOwningShortname}/entities/${extractEntityUuidFromEntityId(
+          entityId,
+        )}`}
       >
         {generateEntityLabel(subgraph, entity)}
       </Link>
@@ -170,7 +172,7 @@ const getSearchBarResponsiveStyles = (
 /**
  * The maximum distance between the search query and an entity's embedding for it to appear in results
  */
-const maximumSemanticDistance = 0.6;
+const maximumSemanticDistance = 0.75;
 
 export const SearchBar: FunctionComponent = () => {
   const theme = useTheme();
@@ -209,7 +211,7 @@ export const SearchBar: FunctionComponent = () => {
           inheritsFrom: { outgoing: 255 },
           isOfType: { outgoing: 1 },
         },
-        includeDrafts: true,
+        includeDrafts: false,
       },
       includePermissions: false,
     },

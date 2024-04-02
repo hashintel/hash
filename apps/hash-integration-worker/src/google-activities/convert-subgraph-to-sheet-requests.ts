@@ -613,7 +613,9 @@ export const createSheetRequestsFromEntitySubgraph = (
                 label: generateEntityLabel(entitySubgraph, linkedEntity),
                 sheetId,
                 startCellInclusive: `A${rowIndex + 1}`,
-                endCellInclusive: `${entityPosition.lastColumnLetter}${rowIndex + 1}`,
+                endCellInclusive: `${entityPosition.lastColumnLetter}${
+                  rowIndex + 1
+                }`,
               }),
             );
 
@@ -668,7 +670,9 @@ export const createSheetRequestsFromEntitySubgraph = (
                 label: generateEntityLabel(entitySubgraph, linkedEntity),
                 sheetId,
                 startCellInclusive: `A${rowIndex + 1}`,
-                endCellInclusive: `${entityPosition.lastColumnLetter}${rowIndex + 1}`,
+                endCellInclusive: `${entityPosition.lastColumnLetter}${
+                  rowIndex + 1
+                }`,
               }),
             );
           } else {
@@ -813,8 +817,12 @@ export const createSheetRequestsFromEntitySubgraph = (
                     createHyperlinkCell({
                       label: `View links`,
                       sheetId: outgoingLinkRange.sheetId,
-                      startCellInclusive: `A${outgoingLinkRange.startRowIndex + 1}`,
-                      endCellInclusive: `${outgoingLinkRange.lastColumnLetter}${outgoingLinkRange.endRowIndex + 1}`,
+                      startCellInclusive: `A${
+                        outgoingLinkRange.startRowIndex + 1
+                      }`,
+                      endCellInclusive: `${outgoingLinkRange.lastColumnLetter}${
+                        outgoingLinkRange.endRowIndex + 1
+                      }`,
                     }),
                   ],
                 },

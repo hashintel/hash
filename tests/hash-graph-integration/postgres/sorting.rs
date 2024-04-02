@@ -89,6 +89,10 @@ async fn insert(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
                 property_type::NAME_V1,
                 property_type::AGE_V1,
                 property_type::TEXT_V1,
+                property_type::FAVORITE_SONG_V1,
+                property_type::FAVORITE_FILM_V1,
+                property_type::HOBBY_V1,
+                property_type::INTERESTS_V1,
             ],
             [
                 entity_type::PERSON_V1,
@@ -153,15 +157,19 @@ fn name_property_path() -> EntityQueryPath<'static> {
 fn alice() -> EntityProperties {
     serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity")
 }
+
 fn bob() -> EntityProperties {
     serde_json::from_str(entity::PERSON_BOB_V1).expect("could not parse entity")
 }
+
 fn charles() -> EntityProperties {
     serde_json::from_str(entity::PERSON_CHARLES_V1).expect("could not parse entity")
 }
+
 fn page_v1() -> EntityProperties {
     serde_json::from_str(entity::PAGE_V1).expect("could not parse entity")
 }
+
 fn page_v2() -> EntityProperties {
     serde_json::from_str(entity::PAGE_V2).expect("could not parse entity")
 }

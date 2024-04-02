@@ -10,6 +10,7 @@ import type {
   InferredEntityMatchesExisting,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { generateVersionedUrlMatchingFilter } from "@local/hash-isomorphic-utils/graph-queries";
+import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   AccountId,
   BaseUrl,
@@ -21,7 +22,6 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
-import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-subgraph/stdlib";
 import isMatch from "lodash.ismatch";
 
 import { createEntityEmbeddings } from "../../shared/embeddings";
@@ -159,7 +159,7 @@ export const createEntities = async ({
             generateVersionedUrlMatchingFilter(entityTypeId),
           ] satisfies AllFilter["all"];
 
-          const maximumSemanticDistance = 0.07;
+          const maximumSemanticDistance = 0.6;
 
           /**
            * First find suitable specific properties to match on
@@ -406,7 +406,17 @@ export const createEntities = async ({
                 proposedEntity,
                 operation: "create",
                 status: "failure",
-                failureReason: `Link entities must have both a sourceEntityId and a targetEntityId.${originalProposal ? `You originally proposed that entityId ${proposedEntity.entityId} should have sourceEntityId ${originalProposal.sourceEntityId?.toString() ?? ""} and targetEntityId ${originalProposal.targetEntityId?.toString() ?? ""}.` : ""}`,
+                failureReason: `Link entities must have both a sourceEntityId and a targetEntityId.${
+                  originalProposal
+                    ? `You originally proposed that entityId ${
+                        proposedEntity.entityId
+                      } should have sourceEntityId ${
+                        originalProposal.sourceEntityId?.toString() ?? ""
+                      } and targetEntityId ${
+                        originalProposal.targetEntityId?.toString() ?? ""
+                      }.`
+                    : ""
+                }`,
               };
             return;
           }

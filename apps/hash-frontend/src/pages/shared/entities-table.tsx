@@ -8,6 +8,7 @@ import type { CustomCell, Item, TextCell } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { EntitiesGraphChart } from "@hashintel/block-design-system";
 import { ListRegularIcon } from "@hashintel/design-system";
+import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -34,7 +35,6 @@ import {
   Grid,
   gridHeaderHeightWithBorder,
   gridHorizontalScrollbarHeight,
-  gridRowHeight,
 } from "../../components/grid/grid";
 import type { BlankCell } from "../../components/grid/utils";
 import { blankCell } from "../../components/grid/utils";
@@ -364,7 +364,7 @@ export const EntitiesTable: FunctionComponent<{
   const handleEntityClick = useCallback(
     (entity: BpEntity) => {
       const { shortname: entityNamespace } = getOwnerForEntity(
-        entity as Entity,
+        entity as unknown as Entity,
       );
 
       if (entityNamespace === "") {

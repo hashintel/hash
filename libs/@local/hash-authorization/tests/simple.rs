@@ -1,4 +1,3 @@
-#![feature(associated_type_bounds)]
 #![allow(clippy::too_many_lines)]
 
 mod api;

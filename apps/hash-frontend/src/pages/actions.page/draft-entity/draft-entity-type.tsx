@@ -1,4 +1,7 @@
-import { AsteriskRegularIcon } from "@hashintel/design-system";
+import {
+  ArrowUpRegularIcon,
+  AsteriskRegularIcon,
+} from "@hashintel/design-system";
 import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
 import { Box, Typography } from "@mui/material";
@@ -6,6 +9,8 @@ import type { FunctionComponent } from "react";
 import { useMemo } from "react";
 
 import { PlusRegularIcon } from "../../../shared/icons/plus-regular";
+
+const iconSx = { fontSize: 14, marginRight: 0.5 };
 
 export const DraftEntityType: FunctionComponent<{
   entity: Entity;
@@ -24,6 +29,9 @@ export const DraftEntityType: FunctionComponent<{
     return entityTypeInSubgraph;
   }, [entity, subgraph]);
 
+  const isUpdate =
+    !!entity.metadata.provenance.firstNonDraftCreatedAtDecisionTime;
+
   return (
     <Box display="flex" alignItems="stretch" flexShrink={0}>
       <Box
@@ -39,7 +47,11 @@ export const DraftEntityType: FunctionComponent<{
           paddingX: 1.25,
         }}
       >
-        <PlusRegularIcon sx={{ fontSize: 14, marginRight: 0.5 }} />
+        {isUpdate ? (
+          <ArrowUpRegularIcon sx={iconSx} />
+        ) : (
+          <PlusRegularIcon sx={iconSx} />
+        )}
         <Typography
           sx={{
             color: ({ palette }) => palette.common.white,
@@ -48,7 +60,7 @@ export const DraftEntityType: FunctionComponent<{
             fontSize: 12,
           }}
         >
-          New
+          {isUpdate ? "Updated" : "New"}
         </Typography>
       </Box>
       <Box

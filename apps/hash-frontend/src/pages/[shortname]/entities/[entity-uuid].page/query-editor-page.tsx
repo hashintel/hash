@@ -1,4 +1,4 @@
-import type { MultiFilter } from "@blockprotocol/graph";
+import type { Entity as EntityBp, MultiFilter } from "@blockprotocol/graph";
 import { OntologyChip } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
 import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
@@ -63,6 +63,10 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
 
   const handleQueryEntities = useCallback(
     async (multiFilter: MultiFilter) => {
+      /**
+       * When this is changed to a structural query, if drafts are included
+       * then there may be multiple roots for a single entity (a live and zero or more draft updates)
+       */
       const res = await queryEntities({
         data: {
           operation: { multiFilter },
@@ -74,7 +78,7 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
         throw new Error(res.errors?.[0]?.message ?? "Unknown error");
       }
 
-      return getRoots(res.data.results);
+      return getRoots(res.data.results) as unknown as EntityBp[];
     },
     [queryEntities],
   );
@@ -93,6 +97,7 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
                 path={`${owner}/entities/${entityUuid}`}
               />
             }
+            onEntityUpdated={null}
           />
         }
       >

@@ -63,7 +63,7 @@ export const constructMinimalOrg = (params: {
 
 export type MinimalUser = {
   kind: "user";
-  entity: Entity;
+  entity: Entity<UserProperties>;
   accountId: AccountId;
   accountSignupComplete: boolean;
   enabledFeatureFlags: FeatureFlag[];
@@ -314,7 +314,8 @@ export const constructUser = (params: {
 
   const { email } = simplifyProperties(userEntity.properties);
 
-  const primaryEmailAddress = email[0];
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- permissions means this may be undefined. @todo types to account for property-level permissions
+  const primaryEmailAddress = email?.[0] ?? "";
 
   // @todo implement email verification
   // const isPrimaryEmailAddressVerified =

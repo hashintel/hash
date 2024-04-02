@@ -612,6 +612,7 @@ export const persistEntities = async (params: {
           try {
             const { updateSuccesses, updateFailures } = await updateEntities({
               actorId: authentication.machineActorId,
+              createAsDraft: createAs === "draft",
               graphApiClient,
               log,
               ownedById,

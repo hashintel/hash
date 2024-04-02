@@ -4,7 +4,7 @@ export const userTypedef = gql`
   scalar AggregatedUsageRecord
 
   type UserUsageRecords {
-    email: String!
+    shortname: String!
     usageRecords: [AggregatedUsageRecord!]!
   }
 

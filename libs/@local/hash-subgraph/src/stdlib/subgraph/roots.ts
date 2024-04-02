@@ -6,28 +6,15 @@ import {
   isEntityTypeRootedSubgraph as isEntityTypeRootedSubgraphBp,
   isPropertyTypeRootedSubgraph as isPropertyTypeRootedSubgraphBp,
 } from "@blockprotocol/graph/temporal/stdlib";
-import { typedEntries } from "@local/advanced-types/typed-entries";
-import type {
-  Entity as GraphApiEntity,
-  EntityMetadata as GraphApiEntityMetadata,
-  KnowledgeGraphVertex as KnowledgeGraphVertexGraphApi,
-  Subgraph as GraphApiSubgraph,
-  Vertices as VerticesGraphApi,
-} from "@local/hash-graph-client";
 
 import type {
   DataTypeRootType,
-  Entity,
-  EntityMetadata,
   EntityRootType,
   EntityTypeRootType,
-  KnowledgeGraphVertex,
   PropertyTypeRootType,
   Subgraph,
   SubgraphRootType,
-  Vertices,
 } from "../../main";
-import { isEntityId } from "../../main";
 
 /**
  * Returns all root elements.
@@ -147,69 +134,4 @@ export const assertEntityRootedSubgraph: (
   if (!isEntityRootedSubgraph(subgraph)) {
     throw new Error("Expected subgraph to be an entity rooted subgraph");
   }
-};
-
-/**
- * A mapping function that can be used to map entity metadata returned by the Graph API to the HASH `EntityMetadata` definition.
- */
-export const mapGraphApiEntityMetadataToMetadata = (
-  metadata: GraphApiEntityMetadata,
-) => {
-  if (metadata.entityTypeIds.length !== 1) {
-    throw new Error(
-      `Expected entity metadata to have exactly one entity type id, but got ${metadata.entityTypeIds.length}`,
-    );
-  }
-  return {
-    recordId: metadata.recordId,
-    entityTypeId: metadata.entityTypeIds[0],
-    temporalVersioning: metadata.temporalVersioning,
-    provenance: metadata.provenance,
-    archived: metadata.archived,
-  } as EntityMetadata;
-};
-
-export const mapGraphApiEntityToEntity = (entity: GraphApiEntity) => {
-  return {
-    ...entity,
-    metadata: mapGraphApiEntityMetadataToMetadata(entity.metadata),
-  } as Entity;
-};
-
-const mapKnowledgeGraphVertex = (vertex: KnowledgeGraphVertexGraphApi) => {
-  return {
-    kind: vertex.kind,
-    inner: mapGraphApiEntityToEntity(vertex.inner),
-  } as KnowledgeGraphVertex;
-};
-
-export const mapGraphApiVerticesToVertices = (vertices: VerticesGraphApi) =>
-  Object.fromEntries(
-    typedEntries(vertices).map(([baseId, inner]) => [
-      baseId,
-      isEntityId(baseId)
-        ? Object.fromEntries(
-            typedEntries(inner).map(([version, vertex]) => [
-              version,
-              mapKnowledgeGraphVertex(vertex as KnowledgeGraphVertexGraphApi),
-            ]),
-          )
-        : inner,
-    ]),
-  ) as Vertices;
-
-/**
- * A mapping function that can be used to map the subgraph returned by the Graph API to the HASH `Subgraph` definition.
- *
- * @param subgraph
- */
-export const mapGraphApiSubgraphToSubgraph = <
-  RootType extends SubgraphRootType,
->(
-  subgraph: GraphApiSubgraph,
-) => {
-  return {
-    ...subgraph,
-    vertices: mapGraphApiVerticesToVertices(subgraph.vertices),
-  } as Subgraph<RootType>;
 };

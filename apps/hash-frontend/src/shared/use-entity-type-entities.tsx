@@ -75,15 +75,9 @@ export const useEntityTypeEntities = (params: {
   entityTypeId?: VersionedUrl;
   ownedById?: OwnedById;
   graphResolveDepths?: Partial<GraphResolveDepths>;
-  includeDrafts?: boolean;
 }): EntityTypeEntitiesContextValue => {
-  const {
-    entityTypeBaseUrl,
-    entityTypeId,
-    ownedById,
-    graphResolveDepths,
-    includeDrafts = false,
-  } = params;
+  const { entityTypeBaseUrl, entityTypeId, ownedById, graphResolveDepths } =
+    params;
 
   const variables = useMemo<StructuralQueryEntitiesQueryVariables>(
     () => ({
@@ -122,18 +116,12 @@ export const useEntityTypeEntities = (params: {
           ...zeroedGraphResolveDepths,
           ...graphResolveDepths,
         },
-        includeDrafts,
+        includeDrafts: false,
         temporalAxes: currentTimeInstantTemporalAxes,
       },
       includePermissions: false,
     }),
-    [
-      entityTypeBaseUrl,
-      graphResolveDepths,
-      entityTypeId,
-      ownedById,
-      includeDrafts,
-    ],
+    [entityTypeBaseUrl, graphResolveDepths, entityTypeId, ownedById],
   );
 
   const { data, loading, refetch } = useQuery<

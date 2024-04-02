@@ -14,11 +14,10 @@ import {
   isUserHashInstanceAdmin,
 } from "@local/hash-backend-utils/hash-instance";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
-
-jest.setTimeout(60000);
 
 const logger = new Logger({
   mode: "dev",
@@ -32,10 +31,10 @@ describe("Hash Instance", () => {
   beforeAll(async () => {
     await TypeSystemInitializer.initialize();
     await ensureSystemGraphIsInitialized({ logger, context: graphContext });
-  });
 
-  afterAll(async () => {
-    await resetGraph();
+    return async () => {
+      await resetGraph();
+    };
   });
 
   let hashInstance: HashInstance;

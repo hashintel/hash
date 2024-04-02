@@ -3,11 +3,9 @@ import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { AccountId, Entity, EntityRootType } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 
 export const getEntityByFilter = async ({
   actorId,
@@ -30,6 +28,7 @@ export const getEntityByFilter = async ({
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
         data.subgraph,
+        actorId,
       );
 
       return getRoots(subgraph);

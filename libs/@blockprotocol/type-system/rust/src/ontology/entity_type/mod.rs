@@ -343,6 +343,7 @@ mod tests {
             [
                 "https://blockprotocol.org/@alice/types/property-type/name/v/1",
                 "https://blockprotocol.org/@alice/types/property-type/age/v/1",
+                "https://blockprotocol.org/@alice/types/property-type/interests/v/1",
             ],
         );
 

@@ -2,7 +2,7 @@
 authors:
   - name: Maggie Appleton
     jobTitle: Contributor, Block Protocol
-    photo: blog/authors/maggie-appleton.png
+    photo: blog/authors/maggie-appleton.webp
 postPhoto: blog/0001_block-design/0001_block-design-guidelines.webp
 title: "Design guidelines for building blocks"
 subtitle: "How to make your blocks feel intuitive, easy to use, and beautiful across every application"
@@ -21,8 +21,8 @@ This also raises some new challenges though. For your blocks to be successful, l
 
 This doesn't mean add fancy gradients and drop shadows to everything. It means following these two principles:
 
-1.  Blocks should be visually simple, minimal, and blend in with their surroundings
-1.  Blocks should follow tried-and-true interaction design principles
+1. Blocks should be visually simple, minimal, and blend in with their surroundings
+1. Blocks should follow tried-and-true interaction design principles
 
 The first principle helps blocks feel at home in the applications that use them. Each application will have its own visual style and set of design conventions they follow; a design system they've worked hard to establish and keep consistent across their product.
 
@@ -48,7 +48,7 @@ We've set up our [block starter template](https://github.com/blockprotocol/block
 
 Our base styles file is lightly opinionated and sets up a styling base that will help your block look and feel similar to others.
 
-It comes with a default palette of colors you can use, a typographic scale, a spacing scale, and other similar base styles. You can read more details about what the base stylesheet includes in our [documentation](https://blockprotocol.org/docs/spec/rfcs_and_roadmap#styling).
+It comes with a default palette of colors you can use, a typographic scale, a spacing scale, and other similar base styles. You can read more details about what the base stylesheet includes in our [documentation](https://blockprotocol.org/roadmap#new-modules).
 
 ### Accepting styles from embedding applications
 
@@ -58,14 +58,14 @@ The protocol gives embedding applications control over the way blocks appear wit
 
 Every Block Protocol block you build should accept a `styleVariables` object that the embedding application can pass in.
 
-This object defines a set of variables that control the basic styles of the block. We've designed these to maximize consistency and simplicity within your block. You can see the full list of these in the [styling section](https://blockprotocol.org/docs/spec/rfcs_and_roadmap#styling) of our documentation. Here's a rundown of the major categories:
+This object defines a set of variables that control the basic styles of the block. We've designed these to maximize consistency and simplicity within your block. You can see the full list of these in the [styling section](https://blockprotocol.org/roadmap#new-modules) of our documentation. Here's a rundown of the major categories:
 
-1.  Colors - a range of shades for neutrals, primary, secondary, tertiary, warning, and danger.
-1.  Typography – font family, base size, scaling ratios, and line heights
-1.  Spacing – base size and scaling ratios
-1.  Borders – weight, colors, and radius
-1.  Box shadows
-1.  Icon sizes
+1. Colors - a range of shades for neutrals, primary, secondary, tertiary, warning, and danger.
+1. Typography – font family, base size, scaling ratios, and line heights
+1. Spacing – base size and scaling ratios
+1. Borders – weight, colors, and radius
+1. Box shadows
+1. Icon sizes
 
 These styling variables can do a lot of the heavy lifting to help blocks match their surrounding environment. As a block developer, you should make sure the markup in your blocks uses these styling variables to make life easier for the people using your blocks.
 
@@ -153,9 +153,9 @@ Most blocks will begin their life without any data in them. Users should be able
 
 To make this easy and quick for users, show them an empty state with:
 
-1.  A clear call to action, such as "Add an image", or "Select a recipe"
-1.  Details about what kind of data your block will accept and any limitations, such as "Accepts PNG or JPEG under 25MB"
-1.  A clear button or input element where they can search for data, select from a list, upload a file, or add a URL
+1. A clear call to action, such as "Add an image", or "Select a recipe"
+1. Details about what kind of data your block will accept and any limitations, such as "Accepts PNG or JPEG under 25MB"
+1. A clear button or input element where they can search for data, select from a list, upload a file, or add a URL
 
 <img
   src="/blog/0001_block-design/DesignGuidelines_5.png"

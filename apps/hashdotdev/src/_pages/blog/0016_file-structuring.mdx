@@ -3,9 +3,9 @@ authors:
   - name: Alexander Kachkaev
     jobTitle: Contributor, HASH
     photo: blog/authors/alexander-kachkaev.webp
-  - name: David Wilkinson
+  - name: Dei Vilkinsons
     jobTitle: CEO & Founder, HASH
-    photo: blog/authors/david-wilkinson.jpg
+    photo: blog/authors/dei-vilkinsons.webp
 postPhoto: blog/0016_file-structuring/0016_file-structuring.webp
 title: "File structuring using fractal trees"
 subtitle: "Scalable code organizing for large projects and monorepos"
@@ -164,7 +164,7 @@ But when faced with the need to import from the same workspace, we have two opti
 
 1. use relative paths, e.g. `../../../foo/bar`
 2. create top-level aliases for some folders, e.g. `@/foo` for `my-workspace/src/foo`.
-   [Next.js supports this style](https://nextjs.org/docs/advanced-features/module-path-aliases); other types of workspaces can be configured to support it too.
+   [Next.js supports this style](https://nextjs.org/docs/pages/building-your-application/configuring/absolute-imports-and-module-aliases); other types of workspaces can be configured to support it too.
 
 The problem with the second approach is that it creates two correct ways of doing the same thing. If we are in `my-workspace/x/y.ts` and we want to import from `my-workspace/a/b.ts`, we can either write `../a/b` or `@/a/b`. Using `@/a/b` requires additional setup, which can become a source of tooling incompatibility, team debate, and other wastage of time. It is easier to always use relative paths.
 

@@ -20,11 +20,10 @@ import type {
   EntityTypeWithMetadata,
   OwnedById,
 } from "@local/hash-subgraph";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
-
-jest.setTimeout(60000);
 
 const logger = new Logger({
   mode: "dev",
@@ -90,14 +89,14 @@ describe("Block", () => {
       entityTypeId: dummyEntityType.schema.$id,
       relationships: createDefaultAuthorizationRelationships(authentication),
     });
-  });
 
-  afterAll(async () => {
-    await deleteKratosIdentity({
-      kratosIdentityId: testUser.kratosIdentityId,
-    });
+    return async () => {
+      await deleteKratosIdentity({
+        kratosIdentityId: testUser.kratosIdentityId,
+      });
 
-    await resetGraph();
+      await resetGraph();
+    };
   });
 
   it("can create a Block", async () => {

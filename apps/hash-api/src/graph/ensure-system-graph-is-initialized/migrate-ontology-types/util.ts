@@ -1,6 +1,7 @@
 /* eslint-disable no-param-reassign */
 import fs from "node:fs";
-import path from "node:path";
+import path, { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import type {
   Array,
@@ -46,6 +47,7 @@ import {
   generateLinkMapWithConsistentSelfReferences,
   generateTypeBaseUrl,
 } from "@local/hash-isomorphic-utils/ontology-types";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   BaseUrl,
   ConstructDataTypeParams,
@@ -62,10 +64,7 @@ import type {
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import {
   componentsFromVersionedUrl,
   extractBaseUrl,
@@ -99,6 +98,9 @@ import {
 } from "../system-webs-and-entities";
 import type { MigrationState } from "./types";
 import { upgradeEntityTypeDependencies } from "./util/upgrade-entity-type-dependencies";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const systemTypeDomain = "https://hash.ai";
 
@@ -1134,7 +1136,11 @@ export const getEntitiesByType: ImpureGraphFunction<
     })
     .then((resp) =>
       getRoots(
-        mapGraphApiSubgraphToSubgraph<EntityRootType>(resp.data.subgraph),
+        mapGraphApiSubgraphToSubgraph<EntityRootType>(
+          resp.data.subgraph,
+          null,
+          true,
+        ),
       ),
     );
 };
@@ -1161,7 +1167,7 @@ export const getExistingUsersAndOrgs: ImpureGraphFunction<
           ],
         },
         graphResolveDepths: zeroedGraphResolveDepths,
-        includeDrafts: true,
+        includeDrafts: false,
         temporalAxes: currentTimeInstantTemporalAxes,
       },
     }).then((subgraph) => getRoots(subgraph)),
@@ -1178,7 +1184,7 @@ export const getExistingUsersAndOrgs: ImpureGraphFunction<
           ],
         },
         graphResolveDepths: zeroedGraphResolveDepths,
-        includeDrafts: true,
+        includeDrafts: false,
         temporalAxes: currentTimeInstantTemporalAxes,
       },
     }).then((subgraph) => getRoots(subgraph)),

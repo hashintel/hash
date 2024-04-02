@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { Client } from "@opensearch-project/opensearch";
+import { describe, expect, it, vi } from "vitest";
 
 import { Logger } from "../logger";
 import { OpenSearch } from "./opensearch";
@@ -8,9 +9,9 @@ import { OpenSearch } from "./opensearch";
 const ENTITIES_SEARCH_INDEX = "entities";
 
 const stub = {
-  clear_scroll: jest.fn(),
-  search: jest.fn(),
-  scroll: jest.fn(),
+  clear_scroll: vi.fn(),
+  search: vi.fn(),
+  scroll: vi.fn(),
 };
 const openSearch: OpenSearch = new OpenSearch(
   stub as unknown as Client,

@@ -16,6 +16,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   ConstructEntityTypeParams,
   UserPermissionsOnEntityType,
@@ -35,10 +36,7 @@ import {
   linkEntityTypeUrl,
   ontologyTypeRecordIdToVersionedUrl,
 } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { publicUserAccountId } from "../../../auth/public-user-account-id";
 import type { ImpureGraphFunction } from "../../context-types";
@@ -188,7 +186,10 @@ export const getEntityTypes: ImpureGraphFunction<
   return await graphApi
     .getEntityTypesByQuery(actorId, { includeDrafts: false, ...query })
     .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(data);
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(
+        data,
+        actorId,
+      );
 
       return subgraph;
     });

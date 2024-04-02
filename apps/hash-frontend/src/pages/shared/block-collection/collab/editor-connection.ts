@@ -16,7 +16,7 @@ import {
   EntityStorePluginAction,
 } from "@local/hash-isomorphic-utils/entity-store-plugin";
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
-import { isString } from "lodash";
+import isString from "lodash/isString";
 import { collab, receiveTransaction, sendableSteps } from "prosemirror-collab";
 import { Node, Schema } from "prosemirror-model";
 import { EditorState, Plugin, Transaction } from "prosemirror-state";
