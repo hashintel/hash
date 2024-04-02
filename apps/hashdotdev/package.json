@@ -72,7 +72,7 @@
     "@types/gtag.js": "0.0.12",
     "@types/html-to-text": "9.0.4",
     "@types/md5": "2.3.2",
-    "@types/node": "20.12",
+    "@types/node": "20.12.2",
     "@types/prismjs": "1.26.0",
     "@types/react": "18.0.25",
     "@types/react-dom": "18.0.9",
@@ -85,6 +85,6 @@
     "ts-node": "10.9.1"
   },
   "engines": {
-    "node": ">=v20.12"
+    "node": ">=v20"
   }
 }
