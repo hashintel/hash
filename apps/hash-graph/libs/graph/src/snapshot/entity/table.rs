@@ -1,6 +1,9 @@
 use graph_types::{
     account::{CreatedById, EditionCreatedById},
-    knowledge::entity::{DraftId, EntityEditionId, EntityProperties, EntityUuid},
+    knowledge::{
+        entity::{DraftId, EntityEditionId, EntityProperties, EntityUuid, PropertyPath},
+        Confidence,
+    },
     owned_by_id::OwnedById,
     Embedding,
 };
@@ -35,6 +38,15 @@ pub struct EntityEditionRow {
     pub properties: EntityProperties,
     pub edition_created_by_id: EditionCreatedById,
     pub archived: bool,
+    pub confidence: Option<Confidence>,
+}
+
+#[derive(Debug, ToSql)]
+#[postgres(name = "entity_editions")]
+pub struct EntityPropertyRow {
+    pub entity_edition_id: EntityEditionId,
+    pub property_path: PropertyPath<'static>,
+    pub confidence: Option<Confidence>,
 }
 
 #[derive(Debug, ToSql)]
@@ -62,8 +74,10 @@ pub struct EntityLinkEdgeRow {
     pub entity_uuid: EntityUuid,
     pub left_web_id: OwnedById,
     pub left_entity_uuid: EntityUuid,
+    pub left_entity_confidence: Option<Confidence>,
     pub right_web_id: OwnedById,
     pub right_entity_uuid: EntityUuid,
+    pub right_entity_confidence: Option<Confidence>,
 }
 
 #[derive(Debug, ToSql)]
