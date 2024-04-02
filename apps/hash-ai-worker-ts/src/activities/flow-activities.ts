@@ -2,6 +2,7 @@ import type { GraphApi } from "@local/hash-graph-client";
 import type { ActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
 
 import { generateWebQueriesAction } from "./flow-activities/generate-web-queries-action";
+import { getFileFromUrlAction } from "./flow-activities/get-file-from-url-action";
 import { getWebPageByUrlAction } from "./flow-activities/get-web-page-by-url-action";
 import { inferEntitiesFromContentAction } from "./flow-activities/infer-entities-from-content-action";
 import { persistEntityAction } from "./flow-activities/persist-entity-action";
@@ -29,6 +30,11 @@ export const createFlowActionActivities = ({
     params: Omit<Parameters<typeof persistEntityAction>[0], "graphApiClient">,
   ) {
     return persistEntityAction({ ...params, graphApiClient });
+  },
+  async getFileFromUrlAction(
+    params: Omit<Parameters<typeof getFileFromUrlAction>[0], "graphApiClient">,
+  ) {
+    return getFileFromUrlAction({ ...params, graphApiClient });
   },
 });
 

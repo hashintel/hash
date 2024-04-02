@@ -12,6 +12,7 @@ const actionDefinitionIds = [
   "getWebPageByUrl",
   "inferEntitiesFromContent",
   "persistEntity",
+  "getFileFromUrl",
 ] as const;
 
 export type ActionDefinitionId = (typeof actionDefinitionIds)[number];
@@ -157,6 +158,26 @@ const actionDefinitionsAsConst = {
       {
         payloadKind: "Entity",
         name: "persistedEntity",
+        array: false,
+      },
+    ],
+  },
+  getFileFromUrl: {
+    actionDefinitionId: "getFileFromUrl",
+    name: "Get File From URL",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "url",
+        required: true,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        payloadKind: "Entity",
+        name: "fileEntity",
         array: false,
       },
     ],
