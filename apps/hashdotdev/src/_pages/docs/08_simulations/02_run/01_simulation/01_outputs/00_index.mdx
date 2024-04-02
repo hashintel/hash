@@ -3,7 +3,13 @@ title: "Simulation Outputs"
 description: "Accessing data and insights from simulation runs"
 ---
 
-**HASH lets users access their simulation outputs in a variety of built-in ways.** These include custom viewers for the 3D rendering, geospatial display, and charting/plotting of outputted simulation state.
+**HASH lets users access their simulation state and other outputs in a variety of built-in ways.** These include:
+
+1. custom **environment viewers** for the 3D rendering and geospatial display;
+1. **metrics viewers** for simulation lifetime analysis and individual timestep statistics; and
+1. **raw outputs**, visible for debugging in-hCore, or accessible via API.
+
+# Environment Viewers
 
 Using the playbar at the bottom of the right-hand view pane you can scrub forwards and backwards through computed simulation states.
 
@@ -11,17 +17,15 @@ Using the playbar at the bottom of the right-hand view pane you can scrub forwar
 
 **HASH natively supports rendering agents in 3D environments.** [Read more &gt;](3d-viewer)
 
-## Analysis
-
-**Analysis \(metrics and plots\) are in many cases the best way to view simulation outputs in HASH.** When you're not interested in the behavior of an individual agent, but aggregate trends over time or outcomes observed across the entire system, graphing metrics of interest can enable you to quickly identify and analyze outcomes.
-
 ## Geospatial
 
 **Agents can be rendered on a map-view of the world by providing them with latlong co-ordinates.** Various examples in the hIndex showcase this \(e.g. [Local Competition](https://simulation.hash.ai/@hash/local-competition), [Container Line](https://simulation.hash.ai/@hash/container-line-sim)\)
 
-## Raw Output
+# Metrics Viewers
 
-**The underlying data of any individual step is accessible from the 'Raw Output' tab.** This can be useful for debugging models during development, and allows for the raw state of simulations to be exported for further analysis.
+## Analyzer
+
+**Analysis \(metrics and plots\) are in many cases the best way to view simulation outputs in HASH.** When you're not interested in the behavior of an individual agent, but aggregate trends over time or outcomes observed across the entire system, graphing metrics of interest can enable you to quickly identify and analyze outcomes.
 
 ## Step Explorer
 
@@ -33,13 +37,12 @@ You can think of the Step Explorer as a counterpart to _Plots_, which tells you 
 
 Step Explorer is useful for understanding the shape of the data within your simulation, and it's also helpful for debugging and noticing agent outliers, without having to write code or JSON.
 
-## API
+# Raw Outputs
 
-**The HASH API allows for programmatic access to simulation outputs.** [Read more &gt;](/docs/simulations/run/simulation/outputs/api-1)
+## JSON Inspector
 
-## Custom Views
+**The underlying data of any individual step is accessible from the 'Raw Output' tab.** This can be useful for debugging models during development, and allows for the raw state of simulations to be exported for further analysis.
 
-<Hint style="info">
-  Allowing users to develop custom views is part of our public [product
-  roadmap](/roadmap).
-</Hint>
+## API Access
+
+**The HASH API allows for programmatic access to simulation outputs.** [Read more &gt;](/docs/simulations/api/access#hcloud-api)
