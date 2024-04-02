@@ -1,16 +1,22 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { extractVersion } from "@blockprotocol/type-system";
-import { AsteriskRegularIcon } from "@hashintel/design-system";
+import {
+  AsteriskRegularIcon,
+  EyeIconSolid,
+  PenToSquareIconSolid,
+} from "@hashintel/design-system";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
 import type { EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { isBaseUrl } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+import type { SxProps, Theme } from "@mui/material";
 import {
   Box,
   buttonClasses,
   Container,
   Fade,
+  Stack,
   styled,
   Typography,
 } from "@mui/material";
@@ -173,6 +179,12 @@ export const CreateButtons: FunctionComponent<{
   );
 };
 
+const typeIconSx: SxProps<Theme> = {
+  ml: 1,
+  fill: ({ palette }) => palette.common.white,
+  fontSize: 14,
+};
+
 const EntitiesPage: NextPageWithLayout = () => {
   const router = useRouter();
 
@@ -284,22 +296,42 @@ const EntitiesPage: NextPageWithLayout = () => {
         }}
       >
         <Container sx={{ maxWidth: { lg: contentMaxWidth } }}>
-          <Typography variant="h1" fontWeight="bold" my={3}>
-            <Box
-              display="inline-flex"
-              sx={({ palette }) => ({
-                svg: {
-                  fontSize: 40,
-                  mr: 2,
-                  color: palette.gray[70],
-                  verticalAlign: "middle",
-                },
-              })}
-            >
-              {isViewAllPagesPage ? <FilesLightIcon /> : <AsteriskLightIcon />}
-            </Box>
-            {pageTitle}
-          </Typography>
+          <Stack direction="row" justifyContent="space-between">
+            <Typography variant="h1" fontWeight="bold" my={3}>
+              <Box
+                display="inline-flex"
+                sx={({ palette }) => ({
+                  svg: {
+                    fontSize: 40,
+                    mr: 2,
+                    color: palette.gray[70],
+                    verticalAlign: "middle",
+                  },
+                })}
+              >
+                {isViewAllPagesPage ? (
+                  <FilesLightIcon />
+                ) : (
+                  <AsteriskLightIcon />
+                )}
+              </Box>
+              {pageTitle}
+            </Typography>
+            {entityType && (
+              <Button
+                href={generateLinkParameters(entityType.schema.$id).href}
+                size="small"
+                sx={{ alignSelf: "center" }}
+              >
+                {userPermissions?.edit ? "Edit" : "View"} Type
+                {userPermissions?.edit ? (
+                  <PenToSquareIconSolid sx={typeIconSx} />
+                ) : (
+                  <EyeIconSolid sx={typeIconSx} />
+                )}
+              </Button>
+            )}
+          </Stack>
           <Box display="flex" justifyContent="space-between">
             <Tabs value="all">
               <TabLink
