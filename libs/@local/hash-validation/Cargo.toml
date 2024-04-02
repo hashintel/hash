@@ -29,3 +29,6 @@ utoipa = { version = "4.2.0", optional = true }
 graph-test-data.workspace = true
 
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
+[features]
+utoipa = ["dep:utoipa"]
