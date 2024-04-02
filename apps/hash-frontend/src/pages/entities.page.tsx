@@ -45,6 +45,7 @@ import { Button } from "../shared/ui";
 import { TabLink } from "../shared/ui/tab-link";
 import { Tabs } from "../shared/ui/tabs";
 import { useUserPermissionsOnEntityType } from "../shared/use-user-permissions-on-entity-type";
+import type { Breadcrumb } from "./shared/breadcrumbs";
 import { EntitiesTable } from "./shared/entities-table";
 import { TopContextBar } from "./shared/top-context-bar";
 import { useEnabledFeatureFlags } from "./shared/use-enabled-feature-flags";
@@ -264,27 +265,36 @@ const EntitiesPage: NextPageWithLayout = () => {
     userPermissionsLoading,
   ]);
 
+  const breadcrumbs = useMemo(() => {
+    const rootCrumb = {
+      title: "Entities",
+      href: entityType ? "/entities" : undefined,
+      id: "entities",
+      icon: <AsteriskRegularIcon />,
+    };
+    const crumbs: Breadcrumb[] = [rootCrumb];
+
+    if (entityType) {
+      crumbs.push({
+        title: pageTitle,
+        id: pageTitle,
+        icon: isViewAllPagesPage ? (
+          <FilesRegularIcon />
+        ) : (
+          <AsteriskRegularIcon />
+        ),
+      });
+    }
+
+    return crumbs;
+  }, [entityType, isViewAllPagesPage, pageTitle]);
+
   return (
     <>
       <NextSeo title={pageTitle} />
       <TopContextBar
         defaultCrumbIcon={null}
-        crumbs={[
-          {
-            title: pageTitle,
-            href: isViewAllPagesPage
-              ? "/pages"
-              : `/entities${
-                  entityTypeId ? `?entityTypeIdOrBaseUrl=${entityTypeId}` : ""
-                }`,
-            id: entityTypeId ?? "entities",
-            icon: isViewAllPagesPage ? (
-              <FilesRegularIcon />
-            ) : (
-              <AsteriskRegularIcon />
-            ),
-          },
-        ]}
+        crumbs={breadcrumbs}
         scrollToTop={() => {}}
       />
       <Box
