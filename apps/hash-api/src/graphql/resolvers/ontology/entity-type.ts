@@ -4,11 +4,9 @@ import {
   fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { UserPermissionsOnEntityType } from "@local/hash-isomorphic-utils/types";
 import type {
   BaseUrl,
-  EntityTypeRootType,
   EntityTypeWithMetadata,
   OwnedById,
   Subgraph,
@@ -18,6 +16,7 @@ import {
   archiveEntityType,
   checkPermissionsOnEntityType,
   createEntityType,
+  getEntityTypes,
   getEntityTypeSubgraphById,
   unarchiveEntityType,
   updateEntityType,
@@ -89,23 +88,24 @@ export const queryEntityTypesResolver: ResolverFn<
     constrainsPropertiesOn,
     constrainsLinksOn,
     constrainsLinkDestinationsOn,
+    filter,
     inheritsFrom,
     latestOnly = true,
     includeArchived = false,
   },
-  { dataSources, authentication },
+  { dataSources, authentication, temporal },
   __,
 ) => {
   const { graphApi } = dataSources;
 
-  const { data } = await graphApi.getEntityTypesByQuery(
-    authentication.actorId,
-    {
+  const subgraph = await getEntityTypes({ graphApi }, authentication, {
+    query: {
       filter: latestOnly
         ? {
             equal: [{ path: ["version"] }, { parameter: "latest" }],
+            ...(filter ?? {}),
           }
-        : { all: [] },
+        : filter ?? { all: [] },
       graphResolveDepths: {
         ...zeroedGraphResolveDepths,
         constrainsValuesOn,
@@ -117,14 +117,9 @@ export const queryEntityTypesResolver: ResolverFn<
       temporalAxes: includeArchived
         ? fullTransactionTimeAxis
         : currentTimeInstantTemporalAxes,
-      includeDrafts: false,
     },
-  );
-
-  const subgraph = mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(
-    data,
-    authentication.actorId,
-  );
+    temporalClient: temporal,
+  });
 
   return subgraph;
 };
