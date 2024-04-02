@@ -40,9 +40,10 @@ use graph_types::{
         entity::{
             Entity, EntityEditionId, EntityEditionProvenanceMetadata, EntityEmbedding, EntityId,
             EntityMetadata, EntityProperties, EntityProvenanceMetadata, EntityRecordId,
-            EntityTemporalMetadata, EntityUuid,
+            EntityTemporalMetadata, EntityUuid, PropertyPath,
         },
         link::LinkData,
+        Confidence,
     },
     owned_by_id::OwnedById,
     Embedding,
@@ -131,6 +132,9 @@ use crate::rest::{
             EntityTemporalMetadata,
             EntityQueryToken,
             LinkData,
+
+            PropertyPath,
+            Confidence,
         )
     ),
     tags(
