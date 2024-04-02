@@ -21,15 +21,17 @@ runs:
       with:
         tool: wasm-pack@0.12.1
 
-    - name: yarn install
+    - name: Install yarn dependencies
       uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
+      env:
+        HUSKY: 0
       with:
         max_attempts: 3
         timeout_minutes: 10
         shell: bash
         command: |
           export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD="${{ inputs.playwright-deps == '' }}"
-          yarn install
+          yarn install --frozen-lockfile --prefer-offline
 
     - name: npx playwright install
       if: ${{ inputs.playwright-deps != '' }}
