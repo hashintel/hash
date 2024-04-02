@@ -178,6 +178,9 @@ jobs:
         with:
           tool: wasm-pack@0.12.1
 
+      - name: Warm up repository
+        uses: ./.github/actions/warm-up-repo
+
       - name: Install yarn dependencies
         uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
         env:
@@ -307,6 +310,9 @@ jobs:
         uses: taiki-e/install-action@3068b7dc83db15fc2676a3ce4ae1ebb878685f59 # v2.29.7
         with:
           tool: wasm-pack@0.12.1
+
+      - name: Warm up repository
+        uses: ./.github/actions/warm-up-repo
 
       - name: Install yarn dependencies
         uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
@@ -449,6 +455,9 @@ jobs:
         uses: taiki-e/install-action@3068b7dc83db15fc2676a3ce4ae1ebb878685f59 # v2.29.7
         with:
           tool: wasm-pack@0.12.1
+
+      - name: Warm up repository
+        uses: ./.github/actions/warm-up-repo
 
       - name: Install yarn dependencies
         uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0

@@ -115,6 +115,9 @@ jobs:
         with:
           tool: wasm-pack@0.12.1
 
+      - name: Warm up repository
+        uses: ./.github/actions/warm-up-repo
+
       - name: Install yarn dependencies
         uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
         env:
@@ -217,8 +220,8 @@ jobs:
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
-      - uses: ./.github/actions/warm-up-repo
-        if: ${{ success() || failure() }}
+      - name: Warm up repository
+        uses: ./.github/actions/warm-up-repo
 
       - name: Run yarn lint:dependency-version-consistency
         if: ${{ success() || failure() }}
