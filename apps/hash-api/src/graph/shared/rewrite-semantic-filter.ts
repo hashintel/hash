@@ -12,9 +12,7 @@ export const rewriteSemanticFilter = async (
   temporalClient?: Client,
 ) => {
   /**
-   * Convert any strings provided under a top-level 'cosineDistance' filter into embeddings
-   * This doesn't deal with 'cosineDistance' inside a nested filter (e.g. 'any'), so for now
-   * this is only good for single-string inputs.
+   * Convert any strings provided under a 'cosineDistance' filter into embeddings.
    */
   for (const [filterName, expression] of Object.entries(filter)) {
     if (filterName === "cosineDistance") {
