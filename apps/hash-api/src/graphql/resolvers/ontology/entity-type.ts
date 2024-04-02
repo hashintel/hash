@@ -98,14 +98,17 @@ export const queryEntityTypesResolver: ResolverFn<
 ) => {
   const { graphApi } = dataSources;
 
+  const latestOnlyFilter = {
+    equal: [{ path: ["version"] }, { parameter: "latest" }],
+  };
+
   const subgraph = await getEntityTypes({ graphApi }, authentication, {
     query: {
       filter: latestOnly
-        ? {
-            equal: [{ path: ["version"] }, { parameter: "latest" }],
-            ...(filter ?? {}),
-          }
-        : filter ?? { all: [] },
+        ? filter
+          ? { all: [filter, latestOnlyFilter] }
+          : latestOnlyFilter
+        : { all: [] },
       graphResolveDepths: {
         ...zeroedGraphResolveDepths,
         constrainsValuesOn,

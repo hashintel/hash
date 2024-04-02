@@ -8,9 +8,13 @@ import type { Client } from "@temporalio/client";
 import { genId } from "../../util";
 
 export const rewriteSemanticFilter = async (
-  filter: Filter,
+  filter?: Filter,
   temporalClient?: Client,
 ) => {
+  if (!filter) {
+    return;
+  }
+
   /**
    * Convert any strings provided under a 'cosineDistance' filter into embeddings.
    */
