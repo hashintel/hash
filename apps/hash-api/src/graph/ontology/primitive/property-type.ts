@@ -15,6 +15,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { ConstructPropertyTypeParams } from "@local/hash-isomorphic-utils/types";
 import type {
   OntologyTypeRecordId,
@@ -27,10 +28,7 @@ import type {
   Subgraph,
 } from "@local/hash-subgraph";
 import { ontologyTypeRecordIdToVersionedUrl } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { getWebShortname, isExternalTypeId } from "./util";
@@ -102,7 +100,7 @@ export const getPropertyTypes: ImpureGraphFunction<
   return await graphApi
     .getPropertyTypesByQuery(actorId, { includeDrafts: false, ...query })
     .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph(data);
+      const subgraph = mapGraphApiSubgraphToSubgraph(data, actorId);
       return subgraph as Subgraph<PropertyTypeRootType>;
     });
 };

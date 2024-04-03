@@ -157,15 +157,19 @@ fn name_property_path() -> EntityQueryPath<'static> {
 fn alice() -> EntityProperties {
     serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity")
 }
+
 fn bob() -> EntityProperties {
     serde_json::from_str(entity::PERSON_BOB_V1).expect("could not parse entity")
 }
+
 fn charles() -> EntityProperties {
     serde_json::from_str(entity::PERSON_CHARLES_V1).expect("could not parse entity")
 }
+
 fn page_v1() -> EntityProperties {
     serde_json::from_str(entity::PAGE_V1).expect("could not parse entity")
 }
+
 fn page_v2() -> EntityProperties {
     serde_json::from_str(entity::PAGE_V2).expect("could not parse entity")
 }

@@ -1,5 +1,6 @@
 import type { JsonValue } from "@blockprotocol/core";
 import {
+  ArrowUpRegularIcon,
   CaretDownSolidIcon,
   DashIcon,
   IconButton,
@@ -33,7 +34,6 @@ import {
   darkModeBorderColor,
   darkModeInputColor,
 } from "../../../../../shared/style-values";
-import { UpFromLineIcon } from "./inferred-entity/up-from-line-icon";
 
 // @todo consolidate this with generateEntityLabel in hash-frontend
 const generateEntityLabel = (
@@ -301,7 +301,7 @@ export const InferredEntity = ({
           operation === "update" ? (
             <Tooltip title="Update made to existing entity">
               <Box sx={{ height: 14 }}>
-                <UpFromLineIcon
+                <ArrowUpRegularIcon
                   sx={{
                     fill: ({ palette }) => palette.blue[60],
                     fontSize: 14,

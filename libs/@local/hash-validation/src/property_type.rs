@@ -2,16 +2,15 @@ use core::borrow::Borrow;
 use std::{collections::HashMap, num::NonZeroUsize};
 
 use error_stack::{bail, Report, ResultExt};
-use serde_json::Value as JsonValue;
+use graph_types::knowledge::entity::Property;
 use thiserror::Error;
 use type_system::{
     url::{BaseUrl, VersionedUrl},
-    Array, DataType, Object, OneOf, PropertyType, PropertyTypeReference, PropertyValues,
-    ValueOrArray,
+    Array, DataType, JsonSchemaValueType, Object, OneOf, PropertyType, PropertyTypeReference,
+    PropertyValues, ValueOrArray,
 };
 
 use crate::{
-    data_type::JsonSchemaValueType,
     error::{Actual, Expected},
     OntologyTypeProvider, Schema, Validate, ValidationProfile,
 };
@@ -59,7 +58,7 @@ pub enum PropertyValidationError {
     },
 }
 
-impl<P> Schema<JsonValue, P> for PropertyType
+impl<P> Schema<Property, P> for PropertyType
 where
     P: OntologyTypeProvider<Self> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -67,7 +66,7 @@ where
 
     async fn validate_value<'a>(
         &'a self,
-        value: &'a JsonValue,
+        value: &'a Property,
         profile: ValidationProfile,
         provider: &'a P,
     ) -> Result<(), Report<PropertyValidationError>> {
@@ -79,11 +78,11 @@ where
             .validate_value(value, profile, provider)
             .await
             .attach_lazy(|| Expected::PropertyType(self.clone()))
-            .attach_lazy(|| Actual::Json(value.clone()))
+            .attach_lazy(|| Actual::Property(value.clone()))
     }
 }
 
-impl<P> Validate<PropertyType, P> for JsonValue
+impl<P> Validate<PropertyType, P> for Property
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -99,7 +98,7 @@ where
     }
 }
 
-impl<P> Schema<JsonValue, P> for PropertyTypeReference
+impl<P> Schema<Property, P> for PropertyTypeReference
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -107,7 +106,7 @@ where
 
     async fn validate_value<'a>(
         &'a self,
-        value: &'a JsonValue,
+        value: &'a Property,
         profile: ValidationProfile,
         provider: &'a P,
     ) -> Result<(), Report<Self::Error>> {
@@ -122,11 +121,11 @@ where
             .validate_value(value, profile, provider)
             .await
             .attach_lazy(|| Expected::PropertyType(property_type.borrow().clone()))
-            .attach_lazy(|| Actual::Json(value.clone()))
+            .attach_lazy(|| Actual::Property(value.clone()))
     }
 }
 
-impl<P> Validate<PropertyTypeReference, P> for JsonValue
+impl<P> Validate<PropertyTypeReference, P> for Property
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -223,27 +222,27 @@ where
     }
 }
 
-impl<P, S> Schema<JsonValue, P> for ValueOrArray<S>
+impl<P, S> Schema<Property, P> for ValueOrArray<S>
 where
     P: Sync,
-    S: Schema<JsonValue, P, Error = PropertyValidationError> + Sync,
+    S: Schema<Property, P, Error = PropertyValidationError> + Sync,
 {
     type Error = PropertyValidationError;
 
     async fn validate_value<'a>(
         &'a self,
-        value: &'a JsonValue,
+        value: &'a Property,
         profile: ValidationProfile,
         provider: &'a P,
     ) -> Result<(), Report<Self::Error>> {
         match (value, self) {
             (value, Self::Value(schema)) => schema.validate_value(value, profile, provider).await,
-            (JsonValue::Array(array), Self::Array(schema)) => {
+            (Property::Array(array), Self::Array(schema)) => {
                 schema.validate_value(array, profile, provider).await
             }
             (_, Self::Array(_)) => {
                 bail!(PropertyValidationError::InvalidType {
-                    actual: JsonSchemaValueType::from(value),
+                    actual: value.json_type(),
                     expected: JsonSchemaValueType::Array,
                 })
             }
@@ -251,7 +250,7 @@ where
     }
 }
 
-impl<P, const MIN: usize> Schema<serde_json::Map<String, JsonValue>, P>
+impl<P, const MIN: usize> Schema<HashMap<BaseUrl, Property>, P>
     for Object<ValueOrArray<PropertyTypeReference>, MIN>
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
@@ -260,21 +259,14 @@ where
 
     async fn validate_value<'a>(
         &'a self,
-        value: &'a serde_json::Map<String, JsonValue>,
+        value: &'a HashMap<BaseUrl, Property>,
         profile: ValidationProfile,
         provider: &'a P,
     ) -> Result<(), Report<Self::Error>> {
         let mut status: Result<(), Report<Self::Error>> = Ok(());
 
         for (key, property) in value {
-            // TODO: Distinguish between format validation and content validation so it's possible
-            //       to directly use the correct type. `BaseUrl` should implement `Borrow<str>` so
-            //       it can be used for lookup in the object.
-            //   see https://linear.app/hash/issue/BP-33
-            let key = BaseUrl::new(key.clone()).change_context_lazy(|| {
-                PropertyValidationError::InvalidPropertyKey { key: key.clone() }
-            })?;
-            if let Some(object_schema) = self.properties().get(&key) {
+            if let Some(object_schema) = self.properties().get(key) {
                 if let Err(report) = object_schema
                     .validate_value(property, profile, provider)
                     .await
@@ -285,54 +277,6 @@ where
                             key: key.clone(),
                         })
                     );
-                }
-            } else {
-                extend_report!(
-                    status,
-                    PropertyValidationError::UnexpectedProperty { key: key.clone() }
-                );
-            }
-        }
-
-        if profile == ValidationProfile::Full {
-            for required_property in self.required() {
-                if !value.contains_key(required_property.as_str()) {
-                    extend_report!(
-                        status,
-                        PropertyValidationError::MissingRequiredProperty {
-                            key: required_property.clone(),
-                        }
-                    );
-                }
-            }
-        }
-
-        status
-    }
-}
-
-impl<P, const MIN: usize> Schema<HashMap<BaseUrl, JsonValue>, P>
-    for Object<ValueOrArray<PropertyTypeReference>, MIN>
-where
-    P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
-{
-    type Error = PropertyValidationError;
-
-    async fn validate_value<'a>(
-        &'a self,
-        value: &'a HashMap<BaseUrl, JsonValue>,
-        profile: ValidationProfile,
-        provider: &'a P,
-    ) -> Result<(), Report<Self::Error>> {
-        let mut status: Result<(), Report<Self::Error>> = Ok(());
-
-        for (key, property) in value {
-            if let Some(property_schema) = self.properties().get(key) {
-                if let Err(report) = property_schema
-                    .validate_value(property, profile, provider)
-                    .await
-                {
-                    extend_report!(status, report);
                 }
             } else {
                 extend_report!(
@@ -359,7 +303,7 @@ where
     }
 }
 
-impl<P> Schema<JsonValue, P> for PropertyValues
+impl<P> Schema<Property, P> for PropertyValues
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -367,7 +311,7 @@ where
 
     fn validate_value<'a>(
         &'a self,
-        value: &'a JsonValue,
+        value: &'a Property,
         profile: ValidationProfile,
         provider: &'a P,
     ) -> impl Future<Output = Result<(), Report<Self::Error>>> + Send + '_ {
@@ -379,34 +323,36 @@ where
                     .change_context(PropertyValidationError::DataTypeValidation {
                         id: reference.url().clone(),
                     }),
-                (JsonValue::Array(values), Self::ArrayOfPropertyValues(schema)) => {
+                (Property::Array(values), Self::ArrayOfPropertyValues(schema)) => {
                     schema.validate_value(values, profile, provider).await
                 }
-                (JsonValue::Object(object), Self::PropertyTypeObject(schema)) => {
+                (Property::Array(_), Self::PropertyTypeObject(_)) => {
+                    Err(Report::new(PropertyValidationError::InvalidType {
+                        actual: JsonSchemaValueType::Array,
+                        expected: JsonSchemaValueType::Object,
+                    }))
+                }
+                (Property::Object(object), Self::PropertyTypeObject(schema)) => {
                     schema.validate_value(object, profile, provider).await
                 }
-                (
-                    JsonValue::Null
-                    | JsonValue::Bool(_)
-                    | JsonValue::Number(_)
-                    | JsonValue::String(_)
-                    | JsonValue::Object(_),
-                    Self::ArrayOfPropertyValues(_),
-                ) => Err(Report::new(PropertyValidationError::InvalidType {
-                    actual: JsonSchemaValueType::from(value),
-                    expected: JsonSchemaValueType::Array,
-                })),
-                (
-                    JsonValue::Null
-                    | JsonValue::Bool(_)
-                    | JsonValue::Number(_)
-                    | JsonValue::String(_)
-                    | JsonValue::Array(_),
-                    Self::PropertyTypeObject(_),
-                ) => Err(Report::new(PropertyValidationError::InvalidType {
-                    actual: JsonSchemaValueType::from(value),
-                    expected: JsonSchemaValueType::Object,
-                })),
+                (Property::Object(_), Self::ArrayOfPropertyValues(_)) => {
+                    Err(Report::new(PropertyValidationError::InvalidType {
+                        actual: JsonSchemaValueType::Object,
+                        expected: JsonSchemaValueType::Array,
+                    }))
+                }
+                (Property::Value(_), Self::ArrayOfPropertyValues(_)) => {
+                    Err(Report::new(PropertyValidationError::InvalidType {
+                        actual: value.json_type(),
+                        expected: JsonSchemaValueType::Array,
+                    }))
+                }
+                (Property::Value(_), Self::PropertyTypeObject(_)) => {
+                    Err(Report::new(PropertyValidationError::InvalidType {
+                        actual: value.json_type(),
+                        expected: JsonSchemaValueType::Object,
+                    }))
+                }
             }
         })
     }

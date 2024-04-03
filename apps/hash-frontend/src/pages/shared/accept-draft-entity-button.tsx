@@ -73,7 +73,7 @@ export const AcceptDraftEntityButton: FunctionComponent<
   {
     draftEntity: Entity;
     draftEntitySubgraph: Subgraph<EntityRootType>;
-    onAcceptedEntity?: (acceptedEntity: Entity) => void;
+    onAcceptedEntity: ((acceptedEntity: Entity) => void) | null;
   } & ButtonProps
 > = ({
   draftEntity,
@@ -120,7 +120,16 @@ export const AcceptDraftEntityButton: FunctionComponent<
     return {};
   }, [draftEntity, draftEntitySubgraph]);
 
-  const hasLeftOrRightDraftEntity = !!draftLeftEntity || !!draftRightEntity;
+  const isUpdate =
+    !!draftEntity.metadata.provenance.firstNonDraftCreatedAtDecisionTime;
+
+  /**
+   * Links cannot be made live without live left && right entities, so if this is a draft update to a live link
+   * there must already be live left and right entities, and the user doesn't need to accept draft updates to
+   * those at the same time – they may be unwanted.
+   */
+  const hasLeftOrRightDraftEntityThatMustBeUndrafted =
+    !isUpdate && (!!draftLeftEntity || !!draftRightEntity);
 
   const [updateEntity] = useMutation<
     UpdateEntityMutation,
@@ -132,6 +141,10 @@ export const AcceptDraftEntityButton: FunctionComponent<
   const { markNotificationAsRead } = useNotificationEntities();
   const { notifications } = useNotificationsWithLinks();
 
+  /**
+   * Notifications are no longer created for draft entities, but they will exist for existing draft entities.
+   * Can be removed in the future – change to stop notifs for draft entities made in March 2024.
+   */
   const markRelatedGraphChangeNotificationsAsRead = useCallback(
     async (params: { draftEntity: Entity }) => {
       const relatedGraphChangeNotifications =
@@ -181,7 +194,7 @@ export const AcceptDraftEntityButton: FunctionComponent<
   );
 
   const handleAccept = useCallback(async () => {
-    if (hasLeftOrRightDraftEntity) {
+    if (hasLeftOrRightDraftEntityThatMustBeUndrafted) {
       setShowDraftLinkEntityWithDraftLeftOrRightEntityWarning(true);
     } else {
       const acceptedEntity = await acceptDraftEntity({ draftEntity });
@@ -189,7 +202,7 @@ export const AcceptDraftEntityButton: FunctionComponent<
     }
   }, [
     onAcceptedEntity,
-    hasLeftOrRightDraftEntity,
+    hasLeftOrRightDraftEntityThatMustBeUndrafted,
     acceptDraftEntity,
     draftEntity,
   ]);

@@ -5,8 +5,8 @@ use crate::{
     store::postgres::query::{
         table::{
             Column, EntityEditions, EntityEmbeddings, EntityHasLeftEntity, EntityHasRightEntity,
-            EntityIds, EntityIsOfTypeIds, EntityTemporalMetadata, JsonField, ReferenceTable,
-            Relation,
+            EntityIds, EntityIsOfTypeIds, EntityProperties, EntityTemporalMetadata, JsonField,
+            ReferenceTable, Relation,
         },
         PostgresQueryPath,
     },
@@ -30,7 +30,13 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 vec![Relation::EntityIds]
             }
             Self::Embedding => vec![Relation::EntityEmbeddings],
-            Self::Properties(_) | Self::EditionCreatedById | Self::Archived => {
+            Self::LeftEntityConfidence => vec![Relation::LeftEntity],
+            Self::RightEntityConfidence => vec![Relation::RightEntity],
+            Self::PropertyPaths | Self::PropertyConfidences => vec![Relation::EntityProperties],
+            Self::Properties(_)
+            | Self::EditionCreatedById
+            | Self::Archived
+            | Self::EntityConfidence => {
                 vec![Relation::EntityEditions]
             }
             Self::TypeBaseUrls | Self::TypeVersions => vec![Relation::EntityIsOfTypes],
@@ -149,6 +155,15 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                     ))))
                 },
             ),
+            Self::EntityConfidence => Column::EntityEditions(EntityEditions::Confidence),
+            Self::LeftEntityConfidence => {
+                Column::EntityHasLeftEntity(EntityHasLeftEntity::Confidence)
+            }
+            Self::RightEntityConfidence => {
+                Column::EntityHasRightEntity(EntityHasRightEntity::Confidence)
+            }
+            Self::PropertyPaths => Column::EntityProperties(EntityProperties::PropertyPaths),
+            Self::PropertyConfidences => Column::EntityProperties(EntityProperties::Confidences),
         }
     }
 }

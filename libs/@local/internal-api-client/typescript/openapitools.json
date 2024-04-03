@@ -8,7 +8,7 @@
       "ts": {
         "generateAliasAsModel": true,
         "generatorName": "typescript-axios",
-        "output": "#{cwd}/typescript",
+        "output": "#{cwd}",
         "inputSpec": "http://host.docker.internal:5002/openapi.json",
         "additionalProperties": {
           "npmName": "@local/internal-api-client",

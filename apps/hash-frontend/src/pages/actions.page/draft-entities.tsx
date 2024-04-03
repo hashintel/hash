@@ -79,7 +79,8 @@ export const DraftEntities: FunctionComponent<{
 
     const derived = draftEntities.map((entity) => {
       const creator = actors.find(
-        (actor) => actor.accountId === entity.metadata.provenance.createdById,
+        (actor) =>
+          actor.accountId === entity.metadata.provenance.edition.createdById,
       );
 
       if (!creator) {
@@ -197,10 +198,10 @@ export const DraftEntities: FunctionComponent<{
             filterState,
           }).sort((a, b) => {
             const aCreatedAt = new Date(
-              a.entity.metadata.provenance.createdAtDecisionTime,
+              a.entity.metadata.temporalVersioning.decisionTime.start.limit,
             );
             const bCreatedAt = new Date(
-              b.entity.metadata.provenance.createdAtDecisionTime,
+              b.entity.metadata.temporalVersioning.decisionTime.start.limit,
             );
 
             return aCreatedAt.getTime() === bCreatedAt.getTime()

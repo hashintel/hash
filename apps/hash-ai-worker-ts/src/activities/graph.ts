@@ -16,6 +16,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   AccountId,
   DataTypeRootType,
@@ -35,7 +36,6 @@ import {
   getEntities,
   getEntityTypes,
   getPropertyTypes,
-  mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
 
 export type EntityQueryResponse = {
@@ -63,13 +63,13 @@ export const createGraphActivities = ({
             ],
           },
           graphResolveDepths: zeroedGraphResolveDepths,
-          includeDrafts: true,
+          includeDrafts: false,
           temporalAxes: currentTimeInstantTemporalAxes,
         },
       })
       .then((response) => {
         const subgraph: Subgraph<EntityRootType> =
-          mapGraphApiSubgraphToSubgraph(response.data.subgraph);
+          mapGraphApiSubgraphToSubgraph(response.data.subgraph, null);
         return subgraph.roots.map(
           (root) =>
             extractEntityUuidFromEntityId(root.baseId) as Uuid as AccountId,
@@ -85,7 +85,12 @@ export const createGraphActivities = ({
   }): Promise<Subgraph<DataTypeRootType>> {
     return graphApiClient
       .getDataTypesByQuery(params.authentication.actorId, params.query)
-      .then((response) => mapGraphApiSubgraphToSubgraph(response.data));
+      .then((response) =>
+        mapGraphApiSubgraphToSubgraph(
+          response.data,
+          params.authentication.actorId,
+        ),
+      );
   },
 
   async getPropertyTypesByQuery(params: {
@@ -96,7 +101,12 @@ export const createGraphActivities = ({
   }): Promise<Subgraph<PropertyTypeRootType>> {
     return graphApiClient
       .getPropertyTypesByQuery(params.authentication.actorId, params.query)
-      .then((response) => mapGraphApiSubgraphToSubgraph(response.data));
+      .then((response) =>
+        mapGraphApiSubgraphToSubgraph(
+          response.data,
+          params.authentication.actorId,
+        ),
+      );
   },
 
   async getEntityTypesByQuery(params: {
@@ -107,7 +117,12 @@ export const createGraphActivities = ({
   }): Promise<Subgraph<EntityTypeRootType>> {
     return graphApiClient
       .getEntityTypesByQuery(params.authentication.actorId, params.query)
-      .then((response) => mapGraphApiSubgraphToSubgraph(response.data));
+      .then((response) =>
+        mapGraphApiSubgraphToSubgraph(
+          response.data,
+          params.authentication.actorId,
+        ),
+      );
   },
 
   async getEntitiesByQuery(params: {
@@ -125,7 +140,10 @@ export const createGraphActivities = ({
         cursor: params.cursor,
       })
       .then((response) => ({
-        subgraph: mapGraphApiSubgraphToSubgraph(response.data.subgraph),
+        subgraph: mapGraphApiSubgraphToSubgraph(
+          response.data.subgraph,
+          params.authentication.actorId,
+        ),
         cursor: response.data.cursor,
       }));
   },

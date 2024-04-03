@@ -21,7 +21,7 @@ const EntityListItem: FunctionComponent<{
   entityWithSources: EntityWithSources;
 }> = ({ entityWithSources }) => {
   const { entity, sourceWebPages } = entityWithSources;
-  const href = useEntityHref(entity);
+  const href = useEntityHref(entity, true);
 
   return (
     <Typography component="li" sx={{ marginBottom: 2 }}>

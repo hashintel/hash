@@ -1,4 +1,4 @@
-use core::{borrow::Borrow, fmt};
+use core::borrow::Borrow;
 use std::{
     net::{Ipv4Addr, Ipv6Addr},
     str::FromStr,
@@ -7,11 +7,12 @@ use std::{
 
 use email_address::EmailAddress;
 use error_stack::{bail, ensure, Report, ResultExt};
+use graph_types::knowledge::entity::Property;
 use iso8601_duration::Duration;
 use regex::Regex;
 use serde_json::Value as JsonValue;
 use thiserror::Error;
-use type_system::{url::VersionedUrl, DataType, DataTypeReference};
+use type_system::{url::VersionedUrl, DataType, DataTypeReference, JsonSchemaValueType};
 use url::Url;
 use uuid::Uuid;
 
@@ -20,54 +21,16 @@ use crate::{
     OntologyTypeProvider, Schema, Validate, ValidationProfile,
 };
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum JsonSchemaValueType {
-    Null,
-    Boolean,
-    Number,
-    Integer,
-    String,
-    Array,
-    Object,
-}
-
-impl fmt::Display for JsonSchemaValueType {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Null => fmt.write_str("null"),
-            Self::Boolean => fmt.write_str("boolean"),
-            Self::Number => fmt.write_str("number"),
-            Self::Integer => fmt.write_str("integer"),
-            Self::String => fmt.write_str("string"),
-            Self::Array => fmt.write_str("array"),
-            Self::Object => fmt.write_str("object"),
-        }
-    }
-}
-
-impl From<&JsonValue> for JsonSchemaValueType {
-    fn from(value: &JsonValue) -> Self {
-        match value {
-            JsonValue::Null => Self::Null,
-            JsonValue::Bool(_) => Self::Boolean,
-            JsonValue::Number(_) => Self::Number,
-            JsonValue::String(_) => Self::String,
-            JsonValue::Array(_) => Self::Array,
-            JsonValue::Object(_) => Self::Object,
-        }
-    }
-}
-
 #[derive(Debug, Error)]
 pub enum DataTypeConstraint {
     #[error("the provided value is not equal to the expected value")]
     Const {
-        actual: JsonValue,
+        actual: Property,
         expected: JsonValue,
     },
     #[error("the provided value is not one of the expected values")]
     Enum {
-        actual: JsonValue,
+        actual: Property,
         expected: JsonValue,
     },
     #[error(
@@ -75,7 +38,7 @@ pub enum DataTypeConstraint {
          expected `{expected}`"
     )]
     Minimum {
-        actual: JsonValue,
+        actual: Property,
         expected: JsonValue,
     },
     #[error(
@@ -83,7 +46,7 @@ pub enum DataTypeConstraint {
          expected `{expected}`"
     )]
     Maximum {
-        actual: JsonValue,
+        actual: Property,
         expected: JsonValue,
     },
     #[error(
@@ -91,7 +54,7 @@ pub enum DataTypeConstraint {
          `{expected}`"
     )]
     ExclusiveMinimum {
-        actual: JsonValue,
+        actual: Property,
         expected: JsonValue,
     },
     #[error(
@@ -99,7 +62,7 @@ pub enum DataTypeConstraint {
          `{expected}`"
     )]
     ExclusiveMaximum {
-        actual: JsonValue,
+        actual: Property,
         expected: JsonValue,
     },
     #[error(
@@ -107,7 +70,7 @@ pub enum DataTypeConstraint {
          `{expected}`"
     )]
     MultipleOf {
-        actual: JsonValue,
+        actual: Property,
         expected: JsonValue,
     },
     #[error(
@@ -187,7 +150,7 @@ where
                 ensure!(
                     number >= minimum,
                     Report::new(DataTypeConstraint::Minimum {
-                        actual: value.to_owned(),
+                        actual: Property::Value(value.clone()),
                         expected: additional_property.clone(),
                     })
                     .change_context(DataValidationError::ConstraintUnfulfilled)
@@ -197,7 +160,7 @@ where
                 ensure!(
                     number <= maximum,
                     Report::new(DataTypeConstraint::Maximum {
-                        actual: value.to_owned(),
+                        actual: Property::Value(value.clone()),
                         expected: additional_property.clone(),
                     })
                     .change_context(DataValidationError::ConstraintUnfulfilled)
@@ -207,7 +170,7 @@ where
                 ensure!(
                     number > minimum,
                     Report::new(DataTypeConstraint::ExclusiveMinimum {
-                        actual: value.clone(),
+                        actual: Property::Value(value.clone()),
                         expected: additional_property.clone(),
                     })
                     .change_context(DataValidationError::ConstraintUnfulfilled)
@@ -217,7 +180,7 @@ where
                 ensure!(
                     number < maximum,
                     Report::new(DataTypeConstraint::ExclusiveMaximum {
-                        actual: value.clone(),
+                        actual: Property::Value(value.clone()),
                         expected: additional_property.clone(),
                     })
                     .change_context(DataValidationError::ConstraintUnfulfilled)
@@ -227,7 +190,7 @@ where
                 ensure!(
                     multiple_of(&number, &multiple),
                     Report::new(DataTypeConstraint::MultipleOf {
-                        actual: value.clone(),
+                        actual: Property::Value(value.clone()),
                         expected: additional_property.clone(),
                     })
                     .change_context(DataValidationError::ConstraintUnfulfilled)
@@ -456,32 +419,17 @@ fn check_string_additional_property<'a>(
     Ok(())
 }
 
-impl<P: Sync> Schema<JsonValue, P> for DataType {
+impl<P: Sync> Schema<Property, P> for DataType {
     type Error = DataValidationError;
 
-    #[expect(clippy::too_many_lines)]
     async fn validate_value<'a>(
         &'a self,
-        value: &'a JsonValue,
+        property: &'a Property,
         _: ValidationProfile,
         _: &'a P,
     ) -> Result<(), Report<DataValidationError>> {
-        match self.json_type() {
-            "null" => ensure!(
-                value.is_null(),
-                DataValidationError::InvalidType {
-                    actual: JsonSchemaValueType::from(value),
-                    expected: JsonSchemaValueType::Null,
-                }
-            ),
-            "boolean" => ensure!(
-                value.is_boolean(),
-                DataValidationError::InvalidType {
-                    actual: JsonSchemaValueType::from(value),
-                    expected: JsonSchemaValueType::Boolean,
-                }
-            ),
-            "number" => {
+        match (self.json_type(), property) {
+            (JsonSchemaValueType::Number, Property::Value(value)) => {
                 #[expect(clippy::float_arithmetic)]
                 check_numeric_additional_property(
                     value,
@@ -491,16 +439,17 @@ impl<P: Sync> Schema<JsonValue, P> for DataType {
                     |number, multiple| number % multiple < f64::EPSILON,
                 )?;
             }
-            "integer" => {
+            (JsonSchemaValueType::Integer, Property::Value(value)) => {
                 check_numeric_additional_property(
                     value,
                     self.additional_properties(),
                     JsonSchemaValueType::Integer,
                     JsonValue::as_i64,
+                    #[expect(clippy::integer_division_remainder_used)]
                     |number, multiple| number % multiple == 0,
                 )?;
             }
-            "string" => {
+            (JsonSchemaValueType::String, Property::Value(value)) => {
                 check_string_additional_property(
                     value,
                     self.additional_properties(),
@@ -508,33 +457,21 @@ impl<P: Sync> Schema<JsonValue, P> for DataType {
                     JsonValue::as_str,
                 )?;
             }
-            "array" => ensure!(
-                value.is_array(),
+            (expected, _) => ensure!(
+                property.json_type() == expected,
                 DataValidationError::InvalidType {
-                    actual: JsonSchemaValueType::from(value),
-                    expected: JsonSchemaValueType::Array,
+                    actual: property.json_type(),
+                    expected,
                 }
             ),
-            "object" => ensure!(
-                value.is_object(),
-                DataValidationError::InvalidType {
-                    actual: JsonSchemaValueType::from(value),
-                    expected: JsonSchemaValueType::Object,
-                }
-            ),
-            _ => {
-                bail!(DataValidationError::UnknownType {
-                    schema: self.json_type().to_owned()
-                });
-            }
         }
 
         for (additional_key, additional_property) in self.additional_properties() {
             match additional_key.as_str() {
                 "const" => ensure!(
-                    value == additional_property,
+                    property == additional_property,
                     Report::new(DataTypeConstraint::Const {
-                        actual: value.clone(),
+                        actual: property.clone(),
                         expected: additional_property.clone(),
                     })
                     .change_context(DataValidationError::ConstraintUnfulfilled)
@@ -543,18 +480,19 @@ impl<P: Sync> Schema<JsonValue, P> for DataType {
                     ensure!(
                         additional_property
                             .as_array()
-                            .is_some_and(|array| array.contains(value)),
+                            .is_some_and(|array| array.iter().any(|expected| property == expected)),
                         Report::new(DataTypeConstraint::Enum {
-                            actual: value.clone(),
+                            actual: property.clone(),
                             expected: additional_property.clone(),
                         })
                         .change_context(DataValidationError::ConstraintUnfulfilled)
                     );
                 }
                 "minimum" | "maximum" | "exclusiveMinimum" | "exclusiveMaximum" | "multipleOf"
-                    if self.json_type() == "integer" || self.json_type() == "number" => {}
+                    if self.json_type() == JsonSchemaValueType::Integer
+                        || self.json_type() == JsonSchemaValueType::Number => {}
                 "format" | "minLength" | "maxLength" | "pattern"
-                    if self.json_type() == "string" => {}
+                    if self.json_type() == JsonSchemaValueType::String => {}
                 "label" => {
                     // Label does not have to be validated
                 }
@@ -571,7 +509,7 @@ impl<P: Sync> Schema<JsonValue, P> for DataType {
     }
 }
 
-impl Validate<DataType, ()> for JsonValue {
+impl Validate<DataType, ()> for Property {
     type Error = DataValidationError;
 
     async fn validate(
@@ -584,7 +522,7 @@ impl Validate<DataType, ()> for JsonValue {
     }
 }
 
-impl<P> Schema<JsonValue, P> for DataTypeReference
+impl<P> Schema<Property, P> for DataTypeReference
 where
     P: OntologyTypeProvider<DataType> + Sync,
 {
@@ -592,7 +530,7 @@ where
 
     async fn validate_value<'a>(
         &'a self,
-        value: &'a JsonValue,
+        value: &'a Property,
         profile: ValidationProfile,
         provider: &'a P,
     ) -> Result<(), Report<Self::Error>> {
@@ -607,11 +545,11 @@ where
             .validate_value(value, profile, provider)
             .await
             .attach_lazy(|| Expected::DataType(data_type.borrow().clone()))
-            .attach_lazy(|| Actual::Json(value.clone()))
+            .attach_lazy(|| Actual::Property(value.clone()))
     }
 }
 
-impl<P> Validate<DataTypeReference, P> for JsonValue
+impl<P> Validate<DataTypeReference, P> for Property
 where
     P: OntologyTypeProvider<DataType> + Sync,
 {

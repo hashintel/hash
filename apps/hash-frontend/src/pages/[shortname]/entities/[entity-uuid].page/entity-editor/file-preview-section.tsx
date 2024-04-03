@@ -58,7 +58,7 @@ const ReplaceFile = ({
   isImage: boolean;
   close: () => void;
 }) => {
-  const { entitySubgraph, replaceWithLatestDbVersion } = useEntityEditor();
+  const { entitySubgraph, onEntityUpdated } = useEntityEditor();
   const { refetch: refetchUser } = useAuthInfo();
   const [fileBeingUploaded, setFileBeingUploaded] = useState<File | null>(null);
 
@@ -80,7 +80,7 @@ const ReplaceFile = ({
   const onFileProvided = async (file: File) => {
     setFileBeingUploaded(file);
     try {
-      await uploadFile({
+      const response = await uploadFile({
         fileData: {
           file,
           description,
@@ -94,7 +94,13 @@ const ReplaceFile = ({
           entity.metadata.recordId.entityId,
         ),
       });
-      await replaceWithLatestDbVersion();
+
+      if (response.status === "complete") {
+        const {
+          createdEntities: { fileEntity },
+        } = response;
+        onEntityUpdated?.(fileEntity);
+      }
     } finally {
       setFileBeingUploaded(null);
     }

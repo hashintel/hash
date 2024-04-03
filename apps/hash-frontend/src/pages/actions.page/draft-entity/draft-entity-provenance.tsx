@@ -30,14 +30,13 @@ export const DraftEntityProvenance: FunctionComponent<{
     accountIds: [editionCreatedById],
   });
 
-  /** @todo: account for machine users */
   const createdBy = useMemo(
     () => actors?.find(({ accountId }) => accountId === editionCreatedById),
     [actors, editionCreatedById],
   );
 
   const createdAt = useMemo(
-    () => new Date(entity.metadata.provenance.createdAtDecisionTime),
+    () => new Date(entity.metadata.temporalVersioning.decisionTime.start.limit),
     [entity],
   );
 

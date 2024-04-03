@@ -16,8 +16,8 @@ export interface EntityEditorProps extends DraftLinkState {
   isDirty: boolean;
   entitySubgraph: Subgraph<EntityRootType>;
   setEntity: (entity: Entity) => void;
-  replaceWithLatestDbVersion: () => Promise<void>;
   readonly: boolean;
+  onEntityUpdated: ((entity: Entity) => void) | null;
 }
 
 export const EntityEditor = (props: EntityEditorProps) => {
@@ -27,6 +27,17 @@ export const EntityEditor = (props: EntityEditorProps) => {
 
   const entity = useMemo(() => {
     const roots = getRoots(entitySubgraph);
+
+    if (roots.length > 1) {
+      /**
+       * If this is thrown then the entitySubgraph is probably the result of a query for an entityId without a draftId,
+       * where there is a live entity and one or more draft updates in the database.
+       * Any query without an entityId should EXCLUDE entities with a draftId to ensure only the live version is returned.
+       */
+      throw new Error(
+        `More than one root entity passed to entity editor, with ids: ${roots.map((root) => root.metadata.recordId.entityId).join(", ")}`,
+      );
+    }
 
     const [rootEntity] = roots;
 

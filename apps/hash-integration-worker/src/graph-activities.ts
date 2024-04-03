@@ -5,6 +5,7 @@ import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
 import type {
   AccountId,
@@ -13,7 +14,6 @@ import type {
   EntityRootType,
   Subgraph,
 } from "@local/hash-subgraph";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-subgraph/stdlib";
 
 import { getLatestEntityById } from "./shared/graph-requests";
 
@@ -69,7 +69,10 @@ export const getSubgraphFromBlockProtocolQueryEntity = async ({
     },
   );
 
-  return mapGraphApiSubgraphToSubgraph<EntityRootType>(response.data.subgraph);
+  return mapGraphApiSubgraphToSubgraph<EntityRootType>(
+    response.data.subgraph,
+    authentication.actorId,
+  );
 };
 
 export const createGraphActivities = ({

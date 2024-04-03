@@ -47,6 +47,7 @@ import {
   generateLinkMapWithConsistentSelfReferences,
   generateTypeBaseUrl,
 } from "@local/hash-isomorphic-utils/ontology-types";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   BaseUrl,
   ConstructDataTypeParams,
@@ -63,10 +64,7 @@ import type {
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import {
   componentsFromVersionedUrl,
   extractBaseUrl,
@@ -1141,7 +1139,11 @@ export const getEntitiesByType: ImpureGraphFunction<
     })
     .then((resp) =>
       getRoots(
-        mapGraphApiSubgraphToSubgraph<EntityRootType>(resp.data.subgraph),
+        mapGraphApiSubgraphToSubgraph<EntityRootType>(
+          resp.data.subgraph,
+          null,
+          true,
+        ),
       ),
     );
 };
@@ -1168,7 +1170,7 @@ export const getExistingUsersAndOrgs: ImpureGraphFunction<
           ],
         },
         graphResolveDepths: zeroedGraphResolveDepths,
-        includeDrafts: true,
+        includeDrafts: false,
         temporalAxes: currentTimeInstantTemporalAxes,
       },
     }).then((subgraph) => getRoots(subgraph)),
@@ -1185,7 +1187,7 @@ export const getExistingUsersAndOrgs: ImpureGraphFunction<
           ],
         },
         graphResolveDepths: zeroedGraphResolveDepths,
-        includeDrafts: true,
+        includeDrafts: false,
         temporalAxes: currentTimeInstantTemporalAxes,
       },
     }).then((subgraph) => getRoots(subgraph)),

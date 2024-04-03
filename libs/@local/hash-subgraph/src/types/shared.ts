@@ -23,6 +23,8 @@ export type EntityProvenanceMetadata = {
   createdAtTransactionTime: CreatedAtTransactionTime;
   createdAtDecisionTime: CreatedAtDecisionTime;
   edition: EntityEditionProvenanceMetadata;
+  firstNonDraftCreatedAtDecisionTime?: CreatedAtDecisionTime;
+  firstNonDraftCreatedAtTransactionTime?: CreatedAtTransactionTime;
 };
 
 export type EntityEditionProvenanceMetadata = {

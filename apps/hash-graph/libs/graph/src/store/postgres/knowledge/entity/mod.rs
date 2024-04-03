@@ -24,7 +24,7 @@ use graph_types::{
         entity::{
             DraftId, Entity, EntityEditionId, EntityEditionProvenanceMetadata, EntityEmbedding,
             EntityId, EntityMetadata, EntityProperties, EntityProvenanceMetadata, EntityRecordId,
-            EntityTemporalMetadata, EntityUuid,
+            EntityTemporalMetadata, EntityUuid, PropertyPath,
         },
         link::LinkData,
     },
@@ -286,6 +286,7 @@ impl<C: AsClient> PostgresStore<C> {
                 "
                     DELETE FROM entity_has_left_entity;
                     DELETE FROM entity_has_right_entity;
+                    DELETE FROM entity_property;
                     DELETE FROM entity_is_of_type;
                     DELETE FROM entity_temporal_metadata;
                     DELETE FROM entity_editions;
@@ -615,6 +616,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 },
                 temporal_versioning,
                 archived: false,
+                confidence: None,
+                property_confidence: HashMap::new(),
             };
             if let Some(temporal_client) = temporal_client {
                 temporal_client
@@ -901,6 +904,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     },
                     temporal_versioning,
                     archived: false,
+                    confidence: None,
+                    property_confidence: HashMap::new(),
                 },
             )
             .collect())
@@ -1144,15 +1149,69 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .is_some();
         let draft = params.draft.unwrap_or(was_draft_before);
         let archived = params.archived.unwrap_or(previous_entity.metadata.archived);
-        let entity_type_ids = if params.entity_type_ids.is_empty() {
-            previous_entity.metadata.entity_type_ids
+        let (entity_type_ids, entity_types_updated) = if params.entity_type_ids.is_empty() {
+            (previous_entity.metadata.entity_type_ids, false)
         } else {
-            params.entity_type_ids
+            let previous_entity_types = previous_entity
+                .metadata
+                .entity_type_ids
+                .iter()
+                .collect::<HashSet<_>>();
+            let new_entity_types = params.entity_type_ids.iter().collect::<HashSet<_>>();
+
+            let added_types = new_entity_types.difference(&previous_entity_types);
+            let removed_types = previous_entity_types.difference(&new_entity_types);
+
+            let mut has_changed = false;
+            for entity_type_id in added_types.chain(removed_types) {
+                has_changed = true;
+
+                let _entity_type_id = EntityTypeId::from_url(entity_type_id);
+                // TODO: Re-enable this check once the migration in the Node API properly assigns
+                //       the `Instantiate` permissions.
+                //   see https://linear.app/hash/issue/H-2468
+                // authorization_api
+                //     .check_entity_type_permission(
+                //         actor_id,
+                //         EntityTypePermission::Instantiate,
+                //         entity_type_id,
+                //         Consistency::FullyConsistent,
+                //     )
+                //     .await
+                //     .change_context(UpdateError)?
+                //     .assert_permission()
+                //     .change_context(UpdateError)
+                //     .attach(StatusCode::PermissionDenied)?;
+            }
+
+            (params.entity_type_ids, has_changed)
         };
         let mut properties =
-            serde_json::to_value(previous_entity.properties).change_context(UpdateError)?;
+            serde_json::to_value(&previous_entity.properties).change_context(UpdateError)?;
         patch(&mut properties, &params.properties).change_context(UpdateError)?;
         let properties = serde_json::from_value(properties).change_context(UpdateError)?;
+        #[expect(clippy::needless_collect, reason = "Will be used later")]
+        let diff = previous_entity
+            .properties
+            .diff(&properties, &mut PropertyPath::default())
+            .collect::<Vec<_>>();
+
+        if diff.is_empty()
+            && was_draft_before == draft
+            && archived == previous_entity.metadata.archived
+            && !entity_types_updated
+        {
+            // No changes were made to the entity.
+            return Ok(EntityMetadata {
+                record_id: previous_entity.metadata.record_id,
+                temporal_versioning: previous_entity.metadata.temporal_versioning,
+                entity_type_ids,
+                provenance: previous_entity.metadata.provenance,
+                archived,
+                confidence: previous_entity.metadata.confidence,
+                property_confidence: previous_entity.metadata.property_confidence,
+            });
+        }
 
         let link_data = previous_entity.link_data;
 
@@ -1287,6 +1346,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     created_by_id: EditionCreatedById::new(actor_id),
                 },
             },
+            confidence: None,
+            property_confidence: HashMap::new(),
             archived,
         };
         if let Some(temporal_client) = temporal_client {

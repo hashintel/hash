@@ -61,7 +61,7 @@ export const getUsageRecordsResolver: ResolverFn<
 
   const records: UserUsageRecords[] = [];
   for (const user of users) {
-    const { email } = simplifyProperties(user.properties as UserProperties);
+    const { shortname } = simplifyProperties(user.properties as UserProperties);
     const usageRecords = await getUserServiceUsage(
       { graphApi: dataSources.graphApi },
       authentication,
@@ -71,7 +71,7 @@ export const getUsageRecordsResolver: ResolverFn<
         ),
       },
     );
-    records.push({ email: email[0], usageRecords });
+    records.push({ shortname: shortname ?? "NO SHORTNAME", usageRecords });
   }
 
   return records;

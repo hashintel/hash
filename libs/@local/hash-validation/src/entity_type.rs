@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, collections::HashMap};
+use std::borrow::Borrow;
 
 use error_stack::{Report, ResultExt};
 use futures::{stream, StreamExt, TryStreamExt};
@@ -6,7 +6,6 @@ use graph_types::knowledge::{
     entity::{Entity, EntityId, EntityProperties},
     link::LinkData,
 };
-use serde_json::Value as JsonValue;
 use thiserror::Error;
 use type_system::{
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
@@ -48,7 +47,7 @@ pub enum EntityValidationError {
     InvalidLinkTargetId { target_types: Vec<VersionedUrl> },
 }
 
-impl<P> Schema<HashMap<BaseUrl, JsonValue>, P> for ClosedEntityType
+impl<P> Schema<EntityProperties, P> for ClosedEntityType
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -56,7 +55,7 @@ where
 
     async fn validate_value<'a>(
         &'a self,
-        value: &'a HashMap<BaseUrl, serde_json::Value>,
+        value: &'a EntityProperties,
         profile: ValidationProfile,
         provider: &'a P,
     ) -> Result<(), Report<EntityValidationError>> {
@@ -65,11 +64,11 @@ where
         //   see https://linear.app/hash/issue/BP-33
         Object::<_, 0>::new(self.properties.clone(), self.required.clone())
             .expect("`Object` was already validated")
-            .validate_value(value, profile, provider)
+            .validate_value(value.properties(), profile, provider)
             .await
             .change_context(EntityValidationError::InvalidProperties)
             .attach_lazy(|| Expected::EntityType(self.clone()))
-            .attach_lazy(|| Actual::Properties(EntityProperties::new(value.clone())))
+            .attach_lazy(|| Actual::Properties(value.clone()))
     }
 }
 
@@ -85,9 +84,7 @@ where
         profile: ValidationProfile,
         provider: &P,
     ) -> Result<(), Report<Self::Error>> {
-        schema
-            .validate_value(self.properties(), profile, provider)
-            .await
+        schema.validate_value(self, profile, provider).await
     }
 }
 

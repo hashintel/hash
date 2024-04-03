@@ -43,7 +43,6 @@ export type AccountPagesInfo = {
 export const useAccountPages = (
   ownedById?: OwnedById,
   includeArchived?: boolean,
-  includeDrafts?: boolean,
 ): AccountPagesInfo => {
   const { hashInstance } = useHashInstance();
 
@@ -54,7 +53,6 @@ export const useAccountPages = (
     variables: getAccountPagesVariables({
       ownedById,
       includeArchived,
-      includeDrafts,
     }),
     skip: !ownedById || !hashInstance?.properties.pagesAreEnabled,
   });

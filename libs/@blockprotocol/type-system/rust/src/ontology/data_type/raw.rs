@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 
 use crate::{
+    ontology::data_type::JsonSchemaValueType,
     url::{ParseVersionedUrlError, VersionedUrl},
     ParseDataTypeError,
 };
@@ -38,7 +39,7 @@ pub struct DataType {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     description: Option<String>,
     #[serde(rename = "type")]
-    json_type: String,
+    json_type: JsonSchemaValueType,
     /// Properties which are not currently strongly typed.
     ///
     /// The data type meta-schema currently allows arbitrary, untyped properties. This is a
