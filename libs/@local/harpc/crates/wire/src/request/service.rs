@@ -1,11 +1,15 @@
 use std::io;
 
 use error_stack::Result;
-use tokio::io::{AsyncWrite, AsyncWriteExt};
+use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
 
-use crate::{codec::Encode, version::Version};
+use crate::{
+    codec::{DecodePure, Encode},
+    version::Version,
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub struct ServiceId(u16);
 
 impl ServiceId {
@@ -34,7 +38,16 @@ impl Encode for ServiceId {
     }
 }
 
+impl DecodePure for ServiceId {
+    type Error = io::Error;
+
+    async fn decode_pure(read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
+        u16::decode_pure(read).await.map(Self)
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub struct ServiceVersion(Version);
 
 impl ServiceVersion {
@@ -62,7 +75,16 @@ impl Encode for ServiceVersion {
     }
 }
 
+impl DecodePure for ServiceVersion {
+    type Error = io::Error;
+
+    async fn decode_pure(read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
+        Version::decode_pure(read).await.map(Self)
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub struct Service {
     pub id: ServiceId,
     pub version: ServiceVersion,
@@ -77,12 +99,22 @@ impl Encode for Service {
     }
 }
 
+impl DecodePure for Service {
+    type Error = io::Error;
+
+    async fn decode_pure(mut read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
+        let id = ServiceId::decode_pure(&mut read).await?;
+        let version = ServiceVersion::decode_pure(read).await?;
+
+        Ok(Self { id, version })
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::{
-        codec::test::{assert_encode, encode_value},
+        codec::test::{assert_decode, assert_encode, assert_encode_decode},
         request::service::{Service, ServiceId, ServiceVersion},
-        version::Version,
     };
 
     #[tokio::test]
@@ -93,19 +125,20 @@ mod test {
     }
 
     #[tokio::test]
+    async fn decode_id() {
+        // value should be decoded in big-endian
+        assert_decode(&[0x12, 0x34], &ServiceId::new(0x1234), ()).await;
+    }
+
+    #[tokio::test]
     async fn encode_version() {
-        let version = ServiceVersion::new(1, 2);
+        let version = ServiceVersion::new(0x56, 0x78);
+        assert_encode(&version, &[0x56, 0x78]).await;
+    }
 
-        assert_encode(&version, &[1, 2]).await;
-
-        // encoding should match that of Version
-        let expected = encode_value(&Version {
-            major: version.major(),
-            minor: version.minor(),
-        })
-        .await;
-
-        assert_encode(&version, &expected).await;
+    #[tokio::test]
+    async fn decode_version() {
+        assert_decode(&[0x56, 0x78], &ServiceVersion::new(0x56, 0x78), ()).await;
     }
 
     #[tokio::test]
@@ -116,5 +149,20 @@ mod test {
         };
 
         assert_encode(&service, &[0x12, 0x34, 0x56, 0x78]).await;
+    }
+
+    #[tokio::test]
+    async fn decode() {
+        let service = Service {
+            id: ServiceId::new(0x1234),
+            version: ServiceVersion::new(0x56, 0x78),
+        };
+
+        assert_decode(&[0x12, 0x34, 0x56, 0x78], &service, ()).await;
+    }
+
+    #[test_strategy::proptest(async = "tokio")]
+    async fn encode_decode(service: Service) {
+        assert_encode_decode(&service, ()).await;
     }
 }

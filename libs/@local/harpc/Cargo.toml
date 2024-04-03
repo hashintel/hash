@@ -9,5 +9,3 @@ edition.workspace = true
 [dependencies]
 
 [dev-dependencies]
-proptest = "1.4.0"
-test-strategy = "0.3.1"

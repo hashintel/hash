@@ -1,11 +1,12 @@
 use std::io;
 
 use error_stack::{Report, Result};
-use tokio::io::{AsyncWrite, AsyncWriteExt};
+use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
 
-use crate::codec::Encode;
+use crate::codec::{DecodePure, Encode};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub struct ProcedureId(u16);
 
 impl ProcedureId {
@@ -34,7 +35,16 @@ impl Encode for ProcedureId {
     }
 }
 
+impl DecodePure for ProcedureId {
+    type Error = io::Error;
+
+    async fn decode_pure(read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
+        u16::decode_pure(read).await.map(Self)
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub struct Procedure {
     pub id: ProcedureId,
 }
@@ -47,10 +57,20 @@ impl Encode for Procedure {
     }
 }
 
+impl DecodePure for Procedure {
+    type Error = io::Error;
+
+    async fn decode_pure(read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
+        Ok(Self {
+            id: ProcedureId::decode_pure(read).await?,
+        })
+    }
+}
+
 #[cfg(test)]
 mod test {
-    use super::ProcedureId;
-    use crate::codec::test::assert_encode;
+    use super::{Procedure, ProcedureId};
+    use crate::codec::test::{assert_decode, assert_encode, assert_encode_decode};
 
     #[tokio::test]
     async fn encode_id() {
@@ -61,11 +81,33 @@ mod test {
     }
 
     #[tokio::test]
+    async fn decode_id() {
+        let id = ProcedureId::new(0x1234);
+
+        // decoding should be BE
+        assert_decode(&[0x12, 0x34], &id, ()).await;
+    }
+
+    #[tokio::test]
     async fn encode() {
         let id = ProcedureId::new(0x1234);
         let procedure = super::Procedure { id };
 
         // encoding should be BE
         assert_encode(&procedure, &[0x12, 0x34]).await;
+    }
+
+    #[tokio::test]
+    async fn decode() {
+        let id = ProcedureId::new(0x1234);
+        let procedure = super::Procedure { id };
+
+        // decoding should be BE
+        assert_decode(&[0x12, 0x34], &procedure, ()).await;
+    }
+
+    #[test_strategy::proptest(async = "tokio")]
+    async fn encode_decode(id: Procedure) {
+        assert_encode_decode(&id, ()).await;
     }
 }

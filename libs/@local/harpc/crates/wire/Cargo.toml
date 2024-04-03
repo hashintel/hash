@@ -18,5 +18,7 @@ tokio = { workspace = true, features = ["io-util"] }
 uuid = { version = "1.8.0", features = ["borsh"] }
 
 [dev-dependencies]
-tokio = { workspace = true, features = ["rt", "macros"] }
+tokio = { workspace = true, features = ["rt", "macros", "rt-multi-thread"] }
 uuid = { version = "1.8.0", features = ["v4"] }
+proptest = "1.4.0"
+test-strategy = "0.3.1"

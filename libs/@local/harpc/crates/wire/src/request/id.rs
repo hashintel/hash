@@ -1,11 +1,12 @@
 use std::io;
 
 use error_stack::Result;
-use tokio::io::{AsyncWrite, AsyncWriteExt};
+use tokio::io::{AsyncRead, AsyncWrite};
 
-use crate::codec::Encode;
+use crate::codec::{DecodePure, Encode};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub struct RequestId(u16);
 
 impl RequestId {
@@ -23,8 +24,16 @@ impl RequestId {
 impl Encode for RequestId {
     type Error = io::Error;
 
-    async fn encode(&self, mut write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
-        write.write_u16(self.0).await.map_err(From::from)
+    async fn encode(&self, write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
+        self.0.encode(write).await
+    }
+}
+
+impl DecodePure for RequestId {
+    type Error = io::Error;
+
+    async fn decode_pure(read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
+        u16::decode_pure(read).await.map(Self)
     }
 }
 
@@ -58,7 +67,10 @@ impl Default for RequestIdProducer {
 #[cfg(test)]
 mod test {
     use super::RequestIdProducer;
-    use crate::request::id::RequestId;
+    use crate::{
+        codec::test::{assert_decode, assert_encode, assert_encode_decode},
+        request::id::RequestId,
+    };
 
     #[test]
     fn next() {
@@ -84,6 +96,19 @@ mod test {
         let id = RequestId(0x1234);
 
         // encoding should be BE
-        crate::codec::test::assert_encode(&id, &[0x12, 0x34]).await;
+        assert_encode(&id, &[0x12, 0x34]).await;
+    }
+
+    #[tokio::test]
+    async fn decode_id() {
+        let id = RequestId(0x1234);
+
+        // decoding should be BE
+        assert_decode(&[0x12, 0x34], &id, ()).await;
+    }
+
+    #[test_strategy::proptest(async = "tokio")]
+    async fn encode_decode_id(id: RequestId) {
+        assert_encode_decode(&id, ()).await;
     }
 }

@@ -15,6 +15,14 @@ pub trait Encode: Send + Sync {
     ) -> impl Future<Output = Result<(), Self::Error>> + Send;
 }
 
+impl Encode for u8 {
+    type Error = io::Error;
+
+    async fn encode(&self, mut write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
+        write.write_u8(*self).await.map_err(From::from)
+    }
+}
+
 impl Encode for u16 {
     type Error = io::Error;
 

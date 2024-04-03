@@ -5,6 +5,7 @@ use crate::protocol::Protocol;
 
 pub mod authorization;
 pub mod begin;
+pub mod codec;
 pub mod flags;
 pub mod frame;
 pub mod id;

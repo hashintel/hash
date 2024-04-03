@@ -1267,10 +1267,6 @@ dependencies = [
 [[package]]
 name = "harpc"
 version = "0.1.0"
-dependencies = [
- "proptest",
- "test-strategy",
-]
 
 [[package]]
 name = "harpc-wire"
@@ -1283,6 +1279,8 @@ dependencies = [
  "futures",
  "futures-stream",
  "graph-types",
+ "proptest",
+ "test-strategy",
  "thiserror",
  "tokio",
  "uuid",
