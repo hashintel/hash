@@ -1,20 +1,11 @@
-import type { ExclusiveEventHintOrCaptureContext } from "@sentry/core/types/utils/prepareEvent";
 import * as Sentry from "@sentry/node";
-import type { CaptureContext, SeverityLevel } from "@sentry/types";
 import type { InjectedSinks } from "@temporalio/worker";
 import type { Sinks, WorkflowInfo } from "@temporalio/workflow";
 
 export interface SentrySinks extends Sinks {
   sentry: {
-    captureMessage(
-      message: string,
-      captureContext?: CaptureContext | SeverityLevel,
-    ): void;
-    captureException(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      exception: any,
-      hint?: ExclusiveEventHintOrCaptureContext,
-    ): void;
+    captureMessage: typeof Sentry.captureMessage;
+    captureException: typeof Sentry.captureException;
   };
 }
 
@@ -46,21 +37,19 @@ const setTemporalScope = (scope: Sentry.Scope, workflowInfo: WorkflowInfo) => {
 export const sentrySinks = (): InjectedSinks<SentrySinks> => ({
   sentry: {
     captureMessage: {
-      fn(workflowInfo, message, captureContext) {
+      fn: (workflowInfo, ...args) =>
         Sentry.withScope((scope) => {
           setTemporalScope(scope, workflowInfo);
-          Sentry.captureMessage(message, captureContext);
-        });
-      },
+          Sentry.captureMessage(...args);
+        }),
       callDuringReplay: false,
     },
     captureException: {
-      fn(workflowInfo, exception, hint) {
+      fn: (workflowInfo, ...args) =>
         Sentry.withScope((scope) => {
           setTemporalScope(scope, workflowInfo);
-          Sentry.captureException(exception, hint);
-        });
-      },
+          Sentry.captureException(...args);
+        }),
       callDuringReplay: false,
     },
   },
