@@ -58,7 +58,7 @@
     "@local/tsconfig": "0.0.0-private",
     "@temporalio/workflow": "1.8.1",
     "@types/lodash": "4.14.188",
-    "@types/node": "20.12.2",
+    "@types/node": "20.12.3",
     "@types/pluralize": "0.0.33",
     "@vitest/coverage-istanbul": "1.4.0",
     "eslint": "8.57.0",
