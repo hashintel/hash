@@ -12938,7 +12938,12 @@ enabled@2.0.x:
   resolved "https://registry.yarnpkg.com/enabled/-/enabled-2.0.0.tgz#f9dd92ec2d6f4bbc0d5d1e64e21d61cd4665e7c2"
   integrity "sha1-+d2S7C1vS7wNXR5k4h1hzUZl58I= sha512-AKrN98kuwOzMIdAizXGI86UFBoo26CL21UM763y1h/GMSJ4/OHU9k2YlsmBpyScFo/wbLzWQJBMCW4+IO3/+OQ=="
 
-encodeurl@^1.0.2, encodeurl@~1.0.2:
+encodeurl@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/encodeurl/-/encodeurl-2.0.0.tgz#7b8ea898077d7e409d3ac45474ea38eaf0857a58"
+  integrity sha512-Q0n9HRi4m6JuGIV1eFlmvJB7ZEVxu93IrMyiMsGC0lrMJMWzRgx6WGquyfQgZVb31vhGgXnfmPNNXmxnOkRBrg==
+
+encodeurl@~1.0.2:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/encodeurl/-/encodeurl-1.0.2.tgz#ad3ff4c86ec2d029322f5a02c3a9a606c95b3f59"
   integrity "sha1-rT/0yG7C0CkyL1oCw6mmBslbP1k= sha512-TPJXq8JqFaVYm2CWmPvnP2Iyo4ZSM7/QKcSmuMLDObfpH5fi7RUGmd/rTDf+rut/saiDiQEeVTNgAmJEdAOx0w=="
@@ -15743,10 +15748,10 @@ https-proxy-agent@^7.0.0, https-proxy-agent@^7.0.1, https-proxy-agent@^7.0.2, ht
     agent-base "^7.0.2"
     debug "4"
 
-httpyac@6.12.0:
-  version "6.12.0"
-  resolved "https://registry.yarnpkg.com/httpyac/-/httpyac-6.12.0.tgz#9912d02f4f7a7bbb1125e9c23c8c24fcfd261726"
-  integrity sha512-NZxqPANniilbO5Izam6Ibd6OoH+XJfbI2cy8lErM7vAbNtbxmBqrf0XQnr63q9FaT9UAPf/J5sIsEYOnwsi6aw==
+httpyac@6.12.1:
+  version "6.12.1"
+  resolved "https://registry.yarnpkg.com/httpyac/-/httpyac-6.12.1.tgz#dc3a133ff07edd74610447c868dd017308250458"
+  integrity sha512-HMCnkjfn308gtsE4oo6c5vB3rMVkgM2PClSbJs7PK/g2sq7iIIKdRt5Z1x7w1jz7KeYwwgSE+yOd+ZmLfEsu6g==
   dependencies:
     "@cloudamqp/amqp-client" "^2.1.1"
     "@grpc/grpc-js" "^1.10.1"
@@ -15759,7 +15764,7 @@ httpyac@6.12.0:
     dayjs "^1.11.10"
     dayjs-plugin-utc "^0.1.2"
     dotenv "^16.4.5"
-    encodeurl "^1.0.2"
+    encodeurl "^2.0.0"
     eventsource "^2.0.2"
     filesize "^10.1.0"
     globby "^14.0.1"
