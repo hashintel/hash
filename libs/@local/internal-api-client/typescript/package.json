@@ -1,0 +1,21 @@
+{
+  "name": "@local/internal-api-client",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "OpenAPI client for the HASH internal API",
+  "license": "See LICENSE.md",
+  "type": "module",
+  "main": "index.ts",
+  "scripts": {
+    "generate": "openapi-generator-cli generate && yarn workspace @local/internal-api-client build && prettier --cache --write --ignore-unknown .",
+    "validate": "openapi-generator-cli validate"
+  },
+  "dependencies": {
+    "axios": "1.6.0"
+  },
+  "devDependencies": {
+    "@openapitools/openapi-generator-cli": "2.5.2",
+    "@types/node": "18.15.13",
+    "typescript": "5.1.6"
+  }
+}

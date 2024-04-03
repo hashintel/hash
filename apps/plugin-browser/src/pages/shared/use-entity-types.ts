@@ -1,9 +1,7 @@
 import type { Subgraph } from "@local/hash-graph-client";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { EntityTypeRootType } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useEffect } from "react";
 
 import type {
@@ -34,6 +32,8 @@ export const useEntityTypes = () => {
         //                  - It's possible to remove the ts-expect-error when changing the entity metadata to contain
         //                    a list of entity types
         apiSubgraph as Subgraph,
+        null,
+        true,
       );
 
       const apiEntityTypes = getRoots<EntityTypeRootType>(mappedSubgraph);

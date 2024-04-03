@@ -4,6 +4,7 @@ import type {
   InferredEntityUpdateFailure,
   InferredEntityUpdateSuccess,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
+import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   AccountId,
   Entity,
@@ -11,11 +12,9 @@ import type {
   OwnedById,
 } from "@local/hash-subgraph";
 import {
-  extractDraftIdFromEntityId,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
-import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-subgraph/stdlib";
 
 import type { DereferencedEntityType } from "../dereference-entity-type";
 import { extractErrorMessage } from "../shared/extract-validation-failure-details";
@@ -33,12 +32,14 @@ type EntityUpdateStatusMap = {
 
 export const updateEntities = async ({
   actorId,
+  createAsDraft,
   graphApiClient,
   log,
   proposedEntityUpdatesByType,
   requestedEntityTypes,
 }: {
   actorId: AccountId;
+  createAsDraft: boolean;
   graphApiClient: GraphApi;
   log: (message: string) => void;
   proposedEntityUpdatesByType: ProposedEntityUpdatesByType;
@@ -112,20 +113,16 @@ export const updateEntities = async ({
               ...properties,
             };
 
-            const draft = !!extractDraftIdFromEntityId(
-              existingEntity.metadata.recordId.entityId,
-            );
-
             await graphApiClient.validateEntity(actorId, {
               entityTypes: [entityTypeId],
-              profile: draft ? "draft" : "full",
+              profile: createAsDraft ? "draft" : "full",
               properties,
               linkData: existingEntity.linkData,
             });
 
             const { data: updateEntityMetadata } =
               await graphApiClient.patchEntity(actorId, {
-                draft,
+                draft: createAsDraft,
                 entityTypeIds: [entityTypeId],
                 entityId: updateEntityId,
                 properties: [

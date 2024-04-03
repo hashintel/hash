@@ -2705,6 +2705,12 @@
           "propertyName": "kind"
         }
       },
+      "Confidence": {
+        "type": "number",
+        "format": "double",
+        "maximum": 1,
+        "minimum": 0
+      },
       "CopyOperation": {
         "type": "object",
         "description": "JSON Patch 'copy' operation representation",
@@ -3344,10 +3350,23 @@
           "archived": {
             "type": "boolean"
           },
+          "confidence": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Confidence"
+              }
+            ]
+          },
           "entityTypeIds": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/VersionedUrl"
+            }
+          },
+          "propertyConfidence": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Confidence"
             }
           },
           "provenance": {
@@ -4718,8 +4737,22 @@
           "rightEntityId"
         ],
         "properties": {
+          "leftEntityConfidence": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Confidence"
+              }
+            ]
+          },
           "leftEntityId": {
             "$ref": "#/components/schemas/EntityId"
+          },
+          "rightEntityConfidence": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Confidence"
+              }
+            ]
           },
           "rightEntityId": {
             "$ref": "#/components/schemas/EntityId"
@@ -5464,6 +5497,9 @@
             "type": "boolean"
           }
         }
+      },
+      "PropertyPath": {
+        "type": "string"
       },
       "PropertyTypeEditorSubject": {
         "oneOf": [

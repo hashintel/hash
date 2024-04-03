@@ -1,4 +1,4 @@
-#![feature(associated_type_bounds, lint_reasons)]
+#![feature(lint_reasons)]
 #![allow(
     clippy::missing_panics_doc,
     clippy::missing_errors_doc,
@@ -792,6 +792,8 @@ impl DatabaseApi<'_> {
                     link_data: Some(LinkData {
                         left_entity_id,
                         right_entity_id,
+                        left_entity_confidence: None,
+                        right_entity_confidence: None,
                     }),
                     draft: false,
                     relationships: [],

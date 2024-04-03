@@ -4,7 +4,7 @@ import type {
   CreateEmbeddingsReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-subgraph/stdlib";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { RequestHandler } from "express";
 
 import { genId } from "../../util";
@@ -114,7 +114,10 @@ export const gptQueryTypes: RequestHandler<
     .then(async (response) => {
       const entityTypes: SimpleEntityType[] = [];
 
-      const subgraph = mapGraphApiSubgraphToSubgraph(response.data);
+      const subgraph = mapGraphApiSubgraphToSubgraph(
+        response.data,
+        user.accountId,
+      );
 
       const vertices = typedValues(subgraph.vertices)
         .map((vertex) => typedValues(vertex))

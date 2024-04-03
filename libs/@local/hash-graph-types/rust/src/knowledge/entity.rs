@@ -1,25 +1,25 @@
 #[cfg(feature = "postgres")]
 use std::error::Error;
-use std::{
-    collections::{hash_map, HashMap},
-    fmt,
-    str::FromStr,
-};
+use std::{borrow::Cow, cmp::Ordering, collections::HashMap, fmt, io, str::FromStr};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, ToSql, Type};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde_json::Value as JsonValue;
 use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, Timestamp, TransactionTime};
-use type_system::url::{BaseUrl, VersionedUrl};
+use type_system::{
+    url::{BaseUrl, ParseBaseUrlError, VersionedUrl},
+    JsonSchemaValueType,
+};
 #[cfg(feature = "utoipa")]
 use utoipa::{openapi, ToSchema};
 use uuid::Uuid;
 
 use crate::{
     account::{CreatedById, EditionCreatedById},
-    knowledge::link::LinkData,
+    knowledge::{link::LinkData, Confidence},
     owned_by_id::OwnedById,
     Embedding,
 };
@@ -82,19 +82,261 @@ impl fmt::Display for DraftId {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum Property {
+    Array(Vec<Self>),
+    Object(HashMap<BaseUrl, Self>),
+    Value(JsonValue),
+}
+
+#[derive(Debug)]
+pub enum PropertyElement<'a> {
+    Object {
+        key: &'a BaseUrl,
+        property: &'a Property,
+    },
+    Array {
+        index: usize,
+        property: &'a Property,
+    },
+    Value(&'a JsonValue),
+}
+
+impl Property {
+    #[must_use]
+    pub fn json_type(&self) -> JsonSchemaValueType {
+        match self {
+            Self::Array(_) => JsonSchemaValueType::Array,
+            Self::Object(_) => JsonSchemaValueType::Object,
+            Self::Value(property) => JsonSchemaValueType::from(property),
+        }
+    }
+
+    pub gen fn properties(&self) -> (Vec<PropertyPathElement<'_>>, &JsonValue) {
+        let mut elements = Vec::new();
+        match self {
+            Self::Array(array) => {
+                for (index, property) in array.iter().enumerate() {
+                    elements.push(PropertyPathElement::Index(index));
+                    for yielded in Box::new(property.properties()) {
+                        yield yielded;
+                    }
+                    elements.pop();
+                }
+            }
+            Self::Object(object) => {
+                for (key, property) in object {
+                    elements.push(PropertyPathElement::Property(Cow::Borrowed(key)));
+                    for yielded in Box::new(property.properties()) {
+                        yield yielded;
+                    }
+                    elements.pop();
+                }
+            }
+            Self::Value(property) => yield (elements.clone(), property),
+        }
+    }
+
+    #[must_use]
+    pub fn get(&self, path: &PropertyPath<'_>) -> Option<&Self> {
+        let mut value = self;
+        for element in &path.elements {
+            match element {
+                PropertyPathElement::Property(key) => {
+                    value = match value {
+                        Self::Object(object) => object.get(key)?,
+                        _ => return None,
+                    };
+                }
+                PropertyPathElement::Index(index) => {
+                    value = match value {
+                        Self::Array(array) => array.get(*index)?,
+                        _ => return None,
+                    };
+                }
+            }
+        }
+        Some(value)
+    }
+
+    gen fn diff_array<'a>(
+        lhs: &'a [Self],
+        rhs: &'a [Self],
+        path: &mut PropertyPath<'a>,
+    ) -> PropertyDiff<'a> {
+        for (index, (lhs, rhs)) in lhs.iter().zip(rhs).enumerate() {
+            path.elements.push(PropertyPathElement::Index(index));
+            for yielded in Box::new(lhs.diff(rhs, path)) {
+                yield yielded;
+            }
+            path.elements.pop();
+        }
+
+        match lhs.len().cmp(&rhs.len()) {
+            Ordering::Less => {
+                for (index, property) in rhs.iter().enumerate().skip(lhs.len()) {
+                    path.elements.push(PropertyPathElement::Index(index));
+                    yield PropertyDiff::Added {
+                        path: path.clone(),
+                        added: property,
+                    };
+                    path.elements.pop();
+                }
+            }
+            Ordering::Equal => {}
+            Ordering::Greater => {
+                for (index, property) in lhs.iter().enumerate().skip(rhs.len()) {
+                    path.elements.push(PropertyPathElement::Index(index));
+                    yield PropertyDiff::Removed {
+                        path: path.clone(),
+                        removed: property,
+                    };
+                    path.elements.pop();
+                }
+            }
+        }
+    }
+
+    gen fn diff_object<'a>(
+        lhs: &'a HashMap<BaseUrl, Self>,
+        rhs: &'a HashMap<BaseUrl, Self>,
+        path: &mut PropertyPath<'a>,
+    ) -> PropertyDiff<'a> {
+        for (key, property) in lhs {
+            path.elements
+                .push(PropertyPathElement::Property(Cow::Borrowed(key)));
+            let other_property = rhs.get(key);
+            if let Some(other_property) = other_property {
+                for yielded in Box::new(property.diff(other_property, path)) {
+                    yield yielded;
+                }
+            } else {
+                yield PropertyDiff::Removed {
+                    path: path.clone(),
+                    removed: property,
+                };
+            }
+            path.elements.pop();
+        }
+        for (key, property) in rhs {
+            if !lhs.contains_key(key) {
+                path.elements
+                    .push(PropertyPathElement::Property(Cow::Borrowed(key)));
+                yield PropertyDiff::Added {
+                    path: path.clone(),
+                    added: property,
+                };
+                path.elements.pop();
+            }
+        }
+    }
+
+    pub gen fn diff<'a>(
+        &'a self,
+        other: &'a Self,
+        path: &mut PropertyPath<'a>,
+    ) -> PropertyDiff<'_> {
+        let mut changed = false;
+        match (self, other) {
+            (Self::Array(lhs), Self::Array(rhs)) => {
+                for yielded in Self::diff_array(lhs, rhs, path) {
+                    changed = true;
+                    yield yielded;
+                }
+            }
+            (Self::Object(lhs), Self::Object(rhs)) => {
+                for yielded in Self::diff_object(lhs, rhs, path) {
+                    changed = true;
+                    yield yielded;
+                }
+            }
+            (lhs, rhs) => {
+                changed = lhs != rhs;
+            }
+        }
+
+        if changed {
+            yield PropertyDiff::Changed {
+                path: path.clone(),
+                old: self,
+                new: other,
+            };
+        }
+    }
+}
+
+impl fmt::Display for Property {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Inspired by `serde_json`
+        struct WriterFormatter<'a, 'b: 'a>(&'a mut fmt::Formatter<'b>);
+
+        impl io::Write for WriterFormatter<'_, '_> {
+            fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+                self.0
+                    .write_str(&String::from_utf8_lossy(buf))
+                    .map_err(|error| io::Error::new(io::ErrorKind::Other, error))?;
+                Ok(buf.len())
+            }
+
+            fn flush(&mut self) -> io::Result<()> {
+                Ok(())
+            }
+        }
+
+        if fmt.alternate() {
+            serde_json::to_writer_pretty(WriterFormatter(fmt), &self).map_err(|_ignored| fmt::Error)
+        } else {
+            serde_json::to_writer(WriterFormatter(fmt), &self).map_err(|_ignored| fmt::Error)
+        }
+    }
+}
+
+impl PartialEq<JsonValue> for Property {
+    fn eq(&self, rhs: &JsonValue) -> bool {
+        match self {
+            Self::Array(lhs) => {
+                let JsonValue::Array(rhs) = rhs else {
+                    return false;
+                };
+
+                lhs == rhs
+            }
+            Self::Object(lhs) => {
+                let JsonValue::Object(rhs) = rhs else {
+                    return false;
+                };
+
+                lhs.len() == rhs.len()
+                    && lhs.iter().all(|(key, value)| {
+                        rhs.get(key.as_str())
+                            .map_or(false, |other_value| value == other_value)
+                    })
+            }
+            Self::Value(lhs) => lhs == rhs,
+        }
+    }
+}
+
 /// The properties of an entity.
 ///
 /// When expressed as JSON, this should validate against its respective entity type(s).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema), schema(value_type = Object))]
-pub struct EntityProperties(HashMap<BaseUrl, serde_json::Value>);
+pub struct EntityProperties(HashMap<BaseUrl, Property>);
 
-impl IntoIterator for EntityProperties {
-    type IntoIter = hash_map::IntoIter<BaseUrl, serde_json::Value>;
-    type Item = (BaseUrl, serde_json::Value);
+impl PartialEq<JsonValue> for EntityProperties {
+    fn eq(&self, other: &JsonValue) -> bool {
+        let JsonValue::Object(other_object) = other else {
+            return false;
+        };
 
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
+        self.0.len() == other_object.len()
+            && self.0.iter().all(|(key, value)| {
+                other_object
+                    .get(key.as_str())
+                    .map_or(false, |other_value| value == other_value)
+            })
     }
 }
 
@@ -124,7 +366,7 @@ impl<'a> FromSql<'a> for EntityProperties {
 
 impl EntityProperties {
     #[must_use]
-    pub const fn new(properties: HashMap<BaseUrl, serde_json::Value>) -> Self {
+    pub const fn new(properties: HashMap<BaseUrl, Property>) -> Self {
         Self(properties)
     }
 
@@ -132,11 +374,179 @@ impl EntityProperties {
     pub fn empty() -> Self {
         Self(HashMap::new())
     }
+
+    pub fn diff<'a>(
+        &'a self,
+        other: &'a Self,
+        path: &mut PropertyPath<'a>,
+    ) -> impl Iterator<Item = PropertyDiff<'_>> {
+        Property::diff_object(self.properties(), other.properties(), path)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum PropertyPathElement<'k> {
+    Property(Cow<'k, BaseUrl>),
+    Index(usize),
+}
+
+impl PropertyPathElement<'_> {
+    #[must_use]
+    pub fn into_owned(self) -> PropertyPathElement<'static> {
+        match self {
+            PropertyPathElement::Property(key) => {
+                PropertyPathElement::Property(Cow::Owned(key.into_owned()))
+            }
+            PropertyPathElement::Index(index) => PropertyPathElement::Index(index),
+        }
+    }
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
+pub struct PropertyPath<'k> {
+    elements: Vec<PropertyPathElement<'k>>,
+}
+
+#[cfg(feature = "utoipa")]
+impl ToSchema<'_> for PropertyPath<'_> {
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
+            "PropertyPath",
+            openapi::Schema::Object(openapi::schema::Object::with_type(
+                openapi::SchemaType::String,
+            ))
+            .into(),
+        )
+    }
+}
+
+impl PropertyPath<'_> {
+    pub fn into_owned(self) -> PropertyPath<'static> {
+        PropertyPath {
+            elements: self
+                .elements
+                .into_iter()
+                .map(PropertyPathElement::into_owned)
+                .collect(),
+        }
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl<'k> FromSql<'k> for PropertyPath<'k> {
+    fn from_sql(ty: &Type, raw: &'k [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
+        Ok(Self {
+            elements: <&str as FromSql>::from_sql(ty, raw)?
+                .split('/')
+                .map(|element| {
+                    if let Ok(index) = element.parse() {
+                        Ok(PropertyPathElement::Index(index))
+                    } else {
+                        Ok(PropertyPathElement::Property(Cow::Owned(BaseUrl::new(
+                            element.replace("~1", "/").replace("~0", "~"),
+                        )?)))
+                    }
+                })
+                .collect::<Result<Vec<_>, ParseBaseUrlError>>()?,
+        })
+    }
+
+    fn accepts(ty: &Type) -> bool {
+        <&str as FromSql>::accepts(ty)
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl ToSql for PropertyPath<'_> {
+    postgres_types::to_sql_checked!();
+
+    fn to_sql(
+        &self,
+        ty: &Type,
+        out: &mut BytesMut,
+    ) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
+        self.elements
+            .iter()
+            .map(|element| match element {
+                PropertyPathElement::Property(key) => {
+                    key.as_str().replace('~', "~0").replace('/', "~1")
+                }
+                PropertyPathElement::Index(index) => index.to_string(),
+            })
+            .collect::<Vec<_>>()
+            .join("/")
+            .to_sql(ty, out)
+    }
+
+    fn accepts(ty: &Type) -> bool {
+        <&str as ToSql>::accepts(ty)
+    }
+}
+
+impl Serialize for PropertyPath<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.elements
+            .iter()
+            .map(|element| match element {
+                PropertyPathElement::Property(key) => {
+                    key.as_str().replace('~', "~0").replace('/', "~1")
+                }
+                PropertyPathElement::Index(index) => index.to_string(),
+            })
+            .collect::<Vec<_>>()
+            .join("/")
+            .serialize(serializer)
+    }
+}
+
+impl<'de, 'a: 'de> Deserialize<'de> for PropertyPath<'a> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let path = String::deserialize(deserializer)?;
+        Ok(Self {
+            elements: path
+                .split('/')
+                .map(|element| {
+                    if let Ok(index) = element.parse() {
+                        Ok(PropertyPathElement::Index(index))
+                    } else {
+                        Ok(PropertyPathElement::Property(Cow::Owned(BaseUrl::new(
+                            element.replace("~1", "/").replace("~0", "~"),
+                        )?)))
+                    }
+                })
+                .collect::<Result<Vec<_>, ParseBaseUrlError>>()
+                .map_err(de::Error::custom)?,
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PropertyDiff<'e> {
+    Added {
+        path: PropertyPath<'e>,
+        added: &'e Property,
+    },
+    Removed {
+        path: PropertyPath<'e>,
+        removed: &'e Property,
+    },
+    Changed {
+        path: PropertyPath<'e>,
+        old: &'e Property,
+        new: &'e Property,
+    },
 }
 
 impl EntityProperties {
     #[must_use]
-    pub const fn properties(&self) -> &HashMap<BaseUrl, serde_json::Value> {
+    pub const fn properties(&self) -> &HashMap<BaseUrl, Property> {
         &self.0
     }
 }
@@ -165,7 +575,7 @@ pub struct EntityProvenanceMetadata {
 }
 
 /// The metadata of an [`Entity`] record.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityMetadata {
@@ -174,11 +584,17 @@ pub struct EntityMetadata {
     pub entity_type_ids: Vec<VersionedUrl>,
     pub provenance: EntityProvenanceMetadata,
     pub archived: bool,
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub confidence: Option<Confidence>,
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub property_confidence: HashMap<PropertyPath<'static>, Confidence>,
 }
 
 /// A record of an [`Entity`] that has been persisted in the datastore, with its associated
 /// metadata.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct Entity {
@@ -378,5 +794,482 @@ mod tests {
     #[test]
     fn page() {
         test_entity(graph_test_data::entity::PAGE_V1);
+    }
+
+    mod diff {
+        use std::borrow::Cow;
+
+        use type_system::url::BaseUrl;
+
+        use crate::knowledge::entity::{Property, PropertyDiff, PropertyPath, PropertyPathElement};
+
+        macro_rules! property {
+            ($($json:tt)+) => {
+                serde_json::from_value::<Property>(serde_json::json!($($json)+)).expect("invalid JSON")
+            };
+        }
+
+        fn test_diff<'a>(
+            lhs: &Property,
+            rhs: &Property,
+            expected: impl IntoIterator<Item = PropertyDiff<'a>>,
+        ) {
+            let mut path = PropertyPath::default();
+            let mut diff = lhs.diff(rhs, &mut path).collect::<Vec<_>>();
+
+            for expected in expected {
+                let (idx, _) = diff
+                    .iter()
+                    .enumerate()
+                    .find(|(_, diff)| **diff == expected)
+                    .unwrap_or_else(|| {
+                        panic!("unexpected diff found: {expected:#?}\n\nactual: {diff:#?}",)
+                    });
+                diff.remove(idx);
+            }
+            assert!(diff.is_empty(), "missing diffs: {diff:#?}",);
+        }
+
+        fn create_base_url(property: usize) -> BaseUrl {
+            BaseUrl::new(format!("http://example.com/property-{property}/")).expect("invalid URL")
+        }
+
+        #[test]
+        fn value_equal() {
+            test_diff(&property!("foo"), &property!("foo"), []);
+        }
+
+        #[test]
+        fn value_modified() {
+            let old = property!("foo");
+            let new = property!("bar");
+            test_diff(
+                &old,
+                &new,
+                [PropertyDiff::Changed {
+                    path: PropertyPath { elements: vec![] },
+                    old: &old,
+                    new: &new,
+                }],
+            );
+        }
+
+        #[test]
+        fn array_equal() {
+            test_diff(&property!(["foo", "bar"]), &property!(["foo", "bar"]), []);
+        }
+
+        #[test]
+        fn array_modified() {
+            let old = property!(["foo", "bar"]);
+            let new = property!(["foo", "baz"]);
+            test_diff(
+                &old,
+                &new,
+                [
+                    PropertyDiff::Changed {
+                        path: PropertyPath {
+                            elements: vec![PropertyPathElement::Index(1)],
+                        },
+                        old: &property!("bar"),
+                        new: &property!("baz"),
+                    },
+                    PropertyDiff::Changed {
+                        path: PropertyPath { elements: vec![] },
+                        old: &old,
+                        new: &new,
+                    },
+                ],
+            );
+        }
+
+        #[test]
+        fn array_added() {
+            let old = property!(["foo"]);
+            let new = property!(["foo", "bar"]);
+            test_diff(
+                &old,
+                &new,
+                [
+                    PropertyDiff::Added {
+                        path: PropertyPath {
+                            elements: vec![PropertyPathElement::Index(1)],
+                        },
+                        added: &property!("bar"),
+                    },
+                    PropertyDiff::Changed {
+                        path: PropertyPath { elements: vec![] },
+                        old: &old,
+                        new: &new,
+                    },
+                ],
+            );
+        }
+
+        #[test]
+        fn array_removed() {
+            let old = property!(["foo", "bar"]);
+            let new = property!(["foo"]);
+            test_diff(
+                &old,
+                &new,
+                [
+                    PropertyDiff::Removed {
+                        path: PropertyPath {
+                            elements: vec![PropertyPathElement::Index(1)],
+                        },
+                        removed: &property!("bar"),
+                    },
+                    PropertyDiff::Changed {
+                        path: PropertyPath { elements: vec![] },
+                        old: &old,
+                        new: &new,
+                    },
+                ],
+            );
+        }
+
+        #[test]
+        fn array_inserted() {
+            let old = property!(["foo", "bar"]);
+            let new = property!(["foo", "baz", "bar"]);
+            test_diff(
+                &old,
+                &new,
+                [
+                    PropertyDiff::Changed {
+                        path: PropertyPath {
+                            elements: vec![PropertyPathElement::Index(1)],
+                        },
+                        old: &property!("bar"),
+                        new: &property!("baz"),
+                    },
+                    PropertyDiff::Added {
+                        path: PropertyPath {
+                            elements: vec![PropertyPathElement::Index(2)],
+                        },
+                        added: &property!("bar"),
+                    },
+                    PropertyDiff::Changed {
+                        path: PropertyPath { elements: vec![] },
+                        old: &old,
+                        new: &new,
+                    },
+                ],
+            );
+        }
+
+        #[test]
+        fn array_removed_middle() {
+            let old = property!(["foo", "bar", "baz"]);
+            let new = property!(["foo", "baz"]);
+            test_diff(
+                &old,
+                &new,
+                [
+                    PropertyDiff::Changed {
+                        path: PropertyPath {
+                            elements: vec![PropertyPathElement::Index(1)],
+                        },
+                        old: &property!("bar"),
+                        new: &property!("baz"),
+                    },
+                    PropertyDiff::Removed {
+                        path: PropertyPath {
+                            elements: vec![PropertyPathElement::Index(2)],
+                        },
+                        removed: &property!("baz"),
+                    },
+                    PropertyDiff::Changed {
+                        path: PropertyPath { elements: vec![] },
+                        old: &old,
+                        new: &new,
+                    },
+                ],
+            );
+        }
+
+        #[test]
+        fn array_nested_object_value_changed() {
+            let old = property!([{create_base_url(0): "bar"}]);
+            let new = property!([{create_base_url(0): "baz"}]);
+            test_diff(
+                &old,
+                &new,
+                [
+                    PropertyDiff::Changed {
+                        path: PropertyPath {
+                            elements: vec![
+                                PropertyPathElement::Index(0),
+                                PropertyPathElement::Property(Cow::Borrowed(&create_base_url(0))),
+                            ],
+                        },
+                        old: &property!("bar"),
+                        new: &property!("baz"),
+                    },
+                    PropertyDiff::Changed {
+                        path: PropertyPath {
+                            elements: vec![PropertyPathElement::Index(0)],
+                        },
+                        old: &property!({create_base_url(0): "bar"}),
+                        new: &property!({create_base_url(0): "baz"}),
+                    },
+                    PropertyDiff::Changed {
+                        path: PropertyPath { elements: vec![] },
+                        old: &old,
+                        new: &new,
+                    },
+                ],
+            );
+        }
+
+        #[test]
+        fn array_nested_object_key_changed() {
+            let old = property!([{ create_base_url(0): "bar" }]);
+            let new = property!([{ create_base_url(1): "baz" }]);
+            test_diff(
+                &old,
+                &new,
+                [
+                    PropertyDiff::Removed {
+                        path: PropertyPath {
+                            elements: vec![
+                                PropertyPathElement::Index(0),
+                                PropertyPathElement::Property(Cow::Borrowed(&create_base_url(0))),
+                            ],
+                        },
+                        removed: &property!("bar"),
+                    },
+                    PropertyDiff::Added {
+                        path: PropertyPath {
+                            elements: vec![
+                                PropertyPathElement::Index(0),
+                                PropertyPathElement::Property(Cow::Borrowed(&create_base_url(1))),
+                            ],
+                        },
+                        added: &property!("baz"),
+                    },
+                    PropertyDiff::Changed {
+                        path: PropertyPath {
+                            elements: vec![PropertyPathElement::Index(0)],
+                        },
+                        old: &property!({ create_base_url(0): "bar" }),
+                        new: &property!({ create_base_url(1): "baz" }),
+                    },
+                    PropertyDiff::Changed {
+                        path: PropertyPath { elements: vec![] },
+                        old: &old,
+                        new: &new,
+                    },
+                ],
+            );
+        }
+
+        #[test]
+        fn object_equal() {
+            test_diff(
+                &property!({ create_base_url(1): "foo" }),
+                &property!({ create_base_url(1): "foo" }),
+                [],
+            );
+        }
+
+        #[test]
+        fn object_added() {
+            let old = property!({});
+            let new = property!({ create_base_url(1): "foo" });
+            test_diff(
+                &old,
+                &new,
+                [
+                    PropertyDiff::Added {
+                        path: PropertyPath {
+                            elements: vec![PropertyPathElement::Property(Cow::Borrowed(
+                                &create_base_url(1),
+                            ))],
+                        },
+                        added: &property!("foo"),
+                    },
+                    PropertyDiff::Changed {
+                        path: PropertyPath { elements: vec![] },
+                        old: &old,
+                        new: &new,
+                    },
+                ],
+            );
+        }
+
+        #[test]
+        fn object_nested_object_value_changed() {
+            let old = property!({ create_base_url(1): { create_base_url(2): "foo" } });
+            let new = property!({ create_base_url(1): { create_base_url(2): "bar" } });
+            test_diff(
+                &old,
+                &new,
+                [
+                    PropertyDiff::Changed {
+                        path: PropertyPath {
+                            elements: vec![
+                                PropertyPathElement::Property(Cow::Borrowed(&create_base_url(1))),
+                                PropertyPathElement::Property(Cow::Borrowed(&create_base_url(2))),
+                            ],
+                        },
+                        old: &property!("foo"),
+                        new: &property!("bar"),
+                    },
+                    PropertyDiff::Changed {
+                        path: PropertyPath {
+                            elements: vec![PropertyPathElement::Property(Cow::Borrowed(
+                                &create_base_url(1),
+                            ))],
+                        },
+                        old: &property!({ create_base_url(2): "foo" }),
+                        new: &property!({ create_base_url(2): "bar" }),
+                    },
+                    PropertyDiff::Changed {
+                        path: PropertyPath { elements: vec![] },
+                        old: &old,
+                        new: &new,
+                    },
+                ],
+            );
+        }
+
+        #[test]
+        fn object_nested_object_key_changed() {
+            let old = property!({ create_base_url(1): { create_base_url(3): "foo" } });
+            let new = property!({ create_base_url(2): { create_base_url(3): "foo" } });
+            test_diff(
+                &old,
+                &new,
+                [
+                    PropertyDiff::Removed {
+                        path: PropertyPath {
+                            elements: vec![PropertyPathElement::Property(Cow::Borrowed(
+                                &create_base_url(1),
+                            ))],
+                        },
+                        removed: &property!({ create_base_url(3): "foo" }),
+                    },
+                    PropertyDiff::Added {
+                        path: PropertyPath {
+                            elements: vec![PropertyPathElement::Property(Cow::Borrowed(
+                                &create_base_url(2),
+                            ))],
+                        },
+                        added: &property!({ create_base_url(3): "foo" }),
+                    },
+                    PropertyDiff::Changed {
+                        path: PropertyPath { elements: vec![] },
+                        old: &old,
+                        new: &new,
+                    },
+                ],
+            );
+        }
+
+        #[test]
+        fn object_nested_object_key_moved() {
+            let old = property!({ create_base_url(1): { create_base_url(3): "foo" }, create_base_url(2): {} });
+            let new = property!({ create_base_url(2): { create_base_url(3): "foo" }, create_base_url(1): {} });
+            test_diff(
+                &old,
+                &new,
+                [
+                    PropertyDiff::Added {
+                        path: PropertyPath {
+                            elements: vec![
+                                PropertyPathElement::Property(Cow::Borrowed(&create_base_url(2))),
+                                PropertyPathElement::Property(Cow::Borrowed(&create_base_url(3))),
+                            ],
+                        },
+                        added: &property!("foo"),
+                    },
+                    PropertyDiff::Removed {
+                        path: PropertyPath {
+                            elements: vec![
+                                PropertyPathElement::Property(Cow::Borrowed(&create_base_url(1))),
+                                PropertyPathElement::Property(Cow::Borrowed(&create_base_url(3))),
+                            ],
+                        },
+                        removed: &property!("foo"),
+                    },
+                    PropertyDiff::Changed {
+                        path: PropertyPath {
+                            elements: vec![PropertyPathElement::Property(Cow::Borrowed(
+                                &create_base_url(1),
+                            ))],
+                        },
+                        old: &property!({ create_base_url(3): "foo" }),
+                        new: &property!({}),
+                    },
+                    PropertyDiff::Changed {
+                        path: PropertyPath {
+                            elements: vec![PropertyPathElement::Property(Cow::Borrowed(
+                                &create_base_url(2),
+                            ))],
+                        },
+                        old: &property!({}),
+                        new: &property!({ create_base_url(3): "foo" }),
+                    },
+                    PropertyDiff::Changed {
+                        path: PropertyPath { elements: vec![] },
+                        old: &old,
+                        new: &new,
+                    },
+                ],
+            );
+        }
+
+        #[test]
+        fn object_modified() {
+            let old = property!({ create_base_url(1): "foo" });
+            let new = property!({ create_base_url(1): "bar" });
+            test_diff(
+                &old,
+                &new,
+                [
+                    PropertyDiff::Changed {
+                        path: PropertyPath {
+                            elements: vec![PropertyPathElement::Property(Cow::Borrowed(
+                                &create_base_url(1),
+                            ))],
+                        },
+                        old: &property!("foo"),
+                        new: &property!("bar"),
+                    },
+                    PropertyDiff::Changed {
+                        path: PropertyPath { elements: vec![] },
+                        old: &old,
+                        new: &new,
+                    },
+                ],
+            );
+        }
+
+        #[test]
+        fn object_key_removed() {
+            let old = property!({ create_base_url(1): "foo" });
+            let new = property!({});
+            test_diff(
+                &old,
+                &new,
+                [
+                    PropertyDiff::Removed {
+                        path: PropertyPath {
+                            elements: vec![PropertyPathElement::Property(Cow::Borrowed(
+                                &create_base_url(1),
+                            ))],
+                        },
+                        removed: &property!("foo"),
+                    },
+                    PropertyDiff::Changed {
+                        path: PropertyPath { elements: vec![] },
+                        old: &old,
+                        new: &new,
+                    },
+                ],
+            );
+        }
     }
 }

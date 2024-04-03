@@ -1,18 +1,25 @@
 import type { Entity, EntityId } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import { splitEntityId } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
 
 export const generateEntityHref = (params: {
   entityId: EntityId;
+  includeDraftId: boolean;
   shortname: string;
-}) =>
-  `/@${params.shortname}/entities/${extractEntityUuidFromEntityId(
-    params.entityId,
-  )}`;
+}) => {
+  const [_ownedById, entityUuid, draftId] = splitEntityId(params.entityId);
+  const baseHref = `/@${params.shortname}/entities/${entityUuid}`;
 
-export const useEntityHref = (entity: Entity) => {
+  if (!draftId || !params.includeDraftId) {
+    return baseHref;
+  }
+
+  return `${baseHref}?draftId=${draftId}`;
+};
+
+export const useEntityHref = (entity: Entity, includeDraftId: boolean) => {
   const getOwnerForEntity = useGetOwnerForEntity();
 
   return useMemo(() => {
@@ -20,7 +27,8 @@ export const useEntityHref = (entity: Entity) => {
 
     return generateEntityHref({
       shortname,
+      includeDraftId,
       entityId: entity.metadata.recordId.entityId,
     });
-  }, [getOwnerForEntity, entity]);
+  }, [getOwnerForEntity, entity, includeDraftId]);
 };

@@ -23,10 +23,8 @@ import { constructUser, isEntityUserEntity } from "../../lib/user-and-org";
  */
 export const useUsersWithLinks = ({
   userAccountIds,
-  includeDrafts = false,
 }: {
   userAccountIds?: AccountId[];
-  includeDrafts?: boolean;
 }): {
   loading: boolean;
   users?: User[];
@@ -74,7 +72,7 @@ export const useUsersWithLinks = ({
           hasRightEntity: { incoming: 0, outgoing: 1 },
         },
         temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts,
+        includeDrafts: false,
       },
     },
     fetchPolicy: "cache-and-network",

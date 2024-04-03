@@ -43,12 +43,11 @@ const InferenceRequestContainer = ({
   const [cancellationRequested, setCancellationRequested] = useState(false);
 
   const isUnproductiveSuccessfulRequest =
-    request.status === "complete" ||
-    (request.status === "user-cancelled" &&
-      (!request.data.contents[0]?.results?.length ||
-        request.data.contents[0].results.every(
-          (result) => result.operation === "already-exists-as-proposed",
-        )));
+    (request.status === "complete" || request.status === "user-cancelled") &&
+    (!request.data.contents[0]?.results?.length ||
+      request.data.contents[0].results.every(
+        (result) => result.operation === "already-exists-as-proposed",
+      ));
 
   const cancelRequest = (event: MouseEvent) => {
     event.stopPropagation();

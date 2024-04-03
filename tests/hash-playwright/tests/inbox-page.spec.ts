@@ -4,9 +4,11 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
-import type { GraphChangeNotificationProperties } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
+import type {
+  GraphChangeNotificationProperties,
+  OccurredInEntityProperties,
+} from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { AccountId } from "@local/hash-subgraph";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
 import { createEntity, getUser } from "./shared/api-queries";
@@ -42,23 +44,27 @@ const createNotification = async ({
     } as PageProperties,
   });
 
-  await createEntity(requestContext, {
+  const notificationEntity = await createEntity(requestContext, {
     draft: false,
     entityTypeId: systemEntityTypes.graphChangeNotification.entityTypeId,
     ownedById,
     properties: {
       "https://hash.ai/@hash/types/property-type/graph-change-type/": "create",
     } as GraphChangeNotificationProperties,
-    linkedEntities: [
-      {
-        destinationAccountId: ownedById as AccountId,
-        linkEntityTypeId:
-          systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
-        entity: {
-          existingEntityId: targetEntity.metadata.recordId.entityId,
-        },
-      },
-    ],
+  });
+
+  await createEntity(requestContext, {
+    draft,
+    entityTypeId: systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
+    linkData: {
+      leftEntityId: notificationEntity.metadata.recordId.entityId,
+      rightEntityId: targetEntity.metadata.recordId.entityId,
+    },
+    ownedById,
+    properties: {
+      "https://hash.ai/@hash/types/property-type/entity-edition-id/":
+        targetEntity.metadata.temporalVersioning.decisionTime.start.limit,
+    } as OccurredInEntityProperties,
   });
 
   return targetEntityTitle;

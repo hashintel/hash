@@ -99,8 +99,8 @@ async fn properties_add() {
         .expect("could not get entity");
     let properties = entity.properties.properties();
     assert_eq!(properties.len(), 2);
-    assert_eq!(properties[&name_property_type_id()], "Alice");
-    assert_eq!(properties[&age_property_type_id()], 30);
+    assert_eq!(properties[&name_property_type_id()], json!("Alice"));
+    assert_eq!(properties[&age_property_type_id()], json!(30));
 }
 
 #[tokio::test]
@@ -166,7 +166,7 @@ async fn properties_replace() {
         .expect("could not get entity");
     let properties = entity.properties.properties();
     assert_eq!(properties.len(), 1);
-    assert_eq!(properties[&name_property_type_id()], "Bob");
+    assert_eq!(properties[&name_property_type_id()], json!("Bob"));
 }
 
 #[tokio::test]
@@ -289,7 +289,7 @@ async fn properties_copy() {
         .expect("could not get entity");
     let properties = entity.properties.properties();
     assert_eq!(properties.len(), 2);
-    assert_eq!(properties[&name_property_type_id()], "Alice");
+    assert_eq!(properties[&name_property_type_id()], json!("Alice"));
     assert_eq!(
         properties[&interests_property_type_id()],
         json!({ film_property_type_id().as_str(): "Alice" })

@@ -39,6 +39,7 @@ import type {
   PageRelatedNotification,
 } from "./shared/notifications-with-links-context";
 import { useNotificationsWithLinksContextValue } from "./shared/notifications-with-links-context";
+import { generateEntityHref } from "./shared/use-entity-href";
 
 const Table = styled(MuiTable)(({ theme }) => ({
   borderCollapse: "separate",
@@ -191,9 +192,11 @@ const NotificationRow: FunctionComponent<{ notification: Notification }> = ({
     }
 
     if (notification.kind === "graph-change") {
-      return `/@${entityOwningShortname}/entities/${extractEntityUuidFromEntityId(
-        notification.occurredInEntity.metadata.recordId.entityId,
-      )}`;
+      return generateEntityHref({
+        entityId: notification.occurredInEntity.metadata.recordId.entityId,
+        includeDraftId: true,
+        shortname: entityOwningShortname,
+      });
     }
 
     const { occurredInBlock } = notification;

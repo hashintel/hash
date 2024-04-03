@@ -21,7 +21,7 @@ deer = { path = "..", default-features = false }
 
 justjson = { version = "0.3.0", default-features = false, features = ['alloc'] }
 lexical = { version = "6.1.1", default-features = false, features = ['parse-floats', 'parse-integers', 'format'] }
-memchr = "2.7.1"
+memchr = "2.7.2"
 
 [features]
 default = ['std']

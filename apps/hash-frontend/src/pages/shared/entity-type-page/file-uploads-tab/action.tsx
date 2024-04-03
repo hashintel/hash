@@ -45,6 +45,7 @@ export const Action = ({
                     entityId:
                       upload.createdEntities.fileEntity.metadata.recordId
                         .entityId,
+                    includeDraftId: false,
                   })
                 : "#"
             }

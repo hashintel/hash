@@ -38,6 +38,7 @@ pub struct StoreWrapper {
     source_db_pool: Pool,
     pool: ManuallyDrop<Pool>,
     pub store: ManuallyDrop<Store>,
+    #[allow(dead_code, reason = "False positive")]
     pub account_id: AccountId,
 }
 
