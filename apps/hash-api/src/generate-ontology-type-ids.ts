@@ -32,7 +32,8 @@ import {
   isEntityTypeLinkEntityType,
 } from "./graph/ontology/primitive/entity-type";
 import { getPropertyTypes } from "./graph/ontology/primitive/property-type";
-import { getRequiredEnv } from "./util";
+
+import { getRequiredEnv } from "@local/hash-isomorphic-utils/environment";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

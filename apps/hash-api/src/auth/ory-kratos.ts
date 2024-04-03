@@ -3,7 +3,7 @@ import { Configuration } from "@ory/client";
 import type { CreateIdentityBody } from "@ory/kratos-client";
 import { FrontendApi, IdentityApi } from "@ory/kratos-client";
 
-import { getRequiredEnv } from "../util";
+import { getRequiredEnv } from "@local/hash-isomorphic-utils/environment";
 
 export const kratosPublicUrl = getRequiredEnv("HASH_KRATOS_PUBLIC_URL");
 

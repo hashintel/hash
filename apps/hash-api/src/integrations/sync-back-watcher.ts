@@ -14,11 +14,11 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { systemAccountId } from "../graph/system-account";
 import { logger } from "../logger";
-import { getRequiredEnv } from "../util";
 import {
   processEntityChange as processLinearEntityChange,
   supportedLinearTypeIds,
 } from "./linear/sync-back";
+import { getRequiredEnv } from "@local/hash-isomorphic-utils/environment";
 
 const sendEntityToRelevantProcessor = (
   entity: Entity,

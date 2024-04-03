@@ -1,3 +1,5 @@
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { Entity, EntityId } from "@local/hash-subgraph";
 import type { DataSource } from "apollo-datasource";
@@ -12,7 +14,7 @@ export const isStorageType = (
 
 /** Helper type to create a typed "dictionary" of storage types to their storage provider instance */
 export type StorageProviderLookup = Partial<
-  Record<StorageType, StorageProvider | UploadableStorageProvider>
+  Record<StorageType, FileStorageProvider | UploadableStorageProvider>
 >;
 
 /**
@@ -26,7 +28,7 @@ export const storageProviderLookup: StorageProviderLookup = {};
  * The storage provider doesn't upload the file itself, instead it returns a URL
  * and form-data fields for the client to upload their file to.
  */
-export interface StorageProvider {
+export interface FileStorageProvider {
   storageType: StorageType;
   /**
    * Presigns a file download request for a client to later download a file
@@ -45,29 +47,35 @@ export type FileStorageKey = `${
   | `${string}/` // optional path prefix
   | ""}${EntityId}/${string}/${string}`;
 
-export interface UploadableStorageProvider extends StorageProvider, DataSource {
+export interface UploadableStorageProvider
+  extends FileStorageProvider,
+    DataSource {
   /**
    * Presigns a file upload request for a client to later upload a file
-   * @return Promise<Object> contains the presignedPut object with the url to PUT the file to, and the file storage configuration used
+   * @return Promise<Object> contains the presignedPut object with the url to PUT the file to, and the file storage
+   *   configuration used
    */
   presignUpload(
     this: void,
     params: PresignedStorageRequest,
   ): Promise<{
     presignedPut: PresignedPutUpload;
-    fileStorageProperties: {
-      bucket?: string;
-      endpoint?: string;
-      forcePathStyle?: boolean;
-      key: string;
-      provider: StorageType;
-      region?: string;
-    };
+    fileStorageProperties: Pick<
+      FileProperties,
+      | "https://hash.ai/@hash/types/property-type/file-storage-bucket/"
+      | "https://hash.ai/@hash/types/property-type/file-storage-endpoint/"
+      | "https://hash.ai/@hash/types/property-type/file-storage-force-path-style/"
+      | "https://hash.ai/@hash/types/property-type/file-storage-key/"
+      | "https://hash.ai/@hash/types/property-type/file-storage-provider/"
+      | "https://hash.ai/@hash/types/property-type/file-storage-region/"
+    >;
   }>;
+
   /**
    * For a given file upload request, generates the path/key to store the file.
-   * This method needs to be defined by each storage provider, as different storage providers might want to store files in different paths.
-   * The key must reliably have the EntityId and edition timestamp as the 2nd and 3rd to last path segments, to identify the entity.
+   * This method needs to be defined by each storage provider, as different storage providers might want to store files
+   * in different paths. The key must reliably have the EntityId and edition timestamp as the 2nd and 3rd to last path
+   * segments, to identify the entity.
    */
   getFileEntityStorageKey(
     this: void,
@@ -107,3 +115,21 @@ export interface PresignedPutUpload {
   /** PUT URL to send the upload request to, including any headers */
   url: string;
 }
+
+const fileMimeTypeStartsWithToEntityTypeId: Record<string, VersionedUrl> = {
+  "image/": systemEntityTypes.image.entityTypeId,
+  "application/pdf": systemEntityTypes.pdfDocument.entityTypeId,
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+    systemEntityTypes.docxDocument.entityTypeId,
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+    systemEntityTypes.pptxPresentation.entityTypeId,
+};
+
+export const getEntityTypeIdForMimeType = (mimeType: string) =>
+  /**
+   * @note we should to adapt this if we add sub-types for `Image` (for example a
+   * `PNG Image` type), so that the most specific type is used.
+   */
+  Object.entries(fileMimeTypeStartsWithToEntityTypeId).find(
+    ([mimeTypeStartsWith]) => mimeType.startsWith(mimeTypeStartsWith),
+  )?.[1];

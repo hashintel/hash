@@ -1,4 +1,14 @@
 import { extractBaseUrl } from "@blockprotocol/type-system";
+import type {
+  FileStorageProvider,
+  StorageType,
+  UploadableStorageProvider,
+} from "@local/hash-backend-utils/file-storage";
+import {
+  isStorageType,
+  storageProviderLookup,
+} from "@local/hash-backend-utils/file-storage";
+import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import {
   fullDecisionTimeAxis,
@@ -20,20 +30,10 @@ import { getActorIdFromRequest } from "../auth/get-actor-id";
 import type { CacheAdapter } from "../cache";
 import type { ImpureGraphContext } from "../graph/context-types";
 import type { AuthenticationContext } from "../graphql/authentication-context";
-import { getAwsS3Config } from "../lib/aws-config";
+import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
 import { LOCAL_FILE_UPLOAD_PATH } from "../lib/config";
 import { logger } from "../logger";
-import { AwsS3StorageProvider } from "./aws-s3-storage-provider";
 import { LocalFileSystemStorageProvider } from "./local-file-storage";
-import type {
-  StorageProvider,
-  StorageType,
-  UploadableStorageProvider,
-} from "./storage-provider";
-import { isStorageType, storageProviderLookup } from "./storage-provider";
-
-export * from "./aws-s3-storage-provider";
-export * from "./storage-provider";
 
 // S3-like APIs have a upper bound.
 // 7 days.
@@ -44,7 +44,7 @@ const DOWNLOAD_URL_CACHE_OFFSET_SECONDS = 60 * 60;
 
 type StorageProviderInitialiser = (
   app: Express,
-) => StorageProvider | UploadableStorageProvider;
+) => FileStorageProvider | UploadableStorageProvider;
 
 const storageProviderInitialiserLookup: Record<
   StorageType,

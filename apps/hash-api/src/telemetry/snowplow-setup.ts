@@ -6,7 +6,7 @@ import {
   tracker as createTracker,
 } from "@snowplow/node-tracker";
 
-import { getRequiredEnv } from "../util";
+import { getRequiredEnv } from "@local/hash-isomorphic-utils/environment";
 
 /**
  * Sets up snowplow telemetry for HASH usage. Disabled by default.

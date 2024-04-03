@@ -1,4 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { PresignedPutUpload } from "@local/hash-backend-utils/file-storage";
+import { getEntityTypeIdForMimeType } from "@local/hash-backend-utils/file-storage";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -15,7 +17,6 @@ import type {
   MutationRequestFileUploadArgs,
 } from "../../../graphql/api-types.gen";
 import type { AuthenticationContext } from "../../../graphql/authentication-context";
-import type { PresignedPutUpload } from "../../../storage/storage-provider";
 import { genId } from "../../../util";
 import type {
   ImpureGraphContext,
@@ -33,24 +34,6 @@ const UPLOAD_URL_EXPIRATION_SECONDS = 60 * 30;
 export const formatUrl = (key: string) => {
   return `${apiOrigin}/file/${key}`;
 };
-
-const fileMimeTypeStartsWithToEntityTypeId: Record<string, VersionedUrl> = {
-  "image/": systemEntityTypes.image.entityTypeId,
-  "application/pdf": systemEntityTypes.pdfDocument.entityTypeId,
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-    systemEntityTypes.docxDocument.entityTypeId,
-  "application/vnd.openxmlformats-officedocument.presentationml.presentation":
-    systemEntityTypes.pptxPresentation.entityTypeId,
-};
-
-const getEntityTypeIdForMimeType = (mimeType: string) =>
-  /**
-   * @note we should to adapt this if we add sub-types for `Image` (for example a
-   * `PNG Image` type), so that the most specific type is used.
-   */
-  Object.entries(fileMimeTypeStartsWithToEntityTypeId).find(
-    ([mimeTypeStartsWith]) => mimeType.startsWith(mimeTypeStartsWith),
-  )?.[1];
 
 const generateCommonParameters = async (
   ctx: ImpureGraphContext<false, true>,
@@ -205,26 +188,11 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
         expiresInSeconds: UPLOAD_URL_EXPIRATION_SECONDS,
       });
 
-    const { bucket, endpoint, forcePathStyle, provider, region } =
-      fileStorageProperties;
-
-    const storageProperties: Partial<FileProperties> = {
-      "https://hash.ai/@hash/types/property-type/file-storage-bucket/": bucket,
-      "https://hash.ai/@hash/types/property-type/file-storage-endpoint/":
-        endpoint,
-      "https://hash.ai/@hash/types/property-type/file-storage-force-path-style/":
-        !!forcePathStyle,
-      "https://hash.ai/@hash/types/property-type/file-storage-key/": key,
-      "https://hash.ai/@hash/types/property-type/file-storage-provider/":
-        provider,
-      "https://hash.ai/@hash/types/property-type/file-storage-region/": region,
-    };
-
     const properties: FileProperties = {
       ...initialProperties,
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
         formatUrl(key),
-      ...storageProperties,
+      ...fileStorageProperties,
     };
 
     const entity = (await updateEntity(ctx, authentication, {
