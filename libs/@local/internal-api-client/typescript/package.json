@@ -2,7 +2,7 @@
   "name": "@local/internal-api-client",
   "version": "0.0.0-private",
   "private": true,
-  "description": "OpenAPI client for the HASH internal APi",
+  "description": "OpenAPI client for the HASH internal API",
   "license": "See LICENSE.md",
   "type": "module",
   "main": "index.ts",
