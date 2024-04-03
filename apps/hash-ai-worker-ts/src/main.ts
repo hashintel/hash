@@ -1,3 +1,13 @@
+/* eslint-disable import/first */
+
+import * as Sentry from "@sentry/node";
+
+Sentry.init({
+  dsn: process.env.HASH_TEMPORAL_WORKER_AI_SENTRY_DSN,
+  enabled: !!process.env.HASH_TEMPORAL_WORKER_AI_SENTRY_DSN,
+  tracesSampleRate: 1.0,
+});
+
 import * as http from "node:http";
 import { createRequire } from "node:module";
 import * as path from "node:path";
@@ -7,7 +17,9 @@ import { fileURLToPath } from "node:url";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { NativeConnection, Worker } from "@temporalio/worker";
+import { SentryActivityInboundInterceptor } from "@local/hash-backend-utils/temporal/interceptors/activities/sentry";
+import { sentrySinks } from "@local/hash-backend-utils/temporal/sinks/sentry";
+import { defaultSinks, NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 
 import { createAiActivities, createGraphActivities } from "./activities";
@@ -82,6 +94,15 @@ async function run() {
     }),
     namespace: "HASH",
     taskQueue: "ai",
+    sinks: { ...defaultSinks(), ...sentrySinks() },
+    interceptors: {
+      workflowModules: [
+        require.resolve(
+          "@local/hash-backend-utils/temporal/interceptors/workflows/sentry",
+        ),
+      ],
+      activityInbound: [(ctx) => new SentryActivityInboundInterceptor(ctx)],
+    },
   });
 
   const httpServer = createHealthCheckServer();

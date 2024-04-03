@@ -42,6 +42,7 @@
     "@local/hash-subgraph": "0.0.0-private",
     "@local/internal-api-client": "0.0.0-private",
     "@local/status": "0.0.0-private",
+    "@sentry/node": "7.109.0",
     "@temporalio/activity": "1.8.1",
     "@temporalio/common": "1.8.1",
     "@temporalio/worker": "1.8.1",
