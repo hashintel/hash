@@ -33,7 +33,7 @@ jobs:
       - name: Determine changed packages
         id: packages
         run: |
-          SOURCEMAPS_FILTER=$(turbo run test:unit --dry-run=json --filter '...[HEAD^]' | jq -e '.packages | contains(["//"])' > /dev/null && echo '' || echo '--filter ...[HEAD^]')
+          SOURCEMAPS_FILTER=$(turbo run sentry:sourcemaps --dry-run=json --filter '...[HEAD^]' | jq -e '.packages | contains(["//"])' > /dev/null && echo '' || echo '--filter ...[HEAD^]')
           SOURCEMAPS_FILTER_TASKS=$(sh -c "turbo run sentry:sourcemaps --dry-run=json $SOURCEMAPS_FILTER_FILTER" | jq -c '.tasks[]')
           SOURCEMAPS_FILTER_PACKAGES=$(echo "$SOURCEMAPS_FILTER_TASKS" \
             | jq 'select(.task == "sentry:sourcemaps" and .command != "<NONEXISTENT>")' \
