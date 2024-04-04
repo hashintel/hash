@@ -1,4 +1,4 @@
-FROM node:18.15-alpine AS builder
+FROM node:20.12-alpine AS builder
 
 WORKDIR /app
 
@@ -31,7 +31,7 @@ COPY libs/@local/tsconfig libs/@local/tsconfig
 
 #########################################################################################
 
-FROM node:18.15-alpine
+FROM node:20.12-alpine
 
 # Run as a non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
