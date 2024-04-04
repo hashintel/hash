@@ -56,7 +56,7 @@ jobs:
         uses: hashicorp/vault-action@d1720f055e0635fd932a1d2a48f87a666a57906c # v3.0.0
         with:
           exportToken: true
-          url: ${{ env.VAULT_ADDR }}
+          url: ${{ secrets.VAULT_ADDR }}
           method: jwt
           role: prod
           secrets: |
