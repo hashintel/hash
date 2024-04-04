@@ -57,13 +57,15 @@ jobs:
       - name: Authenticate Vault
         id: secrets
         uses: hashicorp/vault-action@d1720f055e0635fd932a1d2a48f87a666a57906c # v3.0.0
+        env:
+          VAULT_ROLE: ${{ github.event_name == 'push' && 'prod' || 'dev' }}
         with:
           exportToken: true
           url: ${{ secrets.VAULT_ADDR }}
           method: jwt
-          role: prod
+          role: ${{ env.VAULT_ROLE }}
           secrets: |
-            pipelines/hash/prod sentry_auth_token | SENTRY_AUTH_TOKEN
+            automation/data/pipelines/hash/${{ env.VAULT_ROLE }} sentry_auth_token | SENTRY_AUTH_TOKEN
 
       - name: Checkout
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -99,7 +101,7 @@ jobs:
         run: turbo run sentry:sourcemaps --filter "${{ matrix.package }}"
 
   passed:
-    name: Tests passed
+    name: Deployments passed
     needs: [setup, sourcemaps]
     if: always()
     runs-on: ubuntu-latest
