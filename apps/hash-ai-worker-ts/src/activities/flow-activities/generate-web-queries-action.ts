@@ -8,16 +8,15 @@ import { modelAliasToSpecificModel } from "../infer-entities";
 import { getOpenAiResponse } from "../infer-entities/shared/get-open-ai-response";
 import type { FlowActionActivity } from "./types";
 
-const generateWebQueriesSystemMessage: OpenAI.ChatCompletionSystemMessageParam =
-  {
-    role: "system",
-    content: dedent(`
+const webQueriesSystemMessage: OpenAI.ChatCompletionSystemMessageParam = {
+  role: "system",
+  content: dedent(`
     You are a Web Search Assistant.
     The user provides you with a text prompt, from which you create one or more queries
       for a web search engine (such as Google, Bing, Duck Duck Go, etc) which lead
       to search results that can satisfy the prompt.
    `),
-  };
+};
 
 const tools: OpenAI.ChatCompletionTool[] = [
   {
@@ -61,7 +60,7 @@ export const generateWebQueriesAction: FlowActionActivity = async ({
 
   const openApiPayload: OpenAI.ChatCompletionCreateParams = {
     messages: [
-      generateWebQueriesSystemMessage,
+      webQueriesSystemMessage,
       {
         role: "user",
         content: prompt,
