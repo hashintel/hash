@@ -109,10 +109,13 @@ const ResultItem: FunctionComponent<{
   );
 };
 
+const chipStyles = { cursor: "pointer !important", ml: 1 };
+
 const EntityResult: FunctionComponent<{
   entity: Entity;
+  onClick: () => void;
   subgraph: Subgraph<EntityRootType>;
-}> = ({ entity, subgraph }) => {
+}> = ({ entity, onClick, subgraph }) => {
   const entityId = entity.metadata.recordId.entityId;
 
   const ownedById = extractOwnedByIdFromEntityId(entityId);
@@ -123,40 +126,38 @@ const EntityResult: FunctionComponent<{
   const entityType = getEntityTypeById(subgraph, entity.metadata.entityTypeId);
 
   return (
-    <ResultItem>
-      <Link
-        noLinkStyle
-        href={`/@${entityOwningShortname}/entities/${extractEntityUuidFromEntityId(
-          entityId,
-        )}`}
-      >
+    <Link
+      onClick={onClick}
+      noLinkStyle
+      href={`/@${entityOwningShortname}/entities/${extractEntityUuidFromEntityId(
+        entityId,
+      )}`}
+    >
+      <ResultItem>
         {generateEntityLabel(subgraph, entity)}
         {entityType && (
-          <Chip
-            color="teal"
-            label={entityType.schema.title}
-            sx={{ cursor: "pointer", ml: 1 }}
-          />
+          <Chip color="teal" label={entityType.schema.title} sx={chipStyles} />
         )}
-      </Link>
-    </ResultItem>
+      </ResultItem>
+    </Link>
   );
 };
 
 const EntityTypeResult: FunctionComponent<{
   entityType: EntityType;
-}> = ({ entityType }) => {
+  onClick: () => void;
+}> = ({ entityType, onClick }) => {
   return (
-    <ResultItem>
-      <Link noLinkStyle href={generateLinkParameters(entityType.$id)}>
+    <Link
+      onClick={onClick}
+      noLinkStyle
+      href={generateLinkParameters(entityType.$id)}
+    >
+      <ResultItem>
         {entityType.title}
-        <Chip
-          color="aqua"
-          label="Entity Type"
-          sx={{ cursor: "pointer", ml: 1 }}
-        />
-      </Link>
-    </ResultItem>
+        <Chip color="aqua" label="Entity Type" sx={chipStyles} />
+      </ResultItem>
+    </Link>
   );
 };
 
@@ -360,6 +361,7 @@ export const SearchBar: FunctionComponent = () => {
               {entityTypeResults.map((entityType) => {
                 return (
                   <EntityTypeResult
+                    onClick={() => setResultListVisible(false)}
                     entityType={entityType.schema}
                     key={entityType.schema.$id}
                   />
@@ -368,6 +370,7 @@ export const SearchBar: FunctionComponent = () => {
               {entityResults.map((entity) => {
                 return (
                   <EntityResult
+                    onClick={() => setResultListVisible(false)}
                     key={entity.metadata.recordId.entityId}
                     entity={entity}
                     subgraph={entitySubgraph!}
