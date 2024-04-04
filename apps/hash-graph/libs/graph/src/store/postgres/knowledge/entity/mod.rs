@@ -23,10 +23,11 @@ use graph_types::{
     knowledge::{
         entity::{
             DraftId, Entity, EntityEditionId, EntityEditionProvenanceMetadata, EntityEmbedding,
-            EntityId, EntityMetadata, EntityProperties, EntityProvenanceMetadata, EntityRecordId,
-            EntityTemporalMetadata, EntityUuid, PropertyPath,
+            EntityId, EntityMetadata, EntityProvenanceMetadata, EntityRecordId,
+            EntityTemporalMetadata, EntityUuid, PropertyObject,
         },
         link::LinkData,
+        PropertyPath,
     },
     owned_by_id::OwnedById,
     Embedding,
@@ -769,7 +770,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             Item = (
                 OwnedById,
                 Option<EntityUuid>,
-                EntityProperties,
+                PropertyObject,
                 Option<LinkData>,
                 Option<Timestamp<DecisionTime>>,
             ),
@@ -1506,7 +1507,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         edition_created_by_id: EditionCreatedById,
         archived: bool,
         entity_type_ids: &[VersionedUrl],
-        properties: &EntityProperties,
+        properties: &PropertyObject,
     ) -> Result<(EntityEditionId, ClosedEntityType), InsertionError> {
         let edition_id: EntityEditionId = self
             .as_client()

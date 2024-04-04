@@ -1,8 +1,8 @@
 use graph_types::{
     account::{CreatedById, EditionCreatedById},
     knowledge::{
-        entity::{DraftId, EntityEditionId, EntityProperties, EntityUuid, PropertyPath},
-        Confidence,
+        entity::{DraftId, EntityEditionId, EntityUuid, PropertyObject},
+        Confidence, PropertyPath,
     },
     owned_by_id::OwnedById,
     Embedding,
@@ -35,7 +35,7 @@ pub struct EntityDraftRow {
 #[postgres(name = "entity_editions")]
 pub struct EntityEditionRow {
     pub entity_edition_id: EntityEditionId,
-    pub properties: EntityProperties,
+    pub properties: PropertyObject,
     pub edition_created_by_id: EditionCreatedById,
     pub archived: bool,
     pub confidence: Option<Confidence>,

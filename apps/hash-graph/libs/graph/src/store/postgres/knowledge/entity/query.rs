@@ -4,10 +4,10 @@ use graph_types::{
     knowledge::{
         entity::{
             Entity, EntityEditionProvenanceMetadata, EntityId, EntityMetadata,
-            EntityProvenanceMetadata, EntityRecordId, EntityUuid, PropertyPath,
+            EntityProvenanceMetadata, EntityRecordId, EntityUuid,
         },
         link::LinkData,
-        Confidence,
+        Confidence, PropertyPath,
     },
     owned_by_id::OwnedById,
 };

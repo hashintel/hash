@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use error_stack::Report;
-use graph_types::knowledge::entity::{EntityProperties, Property};
+use graph_types::knowledge::entity::{Property, PropertyObject};
 use serde_json::Value as JsonValue;
 use type_system::{url::VersionedUrl, ClosedEntityType, DataType, PropertyType};
 
@@ -61,7 +61,7 @@ pub fn install_error_stack_hooks() {
 pub enum Actual {
     Json(JsonValue),
     Property(Property),
-    Properties(EntityProperties),
+    Properties(PropertyObject),
 }
 
 #[derive(Debug)]

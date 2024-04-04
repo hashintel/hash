@@ -3,7 +3,7 @@ use std::borrow::Borrow;
 use error_stack::{Report, ResultExt};
 use futures::{stream, StreamExt, TryStreamExt};
 use graph_types::knowledge::{
-    entity::{Entity, EntityId, EntityProperties},
+    entity::{Entity, EntityId, PropertyObject},
     link::LinkData,
 };
 use thiserror::Error;
@@ -47,7 +47,7 @@ pub enum EntityValidationError {
     InvalidLinkTargetId { target_types: Vec<VersionedUrl> },
 }
 
-impl<P> Schema<EntityProperties, P> for ClosedEntityType
+impl<P> Schema<PropertyObject, P> for ClosedEntityType
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -55,7 +55,7 @@ where
 
     async fn validate_value<'a>(
         &'a self,
-        value: &'a EntityProperties,
+        value: &'a PropertyObject,
         profile: ValidationProfile,
         provider: &'a P,
     ) -> Result<(), Report<EntityValidationError>> {
@@ -72,7 +72,7 @@ where
     }
 }
 
-impl<P> Validate<ClosedEntityType, P> for EntityProperties
+impl<P> Validate<ClosedEntityType, P> for PropertyObject
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {

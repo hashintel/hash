@@ -123,7 +123,7 @@ pub trait EntityProvider {
 mod tests {
     use std::collections::HashMap;
 
-    use graph_types::knowledge::entity::{EntityProperties, Property};
+    use graph_types::knowledge::entity::{Property, PropertyObject};
     use serde_json::Value as JsonValue;
     use thiserror::Error;
     use type_system::{DataType, EntityType, PropertyType};
@@ -286,7 +286,7 @@ mod tests {
         );
 
         let entity =
-            serde_json::from_str::<EntityProperties>(entity).expect("failed to read entity string");
+            serde_json::from_str::<PropertyObject>(entity).expect("failed to read entity string");
 
         entity.validate(&entity_type, profile, &provider).await
     }

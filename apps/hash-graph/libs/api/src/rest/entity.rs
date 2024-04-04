@@ -39,11 +39,11 @@ use graph_types::{
     knowledge::{
         entity::{
             Entity, EntityEditionId, EntityEditionProvenanceMetadata, EntityEmbedding, EntityId,
-            EntityMetadata, EntityProperties, EntityProvenanceMetadata, EntityRecordId,
-            EntityTemporalMetadata, EntityUuid, PropertyPath,
+            EntityMetadata, EntityProvenanceMetadata, EntityRecordId, EntityTemporalMetadata,
+            EntityUuid, PropertyObject,
         },
         link::LinkData,
-        Confidence,
+        Confidence, PropertyPath,
     },
     owned_by_id::OwnedById,
     Embedding,
@@ -127,7 +127,7 @@ use crate::rest::{
             EntityMetadata,
             EntityProvenanceMetadata,
             EntityEditionProvenanceMetadata,
-            EntityProperties,
+            PropertyObject,
             EntityRecordId,
             EntityTemporalMetadata,
             EntityQueryToken,

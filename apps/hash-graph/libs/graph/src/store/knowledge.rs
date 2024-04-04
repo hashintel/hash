@@ -5,8 +5,11 @@ use error_stack::Report;
 use graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{Entity, EntityEmbedding, EntityId, EntityMetadata, EntityProperties, EntityUuid},
+        entity::{
+            Entity, EntityEmbedding, EntityId, EntityMetadata, EntityUuid, Property, PropertyObject,
+        },
         link::LinkData,
+        Confidence, PropertyPath,
     },
     owned_by_id::OwnedById,
 };
@@ -180,7 +183,7 @@ pub struct CreateEntityParams<R> {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub decision_time: Option<Timestamp<DecisionTime>>,
     pub entity_type_ids: Vec<VersionedUrl>,
-    pub properties: EntityProperties,
+    pub properties: PropertyObject,
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_data: Option<LinkData>,
@@ -195,7 +198,7 @@ pub struct ValidateEntityParams<'a> {
     #[serde(borrow)]
     pub entity_types: EntityValidationType<'a>,
     #[serde(borrow)]
-    pub properties: Cow<'a, EntityProperties>,
+    pub properties: Cow<'a, PropertyObject>,
     #[serde(borrow, default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_data: Option<Cow<'a, LinkData>>,
@@ -211,6 +214,47 @@ pub struct GetEntityParams<'a> {
     #[serde(borrow)]
     pub sorting: EntityQuerySorting<'static>,
     pub limit: Option<usize>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(bound(deserialize = "'a: 'de"))]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+pub enum PropertyPatchOperation<'a> {
+    Add {
+        #[serde(borrow)]
+        path: PropertyPath<'a>,
+        value: Property,
+        confidence: Option<Confidence>,
+    },
+    Remove {
+        #[serde(borrow)]
+        path: PropertyPath<'a>,
+    },
+    Replace {
+        #[serde(borrow)]
+        path: PropertyPath<'a>,
+        value: Property,
+        confidence: Option<Confidence>,
+    },
+    Move {
+        #[serde(borrow)]
+        from: PropertyPath<'a>,
+        #[serde(borrow)]
+        path: PropertyPath<'a>,
+        confidence: Option<Confidence>,
+    },
+    Copy {
+        #[serde(borrow)]
+        from: PropertyPath<'a>,
+        #[serde(borrow)]
+        path: PropertyPath<'a>,
+        confidence: Option<Confidence>,
+    },
+    Test {
+        #[serde(borrow)]
+        path: PropertyPath<'a>,
+        value: Property,
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -255,7 +299,7 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
     /// # Errors:
     ///
     /// - if the [`EntityType`] doesn't exist
-    /// - if the [`EntityProperties`] is not valid with respect to the specified [`EntityType`]
+    /// - if the [`PropertyObject`] is not valid with respect to the specified [`EntityType`]
     /// - if the account referred to by `owned_by_id` does not exist
     /// - if an [`EntityUuid`] was supplied and already exists in the store
     ///
@@ -308,7 +352,7 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
             Item = (
                 OwnedById,
                 Option<EntityUuid>,
-                EntityProperties,
+                PropertyObject,
                 Option<LinkData>,
                 Option<Timestamp<DecisionTime>>,
             ),
