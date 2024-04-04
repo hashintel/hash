@@ -26,16 +26,22 @@ services:
     image: minio/mc
     depends_on:
       - minio
+    security_opt:
+      - no-new-privileges:true
     environment:
       MINIO_ROOT_USER: ${AWS_S3_UPLOADS_ACCESS_KEY_ID}
       MINIO_ROOT_PASSWORD: ${AWS_S3_UPLOADS_SECRET_ACCESS_KEY}
       AWS_S3_UPLOADS_BUCKET: ${AWS_S3_UPLOADS_BUCKET}
     entrypoint: >
       /bin/sh -c "
-      until (/usr/bin/mc config host add myminio http://minio:9000 $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD) do echo '...waiting...' && sleep 1; done;
-      /usr/bin/mc mb myminio/$AWS_S3_UPLOADS_BUCKET --ignore-existing;
-      /usr/bin/mc policy set download myminio/$AWS_S3_UPLOADS_BUCKET;
-      exit 0;
+      # Wait until MinIO is accessible
+      until (mc config host add myminio http://minio:9000 \$MINIO_ROOT_USER \$MINIO_ROOT_PASSWORD) do echo 'Waiting for MinIO...' && sleep 1; done;
+
+      # Add a fixed delay to ensure MinIO server is fully ready
+      sleep 5;
+
+      echo 'Creating bucket if not exists...';
+      mc mb myminio/\$AWS_S3_UPLOADS_BUCKET --ignore-existing;
       "
 
   telemetry-collector:
