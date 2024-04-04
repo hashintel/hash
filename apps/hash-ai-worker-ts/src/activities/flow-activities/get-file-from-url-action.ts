@@ -2,10 +2,11 @@ import fs from "node:fs";
 import { unlink } from "node:fs/promises";
 import http from "node:http";
 import https from "node:https";
-import path from "node:path";
+import path, { dirname } from "node:path";
 import { Readable } from "node:stream";
 import { finished } from "node:stream/promises";
 import type { ReadableStream } from "node:stream/web";
+import { fileURLToPath } from "node:url";
 
 import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
 import {
@@ -21,17 +22,22 @@ import {
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { Entity } from "@local/hash-subgraph";
-import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-subgraph/stdlib";
 import { StatusCode } from "@local/status";
 import mime from "mime-types";
 
 import type { FlowActionActivity } from "./types";
 
-const baseFilePath = "/tmp";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const baseFilePath = path.join(__dirname, "/var/tmp_files");
 
 const downloadFileToFileSystem = async (fileUrl: string) => {
+  fs.mkdirSync(baseFilePath, { recursive: true });
+
   const tempFileName = generateUuid();
   const filePath = path.join(baseFilePath, tempFileName);
 
@@ -183,7 +189,6 @@ export const getFileFromUrlAction: FlowActionActivity<{
     .then((result) => mapGraphApiEntityMetadataToMetadata(result.data));
 
   const s3Config = getAwsS3Config();
-  console.log({ s3Config });
 
   const uploadProvider = new AwsS3StorageProvider(s3Config);
 
@@ -204,8 +209,6 @@ export const getFileFromUrlAction: FlowActionActivity<{
       },
       key,
     });
-
-  console.log({ presignedPut });
 
   const properties: FileProperties = {
     ...initialProperties,
@@ -241,7 +244,6 @@ export const getFileFromUrlAction: FlowActionActivity<{
   } catch (err) {
     const message = `Error uploading file: ${(err as Error).message}`;
 
-    // @todo logger
     return {
       code: StatusCode.Internal, // @todo: better error code
       message,
