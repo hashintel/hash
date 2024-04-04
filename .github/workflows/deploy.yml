@@ -60,7 +60,6 @@ jobs:
         env:
           VAULT_ROLE: ${{ github.event_name == 'push' && 'prod' || 'dev' }}
         with:
-          exportToken: true
           url: ${{ secrets.VAULT_ADDR }}
           method: jwt
           role: ${{ env.VAULT_ROLE }}

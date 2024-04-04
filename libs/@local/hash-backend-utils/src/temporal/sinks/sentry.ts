@@ -10,8 +10,8 @@ export interface SentrySinks extends Sinks {
 }
 
 const setTemporalScope = (scope: Sentry.Scope, workflowInfo: WorkflowInfo) => {
-  scope.setTransactionName(workflowInfo.workflowType);
   scope.setTags({
+    workflow: workflowInfo.workflowType,
     workflowNamespace: workflowInfo.namespace,
     queue: workflowInfo.taskQueue,
   });
