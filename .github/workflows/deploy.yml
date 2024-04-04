@@ -95,7 +95,7 @@ jobs:
           command: yarn install --frozen-lockfile --prefer-offline
 
       - name: Log in to Sentry
-        run: sentry-cli login --auth-token ${{ steps.secrets.outputs.SENTRY_AUTH_TOKEN }}
+        run: yarn sentry-cli login --auth-token ${{ steps.secrets.outputs.SENTRY_AUTH_TOKEN }}
 
       - name: Build sourcemaps
         run: turbo run sentry:sourcemaps --filter "${{ matrix.package }}"
