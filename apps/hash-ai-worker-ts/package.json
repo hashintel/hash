@@ -24,7 +24,7 @@
     }
   },
   "scripts": {
-    "build": "tsc --build && yarn exe ./scripts/bundle-workflow-code.ts && npm run sentry:sourcemaps",
+    "build": "tsc --build && yarn exe ./scripts/bundle-workflow-code.ts",
     "build:docker": "docker buildx build --tag hash-ai-worker-ts --file ./docker/Dockerfile ../../ --load",
     "dev": "NODE_ENV=development NODE_OPTIONS=--max-old-space-size=2048 tsx watch --clear-screen=false ./src/main.ts",
     "exe": "tsx",

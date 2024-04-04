@@ -1,0 +1,98 @@
+name: Deploy
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  merge_group:
+
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: hashintel
+  TURBO_REMOTE_ONLY: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  setup:
+    runs-on: ubuntu-22.04
+    outputs:
+      sourcemaps: ${{ steps.packages.outputs.sourcemaps }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 2
+
+      - name: Install turbo
+        uses: ./.github/actions/install-turbo
+
+      - name: Determine changed packages
+        id: packages
+        run: |
+          SOURCEMAPS_FILTER=$(turbo run test:unit --dry-run=json --filter '...[HEAD^]' | jq -e '.packages | contains(["//"])' > /dev/null && echo '' || echo '--filter ...[HEAD^]')
+          SOURCEMAPS_FILTER_TASKS=$(sh -c "turbo run sentry:sourcemaps --dry-run=json $SOURCEMAPS_FILTER_FILTER" | jq -c '.tasks[]')
+          SOURCEMAPS_FILTER_PACKAGES=$(echo "$SOURCEMAPS_FILTER_TASKS" \
+            | jq 'select(.task == "sentry:sourcemaps" and .command != "<NONEXISTENT>")' \
+            | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
+
+          set -x
+          echo "sourcemaps=$SOURCEMAPS_FILTER_PACKAGES" >> $GITHUB_OUTPUT
+
+  sourcemaps:
+    name: Sourcemaps
+    needs: [setup]
+    strategy:
+      matrix: ${{ fromJSON(needs.setup.outputs.sourcemaps) }}
+      fail-fast: false
+    if: needs.setup.outputs.sourcemaps != '{"package":[],"include":[]}'
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Install turbo
+        uses: ./.github/actions/install-turbo
+
+      - name: Prune repository
+        uses: ./.github/actions/prune-repository
+        with:
+          scope: ${{ matrix.package }}
+
+      - name: Install WASM tools
+        if: always()
+        uses: taiki-e/install-action@b23c83949ccaee05b69f67e606215c7a9789fa54 # v2.31.3
+        with:
+          tool: wasm-pack@0.12.1
+
+      - name: Install yarn dependencies
+        uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
+        env:
+          HUSKY: 0
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          shell: bash
+          command: yarn install --frozen-lockfile --prefer-offline
+
+      - name: Log in to Sentry
+        run: sentry-cli login --auth-token ${{ secrets.SENTRY_AUTH_TOKEN }}
+
+      - name: Build sourcemaps
+        run: turbo run sentry:sourcemaps --filter "${{ matrix.package }}"
+
+  passed:
+    name: Tests passed
+    needs: [setup, sourcemaps]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check setup script
+        run: |
+          [[ ${{ needs.setup.result }} = success ]]
+      - name: Check sourcemaps
+        run: |
+          [[ ${{ needs.sourcemaps.result }} =~ success|skipped ]]
