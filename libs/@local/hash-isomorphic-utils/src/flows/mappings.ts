@@ -1,4 +1,5 @@
-import type { Entity, EntityId } from "@local/hash-subgraph";
+import type { Entity, EntityUuid } from "@local/hash-subgraph";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 
 import { simplifyProperties } from "../simplify-properties";
 import type { FlowProperties } from "../system-types/flow";
@@ -31,7 +32,9 @@ export const mapFlowDefinitionEntityToFlowDefinition = (
 
   return {
     name,
-    flowDefinitionId: entity.metadata.recordId.entityId,
+    flowDefinitionId: extractEntityUuidFromEntityId(
+      entity.metadata.recordId.entityId,
+    ),
     outputs: outputDefinitions as FlowDefinition["outputs"],
     steps: stepDefinitions as FlowDefinition["steps"],
     trigger: {
@@ -42,7 +45,8 @@ export const mapFlowDefinitionEntityToFlowDefinition = (
       outputs: triggerDefinition[
         "https://hash.ai/@hash/types/property-type/output-definitions/"
       ] as OutputDefinition<boolean>[],
-    },
+      /** @todo: fix this */
+    } as unknown as FlowDefinition["trigger"],
   };
 };
 
@@ -66,8 +70,8 @@ export const mapFlowEntityToFlow = (entity: Entity<FlowProperties>): Flow => {
   } = simplifyProperties(entity.properties);
 
   return {
-    flowId: entity.metadata.recordId.entityId,
-    flowDefinitionId: flowDefinitionId as EntityId,
+    flowId: extractEntityUuidFromEntityId(entity.metadata.recordId.entityId),
+    flowDefinitionId: flowDefinitionId as EntityUuid,
     outputs: outputs as Flow["outputs"],
     steps: steps as Flow["steps"],
     trigger: {
