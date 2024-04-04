@@ -8,6 +8,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { FlowProperties } from "@local/hash-isomorphic-utils/system-types/flow";
 import type {
   AccountId,
@@ -15,10 +16,7 @@ import type {
   EntityRootType,
   EntityUuid,
 } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 
 type PersistFlowActivityParams = {
   flow: Flow;
@@ -54,6 +52,7 @@ const getExistingFlowEntity = async (params: {
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
         data.subgraph,
+        userAuthentication.actorId,
       );
 
       return getRoots(subgraph) as Entity<FlowProperties>[];

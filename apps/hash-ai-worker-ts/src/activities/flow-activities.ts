@@ -6,7 +6,7 @@ import { getFileFromUrlAction } from "./flow-activities/get-file-from-url-action
 import { getWebPageByUrlAction } from "./flow-activities/get-web-page-by-url-action";
 import { inferEntitiesFromContentAction } from "./flow-activities/infer-entities-from-content-action";
 import { persistEntityAction } from "./flow-activities/persist-entity-action";
-import { createPersistFlowActivity } from "./flow-activities/persist-entity-activity";
+import { createPersistFlowActivity } from "./flow-activities/persist-flow-activity";
 import type { FlowActionActivity } from "./flow-activities/types";
 import { webSearchAction } from "./flow-activities/web-search-action";
 
