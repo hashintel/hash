@@ -51,6 +51,17 @@ jobs:
     if: needs.setup.outputs.sourcemaps != '{"package":[],"include":[]}'
     runs-on: ubuntu-22.04
     steps:
+      - name: Authenticate Vault
+        id: secrets
+        uses: hashicorp/vault-action@d1720f055e0635fd932a1d2a48f87a666a57906c # v3.0.0
+        with:
+          exportToken: true
+          url: ${{ env.VAULT_ADDR }}
+          method: jwt
+          role: prod
+          secrets: |
+            pipelines/hash/prod sentry_auth_token | SENTRY_AUTH_TOKEN
+
       - name: Checkout
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
@@ -79,7 +90,7 @@ jobs:
           command: yarn install --frozen-lockfile --prefer-offline
 
       - name: Log in to Sentry
-        run: sentry-cli login --auth-token ${{ secrets.SENTRY_AUTH_TOKEN }}
+        run: sentry-cli login --auth-token ${{ steps.secrets.outputs.SENTRY_AUTH_TOKEN }}
 
       - name: Build sourcemaps
         run: turbo run sentry:sourcemaps --filter "${{ matrix.package }}"

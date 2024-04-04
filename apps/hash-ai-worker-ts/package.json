@@ -64,7 +64,6 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@sentry/cli": "2.31.0",
     "@types/dedent": "0.7.0",
     "@types/dotenv-flow": "3.2.0",
     "@types/lodash.ismatch": "4.4.9",
