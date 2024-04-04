@@ -50,6 +50,9 @@ jobs:
       fail-fast: false
     if: needs.setup.outputs.sourcemaps != '{"package":[],"include":[]}'
     runs-on: ubuntu-22.04
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Authenticate Vault
         id: secrets
