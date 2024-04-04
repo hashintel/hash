@@ -24,13 +24,14 @@
     }
   },
   "scripts": {
-    "build": "tsc --build && yarn exe ./scripts/bundle-workflow-code.ts",
+    "build": "tsc --build && yarn exe ./scripts/bundle-workflow-code.ts && npm run sentry:sourcemaps",
     "build:docker": "docker buildx build --tag hash-ai-worker-ts --file ./docker/Dockerfile ../../ --load",
     "dev": "NODE_ENV=development NODE_OPTIONS=--max-old-space-size=2048 tsx watch --clear-screen=false ./src/main.ts",
     "exe": "tsx",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
+    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org hashintel --project hash-temporal-worker-ai ./dist && sentry-cli sourcemaps upload --org hashintel --project hash-temporal-worker-ai ./dist",
     "start": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/main.ts",
     "test:unit": "vitest --run"
   },
@@ -63,6 +64,7 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
+    "@sentry/cli": "2.31.0",
     "@types/dedent": "0.7.0",
     "@types/dotenv-flow": "3.2.0",
     "@types/lodash.ismatch": "4.4.9",
