@@ -12,10 +12,7 @@ use graph::store::{
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     account::AccountId,
-    knowledge::{
-        entity::{EntityUuid, PropertyObject},
-        link::LinkData,
-    },
+    knowledge::{entity::EntityUuid, link::LinkData, PropertyObject},
     owned_by_id::OwnedById,
 };
 use type_system::{url::VersionedUrl, EntityType};

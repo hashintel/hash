@@ -22,7 +22,10 @@ use authorization::{
 use error_stack::{Report, Result, ResultExt};
 use graph_types::{
     account::{AccountGroupId, AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
-    knowledge::entity::{EntityEditionId, EntityId, EntityTemporalMetadata, PropertyObject},
+    knowledge::{
+        entity::{EntityEditionId, EntityId, EntityTemporalMetadata},
+        PropertyObject,
+    },
     ontology::{
         OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeRecordId,
     },

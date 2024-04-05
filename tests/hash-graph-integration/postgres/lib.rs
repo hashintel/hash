@@ -60,8 +60,9 @@ use graph::{
 use graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{Entity, EntityId, EntityMetadata, EntityUuid, PropertyObject},
+        entity::{Entity, EntityId, EntityMetadata, EntityUuid},
         link::LinkData,
+        PropertyConfidence, PropertyObject,
     },
     ontology::{
         DataTypeMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
@@ -539,6 +540,7 @@ impl DatabaseApi<'_> {
                     decision_time: Some(generate_decision_time()),
                     entity_type_ids,
                     properties,
+                    property_confidence: PropertyConfidence::default(),
                     link_data: None,
                     draft,
                     relationships: [],
@@ -789,6 +791,7 @@ impl DatabaseApi<'_> {
                     decision_time: Some(generate_decision_time()),
                     entity_type_ids,
                     properties,
+                    property_confidence: PropertyConfidence::default(),
                     link_data: Some(LinkData {
                         left_entity_id,
                         right_entity_id,

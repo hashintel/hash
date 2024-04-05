@@ -102,17 +102,6 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
                 .attach_printable("could not send entity draft id")?;
         }
 
-        self.edition
-            .start_send_unpin(EntityEditionRow {
-                entity_edition_id: entity.metadata.record_id.edition_id,
-                properties: entity.properties,
-                edition_created_by_id: entity.metadata.provenance.edition.created_by_id,
-                archived: entity.metadata.archived,
-                confidence: entity.metadata.confidence,
-            })
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not send entity edition")?;
-
         for (path, confidence) in entity.metadata.property_confidence {
             self.property
                 .start_send_unpin(EntityPropertyRow {
@@ -123,6 +112,17 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
                 .change_context(SnapshotRestoreError::Read)
                 .attach_printable("could not send entity property")?;
         }
+
+        self.edition
+            .start_send_unpin(EntityEditionRow {
+                entity_edition_id: entity.metadata.record_id.edition_id,
+                properties: entity.properties,
+                edition_created_by_id: entity.metadata.provenance.edition.created_by_id,
+                archived: entity.metadata.archived,
+                confidence: entity.metadata.confidence,
+            })
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not send entity edition")?;
 
         for is_of_type in &entity.metadata.entity_type_ids {
             self.is_of_type

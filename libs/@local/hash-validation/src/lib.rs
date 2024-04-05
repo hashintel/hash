@@ -123,7 +123,7 @@ pub trait EntityProvider {
 mod tests {
     use std::collections::HashMap;
 
-    use graph_types::knowledge::entity::{Property, PropertyObject};
+    use graph_types::knowledge::{Property, PropertyObject};
     use serde_json::Value as JsonValue;
     use thiserror::Error;
     use type_system::{DataType, EntityType, PropertyType};
@@ -285,10 +285,10 @@ mod tests {
             serde_json::from_str::<EntityType>(entity_type).expect("failed to parse entity type"),
         );
 
-        let entity =
+        let properties =
             serde_json::from_str::<PropertyObject>(entity).expect("failed to read entity string");
 
-        entity.validate(&entity_type, profile, &provider).await
+        properties.validate(&entity_type, profile, &provider).await
     }
 
     pub(crate) async fn validate_property(

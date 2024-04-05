@@ -5,15 +5,12 @@ use error_stack::Report;
 use graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{
-            Entity, EntityEmbedding, EntityId, EntityMetadata, EntityUuid, Property, PropertyObject,
-        },
+        entity::{Entity, EntityEmbedding, EntityId, EntityMetadata, EntityUuid},
         link::LinkData,
-        Confidence, PropertyPath,
+        PropertyConfidence, PropertyObject, PropertyPatchOperation,
     },
     owned_by_id::OwnedById,
 };
-use json_patch::PatchOperation;
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
@@ -184,6 +181,9 @@ pub struct CreateEntityParams<R> {
     pub decision_time: Option<Timestamp<DecisionTime>>,
     pub entity_type_ids: Vec<VersionedUrl>,
     pub properties: PropertyObject,
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[serde(default, skip_serializing_if = "PropertyConfidence::is_empty")]
+    pub property_confidence: PropertyConfidence<'static>,
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_data: Option<LinkData>,
@@ -199,6 +199,9 @@ pub struct ValidateEntityParams<'a> {
     pub entity_types: EntityValidationType<'a>,
     #[serde(borrow)]
     pub properties: Cow<'a, PropertyObject>,
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[serde(borrow, default, skip_serializing_if = "PropertyConfidence::is_empty")]
+    pub property_confidence: Cow<'a, PropertyConfidence<'a>>,
     #[serde(borrow, default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_data: Option<Cow<'a, LinkData>>,
@@ -217,47 +220,6 @@ pub struct GetEntityParams<'a> {
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(bound(deserialize = "'a: 'de"))]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-pub enum PropertyPatchOperation<'a> {
-    Add {
-        #[serde(borrow)]
-        path: PropertyPath<'a>,
-        value: Property,
-        confidence: Option<Confidence>,
-    },
-    Remove {
-        #[serde(borrow)]
-        path: PropertyPath<'a>,
-    },
-    Replace {
-        #[serde(borrow)]
-        path: PropertyPath<'a>,
-        value: Property,
-        confidence: Option<Confidence>,
-    },
-    Move {
-        #[serde(borrow)]
-        from: PropertyPath<'a>,
-        #[serde(borrow)]
-        path: PropertyPath<'a>,
-        confidence: Option<Confidence>,
-    },
-    Copy {
-        #[serde(borrow)]
-        from: PropertyPath<'a>,
-        #[serde(borrow)]
-        path: PropertyPath<'a>,
-        confidence: Option<Confidence>,
-    },
-    Test {
-        #[serde(borrow)]
-        path: PropertyPath<'a>,
-        value: Property,
-    },
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PatchEntityParams {
@@ -270,7 +232,7 @@ pub struct PatchEntityParams {
     pub entity_type_ids: Vec<VersionedUrl>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub properties: Vec<PatchOperation>,
+    pub properties: Vec<PropertyPatchOperation>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub draft: Option<bool>,
@@ -299,7 +261,7 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
     /// # Errors:
     ///
     /// - if the [`EntityType`] doesn't exist
-    /// - if the [`PropertyObject`] is not valid with respect to the specified [`EntityType`]
+    /// - if the [`EntityProperties`] is not valid with respect to the specified [`EntityType`]
     /// - if the account referred to by `owned_by_id` does not exist
     /// - if an [`EntityUuid`] was supplied and already exists in the store
     ///

@@ -24,16 +24,15 @@ use graph_types::{
         entity::{
             DraftId, Entity, EntityEditionId, EntityEditionProvenanceMetadata, EntityEmbedding,
             EntityId, EntityMetadata, EntityProvenanceMetadata, EntityRecordId,
-            EntityTemporalMetadata, EntityUuid, PropertyObject,
+            EntityTemporalMetadata, EntityUuid,
         },
         link::LinkData,
-        PropertyPath,
+        PropertyConfidence, PropertyObject, PropertyPath,
     },
     owned_by_id::OwnedById,
     Embedding,
 };
 use hash_status::StatusCode;
-use json_patch::patch;
 use postgres_types::{Json, ToSql};
 use temporal_client::TemporalClient;
 use temporal_versioning::{
@@ -556,6 +555,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 ValidateEntityParams {
                     entity_types: EntityValidationType::ClosedSchema(Cow::Owned(closed_schema)),
                     properties: Cow::Borrowed(&params.properties),
+                    property_confidence: Cow::Borrowed(&params.property_confidence),
                     link_data: params.link_data.as_ref().map(Cow::Borrowed),
                     profile: if params.draft {
                         ValidationProfile::Draft
@@ -618,7 +618,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 temporal_versioning,
                 archived: false,
                 confidence: None,
-                property_confidence: HashMap::new(),
+                property_confidence: PropertyConfidence::default(),
             };
             if let Some(temporal_client) = temporal_client {
                 temporal_client
@@ -731,6 +731,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             authorization: Some((authorization_api, actor_id, Consistency::FullyConsistent)),
         };
 
+        // TODO: Validate property confidence values
         if let Err(error) = params
             .properties
             .validate(&schema, params.profile, &validator_provider)
@@ -906,7 +907,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     temporal_versioning,
                     archived: false,
                     confidence: None,
-                    property_confidence: HashMap::new(),
+                    property_confidence: PropertyConfidence::default(),
                 },
             )
             .collect())
@@ -1111,7 +1112,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             *locked_row.transaction_time.start();
         let ClosedTemporalBound::Inclusive(locked_decision_time) =
             *locked_row.decision_time.start();
-        let previous_entity = Read::<Entity>::read_one(
+        let mut previous_entity = Read::<Entity>::read_one(
             &transaction,
             &Filter::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::EditionId)),
@@ -1132,6 +1133,13 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         .change_context(EntityDoesNotExist)
         .attach(params.entity_id)
         .change_context(UpdateError)?;
+
+        let previous_properties = previous_entity.properties.clone();
+        previous_entity
+            .patch(&params.properties)
+            .change_context(UpdateError)?;
+        let properties = previous_entity.properties;
+        let property_confidence = previous_entity.metadata.property_confidence;
 
         let mut first_non_draft_created_at_decision_time = previous_entity
             .metadata
@@ -1187,13 +1195,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
             (params.entity_type_ids, has_changed)
         };
-        let mut properties =
-            serde_json::to_value(&previous_entity.properties).change_context(UpdateError)?;
-        patch(&mut properties, &params.properties).change_context(UpdateError)?;
-        let properties = serde_json::from_value(properties).change_context(UpdateError)?;
+
         #[expect(clippy::needless_collect, reason = "Will be used later")]
-        let diff = previous_entity
-            .properties
+        let diff = previous_properties
             .diff(&properties, &mut PropertyPath::default())
             .collect::<Vec<_>>();
 
@@ -1210,7 +1214,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 provenance: previous_entity.metadata.provenance,
                 archived,
                 confidence: previous_entity.metadata.confidence,
-                property_confidence: previous_entity.metadata.property_confidence,
+                property_confidence,
             });
         }
 
@@ -1314,6 +1318,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 ValidateEntityParams {
                     entity_types: EntityValidationType::ClosedSchema(Cow::Borrowed(&closed_schema)),
                     properties: Cow::Borrowed(&properties),
+                    property_confidence: Cow::Borrowed(&property_confidence),
                     link_data: link_data.as_ref().map(Cow::Borrowed),
                     profile: validation_profile,
                 },
@@ -1348,7 +1353,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 },
             },
             confidence: None,
-            property_confidence: HashMap::new(),
+            property_confidence,
             archived,
         };
         if let Some(temporal_client) = temporal_client {

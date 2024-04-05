@@ -1,7 +1,8 @@
 use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::entity::{EntityId, PropertyObject};
-use json_patch::{PatchOperation, ReplaceOperation};
+use graph_types::knowledge::{
+    entity::EntityId, Property, PropertyObject, PropertyPatchOperation, PropertyPath,
+};
 use pretty_assertions::assert_eq;
 use temporal_versioning::ClosedTemporalBound;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
@@ -88,10 +89,11 @@ async fn initial_draft() {
     let updated_entity = api
         .patch_entity(PatchEntityParams {
             entity_id: entity.record_id.entity_id,
-            properties: vec![PatchOperation::Replace(ReplaceOperation {
-                path: String::new(),
-                value: serde_json::to_value(bob()).expect("could not serialize entity"),
-            })],
+            properties: vec![PropertyPatchOperation::Replace {
+                path: PropertyPath::default(),
+                value: Property::Object(bob()),
+                confidence: None,
+            }],
             entity_type_ids: vec![],
             archived: None,
             draft: Some(true),
@@ -122,10 +124,11 @@ async fn initial_draft() {
     let updated_live_entity = api
         .patch_entity(PatchEntityParams {
             entity_id: updated_entity.record_id.entity_id,
-            properties: vec![PatchOperation::Replace(ReplaceOperation {
-                path: String::new(),
-                value: serde_json::to_value(charles()).expect("could not serialize entity"),
-            })],
+            properties: vec![PropertyPatchOperation::Replace {
+                path: PropertyPath::default(),
+                value: Property::Object(charles()),
+                confidence: None,
+            }],
             entity_type_ids: vec![],
             archived: None,
             draft: Some(false),
@@ -201,10 +204,11 @@ async fn no_initial_draft() {
         let updated_entity = api
             .patch_entity(PatchEntityParams {
                 entity_id: entity.record_id.entity_id,
-                properties: vec![PatchOperation::Replace(ReplaceOperation {
-                    path: String::new(),
-                    value: serde_json::to_value(bob()).expect("could not serialize entity"),
-                })],
+                properties: vec![PropertyPatchOperation::Replace {
+                    path: PropertyPath::default(),
+                    value: Property::Object(bob()),
+                    confidence: None,
+                }],
                 entity_type_ids: vec![],
                 archived: None,
                 draft: Some(true),
@@ -240,10 +244,11 @@ async fn no_initial_draft() {
         let updated_live_entity = api
             .patch_entity(PatchEntityParams {
                 entity_id: updated_entity.record_id.entity_id,
-                properties: vec![PatchOperation::Replace(ReplaceOperation {
-                    path: String::new(),
-                    value: serde_json::to_value(charles()).expect("could not serialize entity"),
-                })],
+                properties: vec![PropertyPatchOperation::Replace {
+                    path: PropertyPath::default(),
+                    value: Property::Object(charles()),
+                    confidence: None,
+                }],
                 entity_type_ids: vec![],
                 archived: None,
                 draft: Some(false),
@@ -305,10 +310,11 @@ async fn multiple_drafts() {
         let updated_entity = api
             .patch_entity(PatchEntityParams {
                 entity_id: entity.record_id.entity_id,
-                properties: vec![PatchOperation::Replace(ReplaceOperation {
-                    path: String::new(),
-                    value: serde_json::to_value(bob()).expect("could not serialize entity"),
-                })],
+                properties: vec![PropertyPatchOperation::Replace {
+                    path: PropertyPath::default(),
+                    value: Property::Object(bob()),
+                    confidence: None,
+                }],
                 entity_type_ids: vec![],
                 archived: None,
                 draft: Some(true),
@@ -347,10 +353,11 @@ async fn multiple_drafts() {
         let updated_live_entity = api
             .patch_entity(PatchEntityParams {
                 entity_id: draft,
-                properties: vec![PatchOperation::Replace(ReplaceOperation {
-                    path: String::new(),
-                    value: serde_json::to_value(charles()).expect("could not serialize entity"),
-                })],
+                properties: vec![PropertyPatchOperation::Replace {
+                    path: PropertyPath::default(),
+                    value: Property::Object(charles()),
+                    confidence: None,
+                }],
                 entity_type_ids: vec![],
                 archived: None,
                 draft: Some(false),

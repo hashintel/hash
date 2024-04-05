@@ -14,8 +14,9 @@ use error_stack::{Report, Result, ResultExt};
 use graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{EntityMetadata, EntityUuid, PropertyObject},
+        entity::{EntityMetadata, EntityUuid},
         link::LinkData,
+        PropertyObject,
     },
     ontology::{
         DataTypeMetadata, EntityTypeMetadata, OntologyTemporalMetadata, OntologyType,

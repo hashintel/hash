@@ -1,8 +1,8 @@
 use graph_types::{
     account::{CreatedById, EditionCreatedById},
     knowledge::{
-        entity::{DraftId, EntityEditionId, EntityUuid, PropertyObject},
-        Confidence, PropertyPath,
+        entity::{DraftId, EntityEditionId, EntityUuid},
+        Confidence, PropertyObject, PropertyPath,
     },
     owned_by_id::OwnedById,
     Embedding,

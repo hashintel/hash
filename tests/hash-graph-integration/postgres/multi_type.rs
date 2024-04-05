@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::entity::{Entity, PropertyObject};
+use graph_types::knowledge::{entity::Entity, PropertyObject};
 use pretty_assertions::assert_eq;
 use type_system::url::VersionedUrl;
 

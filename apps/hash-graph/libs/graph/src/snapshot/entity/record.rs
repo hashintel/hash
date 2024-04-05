@@ -1,8 +1,9 @@
 use authorization::schema::EntityRelationAndSubject;
 use graph_types::{
     knowledge::{
-        entity::{EntityId, EntityMetadata, EntityUuid, PropertyObject},
+        entity::{EntityId, EntityMetadata, EntityUuid},
         link::LinkData,
+        PropertyObject,
     },
     Embedding,
 };

@@ -3,8 +3,9 @@ use std::borrow::Borrow;
 use error_stack::{Report, ResultExt};
 use futures::{stream, StreamExt, TryStreamExt};
 use graph_types::knowledge::{
-    entity::{Entity, EntityId, PropertyObject},
+    entity::{Entity, EntityId},
     link::LinkData,
+    PropertyObject,
 };
 use thiserror::Error;
 use type_system::{

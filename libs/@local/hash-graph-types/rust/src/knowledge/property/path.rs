@@ -1,12 +1,14 @@
-use std::{borrow::Cow, error::Error};
+use std::{borrow::Cow, error::Error, iter::once};
 
 use bytes::BytesMut;
+#[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, ToSql, Type};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use type_system::url::{BaseUrl, ParseBaseUrlError};
+#[cfg(feature = "utoipa")]
 use utoipa::{openapi, ToSchema};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum PropertyPathElement<'k> {
     Property(Cow<'k, BaseUrl>),
@@ -43,7 +45,7 @@ impl PropertyPathElement<'_> {
     }
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PropertyPath<'k> {
     elements: Vec<PropertyPathElement<'k>>,
 }
@@ -71,6 +73,11 @@ impl<'k> PropertyPath<'k> {
         <&Self as IntoIterator>::into_iter(self)
     }
 
+    #[must_use]
+    pub fn starts_with(&self, other: &Self) -> bool {
+        self.elements.starts_with(&other.elements)
+    }
+
     /// Creates a new `PropertyPath` from a JSON Pointer.
     ///
     /// # Errors
@@ -80,6 +87,7 @@ impl<'k> PropertyPath<'k> {
         Ok(Self {
             elements: json_patch
                 .split('/')
+                .skip(1)
                 .map(|element| {
                     if let Ok(index) = element.parse() {
                         Ok(PropertyPathElement::Index(index))
@@ -95,12 +103,13 @@ impl<'k> PropertyPath<'k> {
 
     #[must_use]
     pub fn to_json_pointer(&self) -> String {
-        self.elements
-            .iter()
-            .map(|element| match element {
-                PropertyPathElement::Property(key) => key.to_string(),
+        once(String::new())
+            .chain(self.elements.iter().map(|element| match element {
+                PropertyPathElement::Property(key) => {
+                    key.as_str().replace('~', "~0").replace('/', "~1")
+                }
                 PropertyPathElement::Index(index) => index.to_string(),
-            })
+            }))
             .collect::<Vec<_>>()
             .join("/")
     }

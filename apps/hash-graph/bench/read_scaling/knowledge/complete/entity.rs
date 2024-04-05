@@ -22,10 +22,7 @@ use graph::{
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     account::AccountId,
-    knowledge::{
-        entity::{EntityMetadata, PropertyObject},
-        link::LinkData,
-    },
+    knowledge::{entity::EntityMetadata, link::LinkData, PropertyObject},
     owned_by_id::OwnedById,
 };
 use rand::{prelude::IteratorRandom, thread_rng};

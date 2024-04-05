@@ -8,7 +8,7 @@ use graph::{
     },
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::entity::{EntityUuid, PropertyObject};
+use graph_types::knowledge::{entity::EntityUuid, PropertyObject};
 use pretty_assertions::assert_eq;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 use uuid::Uuid;

@@ -127,6 +127,7 @@ export const createEntity: ImpureGraphFunction<
     entityUuid: overrideEntityUuid,
     draft,
     relationships: params.relationships,
+    propertyConfidence,
   });
 
   const entity = {

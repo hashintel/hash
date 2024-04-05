@@ -1,5 +1,5 @@
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::entity::PropertyObject;
+use graph_types::knowledge::PropertyObject;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
 use crate::DatabaseTestWrapper;

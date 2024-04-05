@@ -1,7 +1,6 @@
 use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::entity::PropertyObject;
-use json_patch::{PatchOperation, ReplaceOperation};
+use graph_types::knowledge::{Property, PropertyObject, PropertyPatchOperation, PropertyPath};
 use temporal_versioning::ClosedTemporalBound;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
@@ -135,10 +134,11 @@ async fn update() {
     let v2_metadata = api
         .patch_entity(PatchEntityParams {
             entity_id: v1_metadata.record_id.entity_id,
-            properties: vec![PatchOperation::Replace(ReplaceOperation {
-                path: String::new(),
-                value: serde_json::to_value(&page_v2).expect("could not serialize entity"),
-            })],
+            properties: vec![PropertyPatchOperation::Replace {
+                path: PropertyPath::default(),
+                value: Property::Object(page_v2.clone()),
+                confidence: None,
+            }],
             entity_type_ids: vec![],
             archived: None,
             draft: None,
@@ -159,7 +159,7 @@ async fn update() {
         .await
         .expect("could not get entity");
 
-    assert_eq!(entity_v2.properties, page_v2);
+    assert_eq!(entity_v2.properties.properties(), page_v2.properties());
 
     let ClosedTemporalBound::Inclusive(entity_v1_timestamp) =
         *v1_metadata.temporal_versioning.decision_time.start();
@@ -167,7 +167,7 @@ async fn update() {
         .get_entity_by_timestamp(v1_metadata.record_id.entity_id, entity_v1_timestamp)
         .await
         .expect("could not get entity v1");
-    assert_eq!(entity_v1.properties, page_v1);
+    assert_eq!(entity_v1.properties.properties(), page_v1.properties());
 
     let ClosedTemporalBound::Inclusive(entity_v2_timestamp) =
         *v2_metadata.temporal_versioning.decision_time.start();
@@ -176,5 +176,5 @@ async fn update() {
         .await
         .expect("could not get entity v2");
 
-    assert_eq!(entity_v2.properties, page_v2);
+    assert_eq!(entity_v2.properties.properties(), page_v2.properties());
 }

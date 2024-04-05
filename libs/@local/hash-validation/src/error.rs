@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use error_stack::Report;
-use graph_types::knowledge::entity::{Property, PropertyObject};
+use graph_types::knowledge::{Property, PropertyObject};
 use serde_json::Value as JsonValue;
 use type_system::{url::VersionedUrl, ClosedEntityType, DataType, PropertyType};
 
