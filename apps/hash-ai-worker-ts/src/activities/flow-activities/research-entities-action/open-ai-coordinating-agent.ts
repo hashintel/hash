@@ -140,8 +140,8 @@ export const coordinatingAgentGetNextToolCalls = async (params: {
           completing the task.
         Make as many tool calls as are required to progress towards completing the task.
         You must completely satisfy the research prompt, without any missing information.
-        Alongside the function calls, explain what your plan is to complete the task
-        and what each function call is doing towards completing the task.
+        Alongside the function calls, you must explain in a message what your plan is to
+        the task, and what each function call is doing towards completing the task.
         You may revised this plan as you receive more information from function calls.
         ${
           submittedProposedEntities.length > 0

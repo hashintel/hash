@@ -46,7 +46,7 @@ export const coordinatorToolDefinitions: Record<
   inferEntitiesFromWebPage: {
     toolId: "inferEntitiesFromWebPage",
     description:
-      "Infer entities from the content of a web page. This tool is useful for extracting structured data from a web page.",
+      "Infer entities from the content of a web page. This tool is useful for extracting structured data from a web page. This is an expensive operation, so use it conservatively.",
     inputSchema: {
       type: "object",
       properties: {

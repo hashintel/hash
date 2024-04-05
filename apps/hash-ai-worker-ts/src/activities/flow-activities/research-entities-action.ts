@@ -64,40 +64,32 @@ export const researchEntitiesAction: FlowActionActivity<{
   }) => {
     const { toolCalls, openAiAssistantMessageContent, previousCalls } = params;
 
-    const submitProposedEntitiesToolCall = toolCalls.find(
-      (toolCall) => toolCall.toolId === "submitProposedEntities",
-    );
-
-    if (submitProposedEntitiesToolCall) {
-      const { entityIds } =
-        submitProposedEntitiesToolCall.parsedArguments as CoordinatorToolCallArguments["submitProposedEntities"];
-
-      submittedEntityIds.push(...entityIds);
-    }
-
     const isTerminated = toolCalls.some(
       (toolCall) => toolCall.toolId === "terminate",
     );
 
-    const isCompleted = toolCalls.some(
-      (toolCall) => toolCall.toolId === "complete",
-    );
-
-    if (isTerminated || isCompleted) {
+    if (isTerminated) {
       return;
     }
 
     const toolCallsWithRelevantResults = toolCalls.filter(
-      ({ toolId }) =>
-        toolId !== "complete" &&
-        toolId !== "terminate" &&
-        toolId !== "submitProposedEntities",
+      ({ toolId }) => toolId !== "complete" && toolId !== "terminate",
     );
 
     const completedToolCalls = await Promise.all(
       toolCallsWithRelevantResults.map(
         async (toolCall): Promise<CompletedCoordinatorToolCall> => {
-          if (toolCall.toolId === "getWebPageSummary") {
+          if (toolCall.toolId === "submitProposedEntities") {
+            const { entityIds } =
+              toolCall.parsedArguments as CoordinatorToolCallArguments["submitProposedEntities"];
+
+            submittedEntityIds.push(...entityIds);
+
+            return {
+              ...toolCall,
+              output: `The entities with IDs ${JSON.stringify(entityIds)} where successfully submitted.`,
+            };
+          } else if (toolCall.toolId === "getWebPageSummary") {
             const { url } =
               toolCall.parsedArguments as CoordinatorToolCallArguments["getWebPageSummary"];
 
@@ -243,6 +235,18 @@ export const researchEntitiesAction: FlowActionActivity<{
         },
       ),
     );
+
+    const isCompleted = toolCalls.some(
+      (toolCall) => toolCall.toolId === "complete",
+    );
+
+    /**
+     * Check whether the research task has completed after processing the tool calls,
+     * incase the agent has made other tool calls at the same time as the "complete" tool call.
+     */
+    if (isCompleted) {
+      return;
+    }
 
     const updatedPreviousCalls = [
       ...(previousCalls ?? []),
