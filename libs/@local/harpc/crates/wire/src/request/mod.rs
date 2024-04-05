@@ -1,10 +1,6 @@
 pub use bytes::Bytes;
 
-use self::{
-    begin::RequestBegin, body::RequestBody, flags::RequestFlag, frame::RequestFrame,
-    header::RequestHeader, id::RequestId,
-};
-use crate::protocol::Protocol;
+use self::{body::RequestBody, header::RequestHeader};
 
 pub mod authorization;
 pub mod begin;

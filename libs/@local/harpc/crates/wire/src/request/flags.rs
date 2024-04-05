@@ -2,7 +2,7 @@ use std::io;
 
 use enumflags2::BitFlags;
 use error_stack::Result;
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tokio::io::{AsyncRead, AsyncWrite};
 
 use crate::codec::{DecodePure, Encode};
 
@@ -30,10 +30,12 @@ impl RequestFlags {
         Self(flags.into())
     }
 
+    #[must_use]
     pub fn contains(&self, flag: RequestFlag) -> bool {
         self.0.contains(flag)
     }
 
+    #[must_use]
     pub fn flags(&self) -> BitFlags<RequestFlag> {
         self.0
     }
@@ -76,7 +78,7 @@ impl Encode for RequestFlags {
 impl DecodePure for RequestFlags {
     type Error = io::Error;
 
-    async fn decode_pure(mut read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
+    async fn decode_pure(read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
         u8::decode_pure(read)
             .await
             .map(BitFlags::from_bits_truncate)

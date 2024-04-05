@@ -14,7 +14,7 @@ pub(crate) mod test {
 
     pub(crate) use super::{
         decode::test::{assert_decode, assert_encode_decode, decode_value},
-        encode::test::{assert_encode, assert_encode_error, encode_value},
+        encode::test::{assert_encode, encode_value},
     };
 
     #[test_strategy::proptest(async = "tokio")]

@@ -425,6 +425,6 @@ mod test {
                 contains_authorization: true,
             },
         )
-        .await
+        .await;
     }
 }

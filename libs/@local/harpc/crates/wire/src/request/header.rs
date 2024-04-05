@@ -1,15 +1,11 @@
 use std::io;
 
-use enumflags2::BitFlags;
 use error_stack::Result;
 use tokio::io::{AsyncRead, AsyncWrite};
 
-use super::{
-    flags::{RequestFlag, RequestFlags},
-    id::RequestId,
-};
+use super::{flags::RequestFlags, id::RequestId};
 use crate::{
-    codec::{Decode, DecodePure, Encode},
+    codec::{DecodePure, Encode},
     protocol::Protocol,
 };
 
@@ -56,7 +52,7 @@ mod test {
         request::{
             flags::{RequestFlag, RequestFlags},
             header::RequestHeader,
-            id::{RequestId, RequestIdProducer},
+            id::RequestIdProducer,
         },
     };
 

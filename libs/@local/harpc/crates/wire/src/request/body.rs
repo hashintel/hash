@@ -34,7 +34,7 @@ impl RequestBody {
 impl Encode for RequestBody {
     type Error = EncodeError;
 
-    async fn encode(&self, mut write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
         match self {
             Self::Begin(body) => body.encode(write).await,
             Self::Frame(body) => body.encode(write).await,
@@ -76,7 +76,7 @@ impl Decode for RequestBody {
     type Error = io::Error;
 
     async fn decode(
-        mut read: impl AsyncRead + Unpin + Send,
+        read: impl AsyncRead + Unpin + Send,
         context: Self::Context,
     ) -> Result<Self, Self::Error> {
         match context.variant {
