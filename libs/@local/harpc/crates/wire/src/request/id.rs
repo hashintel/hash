@@ -48,13 +48,17 @@ impl RequestIdProducer {
             current: RequestId::zero(),
         }
     }
+
+    pub fn produce(&mut self) -> RequestId {
+        self.current.next()
+    }
 }
 
 impl Iterator for RequestIdProducer {
     type Item = RequestId;
 
     fn next(&mut self) -> Option<Self::Item> {
-        Some(self.current.next())
+        Some(self.produce())
     }
 }
 

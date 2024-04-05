@@ -9,7 +9,7 @@ use crate::codec::{DecodePure, Encode};
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub struct RequestFrame {
-    payload: RequestPayload,
+    pub payload: RequestPayload,
 }
 
 impl Encode for RequestFrame {

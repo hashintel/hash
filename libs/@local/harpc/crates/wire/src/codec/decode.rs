@@ -111,9 +111,14 @@ pub(crate) mod test {
     {
         let mut reader = std::io::Cursor::new(buffer);
 
-        T::decode(&mut reader, context)
+        let value = T::decode(&mut reader, context)
             .await
-            .expect("able to decode value")
+            .expect("able to decode value");
+
+        // ensure that the entire buffer was consumed
+        assert_eq!(reader.position(), buffer.len() as u64);
+
+        value
     }
 
     #[track_caller]
