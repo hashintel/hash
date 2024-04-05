@@ -8,6 +8,7 @@ import { getWebPageSummaryAction } from "./flow-activities/get-web-page-summary-
 import { inferEntitiesFromContentAction } from "./flow-activities/infer-entities-from-content-action";
 import { persistEntityAction } from "./flow-activities/persist-entity-action";
 import { createPersistFlowActivity } from "./flow-activities/persist-flow-activity";
+import { researchEntitiesAction } from "./flow-activities/research-entities-action";
 import type { FlowActionActivity } from "./flow-activities/types";
 import { webSearchAction } from "./flow-activities/web-search-action";
 
@@ -36,6 +37,14 @@ export const createFlowActionActivities = ({
     params: Omit<Parameters<typeof getFileFromUrlAction>[0], "graphApiClient">,
   ) {
     return getFileFromUrlAction({ ...params, graphApiClient });
+  },
+  async researchEntitiesAction(
+    params: Omit<
+      Parameters<typeof researchEntitiesAction>[0],
+      "graphApiClient"
+    >,
+  ) {
+    return researchEntitiesAction({ ...params, graphApiClient });
   },
   getWebPageSummaryAction,
 });

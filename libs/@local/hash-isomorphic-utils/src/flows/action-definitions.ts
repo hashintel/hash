@@ -13,6 +13,7 @@ const actionDefinitionIds = [
   "inferEntitiesFromContent",
   "persistEntity",
   "getFileFromUrl",
+  "researchEntities",
   "getWebPageSummary",
 ] as const;
 
@@ -180,6 +181,32 @@ const actionDefinitionsAsConst = {
         payloadKind: "Entity",
         name: "fileEntity",
         array: false,
+      },
+    ],
+  },
+  researchEntities: {
+    actionDefinitionId: "researchEntities",
+    name: "Research Entities",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: ["VersionedUrl"],
+        name: "entityTypeIds",
+        required: false,
+        array: true,
+      },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "prompt",
+        required: true,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        payloadKind: "ProposedEntity",
+        name: "proposedEntities",
+        array: true,
       },
     ],
   },
