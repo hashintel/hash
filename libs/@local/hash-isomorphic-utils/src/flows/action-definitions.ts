@@ -194,6 +194,7 @@ const actionDefinitionsAsConst = {
   researchEntities: {
     actionDefinitionId: "researchEntities",
     name: "Research Entities",
+    description: "Find entities on the web based on a research prompt.",
     kind: "action",
     inputs: [
       {
@@ -220,6 +221,7 @@ const actionDefinitionsAsConst = {
   getWebPageSummary: {
     actionDefinitionId: "getWebPageSummary",
     name: "Get Web Page Summary",
+    description: "Get a human-readable text summary of a web page.",
     kind: "action",
     inputs: [
       {
