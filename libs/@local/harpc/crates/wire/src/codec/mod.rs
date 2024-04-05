@@ -1,5 +1,6 @@
 mod decode;
 mod encode;
+mod types;
 
 pub use decode::{Decode, DecodePure};
 pub use encode::{BytesEncodeError, Encode};

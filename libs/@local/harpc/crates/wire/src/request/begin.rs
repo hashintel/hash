@@ -86,6 +86,10 @@ impl Decode for RequestBegin {
 #[cfg(test)]
 mod test {
     use graph_types::account::AccountId;
+    use harpc_types::{
+        procedure::ProcedureId,
+        service::{ServiceId, ServiceVersion},
+    };
     use uuid::Uuid;
 
     use crate::{
@@ -94,8 +98,8 @@ mod test {
             authorization::Authorization,
             begin::{DecodeContext, RequestBegin},
             payload::RequestPayload,
-            procedure::{Procedure, ProcedureId},
-            service::{Service, ServiceId, ServiceVersion},
+            procedure::Procedure,
+            service::Service,
         },
     };
 
