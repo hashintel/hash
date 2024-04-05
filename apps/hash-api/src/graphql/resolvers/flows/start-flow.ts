@@ -25,7 +25,7 @@ export const startFlow: ResolverFn<
     taskQueue: "ai",
     args: [
       {
-        trigger: flowTrigger,
+        flowTrigger,
         flowDefinition,
         userAuthentication: { actorId: user.accountId },
       },

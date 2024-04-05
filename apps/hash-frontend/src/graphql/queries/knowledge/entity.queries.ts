@@ -187,3 +187,12 @@ export const startResearchTaskMutation = gql`
     startResearchTask(prompt: $prompt, entityTypeIds: $entityTypeIds)
   }
 `;
+
+export const startFlowMutation = gql`
+  mutation startFlow(
+    $flowTrigger: FlowTrigger!
+    $flowDefinition: FlowDefinition!
+  ) {
+    startFlow(flowTrigger: $flowTrigger, flowDefinition: $flowDefinition)
+  }
+`;

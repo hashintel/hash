@@ -3,8 +3,10 @@ import { NextSeo } from "next-seo";
 import { BoltLightIcon } from "../shared/icons/bolt-light-icon";
 import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar } from "../shared/layout";
-import { AiWorkerPageContent } from "./ai.page/ai-worker-page-content";
+import { ResearchTaskFlow } from "./ai.page/research-task-flow";
 import { TopContextBar } from "./shared/top-context-bar";
+import { FlowActions } from "./ai.page/flow-actions";
+import { Container } from "@mui/material";
 
 const AiPage: NextPageWithLayout = () => {
   return (
@@ -25,7 +27,10 @@ const AiPage: NextPageWithLayout = () => {
           },
         ]}
       />
-      <AiWorkerPageContent />
+      <Container sx={{ pb: 8 }}>
+        <ResearchTaskFlow />
+        <FlowActions />
+      </Container>
     </>
   );
 };

@@ -23,6 +23,7 @@ const actionDefinitionsAsConst = {
   generateWebQueries: {
     actionDefinitionId: "generateWebQueries",
     name: "Generate Web Query",
+    description: "Generate a web query based on a prompt and model.",
     kind: "action",
     inputs: [
       {
@@ -53,6 +54,8 @@ const actionDefinitionsAsConst = {
   webSearch: {
     actionDefinitionId: "webSearch",
     name: "Web Search",
+    description:
+      "Perform a web search based on a query, and receive a list of URLs.",
     kind: "action",
     inputs: [
       {
@@ -83,6 +86,7 @@ const actionDefinitionsAsConst = {
   getWebPageByUrl: {
     actionDefinitionId: "getWebPageByUrl",
     name: "Get Web Page From URL",
+    description: "Get the title and content of a web page from its URL.",
     kind: "action",
     inputs: [
       {
@@ -103,6 +107,7 @@ const actionDefinitionsAsConst = {
   inferEntitiesFromContent: {
     actionDefinitionId: "inferEntitiesFromContent",
     name: "Infer Entities From Content",
+    description: "Generate proposals for entities based on text content.",
     kind: "action",
     inputs: [
       {
@@ -145,6 +150,7 @@ const actionDefinitionsAsConst = {
   persistEntity: {
     actionDefinitionId: "persistEntity",
     name: "Persist Entity",
+    description: "Persist a proposed entity in the database.",
     kind: "action",
     inputs: [
       {
@@ -165,6 +171,7 @@ const actionDefinitionsAsConst = {
   getFileFromUrl: {
     actionDefinitionId: "getFileFromUrl",
     name: "Get File From URL",
+    description: "Download a file from a URL and upload a copy to HASH",
     kind: "action",
     inputs: [
       {
