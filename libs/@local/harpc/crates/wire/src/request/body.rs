@@ -6,6 +6,7 @@ use tokio::io::{AsyncRead, AsyncWrite};
 use super::{
     begin::{RequestBegin, RequestBeginContext},
     codec::EncodeError,
+    flags::{RequestFlag, RequestFlags},
     frame::RequestFrame,
 };
 use crate::codec::{Decode, DecodePure, Encode};
@@ -18,7 +19,8 @@ pub enum RequestBody {
 }
 
 impl RequestBody {
-    fn contains_authorization(&self) -> bool {
+    #[must_use]
+    pub(super) const fn contains_authorization(&self) -> bool {
         let Self::Begin(body) = self else {
             return false;
         };
@@ -26,7 +28,8 @@ impl RequestBody {
         body.authorization.is_some()
     }
 
-    fn begin_of_request(&self) -> bool {
+    #[must_use]
+    pub(super) const fn begin_of_request(&self) -> bool {
         matches!(self, Self::Begin(_))
     }
 }
@@ -59,8 +62,23 @@ impl From<&RequestBody> for RequestVariant {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RequestBodyContext {
-    contains_authorization: bool,
-    variant: RequestVariant,
+    pub contains_authorization: bool,
+    pub variant: RequestVariant,
+}
+
+impl RequestBodyContext {
+    pub(super) fn from_flags(flags: RequestFlags) -> Self {
+        let variant = if flags.contains(RequestFlag::BeginOfRequest) {
+            RequestVariant::Begin
+        } else {
+            RequestVariant::Frame
+        };
+
+        Self {
+            contains_authorization: flags.contains(RequestFlag::ContainsAuthorization),
+            variant,
+        }
+    }
 }
 
 impl From<RequestBodyContext> for RequestBeginContext {
@@ -109,7 +127,7 @@ mod test {
         },
     };
 
-    const EXAMPLE_BEGIN: RequestBegin = RequestBegin {
+    static EXAMPLE_BEGIN: RequestBegin = RequestBegin {
         service: ServiceDescriptor {
             id: ServiceId::new(0x01),
             version: ServiceVersion::new(0x00, 0x01),
@@ -121,7 +139,7 @@ mod test {
         payload: RequestPayload::from_static(&[]),
     };
 
-    const EXAMPLE_FRAME: RequestFrame = RequestFrame {
+    static EXAMPLE_FRAME: RequestFrame = RequestFrame {
         payload: RequestPayload::from_static(&[]),
     };
 
@@ -157,7 +175,7 @@ mod test {
             authorization: Some(Authorization {
                 account: AccountId::new(Uuid::new_v4()),
             }),
-            ..EXAMPLE_BEGIN
+            ..EXAMPLE_BEGIN.clone()
         };
 
         let bytes = encode_value(&begin).await;

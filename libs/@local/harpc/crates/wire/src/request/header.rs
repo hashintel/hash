@@ -1,9 +1,9 @@
 use std::io;
 
-use error_stack::Result;
+use error_stack::{Result, ResultExt};
 use tokio::io::{AsyncRead, AsyncWrite};
 
-use super::{flags::RequestFlags, id::RequestId};
+use super::{body::RequestBody, codec::DecodeError, flags::RequestFlags, id::RequestId};
 use crate::{
     codec::{DecodePure, Encode},
     protocol::Protocol,
@@ -18,6 +18,15 @@ pub struct RequestHeader {
     pub flags: RequestFlags,
 }
 
+impl RequestHeader {
+    pub(super) fn apply_body(self, body: &RequestBody) -> Self {
+        Self {
+            flags: self.flags.apply_body(body),
+            ..self
+        }
+    }
+}
+
 impl Encode for RequestHeader {
     type Error = io::Error;
 
@@ -29,12 +38,18 @@ impl Encode for RequestHeader {
 }
 
 impl DecodePure for RequestHeader {
-    type Error = io::Error;
+    type Error = DecodeError;
 
     async fn decode_pure(mut read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
-        let protocol = Protocol::decode_pure(&mut read).await?;
-        let request_id = RequestId::decode_pure(&mut read).await?;
-        let flags = RequestFlags::decode_pure(read).await?;
+        let protocol = Protocol::decode_pure(&mut read)
+            .await
+            .change_context(DecodeError)?;
+        let request_id = RequestId::decode_pure(&mut read)
+            .await
+            .change_context(DecodeError)?;
+        let flags = RequestFlags::decode_pure(read)
+            .await
+            .change_context(DecodeError)?;
 
         Ok(Self {
             protocol,
@@ -74,6 +89,11 @@ mod test {
         assert_encode(
             &header,
             &[
+                b'h',
+                b'a',
+                b'r',
+                b'p',
+                b'c', // identifier
                 0x01, // protocol version,
                 0x00,
                 0x00,        // request id
@@ -98,7 +118,12 @@ mod test {
             ),
         };
 
-        assert_decode(&[0x01, 0x00, 0x00, 0b1100_0000], &header, ()).await;
+        assert_decode(
+            &[b'h', b'a', b'r', b'p', b'c', 0x01, 0x00, 0x00, 0b1100_0000],
+            &header,
+            (),
+        )
+        .await;
     }
 
     #[test_strategy::proptest(async = "tokio")]

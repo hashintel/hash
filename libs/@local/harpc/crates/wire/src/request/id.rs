@@ -69,12 +69,16 @@ impl Default for RequestIdProducer {
 }
 
 #[cfg(test)]
-mod test {
+pub(crate) mod test {
     use super::RequestIdProducer;
     use crate::{
         codec::test::{assert_decode, assert_encode, assert_encode_decode},
         request::id::RequestId,
     };
+
+    pub(crate) const fn mock_request_id(id: u16) -> RequestId {
+        RequestId(id)
+    }
 
     #[test]
     fn next() {

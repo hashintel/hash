@@ -1,9 +1,12 @@
 use std::io;
 
-use error_stack::Result;
-use tokio::io::{AsyncRead, AsyncWrite};
+use error_stack::{Report, Result, ResultExt};
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 use crate::codec::{DecodePure, Encode};
+
+const IDENT_LEN: usize = 5;
+const IDENT: &[u8; IDENT_LEN] = b"harpc";
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -38,16 +41,42 @@ pub struct Protocol {
 impl Encode for Protocol {
     type Error = io::Error;
 
-    async fn encode(&self, write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, mut write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
+        write.write_all(IDENT).await?;
         self.version.encode(write).await
     }
 }
 
-impl DecodePure for Protocol {
-    type Error = io::Error;
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
+pub enum ProtocolDecodeError {
+    #[error("invalid packet identifier: expected {expected:?}, actual {actual:?}")]
+    InvalidIdentifier {
+        expected: &'static [u8],
+        actual: [u8; IDENT_LEN],
+    },
+    #[error("io error")]
+    Io,
+}
 
-    async fn decode_pure(read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
-        let version = ProtocolVersion::decode_pure(read).await?;
+impl DecodePure for Protocol {
+    type Error = ProtocolDecodeError;
+
+    async fn decode_pure(mut read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
+        let mut buffer = [0_u8; IDENT_LEN];
+        read.read_exact(&mut buffer)
+            .await
+            .change_context(ProtocolDecodeError::Io)?;
+
+        if buffer != *IDENT {
+            return Err(Report::new(ProtocolDecodeError::InvalidIdentifier {
+                expected: IDENT,
+                actual: buffer,
+            }));
+        }
+
+        let version = ProtocolVersion::decode_pure(read)
+            .await
+            .change_context(ProtocolDecodeError::Io)?;
 
         Ok(Self { version })
     }
@@ -76,7 +105,7 @@ mod test {
             &crate::protocol::Protocol {
                 version: ProtocolVersion::V1,
             },
-            &[0x01_u8],
+            &[b'h', b'a', b'r', b'p', b'c', 0x01],
         )
         .await;
     }
@@ -84,7 +113,7 @@ mod test {
     #[tokio::test]
     async fn decode_protocol() {
         assert_decode(
-            &[0x01],
+            &[b'h', b'a', b'r', b'p', b'c', 0x01],
             &crate::protocol::Protocol {
                 version: ProtocolVersion::V1,
             },

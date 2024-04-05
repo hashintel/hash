@@ -4,6 +4,7 @@ use enumflags2::BitFlags;
 use error_stack::Result;
 use tokio::io::{AsyncRead, AsyncWrite};
 
+use super::body::RequestBody;
 use crate::codec::{DecodePure, Encode};
 
 #[enumflags2::bitflags]
@@ -31,27 +32,44 @@ impl RequestFlags {
     }
 
     #[must_use]
-    pub fn contains(&self, flag: RequestFlag) -> bool {
+    pub const fn empty() -> Self {
+        Self(BitFlags::EMPTY)
+    }
+
+    pub(super) fn apply_body(self, body: &RequestBody) -> Self {
+        self.set(
+            RequestFlag::ContainsAuthorization,
+            body.contains_authorization(),
+        )
+        .set(RequestFlag::BeginOfRequest, body.begin_of_request())
+    }
+
+    #[must_use]
+    pub fn contains(self, flag: RequestFlag) -> bool {
         self.0.contains(flag)
     }
 
     #[must_use]
-    pub fn flags(&self) -> BitFlags<RequestFlag> {
+    pub const fn flags(self) -> BitFlags<RequestFlag> {
         self.0
     }
 
+    #[must_use]
     pub fn remove(self, other: impl Into<BitFlags<RequestFlag>>) -> Self {
         Self(self.0 & !other.into())
     }
 
+    #[must_use]
     pub fn insert(self, other: impl Into<BitFlags<RequestFlag>>) -> Self {
         Self(self.0 | other.into())
     }
 
+    #[must_use]
     pub fn toggle(self, other: impl Into<BitFlags<RequestFlag>>) -> Self {
         Self(self.0 ^ other.into())
     }
 
+    #[must_use]
     pub fn set(self, other: impl Into<BitFlags<RequestFlag>>, condition: bool) -> Self {
         if condition {
             self.insert(other)
