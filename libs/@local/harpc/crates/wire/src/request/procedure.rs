@@ -8,11 +8,11 @@ use crate::codec::{DecodePure, Encode};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
-pub struct Procedure {
+pub struct ProcedureDescriptor {
     pub id: ProcedureId,
 }
 
-impl Encode for Procedure {
+impl Encode for ProcedureDescriptor {
     type Error = io::Error;
 
     async fn encode(&self, write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
@@ -20,7 +20,7 @@ impl Encode for Procedure {
     }
 }
 
-impl DecodePure for Procedure {
+impl DecodePure for ProcedureDescriptor {
     type Error = io::Error;
 
     async fn decode_pure(read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
@@ -32,7 +32,7 @@ impl DecodePure for Procedure {
 
 #[cfg(test)]
 mod test {
-    use super::{Procedure, ProcedureId};
+    use super::{ProcedureDescriptor, ProcedureId};
     use crate::codec::test::{assert_decode, assert_encode, assert_encode_decode};
 
     #[tokio::test]
@@ -54,7 +54,7 @@ mod test {
     #[tokio::test]
     async fn encode() {
         let id = ProcedureId::new(0x1234);
-        let procedure = super::Procedure { id };
+        let procedure = super::ProcedureDescriptor { id };
 
         // encoding should be BE
         assert_encode(&procedure, &[0x12, 0x34]).await;
@@ -63,14 +63,14 @@ mod test {
     #[tokio::test]
     async fn decode() {
         let id = ProcedureId::new(0x1234);
-        let procedure = super::Procedure { id };
+        let procedure = super::ProcedureDescriptor { id };
 
         // decoding should be BE
         assert_decode(&[0x12, 0x34], &procedure, ()).await;
     }
 
     #[test_strategy::proptest(async = "tokio")]
-    async fn encode_decode(id: Procedure) {
+    async fn encode_decode(id: ProcedureDescriptor) {
         assert_encode_decode(&id, ()).await;
     }
 }

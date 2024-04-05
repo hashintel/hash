@@ -8,12 +8,12 @@ use crate::codec::{DecodePure, Encode};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
-pub struct Service {
+pub struct ServiceDescriptor {
     pub id: ServiceId,
     pub version: ServiceVersion,
 }
 
-impl Encode for Service {
+impl Encode for ServiceDescriptor {
     type Error = io::Error;
 
     async fn encode(&self, mut write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
@@ -22,7 +22,7 @@ impl Encode for Service {
     }
 }
 
-impl DecodePure for Service {
+impl DecodePure for ServiceDescriptor {
     type Error = io::Error;
 
     async fn decode_pure(mut read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
@@ -39,12 +39,12 @@ mod test {
 
     use crate::{
         codec::test::{assert_decode, assert_encode, assert_encode_decode},
-        request::service::Service,
+        request::service::ServiceDescriptor,
     };
 
     #[tokio::test]
     async fn encode() {
-        let service = Service {
+        let service = ServiceDescriptor {
             id: ServiceId::new(0x1234),
             version: ServiceVersion::new(0x56, 0x78),
         };
@@ -54,7 +54,7 @@ mod test {
 
     #[tokio::test]
     async fn decode() {
-        let service = Service {
+        let service = ServiceDescriptor {
             id: ServiceId::new(0x1234),
             version: ServiceVersion::new(0x56, 0x78),
         };
@@ -63,7 +63,7 @@ mod test {
     }
 
     #[test_strategy::proptest(async = "tokio")]
-    async fn encode_decode(service: Service) {
+    async fn encode_decode(service: ServiceDescriptor) {
         assert_encode_decode(&service, ()).await;
     }
 }

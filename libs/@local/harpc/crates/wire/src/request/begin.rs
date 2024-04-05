@@ -5,15 +5,15 @@ use tokio::io::AsyncWrite;
 
 use super::{
     authorization::Authorization, codec::EncodeError, payload::RequestPayload,
-    procedure::Procedure, service::Service,
+    procedure::ProcedureDescriptor, service::ServiceDescriptor,
 };
 use crate::codec::{Decode, DecodePure, Encode};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub struct RequestBegin {
-    service: Service,
-    procedure: Procedure,
+    service: ServiceDescriptor,
+    procedure: ProcedureDescriptor,
 
     authorization: Option<Authorization>,
 
@@ -59,8 +59,8 @@ impl Decode for RequestBegin {
         mut read: impl tokio::io::AsyncRead + Unpin + Send,
         context: Self::Context,
     ) -> Result<Self, Self::Error> {
-        let service = Service::decode_pure(&mut read).await?;
-        let procedure = Procedure::decode_pure(&mut read).await?;
+        let service = ServiceDescriptor::decode_pure(&mut read).await?;
+        let procedure = ProcedureDescriptor::decode_pure(&mut read).await?;
 
         #[expect(
             clippy::if_then_some_else_none,
@@ -98,8 +98,8 @@ mod test {
             authorization::Authorization,
             begin::{DecodeContext, RequestBegin},
             payload::RequestPayload,
-            procedure::Procedure,
-            service::Service,
+            procedure::ProcedureDescriptor,
+            service::ServiceDescriptor,
         },
     };
 
@@ -109,11 +109,11 @@ mod test {
     ];
 
     static EXAMPLE_REQUEST: RequestBegin = RequestBegin {
-        service: Service {
+        service: ServiceDescriptor {
             id: ServiceId::new(0x12),
             version: ServiceVersion::new(0x34, 0x56),
         },
-        procedure: Procedure {
+        procedure: ProcedureDescriptor {
             id: ProcedureId::new(0x78),
         },
         authorization: Some(Authorization {
