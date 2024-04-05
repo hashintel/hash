@@ -5,8 +5,8 @@ use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 use crate::codec::{DecodePure, Encode};
 
-const IDENT_LEN: usize = 5;
-const IDENT: &[u8; IDENT_LEN] = b"harpc";
+const MAGIC_LEN: usize = 5;
+const MAGIC: &[u8; MAGIC_LEN] = b"harpc";
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -42,7 +42,7 @@ impl Encode for Protocol {
     type Error = io::Error;
 
     async fn encode(&self, mut write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
-        write.write_all(IDENT).await?;
+        write.write_all(MAGIC).await?;
         self.version.encode(write).await
     }
 }
@@ -52,7 +52,7 @@ pub enum ProtocolDecodeError {
     #[error("invalid packet identifier: expected {expected:?}, actual {actual:?}")]
     InvalidIdentifier {
         expected: &'static [u8],
-        actual: [u8; IDENT_LEN],
+        actual: [u8; MAGIC_LEN],
     },
     #[error("io error")]
     Io,
@@ -62,14 +62,14 @@ impl DecodePure for Protocol {
     type Error = ProtocolDecodeError;
 
     async fn decode_pure(mut read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
-        let mut buffer = [0_u8; IDENT_LEN];
+        let mut buffer = [0_u8; MAGIC_LEN];
         read.read_exact(&mut buffer)
             .await
             .change_context(ProtocolDecodeError::Io)?;
 
-        if buffer != *IDENT {
+        if buffer != *MAGIC {
             return Err(Report::new(ProtocolDecodeError::InvalidIdentifier {
-                expected: IDENT,
+                expected: MAGIC,
                 actual: buffer,
             }));
         }
