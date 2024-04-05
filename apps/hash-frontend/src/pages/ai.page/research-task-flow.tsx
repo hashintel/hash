@@ -1,46 +1,37 @@
 import { useMutation } from "@apollo/client";
 import { TextField } from "@hashintel/design-system";
-import type { EntityWithSources } from "@local/hash-isomorphic-utils/research-task-types";
+import { researchTaskFlowDefinition } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
+import type { RunFlowWorkflowResponse } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import type { EntityTypeWithMetadata } from "@local/hash-subgraph";
+import type { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
-import { Box, Container, InputLabel, Typography } from "@mui/material";
+import { Box, InputLabel, Typography } from "@mui/material";
 import type { FormEvent, FunctionComponent } from "react";
 import { useCallback, useState } from "react";
 
 import type {
-  StartResearchTaskMutation,
-  StartResearchTaskMutationVariables,
+  StartFlowMutation,
+  StartFlowMutationVariables,
 } from "../../graphql/api-types.gen";
-import { startResearchTaskMutation } from "../../graphql/queries/knowledge/entity.queries";
+import { startFlowMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { Button, Link } from "../../shared/ui";
 import { EntityTypeSelector } from "../shared/entity-type-selector";
 import { useEntityHref } from "../shared/use-entity-href";
+import { SectionContainer } from "./shared/section-container";
 
 const EntityListItem: FunctionComponent<{
-  entityWithSources: EntityWithSources;
-}> = ({ entityWithSources }) => {
-  const { entity, sourceWebPages } = entityWithSources;
-  const href = useEntityHref(entity, true);
+  persistedEntity: Entity;
+}> = ({ persistedEntity }) => {
+  const href = useEntityHref(persistedEntity, true);
 
   return (
     <Typography component="li" sx={{ marginBottom: 2 }}>
-      <Link href={href}>{entity.metadata.recordId.entityId}</Link>
+      <Link href={href}>{persistedEntity.metadata.recordId.entityId}</Link>
       <Typography component="ul" sx={{ marginLeft: 3 }}>
-        <Typography component="li">
-          Sources:
-          <Typography component="ul" sx={{ marginLeft: 3 }}>
-            {sourceWebPages.map((sourceWebPage) => (
-              <Typography component="li" key={sourceWebPage.url}>
-                <Link href={sourceWebPage.url}>{sourceWebPage.title}</Link>
-              </Typography>
-            ))}
-          </Typography>
-        </Typography>
         <Typography component="li">
           Properties:{" "}
           <Typography component="ul" sx={{ marginLeft: 3 }}>
-            {Object.entries(entity.properties).map(([key, value]) => (
+            {Object.entries(persistedEntity.properties).map(([key, value]) => (
               <Typography component="li" key={key}>
                 {key}: {stringifyPropertyValue(value)}
               </Typography>
@@ -53,64 +44,86 @@ const EntityListItem: FunctionComponent<{
 };
 
 const EntitiesList: FunctionComponent<{
-  entitiesWithSources: EntityWithSources[];
-}> = ({ entitiesWithSources }) => (
+  persistedEntities: Entity[];
+}> = ({ persistedEntities }) => (
   <Typography component="ul" sx={{ marginLeft: 3 }}>
-    {entitiesWithSources.map((entityWithSources) => (
+    {persistedEntities.map((persistedEntity) => (
       <EntityListItem
-        key={entityWithSources.entity.metadata.recordId.entityId}
-        entityWithSources={entityWithSources}
+        key={persistedEntity.metadata.recordId.entityId}
+        persistedEntity={persistedEntity}
       />
     ))}
   </Typography>
 );
 
-export const AiWorkerPageContent: FunctionComponent = () => {
-  const [startResearchTask, { loading }] = useMutation<
-    StartResearchTaskMutation,
-    StartResearchTaskMutationVariables
-  >(startResearchTaskMutation);
+export const ResearchTaskFlow: FunctionComponent = () => {
+  const [startFlow, { loading }] = useMutation<
+    StartFlowMutation,
+    StartFlowMutationVariables
+  >(startFlowMutation);
 
   const [entityType, setEntityType] = useState<EntityTypeWithMetadata>();
   const [prompt, setPrompt] = useState<string>("");
 
-  const [createdDraftEntities, setCreatedDraftEntities] =
-    useState<EntityWithSources[]>();
-  const [unchangedExistingEntities, setUnchangedExistingEntities] =
-    useState<EntityWithSources[]>();
+  const [persistedEntities, setPersistedEntities] = useState<Entity[]>();
 
   const handleSubmit = useCallback(
     async (event: FormEvent) => {
       event.preventDefault();
 
       if (entityType && prompt) {
-        setCreatedDraftEntities(undefined);
-        setUnchangedExistingEntities(undefined);
+        setPersistedEntities(undefined);
 
-        const { data } = await startResearchTask({
+        const { data } = await startFlow({
           variables: {
-            entityTypeIds: [entityType.schema.$id],
-            prompt,
+            flowDefinition: researchTaskFlowDefinition,
+            flowTrigger: {
+              triggerDefinitionId: "userTrigger",
+              outputs: [
+                {
+                  outputName: "prompt",
+                  payload: {
+                    kind: "Text",
+                    value: prompt,
+                  },
+                },
+                {
+                  outputName: "entityTypeIds",
+                  payload: {
+                    kind: "VersionedUrl",
+                    value: [entityType.schema.$id],
+                  },
+                },
+              ],
+            },
           },
         });
 
         if (data) {
-          const status = data.startResearchTask;
+          const status = data.startFlow as RunFlowWorkflowResponse;
 
           if (status.code === StatusCode.Ok) {
-            setCreatedDraftEntities(status.contents[0]!.createdDraftEntities);
-            setUnchangedExistingEntities(
-              status.contents[0]!.unchangedExistingEntities,
-            );
+            const entities = status.contents[0]?.flowOutputs?.[0]?.payload
+              ?.value as Entity[] | undefined;
+
+            if (!entities) {
+              throw new Error(
+                "Status code 'Ok' but no persisted entities in payload",
+              );
+            }
+
+            setPersistedEntities(entities);
+          } else {
+            throw new Error(status.message ?? "No error message");
           }
         }
       }
     },
-    [entityType, prompt, startResearchTask],
+    [entityType, prompt, startFlow],
   );
 
   return (
-    <Container>
+    <SectionContainer>
       <Box
         component="form"
         onSubmit={handleSubmit}
@@ -118,15 +131,6 @@ export const AiWorkerPageContent: FunctionComponent = () => {
           display: "flex",
           flexDirection: "column",
           rowGap: 2,
-          width: "100%",
-          borderRadius: "8px",
-          borderColor: ({ palette }) => palette.gray[30],
-          borderWidth: 1,
-          borderStyle: "solid",
-          background: ({ palette }) => palette.common.white,
-          paddingX: 4.5,
-          paddingY: 3.25,
-          marginTop: 3,
         }}
       >
         <Typography variant="h5" sx={{ color: ({ palette }) => palette.black }}>
@@ -180,19 +184,13 @@ export const AiWorkerPageContent: FunctionComponent = () => {
           Start Research Task
         </Button>
         {loading ? <Typography>Loading...</Typography> : null}
-        {createdDraftEntities ? (
+        {persistedEntities ? (
           <>
-            <Typography>Created Draft entities:</Typography>
-            <EntitiesList entitiesWithSources={createdDraftEntities} />
-          </>
-        ) : null}
-        {unchangedExistingEntities ? (
-          <>
-            <Typography>Unchanged Existing entities:</Typography>
-            <EntitiesList entitiesWithSources={unchangedExistingEntities} />
+            <Typography>Created entities:</Typography>
+            <EntitiesList persistedEntities={persistedEntities} />
           </>
         ) : null}
       </Box>
-    </Container>
+    </SectionContainer>
   );
 };

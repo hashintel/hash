@@ -88,6 +88,7 @@ export type ActionDefinition = {
   kind: "action";
   actionDefinitionId: ActionDefinitionId;
   name: string;
+  description: string;
   inputs: InputDefinition[];
   outputs: OutputDefinition[];
 };
