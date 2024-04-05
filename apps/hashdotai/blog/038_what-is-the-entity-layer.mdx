@@ -33,17 +33,13 @@ Because we cannot guarantee universal alignment between standards, or their adop
 Consider the humble todo list. **As a user, you might want to be able to sync todo list items from one application to another.** Sounds simple, right? To do this...
 
 1. You could manually re-enter the information inside of each app whenever you change it in one. _Fun! Not to mention error prone._
-
 2. Or you can hope that each application:
-
    - (a) allows exporting and importing to a common format (e.g. CSV);
    - (b) formats their exports in such a way that the other can import it without additional transformation;
    - (c) is at feature parity to avoid data loss as you transfer between platforms; and
    - (d) is capable of partial-syncing to avoid duplication of data upon imports.
    - _You still have to do this process manually, so with any luck you don't need to do it very often, and hopefully it doesn't take too long._
-
 3. Another alternative is that you find a third-party service like _IFTTT_, or _Zapier_, which just happens to support both apps you use works reliably, and doesn't cause more issues than it solves... breaking on occasion, resulting in duplicate or missing data, or even corrupting information in a way that might only be realized 6 months down the line. _Good luck!_
-
 4. Finally, you pray that a native "integration" exists. Most apps don't offer integrations, and those that do typically only support one-way sync or the one-time import of data. Why should app developers incur engineering effort and expense making it easy for people to get data _out_ of their platform, after all, beyond any minimum legal requirement to do so? _See: **walled gardens** above._
 
 To cut a long story short, the process sucks, and is heavily reliant on app developers to pick and choose who they want to support. In effect, scaling out the final strategy given (number four) would today require every application developer in the world to build a set of translations for every other application in the world, supporting and maintaining all of these indefinitely themselves. What we really need is a _translation layer_.
@@ -317,7 +313,5 @@ Incentives faced by application developers
 For consumers, the promise of an entity layer is in having data that works everywhere.
 
 - **Instant availability of data across applications:** no waiting for sync jobs to complete
-
 - **Control over data:** the ability to grant and withdraw permissioned access to data at will
-
 - **A single source of truth:** the ability to merge entities that exist in multiple systems into one
