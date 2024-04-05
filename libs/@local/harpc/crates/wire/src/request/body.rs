@@ -1,11 +1,9 @@
-use std::io;
-
-use error_stack::Result;
+use error_stack::{Result, ResultExt};
 use tokio::io::{AsyncRead, AsyncWrite};
 
 use super::{
     begin::{RequestBegin, RequestBeginContext},
-    codec::EncodeError,
+    codec::{DecodeError, EncodeError},
     flags::{RequestFlag, RequestFlags},
     frame::RequestFrame,
 };
@@ -91,7 +89,7 @@ impl From<RequestBodyContext> for RequestBeginContext {
 
 impl Decode for RequestBody {
     type Context = RequestBodyContext;
-    type Error = io::Error;
+    type Error = DecodeError;
 
     async fn decode(
         read: impl AsyncRead + Unpin + Send,
@@ -103,13 +101,15 @@ impl Decode for RequestBody {
                 .map(RequestBody::Begin),
             RequestVariant::Frame => RequestFrame::decode_pure(read)
                 .await
-                .map(RequestBody::Frame),
+                .map(RequestBody::Frame)
+                .change_context(DecodeError),
         }
     }
 }
 
 #[cfg(test)]
 mod test {
+    use enumflags2::BitFlags;
     use graph_types::account::AccountId;
     use harpc_types::{
         procedure::ProcedureId,
@@ -120,10 +120,11 @@ mod test {
     use super::{RequestBody, RequestBodyContext};
     use crate::{
         codec::test::{assert_decode, assert_encode, assert_encode_decode, encode_value},
+        encoding::{AcceptEncoding, Encoding},
         request::{
             authorization::Authorization, begin::RequestBegin, body::RequestVariant,
-            frame::RequestFrame, payload::RequestPayload, procedure::ProcedureDescriptor,
-            service::ServiceDescriptor,
+            encoding::EncodingHeader, frame::RequestFrame, payload::RequestPayload,
+            procedure::ProcedureDescriptor, service::ServiceDescriptor,
         },
     };
 
@@ -134,6 +135,13 @@ mod test {
         },
         procedure: ProcedureDescriptor {
             id: ProcedureId::new(0x01),
+        },
+        encoding: EncodingHeader {
+            encoding: Encoding::Raw,
+            accept: AcceptEncoding::from_flags(BitFlags::<Encoding, u16>::from_bits_truncate_c(
+                Encoding::Raw as u16,
+                BitFlags::CONST_TOKEN,
+            )),
         },
         authorization: None,
         payload: RequestPayload::from_static(&[]),

@@ -1,11 +1,13 @@
-use std::io;
-
 use error_stack::{Result, ResultExt};
 use tokio::io::AsyncWrite;
 
 use super::{
-    authorization::Authorization, codec::EncodeError, payload::RequestPayload,
-    procedure::ProcedureDescriptor, service::ServiceDescriptor,
+    authorization::Authorization,
+    codec::{DecodeError, EncodeError},
+    encoding::EncodingHeader,
+    payload::RequestPayload,
+    procedure::ProcedureDescriptor,
+    service::ServiceDescriptor,
 };
 use crate::codec::{Decode, DecodePure, Encode};
 
@@ -14,6 +16,8 @@ use crate::codec::{Decode, DecodePure, Encode};
 pub struct RequestBegin {
     pub service: ServiceDescriptor,
     pub procedure: ProcedureDescriptor,
+
+    pub encoding: EncodingHeader,
 
     pub authorization: Option<Authorization>,
 
@@ -30,6 +34,11 @@ impl Encode for RequestBegin {
             .change_context(EncodeError)?;
 
         self.procedure
+            .encode(&mut write)
+            .await
+            .change_context(EncodeError)?;
+
+        self.encoding
             .encode(&mut write)
             .await
             .change_context(EncodeError)?;
@@ -51,30 +60,43 @@ pub struct RequestBeginContext {
 
 impl Decode for RequestBegin {
     type Context = RequestBeginContext;
-    type Error = io::Error;
+    type Error = DecodeError;
 
     async fn decode(
         mut read: impl tokio::io::AsyncRead + Unpin + Send,
         context: Self::Context,
     ) -> Result<Self, Self::Error> {
-        let service = ServiceDescriptor::decode_pure(&mut read).await?;
-        let procedure = ProcedureDescriptor::decode_pure(&mut read).await?;
+        let service = ServiceDescriptor::decode_pure(&mut read)
+            .await
+            .change_context(DecodeError)?;
+        let procedure = ProcedureDescriptor::decode_pure(&mut read)
+            .await
+            .change_context(DecodeError)?;
+
+        let encoding = EncodingHeader::decode_pure(&mut read).await?;
 
         #[expect(
             clippy::if_then_some_else_none,
             reason = "false positive, contains await"
         )]
         let authorization = if context.contains_authorization {
-            Some(Authorization::decode_pure(&mut read).await?)
+            Some(
+                Authorization::decode_pure(&mut read)
+                    .await
+                    .change_context(DecodeError)?,
+            )
         } else {
             None
         };
 
-        let payload = RequestPayload::decode_pure(read).await?;
+        let payload = RequestPayload::decode_pure(read)
+            .await
+            .change_context(DecodeError)?;
 
         Ok(Self {
             service,
             procedure,
+            encoding,
             authorization,
             payload,
         })
@@ -85,6 +107,7 @@ impl Decode for RequestBegin {
 mod test {
     use std::io::{self, Cursor};
 
+    use enumflags2::BitFlags;
     use graph_types::account::AccountId;
     use harpc_types::{
         procedure::ProcedureId,
@@ -97,9 +120,11 @@ mod test {
             test::{assert_decode, assert_encode, assert_encode_decode, decode_value},
             Decode,
         },
+        encoding::{AcceptEncoding, Encoding},
         request::{
             authorization::Authorization,
             begin::{RequestBegin, RequestBeginContext},
+            encoding::EncodingHeader,
             payload::RequestPayload,
             procedure::ProcedureDescriptor,
             service::ServiceDescriptor,
@@ -119,6 +144,13 @@ mod test {
         procedure: ProcedureDescriptor {
             id: ProcedureId::new(0x78),
         },
+        encoding: EncodingHeader {
+            encoding: Encoding::Raw,
+            accept: AcceptEncoding::from_flags(BitFlags::<Encoding, u16>::from_bits_truncate_c(
+                Encoding::Raw as u16,
+                BitFlags::CONST_TOKEN,
+            )),
+        },
         authorization: Some(Authorization {
             account: AccountId::new(Uuid::from_bytes(EXAMPLE_UUID)),
         }),
@@ -133,6 +165,7 @@ mod test {
                 0x00, 0x12, // service id
                 0x34, 0x56, // service version
                 0x00, 0x78, // procedure id
+                0x00, 0x01, 0x00, 0x01, // encoding
                 0x90, 0xAB, 0xCD, 0xEF, 0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF, 0x12, 0x34,
                 0x56, 0x78, // account id
                 0x00, 0x03, 0x90, 0xAB, 0xCD, // payload
@@ -154,6 +187,7 @@ mod test {
                 0x00, 0x12, // service id
                 0x34, 0x56, // service version
                 0x00, 0x78, // procedure id
+                0x00, 0x01, 0x00, 0x01, // encoding
                 0x00, 0x03, 0x90, 0xAB, 0xCD, // payload
             ],
         )
@@ -166,6 +200,7 @@ mod test {
             0x00, 0x12, // service id
             0x34, 0x56, // service version
             0x00, 0x78, // procedure id
+            0x00, 0x01, 0x00, 0x01, // encoding
             0x90, 0xAB, 0xCD, 0xEF, 0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF, 0x12, 0x34,
             0x56, 0x78, // account id
             0x00, 0x03, 0x90, 0xAB, 0xCD, // payload
@@ -187,6 +222,7 @@ mod test {
             0x00, 0x12, // service id
             0x34, 0x56, // service version
             0x00, 0x78, // procedure id
+            0x00, 0x01, 0x00, 0x01, // encoding
             0x00, 0x03, 0x90, 0xAB, 0xCD, // payload
         ];
 
@@ -225,6 +261,7 @@ mod test {
             0x00, 0x12, // service id
             0x34, 0x56, // service version
             0x00, 0x78, // procedure id
+            0x00, 0x01, 0x00, 0x01, // encoding
             0x00, 0x03, 0xCD, 0xEF, 0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF, 0x12, 0x34,
             0x56, 0x78, // account id
             0x00, 0x03, 0x90, 0xAB, 0xCD, // payload
@@ -254,6 +291,7 @@ mod test {
             0x00, 0x12, // service id
             0x34, 0x56, // service version
             0x00, 0x78, // procedure id
+            0x00, 0x01, 0x00, 0x01, // encoding
             0x00, 0x19, b'H', b'e', b'l', b'l', b'o', b' ', b'W', b'o', b'r', b'l', b'd', b',',
             b' ', b'h', // interpreted as account id
             0x00, 0x03, b' ', b'a', b'r', b'e', b' ', b'y', b'o', b'u', b'?',
@@ -297,6 +335,7 @@ mod test {
             0x00, 0x12, // service id
             0x34, 0x56, // service version
             0x00, 0x78, // procedure id
+            0x00, 0x01, 0x00, 0x01, // encoding
             0x90, 0xAB, 0xCD, 0xEF, 0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF, 0x12, 0x34,
             0x56, 0x78, // account id
             0x00, 0x03, 0x90, 0xAB, 0xCD, // payload
@@ -315,7 +354,8 @@ mod test {
         .await
         .expect_err("unable to decode value");
 
-        assert_eq!(error.current_context().kind(), io::ErrorKind::UnexpectedEof);
+        let io = error.downcast_ref::<io::Error>().expect("is io error");
+        assert_eq!(io.kind(), io::ErrorKind::UnexpectedEof);
     }
 
     #[tokio::test]
@@ -324,6 +364,7 @@ mod test {
             0x00, 0x12, // service id
             0x34, 0x56, // service version
             0x00, 0x78, // procedure id
+            0x00, 0x01, 0x00, 0x01, // encoding
             0x00, 0x19, b'H', b'e', b'l', b'l', b'o', b' ', b'W', b'o', b'r', b'l', b'd', b',',
             b' ', b'h', // interpreted as account id
             b'o', b'w', b' ', b'a', b'r', b'e', b' ', b'y', b'o', b'u', b'?',
@@ -354,7 +395,8 @@ mod test {
         .await
         .expect_err("unable to decode value");
 
-        assert_eq!(error.current_context().kind(), io::ErrorKind::UnexpectedEof);
+        let io = error.downcast_ref::<io::Error>().expect("is io error");
+        assert_eq!(io.kind(), io::ErrorKind::UnexpectedEof);
     }
 
     #[tokio::test]
@@ -363,6 +405,7 @@ mod test {
             0x00, 0x12, // service id
             0x34, 0x56, // service version
             0x00, 0x78, // procedure id
+            0x00, 0x01, 0x00, 0x01, // encoding
             0x00, 0x13, 0xCD, 0xEF, 0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF, 0x12, 0x34,
             0x56, 0x78, // account id
             0x00, 0x03, 0x90, 0xAB, 0xCD, // payload
@@ -378,6 +421,10 @@ mod test {
                 },
                 procedure: ProcedureDescriptor {
                     id: ProcedureId::new(0x78),
+                },
+                encoding: EncodingHeader {
+                    encoding: Encoding::Raw,
+                    accept: AcceptEncoding::new(Encoding::Raw),
                 },
                 authorization: None,
                 payload: RequestPayload::from_static(&[
@@ -398,6 +445,7 @@ mod test {
             0x00, 0x12, // service id
             0x34, 0x56, // service version
             0x00, 0x78, // procedure id
+            0x00, 0x01, 0x00, 0x01, // encoding
             0x00, 0x19, b'H', b'e', b'l', b'l', b'o', b' ', b'W', b'o', b'r', b'l', b'd', b',',
             b' ', b'h', // interpreted as account id
             0x00, 0x03, b' ', b'a', b'r',
@@ -412,6 +460,10 @@ mod test {
                 },
                 procedure: ProcedureDescriptor {
                     id: ProcedureId::new(0x78),
+                },
+                encoding: EncodingHeader {
+                    encoding: Encoding::Raw,
+                    accept: AcceptEncoding::new(Encoding::Raw),
                 },
                 authorization: Some(Authorization {
                     account: AccountId::new(Uuid::from_bytes([

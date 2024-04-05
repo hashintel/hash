@@ -13,6 +13,7 @@ pub mod authorization;
 pub mod begin;
 pub mod body;
 pub mod codec;
+pub mod encoding;
 pub mod flags;
 pub mod frame;
 pub mod header;
@@ -37,12 +38,12 @@ pub mod service;
 /// The layout of a `Begin` packet is as follows:
 ///
 /// ```text
-///  0                   1                   2                   3
+/// 0                   1                   2                   3
 /// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 /// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-/// |  Magic  |P|R. |F|S. |S. |P. |         Authorization         |P|
+/// |  Magic  |P|R. |F|S. |S. |P. |E. |A. |      Authorization      |
 /// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-/// | |                           Payload                           |
+/// |     |P. |                       Payload                       |
 /// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ///
 /// * Magic (5 bytes)
@@ -52,9 +53,12 @@ pub mod service;
 /// * Service Id (2 bytes)
 /// * Service Version (2 bytes)
 /// * Procedure Id (2 bytes)
+/// * Encoding (2 bytes)
+/// * Accept (2 bytes)
 /// * Authorization (16 bytes)
 /// * Payload Length (2 bytes)
-/// * Payload (31 bytes)
+/// * Payload (27 bytes)
+/// total 64 bytes
 /// ```
 ///
 /// The payload is of variable size and specified by the `Payload Length` field. `Authorization` is
@@ -128,10 +132,12 @@ mod test {
     use super::id::test::mock_request_id;
     use crate::{
         codec::test::{assert_decode, assert_encode, assert_encode_decode},
+        encoding::{AcceptEncoding, Encoding},
         protocol::{Protocol, ProtocolVersion},
         request::{
             begin::RequestBegin,
             body::RequestBody,
+            encoding::EncodingHeader,
             flags::{RequestFlag, RequestFlags},
             frame::RequestFrame,
             header::RequestHeader,
@@ -158,6 +164,7 @@ mod test {
         0x12, 0x34,                         // service_id
         0x56, 0x78,                         // service_version
         0x9A, 0xBC,                         // procedure_id
+        0x00, 0x01, 0x00, 0x01,             // encoding
         0x00, 0x0B,                         // payload_length
         b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd',
     ];
@@ -181,8 +188,13 @@ mod test {
                         id: ServiceId::new(0x1234),
                         version: ServiceVersion::new(0x56, 0x78),
                     },
+
                     procedure: ProcedureDescriptor {
                         id: ProcedureId::new(0x9ABC),
+                    },
+                    encoding: EncodingHeader {
+                        encoding: Encoding::Raw,
+                        accept: AcceptEncoding::new(Encoding::Raw),
                     },
                     authorization: None,
                     payload: RequestPayload::from_static(b"hello world"),
@@ -225,6 +237,10 @@ mod test {
                     },
                     procedure: ProcedureDescriptor {
                         id: ProcedureId::new(0x9ABC),
+                    },
+                    encoding: EncodingHeader {
+                        encoding: Encoding::Raw,
+                        accept: AcceptEncoding::new(Encoding::Raw),
                     },
                     authorization: None,
                     payload: RequestPayload::from_static(b"hello world"),

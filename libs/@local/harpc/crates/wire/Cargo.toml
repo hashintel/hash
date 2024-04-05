@@ -8,7 +8,7 @@ edition.workspace = true
 [dependencies]
 borsh = { version = "1.4.0", features = ["borsh-derive"] }
 bytes = "1.6.0"
-enumflags2 = "0.7.9"
+enumflags2 = { version = "0.7.9", features = ["std"] }
 error-stack.workspace = true
 futures.workspace = true
 futures-stream = "0.0.0"
