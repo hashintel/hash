@@ -118,7 +118,7 @@ const callModel = async (
   }>
 > => {
   const openApiPayload: OpenAI.ChatCompletionCreateParams = {
-    model: "gpt-4-1106-preview",
+    model: "gpt-4",
     messages,
     stream: false,
     tools: answerTools,
@@ -225,12 +225,17 @@ const callModel = async (
           `Model is running code with explanation:\n\n${explanation}\n\nThe code:\n${code}\n`,
         );
 
-        const { stdout, stderr, artifacts } = await runPythonCode(code);
+        const { stdout, stderr, artifacts } = await runPythonCode(
+          code,
+          context,
+        );
 
         console.log({ stdout, stderr, artifacts });
 
         const toolResponseMessage = stderr
           ? `The code you provided generated an error, and you worked to fix it: ${stderr}`
+          : !stdout
+          ? "There was no stdout from the code – you may have forgotten to print the values you require"
           : dedent(`
         The Python code ran successfully, and you now used it to provide an answer.
         The stdout from your code was: ${stdout}
@@ -250,6 +255,7 @@ const callModel = async (
     return callModel(
       [...messages, modelResponseMessage, ...responseMessages],
       context,
+      codeUsed,
     );
   }
 
@@ -297,7 +303,13 @@ export const answerQuestionAction: FlowActionActivity = async ({ inputs }) => {
     if (entities) {
       message += `The context is an array of entities. 
       Entities have properties, and may have a 'linkData' object that contains links to other entities, where the leftEntityId is the source of the link,
-      and the rightEntityId is the target of the link.`;
+      and the rightEntityId is the target of the link – these refer to the metadata.recordId.entityId of other entities. 
+      Non-link entities and link entities together form a graph of entities.
+      If asked a question which relies on the value of some property, you considered the properties and types of the provided properties and links,
+      making sure to write code (if required) that accesses the correct properties which are present in the data.
+      Bear in mind that data relating to a link between two entities may be stored as a property on the link, not the entities themselves.
+      Pay close attention to the keys in the JSON – don't guess, use the context provided.
+      `;
     }
 
     messages.push({
@@ -306,5 +318,5 @@ export const answerQuestionAction: FlowActionActivity = async ({ inputs }) => {
     });
   }
 
-  return await callModel(messages, context);
+  return await callModel(messages, contextToUpload);
 };

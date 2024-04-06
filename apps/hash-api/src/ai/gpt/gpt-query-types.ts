@@ -1,4 +1,6 @@
 import { typedValues } from "@local/advanced-types/typed-entries";
+import type { SimpleEntityType } from "@local/hash-backend-utils/simplified-graph";
+import { getSimpleEntityType } from "@local/hash-backend-utils/simplified-graph";
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
@@ -8,8 +10,6 @@ import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subg
 import type { RequestHandler } from "express";
 
 import { genId } from "../../util";
-import type { SimpleEntityType } from "./shared/entity-types";
-import { getSimpleEntityType } from "./shared/entity-types";
 import { stringifyResults } from "./shared/stringify-results";
 
 export type GptQueryTypesRequestBody = {
