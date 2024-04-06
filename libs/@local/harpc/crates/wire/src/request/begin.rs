@@ -5,11 +5,13 @@ use super::{
     authorization::Authorization,
     codec::{DecodeError, EncodeError},
     encoding::EncodingHeader,
-    payload::RequestPayload,
     procedure::ProcedureDescriptor,
     service::ServiceDescriptor,
 };
-use crate::codec::{Decode, DecodePure, Encode};
+use crate::{
+    codec::{Decode, DecodePure, Encode},
+    payload::Payload,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -21,7 +23,7 @@ pub struct RequestBegin {
 
     pub authorization: Option<Authorization>,
 
-    pub payload: RequestPayload,
+    pub payload: Payload,
 }
 
 impl Encode for RequestBegin {
@@ -89,7 +91,7 @@ impl Decode for RequestBegin {
             None
         };
 
-        let payload = RequestPayload::decode_pure(read)
+        let payload = Payload::decode_pure(read)
             .await
             .change_context(DecodeError)?;
 
@@ -121,11 +123,11 @@ mod test {
             Decode,
         },
         encoding::{AcceptEncoding, Encoding},
+        payload::Payload,
         request::{
             authorization::Authorization,
             begin::{RequestBegin, RequestBeginContext},
             encoding::EncodingHeader,
-            payload::RequestPayload,
             procedure::ProcedureDescriptor,
             service::ServiceDescriptor,
         },
@@ -154,7 +156,7 @@ mod test {
         authorization: Some(Authorization {
             account: AccountId::new(Uuid::from_bytes(EXAMPLE_UUID)),
         }),
-        payload: RequestPayload::from_static(&[0x90, 0xAB, 0xCD]),
+        payload: Payload::from_static(&[0x90, 0xAB, 0xCD]),
     };
 
     #[tokio::test]
@@ -427,7 +429,7 @@ mod test {
                     accept: AcceptEncoding::new(Encoding::Raw),
                 },
                 authorization: None,
-                payload: RequestPayload::from_static(&[
+                payload: Payload::from_static(&[
                     0xCD, 0xEF, 0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF, 0x12, 0x34, 0x56,
                     0x78, 0x00, 0x03, 0x90, 0xAB, 0xCD,
                 ]),
@@ -471,7 +473,7 @@ mod test {
                         b'd', b',', b' ', b'h',
                     ])),
                 }),
-                payload: RequestPayload::from_static(&[b' ', b'a', b'r']),
+                payload: Payload::from_static(&[b' ', b'a', b'r']),
             },
             RequestBeginContext {
                 contains_authorization: true,

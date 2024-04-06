@@ -3,19 +3,19 @@ use std::io;
 use error_stack::{Result, ResultExt};
 use tokio::io::{AsyncRead, AsyncWrite};
 
-use super::codec::EncodeError;
 use crate::{
     codec::{DecodePure, Encode},
     payload::Payload,
+    request::codec::EncodeError,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
-pub struct RequestFrame {
+pub struct ResponseFrame {
     pub payload: Payload,
 }
 
-impl Encode for RequestFrame {
+impl Encode for ResponseFrame {
     type Error = EncodeError;
 
     async fn encode(&self, write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
@@ -23,13 +23,13 @@ impl Encode for RequestFrame {
     }
 }
 
-impl DecodePure for RequestFrame {
+impl DecodePure for ResponseFrame {
     type Error = io::Error;
 
     async fn decode_pure(read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
-        Ok(Self {
-            payload: Payload::decode_pure(read).await?,
-        })
+        let payload = Payload::decode_pure(read).await?;
+
+        Ok(Self { payload })
     }
 }
 
@@ -38,12 +38,12 @@ mod test {
     use crate::{
         codec::test::{assert_decode, assert_encode, assert_encode_decode},
         payload::Payload,
-        request::frame::RequestFrame,
+        response::frame::ResponseFrame,
     };
 
     #[tokio::test]
     async fn encode() {
-        let frame = RequestFrame {
+        let frame = ResponseFrame {
             payload: Payload::new(b"hello world" as &[_]),
         };
 
@@ -58,7 +58,7 @@ mod test {
 
     #[tokio::test]
     async fn decode() {
-        let frame = RequestFrame {
+        let frame = ResponseFrame {
             payload: Payload::new(b"hello world" as &[_]),
         };
 
@@ -73,7 +73,7 @@ mod test {
     }
 
     #[test_strategy::proptest(async = "tokio")]
-    async fn codec(frame: RequestFrame) {
+    async fn codec(frame: ResponseFrame) {
         assert_encode_decode(&frame, ()).await;
     }
 }

@@ -3,23 +3,24 @@ use std::io;
 use error_stack::{Result, ResultExt};
 use tokio::io::{AsyncRead, AsyncWrite};
 
-use super::{body::RequestBody, codec::DecodeError, flags::RequestFlags, id::RequestId};
+use super::{flags::ResponseFlags, ResponseBody};
 use crate::{
     codec::{DecodePure, Encode},
     protocol::Protocol,
+    request::{codec::DecodeError, id::RequestId},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
-pub struct RequestHeader {
+pub struct ResponseHeader {
     pub protocol: Protocol,
     pub request_id: RequestId,
 
-    pub flags: RequestFlags,
+    pub flags: ResponseFlags,
 }
 
-impl RequestHeader {
-    pub(super) fn apply_body(self, body: &RequestBody) -> Self {
+impl ResponseHeader {
+    pub(super) fn apply_body(self, body: &ResponseBody) -> Self {
         Self {
             flags: self.flags.apply_body(body),
             ..self
@@ -27,7 +28,7 @@ impl RequestHeader {
     }
 }
 
-impl Encode for RequestHeader {
+impl Encode for ResponseHeader {
     type Error = io::Error;
 
     async fn encode(&self, mut write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
@@ -37,7 +38,7 @@ impl Encode for RequestHeader {
     }
 }
 
-impl DecodePure for RequestHeader {
+impl DecodePure for ResponseHeader {
     type Error = DecodeError;
 
     async fn decode_pure(mut read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
@@ -47,7 +48,7 @@ impl DecodePure for RequestHeader {
         let request_id = RequestId::decode_pure(&mut read)
             .await
             .change_context(DecodeError)?;
-        let flags = RequestFlags::decode_pure(read)
+        let flags = ResponseFlags::decode_pure(read)
             .await
             .change_context(DecodeError)?;
 
@@ -63,41 +64,31 @@ impl DecodePure for RequestHeader {
 mod test {
     use crate::{
         codec::test::{assert_decode, assert_encode, assert_encode_decode},
+        flags::BitFlagsOp,
         protocol::{Protocol, ProtocolVersion},
-        request::{
-            flags::{RequestFlag, RequestFlags},
-            header::RequestHeader,
-            id::RequestIdProducer,
+        request::id::test::mock_request_id,
+        response::{
+            flags::{ResponseFlag, ResponseFlags},
+            header::ResponseHeader,
         },
     };
 
     #[tokio::test]
     async fn encode() {
-        let mut producer = RequestIdProducer::new();
-
-        let header = RequestHeader {
+        let header = ResponseHeader {
             protocol: Protocol {
                 version: ProtocolVersion::V1,
             },
-            request_id: producer.produce(),
-
-            flags: RequestFlags::from(
-                RequestFlag::ContainsAuthorization | RequestFlag::BeginOfRequest,
-            ),
+            request_id: mock_request_id(0x1234),
+            flags: ResponseFlags::EMPTY,
         };
 
         assert_encode(
             &header,
             &[
-                b'h',
-                b'a',
-                b'r',
-                b'p',
-                b'c', // identifier
-                0x01, // protocol version,
-                0x00,
-                0x00,        // request id
-                0b1100_0000, // flags
+                b'h', b'a', b'r', b'p', b'c', 0x01, // protocol
+                0x12, 0x34, // request_id
+                0x00, // flags
             ],
         )
         .await;
@@ -105,29 +96,29 @@ mod test {
 
     #[tokio::test]
     async fn decode() {
-        let mut producer = RequestIdProducer::new();
-
-        let header = RequestHeader {
-            protocol: Protocol {
-                version: ProtocolVersion::V1,
-            },
-            request_id: producer.produce(),
-
-            flags: RequestFlags::from(
-                RequestFlag::ContainsAuthorization | RequestFlag::BeginOfRequest,
-            ),
-        };
+        #[rustfmt::skip]
+        let buffer = &[
+            b'h', b'a', b'r', b'p', b'c', 0x01, // protocol
+            0x23, 0x45, // request_id
+            0b1000_0000, // flags
+        ];
 
         assert_decode(
-            &[b'h', b'a', b'r', b'p', b'c', 0x01, 0x00, 0x00, 0b1100_0000],
-            &header,
+            buffer,
+            &ResponseHeader {
+                protocol: Protocol {
+                    version: ProtocolVersion::V1,
+                },
+                request_id: mock_request_id(0x2345),
+                flags: ResponseFlags::from(ResponseFlag::BeginOfResponse),
+            },
             (),
         )
         .await;
     }
 
     #[test_strategy::proptest(async = "tokio")]
-    async fn encode_decode(header: RequestHeader) {
+    async fn codec(header: ResponseHeader) {
         assert_encode_decode(&header, ()).await;
     }
 }

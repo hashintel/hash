@@ -6,21 +6,18 @@ version = "0.1.0"
 edition.workspace = true
 
 [dependencies]
-borsh = { version = "1.4.0", features = ["borsh-derive"] }
 bytes = "1.6.0"
 enumflags2 = { version = "0.7.9", features = ["std"] }
 error-stack.workspace = true
-futures.workspace = true
-futures-stream = "0.0.0"
 graph-types.workspace = true
-harpc-types = { version = "0.1.0", path = "../types" }
+harpc-types.workspace = true
 thiserror = "1.0.58"
 tokio = { workspace = true, features = ["io-util"] }
-uuid = { version = "1.8.0", features = ["borsh"] }
+uuid = "1.8.0"
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt", "macros", "rt-multi-thread"] }
 uuid = { version = "1.8.0", features = ["v4"] }
 proptest = "1.4.0"
 test-strategy = "0.3.1"
-harpc-types = { path = "../types", features = ["proptest"] }
+harpc-types = { workspace = true, features = ["proptest"] }

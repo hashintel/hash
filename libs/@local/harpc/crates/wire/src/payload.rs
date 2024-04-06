@@ -8,7 +8,7 @@ use crate::codec::{BytesEncodeError, DecodePure, Encode};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
-pub struct RequestPayload(
+pub struct Payload(
     // 1024 ensures that we spill over into the second length byte while still having a good
     // runtime performance.
     #[cfg_attr(
@@ -19,7 +19,7 @@ pub struct RequestPayload(
     Bytes,
 );
 
-impl RequestPayload {
+impl Payload {
     pub fn new(bytes: impl Into<Bytes>) -> Self {
         Self(bytes.into())
     }
@@ -34,7 +34,7 @@ impl RequestPayload {
     }
 }
 
-impl Encode for RequestPayload {
+impl Encode for Payload {
     type Error = BytesEncodeError;
 
     fn encode(
@@ -45,7 +45,7 @@ impl Encode for RequestPayload {
     }
 }
 
-impl DecodePure for RequestPayload {
+impl DecodePure for Payload {
     type Error = io::Error;
 
     async fn decode_pure(read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
@@ -59,12 +59,12 @@ mod test {
 
     use crate::{
         codec::test::{assert_decode, assert_encode, assert_encode_decode},
-        request::payload::RequestPayload,
+        payload::Payload,
     };
 
     #[tokio::test]
     async fn encode() {
-        let payload = RequestPayload(Bytes::from_static(b"hello world"));
+        let payload = Payload(Bytes::from_static(b"hello world"));
 
         assert_encode(
             &payload,
@@ -77,7 +77,7 @@ mod test {
 
     #[tokio::test]
     async fn decode() {
-        let payload = RequestPayload(Bytes::from_static(b"hello world"));
+        let payload = Payload(Bytes::from_static(b"hello world"));
 
         assert_decode(
             &[
@@ -90,7 +90,7 @@ mod test {
     }
 
     #[test_strategy::proptest(async = "tokio")]
-    async fn encode_decode(payload: RequestPayload) {
+    async fn encode_decode(payload: Payload) {
         assert_encode_decode(&payload, ()).await;
     }
 }

@@ -5,11 +5,14 @@ use error_stack::Result;
 use tokio::io::{AsyncRead, AsyncWrite};
 
 use super::body::RequestBody;
-use crate::codec::{DecodePure, Encode};
+use crate::{
+    codec::{DecodePure, Encode},
+    flags::BitFlagsOp,
+};
 
 #[enumflags2::bitflags]
-#[repr(u8)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(u8)]
 pub enum RequestFlag {
     // Computed flags
     BeginOfRequest = 0b1000_0000,
@@ -27,15 +30,6 @@ pub struct RequestFlags(
 );
 
 impl RequestFlags {
-    pub fn new(flags: impl Into<BitFlags<RequestFlag>>) -> Self {
-        Self(flags.into())
-    }
-
-    #[must_use]
-    pub const fn empty() -> Self {
-        Self(BitFlags::EMPTY)
-    }
-
     pub(super) fn apply_body(self, body: &RequestBody) -> Self {
         self.set(
             RequestFlag::ContainsAuthorization,
@@ -43,39 +37,15 @@ impl RequestFlags {
         )
         .set(RequestFlag::BeginOfRequest, body.begin_of_request())
     }
+}
 
-    #[must_use]
-    pub fn contains(self, flag: RequestFlag) -> bool {
-        self.0.contains(flag)
-    }
+impl BitFlagsOp for RequestFlags {
+    type Flag = RequestFlag;
 
-    #[must_use]
-    pub const fn flags(self) -> BitFlags<RequestFlag> {
+    const EMPTY: Self = Self(BitFlags::EMPTY);
+
+    fn value(&self) -> BitFlags<Self::Flag> {
         self.0
-    }
-
-    #[must_use]
-    pub fn remove(self, other: impl Into<BitFlags<RequestFlag>>) -> Self {
-        Self(self.0 & !other.into())
-    }
-
-    #[must_use]
-    pub fn insert(self, other: impl Into<BitFlags<RequestFlag>>) -> Self {
-        Self(self.0 | other.into())
-    }
-
-    #[must_use]
-    pub fn toggle(self, other: impl Into<BitFlags<RequestFlag>>) -> Self {
-        Self(self.0 ^ other.into())
-    }
-
-    #[must_use]
-    pub fn set(self, other: impl Into<BitFlags<RequestFlag>>, condition: bool) -> Self {
-        if condition {
-            self.insert(other)
-        } else {
-            self.remove(other)
-        }
     }
 }
 
@@ -85,11 +55,17 @@ impl From<BitFlags<RequestFlag>> for RequestFlags {
     }
 }
 
+impl From<RequestFlag> for RequestFlags {
+    fn from(flag: RequestFlag) -> Self {
+        Self::from(BitFlags::from(flag))
+    }
+}
+
 impl Encode for RequestFlags {
     type Error = io::Error;
 
-    async fn encode(&self, mut write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
-        self.0.bits().encode(&mut write).await
+    async fn encode(&self, write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
+        self.0.bits().encode(write).await
     }
 }
 
@@ -106,116 +82,32 @@ impl DecodePure for RequestFlags {
 
 #[cfg(test)]
 mod test {
-    use enumflags2::BitFlags;
-
     use crate::{
         codec::test::{assert_decode, assert_encode, assert_encode_decode},
         request::flags::{RequestFlag, RequestFlags},
     };
-
-    #[test]
-    fn remove() {
-        let flags = RequestFlags::new(
-            RequestFlag::BeginOfRequest
-                | RequestFlag::ContainsAuthorization
-                | RequestFlag::EndOfRequest,
-        );
-
-        let flags = flags.remove(RequestFlag::BeginOfRequest);
-
-        assert_eq!(
-            flags.flags(),
-            RequestFlag::ContainsAuthorization | RequestFlag::EndOfRequest
-        );
-
-        // if we remove the flag again, nothing should change
-        let flags = flags.remove(RequestFlag::BeginOfRequest);
-
-        assert_eq!(
-            flags.flags(),
-            RequestFlag::ContainsAuthorization | RequestFlag::EndOfRequest
-        );
-    }
-
-    #[test]
-    fn insert() {
-        let flags = RequestFlags::new(RequestFlag::ContainsAuthorization);
-
-        let flags = flags.insert(RequestFlag::BeginOfRequest);
-
-        assert_eq!(
-            flags.flags(),
-            RequestFlag::BeginOfRequest | RequestFlag::ContainsAuthorization
-        );
-
-        // if we insert the flag again, nothing should change
-        let flags = flags.insert(RequestFlag::BeginOfRequest);
-
-        assert_eq!(
-            flags.flags(),
-            RequestFlag::BeginOfRequest | RequestFlag::ContainsAuthorization
-        );
-    }
-
-    #[test]
-    fn toggle() {
-        let flags = RequestFlags::new(RequestFlag::BeginOfRequest);
-
-        let flags = flags.toggle(RequestFlag::BeginOfRequest);
-
-        assert_eq!(flags.flags(), BitFlags::empty());
-
-        // if we toggle the flag again, the flag should be set
-        let flags = flags.toggle(RequestFlag::BeginOfRequest);
-
-        assert_eq!(flags.flags(), RequestFlag::BeginOfRequest);
-    }
-
-    #[test]
-    fn set() {
-        let flags = RequestFlags::new(RequestFlag::BeginOfRequest);
-
-        let flags = flags.set(RequestFlag::BeginOfRequest, false);
-
-        assert_eq!(flags.flags(), BitFlags::empty());
-
-        // if we remove the flag again, nothing should change
-        let flags = flags.set(RequestFlag::BeginOfRequest, false);
-
-        assert_eq!(flags.flags(), BitFlags::empty());
-
-        // if we set the flag again, the flag should be set
-        let flags = flags.set(RequestFlag::BeginOfRequest, true);
-
-        assert_eq!(flags.flags(), RequestFlag::BeginOfRequest);
-
-        // if we set the flag again, the flag should be set, nothing should change
-        let flags = flags.set(RequestFlag::BeginOfRequest, true);
-
-        assert_eq!(flags.flags(), RequestFlag::BeginOfRequest);
-    }
 
     #[tokio::test]
     async fn encode() {
         let flags = RequestFlag::BeginOfRequest
             | RequestFlag::ContainsAuthorization
             | RequestFlag::EndOfRequest;
-        let flags = RequestFlags::new(flags);
+        let flags = RequestFlags::from(flags);
 
         assert_encode(&flags, &[0b1100_0001]).await;
 
         let flags = RequestFlag::BeginOfRequest | RequestFlag::ContainsAuthorization;
-        let flags = RequestFlags::new(flags);
+        let flags = RequestFlags::from(flags);
 
         assert_encode(&flags, &[0b1100_0000]).await;
 
         let flags = RequestFlag::BeginOfRequest | RequestFlag::EndOfRequest;
-        let flags = RequestFlags::new(flags);
+        let flags = RequestFlags::from(flags);
 
         assert_encode(&flags, &[0b1000_0001]).await;
 
         let flags = RequestFlag::ContainsAuthorization | RequestFlag::EndOfRequest;
-        let flags = RequestFlags::new(flags);
+        let flags = RequestFlags::from(flags);
 
         assert_encode(&flags, &[0b0100_0001]).await;
     }
@@ -225,28 +117,28 @@ mod test {
         let flags = RequestFlag::BeginOfRequest
             | RequestFlag::ContainsAuthorization
             | RequestFlag::EndOfRequest;
-        let flags = RequestFlags::new(flags);
+        let flags = RequestFlags::from(flags);
 
         assert_decode(&[0b1100_0001], &flags, ()).await;
 
         let flags = RequestFlag::BeginOfRequest | RequestFlag::ContainsAuthorization;
-        let flags = RequestFlags::new(flags);
+        let flags = RequestFlags::from(flags);
 
         assert_decode(&[0b1100_0000], &flags, ()).await;
 
         let flags = RequestFlag::BeginOfRequest | RequestFlag::EndOfRequest;
-        let flags = RequestFlags::new(flags);
+        let flags = RequestFlags::from(flags);
 
         assert_decode(&[0b1000_0001], &flags, ()).await;
 
         let flags = RequestFlag::ContainsAuthorization | RequestFlag::EndOfRequest;
-        let flags = RequestFlags::new(flags);
+        let flags = RequestFlags::from(flags);
 
         assert_decode(&[0b0100_0001], &flags, ()).await;
     }
 
     #[test_strategy::proptest(async = "tokio")]
-    async fn encode_decode(flags: RequestFlags) {
+    async fn codec(flags: RequestFlags) {
         assert_encode_decode(&flags, ()).await;
     }
 }

@@ -18,7 +18,6 @@ pub mod flags;
 pub mod frame;
 pub mod header;
 pub mod id;
-pub mod payload;
 pub mod procedure;
 pub mod service;
 
@@ -133,6 +132,8 @@ mod test {
     use crate::{
         codec::test::{assert_decode, assert_encode, assert_encode_decode},
         encoding::{AcceptEncoding, Encoding},
+        flags::BitFlagsOp,
+        payload::Payload,
         protocol::{Protocol, ProtocolVersion},
         request::{
             begin::RequestBegin,
@@ -141,7 +142,6 @@ mod test {
             flags::{RequestFlag, RequestFlags},
             frame::RequestFrame,
             header::RequestHeader,
-            payload::RequestPayload,
             procedure::ProcedureDescriptor,
             service::ServiceDescriptor,
             Request,
@@ -153,7 +153,7 @@ mod test {
             version: ProtocolVersion::V1,
         },
         request_id: mock_request_id(0xCD_EF),
-        flags: RequestFlags::empty(),
+        flags: RequestFlags::EMPTY,
     };
 
     #[rustfmt::skip]
@@ -182,7 +182,10 @@ mod test {
     async fn encode_begin() {
         assert_encode(
             &Request {
-                header: EXAMPLE_HEADER,
+                header: RequestHeader {
+                    flags: RequestFlags::from(RequestFlag::BeginOfRequest),
+                    ..EXAMPLE_HEADER
+                },
                 body: RequestBody::Begin(RequestBegin {
                     service: ServiceDescriptor {
                         id: ServiceId::new(0x1234),
@@ -197,7 +200,33 @@ mod test {
                         accept: AcceptEncoding::new(Encoding::Raw),
                     },
                     authorization: None,
-                    payload: RequestPayload::from_static(b"hello world"),
+                    payload: Payload::from_static(b"hello world"),
+                }),
+            },
+            EXAMPLE_BEGIN_BUFFER,
+        )
+        .await;
+    }
+
+    #[tokio::test]
+    async fn encode_begin_begin_of_request_unset() {
+        assert_encode(
+            &Request {
+                header: EXAMPLE_HEADER,
+                body: RequestBody::Begin(RequestBegin {
+                    service: ServiceDescriptor {
+                        id: ServiceId::new(0x1234),
+                        version: ServiceVersion::new(0x56, 0x78),
+                    },
+                    procedure: ProcedureDescriptor {
+                        id: ProcedureId::new(0x9ABC),
+                    },
+                    encoding: EncodingHeader {
+                        encoding: Encoding::Raw,
+                        accept: AcceptEncoding::new(Encoding::Raw),
+                    },
+                    authorization: None,
+                    payload: Payload::from_static(b"hello world"),
                 }),
             },
             EXAMPLE_BEGIN_BUFFER,
@@ -211,7 +240,24 @@ mod test {
             &Request {
                 header: EXAMPLE_HEADER,
                 body: RequestBody::Frame(RequestFrame {
-                    payload: RequestPayload::from_static(b"hello world"),
+                    payload: Payload::from_static(b"hello world"),
+                }),
+            },
+            EXAMPLE_FRAME_BUFFER,
+        )
+        .await;
+    }
+
+    #[tokio::test]
+    async fn encode_frame_begin_of_request_set() {
+        assert_encode(
+            &Request {
+                header: RequestHeader {
+                    flags: RequestFlags::from(RequestFlag::BeginOfRequest),
+                    ..EXAMPLE_HEADER
+                },
+                body: RequestBody::Frame(RequestFrame {
+                    payload: Payload::from_static(b"hello world"),
                 }),
             },
             EXAMPLE_FRAME_BUFFER,
@@ -227,7 +273,7 @@ mod test {
             EXAMPLE_BEGIN_BUFFER,
             &Request {
                 header: RequestHeader {
-                    flags: RequestFlags::new(RequestFlag::BeginOfRequest),
+                    flags: RequestFlags::from(RequestFlag::BeginOfRequest),
                     ..EXAMPLE_HEADER
                 },
                 body: RequestBody::Begin(RequestBegin {
@@ -243,7 +289,7 @@ mod test {
                         accept: AcceptEncoding::new(Encoding::Raw),
                     },
                     authorization: None,
-                    payload: RequestPayload::from_static(b"hello world"),
+                    payload: Payload::from_static(b"hello world"),
                 }),
             },
             (),
@@ -258,7 +304,7 @@ mod test {
             &Request {
                 header: EXAMPLE_HEADER,
                 body: RequestBody::Frame(RequestFrame {
-                    payload: RequestPayload::from_static(b"hello world"),
+                    payload: Payload::from_static(b"hello world"),
                 }),
             },
             (),

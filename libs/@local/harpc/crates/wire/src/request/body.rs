@@ -7,7 +7,10 @@ use super::{
     flags::{RequestFlag, RequestFlags},
     frame::RequestFrame,
 };
-use crate::codec::{Decode, DecodePure, Encode};
+use crate::{
+    codec::{Decode, DecodePure, Encode},
+    flags::BitFlagsOp,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -121,10 +124,11 @@ mod test {
     use crate::{
         codec::test::{assert_decode, assert_encode, assert_encode_decode, encode_value},
         encoding::{AcceptEncoding, Encoding},
+        payload::Payload,
         request::{
             authorization::Authorization, begin::RequestBegin, body::RequestVariant,
-            encoding::EncodingHeader, frame::RequestFrame, payload::RequestPayload,
-            procedure::ProcedureDescriptor, service::ServiceDescriptor,
+            encoding::EncodingHeader, frame::RequestFrame, procedure::ProcedureDescriptor,
+            service::ServiceDescriptor,
         },
     };
 
@@ -144,11 +148,11 @@ mod test {
             )),
         },
         authorization: None,
-        payload: RequestPayload::from_static(&[]),
+        payload: Payload::from_static(&[]),
     };
 
     static EXAMPLE_FRAME: RequestFrame = RequestFrame {
-        payload: RequestPayload::from_static(&[]),
+        payload: Payload::from_static(&[]),
     };
 
     #[tokio::test]
@@ -212,7 +216,7 @@ mod test {
     async fn decode_frame_with_authorization() {
         // ensure that `contains_authorization` is ignored for `RequestFrame`
         let frame = RequestFrame {
-            payload: RequestPayload::from_static(&[]),
+            payload: Payload::from_static(&[]),
         };
 
         let bytes = encode_value(&frame).await;
