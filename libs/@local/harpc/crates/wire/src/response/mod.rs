@@ -17,6 +17,61 @@ pub mod frame;
 pub mod header;
 pub mod kind;
 
+/// A response to a request.
+///
+/// A response message is composed of a header and a body and is used to send the actual message
+/// from the server back to the client over the wire, agnostic over the transport layer.
+///
+/// This is a binary protocol with minimal overhead with framing support. Messages can be up to
+/// 64KiB in size, larger messages are split into multiple frames.
+///
+/// The transport layer is responsible for ensuring that the message is sent and received in order.
+///
+/// # `Begin` Packet
+///
+/// The layout of the `Begin` packet is as follows:
+///
+/// ```text
+/// 0                   1                   2                   3
+/// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// |  Magic  |P|R. |F|R|E. |P. |                                   |
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+                                   +
+/// |                            Payload                            |
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///
+/// * Magic (5 bytes)
+/// * Protocol Version (1 byte)
+/// * Request Id (2 bytes)
+/// * Flags (1 byte)
+/// * Response Kind (1 byte)
+/// * Encoding (2 bytes)
+/// * Payload Length (2 bytes)
+/// * Payload (50 bytes)
+/// total 64 bytes
+/// ```
+///
+/// # `Frame` Packet
+///
+/// The layout of the `Frame` packet is as follows:
+///
+/// ```text
+/// 0                   1                   2                   3
+/// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// |  Magic  |P|R. |F|P. |                                         |
+/// +-+-+-+-+-+-+-+-+-+-+-+                                         +
+/// |                            Payload                            |
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///
+/// * Magic (5 bytes)
+/// * Protocol Version (1 byte)
+/// * Request Id (2 bytes)
+/// * Flags (1 byte)
+/// * Payload Length (2 bytes)
+/// * Payload (53 bytes)
+/// total 64 bytes
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub struct Response {
