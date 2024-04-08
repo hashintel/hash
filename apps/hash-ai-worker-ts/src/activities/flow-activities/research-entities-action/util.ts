@@ -23,15 +23,24 @@ export const mapPreviousCallsToChatCompletionMessages = (params: {
   previousCalls: {
     completedToolCalls: CompletedToolCall<string>[];
   }[];
-}): ChatCompletionMessageParam[] =>
-  params.previousCalls.flatMap<ChatCompletionMessageParam>(
-    ({ completedToolCalls }) =>
-      completedToolCalls.length > 0
+  omitToolCallOutputsPriorReverseIndex?: number;
+}): ChatCompletionMessageParam[] => {
+  const { previousCalls, omitToolCallOutputsPriorReverseIndex } = params;
+
+  return previousCalls.flatMap<ChatCompletionMessageParam>(
+    ({ completedToolCalls }, index, all) => {
+      const isAfterOmitIndex =
+        typeof omitToolCallOutputsPriorReverseIndex !== "undefined"
+          ? index >= all.length - omitToolCallOutputsPriorReverseIndex
+          : true;
+
+      return completedToolCalls.length > 0
         ? [
             {
               role: "assistant",
               content: null,
               tool_calls: completedToolCalls.map(
+                /** @todo: consider also omitting large arguments from prior tool calls */
                 ({ openAiToolCall }) => openAiToolCall,
               ),
             } satisfies ChatCompletionMessage,
@@ -39,15 +48,19 @@ export const mapPreviousCallsToChatCompletionMessages = (params: {
               (completedToolCall) => ({
                 role: "tool",
                 tool_call_id: completedToolCall.openAiToolCall.id,
-                content: dedent(`
+                content: isAfterOmitIndex
+                  ? dedent(`
                   The output fo the tool call is:
                   ${completedToolCall.output}
-                `),
+                `)
+                  : "This output has been omitted to reduce the length of the chat.",
               }),
             ),
           ]
-        : [],
+        : [];
+    },
   );
+};
 
 export const mapToolDefinitionToOpenAiTool = ({
   toolId,

@@ -40,7 +40,7 @@ const toolIds = [
   "getWebPageInnerText",
   "getWebPageInnerHtml",
   // "getWebPageSummary",
-  "inferEntitiesFromText",
+  "inferEntitiesFromWebPage",
   "submitProposedEntities",
   "complete",
   "terminate",
@@ -89,16 +89,21 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
       required: ["url", "explanation"],
     },
   },
-  inferEntitiesFromText: {
-    toolId: "inferEntitiesFromText",
+  inferEntitiesFromWebPage: {
+    toolId: "inferEntitiesFromWebPage",
     description: "Infer entities from some text content.",
     inputSchema: {
       type: "object",
       properties: {
         explanation: explanationDefinition,
+        url: {
+          type: "string",
+          description: "The URL of the web page.",
+        },
         text: {
           type: "string",
-          description: "The text from which to infer entities.",
+          description:
+            "The text from the web page from which to infer entities.",
         },
         prompt: {
           type: "string",
@@ -109,7 +114,7 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
           `),
         },
       },
-      required: ["text", "prompt", "explanation"],
+      required: ["url", "text", "prompt", "explanation"],
     },
   },
   submitProposedEntities: {
@@ -179,7 +184,8 @@ type ToolCallArguments = {
   getWebPageInnerHtml: {
     url: string;
   };
-  inferEntitiesFromText: {
+  inferEntitiesFromWebPage: {
+    url: string;
     text: string;
     prompt: string;
   };
@@ -202,10 +208,28 @@ const systemMessagePrefix = dedent(`
   To fully satisfy the prompt, you may need to use the tools to navigate
     to linked pages, and evaluate them as well as the initial page that
     is provided.
+
+  Do not under any circumstances make a tool call to a tool which you haven't
+    been provided with.
     
   This is particularly important if the contents of a page are paginated
     over multiple web pages (for example web pages containing a table)
 `);
+
+const generateUserMessage = (params: {
+  prompt: string;
+  url: string;
+}): ChatCompletionMessageParam => {
+  const { prompt, url } = params;
+
+  return {
+    role: "user",
+    content: dedent(`
+      Prompt: ${prompt}
+      Initial URL: ${url}
+    `),
+  };
+};
 
 const createInitialPlan = async (params: {
   prompt: string;
@@ -227,13 +251,7 @@ const createInitialPlan = async (params: {
 
   const messages: ChatCompletionMessageParam[] = [
     systemMessage,
-    {
-      role: "user",
-      content: dedent(`
-        Prompt: ${prompt}
-        URL: ${url}
-      `),
-    },
+    generateUserMessage({ prompt, url }),
   ];
 
   const openApiPayload: ChatCompletionCreateParams = {
@@ -273,6 +291,7 @@ const getNextToolCalls = async (params: {
     completedToolCalls: CompletedToolCall<ToolId>[];
   }[];
   submittedProposedEntities: ProposedEntityWithLocalId[];
+  inferredEntitiesFromWebPageUrls: string[];
   prompt: string;
   url: string;
 }) => {
@@ -289,6 +308,14 @@ const getNextToolCalls = async (params: {
     content: dedent(`
       ${systemMessagePrefix}
 
+      You have previously proposed the following plan:
+      ${previousPlan}
+      
+      If you want to deviate from this plan, update it using the "updatePlan" tool.
+      You must call the "updatePlan" tool alongside other tool calls to progress towards completing the task.
+
+      To constrain the size of the chat, some messages may have been omitted. Here's a summary of what you've previously done:
+      You have previously inferred entities from the following webpages: ${JSON.stringify(params.inferredEntitiesFromWebPageUrls, null, 2)}
       ${
         submittedProposedEntities.length > 0
           ? dedent(`
@@ -300,24 +327,19 @@ const getNextToolCalls = async (params: {
           : "You have not previously submitted any proposed entities."
       }
 
-      You have previously proposed the following plan:
-      ${previousPlan}
-      If you want to deviate from this plan, update it using the "updatePlan" tool.
-      You must call the "updatePlan" tool alongside other tool calls to progress towards completing the task.
+
     `),
   };
 
   const messages: ChatCompletionMessageParam[] = [
     systemMessage,
-    {
-      role: "user",
-      content: dedent(`
-        Prompt: ${prompt}
-        URL: ${url}
-      `),
-    },
+    generateUserMessage({ prompt, url }),
     ...(previousCalls
-      ? mapPreviousCallsToChatCompletionMessages({ previousCalls })
+      ? mapPreviousCallsToChatCompletionMessages({
+          previousCalls,
+          // Omit the outputs of the previous tool calls to reduce the length of the chat.
+          omitToolCallOutputsPriorReverseIndex: 1,
+        })
       : []),
   ];
 
@@ -381,6 +403,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
 
   const proposedEntities: ProposedEntityWithLocalId[] = [];
   const submittedEntityIds: string[] = [];
+  const inferredEntitiesFromWebPageUrls: string[] = [];
 
   let counter = 0;
 
@@ -398,6 +421,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
   const { toolCalls: initialToolCalls } = await getNextToolCalls({
     previousPlan: initialPlan,
     submittedProposedEntities: [],
+    inferredEntitiesFromWebPageUrls,
     prompt,
     url,
   });
@@ -470,9 +494,16 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               ...toolCall,
               output: textContent,
             };
-          } else if (toolCall.toolId === "inferEntitiesFromText") {
-            const { text, prompt: toolCallPrompt } =
-              toolCall.parsedArguments as ToolCallArguments["inferEntitiesFromText"];
+          } else if (toolCall.toolId === "inferEntitiesFromWebPage") {
+            const {
+              text,
+              prompt: toolCallPrompt,
+              url: inferringEntitiesFromWebPageUrl,
+            } = toolCall.parsedArguments as ToolCallArguments["inferEntitiesFromWebPage"];
+
+            inferredEntitiesFromWebPageUrls.push(
+              inferringEntitiesFromWebPageUrl,
+            );
 
             const response = await inferEntitiesFromContentAction({
               inputs: [
@@ -574,6 +605,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     const openAiResponse = await getNextToolCalls({
       previousPlan: latestPlan,
       submittedProposedEntities,
+      inferredEntitiesFromWebPageUrls,
       previousCalls: updatedPreviousCalls,
       prompt,
       url,
