@@ -285,6 +285,8 @@ const createInitialPlan = async (params: {
   };
 };
 
+const retryLimit = 3;
+
 const getNextToolCalls = async (params: {
   previousPlan: string;
   previousCalls?: {
@@ -294,13 +296,17 @@ const getNextToolCalls = async (params: {
   inferredEntitiesFromWebPageUrls: string[];
   prompt: string;
   url: string;
-}) => {
+  retryMessages?: ChatCompletionMessageParam[];
+  retryCount?: number;
+}): Promise<{ toolCalls: ToolCall<ToolId>[] }> => {
   const {
     prompt,
     url,
     submittedProposedEntities,
     previousCalls,
     previousPlan,
+    retryMessages,
+    retryCount,
   } = params;
 
   const systemMessage: ChatCompletionSystemMessageParam = {
@@ -326,8 +332,6 @@ const getNextToolCalls = async (params: {
           `)
           : "You have not previously submitted any proposed entities."
       }
-
-
     `),
   };
 
@@ -341,6 +345,7 @@ const getNextToolCalls = async (params: {
           omitToolCallOutputsPriorReverseIndex: 1,
         })
       : []),
+    ...(retryMessages ?? []),
   ];
 
   const openApiPayload: ChatCompletionCreateParams = {
@@ -363,10 +368,45 @@ const getNextToolCalls = async (params: {
 
   const openAiToolCalls = response.message.tool_calls;
 
+  const retryWithMessage = async (message: string) => {
+    if (retryCount && retryCount > retryLimit) {
+      throw new Error(`Failed to process OpenAi response: ${message}`);
+    }
+
+    return getNextToolCalls({
+      ...params,
+      retryMessages: [
+        response.message,
+        {
+          role: "user" as const,
+          content: message,
+        },
+      ],
+      retryCount: (params.retryCount ?? 0) + 1,
+    });
+  };
+
   if (!openAiToolCalls) {
-    /** @todo: retry this instead */
-    throw new Error(
-      `Expected tool calls in response: ${JSON.stringify(response)}`,
+    return retryWithMessage(
+      "You didn't provide any tool calls. You must make at least one.",
+    );
+  }
+
+  const unexpectedToolCalls = openAiToolCalls.filter(
+    (openAiToolCall) => !isToolId(openAiToolCall.function.name),
+  );
+
+  if (unexpectedToolCalls.length > 0) {
+    return retryWithMessage(
+      dedent(`
+        You made the following unexpected tool calls: ${JSON.stringify(
+          unexpectedToolCalls,
+          null,
+          2,
+        )}
+
+        You must only make tool calls to the tools provided to you.
+      `),
     );
   }
 
