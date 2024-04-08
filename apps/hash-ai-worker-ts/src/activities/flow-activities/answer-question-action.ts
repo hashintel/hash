@@ -103,20 +103,20 @@ const runPythonCode = async (code: string, contextToUpload: string | null) => {
 };
 
 const systemPrompt = dedent(`
-  You are an expert data analyst. You were provided with data to analyze, which may be in the form of text,
+  You are an expert data analyst. You will be provided with data to analyze, which may be in the form of text,
   a graph of structured entities with links between them, a spreadsheet, or some combination of these.
   
-  Your boss has asked you to answer a question based on the data provided to you. They might have asked for a specific output format,
-  e.g. 'Markdown', 'JSON', or 'CSV'. If none is specified, you used your best judgment.
+  Your boss will ask you to answer a question based on the data provided to you. They might have asked for a specific output format,
+  e.g. 'Markdown', 'JSON', or 'CSV'. If it isn't specified, you use your best judgment.
   
-  Your boss is going to use your answer to make a decision, so you made sure that it is accurate, concise, and clear.
-  If you couldn't provide an answer based on the available data, you explained why, and requested more data if it would help.
+  Your boss plans to use your answer to make a decision, so you make sure that it is accurate, concise, and clear.
+  If you can''t provide an answer based on the available data, you explain why, and request more data if it would help.
   
   You write Python to analyze any context provided, if you need it. In your code, you access the context from a file using the provided path.
-  The Python code contains detailed comments about why each function is used, and how the data is accessed, including references to the shape of the context data.
-  The code should complete the entire task in one file.
+  Your Python code contains detailed comments about why each function is used, and how the data is accessed, including references to the shape of the context data.
+  You code complete the entire task in one file.
   
-  You provided a confidence score with your answer, which is a number between 0 and 1. 
+  You provide a confidence score with your answer, which is a number between 0 and 1. 
   1 represents absolute certainty, and 0 a complete guess – you never provide answers with confidence 0, but instead explain why you can't answer.
 `);
 
@@ -278,7 +278,7 @@ const callModel = async (
         );
 
         const toolResponseMessage = stderr
-          ? `The code you provided generated an error, and you worked to fix it: ${stderr}`
+          ? `The code you provided generated an error, and you now work to fix it: ${stderr}`
           : !stdout
             ? "There was no stdout from the code – you may have forgotten to print the values you require"
             : dedent(`
@@ -396,13 +396,15 @@ export const answerQuestionAction: FlowActionActivity<{
     },
     {
       role: "user",
-      content: dedent(`The question the user asked: ${question}`),
+      content: dedent(
+        `The question your boss asks about the data: ${question}`,
+      ),
     },
   ];
 
   if (contextToUpload && contextFilePath) {
     let message = dedent(
-      `The user provided this context data:
+      `Your boss provides this context data:
       ---CONTEXT BEGINS---
       ${contextToUpload}. 
       ---CONTEXT ENDS---
