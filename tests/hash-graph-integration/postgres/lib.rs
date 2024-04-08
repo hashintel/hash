@@ -5,6 +5,7 @@
     clippy::unwrap_used
 )]
 
+mod confidence;
 mod data_type;
 mod drafts;
 mod entity;

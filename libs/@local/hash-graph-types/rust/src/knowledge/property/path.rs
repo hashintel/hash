@@ -211,3 +211,61 @@ impl<'k> FromSql<'k> for PropertyPath<'k> {
         <&str as FromSql>::accepts(ty)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_json_pointer(
+        path: impl IntoIterator<Item = PropertyPathElement<'static>>,
+        pointer: &str,
+    ) -> PropertyPath<'static> {
+        let path = path.into_iter().collect::<PropertyPath>();
+        assert_eq!(path.to_json_pointer(), pointer);
+        assert_eq!(
+            PropertyPath::from_json_pointer(pointer).expect("Invalid JSON Pointer"),
+            path
+        );
+        path
+    }
+
+    #[test]
+    fn empty() {
+        let path = test_json_pointer([], "");
+        assert!(path.is_empty());
+    }
+
+    #[test]
+    fn index() {
+        let path = test_json_pointer([PropertyPathElement::Index(0)], "/0");
+        assert_eq!(path.len(), 1);
+    }
+
+    #[test]
+    fn property() {
+        let path = test_json_pointer(
+            [PropertyPathElement::Property(Cow::Owned(
+                BaseUrl::new("http://example.com/".to_owned()).expect("Invalid BaseUrl"),
+            ))],
+            "/http:~1~1example.com~1",
+        );
+        assert_eq!(path.len(), 1);
+    }
+
+    #[test]
+    fn mixed() {
+        let path = test_json_pointer(
+            [
+                PropertyPathElement::Property(Cow::Owned(
+                    BaseUrl::new("http://example.com/".to_owned()).expect("Invalid BaseUrl"),
+                )),
+                PropertyPathElement::Index(0),
+                PropertyPathElement::Property(Cow::Owned(
+                    BaseUrl::new("http://example.org/".to_owned()).expect("Invalid BaseUrl"),
+                )),
+            ],
+            "/http:~1~1example.com~1/0/http:~1~1example.org~1",
+        );
+        assert_eq!(path.len(), 3);
+    }
+}
