@@ -1,7 +1,8 @@
 use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::knowledge::{
-    entity::EntityId, Property, PropertyObject, PropertyPatchOperation, PropertyPath,
+    entity::EntityId, Property, PropertyConfidence, PropertyObject, PropertyPatchOperation,
+    PropertyPath,
 };
 use pretty_assertions::assert_eq;
 use temporal_versioning::ClosedTemporalBound;
@@ -68,7 +69,14 @@ async fn initial_draft() {
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(alice(), vec![person_entity_type_id()], None, true)
+        .create_entity(
+            alice(),
+            vec![person_entity_type_id()],
+            None,
+            true,
+            None,
+            PropertyConfidence::default(),
+        )
         .await
         .expect("could not create entity");
     assert!(entity.record_id.entity_id.draft_id.is_some());
@@ -177,12 +185,20 @@ async fn initial_draft() {
 }
 
 #[tokio::test]
+#[expect(clippy::too_many_lines)]
 async fn no_initial_draft() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(alice(), vec![person_entity_type_id()], None, false)
+        .create_entity(
+            alice(),
+            vec![person_entity_type_id()],
+            None,
+            false,
+            None,
+            PropertyConfidence::default(),
+        )
         .await
         .expect("could not create entity");
     assert!(entity.record_id.entity_id.draft_id.is_none());
@@ -291,7 +307,14 @@ async fn multiple_drafts() {
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(alice(), vec![person_entity_type_id()], None, false)
+        .create_entity(
+            alice(),
+            vec![person_entity_type_id()],
+            None,
+            false,
+            None,
+            PropertyConfidence::default(),
+        )
         .await
         .expect("could not create entity");
     assert!(entity.record_id.entity_id.draft_id.is_none());

@@ -1,5 +1,5 @@
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::PropertyObject;
+use graph_types::knowledge::{PropertyConfidence, PropertyObject};
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
 use crate::DatabaseTestWrapper;
@@ -41,12 +41,26 @@ async fn insert() {
     };
 
     let alice_metadata = api
-        .create_entity(alice, vec![person_type_id.clone()], None, false)
+        .create_entity(
+            alice,
+            vec![person_type_id.clone()],
+            None,
+            false,
+            None,
+            PropertyConfidence::default(),
+        )
         .await
         .expect("could not create entity");
 
     let bob_metadata = api
-        .create_entity(bob, vec![person_type_id.clone()], None, false)
+        .create_entity(
+            bob,
+            vec![person_type_id.clone()],
+            None,
+            false,
+            None,
+            PropertyConfidence::default(),
+        )
         .await
         .expect("could not create entity");
 
@@ -132,17 +146,38 @@ async fn get_entity_links() {
     };
 
     let alice_metadata = api
-        .create_entity(alice, vec![person_type_id.clone()], None, false)
+        .create_entity(
+            alice,
+            vec![person_type_id.clone()],
+            None,
+            false,
+            None,
+            PropertyConfidence::default(),
+        )
         .await
         .expect("could not create entity");
 
     let bob_metadata = api
-        .create_entity(bob, vec![person_type_id.clone()], None, false)
+        .create_entity(
+            bob,
+            vec![person_type_id.clone()],
+            None,
+            false,
+            None,
+            PropertyConfidence::default(),
+        )
         .await
         .expect("could not create entity");
 
     let charles_metadata = api
-        .create_entity(charles, vec![person_type_id.clone()], None, false)
+        .create_entity(
+            charles,
+            vec![person_type_id.clone()],
+            None,
+            false,
+            None,
+            PropertyConfidence::default(),
+        )
         .await
         .expect("could not create entity");
 
@@ -248,12 +283,26 @@ async fn remove_link() {
     };
 
     let alice_metadata = api
-        .create_entity(alice, vec![person_type_id.clone()], None, false)
+        .create_entity(
+            alice,
+            vec![person_type_id.clone()],
+            None,
+            false,
+            None,
+            PropertyConfidence::default(),
+        )
         .await
         .expect("could not create entity");
 
     let bob_metadata = api
-        .create_entity(bob, vec![person_type_id.clone()], None, false)
+        .create_entity(
+            bob,
+            vec![person_type_id.clone()],
+            None,
+            false,
+            None,
+            PropertyConfidence::default(),
+        )
         .await
         .expect("could not create entity");
 

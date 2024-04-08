@@ -62,7 +62,7 @@ use graph_types::{
     knowledge::{
         entity::{Entity, EntityId, EntityMetadata, EntityUuid},
         link::LinkData,
-        PropertyConfidence, PropertyObject,
+        Confidence, PropertyConfidence, PropertyObject,
     },
     ontology::{
         DataTypeMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
@@ -528,6 +528,8 @@ impl DatabaseApi<'_> {
         entity_type_ids: Vec<VersionedUrl>,
         entity_uuid: Option<EntityUuid>,
         draft: bool,
+        confidence: Option<Confidence>,
+        property_confidence: PropertyConfidence<'static>,
     ) -> Result<EntityMetadata, InsertionError> {
         self.store
             .create_entity(
@@ -540,11 +542,11 @@ impl DatabaseApi<'_> {
                     decision_time: Some(generate_decision_time()),
                     entity_type_ids,
                     properties,
-                    property_confidence: PropertyConfidence::default(),
+                    property_confidence,
                     link_data: None,
                     draft,
                     relationships: [],
-                    confidence: None,
+                    confidence,
                 },
             )
             .await

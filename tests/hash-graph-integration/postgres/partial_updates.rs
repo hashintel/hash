@@ -3,7 +3,7 @@ use std::{collections::HashSet, iter::once, str::FromStr};
 use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::knowledge::{
-    Property, PropertyObject, PropertyPatchOperation, PropertyPathElement,
+    Property, PropertyConfidence, PropertyObject, PropertyPatchOperation, PropertyPathElement,
 };
 use pretty_assertions::assert_eq;
 use serde_json::json;
@@ -72,7 +72,14 @@ async fn properties_add() {
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(alice(), vec![person_entity_type_id()], None, false)
+        .create_entity(
+            alice(),
+            vec![person_entity_type_id()],
+            None,
+            false,
+            None,
+            PropertyConfidence::default(),
+        )
         .await
         .expect("could not create entity");
     let entity_id = entity.record_id.entity_id;
@@ -109,7 +116,14 @@ async fn properties_remove() {
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(alice(), vec![person_entity_type_id()], None, false)
+        .create_entity(
+            alice(),
+            vec![person_entity_type_id()],
+            None,
+            false,
+            None,
+            PropertyConfidence::default(),
+        )
         .await
         .expect("could not create entity");
     let entity_id = entity.record_id.entity_id;
@@ -142,7 +156,14 @@ async fn properties_replace() {
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(alice(), vec![person_entity_type_id()], None, false)
+        .create_entity(
+            alice(),
+            vec![person_entity_type_id()],
+            None,
+            false,
+            None,
+            PropertyConfidence::default(),
+        )
         .await
         .expect("could not create entity");
     let entity_id = entity.record_id.entity_id;
@@ -178,7 +199,14 @@ async fn properties_move() {
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(alice(), vec![person_entity_type_id()], None, false)
+        .create_entity(
+            alice(),
+            vec![person_entity_type_id()],
+            None,
+            false,
+            None,
+            PropertyConfidence::default(),
+        )
         .await
         .expect("could not create entity");
     let entity_id = entity.record_id.entity_id;
@@ -251,7 +279,14 @@ async fn properties_copy() {
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(alice(), vec![person_entity_type_id()], None, false)
+        .create_entity(
+            alice(),
+            vec![person_entity_type_id()],
+            None,
+            false,
+            None,
+            PropertyConfidence::default(),
+        )
         .await
         .expect("could not create entity");
     let entity_id = entity.record_id.entity_id;
@@ -312,6 +347,8 @@ async fn type_ids() {
             vec![person_entity_type_id()],
             None,
             false,
+            None,
+            PropertyConfidence::default(),
         )
         .await
         .expect("could not create entity");

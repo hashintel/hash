@@ -1,6 +1,8 @@
 use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::{Property, PropertyObject, PropertyPatchOperation, PropertyPath};
+use graph_types::knowledge::{
+    Property, PropertyConfidence, PropertyObject, PropertyPatchOperation, PropertyPath,
+};
 use temporal_versioning::ClosedTemporalBound;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
@@ -45,6 +47,8 @@ async fn insert() {
             }],
             None,
             false,
+            None,
+            PropertyConfidence::default(),
         )
         .await
         .expect("could not create entity");
@@ -85,6 +89,8 @@ async fn query() {
             }],
             None,
             false,
+            None,
+            PropertyConfidence::default(),
         )
         .await
         .expect("could not create entity");
@@ -127,6 +133,8 @@ async fn update() {
             }],
             None,
             false,
+            None,
+            PropertyConfidence::default(),
         )
         .await
         .expect("could not create entity");
