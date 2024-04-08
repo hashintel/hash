@@ -1,207 +1,79 @@
-import type {
-  InputDefinition,
-  Payload,
-  PayloadKind,
-  ProposedEntity,
-  StepInput,
-} from "@local/hash-isomorphic-utils/flows/types";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
-import type { JSONSchema } from "openai/lib/jsonschema";
 import type {
   ChatCompletionCreateParams,
-  ChatCompletionMessage,
   ChatCompletionMessageParam,
-  ChatCompletionMessageToolCall,
-  ChatCompletionTool,
-  ChatCompletionToolMessageParam,
-  FunctionDefinition,
+  ChatCompletionSystemMessageParam,
 } from "openai/resources";
 
 import { modelAliasToSpecificModel } from "../../infer-entities";
 import { getOpenAiResponse } from "../../infer-entities/shared/get-open-ai-response";
-import type {
-  CompletedCoordinatorToolCall,
-  CoordinatorToolCall,
-  ToolDefinition,
-} from "./coordinator-tools";
+import type { CoordinatorToolId } from "./coordinator-tools";
 import {
   coordinatorToolDefinitions,
   isCoordinatorToolId,
 } from "./coordinator-tools";
-
-const _mapInputDefinitionsToJSONSchema = (
-  inputDefinitions: InputDefinition[],
-): JSONSchema => ({
-  type: "object",
-  properties: inputDefinitions.reduce(
-    (acc, inputDefinition) => {
-      const oneOf: JSONSchema["oneOf"] = inputDefinition.oneOfPayloadKinds
-        .map((payloadKind) => {
-          let valueType: string;
-          if (payloadKind === "Text") {
-            valueType = "string";
-          } else if (payloadKind === "Number") {
-            valueType = "number";
-          } else if (payloadKind === "VersionedUrl") {
-            valueType = "string";
-          } else {
-            /** @todo: support more input payload kinds */
-            return [];
-          }
-
-          return {
-            type: "object",
-            properties: {
-              kind: { type: "string", enum: [payloadKind] },
-              value: { type: valueType },
-            },
-            required: ["kind", "value"],
-          } satisfies JSONSchema;
-        })
-        .flat();
-
-      acc[inputDefinition.name] = {
-        ...(inputDefinition.array
-          ? {
-              type: "array",
-              items: {
-                oneOf,
-              },
-            }
-          : { oneOf }),
-        description: inputDefinition.description,
-      };
-
-      return acc;
-    },
-    {} as NonNullable<JSONSchema["properties"]>,
-  ),
-  required: inputDefinitions
-    .filter((inputDefinition) => inputDefinition.required)
-    .map((inputDefinition) => inputDefinition.name),
-});
-
-export const parseOpenAiFunctionArguments = <
-  T extends Record<string, object>,
->(params: {
-  stringifiedArguments: string;
-}) => {
-  const { stringifiedArguments } = params;
-
-  return JSON.parse(stringifiedArguments) as T;
-};
-
-export const mapOpenAiFunctionArgumentsToStepInputs = (params: {
-  stringifiedArguments: ChatCompletionMessageToolCall.Function["arguments"];
-}): StepInput[] => {
-  const { stringifiedArguments } = params;
-
-  const parsedFunctionArguments = parseOpenAiFunctionArguments<{
-    [key: string]: {
-      kind: PayloadKind;
-      value: unknown;
-    };
-  }>({ stringifiedArguments });
-
-  return Object.entries(parsedFunctionArguments).map(
-    ([inputName, { kind, value }]) => {
-      const payload: Payload = {
-        kind: `${kind[0]?.toUpperCase()}${kind.slice(1).toLowerCase()}`,
-        value,
-      } as Payload;
-
-      return {
-        inputName,
-        payload,
-      };
-    },
-  );
-};
-
-const mapToolDefinitionToOpenAiTool = ({
-  toolId,
-  description,
-  inputSchema,
-}: ToolDefinition): ChatCompletionTool =>
-  ({
-    function: {
-      name: toolId,
-      description,
-      parameters: inputSchema as FunctionDefinition["parameters"],
-    },
-    type: "function",
-  }) as const;
+import type {
+  CompletedToolCall,
+  ProposedEntityWithLocalId,
+  ToolCall,
+} from "./types";
+import {
+  mapPreviousCallsToChatCompletionMessages,
+  mapToolDefinitionToOpenAiTool,
+  parseOpenAiFunctionArguments,
+} from "./util";
 
 const getNextToolCalls = async (params: {
-  submittedProposedEntities: (ProposedEntity & { localId: string })[];
+  submittedProposedEntities: ProposedEntityWithLocalId[];
   previousPlan: string;
   previousCalls?: {
-    completedToolCalls: CompletedCoordinatorToolCall[];
+    completedToolCalls: CompletedToolCall<CoordinatorToolId>[];
   }[];
   prompt: string;
 }): Promise<{
-  toolCalls: CoordinatorToolCall[];
+  toolCalls: ToolCall<CoordinatorToolId>[];
 }> => {
   const { prompt, previousCalls, submittedProposedEntities, previousPlan } =
     params;
 
+  const systemMessage: ChatCompletionSystemMessageParam = {
+    role: "system",
+    content: dedent(`
+      You are a coordinating agent for a research task.
+      The user will provides you with a text prompt, from which you will be
+        able to make the relevant function calls to progress towards 
+        completing the task.
+      Make as many tool calls as are required to progress towards completing the task.
+      You must completely satisfy the research prompt, without any missing information.
+
+      ${
+        submittedProposedEntities.length > 0
+          ? dedent(`
+            You have previously submitted the following proposed entities:
+            ${JSON.stringify(submittedProposedEntities, null, 2)}
+
+            If the submitted entities satisfy the research prompt, call the "complete" tool.
+          `)
+          : "You have not previously submitted any proposed entities."
+      }
+
+      You have previously proposed the following plan:
+      ${previousPlan}
+      If you want to deviate from this plan, update it using the "updatePlan" tool.
+      You must call the "updatePlan" tool alongside other tool calls to progress towards completing the task.
+    `),
+  };
+
   const messages: ChatCompletionMessageParam[] = [
-    {
-      role: "system",
-      content: dedent(`
-        You are a coordinating agent for a research task.
-        The user will provides you with a text prompt, from which you will be
-          able to make the relevant function calls to progress towards 
-          completing the task.
-        Make as many tool calls as are required to progress towards completing the task.
-        You must completely satisfy the research prompt, without any missing information.
-
-        ${
-          submittedProposedEntities.length > 0
-            ? dedent(`
-              You have previously submitted the following proposed entities:
-              ${JSON.stringify(submittedProposedEntities, null, 2)}
-
-              If the submitted entities satisfy the research prompt, call the "complete" tool.
-            `)
-            : "You have not previously submitted any proposed entities."
-        }
-
-        You have previously proposed the following plan:
-        ${previousPlan}
-        If you want to deviate from this plan, update it using the "updatePlan" tool.
-        You must call the "updatePlan" tool alongside other tool calls to progress towards completing the task.
-      `),
-    },
+    systemMessage,
     {
       role: "user",
       content: prompt,
     },
-    ...(previousCalls?.flatMap<ChatCompletionMessageParam>(
-      ({ completedToolCalls }) =>
-        completedToolCalls.length > 0
-          ? [
-              {
-                role: "assistant",
-                content: null,
-                tool_calls: completedToolCalls.map(
-                  ({ openAiToolCall }) => openAiToolCall,
-                ),
-              } satisfies ChatCompletionMessage,
-              ...completedToolCalls.map<ChatCompletionToolMessageParam>(
-                (completedToolCall) => ({
-                  role: "tool",
-                  tool_call_id: completedToolCall.openAiToolCall.id,
-                  content: dedent(`
-              The output fo the tool call is:
-              ${completedToolCall.output}
-            `),
-                }),
-              ),
-            ]
-          : [],
-    ) ?? []),
+    ...(previousCalls
+      ? mapPreviousCallsToChatCompletionMessages({ previousCalls })
+      : []),
   ];
 
   const openApiPayload: ChatCompletionCreateParams = {
@@ -233,7 +105,7 @@ const getNextToolCalls = async (params: {
     );
   }
 
-  const coordinatorToolCalls = openAiToolCalls.map<CoordinatorToolCall>(
+  const coordinatorToolCalls = openAiToolCalls.map<ToolCall<CoordinatorToolId>>(
     (openAiToolCall) => {
       if (isCoordinatorToolId(openAiToolCall.function.name)) {
         return {

@@ -1,5 +1,6 @@
-import type { JSONSchema } from "openai/lib/jsonschema";
-import type { ChatCompletionMessageToolCall } from "openai/resources";
+import dedent from "dedent";
+
+import type { ToolDefinition } from "./types";
 
 const coordinatorToolIds = [
   "webSearch",
@@ -19,15 +20,9 @@ export const isCoordinatorToolId = (
 ): value is CoordinatorToolId =>
   coordinatorToolIds.includes(value as CoordinatorToolId);
 
-export type ToolDefinition = {
-  toolId: CoordinatorToolId;
-  description: string;
-  inputSchema: JSONSchema;
-};
-
 export const coordinatorToolDefinitions: Record<
   CoordinatorToolId,
-  ToolDefinition
+  ToolDefinition<CoordinatorToolId>
 > = {
   webSearch: {
     toolId: "webSearch",
@@ -55,8 +50,16 @@ export const coordinatorToolDefinitions: Record<
           type: "string",
           description: "The URL of the web page",
         },
+        prompt: {
+          type: "string",
+          description: dedent(`
+            A prompt instructing the inference agent which entities should be inferred from the webpage.
+            Do not specify any information of the structure of the entities, as this is predefined by
+              the entity type.
+          `),
+        },
       },
-      required: ["url"],
+      required: ["url", "prompt"],
     },
   },
   getWebPageSummary: {
@@ -152,6 +155,7 @@ export type CoordinatorToolCallArguments = {
   };
   inferEntitiesFromWebPage: {
     url: string;
+    prompt: string;
   };
   getWebPageSummary: {
     url: string;
@@ -165,13 +169,3 @@ export type CoordinatorToolCallArguments = {
   complete: object;
   terminate: object;
 };
-
-export type CoordinatorToolCall = {
-  toolId: CoordinatorToolId;
-  openAiToolCall: ChatCompletionMessageToolCall;
-  parsedArguments: object;
-};
-
-export type CompletedCoordinatorToolCall = {
-  output: string;
-} & CoordinatorToolCall;

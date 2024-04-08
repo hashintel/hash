@@ -17,15 +17,17 @@ import { getWebPageActivity } from "../get-web-page-activity";
 import { getWebPageSummaryAction } from "./get-web-page-summary-action";
 import { inferEntitiesFromContentAction } from "./infer-entities-from-content-action";
 import type {
-  CompletedCoordinatorToolCall,
-  CoordinatorToolCall,
   CoordinatorToolCallArguments,
+  CoordinatorToolId,
 } from "./research-entities-action/coordinator-tools";
 import { coordinatingAgent } from "./research-entities-action/open-ai-coordinating-agent";
+import type {
+  CompletedToolCall,
+  ProposedEntityWithLocalId,
+  ToolCall,
+} from "./research-entities-action/types";
 import type { FlowActionActivity } from "./types";
 import { webSearchAction } from "./web-search-action";
-
-type ProposedEntityWithLocalId = ProposedEntity & { localId: string };
 
 export const researchEntitiesAction: FlowActionActivity<{
   graphApiClient: GraphApi;
@@ -63,10 +65,10 @@ export const researchEntitiesAction: FlowActionActivity<{
 
   const processToolCalls = async (params: {
     previousCalls?: {
-      completedToolCalls: CompletedCoordinatorToolCall[];
+      completedToolCalls: CompletedToolCall<CoordinatorToolId>[];
     }[];
     previousPlan: string;
-    toolCalls: CoordinatorToolCall[];
+    toolCalls: ToolCall<CoordinatorToolId>[];
   }) => {
     const { toolCalls, previousCalls } = params;
 
@@ -90,7 +92,7 @@ export const researchEntitiesAction: FlowActionActivity<{
 
     const completedToolCalls = await Promise.all(
       toolCallsWithRelevantResults.map(
-        async (toolCall): Promise<CompletedCoordinatorToolCall> => {
+        async (toolCall): Promise<CompletedToolCall<CoordinatorToolId>> => {
           if (toolCall.toolId === "updatePlan") {
             const { plan } =
               toolCall.parsedArguments as CoordinatorToolCallArguments["updatePlan"];
@@ -172,7 +174,7 @@ export const researchEntitiesAction: FlowActionActivity<{
               output: JSON.stringify(outputs),
             };
           } else if (toolCall.toolId === "inferEntitiesFromWebPage") {
-            const { url } =
+            const { url, prompt: inferencePrompt } =
               toolCall.parsedArguments as CoordinatorToolCallArguments["inferEntitiesFromWebPage"];
 
             const webPage = await getWebPageActivity({ url }).catch(
@@ -204,8 +206,7 @@ export const researchEntitiesAction: FlowActionActivity<{
                 {
                   inputName:
                     "relevantEntitiesPrompt" satisfies InputNameForAction<"inferEntitiesFromContent">,
-                  /** @todo: we should let the coordinator pass something here */
-                  payload: { kind: "Text", value: prompt },
+                  payload: { kind: "Text", value: inferencePrompt },
                 },
                 ...actionDefinitions.inferEntitiesFromContent.inputs.flatMap<StepInput>(
                   ({ name, default: defaultValue }) =>
