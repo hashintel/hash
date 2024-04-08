@@ -5,7 +5,7 @@ use futures::{stream, StreamExt, TryStreamExt};
 use graph_types::knowledge::{
     entity::{Entity, EntityId},
     link::LinkData,
-    PropertyObject,
+    PropertyObject, PropertyPath,
 };
 use thiserror::Error;
 use type_system::{
@@ -46,6 +46,8 @@ pub enum EntityValidationError {
     InvalidLinkTypeId { link_types: Vec<VersionedUrl> },
     #[error("The link target `{target_types:?}` is not allowed")]
     InvalidLinkTargetId { target_types: Vec<VersionedUrl> },
+    #[error("The property path is invalid: `{path:?}`")]
+    InvalidPropertyPath { path: PropertyPath<'static> },
 }
 
 impl<P> Schema<PropertyObject, P> for ClosedEntityType
@@ -163,6 +165,14 @@ where
             .link_data
             .as_ref()
             .validate(schema, profile, provider)
+            .await
+        {
+            extend_report!(status, error);
+        }
+        if let Err(error) = self
+            .metadata
+            .property_confidence
+            .validate(&self.properties, profile, provider)
             .await
         {
             extend_report!(status, error);

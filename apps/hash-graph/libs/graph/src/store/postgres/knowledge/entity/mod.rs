@@ -740,10 +740,25 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             authorization: Some((authorization_api, actor_id, Consistency::FullyConsistent)),
         };
 
-        // TODO: Validate property confidence values
         if let Err(error) = params
             .properties
             .validate(&schema, params.profile, &validator_provider)
+            .await
+        {
+            if let Err(ref mut report) = status {
+                report.extend_one(error);
+            } else {
+                status = Err(error);
+            }
+        }
+
+        if let Err(error) = params
+            .property_confidence
+            .validate(
+                params.properties.as_ref(),
+                params.profile,
+                &validator_provider,
+            )
             .await
         {
             if let Err(ref mut report) = status {

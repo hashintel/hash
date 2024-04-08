@@ -16,7 +16,7 @@ use utoipa::ToSchema;
 
 use crate::knowledge::{
     property::{PatchError, Property},
-    PropertyDiff, PropertyPatchOperation, PropertyPath,
+    PropertyDiff, PropertyPatchOperation, PropertyPath, PropertyPathElement,
 };
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -61,6 +61,27 @@ impl PropertyObject {
         Property::diff_object(self.properties(), other.properties(), path)
     }
 
+    #[must_use]
+    pub fn path_exists(&self, path: &PropertyPath<'_>) -> bool {
+        let mut path_iter = path.iter();
+        let Some(first) = path_iter.next() else {
+            return true;
+        };
+
+        let first_key = match first {
+            PropertyPathElement::Property(key) => key,
+            PropertyPathElement::Index(_) => return false,
+        };
+        self.0
+            .get(first_key)
+            .map_or(false, |property| property.get(path_iter).is_some())
+    }
+
+    /// Applies the given patch operations to the object.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the patch operation failed
     pub fn patch(
         &mut self,
         operations: &[PropertyPatchOperation],

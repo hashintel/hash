@@ -62,6 +62,7 @@ async fn check_entity_exists(api: &DatabaseApi<'_>, id: EntityId) -> bool {
 }
 
 #[tokio::test]
+#[expect(clippy::too_many_lines)]
 async fn initial_draft() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
@@ -284,6 +285,7 @@ async fn no_initial_draft() {
 }
 
 #[tokio::test]
+#[expect(clippy::too_many_lines)]
 async fn multiple_drafts() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;

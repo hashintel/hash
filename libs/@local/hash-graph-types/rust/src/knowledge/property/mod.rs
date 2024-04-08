@@ -68,7 +68,10 @@ impl Property {
     }
 
     #[must_use]
-    pub fn get(&self, path: &PropertyPath<'_>) -> Option<&Self> {
+    pub fn get<'a>(
+        &self,
+        path: impl IntoIterator<Item = &'a PropertyPathElement<'a>>,
+    ) -> Option<&Self> {
         let mut value = self;
         for element in path {
             match element {

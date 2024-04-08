@@ -134,6 +134,11 @@ pub struct Entity {
 }
 
 impl Entity {
+    /// Modify the properties and confidence values of the entity.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the patch operation failed
     pub fn patch(
         &mut self,
         operations: &[PropertyPatchOperation],

@@ -15,6 +15,7 @@ pub use self::{
 
 mod data_type;
 mod entity_type;
+mod property;
 mod property_type;
 
 use std::borrow::Borrow;
