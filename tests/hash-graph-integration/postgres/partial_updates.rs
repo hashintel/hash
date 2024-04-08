@@ -88,6 +88,7 @@ async fn properties_add() {
         }],
         draft: None,
         archived: None,
+        confidence: None,
     })
     .await
     .expect("could not patch entity");
@@ -122,6 +123,7 @@ async fn properties_remove() {
         }],
         draft: None,
         archived: None,
+        confidence: None,
     })
     .await
     .expect("could not patch entity");
@@ -156,6 +158,7 @@ async fn properties_replace() {
         }],
         draft: None,
         archived: None,
+        confidence: None,
     })
     .await
     .expect("could not patch entity");
@@ -197,6 +200,7 @@ async fn properties_move() {
             }],
             draft: None,
             archived: None,
+            confidence: None,
         })
         .await
         .expect_err("Could patch entity with invalid move operation");
@@ -224,6 +228,7 @@ async fn properties_move() {
         ],
         draft: None,
         archived: None,
+        confidence: None,
     })
     .await
     .expect("could not patch entity");
@@ -278,6 +283,7 @@ async fn properties_copy() {
         ],
         draft: None,
         archived: None,
+        confidence: None,
     })
     .await
     .expect("could not patch entity");
@@ -318,6 +324,7 @@ async fn type_ids() {
         properties: vec![],
         draft: None,
         archived: None,
+        confidence: None,
     })
     .await
     .expect("could not patch entity");
@@ -339,6 +346,7 @@ async fn type_ids() {
         properties: vec![],
         draft: None,
         archived: None,
+        confidence: None,
     })
     .await
     .expect("could not patch entity");
@@ -364,6 +372,7 @@ async fn type_ids() {
         properties: vec![],
         draft: None,
         archived: None,
+        confidence: None,
     })
     .await
     .expect("could not patch entity");

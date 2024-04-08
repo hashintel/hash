@@ -91,6 +91,7 @@ async fn initial_person() {
             properties: vec![],
             draft: None,
             archived: None,
+            confidence: None,
         })
         .await
         .expect("could not create entity");
@@ -163,6 +164,7 @@ async fn create_multi() {
             properties: vec![],
             draft: None,
             archived: None,
+            confidence: None,
         })
         .await
         .expect("could not create entity");

@@ -2737,6 +2737,13 @@
           "relationships"
         ],
         "properties": {
+          "confidence": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Confidence"
+              }
+            ]
+          },
           "decisionTime": {
             "allOf": [
               {
@@ -5275,6 +5282,13 @@
         "properties": {
           "archived": {
             "type": "boolean"
+          },
+          "confidence": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Confidence"
+              }
+            ]
           },
           "decisionTime": {
             "allOf": [

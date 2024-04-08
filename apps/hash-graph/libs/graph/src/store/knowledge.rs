@@ -7,7 +7,7 @@ use graph_types::{
     knowledge::{
         entity::{Entity, EntityEmbedding, EntityId, EntityMetadata, EntityUuid},
         link::LinkData,
-        PropertyConfidence, PropertyObject, PropertyPatchOperation,
+        Confidence, PropertyConfidence, PropertyObject, PropertyPatchOperation,
     },
     owned_by_id::OwnedById,
 };
@@ -182,6 +182,9 @@ pub struct CreateEntityParams<R> {
     pub entity_type_ids: Vec<VersionedUrl>,
     pub properties: PropertyObject,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub confidence: Option<Confidence>,
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(default, skip_serializing_if = "PropertyConfidence::is_empty")]
     pub property_confidence: PropertyConfidence<'static>,
     #[serde(default)]
@@ -239,6 +242,9 @@ pub struct PatchEntityParams {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub archived: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub confidence: Option<Confidence>,
 }
 
 #[derive(Debug, Deserialize)]

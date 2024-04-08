@@ -544,6 +544,7 @@ impl DatabaseApi<'_> {
                     link_data: None,
                     draft,
                     relationships: [],
+                    confidence: None,
                 },
             )
             .await
@@ -800,6 +801,7 @@ impl DatabaseApi<'_> {
                     }),
                     draft: false,
                     relationships: [],
+                    confidence: None,
                 },
             )
             .await
@@ -979,6 +981,7 @@ impl DatabaseApi<'_> {
                     draft: None,
                     entity_type_ids: vec![],
                     properties: vec![],
+                    confidence: None,
                 },
             )
             .await

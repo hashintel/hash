@@ -143,6 +143,7 @@ async fn update() {
             archived: None,
             draft: None,
             decision_time: None,
+            confidence: None,
         })
         .await
         .expect("could not update entity");

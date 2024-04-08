@@ -98,6 +98,7 @@ async fn initial_draft() {
             archived: None,
             draft: Some(true),
             decision_time: None,
+            confidence: None,
         })
         .await
         .expect("could not update entity");
@@ -133,6 +134,7 @@ async fn initial_draft() {
             archived: None,
             draft: Some(false),
             decision_time: None,
+            confidence: None,
         })
         .await
         .expect("could not update entity");
@@ -213,6 +215,7 @@ async fn no_initial_draft() {
                 archived: None,
                 draft: Some(true),
                 decision_time: None,
+                confidence: None,
             })
             .await
             .expect("could not update entity");
@@ -253,6 +256,7 @@ async fn no_initial_draft() {
                 archived: None,
                 draft: Some(false),
                 decision_time: None,
+                confidence: None,
             })
             .await
             .expect("could not update entity");
@@ -319,6 +323,7 @@ async fn multiple_drafts() {
                 archived: None,
                 draft: Some(true),
                 decision_time: None,
+                confidence: None,
             })
             .await
             .expect("could not update entity");
@@ -362,6 +367,7 @@ async fn multiple_drafts() {
                 archived: None,
                 draft: Some(false),
                 decision_time: None,
+                confidence: None,
             })
             .await
             .expect("could not update entity");
