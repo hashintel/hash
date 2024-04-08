@@ -11,7 +11,10 @@ export const getWebPageActivity = async (params: {
 
   const page = await browser.newPage();
 
-  await page.goto(url);
+  await page.goto(url, {
+    // waits until the network is idle (no more than 2 network connections for at least 500 ms)
+    waitUntil: "networkidle2",
+  });
 
   /**
    * We use puppeteer because we want to obtain the `innerText` of the HTML body.
