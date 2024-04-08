@@ -329,6 +329,15 @@ export const answerQuestionAction: FlowActionActivity<{
   let contextFilePath;
   let contextToUpload;
   if (entities) {
+    /**
+     * We need a subgraph with the entities and their types in order to build the simple graph.
+     * LLMs (at least the GPT-4 family) struggle to interpret the more complex entity objects,
+     * especially writing Python code which correctly uses the base URL property keys.
+     *
+     * We could additionally/alternatively accept a query filter to this action,
+     * rather than a list of entities, to allow for more flexibility in the data provided.
+     * This will also always pull the latest version of the entities, which may differ to those passed in.
+     */
     const subgraph = await graphApiClient
       .getEntitiesByQuery(userAuthentication.actorId, {
         query: {
