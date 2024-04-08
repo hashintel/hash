@@ -271,8 +271,8 @@ const actionDefinitionsAsConst = {
   answerQuestion: {
     actionDefinitionId: "answerQuestion",
     name: "Answer Question Action",
-    // description:
-    //   "Answer a question using the provided context. Question may specify any text output format, e.g. string, CSV, markdown, etc.",
+    description:
+      "Answer a question using the provided context. Question may specify any text output format, e.g. string, CSV, markdown, etc.",
     kind: "action",
     inputs: [
       {
