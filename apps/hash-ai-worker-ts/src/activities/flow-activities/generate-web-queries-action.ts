@@ -4,7 +4,7 @@ import { StatusCode } from "@local/status";
 import dedent from "dedent";
 import type OpenAI from "openai";
 
-import { modelAliasToSpecificModel, getOpenAiResponse } from "../shared/openai";
+import { getOpenAiResponse, modelAliasToSpecificModel } from "../shared/openai";
 import type { FlowActionActivity } from "./types";
 
 const webQueriesSystemMessage: OpenAI.ChatCompletionSystemMessageParam = {
