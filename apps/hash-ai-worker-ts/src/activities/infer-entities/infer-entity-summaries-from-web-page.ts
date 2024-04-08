@@ -10,7 +10,7 @@ import type {
 } from "./inference-types";
 
 export const inferEntitySummariesFromWebPage = async (params: {
-  webPage: WebPage;
+  webPage: WebPage | string;
   relevantEntitiesPrompt?: string;
   maxTokens?: number | null;
   model: PermittedOpenAiModel;
@@ -40,7 +40,7 @@ export const inferEntitySummariesFromWebPage = async (params: {
       : ""
   }
   For entities that link other entities together, the sourceEntityId must correspond to an entityId of an entity you provide, as must the targetEntityId.
-  I'm about to provide you with the content of a website hosted at ${webPage.url}, titled ${webPage.title}.
+  I'm about to provide you with the content of a website${typeof webPage === "string" ? "" : ` hosted at ${webPage.url}, titled ${webPage.title}`}.
   ${
     relevantEntitiesPrompt
       ? ""
@@ -49,7 +49,7 @@ export const inferEntitySummariesFromWebPage = async (params: {
         and any which are mentioned in the title or URL – but include as many other entities as you can find also.`)
   }
   Here is the website content:
-  ${webPage.textContent}
+  ${typeof webPage === "string" ? webPage : webPage.textContent}
   ---WEBSITE CONTENT ENDS---
 
   Your comprehensive list entities of the requested types you are able to infer from the website:

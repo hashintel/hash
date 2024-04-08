@@ -7,19 +7,16 @@ import {
   actionDefinitions,
   getSimplifiedActionInputs,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type {
-  ProposedEntity,
-  StepInput,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { StepInput } from "@local/hash-isomorphic-utils/flows/types";
 import { StatusCode } from "@local/status";
+import dedent from "dedent";
 
-import { getWebPageActivity } from "../get-web-page-activity";
 import { getWebPageSummaryAction } from "./get-web-page-summary-action";
-import { inferEntitiesFromContentAction } from "./infer-entities-from-content-action";
 import type {
   CoordinatorToolCallArguments,
   CoordinatorToolId,
 } from "./research-entities-action/coordinator-tools";
+import { inferEntitiesFromWebPageWorkerAgent } from "./research-entities-action/infer-entities-from-web-page-worker-agent";
 import { coordinatingAgent } from "./research-entities-action/open-ai-coordinating-agent";
 import type {
   CompletedToolCall,
@@ -98,6 +95,11 @@ export const researchEntitiesAction: FlowActionActivity<{
               toolCall.parsedArguments as CoordinatorToolCallArguments["updatePlan"];
 
             latestPlan = plan;
+
+            return {
+              ...toolCall,
+              output: `The plan has been successfully updated.`,
+            };
           } else if (toolCall.toolId === "submitProposedEntities") {
             const { entityIds } =
               toolCall.parsedArguments as CoordinatorToolCallArguments["submitProposedEntities"];
@@ -177,64 +179,29 @@ export const researchEntitiesAction: FlowActionActivity<{
             const { url, prompt: inferencePrompt } =
               toolCall.parsedArguments as CoordinatorToolCallArguments["inferEntitiesFromWebPage"];
 
-            const webPage = await getWebPageActivity({ url }).catch(
-              () => undefined,
-            );
-
-            if (!webPage) {
-              return {
-                ...toolCall,
-                output: `There was an error fetching the web page at ${url}, try another website.`,
-              };
-            }
-
-            const response = await inferEntitiesFromContentAction({
-              inputs: [
-                {
-                  inputName:
-                    "content" satisfies InputNameForAction<"inferEntitiesFromContent">,
-                  payload: { kind: "WebPage", value: webPage },
-                },
-                {
-                  inputName:
-                    "entityTypeIds" satisfies InputNameForAction<"inferEntitiesFromContent">,
-                  payload: {
-                    kind: "VersionedUrl",
-                    value: entityTypeIds!,
-                  },
-                },
-                {
-                  inputName:
-                    "relevantEntitiesPrompt" satisfies InputNameForAction<"inferEntitiesFromContent">,
-                  payload: { kind: "Text", value: inferencePrompt },
-                },
-                ...actionDefinitions.inferEntitiesFromContent.inputs.flatMap<StepInput>(
-                  ({ name, default: defaultValue }) =>
-                    defaultValue
-                      ? [{ inputName: name, payload: defaultValue }]
-                      : [],
-                ),
-              ],
+            const status = await inferEntitiesFromWebPageWorkerAgent({
+              prompt: inferencePrompt,
+              entityTypeIds: entityTypeIds!,
+              url,
               userAuthentication,
               graphApiClient,
             });
 
-            if (response.code !== StatusCode.Ok) {
+            if (status.code !== StatusCode.Ok) {
               return {
                 ...toolCall,
-                output: `An unexpected error ocurred inferring entities from the web page with url ${url}, try another website.`,
+                output: dedent(`
+                  An error ocurred when inferring entities from the web
+                    page with url ${url}: ${status.message}
+                  
+                  Try another website.
+                `),
               };
             }
 
-            const { outputs } = response.contents[0]!;
+            const { inferredEntities } = status.contents[0]!;
 
-            const newProposedEntities = outputs.find(
-              ({ outputName }) =>
-                outputName ===
-                ("proposedEntities" satisfies OutputNameForAction<"inferEntitiesFromContent">),
-            )?.payload.value as ProposedEntity[];
-
-            const newProposedEntitiesWithIds = newProposedEntities.map(
+            const newProposedEntitiesWithIds = inferredEntities.map(
               (proposedEntity) => ({
                 ...proposedEntity,
                 localId: generateLocalId(),

@@ -25,15 +25,6 @@ export const inferEntitiesFromContentAction: FlowActionActivity<{
       actionType: "inferEntitiesFromContent",
     });
 
-  if (typeof content === "string") {
-    return {
-      code: StatusCode.Unimplemented,
-      message:
-        "Text `content` input is not yet supported by the `inferEntitiesFromContent` action.",
-      contents: [],
-    };
-  }
-
   const aiAssistantAccountId = await getAiAssistantAccountIdActivity({
     authentication: userAuthentication,
     /**
