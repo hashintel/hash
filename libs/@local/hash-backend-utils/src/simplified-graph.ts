@@ -1,37 +1,19 @@
-import {
-  getUserSimpleWebs,
-  SimpleWeb,
-} from "@apps/hash-api/src/ai/gpt/shared/webs";
-import { getLatestEntityById } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   typedEntries,
   typedKeys,
   typedValues,
 } from "@local/advanced-types/typed-entries";
-import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
-import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import type { Entity, EntityId, Subgraph } from "@local/hash-subgraph";
 import {
-  OrganizationProperties,
-  UserProperties,
-} from "@local/hash-isomorphic-utils/system-types/shared";
-import type { Entity, Subgraph } from "@local/hash-subgraph";
-import {
-  EntityId,
-  entityIdFromComponents,
-  EntityUuid,
   extractDraftIdFromEntityId,
-  extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
 import {
-  getPropertyTypeById,
-  getPropertyTypeForEntity,
-} from "@local/hash-subgraph/src/stdlib/subgraph/element/property-type";
-import {
   getEntityTypeById,
   getOutgoingLinksForEntity,
+  getPropertyTypeById,
+  getPropertyTypeForEntity,
 } from "@local/hash-subgraph/stdlib";
 
 /**
@@ -109,43 +91,42 @@ export type BaseSimpleEntityFields = {
   /** Whether or not the entity is in draft */
   draft: boolean;
   /** The unique id for the entity, to identify it for future requests or as the target of links from other entities */
-  entityUuid: string;
+  entityId: EntityId;
   /** The title of the entity type this entity belongs to */
   entityType: string;
   /** The properties of the entity, with the property title as the key */
   properties: Record<string, unknown>;
   /** A link to view full details of the entity which users can follow to find out more */
-  entityHref: string;
-};
-
-export type SimpleLink = BaseSimpleEntityFields & {
-  /** The unique entityUuid of the target of this link. */
-  targetEntityUuid: string;
-};
-
-export type SimpleEntity = BaseSimpleEntityFields & {
-  /**
-   * Links from the entity to other entities. The link itself can have properties, containing data about the
-   * relationship.
-   */
-  links: SimpleLink[];
+  entityHref?: string;
   /**
    * The web that the entity belongs to
    */
   webUuid: string;
 };
 
+export type SimpleLinkWithoutHref = BaseSimpleEntityFields & {
+  /** The unique entityId of the target of this link. */
+  targetEntityId: string;
+};
+
+export type SimpleEntityWithoutHref = BaseSimpleEntityFields & {
+  /**
+   * Links from the entity to other entities. The link itself can have properties, containing data about the
+   * relationship.
+   */
+  links: SimpleLinkWithoutHref[];
+};
+
 const createBaseSimpleEntityFields = (
   subgraph: Subgraph,
   entity: Entity,
-  shortname: string,
 ): BaseSimpleEntityFields => {
   const typeSchema = getEntityTypeById(subgraph, entity.metadata.entityTypeId);
   if (!typeSchema) {
     throw new Error("Entity type not found in subgraph");
   }
 
-  const properties: SimpleEntity["properties"] = {};
+  const properties: SimpleEntityWithoutHref["properties"] = {};
   for (const [propertyBaseUrl, propertyValue] of typedEntries(
     entity.properties,
   )) {
@@ -157,21 +138,21 @@ const createBaseSimpleEntityFields = (
     properties[propertyType.title] = propertyValue;
   }
 
-  const entityUuid = extractEntityUuidFromEntityId(
+  const ownedById = extractOwnedByIdFromEntityId(
     entity.metadata.recordId.entityId,
   );
 
   return {
     draft: !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
-    entityUuid,
-    entityHref: `${frontendUrl}/@${shortname}/entities/${entityUuid}`,
+    entityId: entity.metadata.recordId.entityId,
     entityType: typeSchema.schema.title,
     properties,
+    webUuid: ownedById,
   };
 };
 
 export const getSimpleGraph = (subgraph: Subgraph) => {
-  const entities: SimpleEntity[] = [];
+  const entities: SimpleEntityWithoutHref[] = [];
   const entityTypes: SimpleEntityType[] = [];
 
   const vertices = typedValues(subgraph.vertices)
@@ -205,13 +186,9 @@ export const getSimpleGraph = (subgraph: Subgraph) => {
       /**
        * Create the entity object
        */
-      const baseFields = createBaseSimpleEntityFields(
-        subgraph,
-        vertex.inner,
-        web.name,
-      );
+      const baseFields = createBaseSimpleEntityFields(subgraph, vertex.inner);
 
-      const links: SimpleEntity["links"] = [];
+      const links: SimpleEntityWithoutHref["links"] = [];
       const linksFromEntity = getOutgoingLinksForEntity(
         subgraph,
         vertex.inner.metadata.recordId.entityId,
@@ -223,18 +200,14 @@ export const getSimpleGraph = (subgraph: Subgraph) => {
           );
         }
         links.push({
-          /** @todo account for link being in a different web to the source entity */
-          ...createBaseSimpleEntityFields(subgraph, link, web.name),
-          targetEntityUuid: extractEntityUuidFromEntityId(
-            link.linkData.rightEntityId,
-          ),
+          ...createBaseSimpleEntityFields(subgraph, link),
+          targetEntityId: link.linkData.rightEntityId,
         });
       }
 
       const entity = {
         ...baseFields,
         links,
-        webUuid: webOwnedById,
       };
 
       entities.push(entity);

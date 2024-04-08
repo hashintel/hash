@@ -11,6 +11,7 @@ import { StatusCode } from "@local/status";
 import { CancelledFailure, Context } from "@temporalio/activity";
 import dedent from "dedent";
 
+import { logger } from "../shared/logger";
 import { createInferenceUsageRecordActivity } from "./create-inference-usage-record-activity";
 import { getAiAssistantAccountIdActivity } from "./get-ai-assistant-account-id-activity";
 import { getDereferencedEntityTypesActivity } from "./get-dereferenced-entity-types-activity";
@@ -21,11 +22,10 @@ import type {
   DereferencedEntityTypesByTypeId,
   InferenceState,
 } from "./infer-entities/inference-types";
-import { log } from "./infer-entities/log";
 import { persistEntities } from "./infer-entities/persist-entities";
-import { stringify } from "./infer-entities/stringify";
-import { userExceededServiceUsageLimitActivity } from "./user-exceeded-service-usage-limit-activity";
 import { modelAliasToSpecificModel } from "./shared/openai";
+import { stringify } from "./shared/stringify";
+import { userExceededServiceUsageLimitActivity } from "./user-exceeded-service-usage-limit-activity";
 
 /**
  * Infer and create entities of the requested types from the provided text input.
@@ -164,10 +164,12 @@ const inferEntities = async ({
     inferenceState,
   });
 
-  log(`Inference state after entity summaries: ${stringify(inferenceState)}`);
+  logger.debug(
+    `Inference state after entity summaries: ${stringify(inferenceState)}`,
+  );
 
   if (code !== StatusCode.Ok) {
-    log(
+    logger.error(
       `Returning early after error inferring entity summaries: ${
         message ?? "no message provided"
       }`,

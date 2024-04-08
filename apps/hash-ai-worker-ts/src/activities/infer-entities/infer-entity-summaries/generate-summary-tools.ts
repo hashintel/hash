@@ -11,7 +11,7 @@ import type {
   DereferencedEntityTypesByTypeId,
   ProposedEntitySummary,
 } from "../inference-types";
-import { stringify } from "../stringify";
+import { stringify } from "../../shared/stringify";
 
 type FunctionName = "could_not_infer_entities" | "register_entity_summaries";
 

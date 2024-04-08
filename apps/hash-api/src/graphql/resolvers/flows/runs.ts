@@ -322,7 +322,9 @@ export const getFlowRuns: ResolverFn<
            * Can also filter by runId, useful for e.g. getting all Temporal runIds for a given user
            * and then retrieving a list of details from Temporal
            */
-          query: `WorkflowType IN (${flowTypes.map((type) => `'${type}'`).join(", ")})`,
+          query: `WorkflowType IN (${flowTypes
+            .map((type) => `'${type}'`)
+            .join(", ")})`,
         }
       : {},
   );

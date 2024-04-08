@@ -1,18 +1,14 @@
-import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
-  BaseSimpleEntityFields,
-  SimpleEntity,
-  SimpleEntityType,
+  SimpleEntityWithoutHref,
+  SimpleLinkWithoutHref,
 } from "@local/hash-backend-utils/simplified-graph";
-import {
-  getSimpleEntityType,
-  getSimpleGraph,
-} from "@local/hash-backend-utils/simplified-graph";
+import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
+import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
@@ -20,23 +16,12 @@ import type {
   OrganizationProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import type {
-  Entity,
-  EntityId,
-  EntityUuid,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { EntityId, EntityUuid } from "@local/hash-subgraph";
 import {
   entityIdFromComponents,
-  extractDraftIdFromEntityId,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
-import {
-  getEntityTypeById,
-  getOutgoingLinksForEntity,
-  getPropertyTypeForEntity,
-} from "@local/hash-subgraph/stdlib";
 import type { RequestHandler } from "express";
 
 import { getLatestEntityById } from "../../graph/knowledge/primitive/entity";
@@ -49,7 +34,7 @@ export type GptQueryEntitiesRequestBody = {
   /**
    * The titles of specific types of entities to retrieve. Types are typically capitalized, e.g. User, Organization.
    * You may omit this field to retrieve all entities visible to the user, but this may be a slow operation.
-   * If types is omitted, a 'webs' or 'entityUuids' filter should be provided to limit the number of entities returned.
+   * If types is omitted, a 'webs' or 'entityIds' filter should be provided to limit the number of entities returned.
    * If you're unsure what types to request, you can use the queryTypes endpoint to get a list of available types.
    */
   types?: string[];
@@ -65,13 +50,13 @@ export type GptQueryEntitiesRequestBody = {
    */
   query?: string;
   /**
-   * Limit the response to the entities with the specified entityUuids.
+   * Limit the response to the entities with the specified entityIds.
    * Use this filter if you want to explore the graph rooted at specific entities.
    */
-  entityUuids?: string[];
+  entityIds?: string[];
   /**
    * The depth of the graph to explore from the entities matched by the filter.
-   * For example, a depth of 2 will return the entities of the requested type / webs / entityUuids,
+   * For example, a depth of 2 will return the entities of the requested type / webs / entityIds,
    * plus any entities linking to or from them, and any entities linking to or from _those_ entities.
    * A depth of 0 will return only the entities matched by the filter.
    *
@@ -80,7 +65,7 @@ export type GptQueryEntitiesRequestBody = {
    *
    * If a given entity has no links in the return data, it may be that it DOES have links in the graph,
    * but the traversal depth was not sufficient to reach them.
-   * You can make a follow-up query with the entityUuid and a non-zero traversal depth to check.
+   * You can make a follow-up query with the entityId and a non-zero traversal depth to check.
    *
    * If an API response is too large, it is worth repeating it with a lower or 0 traversalDepth.
    *
@@ -94,6 +79,11 @@ export type GptQueryEntitiesRequestBody = {
   includeDrafts?: boolean;
 };
 
+type SimpleEntity = SimpleEntityWithoutHref & {
+  entityHref: string;
+  links: (SimpleLinkWithoutHref & { entityHref: string })[];
+};
+
 export type GptQueryEntitiesResponseBody =
   | { error: string }
   | {
@@ -101,10 +91,11 @@ export type GptQueryEntitiesResponseBody =
        * Entities returned by the query. Each has:
        *
        * draft: Whether or not the entity is in draft
-       * entityUuid: The unique id for the entity, to identify it for future requests or as the target of links from
-       * other entities entityType: the title of the type it belongs to, which are further expanded on under
-       * 'entityTypes' properties: the properties of the entity links: outgoing links from the entity webUuid: the uuid
-       * of the web that the entity belongs to
+       * entityId: The unique id for the entity, to identify it for future requests or as the target of links from other entities
+       * entityType: the title of the type it belongs to, which are further expanded on under 'entityTypes'
+       * properties: the properties of the entity
+       * links: outgoing links from the entity
+       * webUuid: the uuid of the web that the entity belongs to
        *
        * The extent to which the graph is explored is determined by the 'traversalDepth' parameter.
        * If the return data contains no links from an entity, it may be that there ARE links in the graph,
@@ -143,7 +134,7 @@ export const gptQueryEntities: RequestHandler<
     return;
   }
 
-  const { types, query, entityUuids, webUuids, traversalDepth, includeDrafts } =
+  const { types, query, entityIds, webUuids, traversalDepth, includeDrafts } =
     req.body;
 
   const depth = traversalDepth ?? 2;
@@ -190,14 +181,16 @@ export const gptQueryEntities: RequestHandler<
                   },
                 ]
               : []),
-            ...(entityUuids
+            ...(entityIds
               ? [
                   {
-                    any: entityUuids.map((entityUuid) => ({
+                    any: entityIds.map((entityId) => ({
                       equal: [
                         { path: ["uuid"] },
                         {
-                          parameter: entityUuid,
+                          parameter: extractEntityUuidFromEntityId(
+                            entityId as EntityId,
+                          ),
                         },
                       ],
                     })),
@@ -255,7 +248,76 @@ export const gptQueryEntities: RequestHandler<
         user.accountId,
       );
 
-      const { entities, entityTypes } = getSimpleGraph(subgraph);
+      const { entities: entitiesWithoutHrefs, entityTypes } =
+        getSimpleGraph(subgraph);
+
+      const resolveEntityWeb = async (simpleEntity: {
+        entityId: EntityId;
+      }): Promise<SimpleWeb> => {
+        /**
+         * Resolve details of the web that the entity belongs to
+         */
+        const webOwnedById = extractOwnedByIdFromEntityId(
+          simpleEntity.entityId,
+        );
+
+        let web = webs.find((resolvedWeb) => resolvedWeb.uuid === webOwnedById);
+
+        if (!web) {
+          const owningEntity = await getLatestEntityById(
+            req.context,
+            { actorId: user.accountId },
+            {
+              entityId: entityIdFromComponents(
+                webOwnedById,
+                webOwnedById as unknown as EntityUuid,
+              ),
+            },
+          );
+
+          const isUser = owningEntity.metadata.entityTypeId.includes("/user/");
+
+          web = {
+            type: isUser ? "User" : "Organization",
+            name: (
+              owningEntity.properties as UserProperties | OrganizationProperties
+            )[systemPropertyTypes.shortname.propertyTypeBaseUrl]!,
+            uuid: webOwnedById,
+          };
+
+          webs.push(web);
+        }
+
+        return web;
+      };
+
+      const entities: SimpleEntity[] = [];
+      for (const simpleEntity of entitiesWithoutHrefs) {
+        const entityWeb = await resolveEntityWeb(simpleEntity);
+
+        entities.push({
+          ...simpleEntity,
+          entityHref: `${frontendUrl}${generateEntityPath({
+            entityId: simpleEntity.entityId,
+            includeDraftId: simpleEntity.draft,
+            shortname: entityWeb.name,
+          })}`,
+          links: await Promise.all(
+            simpleEntity.links.map(async (link) => {
+              const linkWeb = await resolveEntityWeb(link);
+              return {
+                ...link,
+                entityHref: `${frontendUrl}${generateEntityPath({
+                  entityId: link.entityId,
+                  includeDraftId: link.draft,
+                  shortname: linkWeb.name,
+                })}`,
+              };
+            }),
+          ),
+          webUuid: entityWeb.uuid,
+        });
+      }
 
       return {
         entities: `

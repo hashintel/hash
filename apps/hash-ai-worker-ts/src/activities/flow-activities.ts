@@ -48,7 +48,11 @@ export const createFlowActionActivities = ({
     return researchEntitiesAction({ ...params, graphApiClient });
   },
   getWebPageSummaryAction,
-  answerQuestionAction,
+  answerQuestionAction(
+    params: Omit<Parameters<typeof answerQuestionAction>[0], "graphApiClient">,
+  ) {
+    return answerQuestionAction({ ...params, graphApiClient });
+  },
 });
 
 export const createFlowActivities = ({

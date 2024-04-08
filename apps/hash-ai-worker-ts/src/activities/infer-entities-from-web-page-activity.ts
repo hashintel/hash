@@ -3,6 +3,7 @@ import type { AccountId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
+import { logger } from "../shared/logger";
 import { inferEntitiesSystemMessage } from "./infer-entities/infer-entities-system-message";
 import { inferEntitySummariesFromWebPage } from "./infer-entities/infer-entity-summaries-from-web-page";
 import type {
@@ -10,10 +11,9 @@ import type {
   InferenceState,
   WebPage,
 } from "./infer-entities/inference-types";
-import { log } from "./infer-entities/log";
 import { proposeEntities } from "./infer-entities/propose-entities";
-import { stringify } from "./infer-entities/stringify";
-import { PermittedOpenAiModel } from "./shared/openai";
+import type { PermittedOpenAiModel } from "./shared/openai";
+import { stringify } from "./shared/stringify";
 
 export const inferEntitiesFromWebPageActivity = async (params: {
   webPage: WebPage | string;
@@ -61,10 +61,12 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     temperature,
   });
 
-  log(`Inference state after entity summaries: ${stringify(inferenceState)}`);
+  logger.debug(
+    `Inference state after entity summaries: ${stringify(inferenceState)}`,
+  );
 
   if (status.code !== StatusCode.Ok) {
-    log(
+    logger.error(
       `Returning early after error inferring entity summaries: ${
         status.message ?? "no message provided"
       }`,

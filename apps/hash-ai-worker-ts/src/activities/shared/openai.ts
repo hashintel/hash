@@ -5,9 +5,9 @@ import { Context } from "@temporalio/activity";
 import type OpenAI from "openai";
 import { promptTokensEstimate } from "openai-chat-tokens";
 
-import { log } from "../infer-entities/log";
-import { stringify } from "../infer-entities/stringify";
+import { logger } from "../../shared/logger";
 import { openai } from "./get-open-ai-response/openai-client";
+import { stringify } from "./stringify";
 
 export type PermittedOpenAiModel =
   | "gpt-3.5-turbo-1106"
@@ -57,7 +57,7 @@ export const getOpenAiResponse = async (
         messages: openAiPayload.messages,
         functions: openAiPayload.tools?.map((tool) => tool.function),
       });
-      log(`Estimated prompt tokens: ${estimatedPromptTokens}`);
+      logger.info(`Estimated prompt tokens: ${estimatedPromptTokens}`);
 
       excessTokens =
         estimatedPromptTokens + completionPayloadOverhead - modelContextWindow;
@@ -66,7 +66,7 @@ export const getOpenAiResponse = async (
         break;
       }
 
-      log(
+      logger.info(
         `Estimated prompt tokens (${estimatedPromptTokens}) + completion token overhead (${completionPayloadOverhead}) exceeds model context window (${modelContextWindow}), trimming original user text input by ${
           excessTokens / 4
         } characters.`,
@@ -93,9 +93,9 @@ export const getOpenAiResponse = async (
       { signal: Context.current().cancellationSignal },
     );
 
-    log(`Response from AI received: ${stringify(data)}.`);
+    logger.info(`Response from AI received: ${stringify(data)}.`);
   } catch (err) {
-    log(`Error from AI received: ${stringify(err)}.`);
+    logger.error(`Error from AI received: ${stringify(err)}.`);
     return {
       code: StatusCode.Internal,
       contents: [],
@@ -106,7 +106,7 @@ export const getOpenAiResponse = async (
   const response = data.choices[0];
 
   if (!response) {
-    log(`No data choice available in AI Model response.`);
+    logger.error(`No data choice available in AI Model response.`);
     return {
       code: StatusCode.Internal,
       contents: [],
@@ -115,15 +115,15 @@ export const getOpenAiResponse = async (
   }
 
   if (!data.usage) {
-    log(`OpenAI returned no usage information for call`);
+    logger.error(`OpenAI returned no usage information for call`);
   } else {
     const { completion_tokens, prompt_tokens, total_tokens } = data.usage;
-    log(
+    logger.info(
       `Actual usage for iteration: prompt tokens: ${prompt_tokens}, completion tokens: ${completion_tokens}, total tokens: ${total_tokens}`,
     );
 
     if (estimatedPromptTokens) {
-      log(
+      logger.info(
         `Estimated prompt usage off by ${
           prompt_tokens - estimatedPromptTokens
         } tokens.`,

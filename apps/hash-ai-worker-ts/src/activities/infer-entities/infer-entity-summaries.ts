@@ -5,6 +5,9 @@ import { StatusCode } from "@local/status";
 import dedent from "dedent";
 import type OpenAI from "openai";
 
+import { logger } from "../../shared/logger";
+import { getOpenAiResponse } from "../shared/openai";
+import { stringify } from "../shared/stringify";
 import type {
   CouldNotInferEntitiesReturn,
   ProposedEntitySummariesByType,
@@ -19,9 +22,6 @@ import type {
   InferenceState,
   ProposedEntitySummary,
 } from "./inference-types";
-import { log } from "./log";
-import { getOpenAiResponse } from "../shared/openai";
-import { stringify } from "./stringify";
 
 export const inferEntitySummaries = async (params: {
   completionPayload: CompletionPayload;
@@ -39,7 +39,7 @@ export const inferEntitySummaries = async (params: {
   const { iterationCount, usage: usageFromPreviousIterations } = inferenceState;
 
   if (iterationCount > 10) {
-    log(
+    logger.info(
       `Model reached maximum number of iterations for generating summaries. Messages: ${stringify(
         completionPayload.messages,
       )}`,
@@ -52,7 +52,7 @@ export const inferEntitySummaries = async (params: {
     };
   }
 
-  log(`Iteration ${iterationCount} begun.`);
+  logger.info(`Iteration ${iterationCount} begun.`);
 
   const tools = generateSummaryTools(Object.values(entityTypes));
 
@@ -85,7 +85,9 @@ export const inferEntitySummaries = async (params: {
     )[],
     proposedEntitySummaries: ProposedEntitySummary[],
   ) => {
-    log(`Retrying with additional message: ${stringify(retryMessages)}`);
+    logger.debug(
+      `Retrying with additional message: ${stringify(retryMessages)}`,
+    );
 
     const newMessages = [
       ...completionPayload.messages,
@@ -113,7 +115,7 @@ export const inferEntitySummaries = async (params: {
         message.content ?? "no message"
       }`;
 
-      log(errorMessage);
+      logger.error(errorMessage);
 
       return {
         code: StatusCode.Unknown,
@@ -124,7 +126,7 @@ export const inferEntitySummaries = async (params: {
     }
 
     case "length": {
-      log(
+      logger.error(
         `AI Model returned 'length' finish reason on attempt ${iterationCount}.`,
       );
 
@@ -153,7 +155,7 @@ export const inferEntitySummaries = async (params: {
     }
 
     case "content_filter":
-      log(
+      logger.error(
         `The content filter was triggered on attempt ${iterationCount} with input: ${stringify(
           completionPayload.messages,
         )}, `,
@@ -170,7 +172,7 @@ export const inferEntitySummaries = async (params: {
         const errorMessage =
           "AI Model returned 'tool_calls' finish reason with no tool calls";
 
-        log(`${errorMessage}. Message: ${stringify(message)}`);
+        logger.error(`${errorMessage}. Message: ${stringify(message)}`);
 
         return {
           code: StatusCode.Internal,
@@ -195,7 +197,7 @@ export const inferEntitySummaries = async (params: {
         try {
           JSON.parse(modelProvidedArgument);
         } catch {
-          log(
+          logger.error(
             `Could not parse AI Model response on attempt ${iterationCount}: ${stringify(
               modelProvidedArgument,
             )}`,
@@ -236,7 +238,7 @@ export const inferEntitySummaries = async (params: {
               modelProvidedArgument,
             ) as ProposedEntitySummariesByType;
           } catch (err) {
-            log(
+            logger.error(
               `Model provided invalid argument to register_entity_summaries function. Argument provided: ${stringify(
                 modelProvidedArgument,
               )}`,
@@ -293,7 +295,7 @@ export const inferEntitySummaries = async (params: {
        * This is a common oversight of GPT-4 Turbo at least, as of Dec 2023.
        */
       if (typesWithNoSuggestionsToRerequest.length > 0) {
-        log(
+        logger.info(
           `No suggestions for entity types: ${typesWithNoSuggestionsToRerequest.join(
             ", ",
           )}`,
@@ -347,7 +349,7 @@ export const inferEntitySummaries = async (params: {
   }
 
   const errorMessage = `AI Model returned unhandled finish reason: ${finish_reason}`;
-  log(errorMessage);
+  logger.error(errorMessage);
 
   return {
     code: StatusCode.Internal,

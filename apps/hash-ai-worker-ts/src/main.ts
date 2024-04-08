@@ -16,7 +16,6 @@ import { fileURLToPath } from "node:url";
 
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
-import { Logger } from "@local/hash-backend-utils/logger";
 import { SentryActivityInboundInterceptor } from "@local/hash-backend-utils/temporal/interceptors/activities/sentry";
 import { sentrySinks } from "@local/hash-backend-utils/temporal/sinks/sentry";
 import { defaultSinks, NativeConnection, Worker } from "@temporalio/worker";
@@ -24,6 +23,7 @@ import { config } from "dotenv-flow";
 
 import { createAiActivities, createGraphActivities } from "./activities";
 import { createFlowActivities } from "./activities/flow-activities";
+import { logger, logToConsole } from "./shared/logger";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -69,13 +69,8 @@ const workflowOption = () =>
       }
     : { workflowsPath: require.resolve("./workflows") };
 
-const logger = new Logger({
-  mode: process.env.NODE_ENV === "production" ? "prod" : "dev",
-  serviceName: "hash-ai-worker-ts",
-});
-
 async function run() {
-  const graphApiClient = createGraphClient(logger, {
+  const graphApiClient = createGraphClient(logToConsole, {
     host: getRequiredEnv("HASH_GRAPH_API_HOST"),
     port: parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10),
   });
@@ -112,8 +107,8 @@ async function run() {
   const httpServer = createHealthCheckServer();
   const port = 4100;
   httpServer.listen({ host: "::", port });
-  // eslint-disable-next-line no-console
-  console.info(`HTTP server listening on port ${port}`);
+
+  logger.info(`HTTP server listening on port ${port}`);
 
   await worker.run();
 }
@@ -122,7 +117,6 @@ process.on("SIGINT", () => process.exit(1));
 process.on("SIGTERM", () => process.exit(1));
 
 run().catch((err) => {
-  // eslint-disable-next-line no-console
-  console.error(err);
+  logToConsole.error(err);
   process.exit(1);
 });

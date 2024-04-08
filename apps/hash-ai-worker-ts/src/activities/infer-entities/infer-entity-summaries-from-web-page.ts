@@ -1,5 +1,6 @@
 import dedent from "dedent";
 
+import type { PermittedOpenAiModel } from "../shared/openai";
 import { inferEntitiesSystemMessage } from "./infer-entities-system-message";
 import { inferEntitySummaries } from "./infer-entity-summaries";
 import type {
@@ -7,7 +8,6 @@ import type {
   InferenceState,
   WebPage,
 } from "./inference-types";
-import { PermittedOpenAiModel } from "../shared/openai";
 
 export const inferEntitySummariesFromWebPage = async (params: {
   webPage: WebPage | string;

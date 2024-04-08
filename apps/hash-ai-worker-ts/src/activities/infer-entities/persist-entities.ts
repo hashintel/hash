@@ -7,13 +7,15 @@ import { StatusCode } from "@local/status";
 import dedent from "dedent";
 import type OpenAI from "openai";
 
+import { logger } from "../../shared/logger";
+import { getOpenAiResponse } from "../shared/openai";
+import { stringify } from "../shared/stringify";
 import { getResultsFromInferenceState } from "./get-results-from-inference-state";
 import type {
   CompletionPayload,
   DereferencedEntityTypesByTypeId,
   InferenceState,
 } from "./inference-types";
-import { log } from "./log";
 import { createEntities } from "./persist-entities/create-entities";
 import type {
   ProposedEntityCreationsByType,
@@ -25,8 +27,6 @@ import {
 } from "./persist-entities/generate-persist-entities-tools";
 import { updateEntities } from "./persist-entities/update-entities";
 import { firstUserMessageIndex } from "./shared/first-user-message-index";
-import { getOpenAiResponse } from "../shared/openai";
-import { stringify } from "./stringify";
 
 export const persistEntities = async (params: {
   authentication: { machineActorId: AccountId };
@@ -60,7 +60,7 @@ export const persistEntities = async (params: {
   } = inferenceState;
 
   if (iterationCount > 30) {
-    log(
+    logger.info(
       `Model reached maximum number of iterations. Messages: ${stringify(
         completionPayload.messages,
       )}`,
@@ -85,7 +85,7 @@ export const persistEntities = async (params: {
     if (inProgressEntity) {
       inProgressEntity.takenFromQueue = true;
     } else {
-      log(
+      logger.error(
         `Could not find in progress entity with id ${inProgressEntityId} in proposedEntitySummaries: ${stringify(
           proposedEntitySummaries,
         )}`,
@@ -111,7 +111,7 @@ export const persistEntities = async (params: {
     nextProposedEntity.takenFromQueue = true;
   }
 
-  log(
+  logger.info(
     `Iteration ${iterationCount} begun, seeking details on entities with temporary ids ${inProgressEntityIds.join(
       ", ",
     )}.`,
@@ -151,7 +151,7 @@ export const persistEntities = async (params: {
     ),
   } as const;
 
-  log(`Next message to model: ${stringify(nextMessage)}`);
+  logger.debug(`Next message to model: ${stringify(nextMessage)}`);
 
   const openApiPayload: OpenAI.ChatCompletionCreateParams = {
     ...completionPayload,
@@ -195,7 +195,9 @@ export const persistEntities = async (params: {
     )[];
     requiresOriginalContext: boolean;
   }) => {
-    log(`Retrying with additional messages: ${stringify(retryMessages)}`);
+    logger.debug(
+      `Retrying with additional messages: ${stringify(retryMessages)}`,
+    );
 
     const newMessages = [
       ...originalPromptMessages.map((msg, index) =>
@@ -252,7 +254,7 @@ export const persistEntities = async (params: {
         message.content ?? "no message"
       }`;
 
-      log(errorMessage);
+      logger.error(errorMessage);
 
       return {
         code: StatusCode.Unknown,
@@ -268,7 +270,7 @@ export const persistEntities = async (params: {
     }
 
     case "length": {
-      log(
+      logger.error(
         `AI Model returned 'length' finish reason on attempt ${iterationCount}.`,
       );
 
@@ -302,7 +304,7 @@ export const persistEntities = async (params: {
     }
 
     case "content_filter": {
-      log(
+      logger.error(
         `The content filter was triggered on attempt ${iterationCount} with input: ${stringify(
           completionPayload.messages,
         )}, `,
@@ -325,7 +327,7 @@ export const persistEntities = async (params: {
         const errorMessage =
           "AI Model returned 'tool_calls' finish reason with no tool calls";
 
-        log(`${errorMessage}. Message: ${stringify(message)}`);
+        logger.error(`${errorMessage}. Message: ${stringify(message)}`);
 
         return {
           code: StatusCode.Internal,
@@ -355,7 +357,7 @@ export const persistEntities = async (params: {
         try {
           JSON.parse(modelProvidedArgument);
         } catch {
-          log(
+          logger.error(
             `Could not parse AI Model response on attempt ${iterationCount}: ${stringify(
               modelProvidedArgument,
             )}`,
@@ -385,7 +387,7 @@ export const persistEntities = async (params: {
             !Array.isArray(abandonedEntityIds) ||
             !abandonedEntityIds.every((item) => typeof item === "number")
           ) {
-            log(
+            logger.error(
               `Model provided invalid argument to abandon_entities function. Argument provided: ${stringify(
                 modelProvidedArgument,
               )}`,
@@ -417,7 +419,7 @@ export const persistEntities = async (params: {
             ) as ProposedEntityCreationsByType;
             validateProposedEntitiesByType(proposedEntitiesByType, false);
           } catch (err) {
-            log(
+            logger.error(
               `Model provided invalid argument to create_entities function. Argument provided: ${stringify(
                 modelProvidedArgument,
               )}`,
@@ -459,15 +461,14 @@ export const persistEntities = async (params: {
               createAsDraft: createAs === "draft",
               graphApiClient,
               inferenceState,
-              log,
               ownedById,
               proposedEntitiesByType,
               requestedEntityTypes: entityTypes,
             });
 
-            log(`Creation successes: ${stringify(creationSuccesses)}`);
-            log(`Creation failures: ${stringify(creationFailures)}`);
-            log(`Update candidates: ${stringify(updateCandidates)}`);
+            logger.info(`Creation successes: ${stringify(creationSuccesses)}`);
+            logger.info(`Creation failures: ${stringify(creationFailures)}`);
+            logger.info(`Update candidates: ${stringify(updateCandidates)}`);
 
             const successes = Object.values(creationSuccesses);
             const failures = Object.values(creationFailures);
@@ -554,7 +555,7 @@ export const persistEntities = async (params: {
             const errorMessage = `Error creating entities: ${
               (err as Error).message
             }`;
-            log(errorMessage);
+            logger.error(errorMessage);
 
             return {
               code: StatusCode.Internal,
@@ -578,7 +579,7 @@ export const persistEntities = async (params: {
 
             validateProposedEntitiesByType(proposedEntityUpdatesByType, true);
           } catch (err) {
-            log(
+            logger.error(
               `Model provided invalid argument to update_entities function. Argument provided: ${stringify(
                 modelProvidedArgument,
               )}`,
@@ -617,7 +618,6 @@ export const persistEntities = async (params: {
               actorId: authentication.machineActorId,
               createAsDraft: createAs === "draft",
               graphApiClient,
-              log,
               ownedById,
               proposedEntityUpdatesByType,
               requestedEntityTypes: entityTypes,
@@ -626,8 +626,8 @@ export const persistEntities = async (params: {
             const successes = Object.values(updateSuccesses);
             const failures = Object.values(updateFailures);
 
-            log(`Update successes: ${stringify(updateSuccesses)}`);
-            log(`Update failures: ${stringify(updateFailures)}`);
+            logger.info(`Update successes: ${stringify(updateSuccesses)}`);
+            logger.info(`Update failures: ${stringify(updateFailures)}`);
 
             for (const success of successes) {
               if (createAs === "live") {
@@ -697,7 +697,7 @@ export const persistEntities = async (params: {
           (entity) => !entity.takenFromQueue,
         )
       ) {
-        log(`Entities remain to be inferred, continuing.`);
+        logger.info(`Entities remain to be inferred, continuing.`);
         retryMessages.push({
           content:
             "There are other entities you haven't yet provided details for",
@@ -708,7 +708,7 @@ export const persistEntities = async (params: {
 
       if (retryMessages.length === 0) {
         const results = getResultsFromInferenceState(inferenceState);
-        log(`Returning results: ${stringify(results)}`);
+        logger.info(`Returning results: ${stringify(results)}`);
         return {
           code: StatusCode.Ok,
           contents: [{ results, usage: latestUsage }],
@@ -747,7 +747,7 @@ export const persistEntities = async (params: {
   }
 
   const errorMessage = `AI Model returned unhandled finish reason: ${finish_reason}`;
-  log(errorMessage);
+  logger.error(errorMessage);
 
   return {
     code: StatusCode.Internal,

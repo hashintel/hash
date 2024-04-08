@@ -284,7 +284,9 @@ export const getLatestEntityById: ImpureGraphFunction<
   ).then(getRoots);
 
   if (unexpectedEntities.length > 0) {
-    const errorMessage = `Latest entity with entityId ${entityId} returned more than one result with ids: ${unexpectedEntities.map((unexpectedEntity) => unexpectedEntity.metadata.recordId.entityId).join(", ")}`;
+    const errorMessage = `Latest entity with entityId ${entityId} returned more than one result with ids: ${unexpectedEntities
+      .map((unexpectedEntity) => unexpectedEntity.metadata.recordId.entityId)
+      .join(", ")}`;
     throw new Error(errorMessage);
   }
 
@@ -427,7 +429,9 @@ export const createEntityWithLinks: ImpureGraphFunction<
         (!definition.entityProperties || !definition.entityTypeId)
       ) {
         throw new Error(
-          `One of existingEntityId or (entityProperties && entityTypeId) must be provided in linked entity definition: ${JSON.stringify(definition)}`,
+          `One of existingEntityId or (entityProperties && entityTypeId) must be provided in linked entity definition: ${JSON.stringify(
+            definition,
+          )}`,
         );
       }
 

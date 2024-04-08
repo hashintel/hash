@@ -13,8 +13,8 @@ import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-
 import { getDereferencedEntityTypesActivity } from "../get-dereferenced-entity-types-activity";
 import type { InferenceState } from "../infer-entities/inference-types";
 import { inferEntitiesFromWebPageActivity } from "../infer-entities-from-web-page-activity";
-import type { FlowActionActivity } from "./types";
 import { modelAliasToSpecificModel } from "../shared/openai";
+import type { FlowActionActivity } from "./types";
 
 export const inferEntitiesFromContentAction: FlowActionActivity<{
   graphApiClient: GraphApi;
