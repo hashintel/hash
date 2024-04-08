@@ -13,6 +13,7 @@ import type {
   ChatCompletionMessage,
   ChatCompletionMessageParam,
   ChatCompletionMessageToolCall,
+  ChatCompletionTool,
   ChatCompletionToolMessageParam,
   FunctionDefinition,
 } from "openai/resources";
@@ -22,6 +23,7 @@ import { getOpenAiResponse } from "../../infer-entities/shared/get-open-ai-respo
 import type {
   CompletedCoordinatorToolCall,
   CoordinatorToolCall,
+  ToolDefinition,
 } from "./coordinator-tools";
 import {
   coordinatorToolDefinitions,
@@ -117,18 +119,32 @@ export const mapOpenAiFunctionArgumentsToStepInputs = (params: {
   );
 };
 
-export const coordinatingAgentGetNextToolCalls = async (params: {
+const mapToolDefinitionToOpenAiTool = ({
+  toolId,
+  description,
+  inputSchema,
+}: ToolDefinition): ChatCompletionTool =>
+  ({
+    function: {
+      name: toolId,
+      description,
+      parameters: inputSchema as FunctionDefinition["parameters"],
+    },
+    type: "function",
+  }) as const;
+
+const getNextToolCalls = async (params: {
   submittedProposedEntities: (ProposedEntity & { localId: string })[];
+  previousPlan: string;
   previousCalls?: {
-    openAiAssistantMessageContent: string | null;
     completedToolCalls: CompletedCoordinatorToolCall[];
   }[];
   prompt: string;
 }): Promise<{
-  openAiAssistantMessageContent: string | null;
   toolCalls: CoordinatorToolCall[];
 }> => {
-  const { prompt, previousCalls, submittedProposedEntities } = params;
+  const { prompt, previousCalls, submittedProposedEntities, previousPlan } =
+    params;
 
   const messages: ChatCompletionMessageParam[] = [
     {
@@ -140,9 +156,7 @@ export const coordinatingAgentGetNextToolCalls = async (params: {
           completing the task.
         Make as many tool calls as are required to progress towards completing the task.
         You must completely satisfy the research prompt, without any missing information.
-        Alongside the function calls, you must explain in a message what your plan is to
-        the task, and what each function call is doing towards completing the task.
-        You may revised this plan as you receive more information from function calls.
+
         ${
           submittedProposedEntities.length > 0
             ? dedent(`
@@ -153,6 +167,11 @@ export const coordinatingAgentGetNextToolCalls = async (params: {
             `)
             : "You have not previously submitted any proposed entities."
         }
+
+        You have previously proposed the following plan:
+        ${previousPlan}
+        If you want to deviate from this plan, update it using the "updatePlan" tool.
+        You must call the "updatePlan" tool alongside other tool calls to progress towards completing the task.
       `),
     },
     {
@@ -160,12 +179,12 @@ export const coordinatingAgentGetNextToolCalls = async (params: {
       content: prompt,
     },
     ...(previousCalls?.flatMap<ChatCompletionMessageParam>(
-      ({ openAiAssistantMessageContent, completedToolCalls }) =>
+      ({ completedToolCalls }) =>
         completedToolCalls.length > 0
           ? [
               {
                 role: "assistant",
-                content: openAiAssistantMessageContent,
+                content: null,
                 tool_calls: completedToolCalls.map(
                   ({ openAiToolCall }) => openAiToolCall,
                 ),
@@ -189,15 +208,7 @@ export const coordinatingAgentGetNextToolCalls = async (params: {
     messages,
     model: modelAliasToSpecificModel["gpt-4-turbo"],
     tools: Object.values(coordinatorToolDefinitions).map(
-      ({ toolId, description, inputSchema }) =>
-        ({
-          function: {
-            name: toolId,
-            description,
-            parameters: inputSchema as FunctionDefinition["parameters"],
-          },
-          type: "function",
-        }) as const,
+      mapToolDefinitionToOpenAiTool,
     ),
   };
 
@@ -214,8 +225,6 @@ export const coordinatingAgentGetNextToolCalls = async (params: {
   /** @todo: capture usage */
 
   const openAiToolCalls = response.message.tool_calls;
-
-  const openAiAssistantMessageContent = response.message.content;
 
   if (!openAiToolCalls) {
     /** @todo: retry this instead */
@@ -241,7 +250,70 @@ export const coordinatingAgentGetNextToolCalls = async (params: {
   );
 
   return {
-    openAiAssistantMessageContent,
     toolCalls: coordinatorToolCalls,
   };
+};
+
+const createInitialPlan = async (params: {
+  prompt: string;
+}): Promise<{ plan: string }> => {
+  const { prompt } = params;
+
+  const messages: ChatCompletionMessageParam[] = [
+    {
+      role: "system",
+      content: dedent(`
+        You are a coordinating agent for a research task.
+        The user will provides you with a text prompt, from which you will be
+          able to make the relevant function calls to progress towards 
+          completing the task.
+        You must completely satisfy the research prompt, without any missing information.
+
+        Do not make *any* tool calls. You must first provide a plan of how you will use
+          the tools to progress towards completing the task.
+        This should be a list of steps in plain English.
+      `),
+    },
+    {
+      role: "user",
+      content: prompt,
+    },
+  ];
+
+  const openApiPayload: ChatCompletionCreateParams = {
+    messages,
+    model: modelAliasToSpecificModel["gpt-4-turbo"],
+    tools: Object.values(coordinatorToolDefinitions)
+      .filter(({ toolId }) => toolId !== "updatePlan")
+      .map(mapToolDefinitionToOpenAiTool),
+  };
+
+  const openAiResponse = await getOpenAiResponse(openApiPayload);
+
+  if (openAiResponse.code !== StatusCode.Ok) {
+    throw new Error(
+      `Failed to get OpenAI response: ${JSON.stringify(openAiResponse)}`,
+    );
+  }
+
+  const { response, usage: _usage } = openAiResponse.contents[0]!;
+
+  /** @todo: capture usage */
+
+  const openAiAssistantMessageContent = response.message.content;
+
+  if (!openAiAssistantMessageContent) {
+    throw new Error(
+      `Expected message content in response: ${JSON.stringify(response, null, 2)}`,
+    );
+  }
+
+  return {
+    plan: openAiAssistantMessageContent,
+  };
+};
+
+export const coordinatingAgent = {
+  createInitialPlan,
+  getNextToolCalls,
 };

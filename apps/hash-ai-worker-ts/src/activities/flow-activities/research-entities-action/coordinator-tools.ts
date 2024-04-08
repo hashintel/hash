@@ -9,6 +9,7 @@ const coordinatorToolIds = [
   // "discardProposedEntities",
   "complete",
   "terminate",
+  "updatePlan",
 ] as const;
 
 export type CoordinatorToolId = (typeof coordinatorToolIds)[number];
@@ -18,7 +19,7 @@ export const isCoordinatorToolId = (
 ): value is CoordinatorToolId =>
   coordinatorToolIds.includes(value as CoordinatorToolId);
 
-type ToolDefinition = {
+export type ToolDefinition = {
   toolId: CoordinatorToolId;
   description: string;
   inputSchema: JSONSchema;
@@ -110,6 +111,21 @@ export const coordinatorToolDefinitions: Record<
       required: [],
     },
   },
+  updatePlan: {
+    toolId: "updatePlan",
+    description:
+      "Update the plan for the research task. You should call this alongside other tool calls to progress towards completing the task.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        plan: {
+          type: "string",
+          description: "The updated plan for the research task.",
+        },
+      },
+      required: ["plan"],
+    },
+  },
   // discardProposedEntities: {
   //   toolId: "discardProposedEntities",
   //   description: "Discard previously submitted proposed entities.",
@@ -142,6 +158,9 @@ export type CoordinatorToolCallArguments = {
   };
   submitProposedEntities: {
     entityIds: string[];
+  };
+  updatePlan: {
+    plan: string;
   };
   complete: object;
   terminate: object;

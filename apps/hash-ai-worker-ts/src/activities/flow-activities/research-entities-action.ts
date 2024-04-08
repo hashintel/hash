@@ -21,7 +21,7 @@ import type {
   CoordinatorToolCall,
   CoordinatorToolCallArguments,
 } from "./research-entities-action/coordinator-tools";
-import { coordinatingAgentGetNextToolCalls } from "./research-entities-action/open-ai-coordinating-agent";
+import { coordinatingAgent } from "./research-entities-action/open-ai-coordinating-agent";
 import type { FlowActionActivity } from "./types";
 import { webSearchAction } from "./web-search-action";
 
@@ -39,14 +39,6 @@ export const researchEntitiesAction: FlowActionActivity<{
 
   const submittedEntityIds: string[] = [];
 
-  const {
-    toolCalls: initialToolCalls,
-    openAiAssistantMessageContent: initialOpenAiAssistantMessageContent,
-  } = await coordinatingAgentGetNextToolCalls({
-    submittedProposedEntities: [],
-    prompt,
-  });
-
   let counter = 0;
 
   const generateLocalId = (): string => {
@@ -54,15 +46,29 @@ export const researchEntitiesAction: FlowActionActivity<{
     return counter.toString();
   };
 
+  /**
+   * We start by making a asking the coordinator agent to create an initial plan
+   * for the research task.
+   */
+  const { plan: initialPlan } = await coordinatingAgent.createInitialPlan({
+    prompt,
+  });
+
+  const { toolCalls: initialToolCalls } =
+    await coordinatingAgent.getNextToolCalls({
+      previousPlan: initialPlan,
+      submittedProposedEntities: [],
+      prompt,
+    });
+
   const processToolCalls = async (params: {
     previousCalls?: {
       completedToolCalls: CompletedCoordinatorToolCall[];
-      openAiAssistantMessageContent: string | null;
     }[];
-    openAiAssistantMessageContent: string | null;
+    previousPlan: string;
     toolCalls: CoordinatorToolCall[];
   }) => {
-    const { toolCalls, openAiAssistantMessageContent, previousCalls } = params;
+    const { toolCalls, previousCalls } = params;
 
     const isTerminated = toolCalls.some(
       (toolCall) => toolCall.toolId === "terminate",
@@ -76,10 +82,21 @@ export const researchEntitiesAction: FlowActionActivity<{
       ({ toolId }) => toolId !== "complete" && toolId !== "terminate",
     );
 
+    /**
+     * This plan may be updated by the tool calls that are about to be
+     * evaluated.
+     */
+    let latestPlan = params.previousPlan;
+
     const completedToolCalls = await Promise.all(
       toolCallsWithRelevantResults.map(
         async (toolCall): Promise<CompletedCoordinatorToolCall> => {
-          if (toolCall.toolId === "submitProposedEntities") {
+          if (toolCall.toolId === "updatePlan") {
+            const { plan } =
+              toolCall.parsedArguments as CoordinatorToolCallArguments["updatePlan"];
+
+            latestPlan = plan;
+          } else if (toolCall.toolId === "submitProposedEntities") {
             const { entityIds } =
               toolCall.parsedArguments as CoordinatorToolCallArguments["submitProposedEntities"];
 
@@ -250,29 +267,29 @@ export const researchEntitiesAction: FlowActionActivity<{
 
     const updatedPreviousCalls = [
       ...(previousCalls ?? []),
-      { openAiAssistantMessageContent, completedToolCalls },
+      { completedToolCalls },
     ];
 
     const submittedProposedEntities = proposedEntities.filter(({ localId }) =>
       submittedEntityIds.includes(localId),
     );
 
-    const openAiResponse = await coordinatingAgentGetNextToolCalls({
+    const openAiResponse = await coordinatingAgent.getNextToolCalls({
+      previousPlan: latestPlan,
       submittedProposedEntities,
       previousCalls: updatedPreviousCalls,
       prompt,
     });
 
     await processToolCalls({
+      previousPlan: latestPlan,
       previousCalls: updatedPreviousCalls,
-      openAiAssistantMessageContent:
-        openAiResponse.openAiAssistantMessageContent,
       toolCalls: openAiResponse.toolCalls,
     });
   };
 
   await processToolCalls({
-    openAiAssistantMessageContent: initialOpenAiAssistantMessageContent,
+    previousPlan: initialPlan,
     toolCalls: initialToolCalls,
   });
 
