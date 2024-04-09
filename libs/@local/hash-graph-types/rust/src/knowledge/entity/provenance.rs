@@ -1,13 +1,15 @@
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 
-use crate::account::{CreatedById, EditionCreatedById};
+use crate::account::{CreatedById, EditionArchivedById, EditionCreatedById};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityEditionProvenanceMetadata {
     pub created_by_id: EditionCreatedById,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub archived_by_id: Option<EditionArchivedById>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

@@ -233,6 +233,21 @@ pub enum EntityQueryPath<'p> {
     /// [`EditionCreatedById`]: graph_types::account::EditionCreatedById
     /// [`EntityProvenanceMetadata`]: graph_types::knowledge::entity::EntityProvenanceMetadata
     EditionCreatedById,
+    /// The [`EditionArchivedById`] of the [`EntityProvenanceMetadata`] belonging to the
+    /// [`Entity`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["editionArchivedById"]))?;
+    /// assert_eq!(path, EntityQueryPath::EditionArchivedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`EditionCreatedById`]: graph_types::account::EditionCreatedById
+    /// [`EntityProvenanceMetadata`]: graph_types::knowledge::entity::EntityProvenanceMetadata
+    EditionArchivedById,
     /// The [`CreatedById`] of the [`EntityProvenanceMetadata`] belonging to the [`Entity`]
     /// when it was _first inserted_ into the database.
     ///
@@ -451,6 +466,7 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::DraftId => fmt.write_str("draftId"),
             Self::EditionCreatedById => fmt.write_str("editionCreatedById"),
+            Self::EditionArchivedById => fmt.write_str("editionArchivedById"),
             Self::CreatedById => fmt.write_str("createdById"),
             Self::EditionId => fmt.write_str("editionId"),
             Self::DecisionTime => fmt.write_str("decisionTime"),
@@ -516,6 +532,7 @@ impl QueryPath for EntityQueryPath<'_> {
             | Self::OwnedById
             | Self::DraftId
             | Self::EditionCreatedById
+            | Self::EditionArchivedById
             | Self::CreatedById => ParameterType::Uuid,
             Self::DecisionTime | Self::TransactionTime => ParameterType::TimeInterval,
             Self::TypeBaseUrls => ParameterType::Vector(Box::new(ParameterType::VersionedUrl)),
@@ -553,6 +570,7 @@ pub enum EntityQueryToken {
     Archived,
     OwnedById,
     EditionCreatedById,
+    EditionArchivedById,
     CreatedById,
     CreatedAtTransactionTime,
     CreatedAtDecisionTime,
@@ -576,9 +594,10 @@ pub struct EntityQueryPathVisitor {
 impl EntityQueryPathVisitor {
     pub const EXPECTING: &'static str =
         "one of `uuid`, `editionId`, `draftId`, `archived`, `ownedById`, `editionCreatedById`, \
-         `createdById`, `createdAtTransactionTime`, `createdAtDecisionTime`, \
-         `firstNonDraftCreatedAtTransactionTime`, `firstNonDraftCreatedAtDecisionTime`, `type`, \
-         `properties`, `embedding`, `incomingLinks`, `outgoingLinks`, `leftEntity`, `rightEntity`";
+         `editionArchivedById`, `createdById`, `createdAtTransactionTime`, \
+         `createdAtDecisionTime`, `firstNonDraftCreatedAtTransactionTime`, \
+         `firstNonDraftCreatedAtDecisionTime`, `type`, `properties`, `embedding`, \
+         `incomingLinks`, `outgoingLinks`, `leftEntity`, `rightEntity`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -609,6 +628,7 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
             EntityQueryToken::OwnedById => EntityQueryPath::OwnedById,
             EntityQueryToken::DraftId => EntityQueryPath::DraftId,
             EntityQueryToken::EditionCreatedById => EntityQueryPath::EditionCreatedById,
+            EntityQueryToken::EditionArchivedById => EntityQueryPath::EditionArchivedById,
             EntityQueryToken::CreatedById => EntityQueryPath::CreatedById,
             EntityQueryToken::CreatedAtTransactionTime => EntityQueryPath::CreatedAtTransactionTime,
             EntityQueryToken::CreatedAtDecisionTime => EntityQueryPath::CreatedAtDecisionTime,
@@ -792,6 +812,7 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
             }
             Self::Archived => EntityQueryPath::Archived,
             Self::EditionCreatedById => EntityQueryPath::EditionCreatedById,
+            Self::EditionArchivedById => EntityQueryPath::EditionArchivedById,
             Self::CreatedById => EntityQueryPath::CreatedById,
             Self::EntityTypeEdge {
                 path,

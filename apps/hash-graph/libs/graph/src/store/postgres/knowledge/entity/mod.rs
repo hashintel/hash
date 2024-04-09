@@ -19,7 +19,7 @@ use authorization::{
 use error_stack::{bail, ensure, Report, Result, ResultExt};
 use futures::TryStreamExt;
 use graph_types::{
-    account::{AccountId, CreatedById, EditionCreatedById},
+    account::{AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
     knowledge::{
         entity::{
             DraftId, Entity, EntityEditionId, EntityEditionProvenanceMetadata, EntityEmbedding,
@@ -626,6 +626,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     ),
                     edition: EntityEditionProvenanceMetadata {
                         created_by_id: edition_created_by_id,
+                        archived_by_id: None,
                     },
                 },
                 temporal_versioning,
@@ -930,6 +931,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         )),
                         edition: EntityEditionProvenanceMetadata {
                             created_by_id: EditionCreatedById::new(actor_id),
+                            archived_by_id: None,
                         },
                     },
                     temporal_versioning,
@@ -1333,7 +1335,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     .lock_entity_edition(params.entity_id, params.decision_time)
                     .await?
                 {
-                    transaction.archive_entity(previous_live_entity).await?;
+                    transaction
+                        .archive_entity(actor_id, previous_live_entity)
+                        .await?;
                 }
                 transaction
                     .update_temporal_metadata(locked_row, edition_id, true)
@@ -1387,6 +1391,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 first_non_draft_created_at_transaction_time,
                 edition: EntityEditionProvenanceMetadata {
                     created_by_id: EditionCreatedById::new(actor_id),
+                    archived_by_id: None,
                 },
             },
             confidence: params.confidence,
@@ -1973,6 +1978,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     #[tracing::instrument(level = "trace", skip(self))]
     async fn archive_entity(
         &self,
+        actor_id: AccountId,
         locked_row: LockedEntityEdition,
     ) -> Result<EntityTemporalMetadata, UpdateError> {
         let row = if let Some(draft_id) = locked_row.entity_id.draft_id {
@@ -2048,6 +2054,20 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     &locked_row.entity_edition_id,
                     &locked_row.decision_time,
                     &locked_row.transaction_time,
+                ],
+            )
+            .await
+            .change_context(UpdateError)?;
+
+        self.client
+            .query(
+                "
+                    UPDATE entity_editions SET
+                        edition_archived_by_id = $2
+                    WHERE entity_edition_id = $1",
+                &[
+                    &locked_row.entity_edition_id,
+                    &EditionArchivedById::new(actor_id),
                 ],
             )
             .await

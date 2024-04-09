@@ -870,6 +870,7 @@ pub enum EntityEditions<'p> {
     EditionId,
     Properties(Option<JsonField<'p>>),
     EditionCreatedById,
+    EditionArchivedById,
     Archived,
     Confidence,
 }
@@ -878,7 +879,7 @@ impl<'p> EntityEditions<'p> {
     pub const fn nullable(self) -> bool {
         match self {
             Self::EditionId | Self::Archived | Self::EditionCreatedById => false,
-            Self::Properties(_) | Self::Confidence => true,
+            Self::Properties(_) | Self::Confidence | Self::EditionArchivedById => true,
         }
     }
 
@@ -889,6 +890,7 @@ impl<'p> EntityEditions<'p> {
         match self {
             Self::EditionId => (EntityEditions::EditionId, None),
             Self::EditionCreatedById => (EntityEditions::EditionCreatedById, None),
+            Self::EditionArchivedById => (EntityEditions::EditionArchivedById, None),
             Self::Archived => (EntityEditions::Archived, None),
             Self::Properties(None) => (EntityEditions::Properties(None), None),
             Self::Properties(Some(path)) => {
@@ -909,6 +911,7 @@ impl EntityEditions<'static> {
                 return transpile_json_field(path, "properties", table, fmt);
             }
             Self::EditionCreatedById => "edition_created_by_id",
+            Self::EditionArchivedById => "edition_archived_by_id",
             Self::Archived => "archived",
             Self::Confidence => "confidence",
         };
@@ -918,7 +921,9 @@ impl EntityEditions<'static> {
 
     pub const fn parameter_type(self) -> ParameterType {
         match self {
-            Self::EditionId | Self::EditionCreatedById => ParameterType::Uuid,
+            Self::EditionId | Self::EditionCreatedById | Self::EditionArchivedById => {
+                ParameterType::Uuid
+            }
             Self::Properties(_) => ParameterType::Any,
             Self::Archived => ParameterType::Boolean,
             Self::Confidence => ParameterType::F64,

@@ -6,7 +6,7 @@ use error_stack::Report;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, ToSql};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
-use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, Timestamp, TransactionTime};
+use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, TransactionTime};
 use type_system::url::{BaseUrl, VersionedUrl};
 #[cfg(feature = "utoipa")]
 use utoipa::{openapi, ToSchema};
@@ -14,7 +14,6 @@ use uuid::Uuid;
 
 pub use self::provenance::{EntityEditionProvenanceMetadata, EntityProvenanceMetadata};
 use crate::{
-    account::{CreatedById, EditionCreatedById},
     knowledge::{
         link::LinkData,
         property::{PatchError, PropertyConfidence},

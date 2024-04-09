@@ -192,6 +192,7 @@ pub struct EntityRecordRowIndices {
     pub first_non_draft_created_at_transaction_time: usize,
     pub first_non_draft_created_at_decision_time: usize,
     pub edition_created_by_id: usize,
+    pub edition_archived_by_id: usize,
 
     pub entity_confidence: usize,
     pub left_entity_confidence: usize,
@@ -317,6 +318,7 @@ impl QueryRecordDecode for Entity {
                         .get(indices.first_non_draft_created_at_decision_time),
                     edition: EntityEditionProvenanceMetadata {
                         created_by_id: row.get(indices.edition_created_by_id),
+                        archived_by_id: row.get(indices.edition_archived_by_id),
                     },
                 },
                 confidence: row.get(indices.entity_confidence),
@@ -402,6 +404,8 @@ impl PostgresRecord for Entity {
                 .add_selection_path(&EntityQueryPath::FirstNonDraftCreatedAtDecisionTime),
             edition_created_by_id: compiler
                 .add_selection_path(&EntityQueryPath::EditionCreatedById),
+            edition_archived_by_id: compiler
+                .add_selection_path(&EntityQueryPath::EditionArchivedById),
 
             entity_confidence: compiler.add_selection_path(&EntityQueryPath::EntityConfidence),
             left_entity_confidence: compiler

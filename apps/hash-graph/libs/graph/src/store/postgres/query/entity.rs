@@ -35,6 +35,7 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             Self::PropertyPaths | Self::PropertyConfidences => vec![Relation::EntityProperties],
             Self::Properties(_)
             | Self::EditionCreatedById
+            | Self::EditionArchivedById
             | Self::Archived
             | Self::EntityConfidence => {
                 vec![Relation::EntityEditions]
@@ -103,6 +104,9 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             }
             Self::Archived => Column::EntityEditions(EntityEditions::Archived),
             Self::EditionCreatedById => Column::EntityEditions(EntityEditions::EditionCreatedById),
+            Self::EditionArchivedById => {
+                Column::EntityEditions(EntityEditions::EditionArchivedById)
+            }
             Self::Embedding => Column::EntityEmbeddings(EntityEmbeddings::Embedding),
             Self::CreatedById => Column::EntityIds(EntityIds::CreatedById),
             Self::TypeBaseUrls => Column::EntityIsOfTypeIds(EntityIsOfTypeIds::BaseUrls),
