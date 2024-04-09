@@ -1,5 +1,8 @@
-use std::{borrow::Cow, error::Error, iter::once};
+#[cfg(feature = "postgres")]
+use std::error::Error;
+use std::{borrow::Cow, iter::once};
 
+#[cfg(feature = "postgres")]
 use bytes::BytesMut;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, ToSql, Type};

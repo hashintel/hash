@@ -1,5 +1,8 @@
-use std::{collections::HashMap, error::Error};
+use std::collections::HashMap;
+#[cfg(feature = "postgres")]
+use std::error::Error;
 
+#[cfg(feature = "postgres")]
 use bytes::BytesMut;
 use error_stack::{Report, ResultExt};
 use json_patch::{
