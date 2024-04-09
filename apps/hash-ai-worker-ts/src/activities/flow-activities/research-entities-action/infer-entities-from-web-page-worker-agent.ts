@@ -76,7 +76,7 @@ const isToolId = (value: string): value is ToolId =>
 const explanationDefinition = {
   type: "string",
   description:
-    "An explanation of why this tool call is required to satisfy the task.",
+    "An explanation of why this tool call is required to satisfy the task, and how it aligns with the current plan. If the plan needs to be modified",
 } as const;
 
 const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
@@ -162,7 +162,8 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
   },
   complete: {
     toolId: "complete",
-    description: "Complete the inference task.",
+    description:
+      "Complete the inference task. You must explain how the task has been completed with the existing submitted entities. Do not make this tool call if the research prompt hasn't been fully satisfied.",
     inputSchema: {
       type: "object",
       properties: {
@@ -562,16 +563,19 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
             previousCalls = previousCalls?.map((previousCall) => ({
               ...previousCall,
               completedToolCalls: previousCall.completedToolCalls.map(
-                (completedToolCall) =>
-                  completedToolCall.toolId === "getWebPageInnerHtml"
-                    ? {
-                        ...completedToolCall,
-                        redactedOutputMessage: dedent(`
-                          The inner HTML of the web page with URL ${toolCallUrl} has been redacted to reduce the length of this chat.
-                          If you want to see the inner HTML of this page, call the "getWebPageInnerHtml" tool again.
-                        `),
-                      }
-                    : completedToolCall,
+                (completedToolCall) => {
+                  if (completedToolCall.toolId === "getWebPageInnerHtml") {
+                    return {
+                      ...completedToolCall,
+                      redactedOutputMessage: dedent(`
+                        The inner HTML of the web page with URL ${(JSON.parse(completedToolCall.openAiToolCall.function.arguments) as ToolCallArguments["getWebPageInnerHtml"]).url} has been redacted to reduce the length of this chat.
+                        If you want to see the inner HTML of this page, call the "getWebPageInnerHtml" tool again.
+                      `),
+                    };
+                  }
+
+                  return completedToolCall;
+                },
               ),
             }));
 
@@ -581,10 +585,14 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               ---------------- START OF INNER HTML ----------------
               ${innerHtml}
               ---------------- END OF INNER HTML ----------------
-              Remember that this may not contain the all the entities you need to infer to satisfy the task, and you may
-              need to navigate to other web pages linked to by this page to find all the entities required.
+              If there are any entities in this HTML which you think are relevant to the task, you must
+                immediately call the "inferEntitiesFromWebPage" tool with the relevant text from the HTML.
+              
+              If there are any links in the HTML which may also contain relevant entities, you should
+                make additional "getWebPageInnerHtml" tool calls to get the content of those pages.
               `),
             };
+
             // } else if (toolCall.toolId === "getWebPageInnerText") {
             //   const { url: toolCallUrl } =
             //     toolCall.parsedArguments as ToolCallArguments["getWebPageInnerText"];
@@ -695,7 +703,8 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
 
             return {
               ...toolCall,
-              output: `The entities with IDs ${JSON.stringify(entityIds)} where successfully submitted.`,
+              output: `The entities with IDs ${JSON.stringify(entityIds)} where successfully submitted.   Do not call the "complete" tool unless the submitted entities satisfy
+              the initial research prompt.`,
             };
           }
 
