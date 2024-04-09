@@ -49,7 +49,7 @@ export const inferEntitiesFromContentAction: FlowActionActivity<{
     actorId: aiAssistantAccountId,
   });
 
-  const webPageInferenceState: InferenceState = {
+  let webPageInferenceState: InferenceState = {
     iterationCount: 1,
     inProgressEntityIds: [],
     proposedEntitySummaries: [],
@@ -84,13 +84,22 @@ export const inferEntitiesFromContentAction: FlowActionActivity<{
     };
   }
 
-  const proposedEntities: ProposedEntity[] = Object.entries(
-    status.contents[0]!.proposedEntityCreationsByType,
+  webPageInferenceState = status.contents[0]!;
+
+  const proposedEntities = Object.entries(
+    webPageInferenceState.proposedEntityCreationsByType,
   ).flatMap(([entityTypeId, proposedEntitiesByType]) =>
-    proposedEntitiesByType.map(({ properties }) => ({
-      entityTypeId: entityTypeId as VersionedUrl,
-      properties: properties ?? {},
-    })),
+    proposedEntitiesByType.map<ProposedEntity>(({ entityId, properties }) => {
+      const summary = webPageInferenceState.proposedEntitySummaries.find(
+        (proposedEntitySummary) => proposedEntitySummary.entityId === entityId,
+      )?.summary;
+
+      return {
+        entityTypeId: entityTypeId as VersionedUrl,
+        summary,
+        properties: properties ?? {},
+      };
+    }),
   );
 
   return {

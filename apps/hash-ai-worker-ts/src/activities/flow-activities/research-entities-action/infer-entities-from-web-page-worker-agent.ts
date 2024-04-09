@@ -38,6 +38,25 @@ import {
 
 const model: PermittedOpenAiModel = "gpt-4-0125-preview";
 
+type SummarizedEntity = {
+  id: string;
+  entityTypeId: VersionedUrl;
+  summary: string;
+};
+
+const mapProposedEntityWithLocalIdToSummarizedEntity = (
+  entity: ProposedEntityWithLocalId,
+): SummarizedEntity => {
+  if (!entity.summary) {
+    throw new Error("Expected proposed entity to have a summary.");
+  }
+  return {
+    id: entity.localId,
+    entityTypeId: entity.entityTypeId,
+    summary: entity.summary ?? "",
+  };
+};
+
 const toolIds = [
   // "getWebPageInnerText",
   "getWebPageInnerHtml",
@@ -337,7 +356,7 @@ const getNextToolCalls = async (params: {
         submittedProposedEntities.length > 0
           ? dedent(`
             You have previously submitted the following proposed entities:
-            ${JSON.stringify(submittedProposedEntities, null, 2)}
+            ${JSON.stringify(submittedProposedEntities.map(mapProposedEntityWithLocalIdToSummarizedEntity))}
 
             If the submitted entities satisfy the research prompt, call the "complete" tool.
           `)
@@ -628,7 +647,11 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
 
             return {
               ...toolCall,
-              output: JSON.stringify(newProposedEntitiesWithIds),
+              output: JSON.stringify(
+                newProposedEntitiesWithIds.map(
+                  mapProposedEntityWithLocalIdToSummarizedEntity,
+                ),
+              ),
             };
           } else if (toolCall.toolId === "submitProposedEntities") {
             const { entityIds } =

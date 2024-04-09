@@ -25,6 +25,7 @@ export type WebPage = {
 
 export type ProposedEntity = {
   entityTypeId: VersionedUrl;
+  summary?: string;
   properties: EntityPropertiesObject;
 };
 
