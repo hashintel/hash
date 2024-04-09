@@ -15,6 +15,7 @@ export type ToolCall<ToolId extends string> = {
 };
 
 export type CompletedToolCall<ToolId extends string> = {
+  redactedOutputMessage?: string;
   output: string;
 } & ToolCall<ToolId>;
 

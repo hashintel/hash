@@ -49,10 +49,11 @@ export const mapPreviousCallsToChatCompletionMessages = (params: {
                 role: "tool",
                 tool_call_id: completedToolCall.openAiToolCall.id,
                 content: isAfterOmitIndex
-                  ? dedent(`
-                  The output fo the tool call is:
-                  ${completedToolCall.output}
-                `)
+                  ? completedToolCall.redactedOutputMessage ??
+                    dedent(`
+                      The output fo the tool call is:
+                      ${completedToolCall.output}
+                    `)
                   : "This output has been omitted to reduce the length of the chat.",
               }),
             ),

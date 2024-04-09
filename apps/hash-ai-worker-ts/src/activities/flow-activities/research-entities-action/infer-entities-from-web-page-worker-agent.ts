@@ -236,6 +236,10 @@ const systemMessagePrefix = dedent(`
   This is particularly important if the contents of a page are paginated
     over multiple web pages (for example web pages containing a table).
 
+  Make as many tool calls in parallel as possible. For example, call "inferEntitiesFromWebPage"
+    alongside "getWebPageInnerHtml" to get the content of another web page which may contain
+    more entities.
+
   Do not under any circumstances make a tool call to a tool which you haven't
     been provided with.
 `);
@@ -369,11 +373,7 @@ const getNextToolCalls = async (params: {
     systemMessage,
     generateUserMessage({ prompt, url }),
     ...(previousCalls
-      ? mapPreviousCallsToChatCompletionMessages({
-          previousCalls,
-          // Omit the outputs of previous tool calls to reduce the length of the chat.
-          omitToolCallOutputsPriorReverseIndex: 4,
-        })
+      ? mapPreviousCallsToChatCompletionMessages({ previousCalls })
       : []),
     ...(retryMessages ?? []),
   ];
@@ -512,7 +512,9 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     }[];
     toolCalls: ToolCall<ToolId>[];
   }): Promise<Status<never>> => {
-    const { toolCalls, previousCalls } = processToolCallsParams;
+    const { toolCalls } = processToolCallsParams;
+
+    let previousCalls = processToolCallsParams.previousCalls;
 
     const terminatedToolCall = toolCalls.find(
       (toolCall) => toolCall.toolId === "terminate",
@@ -556,6 +558,22 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
             const { innerHtml } = await getWebPageInnerHtml({
               url: toolCallUrl,
             });
+
+            previousCalls = previousCalls?.map((previousCall) => ({
+              ...previousCall,
+              completedToolCalls: previousCall.completedToolCalls.map(
+                (completedToolCall) =>
+                  completedToolCall.toolId === "getWebPageInnerHtml"
+                    ? {
+                        ...completedToolCall,
+                        redactedOutputMessage: dedent(`
+                          The inner HTML of the web page with URL ${toolCallUrl} has been redacted to reduce the length of this chat.
+                          If you want to see the inner HTML of this page, call the "getWebPageInnerHtml" tool again.
+                        `),
+                      }
+                    : completedToolCall,
+              ),
+            }));
 
             return {
               ...toolCall,
