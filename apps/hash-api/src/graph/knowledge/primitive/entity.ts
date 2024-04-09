@@ -9,6 +9,7 @@ import type {
   Filter,
   GraphResolveDepths,
   ModifyRelationshipOperation,
+  PropertyConfidence,
 } from "@local/hash-graph-client";
 import type {
   CreateEmbeddingsParams,
@@ -76,6 +77,8 @@ export type CreateEntityParams = {
   entityUuid?: EntityUuid;
   draft?: boolean;
   relationships: EntityRelationAndSubject[];
+  confidence?: number;
+  propertyConfidence?: PropertyConfidence;
 };
 
 /** @todo: potentially directly export this from the subgraph package */
@@ -127,7 +130,8 @@ export const createEntity: ImpureGraphFunction<
     entityUuid: overrideEntityUuid,
     draft,
     relationships: params.relationships,
-    propertyConfidence,
+    confidence: params.confidence,
+    propertyConfidence: params.propertyConfidence,
   });
 
   const entity = {

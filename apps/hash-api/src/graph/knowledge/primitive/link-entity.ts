@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { PropertyConfidence } from "@local/hash-graph-client";
 import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   AccountGroupId,
@@ -27,8 +28,12 @@ export type CreateLinkEntityParams = {
   owner?: AccountId | AccountGroupId;
   draft?: boolean;
   leftEntityId: EntityId;
+  leftEntityConfidence?: number;
   rightEntityId: EntityId;
+  rightEntityConfidence?: number;
   relationships: EntityRelationAndSubject[];
+  confidence?: number;
+  propertyConfidence?: PropertyConfidence;
 };
 
 export const isEntityLinkEntity = (entity: Entity): entity is LinkEntity =>
@@ -54,6 +59,11 @@ export const createLinkEntity: ImpureGraphFunction<
     rightEntityId,
     properties = {},
     draft = false,
+    relationships,
+    leftEntityConfidence,
+    rightEntityConfidence,
+    confidence,
+    propertyConfidence,
   } = params;
 
   const linkEntityType = await getEntityTypeById(context, authentication, {
@@ -79,6 +89,8 @@ export const createLinkEntity: ImpureGraphFunction<
   const linkData: LinkData = {
     leftEntityId,
     rightEntityId,
+    leftEntityConfidence,
+    rightEntityConfidence,
   };
 
   const { data: metadata } = await context.graphApi.createEntity(
@@ -89,7 +101,9 @@ export const createLinkEntity: ImpureGraphFunction<
       entityTypeIds: [linkEntityType.schema.$id],
       properties,
       draft,
-      relationships: params.relationships,
+      relationships,
+      confidence,
+      propertyConfidence,
     },
   );
 
