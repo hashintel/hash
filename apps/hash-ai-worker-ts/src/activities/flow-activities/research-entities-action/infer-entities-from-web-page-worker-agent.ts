@@ -132,7 +132,10 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
           items: {
             type: "string",
           },
-          description: "An array of entity IDs of the entities to submit.",
+          description: dedent(`
+            An array of entity IDs of the entities to submit.
+            These must correspond to the IDs provided by a "inferEntitiesFromWebPage" tool call.
+          `),
         },
       },
       required: ["entityIds", "explanation"],
@@ -350,7 +353,7 @@ const getNextToolCalls = async (params: {
       ? mapPreviousCallsToChatCompletionMessages({
           previousCalls,
           // Omit the outputs of the previous tool calls to reduce the length of the chat.
-          omitToolCallOutputsPriorReverseIndex: 1,
+          omitToolCallOutputsPriorReverseIndex: 3,
         })
       : []),
     ...(retryMessages ?? []),
@@ -624,6 +627,22 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
           } else if (toolCall.toolId === "submitProposedEntities") {
             const { entityIds } =
               toolCall.parsedArguments as ToolCallArguments["submitProposedEntities"];
+
+            const invalidEntityIds = entityIds.filter(
+              (entityId) =>
+                !proposedEntities.some(({ localId }) => localId === entityId),
+            );
+
+            if (invalidEntityIds.length > 0) {
+              return {
+                ...toolCall,
+                output: dedent(`
+                  You provided invalid entity IDs which don't correspond to any entities
+                  which were previously inferred from an "inferEntitiesFromWebPage"
+                  tool call: ${JSON.stringify(invalidEntityIds)}
+                `),
+              };
+            }
 
             submittedEntityIds.push(...entityIds);
 
