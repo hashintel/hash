@@ -320,29 +320,37 @@ const createInitialPlan = async (params: {
   };
 };
 
+type State = {
+  currentPlan: string;
+  previousCalls: {
+    completedToolCalls: CompletedToolCall<ToolId>[];
+  }[];
+  proposedEntities: ProposedEntityWithLocalId[];
+  submittedEntityIds: string[];
+  inferredEntitiesFromWebPageUrls: string[];
+  idCounter: number;
+};
+
+const getSubmittedProposedEntitiesFromState = (
+  state: State,
+): ProposedEntityWithLocalId[] =>
+  state.proposedEntities.filter(({ localId }) =>
+    state.submittedEntityIds.includes(localId),
+  );
+
 const retryLimit = 3;
 
 const getNextToolCalls = async (params: {
-  previousPlan: string;
-  previousCalls?: {
-    completedToolCalls: CompletedToolCall<ToolId>[];
-  }[];
-  submittedProposedEntities: ProposedEntityWithLocalId[];
-  inferredEntitiesFromWebPageUrls: string[];
+  state: State;
   prompt: string;
   url: string;
   retryMessages?: ChatCompletionMessageParam[];
   retryCount?: number;
 }): Promise<{ toolCalls: ToolCall<ToolId>[] }> => {
-  const {
-    prompt,
-    url,
-    submittedProposedEntities,
-    previousCalls,
-    previousPlan,
-    retryMessages,
-    retryCount,
-  } = params;
+  const { prompt, url, state, retryMessages, retryCount } = params;
+
+  const submittedProposedEntities =
+    getSubmittedProposedEntitiesFromState(state);
 
   const systemMessage: ChatCompletionSystemMessageParam = {
     role: "system",
@@ -350,13 +358,13 @@ const getNextToolCalls = async (params: {
       ${systemMessagePrefix}
 
       You have previously proposed the following plan:
-      ${previousPlan}
+      ${state.currentPlan}
       
       If you want to deviate from this plan, update it using the "updatePlan" tool.
       You must call the "updatePlan" tool alongside other tool calls to progress towards completing the task.
 
       To constrain the size of the chat, some message outputs may have been omitted. Here's a summary of what you've previously done:
-      You have previously inferred entities from the following webpages: ${JSON.stringify(params.inferredEntitiesFromWebPageUrls, null, 2)}
+      You have previously inferred entities from the following webpages: ${JSON.stringify(state.inferredEntitiesFromWebPageUrls, null, 2)}
       ${
         submittedProposedEntities.length > 0
           ? dedent(`
@@ -373,9 +381,9 @@ const getNextToolCalls = async (params: {
   const messages: ChatCompletionMessageParam[] = [
     systemMessage,
     generateUserMessage({ prompt, url }),
-    ...(previousCalls
-      ? mapPreviousCallsToChatCompletionMessages({ previousCalls })
-      : []),
+    ...mapPreviousCallsToChatCompletionMessages({
+      previousCalls: state.previousCalls,
+    }),
     ...(retryMessages ?? []),
   ];
 
@@ -472,17 +480,6 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
   const { prompt, url, entityTypeIds, userAuthentication, graphApiClient } =
     params;
 
-  const proposedEntities: ProposedEntityWithLocalId[] = [];
-  const submittedEntityIds: string[] = [];
-  const inferredEntitiesFromWebPageUrls: string[] = [];
-
-  let counter = 0;
-
-  const generateLocalId = (): string => {
-    counter += 1;
-    return counter.toString();
-  };
-
   /**
    * We start by making a asking the coordinator agent to create an initial plan
    * for the research task. We include the inner HTML for the web page in this
@@ -498,24 +495,31 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     innerHtml: initialWebPageInnerHtml,
   });
 
+  const state: State = {
+    currentPlan: initialPlan,
+    previousCalls: [],
+    proposedEntities: [],
+    submittedEntityIds: [],
+    inferredEntitiesFromWebPageUrls: [],
+    idCounter: 0,
+  };
+
+  const generateLocalId = (): string => {
+    state.idCounter += 1;
+
+    return state.idCounter.toString();
+  };
+
   const { toolCalls: initialToolCalls } = await getNextToolCalls({
-    previousPlan: initialPlan,
-    submittedProposedEntities: [],
-    inferredEntitiesFromWebPageUrls,
+    state,
     prompt,
     url,
   });
 
   const processToolCalls = async (processToolCallsParams: {
-    previousPlan: string;
-    previousCalls?: {
-      completedToolCalls: CompletedToolCall<ToolId>[];
-    }[];
     toolCalls: ToolCall<ToolId>[];
   }): Promise<Status<never>> => {
     const { toolCalls } = processToolCallsParams;
-
-    let previousCalls = processToolCallsParams.previousCalls;
 
     const terminatedToolCall = toolCalls.find(
       (toolCall) => toolCall.toolId === "terminate",
@@ -533,12 +537,6 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
       ({ toolId }) => toolId !== "complete" && toolId !== "terminate",
     );
 
-    /**
-     * This plan may be updated by the tool calls that are about to be
-     * evaluated.
-     */
-    let latestPlan = processToolCallsParams.previousPlan;
-
     const completedToolCalls = await Promise.all(
       toolCallsWithRelevantResults.map(
         async (toolCall): Promise<CompletedToolCall<ToolId>> => {
@@ -546,7 +544,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
             const { plan } =
               toolCall.parsedArguments as ToolCallArguments["updatePlan"];
 
-            latestPlan = plan;
+            state.currentPlan = plan;
 
             return {
               ...toolCall,
@@ -560,7 +558,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               url: toolCallUrl,
             });
 
-            previousCalls = previousCalls?.map((previousCall) => ({
+            state.previousCalls = state.previousCalls.map((previousCall) => ({
               ...previousCall,
               completedToolCalls: previousCall.completedToolCalls.map(
                 (completedToolCall) => {
@@ -612,7 +610,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               url: inferringEntitiesFromWebPageUrl,
             } = toolCall.parsedArguments as ToolCallArguments["inferEntitiesFromWebPage"];
 
-            inferredEntitiesFromWebPageUrls.push(
+            state.inferredEntitiesFromWebPageUrls.push(
               inferringEntitiesFromWebPageUrl,
             );
 
@@ -669,7 +667,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               }),
             );
 
-            proposedEntities.push(...newProposedEntitiesWithIds);
+            state.proposedEntities.push(...newProposedEntitiesWithIds);
 
             return {
               ...toolCall,
@@ -685,7 +683,9 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
 
             const invalidEntityIds = entityIds.filter(
               (entityId) =>
-                !proposedEntities.some(({ localId }) => localId === entityId),
+                !state.proposedEntities.some(
+                  ({ localId }) => localId === entityId,
+                ),
             );
 
             if (invalidEntityIds.length > 0) {
@@ -699,7 +699,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               };
             }
 
-            submittedEntityIds.push(...entityIds);
+            state.submittedEntityIds.push(...entityIds);
 
             return {
               ...toolCall,
@@ -725,33 +725,20 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
       return { code: StatusCode.Ok, contents: [] };
     }
 
-    const updatedPreviousCalls = [
-      ...(previousCalls ?? []),
-      { completedToolCalls },
-    ];
-
-    const submittedProposedEntities = proposedEntities.filter(({ localId }) =>
-      submittedEntityIds.includes(localId),
-    );
+    state.previousCalls = [...state.previousCalls, { completedToolCalls }];
 
     const openAiResponse = await getNextToolCalls({
-      previousPlan: latestPlan,
-      submittedProposedEntities,
-      inferredEntitiesFromWebPageUrls,
-      previousCalls: updatedPreviousCalls,
+      state,
       prompt,
       url,
     });
 
     return await processToolCalls({
-      previousPlan: latestPlan,
-      previousCalls: updatedPreviousCalls,
       toolCalls: openAiResponse.toolCalls,
     });
   };
 
   const status = await processToolCalls({
-    previousPlan: initialPlan,
     toolCalls: initialToolCalls,
   });
 
@@ -763,9 +750,8 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     };
   }
 
-  const submittedProposedEntities = proposedEntities.filter(({ localId }) =>
-    submittedEntityIds.includes(localId),
-  );
+  const submittedProposedEntities =
+    getSubmittedProposedEntitiesFromState(state);
 
   return {
     code: StatusCode.Ok,
