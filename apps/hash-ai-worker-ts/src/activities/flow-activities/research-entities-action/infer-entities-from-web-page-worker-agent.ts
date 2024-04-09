@@ -25,6 +25,11 @@ import { getOpenAiResponse } from "../../infer-entities/shared/get-open-ai-respo
 import { inferEntitiesFromContentAction } from "../infer-entities-from-content-action";
 import { getWebPageInnerHtml } from "./infer-entities-from-web-page-worker-agent/get-web-page-inner-html";
 import type {
+  InferEntitiesFromWebPageWorkerAgentState,
+  ToolId,
+} from "./infer-entities-from-web-page-worker-agent/types";
+import { isToolId } from "./infer-entities-from-web-page-worker-agent/types";
+import type {
   CompletedToolCall,
   ProposedEntityWithLocalId,
   ToolCall,
@@ -56,22 +61,6 @@ const mapProposedEntityWithLocalIdToSummarizedEntity = (
     summary: entity.summary ?? "",
   };
 };
-
-const toolIds = [
-  // "getWebPageInnerText",
-  "getWebPageInnerHtml",
-  // "getWebPageSummary",
-  "inferEntitiesFromWebPage",
-  "submitProposedEntities",
-  "complete",
-  "terminate",
-  "updatePlan",
-] as const;
-
-type ToolId = (typeof toolIds)[number];
-
-const isToolId = (value: string): value is ToolId =>
-  toolIds.includes(value as ToolId);
 
 const explanationDefinition = {
   type: "string",
@@ -320,19 +309,8 @@ const createInitialPlan = async (params: {
   };
 };
 
-type State = {
-  currentPlan: string;
-  previousCalls: {
-    completedToolCalls: CompletedToolCall<ToolId>[];
-  }[];
-  proposedEntities: ProposedEntityWithLocalId[];
-  submittedEntityIds: string[];
-  inferredEntitiesFromWebPageUrls: string[];
-  idCounter: number;
-};
-
 const getSubmittedProposedEntitiesFromState = (
-  state: State,
+  state: InferEntitiesFromWebPageWorkerAgentState,
 ): ProposedEntityWithLocalId[] =>
   state.proposedEntities.filter(({ localId }) =>
     state.submittedEntityIds.includes(localId),
@@ -341,7 +319,7 @@ const getSubmittedProposedEntitiesFromState = (
 const retryLimit = 3;
 
 const getNextToolCalls = async (params: {
-  state: State;
+  state: InferEntitiesFromWebPageWorkerAgentState;
   prompt: string;
   url: string;
   retryMessages?: ChatCompletionMessageParam[];
@@ -495,7 +473,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     innerHtml: initialWebPageInnerHtml,
   });
 
-  const state: State = {
+  const state: InferEntitiesFromWebPageWorkerAgentState = {
     currentPlan: initialPlan,
     previousCalls: [],
     proposedEntities: [],
@@ -503,6 +481,8 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     inferredEntitiesFromWebPageUrls: [],
     idCounter: 0,
   };
+
+  // const state = retrievePreviousState();
 
   const generateLocalId = (): string => {
     state.idCounter += 1;
@@ -726,6 +706,8 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     }
 
     state.previousCalls = [...state.previousCalls, { completedToolCalls }];
+
+    // writeStateToFile(state);
 
     const openAiResponse = await getNextToolCalls({
       state,
