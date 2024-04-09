@@ -211,24 +211,26 @@ const systemMessagePrefix = dedent(`
     to linked pages, and evaluate them as well as the initial page that
     is provided.
 
+  This is particularly important if the contents of a page are paginated
+    over multiple web pages (for example web pages containing a table).
+
   Do not under any circumstances make a tool call to a tool which you haven't
     been provided with.
-    
-  This is particularly important if the contents of a page are paginated
-    over multiple web pages (for example web pages containing a table)
 `);
 
 const generateUserMessage = (params: {
   prompt: string;
   url: string;
+  innerHtml?: string;
 }): ChatCompletionMessageParam => {
-  const { prompt, url } = params;
+  const { prompt, url, innerHtml } = params;
 
   return {
     role: "user",
     content: dedent(`
       Prompt: ${prompt}
-      Initial URL: ${url}
+      Initial web page url: ${url}
+      ${innerHtml ? `Initial web page inner HTML: ${innerHtml}` : ""}
     `),
   };
 };
@@ -236,6 +238,7 @@ const generateUserMessage = (params: {
 const createInitialPlan = async (params: {
   prompt: string;
   url: string;
+  innerHtml: string;
 }): Promise<{ plan: string }> => {
   const { prompt, url } = params;
 
@@ -248,6 +251,9 @@ const createInitialPlan = async (params: {
         the tools to progress towards completing the task.
 
       This should be a list of steps in plain English.
+
+      Remember that you may need to navigate to other web pages which are linked on the
+      initial web page, to find all the entities required to satisfy the prompt.
     `),
   };
 
@@ -322,7 +328,7 @@ const getNextToolCalls = async (params: {
       If you want to deviate from this plan, update it using the "updatePlan" tool.
       You must call the "updatePlan" tool alongside other tool calls to progress towards completing the task.
 
-      To constrain the size of the chat, some messages may have been omitted. Here's a summary of what you've previously done:
+      To constrain the size of the chat, some message outputs may have been omitted. Here's a summary of what you've previously done:
       You have previously inferred entities from the following webpages: ${JSON.stringify(params.inferredEntitiesFromWebPageUrls, null, 2)}
       ${
         submittedProposedEntities.length > 0
@@ -456,9 +462,18 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
 
   /**
    * We start by making a asking the coordinator agent to create an initial plan
-   * for the research task.
+   * for the research task. We include the inner HTML for the web page in this
+   * call, to help it formulate a better initial plan.
    */
-  const { plan: initialPlan } = await createInitialPlan({ prompt, url });
+  const { innerHtml: initialWebPageInnerHtml } = await getWebPageInnerHtml({
+    url,
+  });
+
+  const { plan: initialPlan } = await createInitialPlan({
+    prompt,
+    url,
+    innerHtml: initialWebPageInnerHtml,
+  });
 
   const { toolCalls: initialToolCalls } = await getNextToolCalls({
     previousPlan: initialPlan,
