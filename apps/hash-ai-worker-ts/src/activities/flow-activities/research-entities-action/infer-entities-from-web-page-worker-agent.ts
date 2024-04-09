@@ -19,7 +19,7 @@ import type {
   ChatCompletionSystemMessageParam,
 } from "openai/resources";
 
-import { getWebPageActivity } from "../../get-web-page-activity";
+// import { getWebPageActivity } from "../../get-web-page-activity";
 import type { PermittedOpenAiModel } from "../../infer-entities/inference-types";
 import { getOpenAiResponse } from "../../infer-entities/shared/get-open-ai-response";
 import { inferEntitiesFromContentAction } from "../infer-entities-from-content-action";
@@ -39,7 +39,7 @@ import {
 const model: PermittedOpenAiModel = "gpt-4-0125-preview";
 
 const toolIds = [
-  "getWebPageInnerText",
+  // "getWebPageInnerText",
   "getWebPageInnerHtml",
   // "getWebPageSummary",
   "inferEntitiesFromWebPage",
@@ -61,21 +61,21 @@ const explanationDefinition = {
 } as const;
 
 const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
-  getWebPageInnerText: {
-    toolId: "getWebPageInnerText",
-    description: "Get the inner text (i.e. the rendered text) of a web page.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        explanation: explanationDefinition,
-        url: {
-          type: "string",
-          description: "The URL of the web page.",
-        },
-      },
-      required: ["url", "explanation"],
-    },
-  },
+  // getWebPageInnerText: {
+  //   toolId: "getWebPageInnerText",
+  //   description: "Get the inner text (i.e. the rendered text) of a web page.",
+  //   inputSchema: {
+  //     type: "object",
+  //     properties: {
+  //       explanation: explanationDefinition,
+  //       url: {
+  //         type: "string",
+  //         description: "The URL of the web page.",
+  //       },
+  //     },
+  //     required: ["url", "explanation"],
+  //   },
+  // },
   getWebPageInnerHtml: {
     toolId: "getWebPageInnerHtml",
     description: "Get the inner HTML of a web page.",
@@ -352,8 +352,8 @@ const getNextToolCalls = async (params: {
     ...(previousCalls
       ? mapPreviousCallsToChatCompletionMessages({
           previousCalls,
-          // Omit the outputs of the previous tool calls to reduce the length of the chat.
-          omitToolCallOutputsPriorReverseIndex: 3,
+          // Omit the outputs of previous tool calls to reduce the length of the chat.
+          omitToolCallOutputsPriorReverseIndex: 4,
         })
       : []),
     ...(retryMessages ?? []),
@@ -540,20 +540,26 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
 
             return {
               ...toolCall,
-              output: innerHtml,
+              output: dedent(`
+              ---------------- START OF INNER HTML ----------------
+              ${innerHtml}
+              ---------------- END OF INNER HTML ----------------
+              Remember that this may not contain the all the entities you need to infer to satisfy the task, and you may
+              need to navigate to other web pages linked to by this page to find all the entities required.
+              `),
             };
-          } else if (toolCall.toolId === "getWebPageInnerText") {
-            const { url: toolCallUrl } =
-              toolCall.parsedArguments as ToolCallArguments["getWebPageInnerText"];
+            // } else if (toolCall.toolId === "getWebPageInnerText") {
+            //   const { url: toolCallUrl } =
+            //     toolCall.parsedArguments as ToolCallArguments["getWebPageInnerText"];
 
-            const { textContent } = await getWebPageActivity({
-              url: toolCallUrl,
-            });
+            //   const { textContent } = await getWebPageActivity({
+            //     url: toolCallUrl,
+            //   });
 
-            return {
-              ...toolCall,
-              output: textContent,
-            };
+            //   return {
+            //     ...toolCall,
+            //     output: textContent,
+            //   };
           } else if (toolCall.toolId === "inferEntitiesFromWebPage") {
             const {
               text,
