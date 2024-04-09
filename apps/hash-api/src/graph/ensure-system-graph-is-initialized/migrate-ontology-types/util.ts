@@ -35,6 +35,7 @@ import {
 import {
   blockProtocolDataTypes,
   googleEntityTypes,
+  systemDataTypes,
   systemEntityTypes,
   systemLinkEntityTypes,
   systemPropertyTypes,
@@ -321,7 +322,7 @@ export const loadExternalEntityTypeIfNotExists: ImpureGraphFunction<
   return await getEntityTypeById(context, authentication, { entityTypeId });
 };
 
-type PropertyTypeDefinition = {
+export type PropertyTypeDefinition = {
   propertyTypeId: VersionedUrl;
   title: string;
   description?: string;
@@ -898,6 +899,25 @@ export const getCurrentHashPropertyTypeId = ({
   }
 
   return versionedUrlFromComponents(propertyTypeBaseUrl, propertyTypeVersion);
+};
+
+export const getCurrentHashDataTypeId = ({
+  dataTypeKey,
+  migrationState,
+}: {
+  dataTypeKey: keyof typeof systemDataTypes;
+  migrationState: MigrationState;
+}) => {
+  const dataTypeBaseUrl = systemDataTypes[dataTypeKey]
+    .dataTypeBaseUrl as BaseUrl;
+
+  const dataTypeVersion = migrationState.dataTypeVersions[dataTypeBaseUrl];
+
+  if (typeof dataTypeVersion === "undefined") {
+    throw new Error(`Expected '${dataTypeKey}' data type to have been seeded`);
+  }
+
+  return versionedUrlFromComponents(dataTypeBaseUrl, dataTypeVersion);
 };
 
 type BaseUpdateTypeParameters = {
