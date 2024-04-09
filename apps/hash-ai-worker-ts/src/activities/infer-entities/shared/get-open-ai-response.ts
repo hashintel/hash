@@ -13,6 +13,7 @@ import { openai } from "./openai-client";
 const modelToContextWindow: Record<PermittedOpenAiModel, number> = {
   "gpt-3.5-turbo-1106": 16_385,
   "gpt-4-1106-preview": 128_000,
+  "gpt-4-0125-preview": 128_000,
   "gpt-4": 8_192,
 };
 

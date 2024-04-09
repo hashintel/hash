@@ -20,7 +20,7 @@ import type {
 } from "openai/resources";
 
 import { getWebPageActivity } from "../../get-web-page-activity";
-import { modelAliasToSpecificModel } from "../../infer-entities";
+import type { PermittedOpenAiModel } from "../../infer-entities/inference-types";
 import { getOpenAiResponse } from "../../infer-entities/shared/get-open-ai-response";
 import { inferEntitiesFromContentAction } from "../infer-entities-from-content-action";
 import { getWebPageInnerHtml } from "./infer-entities-from-web-page-worker-agent/get-web-page-inner-html";
@@ -35,6 +35,8 @@ import {
   mapToolDefinitionToOpenAiTool,
   parseOpenAiFunctionArguments,
 } from "./util";
+
+const model: PermittedOpenAiModel = "gpt-4-0125-preview";
 
 const toolIds = [
   "getWebPageInnerText",
@@ -256,7 +258,7 @@ const createInitialPlan = async (params: {
 
   const openApiPayload: ChatCompletionCreateParams = {
     messages,
-    model: modelAliasToSpecificModel["gpt-4-turbo"],
+    model,
     tools: Object.values(toolDefinitions).map(mapToolDefinitionToOpenAiTool),
   };
 
@@ -350,7 +352,7 @@ const getNextToolCalls = async (params: {
 
   const openApiPayload: ChatCompletionCreateParams = {
     messages,
-    model: modelAliasToSpecificModel["gpt-4-turbo"],
+    model,
     tools: Object.values(toolDefinitions).map(mapToolDefinitionToOpenAiTool),
   };
 

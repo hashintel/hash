@@ -6,7 +6,7 @@ import type {
   ChatCompletionSystemMessageParam,
 } from "openai/resources";
 
-import { modelAliasToSpecificModel } from "../../infer-entities";
+import type { PermittedOpenAiModel } from "../../infer-entities/inference-types";
 import { getOpenAiResponse } from "../../infer-entities/shared/get-open-ai-response";
 import type { CoordinatorToolId } from "./coordinator-tools";
 import {
@@ -23,6 +23,8 @@ import {
   mapToolDefinitionToOpenAiTool,
   parseOpenAiFunctionArguments,
 } from "./util";
+
+const model: PermittedOpenAiModel = "gpt-4-0125-preview";
 
 const getNextToolCalls = async (params: {
   submittedProposedEntities: ProposedEntityWithLocalId[];
@@ -78,7 +80,7 @@ const getNextToolCalls = async (params: {
 
   const openApiPayload: ChatCompletionCreateParams = {
     messages,
-    model: modelAliasToSpecificModel["gpt-4-turbo"],
+    model,
     tools: Object.values(coordinatorToolDefinitions).map(
       mapToolDefinitionToOpenAiTool,
     ),
@@ -154,7 +156,7 @@ const createInitialPlan = async (params: {
 
   const openApiPayload: ChatCompletionCreateParams = {
     messages,
-    model: modelAliasToSpecificModel["gpt-4-turbo"],
+    model,
     tools: Object.values(coordinatorToolDefinitions)
       .filter(({ toolId }) => toolId !== "updatePlan")
       .map(mapToolDefinitionToOpenAiTool),
