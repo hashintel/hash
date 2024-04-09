@@ -7,7 +7,6 @@ import { promptTokensEstimate } from "openai-chat-tokens";
 import type { PermittedOpenAiModel } from "../inference-types";
 import { log } from "../log";
 import { stringify } from "../stringify";
-import { firstUserMessageIndex } from "./first-user-message-index";
 import { openai } from "./openai-client";
 
 const modelToContextWindow: Record<PermittedOpenAiModel, number> = {
@@ -24,6 +23,7 @@ const isPermittedModel = (
 
 export const getOpenAiResponse = async (
   openAiPayload: OpenAI.ChatCompletionCreateParams,
+  trimMessageAtIndex?: number,
 ): Promise<
   Status<{
     response: OpenAI.Chat.Completions.ChatCompletion.Choice;
@@ -43,37 +43,39 @@ export const getOpenAiResponse = async (
 
   const newCompletionPayload = { ...openAiPayload };
 
-  let estimatedPromptTokens: number;
-  let excessTokens: number;
-  do {
-    estimatedPromptTokens = promptTokensEstimate({
-      messages: openAiPayload.messages,
-      functions: openAiPayload.tools?.map((tool) => tool.function),
-    });
-    log(`Estimated prompt tokens: ${estimatedPromptTokens}`);
+  let estimatedPromptTokens: number | undefined;
+  if (typeof trimMessageAtIndex === "number") {
+    let excessTokens: number;
+    do {
+      estimatedPromptTokens = promptTokensEstimate({
+        messages: openAiPayload.messages,
+        functions: openAiPayload.tools?.map((tool) => tool.function),
+      });
+      log(`Estimated prompt tokens: ${estimatedPromptTokens}`);
 
-    excessTokens =
-      estimatedPromptTokens + completionPayloadOverhead - modelContextWindow;
+      excessTokens =
+        estimatedPromptTokens + completionPayloadOverhead - modelContextWindow;
 
-    if (excessTokens < 10) {
-      break;
-    }
+      if (excessTokens < 10) {
+        break;
+      }
 
-    log(
-      `Estimated prompt tokens (${estimatedPromptTokens}) + completion token overhead (${completionPayloadOverhead}) exceeds model context window (${modelContextWindow}), trimming original user text input by ${
-        excessTokens / 4
-      } characters.`,
-    );
+      log(
+        `Estimated prompt tokens (${estimatedPromptTokens}) + completion token overhead (${completionPayloadOverhead}) exceeds model context window (${modelContextWindow}), trimming original user text input by ${
+          excessTokens / 4
+        } characters.`,
+      );
 
-    const firstUserMessageContent =
-      newCompletionPayload.messages[firstUserMessageIndex]!.content;
+      const firstUserMessageContent =
+        newCompletionPayload.messages[trimMessageAtIndex]!.content;
 
-    newCompletionPayload.messages[firstUserMessageIndex]!.content =
-      firstUserMessageContent?.slice(
-        0,
-        firstUserMessageContent.length - excessTokens * 4,
-      ) ?? "";
-  } while (excessTokens > 9);
+      newCompletionPayload.messages[trimMessageAtIndex]!.content =
+        firstUserMessageContent?.slice(
+          0,
+          firstUserMessageContent.length - excessTokens * 4,
+        ) ?? "";
+    } while (excessTokens > 9);
+  }
 
   let data: OpenAI.ChatCompletion;
   try {
@@ -113,11 +115,14 @@ export const getOpenAiResponse = async (
     log(
       `Actual usage for iteration: prompt tokens: ${prompt_tokens}, completion tokens: ${completion_tokens}, total tokens: ${total_tokens}`,
     );
-    log(
-      `Estimated prompt usage off by ${
-        prompt_tokens - estimatedPromptTokens
-      } tokens.`,
-    );
+
+    if (estimatedPromptTokens) {
+      log(
+        `Estimated prompt usage off by ${
+          prompt_tokens - estimatedPromptTokens
+        } tokens.`,
+      );
+    }
   }
 
   const usage = data.usage ?? {

@@ -159,7 +159,10 @@ export const persistEntities = async (params: {
     tools,
   };
 
-  const openAiResponse = await getOpenAiResponse(openApiPayload);
+  const openAiResponse = await getOpenAiResponse(
+    openApiPayload,
+    firstUserMessageIndex,
+  );
 
   if (openAiResponse.code !== StatusCode.Ok) {
     return {
