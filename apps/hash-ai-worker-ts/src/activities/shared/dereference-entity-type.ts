@@ -17,12 +17,12 @@ import type {
   Subgraph,
 } from "@local/hash-subgraph";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
+import { componentsFromVersionedUrl } from "@local/hash-subgraph/src/shared/type-system-patch";
 import {
   getDataTypeById,
   getEntityTypeAndParentsById,
   getPropertyTypeById,
-} from "@local/hash-subgraph/stdlib";
-import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
+} from "@local/hash-subgraph/src/stdlib";
 
 type MinimalDataType = Pick<DataType, "type">;
 

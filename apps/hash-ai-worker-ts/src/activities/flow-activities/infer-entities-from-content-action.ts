@@ -6,8 +6,9 @@ import {
   type OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
-import type { OwnedById } from "@local/hash-subgraph/.";
+import type { OwnedById } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
+import id128 from "id128";
 
 import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity";
 import { getDereferencedEntityTypesActivity } from "../get-dereferenced-entity-types-activity";
@@ -15,6 +16,12 @@ import type { InferenceState } from "../infer-entities/inference-types";
 import { inferEntitiesFromWebPageActivity } from "../infer-entities-from-web-page-activity";
 import { modelAliasToSpecificModel } from "../shared/openai";
 import type { FlowActionActivity } from "./types";
+
+/**
+ * @todo replace this with `import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid"` when PR #4277 merges,
+ *    and remove 'id128' from this app's package.json
+ */
+const generateUuid = () => id128.Uuid4.generate().toCanonical().toLowerCase();
 
 export const inferEntitiesFromContentAction: FlowActionActivity<{
   graphApiClient: GraphApi;
@@ -84,20 +91,31 @@ export const inferEntitiesFromContentAction: FlowActionActivity<{
     };
   }
 
+  const actionIdPrefix = generateUuid();
+
   webPageInferenceState = status.contents[0]!;
 
   const proposedEntities = Object.entries(
     webPageInferenceState.proposedEntityCreationsByType,
   ).flatMap(([entityTypeId, proposedEntitiesByType]) =>
-    proposedEntitiesByType.map<ProposedEntity>(({ entityId, properties }) => {
+    proposedEntitiesByType.map<ProposedEntity>((proposal) => {
       const summary = webPageInferenceState.proposedEntitySummaries.find(
-        (proposedEntitySummary) => proposedEntitySummary.entityId === entityId,
+        (proposedEntitySummary) =>
+          proposedEntitySummary.entityId === proposal.entityId,
       )?.summary;
 
       return {
         entityTypeId: entityTypeId as VersionedUrl,
         summary,
-        properties: properties ?? {},
+        properties: proposal.properties ?? {},
+        sourceEntityLocalId:
+          "sourceEntityId" in proposal
+            ? `${actionIdPrefix}-${proposal.sourceEntityId}`
+            : undefined,
+        targetEntityLocalId:
+          "targetEntityId" in proposal
+            ? `${actionIdPrefix}-${proposal.targetEntityId}`
+            : undefined,
       };
     }),
   );

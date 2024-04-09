@@ -1,9 +1,11 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
   Entity,
+  EntityId,
   EntityPropertiesObject,
   EntityTypeWithMetadata,
   EntityUuid,
+  OwnedById,
 } from "@local/hash-subgraph";
 
 import type { ActionDefinitionId } from "./action-definitions";
@@ -23,10 +25,31 @@ export type WebPage = {
   textContent: string;
 };
 
+/**
+ * @todo sort out mismatch between this and the ProposedEntity type inside propose-entities.ts
+ */
 export type ProposedEntity = {
+  localEntityId: string;
   entityTypeId: VersionedUrl;
   summary?: string;
   properties: EntityPropertiesObject;
+  sourceEntityLocalId?: string;
+  targetEntityLocalId?: string;
+};
+
+type ProposedEntityWithResolvedLinks = Omit<
+  ProposedEntity,
+  "sourceEntityLocalId" | "targetEntityLocalId"
+> & {
+  linkData?: {
+    leftEntityId: EntityId;
+    rightEntityId: EntityId;
+  };
+};
+
+export type PersistedEntity = {
+  entity: Entity;
+  operation: "create" | "update" | "already-exists-as-proposed";
 };
 
 export type PayloadKindValues = {
@@ -34,9 +57,12 @@ export type PayloadKindValues = {
   Number: number;
   Boolean: boolean;
   ProposedEntity: ProposedEntity;
+  ProposedEntityWithResolvedLinks: ProposedEntityWithResolvedLinks;
   Entity: Entity;
+  PersistedEntity: PersistedEntity;
   WebPage: WebPage;
   EntityType: EntityTypeWithMetadata;
+  WebId: OwnedById;
   VersionedUrl: VersionedUrl;
 };
 

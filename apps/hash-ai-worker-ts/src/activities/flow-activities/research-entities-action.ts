@@ -7,7 +7,10 @@ import {
   actionDefinitions,
   getSimplifiedActionInputs,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type { StepInput } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  ProposedEntity,
+  StepInput,
+} from "@local/hash-isomorphic-utils/flows/types";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
@@ -20,7 +23,6 @@ import { inferEntitiesFromWebPageWorkerAgent } from "./research-entities-action/
 import { coordinatingAgent } from "./research-entities-action/open-ai-coordinating-agent";
 import type {
   CompletedToolCall,
-  ProposedEntityWithLocalId,
   ToolCall,
 } from "./research-entities-action/types";
 import type { FlowActionActivity } from "./types";
@@ -34,19 +36,12 @@ export const researchEntitiesAction: FlowActionActivity<{
     actionType: "researchEntities",
   });
 
-  const proposedEntities: ProposedEntityWithLocalId[] = [];
+  const proposedEntities: ProposedEntity[] = [];
 
   const submittedEntityIds: string[] = [];
 
-  let counter = 0;
-
-  const generateLocalId = (): string => {
-    counter += 1;
-    return counter.toString();
-  };
-
   /**
-   * We start by making a asking the coordinator agent to create an initial plan
+   * We start by asking the coordinator agent to create an initial plan
    * for the research task.
    */
   const { plan: initialPlan } = await coordinatingAgent.createInitialPlan({
@@ -134,7 +129,7 @@ export const researchEntitiesAction: FlowActionActivity<{
             if (response.code !== StatusCode.Ok) {
               return {
                 ...toolCall,
-                output: `An unexpected error ocurred trying to summarize the web page at url ${url}, try a different web page.`,
+                output: `An unexpected error occurred trying to summarize the web page at url ${url}, try a different web page.`,
               };
             }
 
@@ -201,18 +196,11 @@ export const researchEntitiesAction: FlowActionActivity<{
 
             const { inferredEntities } = status.contents[0]!;
 
-            const newProposedEntitiesWithIds = inferredEntities.map(
-              (proposedEntity) => ({
-                ...proposedEntity,
-                localId: generateLocalId(),
-              }),
-            );
-
-            proposedEntities.push(...newProposedEntitiesWithIds);
+            proposedEntities.push(...inferredEntities);
 
             return {
               ...toolCall,
-              output: JSON.stringify(newProposedEntitiesWithIds),
+              output: JSON.stringify(inferredEntities),
             };
           }
 
