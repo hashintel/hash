@@ -26,7 +26,8 @@ export type WebPage = {
 };
 
 /**
- * @todo sort out mismatch between this and the ProposedEntity type inside propose-entities.ts
+ * @todo sort out mismatch between this and the ProposedEntity type inside infer-entities/
+ *    possibly just resolved by removing the latter when browser plugin inference migrated to a Flow
  */
 export type ProposedEntity = {
   localEntityId: string;
@@ -37,9 +38,9 @@ export type ProposedEntity = {
   targetEntityLocalId?: string;
 };
 
-type ProposedEntityWithResolvedLinks = Omit<
+export type ProposedEntityWithResolvedLinks = Omit<
   ProposedEntity,
-  "sourceEntityLocalId" | "targetEntityLocalId"
+  "localEntityId" | "sourceEntityLocalId" | "targetEntityLocalId"
 > & {
   linkData?: {
     leftEntityId: EntityId;
@@ -52,6 +53,16 @@ export type PersistedEntity = {
   operation: "create" | "update" | "already-exists-as-proposed";
 };
 
+export type FailedEntityProposal = {
+  proposedEntity: ProposedEntity;
+  message: string;
+};
+
+export type PersistedEntities = {
+  persistedEntities: PersistedEntity[];
+  failedEntityProposals: FailedEntityProposal[];
+};
+
 export type PayloadKindValues = {
   Text: string;
   Number: number;
@@ -60,6 +71,7 @@ export type PayloadKindValues = {
   ProposedEntityWithResolvedLinks: ProposedEntityWithResolvedLinks;
   Entity: Entity;
   PersistedEntity: PersistedEntity;
+  PersistedEntities: PersistedEntities;
   WebPage: WebPage;
   EntityType: EntityTypeWithMetadata;
   WebId: OwnedById;

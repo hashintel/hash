@@ -702,7 +702,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
             if (response.code !== StatusCode.Ok) {
               return {
                 ...toolCall,
-                output: `An unexpected error ocurred inferring entities from the web page with url ${url}, try another website.`,
+                output: `An unexpected error occurred inferring entities from the web page with url ${url}, try another website.`,
               };
             }
 

@@ -7,6 +7,7 @@ import type {
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
+  fullOntologyResolveDepths,
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
@@ -23,7 +24,7 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/subgraph/roots";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import type { DereferencedEntityType } from "./dereference-entity-type";
 import { dereferenceEntityType } from "./dereference-entity-type";
@@ -41,10 +42,7 @@ export const findExistingEntity = async ({
   dereferencedEntityType?: DereferencedEntityType;
   graphApiClient: GraphApi;
   ownedById: OwnedById;
-  proposedEntity: Pick<
-    ProposedEntity,
-    "entityTypeId" | "localEntityId" | "properties"
-  >;
+  proposedEntity: Pick<ProposedEntity, "entityTypeId" | "properties">;
 }): Promise<Entity | undefined> => {
   const entityTypeId = proposedEntity.entityTypeId;
 
@@ -57,7 +55,10 @@ export const findExistingEntity = async ({
         filter: {
           equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
         },
-        graphResolveDepths: zeroedGraphResolveDepths,
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          ...fullOntologyResolveDepths,
+        },
         temporalAxes: currentTimeInstantTemporalAxes,
       })
       .then(({ data }) => {
@@ -116,7 +117,7 @@ export const findExistingEntity = async ({
     generateVersionedUrlMatchingFilter(entityTypeId),
   ] satisfies AllFilter["all"];
 
-  const maximumSemanticDistance = 0.6;
+  const maximumSemanticDistance = 0.55;
 
   /**
    * First find suitable specific properties to match on
@@ -161,7 +162,7 @@ export const findExistingEntity = async ({
         if (!foundEmbedding) {
           // eslint-disable-next-line no-console -- @todo replace with logger once PR #4290 merges
           console.log(
-            `Could not find embedding for property ${baseUrl} of entity with temporary id ${proposedEntity.localEntityId} – skipping`,
+            `Could not find embedding for property ${baseUrl} – skipping`,
           );
           return null;
         }
@@ -203,9 +204,7 @@ export const findExistingEntity = async ({
 
     if (!propertyObjectEmbedding) {
       // eslint-disable-next-line no-console -- @todo replace with logger once PR #4290 merges
-      console.log(
-        `Could not find embedding for properties object of entity with temporary id ${proposedEntity.localEntityId} – skipping`,
-      );
+      console.log(`Could not find embedding for properties object – skipping`);
     } else {
       existingEntity = await getEntityByFilter({
         actorId,

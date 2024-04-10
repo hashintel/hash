@@ -1,12 +1,15 @@
 import type { GraphApi } from "@local/hash-graph-client";
-import {
-  getSimplifiedActionInputs,
-  type OutputNameForAction,
-} from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
+import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type {
+  FailedEntityProposal,
+  PersistedEntities,
+  PersistedEntity,
+  ProposedEntityWithResolvedLinks,
+} from "@local/hash-isomorphic-utils/flows/types";
 import type { OwnedById } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 
+import { persistEntityAction } from "./persist-entity-action";
 import type { FlowActionActivity } from "./types";
 
 export const persistEntitiesAction: FlowActionActivity<{
@@ -19,34 +22,93 @@ export const persistEntitiesAction: FlowActionActivity<{
 
   const ownedById = webId ?? (userAuthentication.actorId as OwnedById);
 
+  /**
+   * This assumes that there are no link entities which link to other link entities, which require being able to
+   * create multiple entities at once in a single transaction (since they refer to each other).
+   *
+   * @todo handle links pointing to other links via creating many entities at once, unblocked by H-1178
+   */
+  const entitiesWithDependenciesSortedLast = [...proposedEntities].sort(
+    (a, b) => {
+      if (
+        (a.sourceEntityLocalId && b.sourceEntityLocalId) ||
+        (!a.sourceEntityLocalId && !b.sourceEntityLocalId)
+      ) {
+        return 0;
+      }
+
+      if (a.sourceEntityLocalId) {
+        return 1;
+      }
+
+      return -1;
+    },
+  );
+
+  const failedEntitiesByLocalId: Record<string, FailedEntityProposal> = {};
   const persistedEntitiesByLocalId: Record<string, PersistedEntity> = {};
 
-  const entitiesWithDepenciesSortedLast = [...proposedEntities].sort((a, b) => {
-    if (
-      (a.sourceEntityLocalId && b.sourceEntityLocalId) ||
-      (!a.sourceEntityLocalId && !b.sourceEntityLocalId)
-    ) {
-      return 0;
+  for (const unresolvedEntity of entitiesWithDependenciesSortedLast) {
+    const {
+      entityTypeId,
+      properties,
+      sourceEntityLocalId,
+      targetEntityLocalId,
+    } = unresolvedEntity;
+
+    const entityWithResolvedLinks: ProposedEntityWithResolvedLinks = {
+      entityTypeId,
+      properties,
+    };
+
+    if (sourceEntityLocalId ?? targetEntityLocalId) {
+      if (!sourceEntityLocalId || !targetEntityLocalId) {
+        failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
+          proposedEntity: unresolvedEntity,
+          message: `Expected both sourceEntityLocalId and targetEntityLocalId to be set, but got sourceEntityLocalId='${sourceEntityLocalId}' and 'targetEntityLocalId='${targetEntityLocalId}'`,
+        };
+        continue;
+      }
+
+      const sourceEntity =
+        persistedEntitiesByLocalId[sourceEntityLocalId]?.entity;
+      const targetEntity =
+        persistedEntitiesByLocalId[targetEntityLocalId]?.entity;
+
+      if (!sourceEntity) {
+        failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
+          proposedEntity: unresolvedEntity,
+          message: `Link entity with sourceEntityLocalId='${sourceEntityLocalId}' has not been successfully persisted`,
+        };
+        continue;
+      }
+
+      if (!targetEntity) {
+        failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
+          proposedEntity: unresolvedEntity,
+          message: `Link entity with targetEntityLocalId='${targetEntityLocalId}' has not been successfully persisted`,
+        };
+        continue;
+      }
+
+      entityWithResolvedLinks.linkData = {
+        leftEntityId: sourceEntity.metadata.recordId.entityId,
+        rightEntityId: targetEntity.metadata.recordId.entityId,
+      };
     }
 
-    // @todo handle cases where a link entity is dependent on another link entity
-    if (a.sourceEntityLocalId) {
-      return 1;
-    }
-
-    return -1;
-  });
-
-  for (const proposedEntity of entitiesWithDepenciesSortedLast) {
-    const persistedEntityOutputs = await persistEntitiesAction({
+    const persistedEntityOutputs = await persistEntityAction({
       inputs: [
         {
           inputName: "draft",
           payload: { kind: "Boolean", value: draft ?? false },
         },
         {
-          inputName: "proposedEntity",
-          payload: { kind: "ProposedEntity", value: proposedEntity },
+          inputName: "proposedEntityWithResolvedLinks",
+          payload: {
+            kind: "ProposedEntityWithResolvedLinks",
+            value: entityWithResolvedLinks,
+          },
         },
         {
           inputName: "webId",
@@ -57,16 +119,41 @@ export const persistEntitiesAction: FlowActionActivity<{
       userAuthentication,
     });
 
-    const outputs = persistedEntityOutputs.contents[0]?.outputs;
+    if (persistedEntityOutputs.code !== StatusCode.Ok) {
+      failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
+        proposedEntity: unresolvedEntity,
+        message: `${persistedEntityOutputs.code}: ${persistedEntityOutputs.message ?? `no further details available`}`,
+      };
+      continue;
+    }
 
-    const persistedEntity: PersistedEntity = {
-      operation: outputs?.find((output) => output.outputName === "operation")
-        ?.payload.value,
-      entity: outputs?.find((output) => output.outputName === "entity")?.payload
-        .value,
-    };
+    const output = persistedEntityOutputs.contents[0]?.outputs?.[0]?.payload;
 
-    persistedEntitiesByLocalId[proposedEntity.localEntityId] = persistedEntity;
+    if (!output) {
+      failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
+        proposedEntity: unresolvedEntity,
+        message: `No outputs returned when attempting to persist entity`,
+      };
+      continue;
+    }
+
+    if (output.kind !== "PersistedEntity") {
+      failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
+        proposedEntity: unresolvedEntity,
+        message: `Unexpected output kind ${output.kind}`,
+      };
+      continue;
+    }
+
+    if (Array.isArray(output.value)) {
+      failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
+        proposedEntity: unresolvedEntity,
+        message: `Expected a single persisted entity, but received an array of length ${output.value.length}`,
+      };
+      continue;
+    }
+
+    persistedEntitiesByLocalId[unresolvedEntity.localEntityId] = output.value;
   }
 
   return {
@@ -75,11 +162,13 @@ export const persistEntitiesAction: FlowActionActivity<{
       {
         outputs: [
           {
-            outputName:
-              "persistedEntities" as OutputNameForAction<"persistEntities">,
+            outputName: "persistedEntities",
             payload: {
-              kind: "PersistedEntity",
-              value: Object.values(persistedEntitiesByLocalId),
+              kind: "PersistedEntities",
+              value: {
+                persistedEntities: Object.values(persistedEntitiesByLocalId),
+                failedEntityProposals: [],
+              } satisfies PersistedEntities,
             },
           },
         ],

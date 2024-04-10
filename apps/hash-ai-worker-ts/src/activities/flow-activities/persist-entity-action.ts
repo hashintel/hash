@@ -8,6 +8,7 @@ import {
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { Entity, OwnedById } from "@local/hash-subgraph";
+import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import isEqual from "lodash.isequal";
 import isMatch from "lodash.ismatch";
@@ -27,6 +28,8 @@ export const persistEntityAction: FlowActionActivity<{
       inputs,
       actionType: "persistEntity",
     });
+
+  const createEditionAsDraft = draft ?? false;
 
   const ownedById = webId ?? (actorId as OwnedById);
 
@@ -88,27 +91,36 @@ export const persistEntityAction: FlowActionActivity<{
 
   const patchOperations: PatchOperation[] = [];
 
+  let existingEntityIsDraft: boolean | undefined;
   if (existingEntity) {
     for (const [key, value] of typedEntries(properties)) {
       // @todo handle property objects
+
+      const jsonPointerKey = `/${key.replace(/\//g, "~1")}`;
+
       if (!isEqual(existingEntity.properties[key], value)) {
         patchOperations.push({
           op: "replace",
-          path: key,
+          path: jsonPointerKey,
           value,
         });
       }
     }
+
+    existingEntityIsDraft = !!extractDraftIdFromEntityId(
+      existingEntity.metadata.recordId.entityId,
+    );
   }
 
   const { data: entityMetadata } = await (existingEntity
     ? graphApiClient.patchEntity(actorId, {
+        draft: existingEntityIsDraft ? true : createEditionAsDraft,
         entityId: existingEntity.metadata.recordId.entityId,
         properties: patchOperations,
       })
     : graphApiClient.createEntity(webBotActorId, {
         ...entityValues,
-        draft: draft ?? false,
+        draft: createEditionAsDraft,
         ownedById,
         relationships: createDefaultAuthorizationRelationships({
           actorId,

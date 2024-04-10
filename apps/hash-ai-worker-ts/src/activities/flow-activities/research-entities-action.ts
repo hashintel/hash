@@ -186,7 +186,7 @@ export const researchEntitiesAction: FlowActionActivity<{
               return {
                 ...toolCall,
                 output: dedent(`
-                  An error ocurred when inferring entities from the web
+                  An error occurred when inferring entities from the web
                     page with url ${url}: ${status.message}
                   
                   Try another website.
@@ -226,8 +226,8 @@ export const researchEntitiesAction: FlowActionActivity<{
       { completedToolCalls },
     ];
 
-    const submittedProposedEntities = proposedEntities.filter(({ localId }) =>
-      submittedEntityIds.includes(localId),
+    const submittedProposedEntities = proposedEntities.filter(
+      ({ localEntityId }) => submittedEntityIds.includes(localEntityId),
     );
 
     const openAiResponse = await coordinatingAgent.getNextToolCalls({
@@ -249,8 +249,8 @@ export const researchEntitiesAction: FlowActionActivity<{
     toolCalls: initialToolCalls,
   });
 
-  const submittedProposedEntities = proposedEntities.filter(({ localId }) =>
-    submittedEntityIds.includes(localId),
+  const submittedProposedEntities = proposedEntities.filter(
+    ({ localEntityId }) => submittedEntityIds.includes(localEntityId),
   );
 
   return {
@@ -263,9 +263,7 @@ export const researchEntitiesAction: FlowActionActivity<{
               "proposedEntities" satisfies OutputNameForAction<"researchEntities">,
             payload: {
               kind: "ProposedEntity",
-              value: submittedProposedEntities.map(
-                ({ localId: _localId, ...rest }) => rest,
-              ),
+              value: submittedProposedEntities,
             },
           },
         ],
