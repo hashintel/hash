@@ -736,6 +736,12 @@ export const systemDataTypes = {
     description:
       "An identifier for an email box to which messages are delivered.",
   },
+  gbp: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/gbp/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/gbp/",
+    title: "GBP",
+    description: "An amount denominated in British pounds sterling",
+  },
   kilometers: {
     dataTypeId: "https://hash.ai/@hash/types/data-type/kilometers/v/1",
     dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/kilometers/",
@@ -776,6 +782,12 @@ export const systemDataTypes = {
     dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/uri/",
     title: "URI",
     description: "A unique identifier for a resource (e.g. a URL, or URN).",
+  },
+  usd: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/usd/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/usd/",
+    title: "USD",
+    description: "An amount denominated in US Dollars",
   },
 } as const;
 
