@@ -226,9 +226,9 @@ const systemMessagePrefix = dedent(`
   This is particularly important if the contents of a page are paginated
     over multiple web pages (for example web pages containing a table).
 
-  Make as many tool calls in parallel as possible. For example, call "inferEntitiesFromWebPage"
+  Make as many different tool calls in parallel as possible. For example, call "inferEntitiesFromWebPage"
     alongside "getWebPageInnerHtml" to get the content of another web page which may contain
-    more entities.
+    more entities. Do not make more than one "getWebPageInnerHtml" tool call at a time.
 
   Do not under any circumstances make a tool call to a tool which you haven't
     been provided with.
@@ -465,6 +465,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
    */
   const { innerHtml: initialWebPageInnerHtml } = await getWebPageInnerHtml({
     url,
+    sanitizeForLlm: true,
   });
 
   const { plan: initialPlan } = await createInitialPlan({
@@ -536,6 +537,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
 
             const { innerHtml } = await getWebPageInnerHtml({
               url: toolCallUrl,
+              sanitizeForLlm: true,
             });
 
             state.previousCalls = state.previousCalls.map((previousCall) => ({
@@ -568,6 +570,9 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               
               If there are any links in the HTML which may also contain relevant entities, you should
                 make additional "getWebPageInnerHtml" tool calls to get the content of those pages.
+
+              Note that you will only be able to see one HTML page at a time, so do not make a single "getWebPageInnerHtml"
+                tool call unless there are no entities to infer from this page.
               `),
             };
 

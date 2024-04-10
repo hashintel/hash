@@ -1,9 +1,11 @@
 import puppeteer from "puppeteer";
+import sanitizeHtml from "sanitize-html";
 
 export const getWebPageInnerHtml = async (params: {
   url: string;
+  sanitizeForLlm?: boolean;
 }): Promise<{ innerHtml: string }> => {
-  const { url } = params;
+  const { url, sanitizeForLlm } = params;
 
   const browser = await puppeteer.launch();
 
@@ -19,6 +21,20 @@ export const getWebPageInnerHtml = async (params: {
   );
 
   await browser.close();
+
+  if (sanitizeForLlm) {
+    const sanitizedHtml = sanitizeHtml(innerHtml, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.filter(
+        (tag) => !["script", "style", "link"].includes(tag),
+      ),
+      allowedAttributes: {
+        "*": ["href", "src", "onclick"],
+      },
+      disallowedTagsMode: "discard",
+    });
+
+    return { innerHtml: sanitizedHtml };
+  }
 
   return { innerHtml };
 };
