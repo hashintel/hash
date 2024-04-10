@@ -1,6 +1,5 @@
 import type {
   Array,
-  DataType,
   EntityType,
   Object as BpObject,
   OneOf,
@@ -13,6 +12,7 @@ import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
   BaseUrl,
+  CustomDataType,
   EntityTypeMetadata,
   Subgraph,
 } from "@local/hash-subgraph";
@@ -24,7 +24,7 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 
-type MinimalDataType = Pick<DataType, "type">;
+type MinimalDataType = Omit<CustomDataType, "$id" | "$schema" | "kind">;
 
 type MinimalPropertyObject = BpObject<ValueOrArray<DereferencedPropertyType>>;
 
@@ -114,9 +114,14 @@ function dereferencePropertyTypeValue(
     );
   }
 
-  return {
-    type: dataType.schema.type,
-  };
+  const {
+    $id: _$id,
+    $schema: _$schema,
+    kind: _kind,
+    ...minimalDataType
+  } = dataType.schema;
+
+  return minimalDataType;
 }
 
 function dereferencePropertyType(

@@ -119,25 +119,9 @@ export const persistEntitiesAction: FlowActionActivity<{
       userAuthentication,
     });
 
-    if (persistedEntityOutputs.code !== StatusCode.Ok) {
-      failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
-        proposedEntity: unresolvedEntity,
-        message: `${persistedEntityOutputs.code}: ${persistedEntityOutputs.message ?? `no further details available`}`,
-      };
-      continue;
-    }
-
     const output = persistedEntityOutputs.contents[0]?.outputs?.[0]?.payload;
 
-    if (!output) {
-      failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
-        proposedEntity: unresolvedEntity,
-        message: `No outputs returned when attempting to persist entity`,
-      };
-      continue;
-    }
-
-    if (output.kind !== "PersistedEntity") {
+    if (output && output.kind !== "PersistedEntity") {
       failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
         proposedEntity: unresolvedEntity,
         message: `Unexpected output kind ${output.kind}`,
@@ -145,10 +129,27 @@ export const persistEntitiesAction: FlowActionActivity<{
       continue;
     }
 
-    if (Array.isArray(output.value)) {
+    if (Array.isArray(output?.value)) {
       failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
         proposedEntity: unresolvedEntity,
-        message: `Expected a single persisted entity, but received an array of length ${output.value.length}`,
+        message: `Expected a single persisted entity, but received ${!output ? "no outputs" : `an array of length ${output.value.length}`}`,
+      };
+      continue;
+    }
+
+    if (persistedEntityOutputs.code !== StatusCode.Ok) {
+      failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
+        ...(output?.value ?? {}),
+        proposedEntity: entityWithResolvedLinks,
+        message: `${persistedEntityOutputs.code}: ${persistedEntityOutputs.message ?? `no further details available`}`,
+      };
+      continue;
+    }
+
+    if (!output) {
+      failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
+        proposedEntity: unresolvedEntity,
+        message: `No outputs returned when attempting to persist entity`,
       };
       continue;
     }

@@ -101,7 +101,7 @@ export const persistEntityAction: FlowActionActivity<{
 
       if (!isEqual(existingEntity.properties[key], value)) {
         patchOperations.push({
-          op: "replace",
+          op: existingEntity.properties[key] ? "replace" : "add",
           path: jsonPointerKey,
           value,
         });

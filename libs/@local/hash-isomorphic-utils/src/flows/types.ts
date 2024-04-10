@@ -56,8 +56,8 @@ export type PersistedEntity = {
 
 export type FailedEntityProposal = {
   existingEntity?: Entity;
-  operation?: "create" | "update";
-  proposedEntity: ProposedEntity;
+  operation?: "create" | "update" | "already-exists-as-proposed";
+  proposedEntity: ProposedEntityWithResolvedLinks;
   message: string;
 };
 
