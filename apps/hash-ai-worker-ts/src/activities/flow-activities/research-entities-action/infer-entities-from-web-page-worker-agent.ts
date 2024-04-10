@@ -33,7 +33,7 @@ import type {
   ToolId,
 } from "./infer-entities-from-web-page-worker-agent/types";
 import { isToolId } from "./infer-entities-from-web-page-worker-agent/types";
-import { writeStateToFile } from "./testing-utils";
+// import { writeStateToFile } from "./testing-utils";
 import type {
   CompletedToolCall,
   ProposedEntityWithLocalId,
@@ -126,8 +126,8 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
             Do not truncate or provide partial text which may lead to missed entities
               or properties.
         
-            Include all pertinent details in a single submission. If additional context (e.g., the current date)
-            is essential for accurate entity inference, ensure it is incorporated in the provided text.
+            If additional context (e.g. the current date) is needed to fully infer the
+            entities, ensure it is incorporated in the provided text. The current is ${new Date().toISOString()}.
             `),
         },
         prompt: {
@@ -667,6 +667,16 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               };
             }
 
+            if (text.length === 0) {
+              return {
+                ...toolCall,
+                output: dedent(`
+                  You provided an empty string as the text from the web page. You must provide
+                  the relevant text from the web page to infer entities.
+                `),
+              };
+            }
+
             state.inferredEntitiesFromWebPageUrls.push(
               inferringEntitiesFromWebPageUrl,
             );
@@ -784,7 +794,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
 
     state.previousCalls = [...state.previousCalls, { completedToolCalls }];
 
-    writeStateToFile(state);
+    // writeStateToFile(state);
 
     const openAiResponse = await getNextToolCalls({
       state,
