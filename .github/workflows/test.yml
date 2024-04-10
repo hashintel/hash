@@ -196,7 +196,7 @@ jobs:
       - name: Show disk usage
         run: df -h
 
-      - uses: codecov/codecov-action@7afa10ed9b269c561c2336fd862446844e0cbf71 # v4.2.0
+      - uses: codecov/codecov-action@84508663e988701840491b86de86b666e8a86bed # v4.3.0
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
           flags: ${{ env.TRIMMED_PACKAGE_NAME }}
@@ -349,7 +349,7 @@ jobs:
       - name: Show disk usage
         run: df -h
 
-      - uses: codecov/codecov-action@7afa10ed9b269c561c2336fd862446844e0cbf71 # v4.2.0
+      - uses: codecov/codecov-action@84508663e988701840491b86de86b666e8a86bed # v4.3.0
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
           flags: ${{ env.TRIMMED_PACKAGE_NAME }}
