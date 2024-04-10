@@ -98,11 +98,11 @@
     "patch-package": "6.5.0",
     "postinstall-postinstall": "2.1.0",
     "prettier": "3.2.5",
-    "prettier-plugin-packagejson": "2.4.13",
+    "prettier-plugin-packagejson": "2.4.14",
     "prettier-plugin-sh": "0.14.0",
     "prettier-plugin-sql": "0.12.1",
     "suppress-exit-code": "3.1.0",
-    "turbo": "1.13.0",
+    "turbo": "1.13.2",
     "wait-on": "6.0.1",
     "yarn-deduplicate": "6.0.2"
   },

@@ -42,7 +42,7 @@ See the [respective section in the parent README](../README.md#hash) for descrip
 
 <details>
   <summary>Running HASH locally</summary>
-  
+
 ### Running HASH locally
 
 To run HASH locally, please follow these steps:
@@ -55,13 +55,13 @@ To run HASH locally, please follow these steps:
    ## ≥ 2.17
    
    node --version
-   ## ≥ 18.15
+   ## ≥ 20.12
    
    yarn --version
    ## ≥ 1.16
    
    rustc --version
-   ## ≥ 2024-04-01 (If installed through rustup, this will automatically install the required toolchain)
+   ## ≥ 2024-04-08 (If installed through rustup, this will automatically install the required toolchain)
    
    cargo --version
    ## Version matching the above rustc version
@@ -146,7 +146,7 @@ yarn external-services:test up
 
 <details>
   <summary>Deploying HASH to the cloud</summary>
-  
+
 ### Deploying HASH to the cloud
 
 To deploy HASH in the cloud, follow the instructions contained in the root [`/infra` directory](https://github.com/hashintel/hash/tree/main/infra).

@@ -33,7 +33,7 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash": "4.14.188",
-    "@types/node": "18.15.13",
+    "@types/node": "20.12.3",
     "@types/yargs": "^17.0.22",
     "eslint": "8.57.0",
     "quicktype": "^16.0.43"
