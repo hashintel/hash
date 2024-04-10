@@ -29,7 +29,6 @@ import {
 import type { CreateEmbeddingResponse } from "openai/resources";
 
 import type { createAiActivities, createGraphActivities } from "./activities";
-import { createResearchTaskWorkflow } from "./workflows/research-task-workflow";
 import { runFlowWorkflow } from "./workflows/run-flow-workflow";
 
 const aiActivities = proxyActivities<ReturnType<typeof createAiActivities>>({
@@ -609,10 +608,5 @@ export const parseTextFromFile = async (
 ): Promise<void> => {
   await aiActivities.parseTextFromFileActivity(params);
 };
-
-export const researchTask = createResearchTaskWorkflow({
-  aiActivities,
-  graphActivities,
-});
 
 export const runFlow = runFlowWorkflow;
