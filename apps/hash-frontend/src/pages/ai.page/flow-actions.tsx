@@ -1,6 +1,7 @@
-import { Box, Typography } from "@mui/material";
-import { SectionContainer } from "./shared/section-container";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { Box, Typography } from "@mui/material";
+
+import { SectionContainer } from "./shared/section-container";
 
 export const FlowActions = () => {
   return (
@@ -13,7 +14,10 @@ export const FlowActions = () => {
       </Typography>
       <Box>
         {Object.values(actionDefinitions).map((definition) => (
-          <Box sx={{ ":not(:last-of-type)": { mb: 3 } }}>
+          <Box
+            sx={{ ":not(:last-of-type)": { mb: 3 } }}
+            key={definition.actionDefinitionId}
+          >
             <Typography
               key={definition.actionDefinitionId}
               sx={{ fontWeight: 600, mb: 1 }}
