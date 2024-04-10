@@ -49,11 +49,14 @@ export type ProposedEntityWithResolvedLinks = Omit<
 };
 
 export type PersistedEntity = {
-  entity: Entity;
+  entity?: Entity;
+  existingEntity?: Entity;
   operation: "create" | "update" | "already-exists-as-proposed";
 };
 
 export type FailedEntityProposal = {
+  existingEntity?: Entity;
+  operation?: "create" | "update";
   proposedEntity: ProposedEntity;
   message: string;
 };

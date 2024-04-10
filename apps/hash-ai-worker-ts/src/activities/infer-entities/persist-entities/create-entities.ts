@@ -120,7 +120,6 @@ export const createEntities = async ({
             ownedById,
             proposedEntity: {
               entityTypeId,
-              localEntityId: proposedEntity.entityId.toString(),
               properties,
             },
           });

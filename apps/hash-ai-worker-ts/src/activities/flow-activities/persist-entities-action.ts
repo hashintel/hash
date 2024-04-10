@@ -78,7 +78,7 @@ export const persistEntitiesAction: FlowActionActivity<{
       if (!sourceEntity) {
         failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
           proposedEntity: unresolvedEntity,
-          message: `Link entity with sourceEntityLocalId='${sourceEntityLocalId}' has not been successfully persisted`,
+          message: `Linked entity with sourceEntityLocalId='${sourceEntityLocalId}' has not been successfully persisted`,
         };
         continue;
       }
@@ -86,7 +86,7 @@ export const persistEntitiesAction: FlowActionActivity<{
       if (!targetEntity) {
         failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
           proposedEntity: unresolvedEntity,
-          message: `Link entity with targetEntityLocalId='${targetEntityLocalId}' has not been successfully persisted`,
+          message: `Linked entity with targetEntityLocalId='${targetEntityLocalId}' has not been successfully persisted`,
         };
         continue;
       }
@@ -167,7 +167,7 @@ export const persistEntitiesAction: FlowActionActivity<{
               kind: "PersistedEntities",
               value: {
                 persistedEntities: Object.values(persistedEntitiesByLocalId),
-                failedEntityProposals: [],
+                failedEntityProposals: Object.values(failedEntitiesByLocalId),
               } satisfies PersistedEntities,
             },
           },

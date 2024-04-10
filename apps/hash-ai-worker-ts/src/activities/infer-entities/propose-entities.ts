@@ -501,11 +501,11 @@ export const proposeEntities = async (params: {
       const remainingEntitySummaries =
         inferenceState.proposedEntitySummaries.filter(
           (entity) => !entity.takenFromQueue,
-        );
+        ).length + inferenceState.inProgressEntityIds.length;
 
-      if (remainingEntitySummaries.length > 0) {
+      if (remainingEntitySummaries > 0) {
         logger.info(
-          `${remainingEntitySummaries.length} entities remain to be inferred, continuing.`,
+          `${remainingEntitySummaries} entities remain to be inferred, continuing.`,
         );
         retryMessages.push({
           content:
