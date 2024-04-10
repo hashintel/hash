@@ -193,7 +193,20 @@ const seedFlowTestTypes = async () => {
       propertyTypeDefinition: {
         title: "Value",
         description: "The value of something",
-        possibleValues: [{ dataTypeId: systemDataTypes.usd.dataTypeId }],
+        possibleValues: [{ primitiveDataType: "number" }],
+      },
+      ownedById,
+    },
+  );
+
+  const unitPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Unit",
+        description: "The name of a unit of something",
+        possibleValues: [{ primitiveDataType: "text" }],
       },
       ownedById,
     },
@@ -226,10 +239,14 @@ const seedFlowTestTypes = async () => {
               [valuePropertyType.metadata.recordId.baseUrl]: {
                 $ref: valuePropertyType.schema.$id,
               },
+              [unitPropertyType.metadata.recordId.baseUrl]: {
+                $ref: unitPropertyType.schema.$id,
+              },
             },
             propertyTypeObjectRequiredProperties: [
               measuredOnPropertyType.metadata.recordId.baseUrl,
               valuePropertyType.metadata.recordId.baseUrl,
+              unitPropertyType.metadata.recordId.baseUrl,
             ],
           },
         ],
