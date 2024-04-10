@@ -309,10 +309,10 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   },
   {
     id: "32",
-    heading: "Type Inheritance",
-    body: "Set parent types whose expected property and link types will be inherited",
-    parentIds: ["25"],
-    status: "done",
+    heading: "Entity Duplication",
+    body: "Easy duplication of existing entities with lineage information preserved",
+    parentIds: ["28"],
+    status: "future",
     useCases: ["general"],
     variant: "feature",
   },
@@ -401,7 +401,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     heading: "Advanced Blocks",
     body: "Blocks which allow users to query and insert multiple entities of varying types (e.g. table, kanban, timeline)",
     parentIds: ["34"],
-    status: "in-progress",
+    status: "working-poc",
     useCases: [
       "knowledge-management",
       "data-management",
