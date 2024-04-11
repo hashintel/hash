@@ -234,10 +234,12 @@ export const findExistingLinkEntity = async ({
   actorId,
   graphApiClient,
   linkData,
+  ownedById,
 }: {
   actorId: AccountId;
   graphApiClient: GraphApi;
   linkData: LinkData;
+  ownedById: OwnedById;
 }) => {
   return await getEntityByFilter({
     actorId,
@@ -245,6 +247,14 @@ export const findExistingLinkEntity = async ({
     filter: {
       all: [
         { equal: [{ path: ["archived"] }, { parameter: false }] },
+        {
+          equal: [
+            { path: ["ownedById"] },
+            {
+              parameter: ownedById,
+            },
+          ],
+        },
         {
           equal: [
             {

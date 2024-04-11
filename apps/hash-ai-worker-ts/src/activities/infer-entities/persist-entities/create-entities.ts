@@ -11,15 +11,14 @@ import type {
   LinkData,
   OwnedById,
 } from "@local/hash-subgraph";
-import {
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
 import isMatch from "lodash.ismatch";
 
 import { logger } from "../../../shared/logger";
+import {
+  findExistingEntity,
+  findExistingLinkEntity,
+} from "../../shared/find-existing-entity";
 import { stringify } from "../../shared/stringify";
-import { findExistingEntity } from "../../shared/find-existing-entity";
 import type {
   DereferencedEntityTypesByTypeId,
   InferenceState,
@@ -365,62 +364,11 @@ export const createEntities = async ({
               linkData,
             });
 
-            const existingLinkEntity = await getEntityByFilter({
+            const existingLinkEntity = await findExistingLinkEntity({
               actorId,
               graphApiClient,
-              filter: {
-                all: [
-                  { equal: [{ path: ["archived"] }, { parameter: false }] },
-                  {
-                    equal: [
-                      {
-                        path: ["leftEntity", "ownedById"],
-                      },
-                      {
-                        parameter: extractOwnedByIdFromEntityId(
-                          linkData.leftEntityId,
-                        ),
-                      },
-                    ],
-                  },
-                  {
-                    equal: [
-                      {
-                        path: ["leftEntity", "uuid"],
-                      },
-                      {
-                        parameter: extractEntityUuidFromEntityId(
-                          linkData.leftEntityId,
-                        ),
-                      },
-                    ],
-                  },
-                  {
-                    equal: [
-                      {
-                        path: ["rightEntity", "ownedById"],
-                      },
-                      {
-                        parameter: extractOwnedByIdFromEntityId(
-                          linkData.rightEntityId,
-                        ),
-                      },
-                    ],
-                  },
-                  {
-                    equal: [
-                      {
-                        path: ["rightEntity", "uuid"],
-                      },
-                      {
-                        parameter: extractEntityUuidFromEntityId(
-                          linkData.rightEntityId,
-                        ),
-                      },
-                    ],
-                  },
-                ],
-              },
+              linkData,
+              ownedById,
             });
 
             if (existingLinkEntity) {
