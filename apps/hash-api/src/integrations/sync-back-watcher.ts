@@ -4,6 +4,7 @@ import { RedisQueueExclusiveConsumer } from "@local/hash-backend-utils/queue/red
 import { AsyncRedisClient } from "@local/hash-backend-utils/redis";
 import type { Wal2JsonMsg } from "@local/hash-backend-utils/wal2json";
 import type { GraphApi } from "@local/hash-graph-client";
+import { getRequiredEnv } from "@local/hash-isomorphic-utils/environment";
 import {
   fullDecisionTimeAxis,
   zeroedGraphResolveDepths,
@@ -18,7 +19,6 @@ import {
   processEntityChange as processLinearEntityChange,
   supportedLinearTypeIds,
 } from "./linear/sync-back";
-import { getRequiredEnv } from "@local/hash-isomorphic-utils/environment";
 
 const sendEntityToRelevantProcessor = (
   entity: Entity,

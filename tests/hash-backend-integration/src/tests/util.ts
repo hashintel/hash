@@ -10,8 +10,8 @@ import type { TemporalClient } from "@apps/hash-api/src/temporal";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { vi } from "vitest";
 import { getRequiredEnv } from "@local/hash-isomorphic-utils/environment";
+import { vi } from "vitest";
 
 export const textDataTypeId =
   "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1" as VersionedUrl;

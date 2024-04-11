@@ -1,4 +1,5 @@
 import { extractBaseUrl } from "@blockprotocol/type-system";
+import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
 import type {
   FileStorageProvider,
   StorageType,
@@ -30,7 +31,6 @@ import { getActorIdFromRequest } from "../auth/get-actor-id";
 import type { CacheAdapter } from "../cache";
 import type { ImpureGraphContext } from "../graph/context-types";
 import type { AuthenticationContext } from "../graphql/authentication-context";
-import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
 import { LOCAL_FILE_UPLOAD_PATH } from "../lib/config";
 import { logger } from "../logger";
 import { LocalFileSystemStorageProvider } from "./local-file-storage";

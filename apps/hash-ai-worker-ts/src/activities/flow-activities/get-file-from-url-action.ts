@@ -1,8 +1,13 @@
-import fs from "node:fs";
+import {
+  createReadStream,
+  createWriteStream,
+  mkdirSync,
+  statSync,
+} from "node:fs";
 import { unlink } from "node:fs/promises";
-import http from "node:http";
-import https from "node:https";
-import path, { dirname } from "node:path";
+import * as http from "node:http";
+import * as https from "node:https";
+import { dirname, join } from "node:path";
 import { Readable } from "node:stream";
 import { finished } from "node:stream/promises";
 import type { ReadableStream } from "node:stream/web";
@@ -33,13 +38,13 @@ import type { FlowActionActivity } from "./types";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const baseFilePath = path.join(__dirname, "/var/tmp_files");
+const baseFilePath = join(__dirname, "/var/tmp_files");
 
 const downloadFileToFileSystem = async (fileUrl: string) => {
-  fs.mkdirSync(baseFilePath, { recursive: true });
+  mkdirSync(baseFilePath, { recursive: true });
 
   const tempFileName = generateUuid();
-  const filePath = path.join(baseFilePath, tempFileName);
+  const filePath = join(baseFilePath, tempFileName);
 
   const response = await fetch(fileUrl);
   if (!response.ok || !response.body) {
@@ -47,7 +52,7 @@ const downloadFileToFileSystem = async (fileUrl: string) => {
   }
 
   try {
-    const fileStream = fs.createWriteStream(filePath);
+    const fileStream = createWriteStream(filePath);
     await finished(
       Readable.fromWeb(response.body as ReadableStream<Uint8Array>).pipe(
         fileStream,
@@ -74,7 +79,7 @@ const writeFileToS3URL = async ({
   sizeInBytes: number;
 }) => {
   return new Promise((resolve, reject) => {
-    const fileStream = fs.createReadStream(filePath);
+    const fileStream = createReadStream(filePath);
     const req = (presignedPutUrl.startsWith("https://") ? https : http).request(
       presignedPutUrl,
       {
@@ -133,7 +138,8 @@ export const getFileFromUrlAction: FlowActionActivity<{
   } catch (err) {
     const message = `Error downloading file from URL: ${(err as Error).message}`;
 
-    // @todo logger
+    // @todo logger – update once #4290 merges
+    // eslint-disable-next-line no-console
     console.log(message);
     return {
       code: StatusCode.Internal, // @todo: better error code
@@ -146,7 +152,7 @@ export const getFileFromUrlAction: FlowActionActivity<{
   const entityTypeId =
     getEntityTypeIdForMimeType(mimeType) ?? systemEntityTypes.file.entityTypeId;
 
-  const stats = fs.statSync(localFilePath);
+  const stats = statSync(localFilePath);
   const fileSizeInBytes = stats.size;
 
   /** @todo: allow overriding this via an input, as with other actions (hardcoded in Flow definition?) */
