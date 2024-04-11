@@ -17,7 +17,7 @@ import { validateProposedEntitiesByType } from "./persist-entities/generate-pers
 import { generateProposeEntitiesTools } from "./propose-entities/generate-propose-entities-tools";
 import { extractErrorMessage } from "./shared/extract-validation-failure-details";
 import { firstUserMessageIndex } from "./shared/first-user-message-index";
-import { getOpenAiResponse } from "./shared/get-open-ai-response";
+import { getOpenAiResponse } from "../shared/openai";
 import { stringify } from "./stringify";
 
 /**
@@ -498,7 +498,9 @@ export const proposeEntities = async (params: {
 
       if (retryMessages.length === 0) {
         log(
-          `Returning proposed entities: ${stringify(inferenceState.proposedEntityCreationsByType)}`,
+          `Returning proposed entities: ${stringify(
+            inferenceState.proposedEntityCreationsByType,
+          )}`,
         );
 
         return {

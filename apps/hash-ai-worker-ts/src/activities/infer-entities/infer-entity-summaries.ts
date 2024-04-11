@@ -20,7 +20,7 @@ import type {
   ProposedEntitySummary,
 } from "./inference-types";
 import { log } from "./log";
-import { getOpenAiResponse } from "./shared/get-open-ai-response";
+import { getOpenAiResponse } from "../shared/openai";
 import { stringify } from "./stringify";
 
 export const inferEntitySummaries = async (params: {

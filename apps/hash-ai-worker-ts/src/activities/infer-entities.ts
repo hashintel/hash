@@ -2,7 +2,6 @@ import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/ha
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { GraphApi } from "@local/hash-graph-client";
 import type {
-  InferenceModelName,
   InferEntitiesCallerParams,
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
@@ -21,22 +20,12 @@ import { inferEntitySummariesFromWebPage } from "./infer-entities/infer-entity-s
 import type {
   DereferencedEntityTypesByTypeId,
   InferenceState,
-  PermittedOpenAiModel,
 } from "./infer-entities/inference-types";
 import { log } from "./infer-entities/log";
 import { persistEntities } from "./infer-entities/persist-entities";
 import { stringify } from "./infer-entities/stringify";
 import { userExceededServiceUsageLimitActivity } from "./user-exceeded-service-usage-limit-activity";
-
-/**
- * A map of the API consumer-facing model names to the values provided to OpenAI.
- * Allows for using preview models before they take over the general alias.
- */
-export const modelAliasToSpecificModel = {
-  "gpt-3.5-turbo": "gpt-3.5-turbo-1106", // bigger context window, will be the resolved value for gpt-3.5-turbo from 11 Dec 2023
-  "gpt-4-turbo": "gpt-4-1106-preview", // 'gpt-4-turbo' is not a valid model name in the OpenAI API yet, it's in preview only
-  "gpt-4": "gpt-4", // this points to the latest available anyway as of 6 Dec 2023
-} as const satisfies Record<InferenceModelName, PermittedOpenAiModel>;
+import { modelAliasToSpecificModel } from "./shared/openai";
 
 /**
  * Infer and create entities of the requested types from the provided text input.
@@ -322,8 +311,8 @@ export const inferEntitiesActivity = async ({
    * If an inference job has no usage and no results, it was probably cancelled basically immediately,
    * and there's no point creating empty usage records that have no tokens and link to nothing.
    *
-   * In theory checking that 'usage.length > 0' should be sufficient, as there shouldn't be results without usage logged,
-   * but we check both in case there is somehow results without usage.
+   * In theory checking that 'usage.length > 0' should be sufficient, as there shouldn't be results without usage
+   * logged, but we check both in case there is somehow results without usage.
    */
   if (results.length !== 0 || usage.length !== 0) {
     // We act as the HASH AI machine actor to create these entities
@@ -414,8 +403,9 @@ export const inferEntitiesActivity = async ({
   }
 
   /**
-   * This must be a cancellation, throw it. We pass the results back to the workflow as details inside the cancellation error.
-   * We could just return the results, but we have to throw this error for Temporal to categorise the activity as cancelled.
+   * This must be a cancellation, throw it. We pass the results back to the workflow as details inside the cancellation
+   * error. We could just return the results, but we have to throw this error for Temporal to categorise the activity
+   * as cancelled.
    */
   throw new CancelledFailure(
     "Activity cancelled",

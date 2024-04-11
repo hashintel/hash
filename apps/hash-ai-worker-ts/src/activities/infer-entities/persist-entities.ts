@@ -25,7 +25,7 @@ import {
 } from "./persist-entities/generate-persist-entities-tools";
 import { updateEntities } from "./persist-entities/update-entities";
 import { firstUserMessageIndex } from "./shared/first-user-message-index";
-import { getOpenAiResponse } from "./shared/get-open-ai-response";
+import { getOpenAiResponse } from "../shared/openai";
 import { stringify } from "./stringify";
 
 export const persistEntities = async (params: {

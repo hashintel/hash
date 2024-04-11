@@ -6,8 +6,8 @@ import type {
   ChatCompletionSystemMessageParam,
 } from "openai/resources";
 
-import type { PermittedOpenAiModel } from "../../infer-entities/inference-types";
-import { getOpenAiResponse } from "../../infer-entities/shared/get-open-ai-response";
+import type { PermittedOpenAiModel } from "../../shared/openai";
+import { getOpenAiResponse } from "../../shared/openai";
 import type { CoordinatorToolId } from "./coordinator-tools";
 import {
   coordinatorToolDefinitions,

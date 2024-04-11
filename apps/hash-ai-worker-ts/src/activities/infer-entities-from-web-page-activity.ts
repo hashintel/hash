@@ -8,12 +8,12 @@ import { inferEntitySummariesFromWebPage } from "./infer-entities/infer-entity-s
 import type {
   DereferencedEntityTypesByTypeId,
   InferenceState,
-  PermittedOpenAiModel,
   WebPage,
 } from "./infer-entities/inference-types";
 import { log } from "./infer-entities/log";
 import { proposeEntities } from "./infer-entities/propose-entities";
 import { stringify } from "./infer-entities/stringify";
+import { PermittedOpenAiModel } from "./shared/openai";
 
 export const inferEntitiesFromWebPageActivity = async (params: {
   webPage: WebPage | string;
@@ -83,7 +83,11 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     ${typeof webPage === "string" ? webPage : webPage.textContent}
     ---WEBSITE CONTENT ENDS---
     
-    You already provided a summary of the ${relevantEntitiesPrompt ? "relevant entities you inferred" : "entities you can infer"} from the website. Here it is:
+    You already provided a summary of the ${
+      relevantEntitiesPrompt
+        ? "relevant entities you inferred"
+        : "entities you can infer"
+    } from the website. Here it is:
     ${JSON.stringify(Object.values(inferenceState.proposedEntitySummaries))}
   `);
 

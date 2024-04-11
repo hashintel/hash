@@ -150,7 +150,9 @@ export const runFlowWorkflow = async (
       });
 
       log(
-        `Step ${currentStepId}: executing "${currentStep.actionDefinitionId}" action with ${(currentStep.inputs ?? []).length} inputs`,
+        `Step ${currentStepId}: executing "${
+          currentStep.actionDefinitionId
+        }" action with ${(currentStep.inputs ?? []).length} inputs`,
       );
 
       const actionResponse = await actionActivity({
@@ -333,12 +335,16 @@ export const runFlowWorkflow = async (
       (flowStep) => flowStep.stepId === outputDefinition.stepId,
     );
 
-    const errorPrefix = `Error processing output definition ${outputDefinition.name}, `;
+    const errorPrefix = `Error processing output definition '${outputDefinition.name}', `;
 
     if (!step) {
+      if (!outputDefinition.required) {
+        continue;
+      }
+
       return {
         code: StatusCode.NotFound,
-        message: `${errorPrefix}no step found with id ${outputDefinition.stepId}`,
+        message: `${errorPrefix}required step with id '${outputDefinition.stepId}' not found in outputs.`,
         contents: [{ flow }],
       };
     }
@@ -349,9 +355,13 @@ export const runFlowWorkflow = async (
       );
 
       if (!output) {
+        if (!outputDefinition.required) {
+          continue;
+        }
+
         return {
           code: StatusCode.NotFound,
-          message: `${errorPrefix}there is no output with name ${outputDefinition.stepOutputName} in step ${step.stepId}`,
+          message: `${errorPrefix}there is no output with name '${outputDefinition.stepOutputName}' in step ${step.stepId}`,
           contents: [],
         };
       }

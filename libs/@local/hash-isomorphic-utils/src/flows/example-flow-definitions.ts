@@ -17,11 +17,13 @@ export const researchTaskFlowDefinition: FlowDefinition = {
         payloadKind: "Text",
         name: "prompt" as const,
         array: false,
+        required: true,
       },
       {
         payloadKind: "VersionedUrl",
         name: "entityTypeIds",
         array: true,
+        required: true,
       },
     ],
   },
@@ -77,6 +79,7 @@ export const researchTaskFlowDefinition: FlowDefinition = {
         name: "persistedEntities" as const,
         payloadKind: "Entity",
         array: true,
+        required: true,
       },
     },
   ],
@@ -87,6 +90,7 @@ export const researchTaskFlowDefinition: FlowDefinition = {
       name: "persistedEntities" as const,
       payloadKind: "Entity",
       array: true,
+      required: true,
     },
   ],
 };
@@ -266,11 +270,13 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
         payloadKind: "Text",
         name: "visitedWebPageUrl",
         array: false,
+        required: true,
       },
       {
         payloadKind: "VersionedUrl",
         name: "entityTypeIds",
         array: true,
+        required: true,
       },
     ],
   },
@@ -356,6 +362,7 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
         name: "persistedEntities" as const,
         payloadKind: "Entity",
         array: true,
+        required: true,
       },
     },
   ],
@@ -366,6 +373,85 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
       name: "persistedEntities" as const,
       payloadKind: "Entity",
       array: true,
+      required: true,
+    },
+  ],
+};
+
+export const answerQuestionFlow: FlowDefinition = {
+  name: "Answer Question Flow",
+  flowDefinitionId: "answer-question-flow" as EntityUuid,
+  trigger: {
+    kind: "trigger",
+    triggerDefinitionId: "userTrigger",
+    outputs: [
+      {
+        payloadKind: "Text",
+        name: "question",
+        array: false,
+        required: true,
+      },
+      {
+        payloadKind: "Text",
+        name: "context",
+        array: false,
+        required: true,
+      },
+    ],
+  },
+  steps: [
+    {
+      stepId: "0",
+      kind: "action",
+      actionDefinitionId: "answerQuestion",
+      inputSources: [
+        {
+          inputName: "question" satisfies InputNameForAction<"answerQuestion">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "question",
+        },
+        {
+          inputName: "context" satisfies InputNameForAction<"answerQuestion">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "context",
+        },
+      ],
+    },
+  ],
+  outputs: [
+    {
+      stepId: "0",
+      stepOutputName: "answer",
+      name: "answer",
+      payloadKind: "Text",
+      required: false,
+      array: false,
+    },
+    {
+      stepId: "0",
+      stepOutputName: "explanation",
+      name: "explanation",
+      payloadKind: "Text",
+      required: true,
+      array: false,
+    },
+    {
+      stepId: "0",
+      stepOutputName: "code",
+      name: "code",
+      payloadKind: "Text",
+      required: false,
+      array: false,
+    },
+    {
+      stepId: "0",
+      stepOutputName: "confidence",
+      name: "confidence",
+      payloadKind: "Number",
+      required: false,
+      array: false,
     },
   ],
 };

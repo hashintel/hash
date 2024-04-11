@@ -1,13 +1,19 @@
+import type { InferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 import type OpenAI from "openai";
 import { promptTokensEstimate } from "openai-chat-tokens";
 
-import type { PermittedOpenAiModel } from "../inference-types";
-import { log } from "../log";
-import { stringify } from "../stringify";
-import { openai } from "./openai-client";
+import { log } from "../infer-entities/log";
+import { stringify } from "../infer-entities/stringify";
+import { openai } from "./get-open-ai-response/openai-client";
+
+export type PermittedOpenAiModel =
+  | "gpt-3.5-turbo-1106"
+  | "gpt-4-1106-preview"
+  | "gpt-4-0125-preview"
+  | "gpt-4";
 
 const modelToContextWindow: Record<PermittedOpenAiModel, number> = {
   "gpt-3.5-turbo-1106": 16_385,
@@ -142,3 +148,15 @@ export const getOpenAiResponse = async (
     message: "Ok",
   };
 };
+
+/**
+ * A map of the API consumer-facing model names to the values provided to OpenAI.
+ * Allows for using preview models before they take over the general alias.
+ */
+export const modelAliasToSpecificModel = {
+  "gpt-3.5-turbo": "gpt-3.5-turbo-1106", // bigger context window, will be the resolved value for gpt-3.5-turbo from 11
+  // Dec 2023
+  "gpt-4-turbo": "gpt-4-1106-preview", // 'gpt-4-turbo' is not a valid model name in the OpenAI API yet, it's in
+  // preview only
+  "gpt-4": "gpt-4", // this points to the latest available anyway as of 6 Dec 2023
+} as const satisfies Record<InferenceModelName, PermittedOpenAiModel>;

@@ -76,6 +76,7 @@ export type OutputDefinition<A extends boolean = boolean> = {
   description?: string;
   payloadKind: PayloadKind;
   array: A;
+  required: boolean;
 };
 
 export type TriggerDefinition = {
