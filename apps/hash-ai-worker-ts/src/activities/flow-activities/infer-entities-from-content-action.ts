@@ -105,6 +105,7 @@ export const inferEntitiesFromContentAction: FlowActionActivity<{
       )?.summary;
 
       return {
+        localEntityId: `${actionIdPrefix}-${proposal.entityId}`,
         entityTypeId: entityTypeId as VersionedUrl,
         summary,
         properties: proposal.properties ?? {},

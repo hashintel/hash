@@ -47,7 +47,7 @@ type SummarizedEntity = {
   summary: string;
 };
 
-const mapProposedEntityIdToSummarizedEntity = (
+const mapProposedEntityToSummarizedEntity = (
   entity: ProposedEntity,
 ): SummarizedEntity => {
   if (!entity.summary) {
@@ -381,7 +381,7 @@ const getNextToolCalls = async (params: {
         submittedProposedEntities.length > 0
           ? dedent(`
             You have previously submitted the following proposed entities:
-            ${JSON.stringify(submittedProposedEntities.map(mapProposedEntityIdToSummarizedEntity))}
+            ${JSON.stringify(submittedProposedEntities.map(mapProposedEntityToSummarizedEntity))}
 
             If the submitted entities satisfy the research prompt, call the "complete" tool.
           `)
@@ -719,9 +719,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
             return {
               ...toolCall,
               output: JSON.stringify(
-                state.proposedEntities.map(
-                  mapProposedEntityIdToSummarizedEntity,
-                ),
+                state.proposedEntities.map(mapProposedEntityToSummarizedEntity),
               ),
             };
           } else if (toolCall.toolId === "submitProposedEntities") {
