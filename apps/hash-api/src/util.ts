@@ -1,16 +1,8 @@
-import id128 from "id128";
-
 export {
   DefaultMap,
   topologicalSort,
   treeFromParentReferences,
 } from "@local/hash-isomorphic-utils/util";
-
-/**
- * Generate a new ID.
- * @todo make ULID. Replace the implementation in datastore/postgres
- * */
-export const genId = () => id128.Uuid4.generate().toCanonical().toLowerCase();
 
 /** Returns true if exactly one of items is not null or undefined. */
 export const exactlyOne = (...items: unknown[]): boolean =>

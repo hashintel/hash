@@ -11,7 +11,7 @@ import type {
   Payload,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { validateFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
-import type { EntityUuid } from "@local/hash-subgraph/.";
+import type { EntityId } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import {
@@ -112,7 +112,7 @@ export const runFlowWorkflow = async (
   const flow = initializeFlow({
     flowDefinition,
     flowTrigger,
-    flowId: workflowId as EntityUuid,
+    flowId: workflowId as EntityId,
   });
 
   await flowActivities.persistFlowActivity({ flow, userAuthentication });

@@ -1,4 +1,4 @@
-import type { EntityUuid } from "@local/hash-subgraph";
+import type { EntityId, EntityUuid } from "@local/hash-subgraph";
 
 import type {
   InputNameForAction,
@@ -8,7 +8,7 @@ import type { FlowDefinition } from "./types";
 
 export const researchTaskFlowDefinition: FlowDefinition = {
   name: "Research Task",
-  flowDefinitionId: "research-task" as EntityUuid,
+  flowDefinitionId: "research-task" as EntityId,
   trigger: {
     triggerDefinitionId: "userTrigger",
     kind: "trigger",
@@ -257,7 +257,7 @@ export const researchTaskFlowDefinition: FlowDefinition = {
 
 export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
   name: "Infer User Entities from Web Page Flow",
-  flowDefinitionId: "infer-user-entities-from-web-page" as EntityUuid,
+  flowDefinitionId: "infer-user-entities-from-web-page" as EntityId,
   trigger: {
     kind: "trigger",
     triggerDefinitionId: "userTrigger",
@@ -366,6 +366,70 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
       name: "persistedEntities" as const,
       payloadKind: "Entity",
       array: true,
+    },
+  ],
+};
+
+export const saveFileFromUrl: FlowDefinition = {
+  name: "Save File From Url",
+  flowDefinitionId: "saveFileFromUrl" as EntityId,
+  trigger: {
+    triggerDefinitionId: "userTrigger",
+    kind: "trigger",
+    outputs: [
+      {
+        payloadKind: "Text",
+        name: "url" as const,
+        array: false,
+      },
+      {
+        payloadKind: "Text",
+        name: "description" as const,
+        array: false,
+      },
+      {
+        payloadKind: "Text",
+        name: "displayName" as const,
+        array: false,
+      },
+    ],
+  },
+  steps: [
+    {
+      stepId: "1",
+      kind: "action",
+      actionDefinitionId: "getFileFromUrl",
+      inputSources: [
+        {
+          inputName: "url" satisfies InputNameForAction<"getFileFromUrl">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "url",
+        },
+        {
+          inputName:
+            "description" satisfies InputNameForAction<"getFileFromUrl">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "description",
+        },
+        {
+          inputName:
+            "displayName" satisfies InputNameForAction<"getFileFromUrl">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "displayName",
+        },
+      ],
+    },
+  ],
+  outputs: [
+    {
+      stepId: "1",
+      stepOutputName: "fileEntity",
+      name: "fileEntity",
+      payloadKind: "Entity",
+      array: false,
     },
   ],
 };

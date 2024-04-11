@@ -67,9 +67,11 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
       Key: params.key,
     });
 
+    const headers = Object.keys(params.headers ?? {});
+
     const presignedPutUrl = await getSignedUrl(this.client, command, {
       expiresIn: params.expiresInSeconds,
-      signableHeaders: new Set(["content-length", "content-type"]),
+      signableHeaders: headers.length ? new Set(headers) : undefined,
     });
 
     return {

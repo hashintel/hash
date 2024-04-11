@@ -41,7 +41,7 @@ export const mapFlowDefinitionEntityToFlowDefinition = (
       kind: "trigger",
       triggerDefinitionId: triggerDefinition[
         "https://hash.ai/@hash/types/property-type/trigger-definition-id/"
-      ] as TriggerDefinitionId,
+      ] as any, // @todo fix this
       outputs: triggerDefinition[
         "https://hash.ai/@hash/types/property-type/output-definitions/"
       ] as OutputDefinition<boolean>[],

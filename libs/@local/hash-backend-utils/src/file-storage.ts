@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { Entity, EntityId } from "@local/hash-subgraph";
@@ -133,3 +134,7 @@ export const getEntityTypeIdForMimeType = (mimeType: string) =>
   Object.entries(fileMimeTypeStartsWithToEntityTypeId).find(
     ([mimeTypeStartsWith]) => mimeType.startsWith(mimeTypeStartsWith),
   )?.[1];
+
+export const formatFileUrl = (key: string) => {
+  return `${apiOrigin}/file/${key}`;
+};

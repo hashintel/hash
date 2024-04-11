@@ -1,47 +1,38 @@
 import fs from "node:fs";
 import { unlink } from "node:fs/promises";
+import http from "node:http";
 import https from "node:https";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { finished } from "node:stream/promises";
 import type { ReadableStream } from "node:stream/web";
 
-import {
-  createEntity,
-  updateEntity,
-} from "@apps/hash-api/src/graph/knowledge/primitive/entity";
-import { formatUrl } from "@apps/hash-api/src/graph/knowledge/system-types/file";
-import { setupStorageProviders } from "@apps/hash-api/src/storage";
 import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
-import { getEntityTypeIdForMimeType } from "@local/hash-backend-utils/file-storage";
+import {
+  formatFileUrl,
+  getEntityTypeIdForMimeType,
+} from "@local/hash-backend-utils/file-storage";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
 import type { GraphApi } from "@local/hash-graph-client";
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  File,
-  FileProperties,
-} from "@local/hash-isomorphic-utils/system-types/shared";
+import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { Entity } from "@local/hash-subgraph";
-import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-subgraph/src/stdlib/subgraph/roots";
+import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-subgraph/stdlib";
 import { StatusCode } from "@local/status";
-import id128 from "id128";
 import mime from "mime-types";
 
-import { fetchFileFromUrl } from "../shared/fetch-file-from-url";
 import type { FlowActionActivity } from "./types";
 
 const baseFilePath = "/tmp";
 
-// @todo move this to a shared location
-const genId = () => id128.Uuid4.generate().toCanonical().toLowerCase();
-
 const downloadFileToFileSystem = async (fileUrl: string) => {
-  const tempFileName = genId();
+  const tempFileName = generateUuid();
   const filePath = path.join(baseFilePath, tempFileName);
 
   const response = await fetch(fileUrl);
@@ -67,31 +58,42 @@ const downloadFileToFileSystem = async (fileUrl: string) => {
 
 const writeFileToS3URL = async ({
   filePath,
+  mimeType,
   presignedPutUrl,
+  sizeInBytes,
 }: {
   filePath: string;
+  mimeType: string;
   presignedPutUrl: string;
+  sizeInBytes: number;
 }) => {
   return new Promise((resolve, reject) => {
     const fileStream = fs.createReadStream(filePath);
-    const req = https.request(presignedPutUrl, { method: "PUT" }, (res) => {
-      res.on("data", () => {});
-      res.on("end", () => {
-        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-          resolve("Ok");
-        } else {
-          reject(
-            new Error(
-              `${res.statusCode} Error uploading to S3: ${res.statusMessage}`,
-            ),
-          );
-        }
-      });
-    });
-
-    req.on("error", (error) =>
-      reject(new Error(`Error uploading to S3: ${error.message}`)),
+    const req = (presignedPutUrl.startsWith("https://") ? https : http).request(
+      presignedPutUrl,
+      {
+        headers: { "Content-Length": sizeInBytes, "Content-Type": mimeType },
+        method: "PUT",
+      },
+      (res) => {
+        res.on("data", () => {});
+        res.on("end", () => {
+          if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+            resolve("Ok");
+          } else {
+            reject(
+              new Error(
+                `${res.statusCode} Error uploading to S3: ${res.statusMessage}`,
+              ),
+            );
+          }
+        });
+      },
     );
+
+    req.on("error", (error) => {
+      reject(new Error(`Request error: ${error.message}`));
+    });
 
     fileStream.on("error", (error) =>
       reject(new Error(`Error reading file: ${error.message}`)),
@@ -115,6 +117,10 @@ export const getFileFromUrlAction: FlowActionActivity<{
     actionType: "getFileFromUrl",
   });
 
+  const urlObject = new URL(originalUrl);
+  const urlWithoutParams = new URL(urlObject.origin + urlObject.pathname);
+  const filename = urlWithoutParams.pathname.split("/").pop()!;
+
   let localFilePath;
   try {
     localFilePath = await downloadFileToFileSystem(originalUrl);
@@ -122,14 +128,13 @@ export const getFileFromUrlAction: FlowActionActivity<{
     const message = `Error downloading file from URL: ${(err as Error).message}`;
 
     // @todo logger
-    console.error(message);
+    console.log(message);
     return {
       code: StatusCode.Internal, // @todo: better error code
       message,
+      contents: [],
     };
   }
-
-  const filename = originalUrl.split("/").pop()!;
 
   const mimeType = mime.lookup(filename) || "application/octet-stream";
   const entityTypeId =
@@ -177,9 +182,12 @@ export const getFileFromUrlAction: FlowActionActivity<{
     )
     .then((result) => mapGraphApiEntityMetadataToMetadata(result.data));
 
-  const uploadProvider = new AwsS3StorageProvider(getAwsS3Config());
+  const s3Config = getAwsS3Config();
+  console.log({ s3Config });
 
-  const editionIdentifier = genId();
+  const uploadProvider = new AwsS3StorageProvider(s3Config);
+
+  const editionIdentifier = generateUuid();
 
   const key = uploadProvider.getFileEntityStorageKey({
     entityId: incompleteFileEntityMetadata.recordId.entityId,
@@ -189,50 +197,55 @@ export const getFileFromUrlAction: FlowActionActivity<{
 
   const { fileStorageProperties, presignedPut } =
     await uploadProvider.presignUpload({
-      key,
+      expiresInSeconds: 60 * 60 * 24, // 24 hours
       headers: {
         "content-length": fileSizeInBytes,
         "content-type": mimeType,
       },
-      expiresInSeconds: 60 * 60 * 1,
+      key,
     });
+
+  console.log({ presignedPut });
 
   const properties: FileProperties = {
     ...initialProperties,
     "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
-      formatUrl(key),
+      formatFileUrl(key),
     ...fileStorageProperties,
   };
 
-  const entity = (await updateEntity(ctx, authentication, {
-    entity: fileEntity,
-    entityTypeId,
-    properties,
-  })) as Entity<FileProperties>;
+  const updatedEntityMetadata = await graphApiClient
+    .patchEntity(
+      // @todo which bot should this be?
+      userAuthentication.actorId,
+      {
+        entityId: incompleteFileEntityMetadata.recordId.entityId,
+        properties: [
+          {
+            op: "replace",
+            path: "",
+            value: properties,
+          },
+        ],
+      },
+    )
+    .then((result) => mapGraphApiEntityMetadataToMetadata(result.data));
 
   try {
-    const { fileStorageProperties, presignedPut } =
-      await uploadProvider.presignUpload({
-        key,
-        headers: {
-          "content-length": size,
-          "content-type": mimeType,
-        },
-        expiresInSeconds: UPLOAD_URL_EXPIRATION_SECONDS,
-      });
-
     await writeFileToS3URL({
       filePath: localFilePath,
-      presignedPutUrl: fileEntity.presignedPut.url,
+      mimeType,
+      presignedPutUrl: presignedPut.url,
+      sizeInBytes: fileSizeInBytes,
     });
   } catch (err) {
-    const message = `Error uploading file to S3: ${(err as Error).message}`;
+    const message = `Error uploading file: ${(err as Error).message}`;
 
     // @todo logger
-    console.error(message);
     return {
       code: StatusCode.Internal, // @todo: better error code
       message,
+      contents: [],
     };
   }
 
@@ -246,45 +259,14 @@ export const getFileFromUrlAction: FlowActionActivity<{
               "fileEntity" satisfies OutputNameForAction<"getFileFromUrl">,
             payload: {
               kind: "Entity",
-              value: fileEntity,
+              value: {
+                metadata: updatedEntityMetadata,
+                properties,
+              } satisfies Entity,
             },
           },
         ],
       },
     ],
   };
-};
-
-export const createFileFromExternalUrl: ImpureGraphFunction<
-  MutationCreateFileFromUrlArgs,
-  Promise<File>,
-  false,
-  true
-> = async (ctx, authentication, params) => {
-  const { description, displayName, url } = params;
-
-  const filename = url.split("/").pop()!;
-
-  const { entityTypeId, existingEntity, mimeType, ownedById } =
-    await generateCommonParameters(ctx, authentication, params, filename);
-
-  try {
-    return existingEntity
-      ? ((await updateEntity(ctx, authentication, {
-          entity: existingEntity,
-          entityTypeId,
-          properties,
-        })) as unknown as File)
-      : ((await createEntity(ctx, authentication, {
-          ownedById,
-          properties,
-          entityTypeId,
-          relationships:
-            createDefaultAuthorizationRelationships(authentication),
-        })) as unknown as File);
-  } catch (error) {
-    throw new Error(
-      `There was an error creating the file entity from a link: ${error}`,
-    );
-  }
 };

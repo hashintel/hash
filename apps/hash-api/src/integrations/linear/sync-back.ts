@@ -4,6 +4,7 @@ import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { UpdateLinearDataWorkflow } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
 import type { GraphApi } from "@local/hash-graph-client";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { Entity, EntityUuid, Uuid } from "@local/hash-subgraph";
 import {
@@ -18,7 +19,6 @@ import { getLatestEntityById } from "../../graph/knowledge/primitive/entity";
 import { getLinearSecretValueByHashWorkspaceId } from "../../graph/knowledge/system-types/linear-user-secret";
 import { systemAccountId } from "../../graph/system-account";
 import { createTemporalClient } from "../../temporal";
-import { genId } from "../../util";
 
 const supportedLinearEntityTypeIds = linearTypeMappings.map(
   ({ hashEntityTypeId }) => hashEntityTypeId as VersionedUrl,
@@ -125,7 +125,7 @@ export const processEntityChange = async (
   await temporalClient.workflow.start<UpdateLinearDataWorkflow>(
     "updateLinearData",
     {
-      workflowId: genId(),
+      workflowId: generateUuid(),
       taskQueue: "integration",
       args: [
         {

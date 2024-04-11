@@ -1,7 +1,10 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { PresignedPutUpload } from "@local/hash-backend-utils/file-storage";
-import { getEntityTypeIdForMimeType } from "@local/hash-backend-utils/file-storage";
-import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
+import {
+  formatFileUrl,
+  getEntityTypeIdForMimeType,
+} from "@local/hash-backend-utils/file-storage";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
@@ -17,7 +20,6 @@ import type {
   MutationRequestFileUploadArgs,
 } from "../../../graphql/api-types.gen";
 import type { AuthenticationContext } from "../../../graphql/authentication-context";
-import { genId } from "../../../util";
 import type {
   ImpureGraphContext,
   ImpureGraphFunction,
@@ -30,10 +32,6 @@ import {
 
 // 1800 seconds
 const UPLOAD_URL_EXPIRATION_SECONDS = 60 * 30;
-
-export const formatUrl = (key: string) => {
-  return `${apiOrigin}/file/${key}`;
-};
 
 const generateCommonParameters = async (
   ctx: ImpureGraphContext<false, true>,
@@ -169,7 +167,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
     })) as Entity<FileProperties>;
   }
 
-  const editionIdentifier = genId();
+  const editionIdentifier = generateUuid();
 
   const key = uploadProvider.getFileEntityStorageKey({
     entityId: fileEntity.metadata.recordId.entityId,
@@ -191,7 +189,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
     const properties: FileProperties = {
       ...initialProperties,
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
-        formatUrl(key),
+        formatFileUrl(key),
       ...fileStorageProperties,
     };
 

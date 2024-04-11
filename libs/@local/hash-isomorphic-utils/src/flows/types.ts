@@ -1,6 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
   Entity,
+  EntityId,
   EntityPropertiesObject,
   EntityTypeWithMetadata,
   EntityUuid,
@@ -193,7 +194,7 @@ type FlowDefinitionTrigger =
 
 export type FlowDefinition = {
   name: string;
-  flowDefinitionId: EntityUuid;
+  flowDefinitionId: EntityId;
   trigger: FlowDefinitionTrigger;
   steps: StepDefinition[];
   outputs: (OutputDefinition & {
@@ -252,9 +253,9 @@ export type FlowTrigger = {
 };
 
 export type Flow = {
-  flowId: EntityUuid;
+  flowId: EntityId;
   trigger: FlowTrigger;
-  flowDefinitionId: EntityUuid;
+  flowDefinitionId: EntityId;
   steps: FlowStep[];
   outputs?: StepOutput[];
 };
