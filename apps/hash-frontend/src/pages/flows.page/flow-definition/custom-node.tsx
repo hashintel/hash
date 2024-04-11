@@ -1,6 +1,8 @@
+import type { SxProps, Theme } from "@mui/material";
 import { Typography } from "@mui/material";
 import type { NodeProps } from "reactflow";
 
+import { FlowStepStatus } from "../../../graphql/api-types.gen";
 import { Handles } from "./shared/handles";
 import { NodeContainer } from "./shared/node-container";
 import type { NodeData } from "./shared/types";

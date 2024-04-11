@@ -21,8 +21,9 @@ export const FlowDefinitionsContext =
 
 const exampleFlows: FlowDefinition[] = [
   // ...dummyFlows,
-  inferUserEntitiesFromWebPageFlowDefinition,
   researchTaskFlowDefinition,
+
+  inferUserEntitiesFromWebPageFlowDefinition,
 ];
 
 export const FlowDefinitionsContextProvider = ({

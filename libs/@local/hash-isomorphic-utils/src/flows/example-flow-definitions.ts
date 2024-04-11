@@ -11,6 +11,8 @@ export const researchTaskFlowDefinition: FlowDefinition = {
   flowDefinitionId: "research-task" as EntityUuid,
   trigger: {
     triggerDefinitionId: "userTrigger",
+    description:
+      "User provides research specification and entity types to discover",
     kind: "trigger",
     outputs: [
       {
@@ -32,6 +34,8 @@ export const researchTaskFlowDefinition: FlowDefinition = {
       stepId: "1",
       kind: "action",
       actionDefinitionId: "researchEntities",
+      description:
+        "Discover entities according to research specification, using public web sources",
       inputSources: [
         {
           inputName: "prompt" satisfies InputNameForAction<"researchEntities">,
@@ -51,6 +55,7 @@ export const researchTaskFlowDefinition: FlowDefinition = {
     {
       stepId: "2",
       kind: "action",
+      description: "Save discovered entities and relationships to HASH graph",
       actionDefinitionId: "persistEntities",
       inputSources: [
         {
@@ -279,6 +284,7 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
       stepId: "0",
       kind: "action",
       actionDefinitionId: "getWebPageByUrl",
+      description: "Get web page by URL",
       inputSources: [
         {
           inputName: "url" satisfies InputNameForAction<"getWebPageByUrl">,
@@ -292,6 +298,7 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
       stepId: "1",
       kind: "action",
       actionDefinitionId: "inferEntitiesFromContent",
+      description: "Infer entities from web page content",
       inputSources: [
         {
           inputName:
@@ -314,6 +321,7 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
       stepId: "2",
       kind: "action",
       actionDefinitionId: "persistEntities",
+      description: "Save proposed entities to database",
       inputSources: [
         {
           inputName:
@@ -376,6 +384,7 @@ export const answerQuestionFlow: FlowDefinition = {
       stepId: "0",
       kind: "action",
       actionDefinitionId: "answerQuestion",
+      description: "Answer question on context",
       inputSources: [
         {
           inputName: "question" satisfies InputNameForAction<"answerQuestion">,
@@ -460,6 +469,7 @@ export const saveFileFromUrl: FlowDefinition = {
       stepId: "1",
       kind: "action",
       actionDefinitionId: "getFileFromUrl",
+      description: "Get file from URL",
       inputSources: [
         {
           inputName: "url" satisfies InputNameForAction<"getFileFromUrl">,

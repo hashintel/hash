@@ -169,6 +169,7 @@ export type ActionStepDefinition<
   kind: "action";
   stepId: string;
   actionDefinitionId: ActionDefinitionId;
+  description: string;
   inputSources: AdditionalInputSources extends null
     ? StepInputSource[]
     : (StepInputSource | AdditionalInputSources)[];
@@ -178,6 +179,7 @@ export type ActionStepDefinition<
 export type ParallelGroupStepDefinition = {
   kind: "parallel-group";
   stepId: string;
+  description: string;
   /**
    * The input source to parallelize on must expect an `ArrayPayload`,
    * so that each item in the array can be processed by the steps in
