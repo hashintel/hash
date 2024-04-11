@@ -1,3 +1,4 @@
+import type { UploadableStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type { SearchAdapter } from "@local/hash-backend-utils/search/adapter";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
@@ -6,7 +7,6 @@ import type { CacheAdapter } from "../cache";
 import type { EmailTransporter } from "../email/transporters";
 import type { GraphApi } from "../graph/context-types";
 import type { User } from "../graph/knowledge/system-types/user";
-import type { UploadableStorageProvider } from "../storage/storage-provider";
 import type { TemporalClient } from "../temporal";
 import type { AuthenticationContext } from "./authentication-context";
 

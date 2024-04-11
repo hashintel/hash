@@ -3,9 +3,8 @@ import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import type { Client } from "@temporalio/client";
-
-import { genId } from "../../util";
 
 export const rewriteSemanticFilter = async (
   filter?: Filter,
@@ -42,7 +41,7 @@ export const rewriteSemanticFilter = async (
               input: [stringInputValue],
             },
           ],
-          workflowId: genId(),
+          workflowId: generateUuid(),
         });
         expression[1].parameter = embeddings[0];
       }

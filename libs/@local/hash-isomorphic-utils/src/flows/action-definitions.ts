@@ -188,6 +188,18 @@ const actionDefinitionsAsConst = {
         required: true,
         array: false,
       },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "description",
+        required: false,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "displayName",
+        required: false,
+        array: false,
+      },
     ],
     outputs: [
       {

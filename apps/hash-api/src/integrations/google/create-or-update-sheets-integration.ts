@@ -4,6 +4,7 @@ import {
   getTokensForGoogleAccount,
 } from "@local/hash-backend-utils/google";
 import type { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-integration-workflow-types";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import type {
   CreateOrUpdateSheetsIntegrationRequest,
   CreateOrUpdateSheetsIntegrationResponse,
@@ -27,7 +28,6 @@ import {
   updateEntity,
 } from "../../graph/knowledge/primitive/entity";
 import { createLinkEntity } from "../../graph/knowledge/primitive/link-entity";
-import { genId } from "../../util";
 import { enabledIntegrations } from "../enabled-integrations";
 import { getGoogleAccountById } from "./shared/get-google-account";
 
@@ -346,7 +346,7 @@ export const createOrUpdateSheetsIntegration: RequestHandler<
             userAccountId: req.user.accountId,
           },
         ],
-        workflowId: `${workflow}-${integrationEntityId}-${genId()}`,
+        workflowId: `${workflow}-${integrationEntityId}-${generateUuid()}`,
       });
 
       res.json({ integrationEntityId });

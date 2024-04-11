@@ -4,8 +4,8 @@ import type {
   RunFlowWorkflowResponse,
 } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import { validateFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
-import { genId } from "../../../util";
 import type { MutationStartFlowArgs, ResolverFn } from "../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../context";
 
@@ -30,7 +30,7 @@ export const startFlow: ResolverFn<
         userAuthentication: { actorId: user.accountId },
       },
     ],
-    workflowId: genId(),
+    workflowId: generateUuid(),
     retry: {
       maximumAttempts: 1,
     },

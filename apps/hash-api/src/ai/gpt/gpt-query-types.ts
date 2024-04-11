@@ -5,11 +5,11 @@ import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { RequestHandler } from "express";
 
-import { genId } from "../../util";
 import { stringifyResults } from "./shared/stringify-results";
 
 export type GptQueryTypesRequestBody = {
@@ -67,7 +67,7 @@ export const gptQueryTypes: RequestHandler<
               input: [query],
             },
           ],
-          workflowId: genId(),
+          workflowId: generateUuid(),
         })
         .then(({ embeddings }) => embeddings[0])
     : null;
