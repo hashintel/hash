@@ -3,13 +3,13 @@ import {
   ArrowUpRightIcon,
   DashIcon,
 } from "@hashintel/design-system";
+import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack, Tooltip } from "@mui/material";
 
 import { useUserOrOrgShortnameByOwnedById } from "../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import type { FileUpload } from "../../../../shared/file-upload-context";
 import { Link } from "../../../../shared/ui/link";
-import { generateEntityHref } from "../../use-entity-href";
 
 const buttonSx: SxProps<Theme> = {
   color: "blue.70",
@@ -40,7 +40,7 @@ export const Action = ({
           <Link
             href={
               shortname
-                ? generateEntityHref({
+                ? generateEntityPath({
                     shortname,
                     entityId:
                       upload.createdEntities.fileEntity.metadata.recordId

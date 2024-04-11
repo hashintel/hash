@@ -16,10 +16,11 @@ import {
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
 
+import { logger } from "../../../shared/logger";
+import { stringify } from "../../shared/stringify";
 import type { DereferencedEntityType } from "../dereference-entity-type";
 import { extractErrorMessage } from "../shared/extract-validation-failure-details";
 import { getEntityByFilter } from "../shared/get-entity-by-filter";
-import { stringify } from "../stringify";
 import { ensureTrailingSlash } from "./ensure-trailing-slash";
 import type { ProposedEntityUpdatesByType } from "./generate-persist-entities-tools";
 
@@ -34,14 +35,12 @@ export const updateEntities = async ({
   actorId,
   createAsDraft,
   graphApiClient,
-  log,
   proposedEntityUpdatesByType,
   requestedEntityTypes,
 }: {
   actorId: AccountId;
   createAsDraft: boolean;
   graphApiClient: GraphApi;
-  log: (message: string) => void;
   proposedEntityUpdatesByType: ProposedEntityUpdatesByType;
   requestedEntityTypes: Record<
     VersionedUrl,
@@ -149,7 +148,7 @@ export const updateEntities = async ({
               status: "success",
             };
           } catch (err) {
-            log(
+            logger.error(
               `Update of entity with temporary id ${
                 proposedEntity.entityId
               } and entityId ${

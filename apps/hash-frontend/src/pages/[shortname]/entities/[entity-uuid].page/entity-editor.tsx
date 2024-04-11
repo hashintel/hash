@@ -35,7 +35,9 @@ export const EntityEditor = (props: EntityEditorProps) => {
        * Any query without an entityId should EXCLUDE entities with a draftId to ensure only the live version is returned.
        */
       throw new Error(
-        `More than one root entity passed to entity editor, with ids: ${roots.map((root) => root.metadata.recordId.entityId).join(", ")}`,
+        `More than one root entity passed to entity editor, with ids: ${roots
+          .map((root) => root.metadata.recordId.entityId)
+          .join(", ")}`,
       );
     }
 

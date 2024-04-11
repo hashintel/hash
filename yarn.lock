@@ -10675,6 +10675,13 @@ bufferput@^0.1.3:
   resolved "https://registry.yarnpkg.com/bufferput/-/bufferput-0.1.3.tgz#c6cd4a2cefa395d2287774a17bc9a90b224447d9"
   integrity "sha1-xs1KLO+jldIod3She8mpCyJER9k= sha512-nmPV88vDNzf0VMU1bdQ4A1oBlRR9y+CXfwWKfyKUgI2ZIkvreNzLMM3tkz0Lapb6f+Cz1V001UWRBsoGVCjqdw=="
 
+bufferutil@^4.0.8:
+  version "4.0.8"
+  resolved "https://registry.yarnpkg.com/bufferutil/-/bufferutil-4.0.8.tgz#1de6a71092d65d7766c4d8a522b261a6e787e8ea"
+  integrity sha512-4T53u4PdgsXqKaIctwF8ifXlRTTmEPJ8iEPWFdGZvcf7sbwYo6FKFEX9eNNAnzFZ7EzJAQ3CJeOtCRA4rDp7Pw==
+  dependencies:
+    node-gyp-build "^4.3.0"
+
 builtin-modules@^3.3.0:
   version "3.3.0"
   resolved "https://registry.yarnpkg.com/builtin-modules/-/builtin-modules-3.3.0.tgz#cae62812b89801e9656336e46223e030386be7b6"
@@ -12889,6 +12896,21 @@ duration-fns@3.0.1:
   version "3.0.1"
   resolved "https://registry.yarnpkg.com/duration-fns/-/duration-fns-3.0.1.tgz#72fc3400ee8c511ee36a19edf26bf49104d4c051"
   integrity "sha1-cvw0AO6MUR7jahnt8mv0kQTUwFE= sha512-GHxED15UbbjNyCwk8OBGDs5KV+Zn/cloq66c4IPUslC3JfbbXncW9gtxfpG9b0xDVpVkPFzqy6lZaq9iyqff3Q=="
+
+e2b@0.13.1:
+  version "0.13.1"
+  resolved "https://registry.yarnpkg.com/e2b/-/e2b-0.13.1.tgz#14cd2039005cef230fb31d630e336f72b84876e5"
+  integrity sha512-JHm3FUaGNzErrhbD8YrRLZO5pOPGUSm8b9HeEWqutgPmIgVg8v2x/9/8t0Wepwyzep2zmNU+lVQrEB8HlFNjHQ==
+  dependencies:
+    isomorphic-ws "^5.0.0"
+    normalize-path "^3.0.0"
+    openapi-typescript-fetch "^1.1.3"
+    path-browserify "^1.0.1"
+    platform "^1.3.6"
+    ws "^8.15.1"
+  optionalDependencies:
+    bufferutil "^4.0.8"
+    utf-8-validate "^6.0.3"
 
 eastasianwidth@^0.2.0:
   version "0.2.0"
@@ -19437,6 +19459,11 @@ node-gyp-build-optional-packages@5.0.7:
   resolved "https://registry.yarnpkg.com/node-gyp-build-optional-packages/-/node-gyp-build-optional-packages-5.0.7.tgz#5d2632bbde0ab2f6e22f1bbac2199b07244ae0b3"
   integrity sha512-YlCCc6Wffkx0kHkmam79GKvDQ6x+QZkMjFGrIMxgFNILFvGSbCp2fCBC55pGTT9gVaz8Na5CLmxt/urtzRv36w==
 
+node-gyp-build@^4.3.0:
+  version "4.8.0"
+  resolved "https://registry.yarnpkg.com/node-gyp-build/-/node-gyp-build-4.8.0.tgz#3fee9c1731df4581a3f9ead74664369ff00d26dd"
+  integrity sha512-u6fs2AEUljNho3EYTJNBfImO5QTo/J/1Etd+NVdCj7qWKUSN/bSLkZwhDv7I+w/MSC6qJ4cknepkAYykDdK8og==
+
 node-gyp@^9.4.0:
   version "9.4.0"
   resolved "https://registry.yarnpkg.com/node-gyp/-/node-gyp-9.4.0.tgz#2a7a91c7cba4eccfd95e949369f27c9ba704f369"
@@ -19881,6 +19908,11 @@ openapi-sampler@^1.3.1:
   dependencies:
     "@types/json-schema" "^7.0.7"
     json-pointer "0.6.2"
+
+openapi-typescript-fetch@^1.1.3:
+  version "1.1.3"
+  resolved "https://registry.yarnpkg.com/openapi-typescript-fetch/-/openapi-typescript-fetch-1.1.3.tgz#354e6803b7885c7142ae11adc1b758afafd8aa2e"
+  integrity sha512-smLZPck4OkKMNExcw8jMgrMOGgVGx2N/s6DbKL2ftNl77g5HfoGpZGFy79RBzU/EkaO0OZpwBnslfdBfh7ZcWg==
 
 opener@^1.5.2:
   version "1.5.2"
@@ -20584,6 +20616,11 @@ plaiceholder@2.5.0:
     image-size "1.0.2"
     node-cache "5.1.2"
     node-fetch "2.6.7"
+
+platform@^1.3.6:
+  version "1.3.6"
+  resolved "https://registry.yarnpkg.com/platform/-/platform-1.3.6.tgz#48b4ce983164b209c2d45a107adb31f473a6e7a7"
+  integrity sha512-fnWVljUchTro6RiCFvCXBbNhJc2NijN7oIQxbwsyL0buWJPG85v81ehlHI9fXrJsMNgTofEoWIQeClKpgxFLrg==
 
 playwright-core@1.43.0:
   version "1.43.0"
@@ -25222,6 +25259,13 @@ use-sync-external-store@^1.2.0:
   resolved "https://registry.yarnpkg.com/use-sync-external-store/-/use-sync-external-store-1.2.0.tgz#7dbefd6ef3fe4e767a0cf5d7287aacfb5846928a"
   integrity sha512-eEgnFxGQ1Ife9bzYs6VLi8/4X6CObHMw9Qr9tPY43iKwsPw8xE8+EFsf/2cFZ5S3esXgpWgtSCtLNS41F+sKPA==
 
+utf-8-validate@^6.0.3:
+  version "6.0.3"
+  resolved "https://registry.yarnpkg.com/utf-8-validate/-/utf-8-validate-6.0.3.tgz#7d8c936d854e86b24d1d655f138ee27d2636d777"
+  integrity sha512-uIuGf9TWQ/y+0Lp+KGZCMuJWc3N9BHA+l/UmHd/oUHwJJDeysyTRxNQVkbzsIWfGFbRe3OcgML/i0mvVRPOyDA==
+  dependencies:
+    node-gyp-build "^4.3.0"
+
 util-deprecate@^1.0.1, util-deprecate@^1.0.2, util-deprecate@~1.0.1:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/util-deprecate/-/util-deprecate-1.0.2.tgz#450d4dc9fa70de732762fbd2d4a28981419a0ccf"
@@ -25988,7 +26032,7 @@ ws@8.15.1:
   resolved "https://registry.yarnpkg.com/ws/-/ws-8.15.1.tgz#271ba33a45ca0cc477940f7f200cd7fba7ee1997"
   integrity sha512-W5OZiCjXEmk0yZ66ZN82beM5Sz7l7coYxpRkzS+p9PP+ToQry8szKh+61eNktr7EA9DOwvFGhfC605jDHbP6QQ==
 
-ws@8.16.0, ws@^8.12.0, ws@^8.13.0, ws@^8.14.2, ws@^8.16.0, ws@^8.2.3, ws@^8.4.2:
+ws@8.16.0, ws@^8.12.0, ws@^8.13.0, ws@^8.14.2, ws@^8.15.1, ws@^8.16.0, ws@^8.2.3, ws@^8.4.2:
   version "8.16.0"
   resolved "https://registry.yarnpkg.com/ws/-/ws-8.16.0.tgz#d1cd774f36fbc07165066a60e40323eab6446fd4"
   integrity sha512-HS0c//TP7Ina87TfiPUz1rQzMhHrl/SG2guqRcTOIUYD2q8uhUdNHZYJUaQ8aTGPzCh+c6oawMKW35nFl1dxyQ==

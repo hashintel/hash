@@ -11,8 +11,7 @@ import type {
 } from "openai/resources";
 
 import { getWebPageActivity } from "../get-web-page-activity";
-import { modelAliasToSpecificModel } from "../infer-entities";
-import { getOpenAiResponse } from "../infer-entities/shared/get-open-ai-response";
+import { getOpenAiResponse, modelAliasToSpecificModel } from "../shared/openai";
 import type { FlowActionActivity } from "./types";
 
 const generateSummarizeWebPageSystemMessage = (params: {

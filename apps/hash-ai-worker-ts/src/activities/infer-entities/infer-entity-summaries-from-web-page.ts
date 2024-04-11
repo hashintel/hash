@@ -1,11 +1,11 @@
 import dedent from "dedent";
 
+import type { PermittedOpenAiModel } from "../shared/openai";
 import { inferEntitiesSystemMessage } from "./infer-entities-system-message";
 import { inferEntitySummaries } from "./infer-entity-summaries";
 import type {
   DereferencedEntityTypesByTypeId,
   InferenceState,
-  PermittedOpenAiModel,
   WebPage,
 } from "./inference-types";
 
@@ -30,7 +30,9 @@ export const inferEntitySummariesFromWebPage = async (params: {
 
   const summariseEntitiesPrompt = dedent(`
   First, let's get a summary of the entities you can infer from the provided text.
-  Please provide a brief description of ${relevantEntitiesPrompt ? "each relevant" : "each"} entity you can infer.
+  Please provide a brief description of ${
+    relevantEntitiesPrompt ? "each relevant" : "each"
+  } entity you can infer.
   It only needs to be long enough to uniquely identify the entity in the text – we'll worry about any more details in a future step.
   ${
     relevantEntitiesPrompt

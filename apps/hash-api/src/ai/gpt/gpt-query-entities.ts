@@ -1,9 +1,14 @@
-import { typedEntries } from "@local/advanced-types/typed-entries";
+import type {
+  SimpleEntityWithoutHref,
+  SimpleLinkWithoutHref,
+} from "@local/hash-backend-utils/simplified-graph";
+import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
+import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -12,28 +17,15 @@ import type {
   OrganizationProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import type {
-  Entity,
-  EntityId,
-  EntityUuid,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { EntityId, EntityUuid } from "@local/hash-subgraph";
 import {
   entityIdFromComponents,
-  extractDraftIdFromEntityId,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
-import {
-  getEntityTypeById,
-  getOutgoingLinksForEntity,
-  getPropertyTypeForEntity,
-} from "@local/hash-subgraph/stdlib";
 import type { RequestHandler } from "express";
 
 import { getLatestEntityById } from "../../graph/knowledge/primitive/entity";
-import type { SimpleEntityType } from "./shared/entity-types";
-import { getSimpleEntityType } from "./shared/entity-types";
 import { stringifyResults } from "./shared/stringify-results";
 import type { SimpleWeb } from "./shared/webs";
 import { getUserSimpleWebs } from "./shared/webs";
@@ -42,7 +34,7 @@ export type GptQueryEntitiesRequestBody = {
   /**
    * The titles of specific types of entities to retrieve. Types are typically capitalized, e.g. User, Organization.
    * You may omit this field to retrieve all entities visible to the user, but this may be a slow operation.
-   * If types is omitted, a 'webs' or 'entityUuids' filter should be provided to limit the number of entities returned.
+   * If types is omitted, a 'webs' or 'entityIds' filter should be provided to limit the number of entities returned.
    * If you're unsure what types to request, you can use the queryTypes endpoint to get a list of available types.
    */
   types?: string[];
@@ -58,13 +50,13 @@ export type GptQueryEntitiesRequestBody = {
    */
   query?: string;
   /**
-   * Limit the response to the entities with the specified entityUuids.
+   * Limit the response to the entities with the specified entityIds.
    * Use this filter if you want to explore the graph rooted at specific entities.
    */
-  entityUuids?: string[];
+  entityIds?: string[];
   /**
    * The depth of the graph to explore from the entities matched by the filter.
-   * For example, a depth of 2 will return the entities of the requested type / webs / entityUuids,
+   * For example, a depth of 2 will return the entities of the requested type / webs / entityIds,
    * plus any entities linking to or from them, and any entities linking to or from _those_ entities.
    * A depth of 0 will return only the entities matched by the filter.
    *
@@ -73,7 +65,7 @@ export type GptQueryEntitiesRequestBody = {
    *
    * If a given entity has no links in the return data, it may be that it DOES have links in the graph,
    * but the traversal depth was not sufficient to reach them.
-   * You can make a follow-up query with the entityUuid and a non-zero traversal depth to check.
+   * You can make a follow-up query with the entityId and a non-zero traversal depth to check.
    *
    * If an API response is too large, it is worth repeating it with a lower or 0 traversalDepth.
    *
@@ -87,34 +79,9 @@ export type GptQueryEntitiesRequestBody = {
   includeDrafts?: boolean;
 };
 
-type BaseSimpleEntityFields = {
-  /** Whether or not the entity is in draft */
-  draft: boolean;
-  /** The unique id for the entity, to identify it for future requests or as the target of links from other entities */
-  entityUuid: string;
-  /** The title of the entity type this entity belongs to */
-  entityType: string;
-  /** The properties of the entity, with the property title as the key */
-  properties: Record<string, unknown>;
-  /** A link to view full details of the entity which users can follow to find out more */
+type SimpleEntity = SimpleEntityWithoutHref & {
   entityHref: string;
-};
-
-export type SimpleLink = BaseSimpleEntityFields & {
-  /** The unique entityUuid of the target of this link. */
-  targetEntityUuid: string;
-};
-
-export type SimpleEntity = BaseSimpleEntityFields & {
-  /**
-   * Links from the entity to other entities. The link itself can have properties, containing data about the
-   * relationship.
-   */
-  links: SimpleLink[];
-  /**
-   * The web that the entity belongs to
-   */
-  webUuid: string;
+  links: (SimpleLinkWithoutHref & { entityHref: string })[];
 };
 
 export type GptQueryEntitiesResponseBody =
@@ -124,7 +91,7 @@ export type GptQueryEntitiesResponseBody =
        * Entities returned by the query. Each has:
        *
        * draft: Whether or not the entity is in draft
-       * entityUuid: The unique id for the entity, to identify it for future requests or as the target of links from other entities
+       * entityId: The unique id for the entity, to identify it for future requests or as the target of links from other entities
        * entityType: the title of the type it belongs to, which are further expanded on under 'entityTypes'
        * properties: the properties of the entity
        * links: outgoing links from the entity
@@ -141,47 +108,13 @@ export type GptQueryEntitiesResponseBody =
       /**
        * The entity types that various entities in this response belong to.
        * Each describes the properties and outgoing links that an entity of this type may have.
-       * They also have a unique id, which contains the name of the web that the entity type belongs to prefixed by an @, e.g. `@hash`
+       * They also have a unique id, which contains the name of the web that the entity type belongs to prefixed by an
+       * @, e.g. `@hash`
        */
       entityTypes: string;
       /** The webs that various entities in this response belong to */
       webs: string;
     };
-
-const createBaseSimpleEntityFields = (
-  subgraph: Subgraph,
-  entity: Entity,
-  shortname: string,
-): BaseSimpleEntityFields => {
-  const typeSchema = getEntityTypeById(subgraph, entity.metadata.entityTypeId);
-  if (!typeSchema) {
-    throw new Error("Entity type not found in subgraph");
-  }
-
-  const properties: SimpleEntity["properties"] = {};
-  for (const [propertyBaseUrl, propertyValue] of typedEntries(
-    entity.properties,
-  )) {
-    const { propertyType } = getPropertyTypeForEntity(
-      subgraph,
-      entity.metadata.entityTypeId,
-      propertyBaseUrl,
-    );
-    properties[propertyType.title] = propertyValue;
-  }
-
-  const entityUuid = extractEntityUuidFromEntityId(
-    entity.metadata.recordId.entityId,
-  );
-
-  return {
-    draft: !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
-    entityUuid,
-    entityHref: `${frontendUrl}/@${shortname}/entities/${entityUuid}`,
-    entityType: typeSchema.schema.title,
-    properties,
-  };
-};
 
 export const gptQueryEntities: RequestHandler<
   Record<string, never>,
@@ -201,7 +134,7 @@ export const gptQueryEntities: RequestHandler<
     return;
   }
 
-  const { types, query, entityUuids, webUuids, traversalDepth, includeDrafts } =
+  const { types, query, entityIds, webUuids, traversalDepth, includeDrafts } =
     req.body;
 
   const depth = traversalDepth ?? 2;
@@ -248,14 +181,16 @@ export const gptQueryEntities: RequestHandler<
                   },
                 ]
               : []),
-            ...(entityUuids
+            ...(entityIds
               ? [
                   {
-                    any: entityUuids.map((entityUuid) => ({
+                    any: entityIds.map((entityId) => ({
                       equal: [
                         { path: ["uuid"] },
                         {
-                          parameter: entityUuid,
+                          parameter: extractEntityUuidFromEntityId(
+                            entityId as EntityId,
+                          ),
                         },
                       ],
                     })),
@@ -300,8 +235,6 @@ export const gptQueryEntities: RequestHandler<
       },
     })
     .then(async (response) => {
-      const entities: SimpleEntity[] = [];
-      const entityTypes: SimpleEntityType[] = [];
       const webs: SimpleWeb[] = await getUserSimpleWebs(
         req.context,
         {
@@ -315,110 +248,75 @@ export const gptQueryEntities: RequestHandler<
         user.accountId,
       );
 
-      const vertices = Object.values(subgraph.vertices)
-        .map((vertex) => Object.values(vertex))
-        .flat();
+      const { entities: entitiesWithoutHrefs, entityTypes } =
+        getSimpleGraph(subgraph);
 
-      for (const vertex of vertices) {
-        if (vertex.kind === "entity") {
-          if (vertex.inner.linkData) {
-            /**
-             * We add links under a 'links' property on the source entity, to make it easier for the model to identify
-             * them.
-             */
-            continue;
-          }
+      const resolveEntityWeb = async (simpleEntity: {
+        entityId: EntityId;
+      }): Promise<SimpleWeb> => {
+        /**
+         * Resolve details of the web that the entity belongs to
+         */
+        const webOwnedById = extractOwnedByIdFromEntityId(
+          simpleEntity.entityId,
+        );
 
-          /**
-           * Resolve details of the web that the entity belongs to
-           */
-          const webOwnedById = extractOwnedByIdFromEntityId(
-            vertex.inner.metadata.recordId.entityId as EntityId,
-          );
+        let web = webs.find((resolvedWeb) => resolvedWeb.uuid === webOwnedById);
 
-          let web = webs.find(
-            (resolvedWeb) => resolvedWeb.uuid === webOwnedById,
-          );
-
-          if (!web) {
-            const owningEntity = await getLatestEntityById(
-              req.context,
-              { actorId: user.accountId },
-              {
-                entityId: entityIdFromComponents(
-                  webOwnedById,
-                  webOwnedById as unknown as EntityUuid,
-                ),
-              },
-            );
-
-            const isUser =
-              owningEntity.metadata.entityTypeId.includes("/user/");
-
-            web = {
-              type: isUser ? "User" : "Organization",
-              name: (
-                owningEntity.properties as
-                  | UserProperties
-                  | OrganizationProperties
-              )[systemPropertyTypes.shortname.propertyTypeBaseUrl]!,
-              uuid: webOwnedById,
-            };
-
-            webs.push(web);
-          }
-
-          /**
-           * Resolve details of the entity type that the entity belongs to
-           */
-          const entityType = entityTypes.find(
-            (type) => type.entityTypeId === vertex.inner.metadata.entityTypeId,
-          );
-          if (!entityType) {
-            const simpleType = getSimpleEntityType(
-              subgraph,
-              vertex.inner.metadata.entityTypeId,
-            );
-            entityTypes.push(simpleType);
-          }
-
-          /**
-           * Create the entity object
-           */
-          const baseFields = createBaseSimpleEntityFields(
-            subgraph,
-            vertex.inner,
-            web.name,
-          );
-
-          const links: SimpleEntity["links"] = [];
-          const linksFromEntity = getOutgoingLinksForEntity(
-            subgraph,
-            vertex.inner.metadata.recordId.entityId,
-          );
-          for (const link of linksFromEntity) {
-            if (!link.linkData) {
-              throw new Error(
-                `Link with entityId ${link.metadata.recordId.entityId} has no linkData`,
-              );
-            }
-            links.push({
-              /** @todo account for link being in a different web to the source entity */
-              ...createBaseSimpleEntityFields(subgraph, link, web.name),
-              targetEntityUuid: extractEntityUuidFromEntityId(
-                link.linkData.rightEntityId,
+        if (!web) {
+          const owningEntity = await getLatestEntityById(
+            req.context,
+            { actorId: user.accountId },
+            {
+              entityId: entityIdFromComponents(
+                webOwnedById,
+                webOwnedById as unknown as EntityUuid,
               ),
-            });
-          }
+            },
+          );
 
-          const entity = {
-            ...baseFields,
-            links,
-            webUuid: webOwnedById,
+          const isUser = owningEntity.metadata.entityTypeId.includes("/user/");
+
+          web = {
+            type: isUser ? "User" : "Organization",
+            name: (
+              owningEntity.properties as UserProperties | OrganizationProperties
+            )[systemPropertyTypes.shortname.propertyTypeBaseUrl]!,
+            uuid: webOwnedById,
           };
 
-          entities.push(entity);
+          webs.push(web);
         }
+
+        return web;
+      };
+
+      const entities: SimpleEntity[] = [];
+      for (const simpleEntity of entitiesWithoutHrefs) {
+        const entityWeb = await resolveEntityWeb(simpleEntity);
+
+        entities.push({
+          ...simpleEntity,
+          entityHref: `${frontendUrl}${generateEntityPath({
+            entityId: simpleEntity.entityId,
+            includeDraftId: simpleEntity.draft,
+            shortname: entityWeb.name,
+          })}`,
+          links: await Promise.all(
+            simpleEntity.links.map(async (link) => {
+              const linkWeb = await resolveEntityWeb(link);
+              return {
+                ...link,
+                entityHref: `${frontendUrl}${generateEntityPath({
+                  entityId: link.entityId,
+                  includeDraftId: link.draft,
+                  shortname: linkWeb.name,
+                })}`,
+              };
+            }),
+          ),
+          webUuid: entityWeb.uuid,
+        });
       }
 
       return {

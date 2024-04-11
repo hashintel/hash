@@ -3,7 +3,7 @@
   "version": "0.0.0-private",
   "private": true,
   "description": "A TypeScript 'AI' worker for HASH",
-  "license": "AGPL-3.0",
+  "license": "HASH License – see LICENSE.md",
   "type": "module",
   "exports": {
     ".": "./src/main.ts",
@@ -51,6 +51,7 @@
     "axios": "1.6.0",
     "dedent": "0.7.0",
     "dotenv-flow": "3.2.0",
+    "e2b": "0.13.1",
     "is-docker": "2.2.1",
     "lodash.ismatch": "4.4.0",
     "mime-types": "2.1.35",

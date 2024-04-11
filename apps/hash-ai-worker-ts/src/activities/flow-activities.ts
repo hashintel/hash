@@ -1,6 +1,7 @@
 import type { GraphApi } from "@local/hash-graph-client";
 import type { ActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
 
+import { answerQuestionAction } from "./flow-activities/answer-question-action";
 import { generateWebQueriesAction } from "./flow-activities/generate-web-queries-action";
 import { getFileFromUrlAction } from "./flow-activities/get-file-from-url-action";
 import { getWebPageByUrlAction } from "./flow-activities/get-web-page-by-url-action";
@@ -47,6 +48,11 @@ export const createFlowActionActivities = ({
     return researchEntitiesAction({ ...params, graphApiClient });
   },
   getWebPageSummaryAction,
+  answerQuestionAction(
+    params: Omit<Parameters<typeof answerQuestionAction>[0], "graphApiClient">,
+  ) {
+    return answerQuestionAction({ ...params, graphApiClient });
+  },
 });
 
 export const createFlowActivities = ({
