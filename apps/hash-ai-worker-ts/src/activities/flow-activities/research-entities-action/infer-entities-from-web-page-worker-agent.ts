@@ -118,10 +118,16 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
             
             Do not truncate or provide partial text which may lead to missed entities
               or properties.
-        
-            If additional context (e.g. the current date) is needed to fully infer the
-            entities, ensure it is incorporated in the provided text. The current is ${new Date().toISOString()}.
             `),
+        },
+        validAt: {
+          type: "string",
+          format: "date-time",
+          description: dedent(`
+            A date-time string in ISO 8601 format, representing when the provided text is valid at.
+            If this cannot be found on the web page, assume it is the current date and time.
+            The current time is "${new Date().toISOString()}".
+          `),
         },
         prompt: {
           type: "string",
@@ -141,7 +147,14 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
           `),
         },
       },
-      required: ["url", "text", "prompt", "explanation", "entityTypeIds"],
+      required: [
+        "url",
+        "text",
+        "validAt",
+        "prompt",
+        "explanation",
+        "entityTypeIds",
+      ],
     },
   },
   submitProposedEntities: {
@@ -218,6 +231,7 @@ type ToolCallArguments = {
   inferEntitiesFromWebPage: {
     url: string;
     text: string;
+    validAt: string;
     prompt: string;
     entityTypeIds: VersionedUrl[];
   };
@@ -629,6 +643,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               text,
               prompt: toolCallPrompt,
               url: inferringEntitiesFromWebPageUrl,
+              validAt,
               entityTypeIds: inferringEntitiesOfTypeIds,
             } = toolCall.parsedArguments as ToolCallArguments["inferEntitiesFromWebPage"];
 
@@ -668,12 +683,17 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               inferringEntitiesFromWebPageUrl,
             );
 
+            const content = dedent(`
+              ${text}
+              The above data is valid at ${validAt}.
+            `);
+
             const response = await inferEntitiesFromContentAction({
               inputs: [
                 {
                   inputName:
                     "content" satisfies InputNameForAction<"inferEntitiesFromContent">,
-                  payload: { kind: "Text", value: text },
+                  payload: { kind: "Text", value: content },
                 },
                 {
                   inputName:
