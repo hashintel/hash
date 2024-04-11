@@ -52,7 +52,6 @@
     "dedent": "0.7.0",
     "dotenv-flow": "3.2.0",
     "e2b": "0.13.1",
-    "id128": "1.6.6",
     "is-docker": "2.2.1",
     "lodash.isequal": "4.5.0",
     "lodash.ismatch": "4.4.0",
