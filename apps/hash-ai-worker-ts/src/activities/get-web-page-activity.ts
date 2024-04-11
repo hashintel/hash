@@ -24,7 +24,6 @@ export const getWebPageActivity = async (params: {
    */
   const innerText = await page.evaluate(() => document.body.innerText);
 
-  // Get the title of the page
   const title = await page.title();
 
   await browser.close();
