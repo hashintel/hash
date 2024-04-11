@@ -84,6 +84,8 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     ${typeof webPage === "string" ? "The content of the web page is as follows:" : `The website page title is ${webPage.title}, hosted at ${webPage.url}. Its content is as follows:`}
     ${typeof webPage === "string" ? webPage : webPage.textContent}
     ---WEBSITE CONTENT ENDS---
+
+    If the content appears to include the data from a table, ensure you apply any necessary unit conversions from the table header.
     
     You already provided a summary of the ${
       relevantEntitiesPrompt
