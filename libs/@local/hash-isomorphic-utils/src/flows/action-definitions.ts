@@ -227,6 +227,7 @@ const actionDefinitionsAsConst = {
         payloadKind: "PersistedEntities",
         name: "persistedEntities",
         array: false,
+        required: true,
       },
     ],
   },

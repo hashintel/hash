@@ -492,8 +492,6 @@ export const saveFileFromUrl: FlowDefinition = {
       payloadKind: "Entity",
       array: false,
       required: true,
-      payloadKind: "PersistedEntities",
-      array: false,
     },
   ],
 };
