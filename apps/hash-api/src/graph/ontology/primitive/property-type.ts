@@ -9,6 +9,7 @@ import type {
   PropertyTypeStructuralQuery,
   UnarchivePropertyTypeParams,
   UpdatePropertyTypeRequest,
+  UserOntologyEditionProvenanceMetadata,
 } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -48,10 +49,11 @@ export const createPropertyType: ImpureGraphFunction<
     schema: ConstructPropertyTypeParams;
     webShortname?: string;
     relationships: PropertyTypeRelationAndSubject[];
+    provenance?: UserOntologyEditionProvenanceMetadata;
   },
   Promise<PropertyTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { ownedById, webShortname } = params;
+  const { ownedById, webShortname, provenance } = params;
 
   const shortname =
     webShortname ??
@@ -80,6 +82,7 @@ export const createPropertyType: ImpureGraphFunction<
       ownedById,
       schema,
       relationships: params.relationships,
+      provenance,
     },
   );
 
@@ -187,10 +190,11 @@ export const updatePropertyType: ImpureGraphFunction<
     propertyTypeId: VersionedUrl;
     schema: ConstructPropertyTypeParams;
     relationships: PropertyTypeRelationAndSubject[];
+    provenance?: UserOntologyEditionProvenanceMetadata;
   },
   Promise<PropertyTypeWithMetadata>
 > = async ({ graphApi }, { actorId }, params) => {
-  const { schema, propertyTypeId } = params;
+  const { schema, propertyTypeId, provenance } = params;
   const updateArguments: UpdatePropertyTypeRequest = {
     typeToUpdate: propertyTypeId,
     schema: {
@@ -199,6 +203,7 @@ export const updatePropertyType: ImpureGraphFunction<
       ...schema,
     },
     relationships: params.relationships,
+    provenance,
   };
 
   const { data: metadata } = await graphApi.updatePropertyType(

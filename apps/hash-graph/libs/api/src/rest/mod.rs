@@ -55,6 +55,7 @@ use graph_types::{
         DataTypeMetadata, EntityTypeMetadata, OntologyEditionProvenanceMetadata,
         OntologyProvenanceMetadata, OntologyTemporalMetadata, OntologyTypeMetadata,
         OntologyTypeRecordId, OntologyTypeReference, PropertyTypeMetadata,
+        UserOntologyEditionProvenanceMetadata,
     },
     owned_by_id::OwnedById,
 };
@@ -352,6 +353,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             EditionArchivedById,
             OntologyProvenanceMetadata,
             OntologyEditionProvenanceMetadata,
+            UserOntologyEditionProvenanceMetadata,
             OntologyTypeRecordId,
             OntologyTemporalMetadata,
             DataTypeMetadata,

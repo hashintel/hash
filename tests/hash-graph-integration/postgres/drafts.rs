@@ -1,8 +1,8 @@
 use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::knowledge::{
-    entity::EntityId, Property, PropertyConfidence, PropertyObject, PropertyPatchOperation,
-    PropertyPath,
+    entity::{EntityId, UserEntityEditionProvenanceMetadata},
+    Property, PropertyConfidence, PropertyObject, PropertyPatchOperation, PropertyPath,
 };
 use pretty_assertions::assert_eq;
 use temporal_versioning::ClosedTemporalBound;
@@ -108,6 +108,7 @@ async fn initial_draft() {
             draft: Some(true),
             decision_time: None,
             confidence: None,
+            provenance: UserEntityEditionProvenanceMetadata::default(),
         })
         .await
         .expect("could not update entity");
@@ -144,6 +145,7 @@ async fn initial_draft() {
             draft: Some(false),
             decision_time: None,
             confidence: None,
+            provenance: UserEntityEditionProvenanceMetadata::default(),
         })
         .await
         .expect("could not update entity");
@@ -233,6 +235,7 @@ async fn no_initial_draft() {
                 draft: Some(true),
                 decision_time: None,
                 confidence: None,
+                provenance: UserEntityEditionProvenanceMetadata::default(),
             })
             .await
             .expect("could not update entity");
@@ -274,6 +277,7 @@ async fn no_initial_draft() {
                 draft: Some(false),
                 decision_time: None,
                 confidence: None,
+                provenance: UserEntityEditionProvenanceMetadata::default(),
             })
             .await
             .expect("could not update entity");
@@ -349,6 +353,7 @@ async fn multiple_drafts() {
                 draft: Some(true),
                 decision_time: None,
                 confidence: None,
+                provenance: UserEntityEditionProvenanceMetadata::default(),
             })
             .await
             .expect("could not update entity");
@@ -393,6 +398,7 @@ async fn multiple_drafts() {
                 draft: Some(false),
                 decision_time: None,
                 confidence: None,
+                provenance: UserEntityEditionProvenanceMetadata::default(),
             })
             .await
             .expect("could not update entity");

@@ -3,8 +3,8 @@ use std::{borrow::Cow, collections::HashMap, iter::once, str::FromStr};
 use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::knowledge::{
-    Confidence, Property, PropertyConfidence, PropertyObject, PropertyPatchOperation, PropertyPath,
-    PropertyPathElement,
+    entity::UserEntityEditionProvenanceMetadata, Confidence, Property, PropertyConfidence,
+    PropertyObject, PropertyPatchOperation, PropertyPath, PropertyPathElement,
 };
 use pretty_assertions::assert_eq;
 use serde_json::json;
@@ -107,6 +107,7 @@ async fn initial_confidence() {
             draft: None,
             decision_time: None,
             confidence: Some(confidence(0.5)),
+            provenance: UserEntityEditionProvenanceMetadata::default(),
         })
         .await
         .expect("could not update entity");
@@ -122,6 +123,7 @@ async fn initial_confidence() {
             draft: None,
             decision_time: None,
             confidence: None,
+            provenance: UserEntityEditionProvenanceMetadata::default(),
         })
         .await
         .expect("could not update entity");
@@ -162,6 +164,7 @@ async fn no_initial_draft() {
             draft: None,
             decision_time: None,
             confidence: None,
+            provenance: UserEntityEditionProvenanceMetadata::default(),
         })
         .await
         .expect("could not update entity");
@@ -177,6 +180,7 @@ async fn no_initial_draft() {
             draft: None,
             decision_time: None,
             confidence: Some(confidence(0.5)),
+            provenance: UserEntityEditionProvenanceMetadata::default(),
         })
         .await
         .expect("could not update entity");
@@ -199,6 +203,7 @@ async fn no_initial_draft() {
             draft: None,
             decision_time: None,
             confidence: None,
+            provenance: UserEntityEditionProvenanceMetadata::default(),
         })
         .await
         .expect("could not update entity");
@@ -218,6 +223,7 @@ async fn no_initial_draft() {
             draft: None,
             decision_time: None,
             confidence: Some(confidence(0.5)),
+            provenance: UserEntityEditionProvenanceMetadata::default(),
         })
         .await
         .expect("could not update entity");
@@ -261,6 +267,7 @@ async fn properties_add() {
             draft: None,
             archived: None,
             confidence: None,
+            provenance: UserEntityEditionProvenanceMetadata::default(),
         })
         .await
         .expect("could not patch entity");
@@ -318,6 +325,7 @@ async fn properties_remove() {
             draft: None,
             archived: None,
             confidence: None,
+            provenance: UserEntityEditionProvenanceMetadata::default(),
         })
         .await
         .expect("could not patch entity");
@@ -343,6 +351,7 @@ async fn properties_remove() {
             draft: None,
             archived: None,
             confidence: None,
+            provenance: UserEntityEditionProvenanceMetadata::default(),
         })
         .await
         .expect("could not patch entity");

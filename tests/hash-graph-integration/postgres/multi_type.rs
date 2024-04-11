@@ -2,7 +2,10 @@ use std::str::FromStr;
 
 use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::{entity::Entity, PropertyConfidence, PropertyObject};
+use graph_types::knowledge::{
+    entity::{Entity, UserEntityEditionProvenanceMetadata},
+    PropertyConfidence, PropertyObject,
+};
 use pretty_assertions::assert_eq;
 use type_system::url::VersionedUrl;
 
@@ -106,6 +109,7 @@ async fn initial_person() {
             draft: None,
             archived: None,
             confidence: None,
+            provenance: UserEntityEditionProvenanceMetadata::default(),
         })
         .await
         .expect("could not create entity");
@@ -181,6 +185,7 @@ async fn create_multi() {
             draft: None,
             archived: None,
             confidence: None,
+            provenance: UserEntityEditionProvenanceMetadata::default(),
         })
         .await
         .expect("could not create entity");

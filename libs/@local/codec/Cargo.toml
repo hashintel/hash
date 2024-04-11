@@ -12,6 +12,11 @@ error-stack.workspace = true
 
 serde.workspace = true
 
-derive-where = { version = "1.2.7", default-features = false, features = ["nightly"] }
-serde_json = { version = "1.0.115" }
-tokio-util = { version = "0.7.10", default-features = false, features = ["codec"] }
+derive-where = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+tokio-util = { workspace = true, features = ["codec"], optional = true }
+time = { workspace = true, features = ["serde", "parsing", "formatting"], optional = true }
+
+[features]
+bytes = ["dep:derive-where", "dep:serde_json", "dep:tokio-util"]
+serde = ["dep:time"]

@@ -40,7 +40,7 @@ use graph_types::{
         entity::{
             Entity, EntityEditionId, EntityEditionProvenanceMetadata, EntityEmbedding, EntityId,
             EntityMetadata, EntityProvenanceMetadata, EntityRecordId, EntityTemporalMetadata,
-            EntityUuid,
+            EntityUuid, UserEntityEditionProvenanceMetadata,
         },
         link::LinkData,
         Confidence, Property, PropertyConfidence, PropertyObject, PropertyPatchOperation,
@@ -121,6 +121,7 @@ use crate::rest::{
             EntityMetadata,
             EntityProvenanceMetadata,
             EntityEditionProvenanceMetadata,
+            UserEntityEditionProvenanceMetadata,
             EntityRecordId,
             EntityTemporalMetadata,
             EntityQueryToken,

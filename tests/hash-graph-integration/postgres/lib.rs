@@ -61,7 +61,9 @@ use graph::{
 use graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{Entity, EntityId, EntityMetadata, EntityUuid},
+        entity::{
+            Entity, EntityId, EntityMetadata, EntityUuid, UserEntityEditionProvenanceMetadata,
+        },
         link::LinkData,
         Confidence, PropertyConfidence, PropertyObject,
     },
@@ -548,6 +550,7 @@ impl DatabaseApi<'_> {
                     draft,
                     relationships: [],
                     confidence,
+                    provenance: UserEntityEditionProvenanceMetadata::default(),
                 },
             )
             .await
@@ -805,6 +808,7 @@ impl DatabaseApi<'_> {
                     draft: false,
                     relationships: [],
                     confidence: None,
+                    provenance: UserEntityEditionProvenanceMetadata::default(),
                 },
             )
             .await
@@ -985,6 +989,7 @@ impl DatabaseApi<'_> {
                     entity_type_ids: vec![],
                     properties: vec![],
                     confidence: None,
+                    provenance: UserEntityEditionProvenanceMetadata::default(),
                 },
             )
             .await

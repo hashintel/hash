@@ -12,7 +12,10 @@ use type_system::url::{BaseUrl, VersionedUrl};
 use utoipa::{openapi, ToSchema};
 use uuid::Uuid;
 
-pub use self::provenance::{EntityEditionProvenanceMetadata, EntityProvenanceMetadata};
+pub use self::provenance::{
+    EntityEditionProvenanceMetadata, EntityProvenanceMetadata, InferredEntityProvenanceMetadata,
+    UserEntityEditionProvenanceMetadata,
+};
 use crate::{
     knowledge::{
         link::LinkData,

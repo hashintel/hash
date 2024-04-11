@@ -1,5 +1,8 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { PropertyConfidence } from "@local/hash-graph-client";
+import type {
+  PropertyConfidence,
+  UserEntityEditionProvenanceMetadata,
+} from "@local/hash-graph-client";
 import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   AccountGroupId,
@@ -34,6 +37,7 @@ export type CreateLinkEntityParams = {
   relationships: EntityRelationAndSubject[];
   confidence?: number;
   propertyConfidence?: PropertyConfidence;
+  provenance?: UserEntityEditionProvenanceMetadata;
 };
 
 export const isEntityLinkEntity = (entity: Entity): entity is LinkEntity =>
@@ -64,6 +68,7 @@ export const createLinkEntity: ImpureGraphFunction<
     rightEntityConfidence,
     confidence,
     propertyConfidence,
+    provenance,
   } = params;
 
   const linkEntityType = await getEntityTypeById(context, authentication, {
@@ -104,6 +109,7 @@ export const createLinkEntity: ImpureGraphFunction<
       relationships,
       confidence,
       propertyConfidence,
+      provenance,
     },
   );
 
@@ -138,6 +144,7 @@ export const updateLinkEntity: ImpureGraphFunction<
     linkEntity: LinkEntity;
     properties?: EntityPropertiesObject;
     draft?: boolean;
+    provenance?: UserEntityEditionProvenanceMetadata;
   },
   Promise<LinkEntity>
 > = async ({ graphApi }, { actorId }, params) => {
@@ -155,6 +162,7 @@ export const updateLinkEntity: ImpureGraphFunction<
       },
     ],
     draft: params.draft,
+    provenance: params.provenance,
   });
 
   return {

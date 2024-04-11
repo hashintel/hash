@@ -24,7 +24,7 @@ use graph_types::{
         entity::{
             DraftId, Entity, EntityEditionId, EntityEditionProvenanceMetadata, EntityEmbedding,
             EntityId, EntityMetadata, EntityProvenanceMetadata, EntityRecordId,
-            EntityTemporalMetadata, EntityUuid,
+            EntityTemporalMetadata, EntityUuid, UserEntityEditionProvenanceMetadata,
         },
         link::LinkData,
         Confidence, PropertyConfidence, PropertyObject, PropertyPath,
@@ -378,12 +378,18 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     INSERT INTO entity_ids (
                         web_id,
                         entity_uuid,
-                        created_by_id,
-                        created_at_transaction_time,
-                        created_at_decision_time,
-                        first_non_draft_created_at_transaction_time,
-                        first_non_draft_created_at_decision_time
-                    ) VALUES ($1, $2, $3, now(), $4, now(), $4);
+                        provenance
+                    ) VALUES (
+                        $1,
+                        $2,
+                        JSONB_BUILD_OBJECT(
+                            'createdById', $3::UUID,
+                            'createdAtTransactionTime', now(),
+                            'createdAtDecisionTime', $4::TIMESTAMPTZ,
+                            'firstNonDraftCreatedAtTransactionTime', now(),
+                            'firstNonDraftCreatedAtDecisionTime', $4::TIMESTAMPTZ
+                        )
+                    );
                 ",
                     &[
                         &entity_id.owned_by_id,
@@ -401,10 +407,16 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     INSERT INTO entity_ids (
                         web_id,
                         entity_uuid,
-                        created_by_id,
-                        created_at_transaction_time,
-                        created_at_decision_time
-                    ) VALUES ($1, $2, $3, now(), $4);
+                        provenance
+                    ) VALUES (
+                        $1,
+                        $2,
+                        JSONB_BUILD_OBJECT(
+                            'createdById', $3::UUID,
+                            'createdAtTransactionTime', now(),
+                            'createdAtDecisionTime', $4::TIMESTAMPTZ
+                        )
+                    );
                 ",
                     &[
                         &entity_id.owned_by_id,
@@ -422,12 +434,18 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     INSERT INTO entity_ids (
                         web_id,
                         entity_uuid,
-                        created_by_id,
-                        created_at_transaction_time,
-                        created_at_decision_time,
-                        first_non_draft_created_at_transaction_time,
-                        first_non_draft_created_at_decision_time
-                    ) VALUES ($1, $2, $3, now(), now(), now(), now());
+                        provenance
+                    ) VALUES (
+                        $1,
+                        $2,
+                        JSONB_BUILD_OBJECT(
+                            'createdById', $3::UUID,
+                            'createdAtTransactionTime', now(),
+                            'createdAtDecisionTime', now(),
+                            'firstNonDraftCreatedAtTransactionTime', now(),
+                            'firstNonDraftCreatedAtDecisionTime', now()
+                        )
+                    );
                 ",
                     &[
                         &entity_id.owned_by_id,
@@ -444,10 +462,16 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     INSERT INTO entity_ids (
                         web_id,
                         entity_uuid,
-                        created_by_id,
-                        created_at_transaction_time,
-                        created_at_decision_time
-                    ) VALUES ($1, $2, $3, now(), now());
+                        provenance
+                    ) VALUES (
+                        $1,
+                        $2,
+                        JSONB_BUILD_OBJECT(
+                            'createdById', $3::UUID,
+                            'createdAtTransactionTime', now(),
+                            'createdAtDecisionTime', now()
+                        )
+                    );
                 ",
                     &[
                         &entity_id.owned_by_id,
@@ -524,14 +548,18 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(InsertionError)?;
         }
 
-        let edition_created_by_id = EditionCreatedById::new(actor_id);
+        let edition_provenance = EntityEditionProvenanceMetadata {
+            created_by_id: EditionCreatedById::new(actor_id),
+            archived_by_id: None,
+            user_defined: params.provenance,
+        };
         let (edition_id, closed_schema) = transaction
             .insert_entity_edition(
-                edition_created_by_id,
                 false,
                 &params.entity_type_ids,
                 &params.properties,
                 params.confidence,
+                &edition_provenance,
             )
             .await?;
 
@@ -612,7 +640,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 },
                 entity_type_ids: params.entity_type_ids,
                 provenance: EntityProvenanceMetadata {
-                    created_by_id: CreatedById::new(edition_created_by_id.as_account_id()),
+                    created_by_id: CreatedById::new(actor_id),
                     created_at_decision_time: Timestamp::from(
                         *temporal_versioning.decision_time.start(),
                     ),
@@ -624,10 +652,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     first_non_draft_created_at_transaction_time: (!params.draft).then_some(
                         Timestamp::from(*temporal_versioning.transaction_time.start()),
                     ),
-                    edition: EntityEditionProvenanceMetadata {
-                        created_by_id: edition_created_by_id,
-                        archived_by_id: None,
-                    },
+                    edition: edition_provenance,
                 },
                 temporal_versioning,
                 archived: false,
@@ -932,6 +957,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         edition: EntityEditionProvenanceMetadata {
                             created_by_id: EditionCreatedById::new(actor_id),
                             archived_by_id: None,
+                            user_defined: UserEntityEditionProvenanceMetadata::default(),
                         },
                     },
                     temporal_versioning,
@@ -1253,13 +1279,18 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         let link_data = previous_entity.link_data;
 
+        let edition_provenance = EntityEditionProvenanceMetadata {
+            created_by_id: EditionCreatedById::new(actor_id),
+            archived_by_id: None,
+            user_defined: params.provenance,
+        };
         let (edition_id, closed_schema) = transaction
             .insert_entity_edition(
-                EditionCreatedById::new(actor_id),
                 archived,
                 &entity_type_ids,
                 &properties,
                 params.confidence,
+                &edition_provenance,
             )
             .await
             .change_context(UpdateError)?;
@@ -1311,12 +1342,13 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         .query_one(
                             "
                             UPDATE entity_ids
-                            SET first_non_draft_created_at_decision_time = $1,
-                                first_non_draft_created_at_transaction_time = now()
+                            SET provenance = provenance || JSONB_BUILD_OBJECT(
+                                'firstNonDraftCreatedAtTransactionTime', now(),
+                                'firstNonDraftCreatedAtDecisionTime', $1::TIMESTAMPTZ
+                            )
                             WHERE web_id = $2
                               AND entity_uuid = $3
-                            RETURNING first_non_draft_created_at_decision_time,
-                                      first_non_draft_created_at_transaction_time;
+                            RETURNING now(), $1::TIMESTAMPTZ;
                             ",
                             &[
                                 &locked_row.updated_at_decision_time,
@@ -1327,8 +1359,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         .await
                         .change_context(UpdateError)?;
 
-                    first_non_draft_created_at_decision_time = row.get(0);
-                    first_non_draft_created_at_transaction_time = row.get(1);
+                    first_non_draft_created_at_transaction_time = row.get(0);
+                    first_non_draft_created_at_decision_time = row.get(1);
                 }
 
                 if let Some(previous_live_entity) = transaction
@@ -1389,10 +1421,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     .created_at_decision_time,
                 first_non_draft_created_at_decision_time,
                 first_non_draft_created_at_transaction_time,
-                edition: EntityEditionProvenanceMetadata {
-                    created_by_id: EditionCreatedById::new(actor_id),
-                    archived_by_id: None,
-                },
+                edition: edition_provenance,
             },
             confidence: params.confidence,
             property_confidence,
@@ -1551,11 +1580,11 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     #[tracing::instrument(level = "trace", skip(self))]
     async fn insert_entity_edition(
         &self,
-        edition_created_by_id: EditionCreatedById,
         archived: bool,
         entity_type_ids: &[VersionedUrl],
         properties: &PropertyObject,
         confidence: Option<Confidence>,
+        provenance: &EntityEditionProvenanceMetadata,
     ) -> Result<(EntityEditionId, ClosedEntityType), InsertionError> {
         let edition_id: EntityEditionId = self
             .as_client()
@@ -1563,14 +1592,14 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 "
                     INSERT INTO entity_editions (
                         entity_edition_id,
-                        edition_created_by_id,
                         archived,
                         properties,
-                        confidence
+                        confidence,
+                        provenance
                     ) VALUES (gen_random_uuid(), $1, $2, $3, $4)
                     RETURNING entity_edition_id;
                 ",
-                &[&edition_created_by_id, &archived, &properties, &confidence],
+                &[&archived, &properties, &confidence, provenance],
             )
             .await
             .change_context(InsertionError)?
@@ -2063,7 +2092,9 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .query(
                 "
                     UPDATE entity_editions SET
-                        edition_archived_by_id = $2
+                        provenance = provenance || JSONB_BUILD_OBJECT(
+                            'archivedById', $2::UUID
+                        )
                     WHERE entity_edition_id = $1",
                 &[
                     &locked_row.entity_edition_id,

@@ -44,6 +44,7 @@ use graph_types::{
     ontology::{
         EntityTypeEmbedding, EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata,
         OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
+        UserOntologyEditionProvenanceMetadata,
     },
     owned_by_id::OwnedById,
 };
@@ -166,6 +167,11 @@ struct CreateEntityTypeRequest {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     icon: Option<String>,
     relationships: Vec<EntityTypeRelationAndSubject>,
+    #[serde(
+        default,
+        skip_serializing_if = "UserOntologyEditionProvenanceMetadata::is_empty"
+    )]
+    provenance: UserOntologyEditionProvenanceMetadata,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -407,6 +413,7 @@ where
         label_property,
         icon,
         relationships,
+        provenance,
     }) = body;
 
     let is_list = matches!(&schema, ListOrValue::List(_));
@@ -445,6 +452,7 @@ where
                     icon: icon.clone(),
                     label_property: label_property.clone(),
                     conflict_behavior: ConflictBehavior::Fail,
+                    provenance: provenance.clone()
                 })
             }).collect::<Result<Vec<_>, _>>()?
         )
@@ -530,6 +538,11 @@ enum LoadExternalEntityTypeRequest {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         icon: Option<String>,
         relationships: Vec<EntityTypeRelationAndSubject>,
+        #[serde(
+            default,
+            skip_serializing_if = "UserOntologyEditionProvenanceMetadata::is_empty"
+        )]
+        provenance: UserOntologyEditionProvenanceMetadata,
     },
 }
 
@@ -626,6 +639,7 @@ where
             label_property,
             icon,
             relationships,
+            provenance,
         } => {
             if domain_validator.validate_url(schema.id().base_url.as_str()) {
                 let error = "Ontology type is not external".to_owned();
@@ -652,6 +666,7 @@ where
                             },
                             relationships,
                             conflict_behavior: ConflictBehavior::Fail,
+                            provenance,
                         },
                     )
                     .await
@@ -741,6 +756,11 @@ struct UpdateEntityTypeRequest {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     icon: Option<String>,
     relationships: Vec<EntityTypeRelationAndSubject>,
+    #[serde(
+        default,
+        skip_serializing_if = "UserOntologyEditionProvenanceMetadata::is_empty"
+    )]
+    provenance: UserOntologyEditionProvenanceMetadata,
 }
 
 #[utoipa::path(
@@ -779,6 +799,7 @@ where
         label_property,
         icon,
         relationships,
+        provenance,
     }) = body;
 
     type_to_update.version = OntologyTypeVersion::new(type_to_update.version.inner() + 1);
@@ -811,6 +832,7 @@ where
                 label_property,
                 icon,
                 relationships,
+                provenance,
             },
         )
         .await

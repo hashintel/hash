@@ -27,7 +27,8 @@ use graph_types::{
         PropertyObject,
     },
     ontology::{
-        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeRecordId,
+        OntologyEditionProvenanceMetadata, OntologyProvenanceMetadata, OntologyTemporalMetadata,
+        OntologyTypeClassificationMetadata, OntologyTypeRecordId,
     },
     owned_by_id::OwnedById,
 };
@@ -214,19 +215,19 @@ where
     async fn create_ontology_temporal_metadata(
         &self,
         ontology_id: OntologyId,
-        created_by_id: EditionCreatedById,
+        provenance: &OntologyEditionProvenanceMetadata,
     ) -> Result<LeftClosedTemporalInterval<TransactionTime>, InsertionError> {
         let query = "
               INSERT INTO ontology_temporal_metadata (
                 ontology_id,
                 transaction_time,
-                edition_created_by_id
+                provenance
               ) VALUES ($1, tstzrange(now(), NULL, '[)'), $2)
               RETURNING transaction_time;
             ";
 
         self.as_client()
-            .query_one(query, &[&ontology_id, &created_by_id])
+            .query_one(query, &[&ontology_id, &provenance])
             .await
             .change_context(InsertionError)
             .map(|row| row.get(0))
@@ -241,7 +242,9 @@ where
           UPDATE ontology_temporal_metadata
           SET
             transaction_time = tstzrange(lower(transaction_time), now(), '[)'),
-            edition_archived_by_id = $3
+            provenance = provenance || JSONB_BUILD_OBJECT(
+                'archivedBy', $3::UUID
+            )
           WHERE ontology_id = (
             SELECT ontology_id
             FROM ontology_ids
@@ -291,13 +294,13 @@ where
     async fn unarchive_ontology_type(
         &self,
         id: &VersionedUrl,
-        created_by_id: EditionCreatedById,
+        provenance: &OntologyEditionProvenanceMetadata,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         let query = "
           INSERT INTO ontology_temporal_metadata (
             ontology_id,
             transaction_time,
-            edition_created_by_id
+            provenance
           ) VALUES (
             (SELECT ontology_id FROM ontology_ids WHERE base_url = $1 AND version = $2),
             tstzrange(now(), NULL, '[)'),
@@ -309,7 +312,7 @@ where
         Ok(OntologyTemporalMetadata {
             transaction_time: self
                 .as_client()
-                .query_one(query, &[&id.base_url, &id.version, &created_by_id])
+                .query_one(query, &[&id.base_url, &id.version, &provenance])
                 .await
                 .map_err(Report::new)
                 .map_err(|report| match report.current_context().code() {
@@ -716,10 +719,10 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     #[tracing::instrument(level = "info", skip(self))]
     async fn create_ontology_metadata(
         &self,
-        created_by_id: EditionCreatedById,
         record_id: &OntologyTypeRecordId,
         classification: &OntologyTypeClassificationMetadata,
         on_conflict: ConflictBehavior,
+        provenance: &OntologyProvenanceMetadata,
     ) -> Result<Option<(OntologyId, OntologyTemporalMetadata)>, InsertionError> {
         match classification {
             OntologyTypeClassificationMetadata::Owned { owned_by_id } => {
@@ -728,7 +731,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 let ontology_id = self.create_ontology_id(record_id, on_conflict).await?;
                 if let Some(ontology_id) = ontology_id {
                     let transaction_time = self
-                        .create_ontology_temporal_metadata(ontology_id, created_by_id)
+                        .create_ontology_temporal_metadata(ontology_id, &provenance.edition)
                         .await?;
                     self.create_ontology_owned_metadata(ontology_id, *owned_by_id)
                         .await?;
@@ -750,7 +753,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 let ontology_id = self.create_ontology_id(record_id, on_conflict).await?;
                 if let Some(ontology_id) = ontology_id {
                     let transaction_time = self
-                        .create_ontology_temporal_metadata(ontology_id, created_by_id)
+                        .create_ontology_temporal_metadata(ontology_id, &provenance.edition)
                         .await?;
                     self.create_ontology_external_metadata(ontology_id, *fetched_at)
                         .await?;
@@ -779,13 +782,13 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     async fn update<T>(
         &self,
         database_type: &T,
-        created_by_id: EditionCreatedById,
+        provenance: &OntologyEditionProvenanceMetadata,
     ) -> Result<(OntologyId, OwnedById, OntologyTemporalMetadata), UpdateError>
     where
         T: OntologyDatabaseType + Serialize + Debug + Sync,
     {
         let (ontology_id, owned_by_id, temporal_versioning) = self
-            .update_owned_ontology_id(database_type.id(), created_by_id)
+            .update_owned_ontology_id(database_type.id(), provenance)
             .await?;
         self.insert_with_id(ontology_id, database_type)
             .await
@@ -806,7 +809,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     async fn update_owned_ontology_id(
         &self,
         url: &VersionedUrl,
-        created_by_id: EditionCreatedById,
+        provenance: &OntologyEditionProvenanceMetadata,
     ) -> Result<(OntologyId, OwnedById, OntologyTemporalMetadata), UpdateError> {
         let previous_version = OntologyTypeVersion::new(
             url.version
@@ -871,7 +874,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .expect("ontology id should have been created");
 
         let transaction_time = self
-            .create_ontology_temporal_metadata(ontology_id, created_by_id)
+            .create_ontology_temporal_metadata(ontology_id, provenance)
             .await
             .change_context(UpdateError)?;
         self.create_ontology_owned_metadata(ontology_id, owned_by_id)

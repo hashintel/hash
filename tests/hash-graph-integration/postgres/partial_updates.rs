@@ -3,7 +3,8 @@ use std::{collections::HashSet, iter::once, str::FromStr};
 use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::knowledge::{
-    Property, PropertyConfidence, PropertyObject, PropertyPatchOperation, PropertyPathElement,
+    entity::UserEntityEditionProvenanceMetadata, Property, PropertyConfidence, PropertyObject,
+    PropertyPatchOperation, PropertyPathElement,
 };
 use pretty_assertions::assert_eq;
 use serde_json::json;
@@ -96,6 +97,7 @@ async fn properties_add() {
         draft: None,
         archived: None,
         confidence: None,
+        provenance: UserEntityEditionProvenanceMetadata::default(),
     })
     .await
     .expect("could not patch entity");
@@ -138,6 +140,7 @@ async fn properties_remove() {
         draft: None,
         archived: None,
         confidence: None,
+        provenance: UserEntityEditionProvenanceMetadata::default(),
     })
     .await
     .expect("could not patch entity");
@@ -180,6 +183,7 @@ async fn properties_replace() {
         draft: None,
         archived: None,
         confidence: None,
+        provenance: UserEntityEditionProvenanceMetadata::default(),
     })
     .await
     .expect("could not patch entity");
@@ -229,6 +233,7 @@ async fn properties_move() {
             draft: None,
             archived: None,
             confidence: None,
+            provenance: UserEntityEditionProvenanceMetadata::default(),
         })
         .await
         .expect_err("Could patch entity with invalid move operation");
@@ -257,6 +262,7 @@ async fn properties_move() {
         draft: None,
         archived: None,
         confidence: None,
+        provenance: UserEntityEditionProvenanceMetadata::default(),
     })
     .await
     .expect("could not patch entity");
@@ -319,6 +325,7 @@ async fn properties_copy() {
         draft: None,
         archived: None,
         confidence: None,
+        provenance: UserEntityEditionProvenanceMetadata::default(),
     })
     .await
     .expect("could not patch entity");
@@ -362,6 +369,7 @@ async fn type_ids() {
         draft: None,
         archived: None,
         confidence: None,
+        provenance: UserEntityEditionProvenanceMetadata::default(),
     })
     .await
     .expect("could not patch entity");
@@ -384,6 +392,7 @@ async fn type_ids() {
         draft: None,
         archived: None,
         confidence: None,
+        provenance: UserEntityEditionProvenanceMetadata::default(),
     })
     .await
     .expect("could not patch entity");
@@ -410,6 +419,7 @@ async fn type_ids() {
         draft: None,
         archived: None,
         confidence: None,
+        provenance: UserEntityEditionProvenanceMetadata::default(),
     })
     .await
     .expect("could not patch entity");
