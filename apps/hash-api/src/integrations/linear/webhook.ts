@@ -4,6 +4,7 @@ import { tupleIncludes } from "@local/advanced-types/includes";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import { supportedLinearTypes } from "@local/hash-backend-utils/temporal-integration-workflow-types";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import type { OwnedById, Uuid } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import type { RequestHandler } from "express";
@@ -17,7 +18,6 @@ import { getLinearSecretValueByHashWorkspaceId } from "../../graph/knowledge/sys
 import { systemAccountId } from "../../graph/system-account";
 import { logger } from "../../logger";
 import { createTemporalClient } from "../../temporal";
-import { genId } from "../../util";
 
 type LinearWebhookPayload = {
   action: "create" | "update" | "delete";
@@ -156,7 +156,7 @@ export const linearWebhook: RequestHandler<
                   ownedById,
                 },
               ],
-              workflowId: `${workflow}-${genId()}`,
+              workflowId: `${workflow}-${generateUuid()}`,
             });
           }),
         );

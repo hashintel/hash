@@ -39,9 +39,10 @@ export const mapFlowDefinitionEntityToFlowDefinition = (
     steps: stepDefinitions as FlowDefinition["steps"],
     trigger: {
       kind: "trigger",
-      triggerDefinitionId: triggerDefinition[
-        "https://hash.ai/@hash/types/property-type/trigger-definition-id/"
-      ] as TriggerDefinitionId,
+      triggerDefinitionId:
+        triggerDefinition[
+          "https://hash.ai/@hash/types/property-type/trigger-definition-id/"
+        ],
       outputs: triggerDefinition[
         "https://hash.ai/@hash/types/property-type/output-definitions/"
       ] as OutputDefinition<boolean>[],

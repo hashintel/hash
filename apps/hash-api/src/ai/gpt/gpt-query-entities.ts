@@ -4,6 +4,7 @@ import type {
   CreateEmbeddingsReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
@@ -31,7 +32,6 @@ import {
 import type { RequestHandler } from "express";
 
 import { getLatestEntityById } from "../../graph/knowledge/primitive/entity";
-import { genId } from "../../util";
 import type { SimpleEntityType } from "./shared/entity-types";
 import { getSimpleEntityType } from "./shared/entity-types";
 import { stringifyResults } from "./shared/stringify-results";
@@ -217,7 +217,7 @@ export const gptQueryEntities: RequestHandler<
               input: [query],
             },
           ],
-          workflowId: genId(),
+          workflowId: generateUuid(),
         })
         .then(({ embeddings }) => embeddings[0])
     : null;
