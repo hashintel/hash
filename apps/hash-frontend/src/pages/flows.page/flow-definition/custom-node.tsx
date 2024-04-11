@@ -10,9 +10,11 @@ export const CustomNode = ({
   selected,
   ...rest
 }: NodeProps<NodeData>) => {
-  const isParallel = data.inputSources.find(
-    (input) => input.kind === "parallel-group-input",
-  );
+  // const isParallel = data.inputSources.find(
+  //   (input) => input.kind === "parallel-group-input",
+  // );
+
+  const isParallel = false;
 
   return (
     <NodeContainer selected={selected}>

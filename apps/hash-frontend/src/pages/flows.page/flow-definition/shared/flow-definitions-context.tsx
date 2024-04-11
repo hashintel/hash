@@ -5,7 +5,7 @@ import {
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import type { PropsWithChildren } from "react";
 import { createContext, useContext, useMemo, useState } from "react";
-import { dummyFlows } from "./dummy-flows";
+// import { dummyFlows } from "./dummy-flows";
 
 export type FlowDefinitionsContextType = {
   flowDefinitions: FlowDefinition[];
@@ -20,7 +20,7 @@ export const FlowDefinitionsContext =
   createContext<FlowDefinitionsContextType | null>(null);
 
 const exampleFlows: FlowDefinition[] = [
-  ...dummyFlows,
+  // ...dummyFlows,
   inferUserEntitiesFromWebPageFlowDefinition,
   researchTaskFlowDefinition,
 ];

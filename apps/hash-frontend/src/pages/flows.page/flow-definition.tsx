@@ -1,9 +1,11 @@
 import "reactflow/dist/style.css";
 
-import ELK, { ElkNode } from "elkjs/lib/elk.bundled.js";
-
+import type { FlowDefinition as FlowDefinitionType } from "@local/hash-isomorphic-utils/flows/types";
+import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { Box } from "@mui/material";
 import { BackgroundVariant } from "@reactflow/background";
+import type { ElkNode } from "elkjs/lib/elk.bundled.js";
+import ELK from "elkjs/lib/elk.bundled.js";
 import { useEffect, useMemo, useState } from "react";
 import type { Edge } from "reactflow";
 import ReactFlow, {
@@ -18,9 +20,9 @@ import ReactFlow, {
 
 import { CustomNode } from "./flow-definition/custom-node";
 import { useFlowDefinitionsContext } from "./flow-definition/shared/flow-definitions-context";
-import { FlowDefinition as FlowDefinitionType } from "@local/hash-isomorphic-utils/flows/types";
-import { CustomNodeType } from "./flow-definition/shared/types";
 import { useFlowRunsContext } from "./flow-definition/shared/flow-runs-context";
+import type { CustomNodeType } from "./flow-definition/shared/types";
+import { triggerDefinitions } from "@local/hash-isomorphic-utils/flows/trigger-definitions";
 
 const nodeTypes = {
   action: CustomNode,
@@ -43,16 +45,17 @@ const initialNodeDimensions = {
 };
 
 const getGraphFromFlowDefinition = (flowDefinition: FlowDefinitionType) => {
+  const trigger =
+    triggerDefinitions[flowDefinition.trigger.triggerDefinitionId];
+
   const derivedNodes: CustomNodeType[] = [
     {
       id: "trigger",
       data: {
-        label: flowDefinition.trigger.definition.name,
+        label: trigger.name,
         stepDefinition: {
-          ...flowDefinition.trigger.definition,
-          outputs:
-            flowDefinition.trigger.outputs ??
-            flowDefinition.trigger.definition.outputs,
+          ...trigger,
+          outputs: trigger.outputs ?? trigger.outputs,
         },
         inputSources: [],
       },
@@ -64,11 +67,13 @@ const getGraphFromFlowDefinition = (flowDefinition: FlowDefinitionType) => {
 
   derivedNodes.push(
     ...flowDefinition.steps.flatMap((node) => {
+      const actionDefinition = actionDefinitions[node.actionDefinitionId];
+
       const rootNode = {
         id: node.stepId,
         data: {
-          stepDefinition: node.kind === "action" ? node.actionDefinition : null,
-          label: node.kind === "action" ? node.actionDefinition.name : "",
+          stepDefinition: node.kind === "action" ? actionDefinition : null,
+          label: node.kind === "action" ? actionDefinition.name : "",
           inputSources:
             node.kind === "parallel-group"
               ? [node.inputSourceToParallelizeOn]
@@ -81,28 +86,32 @@ const getGraphFromFlowDefinition = (flowDefinition: FlowDefinitionType) => {
 
       const stepNodes: CustomNodeType[] = [rootNode];
 
-      if (node.kind === "parallel-group") {
-        const children = node.steps.map((step) => ({
-          id: step.stepId,
-          data: {
-            stepDefinition: step.actionDefinition,
-            label: step.actionDefinition.name,
-            inputSources: step.inputSources,
-          },
-          type: "action",
-          parentNode: rootNode.id,
-          extent: "parent" as const,
-          position: { x: 0, y: 0 },
-          ...initialNodeDimensions,
-        }));
-
-        stepNodes.push(...children);
-
-        const bounds = getNodesBounds(children);
-
-        rootNode.width = bounds.width + 80;
-        rootNode.height = bounds.height + 80;
-      }
+      // if (node.kind === "parallel-group") {
+      //   const children = node.steps.map((step) => {
+      //     const actionDefinition = actionDefinitions[step.actionDefinitionId];
+      //
+      //     return {
+      //       id: step.stepId,
+      //       data: {
+      //         stepDefinition: actionDefinition,
+      //         label: actionDefinition.name,
+      //         inputSources: step.inputSources,
+      //       },
+      //       type: "action",
+      //       parentNode: rootNode.id,
+      //       extent: "parent" as const,
+      //       position: { x: 0, y: 0 },
+      //       ...initialNodeDimensions,
+      //     };
+      //   });
+      //
+      //   stepNodes.push(...children);
+      //
+      //   const bounds = getNodesBounds(children);
+      //
+      //   rootNode.width = bounds.width + 80;
+      //   rootNode.height = bounds.height + 80;
+      // }
 
       return stepNodes;
     }),

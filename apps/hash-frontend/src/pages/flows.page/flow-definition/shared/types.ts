@@ -1,10 +1,10 @@
 import type {
   ActionDefinition,
+  ActionStepDefinition,
   ParallelGroupStepDefinition,
   TriggerDefinition,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { Node } from "reactflow";
-import { ActionStepDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
 type DeepReadOnly<T> = {
   readonly [key in keyof T]: DeepReadOnly<T[key]>;
@@ -15,8 +15,7 @@ export type NodeData = {
   label: string;
   inputSources:
     | ActionStepDefinition["inputSources"]
-    | ParallelGroupStepDefinition["inputSourceToParallelizeOn"][]
-    | ParallelGroupStepDefinition["steps"][number]["inputSources"];
+    | ParallelGroupStepDefinition["inputSourceToParallelizeOn"][];
 };
 
 export type CustomNodeType = Node<NodeData>;
