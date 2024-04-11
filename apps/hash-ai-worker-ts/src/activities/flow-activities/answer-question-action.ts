@@ -110,7 +110,7 @@ const systemPrompt = dedent(`
   e.g. 'Markdown', 'JSON', or 'CSV'. If it isn't specified, you use your best judgment.
   
   Your boss plans to use your answer to make a decision, so you make sure that it is accurate, concise, and clear.
-  If you can''t provide an answer based on the available data, you explain why, and request more data if it would help.
+  If you can't provide an answer based on the available data, you explain why, and request more data if it would help.
   
   You write Python to analyze any context provided, if you need it. In your code, you access the context from a file using the provided path.
   Your Python code contains detailed comments about why each function is used, and how the data is accessed, including references to the shape of the context data.
@@ -197,6 +197,7 @@ const callModel = async (
               "You provided an 'answer' along with other tool calls. The 'answer' will be ignored for now, please only submit it when you have finished coding.",
             tool_call_id: toolCall.id,
           });
+          continue;
         }
 
         const { answer, explanation, confidence } = parsedArguments;
@@ -287,7 +288,7 @@ const callModel = async (
         The following artifacts were generated:\n${artifacts.join("\n")}
         
         Please now review the code used and whether it correctly operates on the context data.
-        If you spot errors in how the code attempts to access the code data, submit another code block with the corrections.
+        If you spot errors in how the code attempts to access the code data, submit another code file with the corrections.
         If you cannot provide any answer, make sure you've tried at least two different approaches to analyzing the data, checking that the column or property keys
         you've used match those in the dataset.
         
