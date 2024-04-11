@@ -14,13 +14,14 @@ import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 import { CodeInterpreter, Sandbox } from "e2b";
-import type OpenAI from "openai/index";
+import OpenAI from "openai/index";
 import type { ChatCompletionToolMessageParam } from "openai/src/resources/chat/completions";
 
 import { logger } from "../../shared/logger";
 import { getOpenAiResponse } from "../shared/openai";
 import { stringify } from "../shared/stringify";
 import type { FlowActionActivity } from "./types";
+import ChatCompletionUserMessageParam = OpenAI.ChatCompletionUserMessageParam;
 
 const answerTools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
   {
@@ -155,11 +156,16 @@ const callModel = async (
   const toolCalls = modelResponseMessage.tool_calls;
 
   if (!toolCalls?.length) {
-    return {
-      code: StatusCode.Internal,
-      message: "No tool call found in response",
-      contents: [],
+    const responseMessage: ChatCompletionUserMessageParam = {
+      role: "user",
+      content:
+        "You didn't make any tool calls as part of your response. Please review the tools available to you and use the appropriate one.",
     };
+    return callModel(
+      [...messages, modelResponseMessage, responseMessage],
+      context,
+      codeUsed,
+    );
   }
 
   const responseMessages: ChatCompletionToolMessageParam[] = [];
