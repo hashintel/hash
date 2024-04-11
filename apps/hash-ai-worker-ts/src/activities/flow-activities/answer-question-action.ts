@@ -128,10 +128,13 @@ type ModelResponseArgs = {
   code?: string;
 };
 
+const maximumIterations = 10;
+
 const callModel = async (
   messages: OpenAI.ChatCompletionCreateParams["messages"],
   context: string | null,
   codeUsed: string | null,
+  iteration: number,
 ): Promise<
   Status<{
     outputs: StepOutput[];
@@ -165,10 +168,18 @@ const callModel = async (
       [...messages, modelResponseMessage, responseMessage],
       context,
       codeUsed,
+      iteration + 1,
     );
   }
 
   const responseMessages: ChatCompletionToolMessageParam[] = [];
+
+  /**
+   * Defining these outside the loop so that in cases where the maximum iteration is reached,
+   * we can provide any code and explanation that was used in the last attempt.
+   */
+  let explanation: string | undefined;
+  let code: string | undefined;
 
   for (const toolCall of toolCalls) {
     let parsedArguments: ModelResponseArgs;
@@ -191,6 +202,7 @@ const callModel = async (
         ],
         context,
         null,
+        iteration + 1,
       );
     }
 
@@ -206,7 +218,8 @@ const callModel = async (
           continue;
         }
 
-        const { answer, explanation, confidence } = parsedArguments;
+        const { answer, confidence } = parsedArguments;
+        explanation = parsedArguments.explanation;
 
         const outputs: StepOutput[] = [];
         if (answer) {
@@ -254,7 +267,7 @@ const callModel = async (
         };
       }
       case "run_python_code": {
-        const { code, explanation } = parsedArguments;
+        ({ code, explanation } = parsedArguments);
 
         if (!code) {
           return callModel(
@@ -269,6 +282,7 @@ const callModel = async (
             ],
             context,
             null,
+            iteration + 1,
           );
         }
 
@@ -310,19 +324,59 @@ const callModel = async (
     }
   }
 
+  if (iteration > maximumIterations) {
+    const outputs: StepOutput[] = [];
+    if (explanation) {
+      outputs.push({
+        outputName: "explanation",
+        payload: {
+          kind: "Text",
+          value: explanation,
+        },
+      });
+    }
+    if (code) {
+      outputs.push({
+        outputName: "code",
+        payload: {
+          kind: "Text",
+          value: code,
+        },
+      });
+    }
+
+    return {
+      code: StatusCode.ResourceExhausted,
+      message: `Model exceeded maximum iterations ${maximumIterations}`,
+      contents: [
+        {
+          outputs,
+        },
+      ],
+    };
+  }
+
   if (responseMessages.length) {
     return callModel(
       [...messages, modelResponseMessage, ...responseMessages],
       context,
       codeUsed,
+      iteration + 1,
     );
   }
 
-  return {
-    code: StatusCode.Internal,
-    message: "No valid tool call found in response",
-    contents: [],
+  const responseMessage: ChatCompletionUserMessageParam = {
+    role: "user",
+    content:
+      "You didn't make any valid tool calls as part of your response. Please review the tools available to you and use the appropriate one.",
   };
+
+  return callModel(
+    [...messages, modelResponseMessage, responseMessage],
+    context,
+    codeUsed,
+    iteration + 1,
+  );
 };
 
 export const answerQuestionAction: FlowActionActivity<{
@@ -451,5 +505,5 @@ export const answerQuestionAction: FlowActionActivity<{
     });
   }
 
-  return await callModel(messages, contextToUpload ?? null, null);
+  return await callModel(messages, contextToUpload ?? null, null, 1);
 };
