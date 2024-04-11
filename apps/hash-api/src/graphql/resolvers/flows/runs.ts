@@ -2,7 +2,7 @@ import type {
   Client as TemporalClient,
   WorkflowExecutionInfo,
 } from "@temporalio/client";
-import * as proto from "@temporalio/proto";
+import proto from "@temporalio/proto";
 
 import { isProdEnv } from "../../../lib/env-config";
 import type {
@@ -23,7 +23,12 @@ const parseHistoryItemPayload = (
       if (!data) {
         return data;
       }
-      return JSON.parse(data.toString());
+
+      try {
+        return JSON.parse(data.toString());
+      } catch {
+        return data.toString();
+      }
     })
     .filter((item) => item !== undefined);
 

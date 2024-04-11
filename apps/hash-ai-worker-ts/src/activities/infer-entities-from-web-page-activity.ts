@@ -16,7 +16,7 @@ import { proposeEntities } from "./infer-entities/propose-entities";
 import { stringify } from "./infer-entities/stringify";
 
 export const inferEntitiesFromWebPageActivity = async (params: {
-  webPage: WebPage;
+  webPage: WebPage | string;
   relevantEntitiesPrompt?: string;
   entityTypes: DereferencedEntityTypesByTypeId;
   inferenceState: InferenceState;
@@ -79,8 +79,8 @@ export const inferEntitiesFromWebPageActivity = async (params: {
    */
 
   const proposeEntitiesPrompt = dedent(`
-    The website page title is ${webPage.title}, hosted at ${webPage.url}. Its content is as follows:
-    ${webPage.textContent}
+    ${typeof webPage === "string" ? "The content of the web page is as follows:" : `The website page title is ${webPage.title}, hosted at ${webPage.url}. Its content is as follows:`}
+    ${typeof webPage === "string" ? webPage : webPage.textContent}
     ---WEBSITE CONTENT ENDS---
     
     You already provided a summary of the ${relevantEntitiesPrompt ? "relevant entities you inferred" : "entities you can infer"} from the website. Here it is:

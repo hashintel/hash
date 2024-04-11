@@ -3,37 +3,9 @@ import type { GraphApi } from "@local/hash-graph-client";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import type { DOCXDocumentProperties } from "@local/hash-isomorphic-utils/system-types/docxdocument";
-import isDocker from "is-docker";
 import officeParser from "officeparser";
 
-const fetchFileFromUrl = async (url: string): Promise<Buffer> => {
-  const urlObject = new URL(url);
-
-  let rewrittenUrl: string | undefined = undefined;
-
-  if (["localhost", "127.0.0.1"].includes(urlObject.hostname) && isDocker()) {
-    /**
-     * When the file host is `localhost` or `127.0.0.1` (i.e. the file is
-     * hosted in a locally running machine), and the activity is running in a
-     * docker container, we need to replace the host in the download URL with
-     * `host.docker.internal` so that the docker container accesses the correct
-     * host.
-     */
-    const rewrittenUrlObject = new URL(url);
-    rewrittenUrlObject.hostname = "host.docker.internal";
-    rewrittenUrl = rewrittenUrlObject.toString();
-  }
-
-  const response = await fetch(rewrittenUrl ?? url);
-
-  if (!response.ok) {
-    throw new Error(`Failed to download file: ${response.statusText}`);
-  }
-
-  const arrayBuffer = await response.arrayBuffer();
-
-  return Buffer.from(arrayBuffer);
-};
+import { fetchFileFromUrl } from "./shared/fetch-file-from-url";
 
 type TextParsingFunction = (fileBuffer: Buffer) => Promise<string>;
 

@@ -1,6 +1,7 @@
 import type { OntologyTemporalMetadata } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
+  defaultEntityTypeAuthorizationRelationships,
   fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
@@ -50,27 +51,7 @@ export const createEntityTypeResolver: ResolverFn<
     schema: entityType,
     icon: params.icon ?? undefined,
     labelProperty: (params.labelProperty as BaseUrl | undefined) ?? undefined,
-    relationships: [
-      {
-        relation: "setting",
-        subject: {
-          kind: "setting",
-          subjectId: "updateFromWeb",
-        },
-      },
-      {
-        relation: "viewer",
-        subject: {
-          kind: "public",
-        },
-      },
-      {
-        relation: "instantiator",
-        subject: {
-          kind: "public",
-        },
-      },
-    ],
+    relationships: defaultEntityTypeAuthorizationRelationships,
   });
 
   return createdEntityType;
