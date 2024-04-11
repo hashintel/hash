@@ -15,13 +15,13 @@ import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 import { CodeInterpreter, Sandbox } from "e2b";
 import OpenAI from "openai/index";
-import type { ChatCompletionToolMessageParam } from "openai/src/resources/chat/completions";
 
 import { logger } from "../../shared/logger";
 import { getOpenAiResponse } from "../shared/openai";
 import { stringify } from "../shared/stringify";
 import type { FlowActionActivity } from "./types";
 import ChatCompletionUserMessageParam = OpenAI.ChatCompletionUserMessageParam;
+import ChatCompletionToolMessageParam = OpenAI.ChatCompletionToolMessageParam;
 
 const answerTools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
   {
