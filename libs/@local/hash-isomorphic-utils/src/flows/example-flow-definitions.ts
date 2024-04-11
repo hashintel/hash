@@ -467,16 +467,19 @@ export const saveFileFromUrl: FlowDefinition = {
         payloadKind: "Text",
         name: "url" as const,
         array: false,
+        required: true,
       },
       {
         payloadKind: "Text",
         name: "description" as const,
         array: false,
+        required: true,
       },
       {
         payloadKind: "Text",
         name: "displayName" as const,
         array: false,
+        required: true,
       },
     ],
   },
@@ -516,6 +519,7 @@ export const saveFileFromUrl: FlowDefinition = {
       name: "fileEntity",
       payloadKind: "Entity",
       array: false,
+      required: true,
     },
   ],
 };
