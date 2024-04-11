@@ -3,7 +3,7 @@
   "version": "0.0.0-private",
   "private": true,
   "description": "A TypeScript 'AI' worker for HASH",
-  "license": "AGPL-3.0",
+  "license": "HASH License – see LICENSE.md",
   "type": "module",
   "exports": {
     ".": "./src/main.ts",
