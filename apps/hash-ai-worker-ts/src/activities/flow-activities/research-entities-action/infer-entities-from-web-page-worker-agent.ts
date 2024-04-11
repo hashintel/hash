@@ -20,12 +20,10 @@ import type {
 } from "openai/resources";
 
 import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity";
+import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types";
+import type { PermittedOpenAiModel } from "../../shared/openai";
+import { getOpenAiResponse } from "../../shared/openai";
 // import { getWebPageActivity } from "../../get-web-page-activity";
-import type {
-  DereferencedEntityTypesByTypeId,
-  PermittedOpenAiModel,
-} from "../../infer-entities/inference-types";
-import { getOpenAiResponse } from "../../infer-entities/shared/get-open-ai-response";
 import { inferEntitiesFromContentAction } from "../infer-entities-from-content-action";
 import { getWebPageInnerHtml } from "./infer-entities-from-web-page-worker-agent/get-web-page-inner-html";
 import type {
