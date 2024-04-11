@@ -25,10 +25,24 @@ export const getWebPageInnerHtml = async (params: {
   if (sanitizeForLlm) {
     const sanitizedHtml = sanitizeHtml(innerHtml, {
       allowedTags: sanitizeHtml.defaults.allowedTags.filter(
+        /**
+         * @todo: consider whether there are other tags that aren't relevant
+         * for LLM consumption.
+         */
         (tag) => !["script", "style", "link"].includes(tag),
       ),
       allowedAttributes: {
-        "*": ["href", "src", "onclick"],
+        "*": [
+          "href",
+          "src",
+          "onclick",
+          "title",
+          "alt",
+          "aria",
+          "label",
+          "aria-*",
+          "data-*",
+        ],
       },
       disallowedTagsMode: "discard",
     });
