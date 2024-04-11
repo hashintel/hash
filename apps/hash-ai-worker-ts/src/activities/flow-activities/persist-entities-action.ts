@@ -48,6 +48,10 @@ export const persistEntitiesAction: FlowActionActivity<{
   const failedEntitiesByLocalId: Record<string, FailedEntityProposal> = {};
   const persistedEntitiesByLocalId: Record<string, PersistedEntity> = {};
 
+  /**
+   * We could potentially parallelize the creation of (a) non-link entities and (b) link entities,
+   * if performance of this function becomes an issue.
+   */
   for (const unresolvedEntity of entitiesWithDependenciesSortedLast) {
     const {
       entityTypeId,
