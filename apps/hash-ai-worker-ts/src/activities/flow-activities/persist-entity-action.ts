@@ -53,6 +53,7 @@ export const persistEntityAction: FlowActionActivity<{
     ? findExistingLinkEntity({
         actorId,
         graphApiClient,
+        ownedById,
         linkData,
       })
     : findExistingEntity({
