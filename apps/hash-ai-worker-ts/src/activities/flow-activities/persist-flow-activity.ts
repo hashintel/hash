@@ -13,8 +13,8 @@ import type { FlowProperties } from "@local/hash-isomorphic-utils/system-types/f
 import type {
   AccountId,
   Entity,
-  EntityId,
   EntityRootType,
+  EntityUuid,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
@@ -25,7 +25,7 @@ type PersistFlowActivityParams = {
 
 const getExistingFlowEntity = async (params: {
   graphApiClient: GraphApi;
-  flowId: EntityId;
+  flowId: EntityUuid;
   userAuthentication: { actorId: AccountId };
 }): Promise<Entity<FlowProperties> | null> => {
   const { flowId, userAuthentication, graphApiClient } = params;

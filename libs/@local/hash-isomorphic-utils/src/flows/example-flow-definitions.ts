@@ -1,4 +1,4 @@
-import type { EntityId, EntityUuid } from "@local/hash-subgraph";
+import type { EntityUuid } from "@local/hash-subgraph";
 
 import type {
   InputNameForAction,
@@ -8,7 +8,7 @@ import type { FlowDefinition } from "./types";
 
 export const researchTaskFlowDefinition: FlowDefinition = {
   name: "Research Task",
-  flowDefinitionId: "research-task" as EntityId,
+  flowDefinitionId: "research-task" as EntityUuid,
   trigger: {
     triggerDefinitionId: "userTrigger",
     kind: "trigger",
@@ -257,7 +257,7 @@ export const researchTaskFlowDefinition: FlowDefinition = {
 
 export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
   name: "Infer User Entities from Web Page Flow",
-  flowDefinitionId: "infer-user-entities-from-web-page" as EntityId,
+  flowDefinitionId: "infer-user-entities-from-web-page" as EntityUuid,
   trigger: {
     kind: "trigger",
     triggerDefinitionId: "userTrigger",
@@ -372,7 +372,7 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
 
 export const saveFileFromUrl: FlowDefinition = {
   name: "Save File From Url",
-  flowDefinitionId: "saveFileFromUrl" as EntityId,
+  flowDefinitionId: "saveFileFromUrl" as EntityUuid,
   trigger: {
     triggerDefinitionId: "userTrigger",
     kind: "trigger",
