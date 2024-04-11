@@ -1,7 +1,7 @@
 /* eslint-disable */
 // @ts-nocheck
 /**
- * This file contains work down to experiment with LLM models from Anthropic.
+ * This file contains work done to experiment with LLM models from Anthropic.
  */
 import dedent from "dedent";
 import { AnthropicChatApi } from "llm-api";
