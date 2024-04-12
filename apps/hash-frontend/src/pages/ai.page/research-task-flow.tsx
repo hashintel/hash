@@ -71,6 +71,8 @@ const constructFlowDefinition = (params: {
         stepId: "1",
         kind: "action",
         actionDefinitionId: "researchEntities",
+        description:
+          "Discover entities according to research specification, using public web sources",
         inputSources: [
           {
             inputName:
@@ -91,6 +93,7 @@ const constructFlowDefinition = (params: {
       {
         stepId: "2",
         kind: "action",
+        description: "Save discovered entities and relationships to HASH graph",
         actionDefinitionId: "persistEntities",
         inputSources: [
           {
@@ -109,6 +112,7 @@ const constructFlowDefinition = (params: {
               stepId: "3",
               kind: "action" as const,
               actionDefinitionId: "answerQuestion" as const,
+              description: "Answer user's question using discovered entities",
               inputSources: [
                 {
                   inputName:
@@ -216,7 +220,7 @@ export const ResearchTaskFlow: FunctionComponent = () => {
     async (event: FormEvent) => {
       event.preventDefault();
 
-      if (entityType && prompt) {
+      if (entityType && prompt && question) {
         setPersistedEntities(undefined);
         setAnswer(undefined);
 

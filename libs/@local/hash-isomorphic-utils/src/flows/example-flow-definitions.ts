@@ -27,6 +27,12 @@ export const researchTaskFlowDefinition: FlowDefinition = {
         array: true,
         required: true,
       },
+      {
+        payloadKind: "Text",
+        name: "question",
+        array: false,
+        required: true,
+      },
     ],
   },
   steps: [
@@ -68,6 +74,27 @@ export const researchTaskFlowDefinition: FlowDefinition = {
         },
       ],
     },
+    {
+      stepId: "3",
+      kind: "action",
+      actionDefinitionId: "answerQuestion",
+      description: "Answer user's question using discovered entities",
+      inputSources: [
+        {
+          inputName: "question" satisfies InputNameForAction<"answerQuestion">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "question",
+        },
+        {
+          inputName: "entities" satisfies InputNameForAction<"answerQuestion">,
+          kind: "step-output",
+          sourceStepId: "2",
+          sourceStepOutputName:
+            "persistedEntities" satisfies OutputNameForAction<"persistEntities">,
+        },
+      ],
+    },
   ],
   outputs: [
     {
@@ -76,6 +103,14 @@ export const researchTaskFlowDefinition: FlowDefinition = {
         "persistedEntities" satisfies OutputNameForAction<"persistEntities">,
       name: "persistedEntities" as const,
       payloadKind: "PersistedEntities",
+      array: false,
+      required: true,
+    },
+    {
+      stepId: "3",
+      stepOutputName: "answer" satisfies OutputNameForAction<"answerQuestion">,
+      payloadKind: "Text",
+      name: "answer" as const,
       array: false,
       required: true,
     },
