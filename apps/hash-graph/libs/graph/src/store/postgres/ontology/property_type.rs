@@ -345,7 +345,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                     record_id,
                     classification: parameters.classification,
                     temporal_versioning,
-                    provenance: provenance.clone(),
+                    provenance,
                 };
 
                 inserted_ontology_ids.push(ontology_id);
