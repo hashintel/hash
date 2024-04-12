@@ -31,7 +31,7 @@ import type {
   ToolId,
 } from "./infer-entities-from-web-page-worker-agent/types";
 import { isToolId } from "./infer-entities-from-web-page-worker-agent/types";
-// import { writeStateToFile } from "./testing-utils";
+// import { retrievePreviousState, writeStateToFile } from "./testing-utils";
 import type { CompletedToolCall, ToolCall, ToolDefinition } from "./types";
 import {
   mapPreviousCallsToChatCompletionMessages,
@@ -39,7 +39,7 @@ import {
   parseOpenAiFunctionArguments,
 } from "./util";
 
-const model: PermittedOpenAiModel = "gpt-4-0125-preview";
+const model: PermittedOpenAiModel = "gpt-4-turbo";
 
 type SummarizedEntity = {
   id: string;
@@ -114,10 +114,25 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
             The relevant text from the web page from which to infer entities.
 
             Provide the entire text necessary to accurately infer properties of the
-            relevant entities in a single tool call.
+              relevant entities in a single tool call.
+
+            For example if the text contains data from a table, you must provide the table
+              column names. If the are column names specifying units, you must explicitly
+              specify the unit for each value in the table. For example if the column 
+              specifies a unit in millions (m), append this to each value (e.g. "10 million (m)").
+
+            ${
+              ""
+              /** Note: the agent doesn't do this even if you ask it to */
+              // If there are units in the data, you must give a detailed definition for
+              // each unit and what it means.
+            }
             
-            Do not truncate or provide partial text which may lead to missed entities
+            Do not under any circumstance truncate or provide partial text which may lead to missed entities
               or properties.
+              
+            You must provide as much text as necessary to infer all
+              the required entities and their properties from the web page in a single tool call.
             `),
         },
         validAt: {
@@ -181,8 +196,11 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
   },
   complete: {
     toolId: "complete",
-    description:
-      "Complete the inference task. You must explain how the task has been completed with the existing submitted entities. Do not make this tool call if the research prompt hasn't been fully satisfied.",
+    description: dedent(`
+      Complete the inference task.
+      You must explain how the task has been completed with the existing submitted entities.
+      Do not make this tool call if the research prompt hasn't been fully satisfied.
+    `),
     inputSchema: {
       type: "object",
       properties: {
@@ -675,6 +693,16 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                 output: dedent(`
                   You provided an empty string as the text from the web page. You must provide
                   the relevant text from the web page to infer entities.
+                `),
+              };
+            }
+
+            if (text.endsWith("...")) {
+              return {
+                ...toolCall,
+                output: dedent(`
+                  You provided a truncated text from the web page. You must provide the entire
+                  text necessary to accurately infer properties of the relevant entities.
                 `),
               };
             }
