@@ -1,7 +1,7 @@
 ---
 title: "Self-building databases"
 subtitle: "The world's first autonomously self-growing, self-structuring and self-checking database"
-date: "2024-04-05"
+date: "2024-04-22"
 cover: TBD
 categories:
   - "Company"
@@ -12,21 +12,23 @@ categories:
 
 Imagine a database that built and maintained itself.
 
-Given a goal, and access to a body of information (e.g. the internet), it would find structure amidst chaos, researching, collating, and extracting the relevant information you care about.
+Given a goal, and access to any body of existing information (e.g. the public internet, or private intranet), this database would find structure amidst the chaos; researching, collating, and extracting specific information you care about; while storing it in an easy-to-access way.
 
-As it grows, it would manage its own schemas, ensuring that information is represented semantically, in the manner that made most sense to you (the user), in consideration of the specific reasons you're interested in the data in the first place... but also doing so in a way that enables it to be cross-compatibile with others' representations of the same entities, even if their types (and yours) are private to begin with.
+As this database grew, it would manage its own schemas, ensuring information is represented semantically, in whatever manner made most sense to its user, in consideration of the reasons for their collection of the data in the first place. At the same time, the information would be stored in such a way that it is cross-compatibile with others' representations of the same entities, even if their types (and yours) are private to begin with.
 
-Over time, the database would check, validate and enrich information, ensuring its freshness and accuracy, rather than letting data become stale (as in every other database ever). Raw energy, via compute, is converted into beautiful negentropy.
+Over time, this database would check, validate and enrich your information, ensuring its freshness and accuracy, rather than letting it become stale (as happens to data in every other database, ever). Raw energy, via compute, is converted into beautiful negentropy.
 
-When you want to share information with other people, businesses, or service-providers, the database lets you do so with just one click. When you want to remove their access, it's equally simple.
+When it comes to sharing your information with other people, businesses, or service-providers, the database lets you do so with just one click. And when you want to remove their access, it's equally simple.
 
-# Use Cases
+Information from existing external applications and databases can be trivially two-way synced with the database, and the synced data represented as semantic entities for easy management and use.
+
+# Use cases
 
 ## Inferring novel statistics
 
 - Hard-to-collate information (spread across many sources)
 - Requires calculation/analysis
-- EXAMPLE: FTSE 350
+- EXAMPLE: Analysis of FTSE 350 major shareholders
 
 Benefits: provides alpha to those using it, 
 
@@ -41,43 +43,53 @@ Benefits: provides alpha to those using it,
 
 ## Modeling complex systems
 
-- Complex systems can be incredibly sensitive to initial conditions.
-- Ensuring these are as accurate as possible is critical.
-- Many agent-based models fail to be predictive because of this.
+Complex systems can be incredibly sensitive to their initial conditions. Even small differences between a variable used in a model, and the actual real-world value of a thing, can cause huge differences in simulated outcomes.
 
-# Technical Components
+In many domains, ensuring models are as accurate as possible requires the observation and collection of accurate, real-time, real-world information. Doyne Former, of the Santa Fe Institute and Oxford's Institute for New Economic Thinking, refers to this as the need for "collective awareness". Using publicly available unstructured data, we can create live, composite metrics (e.g. gauges of price volatility and inflation, with respect to different types of products) and incorporate these into simulations (in this example, economic ones). Doing this type of thing with a self-building database becomes immensely easier.
 
-## Requirements
+_n.b. For readers of this post who don't know our origins, HASH started out life as a multi-agent systems research lab, building [agent-based simulation modeling tools](/cases/simulation)._
 
-People have tried to build graphs of "linked open data" before, but they don't work, because different people conceptualize the same things differently. They don't agree on the ultimate definition of things, often for very good reasons, in spite of the best efforts of projects like _schema.org_.
+# Technical requirements
 
-To do this properly, you need:
-- a type system
-  - that lets users define things differently, and retain compatibility - buliding on prior work like [Project Cambria](https://www.inkandswitch.com/cambria/).
-- a graph datastore
-  - with native support for:
-    - multi-tenancy
-    - bitemporal versioning
-    - provenance
-    - confidence information
-  - built on top of truly open-source technology, widely commoditized already (e.g. Postgres)
-- a task executor
-  - capable of supporting long-running agentic AI
-- agentic AI
-  - capable of conducting research in alignment with users' goals
+Given the database that we "imagine", there are quite a few technical components that need to exist to make it real. Some of these are easy to find, while others do not obviously already exist.
 
-## Solution
+## A type system
 
-And this is exactly what we've been building at HASH.
+Many people have tried to build graphs of "linked open data" before, but they haven't worked, or at least gained the dominance, because different people conceptualize the same things differently. Not all folks agree on defining things the same way, often for very good reasons (in spite of the best efforts of projects like _schema.org_), and even when _they do_, individuals often care about different aspects of those things. For example, one person might care about how scenic a given walking route is, while a second might care about how hilly it is, while a third is concerned with its directness and efficiency.
 
-### Where we're at
+Type systems let their users define things, and the aspects of those things that they care about.
 
-HASH is already being used to solve each of the use cases outlined above.
+A multi-tenant type system lets different users define entities however they like, while retaining an ability to refer to the same underlying semantic objects (our "entities" or "things"), even when descriptions and definitions of them differ. Great prior work in this space like [Project Cambria](https://www.inkandswitch.com/cambria/) provides a starting point for thinking about how this can be achieved.
 
-We've built the type system, graph, and application in Rust, for speed, safety, and WASM-compatibility.
+## A graph datastore
 
-We're also in the process of open-sourcing the stack:
+To support all of the things we imagine a self-building, globally-connected database needs to be able to do, to be truly useful, we need a new kind of graph database with native support for:
 
-- The type system is licensed under MIT/Apache (dually) - see blockprotocol/blockprotocol
-- The datastore is licensed under AGPL (like so many other great databases before us, prior to their shift away to proprietary licenses), and is itself indeed built atop Postgres - see hashintel/hash
-- The application that runs atop the datastore, and makes the type system usable, managing the hydration of the graph with information, is itself open-core. This means it is partly AGPL-licensed, and partly proprietary (using an approach virtually identical to GitLab's). Also found in hashintel/hash
+- Multi-tenancy, allowing for the creation of a globally connected knowledge graph, integrated alongside every individual and organization's private data, with the ability to securely and selectively grant access to subgraphs of information when desired.
+- Bitemporal versioning, enabling effective conflict resolution and multi-party access to data.
+- Provenance and confidence metadata, enabling contextual processing of information based on probabilities (taking into account its source, and your own or a consensus view of its trustworthiness, as well as technical factors that might impact individual data's reliability).
+- Strongly typed entities, which support crosswalking via the type system we describe above.
+
+## Agentic AI
+
+To derive structure from the unstructured web we need intelligent agents. These agents need to be capable of running for an extremely long time, processing vast quantities of data. They need to be able to identify real patterns amidst noise, pick out the most important needles within unruly haystacks, and solve problems, perform calculations, and conduct analysis on the fly... introspecting and checking their own work, seeking confirmatory and contradictory sources, and formulating confidence assessments around the "synthesis" they produce.
+
+## A task executor
+
+Finally, to support complex agentic AI, we need a task executor capable of handling extremely long-running jobs. Thankfully, "durable execution" solutions such as [Temporal](https://temporal.io/) are now widely available, and open-source.
+
+# Solution
+
+**This isn't future technology.**
+
+In fact, [HASH](https://hash.ai/) is already being used to solve each of the use cases outlined above.
+
+HASH is a new kind of database for integrating information, which grows, checks, and maintains itself, with a graphical user interface (GUI) that makes its contents directly accessible to all of its end-users. HASH provides all of the capabilities we "imagine" in our introduction.
+
+We founded _HASH, Inc._ as a multi-agent systems research lab in 2019. In the years since, we've built the type system, graph, and application (in Rust, for speed, safety, and WASM-compatibility) steadily and quietly, testing it in the real-world throughout.
+
+If you'd like to use HASH yourself, we're now inviting users, and we invite you to [sign up](https://app.hash.ai/signup).
+
+- The [type system](https://github.com/blockprotocol/blockprotocol) is available under both the MIT and Apache 2.0 Licenses (dually, at your option).
+- The [datastore](https://github.com/hashintel/hash) is licensed under AGPLv3, like so many other great databases before it (prior to their shift away to proprietary licenses).
+- The [application](https://github.com/hashintel/hash) which runs atop our datastore and makes the type system usable, while managing the hydration of the graph with information, is open-core. This means it is mostly AGPL-licensed, but partly proprietary (following a model virtually identical to that used by _GitLab_). You can read more about our [open-source philosophy](https://hash.dev/blog/open-source), which we've tried to be as transparent about as possible, as well as the other non-negotiable [commitments](https://hash.dev/blog/one-principle) we're making to our users.
