@@ -1,7 +1,7 @@
 import "./load-test-env";
 
 import { AwsSesEmailTransporter } from "@apps/hash-api/src/email/transporters";
-import { getAwsRegion } from "@apps/hash-api/src/lib/aws-config";
+import { getAwsRegion } from "@local/hash-backend-utils/aws-config";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { it } from "vitest";
 

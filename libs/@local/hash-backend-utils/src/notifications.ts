@@ -1,3 +1,4 @@
+import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { GraphApi } from "@local/hash-graph-client";
 import {
   systemEntityTypes,
@@ -8,6 +9,7 @@ import type {
   AccountId,
   EntityId,
   EntityRelationAndSubject,
+  OwnedById,
   Timestamp,
 } from "@local/hash-subgraph";
 
@@ -62,7 +64,6 @@ export const createNotificationEntityPermissions = ({
 
 export const createGraphChangeNotification = async (
   context: { graphApi: GraphApi },
-  { machineActorId }: { machineActorId: AccountId },
   params: {
     changedEntityId: EntityId;
     changedEntityEditionId: Timestamp;
@@ -79,13 +80,24 @@ export const createGraphChangeNotification = async (
     notifiedUserAccountId,
   } = params;
 
+  const userAuthentication = { actorId: notifiedUserAccountId };
+
+  const webMachineActorId = await getWebMachineActorId(
+    context,
+    userAuthentication,
+    { ownedById: notifiedUserAccountId as OwnedById },
+  );
+
   const { linkEntityRelationships, notificationEntityRelationships } =
     createNotificationEntityPermissions({
-      machineActorId,
+      machineActorId: webMachineActorId,
     });
 
+  /**
+   * We create the notification entity with the user's web bot, as we know it has the necessary permissions in the user's web
+   */
   const notificationEntityMetadata = await graphApi
-    .createEntity(machineActorId, {
+    .createEntity(webMachineActorId, {
       draft: false,
       entityTypeIds: [systemEntityTypes.graphChangeNotification.entityTypeId],
       ownedById: notifiedUserAccountId,
@@ -99,7 +111,8 @@ export const createGraphChangeNotification = async (
   await graphApi.createEntity(
     /**
      * We use the user's authority to create the link to the entity because it might be in a different web, e.g. an org's,
-     * and the bots creating notifications are currently scoped to a single web (and can't read the other side of the link)
+     * and we can't be sure that any single bot has access to both the user's web and the web of the changed entity,
+     * which might have been created by e.g. an AI bot that has access to the entity's web but not the user's.
      *
      * Ideally we would have a global bot with restricted permissions across all webs to do this – H-1605
      */

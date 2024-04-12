@@ -1,7 +1,8 @@
 import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
-import { faAdd, faLink } from "@fortawesome/free-solid-svg-icons";
+import { faAdd, faLink, faList } from "@fortawesome/free-solid-svg-icons";
 import { ArrowUpRightIcon } from "@hashintel/design-system";
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Menu } from "@mui/material";
 import type { PopupState } from "material-ui-popup-state/hooks";
 import { bindMenu } from "material-ui-popup-state/hooks";
@@ -61,6 +62,12 @@ export const EntityTypeMenu: FunctionComponent<EntityTypeMenuProps> = ({
         icon={<ArrowUpRightIcon sx={{ fontSize: 16 }} />}
         href={`/new/types/entity-type?extends=${entityTypeId}`}
         popupState={popupState}
+      />
+      <EntityTypeMenuItem
+        title={`View all ${pluralize(title)}`}
+        icon={faList}
+        popupState={popupState}
+        href={`/entities?entityTypeIdOrBaseUrl=${extractBaseUrl(entityTypeId)}`}
       />
     </Menu>
   );

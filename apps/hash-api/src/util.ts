@@ -1,25 +1,8 @@
-import id128 from "id128";
-
 export {
   DefaultMap,
   topologicalSort,
   treeFromParentReferences,
 } from "@local/hash-isomorphic-utils/util";
-
-/**
- * Generate a new ID.
- * @todo make ULID. Replace the implementation in datastore/postgres
- * */
-export const genId = () => id128.Uuid4.generate().toCanonical().toLowerCase();
-
-/** Get a required environment variable. Throws an error if it's not set. */
-export const getRequiredEnv = (name: string) => {
-  const value = process.env[name];
-  if (value === undefined) {
-    throw new Error(`Environment variable ${name} is not set`);
-  }
-  return value;
-};
 
 /** Returns true if exactly one of items is not null or undefined. */
 export const exactlyOne = (...items: unknown[]): boolean =>
@@ -84,7 +67,8 @@ export const capitalizeComponentName = (cId: string) => {
  * @param outerKey The key that allows recursive sub-graphs.
  * @param innerKey The key on the object, that contains metadata about the node, which contains the outer type.
  * @param depthLimit The maximum depth a tree may have before bailing.
- * @returns A flattened list of all nodes with an index referring to where in the list the parent is. parentIndex = -1 means root.
+ * @returns A flattened list of all nodes with an index referring to where in the list the parent is. parentIndex = -1
+ *   means root.
  */
 export const linkedTreeFlatten = <
   // Example: type Entity = { name: string; linkedGraphs?: LinkedEntity[]; };

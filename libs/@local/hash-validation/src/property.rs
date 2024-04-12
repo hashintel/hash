@@ -1,7 +1,7 @@
 use error_stack::Report;
 use graph_types::knowledge::{PropertyConfidence, PropertyObject};
 
-use crate::{EntityValidationError, Validate, ValidationProfile};
+use crate::{EntityValidationError, Validate, ValidateEntityComponents};
 
 macro_rules! extend_report {
     ($status:ident, $error:expr $(,)?) => {
@@ -22,7 +22,7 @@ where
     async fn validate(
         &self,
         object: &PropertyObject,
-        _profile: ValidationProfile,
+        _components: ValidateEntityComponents,
         _provider: &P,
     ) -> Result<(), Report<Self::Error>> {
         let mut status: Result<(), Report<EntityValidationError>> = Ok(());

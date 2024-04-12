@@ -54,8 +54,10 @@ describe("File", () => {
       presignUpload: vi.fn(() =>
         Promise.resolve({
           fileStorageProperties: {
-            key: fileKey,
-            provider: "LOCAL_FILE_SYSTEM" as const,
+            "https://hash.ai/@hash/types/property-type/file-storage-key/":
+              fileKey,
+            "https://hash.ai/@hash/types/property-type/file-storage-provider/":
+              "LOCAL_FILE_SYSTEM" as const,
           },
           presignedPut: { url: uploadUrl },
         }),

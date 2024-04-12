@@ -32,6 +32,7 @@ export const queryEntityTypesQuery = gql`
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
+    $filter: Filter
     $inheritsFrom: OutgoingEdgeResolveDepthInput!
     $latestOnly: Boolean = true
     $includeArchived: Boolean = false
@@ -41,6 +42,7 @@ export const queryEntityTypesQuery = gql`
       constrainsPropertiesOn: $constrainsPropertiesOn
       constrainsLinksOn: $constrainsLinksOn
       constrainsLinkDestinationsOn: $constrainsLinkDestinationsOn
+      filter: $filter
       inheritsFrom: $inheritsFrom
       latestOnly: $latestOnly
       includeArchived: $includeArchived

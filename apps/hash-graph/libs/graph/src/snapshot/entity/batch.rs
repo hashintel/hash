@@ -11,7 +11,7 @@ use futures::TryStreamExt;
 use graph_types::knowledge::entity::{Entity, EntityUuid};
 use tokio_postgres::GenericClient;
 use type_system::ClosedEntityType;
-use validation::{Validate, ValidationProfile};
+use validation::{Validate, ValidateEntityComponents};
 
 use crate::{
     snapshot::{
@@ -259,13 +259,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
 
                     INSERT INTO entity_drafts SELECT * FROM entity_drafts_tmp;
 
-                    INSERT INTO entity_editions
-                        SELECT
-                            entity_edition_id UUID,
-                            properties JSONB,
-                            edition_created_by_id UUID,
-                            archived BOOLEAN
-                        FROM entity_editions_tmp;
+                    INSERT INTO entity_editions SELECT * FROM entity_editions_tmp;
 
                     INSERT INTO entity_temporal_metadata SELECT * FROM \
                  entity_temporal_metadata_tmp;
@@ -278,7 +272,8 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                             web_id UUID,
                             entity_uuid UUID,
                             left_web_id UUID,
-                            left_entity_uuid UUID
+                            left_entity_uuid UUID,
+                            left_entity_confidence DOUBLE PRECISION
                         FROM entity_link_edges_tmp;
 
                     INSERT INTO entity_has_right_entity
@@ -286,7 +281,8 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                             web_id UUID,
                             entity_uuid UUID,
                             right_web_id UUID,
-                            right_entity_uuid UUID
+                            right_entity_uuid UUID,
+                            right_entity_confidence DOUBLE PRECISION
                         FROM entity_link_edges_tmp;
 
                     INSERT INTO entity_property
@@ -336,9 +332,9 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                     .validate(
                         &schema,
                         if entity.metadata.record_id.entity_id.draft_id.is_some() {
-                            ValidationProfile::Draft
+                            ValidateEntityComponents::draft()
                         } else {
-                            ValidationProfile::Full
+                            ValidateEntityComponents::full()
                         },
                         &validator_provider,
                     )

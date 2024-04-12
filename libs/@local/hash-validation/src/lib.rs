@@ -34,7 +34,7 @@ trait Schema<V: ?Sized, P: Sync> {
     fn validate_value<'a>(
         &'a self,
         value: &'a V,
-        profile: ValidationProfile,
+        components: ValidateEntityComponents,
         provider: &'a P,
     ) -> impl Future<Output = Result<(), Report<Self::Error>>> + Send + 'a;
 }
@@ -49,7 +49,7 @@ impl<T> Valid<T> {
     pub async fn new<S, C>(
         value: T,
         schema: S,
-        profile: ValidationProfile,
+        components: ValidateEntityComponents,
         context: C,
     ) -> Result<Self, Report<T::Error>>
     where
@@ -57,7 +57,7 @@ impl<T> Valid<T> {
         S: Send,
         C: Send,
     {
-        value.validate(&schema, profile, &context).await?;
+        value.validate(&schema, components, &context).await?;
         Ok(Self { value })
     }
 
@@ -66,12 +66,49 @@ impl<T> Valid<T> {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
+const fn default_true() -> bool {
+    true
+}
+
+#[derive(Debug, Copy, Clone, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase")]
-pub enum ValidationProfile {
-    Full,
-    Draft,
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ValidateEntityComponents {
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[serde(default = "default_true")]
+    pub link_data: bool,
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[serde(default = "default_true")]
+    pub required_properties: bool,
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[serde(default = "default_true")]
+    pub num_items: bool,
+}
+
+impl ValidateEntityComponents {
+    #[must_use]
+    pub const fn full() -> Self {
+        Self {
+            link_data: true,
+            required_properties: true,
+            num_items: true,
+        }
+    }
+
+    #[must_use]
+    pub const fn draft() -> Self {
+        Self {
+            num_items: false,
+            required_properties: false,
+            ..Self::full()
+        }
+    }
+}
+
+impl Default for ValidateEntityComponents {
+    fn default() -> Self {
+        Self::full()
+    }
 }
 
 impl<T> AsRef<T> for Valid<T> {
@@ -92,7 +129,7 @@ pub trait Validate<S, C> {
     fn validate(
         &self,
         schema: &S,
-        profile: ValidationProfile,
+        components: ValidateEntityComponents,
         context: &C,
     ) -> impl Future<Output = Result<(), Report<Self::Error>>> + Send;
 }
@@ -265,7 +302,7 @@ mod tests {
         entity_types: impl IntoIterator<Item = &'static str> + Send,
         property_types: impl IntoIterator<Item = &'static str> + Send,
         data_types: impl IntoIterator<Item = &'static str> + Send,
-        profile: ValidationProfile,
+        components: ValidateEntityComponents,
     ) -> Result<(), Report<EntityValidationError>> {
         install_error_stack_hooks();
 
@@ -289,7 +326,7 @@ mod tests {
         let properties =
             serde_json::from_str::<PropertyObject>(entity).expect("failed to read entity string");
 
-        properties.validate(&entity_type, profile, &provider).await
+        properties.validate(&entity_type, components, &provider).await
     }
 
     pub(crate) async fn validate_property(
@@ -297,7 +334,7 @@ mod tests {
         property_type: &'static str,
         property_types: impl IntoIterator<Item = &'static str> + Send,
         data_types: impl IntoIterator<Item = &'static str> + Send,
-        profile: ValidationProfile,
+        components: ValidateEntityComponents,
     ) -> Result<(), Report<PropertyValidationError>> {
         install_error_stack_hooks();
         let property = Property::deserialize(property).expect("failed to deserialize property");
@@ -316,13 +353,15 @@ mod tests {
         let property_type: PropertyType =
             serde_json::from_str(property_type).expect("failed to parse property type");
 
-        property.validate(&property_type, profile, &provider).await
+        property
+            .validate(&property_type, components, &provider)
+            .await
     }
 
     pub(crate) async fn validate_data(
         data: JsonValue,
         data_type: &str,
-        profile: ValidationProfile,
+        components: ValidateEntityComponents,
     ) -> Result<(), Report<DataValidationError>> {
         install_error_stack_hooks();
 
@@ -331,6 +370,6 @@ mod tests {
         let data_type: DataType =
             serde_json::from_str(data_type).expect("failed to parse data type");
 
-        property.validate(&data_type, profile, &()).await
+        property.validate(&data_type, components, &()).await
     }
 }

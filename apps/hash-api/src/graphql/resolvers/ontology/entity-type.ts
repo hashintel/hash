@@ -1,14 +1,13 @@
 import type { OntologyTemporalMetadata } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
+  defaultEntityTypeAuthorizationRelationships,
   fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { UserPermissionsOnEntityType } from "@local/hash-isomorphic-utils/types";
 import type {
   BaseUrl,
-  EntityTypeRootType,
   EntityTypeWithMetadata,
   OwnedById,
   Subgraph,
@@ -18,6 +17,7 @@ import {
   archiveEntityType,
   checkPermissionsOnEntityType,
   createEntityType,
+  getEntityTypes,
   getEntityTypeSubgraphById,
   unarchiveEntityType,
   updateEntityType,
@@ -51,27 +51,7 @@ export const createEntityTypeResolver: ResolverFn<
     schema: entityType,
     icon: params.icon ?? undefined,
     labelProperty: (params.labelProperty as BaseUrl | undefined) ?? undefined,
-    relationships: [
-      {
-        relation: "setting",
-        subject: {
-          kind: "setting",
-          subjectId: "updateFromWeb",
-        },
-      },
-      {
-        relation: "viewer",
-        subject: {
-          kind: "public",
-        },
-      },
-      {
-        relation: "instantiator",
-        subject: {
-          kind: "public",
-        },
-      },
-    ],
+    relationships: defaultEntityTypeAuthorizationRelationships,
   });
 
   return createdEntityType;
@@ -89,22 +69,26 @@ export const queryEntityTypesResolver: ResolverFn<
     constrainsPropertiesOn,
     constrainsLinksOn,
     constrainsLinkDestinationsOn,
+    filter,
     inheritsFrom,
     latestOnly = true,
     includeArchived = false,
   },
-  { dataSources, authentication },
+  { dataSources, authentication, temporal },
   __,
 ) => {
   const { graphApi } = dataSources;
 
-  const { data } = await graphApi.getEntityTypesByQuery(
-    authentication.actorId,
-    {
+  const latestOnlyFilter = {
+    equal: [{ path: ["version"] }, { parameter: "latest" }],
+  };
+
+  const subgraph = await getEntityTypes({ graphApi }, authentication, {
+    query: {
       filter: latestOnly
-        ? {
-            equal: [{ path: ["version"] }, { parameter: "latest" }],
-          }
+        ? filter
+          ? { all: [filter, latestOnlyFilter] }
+          : latestOnlyFilter
         : { all: [] },
       graphResolveDepths: {
         ...zeroedGraphResolveDepths,
@@ -117,14 +101,9 @@ export const queryEntityTypesResolver: ResolverFn<
       temporalAxes: includeArchived
         ? fullTransactionTimeAxis
         : currentTimeInstantTemporalAxes,
-      includeDrafts: false,
     },
-  );
-
-  const subgraph = mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(
-    data,
-    authentication.actorId,
-  );
+    temporalClient: temporal,
+  });
 
   return subgraph;
 };
