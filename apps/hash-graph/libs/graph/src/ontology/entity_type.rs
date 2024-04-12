@@ -446,16 +446,18 @@ pub enum EntityTypeQueryPath<'p> {
     ClosedSchema(Option<JsonPath<'p>>),
     /// Only used internally and not available for deserialization.
     AdditionalMetadata,
-    /// Corresponds to the provenance data of the [`DataType`].
+    /// Corresponds to the provenance data of the [`EntityType`].
     ///
     /// Deserializes from `["editionProvenance", ...]` where `...` is a path to a provenance entry
-    /// of an [`Entity`].
+    /// of an [`EntityType`].
+    ///
+    /// [`EntityType`]: type_system::EntityType
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::ontology::DataTypeQueryPath;
-    /// let path = DataTypeQueryPath::deserialize(json!(["editionProvenance", "createdById"]))?;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["editionProvenance", "createdById"]))?;
     /// assert_eq!(path.to_string(), r#"editionProvenance.$."createdById""#);
     /// # Ok::<(), serde_json::Error>(())
     /// ```

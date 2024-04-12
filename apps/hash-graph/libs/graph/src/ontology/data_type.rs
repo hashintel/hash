@@ -185,7 +185,9 @@ pub enum DataTypeQueryPath<'p> {
     /// Corresponds to the provenance data of the [`DataType`].
     ///
     /// Deserializes from `["editionProvenance", ...]` where `...` is a path to a provenance entry
-    /// of an [`Entity`].
+    /// of an [`DataType`].
+    ///
+    /// [`DataType`]: type_system::DataType
     ///
     /// ```rust
     /// # use serde::Deserialize;

@@ -213,16 +213,18 @@ pub enum PropertyTypeQueryPath<'p> {
     Schema(Option<JsonPath<'p>>),
     /// Only used internally and not available for deserialization.
     AdditionalMetadata,
-    /// Corresponds to the provenance data of the [`DataType`].
+    /// Corresponds to the provenance data of the [`PropertyType`].
     ///
     /// Deserializes from `["editionProvenance", ...]` where `...` is a path to a provenance entry
-    /// of an [`Entity`].
+    /// of an [`PropertyType`].
+    ///
+    /// [`PropertyType`]: type_system::PropertyType
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::ontology::DataTypeQueryPath;
-    /// let path = DataTypeQueryPath::deserialize(json!(["editionProvenance", "createdById"]))?;
+    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["editionProvenance", "createdById"]))?;
     /// assert_eq!(path.to_string(), r#"editionProvenance.$."createdById""#);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
