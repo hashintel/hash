@@ -14,8 +14,11 @@ use graph_types::knowledge::entity::EntityUuid;
 
 use crate::snapshot::{
     entity::{
-        table::{EntityDraftRow, EntityEmbeddingRow, EntityIsOfTypeRow, EntityPropertyRow},
-        EntityEditionRow, EntityIdRow, EntityLinkEdgeRow, EntityRowBatch,
+        table::{
+            EntityDraftRow, EntityEmbeddingRow, EntityHasRightEntityRow, EntityIsOfTypeRow,
+            EntityPropertyRow,
+        },
+        EntityEditionRow, EntityHasLeftEntityRow, EntityIdRow, EntityRowBatch,
         EntityTemporalMetadataRow,
     },
     EntitySnapshotRecord, SnapshotRestoreError,
@@ -33,7 +36,8 @@ pub struct EntitySender {
     is_of_type: Sender<EntityIsOfTypeRow>,
     temporal_metadata: Sender<EntityTemporalMetadataRow>,
     property: Sender<EntityPropertyRow>,
-    links: Sender<EntityLinkEdgeRow>,
+    left_links: Sender<EntityHasLeftEntityRow>,
+    right_links: Sender<EntityHasRightEntityRow>,
 }
 
 // This is a direct wrapper around several `Sink<mpsc::Sender>` and `AccountSender` with
@@ -61,9 +65,12 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
         ready!(self.property.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll property sender")?;
-        ready!(self.links.poll_ready_unpin(cx))
+        ready!(self.left_links.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll entity link edges sender")?;
+            .attach_printable("could not poll left entity link edges sender")?;
+        ready!(self.right_links.poll_ready_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not poll right entity link edges sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -147,16 +154,23 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
             .attach_printable("could not send entity temporal metadata")?;
 
         if let Some(link_data) = entity.link_data {
-            self.links
-                .start_send_unpin(EntityLinkEdgeRow {
+            self.left_links
+                .start_send_unpin(EntityHasLeftEntityRow {
                     web_id: entity.metadata.record_id.entity_id.owned_by_id,
                     entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
                     left_web_id: link_data.left_entity_id.owned_by_id,
                     left_entity_uuid: link_data.left_entity_id.entity_uuid,
-                    left_entity_confidence: link_data.left_entity_confidence,
+                    confidence: link_data.left_entity_confidence,
+                })
+                .change_context(SnapshotRestoreError::Read)
+                .attach_printable("could not send entity link edges")?;
+            self.right_links
+                .start_send_unpin(EntityHasRightEntityRow {
+                    web_id: entity.metadata.record_id.entity_id.owned_by_id,
+                    entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
                     right_web_id: link_data.right_entity_id.owned_by_id,
                     right_entity_uuid: link_data.right_entity_id.entity_uuid,
-                    right_entity_confidence: link_data.right_entity_confidence,
+                    confidence: link_data.right_entity_confidence,
                 })
                 .change_context(SnapshotRestoreError::Read)
                 .attach_printable("could not send entity link edges")?;
@@ -184,9 +198,12 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
         ready!(self.property.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush property sender")?;
-        ready!(self.links.poll_flush_unpin(cx))
+        ready!(self.left_links.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush entity link edges sender")?;
+            .attach_printable("could not flush left entity link edges sender")?;
+        ready!(self.right_links.poll_flush_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not flush right entity link edges sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -210,7 +227,10 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
         ready!(self.property.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close property sender")?;
-        ready!(self.links.poll_close_unpin(cx))
+        ready!(self.left_links.poll_close_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not close entity link edges sender")?;
+        ready!(self.right_links.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close entity link edges sender")?;
 
@@ -251,7 +271,8 @@ pub fn channel(
     let (type_tx, type_rx) = mpsc::channel(chunk_size);
     let (temporal_metadata_tx, temporal_metadata_rx) = mpsc::channel(chunk_size);
     let (property_tx, property_rx) = mpsc::channel(chunk_size);
-    let (left_entity_tx, left_entity_rx) = mpsc::channel(chunk_size);
+    let (left_links_tx, left_links_rx) = mpsc::channel(chunk_size);
+    let (right_links_tx, right_links_rx) = mpsc::channel(chunk_size);
 
     (
         EntitySender {
@@ -261,7 +282,8 @@ pub fn channel(
             is_of_type: type_tx,
             temporal_metadata: temporal_metadata_tx,
             property: property_tx,
-            links: left_entity_tx,
+            left_links: left_links_tx,
+            right_links: right_links_tx,
         },
         EntityReceiver {
             stream: select_all([
@@ -285,9 +307,13 @@ pub fn channel(
                     .ready_chunks(chunk_size)
                     .map(EntityRowBatch::TemporalMetadata)
                     .boxed(),
-                left_entity_rx
+                left_links_rx
                     .ready_chunks(chunk_size)
-                    .map(EntityRowBatch::Links)
+                    .map(EntityRowBatch::LeftLinks)
+                    .boxed(),
+                right_links_rx
+                    .ready_chunks(chunk_size)
+                    .map(EntityRowBatch::RightLinks)
                     .boxed(),
                 property_rx
                     .ready_chunks(chunk_size)

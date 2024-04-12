@@ -68,20 +68,27 @@ pub struct EntityTemporalMetadataRow {
 }
 
 #[derive(Debug, ToSql)]
-#[postgres(name = "entity_link_edges_tmp")]
-pub struct EntityLinkEdgeRow {
+#[postgres(name = "entity_has_left_entity")]
+pub struct EntityHasLeftEntityRow {
     pub web_id: OwnedById,
     pub entity_uuid: EntityUuid,
     pub left_web_id: OwnedById,
     pub left_entity_uuid: EntityUuid,
-    pub left_entity_confidence: Option<Confidence>,
-    pub right_web_id: OwnedById,
-    pub right_entity_uuid: EntityUuid,
-    pub right_entity_confidence: Option<Confidence>,
+    pub confidence: Option<Confidence>,
 }
 
 #[derive(Debug, ToSql)]
-#[postgres(name = "entity_embeddings_tmp")]
+#[postgres(name = "entity_has_right_entity")]
+pub struct EntityHasRightEntityRow {
+    pub web_id: OwnedById,
+    pub entity_uuid: EntityUuid,
+    pub right_web_id: OwnedById,
+    pub right_entity_uuid: EntityUuid,
+    pub confidence: Option<Confidence>,
+}
+
+#[derive(Debug, ToSql)]
+#[postgres(name = "entity_embeddings")]
 pub struct EntityEmbeddingRow {
     pub web_id: OwnedById,
     pub entity_uuid: EntityUuid,
