@@ -14,11 +14,13 @@
 
 # HASH
 
-HASH is an open-source, data-centric, all-in-one workspace. HASH combines a rich frontend editor with a powerful entity graph that makes it easy to capture and work with structured data. HASH is built atop the open [Block Protocol](https://github.com/blockprotocol/blockprotocol) allowing users to easily add new block types and functionality to their workspaces.
+HASH is an open-source, self-building database. You can [read more about it](https://hash.ai/blog/self-building-database) on our blog.
 
-**This app is not yet ready for production use.** For now it is intended to be used as a [test-harness for developers building Block Protocol-compliant blocks](#integration-with-the-block-protocol). It is currently not secure, not optimized, and missing key features.
+HASH provides a powerful graph datastore with its own GUI, for creating and using types and entities, and managing the database's growth. Intelligent, autonomous agents can be deployed to grow, check, and maintain the database, integrating and structuring information from the public internet as well as your own connected private sources.
 
-We will be developing HASH into a production-grade application which can be self-hosted. The current design and architecture, while not fully realized, paves the way for further features, scale, and performance. You can read about the long-term vision for HASH [here](https://hash.ai/platform/hash).
+In the future, we envisage HASH serving as an all-in-one workspace, or complete operating system.
+
+**We currently recommend using the hosted version of HASH.** We haven't yet written up an official guide to self-hosting HASH, although you can find the code powering the application here in this (rather large) GitHub repository.
 
 > **Warning:**
 > The repository is currently in a state of flux while some large improvements are being implemented.
