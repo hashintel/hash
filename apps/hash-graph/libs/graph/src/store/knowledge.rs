@@ -21,7 +21,7 @@ use utoipa::{
     openapi::{schema, Ref, RefOr, Schema},
     ToSchema,
 };
-use validation::ValidationProfile;
+use validation::ValidateEntityComponents;
 
 use crate::{
     knowledge::EntityQueryPath,
@@ -199,7 +199,9 @@ pub struct ValidateEntityParams<'a> {
     #[serde(borrow, default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_data: Option<Cow<'a, LinkData>>,
-    pub profile: ValidationProfile,
+    #[serde(default)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub components: ValidateEntityComponents,
 }
 
 #[derive(Debug, Deserialize)]

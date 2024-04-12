@@ -42,7 +42,7 @@ use temporal_versioning::{
 use tokio_postgres::{error::SqlState, GenericClient, Row};
 use type_system::{url::VersionedUrl, ClosedEntityType};
 use uuid::Uuid;
-use validation::{Validate, ValidationProfile};
+use validation::{Validate, ValidateEntityComponents};
 
 use crate::{
     knowledge::EntityQueryPath,
@@ -556,10 +556,14 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     entity_types: EntityValidationType::ClosedSchema(Cow::Owned(closed_schema)),
                     properties: Cow::Borrowed(&params.properties),
                     link_data: params.link_data.as_ref().map(Cow::Borrowed),
-                    profile: if params.draft {
-                        ValidationProfile::Draft
+                    components: if params.draft {
+                        ValidateEntityComponents {
+                            num_items: false,
+                            required_properties: false,
+                            ..ValidateEntityComponents::full()
+                        }
                     } else {
-                        ValidationProfile::Full
+                        ValidateEntityComponents::full()
                     },
                 },
             )
@@ -732,7 +736,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         if let Err(error) = params
             .properties
-            .validate(&schema, params.profile, &validator_provider)
+            .validate(&schema, params.components, &validator_provider)
             .await
         {
             if let Err(ref mut report) = status {
@@ -745,7 +749,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         if let Err(error) = params
             .link_data
             .as_deref()
-            .validate(&schema, params.profile, &validator_provider)
+            .validate(&schema, params.components, &validator_provider)
             .await
         {
             if let Err(ref mut report) = status {
@@ -1299,10 +1303,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             }
         };
 
-        let validation_profile = if draft {
-            ValidationProfile::Draft
+        let validation_components = if draft {
+            ValidateEntityComponents::draft()
         } else {
-            ValidationProfile::Full
+            ValidateEntityComponents::full()
         };
 
         transaction
@@ -1314,7 +1318,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     entity_types: EntityValidationType::ClosedSchema(Cow::Borrowed(&closed_schema)),
                     properties: Cow::Borrowed(&properties),
                     link_data: link_data.as_ref().map(Cow::Borrowed),
-                    profile: validation_profile,
+                    components: validation_components,
                 },
             )
             .await

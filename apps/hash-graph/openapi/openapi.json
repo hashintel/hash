@@ -6456,14 +6456,35 @@
         },
         "additionalProperties": false
       },
+      "ValidateEntityComponents": {
+        "type": "object",
+        "properties": {
+          "linkData": {
+            "type": "boolean"
+          },
+          "numItems": {
+            "type": "boolean"
+          },
+          "requiredProperties": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "ValidateEntityParams": {
         "type": "object",
         "required": [
           "entityTypes",
-          "properties",
-          "profile"
+          "properties"
         ],
         "properties": {
+          "components": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ValidateEntityComponents"
+              }
+            ]
+          },
           "entityTypes": {
             "$ref": "#/components/schemas/EntityValidationType"
           },
@@ -6474,21 +6495,11 @@
               }
             ]
           },
-          "profile": {
-            "$ref": "#/components/schemas/ValidationProfile"
-          },
           "properties": {
             "$ref": "#/components/schemas/EntityProperties"
           }
         },
         "additionalProperties": false
-      },
-      "ValidationProfile": {
-        "type": "string",
-        "enum": [
-          "full",
-          "draft"
-        ]
       },
       "VersionedUrl": {
         "type": "string",

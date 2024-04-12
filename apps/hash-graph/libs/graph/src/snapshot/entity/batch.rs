@@ -11,7 +11,7 @@ use futures::TryStreamExt;
 use graph_types::knowledge::entity::{Entity, EntityUuid};
 use tokio_postgres::GenericClient;
 use type_system::ClosedEntityType;
-use validation::{Validate, ValidationProfile};
+use validation::{Validate, ValidateEntityComponents};
 
 use crate::{
     snapshot::{
@@ -336,9 +336,9 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                     .validate(
                         &schema,
                         if entity.metadata.record_id.entity_id.draft_id.is_some() {
-                            ValidationProfile::Draft
+                            ValidateEntityComponents::draft()
                         } else {
-                            ValidationProfile::Full
+                            ValidateEntityComponents::full()
                         },
                         &validator_provider,
                     )
