@@ -7,6 +7,7 @@ import type {
   RunFlowWorkflowResponse,
 } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type {
+  FlowDefinition,
   FlowStep,
   Payload,
 } from "@local/hash-isomorphic-utils/flows/types";
@@ -38,18 +39,29 @@ const log = (message: string) => {
   console.log(message);
 };
 
-const doesFlowStepHaveSatisfiedDependencies = (step: FlowStep) => {
+const doesFlowStepHaveSatisfiedDependencies = (params: {
+  step: FlowStep;
+  flowDefinition: FlowDefinition;
+}) => {
+  const { step, flowDefinition } = params;
+
   if (step.kind === "action") {
     /**
-     * An action step has satisfied dependencies if all of its required inputs
-     * have been provided.
+     * An action step has satisfied dependencies if all of its inputs have
+     * been provided, based on the input sources defined in the step's
+     * definition.
+     *
+     * We don't need to check if all required inputs have been provided,
+     * as this will have been enforced when the flow was validated.
      */
-    const requiredInputs = actionDefinitions[
-      step.actionDefinitionId
-    ].inputs.filter((input) => input.required);
 
-    return requiredInputs.every((requiredInput) =>
-      step.inputs?.some(({ inputName }) => requiredInput.name === inputName),
+    const { inputSources } = getStepDefinitionFromFlowDefinition({
+      step,
+      flowDefinition,
+    });
+
+    return inputSources.every((inputSource) =>
+      step.inputs?.some(({ inputName }) => inputSource.inputName === inputName),
     );
   } else {
     /**
@@ -266,8 +278,8 @@ export const runFlowWorkflow = async (
     }
   };
 
-  const stepWithSatisfiedDependencies = getAllStepsInFlow(flow).filter(
-    doesFlowStepHaveSatisfiedDependencies,
+  const stepWithSatisfiedDependencies = getAllStepsInFlow(flow).filter((step) =>
+    doesFlowStepHaveSatisfiedDependencies({ step, flowDefinition }),
   );
 
   if (stepWithSatisfiedDependencies.length === 0) {
@@ -283,7 +295,7 @@ export const runFlowWorkflow = async (
   const processSteps = async () => {
     const stepsToProcess = getAllStepsInFlow(flow).filter(
       (step) =>
-        doesFlowStepHaveSatisfiedDependencies(step) &&
+        doesFlowStepHaveSatisfiedDependencies({ step, flowDefinition }) &&
         !processedStepIds.some(
           (processedStepId) => processedStepId === step.stepId,
         ),
