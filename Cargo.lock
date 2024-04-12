@@ -1138,6 +1138,7 @@ dependencies = [
  "json-patch",
  "postgres-types",
  "pretty_assertions",
+ "semver",
  "serde",
  "serde_json",
  "temporal-versioning",

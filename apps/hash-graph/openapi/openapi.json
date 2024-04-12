@@ -2622,6 +2622,13 @@
         "type": "string",
         "format": "uuid"
       },
+      "ActorType": {
+        "type": "string",
+        "enum": [
+          "human",
+          "ai"
+        ]
+      },
       "ArchiveDataTypeParams": {
         "type": "object",
         "required": [
@@ -2654,6 +2661,48 @@
         "properties": {
           "propertyTypeId": {
             "$ref": "#/components/schemas/VersionedUrl"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Artifact": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Encapsulates a message intended to be read by the end user."
+          },
+          "location": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ArtifactLocation"
+              }
+            ]
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the tool."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArtifactLocation": {
+        "type": "object",
+        "required": [
+          "uri"
+        ],
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Encapsulates a message intended to be read by the end user."
+          },
+          "uri": {
+            "type": "string",
+            "format": "uri",
+            "description": "A string containing a valid relative or absolute URI."
           }
         },
         "additionalProperties": false
@@ -5289,6 +5338,52 @@
           "descending"
         ]
       },
+      "OriginProvenance": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "apiKeyPublicId": {
+            "type": "string"
+          },
+          "deviceId": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "semanticVersion": {
+            "type": "string",
+            "description": "The origin version in the format specified by Semantic Versioning 2.0."
+          },
+          "sessionId": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/OriginType"
+          },
+          "version": {
+            "type": "string",
+            "description": "The origin version, in whatever format the origin natively provides."
+          }
+        },
+        "additionalProperties": false
+      },
+      "OriginType": {
+        "type": "string",
+        "enum": [
+          "web-app",
+          "mobile-app",
+          "browser-extension",
+          "api",
+          "flows",
+          "migration"
+        ]
+      },
       "OutgoingEdgeResolveDepth": {
         "type": "object",
         "required": [
@@ -5899,9 +5994,38 @@
       "ProvidedEntityEditionProvenanceMetadata": {
         "type": "object",
         "properties": {
-          "__placeholder": {
-            "default": null,
-            "nullable": true
+          "actor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ActorType"
+              }
+            ]
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          "origin": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OriginProvenance"
+              }
+            ]
+          },
+          "source": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SourceProvenance"
+            }
+          },
+          "tools": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Tool"
+            }
           }
         },
         "additionalProperties": false
@@ -6123,6 +6247,70 @@
           "IS_OF_TYPE"
         ]
       },
+      "SourceProvenance": {
+        "type": "object",
+        "required": [
+          "type",
+          "artifact"
+        ],
+        "properties": {
+          "actorType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ActorType"
+              }
+            ]
+          },
+          "analyzedAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            ]
+          },
+          "artifact": {
+            "$ref": "#/components/schemas/Artifact"
+          },
+          "authors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "firstPublished": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            ]
+          },
+          "lastUpdated": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            ]
+          },
+          "loadedAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            ]
+          },
+          "type": {
+            "$ref": "#/components/schemas/SourceType"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SourceType": {
+        "type": "string",
+        "enum": [
+          "webpage",
+          "document"
+        ]
+      },
       "Subgraph": {
         "type": "object",
         "required": [
@@ -6231,6 +6419,31 @@
       "Timestamp": {
         "type": "string",
         "format": "date-time"
+      },
+      "Tool": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the tool."
+          },
+          "organization": {
+            "type": "string",
+            "description": "The organization or company that produced the tool."
+          },
+          "semanticVersion": {
+            "type": "string",
+            "description": "The tool version in the format specified by Semantic Versioning 2.0."
+          },
+          "version": {
+            "type": "string",
+            "description": "The tool version, in whatever format the tool natively provides."
+          }
+        },
+        "additionalProperties": false
       },
       "TransactionTime": {
         "type": "string",

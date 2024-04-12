@@ -22,6 +22,7 @@ postgres-types = { version = "0.2.6", default-features = false, features = ["der
 time = { version = "0.3.36", default-features = false, features = ["serde", "parsing", "formatting", "macros"] }
 uuid = { version = "1.8.0", default-features = false, features = ["serde"] }
 json-patch = { version = "1.2.0", default-features = false }
+semver = "1.0.22"
 thiserror = "1.0.58"
 url = "2.5.0"
 
