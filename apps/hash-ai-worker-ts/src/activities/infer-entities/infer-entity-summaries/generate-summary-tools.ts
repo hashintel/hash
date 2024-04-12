@@ -6,8 +6,8 @@ import { typedEntries } from "@local/advanced-types/typed-entries";
 import type OpenAI from "openai";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
+import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
 import { stringify } from "../../shared/stringify";
-import type { DereferencedEntityType } from "../dereference-entity-type";
 import type {
   DereferencedEntityTypesByTypeId,
   ProposedEntitySummary,

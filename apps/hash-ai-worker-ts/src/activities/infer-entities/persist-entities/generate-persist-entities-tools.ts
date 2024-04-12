@@ -10,7 +10,7 @@ import dedent from "dedent";
 import type OpenAI from "openai";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
-import type { DereferencedEntityType } from "../dereference-entity-type";
+import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
 
 export type FunctionName =
   | "abandon_entities"

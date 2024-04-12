@@ -5,6 +5,7 @@
     clippy::unwrap_used
 )]
 
+mod confidence;
 mod data_type;
 mod drafts;
 mod entity;
@@ -60,8 +61,9 @@ use graph::{
 use graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{Entity, EntityId, EntityMetadata, EntityProperties, EntityUuid},
+        entity::{Entity, EntityId, EntityMetadata, EntityUuid},
         link::LinkData,
+        Confidence, PropertyConfidence, PropertyObject,
     },
     ontology::{
         DataTypeMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
@@ -523,10 +525,12 @@ impl DatabaseApi<'_> {
 
     pub async fn create_entity(
         &mut self,
-        properties: EntityProperties,
+        properties: PropertyObject,
         entity_type_ids: Vec<VersionedUrl>,
         entity_uuid: Option<EntityUuid>,
         draft: bool,
+        confidence: Option<Confidence>,
+        property_confidence: PropertyConfidence<'static>,
     ) -> Result<EntityMetadata, InsertionError> {
         self.store
             .create_entity(
@@ -539,9 +543,11 @@ impl DatabaseApi<'_> {
                     decision_time: Some(generate_decision_time()),
                     entity_type_ids,
                     properties,
+                    property_confidence,
                     link_data: None,
                     draft,
                     relationships: [],
+                    confidence,
                 },
             )
             .await
@@ -772,7 +778,7 @@ impl DatabaseApi<'_> {
 
     async fn create_link_entity(
         &mut self,
-        properties: EntityProperties,
+        properties: PropertyObject,
         entity_type_ids: Vec<VersionedUrl>,
         entity_uuid: Option<EntityUuid>,
         left_entity_id: EntityId,
@@ -789,6 +795,7 @@ impl DatabaseApi<'_> {
                     decision_time: Some(generate_decision_time()),
                     entity_type_ids,
                     properties,
+                    property_confidence: PropertyConfidence::default(),
                     link_data: Some(LinkData {
                         left_entity_id,
                         right_entity_id,
@@ -797,6 +804,7 @@ impl DatabaseApi<'_> {
                     }),
                     draft: false,
                     relationships: [],
+                    confidence: None,
                 },
             )
             .await
@@ -976,6 +984,7 @@ impl DatabaseApi<'_> {
                     draft: None,
                     entity_type_ids: vec![],
                     properties: vec![],
+                    confidence: None,
                 },
             )
             .await

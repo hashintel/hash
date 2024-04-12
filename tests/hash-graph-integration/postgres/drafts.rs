@@ -1,7 +1,9 @@
 use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::entity::{EntityId, EntityProperties};
-use json_patch::{PatchOperation, ReplaceOperation};
+use graph_types::knowledge::{
+    entity::EntityId, Property, PropertyConfidence, PropertyObject, PropertyPatchOperation,
+    PropertyPath,
+};
 use pretty_assertions::assert_eq;
 use temporal_versioning::ClosedTemporalBound;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
@@ -43,15 +45,15 @@ fn person_entity_type_id() -> VersionedUrl {
     }
 }
 
-fn alice() -> EntityProperties {
+fn alice() -> PropertyObject {
     serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity")
 }
 
-fn bob() -> EntityProperties {
+fn bob() -> PropertyObject {
     serde_json::from_str(entity::PERSON_BOB_V1).expect("could not parse entity")
 }
 
-fn charles() -> EntityProperties {
+fn charles() -> PropertyObject {
     serde_json::from_str(entity::PERSON_CHARLES_V1).expect("could not parse entity")
 }
 
@@ -61,12 +63,20 @@ async fn check_entity_exists(api: &DatabaseApi<'_>, id: EntityId) -> bool {
 }
 
 #[tokio::test]
+#[expect(clippy::too_many_lines)]
 async fn initial_draft() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(alice(), vec![person_entity_type_id()], None, true)
+        .create_entity(
+            alice(),
+            vec![person_entity_type_id()],
+            None,
+            true,
+            None,
+            PropertyConfidence::default(),
+        )
         .await
         .expect("could not create entity");
     assert!(entity.record_id.entity_id.draft_id.is_some());
@@ -88,14 +98,16 @@ async fn initial_draft() {
     let updated_entity = api
         .patch_entity(PatchEntityParams {
             entity_id: entity.record_id.entity_id,
-            properties: vec![PatchOperation::Replace(ReplaceOperation {
-                path: String::new(),
-                value: serde_json::to_value(bob()).expect("could not serialize entity"),
-            })],
+            properties: vec![PropertyPatchOperation::Replace {
+                path: PropertyPath::default(),
+                value: Property::Object(bob()),
+                confidence: None,
+            }],
             entity_type_ids: vec![],
             archived: None,
             draft: Some(true),
             decision_time: None,
+            confidence: None,
         })
         .await
         .expect("could not update entity");
@@ -122,14 +134,16 @@ async fn initial_draft() {
     let updated_live_entity = api
         .patch_entity(PatchEntityParams {
             entity_id: updated_entity.record_id.entity_id,
-            properties: vec![PatchOperation::Replace(ReplaceOperation {
-                path: String::new(),
-                value: serde_json::to_value(charles()).expect("could not serialize entity"),
-            })],
+            properties: vec![PropertyPatchOperation::Replace {
+                path: PropertyPath::default(),
+                value: Property::Object(charles()),
+                confidence: None,
+            }],
             entity_type_ids: vec![],
             archived: None,
             draft: Some(false),
             decision_time: None,
+            confidence: None,
         })
         .await
         .expect("could not update entity");
@@ -171,12 +185,20 @@ async fn initial_draft() {
 }
 
 #[tokio::test]
+#[expect(clippy::too_many_lines)]
 async fn no_initial_draft() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(alice(), vec![person_entity_type_id()], None, false)
+        .create_entity(
+            alice(),
+            vec![person_entity_type_id()],
+            None,
+            false,
+            None,
+            PropertyConfidence::default(),
+        )
         .await
         .expect("could not create entity");
     assert!(entity.record_id.entity_id.draft_id.is_none());
@@ -201,14 +223,16 @@ async fn no_initial_draft() {
         let updated_entity = api
             .patch_entity(PatchEntityParams {
                 entity_id: entity.record_id.entity_id,
-                properties: vec![PatchOperation::Replace(ReplaceOperation {
-                    path: String::new(),
-                    value: serde_json::to_value(bob()).expect("could not serialize entity"),
-                })],
+                properties: vec![PropertyPatchOperation::Replace {
+                    path: PropertyPath::default(),
+                    value: Property::Object(bob()),
+                    confidence: None,
+                }],
                 entity_type_ids: vec![],
                 archived: None,
                 draft: Some(true),
                 decision_time: None,
+                confidence: None,
             })
             .await
             .expect("could not update entity");
@@ -240,14 +264,16 @@ async fn no_initial_draft() {
         let updated_live_entity = api
             .patch_entity(PatchEntityParams {
                 entity_id: updated_entity.record_id.entity_id,
-                properties: vec![PatchOperation::Replace(ReplaceOperation {
-                    path: String::new(),
-                    value: serde_json::to_value(charles()).expect("could not serialize entity"),
-                })],
+                properties: vec![PropertyPatchOperation::Replace {
+                    path: PropertyPath::default(),
+                    value: Property::Object(charles()),
+                    confidence: None,
+                }],
                 entity_type_ids: vec![],
                 archived: None,
                 draft: Some(false),
                 decision_time: None,
+                confidence: None,
             })
             .await
             .expect("could not update entity");
@@ -275,12 +301,20 @@ async fn no_initial_draft() {
 }
 
 #[tokio::test]
+#[expect(clippy::too_many_lines)]
 async fn multiple_drafts() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(alice(), vec![person_entity_type_id()], None, false)
+        .create_entity(
+            alice(),
+            vec![person_entity_type_id()],
+            None,
+            false,
+            None,
+            PropertyConfidence::default(),
+        )
         .await
         .expect("could not create entity");
     assert!(entity.record_id.entity_id.draft_id.is_none());
@@ -305,14 +339,16 @@ async fn multiple_drafts() {
         let updated_entity = api
             .patch_entity(PatchEntityParams {
                 entity_id: entity.record_id.entity_id,
-                properties: vec![PatchOperation::Replace(ReplaceOperation {
-                    path: String::new(),
-                    value: serde_json::to_value(bob()).expect("could not serialize entity"),
-                })],
+                properties: vec![PropertyPatchOperation::Replace {
+                    path: PropertyPath::default(),
+                    value: Property::Object(bob()),
+                    confidence: None,
+                }],
                 entity_type_ids: vec![],
                 archived: None,
                 draft: Some(true),
                 decision_time: None,
+                confidence: None,
             })
             .await
             .expect("could not update entity");
@@ -347,14 +383,16 @@ async fn multiple_drafts() {
         let updated_live_entity = api
             .patch_entity(PatchEntityParams {
                 entity_id: draft,
-                properties: vec![PatchOperation::Replace(ReplaceOperation {
-                    path: String::new(),
-                    value: serde_json::to_value(charles()).expect("could not serialize entity"),
-                })],
+                properties: vec![PropertyPatchOperation::Replace {
+                    path: PropertyPath::default(),
+                    value: Property::Object(charles()),
+                    confidence: None,
+                }],
                 entity_type_ids: vec![],
                 archived: None,
                 draft: Some(false),
                 decision_time: None,
+                confidence: None,
             })
             .await
             .expect("could not update entity");

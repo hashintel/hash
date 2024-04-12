@@ -1,11 +1,9 @@
-use std::{collections::HashSet, str::FromStr};
+use std::{collections::HashSet, iter::once, str::FromStr};
 
 use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::entity::EntityProperties;
-use json_patch::{
-    AddOperation, CopyOperation, MoveOperation, PatchOperation, RemoveOperation, ReplaceOperation,
-    TestOperation,
+use graph_types::knowledge::{
+    Property, PropertyConfidence, PropertyObject, PropertyPatchOperation, PropertyPathElement,
 };
 use pretty_assertions::assert_eq;
 use serde_json::json;
@@ -64,7 +62,7 @@ fn film_property_type_id() -> BaseUrl {
         .expect("couldn't construct Base URL")
 }
 
-fn alice() -> EntityProperties {
+fn alice() -> PropertyObject {
     serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity")
 }
 
@@ -74,7 +72,14 @@ async fn properties_add() {
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(alice(), vec![person_entity_type_id()], None, false)
+        .create_entity(
+            alice(),
+            vec![person_entity_type_id()],
+            None,
+            false,
+            None,
+            PropertyConfidence::default(),
+        )
         .await
         .expect("could not create entity");
     let entity_id = entity.record_id.entity_id;
@@ -83,12 +88,14 @@ async fn properties_add() {
         entity_id,
         decision_time: None,
         entity_type_ids: vec![],
-        properties: vec![PatchOperation::Add(AddOperation {
-            path: format!("/{}", age_property_type_id().as_str().replace('/', "~1")),
-            value: json!(30),
-        })],
+        properties: vec![PropertyPatchOperation::Add {
+            path: once(PropertyPathElement::from(age_property_type_id())).collect(),
+            value: Property::Value(json!(30)),
+            confidence: None,
+        }],
         draft: None,
         archived: None,
+        confidence: None,
     })
     .await
     .expect("could not patch entity");
@@ -109,7 +116,14 @@ async fn properties_remove() {
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(alice(), vec![person_entity_type_id()], None, false)
+        .create_entity(
+            alice(),
+            vec![person_entity_type_id()],
+            None,
+            false,
+            None,
+            PropertyConfidence::default(),
+        )
         .await
         .expect("could not create entity");
     let entity_id = entity.record_id.entity_id;
@@ -118,11 +132,12 @@ async fn properties_remove() {
         entity_id,
         decision_time: None,
         entity_type_ids: vec![],
-        properties: vec![PatchOperation::Remove(RemoveOperation {
-            path: format!("/{}", name_property_type_id().as_str().replace('/', "~1")),
-        })],
+        properties: vec![PropertyPatchOperation::Remove {
+            path: once(PropertyPathElement::from(name_property_type_id())).collect(),
+        }],
         draft: None,
         archived: None,
+        confidence: None,
     })
     .await
     .expect("could not patch entity");
@@ -141,7 +156,14 @@ async fn properties_replace() {
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(alice(), vec![person_entity_type_id()], None, false)
+        .create_entity(
+            alice(),
+            vec![person_entity_type_id()],
+            None,
+            false,
+            None,
+            PropertyConfidence::default(),
+        )
         .await
         .expect("could not create entity");
     let entity_id = entity.record_id.entity_id;
@@ -150,12 +172,14 @@ async fn properties_replace() {
         entity_id,
         decision_time: None,
         entity_type_ids: vec![],
-        properties: vec![PatchOperation::Replace(ReplaceOperation {
-            path: format!("/{}", name_property_type_id().as_str().replace('/', "~1")),
-            value: json!("Bob"),
-        })],
+        properties: vec![PropertyPatchOperation::Replace {
+            path: once(PropertyPathElement::from(name_property_type_id())).collect(),
+            value: Property::Value(json!("Bob")),
+            confidence: None,
+        }],
         draft: None,
         archived: None,
+        confidence: None,
     })
     .await
     .expect("could not patch entity");
@@ -175,7 +199,14 @@ async fn properties_move() {
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(alice(), vec![person_entity_type_id()], None, false)
+        .create_entity(
+            alice(),
+            vec![person_entity_type_id()],
+            None,
+            false,
+            None,
+            PropertyConfidence::default(),
+        )
         .await
         .expect("could not create entity");
     let entity_id = entity.record_id.entity_id;
@@ -185,16 +216,19 @@ async fn properties_move() {
             entity_id,
             decision_time: None,
             entity_type_ids: vec![],
-            properties: vec![PatchOperation::Move(MoveOperation {
-                from: format!("/{}", name_property_type_id().as_str().replace('/', "~1")),
-                path: format!(
-                    "/{}/{}",
-                    interests_property_type_id().as_str().replace('/', "~1"),
-                    film_property_type_id().as_str().replace('/', "~1"),
-                ),
-            })],
+            properties: vec![PropertyPatchOperation::Move {
+                from: once(PropertyPathElement::from(name_property_type_id())).collect(),
+                path: [
+                    PropertyPathElement::from(interests_property_type_id()),
+                    PropertyPathElement::from(film_property_type_id()),
+                ]
+                .into_iter()
+                .collect(),
+                confidence: None,
+            }],
             draft: None,
             archived: None,
+            confidence: None,
         })
         .await
         .expect_err("Could patch entity with invalid move operation");
@@ -204,24 +238,25 @@ async fn properties_move() {
         decision_time: None,
         entity_type_ids: vec![],
         properties: vec![
-            PatchOperation::Add(AddOperation {
-                path: format!(
-                    "/{}",
-                    interests_property_type_id().as_str().replace('/', "~1"),
-                ),
-                value: json!({}),
-            }),
-            PatchOperation::Move(MoveOperation {
-                from: format!("/{}", name_property_type_id().as_str().replace('/', "~1")),
-                path: format!(
-                    "/{}/{}",
-                    interests_property_type_id().as_str().replace('/', "~1"),
-                    film_property_type_id().as_str().replace('/', "~1"),
-                ),
-            }),
+            PropertyPatchOperation::Add {
+                path: once(PropertyPathElement::from(interests_property_type_id())).collect(),
+                value: Property::Value(json!({})),
+                confidence: None,
+            },
+            PropertyPatchOperation::Move {
+                from: once(PropertyPathElement::from(name_property_type_id())).collect(),
+                path: [
+                    PropertyPathElement::from(interests_property_type_id()),
+                    PropertyPathElement::from(film_property_type_id()),
+                ]
+                .into_iter()
+                .collect(),
+                confidence: None,
+            },
         ],
         draft: None,
         archived: None,
+        confidence: None,
     })
     .await
     .expect("could not patch entity");
@@ -244,7 +279,14 @@ async fn properties_copy() {
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(alice(), vec![person_entity_type_id()], None, false)
+        .create_entity(
+            alice(),
+            vec![person_entity_type_id()],
+            None,
+            false,
+            None,
+            PropertyConfidence::default(),
+        )
         .await
         .expect("could not create entity");
     let entity_id = entity.record_id.entity_id;
@@ -254,31 +296,29 @@ async fn properties_copy() {
         decision_time: None,
         entity_type_ids: vec![],
         properties: vec![
-            PatchOperation::Add(AddOperation {
-                path: format!(
-                    "/{}",
-                    interests_property_type_id().as_str().replace('/', "~1"),
-                ),
-                value: json!({}),
-            }),
-            PatchOperation::Test(TestOperation {
-                path: format!(
-                    "/{}",
-                    interests_property_type_id().as_str().replace('/', "~1"),
-                ),
-                value: json!({}),
-            }),
-            PatchOperation::Copy(CopyOperation {
-                from: format!("/{}", name_property_type_id().as_str().replace('/', "~1")),
-                path: format!(
-                    "/{}/{}",
-                    interests_property_type_id().as_str().replace('/', "~1"),
-                    film_property_type_id().as_str().replace('/', "~1"),
-                ),
-            }),
+            PropertyPatchOperation::Add {
+                path: once(PropertyPathElement::from(interests_property_type_id())).collect(),
+                value: Property::Value(json!({})),
+                confidence: None,
+            },
+            PropertyPatchOperation::Test {
+                path: once(PropertyPathElement::from(interests_property_type_id())).collect(),
+                value: Property::Value(json!({})),
+            },
+            PropertyPatchOperation::Copy {
+                from: once(PropertyPathElement::from(name_property_type_id())).collect(),
+                path: [
+                    PropertyPathElement::from(interests_property_type_id()),
+                    PropertyPathElement::from(film_property_type_id()),
+                ]
+                .into_iter()
+                .collect(),
+                confidence: None,
+            },
         ],
         draft: None,
         archived: None,
+        confidence: None,
     })
     .await
     .expect("could not patch entity");
@@ -303,10 +343,12 @@ async fn type_ids() {
 
     let entity = api
         .create_entity(
-            EntityProperties::empty(),
+            PropertyObject::empty(),
             vec![person_entity_type_id()],
             None,
             false,
+            None,
+            PropertyConfidence::default(),
         )
         .await
         .expect("could not create entity");
@@ -319,6 +361,7 @@ async fn type_ids() {
         properties: vec![],
         draft: None,
         archived: None,
+        confidence: None,
     })
     .await
     .expect("could not patch entity");
@@ -340,6 +383,7 @@ async fn type_ids() {
         properties: vec![],
         draft: None,
         archived: None,
+        confidence: None,
     })
     .await
     .expect("could not patch entity");
@@ -365,6 +409,7 @@ async fn type_ids() {
         properties: vec![],
         draft: None,
         archived: None,
+        confidence: None,
     })
     .await
     .expect("could not patch entity");

@@ -12,6 +12,7 @@ const actionDefinitionIds = [
   "getWebPageByUrl",
   "inferEntitiesFromContent",
   "persistEntity",
+  "persistEntities",
   "getFileFromUrl",
   "researchEntities",
   "getWebPageSummary",
@@ -161,16 +162,70 @@ const actionDefinitionsAsConst = {
     kind: "action",
     inputs: [
       {
-        oneOfPayloadKinds: ["ProposedEntity"],
-        name: "proposedEntity",
+        oneOfPayloadKinds: ["ProposedEntityWithResolvedLinks"],
+        name: "proposedEntityWithResolvedLinks",
         required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Boolean"],
+        name: "draft",
+        required: false,
+        default: {
+          kind: "Boolean",
+          value: false,
+        },
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["WebId"],
+        name: "webId",
+        required: false,
         array: false,
       },
     ],
     outputs: [
       {
-        payloadKind: "Entity",
+        payloadKind: "PersistedEntity",
         name: "persistedEntity",
+        array: false,
+        required: true,
+      },
+    ],
+  },
+  persistEntities: {
+    actionDefinitionId: "persistEntities",
+    name: "Persist Entities",
+    description: "Persist multiple proposed entities in the database.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: ["ProposedEntity"],
+        name: "proposedEntities",
+        required: true,
+        array: true,
+      },
+      {
+        oneOfPayloadKinds: ["Boolean"],
+        name: "draft",
+        required: false,
+        default: {
+          kind: "Boolean",
+          value: false,
+        },
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["WebId"],
+        name: "webId",
+        required: false,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        payloadKind: "PersistedEntities",
+        name: "persistedEntities",
         array: false,
         required: true,
       },

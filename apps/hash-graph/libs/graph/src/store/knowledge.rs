@@ -5,12 +5,12 @@ use error_stack::Report;
 use graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{Entity, EntityEmbedding, EntityId, EntityMetadata, EntityProperties, EntityUuid},
+        entity::{Entity, EntityEmbedding, EntityId, EntityMetadata, EntityUuid},
         link::LinkData,
+        Confidence, PropertyConfidence, PropertyObject, PropertyPatchOperation,
     },
     owned_by_id::OwnedById,
 };
-use json_patch::PatchOperation;
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
@@ -21,7 +21,7 @@ use utoipa::{
     openapi::{schema, Ref, RefOr, Schema},
     ToSchema,
 };
-use validation::ValidationProfile;
+use validation::ValidateEntityComponents;
 
 use crate::{
     knowledge::EntityQueryPath,
@@ -180,7 +180,13 @@ pub struct CreateEntityParams<R> {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub decision_time: Option<Timestamp<DecisionTime>>,
     pub entity_type_ids: Vec<VersionedUrl>,
-    pub properties: EntityProperties,
+    pub properties: PropertyObject,
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub confidence: Option<Confidence>,
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[serde(default, skip_serializing_if = "PropertyConfidence::is_empty")]
+    pub property_confidence: PropertyConfidence<'static>,
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_data: Option<LinkData>,
@@ -195,11 +201,16 @@ pub struct ValidateEntityParams<'a> {
     #[serde(borrow)]
     pub entity_types: EntityValidationType<'a>,
     #[serde(borrow)]
-    pub properties: Cow<'a, EntityProperties>,
+    pub properties: Cow<'a, PropertyObject>,
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[serde(borrow, default, skip_serializing_if = "PropertyConfidence::is_empty")]
+    pub property_confidence: Cow<'a, PropertyConfidence<'a>>,
     #[serde(borrow, default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_data: Option<Cow<'a, LinkData>>,
-    pub profile: ValidationProfile,
+    #[serde(default)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub components: ValidateEntityComponents,
 }
 
 #[derive(Debug, Deserialize)]
@@ -213,7 +224,7 @@ pub struct GetEntityParams<'a> {
     pub limit: Option<usize>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PatchEntityParams {
@@ -226,13 +237,16 @@ pub struct PatchEntityParams {
     pub entity_type_ids: Vec<VersionedUrl>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub properties: Vec<PatchOperation>,
+    pub properties: Vec<PropertyPatchOperation>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub draft: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub archived: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub confidence: Option<Confidence>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -255,7 +269,7 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
     /// # Errors:
     ///
     /// - if the [`EntityType`] doesn't exist
-    /// - if the [`EntityProperties`] is not valid with respect to the specified [`EntityType`]
+    /// - if the [`PropertyObject`] is not valid with respect to the specified [`EntityType`]
     /// - if the account referred to by `owned_by_id` does not exist
     /// - if an [`EntityUuid`] was supplied and already exists in the store
     ///
@@ -308,7 +322,7 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
             Item = (
                 OwnedById,
                 Option<EntityUuid>,
-                EntityProperties,
+                PropertyObject,
                 Option<LinkData>,
                 Option<Timestamp<DecisionTime>>,
             ),

@@ -1,4 +1,6 @@
-import type { CompletedToolCall, ProposedEntityWithLocalId } from "../types";
+import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
+
+import type { CompletedToolCall } from "../types";
 
 const toolIds = [
   // "getWebPageInnerText",
@@ -21,7 +23,7 @@ export type InferEntitiesFromWebPageWorkerAgentState = {
   previousCalls: {
     completedToolCalls: CompletedToolCall<ToolId>[];
   }[];
-  proposedEntities: ProposedEntityWithLocalId[];
+  proposedEntities: ProposedEntity[];
   submittedEntityIds: string[];
   inferredEntitiesFromWebPageUrls: string[];
   idCounter: number;

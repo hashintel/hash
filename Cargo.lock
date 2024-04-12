@@ -79,9 +79,9 @@ dependencies = [
 
 [[package]]
 name = "async-trait"
-version = "0.1.79"
+version = "0.1.80"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a507401cad91ec6a857ed5513a2073c82a9b9048762b885bb98655b306964681"
+checksum = "c6fa2087f2753a7da8cc1c0dbfcf89579dd57458e36769de5ac750b4671737ca"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1014,7 +1014,6 @@ dependencies = [
  "graph-test-data",
  "graph-types",
  "hash-status",
- "json-patch",
  "mime",
  "postgres-types",
  "refinery",
@@ -1058,7 +1057,6 @@ dependencies = [
  "http-body-util",
  "hyper 1.2.0",
  "include_dir",
- "json-patch",
  "mime",
  "opentelemetry 0.21.0",
  "opentelemetry_sdk 0.21.2",
@@ -1112,7 +1110,6 @@ dependencies = [
  "graph",
  "graph-test-data",
  "graph-types",
- "json-patch",
  "pretty_assertions",
  "rand",
  "serde",
@@ -1134,12 +1131,15 @@ name = "graph-types"
 version = "0.0.0"
 dependencies = [
  "bytes",
+ "error-stack",
  "graph-test-data",
+ "json-patch",
  "postgres-types",
  "pretty_assertions",
  "serde",
  "serde_json",
  "temporal-versioning",
+ "thiserror",
  "time",
  "type-system",
  "utoipa",
@@ -1611,7 +1611,6 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
- "utoipa",
 ]
 
 [[package]]

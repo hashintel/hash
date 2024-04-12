@@ -7,6 +7,7 @@ import { getFileFromUrlAction } from "./flow-activities/get-file-from-url-action
 import { getWebPageByUrlAction } from "./flow-activities/get-web-page-by-url-action";
 import { getWebPageSummaryAction } from "./flow-activities/get-web-page-summary-action";
 import { inferEntitiesFromContentAction } from "./flow-activities/infer-entities-from-content-action";
+import { persistEntitiesAction } from "./flow-activities/persist-entities-action";
 import { persistEntityAction } from "./flow-activities/persist-entity-action";
 import { createPersistFlowActivity } from "./flow-activities/persist-flow-activity";
 import { researchEntitiesAction } from "./flow-activities/research-entities-action";
@@ -33,6 +34,11 @@ export const createFlowActionActivities = ({
     params: Omit<Parameters<typeof persistEntityAction>[0], "graphApiClient">,
   ) {
     return persistEntityAction({ ...params, graphApiClient });
+  },
+  async persistEntitiesAction(
+    params: Omit<Parameters<typeof persistEntitiesAction>[0], "graphApiClient">,
+  ) {
+    return persistEntitiesAction({ ...params, graphApiClient });
   },
   async getFileFromUrlAction(
     params: Omit<Parameters<typeof getFileFromUrlAction>[0], "graphApiClient">,

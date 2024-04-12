@@ -80,7 +80,7 @@ type BaseProposedEntity = {
   properties?: Record<BaseUrl, EntityPropertyValue>;
 };
 
-type ProposedEntityLinkFields = {
+export type ProposedEntityLinkFields = {
   sourceEntityId: number;
   targetEntityId: number;
 };

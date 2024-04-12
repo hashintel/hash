@@ -1,25 +1,22 @@
-#[cfg(feature = "postgres")]
-use std::error::Error;
-use std::{borrow::Cow, cmp::Ordering, collections::HashMap, fmt, io, str::FromStr};
+use std::{fmt, str::FromStr};
 
+use error_stack::Report;
 #[cfg(feature = "postgres")]
-use bytes::BytesMut;
-#[cfg(feature = "postgres")]
-use postgres_types::{FromSql, IsNull, ToSql, Type};
+use postgres_types::{FromSql, ToSql};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
-use serde_json::Value as JsonValue;
 use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, Timestamp, TransactionTime};
-use type_system::{
-    url::{BaseUrl, ParseBaseUrlError, VersionedUrl},
-    JsonSchemaValueType,
-};
+use type_system::url::{BaseUrl, VersionedUrl};
 #[cfg(feature = "utoipa")]
 use utoipa::{openapi, ToSchema};
 use uuid::Uuid;
 
 use crate::{
     account::{CreatedById, EditionCreatedById},
-    knowledge::{link::LinkData, Confidence},
+    knowledge::{
+        link::LinkData,
+        property::{PatchError, PropertyConfidence},
+        Confidence, PropertyObject, PropertyPatchOperation,
+    },
     owned_by_id::OwnedById,
     Embedding,
 };
@@ -82,475 +79,6 @@ impl fmt::Display for DraftId {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum Property {
-    Array(Vec<Self>),
-    Object(HashMap<BaseUrl, Self>),
-    Value(JsonValue),
-}
-
-#[derive(Debug)]
-pub enum PropertyElement<'a> {
-    Object {
-        key: &'a BaseUrl,
-        property: &'a Property,
-    },
-    Array {
-        index: usize,
-        property: &'a Property,
-    },
-    Value(&'a JsonValue),
-}
-
-impl Property {
-    #[must_use]
-    pub fn json_type(&self) -> JsonSchemaValueType {
-        match self {
-            Self::Array(_) => JsonSchemaValueType::Array,
-            Self::Object(_) => JsonSchemaValueType::Object,
-            Self::Value(property) => JsonSchemaValueType::from(property),
-        }
-    }
-
-    pub gen fn properties(&self) -> (Vec<PropertyPathElement<'_>>, &JsonValue) {
-        let mut elements = Vec::new();
-        match self {
-            Self::Array(array) => {
-                for (index, property) in array.iter().enumerate() {
-                    elements.push(PropertyPathElement::Index(index));
-                    for yielded in Box::new(property.properties()) {
-                        yield yielded;
-                    }
-                    elements.pop();
-                }
-            }
-            Self::Object(object) => {
-                for (key, property) in object {
-                    elements.push(PropertyPathElement::Property(Cow::Borrowed(key)));
-                    for yielded in Box::new(property.properties()) {
-                        yield yielded;
-                    }
-                    elements.pop();
-                }
-            }
-            Self::Value(property) => yield (elements.clone(), property),
-        }
-    }
-
-    #[must_use]
-    pub fn get(&self, path: &PropertyPath<'_>) -> Option<&Self> {
-        let mut value = self;
-        for element in &path.elements {
-            match element {
-                PropertyPathElement::Property(key) => {
-                    value = match value {
-                        Self::Object(object) => object.get(key)?,
-                        _ => return None,
-                    };
-                }
-                PropertyPathElement::Index(index) => {
-                    value = match value {
-                        Self::Array(array) => array.get(*index)?,
-                        _ => return None,
-                    };
-                }
-            }
-        }
-        Some(value)
-    }
-
-    gen fn diff_array<'a>(
-        lhs: &'a [Self],
-        rhs: &'a [Self],
-        path: &mut PropertyPath<'a>,
-    ) -> PropertyDiff<'a> {
-        for (index, (lhs, rhs)) in lhs.iter().zip(rhs).enumerate() {
-            path.elements.push(PropertyPathElement::Index(index));
-            for yielded in Box::new(lhs.diff(rhs, path)) {
-                yield yielded;
-            }
-            path.elements.pop();
-        }
-
-        match lhs.len().cmp(&rhs.len()) {
-            Ordering::Less => {
-                for (index, property) in rhs.iter().enumerate().skip(lhs.len()) {
-                    path.elements.push(PropertyPathElement::Index(index));
-                    yield PropertyDiff::Added {
-                        path: path.clone(),
-                        added: property,
-                    };
-                    path.elements.pop();
-                }
-            }
-            Ordering::Equal => {}
-            Ordering::Greater => {
-                for (index, property) in lhs.iter().enumerate().skip(rhs.len()) {
-                    path.elements.push(PropertyPathElement::Index(index));
-                    yield PropertyDiff::Removed {
-                        path: path.clone(),
-                        removed: property,
-                    };
-                    path.elements.pop();
-                }
-            }
-        }
-    }
-
-    gen fn diff_object<'a>(
-        lhs: &'a HashMap<BaseUrl, Self>,
-        rhs: &'a HashMap<BaseUrl, Self>,
-        path: &mut PropertyPath<'a>,
-    ) -> PropertyDiff<'a> {
-        for (key, property) in lhs {
-            path.elements
-                .push(PropertyPathElement::Property(Cow::Borrowed(key)));
-            let other_property = rhs.get(key);
-            if let Some(other_property) = other_property {
-                for yielded in Box::new(property.diff(other_property, path)) {
-                    yield yielded;
-                }
-            } else {
-                yield PropertyDiff::Removed {
-                    path: path.clone(),
-                    removed: property,
-                };
-            }
-            path.elements.pop();
-        }
-        for (key, property) in rhs {
-            if !lhs.contains_key(key) {
-                path.elements
-                    .push(PropertyPathElement::Property(Cow::Borrowed(key)));
-                yield PropertyDiff::Added {
-                    path: path.clone(),
-                    added: property,
-                };
-                path.elements.pop();
-            }
-        }
-    }
-
-    pub gen fn diff<'a>(
-        &'a self,
-        other: &'a Self,
-        path: &mut PropertyPath<'a>,
-    ) -> PropertyDiff<'_> {
-        let mut changed = false;
-        match (self, other) {
-            (Self::Array(lhs), Self::Array(rhs)) => {
-                for yielded in Self::diff_array(lhs, rhs, path) {
-                    changed = true;
-                    yield yielded;
-                }
-            }
-            (Self::Object(lhs), Self::Object(rhs)) => {
-                for yielded in Self::diff_object(lhs, rhs, path) {
-                    changed = true;
-                    yield yielded;
-                }
-            }
-            (lhs, rhs) => {
-                changed = lhs != rhs;
-            }
-        }
-
-        if changed {
-            yield PropertyDiff::Changed {
-                path: path.clone(),
-                old: self,
-                new: other,
-            };
-        }
-    }
-}
-
-impl fmt::Display for Property {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // Inspired by `serde_json`
-        struct WriterFormatter<'a, 'b: 'a>(&'a mut fmt::Formatter<'b>);
-
-        impl io::Write for WriterFormatter<'_, '_> {
-            fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-                self.0
-                    .write_str(&String::from_utf8_lossy(buf))
-                    .map_err(|error| io::Error::new(io::ErrorKind::Other, error))?;
-                Ok(buf.len())
-            }
-
-            fn flush(&mut self) -> io::Result<()> {
-                Ok(())
-            }
-        }
-
-        if fmt.alternate() {
-            serde_json::to_writer_pretty(WriterFormatter(fmt), &self).map_err(|_ignored| fmt::Error)
-        } else {
-            serde_json::to_writer(WriterFormatter(fmt), &self).map_err(|_ignored| fmt::Error)
-        }
-    }
-}
-
-impl PartialEq<JsonValue> for Property {
-    fn eq(&self, rhs: &JsonValue) -> bool {
-        match self {
-            Self::Array(lhs) => {
-                let JsonValue::Array(rhs) = rhs else {
-                    return false;
-                };
-
-                lhs == rhs
-            }
-            Self::Object(lhs) => {
-                let JsonValue::Object(rhs) = rhs else {
-                    return false;
-                };
-
-                lhs.len() == rhs.len()
-                    && lhs.iter().all(|(key, value)| {
-                        rhs.get(key.as_str())
-                            .map_or(false, |other_value| value == other_value)
-                    })
-            }
-            Self::Value(lhs) => lhs == rhs,
-        }
-    }
-}
-
-/// The properties of an entity.
-///
-/// When expressed as JSON, this should validate against its respective entity type(s).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(ToSchema), schema(value_type = Object))]
-pub struct EntityProperties(HashMap<BaseUrl, Property>);
-
-impl PartialEq<JsonValue> for EntityProperties {
-    fn eq(&self, other: &JsonValue) -> bool {
-        let JsonValue::Object(other_object) = other else {
-            return false;
-        };
-
-        self.0.len() == other_object.len()
-            && self.0.iter().all(|(key, value)| {
-                other_object
-                    .get(key.as_str())
-                    .map_or(false, |other_value| value == other_value)
-            })
-    }
-}
-
-#[cfg(feature = "postgres")]
-impl ToSql for EntityProperties {
-    postgres_types::accepts!(JSON, JSONB);
-
-    postgres_types::to_sql_checked!();
-
-    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>>
-    where
-        Self: Sized,
-    {
-        postgres_types::Json(&self).to_sql(ty, out)
-    }
-}
-
-#[cfg(feature = "postgres")]
-impl<'a> FromSql<'a> for EntityProperties {
-    postgres_types::accepts!(JSON, JSONB);
-
-    fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
-        let json = postgres_types::Json::from_sql(ty, raw)?;
-        Ok(json.0)
-    }
-}
-
-impl EntityProperties {
-    #[must_use]
-    pub const fn new(properties: HashMap<BaseUrl, Property>) -> Self {
-        Self(properties)
-    }
-
-    #[must_use]
-    pub fn empty() -> Self {
-        Self(HashMap::new())
-    }
-
-    pub fn diff<'a>(
-        &'a self,
-        other: &'a Self,
-        path: &mut PropertyPath<'a>,
-    ) -> impl Iterator<Item = PropertyDiff<'_>> {
-        Property::diff_object(self.properties(), other.properties(), path)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum PropertyPathElement<'k> {
-    Property(Cow<'k, BaseUrl>),
-    Index(usize),
-}
-
-impl PropertyPathElement<'_> {
-    #[must_use]
-    pub fn into_owned(self) -> PropertyPathElement<'static> {
-        match self {
-            PropertyPathElement::Property(key) => {
-                PropertyPathElement::Property(Cow::Owned(key.into_owned()))
-            }
-            PropertyPathElement::Index(index) => PropertyPathElement::Index(index),
-        }
-    }
-}
-
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
-pub struct PropertyPath<'k> {
-    elements: Vec<PropertyPathElement<'k>>,
-}
-
-#[cfg(feature = "utoipa")]
-impl ToSchema<'_> for PropertyPath<'_> {
-    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
-        (
-            "PropertyPath",
-            openapi::Schema::Object(openapi::schema::Object::with_type(
-                openapi::SchemaType::String,
-            ))
-            .into(),
-        )
-    }
-}
-
-impl PropertyPath<'_> {
-    pub fn into_owned(self) -> PropertyPath<'static> {
-        PropertyPath {
-            elements: self
-                .elements
-                .into_iter()
-                .map(PropertyPathElement::into_owned)
-                .collect(),
-        }
-    }
-}
-
-#[cfg(feature = "postgres")]
-impl<'k> FromSql<'k> for PropertyPath<'k> {
-    fn from_sql(ty: &Type, raw: &'k [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
-        Ok(Self {
-            elements: <&str as FromSql>::from_sql(ty, raw)?
-                .split('/')
-                .map(|element| {
-                    if let Ok(index) = element.parse() {
-                        Ok(PropertyPathElement::Index(index))
-                    } else {
-                        Ok(PropertyPathElement::Property(Cow::Owned(BaseUrl::new(
-                            element.replace("~1", "/").replace("~0", "~"),
-                        )?)))
-                    }
-                })
-                .collect::<Result<Vec<_>, ParseBaseUrlError>>()?,
-        })
-    }
-
-    fn accepts(ty: &Type) -> bool {
-        <&str as FromSql>::accepts(ty)
-    }
-}
-
-#[cfg(feature = "postgres")]
-impl ToSql for PropertyPath<'_> {
-    postgres_types::to_sql_checked!();
-
-    fn to_sql(
-        &self,
-        ty: &Type,
-        out: &mut BytesMut,
-    ) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
-        self.elements
-            .iter()
-            .map(|element| match element {
-                PropertyPathElement::Property(key) => {
-                    key.as_str().replace('~', "~0").replace('/', "~1")
-                }
-                PropertyPathElement::Index(index) => index.to_string(),
-            })
-            .collect::<Vec<_>>()
-            .join("/")
-            .to_sql(ty, out)
-    }
-
-    fn accepts(ty: &Type) -> bool {
-        <&str as ToSql>::accepts(ty)
-    }
-}
-
-impl Serialize for PropertyPath<'_> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.elements
-            .iter()
-            .map(|element| match element {
-                PropertyPathElement::Property(key) => {
-                    key.as_str().replace('~', "~0").replace('/', "~1")
-                }
-                PropertyPathElement::Index(index) => index.to_string(),
-            })
-            .collect::<Vec<_>>()
-            .join("/")
-            .serialize(serializer)
-    }
-}
-
-impl<'de, 'a: 'de> Deserialize<'de> for PropertyPath<'a> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let path = String::deserialize(deserializer)?;
-        Ok(Self {
-            elements: path
-                .split('/')
-                .map(|element| {
-                    if let Ok(index) = element.parse() {
-                        Ok(PropertyPathElement::Index(index))
-                    } else {
-                        Ok(PropertyPathElement::Property(Cow::Owned(BaseUrl::new(
-                            element.replace("~1", "/").replace("~0", "~"),
-                        )?)))
-                    }
-                })
-                .collect::<Result<Vec<_>, ParseBaseUrlError>>()
-                .map_err(de::Error::custom)?,
-        })
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PropertyDiff<'e> {
-    Added {
-        path: PropertyPath<'e>,
-        added: &'e Property,
-    },
-    Removed {
-        path: PropertyPath<'e>,
-        removed: &'e Property,
-    },
-    Changed {
-        path: PropertyPath<'e>,
-        old: &'e Property,
-        new: &'e Property,
-    },
-}
-
-impl EntityProperties {
-    #[must_use]
-    pub const fn properties(&self) -> &HashMap<BaseUrl, Property> {
-        &self.0
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -588,8 +116,8 @@ pub struct EntityMetadata {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub confidence: Option<Confidence>,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub property_confidence: HashMap<PropertyPath<'static>, Confidence>,
+    #[serde(default, skip_serializing_if = "PropertyConfidence::is_empty")]
+    pub property_confidence: PropertyConfidence<'static>,
 }
 
 /// A record of an [`Entity`] that has been persisted in the datastore, with its associated
@@ -598,11 +126,28 @@ pub struct EntityMetadata {
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct Entity {
-    pub properties: EntityProperties,
+    pub properties: PropertyObject,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_data: Option<LinkData>,
     pub metadata: EntityMetadata,
+}
+
+impl Entity {
+    /// Modify the properties and confidence values of the entity.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the patch operation failed
+    pub fn patch(
+        &mut self,
+        operations: &[PropertyPatchOperation],
+    ) -> Result<(), Report<PatchError>> {
+        self.properties.patch(operations)?;
+        self.metadata.property_confidence.patch(operations);
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -746,7 +291,7 @@ mod tests {
     fn test_entity(json: &str) {
         let json_value: serde_json::Value = serde_json::from_str(json).expect("invalid JSON");
 
-        let properties: EntityProperties =
+        let properties: PropertyObject =
             serde_json::from_value(json_value.clone()).expect("invalid entity");
 
         assert_eq!(
@@ -797,11 +342,11 @@ mod tests {
     }
 
     mod diff {
-        use std::borrow::Cow;
+        use std::{borrow::Cow, iter::once};
 
         use type_system::url::BaseUrl;
 
-        use crate::knowledge::entity::{Property, PropertyDiff, PropertyPath, PropertyPathElement};
+        use crate::knowledge::{Property, PropertyDiff, PropertyPath, PropertyPathElement};
 
         macro_rules! property {
             ($($json:tt)+) => {
@@ -847,7 +392,7 @@ mod tests {
                 &old,
                 &new,
                 [PropertyDiff::Changed {
-                    path: PropertyPath { elements: vec![] },
+                    path: PropertyPath::default(),
                     old: &old,
                     new: &new,
                 }],
@@ -868,14 +413,12 @@ mod tests {
                 &new,
                 [
                     PropertyDiff::Changed {
-                        path: PropertyPath {
-                            elements: vec![PropertyPathElement::Index(1)],
-                        },
+                        path: once(PropertyPathElement::Index(1)).collect(),
                         old: &property!("bar"),
                         new: &property!("baz"),
                     },
                     PropertyDiff::Changed {
-                        path: PropertyPath { elements: vec![] },
+                        path: PropertyPath::default(),
                         old: &old,
                         new: &new,
                     },
@@ -892,13 +435,11 @@ mod tests {
                 &new,
                 [
                     PropertyDiff::Added {
-                        path: PropertyPath {
-                            elements: vec![PropertyPathElement::Index(1)],
-                        },
+                        path: once(PropertyPathElement::Index(1)).collect(),
                         added: &property!("bar"),
                     },
                     PropertyDiff::Changed {
-                        path: PropertyPath { elements: vec![] },
+                        path: PropertyPath::default(),
                         old: &old,
                         new: &new,
                     },
@@ -915,13 +456,11 @@ mod tests {
                 &new,
                 [
                     PropertyDiff::Removed {
-                        path: PropertyPath {
-                            elements: vec![PropertyPathElement::Index(1)],
-                        },
+                        path: once(PropertyPathElement::Index(1)).collect(),
                         removed: &property!("bar"),
                     },
                     PropertyDiff::Changed {
-                        path: PropertyPath { elements: vec![] },
+                        path: PropertyPath::default(),
                         old: &old,
                         new: &new,
                     },
@@ -938,20 +477,16 @@ mod tests {
                 &new,
                 [
                     PropertyDiff::Changed {
-                        path: PropertyPath {
-                            elements: vec![PropertyPathElement::Index(1)],
-                        },
+                        path: once(PropertyPathElement::Index(1)).collect(),
                         old: &property!("bar"),
                         new: &property!("baz"),
                     },
                     PropertyDiff::Added {
-                        path: PropertyPath {
-                            elements: vec![PropertyPathElement::Index(2)],
-                        },
+                        path: once(PropertyPathElement::Index(2)).collect(),
                         added: &property!("bar"),
                     },
                     PropertyDiff::Changed {
-                        path: PropertyPath { elements: vec![] },
+                        path: PropertyPath::default(),
                         old: &old,
                         new: &new,
                     },
@@ -968,20 +503,16 @@ mod tests {
                 &new,
                 [
                     PropertyDiff::Changed {
-                        path: PropertyPath {
-                            elements: vec![PropertyPathElement::Index(1)],
-                        },
+                        path: once(PropertyPathElement::Index(1)).collect(),
                         old: &property!("bar"),
                         new: &property!("baz"),
                     },
                     PropertyDiff::Removed {
-                        path: PropertyPath {
-                            elements: vec![PropertyPathElement::Index(2)],
-                        },
+                        path: once(PropertyPathElement::Index(2)).collect(),
                         removed: &property!("baz"),
                     },
                     PropertyDiff::Changed {
-                        path: PropertyPath { elements: vec![] },
+                        path: PropertyPath::default(),
                         old: &old,
                         new: &new,
                     },
@@ -998,24 +529,22 @@ mod tests {
                 &new,
                 [
                     PropertyDiff::Changed {
-                        path: PropertyPath {
-                            elements: vec![
-                                PropertyPathElement::Index(0),
-                                PropertyPathElement::Property(Cow::Borrowed(&create_base_url(0))),
-                            ],
-                        },
+                        path: [
+                            PropertyPathElement::Index(0),
+                            PropertyPathElement::Property(Cow::Borrowed(&create_base_url(0))),
+                        ]
+                        .into_iter()
+                        .collect(),
                         old: &property!("bar"),
                         new: &property!("baz"),
                     },
                     PropertyDiff::Changed {
-                        path: PropertyPath {
-                            elements: vec![PropertyPathElement::Index(0)],
-                        },
+                        path: once(PropertyPathElement::Index(0)).collect(),
                         old: &property!({create_base_url(0): "bar"}),
                         new: &property!({create_base_url(0): "baz"}),
                     },
                     PropertyDiff::Changed {
-                        path: PropertyPath { elements: vec![] },
+                        path: PropertyPath::default(),
                         old: &old,
                         new: &new,
                     },
@@ -1032,32 +561,30 @@ mod tests {
                 &new,
                 [
                     PropertyDiff::Removed {
-                        path: PropertyPath {
-                            elements: vec![
-                                PropertyPathElement::Index(0),
-                                PropertyPathElement::Property(Cow::Borrowed(&create_base_url(0))),
-                            ],
-                        },
+                        path: [
+                            PropertyPathElement::Index(0),
+                            PropertyPathElement::Property(Cow::Borrowed(&create_base_url(0))),
+                        ]
+                        .into_iter()
+                        .collect(),
                         removed: &property!("bar"),
                     },
                     PropertyDiff::Added {
-                        path: PropertyPath {
-                            elements: vec![
-                                PropertyPathElement::Index(0),
-                                PropertyPathElement::Property(Cow::Borrowed(&create_base_url(1))),
-                            ],
-                        },
+                        path: [
+                            PropertyPathElement::Index(0),
+                            PropertyPathElement::Property(Cow::Borrowed(&create_base_url(1))),
+                        ]
+                        .into_iter()
+                        .collect(),
                         added: &property!("baz"),
                     },
                     PropertyDiff::Changed {
-                        path: PropertyPath {
-                            elements: vec![PropertyPathElement::Index(0)],
-                        },
+                        path: once(PropertyPathElement::Index(0)).collect(),
                         old: &property!({ create_base_url(0): "bar" }),
                         new: &property!({ create_base_url(1): "baz" }),
                     },
                     PropertyDiff::Changed {
-                        path: PropertyPath { elements: vec![] },
+                        path: PropertyPath::default(),
                         old: &old,
                         new: &new,
                     },
@@ -1083,15 +610,14 @@ mod tests {
                 &new,
                 [
                     PropertyDiff::Added {
-                        path: PropertyPath {
-                            elements: vec![PropertyPathElement::Property(Cow::Borrowed(
-                                &create_base_url(1),
-                            ))],
-                        },
+                        path: once(PropertyPathElement::Property(Cow::Borrowed(
+                            &create_base_url(1),
+                        )))
+                        .collect(),
                         added: &property!("foo"),
                     },
                     PropertyDiff::Changed {
-                        path: PropertyPath { elements: vec![] },
+                        path: PropertyPath::default(),
                         old: &old,
                         new: &new,
                     },
@@ -1108,26 +634,25 @@ mod tests {
                 &new,
                 [
                     PropertyDiff::Changed {
-                        path: PropertyPath {
-                            elements: vec![
-                                PropertyPathElement::Property(Cow::Borrowed(&create_base_url(1))),
-                                PropertyPathElement::Property(Cow::Borrowed(&create_base_url(2))),
-                            ],
-                        },
+                        path: [
+                            PropertyPathElement::Property(Cow::Borrowed(&create_base_url(1))),
+                            PropertyPathElement::Property(Cow::Borrowed(&create_base_url(2))),
+                        ]
+                        .into_iter()
+                        .collect(),
                         old: &property!("foo"),
                         new: &property!("bar"),
                     },
                     PropertyDiff::Changed {
-                        path: PropertyPath {
-                            elements: vec![PropertyPathElement::Property(Cow::Borrowed(
-                                &create_base_url(1),
-                            ))],
-                        },
+                        path: once(PropertyPathElement::Property(Cow::Borrowed(
+                            &create_base_url(1),
+                        )))
+                        .collect(),
                         old: &property!({ create_base_url(2): "foo" }),
                         new: &property!({ create_base_url(2): "bar" }),
                     },
                     PropertyDiff::Changed {
-                        path: PropertyPath { elements: vec![] },
+                        path: PropertyPath::default(),
                         old: &old,
                         new: &new,
                     },
@@ -1144,23 +669,21 @@ mod tests {
                 &new,
                 [
                     PropertyDiff::Removed {
-                        path: PropertyPath {
-                            elements: vec![PropertyPathElement::Property(Cow::Borrowed(
-                                &create_base_url(1),
-                            ))],
-                        },
+                        path: once(PropertyPathElement::Property(Cow::Borrowed(
+                            &create_base_url(1),
+                        )))
+                        .collect(),
                         removed: &property!({ create_base_url(3): "foo" }),
                     },
                     PropertyDiff::Added {
-                        path: PropertyPath {
-                            elements: vec![PropertyPathElement::Property(Cow::Borrowed(
-                                &create_base_url(2),
-                            ))],
-                        },
+                        path: once(PropertyPathElement::Property(Cow::Borrowed(
+                            &create_base_url(2),
+                        )))
+                        .collect(),
                         added: &property!({ create_base_url(3): "foo" }),
                     },
                     PropertyDiff::Changed {
-                        path: PropertyPath { elements: vec![] },
+                        path: PropertyPath::default(),
                         old: &old,
                         new: &new,
                     },
@@ -1177,43 +700,41 @@ mod tests {
                 &new,
                 [
                     PropertyDiff::Added {
-                        path: PropertyPath {
-                            elements: vec![
-                                PropertyPathElement::Property(Cow::Borrowed(&create_base_url(2))),
-                                PropertyPathElement::Property(Cow::Borrowed(&create_base_url(3))),
-                            ],
-                        },
+                        path: [
+                            PropertyPathElement::Property(Cow::Borrowed(&create_base_url(2))),
+                            PropertyPathElement::Property(Cow::Borrowed(&create_base_url(3))),
+                        ]
+                        .into_iter()
+                        .collect(),
                         added: &property!("foo"),
                     },
                     PropertyDiff::Removed {
-                        path: PropertyPath {
-                            elements: vec![
-                                PropertyPathElement::Property(Cow::Borrowed(&create_base_url(1))),
-                                PropertyPathElement::Property(Cow::Borrowed(&create_base_url(3))),
-                            ],
-                        },
+                        path: [
+                            PropertyPathElement::Property(Cow::Borrowed(&create_base_url(1))),
+                            PropertyPathElement::Property(Cow::Borrowed(&create_base_url(3))),
+                        ]
+                        .into_iter()
+                        .collect(),
                         removed: &property!("foo"),
                     },
                     PropertyDiff::Changed {
-                        path: PropertyPath {
-                            elements: vec![PropertyPathElement::Property(Cow::Borrowed(
-                                &create_base_url(1),
-                            ))],
-                        },
+                        path: once(PropertyPathElement::Property(Cow::Borrowed(
+                            &create_base_url(1),
+                        )))
+                        .collect(),
                         old: &property!({ create_base_url(3): "foo" }),
                         new: &property!({}),
                     },
                     PropertyDiff::Changed {
-                        path: PropertyPath {
-                            elements: vec![PropertyPathElement::Property(Cow::Borrowed(
-                                &create_base_url(2),
-                            ))],
-                        },
+                        path: once(PropertyPathElement::Property(Cow::Borrowed(
+                            &create_base_url(2),
+                        )))
+                        .collect(),
                         old: &property!({}),
                         new: &property!({ create_base_url(3): "foo" }),
                     },
                     PropertyDiff::Changed {
-                        path: PropertyPath { elements: vec![] },
+                        path: PropertyPath::default(),
                         old: &old,
                         new: &new,
                     },
@@ -1230,16 +751,15 @@ mod tests {
                 &new,
                 [
                     PropertyDiff::Changed {
-                        path: PropertyPath {
-                            elements: vec![PropertyPathElement::Property(Cow::Borrowed(
-                                &create_base_url(1),
-                            ))],
-                        },
+                        path: once(PropertyPathElement::Property(Cow::Borrowed(
+                            &create_base_url(1),
+                        )))
+                        .collect(),
                         old: &property!("foo"),
                         new: &property!("bar"),
                     },
                     PropertyDiff::Changed {
-                        path: PropertyPath { elements: vec![] },
+                        path: PropertyPath::default(),
                         old: &old,
                         new: &new,
                     },
@@ -1256,15 +776,14 @@ mod tests {
                 &new,
                 [
                     PropertyDiff::Removed {
-                        path: PropertyPath {
-                            elements: vec![PropertyPathElement::Property(Cow::Borrowed(
-                                &create_base_url(1),
-                            ))],
-                        },
+                        path: once(PropertyPathElement::Property(Cow::Borrowed(
+                            &create_base_url(1),
+                        )))
+                        .collect(),
                         removed: &property!("foo"),
                     },
                     PropertyDiff::Changed {
-                        path: PropertyPath { elements: vec![] },
+                        path: PropertyPath::default(),
                         old: &old,
                         new: &new,
                     },
