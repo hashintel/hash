@@ -326,7 +326,9 @@ mod tests {
         let properties =
             serde_json::from_str::<PropertyObject>(entity).expect("failed to read entity string");
 
-        properties.validate(&entity_type, components, &provider).await
+        properties
+            .validate(&entity_type, components, &provider)
+            .await
     }
 
     pub(crate) async fn validate_property(
