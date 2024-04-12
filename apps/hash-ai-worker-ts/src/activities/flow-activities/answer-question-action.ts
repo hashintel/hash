@@ -17,6 +17,7 @@ import { CodeInterpreter, Sandbox } from "e2b";
 import OpenAI from "openai/index";
 
 import { logger } from "../../shared/logger";
+import type { PermittedOpenAiModel } from "../shared/openai";
 import { getOpenAiResponse } from "../shared/openai";
 import { stringify } from "../shared/stringify";
 import type { FlowActionActivity } from "./types";
@@ -130,6 +131,8 @@ type ModelResponseArgs = {
 
 const maximumIterations = 10;
 
+const model: PermittedOpenAiModel = "gpt-4-turbo";
+
 const callModel = async (
   messages: OpenAI.ChatCompletionCreateParams["messages"],
   context: string | null,
@@ -141,7 +144,7 @@ const callModel = async (
   }>
 > => {
   const openApiPayload: OpenAI.ChatCompletionCreateParams = {
-    model: "gpt-4-turbo-preview",
+    model,
     messages,
     stream: false,
     temperature: 0,
@@ -382,13 +385,28 @@ const callModel = async (
 export const answerQuestionAction: FlowActionActivity<{
   graphApiClient: GraphApi;
 }> = async ({ graphApiClient, inputs, userAuthentication }) => {
-  const { context, entities, question } = getSimplifiedActionInputs({
+  const {
+    context,
+    entities: inputEntities,
+    question,
+  } = getSimplifiedActionInputs({
     inputs,
     actionType: "answerQuestion",
   });
 
+  const entities = inputEntities
+    ? inputEntities.flatMap((inputEntity) =>
+        "metadata" in inputEntity
+          ? inputEntity
+          : inputEntity.persistedEntities.flatMap(
+              ({ entity, existingEntity }) => entity ?? existingEntity ?? [],
+            ),
+      )
+    : undefined;
+
   let contextFilePath;
   let contextToUpload;
+
   if (entities) {
     /**
      * We need a subgraph with the entities and their types in order to build the simple graph.

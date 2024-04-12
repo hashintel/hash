@@ -355,7 +355,7 @@ const actionDefinitionsAsConst = {
         array: false,
       },
       {
-        oneOfPayloadKinds: ["Entity"],
+        oneOfPayloadKinds: ["Entity", "PersistedEntities"],
         name: "entities",
         required: false,
         array: true,
