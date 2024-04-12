@@ -380,7 +380,11 @@ export const proposeEntities = async (params: {
 
                         await graphApiClient.validateEntity(validationActorId, {
                           entityTypes: [entityTypeId],
-                          profile: "draft",
+                          components: {
+                            linkData: false,
+                            numItems: false,
+                            requiredProperties: false,
+                          },
                           properties: proposedEntityOfType.properties ?? {},
                         });
 

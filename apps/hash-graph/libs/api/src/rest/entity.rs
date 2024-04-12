@@ -55,7 +55,7 @@ use json_patch::{
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use utoipa::{OpenApi, ToSchema};
-use validation::ValidationProfile;
+use validation::ValidateEntityComponents;
 
 use crate::rest::{
     api_resource::RoutedResource, json::Json, status::report_to_response,
@@ -85,7 +85,7 @@ use crate::rest::{
             CreateEntityRequest,
             ValidateEntityParams,
             EntityValidationType,
-            ValidationProfile,
+            ValidateEntityComponents,
             Embedding,
             UpdateEntityEmbeddingsParams,
             EntityEmbedding,
