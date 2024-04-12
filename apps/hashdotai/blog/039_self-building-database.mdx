@@ -7,3 +7,77 @@ categories:
   - "Company"
   - "Data"
 ---
+
+# Imagine...
+
+Imagine a database that built and maintained itself.
+
+Given a goal, and access to a body of information (e.g. the internet), it would find structure amidst chaos, researching, collating, and extracting the relevant information you care about.
+
+As it grows, it would manage its own schemas, ensuring that information is represented semantically, in the manner that made most sense to you (the user), in consideration of the specific reasons you're interested in the data in the first place... but also doing so in a way that enables it to be cross-compatibile with others' representations of the same entities, even if their types (and yours) are private to begin with.
+
+Over time, the database would check, validate and enrich information, ensuring its freshness and accuracy, rather than letting data become stale (as in every other database ever). Raw energy, via compute, is converted into beautiful negentropy.
+
+When you want to share information with other people, businesses, or service-providers, the database lets you do so with just one click. When you want to remove their access, it's equally simple.
+
+# Use Cases
+
+## Inferring novel statistics
+
+- Hard-to-collate information (spread across many sources)
+- Requires calculation/analysis
+- EXAMPLE: FTSE 350
+
+Benefits: provides alpha to those using it, 
+
+## Network mapping
+
+- Time-consuming, done by analysts manually.
+- EXAMPLE: get paper authors
+
+## Competitive intelligence
+
+- Monitoring feature-sets
+
+## Modeling complex systems
+
+- Complex systems can be incredibly sensitive to initial conditions.
+- Ensuring these are as accurate as possible is critical.
+- Many agent-based models fail to be predictive because of this.
+
+# Technical Components
+
+## Requirements
+
+People have tried to build graphs of "linked open data" before, but they don't work, because different people conceptualize the same things differently. They don't agree on the ultimate definition of things, often for very good reasons, in spite of the best efforts of projects like _schema.org_.
+
+To do this properly, you need:
+- a type system
+  - that lets users define things differently, and retain compatibility - buliding on prior work like [Project Cambria](https://www.inkandswitch.com/cambria/).
+- a graph datastore
+  - with native support for:
+    - multi-tenancy
+    - bitemporal versioning
+    - provenance
+    - confidence information
+  - built on top of truly open-source technology, widely commoditized already (e.g. Postgres)
+- a task executor
+  - capable of supporting long-running agentic AI
+- agentic AI
+  - capable of conducting research in alignment with users' goals
+
+## Solution
+
+And this is exactly what we've been building at HASH.
+
+### Where we're at
+
+HASH is already being used to solve each of the use cases outlined above.
+
+We've built the type system, graph, and application in Rust, for speed, safety, and WASM-compatibility.
+
+We're also in the process of open-sourcing the stack:
+
+- The type system is licensed under MIT/Apache (dually) - see blockprotocol/blockprotocol
+- The datastore is licensed under AGPL (like so many other great databases before us, prior to their shift away to proprietary licenses), and is itself indeed built atop Postgres - see hashintel/hash
+- The application that runs atop the datastore, and makes the type system usable, managing the hydration of the graph with information, is itself open-core. This means it is partly AGPL-licensed, and partly proprietary (using an approach virtually identical to GitLab's). Also found in hashintel/hash
