@@ -1,29 +1,11 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type {
-  ProposedEntity,
-  ProposedEntitySchemaOrData,
-} from "@local/hash-isomorphic-utils/ai-inference-types";
-import type { Entity } from "@local/hash-subgraph";
+import type { ProposedEntitySchemaOrData } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type OpenAI from "openai";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
-import type { DereferencedEntityType } from "../dereference-entity-type";
+import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
 
 export type FunctionName = "abandon_entities" | "create_entities";
-
-export type ProposedEntityCreationsByType = Record<
-  VersionedUrl,
-  ProposedEntity[]
->;
-
-export type ProposedEntityUpdatesByType = Record<
-  VersionedUrl,
-  {
-    entityId: number;
-    updateEntityId: string;
-    properties: Entity["properties"];
-  }[]
->;
 
 export const generateProposeEntitiesTools = (
   entityTypes: {

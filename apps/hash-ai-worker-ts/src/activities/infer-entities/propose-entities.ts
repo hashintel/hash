@@ -369,6 +369,15 @@ export const proposeEntities = async (params: {
                   const invalidProposedEntitiesOfType = await Promise.all(
                     proposedEntitiesOfType.map(async (proposedEntityOfType) => {
                       try {
+                        /**
+                         * We can't validate links at the moment because they will always fail validation,
+                         * since they don't have references to existing entities.
+                         * @todo remove this when we can update the `validateEntity` call to only check properties
+                         */
+                        if ("sourceEntityId" in proposedEntityOfType) {
+                          return [];
+                        }
+
                         await graphApiClient.validateEntity(validationActorId, {
                           entityTypes: [entityTypeId],
                           profile: "draft",
@@ -443,10 +452,18 @@ export const proposeEntities = async (params: {
                   ...(prev[entityTypeId as VersionedUrl] ?? []),
                   ...proposedEntitiesOfType.filter(
                     ({ entityId }) =>
+                      // Don't include invalid entities
                       !invalidProposedEntities.some(
                         ({
                           invalidProposedEntity: { entityId: invalidEntityId },
                         }) => invalidEntityId === entityId,
+                      ) &&
+                      // Ignore entities we've inferred in a previous iteration, otherwise we'll get duplicates
+                      !inferenceState.proposedEntityCreationsByType[
+                        entityTypeId as VersionedUrl
+                      ]?.some(
+                        (existingEntity) =>
+                          existingEntity.entityId === entityId,
                       ),
                   ),
                 ],
@@ -484,11 +501,11 @@ export const proposeEntities = async (params: {
       const remainingEntitySummaries =
         inferenceState.proposedEntitySummaries.filter(
           (entity) => !entity.takenFromQueue,
-        );
+        ).length + inferenceState.inProgressEntityIds.length;
 
-      if (remainingEntitySummaries.length > 0) {
+      if (remainingEntitySummaries > 0) {
         logger.info(
-          `${remainingEntitySummaries.length} entities remain to be inferred, continuing.`,
+          `${remainingEntitySummaries} entities remain to be inferred, continuing.`,
         );
         retryMessages.push({
           content:

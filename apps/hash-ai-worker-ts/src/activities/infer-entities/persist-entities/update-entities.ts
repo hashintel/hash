@@ -17,10 +17,10 @@ import {
 } from "@local/hash-subgraph";
 
 import { logger } from "../../../shared/logger";
+import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
+import { getEntityByFilter } from "../../shared/get-entity-by-filter";
 import { stringify } from "../../shared/stringify";
-import type { DereferencedEntityType } from "../dereference-entity-type";
 import { extractErrorMessage } from "../shared/extract-validation-failure-details";
-import { getEntityByFilter } from "../shared/get-entity-by-filter";
 import { ensureTrailingSlash } from "./ensure-trailing-slash";
 import type { ProposedEntityUpdatesByType } from "./generate-persist-entities-tools";
 

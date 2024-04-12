@@ -50,46 +50,28 @@ export const researchTaskFlowDefinition: FlowDefinition = {
     },
     {
       stepId: "2",
-      kind: "parallel-group",
-      inputSourceToParallelizeOn: {
-        inputName: "proposedEntities",
-        kind: "step-output",
-        sourceStepId: "1",
-        sourceStepOutputName:
-          "proposedEntities" satisfies OutputNameForAction<"researchEntities">,
-      },
-      steps: [
+      kind: "action",
+      actionDefinitionId: "persistEntities",
+      inputSources: [
         {
-          stepId: "2.0",
-          kind: "action",
-          actionDefinitionId: "persistEntity",
-          inputSources: [
-            {
-              inputName:
-                "proposedEntity" satisfies InputNameForAction<"persistEntity">,
-              kind: "parallel-group-input",
-            },
-          ],
+          inputName:
+            "proposedEntities" satisfies InputNameForAction<"persistEntities">,
+          kind: "step-output",
+          sourceStepId: "1",
+          sourceStepOutputName:
+            "proposedEntities" satisfies OutputNameForAction<"researchEntities">,
         },
       ],
-      aggregateOutput: {
-        stepId: "2.0",
-        stepOutputName:
-          "persistedEntity" satisfies OutputNameForAction<"persistEntity">,
-        name: "persistedEntities" as const,
-        payloadKind: "Entity",
-        array: true,
-        required: true,
-      },
     },
   ],
   outputs: [
     {
       stepId: "2",
-      stepOutputName: "persistedEntities",
+      stepOutputName:
+        "persistedEntities" satisfies OutputNameForAction<"persistEntities">,
       name: "persistedEntities" as const,
-      payloadKind: "Entity",
-      array: true,
+      payloadKind: "PersistedEntities",
+      array: false,
       required: true,
     },
   ],
@@ -260,7 +242,7 @@ export const researchTaskFlowDefinition: FlowDefinition = {
 // };
 
 export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
-  name: "Infer User Entities from Web Page Flow",
+  name: "Infer User Entities from Web Page",
   flowDefinitionId: "infer-user-entities-from-web-page" as EntityUuid,
   trigger: {
     kind: "trigger",
@@ -278,6 +260,18 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
         array: true,
         required: true,
       },
+      {
+        payloadKind: "WebId",
+        name: "webId",
+        array: false,
+        required: false,
+      },
+      {
+        payloadKind: "Boolean",
+        name: "draft",
+        array: false,
+        required: true,
+      },
     ],
   },
   steps: [
@@ -291,11 +285,6 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
           kind: "step-output",
           sourceStepId: "trigger",
           sourceStepOutputName: "visitedWebPageUrl",
-          // kind: "hardcoded",
-          // value: {
-          //   kind: "Text",
-          //   value: "https://example.com",
-          // },
         },
       ],
     },
@@ -311,16 +300,6 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
           sourceStepId: "0",
           sourceStepOutputName:
             "webPage" satisfies OutputNameForAction<"getWebPageByUrl">,
-          // kind: "hardcoded",
-          // value: {
-          //   kind: "WebPage",
-          //   value: {
-          //     url: "https://example.com",
-          //     title: "Example web page",
-          //     textContent:
-          //       "This is an example web page about Bob, who is a software engineer at Apple Inc.",
-          //   },
-          // },
         },
         {
           inputName:
@@ -333,37 +312,30 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
     },
     {
       stepId: "2",
-      kind: "parallel-group",
-      inputSourceToParallelizeOn: {
-        inputName: "proposedEntities",
-        kind: "step-output",
-        sourceStepId: "1",
-        sourceStepOutputName:
-          "proposedEntities" satisfies OutputNameForAction<"inferEntitiesFromContent">,
-      },
-      steps: [
+      kind: "action",
+      actionDefinitionId: "persistEntities",
+      inputSources: [
         {
-          stepId: "2.0",
-          kind: "action",
-          actionDefinitionId: "persistEntity",
-          inputSources: [
-            {
-              inputName:
-                "proposedEntity" satisfies InputNameForAction<"persistEntity">,
-              kind: "parallel-group-input",
-            },
-          ],
+          inputName:
+            "proposedEntities" satisfies InputNameForAction<"persistEntities">,
+          kind: "step-output",
+          sourceStepId: "1",
+          sourceStepOutputName:
+            "proposedEntities" satisfies OutputNameForAction<"inferEntitiesFromContent">,
+        },
+        {
+          inputName: "webId" satisfies InputNameForAction<"persistEntities">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "webId",
+        },
+        {
+          inputName: "draft" satisfies InputNameForAction<"persistEntities">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "draft",
         },
       ],
-      aggregateOutput: {
-        stepId: "2.0",
-        stepOutputName:
-          "persistedEntity" satisfies OutputNameForAction<"persistEntity">,
-        name: "persistedEntities" as const,
-        payloadKind: "Entity",
-        array: true,
-        required: true,
-      },
     },
   ],
   outputs: [

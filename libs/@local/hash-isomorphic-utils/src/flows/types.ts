@@ -1,9 +1,11 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
   Entity,
+  EntityId,
   EntityPropertiesObject,
   EntityTypeWithMetadata,
   EntityUuid,
+  OwnedById,
 } from "@local/hash-subgraph";
 
 import type { ActionDefinitionId } from "./action-definitions";
@@ -23,10 +25,45 @@ export type WebPage = {
   textContent: string;
 };
 
+/**
+ * @todo sort out mismatch between this and the ProposedEntity type inside infer-entities/
+ *    possibly just resolved by removing the latter when browser plugin inference migrated to a Flow
+ */
 export type ProposedEntity = {
+  localEntityId: string;
   entityTypeId: VersionedUrl;
   summary?: string;
   properties: EntityPropertiesObject;
+  sourceEntityLocalId?: string;
+  targetEntityLocalId?: string;
+};
+
+export type ProposedEntityWithResolvedLinks = Omit<
+  ProposedEntity,
+  "localEntityId" | "sourceEntityLocalId" | "targetEntityLocalId"
+> & {
+  linkData?: {
+    leftEntityId: EntityId;
+    rightEntityId: EntityId;
+  };
+};
+
+export type PersistedEntity = {
+  entity?: Entity;
+  existingEntity?: Entity;
+  operation: "create" | "update" | "already-exists-as-proposed";
+};
+
+export type FailedEntityProposal = {
+  existingEntity?: Entity;
+  operation?: "create" | "update" | "already-exists-as-proposed";
+  proposedEntity: ProposedEntityWithResolvedLinks;
+  message: string;
+};
+
+export type PersistedEntities = {
+  persistedEntities: PersistedEntity[];
+  failedEntityProposals: FailedEntityProposal[];
 };
 
 export type PayloadKindValues = {
@@ -34,9 +71,13 @@ export type PayloadKindValues = {
   Number: number;
   Boolean: boolean;
   ProposedEntity: ProposedEntity;
+  ProposedEntityWithResolvedLinks: ProposedEntityWithResolvedLinks;
   Entity: Entity;
+  PersistedEntity: PersistedEntity;
+  PersistedEntities: PersistedEntities;
   WebPage: WebPage;
   EntityType: EntityTypeWithMetadata;
+  WebId: OwnedById;
   VersionedUrl: VersionedUrl;
 };
 

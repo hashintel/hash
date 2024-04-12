@@ -32,12 +32,7 @@ import type {
 } from "./infer-entities-from-web-page-worker-agent/types";
 import { isToolId } from "./infer-entities-from-web-page-worker-agent/types";
 // import { writeStateToFile } from "./testing-utils";
-import type {
-  CompletedToolCall,
-  ProposedEntityWithLocalId,
-  ToolCall,
-  ToolDefinition,
-} from "./types";
+import type { CompletedToolCall, ToolCall, ToolDefinition } from "./types";
 import {
   mapPreviousCallsToChatCompletionMessages,
   mapToolDefinitionToOpenAiTool,
@@ -52,14 +47,14 @@ type SummarizedEntity = {
   summary: string;
 };
 
-const mapProposedEntityWithLocalIdToSummarizedEntity = (
-  entity: ProposedEntityWithLocalId,
+const mapProposedEntityToSummarizedEntity = (
+  entity: ProposedEntity,
 ): SummarizedEntity => {
   if (!entity.summary) {
     throw new Error("Expected proposed entity to have a summary.");
   }
   return {
-    id: entity.localId,
+    id: entity.localEntityId,
     entityTypeId: entity.entityTypeId,
     summary: entity.summary ?? "",
   };
@@ -342,9 +337,9 @@ const createInitialPlan = async (params: {
 
 const getSubmittedProposedEntitiesFromState = (
   state: InferEntitiesFromWebPageWorkerAgentState,
-): ProposedEntityWithLocalId[] =>
-  state.proposedEntities.filter(({ localId }) =>
-    state.submittedEntityIds.includes(localId),
+): ProposedEntity[] =>
+  state.proposedEntities.filter(({ localEntityId }) =>
+    state.submittedEntityIds.includes(localEntityId),
   );
 
 const retryLimit = 3;
@@ -386,7 +381,7 @@ const getNextToolCalls = async (params: {
         submittedProposedEntities.length > 0
           ? dedent(`
             You have previously submitted the following proposed entities:
-            ${JSON.stringify(submittedProposedEntities.map(mapProposedEntityWithLocalIdToSummarizedEntity))}
+            ${JSON.stringify(submittedProposedEntities.map(mapProposedEntityToSummarizedEntity))}
 
             If the submitted entities satisfy the research prompt, call the "complete" tool.
           `)
@@ -530,12 +525,6 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
   };
 
   // const state = retrievePreviousState();
-
-  const generateLocalId = (): string => {
-    state.idCounter += 1;
-
-    return state.idCounter.toString();
-  };
 
   const { toolCalls: initialToolCalls } = await getNextToolCalls({
     state,
@@ -713,7 +702,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
             if (response.code !== StatusCode.Ok) {
               return {
                 ...toolCall,
-                output: `An unexpected error ocurred inferring entities from the web page with url ${url}, try another website.`,
+                output: `An unexpected error occurred inferring entities from the web page with url ${url}, try another website.`,
               };
             }
 
@@ -725,21 +714,12 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                 ("proposedEntities" satisfies OutputNameForAction<"inferEntitiesFromContent">),
             )?.payload.value as ProposedEntity[];
 
-            const newProposedEntitiesWithIds = newProposedEntities.map(
-              (proposedEntity) => ({
-                ...proposedEntity,
-                localId: generateLocalId(),
-              }),
-            );
-
-            state.proposedEntities.push(...newProposedEntitiesWithIds);
+            state.proposedEntities.push(...newProposedEntities);
 
             return {
               ...toolCall,
               output: JSON.stringify(
-                newProposedEntitiesWithIds.map(
-                  mapProposedEntityWithLocalIdToSummarizedEntity,
-                ),
+                state.proposedEntities.map(mapProposedEntityToSummarizedEntity),
               ),
             };
           } else if (toolCall.toolId === "submitProposedEntities") {
@@ -749,7 +729,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
             const invalidEntityIds = entityIds.filter(
               (entityId) =>
                 !state.proposedEntities.some(
-                  ({ localId }) => localId === entityId,
+                  ({ localEntityId }) => localEntityId === entityId,
                 ),
             );
 
@@ -825,9 +805,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     code: StatusCode.Ok,
     contents: [
       {
-        inferredEntities: submittedProposedEntities.map(
-          ({ localId: _localId, ...rest }) => rest,
-        ),
+        inferredEntities: submittedProposedEntities,
       },
     ],
   };

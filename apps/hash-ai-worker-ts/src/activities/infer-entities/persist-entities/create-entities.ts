@@ -1,31 +1,23 @@
-import { typedEntries } from "@local/advanced-types/typed-entries";
-import type {
-  AllFilter,
-  CosineDistanceFilter,
-  GraphApi,
-} from "@local/hash-graph-client";
+import type { GraphApi } from "@local/hash-graph-client";
 import type {
   InferredEntityCreationFailure,
   InferredEntityCreationSuccess,
   InferredEntityMatchesExisting,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
-import { generateVersionedUrlMatchingFilter } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   AccountId,
-  BaseUrl,
   Entity,
   LinkData,
   OwnedById,
 } from "@local/hash-subgraph";
-import {
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
 import isMatch from "lodash.ismatch";
 
 import { logger } from "../../../shared/logger";
-import { createEntityEmbeddings } from "../../shared/embeddings";
+import {
+  findExistingEntity,
+  findExistingLinkEntity,
+} from "../../shared/find-existing-entity";
 import { stringify } from "../../shared/stringify";
 import type {
   DereferencedEntityTypesByTypeId,
@@ -33,7 +25,6 @@ import type {
   UpdateCandidate,
 } from "../inference-types";
 import { extractErrorMessage } from "../shared/extract-validation-failure-details";
-import { getEntityByFilter } from "../shared/get-entity-by-filter";
 import { ensureTrailingSlash } from "./ensure-trailing-slash";
 import type { ProposedEntityCreationsByType } from "./generate-persist-entities-tools";
 
@@ -121,156 +112,16 @@ export const createEntities = async ({
             proposedEntity.properties = {};
           }
 
-          /**
-           * Search for an existing entity that seems to semantically match the proposed entity, based on:
-           * 1. The value for the label property, or other properties which are good candidates for unique identifying
-           * an entity
-           * 2. The entire entity properties object, if there is no match from (1)
-           */
-
-          /** We are going to need the embeddings in both cases, so create these first */
-          const { embeddings } = await createEntityEmbeddings({
-            entityProperties: properties,
-            propertyTypes: Object.values(entityType.schema.properties).map(
-              (propertySchema) => ({
-                title:
-                  "items" in propertySchema
-                    ? propertySchema.items.title
-                    : propertySchema.title,
-                $id:
-                  "items" in propertySchema
-                    ? propertySchema.items.$id
-                    : propertySchema.$id,
-              }),
-            ),
-          });
-
-          const existingEntityBaseAllFilter = [
-            { equal: [{ path: ["archived"] }, { parameter: false }] },
-            {
-              equal: [
-                { path: ["ownedById"] },
-                {
-                  parameter: ownedById,
-                },
-              ],
+          const existingEntity = await findExistingEntity({
+            actorId,
+            graphApiClient,
+            dereferencedEntityType: entityType.schema,
+            ownedById,
+            proposedEntity: {
+              entityTypeId,
+              properties,
             },
-            generateVersionedUrlMatchingFilter(entityTypeId),
-          ] satisfies AllFilter["all"];
-
-          const maximumSemanticDistance = 0.6;
-
-          /**
-           * First find suitable specific properties to match on
-           */
-          const labelProperty = entityType.schema.labelProperty;
-
-          const propertyBaseUrlsToMatchOn: BaseUrl[] =
-            labelProperty &&
-            entityType.schema.properties[labelProperty] &&
-            properties[labelProperty]
-              ? [labelProperty]
-              : [];
-
-          const nameProperties = [
-            "name",
-            "legal name",
-            "preferred name",
-            "profile url",
-            "shortname",
-          ];
-          for (const [key, schema] of typedEntries(
-            entityType.schema.properties,
-          )) {
-            if (
-              nameProperties.includes(
-                "items" in schema
-                  ? schema.items.title.toLowerCase()
-                  : schema.title.toLowerCase(),
-              ) &&
-              properties[key]
-            ) {
-              propertyBaseUrlsToMatchOn.push(key);
-            }
-          }
-
-          /** Create the filters for any of label or name-like property values */
-          const semanticDistanceFilters: CosineDistanceFilter[] =
-            propertyBaseUrlsToMatchOn
-              .map((baseUrl) => {
-                const foundEmbedding = embeddings.find(
-                  (embedding) => embedding.property === baseUrl,
-                )?.embedding;
-
-                if (!foundEmbedding) {
-                  logger.info(
-                    `Could not find embedding for property ${baseUrl} of entity with temporary id ${proposedEntity.entityId} – skipping`,
-                  );
-                  return null;
-                }
-
-                return {
-                  cosineDistance: [
-                    { path: ["embedding"] },
-                    {
-                      parameter: foundEmbedding,
-                    },
-                    { parameter: maximumSemanticDistance }, // starting point for a threshold that will get only values which are a semantic match
-                  ],
-                } satisfies CosineDistanceFilter;
-              })
-              .filter(
-                <T>(filter: T): filter is NonNullable<T> => filter !== null,
-              );
-
-          let existingEntity: Entity | undefined;
-
-          if (semanticDistanceFilters.length > 0) {
-            existingEntity = await getEntityByFilter({
-              actorId,
-              graphApiClient,
-              filter: {
-                all: [
-                  ...existingEntityBaseAllFilter,
-                  {
-                    any: semanticDistanceFilters,
-                  },
-                ],
-              },
-            });
-          }
-
-          if (!existingEntity) {
-            // If we didn't find a match on individual properties, try matching on the entire properties object
-            const propertyObjectEmbedding = embeddings.find(
-              (embedding) => !embedding.property,
-            );
-
-            if (!propertyObjectEmbedding) {
-              logger.info(
-                `Could not find embedding for properties object of entity with temporary id ${proposedEntity.entityId} – skipping`,
-              );
-            } else {
-              existingEntity = await getEntityByFilter({
-                actorId,
-                graphApiClient,
-                filter: {
-                  all: [
-                    ...existingEntityBaseAllFilter,
-                    {
-                      cosineDistance: [
-                        { path: ["embedding"] },
-                        {
-                          parameter: propertyObjectEmbedding.embedding,
-                        },
-                        { parameter: maximumSemanticDistance },
-                      ],
-                    },
-                  ],
-                },
-              });
-            }
-          }
+          });
 
           if (existingEntity) {
             /**
@@ -513,62 +364,11 @@ export const createEntities = async ({
               linkData,
             });
 
-            const existingLinkEntity = await getEntityByFilter({
+            const existingLinkEntity = await findExistingLinkEntity({
               actorId,
               graphApiClient,
-              filter: {
-                all: [
-                  { equal: [{ path: ["archived"] }, { parameter: false }] },
-                  {
-                    equal: [
-                      {
-                        path: ["leftEntity", "ownedById"],
-                      },
-                      {
-                        parameter: extractOwnedByIdFromEntityId(
-                          linkData.leftEntityId,
-                        ),
-                      },
-                    ],
-                  },
-                  {
-                    equal: [
-                      {
-                        path: ["leftEntity", "uuid"],
-                      },
-                      {
-                        parameter: extractEntityUuidFromEntityId(
-                          linkData.leftEntityId,
-                        ),
-                      },
-                    ],
-                  },
-                  {
-                    equal: [
-                      {
-                        path: ["rightEntity", "ownedById"],
-                      },
-                      {
-                        parameter: extractOwnedByIdFromEntityId(
-                          linkData.rightEntityId,
-                        ),
-                      },
-                    ],
-                  },
-                  {
-                    equal: [
-                      {
-                        path: ["rightEntity", "uuid"],
-                      },
-                      {
-                        parameter: extractEntityUuidFromEntityId(
-                          linkData.rightEntityId,
-                        ),
-                      },
-                    ],
-                  },
-                ],
-              },
+              linkData,
+              ownedById,
             });
 
             if (existingLinkEntity) {

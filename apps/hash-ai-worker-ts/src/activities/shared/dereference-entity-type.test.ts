@@ -833,6 +833,8 @@ const expectedResult = {
           description: "Stringified timestamp of when something was deleted.",
           oneOf: [
             {
+              description: "An ordered sequence of characters",
+              title: "Text",
               type: "string",
             },
           ],
@@ -855,6 +857,8 @@ const expectedResult = {
                   description: "Miscellaneous notes about a thing",
                   oneOf: [
                     {
+                      description: "An ordered sequence of characters",
+                      title: "Text",
                       type: "string",
                     },
                   ],
@@ -866,6 +870,8 @@ const expectedResult = {
                 description: "The summary of the something.",
                 oneOf: [
                   {
+                    description: "An ordered sequence of characters",
+                    title: "Text",
                     type: "string",
                   },
                 ],
@@ -881,6 +887,8 @@ const expectedResult = {
         description: "Whether or not something has been archived.",
         oneOf: [
           {
+            description: "A True or False value",
+            title: "Boolean",
             type: "boolean",
           },
         ],
@@ -894,6 +902,9 @@ const expectedResult = {
             items: {
               oneOf: [
                 {
+                  description:
+                    "An arithmetical value (in the Real number system)",
+                  title: "Number",
                   type: "number",
                 },
                 {
@@ -907,6 +918,8 @@ const expectedResult = {
                           "Stringified timestamp of when something expired.",
                         oneOf: [
                           {
+                            description: "An ordered sequence of characters",
+                            title: "Text",
                             type: "string",
                           },
                         ],
@@ -919,6 +932,8 @@ const expectedResult = {
                         "Whether or not something has been archived.",
                       oneOf: [
                         {
+                          description: "A True or False value",
+                          title: "Boolean",
                           type: "boolean",
                         },
                       ],
@@ -930,6 +945,9 @@ const expectedResult = {
                   items: {
                     oneOf: [
                       {
+                        description:
+                          "An arithmetical value (in the Real number system)",
+                        title: "Number",
                         type: "number",
                       },
                     ],
@@ -943,6 +961,8 @@ const expectedResult = {
             type: "array",
           },
           {
+            description: "A True or False value",
+            title: "Boolean",
             type: "boolean",
           },
           {
@@ -955,6 +975,8 @@ const expectedResult = {
                   description: "The name of an organization.",
                   oneOf: [
                     {
+                      description: "An ordered sequence of characters",
+                      title: "Text",
                       type: "string",
                     },
                   ],
@@ -966,6 +988,8 @@ const expectedResult = {
                 description: "Stringified timestamp of when something expired.",
                 oneOf: [
                   {
+                    description: "An ordered sequence of characters",
+                    title: "Text",
                     type: "string",
                   },
                 ],
