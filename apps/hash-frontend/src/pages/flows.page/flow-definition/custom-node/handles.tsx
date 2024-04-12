@@ -138,6 +138,7 @@ export const Handles = ({
     height: 12,
     background: "white",
     border: `1px solid ${handleColor}`,
+    transition: "border 0.2s ease-in-out",
   };
 
   if (!showAllDependencies) {

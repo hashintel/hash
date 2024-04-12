@@ -19,6 +19,7 @@ export type PermittedOpenAiModel =
 const modelToContextWindow: Record<PermittedOpenAiModel, number> = {
   "gpt-3.5-turbo-1106": 16_385,
   "gpt-4-1106-preview": 128_000,
+  "gpt-4-turbo": 128_000,
   "gpt-4-0125-preview": 128_000,
   "gpt-4-turbo": 128_000,
   "gpt-4": 8_192,
@@ -160,5 +161,6 @@ export const modelAliasToSpecificModel = {
   // Dec 2023
   "gpt-4-turbo": "gpt-4-0125-preview",
   // preview only
+  "gpt-4-turbo": "gpt-4-turbo",
   "gpt-4": "gpt-4", // this points to the latest available anyway as of 6 Dec 2023
 } as const satisfies Record<InferenceModelName, PermittedOpenAiModel>;

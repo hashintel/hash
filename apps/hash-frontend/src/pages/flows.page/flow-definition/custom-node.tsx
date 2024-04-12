@@ -65,7 +65,7 @@ export const CustomNode = ({
           {data.label}
           {/*{isParallel ? "[]" : ""}*/}
         </Typography>
-        <Stack direction="row">
+        <Stack direction="row" mb={2} mt={1}>
           <Typography sx={{ fontSize: 12, fontWeight: 500 }}>
             {isoString ? getTimeAgo(isoString) : ""}
           </Typography>
@@ -85,6 +85,7 @@ export const CustomNode = ({
             background: styles.lightestBackground,
             borderRadius: 2.5,
             p: 2,
+            transition: ({ transitions }) => transitions.create("background"),
           }}
         >
           <Typography

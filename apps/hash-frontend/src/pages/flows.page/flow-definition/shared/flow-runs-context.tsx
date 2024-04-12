@@ -33,6 +33,11 @@ export const FlowRunsContextProvider = ({ children }: PropsWithChildren) => {
   useEffect(() => {
     if (data) {
       setFlowRuns(data.getFlowRuns);
+      setSelectedFlowRun(
+        data.getFlowRuns.find(
+          (flowRun) => flowRun.runId === selectedFlowRun?.runId,
+        ) ?? null,
+      );
     }
   }, [data]);
 

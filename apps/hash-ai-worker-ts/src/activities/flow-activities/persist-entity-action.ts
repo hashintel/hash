@@ -52,19 +52,21 @@ export const persistEntityAction: FlowActionActivity<{
     linkData,
   };
 
-  const existingEntity = await (linkData
-    ? findExistingLinkEntity({
-        actorId,
-        graphApiClient,
-        ownedById,
-        linkData,
-      })
-    : findExistingEntity({
-        actorId,
-        graphApiClient,
-        ownedById,
-        proposedEntity: proposedEntityWithResolvedLinks,
-      }));
+  const existingEntity = undefined;
+
+  // const existingEntity = await (linkData
+  //   ? findExistingLinkEntity({
+  //       actorId,
+  //       graphApiClient,
+  //       ownedById,
+  //       linkData,
+  //     })
+  //   : findExistingEntity({
+  //       actorId,
+  //       graphApiClient,
+  //       ownedById,
+  //       proposedEntity: proposedEntityWithResolvedLinks,
+  //     }));
 
   const operation = existingEntity ? "update" : "create";
 

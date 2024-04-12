@@ -24,6 +24,7 @@ const Tab = ({
         background:
           position === "left" ? styles.lightBackground : styles.darkBackground,
         borderColor: styles.borderColor,
+        transition: transitions.create(["background", "borderColor"]),
         borderWidth: 1,
         borderStyle: "solid",
         borderBottomWidth: 0,
@@ -91,7 +92,7 @@ export const NodeContainer = ({
         borderWidth: 1,
         borderStyle: "solid",
         borderRadius: 3,
-        transition: transitions.create("border"),
+        transition: transitions.create("borderColor"),
         p: 2,
         position: "relative",
         ...size,

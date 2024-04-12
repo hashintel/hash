@@ -224,11 +224,13 @@ export type StepDefinition = ActionStepDefinition | ParallelGroupStepDefinition;
 type FlowDefinitionTrigger =
   | {
       kind: "trigger";
+      description: string;
       triggerDefinitionId: Exclude<TriggerDefinitionId, "scheduledTrigger">;
       outputs?: OutputDefinition[];
     }
   | {
       kind: "scheduled";
+      description: string;
       triggerDefinitionId: "scheduledTrigger";
       active: boolean;
       cronSchedule: string;

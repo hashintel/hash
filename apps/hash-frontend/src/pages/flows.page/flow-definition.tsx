@@ -47,8 +47,8 @@ const elkLayoutOptions: ElkNode["layoutOptions"] = {
 };
 
 const initialNodeDimensions = {
-  width: 320,
-  height: 150,
+  width: 350,
+  height: 165,
 };
 
 const getGraphFromFlowDefinition = (flowDefinition: FlowDefinitionType) => {
@@ -59,7 +59,7 @@ const getGraphFromFlowDefinition = (flowDefinition: FlowDefinitionType) => {
     {
       id: "trigger",
       data: {
-        label: trigger.name,
+        label: flowDefinition.trigger.description,
         stepDefinition: {
           ...trigger,
           outputs: trigger.outputs ?? trigger.outputs,
@@ -80,7 +80,7 @@ const getGraphFromFlowDefinition = (flowDefinition: FlowDefinitionType) => {
         id: node.stepId,
         data: {
           stepDefinition: node.kind === "action" ? actionDefinition : null,
-          label: node.kind === "action" ? actionDefinition.name : "",
+          label: node.description,
           inputSources:
             node.kind === "parallel-group"
               ? [node.inputSourceToParallelizeOn]
@@ -154,8 +154,6 @@ const getGraphFromFlowDefinition = (flowDefinition: FlowDefinitionType) => {
       }
     }
   }
-
-  console.log({ derivedEdges });
 
   return {
     nodes: derivedNodes,
@@ -333,7 +331,7 @@ export const FlowDefinition = () => {
         {/*</Box>*/}
       </Box>
       <Stack sx={{ height: "100%" }}>
-        <Box sx={{ height: "50vh" }}>
+        <Box sx={{ height: "45vh" }}>
           <ReactFlow
             nodes={nodes}
             nodeTypes={nodeTypes}
@@ -354,7 +352,7 @@ export const FlowDefinition = () => {
           pt={1}
           sx={{
             borderTop: ({ palette }) => `1px solid ${palette.gray[20]}`,
-            height: "30%",
+            height: "calc(50vh - 200px)",
           }}
         >
           <Box
@@ -383,7 +381,7 @@ export const FlowDefinition = () => {
               <PersistedEntityGraph persistedEntities={persistedEntities} />
             </Stack>
           </Box>
-          <Box sx={{ width: "30%", pl: 2 }}>
+          <Box sx={{ width: "40%", pl: 2 }}>
             <Typography
               variant="smallCaps"
               sx={{ fontWeight: 600, color: ({ palette }) => palette.gray[50] }}

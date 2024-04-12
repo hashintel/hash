@@ -124,7 +124,7 @@ export const EntityResultTable = ({
         borderRadius: 2,
         height: "100%",
         textAlign: "center",
-        width: 400,
+        width: "50%",
       }}
     >
       {hasData ? (
@@ -141,7 +141,7 @@ export const EntityResultTable = ({
             {(persistedEntities.length
               ? persistedEntities
               : proposedEntities
-            ).map((entity) => {
+            ).map((entity, index) => {
               const entityId =
                 "localEntityId" in entity
                   ? entity.localEntityId
@@ -162,12 +162,14 @@ export const EntityResultTable = ({
               });
 
               return (
-                <TableRow key={entityId}>
-                  <TableCell>
+                <TableRow key={index}>
+                  <TableCell sx={{ fontSize: 13 }}>
                     {"localEntityId" in entity ? "Proposed" : "New"}
                   </TableCell>
-                  <TableCell>{entityTypeId.split("/").at(-3)}</TableCell>
-                  <TableCell>{entityLabel}</TableCell>
+                  <TableCell sx={{ fontSize: 13 }}>
+                    {entityTypeId.split("/").at(-3)}
+                  </TableCell>
+                  <TableCell sx={{ fontSize: 13 }}>{entityLabel}</TableCell>
                 </TableRow>
               );
             })}

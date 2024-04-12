@@ -286,6 +286,7 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
   flowDefinitionId: "infer-user-entities-from-web-page" as EntityUuid,
   trigger: {
     kind: "trigger",
+    description: "Triggered when user visits a web page",
     triggerDefinitionId: "userTrigger",
     outputs: [
       {
@@ -319,7 +320,7 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
       stepId: "0",
       kind: "action",
       actionDefinitionId: "getWebPageByUrl",
-      description: "Get web page by URL",
+      description: "Retrieve web page content from URL",
       inputSources: [
         {
           inputName: "url" satisfies InputNameForAction<"getWebPageByUrl">,
@@ -398,6 +399,7 @@ export const answerQuestionFlow: FlowDefinition = {
   flowDefinitionId: "answer-question-flow" as EntityUuid,
   trigger: {
     kind: "trigger",
+    description: "Triggered when user asks a question and provides context",
     triggerDefinitionId: "userTrigger",
     outputs: [
       {
@@ -419,7 +421,7 @@ export const answerQuestionFlow: FlowDefinition = {
       stepId: "0",
       kind: "action",
       actionDefinitionId: "answerQuestion",
-      description: "Answer question on context",
+      description: "Answer question on the provided context",
       inputSources: [
         {
           inputName: "question" satisfies InputNameForAction<"answerQuestion">,
@@ -477,6 +479,7 @@ export const saveFileFromUrl: FlowDefinition = {
   flowDefinitionId: "saveFileFromUrl" as EntityUuid,
   trigger: {
     triggerDefinitionId: "userTrigger",
+    description: "Triggered when user provides a URL to a file",
     kind: "trigger",
     outputs: [
       {
@@ -504,7 +507,8 @@ export const saveFileFromUrl: FlowDefinition = {
       stepId: "1",
       kind: "action",
       actionDefinitionId: "getFileFromUrl",
-      description: "Get file from URL",
+      description:
+        "Retrieve file from URL, mirror into HASH and create associated entity",
       inputSources: [
         {
           inputName: "url" satisfies InputNameForAction<"getFileFromUrl">,

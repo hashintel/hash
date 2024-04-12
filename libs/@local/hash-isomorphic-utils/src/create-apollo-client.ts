@@ -107,6 +107,7 @@ export const createApolloClient = (params?: {
       typePolicies: {
         UnknownEntity: entityKeyFields,
         PageProperties: { keyFields: ["pageEntityId"] },
+        FlowRun: { keyFields: ["runId"] },
       },
     }),
     credentials: "include",
