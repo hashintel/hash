@@ -12,6 +12,9 @@ sidebarIcon: https://app.hash.ai/icons/docs/flows-overview.svg
 
 **Flows** are sequences of steps which can be mapped out within HASH, and executed by HASH on your behalf.
 
+- **Fixed flows** consist of steps that are defined ahead of time. They may be created by human users of HASH, or by [workers](/guide/ai/workers). Every time they these flows are run, the same logic is executed.
+- **Goal-directed flows** are managed by [AI workers](/guide/ai/workers), and are executed in response to user-provided goals. Each time they are run, your worker determines the best way to achieve your goal. Initially, your worker may "plan" the steps it intends to take, but these are not fixed ahead of runtime, and the worker will continuously evaluate whether steps need to be added, updated, or removed to fulfil the goal.
+
 # Triggers
 
 [Triggers](/guide/flows/triggers) result in the execution of a flow's steps.
@@ -32,4 +35,6 @@ Once triggered, flows consist of different kinds of steps:
 
 # Permissions
 
-You can control the conditions under which flows can be run by using [filters](/guide/flows/filters).
+Flows created in your [personal web](/guide/webs#personal-webs) are only ever visible to you. Likewise, flows created in [shared webs](/guide/webs#shared-webs) are only visible to those web's members.
+
+In the future, we'll support make flows public, as well as sharing them with specific users outside of the webs that flows belong to.
