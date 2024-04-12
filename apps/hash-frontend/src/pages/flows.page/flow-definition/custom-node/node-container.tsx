@@ -3,8 +3,9 @@ import type { PropsWithChildren } from "react";
 import { useNodeId, useStore } from "reactflow";
 
 import { FlowStepStatus } from "../../../../graphql/api-types.gen";
-import { useStatusForStep } from "./flow-runs-context";
-import { statusSx } from "./styles";
+import { useStatusForStep } from "../shared/flow-runs-context";
+import { statusSx, StepStatusName } from "./styles";
+import { NodeData } from "../shared/types";
 
 const Tab = ({
   label,
@@ -13,7 +14,7 @@ const Tab = ({
 }: {
   label: string;
   position: "left" | "right";
-  status: keyof typeof statusSx;
+  status: StepStatusName;
 }) => {
   const styles = statusSx[status];
 
@@ -40,7 +41,12 @@ const Tab = ({
     >
       <Typography
         sx={({ palette }) => ({
-          color: position === "left" ? styles.text : palette.common.white,
+          color:
+            position === "left"
+              ? styles.text
+              : status === "Waiting"
+                ? palette.gray[80]
+                : palette.common.white,
           fontSize: 12,
           fontWeight: 500,
         })}
@@ -54,28 +60,14 @@ const Tab = ({
 export const NodeContainer = ({
   children,
   selected,
-}: PropsWithChildren<{ selected: boolean }>) => {
+  stepStatusName,
+}: PropsWithChildren<{
+  selected: boolean;
+  stepStatusName: StepStatusName;
+}>) => {
   const nodeId = useNodeId();
 
   const statusData = useStatusForStep();
-
-  let stepStatus: keyof typeof statusSx = "Complete";
-  if (statusData) {
-    switch (statusData.status) {
-      case FlowStepStatus.Completed:
-        stepStatus = "Complete";
-        break;
-      case FlowStepStatus.Failed:
-      case FlowStepStatus.TimedOut:
-      case FlowStepStatus.Canceled:
-        stepStatus = "Error";
-        break;
-      case FlowStepStatus.Scheduled:
-      case FlowStepStatus.Started:
-        stepStatus = "In Progress";
-        break;
-    }
-  }
 
   const size = useStore((state) => {
     if (nodeId) {
@@ -89,7 +81,7 @@ export const NodeContainer = ({
     }
   });
 
-  const styles = statusSx[stepStatus];
+  const styles = statusSx[stepStatusName];
 
   return (
     <Box
@@ -99,17 +91,18 @@ export const NodeContainer = ({
         borderWidth: 1,
         borderStyle: "solid",
         borderRadius: 3,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
         transition: transitions.create("border"),
-        p: 1.5,
+        p: 2,
         position: "relative",
         ...size,
       })}
     >
-      <Tab status={stepStatus} label="Action 1" position="left" />
-      <Tab status={stepStatus} label={stepStatus} position="right" />
+      <Tab
+        status={stepStatusName}
+        label={nodeId === "trigger" ? "Trigger" : `Action ${nodeId ?? "?"}`}
+        position="left"
+      />
+      <Tab status={stepStatusName} label={stepStatusName} position="right" />
       {children}
     </Box>
   );

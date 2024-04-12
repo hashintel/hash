@@ -1,13 +1,15 @@
-import exampleFlowStatus from "./flow-status.json";
-
 import type { PropsWithChildren } from "react";
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
   FlowRun,
   FlowStepStatus,
+  GetFlowRunsQuery,
+  GetFlowRunsQueryVariables,
   StepRun,
 } from "../../../../graphql/api-types.gen";
 import { useNodeId } from "reactflow";
+import { useQuery } from "@apollo/client";
+import { getFlowRunsQuery } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 
 export type FlowRunsContextType = {
   flowRuns: FlowRun[];
@@ -18,10 +20,21 @@ export type FlowRunsContextType = {
 
 export const FlowRunsContext = createContext<FlowRunsContextType | null>(null);
 export const FlowRunsContextProvider = ({ children }: PropsWithChildren) => {
-  const [flowRuns, setFlowRuns] = useState<FlowRun[]>([
-    exampleFlowStatus as FlowRun,
-  ]);
+  const [flowRuns, setFlowRuns] = useState<FlowRun[]>([]);
   const [selectedFlowRun, setSelectedFlowRun] = useState<FlowRun | null>(null);
+
+  const { data } = useQuery<GetFlowRunsQuery, GetFlowRunsQueryVariables>(
+    getFlowRunsQuery,
+    {
+      pollInterval: 1_000,
+    },
+  );
+
+  useEffect(() => {
+    if (data) {
+      setFlowRuns(data.getFlowRuns);
+    }
+  }, [data]);
 
   const context = useMemo<FlowRunsContextType>(
     () => ({
@@ -52,7 +65,7 @@ export const useFlowRunsContext = () => {
 
 export const useStatusForStep = (): Pick<
   StepRun,
-  "inputs" | "outputs" | "status"
+  "inputs" | "outputs" | "status" | "closedAt" | "scheduledAt"
 > | null => {
   const { selectedFlowRun } = useFlowRunsContext();
 
@@ -64,7 +77,9 @@ export const useStatusForStep = (): Pick<
 
   if (nodeId === "trigger") {
     return {
-      outputs: selectedFlowRun.inputs[0].trigger.outputs,
+      closedAt: selectedFlowRun.startedAt,
+      outputs: selectedFlowRun.inputs[0].flowTrigger.outputs,
+      scheduledAt: selectedFlowRun.startedAt,
       status: FlowStepStatus.Completed,
     };
   }

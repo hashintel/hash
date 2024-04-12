@@ -23,18 +23,21 @@ const generateEntityLabel = (
 };
 
 export const EntitiesGraphChart: FunctionComponent<{
+  entities?: Entity[];
   filterEntity?: (entity: Entity) => boolean;
   onEntityClick?: (entity: Entity) => void;
   isPrimaryEntity?: (entity: Entity) => boolean;
   subgraph?: Subgraph<EntityRootType>;
   sx?: BoxProps["sx"];
-}> = ({ filterEntity, isPrimaryEntity, subgraph, sx, onEntityClick }) => {
+}> = ({
+  entities,
+  filterEntity,
+  isPrimaryEntity,
+  subgraph,
+  sx,
+  onEntityClick,
+}) => {
   const [chart, setChart] = useState<Chart>();
-
-  const entities = useMemo(
-    () => (subgraph ? getEntities(subgraph) : undefined),
-    [subgraph],
-  );
 
   const nonLinkEntities = useMemo(
     () =>

@@ -1,6 +1,8 @@
 import {
   inferUserEntitiesFromWebPageFlowDefinition,
   researchTaskFlowDefinition,
+  answerQuestionFlow,
+  saveFileFromUrl,
 } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import type { PropsWithChildren } from "react";
@@ -22,8 +24,9 @@ export const FlowDefinitionsContext =
 const exampleFlows: FlowDefinition[] = [
   // ...dummyFlows,
   researchTaskFlowDefinition,
-
   inferUserEntitiesFromWebPageFlowDefinition,
+  answerQuestionFlow,
+  saveFileFromUrl,
 ];
 
 export const FlowDefinitionsContextProvider = ({

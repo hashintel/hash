@@ -30,3 +30,5 @@ export const statusSx = {
     text: ({ palette }) => palette.common.black,
   },
 } as const satisfies Record<string, SxProps<Theme>>;
+
+export type StepStatusName = keyof typeof statusSx;

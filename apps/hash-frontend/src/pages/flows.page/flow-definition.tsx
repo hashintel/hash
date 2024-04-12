@@ -1,8 +1,12 @@
 import "reactflow/dist/style.css";
 
-import type { FlowDefinition as FlowDefinitionType } from "@local/hash-isomorphic-utils/flows/types";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import { Box } from "@mui/material";
+import { triggerDefinitions } from "@local/hash-isomorphic-utils/flows/trigger-definitions";
+import type {
+  FlowDefinition as FlowDefinitionType,
+  ProposedEntity,
+} from "@local/hash-isomorphic-utils/flows/types";
+import { Box, Stack, Typography } from "@mui/material";
 import { BackgroundVariant } from "@reactflow/background";
 import type { ElkNode } from "elkjs/lib/elk.bundled.js";
 import ELK from "elkjs/lib/elk.bundled.js";
@@ -19,10 +23,13 @@ import ReactFlow, {
 } from "reactflow";
 
 import { CustomNode } from "./flow-definition/custom-node";
+import { Deliverable } from "./flow-definition/deliverable";
+import { EntityResultTable } from "./flow-definition/entity-result-table";
 import { useFlowDefinitionsContext } from "./flow-definition/shared/flow-definitions-context";
 import { useFlowRunsContext } from "./flow-definition/shared/flow-runs-context";
+import { PersistedEntityGraph } from "./flow-definition/persisted-entity-graph";
 import type { CustomNodeType } from "./flow-definition/shared/types";
-import { triggerDefinitions } from "@local/hash-isomorphic-utils/flows/trigger-definitions";
+import { Entity } from "@local/hash-subgraph";
 
 const nodeTypes = {
   action: CustomNode,
@@ -40,7 +47,7 @@ const elkLayoutOptions: ElkNode["layoutOptions"] = {
 };
 
 const initialNodeDimensions = {
-  width: 300,
+  width: 320,
   height: 150,
 };
 
@@ -117,22 +124,38 @@ const getGraphFromFlowDefinition = (flowDefinition: FlowDefinitionType) => {
     }),
   );
 
+  const showAllDependencies = false;
+
   const derivedEdges: Edge[] = [];
-  for (const node of derivedNodes) {
-    for (const inputSource of node.data.inputSources) {
-      if (inputSource.kind === "step-output") {
+  for (let i = 0; i < derivedNodes.length; i++) {
+    const node = derivedNodes[i]!;
+    if (showAllDependencies) {
+      for (const inputSource of node.data.inputSources) {
+        if (inputSource.kind === "step-output") {
+          derivedEdges.push({
+            id: `${flowDefinition.name}-${inputSource.sourceStepId}-${node.id}`,
+            source: inputSource.sourceStepId,
+            sourceHandle: inputSource.sourceStepOutputName,
+            target: node.id,
+            targetHandle: inputSource.inputName,
+            animated: true,
+            style: { stroke: "blue" },
+          });
+        }
+      }
+    } else {
+      const nextNode = derivedNodes[i + 1];
+      if (nextNode) {
         derivedEdges.push({
-          id: `${flowDefinition.name}-${inputSource.sourceStepId}-${node.id}`,
-          source: inputSource.sourceStepId,
-          sourceHandle: inputSource.sourceStepOutputName,
-          target: node.id,
-          targetHandle: inputSource.inputName,
-          animated: true,
-          style: { stroke: "blue" },
+          id: `${node.id}-${nextNode.id}`,
+          source: node.id,
+          target: nextNode.id,
         });
       }
     }
   }
+
+  console.log({ derivedEdges });
 
   return {
     nodes: derivedNodes,
@@ -161,6 +184,41 @@ export const FlowDefinition = () => {
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+
+  const { persistedEntities, proposedEntities } = useMemo(() => {
+    if (!selectedFlowRun) {
+      return { persistedEntities: [], proposedEntities: [] };
+    }
+    const persistedEntities: Entity[] = [];
+    const proposedEntities: ProposedEntity[] = [];
+
+    selectedFlowRun.steps.forEach((step) => {
+      const outputs = step.outputs?.[0]?.contents?.[0]?.outputs ?? [];
+
+      for (const output of outputs) {
+        if (output.payload.kind === "ProposedEntities") {
+          proposedEntities.push(...output.payload.value);
+        }
+        if (output.payload.kind === "Entity") {
+          console.log("Pushing", output.payload);
+          persistedEntities.push(output.payload.value);
+        }
+        if (output.payload.kind === "PersistedEntity") {
+          persistedEntities.push(output.payload.value.entity);
+        }
+        if (output.payload.kind === "PersistedEntities") {
+          persistedEntities.push(
+            ...output.payload.value.persistedEntities.map(
+              (inner) => inner.entity,
+            ),
+          );
+        }
+      }
+    });
+    return { proposedEntities, persistedEntities };
+  }, [selectedFlowRun]);
+
+  console.log({ persistedEntities, proposedEntities });
 
   useEffect(() => {
     const graph: ElkNode = {
@@ -212,72 +270,130 @@ export const FlowDefinition = () => {
   );
 
   return (
-    <Box sx={{ width: "100%", height: "calc(100vh - 200px)", p: 2 }}>
-      <Box mb={1}>
-        <select
-          value={selectedFlow.name}
-          onChange={(event) => {
-            setSelectedFlow(
-              flowDefinitions.find((def) => def.name === event.target.value)!,
-            );
-            setSelectedFlowRun(null);
-          }}
-        >
-          {flowDefinitions.map((flow) => (
-            <option key={flow.name} value={flow.name}>
-              {flow.name}
-            </option>
-          ))}
-        </select>
-      </Box>
-      {runOptions.length > 0 && (
+    <Stack
+      sx={{
+        width: "100%",
+        height: "calc(100vh - 160px)",
+        background: ({ palette }) => palette.gray[10],
+      }}
+    >
+      <Box p={4}>
         <Box mb={1}>
           <select
-            value={selectedFlowRun?.runId}
+            value={selectedFlow.name}
             onChange={(event) => {
-              setSelectedFlowRun(
-                flowRuns.find((run) => run.runId === event.target.value) ??
-                  null,
+              setSelectedFlow(
+                flowDefinitions.find((def) => def.name === event.target.value)!,
               );
+              setSelectedFlowRun(null);
             }}
           >
-            <option disabled selected value="">
-              -- select a run to view status --
-            </option>
-            {runOptions.map((run) => (
-              <option key={run.runId} value={run.runId}>
-                {run.runId}
+            {flowDefinitions.map((flow) => (
+              <option key={flow.name} value={flow.name}>
+                {flow.name}
               </option>
             ))}
           </select>
         </Box>
-      )}
-      <Box mb={2}>
-        <select
-          value={direction}
-          onChange={(event) =>
-            setDirection(event.target.value as "DOWN" | "RIGHT")
-          }
-        >
-          {["DOWN", "RIGHT"].map((dir) => (
-            <option key={dir} value={dir}>
-              {dir}
-            </option>
-          ))}
-        </select>
+        {runOptions.length > 0 && (
+          <Box mb={1}>
+            <select
+              value={selectedFlowRun?.runId}
+              onChange={(event) => {
+                setSelectedFlowRun(
+                  flowRuns.find((run) => run.runId === event.target.value) ??
+                    null,
+                );
+              }}
+            >
+              <option disabled selected value="disabled">
+                -- select a run to view status --
+              </option>
+              {runOptions.map((run) => (
+                <option key={run.runId} value={run.runId}>
+                  {run.runId}
+                </option>
+              ))}
+            </select>
+          </Box>
+        )}
+        {/*<Box mb={2}>*/}
+        {/*  <select*/}
+        {/*    value={direction}*/}
+        {/*    onChange={(event) =>*/}
+        {/*      setDirection(event.target.value as "DOWN" | "RIGHT")*/}
+        {/*    }*/}
+        {/*  >*/}
+        {/*    {["DOWN", "RIGHT"].map((dir) => (*/}
+        {/*      <option key={dir} value={dir}>*/}
+        {/*        {dir}*/}
+        {/*      </option>*/}
+        {/*    ))}*/}
+        {/*  </select>*/}
+        {/*</Box>*/}
       </Box>
-      <ReactFlow
-        nodes={nodes}
-        nodeTypes={nodeTypes}
-        edges={edges}
-        fitView
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        // onConnect={onConnect}
-      >
-        <Controls />
-        <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
-      </ReactFlow>
-    </Box>
+      <Stack sx={{ height: "100%" }}>
+        <Box sx={{ height: "50vh" }}>
+          <ReactFlow
+            nodes={nodes}
+            nodeTypes={nodeTypes}
+            edges={edges}
+            fitView
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            // onConnect={onConnect}
+          >
+            <Controls />
+          </ReactFlow>
+        </Box>
+        <Stack
+          direction="row"
+          flexGrow={1}
+          justifyContent="space-between"
+          px={2}
+          pt={1}
+          sx={{
+            borderTop: ({ palette }) => `1px solid ${palette.gray[20]}`,
+            height: "30%",
+          }}
+        >
+          <Box
+            sx={{
+              height: "100%",
+              width: "100%",
+              borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
+              pr: 2,
+            }}
+          >
+            <Typography
+              variant="smallCaps"
+              sx={{ fontWeight: 600, color: ({ palette }) => palette.gray[50] }}
+            >
+              RAW OUTPUT
+            </Typography>
+            <Stack
+              direction="row"
+              gap={1}
+              sx={{ height: "100%", width: "100%" }}
+            >
+              <EntityResultTable
+                persistedEntities={persistedEntities}
+                proposedEntities={proposedEntities}
+              />
+              <PersistedEntityGraph persistedEntities={persistedEntities} />
+            </Stack>
+          </Box>
+          <Box sx={{ width: "30%", pl: 2 }}>
+            <Typography
+              variant="smallCaps"
+              sx={{ fontWeight: 600, color: ({ palette }) => palette.gray[50] }}
+            >
+              DELIVERABLE
+            </Typography>
+            <Deliverable outputs={selectedFlowRun?.outputs} />
+          </Box>
+        </Stack>
+      </Stack>
+    </Stack>
   );
 };

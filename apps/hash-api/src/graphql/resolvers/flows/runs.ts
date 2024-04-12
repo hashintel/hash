@@ -145,8 +145,6 @@ const mapTemporalWorkflowToFlowStatus = async (
 
   const { events } = await handle.fetchHistory();
 
-  console.log({ proto, temporal: proto.temporal });
-
   const workflowInputs = parseHistoryItemPayload(
     events?.find(
       (event) =>
@@ -288,10 +286,12 @@ const mapTemporalWorkflowToFlowStatus = async (
     }
   }
 
-  const { type, runId, status, startTime, executionTime, closeTime } = workflow;
+  const { type, runId, status, startTime, executionTime, closeTime, memo } =
+    workflow;
 
   return {
-    flowDefinitionId: type,
+    flowDefinitionId:
+      (memo?.flowDefinitionId as string | undefined) ?? "unknown",
     runId,
     status: status.name as FlowRunStatus,
     startedAt: startTime.toISOString(),
@@ -328,7 +328,7 @@ export const getFlowRuns: ResolverFn<
             .map((type) => `'${type}'`)
             .join(", ")})`,
         }
-      : {},
+      : { query: "WorkflowType != 'updateEntityEmbeddings'" },
   );
 
   for await (const workflow of workflowIterable) {

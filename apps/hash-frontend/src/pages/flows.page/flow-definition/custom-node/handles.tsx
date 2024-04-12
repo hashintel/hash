@@ -1,10 +1,12 @@
-import { Handle as BaseHandle, HandleProps, Position } from "reactflow";
+import { Handle, Handle as BaseHandle, HandleProps, Position } from "reactflow";
 import { Box, Typography } from "@mui/material";
-import { NodeData } from "./types";
-import { useFlowDefinitionsContext } from "./flow-definitions-context";
-import { useStatusForStep } from "./flow-runs-context";
+import { NodeData } from "../shared/types";
+import { useFlowDefinitionsContext } from "../shared/flow-definitions-context";
+import { useStatusForStep } from "../shared/flow-runs-context";
 import { useState } from "react";
 import { Modal } from "../../../../shared/ui/modal";
+import { customColors } from "@hashintel/design-system/theme";
+import { StepStatusName } from "./styles";
 
 type InputOrOutput = {
   array?: boolean;
@@ -71,7 +73,10 @@ const CustomHandle = ({
 export const Handles = ({
   inputSources,
   stepDefinition,
-}: Pick<NodeData, "inputSources" | "stepDefinition">) => {
+  stepStatusName,
+}: Pick<NodeData, "inputSources" | "stepDefinition"> & {
+  stepStatusName: StepStatusName;
+}) => {
   const { direction } = useFlowDefinitionsContext();
 
   const stepStatus = useStatusForStep();
@@ -113,7 +118,48 @@ export const Handles = ({
     }
   }
 
-  console.log({ selectedProperty });
+  const showAllDependencies = false;
+
+  let handleColor = customColors.gray[30];
+  switch (stepStatusName) {
+    case "Complete":
+      handleColor = customColors.green[70];
+      break;
+    case "In Progress":
+      handleColor = customColors.blue[70];
+      break;
+    case "Error":
+      handleColor = customColors.red[70];
+      break;
+  }
+
+  const handleStyle = {
+    width: 12,
+    height: 12,
+    background: "white",
+    border: `1px solid ${handleColor}`,
+  };
+
+  if (!showAllDependencies) {
+    return (
+      <>
+        {!!inputs.length && (
+          <Handle
+            type="target"
+            position={Position.Left}
+            style={{ ...handleStyle, left: -6 }}
+          />
+        )}
+        {(!!outputs.length || stepDefinition?.kind === "trigger") && (
+          <Handle
+            type="source"
+            position={Position.Right}
+            style={{ ...handleStyle, right: -6 }}
+          />
+        )}
+      </>
+    );
+  }
 
   return (
     <>
