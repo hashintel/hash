@@ -10,10 +10,6 @@ import type {
   GraphResolveDepths,
   ModifyRelationshipOperation,
 } from "@local/hash-graph-client";
-import type {
-  CreateEmbeddingsParams,
-  CreateEmbeddingsReturn,
-} from "@local/hash-isomorphic-utils/ai-inference-types";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -59,8 +55,9 @@ import type {
 } from "../../../graphql/api-types.gen";
 import { isTestEnv } from "../../../lib/env-config";
 import type { TemporalClient } from "../../../temporal";
-import { genId, linkedTreeFlatten } from "../../../util";
+import { linkedTreeFlatten } from "../../../util";
 import type { ImpureGraphFunction } from "../../context-types";
+import { rewriteSemanticFilter } from "../../shared/rewrite-semantic-filter";
 import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 import { afterUpdateEntityHooks } from "./entity/after-update-entity-hooks";
 import { beforeCreateEntityHooks } from "./entity/before-create-entity-hooks";
@@ -166,41 +163,7 @@ export const getEntities: ImpureGraphFunction<
   },
   Promise<Subgraph<EntityRootType>>
 > = async ({ graphApi }, { actorId }, { query, temporalClient }) => {
-  /**
-   * Convert any strings provided under a top-level 'cosineDistance' filter into embeddings
-   * This doesn't deal with 'cosineDistance' inside a nested filter (e.g. 'any'), so for now
-   * this is only good for single-string inputs.
-   */
-  for (const [filterName, expression] of Object.entries(query.filter)) {
-    if (filterName === "cosineDistance") {
-      if (
-        Array.isArray(expression) &&
-        expression[1] &&
-        "parameter" in expression[1] &&
-        typeof expression[1].parameter === "string"
-      ) {
-        if (!temporalClient) {
-          throw new Error(
-            "Cannot query cosine distance without temporal client",
-          );
-        }
-
-        const stringInputValue = expression[1].parameter;
-        const { embeddings } = await temporalClient.workflow.execute<
-          (params: CreateEmbeddingsParams) => Promise<CreateEmbeddingsReturn>
-        >("createEmbeddings", {
-          taskQueue: "ai",
-          args: [
-            {
-              input: [stringInputValue],
-            },
-          ],
-          workflowId: genId(),
-        });
-        expression[1].parameter = embeddings[0];
-      }
-    }
-  }
+  await rewriteSemanticFilter(query.filter, temporalClient);
 
   const isRequesterAdmin = isTestEnv
     ? false
@@ -321,7 +284,9 @@ export const getLatestEntityById: ImpureGraphFunction<
   ).then(getRoots);
 
   if (unexpectedEntities.length > 0) {
-    const errorMessage = `Latest entity with entityId ${entityId} returned more than one result with ids: ${unexpectedEntities.map((unexpectedEntity) => unexpectedEntity.metadata.recordId.entityId).join(", ")}`;
+    const errorMessage = `Latest entity with entityId ${entityId} returned more than one result with ids: ${unexpectedEntities
+      .map((unexpectedEntity) => unexpectedEntity.metadata.recordId.entityId)
+      .join(", ")}`;
     throw new Error(errorMessage);
   }
 
@@ -464,7 +429,9 @@ export const createEntityWithLinks: ImpureGraphFunction<
         (!definition.entityProperties || !definition.entityTypeId)
       ) {
         throw new Error(
-          `One of existingEntityId or (entityProperties && entityTypeId) must be provided in linked entity definition: ${JSON.stringify(definition)}`,
+          `One of existingEntityId or (entityProperties && entityTypeId) must be provided in linked entity definition: ${JSON.stringify(
+            definition,
+          )}`,
         );
       }
 

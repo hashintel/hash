@@ -347,9 +347,18 @@ module "application" {
     { name = "HASH_REDIS_PORT", secret = false, value = module.redis.node.port },
     { name = "HASH_REDIS_ENCRYPTED_TRANSIT", secret = false, value = "true" },
     { name = "HASH_INTEGRATION_QUEUE_NAME", secret = false, value = "integration" },
-    { name = "HASH_VAULT_HOST", secret = true, value =  sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_host"]) },
-    { name = "HASH_VAULT_PORT", secret = true, value =  sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_port"]) },
-    { name = "HASH_VAULT_ROOT_TOKEN", secret = true, value =  sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_root_token"]) },
+    {
+      name  = "HASH_VAULT_HOST", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_host"])
+    },
+    {
+      name  = "HASH_VAULT_PORT", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_port"])
+    },
+    {
+      name  = "HASH_VAULT_ROOT_TOKEN", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_root_token"])
+    },
     #    { name = "LINEAR_CLIENT_ID", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["linear_client_id"]) },
     #    { name = "LINEAR_CLIENT_SECRET", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["linear_client_secret"]) },
     {
@@ -368,19 +377,53 @@ module "application" {
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_openai_api_key"])
     },
     {
-      name = "INTERNAL_API_KEY", secret = true,
+      name  = "INTERNAL_API_KEY", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["internal_api_key"])
-    }
+    },
+    {
+      name  = "HASH_TEMPORAL_WORKER_AI_SENTRY_DSN", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_temporal_worker_ai_sentry_dsn"])
+    },
+    { name = "AWS_REGION", secret = false, value = local.region },
+    {
+      name  = "AWS_S3_UPLOADS_ACCESS_KEY_ID", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["aws_s3_uploads_access_key_id"])
+    },
+    {
+      name  = "AWS_S3_UPLOADS_BUCKET", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["aws_s3_uploads_bucket"])
+    },
+    {
+      name  = "AWS_S3_UPLOADS_ENDPOINT", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["aws_s3_uploads_endpoint"])
+    },
+    {
+      name  = "AWS_S3_UPLOADS_SECRET_ACCESS_KEY", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["aws_s3_uploads_secret_access_key"])
+    },
   ]
-  temporal_worker_integration_image = module.temporal_worker_integration_ecr
+  temporal_worker_integration_image    = module.temporal_worker_integration_ecr
   temporal_worker_integration_env_vars = [
-    { name = "HASH_VAULT_HOST", secret = true, value =  sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_host"]) },
-    { name = "HASH_VAULT_PORT", secret = true, value =  sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_port"]) },
-    { name = "HASH_VAULT_ROOT_TOKEN", secret = true, value =  sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_root_token"]) },
+    {
+      name  = "HASH_VAULT_HOST", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_host"])
+    },
+    {
+      name  = "HASH_VAULT_PORT", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_port"])
+    },
+    {
+      name  = "HASH_VAULT_ROOT_TOKEN", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_root_token"])
+    },
+    {
+      name  = "HASH_TEMPORAL_WORKER_INTEGRATION_SENTRY_DSN", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_temporal_worker_integration_sentry_dsn"])
+    },
   ]
-  temporal_host                     = module.temporal.host
-  temporal_port                     = module.temporal.port
-  spicedb_image                     = {
+  temporal_host = module.temporal.host
+  temporal_port = module.temporal.port
+  spicedb_image = {
     name    = "authzed/spicedb"
     version = "1.28.0"
   }

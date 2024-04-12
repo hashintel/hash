@@ -2,10 +2,6 @@ import fs from "node:fs";
 import path from "node:path";
 import { URL } from "node:url";
 
-import appRoot from "app-root-path";
-import type { Express } from "express";
-import express from "express";
-
 import type {
   GetFileEntityStorageKeyParams,
   PresignedDownloadRequest,
@@ -13,7 +9,10 @@ import type {
   PresignedStorageRequest,
   StorageType,
   UploadableStorageProvider,
-} from "./storage-provider";
+} from "@local/hash-backend-utils/file-storage";
+import appRoot from "app-root-path";
+import type { Express } from "express";
+import express from "express";
 
 export const UPLOAD_BASE_URL = "/local-file-storage-upload";
 const DOWNLOAD_BASE_URL = "/uploads";
@@ -59,8 +58,9 @@ export class LocalFileSystemStorageProvider
     return {
       presignedPut,
       fileStorageProperties: {
-        key,
-        provider: "LOCAL_FILE_SYSTEM" as const,
+        "https://hash.ai/@hash/types/property-type/file-storage-key/": key,
+        "https://hash.ai/@hash/types/property-type/file-storage-provider/":
+          this.storageType,
       },
     };
   }

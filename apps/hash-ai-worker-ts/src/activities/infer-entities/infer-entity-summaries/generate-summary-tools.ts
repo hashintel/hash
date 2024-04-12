@@ -6,12 +6,12 @@ import { typedEntries } from "@local/advanced-types/typed-entries";
 import type OpenAI from "openai";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
+import { stringify } from "../../shared/stringify";
 import type { DereferencedEntityType } from "../dereference-entity-type";
 import type {
   DereferencedEntityTypesByTypeId,
   ProposedEntitySummary,
 } from "../inference-types";
-import { stringify } from "../stringify";
 
 type FunctionName = "could_not_infer_entities" | "register_entity_summaries";
 

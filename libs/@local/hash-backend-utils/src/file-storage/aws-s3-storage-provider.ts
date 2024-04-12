@@ -5,15 +5,14 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-
 import type {
   GetFileEntityStorageKeyParams,
   PresignedDownloadRequest,
   PresignedStorageRequest,
   StorageType,
   UploadableStorageProvider,
-} from "./storage-provider";
+} from "@local/hash-backend-utils/file-storage";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
 export interface AwsS3StorageProviderConstructorArgs {
   credentials: S3ClientConfig["credentials"];
@@ -22,6 +21,7 @@ export interface AwsS3StorageProviderConstructorArgs {
   /** S3 region */
   region: string;
 }
+
 /** Implementation of the storage provider for AWS S3. Uploads all files to a single bucket */
 export class AwsS3StorageProvider implements UploadableStorageProvider {
   /** The S3 client is created in the constructor and kept as long as the instance lives */
@@ -67,19 +67,27 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
       Key: params.key,
     });
 
+    const headers = Object.keys(params.headers ?? {});
+
     const presignedPutUrl = await getSignedUrl(this.client, command, {
       expiresIn: params.expiresInSeconds,
-      signableHeaders: new Set(["content-length", "content-type"]),
+      signableHeaders: headers.length ? new Set(headers) : undefined,
     });
 
     return {
       fileStorageProperties: {
-        bucket: this.bucket,
-        endpoint: this.endpoint,
-        forcePathStyle: this.forcePathStyle,
-        key: params.key,
-        provider: "AWS_S3" as const,
-        region: this.region,
+        "https://hash.ai/@hash/types/property-type/file-storage-bucket/":
+          this.bucket,
+        "https://hash.ai/@hash/types/property-type/file-storage-endpoint/":
+          this.endpoint,
+        "https://hash.ai/@hash/types/property-type/file-storage-force-path-style/":
+          !!this.forcePathStyle,
+        "https://hash.ai/@hash/types/property-type/file-storage-key/":
+          params.key,
+        "https://hash.ai/@hash/types/property-type/file-storage-provider/":
+          this.storageType,
+        "https://hash.ai/@hash/types/property-type/file-storage-region/":
+          this.region,
       },
       presignedPut: { url: presignedPutUrl },
     };
