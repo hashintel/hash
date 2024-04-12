@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@blockprotocol/type-system-rs": "0.0.0-private",
+    "@local/codec-rs": "0.0.0-private",
     "@local/temporal-versioning-rs": "0.0.0-private"
   },
   "devDependencies": {

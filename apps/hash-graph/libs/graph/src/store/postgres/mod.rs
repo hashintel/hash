@@ -1032,19 +1032,19 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 "INSERT INTO entity_ids (
                     web_id,
                     entity_uuid,
-                    created_by_id,
-                    created_at_transaction_time,
-                    created_at_decision_time
+                    provenance
                 )
                 SELECT
                     web_id,
                     entity_uuid,
-                    created_by_id,
-                    now(),
-                    CASE WHEN created_at_decision_time IS NULL
-                         THEN now()
-                         ELSE created_at_decision_time
-                    END
+                    JSONB_BUILD_OBJECT(
+                        'createdById', created_by_id,
+                        'createdAtTransactionTime', now(),
+                        'createdAtDecisionTime', CASE WHEN created_at_decision_time IS NULL
+                             THEN now()
+                             ELSE created_at_decision_time
+                        END
+                    ) AS provenance
                 FROM entity_ids_temp",
             )
             .await
@@ -1172,14 +1172,16 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 "INSERT INTO entity_editions (
                     entity_edition_id,
                     properties,
-                    edition_created_by_id,
-                    archived
+                    archived,
+                    provenance
                 )
                 SELECT
                     gen_random_uuid(),
                     properties,
-                    edition_created_by_id,
-                    archived
+                    archived,
+                    JSONB_BUILD_OBJECT(
+                        'createdById', edition_created_by_id
+                    ) AS provenance
                 FROM entity_editions_temp
                 RETURNING entity_edition_id;",
                 &[],
