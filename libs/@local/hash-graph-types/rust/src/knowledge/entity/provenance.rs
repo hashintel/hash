@@ -57,6 +57,7 @@ pub struct UserEntityEditionProvenanceMetadata {
 
 impl UserEntityEditionProvenanceMetadata {
     #[must_use]
+    #[expect(clippy::unused_self, clippy::missing_const_for_fn)]
     pub fn is_empty(&self) -> bool {
         true
     }

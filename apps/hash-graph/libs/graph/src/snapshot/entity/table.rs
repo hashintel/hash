@@ -1,7 +1,9 @@
 use graph_types::{
-    account::{CreatedById, EditionCreatedById},
     knowledge::{
-        entity::{DraftId, EntityEditionId, EntityUuid},
+        entity::{
+            DraftId, EntityEditionId, EntityEditionProvenanceMetadata, EntityUuid,
+            InferredEntityProvenanceMetadata,
+        },
         Confidence, PropertyObject, PropertyPath,
     },
     owned_by_id::OwnedById,
@@ -14,13 +16,9 @@ use uuid::Uuid;
 #[derive(Debug, ToSql)]
 #[postgres(name = "entity_ids")]
 pub struct EntityIdRow {
-    pub created_by_id: CreatedById,
-    pub created_at_transaction_time: Timestamp<TransactionTime>,
-    pub created_at_decision_time: Timestamp<DecisionTime>,
-    pub first_non_draft_created_at_transaction_time: Option<Timestamp<TransactionTime>>,
-    pub first_non_draft_created_at_decision_time: Option<Timestamp<DecisionTime>>,
     pub web_id: OwnedById,
     pub entity_uuid: EntityUuid,
+    pub provenance: InferredEntityProvenanceMetadata,
 }
 
 #[derive(Debug, ToSql)]
@@ -36,9 +34,9 @@ pub struct EntityDraftRow {
 pub struct EntityEditionRow {
     pub entity_edition_id: EntityEditionId,
     pub properties: PropertyObject,
-    pub edition_created_by_id: EditionCreatedById,
     pub archived: bool,
     pub confidence: Option<Confidence>,
+    pub provenance: EntityEditionProvenanceMetadata,
 }
 
 #[derive(Debug, ToSql)]

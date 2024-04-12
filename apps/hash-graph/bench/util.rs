@@ -22,7 +22,9 @@ use graph::{
     Environment,
 };
 use graph_types::{
-    account::AccountId, ontology::OntologyTypeClassificationMetadata, owned_by_id::OwnedById,
+    account::AccountId,
+    ontology::{OntologyTypeClassificationMetadata, UserOntologyEditionProvenanceMetadata},
+    owned_by_id::OwnedById,
 };
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
@@ -237,6 +239,7 @@ pub async fn seed<D, P, E, C>(
                         level: 0,
                     }],
                     conflict_behavior: ConflictBehavior::Fail,
+                    provenance: UserOntologyEditionProvenanceMetadata::default(),
                 },
             )
             .await
@@ -255,6 +258,7 @@ pub async fn seed<D, P, E, C>(
                                     subject: DataTypeViewerSubject::Public,
                                     level: 0,
                                 }],
+                                provenance: UserOntologyEditionProvenanceMetadata::default(),
                             },
                         )
                         .await
@@ -285,6 +289,7 @@ pub async fn seed<D, P, E, C>(
                         level: 0,
                     }],
                     conflict_behavior: ConflictBehavior::Fail,
+                    provenance: UserOntologyEditionProvenanceMetadata::default(),
                 },
             )
             .await
@@ -303,6 +308,7 @@ pub async fn seed<D, P, E, C>(
                                     subject: PropertyTypeViewerSubject::Public,
                                     level: 0,
                                 }],
+                                provenance: UserOntologyEditionProvenanceMetadata::default(),
                             },
                         )
                         .await
@@ -335,6 +341,7 @@ pub async fn seed<D, P, E, C>(
                         level: 0,
                     }],
                     conflict_behavior: ConflictBehavior::Fail,
+                    provenance: UserOntologyEditionProvenanceMetadata::default(),
                 },
             )
             .await
@@ -361,6 +368,7 @@ pub async fn seed<D, P, E, C>(
                                         level: 0,
                                     },
                                 ],
+                                provenance: UserOntologyEditionProvenanceMetadata::default(),
                             },
                         )
                         .await
