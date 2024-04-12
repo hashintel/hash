@@ -49,7 +49,7 @@ Complex systems can be incredibly sensitive to their initial conditions. Even sm
 
 In many domains, ensuring models are as accurate as possible requires the observation and collection of accurate, real-time, real-world information. Doyne Former, of the Santa Fe Institute and Oxford's Institute for New Economic Thinking, refers to this as the need for "collective awareness". Using publicly available unstructured data, we can create live, composite metrics (e.g. gauges of price volatility and inflation, with respect to different types of products) and incorporate these into simulations (in this example, economic ones). Doing this type of thing with a self-building database becomes immensely easier.
 
-_n.b. For readers of this post who don't know our origins, HASH started out life as a multi-agent systems research lab, building [agent-based simulation modeling tools](/cases/simulation)._
+_n.b. For readers of this post who don't know our origins, HASH was founded in 2019 as a multi-agent systems research lab, building [agent-based simulation modeling](/cases/simulation) tools._
 
 # Technical requirements
 
@@ -88,10 +88,13 @@ In fact, [HASH](https://hash.ai/) is already being used to solve each of the use
 
 HASH is a new kind of database for integrating information, which grows, checks, and maintains itself, with a graphical user interface (GUI) that makes its contents directly accessible to all of its end-users. HASH provides all of the capabilities we "imagine" in our introduction.
 
-We founded _HASH, Inc._ as a multi-agent systems research lab in 2019. In the years since, we've built the type system, graph, and application (in Rust, for speed, safety, and WASM-compatibility) steadily and quietly, testing it in the real-world throughout.
+We founded _HASH, Inc._ as a research lab in 2019. In the years since, we've built the type system, graph, and application (in Rust, for speed, safety, and WASM-compatibility) steadily and quietly, testing it in the real-world throughout.
 
 If you'd like to use HASH yourself, we're now inviting users, and we invite you to [sign up](https://app.hash.ai/signup).
 
-- The [type system](https://github.com/blockprotocol/blockprotocol) is available under both the MIT and Apache 2.0 Licenses (dually, at your option).
-- The [datastore](https://github.com/hashintel/hash) is licensed under AGPLv3, like so many other great databases before it (prior to their shift away to proprietary licenses).
-- The [application](https://github.com/hashintel/hash) which runs atop our datastore and makes the type system usable, while managing the hydration of the graph with information, is open-core. This means it is mostly AGPL-licensed, but partly proprietary (following a model virtually identical to that used by _GitLab_). You can read more about our [open-source philosophy](https://hash.dev/blog/open-source), which we've tried to be as transparent about as possible, as well as the other non-negotiable [commitments](https://hash.dev/blog/one-principle) we're making to our users.
+- The [protocol](https://github.com/blockprotocol/blockprotocol) repository contains our **type system**, available under both the MIT and Apache 2.0 Licenses (dually, at your option).
+- Our [hash](https://github.com/hashintel/hash) repository which contains both:
+  - the **datastore**, licensed under AGPLv3 (like so many other great databases before it, prior to their shift away to proprietary licenses).
+  - the **application** which runs atop our datastore and makes the type system usable, while managing the hydration of the graph with information, is open-core. This means it is mostly AGPL-licensed, but partly proprietary (following a model virtually identical to that used by _GitLab_). You can read more about our [open-source philosophy](https://hash.dev/blog/open-source), which we've tried to be as transparent about as possible, as well as the other non-negotiable [commitments](https://hash.dev/blog/one-principle) we're making to our users.
+
+If you're a developer, we'd love for you to check out both.
