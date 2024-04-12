@@ -448,15 +448,6 @@ If the service should report metrics to a StatsD server, the following variables
 
 ## Contributors
 
-HASH's development is being led by various employees of _[HASH](https://hash.dev/)_ (the company). The current core team includes:
-
-- Ahmad Sattar
-- Alfie Mountfield
-- Ben Werner
-- Ciaran Morinan
-- Luís Bettencourt
-- Nate Higgins
-- Tim Diekmann
-- Yusuf Kınataş
+The HASH application's development is overseen by _[HASH](https://hash.ai/about)_ (the company).
 
 As an open-source project, we gratefully accept external contributions and have published a [contributing guide](https://github.com/hashintel/hash/blob/main/.github/CONTRIBUTING.md) that outlines the process. If you have questions, please reach out to us on our [Discord server](https://hash.ai/discord).
