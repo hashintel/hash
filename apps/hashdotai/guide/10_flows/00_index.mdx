@@ -8,23 +8,21 @@ sidebarTitle: "Overview"
 sidebarIcon: https://app.hash.ai/icons/docs/flows-overview.svg
 ---
 
-<Callout style="information" type="coming-soon">
-  Flows are not yet generally available in HASH. If you'd like to help beta test
-  Flows, [create an account](/signup) and we'll invite you when ready.
-</Callout>
-
 # Overview
 
 **Flows** are sequences of steps which can be mapped out within HASH, and executed by HASH on your behalf.
 
+# Triggers
+
+[Triggers](/guide/flows/triggers) result in the execution of a flow's steps.
+
 # Steps
 
-Flows consist of different kinds of steps:
+Once triggered, flows consist of different kinds of steps:
 
-- [Triggers](/guide/flows/triggers) result in a flow's execution
-- [Actions](/guide/flows/actions) do things as part of a flow
-- [Filters](/guide/flows/filters) allow for conditional execution of different actions
-- [Waits](/guide/flows/waits) allow you to pause flows until a trigger is satisfied
+- [Actions](/guide/flows/actions), which do things as part of a flow. These are the most common kind of step.
+- [Filters](/guide/flows/filters), which allow for conditional execution of different actions. These allow for branching logic, and the construction of more powerful, responsive flows.
+- [Waits](/guide/flows/waits), which allow you to pause flows until a condition is satisfied. Any condition which can trigger a flow can also be used within a wait step.
 
 # Runs
 
