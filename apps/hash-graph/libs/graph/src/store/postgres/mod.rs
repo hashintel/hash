@@ -22,7 +22,10 @@ use authorization::{
 use error_stack::{Report, Result, ResultExt};
 use graph_types::{
     account::{AccountGroupId, AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
-    knowledge::entity::{EntityEditionId, EntityId, EntityProperties, EntityTemporalMetadata},
+    knowledge::{
+        entity::{EntityEditionId, EntityId, EntityTemporalMetadata},
+        PropertyObject,
+    },
     ontology::{
         OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeRecordId,
     },
@@ -1121,7 +1124,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
 
     async fn insert_entity_records(
         &self,
-        entities: impl IntoIterator<Item = EntityProperties, IntoIter: Send> + Send,
+        entities: impl IntoIterator<Item = PropertyObject, IntoIter: Send> + Send,
         actor_id: EditionCreatedById,
     ) -> Result<Vec<EntityEditionId>, InsertionError> {
         self.client

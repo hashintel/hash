@@ -15,6 +15,7 @@ pub use self::{
 
 mod data_type;
 mod entity_type;
+mod property;
 mod property_type;
 
 use std::borrow::Borrow;
@@ -160,7 +161,7 @@ pub trait EntityProvider {
 mod tests {
     use std::collections::HashMap;
 
-    use graph_types::knowledge::entity::{EntityProperties, Property};
+    use graph_types::knowledge::{Property, PropertyObject};
     use serde_json::Value as JsonValue;
     use thiserror::Error;
     use type_system::{DataType, EntityType, PropertyType};
@@ -322,10 +323,12 @@ mod tests {
             serde_json::from_str::<EntityType>(entity_type).expect("failed to parse entity type"),
         );
 
-        let entity =
-            serde_json::from_str::<EntityProperties>(entity).expect("failed to read entity string");
+        let properties =
+            serde_json::from_str::<PropertyObject>(entity).expect("failed to read entity string");
 
-        entity.validate(&entity_type, components, &provider).await
+        properties
+            .validate(&entity_type, components, &provider)
+            .await
     }
 
     pub(crate) async fn validate_property(

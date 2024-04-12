@@ -39,18 +39,15 @@ use graph_types::{
     knowledge::{
         entity::{
             Entity, EntityEditionId, EntityEditionProvenanceMetadata, EntityEmbedding, EntityId,
-            EntityMetadata, EntityProperties, EntityProvenanceMetadata, EntityRecordId,
-            EntityTemporalMetadata, EntityUuid, PropertyPath,
+            EntityMetadata, EntityProvenanceMetadata, EntityRecordId, EntityTemporalMetadata,
+            EntityUuid,
         },
         link::LinkData,
-        Confidence,
+        Confidence, Property, PropertyConfidence, PropertyObject, PropertyPatchOperation,
+        PropertyPath,
     },
     owned_by_id::OwnedById,
     Embedding,
-};
-use json_patch::{
-    AddOperation, CopyOperation, MoveOperation, PatchOperation, RemoveOperation, ReplaceOperation,
-    TestOperation,
 };
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
@@ -93,13 +90,7 @@ use crate::rest::{
             EntityStructuralQuery,
 
             PatchEntityParams,
-            PatchOperation,
-            AddOperation,
-            ReplaceOperation,
-            RemoveOperation,
-            CopyOperation,
-            MoveOperation,
-            TestOperation,
+            PropertyPatchOperation,
 
             EntityRelationAndSubject,
             EntityPermission,
@@ -121,13 +112,15 @@ use crate::rest::{
             GetEntityByQueryResponse,
 
             Entity,
+            Property,
+            PropertyObject,
+            PropertyConfidence,
             EntityUuid,
             EntityId,
             EntityEditionId,
             EntityMetadata,
             EntityProvenanceMetadata,
             EntityEditionProvenanceMetadata,
-            EntityProperties,
             EntityRecordId,
             EntityTemporalMetadata,
             EntityQueryToken,

@@ -100,6 +100,8 @@ export type LinkData = Subtype<
   {
     leftEntityId: EntityId;
     rightEntityId: EntityId;
+    leftEntityConfidence?: number;
+    rightEntityConfidence?: number;
   }
 >;
 

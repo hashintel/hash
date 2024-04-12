@@ -2,7 +2,7 @@ use core::borrow::Borrow;
 use std::{collections::HashMap, num::NonZeroUsize};
 
 use error_stack::{bail, Report, ResultExt};
-use graph_types::knowledge::entity::Property;
+use graph_types::knowledge::Property;
 use thiserror::Error;
 use type_system::{
     url::{BaseUrl, VersionedUrl},
@@ -339,7 +339,9 @@ where
                     }))
                 }
                 (Property::Object(object), Self::PropertyTypeObject(schema)) => {
-                    schema.validate_value(object, components, provider).await
+                    schema
+                        .validate_value(object.properties(), components, provider)
+                        .await
                 }
                 (Property::Object(_), Self::ArrayOfPropertyValues(_)) => {
                     Err(Report::new(PropertyValidationError::InvalidType {

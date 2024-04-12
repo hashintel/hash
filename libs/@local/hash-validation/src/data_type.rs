@@ -7,7 +7,7 @@ use std::{
 
 use email_address::EmailAddress;
 use error_stack::{bail, ensure, Report, ResultExt};
-use graph_types::knowledge::entity::Property;
+use graph_types::knowledge::Property;
 use iso8601_duration::Duration;
 use regex::Regex;
 use serde_json::Value as JsonValue;
