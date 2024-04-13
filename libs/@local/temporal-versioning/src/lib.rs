@@ -1,7 +1,5 @@
 #![feature(lint_reasons)]
 
-pub mod serde;
-
 mod axis;
 mod bounds;
 mod interval;

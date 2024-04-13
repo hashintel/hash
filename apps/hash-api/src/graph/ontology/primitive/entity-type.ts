@@ -8,6 +8,7 @@ import type {
   EntityTypeStructuralQuery,
   ModifyRelationshipOperation,
   OntologyTemporalMetadata,
+  ProvidedOntologyEditionProvenanceMetadata,
   UnarchiveEntityTypeParams,
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
@@ -134,10 +135,11 @@ export const createEntityType: ImpureGraphFunction<
     icon?: string | null;
     webShortname?: string;
     relationships: EntityTypeRelationAndSubject[];
+    provenance?: ProvidedOntologyEditionProvenanceMetadata;
   },
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { ownedById, labelProperty, icon, webShortname } = params;
+  const { ownedById, labelProperty, icon, webShortname, provenance } = params;
 
   const shortname =
     webShortname ??
@@ -168,6 +170,7 @@ export const createEntityType: ImpureGraphFunction<
       labelProperty,
       icon,
       relationships: params.relationships,
+      provenance,
     },
   );
 
@@ -285,10 +288,11 @@ export const updateEntityType: ImpureGraphFunction<
     labelProperty?: BaseUrl;
     icon?: string | null;
     relationships: EntityTypeRelationAndSubject[];
+    provenance?: ProvidedOntologyEditionProvenanceMetadata;
   },
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { entityTypeId, schema, labelProperty, icon } = params;
+  const { entityTypeId, schema, labelProperty, icon, provenance } = params;
   const updateArguments: UpdateEntityTypeRequest = {
     typeToUpdate: entityTypeId,
     schema: {
@@ -299,6 +303,7 @@ export const updateEntityType: ImpureGraphFunction<
     labelProperty,
     icon,
     relationships: params.relationships,
+    provenance,
   };
 
   const { data: metadata } = await ctx.graphApi.updateEntityType(

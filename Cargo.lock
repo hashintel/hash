@@ -428,6 +428,7 @@ dependencies = [
  "error-stack",
  "serde",
  "serde_json",
+ "time",
  "tokio-util",
 ]
 
@@ -1131,6 +1132,7 @@ name = "graph-types"
 version = "0.0.0"
 dependencies = [
  "bytes",
+ "codec",
  "error-stack",
  "graph-test-data",
  "json-patch",
@@ -1142,6 +1144,7 @@ dependencies = [
  "thiserror",
  "time",
  "type-system",
+ "url",
  "utoipa",
  "uuid",
 ]
@@ -3270,6 +3273,7 @@ name = "temporal-versioning"
 version = "0.0.0"
 dependencies = [
  "bytes",
+ "codec",
  "derivative",
  "postgres-protocol",
  "postgres-types",

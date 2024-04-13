@@ -1,17 +1,22 @@
+mod provenance;
+
 use std::{fmt, str::FromStr};
 
 use error_stack::Report;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, ToSql};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
-use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, Timestamp, TransactionTime};
+use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, TransactionTime};
 use type_system::url::{BaseUrl, VersionedUrl};
 #[cfg(feature = "utoipa")]
 use utoipa::{openapi, ToSchema};
 use uuid::Uuid;
 
+pub use self::provenance::{
+    EntityEditionProvenanceMetadata, EntityProvenanceMetadata, InferredEntityProvenanceMetadata,
+    ProvidedEntityEditionProvenanceMetadata,
+};
 use crate::{
-    account::{CreatedById, EditionCreatedById},
     knowledge::{
         link::LinkData,
         property::{PatchError, PropertyConfidence},
@@ -77,29 +82,6 @@ impl fmt::Display for DraftId {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0, fmt)
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct EntityEditionProvenanceMetadata {
-    pub created_by_id: EditionCreatedById,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct EntityProvenanceMetadata {
-    pub created_by_id: CreatedById,
-    pub created_at_transaction_time: Timestamp<TransactionTime>,
-    pub created_at_decision_time: Timestamp<DecisionTime>,
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub first_non_draft_created_at_transaction_time: Option<Timestamp<TransactionTime>>,
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub first_non_draft_created_at_decision_time: Option<Timestamp<DecisionTime>>,
-    pub edition: EntityEditionProvenanceMetadata,
 }
 
 /// The metadata of an [`Entity`] record.

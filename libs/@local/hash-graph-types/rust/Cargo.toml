@@ -11,6 +11,7 @@ publish = false
 temporal-versioning.workspace = true
 error-stack = { workspace = true }
 type-system.workspace = true
+codec =  { workspace = true, features = ["bytes"] }
 
 serde = { workspace = true, features = ["derive"] }
 
@@ -22,6 +23,7 @@ time = { version = "0.3.36", default-features = false, features = ["serde", "par
 uuid = { version = "1.8.0", default-features = false, features = ["serde"] }
 json-patch = { version = "1.2.0", default-features = false }
 thiserror = "1.0.58"
+url = "2.5.0"
 
 
 [dev-dependencies]
