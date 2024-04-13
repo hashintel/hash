@@ -13,8 +13,8 @@ use utoipa::{openapi, ToSchema};
 use uuid::Uuid;
 
 pub use self::provenance::{
-    ActorType, Artifact, ArtifactLocation, EntityEditionProvenanceMetadata,
-    EntityProvenanceMetadata, InferredEntityProvenanceMetadata, OriginProvenance, OriginType,
+    ActorType, EntityEditionProvenanceMetadata, EntityProvenanceMetadata,
+    InferredEntityProvenanceMetadata, OriginProvenance, OriginType,
     ProvidedEntityEditionProvenanceMetadata, SourceProvenance, SourceType, Tool,
 };
 use crate::{

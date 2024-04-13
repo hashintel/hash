@@ -38,11 +38,10 @@ use graph::{
 use graph_types::{
     knowledge::{
         entity::{
-            ActorType, Artifact, ArtifactLocation, Entity, EntityEditionId,
-            EntityEditionProvenanceMetadata, EntityEmbedding, EntityId, EntityMetadata,
-            EntityProvenanceMetadata, EntityRecordId, EntityTemporalMetadata, EntityUuid,
-            OriginProvenance, OriginType, ProvidedEntityEditionProvenanceMetadata,
-            SourceProvenance, SourceType, Tool,
+            ActorType, Entity, EntityEditionId, EntityEditionProvenanceMetadata, EntityEmbedding,
+            EntityId, EntityMetadata, EntityProvenanceMetadata, EntityRecordId,
+            EntityTemporalMetadata, EntityUuid, OriginProvenance, OriginType,
+            ProvidedEntityEditionProvenanceMetadata, SourceProvenance, SourceType, Tool,
         },
         link::LinkData,
         Confidence, Property, PropertyConfidence, PropertyObject, PropertyPatchOperation,
@@ -124,8 +123,6 @@ use crate::rest::{
             EntityProvenanceMetadata,
             EntityEditionProvenanceMetadata,
             ProvidedEntityEditionProvenanceMetadata,
-            Artifact,
-            ArtifactLocation,
             ActorType,
             OriginType,
             OriginProvenance,

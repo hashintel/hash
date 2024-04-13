@@ -2665,48 +2665,6 @@
         },
         "additionalProperties": false
       },
-      "Artifact": {
-        "type": "object",
-        "required": [
-          "name"
-        ],
-        "properties": {
-          "description": {
-            "type": "string",
-            "description": "Encapsulates a message intended to be read by the end user."
-          },
-          "location": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ArtifactLocation"
-              }
-            ]
-          },
-          "name": {
-            "type": "string",
-            "description": "The name of the tool."
-          }
-        },
-        "additionalProperties": false
-      },
-      "ArtifactLocation": {
-        "type": "object",
-        "required": [
-          "uri"
-        ],
-        "properties": {
-          "description": {
-            "type": "string",
-            "description": "Encapsulates a message intended to be read by the end user."
-          },
-          "uri": {
-            "type": "string",
-            "format": "uri",
-            "description": "A string containing a valid relative or absolute URI."
-          }
-        },
-        "additionalProperties": false
-      },
       "BaseUrl": {
         "type": "string",
         "format": "uri"
@@ -6250,8 +6208,7 @@
       "SourceProvenance": {
         "type": "object",
         "required": [
-          "type",
-          "artifact"
+          "type"
         ],
         "properties": {
           "actorType": {
@@ -6267,9 +6224,6 @@
                 "$ref": "#/components/schemas/Timestamp"
               }
             ]
-          },
-          "artifact": {
-            "$ref": "#/components/schemas/Artifact"
           },
           "authors": {
             "type": "array",

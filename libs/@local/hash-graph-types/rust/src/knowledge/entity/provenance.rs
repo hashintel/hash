@@ -35,37 +35,6 @@ pub struct Tool {
     pub organization: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Artifact {
-    /// The name of the tool.
-    pub name: String,
-
-    /// Encapsulates a message intended to be read by the end user.
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-
-    /// Specifies the location of an artifact.
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub location: Option<ArtifactLocation>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct ArtifactLocation {
-    /// A string containing a valid relative or absolute URI.
-    pub uri: Url,
-
-    /// Encapsulates a message intended to be read by the end user.
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-}
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
@@ -80,7 +49,6 @@ pub enum SourceType {
 pub struct SourceProvenance {
     #[serde(rename = "type")]
     pub ty: SourceType,
-    pub artifact: Artifact,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub authors: Vec<String>,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
