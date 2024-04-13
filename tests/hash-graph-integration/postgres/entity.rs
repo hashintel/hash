@@ -1,7 +1,7 @@
 use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::knowledge::{
-    entity::UserEntityEditionProvenanceMetadata, Property, PropertyConfidence, PropertyObject,
+    entity::ProvidedEntityEditionProvenanceMetadata, Property, PropertyConfidence, PropertyObject,
     PropertyPatchOperation, PropertyPath,
 };
 use temporal_versioning::ClosedTemporalBound;
@@ -153,7 +153,7 @@ async fn update() {
             draft: None,
             decision_time: None,
             confidence: None,
-            provenance: UserEntityEditionProvenanceMetadata::default(),
+            provenance: ProvidedEntityEditionProvenanceMetadata::default(),
         })
         .await
         .expect("could not update entity");

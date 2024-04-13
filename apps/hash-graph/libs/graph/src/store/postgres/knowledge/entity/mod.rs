@@ -24,7 +24,7 @@ use graph_types::{
         entity::{
             DraftId, Entity, EntityEditionId, EntityEditionProvenanceMetadata, EntityEmbedding,
             EntityId, EntityMetadata, EntityProvenanceMetadata, EntityRecordId,
-            EntityTemporalMetadata, EntityUuid, UserEntityEditionProvenanceMetadata,
+            EntityTemporalMetadata, EntityUuid, ProvidedEntityEditionProvenanceMetadata,
         },
         link::LinkData,
         Confidence, PropertyConfidence, PropertyObject, PropertyPath,
@@ -957,7 +957,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         edition: EntityEditionProvenanceMetadata {
                             created_by_id: EditionCreatedById::new(actor_id),
                             archived_by_id: None,
-                            user_defined: UserEntityEditionProvenanceMetadata::default(),
+                            user_defined: ProvidedEntityEditionProvenanceMetadata::default(),
                         },
                     },
                     temporal_versioning,

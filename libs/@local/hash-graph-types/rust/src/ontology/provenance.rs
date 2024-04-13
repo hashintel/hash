@@ -19,13 +19,13 @@ pub struct OntologyProvenanceMetadata {
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct UserOntologyEditionProvenanceMetadata {
+pub struct ProvidedOntologyEditionProvenanceMetadata {
     /// This field is only used to generate a TS type.
     #[serde(default, rename = "__placeholder")]
     __placeholder: (),
 }
 
-impl UserOntologyEditionProvenanceMetadata {
+impl ProvidedOntologyEditionProvenanceMetadata {
     #[must_use]
     #[expect(clippy::unused_self, clippy::missing_const_for_fn)]
     pub fn is_empty(&self) -> bool {
@@ -42,7 +42,7 @@ pub struct OntologyEditionProvenanceMetadata {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub archived_by_id: Option<EditionArchivedById>,
     #[serde(flatten)]
-    pub user_defined: UserOntologyEditionProvenanceMetadata,
+    pub user_defined: ProvidedOntologyEditionProvenanceMetadata,
 }
 
 #[cfg(feature = "postgres")]

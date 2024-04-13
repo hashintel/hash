@@ -46,7 +46,7 @@ use graph_types::{
     ontology::{
         OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeMetadata,
         OntologyTypeReference, PropertyTypeEmbedding, PropertyTypeMetadata,
-        PropertyTypeWithMetadata, UserOntologyEditionProvenanceMetadata,
+        PropertyTypeWithMetadata, ProvidedOntologyEditionProvenanceMetadata,
     },
     owned_by_id::OwnedById,
 };
@@ -163,9 +163,9 @@ struct CreatePropertyTypeRequest {
     relationships: Vec<PropertyTypeRelationAndSubject>,
     #[serde(
         default,
-        skip_serializing_if = "UserOntologyEditionProvenanceMetadata::is_empty"
+        skip_serializing_if = "ProvidedOntologyEditionProvenanceMetadata::is_empty"
     )]
-    provenance: UserOntologyEditionProvenanceMetadata,
+    provenance: ProvidedOntologyEditionProvenanceMetadata,
 }
 
 #[utoipa::path(
@@ -276,9 +276,9 @@ enum LoadExternalPropertyTypeRequest {
         relationships: Vec<PropertyTypeRelationAndSubject>,
         #[serde(
             default,
-            skip_serializing_if = "UserOntologyEditionProvenanceMetadata::is_empty"
+            skip_serializing_if = "ProvidedOntologyEditionProvenanceMetadata::is_empty"
         )]
-        provenance: UserOntologyEditionProvenanceMetadata,
+        provenance: ProvidedOntologyEditionProvenanceMetadata,
     },
 }
 
@@ -455,9 +455,9 @@ struct UpdatePropertyTypeRequest {
     relationships: Vec<PropertyTypeRelationAndSubject>,
     #[serde(
         default,
-        skip_serializing_if = "UserOntologyEditionProvenanceMetadata::is_empty"
+        skip_serializing_if = "ProvidedOntologyEditionProvenanceMetadata::is_empty"
     )]
-    provenance: UserOntologyEditionProvenanceMetadata,
+    provenance: ProvidedOntologyEditionProvenanceMetadata,
 }
 
 #[utoipa::path(

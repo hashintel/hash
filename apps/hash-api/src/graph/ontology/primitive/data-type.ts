@@ -7,8 +7,8 @@ import type {
   DataTypeStructuralQuery,
   ModifyRelationshipOperation,
   OntologyTemporalMetadata,
+  ProvidedOntologyEditionProvenanceMetadata,
   UnarchiveDataTypeParams,
-  UserOntologyEditionProvenanceMetadata,
 } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -54,7 +54,7 @@ export const createDataType: ImpureGraphFunction<
     schema: ConstructDataTypeParams;
     webShortname?: string;
     relationships: DataTypeRelationAndSubject[];
-    provenance?: UserOntologyEditionProvenanceMetadata;
+    provenance?: ProvidedOntologyEditionProvenanceMetadata;
   },
   Promise<DataTypeWithMetadata>
 > = async (ctx, authentication, params) => {
@@ -203,7 +203,7 @@ export const updateDataType: ImpureGraphFunction<
     dataTypeId: VersionedUrl;
     schema: ConstructDataTypeParams;
     relationships: DataTypeRelationAndSubject[];
-    provenance?: UserOntologyEditionProvenanceMetadata;
+    provenance?: ProvidedOntologyEditionProvenanceMetadata;
   },
   Promise<DataTypeWithMetadata>
 > = async ({ graphApi }, { actorId }, params) => {

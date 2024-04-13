@@ -24,7 +24,7 @@ pub use self::{
     },
     provenance::{
         OntologyEditionProvenanceMetadata, OntologyProvenanceMetadata,
-        UserOntologyEditionProvenanceMetadata,
+        ProvidedOntologyEditionProvenanceMetadata,
     },
 };
 use crate::owned_by_id::OwnedById;

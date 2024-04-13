@@ -7,9 +7,9 @@ import type {
   OntologyTemporalMetadata,
   PropertyTypePermission,
   PropertyTypeStructuralQuery,
+  ProvidedOntologyEditionProvenanceMetadata,
   UnarchivePropertyTypeParams,
   UpdatePropertyTypeRequest,
-  UserOntologyEditionProvenanceMetadata,
 } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -49,7 +49,7 @@ export const createPropertyType: ImpureGraphFunction<
     schema: ConstructPropertyTypeParams;
     webShortname?: string;
     relationships: PropertyTypeRelationAndSubject[];
-    provenance?: UserOntologyEditionProvenanceMetadata;
+    provenance?: ProvidedOntologyEditionProvenanceMetadata;
   },
   Promise<PropertyTypeWithMetadata>
 > = async (ctx, authentication, params) => {
@@ -190,7 +190,7 @@ export const updatePropertyType: ImpureGraphFunction<
     propertyTypeId: VersionedUrl;
     schema: ConstructPropertyTypeParams;
     relationships: PropertyTypeRelationAndSubject[];
-    provenance?: UserOntologyEditionProvenanceMetadata;
+    provenance?: ProvidedOntologyEditionProvenanceMetadata;
   },
   Promise<PropertyTypeWithMetadata>
 > = async ({ graphApi }, { actorId }, params) => {

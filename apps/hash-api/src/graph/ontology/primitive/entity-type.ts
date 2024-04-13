@@ -8,9 +8,9 @@ import type {
   EntityTypeStructuralQuery,
   ModifyRelationshipOperation,
   OntologyTemporalMetadata,
+  ProvidedOntologyEditionProvenanceMetadata,
   UnarchiveEntityTypeParams,
   UpdateEntityTypeRequest,
-  UserOntologyEditionProvenanceMetadata,
 } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -135,7 +135,7 @@ export const createEntityType: ImpureGraphFunction<
     icon?: string | null;
     webShortname?: string;
     relationships: EntityTypeRelationAndSubject[];
-    provenance?: UserOntologyEditionProvenanceMetadata;
+    provenance?: ProvidedOntologyEditionProvenanceMetadata;
   },
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
@@ -288,7 +288,7 @@ export const updateEntityType: ImpureGraphFunction<
     labelProperty?: BaseUrl;
     icon?: string | null;
     relationships: EntityTypeRelationAndSubject[];
-    provenance?: UserOntologyEditionProvenanceMetadata;
+    provenance?: ProvidedOntologyEditionProvenanceMetadata;
   },
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {

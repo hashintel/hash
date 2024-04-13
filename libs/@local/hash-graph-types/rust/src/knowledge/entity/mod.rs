@@ -14,7 +14,7 @@ use uuid::Uuid;
 
 pub use self::provenance::{
     EntityEditionProvenanceMetadata, EntityProvenanceMetadata, InferredEntityProvenanceMetadata,
-    UserEntityEditionProvenanceMetadata,
+    ProvidedEntityEditionProvenanceMetadata,
 };
 use crate::{
     knowledge::{

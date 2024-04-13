@@ -22,7 +22,7 @@ use graph_types::{
         DataTypeMetadata, EntityTypeMetadata, OntologyTemporalMetadata, OntologyType,
         OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
         PartialDataTypeMetadata, PartialEntityTypeMetadata, PartialPropertyTypeMetadata,
-        PropertyTypeMetadata, UserOntologyEditionProvenanceMetadata,
+        PropertyTypeMetadata, ProvidedOntologyEditionProvenanceMetadata,
     },
     owned_by_id::OwnedById,
 };
@@ -550,7 +550,7 @@ where
                             classification: metadata.classification,
                             relationships: DATA_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
-                            provenance: UserOntologyEditionProvenanceMetadata::default(),
+                            provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
                         }),
                 )
                 .await?;
@@ -570,7 +570,7 @@ where
                             classification: metadata.classification,
                             relationships: PROPERTY_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
-                            provenance: UserOntologyEditionProvenanceMetadata::default(),
+                            provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
                         }),
                 )
                 .await?;
@@ -592,7 +592,7 @@ where
                             label_property: metadata.label_property,
                             relationships: ENTITY_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
-                            provenance: UserOntologyEditionProvenanceMetadata::default(),
+                            provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
                         }),
                 )
                 .await?;
@@ -649,7 +649,7 @@ where
                                 classification: metadata.classification,
                                 relationships: DATA_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
-                                provenance: UserOntologyEditionProvenanceMetadata::default(),
+                                provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
                             }),
                     )
                     .await?
@@ -669,7 +669,7 @@ where
                                 classification: metadata.classification,
                                 relationships: PROPERTY_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
-                                provenance: UserOntologyEditionProvenanceMetadata::default(),
+                                provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
                             },
                         ),
                     )
@@ -692,7 +692,7 @@ where
                                 label_property: metadata.label_property,
                                 relationships: ENTITY_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
-                                provenance: UserOntologyEditionProvenanceMetadata::default(),
+                                provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
                             },
                         ),
                     )

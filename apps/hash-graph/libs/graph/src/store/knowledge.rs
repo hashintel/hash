@@ -7,7 +7,7 @@ use graph_types::{
     knowledge::{
         entity::{
             Entity, EntityEmbedding, EntityId, EntityMetadata, EntityUuid,
-            UserEntityEditionProvenanceMetadata,
+            ProvidedEntityEditionProvenanceMetadata,
         },
         link::LinkData,
         Confidence, PropertyConfidence, PropertyObject, PropertyPatchOperation,
@@ -196,7 +196,7 @@ pub struct CreateEntityParams<R> {
     pub draft: bool,
     pub relationships: R,
     #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
-    pub provenance: UserEntityEditionProvenanceMetadata,
+    pub provenance: ProvidedEntityEditionProvenanceMetadata,
 }
 
 #[derive(Debug, Deserialize)]
@@ -253,7 +253,7 @@ pub struct PatchEntityParams {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub confidence: Option<Confidence>,
     #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
-    pub provenance: UserEntityEditionProvenanceMetadata,
+    pub provenance: ProvidedEntityEditionProvenanceMetadata,
 }
 
 #[derive(Debug, Deserialize)]

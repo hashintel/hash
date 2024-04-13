@@ -1,7 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
   PropertyConfidence,
-  UserEntityEditionProvenanceMetadata,
+  ProvidedEntityEditionProvenanceMetadata,
 } from "@local/hash-graph-client";
 import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
@@ -37,7 +37,7 @@ export type CreateLinkEntityParams = {
   relationships: EntityRelationAndSubject[];
   confidence?: number;
   propertyConfidence?: PropertyConfidence;
-  provenance?: UserEntityEditionProvenanceMetadata;
+  provenance?: ProvidedEntityEditionProvenanceMetadata;
 };
 
 export const isEntityLinkEntity = (entity: Entity): entity is LinkEntity =>
@@ -144,7 +144,7 @@ export const updateLinkEntity: ImpureGraphFunction<
     linkEntity: LinkEntity;
     properties?: EntityPropertiesObject;
     draft?: boolean;
-    provenance?: UserEntityEditionProvenanceMetadata;
+    provenance?: ProvidedEntityEditionProvenanceMetadata;
   },
   Promise<LinkEntity>
 > = async ({ graphApi }, { actorId }, params) => {

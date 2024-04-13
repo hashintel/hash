@@ -62,7 +62,7 @@ use graph_types::{
     account::AccountId,
     knowledge::{
         entity::{
-            Entity, EntityId, EntityMetadata, EntityUuid, UserEntityEditionProvenanceMetadata,
+            Entity, EntityId, EntityMetadata, EntityUuid, ProvidedEntityEditionProvenanceMetadata,
         },
         link::LinkData,
         Confidence, PropertyConfidence, PropertyObject,
@@ -70,7 +70,7 @@ use graph_types::{
     ontology::{
         DataTypeMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
         OntologyTypeClassificationMetadata, PropertyTypeMetadata, PropertyTypeWithMetadata,
-        UserOntologyEditionProvenanceMetadata,
+        ProvidedOntologyEditionProvenanceMetadata,
     },
     owned_by_id::OwnedById,
 };
@@ -222,7 +222,7 @@ impl DatabaseTestWrapper {
                         },
                         relationships: data_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
-                        provenance: UserOntologyEditionProvenanceMetadata::default(),
+                        provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
                     }
                 }),
             )
@@ -243,7 +243,7 @@ impl DatabaseTestWrapper {
                         },
                         relationships: property_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
-                        provenance: UserOntologyEditionProvenanceMetadata::default(),
+                        provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
                     }
                 }),
             )
@@ -266,7 +266,7 @@ impl DatabaseTestWrapper {
                         icon: None,
                         relationships: entity_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
-                        provenance: UserOntologyEditionProvenanceMetadata::default(),
+                        provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
                     }
                 }),
             )
@@ -307,7 +307,7 @@ impl DatabaseApi<'_> {
                     },
                     relationships: data_type_relationships(),
                     conflict_behavior: ConflictBehavior::Fail,
-                    provenance: UserOntologyEditionProvenanceMetadata::default(),
+                    provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
                 },
             )
             .await
@@ -329,7 +329,7 @@ impl DatabaseApi<'_> {
                     },
                     relationships: data_type_relationships(),
                     conflict_behavior: ConflictBehavior::Fail,
-                    provenance: UserOntologyEditionProvenanceMetadata::default(),
+                    provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
                 },
             )
             .await
@@ -380,7 +380,7 @@ impl DatabaseApi<'_> {
                 UpdateDataTypesParams {
                     schema,
                     relationships: data_type_relationships(),
-                    provenance: UserOntologyEditionProvenanceMetadata::default(),
+                    provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
                 },
             )
             .await
@@ -402,7 +402,7 @@ impl DatabaseApi<'_> {
                     },
                     relationships: property_type_relationships(),
                     conflict_behavior: ConflictBehavior::Fail,
-                    provenance: UserOntologyEditionProvenanceMetadata::default(),
+                    provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
                 },
             )
             .await
@@ -453,7 +453,7 @@ impl DatabaseApi<'_> {
                 UpdatePropertyTypesParams {
                     schema: property_type,
                     relationships: property_type_relationships(),
-                    provenance: UserOntologyEditionProvenanceMetadata::default(),
+                    provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
                 },
             )
             .await
@@ -477,7 +477,7 @@ impl DatabaseApi<'_> {
                     icon: None,
                     relationships: entity_type_relationships(),
                     conflict_behavior: ConflictBehavior::Fail,
-                    provenance: UserOntologyEditionProvenanceMetadata::default(),
+                    provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
                 },
             )
             .await
@@ -530,7 +530,7 @@ impl DatabaseApi<'_> {
                     icon: None,
                     label_property: None,
                     relationships: entity_type_relationships(),
-                    provenance: UserOntologyEditionProvenanceMetadata::default(),
+                    provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
                 },
             )
             .await
@@ -561,7 +561,7 @@ impl DatabaseApi<'_> {
                     draft,
                     relationships: [],
                     confidence,
-                    provenance: UserEntityEditionProvenanceMetadata::default(),
+                    provenance: ProvidedEntityEditionProvenanceMetadata::default(),
                 },
             )
             .await
@@ -819,7 +819,7 @@ impl DatabaseApi<'_> {
                     draft: false,
                     relationships: [],
                     confidence: None,
-                    provenance: UserEntityEditionProvenanceMetadata::default(),
+                    provenance: ProvidedEntityEditionProvenanceMetadata::default(),
                 },
             )
             .await
@@ -1000,7 +1000,7 @@ impl DatabaseApi<'_> {
                     entity_type_ids: vec![],
                     properties: vec![],
                     confidence: None,
-                    provenance: UserEntityEditionProvenanceMetadata::default(),
+                    provenance: ProvidedEntityEditionProvenanceMetadata::default(),
                 },
             )
             .await

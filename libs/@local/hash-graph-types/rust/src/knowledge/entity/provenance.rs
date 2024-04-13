@@ -19,7 +19,7 @@ pub struct EntityEditionProvenanceMetadata {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub archived_by_id: Option<EditionArchivedById>,
     #[serde(flatten)]
-    pub user_defined: UserEntityEditionProvenanceMetadata,
+    pub user_defined: ProvidedEntityEditionProvenanceMetadata,
 }
 
 #[cfg(feature = "postgres")]
@@ -52,13 +52,13 @@ impl ToSql for EntityEditionProvenanceMetadata {
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct UserEntityEditionProvenanceMetadata {
+pub struct ProvidedEntityEditionProvenanceMetadata {
     /// This field is only used to generate a TS type.
     #[serde(default, rename = "__placeholder")]
     __placeholder: (),
 }
 
-impl UserEntityEditionProvenanceMetadata {
+impl ProvidedEntityEditionProvenanceMetadata {
     #[must_use]
     #[expect(clippy::unused_self, clippy::missing_const_for_fn)]
     pub fn is_empty(&self) -> bool {

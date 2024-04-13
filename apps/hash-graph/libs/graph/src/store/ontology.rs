@@ -12,7 +12,7 @@ use graph_types::{
     ontology::{
         DataTypeMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
         OntologyTemporalMetadata, OntologyTypeClassificationMetadata, PropertyTypeMetadata,
-        PropertyTypeWithMetadata, UserOntologyEditionProvenanceMetadata,
+        PropertyTypeWithMetadata, ProvidedOntologyEditionProvenanceMetadata,
     },
     Embedding,
 };
@@ -46,7 +46,7 @@ pub struct CreateDataTypeParams<R> {
     pub relationships: R,
     pub conflict_behavior: ConflictBehavior,
     #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
-    pub provenance: UserOntologyEditionProvenanceMetadata,
+    pub provenance: ProvidedOntologyEditionProvenanceMetadata,
 }
 
 #[derive(Debug, Deserialize)]
@@ -66,7 +66,7 @@ pub struct UpdateDataTypesParams<R> {
     pub schema: DataType,
     pub relationships: R,
     #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
-    pub provenance: UserOntologyEditionProvenanceMetadata,
+    pub provenance: ProvidedOntologyEditionProvenanceMetadata,
 }
 
 #[derive(Debug, Deserialize)]
@@ -83,7 +83,7 @@ pub struct ArchiveDataTypeParams<'a> {
 pub struct UnarchiveDataTypeParams {
     pub data_type_id: VersionedUrl,
     #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
-    pub provenance: UserOntologyEditionProvenanceMetadata,
+    pub provenance: ProvidedOntologyEditionProvenanceMetadata,
 }
 
 #[derive(Debug, Deserialize)]
@@ -224,7 +224,7 @@ pub struct CreatePropertyTypeParams<R> {
     pub relationships: R,
     pub conflict_behavior: ConflictBehavior,
     #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
-    pub provenance: UserOntologyEditionProvenanceMetadata,
+    pub provenance: ProvidedOntologyEditionProvenanceMetadata,
 }
 
 #[derive(Debug, Deserialize)]
@@ -244,7 +244,7 @@ pub struct UpdatePropertyTypesParams<R> {
     pub schema: PropertyType,
     pub relationships: R,
     #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
-    pub provenance: UserOntologyEditionProvenanceMetadata,
+    pub provenance: ProvidedOntologyEditionProvenanceMetadata,
 }
 
 #[derive(Debug, Deserialize)]
@@ -261,7 +261,7 @@ pub struct ArchivePropertyTypeParams<'a> {
 pub struct UnarchivePropertyTypeParams<'a> {
     pub property_type_id: Cow<'a, VersionedUrl>,
     #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
-    pub provenance: UserOntologyEditionProvenanceMetadata,
+    pub provenance: ProvidedOntologyEditionProvenanceMetadata,
 }
 
 #[derive(Debug, Deserialize)]
@@ -404,7 +404,7 @@ pub struct CreateEntityTypeParams<R> {
     pub relationships: R,
     pub conflict_behavior: ConflictBehavior,
     #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
-    pub provenance: UserOntologyEditionProvenanceMetadata,
+    pub provenance: ProvidedOntologyEditionProvenanceMetadata,
 }
 
 #[derive(Debug, Deserialize)]
@@ -426,7 +426,7 @@ pub struct UpdateEntityTypesParams<R> {
     pub icon: Option<String>,
     pub relationships: R,
     #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
-    pub provenance: UserOntologyEditionProvenanceMetadata,
+    pub provenance: ProvidedOntologyEditionProvenanceMetadata,
 }
 
 #[derive(Debug, Deserialize)]
@@ -443,7 +443,7 @@ pub struct ArchiveEntityTypeParams<'a> {
 pub struct UnarchiveEntityTypeParams<'a> {
     pub entity_type_id: Cow<'a, VersionedUrl>,
     #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
-    pub provenance: UserOntologyEditionProvenanceMetadata,
+    pub provenance: ProvidedOntologyEditionProvenanceMetadata,
 }
 
 #[derive(Debug, Deserialize)]

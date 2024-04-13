@@ -44,7 +44,7 @@ use graph_types::{
     ontology::{
         DataTypeMetadata, DataTypeWithMetadata, OntologyTemporalMetadata,
         OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
-        UserOntologyEditionProvenanceMetadata,
+        ProvidedOntologyEditionProvenanceMetadata,
     },
     owned_by_id::OwnedById,
 };
@@ -157,9 +157,9 @@ struct CreateDataTypeRequest {
     relationships: Vec<DataTypeRelationAndSubject>,
     #[serde(
         default,
-        skip_serializing_if = "UserOntologyEditionProvenanceMetadata::is_empty"
+        skip_serializing_if = "ProvidedOntologyEditionProvenanceMetadata::is_empty"
     )]
-    provenance: UserOntologyEditionProvenanceMetadata,
+    provenance: ProvidedOntologyEditionProvenanceMetadata,
 }
 
 #[utoipa::path(
@@ -270,9 +270,9 @@ enum LoadExternalDataTypeRequest {
         relationships: Vec<DataTypeRelationAndSubject>,
         #[serde(
             default,
-            skip_serializing_if = "UserOntologyEditionProvenanceMetadata::is_empty"
+            skip_serializing_if = "ProvidedOntologyEditionProvenanceMetadata::is_empty"
         )]
-        provenance: UserOntologyEditionProvenanceMetadata,
+        provenance: ProvidedOntologyEditionProvenanceMetadata,
     },
 }
 
@@ -450,9 +450,9 @@ struct UpdateDataTypeRequest {
     relationships: Vec<DataTypeRelationAndSubject>,
     #[serde(
         default,
-        skip_serializing_if = "UserOntologyEditionProvenanceMetadata::is_empty"
+        skip_serializing_if = "ProvidedOntologyEditionProvenanceMetadata::is_empty"
     )]
-    provenance: UserOntologyEditionProvenanceMetadata,
+    provenance: ProvidedOntologyEditionProvenanceMetadata,
 }
 
 #[utoipa::path(

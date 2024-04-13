@@ -2706,7 +2706,7 @@
             "$ref": "#/components/schemas/OwnedById"
           },
           "provenance": {
-            "$ref": "#/components/schemas/UserOntologyEditionProvenanceMetadata"
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
           },
           "relationships": {
             "type": "array",
@@ -2791,7 +2791,7 @@
             ]
           },
           "provenance": {
-            "$ref": "#/components/schemas/UserEntityEditionProvenanceMetadata"
+            "$ref": "#/components/schemas/ProvidedEntityEditionProvenanceMetadata"
           },
           "relationships": {
             "type": "array",
@@ -2826,7 +2826,7 @@
             "$ref": "#/components/schemas/OwnedById"
           },
           "provenance": {
-            "$ref": "#/components/schemas/UserOntologyEditionProvenanceMetadata"
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
           },
           "relationships": {
             "type": "array",
@@ -2862,7 +2862,7 @@
             "$ref": "#/components/schemas/OwnedById"
           },
           "provenance": {
-            "$ref": "#/components/schemas/UserOntologyEditionProvenanceMetadata"
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
           },
           "relationships": {
             "type": "array",
@@ -3237,7 +3237,7 @@
       "EntityEditionProvenanceMetadata": {
         "allOf": [
           {
-            "$ref": "#/components/schemas/UserEntityEditionProvenanceMetadata"
+            "$ref": "#/components/schemas/ProvidedEntityEditionProvenanceMetadata"
           },
           {
             "type": "object",
@@ -4776,7 +4776,7 @@
             ],
             "properties": {
               "provenance": {
-                "$ref": "#/components/schemas/UserOntologyEditionProvenanceMetadata"
+                "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
               },
               "relationships": {
                 "type": "array",
@@ -4824,7 +4824,7 @@
                 "nullable": true
               },
               "provenance": {
-                "$ref": "#/components/schemas/UserOntologyEditionProvenanceMetadata"
+                "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
               },
               "relationships": {
                 "type": "array",
@@ -4860,7 +4860,7 @@
             ],
             "properties": {
               "provenance": {
-                "$ref": "#/components/schemas/UserOntologyEditionProvenanceMetadata"
+                "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
               },
               "relationships": {
                 "type": "array",
@@ -5043,7 +5043,7 @@
       "OntologyEditionProvenanceMetadata": {
         "allOf": [
           {
-            "$ref": "#/components/schemas/UserOntologyEditionProvenanceMetadata"
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
           },
           {
             "type": "object",
@@ -5349,7 +5349,7 @@
             }
           },
           "provenance": {
-            "$ref": "#/components/schemas/UserEntityEditionProvenanceMetadata"
+            "$ref": "#/components/schemas/ProvidedEntityEditionProvenanceMetadata"
           }
         },
         "additionalProperties": false
@@ -5896,6 +5896,26 @@
           }
         }
       },
+      "ProvidedEntityEditionProvenanceMetadata": {
+        "type": "object",
+        "properties": {
+          "__placeholder": {
+            "default": null,
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProvidedOntologyEditionProvenanceMetadata": {
+        "type": "object",
+        "properties": {
+          "__placeholder": {
+            "default": null,
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "QueryTemporalAxes": {
         "oneOf": [
           {
@@ -6229,7 +6249,7 @@
             "$ref": "#/components/schemas/VersionedUrl"
           },
           "provenance": {
-            "$ref": "#/components/schemas/UserOntologyEditionProvenanceMetadata"
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
           }
         },
         "additionalProperties": false
@@ -6244,7 +6264,7 @@
             "$ref": "#/components/schemas/VersionedUrl"
           },
           "provenance": {
-            "$ref": "#/components/schemas/UserOntologyEditionProvenanceMetadata"
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
           }
         },
         "additionalProperties": false
@@ -6259,7 +6279,7 @@
             "$ref": "#/components/schemas/VersionedUrl"
           },
           "provenance": {
-            "$ref": "#/components/schemas/UserOntologyEditionProvenanceMetadata"
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
           }
         },
         "additionalProperties": false
@@ -6322,7 +6342,7 @@
         ],
         "properties": {
           "provenance": {
-            "$ref": "#/components/schemas/UserOntologyEditionProvenanceMetadata"
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
           },
           "relationships": {
             "type": "array",
@@ -6415,7 +6435,7 @@
             "nullable": true
           },
           "provenance": {
-            "$ref": "#/components/schemas/UserOntologyEditionProvenanceMetadata"
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
           },
           "relationships": {
             "type": "array",
@@ -6465,7 +6485,7 @@
         ],
         "properties": {
           "provenance": {
-            "$ref": "#/components/schemas/UserOntologyEditionProvenanceMetadata"
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
           },
           "relationships": {
             "type": "array",
@@ -6478,26 +6498,6 @@
           },
           "typeToUpdate": {
             "$ref": "#/components/schemas/VersionedUrl"
-          }
-        },
-        "additionalProperties": false
-      },
-      "UserEntityEditionProvenanceMetadata": {
-        "type": "object",
-        "properties": {
-          "__placeholder": {
-            "default": null,
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "UserOntologyEditionProvenanceMetadata": {
-        "type": "object",
-        "properties": {
-          "__placeholder": {
-            "default": null,
-            "nullable": true
           }
         },
         "additionalProperties": false

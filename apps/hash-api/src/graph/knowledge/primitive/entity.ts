@@ -10,7 +10,7 @@ import type {
   GraphResolveDepths,
   ModifyRelationshipOperation,
   PropertyConfidence,
-  UserEntityEditionProvenanceMetadata,
+  ProvidedEntityEditionProvenanceMetadata,
 } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -77,7 +77,7 @@ export type CreateEntityParams = {
   relationships: EntityRelationAndSubject[];
   confidence?: number;
   propertyConfidence?: PropertyConfidence;
-  provenance?: UserEntityEditionProvenanceMetadata;
+  provenance?: ProvidedEntityEditionProvenanceMetadata;
 };
 
 /** @todo: potentially directly export this from the subgraph package */
@@ -395,7 +395,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
     linkedEntities?: LinkedEntityDefinition[];
     relationships: EntityRelationAndSubject[];
     draft?: boolean;
-    provenance?: UserEntityEditionProvenanceMetadata;
+    provenance?: ProvidedEntityEditionProvenanceMetadata;
   },
   Promise<Entity>,
   false,
@@ -528,7 +528,7 @@ export const updateEntity: ImpureGraphFunction<
     entityTypeId?: VersionedUrl;
     properties: EntityPropertiesObject;
     draft?: boolean;
-    provenance?: UserEntityEditionProvenanceMetadata;
+    provenance?: ProvidedEntityEditionProvenanceMetadata;
   },
   Promise<Entity>,
   false,
@@ -622,7 +622,7 @@ export const updateEntityProperties: ImpureGraphFunction<
       propertyTypeBaseUrl: BaseUrl;
       value: PropertyValue | undefined;
     }[];
-    provenance?: UserEntityEditionProvenanceMetadata;
+    provenance?: ProvidedEntityEditionProvenanceMetadata;
   },
   Promise<Entity>,
   false,
@@ -659,7 +659,7 @@ export const updateEntityProperty: ImpureGraphFunction<
     entity: Entity;
     propertyTypeBaseUrl: BaseUrl;
     value: PropertyValue | undefined;
-    provenance?: UserEntityEditionProvenanceMetadata;
+    provenance?: ProvidedEntityEditionProvenanceMetadata;
   },
   Promise<Entity>,
   false,
