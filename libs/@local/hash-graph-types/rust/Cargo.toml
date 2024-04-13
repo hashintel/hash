@@ -24,7 +24,7 @@ uuid = { version = "1.8.0", default-features = false, features = ["serde"] }
 json-patch = { version = "1.2.0", default-features = false }
 semver = { version = "1.0.22", features = ["serde"] }
 thiserror = "1.0.58"
-url = "2.5.0"
+url = { version = "2.5.0", features = ["serde"] }
 
 
 [dev-dependencies]
