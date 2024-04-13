@@ -35,7 +35,7 @@ But for more idiosyncratic data, information may not be available "off-the-shelf
 Calculating metrics and inferring novel statistics may involve:
 
 - Collating hard-to-gather information from many different websites or sources
-- Talking to or requesting inputs from a wide array of actors, including both subjects and observers
+- Talking to or requesting input from a wide array of people, including both the subjects of the statistics and watching experts
 - Synthesizing gathered information into a clean, consistently structured form
 - Performing calculations or analysis using the gathered data
 
@@ -45,11 +45,11 @@ Producing these statistics, that are not readily available to others, can suppor
 
 Many organizations have "analysts" or "associates" whose roles involve large-scale data collection, research and analysis of individuals, companies, opportunities, and ideas.
 
-For example, a venture capitalist may want to conduct research on all of the authors of a particular academic paper. Within frontier AI research groups, for example, it is not uncommon for certain papers to have 10-20 (or more!) authors. Being able to take only their names and organizational affiliations, and automatically identify their LinkedIn profile, Google Scholar profile, Twitter profile, GitHub profile, current title, previous employers, and so on would save hours of manually scouring the web, freeing analysts up to conduct more meaningful due diligence.
+For example, a venture capitalist may want to conduct research on all of the authors of a particular academic paper. Within frontier AI research groups, for example, it is not uncommon for certain papers to have 10-20 (or more!) authors. Being able to take only the name of or URL to the paper, and to automatically gather the authors' names and organizational affiliations, LinkedIn profile, Google Scholar profile, Twitter profile, GitHub profile, current title, previous employers, and so on would save hours of manually scouring the web, freeing analysts up to conduct more meaningful due diligence.
 
 ## Monitoring and tracking
 
-Automated monitoring and updating of information is one of our self-building database's core competencies.
+Automated monitoring and updating of information would be one of this self-building database's core competencies.
 
 When it comes to product management work, this can be used to aide competitive intelligence:
 
@@ -64,10 +64,10 @@ When it comes to product management work, this can be used to aide competitive i
 
 No matter what side of an opportunity you're on, automating the legwork of identifying opportunities and qualifying/filtering them can be time-consuming. Whether you're...
 
-- Prospecting for investment opportunities, or seeking out potential investors;
-- Headhunting potential new recruits, or researching potential open roles;
-- Identifying and qualifying sales targets, or finding the best solution provider for your needs;
-- Selling commercial real estate, or looking for a unique space;
+- Prospecting for investment opportunities, or seeking out potential investors
+- Headhunting potential new recruits, or researching potential open roles
+- Identifying and qualifying sales targets, or finding the best solution provider for your needs
+- Selling commercial real estate, or looking for a unique space
 
 ...you're typically going to spend a large amount of time Googling, clicking through onto a variety of different websites and results, grappling with inadequate search filters, and manually doing a lot of the information parsing yourself.
 
@@ -75,9 +75,9 @@ No matter what side of an opportunity you're on, automating the legwork of ident
 
 Complex systems can be incredibly sensitive to their initial conditions. Even small differences between a variable used in a model, and the actual real-world value of a thing, can cause huge differences in simulated outcomes.
 
-In many domains, ensuring models are as accurate as possible requires the observation and collection of accurate, real-time, real-world information. Doyne Former, of the Santa Fe Institute and Oxford's Institute for New Economic Thinking, refers to this as the need for "collective awareness". Using publicly available unstructured data, we can create live, composite metrics (e.g. gauges of price volatility and inflation, with respect to different types of products) and incorporate these into simulations (in this example, economic ones). Doing this type of thing with a self-building database becomes immensely easier.
+In many domains, ensuring models are as accurate as possible requires the observation and collection of accurate, real-time, real-world information. Doyne Former, of the Santa Fe Institute and Oxford's Institute for New Economic Thinking, refers to this as the need for "collective awareness". Using publicly available unstructured data, we can create live, composite metrics (e.g. gauges of price volatility and inflation, with respect to different types of products) and incorporate these into simulations. Doing this type of thing with a self-building database becomes immensely easier.
 
-_n.b. For readers of this post who don't know our origins, HASH was founded in 2019 as a multi-agent systems research lab, building [agent-based simulation modeling](/cases/simulation) tools._
+_This use case is particularly close to our hearts: HASH was founded in 2019 as a multi-agent systems research lab, building [agent-based simulation modeling](/cases/simulation) tools._
 
 # Technical requirements
 
@@ -85,24 +85,24 @@ Given the database that we "imagine", there are quite a few technical components
 
 ## A type system
 
-Many people have tried to build graphs of "linked open data" before, but they haven't worked, or at least gained the dominance, because different people conceptualize the same things differently. Not all folks agree on defining things the same way, often for very good reasons (in spite of the best efforts of projects like _schema.org_), and even when _they do_, individuals often care about different aspects of those things. For example, one person might care about how scenic a given walking route is, while a second might care about how hilly it is, while a third is concerned with its directness and efficiency.
+Many people have tried to build graphs of "linked open data" before, but they haven't worked, or at least gained the dominance required to be a truly open graph rather than a series of bespoke silos, because different people conceptualize the same things differently. Not all folks agree on defining things the same way, often for very good reasons (in spite of the best efforts of projects like _schema.org_), and even when _they do_, individuals often care about different aspects of those things. For example, one person might care about how scenic a given walking route is, while a second might care about how hilly it is, while a third is concerned with its directness and efficiency.
 
 Type systems let their users define things, and the aspects of those things that they care about.
 
-A multi-tenant type system lets different users define entities however they like, while retaining an ability to refer to the same underlying semantic objects (our "entities" or "things"), even when descriptions and definitions of them differ. Great prior work in this space like [Project Cambria](https://www.inkandswitch.com/cambria/) provides a starting point for thinking about how this can be achieved.
+A multi-tenant type system lets different users define entities however they like, while retaining an ability to refer to the same underlying semantic objects (our "entities" or "things") by declaring one type as being semantically the 'same as' another, even when descriptions and definitions of them differ. Great prior work in this space like [Project Cambria](https://www.inkandswitch.com/cambria/) provides a starting point for thinking about how this can be achieved.
 
 ## A graph datastore
 
-To support all of the things we imagine a self-building, globally-connected database needs to be able to do, to be truly useful, we need a new kind of graph database with native support for:
+To support all the capabilities we imagine a self-building, globally-connected database needs to be truly useful, we need a new kind of graph database with native support for:
 
-- Multi-tenancy, allowing for the creation of a globally connected knowledge graph, integrated alongside every individual and organization's private data, with the ability to securely and selectively grant access to subgraphs of information when desired.
-- Bitemporal versioning, enabling effective conflict resolution and multi-party access to data.
-- Provenance and confidence metadata, enabling contextual processing of information based on probabilities (taking into account its source, and your own or a consensus view of its trustworthiness, as well as technical factors that might impact individual data's reliability).
-- Strongly typed entities, which support crosswalking via the type system we describe above.
+- Multi-tenancy, allowing for the creation of a globally connected knowledge graph, integrated alongside every individual and organization's private data, with the ability to securely and selectively grant access to subgraphs of information when desired
+- Temporal versioning, enabling an understanding of how the knowledge in the graph has evolved over time
+- Provenance and confidence metadata, enabling contextual processing of information based on probabilities (taking into account its source, and your own or a consensus view of its trustworthiness, as well as technical factors that might impact individual data's reliability)
+- Strongly typed entities, which support consistency and predictability in the structure of entity data, as well as cross-references ("crosswalking") between different type definitions which refer to the same underlying thing in the world, via the type system we describe above
 
 ## Agentic AI
 
-To derive structure from the unstructured web we need intelligent agents. These agents need to be capable of running for an extremely long time, processing vast quantities of data. They need to be able to identify real patterns amidst noise, pick out the most important needles within unruly haystacks, and solve problems, perform calculations, and conduct analysis on the fly... introspecting and checking their own work, seeking confirmatory and contradictory sources, and formulating confidence assessments around the "synthesis" they produce.
+To efficiently derive structure from the unstructured web we need intelligent agents. These agents need to be capable of running for an extremely long time, processing vast quantities of data. They need to be able to identify real patterns amidst noise, pick out the most important needles within unruly haystacks, solve problems, perform calculations, and conduct analysis on the fly... introspecting and checking their own work, seeking confirmatory and contradictory sources, and formulating confidence assessments around the "synthesis" they produce.
 
 ## A task executor
 
@@ -114,7 +114,7 @@ Finally, to support complex agentic AI, we need a task executor capable of handl
 
 In fact, [HASH](/) is already being used to solve each of the use cases outlined above.
 
-HASH is a new kind of database for integrating information, which grows, checks, and maintains itself, with a graphical user interface (GUI) that makes its contents directly accessible to all of its end-users. HASH provides all of the capabilities we "imagine" in our introduction.
+HASH is a new kind of database for integrating information, which grows, checks, and maintains itself, with a graphical user interface (GUI) that makes its contents directly, easily and visually accessible to all of its end-users. HASH provides all of the capabilities we "imagine" in our introduction.
 
 We founded _HASH, Inc._ as a research lab in 2019. In the years since, we've built the type system, graph, and application (in Rust, for speed, safety, and WASM-compatibility) steadily and quietly, testing it in the real-world throughout.
 
