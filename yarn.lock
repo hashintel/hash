@@ -20814,10 +20814,10 @@ prelude-ls@~1.1.2:
   resolved "https://registry.yarnpkg.com/prelude-ls/-/prelude-ls-1.1.2.tgz#21932a549f5e52ffd9a827f570e04be62a97da54"
   integrity "sha1-IZMqVJ9eUv/ZqCf1cOBL5iqX2lQ= sha512-ESF23V4SKG6lVSGZgYNpbsiaAkdab6ZgOxe52p7+Kid3W3u3bxR4Vfd/o21dmN7jSt0IwgZ4v5MUd26FEtXE9w=="
 
-prettier-plugin-packagejson@2.4.14:
-  version "2.4.14"
-  resolved "https://registry.yarnpkg.com/prettier-plugin-packagejson/-/prettier-plugin-packagejson-2.4.14.tgz#5d9d6ce16f7ce02c4d854d9d0d4bcc39f8271851"
-  integrity sha512-sli+gV5tW7uxvzDZQscaBtSfbyAW2ToL6n/HGt51PipwX9vI7M54vefG0mKSfklVkT29TNGO6Mo6g8c6Z79gmw==
+prettier-plugin-packagejson@2.5.0:
+  version "2.5.0"
+  resolved "https://registry.yarnpkg.com/prettier-plugin-packagejson/-/prettier-plugin-packagejson-2.5.0.tgz#23d2cb8b1f7840702d35e3a5078e564ea0bc63e0"
+  integrity sha512-6XkH3rpin5QEQodBSVNg+rBo4r91g/1mCaRwS1YGdQJZ6jwqrg2UchBsIG9tpS1yK1kNBvOt84OILsX8uHzBGg==
   dependencies:
     sort-package-json "2.10.0"
     synckit "0.9.0"
