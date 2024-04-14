@@ -8898,10 +8898,10 @@
   dependencies:
     "@use-gesture/core" "10.2.26"
 
-"@vitest/coverage-istanbul@1.4.0":
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/@vitest/coverage-istanbul/-/coverage-istanbul-1.4.0.tgz#583db8e687fdd465f6f4391b48dacc28bb050d35"
-  integrity sha512-39TjURYyAY6CLDx8M1RNYGoAuWicPWoofk+demJbAZROLCwUgGPgMRSg51GN+snbmQRTpSizuS9XC3cMSdQH2Q==
+"@vitest/coverage-istanbul@1.5.0":
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/@vitest/coverage-istanbul/-/coverage-istanbul-1.5.0.tgz#0b84c302f3f5c5cbe28706d497cc835551b9858b"
+  integrity sha512-mEbVTIAPKhMkszO0lwOwWiG8Cvkj7rdMgdmCNUDnmcSZYUWGIqM8+4O1bcQ1WMHkejpcwvED5oU6ZFm3syVb6A==
   dependencies:
     debug "^4.3.4"
     istanbul-lib-coverage "^3.2.2"

@@ -114,7 +114,7 @@
     "@types/md5": "2.3.2",
     "@types/mime-types": "2.1.1",
     "@types/nodemailer": "6.4.6",
-    "@vitest/coverage-istanbul": "1.4.0",
+    "@vitest/coverage-istanbul": "1.5.0",
     "eslint": "8.57.0",
     "rimraf": "5.0.5",
     "vitest": "1.4.0"
