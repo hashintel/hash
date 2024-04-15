@@ -11,7 +11,6 @@ import { StatusCode } from "@local/status";
 import { CancelledFailure, Context } from "@temporalio/activity";
 import dedent from "dedent";
 
-import { logger } from "../shared/logger";
 import { createInferenceUsageRecordActivity } from "./create-inference-usage-record-activity";
 import { getAiAssistantAccountIdActivity } from "./get-ai-assistant-account-id-activity";
 import { getDereferencedEntityTypesActivity } from "./get-dereferenced-entity-types-activity";
@@ -26,6 +25,7 @@ import { persistEntities } from "./infer-entities/persist-entities";
 import { modelAliasToSpecificModel } from "./shared/openai";
 import { stringify } from "./shared/stringify";
 import { userExceededServiceUsageLimitActivity } from "./user-exceeded-service-usage-limit-activity";
+import { logger } from "./shared/activity-logger";
 
 /**
  * Infer and create entities of the requested types from the provided text input.

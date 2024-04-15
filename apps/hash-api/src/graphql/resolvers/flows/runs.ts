@@ -213,6 +213,31 @@ const mapTemporalWorkflowToFlowStatus = async (
         startedAt,
         scheduledAt,
         inputs,
+        logs: events
+          .flatMap((historyEvent) => {
+            const { workflowExecutionSignaledEventAttributes } = historyEvent;
+            if (
+              workflowExecutionSignaledEventAttributes?.signalName !==
+              "logProgress"
+            ) {
+              return null;
+            }
+            /**
+             * @todo handle cases where the activity has been retried
+             *    –– new start events are not written to the history until the activity has been closed,
+             *    so we need to count the previous close events to determine the attempt number
+             */
+
+            const logs = parseHistoryItemPayload(
+              workflowExecutionSignaledEventAttributes.input,
+            )?.[0]?.logs;
+
+            return logs;
+          })
+          .filter(
+            (historyEvent): historyEvent is NonNullable<typeof historyEvent> =>
+              !!historyEvent,
+          ),
         status: FlowStepStatus.Scheduled,
         attempt,
       };
@@ -286,8 +311,7 @@ const mapTemporalWorkflowToFlowStatus = async (
     }
   }
 
-  const { type, runId, status, startTime, executionTime, closeTime, memo } =
-    workflow;
+  const { runId, status, startTime, executionTime, closeTime, memo } = workflow;
 
   return {
     flowDefinitionId:

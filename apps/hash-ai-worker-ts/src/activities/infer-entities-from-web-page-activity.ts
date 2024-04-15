@@ -3,7 +3,6 @@ import type { AccountId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
-import { logger } from "../shared/logger";
 import { inferEntitiesSystemMessage } from "./infer-entities/infer-entities-system-message";
 import { inferEntitySummariesFromWebPage } from "./infer-entities/infer-entity-summaries-from-web-page";
 import type {
@@ -14,6 +13,7 @@ import type {
 import { proposeEntities } from "./infer-entities/propose-entities";
 import type { PermittedOpenAiModel } from "./shared/openai";
 import { stringify } from "./shared/stringify";
+import { logger } from "./shared/activity-logger";
 
 export const inferEntitiesFromWebPageActivity = async (params: {
   webPage: WebPage | string;

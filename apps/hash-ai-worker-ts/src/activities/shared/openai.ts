@@ -5,9 +5,9 @@ import { Context } from "@temporalio/activity";
 import type OpenAI from "openai";
 import { promptTokensEstimate } from "openai-chat-tokens";
 
-import { logger } from "../../shared/logger";
 import { openai } from "./get-open-ai-response/openai-client";
 import { stringify } from "./stringify";
+import { logger } from "./activity-logger";
 
 export type PermittedOpenAiModel =
   | "gpt-3.5-turbo-1106"

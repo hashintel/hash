@@ -1,4 +1,5 @@
 import { gql } from "apollo-server-express";
+import { StepProgressLog } from "@local/hash-isomorphic-utils/flows/types";
 
 export const flowTypedef = gql`
   enum FlowRunStatus {
@@ -49,6 +50,7 @@ export const flowTypedef = gql`
   scalar ArbitraryJsonData
   scalar StepInput
   scalar StepOutput
+  scalar StepProgressLog
 
   type StepRun {
     """
@@ -95,6 +97,10 @@ export const flowTypedef = gql`
     The status of the step
     """
     status: FlowStepStatus!
+    """
+    Logs from the step, reporting on progress as it executes
+    """
+    logs: [StepProgressLog!]!
     """
     Inputs to the step
     """

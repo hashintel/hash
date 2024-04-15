@@ -16,13 +16,13 @@ import dedent from "dedent";
 import { CodeInterpreter, Sandbox } from "e2b";
 import OpenAI from "openai/index";
 
-import { logger } from "../../shared/logger";
 import type { PermittedOpenAiModel } from "../shared/openai";
 import { getOpenAiResponse } from "../shared/openai";
 import { stringify } from "../shared/stringify";
 import type { FlowActionActivity } from "./types";
 import ChatCompletionUserMessageParam = OpenAI.ChatCompletionUserMessageParam;
 import ChatCompletionToolMessageParam = OpenAI.ChatCompletionToolMessageParam;
+import { logger } from "../shared/activity-logger";
 
 const answerTools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
   {

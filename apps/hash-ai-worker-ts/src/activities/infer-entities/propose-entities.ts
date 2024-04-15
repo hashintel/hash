@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { GraphApi } from "@local/hash-graph-client";
 import {
   type AccountId,
@@ -7,10 +8,11 @@ import {
 } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
+import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 import type OpenAI from "openai";
 
-import { logger } from "../../shared/logger";
+import { logProgress } from "../shared/log-progress";
 import { getOpenAiResponse } from "../shared/openai";
 import { stringify } from "../shared/stringify";
 import type {
@@ -23,6 +25,7 @@ import { validateProposedEntitiesByType } from "./persist-entities/generate-pers
 import { generateProposeEntitiesTools } from "./propose-entities/generate-propose-entities-tools";
 import { extractErrorMessage } from "./shared/extract-validation-failure-details";
 import { firstUserMessageIndex } from "./shared/first-user-message-index";
+import { logger } from "../shared/activity-logger";
 
 const sanitizePropertyKeys = (
   properties: EntityPropertiesObject,
@@ -493,16 +496,33 @@ export const proposeEntities = async (params: {
               requiresOriginalContextForRetry = true;
             }
 
-            const validProposedEntities = Object.values(proposedEntitiesByType)
-              .flat()
-              .filter(
-                ({ entityId }) =>
-                  !invalidProposedEntities.some(
-                    ({
-                      invalidProposedEntity: { entityId: invalidEntityId },
-                    }) => invalidEntityId === entityId,
+            const validProposedEntitiesByType = Object.fromEntries(
+              typedEntries(proposedEntitiesByType).map(
+                ([entityTypeId, entities]) => [
+                  entityTypeId,
+                  entities.filter(
+                    ({ entityId }) =>
+                      // Don't include invalid entities
+                      !invalidProposedEntities.some(
+                        ({
+                          invalidProposedEntity: { entityId: invalidEntityId },
+                        }) => invalidEntityId === entityId,
+                      ) &&
+                      // Ignore entities we've inferred in a previous iteration, otherwise we'll get duplicates
+                      !inferenceState.proposedEntityCreationsByType[
+                        entityTypeId
+                      ]?.some(
+                        (existingEntity) =>
+                          existingEntity.entityId === entityId,
+                      ),
                   ),
-              );
+                ],
+              ),
+            );
+
+            const validProposedEntities = Object.values(
+              validProposedEntitiesByType,
+            ).flat();
 
             logger.info(
               `Proposed ${validProposedEntities.length} valid additional entities.`,
@@ -520,32 +540,46 @@ export const proposeEntities = async (params: {
             }
 
             inferenceState.proposedEntityCreationsByType = Object.entries(
-              proposedEntitiesByType,
+              validProposedEntitiesByType,
             ).reduce(
-              (prev, [entityTypeId, proposedEntitiesOfType]) => ({
+              (prev, [entityTypeId, proposedEntities]) => ({
                 ...prev,
                 [entityTypeId]: [
                   ...(prev[entityTypeId as VersionedUrl] ?? []),
-                  ...proposedEntitiesOfType.filter(
-                    ({ entityId }) =>
-                      // Don't include invalid entities
-                      !invalidProposedEntities.some(
-                        ({
-                          invalidProposedEntity: { entityId: invalidEntityId },
-                        }) => invalidEntityId === entityId,
-                      ) &&
-                      // Ignore entities we've inferred in a previous iteration, otherwise we'll get duplicates
-                      !inferenceState.proposedEntityCreationsByType[
-                        entityTypeId as VersionedUrl
-                      ]?.some(
-                        (existingEntity) =>
-                          existingEntity.entityId === entityId,
-                      ),
-                  ),
+                  ...proposedEntities,
                 ],
               }),
               inferenceState.proposedEntityCreationsByType,
             );
+
+            const now = new Date().toISOString();
+
+            if (validProposedEntities.length > 0) {
+              logProgress(
+                typedEntries(validProposedEntitiesByType).flatMap(
+                  ([entityTypeId, entities]) =>
+                    entities.map((entity) => ({
+                      proposedEntity: {
+                        ...entity,
+                        localEntityId: entity.entityId.toString(),
+                        entityTypeId: entityTypeId as VersionedUrl,
+                        properties: entity.properties ?? {},
+                        sourceEntityLocalId:
+                          "sourceEntityId" in entity
+                            ? entity.sourceEntityId.toString()
+                            : undefined,
+                        targetEntityLocalId:
+                          "targetEntityId" in entity
+                            ? entity.targetEntityId.toString()
+                            : undefined,
+                      },
+                      recordedAt: now,
+                      type: "ProposedEntity",
+                      stepId: Context.current().info.activityId,
+                    })),
+                ),
+              );
+            }
 
             if (retryMessageContent) {
               retryMessages.push({

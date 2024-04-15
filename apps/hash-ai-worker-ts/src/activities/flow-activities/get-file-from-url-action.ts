@@ -34,6 +34,8 @@ import { StatusCode } from "@local/status";
 import mime from "mime-types";
 
 import type { FlowActionActivity } from "./types";
+import { logProgress } from "../shared/log-progress";
+import { Context } from "@temporalio/activity";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -179,6 +181,9 @@ export const getFileFromUrlAction: FlowActionActivity<{
       fileSizeInBytes,
   };
 
+  // @todo look for an existing file with the same originalUrl in the graph, and update it if found?
+  const operation = "create" as const;
+
   const incompleteFileEntityMetadata = await graphApiClient
     .createEntity(
       // @todo which bot should this be?
@@ -256,6 +261,21 @@ export const getFileFromUrlAction: FlowActionActivity<{
       contents: [],
     };
   }
+
+  logProgress([
+    {
+      persistedEntity: {
+        entity: {
+          metadata: updatedEntityMetadata,
+          properties,
+        } satisfies Entity,
+        operation, // @todo update this to "update" if an existing entity was found
+      },
+      recordedAt: new Date().toISOString(),
+      stepId: Context.current().info.activityId,
+      type: "PersistedEntity",
+    },
+  ]);
 
   return {
     code: StatusCode.Ok,

@@ -6,7 +6,6 @@ import { StatusCode } from "@local/status";
 import dedent from "dedent";
 import type OpenAI from "openai";
 
-import { logger } from "../../shared/logger";
 import { createInferredEntityNotification } from "../shared/create-inferred-entity-notification";
 import { getOpenAiResponse } from "../shared/openai";
 import { stringify } from "../shared/stringify";
@@ -27,6 +26,7 @@ import {
 } from "./persist-entities/generate-persist-entities-tools";
 import { updateEntities } from "./persist-entities/update-entities";
 import { firstUserMessageIndex } from "./shared/first-user-message-index";
+import { logger } from "../shared/activity-logger";
 
 export const persistEntities = async (params: {
   authentication: { machineActorId: AccountId };

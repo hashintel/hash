@@ -23,6 +23,8 @@ import {
   findExistingLinkEntity,
 } from "../shared/find-existing-entity";
 import type { FlowActionActivity } from "./types";
+import { logProgress } from "../shared/log-progress";
+import { Context } from "@temporalio/activity";
 
 export const persistEntityAction: FlowActionActivity<{
   graphApiClient: GraphApi;
@@ -139,6 +141,19 @@ export const persistEntityAction: FlowActionActivity<{
       metadata: mapGraphApiEntityMetadataToMetadata(entityMetadata),
       ...entityValues,
     };
+
+    logProgress([
+      {
+        persistedEntity: {
+          entity,
+          existingEntity: existingEntity ? existingEntity : undefined,
+          operation,
+        },
+        recordedAt: new Date().toISOString(),
+        stepId: Context.current().info.activityId,
+        type: "PersistedEntity",
+      },
+    ]);
 
     await createInferredEntityNotification({
       graphApiClient,

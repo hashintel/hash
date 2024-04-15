@@ -190,15 +190,26 @@ export const FlowDefinition = () => {
     const persistedEntities: Entity[] = [];
     const proposedEntities: ProposedEntity[] = [];
 
-    selectedFlowRun.steps.forEach((step) => {
+    for (const step of selectedFlowRun.steps) {
       const outputs = step.outputs?.[0]?.contents?.[0]?.outputs ?? [];
+
+      if (outputs.length === 0) {
+        for (const log of step.logs) {
+          if (log.type === "ProposedEntity") {
+            proposedEntities.push(log.proposedEntity);
+          }
+          if (log.type === "PersistedEntity" && log.persistedEntity.entity) {
+            persistedEntities.push(log.persistedEntity.entity);
+          }
+        }
+        continue;
+      }
 
       for (const output of outputs) {
         if (output.payload.kind === "ProposedEntities") {
           proposedEntities.push(...output.payload.value);
         }
         if (output.payload.kind === "Entity") {
-          console.log("Pushing", output.payload);
           persistedEntities.push(output.payload.value);
         }
         if (output.payload.kind === "PersistedEntity") {
@@ -212,7 +223,7 @@ export const FlowDefinition = () => {
           );
         }
       }
-    });
+    }
     return { proposedEntities, persistedEntities };
   }, [selectedFlowRun]);
 

@@ -21,6 +21,7 @@ import {
   workflowInfo,
 } from "@temporalio/workflow";
 
+import { sleep } from "@local/hash-backend-utils/utils";
 import type {
   createFlowActionActivities,
   createFlowActivities,
@@ -377,6 +378,12 @@ export const runFlowWorkflow = async (
   await processSteps();
 
   log("All processable steps have completed processing");
+
+  /**
+   * Wait to flush logs
+   * @todo flush logs by calling the debounced function's flush, flushLogs – need to deal with it importing code that the workflow can't
+   */
+  await sleep(3_000);
 
   if (Object.entries(processStepErrors).length > 0) {
     return {

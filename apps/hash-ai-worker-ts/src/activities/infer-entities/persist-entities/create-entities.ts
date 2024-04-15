@@ -13,7 +13,6 @@ import type {
 } from "@local/hash-subgraph";
 import isMatch from "lodash.ismatch";
 
-import { logger } from "../../../shared/logger";
 import {
   findExistingEntity,
   findExistingLinkEntity,
@@ -27,6 +26,7 @@ import type {
 import { extractErrorMessage } from "../shared/extract-validation-failure-details";
 import { ensureTrailingSlash } from "./ensure-trailing-slash";
 import type { ProposedEntityCreationsByType } from "./generate-persist-entities-tools";
+import { logger } from "../../shared/activity-logger";
 
 type StatusByTemporaryId<T> = Record<number, T>;
 

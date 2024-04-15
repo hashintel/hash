@@ -304,3 +304,19 @@ export type Flow = {
   steps: FlowStep[];
   outputs?: StepOutput[];
 };
+
+export type ProposedEntityLog = {
+  proposedEntity: ProposedEntity;
+  recordedAt: string;
+  stepId: string;
+  type: "ProposedEntity";
+};
+
+export type PersistedEntityLog = {
+  persistedEntity: PersistedEntity;
+  recordedAt: string;
+  stepId: string;
+  type: "PersistedEntity";
+};
+
+export type StepProgressLog = PersistedEntityLog | ProposedEntityLog;

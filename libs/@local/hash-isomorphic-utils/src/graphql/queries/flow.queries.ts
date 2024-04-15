@@ -23,6 +23,7 @@ export const getFlowRunsQuery = gql`
         retryState
         inputs
         outputs
+        logs
       }
     }
   }
