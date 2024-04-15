@@ -183,6 +183,11 @@ export const proposeEntities = async (params: {
     ...completionPayload,
     messages: [...completionPayload.messages, nextMessage],
     tools,
+    /**
+     * We prefer consistency over creativity for the inference agent,
+     * so set the `temperature` to `0`.
+     */
+    temperature: 0,
   };
 
   const openAiResponse = await getOpenAiResponse(
