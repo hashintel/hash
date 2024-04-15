@@ -19,10 +19,12 @@ import type {
   ChatCompletionSystemMessageParam,
 } from "openai/resources";
 
+import { logger } from "../../../shared/logger";
 import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity";
 import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types";
 import type { PermittedOpenAiModel } from "../../shared/openai";
 import { getOpenAiResponse } from "../../shared/openai";
+import { stringify } from "../../shared/stringify";
 // import { getWebPageActivity } from "../../get-web-page-activity";
 import { inferEntitiesFromContentAction } from "../infer-entities-from-content-action";
 import { getWebPageInnerHtml } from "./infer-entities-from-web-page-worker-agent/get-web-page-inner-html";
@@ -547,6 +549,8 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     dereferencedEntityTypes,
   });
 
+  logger.debug(`Worker agent initial plan: ${initialPlan}`);
+
   const state: InferEntitiesFromWebPageWorkerAgentState = {
     currentPlan: initialPlan,
     previousCalls: [],
@@ -569,6 +573,8 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     toolCalls: ToolCall<ToolId>[];
   }): Promise<Status<never>> => {
     const { toolCalls } = processToolCallsParams;
+
+    logger.debug(`Worker agent processing tool calls: ${stringify(toolCalls)}`);
 
     const terminatedToolCall = toolCalls.find(
       (toolCall) => toolCall.toolId === "terminate",
