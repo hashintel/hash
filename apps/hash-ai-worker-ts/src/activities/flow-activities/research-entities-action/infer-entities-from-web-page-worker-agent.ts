@@ -41,7 +41,7 @@ import {
   parseOpenAiFunctionArguments,
 } from "./util";
 
-const model: PermittedOpenAiModel = "gpt-4-turbo";
+const model: PermittedOpenAiModel = "gpt-4-0125-preview";
 
 type SummarizedEntity = {
   id: string;
@@ -113,29 +113,41 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
         text: {
           type: "string",
           description: dedent(`
-            The relevant text from the web page from which to infer entities.
+            The relevant sections, paragraphs, tables or other content from the webpage that describe entities of the requested type(s).
 
-            Provide the entire text necessary to accurately infer properties of the
-              relevant entities in a single tool call.
+            When passing data from a table, you must include any table headers and other information necessary
+              to correctly interpret the data.
 
-            For example if the text contains data from a table, you must provide the table
-              column names. If the are column names specifying units, you must explicitly
-              specify the unit for each value in the table. For example if the column 
-              specifies a unit in millions (m), append this to each value (e.g. "10 million (m)").
+            Do not under any circumstance truncate or provide partial text which may lead to missed entities
+              or properties.
+
+            You must provide as much text as necessary to infer all
+              the required entities and their properties from the web page in a single tool call.
 
             ${
               ""
+              // Anything you don't provide in the text, cannot be inferred by the agent.
+
+              // Therefore you must provide the entire text necessary to accurately infer
+              //   properties of the relevant entities in a single tool call.
+
+              // For example if the text contains data from a table, you must provide the table
+              // column names. If the are column names specifying units, you must explicitly
+              // specify the unit for each value in the table. For example if the column
+              // specifies a unit in millions (m), append this to each value (e.g. "10 million (m)").
+
               /** Note: the agent doesn't do this even if you ask it to */
               // If there are units in the data, you must give a detailed definition for
               // each unit and what it means.
             }
-            
-            Do not under any circumstance truncate or provide partial text which may lead to missed entities
-              or properties.
-              
-            You must provide as much text as necessary to infer all
-              the required entities and their properties from the web page in a single tool call.
             `),
+        },
+        expectedNumberOfEntities: {
+          type: "number",
+          description: dedent(`
+            The expected number of entities which should be inferred from the text.
+            You should expect at least 1 entity to be inferred.
+          `),
         },
         validAt: {
           type: "string",
@@ -167,6 +179,7 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
       required: [
         "url",
         "text",
+        "expectedNumberOfEntities",
         "validAt",
         "prompt",
         "explanation",
@@ -251,6 +264,7 @@ type ToolCallArguments = {
   inferEntitiesFromWebPage: {
     url: string;
     text: string;
+    expectedNumberOfEntities: number;
     validAt: string;
     prompt: string;
     entityTypeIds: VersionedUrl[];
@@ -667,6 +681,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               text,
               prompt: toolCallPrompt,
               url: inferringEntitiesFromWebPageUrl,
+              expectedNumberOfEntities,
               validAt,
               entityTypeIds: inferringEntitiesOfTypeIds,
             } = toolCall.parsedArguments as ToolCallArguments["inferEntitiesFromWebPage"];
@@ -678,6 +693,16 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                     expectedEntityTypeId === entityTypeId,
                 ),
             );
+
+            if (expectedNumberOfEntities < 1) {
+              return {
+                ...toolCall,
+                output: dedent(`
+                  You provided an expected number of entities which is less than 1. You must provide
+                  a positive integer as the expected number of entities to infer.
+                `),
+              };
+            }
 
             if (invalidEntityTypeIds.length > 0) {
               return {
@@ -709,6 +734,9 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                 output: dedent(`
                   You provided a truncated text from the web page. You must provide the entire
                   text necessary to accurately infer properties of the relevant entities.
+
+                  You must make the "inferEntitiesFromWebPage" tool call again with the full text
+                  required to infer the expected number of entities.
                 `),
               };
             }
@@ -770,11 +798,29 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
 
             state.proposedEntities.push(...newProposedEntities);
 
+            const summarizedNewProposedEntities = newProposedEntities.map(
+              mapProposedEntityToSummarizedEntity,
+            );
+
+            if (newProposedEntities.length !== expectedNumberOfEntities) {
+              return {
+                ...toolCall,
+                output: dedent(`
+                  The following entities were inferred from the provided text: ${JSON.stringify(summarizedNewProposedEntities)}
+
+                  The number of entities inferred from the text doesn't match the expected number of entities.
+                  Expected: ${expectedNumberOfEntities}
+                  Actual: ${newProposedEntities.length}
+
+                  If there are missing entities which you require, you must make another "inferEntitiesFromWebPage" tool call
+                    with the relevant text to try again.
+                `),
+              };
+            }
+
             return {
               ...toolCall,
-              output: JSON.stringify(
-                state.proposedEntities.map(mapProposedEntityToSummarizedEntity),
-              ),
+              output: JSON.stringify(summarizedNewProposedEntities),
             };
           } else if (toolCall.toolId === "submitProposedEntities") {
             const { entityIds } =
