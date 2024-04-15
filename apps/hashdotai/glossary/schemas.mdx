@@ -8,7 +8,7 @@ tags: ["Data Science", "Simulation Modeling", "Software Engineering"]
 
 ## What is a schema?
 
-Schemas are _descriptions of things,_ and in HASH they are used to define [types](https://hash.ai/glossary/types). These types provide standardized descriptions of things in the real-world that can then be collaboratively maintained and improved.
+Schemas are _descriptions of things,_ and in HASH they are used to define [types](/glossary/types). These types provide standardized descriptions of things in the real-world that can then be collaboratively maintained and improved.
 
 Schemas consist of two things:
 
@@ -19,11 +19,11 @@ Schemas consist of two things:
 
 A property is an attribute, characteristic, or other value that may be ascribed to a _thing_.
 
-For example, the [person](https://hash.ai/@schema/schemas/Person) schema contains:
+For example, the [person](https://simulation.hash.ai/@schema/schemas/Person) schema contains:
 
-- the [`birthDate`](https://hash.ai/@schema/schemas/birthDate) property expressed as a [date](https://hash.ai/@schema/schemas/Date);
-- the [`height`](https://hash.ai/@schema/schemas/height) property given as a [quantitative value](https://hash.ai/@schema/schemas/QuantitativeValue); and
-- the [`worksFor`](https://hash.ai/@schema/schemas/worksFor) property which expects an [organization](https://hash.ai/@schema/schemas/Organization) (or to be blank).
+- the [`birthDate`](https://simulation.hash.ai/@schema/schemas/birthDate) property expressed as a [date](https://simulation.hash.ai/@schema/schemas/Date);
+- the [`height`](https://simulation.hash.ai/@schema/schemas/height) property given as a [quantitative value](https://simulation.hash.ai/@schema/schemas/QuantitativeValue); and
+- the [`worksFor`](https://simulation.hash.ai/@schema/schemas/worksFor) property which expects an [organization](https://simulation.hash.ai/@schema/schemas/Organization) (or to be blank).
 
 The _person_ schema also has dozens of other properties.
 
@@ -33,9 +33,9 @@ Entities described by schemas may have their relationships captured as propertie
 
 But schemas themselves may also have relationships, which describe how they relate to other schemas.
 
-For example, [MedicalOrganization](https://hash.ai/@schema/schemas/MedicalOrganization) is a child (sub-type) of [Organization](https://hash.ai/@schema/schemas/Organization). It has various sub-types of its own, including [Dentist](https://hash.ai/@schema/schemas/Dentist), [Ho](https://hash.ai/@schema/schemas/Hospital)[s](https://hash.ai/@schema/schemas/Hospital)[pital](https://hash.ai/@schema/schemas/Hospital), and [Pharmacy](https://hash.ai/@schema/schemas/Pharmacy).
+For example, [MedicalOrganization](https://simulation.hash.ai/@schema/schemas/MedicalOrganization) is a child (sub-type) of [Organization](https://simulation.hash.ai/@schema/schemas/Organization). It has various sub-types of its own, including [Dentist](https://simulation.hash.ai/@schema/schemas/Dentist), [Hospital](https://simulation.hash.ai/@schema/schemas/Hospital), and [Pharmacy](https://simulation.hash.ai/@schema/schemas/Pharmacy).
 
-If a sub-type or top-level schema you require doesn’t exist, you can create one with HASH from scratch, or by [forking](https://hash.ai/glossary/fork) an existing one.
+If a sub-type or top-level schema you require doesn’t exist, you can create one with HASH from scratch, or by [forking](/glossary/fork) an existing one.
 
 ## What are schemas for?
 
