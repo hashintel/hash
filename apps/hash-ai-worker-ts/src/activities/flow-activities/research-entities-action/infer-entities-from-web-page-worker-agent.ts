@@ -110,13 +110,15 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
           type: "string",
           description: "The URL of the web page.",
         },
-        text: {
+        hmtlContent: {
           type: "string",
           description: dedent(`
-            The relevant sections, paragraphs, tables or other content from the webpage that describe entities of the requested type(s).
+            The HTML content with the relevant sections, paragraphs, tables
+              or other content from the webpage that describe entities of the requested type(s).
 
-            When passing data from a table, you must include any table headers and other information necessary
-              to correctly interpret the data.
+            You must not modify the content in any way.
+
+            You must include table headers when passing data from a table.
 
             Do not under any circumstance truncate or provide partial text which may lead to missed entities
               or properties.
@@ -178,7 +180,7 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
       },
       required: [
         "url",
-        "text",
+        "hmtlContent",
         "expectedNumberOfEntities",
         "validAt",
         "prompt",
@@ -263,7 +265,7 @@ type ToolCallArguments = {
   };
   inferEntitiesFromWebPage: {
     url: string;
-    text: string;
+    hmtlContent: string;
     expectedNumberOfEntities: number;
     validAt: string;
     prompt: string;
@@ -678,7 +680,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
             //   };
           } else if (toolCall.toolId === "inferEntitiesFromWebPage") {
             const {
-              text,
+              hmtlContent,
               prompt: toolCallPrompt,
               url: inferringEntitiesFromWebPageUrl,
               expectedNumberOfEntities,
@@ -718,7 +720,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               };
             }
 
-            if (text.length === 0) {
+            if (hmtlContent.length === 0) {
               return {
                 ...toolCall,
                 output: dedent(`
@@ -728,7 +730,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               };
             }
 
-            if (text.endsWith("...")) {
+            if (hmtlContent.endsWith("...")) {
               return {
                 ...toolCall,
                 output: dedent(`
@@ -746,7 +748,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
             );
 
             const content = dedent(`
-              ${text}
+              ${hmtlContent}
               The above data is valid at ${validAt}.
             `);
 
