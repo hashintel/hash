@@ -51,9 +51,6 @@ pub struct SourceProvenance {
     pub ty: SourceType,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub authors: Vec<String>,
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub actor_type: Option<ActorType>,
     #[cfg_attr(feature = "utoipa", schema(nullable = false, value_type = Timestamp))]
     #[serde(
         default,
