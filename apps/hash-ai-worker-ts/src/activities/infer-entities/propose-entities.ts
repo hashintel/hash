@@ -1,6 +1,10 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { AccountId } from "@local/hash-subgraph";
+import {
+  type AccountId,
+  type EntityPropertiesObject,
+  isBaseUrl,
+} from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
@@ -20,6 +24,44 @@ import { generateProposeEntitiesTools } from "./propose-entities/generate-propos
 import { extractErrorMessage } from "./shared/extract-validation-failure-details";
 import { firstUserMessageIndex } from "./shared/first-user-message-index";
 
+const sanitizePropertyKeys = (
+  properties: EntityPropertiesObject,
+): EntityPropertiesObject => {
+  return Object.entries(properties).reduce((prev, [key, value]) => {
+    let sanitizedKey = key;
+
+    /**
+     * Sometimes the model attaches a "?" to the base URL for no reason.
+     * If it's there, remove it.
+     */
+    if (sanitizedKey.endsWith("?")) {
+      sanitizedKey = sanitizedKey.slice(0, -1);
+    }
+
+    /**
+     * Ensure that the key ends with a trailing slash if it's a base URL.
+     */
+    if (!sanitizedKey.endsWith("/") && isBaseUrl(`${sanitizedKey}/`)) {
+      sanitizedKey = `${sanitizedKey}/`;
+    }
+
+    return {
+      ...prev,
+      [sanitizedKey]:
+        typeof value === "object" && value !== null
+          ? Array.isArray(value)
+            ? value.map((arrayItem) =>
+                typeof arrayItem === "object" &&
+                arrayItem !== null &&
+                !Array.isArray(arrayItem)
+                  ? sanitizePropertyKeys(arrayItem)
+                  : arrayItem,
+              )
+            : sanitizePropertyKeys(value)
+          : value,
+    };
+  }, {} as EntityPropertiesObject);
+};
 /**
  * This method is based on the logic from the existing `persistEntities` method, which
  * would ideally be reconciled to reduce code duplication. The primary difference
@@ -354,10 +396,31 @@ export const proposeEntities = async (params: {
             proposedEntitiesByType = JSON.parse(
               modelProvidedArgument,
             ) as ProposedEntityCreationsByType;
+
             validateProposedEntitiesByType(proposedEntitiesByType, false);
 
             let retryMessageContent = "";
             let requiresOriginalContextForRetry = false;
+
+            proposedEntitiesByType = Object.entries(
+              proposedEntitiesByType,
+            ).reduce(
+              (prev, [entityTypeId, proposedEntitiesOfType]) => ({
+                ...prev,
+                [entityTypeId]: proposedEntitiesOfType.map((proposedEntity) => {
+                  const propertiesWithTrialingSlashes =
+                    proposedEntity.properties
+                      ? sanitizePropertyKeys(proposedEntity.properties)
+                      : proposedEntity.properties;
+
+                  return {
+                    ...proposedEntity,
+                    properties: propertiesWithTrialingSlashes,
+                  };
+                }),
+              }),
+              {},
+            );
 
             /**
              * Check if any proposed entities are invalid according to the Graph API,
