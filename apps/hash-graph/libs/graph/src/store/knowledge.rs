@@ -7,10 +7,10 @@ use graph_types::{
     knowledge::{
         entity::{
             Entity, EntityEmbedding, EntityId, EntityMetadata, EntityUuid,
-            ProvidedEntityEditionProvenanceMetadata,
+            ProvidedEntityEditionProvenance,
         },
         link::LinkData,
-        Confidence, PropertyConfidence, PropertyObject, PropertyPatchOperation,
+        Confidence, PropertyMetadataMap, PropertyObject, PropertyPatchOperation,
     },
     owned_by_id::OwnedById,
 };
@@ -188,15 +188,15 @@ pub struct CreateEntityParams<R> {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub confidence: Option<Confidence>,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    #[serde(default, skip_serializing_if = "PropertyConfidence::is_empty")]
-    pub property_confidence: PropertyConfidence<'static>,
+    #[serde(default, skip_serializing_if = "PropertyMetadataMap::is_empty")]
+    pub property_metadata: PropertyMetadataMap<'static>,
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_data: Option<LinkData>,
     pub draft: bool,
     pub relationships: R,
     #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
-    pub provenance: ProvidedEntityEditionProvenanceMetadata,
+    pub provenance: ProvidedEntityEditionProvenance,
 }
 
 #[derive(Debug, Deserialize)]
@@ -208,8 +208,8 @@ pub struct ValidateEntityParams<'a> {
     #[serde(borrow)]
     pub properties: Cow<'a, PropertyObject>,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    #[serde(borrow, default, skip_serializing_if = "PropertyConfidence::is_empty")]
-    pub property_confidence: Cow<'a, PropertyConfidence<'a>>,
+    #[serde(borrow, default, skip_serializing_if = "PropertyMetadataMap::is_empty")]
+    pub property_metadata: Cow<'a, PropertyMetadataMap<'a>>,
     #[serde(borrow, default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_data: Option<Cow<'a, LinkData>>,
@@ -253,7 +253,7 @@ pub struct PatchEntityParams {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub confidence: Option<Confidence>,
     #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
-    pub provenance: ProvidedEntityEditionProvenanceMetadata,
+    pub provenance: ProvidedEntityEditionProvenance,
 }
 
 #[derive(Debug, Deserialize)]

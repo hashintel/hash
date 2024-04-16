@@ -61,11 +61,9 @@ use graph::{
 use graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{
-            Entity, EntityId, EntityMetadata, EntityUuid, ProvidedEntityEditionProvenanceMetadata,
-        },
+        entity::{Entity, EntityId, EntityMetadata, EntityUuid, ProvidedEntityEditionProvenance},
         link::LinkData,
-        Confidence, PropertyConfidence, PropertyObject,
+        Confidence, PropertyMetadataMap, PropertyObject,
     },
     ontology::{
         DataTypeMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
@@ -543,7 +541,7 @@ impl DatabaseApi<'_> {
         entity_uuid: Option<EntityUuid>,
         draft: bool,
         confidence: Option<Confidence>,
-        property_confidence: PropertyConfidence<'static>,
+        property_metadata: PropertyMetadataMap<'static>,
     ) -> Result<EntityMetadata, InsertionError> {
         self.store
             .create_entity(
@@ -556,12 +554,12 @@ impl DatabaseApi<'_> {
                     decision_time: Some(generate_decision_time()),
                     entity_type_ids,
                     properties,
-                    property_confidence,
+                    property_metadata,
                     link_data: None,
                     draft,
                     relationships: [],
                     confidence,
-                    provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+                    provenance: ProvidedEntityEditionProvenance::default(),
                 },
             )
             .await
@@ -809,7 +807,7 @@ impl DatabaseApi<'_> {
                     decision_time: Some(generate_decision_time()),
                     entity_type_ids,
                     properties,
-                    property_confidence: PropertyConfidence::default(),
+                    property_metadata: PropertyMetadataMap::default(),
                     link_data: Some(LinkData {
                         left_entity_id,
                         right_entity_id,
@@ -819,7 +817,7 @@ impl DatabaseApi<'_> {
                     draft: false,
                     relationships: [],
                     confidence: None,
-                    provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+                    provenance: ProvidedEntityEditionProvenance::default(),
                 },
             )
             .await
@@ -1000,7 +998,7 @@ impl DatabaseApi<'_> {
                     entity_type_ids: vec![],
                     properties: vec![],
                     confidence: None,
-                    provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+                    provenance: ProvidedEntityEditionProvenance::default(),
                 },
             )
             .await

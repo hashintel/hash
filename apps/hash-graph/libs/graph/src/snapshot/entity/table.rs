@@ -1,10 +1,9 @@
 use graph_types::{
     knowledge::{
         entity::{
-            DraftId, EntityEditionId, EntityEditionProvenanceMetadata, EntityUuid,
-            InferredEntityProvenanceMetadata,
+            DraftId, EntityEditionId, EntityEditionProvenance, EntityUuid, InferredEntityProvenance,
         },
-        Confidence, PropertyObject, PropertyPath,
+        Confidence, PropertyObject, PropertyPath, PropertyProvenance,
     },
     owned_by_id::OwnedById,
     Embedding,
@@ -18,7 +17,7 @@ use uuid::Uuid;
 pub struct EntityIdRow {
     pub web_id: OwnedById,
     pub entity_uuid: EntityUuid,
-    pub provenance: InferredEntityProvenanceMetadata,
+    pub provenance: InferredEntityProvenance,
 }
 
 #[derive(Debug, ToSql)]
@@ -36,7 +35,7 @@ pub struct EntityEditionRow {
     pub properties: PropertyObject,
     pub archived: bool,
     pub confidence: Option<Confidence>,
-    pub provenance: EntityEditionProvenanceMetadata,
+    pub provenance: EntityEditionProvenance,
 }
 
 #[derive(Debug, ToSql)]
@@ -45,6 +44,7 @@ pub struct EntityPropertyRow {
     pub entity_edition_id: EntityEditionId,
     pub property_path: PropertyPath<'static>,
     pub confidence: Option<Confidence>,
+    pub provenance: PropertyProvenance,
 }
 
 #[derive(Debug, ToSql)]

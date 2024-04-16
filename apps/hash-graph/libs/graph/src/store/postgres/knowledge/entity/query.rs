@@ -2,12 +2,9 @@ use std::convert::identity;
 
 use graph_types::{
     knowledge::{
-        entity::{
-            Entity, EntityId, EntityMetadata, EntityProvenanceMetadata, EntityRecordId, EntityUuid,
-            InferredEntityProvenanceMetadata,
-        },
+        entity::{Entity, EntityId, EntityMetadata, EntityProvenance, EntityRecordId, EntityUuid},
         link::LinkData,
-        Confidence, PropertyPath,
+        Confidence, PropertyMetadata, PropertyMetadataMap, PropertyPath, PropertyProvenance,
     },
     owned_by_id::OwnedById,
 };
@@ -194,6 +191,7 @@ pub struct EntityRecordRowIndices {
     pub right_entity_confidence: usize,
     pub property_paths: usize,
     pub property_confidences: usize,
+    pub property_provenance: usize,
 
     pub archived: usize,
 }
@@ -285,8 +283,31 @@ impl QueryRecordDecode for Entity {
             tracing::trace!(%entity_id, %distance, "Entity embedding was calculated");
         }
 
-        let inferred_provenance_data =
-            row.get::<_, InferredEntityProvenanceMetadata>(indices.provenance);
+        let property_metadata: PropertyMetadataMap = row
+            .get::<_, Option<Vec<PropertyPath<'_>>>>(indices.property_paths)
+            .unwrap_or_default()
+            .into_iter()
+            .zip(
+                row.get::<_, Option<Vec<Option<Confidence>>>>(indices.property_confidences)
+                    .unwrap_or_default(),
+            )
+            .zip(
+                row.get::<_, Option<Vec<PropertyProvenance>>>(indices.property_provenance)
+                    .unwrap_or_default(),
+            )
+            .filter_map(|((path, confidence), provenance)| {
+                (confidence.is_some() || !provenance.is_empty()).then(|| {
+                    (
+                        path.into_owned(),
+                        PropertyMetadata {
+                            confidence,
+                            provenance,
+                        },
+                    )
+                })
+            })
+            .collect();
+
         Self {
             properties: row.get(indices.properties),
             link_data,
@@ -305,30 +326,12 @@ impl QueryRecordDecode for Entity {
                     .zip(row.get::<_, Vec<OntologyTypeVersion>>(indices.type_versions_id))
                     .map(|(base_url, version)| VersionedUrl { base_url, version })
                     .collect(),
-                provenance: EntityProvenanceMetadata {
-                    created_by_id: inferred_provenance_data.created_by_id,
-                    created_at_transaction_time: inferred_provenance_data
-                        .created_at_transaction_time,
-                    created_at_decision_time: inferred_provenance_data.created_at_decision_time,
-                    first_non_draft_created_at_transaction_time: inferred_provenance_data
-                        .first_non_draft_created_at_transaction_time,
-                    first_non_draft_created_at_decision_time: inferred_provenance_data
-                        .first_non_draft_created_at_decision_time,
+                provenance: EntityProvenance {
+                    inferred: row.get(indices.provenance),
                     edition: row.get(indices.edition_provenance),
                 },
                 confidence: row.get(indices.entity_confidence),
-                property_confidence: row
-                    .get::<_, Option<Vec<PropertyPath<'_>>>>(indices.property_paths)
-                    .unwrap_or_default()
-                    .into_iter()
-                    .zip(
-                        row.get::<_, Option<Vec<Option<Confidence>>>>(indices.property_confidences)
-                            .unwrap_or_default(),
-                    )
-                    .filter_map(|(path, confidence)| {
-                        confidence.map(|confidence| (path.into_owned(), confidence))
-                    })
-                    .collect(),
+                properties: property_metadata,
                 archived: row.get(indices.archived),
             },
         }
@@ -391,6 +394,8 @@ impl PostgresRecord for Entity {
             provenance: compiler.add_selection_path(&EntityQueryPath::Provenance(None)),
             edition_provenance: compiler
                 .add_selection_path(&EntityQueryPath::EditionProvenance(None)),
+            property_provenance: compiler
+                .add_selection_path(&EntityQueryPath::PropertyProvenance(None)),
 
             entity_confidence: compiler.add_selection_path(&EntityQueryPath::EntityConfidence),
             left_entity_confidence: compiler

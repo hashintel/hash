@@ -3,8 +3,9 @@ use std::{borrow::Cow, collections::HashMap, iter::once, str::FromStr};
 use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::knowledge::{
-    entity::ProvidedEntityEditionProvenanceMetadata, Confidence, Property, PropertyConfidence,
-    PropertyObject, PropertyPatchOperation, PropertyPath, PropertyPathElement,
+    entity::ProvidedEntityEditionProvenance, Confidence, Property, PropertyMetadata,
+    PropertyMetadataMap, PropertyObject, PropertyPatchOperation, PropertyPath, PropertyPathElement,
+    PropertyProvenance,
 };
 use pretty_assertions::assert_eq;
 use serde_json::json;
@@ -66,15 +67,18 @@ fn confidence(value: f64) -> Confidence {
     serde_json::from_str(&value.to_string()).expect("could not parse confidence")
 }
 
-fn property_confidence<'a>(value: &'a [(&'a str, f64)]) -> PropertyConfidence<'a> {
+fn property_confidence<'a>(value: &'a [(&'a str, f64)]) -> PropertyMetadataMap<'a> {
     let mut map = HashMap::new();
     for (key, value) in value {
         map.insert(
             PropertyPath::from_json_pointer(key).expect("could not parse path"),
-            confidence(*value),
+            PropertyMetadata {
+                confidence: Some(confidence(*value)),
+                provenance: PropertyProvenance::default(),
+            },
         );
     }
-    PropertyConfidence::new(map)
+    PropertyMetadataMap::new(map)
 }
 
 #[tokio::test]
@@ -96,7 +100,7 @@ async fn initial_confidence() {
         .expect("could not create entity");
 
     assert_eq!(entity.confidence, Some(confidence(0.5)));
-    assert_eq!(entity.property_confidence, entity_property_confidence);
+    assert_eq!(entity.properties, entity_property_confidence);
 
     let updated_entity = api
         .patch_entity(PatchEntityParams {
@@ -107,7 +111,7 @@ async fn initial_confidence() {
             draft: None,
             decision_time: None,
             confidence: Some(confidence(0.5)),
-            provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+            provenance: ProvidedEntityEditionProvenance::default(),
         })
         .await
         .expect("could not update entity");
@@ -123,16 +127,13 @@ async fn initial_confidence() {
             draft: None,
             decision_time: None,
             confidence: None,
-            provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+            provenance: ProvidedEntityEditionProvenance::default(),
         })
         .await
         .expect("could not update entity");
 
     assert!(updated_entity.confidence.is_none());
-    assert_eq!(
-        updated_entity.property_confidence,
-        entity_property_confidence
-    );
+    assert_eq!(updated_entity.properties, entity_property_confidence);
 }
 
 #[tokio::test]
@@ -147,13 +148,13 @@ async fn no_initial_draft() {
             None,
             false,
             None,
-            PropertyConfidence::default(),
+            PropertyMetadataMap::default(),
         )
         .await
         .expect("could not create entity");
 
     assert!(entity.confidence.is_none());
-    assert!(entity.property_confidence.is_empty());
+    assert!(entity.properties.is_empty());
 
     let updated_entity = api
         .patch_entity(PatchEntityParams {
@@ -164,7 +165,7 @@ async fn no_initial_draft() {
             draft: None,
             decision_time: None,
             confidence: None,
-            provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+            provenance: ProvidedEntityEditionProvenance::default(),
         })
         .await
         .expect("could not update entity");
@@ -180,13 +181,13 @@ async fn no_initial_draft() {
             draft: None,
             decision_time: None,
             confidence: Some(confidence(0.5)),
-            provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+            provenance: ProvidedEntityEditionProvenance::default(),
         })
         .await
         .expect("could not update entity");
 
     assert_eq!(updated_entity.confidence, Some(confidence(0.5)));
-    assert!(updated_entity.property_confidence.is_empty());
+    assert!(updated_entity.properties.is_empty());
 
     let path: PropertyPath = once(PropertyPathElement::from(name_property_type_id())).collect();
     let path_pointer = path.to_json_pointer();
@@ -197,20 +198,21 @@ async fn no_initial_draft() {
                 path: once(PropertyPathElement::from(name_property_type_id())).collect(),
                 value: Property::Value(json!("Alice")),
                 confidence: Some(confidence(0.5)),
+                provenance: PropertyProvenance::default(),
             }],
             entity_type_ids: vec![],
             archived: None,
             draft: None,
             decision_time: None,
             confidence: None,
-            provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+            provenance: ProvidedEntityEditionProvenance::default(),
         })
         .await
         .expect("could not update entity");
 
     assert!(updated_entity.confidence.is_none());
     assert_eq!(
-        updated_entity.property_confidence,
+        updated_entity.properties,
         property_confidence(&[(path_pointer.as_str(), 0.5)])
     );
 
@@ -223,14 +225,14 @@ async fn no_initial_draft() {
             draft: None,
             decision_time: None,
             confidence: Some(confidence(0.5)),
-            provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+            provenance: ProvidedEntityEditionProvenance::default(),
         })
         .await
         .expect("could not update entity");
 
     assert_eq!(updated_entity.confidence, Some(confidence(0.5)));
     assert_eq!(
-        updated_entity.property_confidence,
+        updated_entity.properties,
         property_confidence(&[(path_pointer.as_str(), 0.5)])
     );
 }
@@ -247,7 +249,7 @@ async fn properties_add() {
             None,
             false,
             None,
-            PropertyConfidence::default(),
+            PropertyMetadataMap::default(),
         )
         .await
         .expect("could not create entity");
@@ -263,18 +265,20 @@ async fn properties_add() {
                 path: path.clone(),
                 value: Property::Value(json!(30)),
                 confidence: Some(confidence(0.5)),
+                provenance: PropertyProvenance::default(),
             }],
             draft: None,
             archived: None,
             confidence: None,
-            provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+            provenance: ProvidedEntityEditionProvenance::default(),
         })
         .await
         .expect("could not patch entity");
 
+    let path_pointer = path.to_json_pointer();
     assert_eq!(
-        updated_entity.property_confidence,
-        once((path, confidence(0.5))).collect()
+        updated_entity.properties,
+        property_confidence(&[(path_pointer.as_str(), 0.5)])
     );
 }
 
@@ -290,7 +294,7 @@ async fn properties_remove() {
             None,
             false,
             None,
-            PropertyConfidence::default(),
+            PropertyMetadataMap::default(),
         )
         .await
         .expect("could not create entity");
@@ -315,17 +319,19 @@ async fn properties_remove() {
                     path: once(PropertyPathElement::from(interests_property_type_id())).collect(),
                     value: Property::Value(json!({})),
                     confidence: Some(confidence(0.5)),
+                    provenance: PropertyProvenance::default(),
                 },
                 PropertyPatchOperation::Add {
                     path: film_path.clone(),
                     value: Property::Value(json!("Fight Club")),
                     confidence: Some(confidence(0.5)),
+                    provenance: PropertyProvenance::default(),
                 },
             ],
             draft: None,
             archived: None,
             confidence: None,
-            provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+            provenance: ProvidedEntityEditionProvenance::default(),
         })
         .await
         .expect("could not patch entity");
@@ -333,7 +339,7 @@ async fn properties_remove() {
     let film_path_pointer = film_path.to_json_pointer();
     let interests_path_pointer = interests_path.to_json_pointer();
     assert_eq!(
-        updated_entity.property_confidence,
+        updated_entity.properties,
         property_confidence(&[
             (interests_path_pointer.as_str(), 0.5),
             (film_path_pointer.as_str(), 0.5)
@@ -351,10 +357,10 @@ async fn properties_remove() {
             draft: None,
             archived: None,
             confidence: None,
-            provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+            provenance: ProvidedEntityEditionProvenance::default(),
         })
         .await
         .expect("could not patch entity");
 
-    assert!(updated_entity.property_confidence.is_empty());
+    assert!(updated_entity.properties.is_empty());
 }

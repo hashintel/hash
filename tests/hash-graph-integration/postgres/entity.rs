@@ -1,8 +1,8 @@
 use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::knowledge::{
-    entity::ProvidedEntityEditionProvenanceMetadata, Property, PropertyConfidence, PropertyObject,
-    PropertyPatchOperation, PropertyPath,
+    entity::ProvidedEntityEditionProvenance, Property, PropertyMetadataMap, PropertyObject,
+    PropertyPatchOperation, PropertyPath, PropertyProvenance,
 };
 use temporal_versioning::ClosedTemporalBound;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
@@ -49,7 +49,7 @@ async fn insert() {
             None,
             false,
             None,
-            PropertyConfidence::default(),
+            PropertyMetadataMap::default(),
         )
         .await
         .expect("could not create entity");
@@ -91,7 +91,7 @@ async fn query() {
             None,
             false,
             None,
-            PropertyConfidence::default(),
+            PropertyMetadataMap::default(),
         )
         .await
         .expect("could not create entity");
@@ -135,7 +135,7 @@ async fn update() {
             None,
             false,
             None,
-            PropertyConfidence::default(),
+            PropertyMetadataMap::default(),
         )
         .await
         .expect("could not create entity");
@@ -147,13 +147,14 @@ async fn update() {
                 path: PropertyPath::default(),
                 value: Property::Object(page_v2.clone()),
                 confidence: None,
+                provenance: PropertyProvenance::default(),
             }],
             entity_type_ids: vec![],
             archived: None,
             draft: None,
             decision_time: None,
             confidence: None,
-            provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+            provenance: ProvidedEntityEditionProvenance::default(),
         })
         .await
         .expect("could not update entity");

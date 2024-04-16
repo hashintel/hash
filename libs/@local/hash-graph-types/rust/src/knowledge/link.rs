@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::knowledge::{entity::EntityId, Confidence};
 
 /// The associated information for 'Link' entities
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LinkData {

@@ -1,5 +1,5 @@
 use error_stack::Report;
-use graph_types::knowledge::{PropertyConfidence, PropertyObject};
+use graph_types::knowledge::{PropertyMetadataMap, PropertyObject};
 
 use crate::{EntityValidationError, Validate, ValidateEntityComponents};
 
@@ -13,7 +13,7 @@ macro_rules! extend_report {
     };
 }
 
-impl<P> Validate<PropertyObject, P> for PropertyConfidence<'_>
+impl<P> Validate<PropertyObject, P> for PropertyMetadataMap<'_>
 where
     P: Sync,
 {

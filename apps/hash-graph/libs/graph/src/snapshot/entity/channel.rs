@@ -10,7 +10,7 @@ use futures::{
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
-use graph_types::knowledge::entity::{EntityUuid, InferredEntityProvenanceMetadata};
+use graph_types::knowledge::entity::EntityUuid;
 
 use crate::snapshot::{
     entity::{
@@ -83,22 +83,7 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
             .start_send_unpin(EntityIdRow {
                 web_id: entity.metadata.record_id.entity_id.owned_by_id,
                 entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
-                provenance: InferredEntityProvenanceMetadata {
-                    created_by_id: entity.metadata.provenance.created_by_id,
-                    created_at_transaction_time: entity
-                        .metadata
-                        .provenance
-                        .created_at_transaction_time,
-                    created_at_decision_time: entity.metadata.provenance.created_at_decision_time,
-                    first_non_draft_created_at_transaction_time: entity
-                        .metadata
-                        .provenance
-                        .first_non_draft_created_at_transaction_time,
-                    first_non_draft_created_at_decision_time: entity
-                        .metadata
-                        .provenance
-                        .first_non_draft_created_at_decision_time,
-                },
+                provenance: entity.metadata.provenance.inferred,
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send entity id")?;
@@ -114,12 +99,13 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
                 .attach_printable("could not send entity draft id")?;
         }
 
-        for (path, confidence) in entity.metadata.property_confidence {
+        for (path, metadata) in entity.metadata.properties {
             self.property
                 .start_send_unpin(EntityPropertyRow {
                     entity_edition_id: entity.metadata.record_id.edition_id,
                     property_path: path,
-                    confidence: Some(confidence),
+                    confidence: metadata.confidence,
+                    provenance: metadata.provenance,
                 })
                 .change_context(SnapshotRestoreError::Read)
                 .attach_printable("could not send entity property")?;

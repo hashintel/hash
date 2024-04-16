@@ -13,14 +13,13 @@ use utoipa::{openapi, ToSchema};
 use uuid::Uuid;
 
 pub use self::provenance::{
-    ActorType, EntityEditionProvenanceMetadata, EntityProvenanceMetadata,
-    InferredEntityProvenanceMetadata, OriginProvenance, OriginType,
-    ProvidedEntityEditionProvenanceMetadata, SourceProvenance, SourceType, Tool,
+    ActorType, EntityEditionProvenance, EntityProvenance, InferredEntityProvenance, Location,
+    OriginProvenance, OriginType, ProvidedEntityEditionProvenance, SourceProvenance, SourceType,
 };
 use crate::{
     knowledge::{
         link::LinkData,
-        property::{PatchError, PropertyConfidence},
+        property::{PatchError, PropertyMetadataMap},
         Confidence, PropertyObject, PropertyPatchOperation,
     },
     owned_by_id::OwnedById,
@@ -93,14 +92,13 @@ pub struct EntityMetadata {
     pub record_id: EntityRecordId,
     pub temporal_versioning: EntityTemporalMetadata,
     pub entity_type_ids: Vec<VersionedUrl>,
-    pub provenance: EntityProvenanceMetadata,
     pub archived: bool,
+    pub provenance: EntityProvenance,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub confidence: Option<Confidence>,
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    #[serde(default, skip_serializing_if = "PropertyConfidence::is_empty")]
-    pub property_confidence: PropertyConfidence<'static>,
+    #[serde(default, skip_serializing_if = "PropertyMetadataMap::is_empty")]
+    pub properties: PropertyMetadataMap<'static>,
 }
 
 /// A record of an [`Entity`] that has been persisted in the datastore, with its associated
@@ -127,7 +125,7 @@ impl Entity {
         operations: &[PropertyPatchOperation],
     ) -> Result<(), Report<PatchError>> {
         self.properties.patch(operations)?;
-        self.metadata.property_confidence.patch(operations);
+        self.metadata.properties.patch(operations);
 
         Ok(())
     }

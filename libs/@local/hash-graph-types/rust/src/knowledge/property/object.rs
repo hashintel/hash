@@ -97,6 +97,7 @@ impl PropertyObject {
                         path,
                         value,
                         confidence: _,
+                        provenance: _,
                     } => PatchOperation::Add(AddOperation {
                         path: path.to_json_pointer(),
                         value: serde_json::to_value(value).change_context(PatchError)?,
@@ -110,6 +111,7 @@ impl PropertyObject {
                         path,
                         value,
                         confidence: _,
+                        provenance: _,
                     } => PatchOperation::Replace(ReplaceOperation {
                         path: path.to_json_pointer(),
                         value: serde_json::to_value(value).change_context(PatchError)?,
@@ -118,6 +120,7 @@ impl PropertyObject {
                         from,
                         path,
                         confidence: _,
+                        provenance: _,
                     } => PatchOperation::Move(MoveOperation {
                         from: from.to_json_pointer(),
                         path: path.to_json_pointer(),
@@ -126,6 +129,7 @@ impl PropertyObject {
                         from,
                         path,
                         confidence: _,
+                        provenance: _,
                     } => PatchOperation::Copy(CopyOperation {
                         from: from.to_json_pointer(),
                         path: path.to_json_pointer(),

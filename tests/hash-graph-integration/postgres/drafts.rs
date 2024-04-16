@@ -1,8 +1,9 @@
 use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::knowledge::{
-    entity::{EntityId, ProvidedEntityEditionProvenanceMetadata},
-    Property, PropertyConfidence, PropertyObject, PropertyPatchOperation, PropertyPath,
+    entity::{EntityId, ProvidedEntityEditionProvenance},
+    Property, PropertyMetadataMap, PropertyObject, PropertyPatchOperation, PropertyPath,
+    PropertyProvenance,
 };
 use pretty_assertions::assert_eq;
 use temporal_versioning::ClosedTemporalBound;
@@ -75,7 +76,7 @@ async fn initial_draft() {
             None,
             true,
             None,
-            PropertyConfidence::default(),
+            PropertyMetadataMap::default(),
         )
         .await
         .expect("could not create entity");
@@ -85,12 +86,14 @@ async fn initial_draft() {
     assert!(
         entity
             .provenance
+            .inferred
             .first_non_draft_created_at_decision_time
             .is_none()
     );
     assert!(
         entity
             .provenance
+            .inferred
             .first_non_draft_created_at_transaction_time
             .is_none()
     );
@@ -102,13 +105,14 @@ async fn initial_draft() {
                 path: PropertyPath::default(),
                 value: Property::Object(bob()),
                 confidence: None,
+                provenance: PropertyProvenance::default(),
             }],
             entity_type_ids: vec![],
             archived: None,
             draft: Some(true),
             decision_time: None,
             confidence: None,
-            provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+            provenance: ProvidedEntityEditionProvenance::default(),
         })
         .await
         .expect("could not update entity");
@@ -122,12 +126,14 @@ async fn initial_draft() {
     assert!(
         updated_entity
             .provenance
+            .inferred
             .first_non_draft_created_at_decision_time
             .is_none()
     );
     assert!(
         updated_entity
             .provenance
+            .inferred
             .first_non_draft_created_at_transaction_time
             .is_none()
     );
@@ -139,13 +145,14 @@ async fn initial_draft() {
                 path: PropertyPath::default(),
                 value: Property::Object(charles()),
                 confidence: None,
+                provenance: PropertyProvenance::default(),
             }],
             entity_type_ids: vec![],
             archived: None,
             draft: Some(false),
             decision_time: None,
             confidence: None,
-            provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+            provenance: ProvidedEntityEditionProvenance::default(),
         })
         .await
         .expect("could not update entity");
@@ -175,12 +182,14 @@ async fn initial_draft() {
     assert_eq!(
         updated_live_entity
             .provenance
+            .inferred
             .first_non_draft_created_at_transaction_time,
         Some(*undraft_transaction_time)
     );
     assert_eq!(
         updated_live_entity
             .provenance
+            .inferred
             .first_non_draft_created_at_decision_time,
         Some(*undraft_decision_time)
     );
@@ -199,7 +208,7 @@ async fn no_initial_draft() {
             None,
             false,
             None,
-            PropertyConfidence::default(),
+            PropertyMetadataMap::default(),
         )
         .await
         .expect("could not create entity");
@@ -213,11 +222,15 @@ async fn no_initial_draft() {
     assert_eq!(
         entity
             .provenance
+            .inferred
             .first_non_draft_created_at_transaction_time,
         Some(*undraft_transaction_time)
     );
     assert_eq!(
-        entity.provenance.first_non_draft_created_at_decision_time,
+        entity
+            .provenance
+            .inferred
+            .first_non_draft_created_at_decision_time,
         Some(*undraft_decision_time)
     );
 
@@ -229,13 +242,14 @@ async fn no_initial_draft() {
                     path: PropertyPath::default(),
                     value: Property::Object(bob()),
                     confidence: None,
+                    provenance: PropertyProvenance::default(),
                 }],
                 entity_type_ids: vec![],
                 archived: None,
                 draft: Some(true),
                 decision_time: None,
                 confidence: None,
-                provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+                provenance: ProvidedEntityEditionProvenance::default(),
             })
             .await
             .expect("could not update entity");
@@ -254,12 +268,14 @@ async fn no_initial_draft() {
         assert_eq!(
             updated_entity
                 .provenance
+                .inferred
                 .first_non_draft_created_at_transaction_time,
             Some(*undraft_transaction_time)
         );
         assert_eq!(
             updated_entity
                 .provenance
+                .inferred
                 .first_non_draft_created_at_decision_time,
             Some(*undraft_decision_time)
         );
@@ -271,13 +287,14 @@ async fn no_initial_draft() {
                     path: PropertyPath::default(),
                     value: Property::Object(charles()),
                     confidence: None,
+                    provenance: PropertyProvenance::default(),
                 }],
                 entity_type_ids: vec![],
                 archived: None,
                 draft: Some(false),
                 decision_time: None,
                 confidence: None,
-                provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+                provenance: ProvidedEntityEditionProvenance::default(),
             })
             .await
             .expect("could not update entity");
@@ -292,12 +309,14 @@ async fn no_initial_draft() {
         assert_eq!(
             updated_live_entity
                 .provenance
+                .inferred
                 .first_non_draft_created_at_transaction_time,
             Some(*undraft_transaction_time)
         );
         assert_eq!(
             updated_live_entity
                 .provenance
+                .inferred
                 .first_non_draft_created_at_decision_time,
             Some(*undraft_decision_time)
         );
@@ -317,7 +336,7 @@ async fn multiple_drafts() {
             None,
             false,
             None,
-            PropertyConfidence::default(),
+            PropertyMetadataMap::default(),
         )
         .await
         .expect("could not create entity");
@@ -330,11 +349,15 @@ async fn multiple_drafts() {
     assert_eq!(
         entity
             .provenance
+            .inferred
             .first_non_draft_created_at_transaction_time,
         Some(*undraft_transaction_time)
     );
     assert_eq!(
-        entity.provenance.first_non_draft_created_at_decision_time,
+        entity
+            .provenance
+            .inferred
+            .first_non_draft_created_at_decision_time,
         Some(*undraft_decision_time)
     );
 
@@ -347,13 +370,14 @@ async fn multiple_drafts() {
                     path: PropertyPath::default(),
                     value: Property::Object(bob()),
                     confidence: None,
+                    provenance: PropertyProvenance::default(),
                 }],
                 entity_type_ids: vec![],
                 archived: None,
                 draft: Some(true),
                 decision_time: None,
                 confidence: None,
-                provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+                provenance: ProvidedEntityEditionProvenance::default(),
             })
             .await
             .expect("could not update entity");
@@ -372,12 +396,14 @@ async fn multiple_drafts() {
         assert_eq!(
             updated_entity
                 .provenance
+                .inferred
                 .first_non_draft_created_at_transaction_time,
             Some(*undraft_transaction_time)
         );
         assert_eq!(
             updated_entity
                 .provenance
+                .inferred
                 .first_non_draft_created_at_decision_time,
             Some(*undraft_decision_time)
         );
@@ -392,13 +418,14 @@ async fn multiple_drafts() {
                     path: PropertyPath::default(),
                     value: Property::Object(charles()),
                     confidence: None,
+                    provenance: PropertyProvenance::default(),
                 }],
                 entity_type_ids: vec![],
                 archived: None,
                 draft: Some(false),
                 decision_time: None,
                 confidence: None,
-                provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+                provenance: ProvidedEntityEditionProvenance::default(),
             })
             .await
             .expect("could not update entity");
@@ -412,12 +439,14 @@ async fn multiple_drafts() {
         assert_eq!(
             updated_live_entity
                 .provenance
+                .inferred
                 .first_non_draft_created_at_transaction_time,
             Some(*undraft_transaction_time)
         );
         assert_eq!(
             updated_live_entity
                 .provenance
+                .inferred
                 .first_non_draft_created_at_decision_time,
             Some(*undraft_decision_time)
         );

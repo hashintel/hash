@@ -1,5 +1,5 @@
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::{PropertyConfidence, PropertyObject};
+use graph_types::knowledge::{PropertyMetadataMap, PropertyObject};
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
 use crate::DatabaseTestWrapper;
@@ -47,7 +47,7 @@ async fn insert() {
             None,
             false,
             None,
-            PropertyConfidence::default(),
+            PropertyMetadataMap::default(),
         )
         .await
         .expect("could not create entity");
@@ -59,7 +59,7 @@ async fn insert() {
             None,
             false,
             None,
-            PropertyConfidence::default(),
+            PropertyMetadataMap::default(),
         )
         .await
         .expect("could not create entity");
@@ -152,7 +152,7 @@ async fn get_entity_links() {
             None,
             false,
             None,
-            PropertyConfidence::default(),
+            PropertyMetadataMap::default(),
         )
         .await
         .expect("could not create entity");
@@ -164,7 +164,7 @@ async fn get_entity_links() {
             None,
             false,
             None,
-            PropertyConfidence::default(),
+            PropertyMetadataMap::default(),
         )
         .await
         .expect("could not create entity");
@@ -176,7 +176,7 @@ async fn get_entity_links() {
             None,
             false,
             None,
-            PropertyConfidence::default(),
+            PropertyMetadataMap::default(),
         )
         .await
         .expect("could not create entity");
@@ -220,7 +220,7 @@ async fn get_entity_links() {
 
     let link_datas = links_from_source
         .iter()
-        .map(|entity| entity.link_data.expect("entity is not a link"))
+        .map(|entity| entity.link_data.as_ref().expect("entity is not a link"))
         .collect::<Vec<_>>();
     assert!(
         link_datas
@@ -289,7 +289,7 @@ async fn remove_link() {
             None,
             false,
             None,
-            PropertyConfidence::default(),
+            PropertyMetadataMap::default(),
         )
         .await
         .expect("could not create entity");
@@ -301,7 +301,7 @@ async fn remove_link() {
             None,
             false,
             None,
-            PropertyConfidence::default(),
+            PropertyMetadataMap::default(),
         )
         .await
         .expect("could not create entity");

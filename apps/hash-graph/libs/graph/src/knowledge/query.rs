@@ -355,6 +355,10 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     EditionProvenance(Option<JsonPath<'p>>),
+    /// Corresponds to the provenance data of the properties of the [`Entity`].
+    ///
+    /// It's currently not possible to query for the list of property provenance values directly.
+    PropertyProvenance(Option<JsonPath<'p>>),
     /// The embedding for the whole entity blob.
     ///
     /// Deserializes from `["embedding"]`:
@@ -388,6 +392,8 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::Provenance(None) => fmt.write_str("provenance"),
             Self::EditionProvenance(Some(path)) => write!(fmt, "editionProvenance.{path}"),
             Self::EditionProvenance(None) => fmt.write_str("editionProvenance"),
+            Self::PropertyProvenance(Some(path)) => write!(fmt, "propertyProvenance.{path}"),
+            Self::PropertyProvenance(None) => fmt.write_str("propertyProvenance"),
             Self::Embedding => fmt.write_str("embedding"),
             Self::EntityTypeEdge {
                 edge_kind: SharedEdgeKind::IsOfType,
@@ -437,9 +443,10 @@ impl QueryPath for EntityQueryPath<'_> {
             Self::TypeVersions => {
                 ParameterType::Vector(Box::new(ParameterType::OntologyTypeVersion))
             }
-            Self::Properties(_) | Self::Provenance(_) | Self::EditionProvenance(_) => {
-                ParameterType::Any
-            }
+            Self::Properties(_)
+            | Self::Provenance(_)
+            | Self::EditionProvenance(_)
+            | Self::PropertyProvenance(_) => ParameterType::Any,
             Self::EntityConfidence | Self::LeftEntityConfidence | Self::RightEntityConfidence => {
                 ParameterType::F64
             }
@@ -741,6 +748,9 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
             Self::Provenance(path) => EntityQueryPath::Provenance(path.map(JsonPath::into_owned)),
             Self::EditionProvenance(path) => {
                 EntityQueryPath::EditionProvenance(path.map(JsonPath::into_owned))
+            }
+            Self::PropertyProvenance(path) => {
+                EntityQueryPath::PropertyProvenance(path.map(JsonPath::into_owned))
             }
         }
     }

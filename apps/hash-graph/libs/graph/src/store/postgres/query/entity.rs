@@ -28,7 +28,9 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             Self::Embedding => vec![Relation::EntityEmbeddings],
             Self::LeftEntityConfidence => vec![Relation::LeftEntity],
             Self::RightEntityConfidence => vec![Relation::RightEntity],
-            Self::PropertyPaths | Self::PropertyConfidences => vec![Relation::EntityProperties],
+            Self::PropertyPaths | Self::PropertyConfidences | Self::PropertyProvenance(_) => {
+                vec![Relation::EntityProperties]
+            }
             Self::Properties(_)
             | Self::EditionProvenance(_)
             | Self::Archived
@@ -150,6 +152,14 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                     Column::EntityEditions(EntityEditions::Provenance(Some(JsonField::JsonPath(
                         path,
                     ))))
+                },
+            ),
+            Self::PropertyProvenance(path) => path.as_ref().map_or(
+                Column::EntityProperties(EntityProperties::Provenances(None)),
+                |path| {
+                    Column::EntityProperties(EntityProperties::Provenances(Some(
+                        JsonField::JsonPath(path),
+                    )))
                 },
             ),
             Self::EntityConfidence => Column::EntityEditions(EntityEditions::Confidence),
