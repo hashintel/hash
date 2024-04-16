@@ -25,7 +25,6 @@ import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/infer
 import type { PermittedOpenAiModel } from "../../shared/openai";
 import { getOpenAiResponse } from "../../shared/openai";
 import { stringify } from "../../shared/stringify";
-// import { getWebPageActivity } from "../../get-web-page-activity";
 import { inferEntitiesFromContentAction } from "../infer-entities-from-content-action";
 import { getWebPageInnerHtml } from "./infer-entities-from-web-page-worker-agent/get-web-page-inner-html";
 import type {
@@ -69,21 +68,6 @@ const explanationDefinition = {
 } as const;
 
 const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
-  // getWebPageInnerText: {
-  //   toolId: "getWebPageInnerText",
-  //   description: "Get the inner text (i.e. the rendered text) of a web page.",
-  //   inputSchema: {
-  //     type: "object",
-  //     properties: {
-  //       explanation: explanationDefinition,
-  //       url: {
-  //         type: "string",
-  //         description: "The URL of the web page.",
-  //       },
-  //     },
-  //     required: ["url", "explanation"],
-  //   },
-  // },
   getWebPageInnerHtml: {
     toolId: "getWebPageInnerHtml",
     description: "Get the inner HTML of a web page.",
@@ -128,11 +112,12 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
 
             ${
               ""
-              // Anything you don't provide in the text, cannot be inferred by the agent.
-
-              // Therefore you must provide the entire text necessary to accurately infer
-              //   properties of the relevant entities in a single tool call.
-
+              /**
+               * Note: This was previously included to sometimes improve the unit formatting
+               * for the inference agent, however this came with the cost that the worker
+               * agent would frequently truncate text. This has been omitted so that the
+               * unit inference becomes the responsibility of the inference agent.
+               */
               // For example if the text contains data from a table, you must provide the table
               // column names. If the are column names specifying units, you must explicitly
               // specify the unit for each value in the table. For example if the column
@@ -257,9 +242,6 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
 };
 
 type ToolCallArguments = {
-  getWebPageInnerText: {
-    url: string;
-  };
   getWebPageInnerHtml: {
     url: string;
   };
@@ -665,19 +647,6 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                 tool call unless there are no entities to infer from this page.
               `),
             };
-
-            // } else if (toolCall.toolId === "getWebPageInnerText") {
-            //   const { url: toolCallUrl } =
-            //     toolCall.parsedArguments as ToolCallArguments["getWebPageInnerText"];
-
-            //   const { textContent } = await getWebPageActivity({
-            //     url: toolCallUrl,
-            //   });
-
-            //   return {
-            //     ...toolCall,
-            //     output: textContent,
-            //   };
           } else if (toolCall.toolId === "inferEntitiesFromWebPage") {
             const {
               hmtlContent,
