@@ -155,7 +155,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
 
   /**
    * Force validation on the text input form.
-   * If the form is valid or if the form has been unmounted, allow <Grid /> to handle clicks events again.
+   * If the form is valid or if the form has been unmounted, allow <Grid /> to handle click events again.
    */
   const validationHandler = () => {
     if (textInputFormRef.current) {
