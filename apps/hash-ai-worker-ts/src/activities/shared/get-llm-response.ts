@@ -61,17 +61,6 @@ const parseToolCallsFromAnthropicResponse = (
     .filter(isAnthropicContentToolUseContent)
     .map(({ id, name, input }) => ({ id, name, input }));
 
-const parseToolCallsFromOpenAiResponse = (
-  response: OpenAiResponse,
-): ParsedToolCall[] =>
-  response.choices[0]?.message.tool_calls?.map(
-    ({ id, function: { name, arguments: functionArguments } }) => {
-      const input = JSON.parse(functionArguments) as object;
-
-      return { id, name, input };
-    },
-  ) ?? [];
-
 const mapOpenAiFinishReasonToLlmStopReason = (
   finishReason: OpenAiChatCompletion["choices"][0]["finish_reason"],
 ): LlmStopReason => {
@@ -231,9 +220,9 @@ const getAnthropicResponse = async (
 const getOpenAiResponse = async (
   params: OpenAiLlmParams,
 ): Promise<LlmResponse<OpenAiLlmParams>> => {
-  const openAiTools = params.tools?.map(
-    mapLlmToolDefinitionToOpenAiToolDefinition,
-  );
+  const { tools, retryCount = 0 } = params;
+
+  const openAiTools = tools?.map(mapLlmToolDefinitionToOpenAiToolDefinition);
 
   const openAiResponse = await openai.chat.completions.create({
     ...params,
@@ -241,13 +230,123 @@ const getOpenAiResponse = async (
     stream: false,
   });
 
-  const parsedToolCalls = parseToolCallsFromOpenAiResponse(openAiResponse);
+  const retry = async (retryParams: {
+    retryMessages: OpenAiLlmParams["messages"];
+  }): Promise<LlmResponse<OpenAiLlmParams>> => {
+    if (retryCount > maxRetryCount) {
+      return {
+        status: "exceeded-maximum-retries",
+      };
+    }
+
+    return getOpenAiResponse({
+      ...params,
+      retryCount: retryCount + 1,
+      messages: [
+        ...params.messages,
+        openAiResponse.choices[0]?.message ?? [],
+        ...retryParams.retryMessages,
+      ].flat(),
+    });
+  };
 
   /**
    * @todo: consider accounting for `choices` in the unified LLM response
    */
+  const firstChoice = openAiResponse.choices[0];
+
+  if (!firstChoice) {
+    return retry({
+      retryMessages: [
+        {
+          role: "user",
+          content: "No response was provided by the model",
+        },
+      ],
+    });
+  }
+
+  const parsedToolCalls: ParsedToolCall[] = [];
+
+  const retryMessages: OpenAiLlmParams["messages"] = [];
+
+  for (const openAiToolCall of firstChoice.message.tool_calls ?? []) {
+    const {
+      id,
+      function: { name, arguments: functionArguments },
+    } = openAiToolCall;
+
+    const toolDefinition = tools?.find((tool) => tool.name === name);
+
+    if (!toolDefinition) {
+      retryMessages.push({
+        role: "tool",
+        tool_call_id: id,
+        content: "Tool not found",
+      });
+
+      continue;
+    }
+
+    let parsedInput: object | undefined = undefined;
+
+    try {
+      parsedInput = JSON.parse(functionArguments) as object;
+    } catch (error) {
+      retryMessages.push({
+        role: "tool",
+        content: `Your JSON arguments could not be parsed – the parsing function errored: ${
+          (error as Error).message
+        }. Please try again.`,
+        tool_call_id: id,
+      });
+
+      continue;
+    }
+
+    const validate = ajv.compile({
+      ...toolDefinition.input_schema,
+      additionalProperties: false,
+    });
+
+    const inputIsValid = validate(parsedInput);
+
+    if (!inputIsValid) {
+      retryMessages.push({
+        role: "tool",
+        tool_call_id: id,
+        content: dedent(`
+          The provided input did not match the schema.
+          It contains the following errors: ${JSON.stringify(validate.errors)}
+        `),
+      });
+
+      continue;
+    }
+
+    parsedToolCalls.push({ id, name, input: parsedInput });
+  }
+
+  if (retryMessages.length > 0) {
+    return retry({ retryMessages });
+  }
+
+  if (
+    firstChoice.finish_reason === "tool_calls" &&
+    parsedToolCalls.length === 0
+  ) {
+    return retry({
+      retryMessages: [
+        {
+          role: "user",
+          content: `You indicated "tool_calls" as the finish reason, but no tool calls were made.`,
+        },
+      ],
+    });
+  }
+
   const stopReason = mapOpenAiFinishReasonToLlmStopReason(
-    openAiResponse.choices[0]!.finish_reason,
+    firstChoice.finish_reason,
   );
 
   const response: LlmResponse<OpenAiLlmParams> = {
