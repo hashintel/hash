@@ -21,11 +21,12 @@ export type LlmToolDefinition = {
 export type CommonLlmParams = {
   model: AnthropicMessageModel | PermittedOpenAiModel;
   tools?: LlmToolDefinition[];
+  retryCount?: number;
 };
 
 export type AnthropicLlmParams = CommonLlmParams & {
   model: AnthropicMessageModel;
-  max_tokens?: number;
+  maxTokens?: number;
 } & Omit<AnthropicMessagesCreateParams, "tools" | "max_tokens">;
 
 export type OpenAiLlmParams = CommonLlmParams & {

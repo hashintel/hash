@@ -1,3 +1,5 @@
+import Ajv from "ajv";
+import dedent from "dedent";
 import type OpenAI from "openai";
 import type { JSONSchema } from "openai/lib/jsonschema";
 import type {
@@ -5,11 +7,15 @@ import type {
   FunctionParameters as OpenAiFunctionParameters,
 } from "openai/resources";
 
-import type { AnthropicToolDefinition } from "./get-llm-response/anthropic-client";
+import type {
+  AnthropicMessagesCreateParams,
+  AnthropicToolDefinition,
+  MessageContent,
+} from "./get-llm-response/anthropic-client";
 import {
-  anthropicMessageModelToContextWindow,
+  anthropicMessageModelToMaxOutput,
   createAnthropicMessagesWithTools,
-  isAnthropicContentToolCallContent,
+  isAnthropicContentToolUseContent,
 } from "./get-llm-response/anthropic-client";
 import type {
   AnthropicLlmParams,
@@ -52,7 +58,7 @@ const parseToolCallsFromAnthropicResponse = (
   response: AnthropicResponse,
 ): ParsedToolCall[] =>
   response.content
-    .filter(isAnthropicContentToolCallContent)
+    .filter(isAnthropicContentToolUseContent)
     .map(({ id, name, input }) => ({ id, name, input }));
 
 const parseToolCallsFromOpenAiResponse = (
@@ -100,10 +106,159 @@ const mapAnthropicStopReasonToLlmStopReason = (
   }
 };
 
-type LlmResponse<T extends LlmParams> = {
-  stopReason: LlmStopReason;
-  parsedToolCalls: ParsedToolCall[];
-} & (T extends AnthropicLlmParams ? AnthropicResponse : OpenAiResponse);
+type LlmResponse<T extends LlmParams> =
+  | ({
+      status: "ok";
+      stopReason: LlmStopReason;
+      parsedToolCalls: ParsedToolCall[];
+    } & (T extends AnthropicLlmParams ? AnthropicResponse : OpenAiResponse))
+  | {
+      status: "exceeded-maximum-retries";
+    };
+
+const ajv = new Ajv();
+
+const maxRetryCount = 3;
+
+const getAnthropicResponse = async (
+  params: AnthropicLlmParams,
+): Promise<LlmResponse<AnthropicLlmParams>> => {
+  const { tools, retryCount = 0 } = params;
+
+  const anthropicTools = tools?.map(
+    mapLlmToolDefinitionToAnthropicToolDefinition,
+  );
+
+  /**
+   * Default to the maximum context window, if `max_tokens` is not provided.
+   */
+  const maxTokens =
+    params.maxTokens ?? anthropicMessageModelToMaxOutput[params.model];
+
+  const anthropicResponse = await createAnthropicMessagesWithTools({
+    ...params,
+    max_tokens: maxTokens,
+    tools: anthropicTools,
+  });
+
+  const retry = async (retryParams: {
+    retryMessage: AnthropicMessagesCreateParams["messages"][number];
+  }): Promise<LlmResponse<AnthropicLlmParams>> => {
+    if (retryCount > maxRetryCount) {
+      return {
+        status: "exceeded-maximum-retries",
+      };
+    }
+
+    return getAnthropicResponse({
+      ...params,
+      retryCount: retryCount + 1,
+      messages: [
+        ...params.messages,
+        {
+          role: "assistant",
+          content: anthropicResponse.content,
+        },
+        retryParams.retryMessage,
+      ],
+    });
+  };
+
+  const parsedToolCalls =
+    parseToolCallsFromAnthropicResponse(anthropicResponse);
+
+  const stopReason = mapAnthropicStopReasonToLlmStopReason(
+    anthropicResponse.stop_reason,
+  );
+
+  if (stopReason === "tool_use" && parsedToolCalls.length > 0) {
+    const retryMessageContent: MessageContent = [];
+
+    for (const toolCall of parsedToolCalls) {
+      const toolDefinition = tools?.find((tool) => tool.name === toolCall.name);
+
+      if (!toolDefinition) {
+        retryMessageContent.push({
+          type: "tool_result",
+          tool_use_id: toolCall.id,
+          content: "Tool not found",
+          is_error: true,
+        });
+
+        continue;
+      }
+
+      const validate = ajv.compile({
+        ...toolDefinition.input_schema,
+        additionalProperties: false,
+      });
+
+      const inputIsValid = validate(toolCall.input);
+
+      if (!inputIsValid) {
+        retryMessageContent.push({
+          type: "tool_result",
+          tool_use_id: toolCall.id,
+          content: dedent(`
+            The provided input did not match the schema.
+            It contains the following errors: ${JSON.stringify(validate.errors)}
+          `),
+          is_error: true,
+        });
+      }
+    }
+
+    if (retryMessageContent.length > 0) {
+      return retry({
+        retryMessage: {
+          role: "user",
+          content: retryMessageContent,
+        },
+      });
+    }
+  }
+
+  const response: LlmResponse<AnthropicLlmParams> = {
+    status: "ok",
+    parsedToolCalls,
+    stopReason,
+    ...anthropicResponse,
+  };
+
+  return response;
+};
+
+const getOpenAiResponse = async (
+  params: OpenAiLlmParams,
+): Promise<LlmResponse<OpenAiLlmParams>> => {
+  const openAiTools = params.tools?.map(
+    mapLlmToolDefinitionToOpenAiToolDefinition,
+  );
+
+  const openAiResponse = await openai.chat.completions.create({
+    ...params,
+    tools: openAiTools,
+    stream: false,
+  });
+
+  const parsedToolCalls = parseToolCallsFromOpenAiResponse(openAiResponse);
+
+  /**
+   * @todo: consider accounting for `choices` in the unified LLM response
+   */
+  const stopReason = mapOpenAiFinishReasonToLlmStopReason(
+    openAiResponse.choices[0]!.finish_reason,
+  );
+
+  const response: LlmResponse<OpenAiLlmParams> = {
+    status: "ok",
+    stopReason,
+    parsedToolCalls,
+    ...openAiResponse,
+  };
+
+  return response;
+};
 
 /**
  * This function sends a request to the Anthropic or OpenAI API based on the
@@ -113,61 +268,11 @@ export const getLlmResponse = async <T extends LlmParams>(
   params: T,
 ): Promise<LlmResponse<T>> => {
   if (isLlmParamsAnthropicLlmParams(params)) {
-    const anthropicTools = params.tools?.map(
-      mapLlmToolDefinitionToAnthropicToolDefinition,
-    );
-
-    /**
-     * Default to the maximum context window, if `max_tokens` is not provided.
-     */
-    const maxTokens =
-      params.max_tokens ?? anthropicMessageModelToContextWindow[params.model];
-
-    const anthropicResponse = await createAnthropicMessagesWithTools({
-      ...params,
-      max_tokens: maxTokens,
-      tools: anthropicTools,
-    });
-
-    const parsedToolCalls =
-      parseToolCallsFromAnthropicResponse(anthropicResponse);
-
-    const stopReason = mapAnthropicStopReasonToLlmStopReason(
-      anthropicResponse.stop_reason,
-    );
-
-    const response: LlmResponse<AnthropicLlmParams> = {
-      parsedToolCalls,
-      stopReason,
-      ...anthropicResponse,
-    };
+    const response = await getAnthropicResponse(params);
 
     return response as unknown as LlmResponse<T>;
   } else {
-    const openAiTools = params.tools?.map(
-      mapLlmToolDefinitionToOpenAiToolDefinition,
-    );
-
-    const openAiResponse = await openai.chat.completions.create({
-      ...params,
-      tools: openAiTools,
-      stream: false,
-    });
-
-    const parsedToolCalls = parseToolCallsFromOpenAiResponse(openAiResponse);
-
-    /**
-     * @todo: consider accounting for `choices` in the unified LLM response
-     */
-    const stopReason = mapOpenAiFinishReasonToLlmStopReason(
-      openAiResponse.choices[0]!.finish_reason,
-    );
-
-    const response: LlmResponse<OpenAiLlmParams> = {
-      stopReason,
-      parsedToolCalls,
-      ...openAiResponse,
-    };
+    const response = await getOpenAiResponse(params);
 
     return response as unknown as LlmResponse<T>;
   }
