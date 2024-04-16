@@ -19,11 +19,12 @@ import type {
   ChatCompletionSystemMessageParam,
 } from "openai/resources";
 
+import { logger } from "../../../shared/logger";
 import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity";
 import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types";
 import type { PermittedOpenAiModel } from "../../shared/openai";
 import { getOpenAiResponse } from "../../shared/openai";
-// import { getWebPageActivity } from "../../get-web-page-activity";
+import { stringify } from "../../shared/stringify";
 import { inferEntitiesFromContentAction } from "../infer-entities-from-content-action";
 import { getWebPageInnerHtml } from "./infer-entities-from-web-page-worker-agent/get-web-page-inner-html";
 import type {
@@ -31,7 +32,7 @@ import type {
   ToolId,
 } from "./infer-entities-from-web-page-worker-agent/types";
 import { isToolId } from "./infer-entities-from-web-page-worker-agent/types";
-// import { writeStateToFile } from "./testing-utils";
+// import { retrievePreviousState, writeStateToFile } from "./testing-utils";
 import type { CompletedToolCall, ToolCall, ToolDefinition } from "./types";
 import {
   mapPreviousCallsToChatCompletionMessages,
@@ -67,21 +68,6 @@ const explanationDefinition = {
 } as const;
 
 const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
-  // getWebPageInnerText: {
-  //   toolId: "getWebPageInnerText",
-  //   description: "Get the inner text (i.e. the rendered text) of a web page.",
-  //   inputSchema: {
-  //     type: "object",
-  //     properties: {
-  //       explanation: explanationDefinition,
-  //       url: {
-  //         type: "string",
-  //         description: "The URL of the web page.",
-  //       },
-  //     },
-  //     required: ["url", "explanation"],
-  //   },
-  // },
   getWebPageInnerHtml: {
     toolId: "getWebPageInnerHtml",
     description: "Get the inner HTML of a web page.",
@@ -108,25 +94,65 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
           type: "string",
           description: "The URL of the web page.",
         },
-        text: {
+        hmtlContent: {
           type: "string",
           description: dedent(`
-            The relevant text from the web page from which to infer entities.
+            The HTML content with the relevant sections, paragraphs, tables
+              or other content from the webpage that describe entities of the requested type(s).
 
-            Provide the entire text necessary to accurately infer properties of the
-            relevant entities in a single tool call.
-            
-            Do not truncate or provide partial text which may lead to missed entities
+            You must not modify the content in any way.
+
+            You must include table headers when passing data from a table.
+
+            Do not under any circumstance truncate or provide partial text which may lead to missed entities
               or properties.
-        
-            If additional context (e.g. the current date) is needed to fully infer the
-            entities, ensure it is incorporated in the provided text. The current is ${new Date().toISOString()}.
+
+            You must provide as much text as necessary to infer all
+              the required entities and their properties from the web page in a single tool call.
+
+            ${
+              ""
+              /**
+               * Note: This was previously included to sometimes improve the unit formatting
+               * for the inference agent, however this came with the cost that the worker
+               * agent would frequently truncate text. This has been omitted so that the
+               * unit inference becomes the responsibility of the inference agent.
+               */
+              // For example if the text contains data from a table, you must provide the table
+              // column names. If the are column names specifying units, you must explicitly
+              // specify the unit for each value in the table. For example if the column
+              // specifies a unit in millions (m), append this to each value (e.g. "10 million (m)").
+
+              /** Note: the agent doesn't do this even if you ask it to */
+              // If there are units in the data, you must give a detailed definition for
+              // each unit and what it means.
+            }
             `),
+        },
+        /**
+         * @todo: consider letting the agent set `"unknown"` or `"as many as possible"` as
+         * an argument here, incase it isn't sure of the number of entities that can be inferred.
+         */
+        expectedNumberOfEntities: {
+          type: "number",
+          description: dedent(`
+            The expected number of entities which should be inferred from the HTML content.
+            You should expect at least 1 entity to be inferred.
+          `),
+        },
+        validAt: {
+          type: "string",
+          format: "date-time",
+          description: dedent(`
+            A date-time string in ISO 8601 format, representing when the provided HTML content is valid at.
+            If this cannot be found on the web page, assume it is the current date and time.
+            The current time is "${new Date().toISOString()}".
+          `),
         },
         prompt: {
           type: "string",
           description: dedent(`
-            A prompt instructing the inference agent which entities should be inferred from the text.
+            A prompt instructing the inference agent which entities should be inferred from the HTML content.
             Do not specify any information of the structure of the entities, as this is predefined by
               the entity type.
           `),
@@ -137,11 +163,19 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
             type: "string",
           },
           description: dedent(`
-            An array of entity type IDs which should be inferred from the provided text.
+            An array of entity type IDs which should be inferred from the provided HTML content.
           `),
         },
       },
-      required: ["url", "text", "prompt", "explanation", "entityTypeIds"],
+      required: [
+        "url",
+        "hmtlContent",
+        "expectedNumberOfEntities",
+        "validAt",
+        "prompt",
+        "explanation",
+        "entityTypeIds",
+      ],
     },
   },
   submitProposedEntities: {
@@ -168,8 +202,11 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
   },
   complete: {
     toolId: "complete",
-    description:
-      "Complete the inference task. You must explain how the task has been completed with the existing submitted entities. Do not make this tool call if the research prompt hasn't been fully satisfied.",
+    description: dedent(`
+      Complete the inference task.
+      You must explain how the task has been completed with the existing submitted entities.
+      Do not make this tool call if the research prompt hasn't been fully satisfied.
+    `),
     inputSchema: {
       type: "object",
       properties: {
@@ -209,15 +246,14 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
 };
 
 type ToolCallArguments = {
-  getWebPageInnerText: {
-    url: string;
-  };
   getWebPageInnerHtml: {
     url: string;
   };
   inferEntitiesFromWebPage: {
     url: string;
-    text: string;
+    hmtlContent: string;
+    expectedNumberOfEntities: number;
+    validAt: string;
     prompt: string;
     entityTypeIds: VersionedUrl[];
   };
@@ -515,6 +551,8 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     dereferencedEntityTypes,
   });
 
+  logger.debug(`Worker agent initial plan: ${initialPlan}`);
+
   const state: InferEntitiesFromWebPageWorkerAgentState = {
     currentPlan: initialPlan,
     previousCalls: [],
@@ -537,6 +575,8 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     toolCalls: ToolCall<ToolId>[];
   }): Promise<Status<never>> => {
     const { toolCalls } = processToolCallsParams;
+
+    logger.debug(`Worker agent processing tool calls: ${stringify(toolCalls)}`);
 
     const terminatedToolCall = toolCalls.find(
       (toolCall) => toolCall.toolId === "terminate",
@@ -602,7 +642,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               ${innerHtml}
               ---------------- END OF INNER HTML ----------------
               If there are any entities in this HTML which you think are relevant to the task, you must
-                immediately call the "inferEntitiesFromWebPage" tool with the relevant text from the HTML.
+                immediately call the "inferEntitiesFromWebPage" tool with the relevant HTML content from the HTML.
               
               If there are any links in the HTML which may also contain relevant entities, you should
                 make additional "getWebPageInnerHtml" tool calls to get the content of those pages.
@@ -611,24 +651,13 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                 tool call unless there are no entities to infer from this page.
               `),
             };
-
-            // } else if (toolCall.toolId === "getWebPageInnerText") {
-            //   const { url: toolCallUrl } =
-            //     toolCall.parsedArguments as ToolCallArguments["getWebPageInnerText"];
-
-            //   const { textContent } = await getWebPageActivity({
-            //     url: toolCallUrl,
-            //   });
-
-            //   return {
-            //     ...toolCall,
-            //     output: textContent,
-            //   };
           } else if (toolCall.toolId === "inferEntitiesFromWebPage") {
             const {
-              text,
+              hmtlContent,
               prompt: toolCallPrompt,
               url: inferringEntitiesFromWebPageUrl,
+              expectedNumberOfEntities,
+              validAt,
               entityTypeIds: inferringEntitiesOfTypeIds,
             } = toolCall.parsedArguments as ToolCallArguments["inferEntitiesFromWebPage"];
 
@@ -639,6 +668,16 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                     expectedEntityTypeId === entityTypeId,
                 ),
             );
+
+            if (expectedNumberOfEntities < 1) {
+              return {
+                ...toolCall,
+                output: dedent(`
+                  You provided an expected number of entities which is less than 1. You must provide
+                  a positive integer as the expected number of entities to infer.
+                `),
+              };
+            }
 
             if (invalidEntityTypeIds.length > 0) {
               return {
@@ -654,12 +693,25 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               };
             }
 
-            if (text.length === 0) {
+            if (hmtlContent.length === 0) {
               return {
                 ...toolCall,
                 output: dedent(`
-                  You provided an empty string as the text from the web page. You must provide
-                  the relevant text from the web page to infer entities.
+                  You provided an empty string as the HTML content from the web page. You must provide
+                  the relevant HTML content from the web page to infer entities.
+                `),
+              };
+            }
+
+            if (hmtlContent.endsWith("...")) {
+              return {
+                ...toolCall,
+                output: dedent(`
+                  You provided a truncated HTML content from the web page. You must provide the entire
+                  HTML content necessary to accurately infer properties of the relevant entities.
+
+                  You must make the "inferEntitiesFromWebPage" tool call again with the full HTML content
+                  required to infer the expected number of entities.
                 `),
               };
             }
@@ -668,12 +720,17 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               inferringEntitiesFromWebPageUrl,
             );
 
+            const content = dedent(`
+              ${hmtlContent}
+              The above data is valid at ${validAt}.
+            `);
+
             const response = await inferEntitiesFromContentAction({
               inputs: [
                 {
                   inputName:
                     "content" satisfies InputNameForAction<"inferEntitiesFromContent">,
-                  payload: { kind: "Text", value: text },
+                  payload: { kind: "Text", value: content },
                 },
                 {
                   inputName:
@@ -716,11 +773,29 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
 
             state.proposedEntities.push(...newProposedEntities);
 
+            const summarizedNewProposedEntities = newProposedEntities.map(
+              mapProposedEntityToSummarizedEntity,
+            );
+
+            if (newProposedEntities.length !== expectedNumberOfEntities) {
+              return {
+                ...toolCall,
+                output: dedent(`
+                  The following entities were inferred from the provided HTML content: ${JSON.stringify(summarizedNewProposedEntities)}
+
+                  The number of entities inferred from the HTML content doesn't match the expected number of entities.
+                  Expected: ${expectedNumberOfEntities}
+                  Actual: ${newProposedEntities.length}
+
+                  If there are missing entities which you require, you must make another "inferEntitiesFromWebPage" tool call
+                    with the relevant HTML content to try again.
+                `),
+              };
+            }
+
             return {
               ...toolCall,
-              output: JSON.stringify(
-                state.proposedEntities.map(mapProposedEntityToSummarizedEntity),
-              ),
+              output: JSON.stringify(summarizedNewProposedEntities),
             };
           } else if (toolCall.toolId === "submitProposedEntities") {
             const { entityIds } =

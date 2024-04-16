@@ -84,12 +84,15 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     ${typeof webPage === "string" ? "The content of the web page is as follows:" : `The website page title is ${webPage.title}, hosted at ${webPage.url}. Its content is as follows:`}
     ${typeof webPage === "string" ? webPage : webPage.textContent}
     ---WEBSITE CONTENT ENDS---
-    
-    You already provided a summary of the ${
-      relevantEntitiesPrompt
-        ? "relevant entities you inferred"
-        : "entities you can infer"
-    } from the website. Here it is:
+
+    Pay careful attention to the units of data, which may be defined
+      in a column header, or in the table row.
+
+    If you are asked to store a unit alongside a value in properties,
+      ensure that the values is stored in the correct unit. Do not
+      change units, you must use the units specified in the data.
+
+    You already provided a summary of the ${relevantEntitiesPrompt ? "relevant entities you inferred" : "entities you can infer"} from the website. Here it is:
     ${JSON.stringify(Object.values(inferenceState.proposedEntitySummaries))}
   `);
 
