@@ -1,6 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { MessageCreateParamsNonStreaming } from "@anthropic-ai/sdk/resources";
-import type { MessageCreateParamsBase } from "@anthropic-ai/sdk/resources/messages";
+import type {
+  Message,
+  MessageCreateParamsBase,
+} from "@anthropic-ai/sdk/resources/messages";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
 if (!process.env.ANTHROPIC_API_KEY) {
@@ -26,23 +29,41 @@ const anthropicMessageModels = [
   "claude-instant-1.2",
 ] satisfies MessageCreateParamsBase["model"][];
 
-type AnthropicMessageModel = (typeof anthropicMessageModels)[number];
+export type AnthropicMessageModel = (typeof anthropicMessageModels)[number];
+
+export const isAnthropicMessageModel = (
+  model: string,
+): model is AnthropicMessageModel =>
+  anthropicMessageModels.includes(model as AnthropicMessageModel);
 
 /**
- * @todo: omit this when the Anthropic SDK is updated to account
- * for the new `tools` parameter.
+ * @todo: deprecate these types and function when the Anthropic SDK is updated
+ * to account for the new `tools` parameter.
  */
-type AnthropicMessagesCreateParams = {
+export type AnthropicMessagesCreateParams = {
   tools: AnthropicToolDefinition[];
   model: AnthropicMessageModel;
 } & Omit<MessageCreateParamsNonStreaming, "model">;
 
+type ToolCallContent = {
+  type: "tool_use";
+  id: string;
+  name: string;
+  input: object;
+};
+
+export type AnthropicMessagesCreateResponse = Omit<Message, "content"> & {
+  content: (Message["content"][number] & ToolCallContent)[];
+};
+
 export const createAnthropicMessagesWithTools = async (
   params: AnthropicMessagesCreateParams,
-) => {
-  return anthropic.messages.create(params, {
+): Promise<AnthropicMessagesCreateResponse> => {
+  const response = await anthropic.messages.create(params, {
     headers: {
       "anthropic-beta": "tools-2024-04-04",
     },
   });
+
+  return response as AnthropicMessagesCreateResponse;
 };
