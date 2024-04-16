@@ -36,6 +36,19 @@ export const isAnthropicMessageModel = (
 ): model is AnthropicMessageModel =>
   anthropicMessageModels.includes(model as AnthropicMessageModel);
 
+/** @see https://docs.anthropic.com/claude/docs/models-overview#model-comparison */
+export const anthropicMessageModelToContextWindow: Record<
+  AnthropicMessageModel,
+  number
+> = {
+  "claude-instant-1.2": 100_000,
+  "claude-2.0": 100_000,
+  "claude-2.1": 200_000,
+  "claude-3-haiku-20240307": 200_000,
+  "claude-3-sonnet-20240229": 200_000,
+  "claude-3-opus-20240229": 200_000,
+};
+
 /**
  * @todo: deprecate these types and function when the Anthropic SDK is updated
  * to account for the new `tools` parameter.

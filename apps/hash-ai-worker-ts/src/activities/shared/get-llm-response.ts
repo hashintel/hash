@@ -9,6 +9,7 @@ import type {
   AnthropicToolDefinition,
 } from "./anthropic-client";
 import {
+  anthropicMessageModelToContextWindow,
   createAnthropicMessagesWithTools,
   isAnthropicContentToolCallContent,
   isAnthropicMessageModel,
@@ -48,7 +49,8 @@ type CommonLlmParams = {
 
 type AnthropicLlmParams = CommonLlmParams & {
   model: AnthropicMessageModel;
-} & Omit<AnthropicMessagesCreateParams, "tools">;
+  max_tokens?: number;
+} & Omit<AnthropicMessagesCreateParams, "tools" | "max_tokens">;
 
 type OpenAiLlmParams = CommonLlmParams & {
   model: PermittedOpenAiModel;
@@ -154,8 +156,15 @@ export const getLlmResponse = async <T extends LlmParams>(
       mapLlmToolDefinitionToAnthropicToolDefinition,
     );
 
+    /**
+     * Default to the maximum context window, if `max_tokens` is not provided.
+     */
+    const maxTokens =
+      params.max_tokens ?? anthropicMessageModelToContextWindow[params.model];
+
     const anthropicResponse = await createAnthropicMessagesWithTools({
       ...params,
+      max_tokens: maxTokens,
       tools: anthropicTools,
     });
 
