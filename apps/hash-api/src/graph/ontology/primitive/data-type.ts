@@ -7,6 +7,7 @@ import type {
   DataTypeStructuralQuery,
   ModifyRelationshipOperation,
   OntologyTemporalMetadata,
+  ProvidedOntologyEditionProvenanceMetadata,
   UnarchiveDataTypeParams,
 } from "@local/hash-graph-client";
 import {
@@ -53,10 +54,11 @@ export const createDataType: ImpureGraphFunction<
     schema: ConstructDataTypeParams;
     webShortname?: string;
     relationships: DataTypeRelationAndSubject[];
+    provenance?: ProvidedOntologyEditionProvenanceMetadata;
   },
   Promise<DataTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { ownedById, webShortname } = params;
+  const { ownedById, webShortname, provenance } = params;
 
   const shortname =
     webShortname ??
@@ -85,6 +87,7 @@ export const createDataType: ImpureGraphFunction<
       schema,
       ownedById,
       relationships: params.relationships,
+      provenance,
     },
   );
 
@@ -200,10 +203,11 @@ export const updateDataType: ImpureGraphFunction<
     dataTypeId: VersionedUrl;
     schema: ConstructDataTypeParams;
     relationships: DataTypeRelationAndSubject[];
+    provenance?: ProvidedOntologyEditionProvenanceMetadata;
   },
   Promise<DataTypeWithMetadata>
 > = async ({ graphApi }, { actorId }, params) => {
-  const { dataTypeId, schema } = params;
+  const { dataTypeId, schema, provenance } = params;
 
   const { data: metadata } = await graphApi.updateDataType(actorId, {
     typeToUpdate: dataTypeId,
@@ -213,6 +217,7 @@ export const updateDataType: ImpureGraphFunction<
       ...schema,
     },
     relationships: params.relationships,
+    provenance,
   });
 
   const { recordId } = metadata;

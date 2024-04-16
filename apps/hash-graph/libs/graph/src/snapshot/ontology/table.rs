@@ -1,8 +1,4 @@
-use graph_types::{
-    account::{EditionArchivedById, EditionCreatedById},
-    owned_by_id::OwnedById,
-    Embedding,
-};
+use graph_types::{ontology::OntologyEditionProvenanceMetadata, owned_by_id::OwnedById, Embedding};
 use postgres_types::{Json, ToSql};
 use temporal_versioning::{LeftClosedTemporalInterval, Timestamp, TransactionTime};
 use time::OffsetDateTime;
@@ -39,8 +35,7 @@ pub struct OntologyExternalMetadataRow {
 pub struct OntologyTemporalMetadataRow {
     pub ontology_id: Uuid,
     pub transaction_time: LeftClosedTemporalInterval<TransactionTime>,
-    pub edition_created_by_id: EditionCreatedById,
-    pub edition_archived_by_id: Option<EditionArchivedById>,
+    pub provenance: OntologyEditionProvenanceMetadata,
 }
 
 #[derive(Debug, ToSql)]

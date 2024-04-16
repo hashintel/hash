@@ -1606,8 +1606,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "entityTypes": ["http://localhost:3000/@alice/types/entity-type/person/v/1"],
   "properties": {
     "http://localhost:3000/@alice/types/property-type/name/": "Alice"
-  },
-  "profile": "full"
+  }
 }
 
 > {%
@@ -1683,14 +1682,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "all": [
         {
           "equal": [
-            { "path": ["uuid"] },
-            { "parameter": "{{person_a_entity_uuid}}" }
-          ]
-        },
-        {
-          "equal": [
-            { "path": ["ownedById"] },
-            { "parameter": "{{person_a_owned_by_id}}" }
+            { "path": ["provenance", "createdById"] },
+            { "parameter": "{{account_id}}" }
           ]
         }
       ]
@@ -1757,8 +1750,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "entityTypes": ["http://localhost:3000/@alice/types/entity-type/person/v/2"],
   "properties": {
     "http://localhost:3000/@alice/types/property-type/name/": "Alice Allison"
-  },
-  "profile": "draft"
+  }
 }
 
 > {%
@@ -2023,8 +2015,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "linkData": {
     "leftEntityId": "{{person_a_entity_id}}",
     "rightEntityId": "{{person_b_entity_id}}"
-  },
-  "profile": "draft"
+  }
 }
 
 > {%

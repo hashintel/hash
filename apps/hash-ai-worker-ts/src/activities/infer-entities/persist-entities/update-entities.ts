@@ -114,7 +114,9 @@ export const updateEntities = async ({
 
             await graphApiClient.validateEntity(actorId, {
               entityTypes: [entityTypeId],
-              profile: createAsDraft ? "draft" : "full",
+              components: createAsDraft
+                ? { numItems: false, requiredProperties: false }
+                : {},
               properties,
               linkData: existingEntity.linkData,
             });

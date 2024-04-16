@@ -3,8 +3,9 @@ use std::borrow::Borrow;
 use error_stack::{Report, ResultExt};
 use futures::{stream, StreamExt, TryStreamExt};
 use graph_types::knowledge::{
-    entity::{Entity, EntityId, EntityProperties},
+    entity::{Entity, EntityId},
     link::LinkData,
+    PropertyObject, PropertyPath,
 };
 use thiserror::Error;
 use type_system::{
@@ -14,7 +15,8 @@ use type_system::{
 
 use crate::{
     error::{Actual, Expected},
-    EntityProvider, EntityTypeProvider, OntologyTypeProvider, Schema, Validate, ValidationProfile,
+    EntityProvider, EntityTypeProvider, OntologyTypeProvider, Schema, Validate,
+    ValidateEntityComponents,
 };
 
 macro_rules! extend_report {
@@ -45,9 +47,11 @@ pub enum EntityValidationError {
     InvalidLinkTypeId { link_types: Vec<VersionedUrl> },
     #[error("The link target `{target_types:?}` is not allowed")]
     InvalidLinkTargetId { target_types: Vec<VersionedUrl> },
+    #[error("The property path is invalid: `{path:?}`")]
+    InvalidPropertyPath { path: PropertyPath<'static> },
 }
 
-impl<P> Schema<EntityProperties, P> for ClosedEntityType
+impl<P> Schema<PropertyObject, P> for ClosedEntityType
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -55,8 +59,8 @@ where
 
     async fn validate_value<'a>(
         &'a self,
-        value: &'a EntityProperties,
-        profile: ValidationProfile,
+        value: &'a PropertyObject,
+        components: ValidateEntityComponents,
         provider: &'a P,
     ) -> Result<(), Report<EntityValidationError>> {
         // TODO: Distinguish between format validation and content validation so it's possible
@@ -64,7 +68,7 @@ where
         //   see https://linear.app/hash/issue/BP-33
         Object::<_, 0>::new(self.properties.clone(), self.required.clone())
             .expect("`Object` was already validated")
-            .validate_value(value.properties(), profile, provider)
+            .validate_value(value.properties(), components, provider)
             .await
             .change_context(EntityValidationError::InvalidProperties)
             .attach_lazy(|| Expected::EntityType(self.clone()))
@@ -72,7 +76,7 @@ where
     }
 }
 
-impl<P> Validate<ClosedEntityType, P> for EntityProperties
+impl<P> Validate<ClosedEntityType, P> for PropertyObject
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -81,10 +85,10 @@ where
     async fn validate(
         &self,
         schema: &ClosedEntityType,
-        profile: ValidationProfile,
+        components: ValidateEntityComponents,
         provider: &P,
     ) -> Result<(), Report<Self::Error>> {
-        schema.validate_value(self, profile, provider).await
+        schema.validate_value(self, components, provider).await
     }
 }
 
@@ -101,9 +105,13 @@ where
     async fn validate(
         &self,
         schema: &ClosedEntityType,
-        profile: ValidationProfile,
+        components: ValidateEntityComponents,
         provider: &P,
     ) -> Result<(), Report<Self::Error>> {
+        if !components.link_data {
+            return Ok(());
+        }
+
         let mut status: Result<(), Report<EntityValidationError>> = Ok(());
 
         // TODO: The link type should be a const but the type system crate does not allow
@@ -123,7 +131,10 @@ where
                 extend_report!(status, EntityValidationError::UnexpectedLinkData);
             }
 
-            if let Err(error) = schema.validate_value(*link_data, profile, provider).await {
+            if let Err(error) = schema
+                .validate_value(*link_data, components, provider)
+                .await
+            {
                 extend_report!(status, error);
             }
         } else if is_link {
@@ -147,7 +158,7 @@ where
     async fn validate(
         &self,
         schema: &ClosedEntityType,
-        profile: ValidationProfile,
+        components: ValidateEntityComponents,
         provider: &P,
     ) -> Result<(), Report<Self::Error>> {
         let mut status: Result<(), Report<EntityValidationError>> = Ok(());
@@ -155,13 +166,21 @@ where
         if self.metadata.entity_type_ids.is_empty() {
             extend_report!(status, EntityValidationError::EmptyEntityTypes);
         }
-        if let Err(error) = self.properties.validate(schema, profile, provider).await {
+        if let Err(error) = self.properties.validate(schema, components, provider).await {
             extend_report!(status, error);
         }
         if let Err(error) = self
             .link_data
             .as_ref()
-            .validate(schema, profile, provider)
+            .validate(schema, components, provider)
+            .await
+        {
+            extend_report!(status, error);
+        }
+        if let Err(error) = self
+            .metadata
+            .property_confidence
+            .validate(&self.properties, components, provider)
             .await
         {
             extend_report!(status, error);
@@ -182,7 +201,7 @@ where
     async fn validate_value<'a>(
         &'a self,
         link_data: &'a LinkData,
-        _: ValidationProfile,
+        _: ValidateEntityComponents,
         provider: &'a P,
     ) -> Result<(), Report<EntityValidationError>> {
         let mut status: Result<(), Report<EntityValidationError>> = Ok(());
@@ -287,7 +306,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{tests::validate_entity, ValidationProfile};
+    use crate::{tests::validate_entity, ValidateEntityComponents};
 
     #[tokio::test]
     async fn address() {
@@ -307,7 +326,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -327,7 +346,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -351,7 +370,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -371,7 +390,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -391,7 +410,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -411,7 +430,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -423,7 +442,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -449,7 +468,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -461,7 +480,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -473,7 +492,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -493,7 +512,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -513,7 +532,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");

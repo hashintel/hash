@@ -9,6 +9,8 @@ import type {
   Filter,
   GraphResolveDepths,
   ModifyRelationshipOperation,
+  PropertyConfidence,
+  ProvidedEntityEditionProvenanceMetadata,
 } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -73,6 +75,9 @@ export type CreateEntityParams = {
   entityUuid?: EntityUuid;
   draft?: boolean;
   relationships: EntityRelationAndSubject[];
+  confidence?: number;
+  propertyConfidence?: PropertyConfidence;
+  provenance?: ProvidedEntityEditionProvenanceMetadata;
 };
 
 /** @todo: potentially directly export this from the subgraph package */
@@ -97,6 +102,7 @@ export const createEntity: ImpureGraphFunction<
     outgoingLinks,
     entityUuid: overrideEntityUuid,
     draft = false,
+    provenance,
   } = params;
 
   const { graphApi } = context;
@@ -124,6 +130,9 @@ export const createEntity: ImpureGraphFunction<
     entityUuid: overrideEntityUuid,
     draft,
     relationships: params.relationships,
+    confidence: params.confidence,
+    propertyConfidence: params.propertyConfidence,
+    provenance,
   });
 
   const entity = {
@@ -386,6 +395,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
     linkedEntities?: LinkedEntityDefinition[];
     relationships: EntityRelationAndSubject[];
     draft?: boolean;
+    provenance?: ProvidedEntityEditionProvenanceMetadata;
   },
   Promise<Entity>,
   false,
@@ -398,6 +408,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
     linkedEntities,
     relationships,
     draft,
+    provenance,
   } = params;
 
   const entitiesInTree = linkedTreeFlatten<
@@ -451,6 +462,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
             ownedById,
             relationships,
             draft,
+            provenance,
           });
 
       return {
@@ -516,12 +528,13 @@ export const updateEntity: ImpureGraphFunction<
     entityTypeId?: VersionedUrl;
     properties: EntityPropertiesObject;
     draft?: boolean;
+    provenance?: ProvidedEntityEditionProvenanceMetadata;
   },
   Promise<Entity>,
   false,
   true
 > = async (context, authentication, params) => {
-  const { entity, properties, entityTypeId } = params;
+  const { entity, properties, entityTypeId, provenance } = params;
 
   for (const beforeUpdateHook of beforeUpdateEntityHooks) {
     if (beforeUpdateHook.entityTypeId === entity.metadata.entityTypeId) {
@@ -548,6 +561,7 @@ export const updateEntity: ImpureGraphFunction<
         value: params.properties,
       },
     ],
+    provenance,
   });
 
   for (const afterUpdateHook of afterUpdateEntityHooks) {
@@ -608,12 +622,13 @@ export const updateEntityProperties: ImpureGraphFunction<
       propertyTypeBaseUrl: BaseUrl;
       value: PropertyValue | undefined;
     }[];
+    provenance?: ProvidedEntityEditionProvenanceMetadata;
   },
   Promise<Entity>,
   false,
   true
 > = async (ctx, authentication, params) => {
-  const { entity, updatedProperties } = params;
+  const { entity, updatedProperties, provenance } = params;
 
   return await updateEntity(ctx, authentication, {
     entity,
@@ -627,6 +642,7 @@ export const updateEntityProperties: ImpureGraphFunction<
           : prev,
       entity.properties,
     ),
+    provenance,
   });
 };
 
@@ -643,16 +659,18 @@ export const updateEntityProperty: ImpureGraphFunction<
     entity: Entity;
     propertyTypeBaseUrl: BaseUrl;
     value: PropertyValue | undefined;
+    provenance?: ProvidedEntityEditionProvenanceMetadata;
   },
   Promise<Entity>,
   false,
   true
 > = async (ctx, authentication, params) => {
-  const { entity, propertyTypeBaseUrl, value } = params;
+  const { entity, propertyTypeBaseUrl, value, provenance } = params;
 
   return await updateEntityProperties(ctx, authentication, {
     entity,
     updatedProperties: [{ propertyTypeBaseUrl, value }],
+    provenance,
   });
 };
 

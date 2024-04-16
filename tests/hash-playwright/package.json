@@ -16,7 +16,7 @@
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@playwright/test": "1.43.0",
+    "@playwright/test": "1.43.1",
     "eslint": "8.57.0",
     "execa": "5.1.1",
     "graphql": "16.8.1",

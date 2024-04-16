@@ -1,6 +1,9 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
-import type { GraphApi, PatchOperation } from "@local/hash-graph-client";
+import type {
+  GraphApi,
+  PropertyPatchOperation,
+} from "@local/hash-graph-client";
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
@@ -92,7 +95,7 @@ export const persistEntityAction: FlowActionActivity<{
     }
   }
 
-  const patchOperations: PatchOperation[] = [];
+  const patchOperations: PropertyPatchOperation[] = [];
 
   let existingEntityIsDraft: boolean | undefined;
   if (existingEntity) {

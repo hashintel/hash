@@ -224,7 +224,7 @@ enum PostgresOntologyTypeClassificationMetadata {
         web_id: OwnedById,
     },
     External {
-        #[serde(with = "temporal_versioning::serde::time")]
+        #[serde(with = "codec::serde::time")]
         fetched_at: OffsetDateTime,
     },
 }

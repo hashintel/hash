@@ -39,23 +39,20 @@ use graph_types::{
     knowledge::{
         entity::{
             Entity, EntityEditionId, EntityEditionProvenanceMetadata, EntityEmbedding, EntityId,
-            EntityMetadata, EntityProperties, EntityProvenanceMetadata, EntityRecordId,
-            EntityTemporalMetadata, EntityUuid, PropertyPath,
+            EntityMetadata, EntityProvenanceMetadata, EntityRecordId, EntityTemporalMetadata,
+            EntityUuid, ProvidedEntityEditionProvenanceMetadata,
         },
         link::LinkData,
-        Confidence,
+        Confidence, Property, PropertyConfidence, PropertyObject, PropertyPatchOperation,
+        PropertyPath,
     },
     owned_by_id::OwnedById,
     Embedding,
 };
-use json_patch::{
-    AddOperation, CopyOperation, MoveOperation, PatchOperation, RemoveOperation, ReplaceOperation,
-    TestOperation,
-};
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use utoipa::{OpenApi, ToSchema};
-use validation::ValidationProfile;
+use validation::ValidateEntityComponents;
 
 use crate::rest::{
     api_resource::RoutedResource, json::Json, status::report_to_response,
@@ -85,7 +82,7 @@ use crate::rest::{
             CreateEntityRequest,
             ValidateEntityParams,
             EntityValidationType,
-            ValidationProfile,
+            ValidateEntityComponents,
             Embedding,
             UpdateEntityEmbeddingsParams,
             EntityEmbedding,
@@ -93,13 +90,7 @@ use crate::rest::{
             EntityStructuralQuery,
 
             PatchEntityParams,
-            PatchOperation,
-            AddOperation,
-            ReplaceOperation,
-            RemoveOperation,
-            CopyOperation,
-            MoveOperation,
-            TestOperation,
+            PropertyPatchOperation,
 
             EntityRelationAndSubject,
             EntityPermission,
@@ -121,13 +112,16 @@ use crate::rest::{
             GetEntityByQueryResponse,
 
             Entity,
+            Property,
+            PropertyObject,
+            PropertyConfidence,
             EntityUuid,
             EntityId,
             EntityEditionId,
             EntityMetadata,
             EntityProvenanceMetadata,
             EntityEditionProvenanceMetadata,
-            EntityProperties,
+            ProvidedEntityEditionProvenanceMetadata,
             EntityRecordId,
             EntityTemporalMetadata,
             EntityQueryToken,

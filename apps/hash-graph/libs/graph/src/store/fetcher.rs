@@ -14,14 +14,15 @@ use error_stack::{Report, Result, ResultExt};
 use graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{EntityMetadata, EntityProperties, EntityUuid},
+        entity::{EntityMetadata, EntityUuid},
         link::LinkData,
+        PropertyObject,
     },
     ontology::{
         DataTypeMetadata, EntityTypeMetadata, OntologyTemporalMetadata, OntologyType,
         OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
         PartialDataTypeMetadata, PartialEntityTypeMetadata, PartialPropertyTypeMetadata,
-        PropertyTypeMetadata,
+        PropertyTypeMetadata, ProvidedOntologyEditionProvenanceMetadata,
     },
     owned_by_id::OwnedById,
 };
@@ -549,6 +550,7 @@ where
                             classification: metadata.classification,
                             relationships: DATA_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
+                            provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
                         }),
                 )
                 .await?;
@@ -568,6 +570,7 @@ where
                             classification: metadata.classification,
                             relationships: PROPERTY_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
+                            provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
                         }),
                 )
                 .await?;
@@ -589,6 +592,7 @@ where
                             label_property: metadata.label_property,
                             relationships: ENTITY_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
+                            provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
                         }),
                 )
                 .await?;
@@ -645,6 +649,7 @@ where
                                 classification: metadata.classification,
                                 relationships: DATA_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
+                                provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
                             }),
                     )
                     .await?
@@ -664,6 +669,7 @@ where
                                 classification: metadata.classification,
                                 relationships: PROPERTY_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
+                                provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
                             },
                         ),
                     )
@@ -686,6 +692,7 @@ where
                                 label_property: metadata.label_property,
                                 relationships: ENTITY_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
+                                provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
                             },
                         ),
                     )
@@ -1275,7 +1282,7 @@ where
             Item = (
                 OwnedById,
                 Option<EntityUuid>,
-                EntityProperties,
+                PropertyObject,
                 Option<LinkData>,
                 Option<Timestamp<DecisionTime>>,
             ),
