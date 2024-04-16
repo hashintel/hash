@@ -352,7 +352,7 @@ export const getFlowRuns: ResolverFn<
             .map((type) => `'${type}'`)
             .join(", ")})`,
         }
-      : { query: "WorkflowType != 'updateEntityEmbeddings'" },
+      : { query: "WorkflowType IN 'runFlow'" },
   );
 
   for await (const workflow of workflowIterable) {

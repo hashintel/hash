@@ -1,21 +1,19 @@
 import {
+  answerQuestionFlow,
+  ftseInvestorsFlowDefinition,
   inferUserEntitiesFromWebPageFlowDefinition,
   researchTaskFlowDefinition,
-  answerQuestionFlow,
   saveFileFromUrl,
 } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import type { PropsWithChildren } from "react";
 import { createContext, useContext, useMemo, useState } from "react";
-// import { dummyFlows } from "./dummy-flows";
 
 export type FlowDefinitionsContextType = {
   flowDefinitions: FlowDefinition[];
   setFlowDefinitions: (flowDefinitions: FlowDefinition[]) => void;
   selectedFlow: FlowDefinition;
   setSelectedFlow: (flow: FlowDefinition) => void;
-  direction: "DOWN" | "RIGHT";
-  setDirection: (direction: "DOWN" | "RIGHT") => void;
 };
 
 export const FlowDefinitionsContext =
@@ -23,6 +21,7 @@ export const FlowDefinitionsContext =
 
 const exampleFlows: FlowDefinition[] = [
   // ...dummyFlows,
+  ftseInvestorsFlowDefinition,
   researchTaskFlowDefinition,
   inferUserEntitiesFromWebPageFlowDefinition,
   answerQuestionFlow,
@@ -36,18 +35,14 @@ export const FlowDefinitionsContextProvider = ({
     useState<FlowDefinition[]>(exampleFlows);
   const [selectedFlow, setSelectedFlow] = useState(exampleFlows[0]!);
 
-  const [direction, setDirection] = useState<"DOWN" | "RIGHT">("RIGHT");
-
   const context = useMemo<FlowDefinitionsContextType>(
     () => ({
       flowDefinitions,
       setFlowDefinitions,
       selectedFlow,
       setSelectedFlow,
-      direction,
-      setDirection,
     }),
-    [flowDefinitions, selectedFlow, direction],
+    [flowDefinitions, selectedFlow],
   );
 
   return (

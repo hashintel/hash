@@ -256,7 +256,7 @@ const recursivelyValidateSteps = (params: {
       } else if (inputSource.kind === "hardcoded") {
         if (
           !matchingDefinitionInput.oneOfPayloadKinds.includes(
-            inputSource.value.kind,
+            inputSource.payload.kind,
           )
         ) {
           throw new Error(
@@ -265,10 +265,10 @@ const recursivelyValidateSteps = (params: {
         }
       }
 
-      if ("fallbackValue" in inputSource && inputSource.fallbackValue) {
+      if ("fallbackValue" in inputSource && inputSource.fallbackPayload) {
         if (
           !matchingDefinitionInput.oneOfPayloadKinds.includes(
-            inputSource.fallbackValue.kind,
+            inputSource.fallbackPayload.kind,
           )
         ) {
           throw new Error(

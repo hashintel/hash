@@ -100,7 +100,7 @@ export const initializeActionStep = (params: {
         } else {
           return {
             inputName: inputSource.inputName,
-            payload: inputSource.value,
+            payload: inputSource.payload,
           };
         }
 
@@ -159,7 +159,7 @@ export const initializeParallelGroup = (params: {
   } else if (stepDefinition.inputSourceToParallelizeOn.kind === "hardcoded") {
     initialInputToParallelizeOn = {
       inputName: stepDefinition.inputSourceToParallelizeOn.inputName,
-      payload: stepDefinition.inputSourceToParallelizeOn.value,
+      payload: stepDefinition.inputSourceToParallelizeOn.payload,
     };
   }
 

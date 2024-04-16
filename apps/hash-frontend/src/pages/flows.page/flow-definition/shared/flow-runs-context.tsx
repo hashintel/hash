@@ -1,5 +1,9 @@
+import { useQuery } from "@apollo/client";
+import { getFlowRunsQuery } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 import type { PropsWithChildren } from "react";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { useNodeId } from "reactflow";
+
 import {
   FlowRun,
   FlowStepStatus,
@@ -7,9 +11,6 @@ import {
   GetFlowRunsQueryVariables,
   StepRun,
 } from "../../../../graphql/api-types.gen";
-import { useNodeId } from "reactflow";
-import { useQuery } from "@apollo/client";
-import { getFlowRunsQuery } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 
 export type FlowRunsContextType = {
   flowRuns: FlowRun[];

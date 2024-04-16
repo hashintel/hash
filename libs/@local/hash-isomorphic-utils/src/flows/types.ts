@@ -7,6 +7,7 @@ import type {
   EntityUuid,
   OwnedById,
 } from "@local/hash-subgraph";
+import type { Status } from "@local/status";
 
 import type { ActionDefinitionId } from "./action-definitions";
 import type { TriggerDefinitionId } from "./trigger-definitions";
@@ -151,7 +152,7 @@ export type StepInputSource<P extends Payload = Payload> = {
       kind: "step-output";
       sourceStepId: string;
       sourceStepOutputName: string;
-      fallbackValue?: P;
+      fallbackPayload?: P;
     }
   | {
       /**
@@ -159,7 +160,7 @@ export type StepInputSource<P extends Payload = Payload> = {
        * for all flow runs.
        */
       kind: "hardcoded";
-      value: P;
+      payload: P;
     }
 );
 
@@ -168,6 +169,7 @@ export type ActionStepDefinition<
 > = {
   kind: "action";
   stepId: string;
+  groupId?: number;
   actionDefinitionId: ActionDefinitionId;
   description: string;
   inputSources: AdditionalInputSources extends null
@@ -176,9 +178,19 @@ export type ActionStepDefinition<
   retryCount?: number;
 };
 
+export type ActionStepWithParallelInput = ActionStepDefinition<{
+  /**
+   * This additional input source refers to the dispersed input
+   * for a parallel group.
+   */
+  inputName: string;
+  kind: "parallel-group-input";
+}>;
+
 export type ParallelGroupStepDefinition = {
   kind: "parallel-group";
   stepId: string;
+  groupId?: number;
   description: string;
   /**
    * The input source to parallelize on must expect an `ArrayPayload`,
@@ -190,17 +202,7 @@ export type ParallelGroupStepDefinition = {
    * The steps that will be executed in parallel branches for each payload
    * item in the provided `ArrayPayload`.
    */
-  steps: (
-    | ActionStepDefinition<{
-        /**
-         * This additional input source refers to the dispersed input
-         * for a parallel group.
-         */
-        inputName: string;
-        kind: "parallel-group-input";
-      }>
-    | ParallelGroupStepDefinition
-  )[];
+  steps: (ActionStepDefinition | ParallelGroupStepDefinition)[];
   /**
    * The aggregate output of the parallel group must be defined
    * as an `array` output.
@@ -237,10 +239,16 @@ type FlowDefinitionTrigger =
       outputs?: OutputDefinition[];
     };
 
+export type StepGroup = {
+  groupId: number;
+  description: string;
+};
+
 export type FlowDefinition = {
   name: string;
   flowDefinitionId: EntityUuid;
   trigger: FlowDefinitionTrigger;
+  groups?: StepGroup[];
   steps: StepDefinition[];
   outputs: (OutputDefinition & {
     /**
@@ -268,6 +276,8 @@ export type StepOutput<P extends Payload = Payload> = {
   outputName: string;
   payload: P;
 };
+
+export type StepOutputStatus = Status<Required<Pick<ActionStep, "outputs">>>;
 
 export type ActionStep = {
   stepId: string;

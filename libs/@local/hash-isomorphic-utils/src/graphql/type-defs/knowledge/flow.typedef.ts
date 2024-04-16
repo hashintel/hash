@@ -49,7 +49,7 @@ export const flowTypedef = gql`
 
   scalar ArbitraryJsonData
   scalar StepInput
-  scalar StepOutput
+  scalar StepOutputStatus
   scalar StepProgressLog
 
   type StepRun {
@@ -108,7 +108,7 @@ export const flowTypedef = gql`
     """
     Outputs of the step
     """
-    outputs: [StepOutput!]
+    outputs: [StepOutputStatus!]
   }
 
   type FlowRun {

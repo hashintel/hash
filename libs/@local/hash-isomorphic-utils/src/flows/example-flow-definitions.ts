@@ -117,6 +117,192 @@ export const researchTaskFlowDefinition: FlowDefinition = {
   ],
 };
 
+export const ftseInvestorsFlowDefinition: FlowDefinition = {
+  name: "FTSE350 Investors",
+  flowDefinitionId: "ftse-350-investors" as EntityUuid,
+  trigger: {
+    triggerDefinitionId: "userTrigger",
+    description:
+      "User chooses the web to output data to, and whether entities should be created as draft",
+    kind: "trigger",
+    outputs: [
+      {
+        payloadKind: "WebId",
+        name: "webId",
+        array: false,
+        required: false,
+      },
+      {
+        payloadKind: "Boolean",
+        name: "draft",
+        array: false,
+        required: false,
+      },
+    ],
+  },
+  groups: [
+    {
+      groupId: 1,
+      description: "Research FTSE350 constituents",
+    },
+    {
+      groupId: 2,
+      description: "Research investments in the FTSE350",
+    },
+    {
+      groupId: 3,
+      description: "Calculate top investors",
+    },
+  ],
+  steps: [
+    {
+      stepId: "1",
+      groupId: 1,
+      kind: "action",
+      actionDefinitionId: "researchEntities",
+      description: "Research the constituents of the FTSE350 index",
+      inputSources: [
+        {
+          inputName: "prompt" satisfies InputNameForAction<"researchEntities">,
+          kind: "hardcoded",
+          payload: {
+            kind: "Text",
+            value: "Find the constituents in the FTSE350 index",
+          },
+        },
+        {
+          inputName:
+            "entityTypeIds" satisfies InputNameForAction<"researchEntities">,
+          kind: "hardcoded",
+          payload: {
+            kind: "VersionedUrl",
+            value: [
+              "https://hash.ai/@ftse/types/entity-type/stock-market-constituent/v/1",
+              "https://hash.ai/@ftse/types/entity-type/stock-market-index/v/1",
+            ],
+          },
+        },
+      ],
+    },
+    {
+      stepId: "2",
+      groupId: 1,
+      kind: "action",
+      description: "Save discovered members of the FTSE350 to HASH graph",
+      actionDefinitionId: "persistEntities",
+      inputSources: [
+        {
+          inputName:
+            "proposedEntities" satisfies InputNameForAction<"persistEntities">,
+          kind: "step-output",
+          sourceStepId: "1",
+          sourceStepOutputName:
+            "proposedEntities" satisfies OutputNameForAction<"researchEntities">,
+        },
+      ],
+    },
+    {
+      stepId: "3",
+      groupId: 2,
+      kind: "action",
+      actionDefinitionId: "researchEntities",
+      description: "Research investors and investments in the FTSE350",
+      inputSources: [
+        {
+          inputName: "prompt" satisfies InputNameForAction<"researchEntities">,
+          kind: "hardcoded",
+          payload: {
+            kind: "Text",
+            value:
+              "Find the investors in companies in the FTSE350 index, and their investments",
+          },
+        },
+        {
+          inputName:
+            "entityTypeIds" satisfies InputNameForAction<"researchEntities">,
+          kind: "hardcoded",
+          payload: {
+            kind: "VersionedUrl",
+            value: [
+              "https://hash.ai/@ftse/types/entity-type/invested-in/v/1",
+              "https://hash.ai/@ftse/types/entity-type/investment-fund/v/1",
+              "https://hash.ai/@ftse/types/entity-type/company/v/1",
+            ],
+          },
+        },
+        {
+          inputName:
+            "existingEntities" satisfies InputNameForAction<"researchEntities">,
+          kind: "step-output",
+          sourceStepId: "2",
+          sourceStepOutputName:
+            "persistedEntities" satisfies OutputNameForAction<"persistEntities">,
+        },
+      ],
+    },
+    {
+      stepId: "4",
+      groupId: 2,
+      kind: "action",
+      description:
+        "Save discovered FTSE350 investors and their investments to HASH graph",
+      actionDefinitionId: "persistEntities",
+      inputSources: [
+        {
+          inputName:
+            "proposedEntities" satisfies InputNameForAction<"persistEntities">,
+          kind: "step-output",
+          sourceStepId: "3",
+          sourceStepOutputName:
+            "proposedEntities" satisfies OutputNameForAction<"researchEntities">,
+        },
+      ],
+    },
+    {
+      stepId: "5",
+      groupId: 3,
+      kind: "action",
+      actionDefinitionId: "answerQuestion",
+      description:
+        "Calculate the top 10 investors in the FTSE350 by market cap",
+      inputSources: [
+        {
+          inputName: "question" satisfies InputNameForAction<"answerQuestion">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "question",
+        },
+        {
+          inputName: "entities" satisfies InputNameForAction<"answerQuestion">,
+          kind: "step-output",
+          sourceStepId: "2",
+          sourceStepOutputName:
+            "persistedEntities" satisfies OutputNameForAction<"persistEntities">,
+        },
+      ],
+    },
+  ],
+  outputs: [
+    {
+      stepId: "2",
+      stepOutputName:
+        "persistedEntities" satisfies OutputNameForAction<"persistEntities">,
+      name: "persistedEntities" as const,
+      payloadKind: "PersistedEntities",
+      array: false,
+      required: true,
+    },
+    {
+      stepId: "3",
+      stepOutputName: "answer" satisfies OutputNameForAction<"answerQuestion">,
+      payloadKind: "Text",
+      name: "answer" as const,
+      array: false,
+      required: true,
+    },
+  ],
+};
+
 // export const researchTaskFlowDefinition: FlowDefinition = {
 //   name: "Research Task",
 //   flowDefinitionId: "research-task" as EntityUuid,
