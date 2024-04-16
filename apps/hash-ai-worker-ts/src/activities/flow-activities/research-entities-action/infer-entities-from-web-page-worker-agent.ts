@@ -129,6 +129,10 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
             }
             `),
         },
+        /**
+         * @todo: consider letting the agent set `"unknown"` or `"as many as possible"` as
+         * an argument here, incase it isn't sure of the number of entities that can be inferred.
+         */
         expectedNumberOfEntities: {
           type: "number",
           description: dedent(`
