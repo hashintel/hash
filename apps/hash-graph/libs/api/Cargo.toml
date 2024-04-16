@@ -29,7 +29,6 @@ futures = { workspace = true }
 http-body-util = "0.1.1"
 hyper = "1.2.0"
 include_dir = "0.7.3"
-json-patch = { version = "1.2.0", default-features = false, features = ["utoipa"] }
 mime = "0.3.17"
 opentelemetry = "0.21.0"
 opentelemetry_sdk = { version = "0.21.2", features = ["rt-tokio"] }

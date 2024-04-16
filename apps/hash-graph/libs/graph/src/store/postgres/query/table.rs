@@ -369,15 +369,14 @@ pub enum OntologyAdditionalMetadata {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum OntologyTemporalMetadata {
+pub enum OntologyTemporalMetadata<'p> {
     OntologyId,
     TransactionTime,
-    CreatedById,
-    ArchivedById,
+    Provenance(Option<JsonField<'p>>),
 }
 
 fn transpile_json_field(
-    path: &JsonField<'static>,
+    path: JsonField<'static>,
     name: &'static str,
     table: &impl Transpile,
     fmt: &mut fmt::Formatter,
@@ -474,23 +473,53 @@ impl OntologyAdditionalMetadata {
     }
 }
 
-impl OntologyTemporalMetadata {
-    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
-        let column = match self {
-            Self::OntologyId => "ontology_id",
-            Self::TransactionTime => "transaction_time",
-            Self::CreatedById => "edition_created_by_id",
-            Self::ArchivedById => "edition_archived_by_id",
-        };
-        table.transpile(fmt)?;
-        write!(fmt, r#"."{column}""#)
+impl<'p> OntologyTemporalMetadata<'p> {
+    pub const fn nullable(self) -> bool {
+        match self {
+            Self::OntologyId | Self::TransactionTime | Self::Provenance(None) => false,
+            Self::Provenance(Some(_)) => true,
+        }
     }
 
     pub const fn parameter_type(self) -> ParameterType {
         match self {
-            Self::OntologyId | Self::CreatedById | Self::ArchivedById => ParameterType::Uuid,
+            Self::OntologyId => ParameterType::Uuid,
             Self::TransactionTime => ParameterType::TimeInterval,
+            Self::Provenance(_) => ParameterType::Any,
         }
+    }
+
+    pub const fn into_owned(
+        self,
+        current_parameter_index: usize,
+    ) -> (
+        OntologyTemporalMetadata<'static>,
+        Option<&'p (dyn ToSql + Sync)>,
+    ) {
+        match self {
+            Self::OntologyId => (OntologyTemporalMetadata::OntologyId, None),
+            Self::TransactionTime => (OntologyTemporalMetadata::TransactionTime, None),
+            Self::Provenance(None) => (OntologyTemporalMetadata::Provenance(None), None),
+            Self::Provenance(Some(path)) => {
+                let (path, parameter) = path.into_owned(current_parameter_index);
+                (OntologyTemporalMetadata::Provenance(Some(path)), parameter)
+            }
+        }
+    }
+}
+
+impl OntologyTemporalMetadata<'static> {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let column = match self {
+            Self::OntologyId => "ontology_id",
+            Self::TransactionTime => "transaction_time",
+            Self::Provenance(None) => "provenance",
+            Self::Provenance(Some(path)) => {
+                return transpile_json_field(path, "provenance", table, fmt);
+            }
+        };
+        table.transpile(fmt)?;
+        write!(fmt, r#"."{column}""#)
     }
 }
 
@@ -550,7 +579,7 @@ macro_rules! impl_ontology_column {
             }
 
             impl $name<'static> {
-                fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+                fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
                     let column = match self {
                         Self::OntologyId => "ontology_id",
                         Self::Schema(None) => "schema",
@@ -618,7 +647,7 @@ impl<'p> EntityTypes<'p> {
     }
 }
 impl EntityTypes<'static> {
-    fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         let column = match self {
             Self::OntologyId => "ontology_id",
             Self::Schema(None) => "schema",
@@ -647,53 +676,55 @@ impl EntityTypes<'static> {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum EntityIds {
+pub enum EntityIds<'p> {
     WebId,
     EntityUuid,
-    CreatedById,
-    CreatedAtDecisionTime,
-    CreatedAtTransactionTime,
-    FirstNonDraftCreatedAtDecisionTime,
-    FirstNonDraftCreatedAtTransactionTime,
+    Provenance(Option<JsonField<'p>>),
 }
 
-impl EntityIds {
-    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
-        let column = match self {
-            Self::WebId => "web_id",
-            Self::EntityUuid => "entity_uuid",
-            Self::CreatedById => "created_by_id",
-            Self::CreatedAtDecisionTime => "created_at_decision_time",
-            Self::CreatedAtTransactionTime => "created_at_transaction_time",
-            Self::FirstNonDraftCreatedAtDecisionTime => "first_non_draft_created_at_decision_time",
-            Self::FirstNonDraftCreatedAtTransactionTime => {
-                "first_non_draft_created_at_transaction_time"
-            }
-        };
-        table.transpile(fmt)?;
-        write!(fmt, r#"."{column}""#)
-    }
-
+impl<'p> EntityIds<'p> {
     pub const fn nullable(self) -> bool {
         match self {
-            Self::WebId
-            | Self::EntityUuid
-            | Self::CreatedById
-            | Self::CreatedAtDecisionTime
-            | Self::CreatedAtTransactionTime => false,
-            Self::FirstNonDraftCreatedAtDecisionTime
-            | Self::FirstNonDraftCreatedAtTransactionTime => true,
+            Self::WebId | Self::EntityUuid | Self::Provenance(None) => false,
+            Self::Provenance(Some(_)) => true,
         }
     }
 
     pub const fn parameter_type(self) -> ParameterType {
         match self {
-            Self::WebId | Self::EntityUuid | Self::CreatedById => ParameterType::Uuid,
-            Self::CreatedAtDecisionTime
-            | Self::CreatedAtTransactionTime
-            | Self::FirstNonDraftCreatedAtDecisionTime
-            | Self::FirstNonDraftCreatedAtTransactionTime => ParameterType::Timestamp,
+            Self::WebId | Self::EntityUuid => ParameterType::Uuid,
+            Self::Provenance(_) => ParameterType::Any,
         }
+    }
+
+    pub const fn into_owned(
+        self,
+        current_parameter_index: usize,
+    ) -> (EntityIds<'static>, Option<&'p (dyn ToSql + Sync)>) {
+        match self {
+            Self::WebId => (EntityIds::WebId, None),
+            Self::EntityUuid => (EntityIds::EntityUuid, None),
+            Self::Provenance(None) => (EntityIds::Provenance(None), None),
+            Self::Provenance(Some(path)) => {
+                let (path, parameter) = path.into_owned(current_parameter_index);
+                (EntityIds::Provenance(Some(path)), parameter)
+            }
+        }
+    }
+}
+
+impl EntityIds<'static> {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let column = match self {
+            Self::WebId => "web_id",
+            Self::EntityUuid => "entity_uuid",
+            Self::Provenance(None) => "provenance",
+            Self::Provenance(Some(path)) => {
+                return transpile_json_field(path, "provenance", table, fmt);
+            }
+        };
+        table.transpile(fmt)?;
+        write!(fmt, r#"."{column}""#)
     }
 }
 
@@ -869,16 +900,25 @@ impl EntityEmbeddings {
 pub enum EntityEditions<'p> {
     EditionId,
     Properties(Option<JsonField<'p>>),
-    EditionCreatedById,
     Archived,
     Confidence,
+    Provenance(Option<JsonField<'p>>),
 }
 
 impl<'p> EntityEditions<'p> {
     pub const fn nullable(self) -> bool {
         match self {
-            Self::EditionId | Self::Archived | Self::EditionCreatedById => false,
-            Self::Properties(_) | Self::Confidence => true,
+            Self::EditionId | Self::Archived | Self::Provenance(None) => false,
+            Self::Properties(_) | Self::Confidence | Self::Provenance(Some(_)) => true,
+        }
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::EditionId => ParameterType::Uuid,
+            Self::Properties(_) | Self::Provenance(_) => ParameterType::Any,
+            Self::Archived => ParameterType::Boolean,
+            Self::Confidence => ParameterType::F64,
         }
     }
 
@@ -888,12 +928,16 @@ impl<'p> EntityEditions<'p> {
     ) -> (EntityEditions<'static>, Option<&'p (dyn ToSql + Sync)>) {
         match self {
             Self::EditionId => (EntityEditions::EditionId, None),
-            Self::EditionCreatedById => (EntityEditions::EditionCreatedById, None),
             Self::Archived => (EntityEditions::Archived, None),
             Self::Properties(None) => (EntityEditions::Properties(None), None),
             Self::Properties(Some(path)) => {
                 let (path, parameter) = path.into_owned(current_parameter_index);
                 (EntityEditions::Properties(Some(path)), parameter)
+            }
+            Self::Provenance(None) => (EntityEditions::Provenance(None), None),
+            Self::Provenance(Some(path)) => {
+                let (path, parameter) = path.into_owned(current_parameter_index);
+                (EntityEditions::Provenance(Some(path)), parameter)
             }
             Self::Confidence => (EntityEditions::Confidence, None),
         }
@@ -901,28 +945,22 @@ impl<'p> EntityEditions<'p> {
 }
 
 impl EntityEditions<'static> {
-    fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         let column = match self {
             Self::EditionId => "entity_edition_id",
             Self::Properties(None) => "properties",
             Self::Properties(Some(path)) => {
                 return transpile_json_field(path, "properties", table, fmt);
             }
-            Self::EditionCreatedById => "edition_created_by_id",
+            Self::Provenance(None) => "provenance",
+            Self::Provenance(Some(path)) => {
+                return transpile_json_field(path, "provenance", table, fmt);
+            }
             Self::Archived => "archived",
             Self::Confidence => "confidence",
         };
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
-    }
-
-    pub const fn parameter_type(self) -> ParameterType {
-        match self {
-            Self::EditionId | Self::EditionCreatedById => ParameterType::Uuid,
-            Self::Properties(_) => ParameterType::Any,
-            Self::Archived => ParameterType::Boolean,
-            Self::Confidence => ParameterType::F64,
-        }
     }
 }
 
@@ -1256,7 +1294,7 @@ impl EntityTypeConstrainsLinkDestinationsOn {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Column<'p> {
     OntologyIds(OntologyIds),
-    OntologyTemporalMetadata(OntologyTemporalMetadata),
+    OntologyTemporalMetadata(OntologyTemporalMetadata<'p>),
     OntologyOwnedMetadata(OntologyOwnedMetadata),
     OntologyExternalMetadata(OntologyExternalMetadata),
     OntologyAdditionalMetadata(OntologyAdditionalMetadata),
@@ -1266,7 +1304,7 @@ pub enum Column<'p> {
     PropertyTypeEmbeddings(PropertyTypeEmbeddings),
     EntityTypes(EntityTypes<'p>),
     EntityTypeEmbeddings(EntityTypeEmbeddings),
-    EntityIds(EntityIds),
+    EntityIds(EntityIds<'p>),
     EntityTemporalMetadata(EntityTemporalMetadata),
     EntityEditions(EntityEditions<'p>),
     EntityEmbeddings(EntityEmbeddings),
@@ -1346,6 +1384,7 @@ impl<'p> Column<'p> {
 
     pub const fn nullable(self) -> bool {
         match self {
+            Self::OntologyTemporalMetadata(column) => column.nullable(),
             Self::DataTypes(column) => column.nullable(),
             Self::PropertyTypes(column) => column.nullable(),
             Self::EntityTypes(column) => column.nullable(),
@@ -1368,7 +1407,8 @@ impl<'p> Column<'p> {
         match self {
             Self::OntologyIds(column) => (Column::OntologyIds(column), None),
             Self::OntologyTemporalMetadata(column) => {
-                (Column::OntologyTemporalMetadata(column), None)
+                let (column, parameter) = column.into_owned(current_parameter_index);
+                (Column::OntologyTemporalMetadata(column), parameter)
             }
             Self::OntologyOwnedMetadata(column) => (Column::OntologyOwnedMetadata(column), None),
             Self::OntologyExternalMetadata(column) => {
@@ -1392,8 +1432,11 @@ impl<'p> Column<'p> {
                 (Column::EntityTypes(column), parameter)
             }
             Self::EntityTypeEmbeddings(column) => (Column::EntityTypeEmbeddings(column), None),
-            Self::EntityIds(column) => (Column::EntityIds(column), None),
             Self::EntityTemporalMetadata(column) => (Column::EntityTemporalMetadata(column), None),
+            Self::EntityIds(column) => {
+                let (column, parameter) = column.into_owned(current_parameter_index);
+                (Column::EntityIds(column), parameter)
+            }
             Self::EntityEditions(column) => {
                 let (column, parameter) = column.into_owned(current_parameter_index);
                 (Column::EntityEditions(column), parameter)

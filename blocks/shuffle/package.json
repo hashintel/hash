@@ -41,7 +41,7 @@
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/lodash.isequal": "4.5.6",
+    "@types/lodash.isequal": "4.5.8",
     "@types/uuid": "8.3.0",
     "block-scripts": "0.3.4",
     "eslint": "8.57.0",

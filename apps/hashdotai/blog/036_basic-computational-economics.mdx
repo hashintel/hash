@@ -10,7 +10,7 @@ categories:
 
 ## Why agent-based modeling?
 
-_Computational economics_ is the study of using software-based methods to gain extra insight into economic problems. [Agent-based modeling](https://hash.ai/glossary/agent-based-modeling) involves using computer simulations to model intelligent agents and how they behave.
+_Computational economics_ is the study of using software-based methods to gain extra insight into economic problems. [Agent-based modeling](/glossary/agent-based-modeling) involves using computer simulations to model intelligent agents and how they behave.
 
 For many problems, economic theory only describes what a system is like under 'perfect' conditions, which makes it hard to apply models to real-life situations. Agent-based modeling may help fill the gap, by reducing the number of assumptions economists have to make.
 
@@ -22,7 +22,7 @@ In this article we'll cover:
 - an example model of an interconnected call center, which demonstrates agents connected to each other in a networked fashion
 - an example geospatial model, showing how to use real-life data in a simulation.
 
-We’ll be using JavaScript to explore these introductory concepts in computational economics, specifically around agent-based modelling. By the end of the article you should have a sense of how to use [hCore](https://hash.ai/platform/core) for agent-based projects of your own.
+We’ll be using JavaScript to explore these introductory concepts in computational economics, specifically around agent-based modelling. By the end of the article you should have a sense of how to use [hCore](/platform/core) for agent-based projects of your own.
 
 ## HASH primitives
 
@@ -60,7 +60,7 @@ States also have the ability to send messages to other agents**,** as in the exa
 
 ## Topologies
 
-Agents in HASH have an in-built capacity for communicating with neighbors. Internally, the HASH simulation, [hEngine](https://hash.ai/platform/engine) -- which also powers [hCore](https://hash.ai/platform/core) -- maintains a list of neighbors for each agent and updates the list with each time step. Neighbors can be accessed via the context variable as in the example code below.
+Agents in HASH have an in-built capacity for communicating with neighbors. Internally, the HASH simulation, [hEngine](/platform/engine) -- which also powers [hCore](/platform/core) -- maintains a list of neighbors for each agent and updates the list with each time step. Neighbors can be accessed via the context variable as in the example code below.
 
 ```javascript
 function behavior(state, context) {
@@ -863,7 +863,7 @@ Taking a look at `experiments.json`, we can run an experiment to optimize the tr
   }
 ```
 
-The above experiments code can be written by hand, or created using the **Experiments** menu in [hCore](https://hash.ai/platform/core) (recommended). It is set to run for 1000 steps. We can then take a look at the collated analysis of the output curves to understand much more about the network than just the optimized result.
+The above experiments code can be written by hand, or created using the **Experiments** menu in [hCore](/platform/core) (recommended). It is set to run for 1000 steps. We can then take a look at the collated analysis of the output curves to understand much more about the network than just the optimized result.
 
 ![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/12560f2f-d065-4db7-c4ee-7aa5db0f9700/public)
 
@@ -1038,7 +1038,7 @@ const bid = () => {
 
 Just like in real life, our simulated businesses will try and open in places that are desirable and affordable.
 
-HASH allows users to program [auction simulations](https://hash.ai/blog/crypto-dynamics-auctions) with custom behavior. In this case, we model a simple Dutch auction, an auction where the price is determined after taking in all bids to arrive at the highest price at which the total offering can be sold.
+HASH allows users to program [auction simulations](/blog/crypto-dynamics-auctions) with custom behavior. In this case, we model a simple Dutch auction, an auction where the price is determined after taking in all bids to arrive at the highest price at which the total offering can be sold.
 
 ```javascript
 const behavior = (state, context) => {
@@ -1070,6 +1070,6 @@ After running the simulation for a sufficient number of steps, the offerings con
 
 ## In summary
 
-That's it for this post. If you want to take the ideas mentioned here course further, please check out any of the [open-source simulations](https://hash.ai/models) built on HASH which are available for download, or read the [HASH simulation-development docs](https://hash.dev/docs/simulations).
+That's it for this post. If you want to take the ideas mentioned here course further, please check out any of the [open-source simulations](https://simulation.hash.ai/models) built on HASH which are available for download, or read the [HASH simulation-development docs](https://hash.dev/docs/simulations).
 
-We recommend getting started with the [wildfires simulation](https://simulation.hash.ai/@hash/wildfires-regrowth), or the [interconnected call center](https://simulation.hash.ai/@hash/interconnected-call-center) that was mentioned earlier in this piece. Thanks for joining us, and we hope to see you in our [Discord](https://hash.ai/discord) or on the platform!
+We recommend getting started with the [wildfires simulation](https://simulation.hash.ai/@hash/wildfires-regrowth), or the [interconnected call center](https://simulation.hash.ai/@hash/interconnected-call-center) that was mentioned earlier in this piece. Thanks for joining us, and we hope to see you in our [Discord](/discord) or on the platform!

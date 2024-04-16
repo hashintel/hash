@@ -7,7 +7,7 @@ use std::{
 
 use email_address::EmailAddress;
 use error_stack::{bail, ensure, Report, ResultExt};
-use graph_types::knowledge::entity::Property;
+use graph_types::knowledge::Property;
 use iso8601_duration::Duration;
 use regex::Regex;
 use serde_json::Value as JsonValue;
@@ -18,7 +18,7 @@ use uuid::Uuid;
 
 use crate::{
     error::{Actual, Expected},
-    OntologyTypeProvider, Schema, Validate, ValidationProfile,
+    OntologyTypeProvider, Schema, Validate, ValidateEntityComponents,
 };
 
 #[derive(Debug, Error)]
@@ -425,7 +425,7 @@ impl<P: Sync> Schema<Property, P> for DataType {
     async fn validate_value<'a>(
         &'a self,
         property: &'a Property,
-        _: ValidationProfile,
+        _: ValidateEntityComponents,
         _: &'a P,
     ) -> Result<(), Report<DataValidationError>> {
         match (self.json_type(), property) {
@@ -515,10 +515,10 @@ impl Validate<DataType, ()> for Property {
     async fn validate(
         &self,
         schema: &DataType,
-        profile: ValidationProfile,
+        components: ValidateEntityComponents,
         (): &(),
     ) -> Result<(), Report<Self::Error>> {
-        schema.validate_value(self, profile, &()).await
+        schema.validate_value(self, components, &()).await
     }
 }
 
@@ -531,7 +531,7 @@ where
     async fn validate_value<'a>(
         &'a self,
         value: &'a Property,
-        profile: ValidationProfile,
+        components: ValidateEntityComponents,
         provider: &'a P,
     ) -> Result<(), Report<Self::Error>> {
         let data_type = provider
@@ -542,7 +542,7 @@ where
             })?;
         data_type
             .borrow()
-            .validate_value(value, profile, provider)
+            .validate_value(value, components, provider)
             .await
             .attach_lazy(|| Expected::DataType(data_type.borrow().clone()))
             .attach_lazy(|| Actual::Property(value.clone()))
@@ -558,10 +558,10 @@ where
     async fn validate(
         &self,
         schema: &DataTypeReference,
-        profile: ValidationProfile,
+        components: ValidateEntityComponents,
         context: &P,
     ) -> Result<(), Report<Self::Error>> {
-        schema.validate_value(self, profile, context).await
+        schema.validate_value(self, components, context).await
     }
 }
 
@@ -570,14 +570,14 @@ mod tests {
     use serde_json::json;
     use uuid::Uuid;
 
-    use crate::{tests::validate_data, ValidationProfile};
+    use crate::{tests::validate_data, ValidateEntityComponents};
 
     #[tokio::test]
     async fn null() {
         validate_data(
             json!(null),
             graph_test_data::data_type::NULL_V1,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -588,7 +588,7 @@ mod tests {
         validate_data(
             json!(true),
             graph_test_data::data_type::BOOLEAN_V1,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -599,7 +599,7 @@ mod tests {
         validate_data(
             json!(42),
             graph_test_data::data_type::NUMBER_V1,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -616,29 +616,33 @@ mod tests {
         }))
         .expect("failed to serialize temperature unit type");
 
-        validate_data(json!(10), &integer_type, ValidationProfile::Full)
+        validate_data(json!(10), &integer_type, ValidateEntityComponents::full())
             .await
             .expect("validation failed");
 
-        validate_data(json!(-10), &integer_type, ValidationProfile::Full)
+        validate_data(json!(-10), &integer_type, ValidateEntityComponents::full())
             .await
             .expect("validation failed");
 
-        _ = validate_data(json!(1.0), &integer_type, ValidationProfile::Full)
+        _ = validate_data(json!(1.0), &integer_type, ValidateEntityComponents::full())
             .await
             .expect_err("validation succeeded");
 
         _ = validate_data(
             json!(std::f64::consts::PI),
             &integer_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect_err("validation succeeded");
 
-        _ = validate_data(json!("foo"), &integer_type, ValidationProfile::Full)
-            .await
-            .expect_err("validation succeeded");
+        _ = validate_data(
+            json!("foo"),
+            &integer_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect_err("validation succeeded");
     }
 
     #[tokio::test]
@@ -646,7 +650,7 @@ mod tests {
         validate_data(
             json!("foo"),
             graph_test_data::data_type::TEXT_V1,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -657,7 +661,7 @@ mod tests {
         validate_data(
             json!([]),
             graph_test_data::data_type::EMPTY_LIST_V1,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -665,7 +669,7 @@ mod tests {
         _ = validate_data(
             json!(["foo", "bar"]),
             graph_test_data::data_type::EMPTY_LIST_V1,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect_err("validation succeeded");
@@ -679,7 +683,7 @@ mod tests {
                 "baz": "qux"
             }),
             graph_test_data::data_type::OBJECT_V1,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -697,15 +701,23 @@ mod tests {
         }))
         .expect("failed to serialize temperature unit type");
 
-        validate_data(json!("Celsius"), &meter_type, ValidationProfile::Full)
-            .await
-            .expect("validation failed");
+        validate_data(
+            json!("Celsius"),
+            &meter_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect("validation failed");
 
-        validate_data(json!("Fahrenheit"), &meter_type, ValidationProfile::Full)
-            .await
-            .expect("validation failed");
+        validate_data(
+            json!("Fahrenheit"),
+            &meter_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect("validation failed");
 
-        _ = validate_data(json!("foo"), &meter_type, ValidationProfile::Full)
+        _ = validate_data(json!("foo"), &meter_type, ValidateEntityComponents::full())
             .await
             .expect_err("validation succeeded");
     }
@@ -722,15 +734,15 @@ mod tests {
         }))
         .expect("failed to serialize meter type");
 
-        validate_data(json!(10), &meter_type, ValidationProfile::Full)
+        validate_data(json!(10), &meter_type, ValidateEntityComponents::full())
             .await
             .expect("validation failed");
 
-        validate_data(json!(0.0), &meter_type, ValidationProfile::Full)
+        validate_data(json!(0.0), &meter_type, ValidateEntityComponents::full())
             .await
             .expect("validation failed");
 
-        _ = validate_data(json!(-1.0), &meter_type, ValidationProfile::Full)
+        _ = validate_data(json!(-1.0), &meter_type, ValidateEntityComponents::full())
             .await
             .expect_err("validation succeeded");
     }
@@ -747,19 +759,23 @@ mod tests {
         }))
         .expect("failed to serialize uri type");
 
-        validate_data(json!("localhost:3000"), &url_type, ValidationProfile::Full)
-            .await
-            .expect("validation failed");
-
         validate_data(
-            json!("https://blockprotocol.org/types/modules/graph/0.3/schema/data-type"),
+            json!("localhost:3000"),
             &url_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
 
-        _ = validate_data(json!("10"), &url_type, ValidationProfile::Full)
+        validate_data(
+            json!("https://blockprotocol.org/types/modules/graph/0.3/schema/data-type"),
+            &url_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect("validation failed");
+
+        _ = validate_data(json!("10"), &url_type, ValidateEntityComponents::full())
             .await
             .expect_err("validation succeeded");
     }
@@ -776,14 +792,18 @@ mod tests {
         }))
         .expect("failed to serialize uuid type");
 
-        validate_data(json!(Uuid::nil()), &uuid_type, ValidationProfile::Full)
-            .await
-            .expect("validation failed");
+        validate_data(
+            json!(Uuid::nil()),
+            &uuid_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect("validation failed");
 
         validate_data(
             json!("00000000-0000-0000-0000-000000000000"),
             &uuid_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -791,7 +811,7 @@ mod tests {
         validate_data(
             json!("AC8E0011-84C3-4A7E-872D-1B9F86DB0479"),
             &uuid_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -799,7 +819,7 @@ mod tests {
         validate_data(
             json!("urn:uuid:cc2c0477-2fe7-4eb4-af7b-45bfe7d7bb26"),
             &uuid_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -807,12 +827,12 @@ mod tests {
         validate_data(
             json!("9544f491598e4c238f6bbb8c1f7d05c9"),
             &uuid_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
 
-        _ = validate_data(json!("10"), &uuid_type, ValidationProfile::Full)
+        _ = validate_data(json!("10"), &uuid_type, ValidateEntityComponents::full())
             .await
             .expect_err("validation succeeded");
     }
@@ -832,7 +852,7 @@ mod tests {
         validate_data(
             json!("bob@example.com"),
             &mail_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -840,14 +860,18 @@ mod tests {
         validate_data(
             json!("user.name+tag+sorting@example.com"),
             &mail_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
 
-        _ = validate_data(json!("job!done"), &mail_type, ValidationProfile::Full)
-            .await
-            .expect_err("validation succeeded");
+        _ = validate_data(
+            json!("job!done"),
+            &mail_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect_err("validation succeeded");
     }
 
     #[tokio::test]
@@ -862,15 +886,19 @@ mod tests {
         }))
         .expect("failed to serialize zip code type");
 
-        validate_data(json!("12345"), &zip_code, ValidationProfile::Full)
+        validate_data(json!("12345"), &zip_code, ValidateEntityComponents::full())
             .await
             .expect("validation failed");
 
-        validate_data(json!("12345-6789"), &zip_code, ValidationProfile::Full)
-            .await
-            .expect("validation failed");
+        validate_data(
+            json!("12345-6789"),
+            &zip_code,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect("validation failed");
 
-        _ = validate_data(json!("1234"), &zip_code, ValidationProfile::Full)
+        _ = validate_data(json!("1234"), &zip_code, ValidateEntityComponents::full())
             .await
             .expect_err("validation succeeded");
     }
@@ -887,18 +915,26 @@ mod tests {
         }))
         .expect("failed to serialize ipv4 type");
 
-        validate_data(json!("127.0.0.1"), &ipv4_type, ValidationProfile::Full)
-            .await
-            .expect("validation failed");
+        validate_data(
+            json!("127.0.0.1"),
+            &ipv4_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect("validation failed");
 
-        validate_data(json!("0.0.0.0"), &ipv4_type, ValidationProfile::Full)
-            .await
-            .expect("validation failed");
+        validate_data(
+            json!("0.0.0.0"),
+            &ipv4_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect("validation failed");
 
         validate_data(
             json!("255.255.255.255"),
             &ipv4_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -906,14 +942,18 @@ mod tests {
         _ = validate_data(
             json!("255.255.255.256"),
             &ipv4_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect_err("validation succeeded");
 
-        _ = validate_data(json!("localhost"), &ipv4_type, ValidationProfile::Full)
-            .await
-            .expect_err("validation succeeded");
+        _ = validate_data(
+            json!("localhost"),
+            &ipv4_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect_err("validation succeeded");
     }
 
     #[tokio::test]
@@ -928,18 +968,18 @@ mod tests {
         }))
         .expect("failed to serialize ipv6 type");
 
-        validate_data(json!("::1"), &ipv6_type, ValidationProfile::Full)
+        validate_data(json!("::1"), &ipv6_type, ValidateEntityComponents::full())
             .await
             .expect("validation failed");
 
-        validate_data(json!("::"), &ipv6_type, ValidationProfile::Full)
+        validate_data(json!("::"), &ipv6_type, ValidateEntityComponents::full())
             .await
             .expect("validation failed");
 
         validate_data(
             json!("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),
             &ipv6_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -947,14 +987,18 @@ mod tests {
         _ = validate_data(
             json!("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),
             &ipv6_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect_err("validation succeeded");
 
-        _ = validate_data(json!("localhost"), &ipv6_type, ValidationProfile::Full)
-            .await
-            .expect_err("validation succeeded");
+        _ = validate_data(
+            json!("localhost"),
+            &ipv6_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect_err("validation succeeded");
     }
 
     #[tokio::test]
@@ -969,22 +1013,34 @@ mod tests {
         }))
         .expect("failed to serialize hostname type");
 
-        validate_data(json!("localhost"), &hostname_type, ValidationProfile::Full)
-            .await
-            .expect("validation failed");
+        validate_data(
+            json!("localhost"),
+            &hostname_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect("validation failed");
 
-        validate_data(json!("[::1]"), &hostname_type, ValidationProfile::Full)
-            .await
-            .expect("validation failed");
+        validate_data(
+            json!("[::1]"),
+            &hostname_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect("validation failed");
 
-        validate_data(json!("127.0.0.1"), &hostname_type, ValidationProfile::Full)
-            .await
-            .expect("validation failed");
+        validate_data(
+            json!("127.0.0.1"),
+            &hostname_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect("validation failed");
 
         validate_data(
             json!("example.com"),
             &hostname_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -992,7 +1048,7 @@ mod tests {
         validate_data(
             json!("subdomain.example.com"),
             &hostname_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -1000,7 +1056,7 @@ mod tests {
         validate_data(
             json!("subdomain.example.com."),
             &hostname_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -1008,14 +1064,18 @@ mod tests {
         _ = validate_data(
             json!("localhost:3000"),
             &hostname_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect_err("validation succeeded");
 
-        _ = validate_data(json!("::1"), &hostname_type, ValidationProfile::Full)
-            .await
-            .expect_err("validation succeeded");
+        _ = validate_data(
+            json!("::1"),
+            &hostname_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect_err("validation succeeded");
     }
 
     #[tokio::test]
@@ -1030,15 +1090,15 @@ mod tests {
         }))
         .expect("failed to serialize regex type");
 
-        validate_data(json!("^a*$"), &regex_type, ValidationProfile::Full)
+        validate_data(json!("^a*$"), &regex_type, ValidateEntityComponents::full())
             .await
             .expect("validation failed");
 
-        validate_data(json!("^a+$"), &regex_type, ValidationProfile::Full)
+        validate_data(json!("^a+$"), &regex_type, ValidateEntityComponents::full())
             .await
             .expect("validation failed");
 
-        _ = validate_data(json!("("), &regex_type, ValidationProfile::Full)
+        _ = validate_data(json!("("), &regex_type, ValidateEntityComponents::full())
             .await
             .expect_err("validation succeeded");
     }
@@ -1056,17 +1116,21 @@ mod tests {
         }))
         .expect("failed to serialize short string type");
 
-        validate_data(json!("foo"), &url_type, ValidationProfile::Full)
+        validate_data(json!("foo"), &url_type, ValidateEntityComponents::full())
             .await
             .expect("validation failed");
 
-        _ = validate_data(json!(""), &url_type, ValidationProfile::Full)
+        _ = validate_data(json!(""), &url_type, ValidateEntityComponents::full())
             .await
             .expect_err("validation succeeded");
 
-        _ = validate_data(json!("foo bar baz"), &url_type, ValidationProfile::Full)
-            .await
-            .expect_err("validation succeeded");
+        _ = validate_data(
+            json!("foo bar baz"),
+            &url_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect_err("validation succeeded");
     }
 
     #[tokio::test]
@@ -1455,7 +1519,7 @@ mod tests {
 
         let mut failed_formats = Vec::new();
         for format in VALID_FORMATS {
-            if validate_data(json!(format), &url_type, ValidationProfile::Full)
+            if validate_data(json!(format), &url_type, ValidateEntityComponents::full())
                 .await
                 .is_err()
             {
@@ -1467,13 +1531,13 @@ mod tests {
             "failed to validate formats: {failed_formats:#?}"
         );
 
-        _ = validate_data(json!(""), &url_type, ValidationProfile::Full)
+        _ = validate_data(json!(""), &url_type, ValidateEntityComponents::full())
             .await
             .expect_err("validation succeeded");
 
         let mut passed_formats = Vec::new();
         for format in INVALID_FORMATS {
-            if validate_data(json!(format), &url_type, ValidationProfile::Full)
+            if validate_data(json!(format), &url_type, ValidateEntityComponents::full())
                 .await
                 .is_ok()
             {
@@ -1520,7 +1584,7 @@ mod tests {
 
         let mut failed_formats = Vec::new();
         for format in VALID_FORMATS {
-            if validate_data(json!(format), &url_type, ValidationProfile::Full)
+            if validate_data(json!(format), &url_type, ValidateEntityComponents::full())
                 .await
                 .is_err()
             {
@@ -1532,13 +1596,13 @@ mod tests {
             "failed to validate formats: {failed_formats:#?}"
         );
 
-        _ = validate_data(json!(""), &url_type, ValidationProfile::Full)
+        _ = validate_data(json!(""), &url_type, ValidateEntityComponents::full())
             .await
             .expect_err("validation succeeded");
 
         let mut passed_formats = Vec::new();
         for format in INVALID_FORMATS {
-            if validate_data(json!(format), &url_type, ValidationProfile::Full)
+            if validate_data(json!(format), &url_type, ValidateEntityComponents::full())
                 .await
                 .is_ok()
             {
@@ -1770,7 +1834,7 @@ mod tests {
 
         let mut failed_formats = Vec::new();
         for format in VALID_FORMATS {
-            if validate_data(json!(format), &url_type, ValidationProfile::Full)
+            if validate_data(json!(format), &url_type, ValidateEntityComponents::full())
                 .await
                 .is_err()
             {
@@ -1782,13 +1846,13 @@ mod tests {
             "failed to validate formats: {failed_formats:#?}"
         );
 
-        _ = validate_data(json!(""), &url_type, ValidationProfile::Full)
+        _ = validate_data(json!(""), &url_type, ValidateEntityComponents::full())
             .await
             .expect_err("validation succeeded");
 
         let mut passed_formats = Vec::new();
         for format in INVALID_FORMATS {
-            if validate_data(json!(format), &url_type, ValidationProfile::Full)
+            if validate_data(json!(format), &url_type, ValidateEntityComponents::full())
                 .await
                 .is_ok()
             {
@@ -1854,7 +1918,7 @@ mod tests {
 
         let mut failed_formats = Vec::new();
         for format in VALID_FORMATS {
-            if validate_data(json!(format), &url_type, ValidationProfile::Full)
+            if validate_data(json!(format), &url_type, ValidateEntityComponents::full())
                 .await
                 .is_err()
             {
@@ -1866,13 +1930,13 @@ mod tests {
             "failed to validate formats: {failed_formats:#?}"
         );
 
-        _ = validate_data(json!(""), &url_type, ValidationProfile::Full)
+        _ = validate_data(json!(""), &url_type, ValidateEntityComponents::full())
             .await
             .expect_err("validation succeeded");
 
         let mut passed_formats = Vec::new();
         for format in INVALID_FORMATS {
-            if validate_data(json!(format), &url_type, ValidationProfile::Full)
+            if validate_data(json!(format), &url_type, ValidateEntityComponents::full())
                 .await
                 .is_ok()
             {

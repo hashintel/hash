@@ -46,7 +46,7 @@ use graph_types::{
     ontology::{
         OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeMetadata,
         OntologyTypeReference, PropertyTypeEmbedding, PropertyTypeMetadata,
-        PropertyTypeWithMetadata,
+        PropertyTypeWithMetadata, ProvidedOntologyEditionProvenanceMetadata,
     },
     owned_by_id::OwnedById,
 };
@@ -161,6 +161,11 @@ struct CreatePropertyTypeRequest {
     schema: MaybeListOfPropertyType,
     owned_by_id: OwnedById,
     relationships: Vec<PropertyTypeRelationAndSubject>,
+    #[serde(
+        default,
+        skip_serializing_if = "ProvidedOntologyEditionProvenanceMetadata::is_empty"
+    )]
+    provenance: ProvidedOntologyEditionProvenanceMetadata,
 }
 
 #[utoipa::path(
@@ -210,6 +215,7 @@ where
         schema,
         owned_by_id,
         relationships,
+        provenance,
     }) = body;
 
     let is_list = matches!(&schema, ListOrValue::List(_));
@@ -230,6 +236,7 @@ where
                     classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
                     relationships: relationships.clone(),
                     conflict_behavior: ConflictBehavior::Fail,
+                    provenance: provenance.clone()
                 })
             }).collect::<Result<Vec<_>, StatusCode>>()?
         )
@@ -267,6 +274,11 @@ enum LoadExternalPropertyTypeRequest {
         #[schema(value_type = VAR_PROPERTY_TYPE)]
         schema: PropertyType,
         relationships: Vec<PropertyTypeRelationAndSubject>,
+        #[serde(
+            default,
+            skip_serializing_if = "ProvidedOntologyEditionProvenanceMetadata::is_empty"
+        )]
+        provenance: ProvidedOntologyEditionProvenanceMetadata,
     },
 }
 
@@ -329,6 +341,7 @@ where
         LoadExternalPropertyTypeRequest::Create {
             schema,
             relationships,
+            provenance,
         } => {
             if domain_validator.validate_url(schema.id().base_url.as_str()) {
                 let error = "Ontology type is not external".to_owned();
@@ -353,6 +366,7 @@ where
                             },
                             relationships,
                             conflict_behavior: ConflictBehavior::Fail,
+                            provenance,
                         },
                     )
                     .await
@@ -439,6 +453,11 @@ struct UpdatePropertyTypeRequest {
     schema: serde_json::Value,
     type_to_update: VersionedUrl,
     relationships: Vec<PropertyTypeRelationAndSubject>,
+    #[serde(
+        default,
+        skip_serializing_if = "ProvidedOntologyEditionProvenanceMetadata::is_empty"
+    )]
+    provenance: ProvidedOntologyEditionProvenanceMetadata,
 }
 
 #[utoipa::path(
@@ -475,6 +494,7 @@ where
         schema,
         mut type_to_update,
         relationships,
+        provenance,
     }) = body;
 
     type_to_update.version = OntologyTypeVersion::new(type_to_update.version.inner() + 1);
@@ -504,6 +524,7 @@ where
             UpdatePropertyTypesParams {
                 schema: property_type,
                 relationships,
+                provenance,
             },
         )
         .await

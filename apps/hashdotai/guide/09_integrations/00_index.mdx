@@ -1,0 +1,57 @@
+---
+title: "Integrations"
+description: "Connecting services to HASH"
+metaTitle: "Integrations - HASH"
+metaDescription: "HASH integrations allow actions to be taken and data to be 2-way synced, in realtime, with a variety of external applications and datastores"
+sidebarTitle: "Overview"
+sidebarIcon: https://app.hash.ai/icons/docs/integrations-overview.svg
+---
+
+# Introduction
+
+HASH is not designed to work in standalone, but to integrate and supercharge other services, enabling actions within — and synchronizing information between — lots of different places.
+
+HASH integrations don't just let you do things and access information in other applications, but they also **2-way sync** all of your available information, wherever possible. This makes HASH integrations fundamentally different to those you might be used to in other applications, and is a core part of what makes HASH an effective _operating system_.
+
+Data from applications that you integrate with HASH is represented in your web as [entities](/guide/entities), like anything else in HASH. This makes it accessible in [flows](/guide/flows), usable in [apps](/guide/apps), referenceable in [pages](/guide/pages) and loadable in [blocks](/guide/pages/blocks).
+
+**What this means:** we believe that you should never have to blindly "switch" from using one app to another. With HASH, you can sync information in and out (two-ways) through a wide variety of integrations. This lets you migrate data over in a safe, secure fashion once you've proven things work as expected — without any risk of data loss or service interruption. If you're rolling HASH out at an organization, it also means users within your org can gradually switch to HASH over time, moving in cohorts, and/or continuing to use their existing favorite (legacy) tools side-by-side, when preferred.
+
+# Setting up an integration
+
+Connect an external service for use with your own private web, or a shared web, from the [Settings > Integrations](https://app.hash.ai/settings/integrations) page in HASH.
+
+# Types of integrations
+
+Integrations in HASH can trigger and perform actions on your behalf, as well as sync information (i.e. [entities](/guide/entities)) between your [web](/guide/webs) and an external service.
+
+## Performing actions
+
+Once an integration has been set up, a number of "actions" may become available for use in [flows](/guide/flows) and by AI [workers](/guide/workers) operating on your behalf. You'll need to approve an AI worker's access to new kinds of actions, before they're used for the first time. The kinds of actions available will differ between integrations.
+
+## Syncing information
+
+### 2-way sync
+
+Wherever possible, we ensure that integrations are able to both ingest information from external services, and write the changes you make back out. This lets you:
+
+- build tools and interfaces ([apps](/guide/apps)) atop data in HASH
+- use HASH as a synchronization engine, keeping multiple external applications or data-sources in sync
+- edit information direclty in HASH, providing you with a single view into your information, enabling changes to be syndicated to multiple other systems upon save
+
+### Partial sync<a id="#import" />
+
+Sometimes, we can't offer full 2-way sync for a given integration, because an external service's Application Programming Interface (aka. "API", a thing used by other programs, such as HASH, to talk to a service), may allow "reading" information, but not "writing" it.
+
+In such cases, we'll let you know what information we can both pull and push (if any), and what we can only "ingest". You'll then have the choice as to how this information is stored:
+
+1. **Continuously synced "read-only" entities:** you'll still be able to see entities in your web, and visualize them in [blocks](/guide/pages/blocks), but you won't be able to edit them in a way that results in them becoming out of sync with the data's original source. If you're continuing to use an external tool side-by-side HASH, this is usually what you want.
+1. **One-time import:** if you're planning on switching from another application to HASH, and want to do it all at once, you can do so by one-time importing data. Any changes to the data in HASH won't be written back out to the external service, and any further changes to data stored in the external service won't be reflected in HASH, either.
+
+You can always convert "read-only" entities to fully editable ones later, effectively migrating from (1) to (2) when you're ready.
+
+Alternatively, you can try working around the API-limitations imposed by certain external services, using [flows](/guide/flows). With flows, you can set up your own [actions](/guide/flows/actions) (utilizing AI) that mimic how a human would interact with a service. For example, an action to "access a given service, find a given entity, and update that entity with a new given value" might be triggered by a [watch](/guide/flows/triggers) step activated in response to a change to an entity in your graph. These flows can be less than 100% reliable, and resource-intensive to run, but are sometimes an appropriate solution to keeping information synced between services.
+
+# Available integrations
+
+A growing number of integrations are currently available for HASH, with more under development. For a complete list of existing integrations along with guides to using them, as well as the chance to vote on what integrations are built next, visit the [integrations directory](/integrations).
