@@ -407,6 +407,10 @@ export const proposeEntities = async (params: {
             let retryMessageContent = "";
             let requiresOriginalContextForRetry = false;
 
+            /**
+             * Sanitize the property key base URLs before proceeding with
+             * validation.
+             */
             proposedEntitiesByType = Object.entries(
               proposedEntitiesByType,
             ).reduce(
