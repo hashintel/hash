@@ -1682,14 +1682,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "all": [
         {
           "equal": [
-            { "path": ["uuid"] },
-            { "parameter": "{{person_a_entity_uuid}}" }
-          ]
-        },
-        {
-          "equal": [
-            { "path": ["ownedById"] },
-            { "parameter": "{{person_a_owned_by_id}}" }
+            { "path": ["provenance", "createdById"] },
+            { "parameter": "{{account_id}}" }
           ]
         }
       ]

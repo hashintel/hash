@@ -2705,6 +2705,9 @@
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
           },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
+          },
           "relationships": {
             "type": "array",
             "items": {
@@ -2787,6 +2790,9 @@
               }
             ]
           },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvidedEntityEditionProvenanceMetadata"
+          },
           "relationships": {
             "type": "array",
             "items": {
@@ -2818,6 +2824,9 @@
           },
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
           },
           "relationships": {
             "type": "array",
@@ -2851,6 +2860,9 @@
         "properties": {
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
           },
           "relationships": {
             "type": "array",
@@ -2970,11 +2982,10 @@
           "version",
           "versionedUrl",
           "ownedById",
-          "editionCreatedById",
-          "editionArchivedById",
           "title",
           "description",
           "type",
+          "editionProvenance",
           "embedding"
         ]
       },
@@ -3224,16 +3235,29 @@
         "format": "uuid"
       },
       "EntityEditionProvenanceMetadata": {
-        "type": "object",
-        "required": [
-          "createdById"
-        ],
-        "properties": {
-          "createdById": {
-            "$ref": "#/components/schemas/EditionCreatedById"
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ProvidedEntityEditionProvenanceMetadata"
+          },
+          {
+            "type": "object",
+            "required": [
+              "createdById"
+            ],
+            "properties": {
+              "archivedById": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/EditionArchivedById"
+                  }
+                ]
+              },
+              "createdById": {
+                "$ref": "#/components/schemas/EditionCreatedById"
+              }
+            }
           }
-        },
-        "additionalProperties": false
+        ]
       },
       "EntityEditorSubject": {
         "oneOf": [
@@ -3493,14 +3517,10 @@
           "draftId",
           "archived",
           "ownedById",
-          "editionCreatedById",
-          "createdById",
-          "createdAtTransactionTime",
-          "createdAtDecisionTime",
-          "firstNonDraftCreatedAtTransactionTime",
-          "firstNonDraftCreatedAtDecisionTime",
           "type",
           "properties",
+          "provenance",
+          "editionProvenance",
           "embedding",
           "incomingLinks",
           "outgoingLinks",
@@ -3912,8 +3932,6 @@
           "version",
           "versionedUrl",
           "ownedById",
-          "editionCreatedById",
-          "editionArchivedById",
           "title",
           "description",
           "examples",
@@ -3921,6 +3939,7 @@
           "required",
           "labelProperty",
           "icon",
+          "editionProvenance",
           "links",
           "inheritsFrom",
           "children",
@@ -4756,6 +4775,9 @@
               "relationships"
             ],
             "properties": {
+              "provenance": {
+                "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
+              },
               "relationships": {
                 "type": "array",
                 "items": {
@@ -4801,6 +4823,9 @@
                 ],
                 "nullable": true
               },
+              "provenance": {
+                "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
+              },
               "relationships": {
                 "type": "array",
                 "items": {
@@ -4834,6 +4859,9 @@
               "relationships"
             ],
             "properties": {
+              "provenance": {
+                "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
+              },
               "relationships": {
                 "type": "array",
                 "items": {
@@ -5013,24 +5041,29 @@
         ]
       },
       "OntologyEditionProvenanceMetadata": {
-        "type": "object",
-        "required": [
-          "createdById"
-        ],
-        "properties": {
-          "archivedById": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EditionArchivedById"
-              }
-            ],
-            "nullable": true
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
           },
-          "createdById": {
-            "$ref": "#/components/schemas/EditionCreatedById"
+          {
+            "type": "object",
+            "required": [
+              "createdById"
+            ],
+            "properties": {
+              "archivedById": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/EditionArchivedById"
+                  }
+                ]
+              },
+              "createdById": {
+                "$ref": "#/components/schemas/EditionCreatedById"
+              }
+            }
           }
-        },
-        "additionalProperties": false
+        ]
       },
       "OntologyOutwardEdge": {
         "oneOf": [
@@ -5314,6 +5347,9 @@
             "items": {
               "$ref": "#/components/schemas/PropertyPatchOperation"
             }
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvidedEntityEditionProvenanceMetadata"
           }
         },
         "additionalProperties": false
@@ -5671,10 +5707,9 @@
           "version",
           "versionedUrl",
           "ownedById",
-          "editionCreatedById",
-          "editionArchivedById",
           "title",
           "description",
+          "editionProvenance",
           "dataTypes",
           "propertyTypes",
           "embedding"
@@ -5860,6 +5895,26 @@
             "$ref": "./models/property_type.json"
           }
         }
+      },
+      "ProvidedEntityEditionProvenanceMetadata": {
+        "type": "object",
+        "properties": {
+          "__placeholder": {
+            "default": null,
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProvidedOntologyEditionProvenanceMetadata": {
+        "type": "object",
+        "properties": {
+          "__placeholder": {
+            "default": null,
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
       },
       "QueryTemporalAxes": {
         "oneOf": [
@@ -6192,6 +6247,9 @@
         "properties": {
           "dataTypeId": {
             "$ref": "#/components/schemas/VersionedUrl"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
           }
         },
         "additionalProperties": false
@@ -6204,6 +6262,9 @@
         "properties": {
           "entityTypeId": {
             "$ref": "#/components/schemas/VersionedUrl"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
           }
         },
         "additionalProperties": false
@@ -6216,6 +6277,9 @@
         "properties": {
           "propertyTypeId": {
             "$ref": "#/components/schemas/VersionedUrl"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
           }
         },
         "additionalProperties": false
@@ -6277,6 +6341,9 @@
           "relationships"
         ],
         "properties": {
+          "provenance": {
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
+          },
           "relationships": {
             "type": "array",
             "items": {
@@ -6367,6 +6434,9 @@
             ],
             "nullable": true
           },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
+          },
           "relationships": {
             "type": "array",
             "items": {
@@ -6414,6 +6484,9 @@
           "relationships"
         ],
         "properties": {
+          "provenance": {
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
+          },
           "relationships": {
             "type": "array",
             "items": {

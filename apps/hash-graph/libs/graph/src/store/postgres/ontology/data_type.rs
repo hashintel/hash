@@ -168,19 +168,20 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
     {
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
-        let provenance = OntologyProvenanceMetadata {
-            edition: OntologyEditionProvenanceMetadata {
-                created_by_id: EditionCreatedById::new(actor_id),
-                archived_by_id: None,
-            },
-        };
-
         let mut relationships = HashSet::new();
 
         let mut inserted_data_type_metadata = Vec::new();
         let mut inserted_data_types = Vec::new();
 
         for parameters in params {
+            let provenance = OntologyProvenanceMetadata {
+                edition: OntologyEditionProvenanceMetadata {
+                    created_by_id: EditionCreatedById::new(actor_id),
+                    archived_by_id: None,
+                    user_defined: parameters.provenance,
+                },
+            };
+
             let record_id = OntologyTypeRecordId::from(parameters.schema.id().clone());
             let data_type_id = DataTypeId::from_url(parameters.schema.id());
             if let OntologyTypeClassificationMetadata::Owned { owned_by_id } =
@@ -216,10 +217,10 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
             if let Some((ontology_id, temporal_versioning)) = transaction
                 .create_ontology_metadata(
-                    provenance.edition.created_by_id,
                     &record_id,
                     &parameters.classification,
                     parameters.conflict_behavior,
+                    &provenance,
                 )
                 .await?
             {
@@ -439,8 +440,16 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
+        let provenance = OntologyProvenanceMetadata {
+            edition: OntologyEditionProvenanceMetadata {
+                created_by_id: EditionCreatedById::new(actor_id),
+                archived_by_id: None,
+                user_defined: params.provenance,
+            },
+        };
+
         let (ontology_id, owned_by_id, temporal_versioning) = transaction
-            .update::<DataType>(&params.schema, EditionCreatedById::new(actor_id))
+            .update::<DataType>(&params.schema, &provenance.edition)
             .await?;
         let data_type_id = DataTypeId::from(ontology_id);
 
@@ -489,12 +498,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                 record_id: OntologyTypeRecordId::from(params.schema.id().clone()),
                 classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
                 temporal_versioning,
-                provenance: OntologyProvenanceMetadata {
-                    edition: OntologyEditionProvenanceMetadata {
-                        created_by_id: EditionCreatedById::new(actor_id),
-                        archived_by_id: None,
-                    },
-                },
+                provenance,
             };
 
             if let Some(temporal_client) = temporal_client {
@@ -532,8 +536,15 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         _: &mut A,
         params: UnarchiveDataTypeParams,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.unarchive_ontology_type(&params.data_type_id, EditionCreatedById::new(actor_id))
-            .await
+        self.unarchive_ontology_type(
+            &params.data_type_id,
+            &OntologyEditionProvenanceMetadata {
+                created_by_id: EditionCreatedById::new(actor_id),
+                archived_by_id: None,
+                user_defined: params.provenance,
+            },
+        )
+        .await
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
@@ -614,8 +625,7 @@ pub struct DataTypeRowIndices {
 
     pub schema: usize,
 
-    pub edition_created_by_id: usize,
-    pub edition_archived_by_id: usize,
+    pub edition_provenance: usize,
     pub additional_metadata: usize,
 }
 
@@ -647,12 +657,7 @@ impl QueryRecordDecode for DataTypeWithMetadata {
                     transaction_time: row.get(indices.transaction_time),
                 },
                 provenance: OntologyProvenanceMetadata {
-                    edition: OntologyEditionProvenanceMetadata {
-                        created_by_id: EditionCreatedById::new(
-                            row.get(indices.edition_created_by_id),
-                        ),
-                        archived_by_id: row.get(indices.edition_archived_by_id),
-                    },
+                    edition: row.get(indices.edition_provenance),
                 },
             },
         }
@@ -689,10 +694,8 @@ impl PostgresRecord for DataTypeWithMetadata {
                 None,
             ),
             schema: compiler.add_selection_path(&DataTypeQueryPath::Schema(None)),
-            edition_created_by_id: compiler
-                .add_selection_path(&DataTypeQueryPath::EditionCreatedById),
-            edition_archived_by_id: compiler
-                .add_selection_path(&DataTypeQueryPath::EditionArchivedById),
+            edition_provenance: compiler
+                .add_selection_path(&DataTypeQueryPath::EditionProvenance(None)),
             additional_metadata: compiler
                 .add_selection_path(&DataTypeQueryPath::AdditionalMetadata),
         }

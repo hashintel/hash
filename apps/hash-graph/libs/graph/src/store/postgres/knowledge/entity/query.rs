@@ -3,8 +3,8 @@ use std::convert::identity;
 use graph_types::{
     knowledge::{
         entity::{
-            Entity, EntityEditionProvenanceMetadata, EntityId, EntityMetadata,
-            EntityProvenanceMetadata, EntityRecordId, EntityUuid,
+            Entity, EntityId, EntityMetadata, EntityProvenanceMetadata, EntityRecordId, EntityUuid,
+            InferredEntityProvenanceMetadata,
         },
         link::LinkData,
         Confidence, PropertyPath,
@@ -186,12 +186,8 @@ pub struct EntityRecordRowIndices {
     pub right_entity_uuid: usize,
     pub right_entity_owned_by_id: usize,
 
-    pub created_by_id: usize,
-    pub created_at_transaction_time: usize,
-    pub created_at_decision_time: usize,
-    pub first_non_draft_created_at_transaction_time: usize,
-    pub first_non_draft_created_at_decision_time: usize,
-    pub edition_created_by_id: usize,
+    pub provenance: usize,
+    pub edition_provenance: usize,
 
     pub entity_confidence: usize,
     pub left_entity_confidence: usize,
@@ -289,6 +285,8 @@ impl QueryRecordDecode for Entity {
             tracing::trace!(%entity_id, %distance, "Entity embedding was calculated");
         }
 
+        let inferred_provenance_data =
+            row.get::<_, InferredEntityProvenanceMetadata>(indices.provenance);
         Self {
             properties: row.get(indices.properties),
             link_data,
@@ -308,16 +306,15 @@ impl QueryRecordDecode for Entity {
                     .map(|(base_url, version)| VersionedUrl { base_url, version })
                     .collect(),
                 provenance: EntityProvenanceMetadata {
-                    created_by_id: row.get(indices.created_by_id),
-                    created_at_transaction_time: row.get(indices.created_at_transaction_time),
-                    created_at_decision_time: row.get(indices.created_at_decision_time),
-                    first_non_draft_created_at_transaction_time: row
-                        .get(indices.first_non_draft_created_at_transaction_time),
-                    first_non_draft_created_at_decision_time: row
-                        .get(indices.first_non_draft_created_at_decision_time),
-                    edition: EntityEditionProvenanceMetadata {
-                        created_by_id: row.get(indices.edition_created_by_id),
-                    },
+                    created_by_id: inferred_provenance_data.created_by_id,
+                    created_at_transaction_time: inferred_provenance_data
+                        .created_at_transaction_time,
+                    created_at_decision_time: inferred_provenance_data.created_at_decision_time,
+                    first_non_draft_created_at_transaction_time: inferred_provenance_data
+                        .first_non_draft_created_at_transaction_time,
+                    first_non_draft_created_at_decision_time: inferred_provenance_data
+                        .first_non_draft_created_at_decision_time,
+                    edition: row.get(indices.edition_provenance),
                 },
                 confidence: row.get(indices.entity_confidence),
                 property_confidence: row
@@ -391,17 +388,9 @@ impl PostgresRecord for Entity {
             right_entity_uuid: compiler.add_selection_path(&paths.right_entity_uuid),
             right_entity_owned_by_id: compiler.add_selection_path(&paths.right_owned_by_id),
 
-            created_by_id: compiler.add_selection_path(&EntityQueryPath::CreatedById),
-            created_at_transaction_time: compiler
-                .add_selection_path(&EntityQueryPath::CreatedAtTransactionTime),
-            created_at_decision_time: compiler
-                .add_selection_path(&EntityQueryPath::CreatedAtDecisionTime),
-            first_non_draft_created_at_transaction_time: compiler
-                .add_selection_path(&EntityQueryPath::FirstNonDraftCreatedAtTransactionTime),
-            first_non_draft_created_at_decision_time: compiler
-                .add_selection_path(&EntityQueryPath::FirstNonDraftCreatedAtDecisionTime),
-            edition_created_by_id: compiler
-                .add_selection_path(&EntityQueryPath::EditionCreatedById),
+            provenance: compiler.add_selection_path(&EntityQueryPath::Provenance(None)),
+            edition_provenance: compiler
+                .add_selection_path(&EntityQueryPath::EditionProvenance(None)),
 
             entity_confidence: compiler.add_selection_path(&EntityQueryPath::EntityConfidence),
             left_entity_confidence: compiler

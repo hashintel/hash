@@ -5,7 +5,10 @@ use error_stack::Report;
 use graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{Entity, EntityEmbedding, EntityId, EntityMetadata, EntityUuid},
+        entity::{
+            Entity, EntityEmbedding, EntityId, EntityMetadata, EntityUuid,
+            ProvidedEntityEditionProvenanceMetadata,
+        },
         link::LinkData,
         Confidence, PropertyConfidence, PropertyObject, PropertyPatchOperation,
     },
@@ -192,6 +195,8 @@ pub struct CreateEntityParams<R> {
     pub link_data: Option<LinkData>,
     pub draft: bool,
     pub relationships: R,
+    #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
+    pub provenance: ProvidedEntityEditionProvenanceMetadata,
 }
 
 #[derive(Debug, Deserialize)]
@@ -247,6 +252,8 @@ pub struct PatchEntityParams {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub confidence: Option<Confidence>,
+    #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
+    pub provenance: ProvidedEntityEditionProvenanceMetadata,
 }
 
 #[derive(Debug, Deserialize)]
