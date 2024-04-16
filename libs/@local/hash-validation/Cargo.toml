@@ -13,7 +13,7 @@ graph-types.workspace = true
 error-stack = { workspace = true, features = ["hooks"] }
 type-system.workspace = true
 
-chrono = { version = "0.4.37", default-features = false, features = ["std"] }
+chrono = { version = "0.4.38", default-features = false, features = ["std"] }
 email_address.workspace = true
 futures.workspace = true
 regex = "1.10.4"
