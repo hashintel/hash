@@ -136,7 +136,7 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
         expectedNumberOfEntities: {
           type: "number",
           description: dedent(`
-            The expected number of entities which should be inferred from the text.
+            The expected number of entities which should be inferred from the HTML content.
             You should expect at least 1 entity to be inferred.
           `),
         },
@@ -144,7 +144,7 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
           type: "string",
           format: "date-time",
           description: dedent(`
-            A date-time string in ISO 8601 format, representing when the provided text is valid at.
+            A date-time string in ISO 8601 format, representing when the provided HTML content is valid at.
             If this cannot be found on the web page, assume it is the current date and time.
             The current time is "${new Date().toISOString()}".
           `),
@@ -152,7 +152,7 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
         prompt: {
           type: "string",
           description: dedent(`
-            A prompt instructing the inference agent which entities should be inferred from the text.
+            A prompt instructing the inference agent which entities should be inferred from the HTML content.
             Do not specify any information of the structure of the entities, as this is predefined by
               the entity type.
           `),
@@ -163,7 +163,7 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
             type: "string",
           },
           description: dedent(`
-            An array of entity type IDs which should be inferred from the provided text.
+            An array of entity type IDs which should be inferred from the provided HTML content.
           `),
         },
       },
@@ -642,7 +642,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               ${innerHtml}
               ---------------- END OF INNER HTML ----------------
               If there are any entities in this HTML which you think are relevant to the task, you must
-                immediately call the "inferEntitiesFromWebPage" tool with the relevant text from the HTML.
+                immediately call the "inferEntitiesFromWebPage" tool with the relevant HTML content from the HTML.
               
               If there are any links in the HTML which may also contain relevant entities, you should
                 make additional "getWebPageInnerHtml" tool calls to get the content of those pages.
@@ -697,8 +697,8 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               return {
                 ...toolCall,
                 output: dedent(`
-                  You provided an empty string as the text from the web page. You must provide
-                  the relevant text from the web page to infer entities.
+                  You provided an empty string as the HTML content from the web page. You must provide
+                  the relevant HTML content from the web page to infer entities.
                 `),
               };
             }
@@ -707,10 +707,10 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               return {
                 ...toolCall,
                 output: dedent(`
-                  You provided a truncated text from the web page. You must provide the entire
-                  text necessary to accurately infer properties of the relevant entities.
+                  You provided a truncated HTML content from the web page. You must provide the entire
+                  HTML content necessary to accurately infer properties of the relevant entities.
 
-                  You must make the "inferEntitiesFromWebPage" tool call again with the full text
+                  You must make the "inferEntitiesFromWebPage" tool call again with the full HTML content
                   required to infer the expected number of entities.
                 `),
               };
@@ -781,14 +781,14 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               return {
                 ...toolCall,
                 output: dedent(`
-                  The following entities were inferred from the provided text: ${JSON.stringify(summarizedNewProposedEntities)}
+                  The following entities were inferred from the provided HTML content: ${JSON.stringify(summarizedNewProposedEntities)}
 
-                  The number of entities inferred from the text doesn't match the expected number of entities.
+                  The number of entities inferred from the HTML content doesn't match the expected number of entities.
                   Expected: ${expectedNumberOfEntities}
                   Actual: ${newProposedEntities.length}
 
                   If there are missing entities which you require, you must make another "inferEntitiesFromWebPage" tool call
-                    with the relevant text to try again.
+                    with the relevant HTML content to try again.
                 `),
               };
             }
