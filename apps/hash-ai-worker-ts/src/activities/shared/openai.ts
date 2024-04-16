@@ -6,7 +6,7 @@ import type OpenAI from "openai";
 import { promptTokensEstimate } from "openai-chat-tokens";
 
 import { logger } from "../../shared/logger";
-import { openai } from "./get-open-ai-response/openai-client";
+import { openai } from "./openai-client";
 import { stringify } from "./stringify";
 
 export type PermittedOpenAiModel =
