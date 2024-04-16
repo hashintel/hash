@@ -1,20 +1,26 @@
 import type OpenAI from "openai";
 import type { JSONSchema } from "openai/lib/jsonschema";
-import type { ChatCompletion, FunctionParameters } from "openai/resources";
-
 import type {
-  AnthropicMessageModel,
-  AnthropicMessagesCreateParams,
-  AnthropicMessagesCreateResponse,
-  AnthropicToolDefinition,
-} from "./anthropic-client";
+  ChatCompletion as OpenAiChatCompletion,
+  FunctionParameters as OpenAiFunctionParameters,
+} from "openai/resources";
+
+import type { AnthropicToolDefinition } from "./get-llm-response/anthropic-client";
 import {
   anthropicMessageModelToContextWindow,
   createAnthropicMessagesWithTools,
   isAnthropicContentToolCallContent,
-  isAnthropicMessageModel,
-} from "./anthropic-client";
-import type { PermittedOpenAiModel } from "./openai";
+} from "./get-llm-response/anthropic-client";
+import type {
+  AnthropicLlmParams,
+  AnthropicResponse,
+  LlmParams,
+  LlmStopReason,
+  OpenAiLlmParams,
+  OpenAiResponse,
+  ParsedToolCall,
+} from "./get-llm-response/types";
+import { isLlmParamsAnthropicLlmParams } from "./get-llm-response/types";
 import { openai } from "./openai-client";
 
 type LlmToolDefinition = {
@@ -37,40 +43,10 @@ const mapLlmToolDefinitionToOpenAiToolDefinition = (
   type: "function",
   function: {
     name: tool.name,
-    parameters: tool.input_schema as FunctionParameters,
+    parameters: tool.input_schema as OpenAiFunctionParameters,
     description: tool.description,
   },
 });
-
-type CommonLlmParams = {
-  model: AnthropicMessageModel | PermittedOpenAiModel;
-  tools?: LlmToolDefinition[];
-};
-
-type AnthropicLlmParams = CommonLlmParams & {
-  model: AnthropicMessageModel;
-  max_tokens?: number;
-} & Omit<AnthropicMessagesCreateParams, "tools" | "max_tokens">;
-
-type OpenAiLlmParams = CommonLlmParams & {
-  model: PermittedOpenAiModel;
-} & Omit<OpenAI.ChatCompletionCreateParams, "tools">;
-
-type LlmParams = AnthropicLlmParams | OpenAiLlmParams;
-
-const isLlmParamsAnthropicLlmParams = (
-  params: LlmParams,
-): params is AnthropicLlmParams => isAnthropicMessageModel(params.model);
-
-type AnthropicResponse = AnthropicMessagesCreateResponse;
-
-type OpenAiResponse = ChatCompletion;
-
-type ParsedToolCall = {
-  id: string;
-  name: string;
-  input: object;
-};
 
 const parseToolCallsFromAnthropicResponse = (
   response: AnthropicResponse,
@@ -90,23 +66,8 @@ const parseToolCallsFromOpenAiResponse = (
     },
   ) ?? [];
 
-/**
- * A unified definition of the stop reason for the LLM, one of:
- * - `"stop"`: the model reached a natural stopping point (equivalent to `end_turn` in the Anthropic API, or `stop` in the OpenAI API)
- * - `"tool_use"`: the model called one or more tools (equivalent to `tool_use` in the Anthropic API, or `tool_calls` in the OpenAI API)
- * - `"length"`: the model reached the maximum token length (equivalent to `max_tokens` in the Anthropic API, or `length` in the OpenAI API)
- * - `"content_filters"`: if content was omitted due to a flag from our content filters (OpenAI specific)
- * - `"stop_sequence"`: one of your provided custom `stop_sequences` was generated (Anthropic specific)
- */
-type LlmStopReason =
-  | "stop"
-  | "tool_use"
-  | "length"
-  | "content_filter"
-  | "stop_sequence";
-
 const mapOpenAiFinishReasonToLlmStopReason = (
-  finishReason: ChatCompletion["choices"][0]["finish_reason"],
+  finishReason: OpenAiChatCompletion["choices"][0]["finish_reason"],
 ): LlmStopReason => {
   switch (finishReason) {
     case "stop":
