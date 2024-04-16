@@ -85,10 +85,6 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     ${typeof webPage === "string" ? webPage : webPage.textContent}
     ---WEBSITE CONTENT ENDS---
 
-    If the content appears to include the data from a table, you must
-      apply any necessary unit conversions from the table header so
-      that values stored on entity properties are correct.
-
     Pay careful attention to the units of data, which may be defined
       in a column header, or in the table row.
 
