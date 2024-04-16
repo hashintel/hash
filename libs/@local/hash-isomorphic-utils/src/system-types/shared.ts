@@ -827,6 +827,11 @@ export type TextualContentPropertyValue = TextDataType | ObjectDataType[];
  */
 export type TitlePropertyValue = TextDataType;
 
+/**
+ * The ID of the trigger definition.
+ */
+export type TriggerDefinitionIDPropertyValue = TextDataType;
+
 export type TriggeredByUser = Entity<TriggeredByUserProperties> & {
   linkData: LinkData;
 };

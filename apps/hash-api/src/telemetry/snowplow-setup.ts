@@ -1,3 +1,4 @@
+import { getRequiredEnv } from "@local/hash-isomorphic-utils/environment";
 import type { Emitter, Tracker } from "@snowplow/node-tracker";
 import {
   buildStructEvent,
@@ -5,8 +6,6 @@ import {
   HttpProtocol,
   tracker as createTracker,
 } from "@snowplow/node-tracker";
-
-import { getRequiredEnv } from "../util";
 
 /**
  * Sets up snowplow telemetry for HASH usage. Disabled by default.

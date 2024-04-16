@@ -13,6 +13,7 @@ import type {
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
 import { getFlowRuns } from "./flows/runs";
+import { startFlow } from "./flows/start-flow";
 import { getLinearOrganizationResolver } from "./integrations/linear/linear-organization";
 import { syncLinearIntegrationWithWorkspacesMutation } from "./integrations/linear/sync-workspaces-with-teams";
 import { blocksResolver } from "./knowledge/block/block";
@@ -61,7 +62,6 @@ import {
   canUserEdit,
   checkUserPermissionsOnEntity,
 } from "./knowledge/shared/check-permissions";
-import { startResearchTaskResolver } from "./knowledge/start-research-task";
 import { getUsageRecordsResolver } from "./knowledge/user/get-usage-records";
 import { hasAccessToHashResolver } from "./knowledge/user/has-access-to-hash";
 import { isShortnameTakenResolver } from "./knowledge/user/is-shortname-taken";
@@ -183,6 +183,8 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
       removeEntityViewerResolver,
     ),
 
+    startFlow: loggedInAndSignedUpMiddleware(startFlow),
+
     addAccountGroupMember: (_, { accountId, accountGroupId }, context) =>
       addAccountGroupMember(context.dataSources, context.authentication, {
         accountId,
@@ -198,8 +200,6 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     syncLinearIntegrationWithWorkspaces: loggedInAndSignedUpMiddleware(
       syncLinearIntegrationWithWorkspacesMutation,
     ),
-
-    startResearchTask: loggedInAndSignedUpMiddleware(startResearchTaskResolver),
   },
 
   JSONObject: JSONObjectResolver,

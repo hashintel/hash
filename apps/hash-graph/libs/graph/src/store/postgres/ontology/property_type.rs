@@ -281,13 +281,6 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
     {
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
-        let provenance = OntologyProvenanceMetadata {
-            edition: OntologyEditionProvenanceMetadata {
-                created_by_id: EditionCreatedById::new(actor_id),
-                archived_by_id: None,
-            },
-        };
-
         let mut relationships = HashSet::new();
 
         let mut inserted_property_type_metadata = Vec::new();
@@ -295,6 +288,14 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         let mut inserted_ontology_ids = Vec::new();
 
         for parameters in params {
+            let provenance = OntologyProvenanceMetadata {
+                edition: OntologyEditionProvenanceMetadata {
+                    created_by_id: EditionCreatedById::new(actor_id),
+                    archived_by_id: None,
+                    user_defined: parameters.provenance,
+                },
+            };
+
             let record_id = OntologyTypeRecordId::from(parameters.schema.id().clone());
             let property_type_id = PropertyTypeId::from_url(parameters.schema.id());
             if let OntologyTypeClassificationMetadata::Owned { owned_by_id } =
@@ -330,10 +331,10 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
 
             if let Some((ontology_id, temporal_versioning)) = transaction
                 .create_ontology_metadata(
-                    provenance.edition.created_by_id,
                     &record_id,
                     &parameters.classification,
                     parameters.conflict_behavior,
+                    &provenance,
                 )
                 .await?
             {
@@ -570,8 +571,16 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
 
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
+        let provenance = OntologyProvenanceMetadata {
+            edition: OntologyEditionProvenanceMetadata {
+                created_by_id: EditionCreatedById::new(actor_id),
+                archived_by_id: None,
+                user_defined: params.provenance,
+            },
+        };
+
         let (ontology_id, owned_by_id, temporal_versioning) = transaction
-            .update::<PropertyType>(&params.schema, EditionCreatedById::new(actor_id))
+            .update::<PropertyType>(&params.schema, &provenance.edition)
             .await?;
 
         transaction
@@ -634,12 +643,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                 record_id: OntologyTypeRecordId::from(params.schema.id().clone()),
                 classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
                 temporal_versioning,
-                provenance: OntologyProvenanceMetadata {
-                    edition: OntologyEditionProvenanceMetadata {
-                        created_by_id: EditionCreatedById::new(actor_id),
-                        archived_by_id: None,
-                    },
-                },
+                provenance,
             };
 
             if let Some(temporal_client) = temporal_client {
@@ -677,8 +681,15 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         _: &mut A,
         params: UnarchivePropertyTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.unarchive_ontology_type(&params.property_type_id, EditionCreatedById::new(actor_id))
-            .await
+        self.unarchive_ontology_type(
+            &params.property_type_id,
+            &OntologyEditionProvenanceMetadata {
+                created_by_id: EditionCreatedById::new(actor_id),
+                archived_by_id: None,
+                user_defined: params.provenance,
+            },
+        )
+        .await
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
@@ -759,8 +770,7 @@ pub struct PropertyTypeRowIndices {
 
     pub schema: usize,
 
-    pub edition_created_by_id: usize,
-    pub edition_archived_by_id: usize,
+    pub edition_provenance: usize,
     pub additional_metadata: usize,
 }
 
@@ -792,12 +802,7 @@ impl QueryRecordDecode for PropertyTypeWithMetadata {
                     transaction_time: row.get(indices.transaction_time),
                 },
                 provenance: OntologyProvenanceMetadata {
-                    edition: OntologyEditionProvenanceMetadata {
-                        created_by_id: EditionCreatedById::new(
-                            row.get(indices.edition_created_by_id),
-                        ),
-                        archived_by_id: row.get(indices.edition_archived_by_id),
-                    },
+                    edition: row.get(indices.edition_provenance),
                 },
             },
         }
@@ -834,10 +839,8 @@ impl PostgresRecord for PropertyTypeWithMetadata {
                 None,
             ),
             schema: compiler.add_selection_path(&PropertyTypeQueryPath::Schema(None)),
-            edition_created_by_id: compiler
-                .add_selection_path(&PropertyTypeQueryPath::EditionCreatedById),
-            edition_archived_by_id: compiler
-                .add_selection_path(&PropertyTypeQueryPath::EditionArchivedById),
+            edition_provenance: compiler
+                .add_selection_path(&PropertyTypeQueryPath::EditionProvenance(None)),
             additional_metadata: compiler
                 .add_selection_path(&PropertyTypeQueryPath::AdditionalMetadata),
         }

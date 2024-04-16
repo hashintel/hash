@@ -8,6 +8,7 @@ import type {
   EntityTypeStructuralQuery,
   ModifyRelationshipOperation,
   OntologyTemporalMetadata,
+  ProvidedOntologyEditionProvenanceMetadata,
   UnarchiveEntityTypeParams,
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
@@ -39,7 +40,9 @@ import {
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { publicUserAccountId } from "../../../auth/public-user-account-id";
+import type { TemporalClient } from "../../../temporal";
 import type { ImpureGraphFunction } from "../../context-types";
+import { rewriteSemanticFilter } from "../../shared/rewrite-semantic-filter";
 import { getWebShortname, isExternalTypeId } from "./util";
 
 export const getEntityTypeAuthorizationRelationships: ImpureGraphFunction<
@@ -132,10 +135,11 @@ export const createEntityType: ImpureGraphFunction<
     icon?: string | null;
     webShortname?: string;
     relationships: EntityTypeRelationAndSubject[];
+    provenance?: ProvidedOntologyEditionProvenanceMetadata;
   },
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { ownedById, labelProperty, icon, webShortname } = params;
+  const { ownedById, labelProperty, icon, webShortname, provenance } = params;
 
   const shortname =
     webShortname ??
@@ -166,6 +170,7 @@ export const createEntityType: ImpureGraphFunction<
       labelProperty,
       icon,
       relationships: params.relationships,
+      provenance,
     },
   );
 
@@ -180,9 +185,12 @@ export const createEntityType: ImpureGraphFunction<
 export const getEntityTypes: ImpureGraphFunction<
   {
     query: Omit<EntityTypeStructuralQuery, "includeDrafts">;
+    temporalClient?: TemporalClient;
   },
   Promise<Subgraph<EntityTypeRootType>>
-> = async ({ graphApi }, { actorId }, { query }) => {
+> = async ({ graphApi }, { actorId }, { query, temporalClient }) => {
+  await rewriteSemanticFilter(query.filter, temporalClient);
+
   return await graphApi
     .getEntityTypesByQuery(actorId, { includeDrafts: false, ...query })
     .then(({ data }) => {
@@ -280,10 +288,11 @@ export const updateEntityType: ImpureGraphFunction<
     labelProperty?: BaseUrl;
     icon?: string | null;
     relationships: EntityTypeRelationAndSubject[];
+    provenance?: ProvidedOntologyEditionProvenanceMetadata;
   },
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { entityTypeId, schema, labelProperty, icon } = params;
+  const { entityTypeId, schema, labelProperty, icon, provenance } = params;
   const updateArguments: UpdateEntityTypeRequest = {
     typeToUpdate: entityTypeId,
     schema: {
@@ -294,6 +303,7 @@ export const updateEntityType: ImpureGraphFunction<
     labelProperty,
     icon,
     relationships: params.relationships,
+    provenance,
   };
 
   const { data: metadata } = await ctx.graphApi.updateEntityType(

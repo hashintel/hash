@@ -11,13 +11,16 @@ use futures::TryStreamExt;
 use graph_types::knowledge::entity::{Entity, EntityUuid};
 use tokio_postgres::GenericClient;
 use type_system::ClosedEntityType;
-use validation::{Validate, ValidationProfile};
+use validation::{Validate, ValidateEntityComponents};
 
 use crate::{
     snapshot::{
         entity::{
-            table::{EntityDraftRow, EntityEmbeddingRow, EntityIsOfTypeRow},
-            EntityEditionRow, EntityIdRow, EntityLinkEdgeRow, EntityTemporalMetadataRow,
+            table::{
+                EntityDraftRow, EntityEmbeddingRow, EntityHasRightEntityRow, EntityIsOfTypeRow,
+                EntityPropertyRow,
+            },
+            EntityEditionRow, EntityHasLeftEntityRow, EntityIdRow, EntityTemporalMetadataRow,
         },
         WriteBatch,
     },
@@ -33,7 +36,9 @@ pub enum EntityRowBatch {
     Editions(Vec<EntityEditionRow>),
     Type(Vec<EntityIsOfTypeRow>),
     TemporalMetadata(Vec<EntityTemporalMetadataRow>),
-    Links(Vec<EntityLinkEdgeRow>),
+    LeftLinks(Vec<EntityHasLeftEntityRow>),
+    RightLinks(Vec<EntityHasRightEntityRow>),
+    Property(Vec<EntityPropertyRow>),
     Relations(Vec<(EntityUuid, EntityRelationAndSubject)>),
     Embeddings(Vec<EntityEmbeddingRow>),
 }
@@ -62,20 +67,23 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                         (LIKE entity_is_of_type INCLUDING ALL)
                         ON COMMIT DROP;
 
+                    CREATE TEMPORARY TABLE entity_property_tmp
+                        (LIKE entity_property INCLUDING ALL)
+                        ON COMMIT DROP;
+
                     CREATE TEMPORARY TABLE entity_temporal_metadata_tmp
                         (LIKE entity_temporal_metadata INCLUDING ALL)
                         ON COMMIT DROP;
                     ALTER TABLE entity_temporal_metadata_tmp
                         ALTER COLUMN transaction_time SET DEFAULT TSTZRANGE(now(), NULL, '[)');
 
-                    CREATE TEMPORARY TABLE entity_link_edges_tmp (
-                        web_id UUID NOT NULL,
-                        entity_uuid UUID NOT NULL,
-                        left_web_id UUID NOT NULL,
-                        left_entity_uuid UUID NOT NULL,
-                        right_web_id UUID NOT NULL,
-                        right_entity_uuid UUID NOT NULL
-                    ) ON COMMIT DROP;
+                    CREATE TEMPORARY TABLE entity_has_left_entity_tmp
+                        (LIKE entity_has_left_entity INCLUDING ALL)
+                        ON COMMIT DROP;
+
+                    CREATE TEMPORARY TABLE entity_has_right_entity_tmp
+                        (LIKE entity_has_right_entity INCLUDING ALL)
+                        ON COMMIT DROP;
 
                     CREATE TEMPORARY TABLE entity_embeddings_tmp
                         (LIKE entity_embeddings INCLUDING ALL)
@@ -180,12 +188,12 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                     tracing::info!("Read {} entity temporal metadata", rows.len());
                 }
             }
-            Self::Links(links) => {
+            Self::LeftLinks(links) => {
                 let rows = client
                     .query(
                         "
-                            INSERT INTO entity_link_edges_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::entity_link_edges_tmp[])
+                            INSERT INTO entity_has_left_entity_tmp
+                            SELECT DISTINCT * FROM UNNEST($1::entity_has_left_entity[])
                             RETURNING 1;
                         ",
                         &[&links],
@@ -193,7 +201,40 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
-                    tracing::info!("Read {} entity links", rows.len());
+                    tracing::info!("Read {} left entity links", rows.len());
+                }
+            }
+            Self::RightLinks(links) => {
+                let rows = client
+                    .query(
+                        "
+                            INSERT INTO entity_has_right_entity_tmp
+                            SELECT DISTINCT * FROM UNNEST($1::entity_has_right_entity[])
+                            RETURNING 1;
+                        ",
+                        &[&links],
+                    )
+                    .await
+                    .change_context(InsertionError)?;
+                if !rows.is_empty() {
+                    tracing::info!("Read {} left entity links", rows.len());
+                }
+            }
+            Self::Property(proeperties) => {
+                let rows = client
+                    .query(
+                        "
+                            INSERT INTO entity_property_tmp
+                            SELECT DISTINCT * FROM UNNEST($1::entity_property[])
+                            ON CONFLICT DO NOTHING
+                            RETURNING 1;
+                        ",
+                        &[&proeperties],
+                    )
+                    .await
+                    .change_context(InsertionError)?;
+                if !rows.is_empty() {
+                    tracing::info!("Read {} entity properties", rows.len());
                 }
             }
             Self::Relations(relations) => {
@@ -207,7 +248,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                     .query(
                         "
                             INSERT INTO entity_embeddings_tmp
-                            SELECT * FROM UNNEST($1::entity_embeddings_tmp[])
+                            SELECT * FROM UNNEST($1::entity_embeddings[])
                             RETURNING 1;
                         ",
                         &[&embeddings],
@@ -231,39 +272,29 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
             .client()
             .simple_query(
                 "
-                    INSERT INTO entity_ids SELECT * FROM entity_ids_tmp;
+                    INSERT INTO entity_ids
+                        SELECT * FROM entity_ids_tmp;
 
-                    INSERT INTO entity_drafts SELECT * FROM entity_drafts_tmp;
+                    INSERT INTO entity_drafts
+                        SELECT * FROM entity_drafts_tmp;
 
                     INSERT INTO entity_editions
-                        SELECT
-                            entity_edition_id UUID,
-                            properties JSONB,
-                            edition_created_by_id UUID,
-                            archived BOOLEAN
-                        FROM entity_editions_tmp;
+                        SELECT * FROM entity_editions_tmp;
 
-                    INSERT INTO entity_temporal_metadata SELECT * FROM \
-                 entity_temporal_metadata_tmp;
+                    INSERT INTO entity_temporal_metadata
+                        SELECT * FROM entity_temporal_metadata_tmp;
 
                     INSERT INTO entity_is_of_type
                         SELECT * FROM entity_is_of_type_tmp;
 
                     INSERT INTO entity_has_left_entity
-                        SELECT
-                            web_id UUID,
-                            entity_uuid UUID,
-                            left_web_id UUID,
-                            left_entity_uuid UUID
-                        FROM entity_link_edges_tmp;
+                        SELECT * FROM entity_has_left_entity_tmp;
 
                     INSERT INTO entity_has_right_entity
-                        SELECT
-                            web_id UUID,
-                            entity_uuid UUID,
-                            right_web_id UUID,
-                            right_entity_uuid UUID
-                        FROM entity_link_edges_tmp;
+                        SELECT * FROM entity_has_right_entity_tmp;
+
+                    INSERT INTO entity_property
+                        SELECT * FROM entity_property_tmp;
 
                     INSERT INTO entity_embeddings
                         SELECT * FROM entity_embeddings_tmp;
@@ -309,9 +340,9 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                     .validate(
                         &schema,
                         if entity.metadata.record_id.entity_id.draft_id.is_some() {
-                            ValidationProfile::Draft
+                            ValidateEntityComponents::draft()
                         } else {
-                            ValidationProfile::Full
+                            ValidateEntityComponents::full()
                         },
                         &validator_provider,
                     )

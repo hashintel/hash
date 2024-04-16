@@ -5,8 +5,8 @@ use crate::{
     store::postgres::query::{
         table::{
             Column, EntityEditions, EntityEmbeddings, EntityHasLeftEntity, EntityHasRightEntity,
-            EntityIds, EntityIsOfTypeIds, EntityTemporalMetadata, JsonField, ReferenceTable,
-            Relation,
+            EntityIds, EntityIsOfTypeIds, EntityProperties, EntityTemporalMetadata, JsonField,
+            ReferenceTable, Relation,
         },
         PostgresQueryPath,
     },
@@ -22,15 +22,17 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             | Self::DecisionTime
             | Self::TransactionTime
             | Self::DraftId => vec![],
-            Self::CreatedById
-            | Self::CreatedAtTransactionTime
-            | Self::CreatedAtDecisionTime
-            | Self::FirstNonDraftCreatedAtTransactionTime
-            | Self::FirstNonDraftCreatedAtDecisionTime => {
+            Self::Provenance(_) => {
                 vec![Relation::EntityIds]
             }
             Self::Embedding => vec![Relation::EntityEmbeddings],
-            Self::Properties(_) | Self::EditionCreatedById | Self::Archived => {
+            Self::LeftEntityConfidence => vec![Relation::LeftEntity],
+            Self::RightEntityConfidence => vec![Relation::RightEntity],
+            Self::PropertyPaths | Self::PropertyConfidences => vec![Relation::EntityProperties],
+            Self::Properties(_)
+            | Self::EditionProvenance(_)
+            | Self::Archived
+            | Self::EntityConfidence => {
                 vec![Relation::EntityEditions]
             }
             Self::TypeBaseUrls | Self::TypeVersions => vec![Relation::EntityIsOfTypes],
@@ -96,21 +98,9 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 Column::EntityTemporalMetadata(EntityTemporalMetadata::TransactionTime)
             }
             Self::Archived => Column::EntityEditions(EntityEditions::Archived),
-            Self::EditionCreatedById => Column::EntityEditions(EntityEditions::EditionCreatedById),
             Self::Embedding => Column::EntityEmbeddings(EntityEmbeddings::Embedding),
-            Self::CreatedById => Column::EntityIds(EntityIds::CreatedById),
             Self::TypeBaseUrls => Column::EntityIsOfTypeIds(EntityIsOfTypeIds::BaseUrls),
             Self::TypeVersions => Column::EntityIsOfTypeIds(EntityIsOfTypeIds::Versions),
-            Self::CreatedAtDecisionTime => Column::EntityIds(EntityIds::CreatedAtDecisionTime),
-            Self::CreatedAtTransactionTime => {
-                Column::EntityIds(EntityIds::CreatedAtTransactionTime)
-            }
-            Self::FirstNonDraftCreatedAtDecisionTime => {
-                Column::EntityIds(EntityIds::FirstNonDraftCreatedAtDecisionTime)
-            }
-            Self::FirstNonDraftCreatedAtTransactionTime => {
-                Column::EntityIds(EntityIds::FirstNonDraftCreatedAtTransactionTime)
-            }
             Self::EntityTypeEdge { path, .. } => path.terminating_column(),
             Self::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
@@ -149,6 +139,28 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                     ))))
                 },
             ),
+            Self::Provenance(path) => path
+                .as_ref()
+                .map_or(Column::EntityIds(EntityIds::Provenance(None)), |path| {
+                    Column::EntityIds(EntityIds::Provenance(Some(JsonField::JsonPath(path))))
+                }),
+            Self::EditionProvenance(path) => path.as_ref().map_or(
+                Column::EntityEditions(EntityEditions::Provenance(None)),
+                |path| {
+                    Column::EntityEditions(EntityEditions::Provenance(Some(JsonField::JsonPath(
+                        path,
+                    ))))
+                },
+            ),
+            Self::EntityConfidence => Column::EntityEditions(EntityEditions::Confidence),
+            Self::LeftEntityConfidence => {
+                Column::EntityHasLeftEntity(EntityHasLeftEntity::Confidence)
+            }
+            Self::RightEntityConfidence => {
+                Column::EntityHasRightEntity(EntityHasRightEntity::Confidence)
+            }
+            Self::PropertyPaths => Column::EntityProperties(EntityProperties::PropertyPaths),
+            Self::PropertyConfidences => Column::EntityProperties(EntityProperties::Confidences),
         }
     }
 }

@@ -20,7 +20,7 @@ type-system = { workspace = true, features = ["utoipa"] }
 validation = { workspace = true, features = ["utoipa"] }
 codec = { workspace = true, optional = true }
 
-async-trait = "0.1.79"
+async-trait = "0.1.80"
 axum = "0.7.5"
 base64 = "0.22.0"
 bytes = "1.6.0"
@@ -29,7 +29,6 @@ futures = { workspace = true }
 http-body-util = "0.1.1"
 hyper = "1.2.0"
 include_dir = "0.7.3"
-json-patch = { version = "1.2.0", default-features = false, features = ["utoipa"] }
 mime = "0.3.17"
 opentelemetry = "0.21.0"
 opentelemetry_sdk = { version = "0.21.2", features = ["rt-tokio"] }

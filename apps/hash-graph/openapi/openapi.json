@@ -2622,23 +2622,6 @@
         "type": "string",
         "format": "uuid"
       },
-      "AddOperation": {
-        "type": "object",
-        "description": "JSON Patch 'add' operation representation",
-        "required": [
-          "path",
-          "value"
-        ],
-        "properties": {
-          "path": {
-            "type": "string",
-            "description": "JSON-Pointer value [RFC6901](https://tools.ietf.org/html/rfc6901) that references a location\nwithin the target document where the operation is performed."
-          },
-          "value": {
-            "description": "Value to add to the target location."
-          }
-        }
-      },
       "ArchiveDataTypeParams": {
         "type": "object",
         "required": [
@@ -2705,23 +2688,11 @@
           "propertyName": "kind"
         }
       },
-      "CopyOperation": {
-        "type": "object",
-        "description": "JSON Patch 'copy' operation representation",
-        "required": [
-          "from",
-          "path"
-        ],
-        "properties": {
-          "from": {
-            "type": "string",
-            "description": "JSON-Pointer value [RFC6901](https://tools.ietf.org/html/rfc6901) that references a location\nto copy value from."
-          },
-          "path": {
-            "type": "string",
-            "description": "JSON-Pointer value [RFC6901](https://tools.ietf.org/html/rfc6901) that references a location\nwithin the target document where the operation is performed."
-          }
-        }
+      "Confidence": {
+        "type": "number",
+        "format": "double",
+        "maximum": 1,
+        "minimum": 0
       },
       "CreateDataTypeRequest": {
         "type": "object",
@@ -2733,6 +2704,9 @@
         "properties": {
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
           },
           "relationships": {
             "type": "array",
@@ -2766,6 +2740,13 @@
           "relationships"
         ],
         "properties": {
+          "confidence": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Confidence"
+              }
+            ]
+          },
           "decisionTime": {
             "allOf": [
               {
@@ -2800,7 +2781,17 @@
             "$ref": "#/components/schemas/OwnedById"
           },
           "properties": {
-            "$ref": "#/components/schemas/EntityProperties"
+            "$ref": "#/components/schemas/PropertyObject"
+          },
+          "propertyConfidence": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PropertyConfidence"
+              }
+            ]
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvidedEntityEditionProvenanceMetadata"
           },
           "relationships": {
             "type": "array",
@@ -2834,6 +2825,9 @@
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
           },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
+          },
           "relationships": {
             "type": "array",
             "items": {
@@ -2866,6 +2860,9 @@
         "properties": {
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
           },
           "relationships": {
             "type": "array",
@@ -2985,11 +2982,10 @@
           "version",
           "versionedUrl",
           "ownedById",
-          "editionCreatedById",
-          "editionArchivedById",
           "title",
           "description",
           "type",
+          "editionProvenance",
           "embedding"
         ]
       },
@@ -3187,7 +3183,7 @@
             "$ref": "#/components/schemas/EntityMetadata"
           },
           "properties": {
-            "$ref": "#/components/schemas/EntityProperties"
+            "$ref": "#/components/schemas/PropertyObject"
           }
         }
       },
@@ -3239,16 +3235,29 @@
         "format": "uuid"
       },
       "EntityEditionProvenanceMetadata": {
-        "type": "object",
-        "required": [
-          "createdById"
-        ],
-        "properties": {
-          "createdById": {
-            "$ref": "#/components/schemas/EditionCreatedById"
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ProvidedEntityEditionProvenanceMetadata"
+          },
+          {
+            "type": "object",
+            "required": [
+              "createdById"
+            ],
+            "properties": {
+              "archivedById": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/EditionArchivedById"
+                  }
+                ]
+              },
+              "createdById": {
+                "$ref": "#/components/schemas/EditionCreatedById"
+              }
+            }
           }
-        },
-        "additionalProperties": false
+        ]
       },
       "EntityEditorSubject": {
         "oneOf": [
@@ -3344,11 +3353,25 @@
           "archived": {
             "type": "boolean"
           },
+          "confidence": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Confidence"
+              }
+            ]
+          },
           "entityTypeIds": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/VersionedUrl"
             }
+          },
+          "propertyConfidence": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PropertyConfidence"
+              }
+            ]
           },
           "provenance": {
             "$ref": "#/components/schemas/EntityProvenanceMetadata"
@@ -3394,10 +3417,6 @@
           "update",
           "view"
         ]
-      },
-      "EntityProperties": {
-        "type": "object",
-        "description": "The properties of an entity.\n\nWhen expressed as JSON, this should validate against its respective entity type(s)."
       },
       "EntityProvenanceMetadata": {
         "type": "object",
@@ -3498,14 +3517,10 @@
           "draftId",
           "archived",
           "ownedById",
-          "editionCreatedById",
-          "createdById",
-          "createdAtTransactionTime",
-          "createdAtDecisionTime",
-          "firstNonDraftCreatedAtTransactionTime",
-          "firstNonDraftCreatedAtDecisionTime",
           "type",
           "properties",
+          "provenance",
+          "editionProvenance",
           "embedding",
           "incomingLinks",
           "outgoingLinks",
@@ -3917,8 +3932,6 @@
           "version",
           "versionedUrl",
           "ownedById",
-          "editionCreatedById",
-          "editionArchivedById",
           "title",
           "description",
           "examples",
@@ -3926,6 +3939,7 @@
           "required",
           "labelProperty",
           "icon",
+          "editionProvenance",
           "links",
           "inheritsFrom",
           "children",
@@ -4718,8 +4732,22 @@
           "rightEntityId"
         ],
         "properties": {
+          "leftEntityConfidence": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Confidence"
+              }
+            ]
+          },
           "leftEntityId": {
             "$ref": "#/components/schemas/EntityId"
+          },
+          "rightEntityConfidence": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Confidence"
+              }
+            ]
           },
           "rightEntityId": {
             "$ref": "#/components/schemas/EntityId"
@@ -4747,6 +4775,9 @@
               "relationships"
             ],
             "properties": {
+              "provenance": {
+                "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
+              },
               "relationships": {
                 "type": "array",
                 "items": {
@@ -4792,6 +4823,9 @@
                 ],
                 "nullable": true
               },
+              "provenance": {
+                "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
+              },
               "relationships": {
                 "type": "array",
                 "items": {
@@ -4825,6 +4859,9 @@
               "relationships"
             ],
             "properties": {
+              "provenance": {
+                "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
+              },
               "relationships": {
                 "type": "array",
                 "items": {
@@ -4981,24 +5018,6 @@
           }
         }
       },
-      "MoveOperation": {
-        "type": "object",
-        "description": "JSON Patch 'move' operation representation",
-        "required": [
-          "from",
-          "path"
-        ],
-        "properties": {
-          "from": {
-            "type": "string",
-            "description": "JSON-Pointer value [RFC6901](https://tools.ietf.org/html/rfc6901) that references a location\nto move value from."
-          },
-          "path": {
-            "type": "string",
-            "description": "JSON-Pointer value [RFC6901](https://tools.ietf.org/html/rfc6901) that references a location\nwithin the target document where the operation is performed."
-          }
-        }
-      },
       "NullOrdering": {
         "type": "string",
         "enum": [
@@ -5022,24 +5041,29 @@
         ]
       },
       "OntologyEditionProvenanceMetadata": {
-        "type": "object",
-        "required": [
-          "createdById"
-        ],
-        "properties": {
-          "archivedById": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EditionArchivedById"
-              }
-            ],
-            "nullable": true
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
           },
-          "createdById": {
-            "$ref": "#/components/schemas/EditionCreatedById"
+          {
+            "type": "object",
+            "required": [
+              "createdById"
+            ],
+            "properties": {
+              "archivedById": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/EditionArchivedById"
+                  }
+                ]
+              },
+              "createdById": {
+                "$ref": "#/components/schemas/EditionCreatedById"
+              }
+            }
           }
-        },
-        "additionalProperties": false
+        ]
       },
       "OntologyOutwardEdge": {
         "oneOf": [
@@ -5292,6 +5316,13 @@
           "archived": {
             "type": "boolean"
           },
+          "confidence": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Confidence"
+              }
+            ]
+          },
           "decisionTime": {
             "allOf": [
               {
@@ -5314,145 +5345,14 @@
           "properties": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/PatchOperation"
+              "$ref": "#/components/schemas/PropertyPatchOperation"
             }
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvidedEntityEditionProvenanceMetadata"
           }
         },
         "additionalProperties": false
-      },
-      "PatchOperation": {
-        "oneOf": [
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/AddOperation"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "op"
-                ],
-                "properties": {
-                  "op": {
-                    "type": "string",
-                    "enum": [
-                      "add"
-                    ]
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/RemoveOperation"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "op"
-                ],
-                "properties": {
-                  "op": {
-                    "type": "string",
-                    "enum": [
-                      "remove"
-                    ]
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ReplaceOperation"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "op"
-                ],
-                "properties": {
-                  "op": {
-                    "type": "string",
-                    "enum": [
-                      "replace"
-                    ]
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/MoveOperation"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "op"
-                ],
-                "properties": {
-                  "op": {
-                    "type": "string",
-                    "enum": [
-                      "move"
-                    ]
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/CopyOperation"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "op"
-                ],
-                "properties": {
-                  "op": {
-                    "type": "string",
-                    "enum": [
-                      "copy"
-                    ]
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TestOperation"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "op"
-                ],
-                "properties": {
-                  "op": {
-                    "type": "string",
-                    "enum": [
-                      "test"
-                    ]
-                  }
-                }
-              }
-            ]
-          }
-        ],
-        "description": "JSON Patch single patch operation",
-        "discriminator": {
-          "propertyName": "op"
-        }
       },
       "PermissionResponse": {
         "type": "object",
@@ -5464,6 +5364,198 @@
             "type": "boolean"
           }
         }
+      },
+      "Property": {
+        "oneOf": [
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Property"
+            }
+          },
+          {
+            "$ref": "#/components/schemas/PropertyObject"
+          },
+          {}
+        ]
+      },
+      "PropertyConfidence": {
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/Confidence"
+        }
+      },
+      "PropertyObject": {
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/Property"
+        }
+      },
+      "PropertyPatchOperation": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "path",
+              "value",
+              "op"
+            ],
+            "properties": {
+              "confidence": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Confidence"
+                  }
+                ]
+              },
+              "op": {
+                "type": "string",
+                "enum": [
+                  "add"
+                ]
+              },
+              "path": {
+                "$ref": "#/components/schemas/PropertyPath"
+              },
+              "value": {
+                "$ref": "#/components/schemas/Property"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "path",
+              "op"
+            ],
+            "properties": {
+              "op": {
+                "type": "string",
+                "enum": [
+                  "remove"
+                ]
+              },
+              "path": {
+                "$ref": "#/components/schemas/PropertyPath"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "path",
+              "value",
+              "op"
+            ],
+            "properties": {
+              "confidence": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Confidence"
+                  }
+                ]
+              },
+              "op": {
+                "type": "string",
+                "enum": [
+                  "replace"
+                ]
+              },
+              "path": {
+                "$ref": "#/components/schemas/PropertyPath"
+              },
+              "value": {
+                "$ref": "#/components/schemas/Property"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "from",
+              "path",
+              "op"
+            ],
+            "properties": {
+              "confidence": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Confidence"
+                  }
+                ]
+              },
+              "from": {
+                "$ref": "#/components/schemas/PropertyPath"
+              },
+              "op": {
+                "type": "string",
+                "enum": [
+                  "move"
+                ]
+              },
+              "path": {
+                "$ref": "#/components/schemas/PropertyPath"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "from",
+              "path",
+              "op"
+            ],
+            "properties": {
+              "confidence": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Confidence"
+                  }
+                ]
+              },
+              "from": {
+                "$ref": "#/components/schemas/PropertyPath"
+              },
+              "op": {
+                "type": "string",
+                "enum": [
+                  "copy"
+                ]
+              },
+              "path": {
+                "$ref": "#/components/schemas/PropertyPath"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "path",
+              "value",
+              "op"
+            ],
+            "properties": {
+              "op": {
+                "type": "string",
+                "enum": [
+                  "test"
+                ]
+              },
+              "path": {
+                "$ref": "#/components/schemas/PropertyPath"
+              },
+              "value": {
+                "$ref": "#/components/schemas/Property"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "op"
+        }
+      },
+      "PropertyPath": {
+        "type": "string"
       },
       "PropertyTypeEditorSubject": {
         "oneOf": [
@@ -5615,10 +5707,9 @@
           "version",
           "versionedUrl",
           "ownedById",
-          "editionCreatedById",
-          "editionArchivedById",
           "title",
           "description",
+          "editionProvenance",
           "dataTypes",
           "propertyTypes",
           "embedding"
@@ -5805,6 +5896,26 @@
           }
         }
       },
+      "ProvidedEntityEditionProvenanceMetadata": {
+        "type": "object",
+        "properties": {
+          "__placeholder": {
+            "default": null,
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProvidedOntologyEditionProvenanceMetadata": {
+        "type": "object",
+        "properties": {
+          "__placeholder": {
+            "default": null,
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "QueryTemporalAxes": {
         "oneOf": [
           {
@@ -5985,36 +6096,6 @@
         ],
         "description": "Defines the two possible combinations of pinned/variable temporal axes that are used in queries\nthat return [`Subgraph`]s.\n\nThe [`VariableTemporalAxisUnresolved`] is optionally bounded, in the absence of provided\nbounds an inclusive bound at the timestamp at point of resolving is assumed.\n\n[`Subgraph`]: crate::subgraph::Subgraph"
       },
-      "RemoveOperation": {
-        "type": "object",
-        "description": "JSON Patch 'remove' operation representation",
-        "required": [
-          "path"
-        ],
-        "properties": {
-          "path": {
-            "type": "string",
-            "description": "JSON-Pointer value [RFC6901](https://tools.ietf.org/html/rfc6901) that references a location\nwithin the target document where the operation is performed."
-          }
-        }
-      },
-      "ReplaceOperation": {
-        "type": "object",
-        "description": "JSON Patch 'replace' operation representation",
-        "required": [
-          "path",
-          "value"
-        ],
-        "properties": {
-          "path": {
-            "type": "string",
-            "description": "JSON-Pointer value [RFC6901](https://tools.ietf.org/html/rfc6901) that references a location\nwithin the target document where the operation is performed."
-          },
-          "value": {
-            "description": "Value to replace with."
-          }
-        }
-      },
       "RightBoundedTemporalInterval": {
         "type": "object",
         "required": [
@@ -6147,23 +6228,6 @@
           "propertyName": "kind"
         }
       },
-      "TestOperation": {
-        "type": "object",
-        "description": "JSON Patch 'test' operation representation",
-        "required": [
-          "path",
-          "value"
-        ],
-        "properties": {
-          "path": {
-            "type": "string",
-            "description": "JSON-Pointer value [RFC6901](https://tools.ietf.org/html/rfc6901) that references a location\nwithin the target document where the operation is performed."
-          },
-          "value": {
-            "description": "Value to test against."
-          }
-        }
-      },
       "Timestamp": {
         "type": "string",
         "format": "date-time"
@@ -6183,6 +6247,9 @@
         "properties": {
           "dataTypeId": {
             "$ref": "#/components/schemas/VersionedUrl"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
           }
         },
         "additionalProperties": false
@@ -6195,6 +6262,9 @@
         "properties": {
           "entityTypeId": {
             "$ref": "#/components/schemas/VersionedUrl"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
           }
         },
         "additionalProperties": false
@@ -6207,6 +6277,9 @@
         "properties": {
           "propertyTypeId": {
             "$ref": "#/components/schemas/VersionedUrl"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
           }
         },
         "additionalProperties": false
@@ -6268,6 +6341,9 @@
           "relationships"
         ],
         "properties": {
+          "provenance": {
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
+          },
           "relationships": {
             "type": "array",
             "items": {
@@ -6358,6 +6434,9 @@
             ],
             "nullable": true
           },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
+          },
           "relationships": {
             "type": "array",
             "items": {
@@ -6405,6 +6484,9 @@
           "relationships"
         ],
         "properties": {
+          "provenance": {
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
+          },
           "relationships": {
             "type": "array",
             "items": {
@@ -6420,14 +6502,35 @@
         },
         "additionalProperties": false
       },
+      "ValidateEntityComponents": {
+        "type": "object",
+        "properties": {
+          "linkData": {
+            "type": "boolean"
+          },
+          "numItems": {
+            "type": "boolean"
+          },
+          "requiredProperties": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "ValidateEntityParams": {
         "type": "object",
         "required": [
           "entityTypes",
-          "properties",
-          "profile"
+          "properties"
         ],
         "properties": {
+          "components": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ValidateEntityComponents"
+              }
+            ]
+          },
           "entityTypes": {
             "$ref": "#/components/schemas/EntityValidationType"
           },
@@ -6438,21 +6541,18 @@
               }
             ]
           },
-          "profile": {
-            "$ref": "#/components/schemas/ValidationProfile"
-          },
           "properties": {
-            "$ref": "#/components/schemas/EntityProperties"
+            "$ref": "#/components/schemas/PropertyObject"
+          },
+          "propertyConfidence": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PropertyConfidence"
+              }
+            ]
           }
         },
         "additionalProperties": false
-      },
-      "ValidationProfile": {
-        "type": "string",
-        "enum": [
-          "full",
-          "draft"
-        ]
       },
       "VersionedUrl": {
         "type": "string",

@@ -3,7 +3,7 @@
   "version": "0.0.0-private",
   "private": true,
   "description": "A TypeScript 'AI' worker for HASH",
-  "license": "AGPL-3.0",
+  "license": "HASH License – see LICENSE.md",
   "type": "module",
   "exports": {
     ".": "./src/main.ts",
@@ -31,6 +31,7 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
+    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org hashintel --project hash-temporal-worker-ai ./dist && sentry-cli sourcemaps upload --org hashintel --project hash-temporal-worker-ai ./dist",
     "start": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/main.ts",
     "test:unit": "vitest --run"
   },
@@ -42,6 +43,7 @@
     "@local/hash-subgraph": "0.0.0-private",
     "@local/internal-api-client": "0.0.0-private",
     "@local/status": "0.0.0-private",
+    "@sentry/node": "7.109.0",
     "@temporalio/activity": "1.8.1",
     "@temporalio/common": "1.8.1",
     "@temporalio/worker": "1.8.1",
@@ -49,12 +51,17 @@
     "axios": "1.6.0",
     "dedent": "0.7.0",
     "dotenv-flow": "3.2.0",
+    "e2b": "0.13.1",
     "is-docker": "2.2.1",
+    "lodash.isequal": "4.5.0",
     "lodash.ismatch": "4.4.0",
+    "lodash.pickby": "4.6.0",
+    "mime-types": "2.1.35",
     "officeparser": "4.0.6",
     "openai": "4.20.0",
     "openai-chat-tokens": "0.2.8",
     "puppeteer": "22.3.0",
+    "sanitize-html": "2.13.0",
     "tsx": "3.13.0",
     "typescript": "5.1.6"
   },
@@ -62,11 +69,17 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
+    "@sentry/cli": "2.31.0",
     "@types/dedent": "0.7.0",
     "@types/dotenv-flow": "3.2.0",
+    "@types/lodash.isequal": "4.5.8",
     "@types/lodash.ismatch": "4.4.9",
-    "@vitest/coverage-istanbul": "1.4.0",
+    "@types/lodash.pickby": "4.6.0",
+    "@types/mime-types": "2.1.1",
+    "@types/node": "20.12.3",
+    "@types/sanitize-html": "2.11.0",
+    "@vitest/coverage-istanbul": "1.5.0",
     "eslint": "8.57.0",
-    "vitest": "1.4.0"
+    "vitest": "1.5.0"
   }
 }

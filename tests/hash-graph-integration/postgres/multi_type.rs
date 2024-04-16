@@ -2,7 +2,10 @@ use std::str::FromStr;
 
 use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::entity::{Entity, EntityProperties};
+use graph_types::knowledge::{
+    entity::{Entity, ProvidedEntityEditionProvenanceMetadata},
+    PropertyConfidence, PropertyObject,
+};
 use pretty_assertions::assert_eq;
 use type_system::url::VersionedUrl;
 
@@ -44,7 +47,7 @@ fn org_entity_type_id() -> VersionedUrl {
         .expect("couldn't construct entity type id")
 }
 
-fn alice() -> EntityProperties {
+fn alice() -> PropertyObject {
     serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity")
 }
 
@@ -54,7 +57,14 @@ async fn empty_entity() {
     let mut api = seed(&mut database).await;
 
     let _ = api
-        .create_entity(EntityProperties::empty(), vec![], None, false)
+        .create_entity(
+            PropertyObject::empty(),
+            vec![],
+            None,
+            false,
+            None,
+            PropertyConfidence::default(),
+        )
         .await
         .expect_err("created entity with no types");
 }
@@ -65,7 +75,14 @@ async fn initial_person() {
     let mut api = seed(&mut database).await;
 
     let entity_metadata = api
-        .create_entity(alice(), vec![person_entity_type_id()], None, false)
+        .create_entity(
+            alice(),
+            vec![person_entity_type_id()],
+            None,
+            false,
+            None,
+            PropertyConfidence::default(),
+        )
         .await
         .expect("could not create entity");
 
@@ -91,6 +108,8 @@ async fn initial_person() {
             properties: vec![],
             draft: None,
             archived: None,
+            confidence: None,
+            provenance: ProvidedEntityEditionProvenanceMetadata::default(),
         })
         .await
         .expect("could not create entity");
@@ -129,6 +148,8 @@ async fn create_multi() {
             vec![person_entity_type_id(), org_entity_type_id()],
             None,
             false,
+            None,
+            PropertyConfidence::default(),
         )
         .await
         .expect("could not create entity");
@@ -163,6 +184,8 @@ async fn create_multi() {
             properties: vec![],
             draft: None,
             archived: None,
+            confidence: None,
+            provenance: ProvidedEntityEditionProvenanceMetadata::default(),
         })
         .await
         .expect("could not create entity");

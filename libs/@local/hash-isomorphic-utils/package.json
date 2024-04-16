@@ -33,6 +33,7 @@
     "@sentry/browser": "7.93.0",
     "apollo-server-express": "3.9.0",
     "fractional-indexing": "2.1.0",
+    "id128": "1.6.6",
     "immer": "9.0.6",
     "jsonschema": "1.4.0",
     "lodash": "4.17.21",
@@ -58,15 +59,15 @@
     "@local/tsconfig": "0.0.0-private",
     "@temporalio/workflow": "1.8.1",
     "@types/lodash": "4.14.188",
-    "@types/node": "18.15.13",
+    "@types/node": "20.12.3",
     "@types/pluralize": "0.0.33",
-    "@vitest/coverage-istanbul": "1.4.0",
+    "@vitest/coverage-istanbul": "1.5.0",
     "eslint": "8.57.0",
     "graphql": "16.8.1",
     "next": "13.5.5",
     "react": "18.2.0",
     "rimraf": "5.0.5",
     "typescript": "5.1.6",
-    "vitest": "1.4.0"
+    "vitest": "1.5.0"
   }
 }

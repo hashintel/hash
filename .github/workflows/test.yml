@@ -168,25 +168,12 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@b23c83949ccaee05b69f67e606215c7a9789fa54 # v2.31.3
+        uses: taiki-e/install-action@99774fec7fd4f75144bd0134a24a992297768308 # v2.32.17
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
-      - name: Install WASM tools
-        if: always()
-        uses: taiki-e/install-action@b23c83949ccaee05b69f67e606215c7a9789fa54 # v2.31.3
-        with:
-          tool: wasm-pack@0.12.1
-
-      - name: Install yarn dependencies
-        uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
-        env:
-          HUSKY: 0
-        with:
-          max_attempts: 3
-          timeout_minutes: 10
-          shell: bash
-          command: yarn install --frozen-lockfile --prefer-offline
+      - name: Warm up repository
+        uses: ./.github/actions/warm-up-repo
 
       - name: Cache Rust dependencies
         if: always() && steps.tests.outputs.has-rust == 'true'
@@ -209,7 +196,7 @@ jobs:
       - name: Show disk usage
         run: df -h
 
-      - uses: codecov/codecov-action@c16abc29c95fcf9174b58eb7e1abf4c866893bc8 # v4.1.1
+      - uses: codecov/codecov-action@84508663e988701840491b86de86b666e8a86bed # v4.3.0
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
           flags: ${{ env.TRIMMED_PACKAGE_NAME }}
@@ -298,25 +285,12 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@b23c83949ccaee05b69f67e606215c7a9789fa54 # v2.31.3
+        uses: taiki-e/install-action@99774fec7fd4f75144bd0134a24a992297768308 # v2.32.17
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
-      - name: Install WASM tools
-        if: always()
-        uses: taiki-e/install-action@b23c83949ccaee05b69f67e606215c7a9789fa54 # v2.31.3
-        with:
-          tool: wasm-pack@0.12.1
-
-      - name: Install yarn dependencies
-        uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
-        env:
-          HUSKY: 0
-        with:
-          max_attempts: 3
-          timeout_minutes: 10
-          shell: bash
-          command: yarn install --frozen-lockfile --prefer-offline
+      - name: Warm up repository
+        uses: ./.github/actions/warm-up-repo
 
       - name: Install Protobuf
         if: always() && steps.tests.outputs.has-rust == 'true'
@@ -375,7 +349,7 @@ jobs:
       - name: Show disk usage
         run: df -h
 
-      - uses: codecov/codecov-action@c16abc29c95fcf9174b58eb7e1abf4c866893bc8 # v4.1.1
+      - uses: codecov/codecov-action@84508663e988701840491b86de86b666e8a86bed # v4.3.0
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
           flags: ${{ env.TRIMMED_PACKAGE_NAME }}
@@ -440,25 +414,12 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@b23c83949ccaee05b69f67e606215c7a9789fa54 # v2.31.3
+        uses: taiki-e/install-action@99774fec7fd4f75144bd0134a24a992297768308 # v2.32.17
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
-      - name: Install WASM tools
-        if: always()
-        uses: taiki-e/install-action@b23c83949ccaee05b69f67e606215c7a9789fa54 # v2.31.3
-        with:
-          tool: wasm-pack@0.12.1
-
-      - name: Install yarn dependencies
-        uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
-        env:
-          HUSKY: 0
-        with:
-          max_attempts: 3
-          timeout_minutes: 10
-          shell: bash
-          command: yarn install --frozen-lockfile --prefer-offline
+      - name: Warm up repository
+        uses: ./.github/actions/warm-up-repo
 
       - name: Cache Rust dependencies
         if: always() && steps.tests.outputs.has-rust == 'true'
@@ -583,7 +544,7 @@ jobs:
 
       - name: Install tools
         if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'pull_request' || github.event_name == 'merge_group'
-        uses: taiki-e/install-action@b23c83949ccaee05b69f67e606215c7a9789fa54 # v2.31.3
+        uses: taiki-e/install-action@99774fec7fd4f75144bd0134a24a992297768308 # v2.32.17
         with:
           tool: cargo-semver-checks
 

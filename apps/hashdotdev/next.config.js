@@ -190,12 +190,12 @@ const nextConfig = {
        */
       {
         source: "/license",
-        destination: "https://hash.ai/legal/developers/license",
+        destination: "https://hash.ai/legal/developers/license-open",
         permanent: true,
       },
       {
         source: "/licence",
-        destination: "https://hash.ai/legal/developers/license",
+        destination: "https://hash.ai/legal/developers/license-open",
         permanent: true,
       },
       /**

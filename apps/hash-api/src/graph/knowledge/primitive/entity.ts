@@ -9,11 +9,9 @@ import type {
   Filter,
   GraphResolveDepths,
   ModifyRelationshipOperation,
+  PropertyConfidence,
+  ProvidedEntityEditionProvenanceMetadata,
 } from "@local/hash-graph-client";
-import type {
-  CreateEmbeddingsParams,
-  CreateEmbeddingsReturn,
-} from "@local/hash-isomorphic-utils/ai-inference-types";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -59,8 +57,9 @@ import type {
 } from "../../../graphql/api-types.gen";
 import { isTestEnv } from "../../../lib/env-config";
 import type { TemporalClient } from "../../../temporal";
-import { genId, linkedTreeFlatten } from "../../../util";
+import { linkedTreeFlatten } from "../../../util";
 import type { ImpureGraphFunction } from "../../context-types";
+import { rewriteSemanticFilter } from "../../shared/rewrite-semantic-filter";
 import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 import { afterUpdateEntityHooks } from "./entity/after-update-entity-hooks";
 import { beforeCreateEntityHooks } from "./entity/before-create-entity-hooks";
@@ -76,6 +75,9 @@ export type CreateEntityParams = {
   entityUuid?: EntityUuid;
   draft?: boolean;
   relationships: EntityRelationAndSubject[];
+  confidence?: number;
+  propertyConfidence?: PropertyConfidence;
+  provenance?: ProvidedEntityEditionProvenanceMetadata;
 };
 
 /** @todo: potentially directly export this from the subgraph package */
@@ -100,6 +102,7 @@ export const createEntity: ImpureGraphFunction<
     outgoingLinks,
     entityUuid: overrideEntityUuid,
     draft = false,
+    provenance,
   } = params;
 
   const { graphApi } = context;
@@ -127,6 +130,9 @@ export const createEntity: ImpureGraphFunction<
     entityUuid: overrideEntityUuid,
     draft,
     relationships: params.relationships,
+    confidence: params.confidence,
+    propertyConfidence: params.propertyConfidence,
+    provenance,
   });
 
   const entity = {
@@ -166,41 +172,7 @@ export const getEntities: ImpureGraphFunction<
   },
   Promise<Subgraph<EntityRootType>>
 > = async ({ graphApi }, { actorId }, { query, temporalClient }) => {
-  /**
-   * Convert any strings provided under a top-level 'cosineDistance' filter into embeddings
-   * This doesn't deal with 'cosineDistance' inside a nested filter (e.g. 'any'), so for now
-   * this is only good for single-string inputs.
-   */
-  for (const [filterName, expression] of Object.entries(query.filter)) {
-    if (filterName === "cosineDistance") {
-      if (
-        Array.isArray(expression) &&
-        expression[1] &&
-        "parameter" in expression[1] &&
-        typeof expression[1].parameter === "string"
-      ) {
-        if (!temporalClient) {
-          throw new Error(
-            "Cannot query cosine distance without temporal client",
-          );
-        }
-
-        const stringInputValue = expression[1].parameter;
-        const { embeddings } = await temporalClient.workflow.execute<
-          (params: CreateEmbeddingsParams) => Promise<CreateEmbeddingsReturn>
-        >("createEmbeddings", {
-          taskQueue: "ai",
-          args: [
-            {
-              input: [stringInputValue],
-            },
-          ],
-          workflowId: genId(),
-        });
-        expression[1].parameter = embeddings[0];
-      }
-    }
-  }
+  await rewriteSemanticFilter(query.filter, temporalClient);
 
   const isRequesterAdmin = isTestEnv
     ? false
@@ -321,7 +293,9 @@ export const getLatestEntityById: ImpureGraphFunction<
   ).then(getRoots);
 
   if (unexpectedEntities.length > 0) {
-    const errorMessage = `Latest entity with entityId ${entityId} returned more than one result with ids: ${unexpectedEntities.map((unexpectedEntity) => unexpectedEntity.metadata.recordId.entityId).join(", ")}`;
+    const errorMessage = `Latest entity with entityId ${entityId} returned more than one result with ids: ${unexpectedEntities
+      .map((unexpectedEntity) => unexpectedEntity.metadata.recordId.entityId)
+      .join(", ")}`;
     throw new Error(errorMessage);
   }
 
@@ -421,6 +395,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
     linkedEntities?: LinkedEntityDefinition[];
     relationships: EntityRelationAndSubject[];
     draft?: boolean;
+    provenance?: ProvidedEntityEditionProvenanceMetadata;
   },
   Promise<Entity>,
   false,
@@ -433,6 +408,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
     linkedEntities,
     relationships,
     draft,
+    provenance,
   } = params;
 
   const entitiesInTree = linkedTreeFlatten<
@@ -464,7 +440,9 @@ export const createEntityWithLinks: ImpureGraphFunction<
         (!definition.entityProperties || !definition.entityTypeId)
       ) {
         throw new Error(
-          `One of existingEntityId or (entityProperties && entityTypeId) must be provided in linked entity definition: ${JSON.stringify(definition)}`,
+          `One of existingEntityId or (entityProperties && entityTypeId) must be provided in linked entity definition: ${JSON.stringify(
+            definition,
+          )}`,
         );
       }
 
@@ -484,6 +462,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
             ownedById,
             relationships,
             draft,
+            provenance,
           });
 
       return {
@@ -549,12 +528,13 @@ export const updateEntity: ImpureGraphFunction<
     entityTypeId?: VersionedUrl;
     properties: EntityPropertiesObject;
     draft?: boolean;
+    provenance?: ProvidedEntityEditionProvenanceMetadata;
   },
   Promise<Entity>,
   false,
   true
 > = async (context, authentication, params) => {
-  const { entity, properties, entityTypeId } = params;
+  const { entity, properties, entityTypeId, provenance } = params;
 
   for (const beforeUpdateHook of beforeUpdateEntityHooks) {
     if (beforeUpdateHook.entityTypeId === entity.metadata.entityTypeId) {
@@ -581,6 +561,7 @@ export const updateEntity: ImpureGraphFunction<
         value: params.properties,
       },
     ],
+    provenance,
   });
 
   for (const afterUpdateHook of afterUpdateEntityHooks) {
@@ -641,12 +622,13 @@ export const updateEntityProperties: ImpureGraphFunction<
       propertyTypeBaseUrl: BaseUrl;
       value: PropertyValue | undefined;
     }[];
+    provenance?: ProvidedEntityEditionProvenanceMetadata;
   },
   Promise<Entity>,
   false,
   true
 > = async (ctx, authentication, params) => {
-  const { entity, updatedProperties } = params;
+  const { entity, updatedProperties, provenance } = params;
 
   return await updateEntity(ctx, authentication, {
     entity,
@@ -660,6 +642,7 @@ export const updateEntityProperties: ImpureGraphFunction<
           : prev,
       entity.properties,
     ),
+    provenance,
   });
 };
 
@@ -676,16 +659,18 @@ export const updateEntityProperty: ImpureGraphFunction<
     entity: Entity;
     propertyTypeBaseUrl: BaseUrl;
     value: PropertyValue | undefined;
+    provenance?: ProvidedEntityEditionProvenanceMetadata;
   },
   Promise<Entity>,
   false,
   true
 > = async (ctx, authentication, params) => {
-  const { entity, propertyTypeBaseUrl, value } = params;
+  const { entity, propertyTypeBaseUrl, value, provenance } = params;
 
   return await updateEntityProperties(ctx, authentication, {
     entity,
     updatedProperties: [{ propertyTypeBaseUrl, value }],
+    provenance,
   });
 };
 

@@ -11,6 +11,8 @@ import type {
 import type {
   AccountId,
   EntityRelationAndSubject,
+  EntityTypeRelationAndSubject,
+  PropertyTypeRelationAndSubject,
   QueryTemporalAxesUnresolved,
   Subgraph,
   SubgraphRootType,
@@ -33,6 +35,18 @@ export const zeroedGraphResolveDepths: GraphResolveDepths = {
   isOfType: { outgoing: 0 },
   hasLeftEntity: { incoming: 0, outgoing: 0 },
   hasRightEntity: { incoming: 0, outgoing: 0 },
+};
+
+export const fullOntologyResolveDepths: Omit<
+  GraphResolveDepths,
+  "hasLeftEntity" | "hasRightEntity"
+> = {
+  constrainsValuesOn: { outgoing: 255 },
+  constrainsPropertiesOn: { outgoing: 255 },
+  constrainsLinksOn: { outgoing: 1 },
+  constrainsLinkDestinationsOn: { outgoing: 1 },
+  inheritsFrom: { outgoing: 255 },
+  isOfType: { outgoing: 1 },
 };
 
 /**
@@ -256,3 +270,43 @@ export const createOrgMembershipAuthorizationRelationships = ({
     },
   },
 ];
+
+export const defaultPropertyTypeAuthorizationRelationships: PropertyTypeRelationAndSubject[] =
+  [
+    {
+      relation: "setting",
+      subject: {
+        kind: "setting",
+        subjectId: "updateFromWeb",
+      },
+    },
+    {
+      relation: "viewer",
+      subject: {
+        kind: "public",
+      },
+    },
+  ];
+
+export const defaultEntityTypeAuthorizationRelationships: EntityTypeRelationAndSubject[] =
+  [
+    {
+      relation: "setting",
+      subject: {
+        kind: "setting",
+        subjectId: "updateFromWeb",
+      },
+    },
+    {
+      relation: "viewer",
+      subject: {
+        kind: "public",
+      },
+    },
+    {
+      relation: "instantiator",
+      subject: {
+        kind: "public",
+      },
+    },
+  ];

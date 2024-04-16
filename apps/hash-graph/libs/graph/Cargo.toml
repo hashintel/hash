@@ -25,14 +25,13 @@ serde = { workspace = true, features = ["derive"] }
 utoipa = { workspace = true, features = ["uuid"], optional = true }
 tracing = { workspace = true }
 
-async-trait = "0.1.79"
+async-trait = "0.1.80"
 async-scoped = { version = "0.9.0", features = ["use-tokio"] }
 bb8-postgres = "0.8.1"
 bytes = { workspace = true }
 clap = { workspace = true, features = ["derive", "env"], optional = true }
 derivative = "2.2.0"
 dotenv-flow = "0.16.2"
-json-patch = { version = "1.2.0", default-features = false }
 futures = { workspace = true }
 mime = "0.3.17"
 refinery = { version = "0.8", features = ["tokio-postgres"] }
@@ -56,4 +55,4 @@ tokio = { workspace = true, features = ["macros"] }
 
 [features]
 clap = ["dep:clap"]
-utoipa = ["dep:utoipa", "graph-types/utoipa", "temporal-versioning/utoipa", "authorization/utoipa", "json-patch/utoipa"]
+utoipa = ["dep:utoipa", "graph-types/utoipa", "temporal-versioning/utoipa", "authorization/utoipa"]
