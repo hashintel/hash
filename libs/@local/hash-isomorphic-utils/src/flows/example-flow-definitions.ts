@@ -6,6 +6,77 @@ import type {
 } from "./action-definitions";
 import type { FlowDefinition } from "./types";
 
+export const researchTaskFlowDefinition: FlowDefinition = {
+  name: "Research Task",
+  flowDefinitionId: "research-task" as EntityUuid,
+  trigger: {
+    triggerDefinitionId: "userTrigger",
+    kind: "trigger",
+    outputs: [
+      {
+        payloadKind: "Text",
+        name: "prompt" as const,
+        array: false,
+        required: true,
+      },
+      {
+        payloadKind: "VersionedUrl",
+        name: "entityTypeIds",
+        array: true,
+        required: true,
+      },
+    ],
+  },
+  steps: [
+    {
+      stepId: "1",
+      kind: "action",
+      actionDefinitionId: "researchEntities",
+      inputSources: [
+        {
+          inputName: "prompt" satisfies InputNameForAction<"researchEntities">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "prompt",
+        },
+        {
+          inputName:
+            "entityTypeIds" satisfies InputNameForAction<"researchEntities">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "entityTypeIds",
+        },
+      ],
+    },
+    {
+      stepId: "2",
+      kind: "action",
+      actionDefinitionId: "persistEntities",
+      inputSources: [
+        {
+          inputName:
+            "proposedEntities" satisfies InputNameForAction<"persistEntities">,
+          kind: "step-output",
+          sourceStepId: "1",
+          sourceStepOutputName:
+            "proposedEntities" satisfies OutputNameForAction<"researchEntities">,
+        },
+      ],
+    },
+  ],
+  outputs: [
+    {
+      stepId: "2",
+      stepOutputName:
+        "persistedEntities" satisfies OutputNameForAction<"persistEntities">,
+      name: "persistedEntities" as const,
+      payloadKind: "PersistedEntities",
+      array: false,
+      required: true,
+    },
+  ],
+};
+
 // export const researchTaskFlowDefinition: FlowDefinition = {
 //   name: "Research Task",
 //   flowDefinitionId: "research-task" as EntityUuid,
