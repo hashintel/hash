@@ -42,8 +42,9 @@ const log = (message: string) => {
 const doesFlowStepHaveSatisfiedDependencies = (params: {
   step: FlowStep;
   flowDefinition: FlowDefinition;
+  processedStepIds: string[];
 }) => {
-  const { step, flowDefinition } = params;
+  const { step, flowDefinition, processedStepIds } = params;
 
   if (step.kind === "action") {
     /**
@@ -60,9 +61,60 @@ const doesFlowStepHaveSatisfiedDependencies = (params: {
       flowDefinition,
     });
 
-    return inputSources.every((inputSource) =>
-      step.inputs?.some(({ inputName }) => inputSource.inputName === inputName),
-    );
+    const actionDefinition = actionDefinitions[step.actionDefinitionId];
+
+    return inputSources.every((inputSource) => {
+      const inputDefinition = actionDefinition.inputs.find(
+        ({ name }) => name === inputSource.inputName,
+      );
+
+      if (!inputDefinition) {
+        throw new Error(
+          `Definition for inputName '${inputSource.inputName}' in step ${step.stepId} not found in action definition ${step.actionDefinitionId}`,
+        );
+      }
+
+      if (
+        step.inputs?.some((input) => input.inputName === inputSource.inputName)
+      ) {
+        /**
+         * If the input has been provided, the input has been satisfied.
+         */
+        return true;
+      } else if (inputDefinition.required) {
+        /**
+         * If the input is required, and it hasn't been provided the step
+         * has not satisfied its dependencies.
+         */
+        return false;
+      } else if (
+        inputSource.kind === "step-output" &&
+        inputSource.sourceStepId !== "trigger"
+      ) {
+        /**
+         * If the input is optional, but depends on a runnable step (i.e. not
+         * the trigger), the step only has satisfied its dependencies if the
+         * step it depends on has been processed.
+         *
+         * This ensures that the step is processed when all possible inputs
+         * are provided in the flow.
+         */
+        return processedStepIds.includes(inputSource.sourceStepId);
+      } else if (inputSource.kind === "parallel-group-input") {
+        /**
+         * If the input is optional, but has a parallel group input as it's source
+         * the step should only be processed once this input has been provided.
+         *
+         * Otherwise the parallel group won't run, and produce any outputs.
+         */
+        return false;
+      } else {
+        /**
+         * Otherwise, we consider the input satisfied because it is optional.
+         */
+        return true;
+      }
+    });
   } else {
     /**
      * A parallel group step has satisfied dependencies if the input it
@@ -279,7 +331,11 @@ export const runFlowWorkflow = async (
   };
 
   const stepWithSatisfiedDependencies = getAllStepsInFlow(flow).filter((step) =>
-    doesFlowStepHaveSatisfiedDependencies({ step, flowDefinition }),
+    doesFlowStepHaveSatisfiedDependencies({
+      step,
+      flowDefinition,
+      processedStepIds,
+    }),
   );
 
   if (stepWithSatisfiedDependencies.length === 0) {
@@ -295,7 +351,11 @@ export const runFlowWorkflow = async (
   const processSteps = async () => {
     const stepsToProcess = getAllStepsInFlow(flow).filter(
       (step) =>
-        doesFlowStepHaveSatisfiedDependencies({ step, flowDefinition }) &&
+        doesFlowStepHaveSatisfiedDependencies({
+          step,
+          flowDefinition,
+          processedStepIds,
+        }) &&
         !processedStepIds.some(
           (processedStepId) => processedStepId === step.stepId,
         ),
