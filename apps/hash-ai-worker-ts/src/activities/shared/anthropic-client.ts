@@ -14,7 +14,7 @@ export const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-type AnthropicToolDefinition = {
+export type AnthropicToolDefinition = {
   name: string;
   description: string;
   input_schema: JSONSchema;
@@ -41,7 +41,7 @@ export const isAnthropicMessageModel = (
  * to account for the new `tools` parameter.
  */
 export type AnthropicMessagesCreateParams = {
-  tools: AnthropicToolDefinition[];
+  tools?: AnthropicToolDefinition[];
   model: AnthropicMessageModel;
 } & Omit<MessageCreateParamsNonStreaming, "model">;
 
@@ -52,8 +52,20 @@ type ToolCallContent = {
   input: object;
 };
 
-export type AnthropicMessagesCreateResponse = Omit<Message, "content"> & {
-  content: (Message["content"][number] & ToolCallContent)[];
+type AnthropicMessagesCreateResponseContent =
+  | Message["content"][number]
+  | ToolCallContent;
+
+export const isAnthropicContentToolCallContent = (
+  content: AnthropicMessagesCreateResponseContent,
+): content is ToolCallContent => content.type === "tool_use";
+
+export type AnthropicMessagesCreateResponse = Omit<
+  Message,
+  "content" | "stop_reason"
+> & {
+  stop_reason: Message["stop_reason"] | "tool_use";
+  content: AnthropicMessagesCreateResponseContent[];
 };
 
 export const createAnthropicMessagesWithTools = async (
