@@ -4,9 +4,12 @@ import type OpenAI from "openai";
 import type { JSONSchema } from "openai/lib/jsonschema";
 import type {
   ChatCompletion as OpenAiChatCompletion,
+  ChatCompletionCreateParamsNonStreaming,
   FunctionParameters as OpenAiFunctionParameters,
 } from "openai/resources";
+import { promptTokensEstimate } from "openai-chat-tokens";
 
+import { logger } from "../../shared/logger";
 import type {
   AnthropicMessagesCreateParams,
   AnthropicToolDefinition,
@@ -27,7 +30,7 @@ import type {
   ParsedToolCall,
 } from "./get-llm-response/types";
 import { isLlmParamsAnthropicLlmParams } from "./get-llm-response/types";
-import { openai } from "./openai-client";
+import { modelToContextWindow, openai } from "./openai-client";
 
 type LlmToolDefinition = {
   name: string;
@@ -220,15 +223,63 @@ const getAnthropicResponse = async (
 const getOpenAiResponse = async (
   params: OpenAiLlmParams,
 ): Promise<LlmResponse<OpenAiLlmParams>> => {
-  const { tools, retryCount = 0 } = params;
+  const { tools, trimMessageAtIndex, retryCount = 0 } = params;
 
   const openAiTools = tools?.map(mapLlmToolDefinitionToOpenAiToolDefinition);
 
-  const openAiResponse = await openai.chat.completions.create({
+  const completionPayload: ChatCompletionCreateParamsNonStreaming = {
     ...params,
     tools: openAiTools,
     stream: false,
-  });
+  };
+
+  /**
+   * @todo: consider removing the message trimming functionality,
+   * in favor of forcing the caller to chunk calls to the API
+   * according to the model's context window size.
+   */
+  if (typeof trimMessageAtIndex === "number") {
+    const modelContextWindow = modelToContextWindow[params.model];
+
+    const completionPayloadOverhead = 4_096;
+
+    let estimatedPromptTokens: number | undefined;
+
+    let excessTokens: number;
+    do {
+      estimatedPromptTokens = promptTokensEstimate({
+        messages: params.messages,
+        functions: openAiTools?.map((tool) => tool.function),
+      });
+
+      logger.info(`Estimated prompt tokens: ${estimatedPromptTokens}`);
+
+      excessTokens =
+        estimatedPromptTokens + completionPayloadOverhead - modelContextWindow;
+
+      if (excessTokens < 10) {
+        break;
+      }
+
+      logger.info(
+        `Estimated prompt tokens (${estimatedPromptTokens}) + completion token overhead (${completionPayloadOverhead}) exceeds model context window (${modelContextWindow}), trimming original user text input by ${
+          excessTokens / 4
+        } characters.`,
+      );
+
+      const firstUserMessageContent =
+        completionPayload.messages[trimMessageAtIndex]!.content;
+
+      completionPayload.messages[trimMessageAtIndex]!.content =
+        firstUserMessageContent?.slice(
+          0,
+          firstUserMessageContent.length - excessTokens * 4,
+        ) ?? "";
+    } while (excessTokens > 9);
+  }
+
+  const openAiResponse =
+    await openai.chat.completions.create(completionPayload);
 
   const retry = async (retryParams: {
     retryMessages: OpenAiLlmParams["messages"];
@@ -238,6 +289,10 @@ const getOpenAiResponse = async (
         status: "exceeded-maximum-retries",
       };
     }
+
+    logger.debug(
+      `Retrying OpenAi call with the following retry messages: ${JSON.stringify(retryParams.retryMessages, null, 2)}`,
+    );
 
     return getOpenAiResponse({
       ...params,
@@ -295,10 +350,10 @@ const getOpenAiResponse = async (
     } catch (error) {
       retryMessages.push({
         role: "tool",
+        tool_call_id: id,
         content: `Your JSON arguments could not be parsed – the parsing function errored: ${
           (error as Error).message
         }. Please try again.`,
-        tool_call_id: id,
       });
 
       continue;

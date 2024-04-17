@@ -4,7 +4,7 @@ import type {
   ChatCompletionCreateParams as OpenAiChatCompletionCreateParams,
 } from "openai/resources";
 
-import type { PermittedOpenAiModel } from "../openai";
+import type { PermittedOpenAiModel } from "../openai-client";
 import type {
   AnthropicMessageModel,
   AnthropicMessagesCreateParams,
@@ -31,6 +31,7 @@ export type AnthropicLlmParams = CommonLlmParams & {
 
 export type OpenAiLlmParams = CommonLlmParams & {
   model: PermittedOpenAiModel;
+  trimMessageAtIndex?: number;
 } & Omit<OpenAiChatCompletionCreateParams, "tools">;
 
 export type LlmParams = AnthropicLlmParams | OpenAiLlmParams;

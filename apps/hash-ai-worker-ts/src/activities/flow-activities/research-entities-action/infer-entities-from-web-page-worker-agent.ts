@@ -22,9 +22,10 @@ import type {
 import { logger } from "../../../shared/logger";
 import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity";
 import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types";
-import type { PermittedOpenAiModel } from "../../shared/openai";
 import { getOpenAiResponse } from "../../shared/openai";
+import type { PermittedOpenAiModel } from "../../shared/openai-client";
 import { stringify } from "../../shared/stringify";
+// import { getWebPageActivity } from "../../get-web-page-activity";
 import { inferEntitiesFromContentAction } from "../infer-entities-from-content-action";
 import { getWebPageInnerHtml } from "./infer-entities-from-web-page-worker-agent/get-web-page-inner-html";
 import type {

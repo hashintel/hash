@@ -6,28 +6,13 @@ import type OpenAI from "openai";
 import { promptTokensEstimate } from "openai-chat-tokens";
 
 import { logger } from "../../shared/logger";
-import { openai } from "./openai-client";
+import type { PermittedOpenAiModel } from "./openai-client";
+import {
+  isPermittedModel,
+  modelToContextWindow,
+  openai,
+} from "./openai-client";
 import { stringify } from "./stringify";
-
-export type PermittedOpenAiModel =
-  | "gpt-3.5-turbo-1106"
-  | "gpt-4-1106-preview"
-  | "gpt-4-0125-preview"
-  | "gpt-4-turbo"
-  | "gpt-4";
-
-const modelToContextWindow: Record<PermittedOpenAiModel, number> = {
-  "gpt-3.5-turbo-1106": 16_385,
-  "gpt-4-1106-preview": 128_000,
-  "gpt-4-0125-preview": 128_000,
-  "gpt-4-turbo": 128_000,
-  "gpt-4": 8_192,
-};
-
-const isPermittedModel = (
-  model: OpenAI.ChatCompletionCreateParams["model"],
-): model is PermittedOpenAiModel =>
-  Object.keys(modelToContextWindow).includes(model);
 
 export const getOpenAiResponse = async (
   openAiPayload: OpenAI.ChatCompletionCreateParams,

@@ -12,7 +12,7 @@ import type {
   WebPage,
 } from "./infer-entities/inference-types";
 import { proposeEntities } from "./infer-entities/propose-entities";
-import type { PermittedOpenAiModel } from "./shared/openai";
+import type { PermittedOpenAiModel } from "./shared/openai-client";
 import { stringify } from "./shared/stringify";
 
 export const inferEntitiesFromWebPageActivity = async (params: {
