@@ -73,7 +73,7 @@ const mapOpenAiFinishReasonToLlmStopReason = (
     case "content_filter":
       return "content_filter";
     default:
-      throw new Error(`Unexpected OpenAi finish reason: ${finishReason}`);
+      throw new Error(`Unexpected OpenAI finish reason: ${finishReason}`);
   }
 };
 
@@ -299,7 +299,7 @@ const getOpenAiResponse = async (
     }
 
     logger.debug(
-      `Retrying OpenAi call with the following retry messages: ${stringify(retryParams.retryMessages)}`,
+      `Retrying OpenAI call with the following retry messages: ${stringify(retryParams.retryMessages)}`,
     );
 
     return getOpenAiResponse({
