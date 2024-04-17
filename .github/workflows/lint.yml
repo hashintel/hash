@@ -339,7 +339,7 @@ jobs:
         run: |
           [[ ${{ needs.global.result }} =~ success|skipped ]]
 
-      - name: Notify Slack on failure in merge queue
+      - name: Notify Slack on failure
         uses: rtCamp/action-slack-notify@19c86e40d4bc3be986b18f1459d4549536887065
         if: ${{ failure() && github.event_name == 'merge_group' }}
         env:
