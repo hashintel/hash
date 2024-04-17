@@ -1,11 +1,10 @@
-import { Box, Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import type { PropsWithChildren } from "react";
 import { useNodeId, useStore } from "reactflow";
 
-import { FlowStepStatus } from "../../../../graphql/api-types.gen";
-import { useStatusForStep } from "../shared/flow-runs-context";
 import { statusSx, StepStatusName } from "./styles";
-import { NodeData } from "../shared/types";
+import { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
+import { nodeTabHeight } from "../shared/dimensions";
 
 const Tab = ({
   label,
@@ -20,7 +19,7 @@ const Tab = ({
 
   return (
     <Box
-      sx={({ palette, transitions }) => ({
+      sx={({ transitions }) => ({
         background:
           position === "left" ? styles.lightBackground : styles.darkBackground,
         borderColor: styles.borderColor,
@@ -30,13 +29,12 @@ const Tab = ({
         borderBottomWidth: 0,
         borderTopLeftRadius: "7px",
         borderTopRightRadius: "7px",
+        height: nodeTabHeight,
         px: 1,
         pt: 0.5,
         pb: 2,
-        position: "absolute",
-        top: -28,
-        left: position === "left" ? -1 : "auto",
-        right: position === "right" ? -1 : "auto",
+        position: "relative",
+        top: 12,
         zIndex: -1,
       })}
     >
@@ -60,15 +58,15 @@ const Tab = ({
 
 export const NodeContainer = ({
   children,
-  selected,
+  kind,
+  selected: _selected,
   stepStatusName,
 }: PropsWithChildren<{
+  kind: StepDefinition["kind"];
   selected: boolean;
   stepStatusName: StepStatusName;
 }>) => {
   const nodeId = useNodeId();
-
-  const statusData = useStatusForStep();
 
   const size = useStore((state) => {
     if (nodeId) {
@@ -85,26 +83,40 @@ export const NodeContainer = ({
   const styles = statusSx[stepStatusName];
 
   return (
-    <Box
-      sx={({ palette, transitions }) => ({
-        background: palette.common.white,
-        borderColor: styles.borderColor,
-        borderWidth: 1,
-        borderStyle: "solid",
-        borderRadius: 3,
-        transition: transitions.create("borderColor"),
-        p: 2,
-        position: "relative",
+    <Stack
+      sx={{
         ...size,
-      })}
+      }}
     >
-      <Tab
-        status={stepStatusName}
-        label={nodeId === "trigger" ? "Trigger" : `Action ${nodeId ?? "?"}`}
-        position="left"
-      />
-      <Tab status={stepStatusName} label={stepStatusName} position="right" />
-      {children}
-    </Box>
+      <Stack direction="row" justifyContent="space-between">
+        <Tab
+          status={stepStatusName}
+          label={nodeId === "trigger" ? "Trigger" : `Action ${nodeId ?? "?"}`}
+          position="left"
+        />
+        {kind !== "parallel-group" && (
+          <Tab
+            status={stepStatusName}
+            label={stepStatusName}
+            position="right"
+          />
+        )}
+      </Stack>
+      <Box
+        sx={({ palette, transitions }) => ({
+          background: palette.common.white,
+          borderColor: styles.borderColor,
+          borderWidth: 1,
+          borderStyle: "solid",
+          borderRadius: 3,
+          transition: transitions.create("borderColor"),
+          p: 2,
+          flex: 1,
+          position: "relative",
+        })}
+      >
+        {children}
+      </Box>
+    </Stack>
   );
 };

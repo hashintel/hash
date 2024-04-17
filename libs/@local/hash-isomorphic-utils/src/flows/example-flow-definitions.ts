@@ -199,64 +199,113 @@ export const ftseInvestorsFlowDefinition: FlowDefinition = {
           sourceStepOutputName:
             "proposedEntities" satisfies OutputNameForAction<"researchEntities">,
         },
+        {
+          inputName: "webId" satisfies InputNameForAction<"persistEntities">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "webId",
+        },
+        {
+          inputName: "draft" satisfies InputNameForAction<"persistEntities">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "draft",
+        },
       ],
     },
     {
       stepId: "3",
       groupId: 2,
-      kind: "action",
-      actionDefinitionId: "researchEntities",
-      description: "Research investors and investments in the FTSE350",
-      inputSources: [
+      kind: "parallel-group",
+      description: "Research investors and investments in FTSE350 companies",
+      inputSourceToParallelizeOn: {
+        inputName: "existingEntities",
+        kind: "step-output",
+        sourceStepId: "2",
+        sourceStepOutputName:
+          "persistedEntities" satisfies OutputNameForAction<"persistEntities">,
+      },
+      steps: [
         {
-          inputName: "prompt" satisfies InputNameForAction<"researchEntities">,
-          kind: "hardcoded",
-          payload: {
-            kind: "Text",
-            value:
-              "Find the investors in companies in the FTSE350 index, and their investments",
-          },
+          stepId: "3.1",
+          groupId: 2,
+          kind: "action",
+          actionDefinitionId: "researchEntities",
+          description:
+            "Research investors and investments in a FTSE350 company",
+          inputSources: [
+            {
+              inputName:
+                "prompt" satisfies InputNameForAction<"researchEntities">,
+              kind: "hardcoded",
+              payload: {
+                kind: "Text",
+                value:
+                  "Find the investors in the provided FTSE350 constituent, and their investments in that company",
+              },
+            },
+            {
+              inputName:
+                "entityTypeIds" satisfies InputNameForAction<"researchEntities">,
+              kind: "hardcoded",
+              payload: {
+                kind: "VersionedUrl",
+                value: [
+                  "https://hash.ai/@ftse/types/entity-type/invested-in/v/1",
+                  "https://hash.ai/@ftse/types/entity-type/investment-fund/v/1",
+                  "https://hash.ai/@ftse/types/entity-type/company/v/1",
+                ],
+              },
+            },
+            {
+              inputName:
+                "existingEntities" satisfies InputNameForAction<"researchEntities">,
+              kind: "parallel-group-input",
+            },
+          ],
         },
         {
-          inputName:
-            "entityTypeIds" satisfies InputNameForAction<"researchEntities">,
-          kind: "hardcoded",
-          payload: {
-            kind: "VersionedUrl",
-            value: [
-              "https://hash.ai/@ftse/types/entity-type/invested-in/v/1",
-              "https://hash.ai/@ftse/types/entity-type/investment-fund/v/1",
-              "https://hash.ai/@ftse/types/entity-type/company/v/1",
-            ],
-          },
-        },
-        {
-          inputName:
-            "existingEntities" satisfies InputNameForAction<"researchEntities">,
-          kind: "step-output",
-          sourceStepId: "2",
-          sourceStepOutputName:
-            "persistedEntities" satisfies OutputNameForAction<"persistEntities">,
+          stepId: "3.2",
+          groupId: 2,
+          kind: "action",
+          description:
+            "Save discovered FTSE350 investors and their investments to HASH graph",
+          actionDefinitionId: "persistEntities",
+          inputSources: [
+            {
+              inputName:
+                "proposedEntities" satisfies InputNameForAction<"persistEntities">,
+              kind: "step-output",
+              sourceStepId: "3.1",
+              sourceStepOutputName:
+                "proposedEntities" satisfies OutputNameForAction<"researchEntities">,
+            },
+            {
+              inputName:
+                "webId" satisfies InputNameForAction<"persistEntities">,
+              kind: "step-output",
+              sourceStepId: "trigger",
+              sourceStepOutputName: "webId",
+            },
+            {
+              inputName:
+                "draft" satisfies InputNameForAction<"persistEntities">,
+              kind: "step-output",
+              sourceStepId: "trigger",
+              sourceStepOutputName: "draft",
+            },
+          ],
         },
       ],
-    },
-    {
-      stepId: "4",
-      groupId: 2,
-      kind: "action",
-      description:
-        "Save discovered FTSE350 investors and their investments to HASH graph",
-      actionDefinitionId: "persistEntities",
-      inputSources: [
-        {
-          inputName:
-            "proposedEntities" satisfies InputNameForAction<"persistEntities">,
-          kind: "step-output",
-          sourceStepId: "3",
-          sourceStepOutputName:
-            "proposedEntities" satisfies OutputNameForAction<"researchEntities">,
-        },
-      ],
+      aggregateOutput: {
+        stepId: "3.2",
+        stepOutputName:
+          "persistedEntities" satisfies OutputNameForAction<"persistEntities">,
+        required: true,
+        name: "persistedEntities" as const,
+        payloadKind: "Entity",
+        array: true,
+      },
     },
     {
       stepId: "5",
@@ -275,7 +324,7 @@ export const ftseInvestorsFlowDefinition: FlowDefinition = {
         {
           inputName: "entities" satisfies InputNameForAction<"answerQuestion">,
           kind: "step-output",
-          sourceStepId: "2",
+          sourceStepId: "3",
           sourceStepOutputName:
             "persistedEntities" satisfies OutputNameForAction<"persistEntities">,
         },
@@ -284,7 +333,7 @@ export const ftseInvestorsFlowDefinition: FlowDefinition = {
   ],
   outputs: [
     {
-      stepId: "2",
+      stepId: "3",
       stepOutputName:
         "persistedEntities" satisfies OutputNameForAction<"persistEntities">,
       name: "persistedEntities" as const,
@@ -293,7 +342,7 @@ export const ftseInvestorsFlowDefinition: FlowDefinition = {
       required: true,
     },
     {
-      stepId: "3",
+      stepId: "5",
       stepOutputName: "answer" satisfies OutputNameForAction<"answerQuestion">,
       payloadKind: "Text",
       name: "answer" as const,
@@ -302,170 +351,6 @@ export const ftseInvestorsFlowDefinition: FlowDefinition = {
     },
   ],
 };
-
-// export const researchTaskFlowDefinition: FlowDefinition = {
-//   name: "Research Task",
-//   flowDefinitionId: "research-task" as EntityUuid,
-//   trigger: {
-//     triggerDefinitionId: "userTrigger",
-//     kind: "trigger",
-//     outputs: [
-//       {
-//         payloadKind: "Text",
-//         name: "prompt" as const,
-//         array: false,
-//       },
-//       {
-//         payloadKind: "VersionedUrl",
-//         name: "entityTypeIds",
-//         array: true,
-//       },
-//     ],
-//   },
-//   steps: [
-//     {
-//       stepId: "0",
-//       kind: "action",
-//       actionDefinitionId: "generateWebQueries",
-//       inputSources: [
-//         {
-//           inputName:
-//             "prompt" satisfies InputNameForAction<"generateWebQueries">,
-//           kind: "step-output",
-//           sourceStepId: "trigger",
-//           sourceStepOutputName: "prompt",
-//           // kind: "hardcoded",
-//           // value: {
-//           //   kind: "Text",
-//           //   value: "Get board members of Apple Inc.",
-//           // },
-//         },
-//       ],
-//     },
-//     {
-//       stepId: "1",
-//       kind: "action",
-//       actionDefinitionId: "webSearch",
-//       inputSources: [
-//         {
-//           inputName: "query" satisfies InputNameForAction<"webSearch">,
-//           kind: "step-output",
-//           sourceStepId: "trigger",
-//           sourceStepOutputName: "prompt",
-//         },
-//       ],
-//     },
-//     {
-//       stepId: "2",
-//       kind: "parallel-group",
-//       inputSourceToParallelizeOn: {
-//         inputName: "webPageUrls",
-//         kind: "step-output",
-//         sourceStepId: "1",
-//         sourceStepOutputName:
-//           "webPageUrls" satisfies OutputNameForAction<"webSearch">,
-//       },
-//       steps: [
-//         {
-//           stepId: "2.1",
-//           kind: "action",
-//           actionDefinitionId: "getWebPageByUrl",
-//           inputSources: [
-//             {
-//               inputName: "url" satisfies InputNameForAction<"getWebPageByUrl">,
-//               kind: "parallel-group-input",
-//             },
-//           ],
-//         },
-//         {
-//           stepId: "2.2",
-//           kind: "action",
-//           actionDefinitionId: "inferEntitiesFromContent",
-//           inputSources: [
-//             {
-//               inputName:
-//                 "content" satisfies InputNameForAction<"inferEntitiesFromContent">,
-//               kind: "step-output",
-//               sourceStepId: "2.1",
-//               sourceStepOutputName:
-//                 "webPage" satisfies OutputNameForAction<"getWebPageByUrl">,
-//             },
-//             {
-//               inputName:
-//                 "entityTypeIds" satisfies InputNameForAction<"inferEntitiesFromContent">,
-//               kind: "step-output",
-//               sourceStepId: "trigger",
-//               sourceStepOutputName: "entityTypeIds",
-//               // kind: "hardcoded",
-//               // value: {
-//               //   kind: "VersionedUrl",
-//               //   /** @todo: use a different type here */
-//               //   value: systemEntityTypes.user.entityTypeId,
-//               // },
-//             },
-//             {
-//               inputName:
-//                 "relevantEntitiesPrompt" satisfies InputNameForAction<"inferEntitiesFromContent">,
-//               kind: "step-output",
-//               sourceStepId: "trigger",
-//               sourceStepOutputName: "prompt",
-//             },
-//           ],
-//         },
-//         {
-//           stepId: "2.3",
-//           kind: "parallel-group",
-//           inputSourceToParallelizeOn: {
-//             inputName: "proposedEntity",
-//             kind: "step-output",
-//             sourceStepId: "2.2",
-//             sourceStepOutputName:
-//               "proposedEntities" satisfies OutputNameForAction<"inferEntitiesFromContent">,
-//           },
-//           steps: [
-//             {
-//               stepId: "2.3.1",
-//               kind: "action",
-//               actionDefinitionId: "persistEntity",
-//               inputSources: [
-//                 {
-//                   inputName:
-//                     "proposedEntity" satisfies InputNameForAction<"persistEntity">,
-//                   kind: "parallel-group-input",
-//                 },
-//               ],
-//             },
-//           ],
-//           aggregateOutput: {
-//             stepId: "2.3.1",
-//             stepOutputName:
-//               "persistedEntity" satisfies OutputNameForAction<"persistEntity">,
-//             name: "persistedEntities" as const,
-//             payloadKind: "Entity",
-//             array: true,
-//           },
-//         },
-//       ],
-//       aggregateOutput: {
-//         stepId: "2.3",
-//         stepOutputName: "persistedEntities",
-//         name: "persistedEntities" as const,
-//         payloadKind: "Entity",
-//         array: true,
-//       },
-//     },
-//   ],
-//   outputs: [
-//     {
-//       stepId: "2",
-//       stepOutputName:
-//         "persistedEntity" satisfies OutputNameForAction<"persistEntity">,
-//       name: "persistedEntities" as const,
-//       payloadKind: "Entity",
-//       array: true,
-//     },
-//   ],
-// };
 
 export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
   name: "Infer User Entities from Web Page",

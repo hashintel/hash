@@ -1,4 +1,3 @@
-import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack, Typography } from "@mui/material";
 import type { NodeProps } from "reactflow";
 
@@ -6,7 +5,6 @@ import { FlowStepStatus } from "../../../graphql/api-types.gen";
 import { Handles } from "./custom-node/handles";
 import { NodeContainer } from "./custom-node/node-container";
 import type { NodeData } from "./shared/types";
-import { Handle, Position, useNodeId } from "reactflow";
 import { useStatusForStep } from "./shared/flow-runs-context";
 import { statusSx, StepStatusName } from "./custom-node/styles";
 import { formatDistance } from "date-fns";
@@ -16,15 +14,7 @@ const getTimeAgo = (isoString: string) =>
     addSuffix: true,
   });
 
-export const CustomNode = ({
-  data,
-  selected,
-  ...rest
-}: NodeProps<NodeData>) => {
-  // const isParallel = data.inputSources.find(
-  //   (input) => input.kind === "parallel-group-input",
-  // );
-
+export const CustomNode = ({ data, selected }: NodeProps<NodeData>) => {
   const statusData = useStatusForStep();
 
   let stepStatusName: StepStatusName = "Waiting";
@@ -45,7 +35,11 @@ export const CustomNode = ({
     }
   }
 
-  const isParallel = false;
+  const isParallelizedGroup = data.kind === "parallel-group";
+
+  const isParallelizedStep = data.inputSources.find(
+    (input) => input.kind === "parallel-group-input",
+  );
 
   const styles = statusSx[stepStatusName];
 
@@ -59,11 +53,15 @@ export const CustomNode = ({
         : null;
 
   return (
-    <NodeContainer selected={selected} stepStatusName={stepStatusName}>
+    <NodeContainer
+      kind={data.kind}
+      selected={selected}
+      stepStatusName={stepStatusName}
+    >
       <Stack justifyContent="space-between" sx={{ height: "100%" }}>
         <Typography sx={{ textAlign: "left", fontSize: 14, fontWeight: 400 }}>
           {data.label}
-          {/*{isParallel ? "[]" : ""}*/}
+          {isParallelizedStep ? "[]" : ""}
         </Typography>
         <Stack direction="row" mb={2} mt={1}>
           <Typography sx={{ fontSize: 12, fontWeight: 500 }}>
@@ -80,35 +78,37 @@ export const CustomNode = ({
           </Typography>
         </Stack>
 
-        <Box
-          sx={{
-            background: styles.lightestBackground,
-            borderRadius: 2.5,
-            p: 2,
-            transition: ({ transitions }) => transitions.create("background"),
-          }}
-        >
-          <Typography
+        {!isParallelizedGroup && (
+          <Box
             sx={{
-              color: styles.text,
-              fontSize: 12,
-              fontWeight: 500,
-              textAlign: "center",
+              background: styles.lightestBackground,
+              borderRadius: 2.5,
+              p: 2,
+              transition: ({ transitions }) => transitions.create("background"),
             }}
           >
-            {stepStatusName === "Complete"
-              ? "Successfully completed"
-              : stepStatusName === "In Progress"
-                ? "Currently processing step..."
-                : stepStatusName === "Error"
-                  ? "Step failed to complete"
-                  : "Waiting for earlier stages to finish"}
-          </Typography>
-        </Box>
+            <Typography
+              sx={{
+                color: styles.text,
+                fontSize: 12,
+                fontWeight: 500,
+                textAlign: "center",
+              }}
+            >
+              {stepStatusName === "Complete"
+                ? "Successfully completed"
+                : stepStatusName === "In Progress"
+                  ? "Currently processing step..."
+                  : stepStatusName === "Error"
+                    ? "Step failed to complete"
+                    : "Waiting for earlier stages to finish"}
+            </Typography>
+          </Box>
+        )}
 
         <Handles
           inputSources={data.inputSources}
-          stepDefinition={data.stepDefinition}
+          actionDefinition={data.actionDefinition}
           stepStatusName={stepStatusName}
         />
       </Stack>

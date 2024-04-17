@@ -1,17 +1,19 @@
-import { Handle, Handle as BaseHandle, HandleProps, Position } from "reactflow";
-import { Box, Typography } from "@mui/material";
-import { NodeData } from "../shared/types";
-import { useFlowDefinitionsContext } from "../shared/flow-definitions-context";
-import { useStatusForStep } from "../shared/flow-runs-context";
-import { useState } from "react";
-import { Modal } from "../../../../shared/ui/modal";
 import { customColors } from "@hashintel/design-system/theme";
-import { StepStatusName } from "./styles";
+import { Box, Typography } from "@mui/material";
+import { useState } from "react";
+import type { HandleProps } from "reactflow";
+import { Handle as BaseHandle, Handle, Position } from "reactflow";
+
+import { Modal } from "../../../../shared/ui/modal";
+import { NodeData } from "../shared/types";
+import type { StepStatusName } from "./styles";
+import { nodeDimensions, nodeTabHeight } from "../shared/dimensions";
 
 type InputOrOutput = {
   array?: boolean;
   kind: "input" | "output";
   name: string;
+  // eslint-disable-next-line react/no-unused-prop-types
   required?: boolean;
   source?: NodeData["inputSources"][number];
 };
@@ -22,11 +24,11 @@ const CustomHandle = ({
   offset,
   onClick,
   position,
-  required,
   source,
   type,
 }: HandleProps & { offset: number; onClick: () => void } & InputOrOutput) => {
-  const hardcodedValue = source?.kind === "hardcoded" ? source.value : null;
+  const hardcodedValue =
+    source?.kind === "hardcoded" ? source.payload.value : null;
 
   return (
     <Box className="nodrag" sx={{ cursor: "pointer" }}>
@@ -35,8 +37,6 @@ const CustomHandle = ({
           id={name}
           type={type}
           position={position}
-          isValidConnection={(connection) => true}
-          // onConnect={(params) => console.log("handle onConnect", params)}
           style={{
             top: 12 + offset * 20,
             right: -3,
@@ -70,55 +70,56 @@ const CustomHandle = ({
   );
 };
 
+const halfContentHeight = (nodeDimensions.height - nodeTabHeight) / 2;
+
 export const Handles = ({
   inputSources,
-  stepDefinition,
+  actionDefinition,
   stepStatusName,
-}: Pick<NodeData, "inputSources" | "stepDefinition"> & {
+}: Pick<NodeData, "inputSources" | "actionDefinition"> & {
   stepStatusName: StepStatusName;
 }) => {
-  const { direction } = useFlowDefinitionsContext();
-
-  const stepStatus = useStatusForStep();
-
   const [selectedProperty, setSelectedProperty] =
     useState<InputOrOutput | null>(null);
 
-  if (!stepDefinition && inputSources.length === 0) {
+  if (!actionDefinition && inputSources.length === 0) {
     return null;
   }
 
-  const { outputs = [] } = stepDefinition ?? {};
+  const outputs: InputOrOutput[] = (actionDefinition?.outputs ?? []).map(
+    ({ array, name, required }) => ({
+      array,
+      kind: "output",
+      name,
+      required,
+    }),
+  );
 
   const inputs: InputOrOutput[] = [];
 
-  if (stepDefinition?.kind !== "trigger") {
-    for (const input of stepDefinition?.inputs ?? []) {
-      const existingSource = inputSources.find(
-        (source) => source.inputName === input.name,
-      );
+  for (const input of actionDefinition?.inputs ?? []) {
+    const existingSource = inputSources.find(
+      (source) => source.inputName === input.name,
+    );
 
-      inputs.push({
-        name: input.name,
-        array: input.array,
-        kind: "input",
-        required: input.required,
-        source: existingSource,
-      });
-    }
-
-    for (const source of inputSources) {
-      if (!inputs.some((input) => input.name === source.inputName)) {
-        inputs.push({
-          name: source.inputName,
-          kind: "input",
-          source,
-        });
-      }
-    }
+    inputs.push({
+      name: input.name,
+      array: input.array,
+      kind: "input",
+      required: input.required,
+      source: existingSource,
+    });
   }
 
-  const showAllDependencies = false;
+  for (const source of inputSources) {
+    if (!inputs.some((input) => input.name === source.inputName)) {
+      inputs.push({
+        name: source.inputName,
+        kind: "input",
+        source,
+      });
+    }
+  }
 
   let handleColor = customColors.gray[30];
   switch (stepStatusName) {
@@ -138,9 +139,13 @@ export const Handles = ({
     height: 12,
     background: "white",
     border: `1px solid ${handleColor}`,
+    top: halfContentHeight,
     transition: "border 0.2s ease-in-out",
   };
 
+  const showAllDependencies = false;
+
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- toggling to be added in follow up
   if (!showAllDependencies) {
     return (
       <>
@@ -148,10 +153,13 @@ export const Handles = ({
           <Handle
             type="target"
             position={Position.Left}
-            style={{ ...handleStyle, left: -6 }}
+            style={{
+              ...handleStyle,
+              left: -6,
+            }}
           />
         )}
-        {(!!outputs.length || stepDefinition?.kind === "trigger") && (
+        {!!outputs.length && (
           <Handle
             type="source"
             position={Position.Right}
@@ -169,9 +177,6 @@ export const Handles = ({
           <Typography sx={{ fontWeight: 600 }}>
             {selectedProperty.name}
           </Typography>
-          <Typography sx={{ mt: 2 }}>
-            Kind: {selectedProperty.payloadKind}
-          </Typography>
         </Modal>
       )}
       <Box>
@@ -181,7 +186,7 @@ export const Handles = ({
             offset={index}
             onClick={() => setSelectedProperty(input)}
             type="target"
-            position={direction === "RIGHT" ? Position.Left : Position.Top}
+            position={Position.Left}
             {...input}
           />
         ))}
@@ -191,7 +196,7 @@ export const Handles = ({
             offset={index}
             onClick={() => setSelectedProperty(output)}
             type="source"
-            position={direction === "RIGHT" ? Position.Right : Position.Bottom}
+            position={Position.Right}
             {...output}
           />
         ))}

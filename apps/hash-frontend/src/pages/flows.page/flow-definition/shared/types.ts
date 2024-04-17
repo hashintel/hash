@@ -3,17 +3,14 @@ import type {
   ActionStepDefinition,
   ActionStepWithParallelInput,
   ParallelGroupStepDefinition,
-  TriggerDefinition,
+  StepDefinition,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { Node } from "reactflow";
 
-type DeepReadOnly<T> = {
-  readonly [key in keyof T]: DeepReadOnly<T[key]>;
-};
-
 export type NodeData = {
+  kind: StepDefinition["kind"];
   groupId?: number;
-  stepDefinition: DeepReadOnly<ActionDefinition | TriggerDefinition> | null;
+  actionDefinition?: ActionDefinition | null;
   label: string;
   inputSources:
     | ActionStepDefinition["inputSources"]

@@ -6,16 +6,14 @@ import type {
   ProposedEntity,
   StepGroup,
 } from "@local/hash-isomorphic-utils/flows/types";
+import { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import type { Entity } from "@local/hash-subgraph";
 import { Box, Stack, Typography } from "@mui/material";
-import type { ElkNode } from "elkjs/lib/elk.bundled.js";
-import ELK from "elkjs/lib/elk.bundled.js";
 import { useMemo } from "react";
 import type { Edge } from "reactflow";
-import ReactFlow, { Controls, getNodesBounds } from "reactflow";
+import { ReactFlowProvider } from "reactflow";
 
 import { isNonNullable } from "../../lib/typeguards";
-import { CustomNode } from "./flow-definition/custom-node";
 import { Deliverable } from "./flow-definition/deliverable";
 import { EntityResultTable } from "./flow-definition/entity-result-table";
 import { PersistedEntityGraph } from "./flow-definition/persisted-entity-graph";
@@ -23,27 +21,14 @@ import { useFlowDefinitionsContext } from "./flow-definition/shared/flow-definit
 import { useFlowRunsContext } from "./flow-definition/shared/flow-runs-context";
 import type { CustomNodeType } from "./flow-definition/shared/types";
 import { DAG } from "./flow-definition/dag";
-
-const nodeTypes = {
-  action: CustomNode,
-  "parallel-group": CustomNode,
-  trigger: CustomNode,
-};
-
-const elk = new ELK();
-
-const elkLayoutOptions: ElkNode["layoutOptions"] = {
-  "elk.algorithm": "layered",
-  "elk.layered.spacing.nodeNodeBetweenLayers": "100",
-  "elk.spacing.nodeNode": "100",
-  "elk.padding": "[left=30, top=30]",
-  "elk.direction": "RIGHT",
-};
-
-const initialNodeDimensions = {
-  width: 350,
-  height: 165,
-};
+import {
+  getFlattenedSteps,
+  groupStepsByDependencyLayer,
+} from "./flow-definition/sort-graph";
+import {
+  nodeDimensions,
+  nodeTabHeight,
+} from "./flow-definition/shared/dimensions";
 
 const getGraphFromFlowDefinition = (
   flowDefinition: FlowDefinitionType,
@@ -51,90 +36,127 @@ const getGraphFromFlowDefinition = (
 ) => {
   const hasGroups = (flowDefinition.groups ?? []).length > 0;
 
-  const groupsAssigned: number[] = [];
+  const { layerByStepId } = groupStepsByDependencyLayer(flowDefinition.steps);
 
-  const derivedNodes: CustomNodeType[] = flowDefinition.steps.flatMap(
-    (step) => {
-      if (hasGroups && !step.groupId) {
+  const groupAssignments: number[] = [];
+
+  const groupByLayer: Map<number, number> = new Map();
+
+  const flattenedSteps = getFlattenedSteps(flowDefinition.steps);
+
+  const derivedNodes: CustomNodeType[] = flattenedSteps.map((step) => {
+    if (hasGroups && !step.groupId) {
+      throw new Error(
+        `Flow defines groups, but step ${step.stepId} is missing a groupId.`,
+      );
+    }
+
+    if (step.groupId) {
+      const lastGroupAssigned = groupAssignments.at(-1);
+      if (lastGroupAssigned && lastGroupAssigned > step.groupId) {
         throw new Error(
-          `Flow defines groups, but step ${step.stepId} is missing a groupId.`,
+          `Step ${step.stepId} belongs to groupId ${step.groupId}, but appears after member(s) of group ${lastGroupAssigned}.`,
         );
       }
 
-      if (step.groupId) {
-        const lastGroupAssigned = groupsAssigned.at(-1);
-        if (lastGroupAssigned && lastGroupAssigned > step.groupId) {
+      const layer = layerByStepId.get(step.stepId);
+      if (layer === undefined) {
+        throw new Error(
+          `Step ${step.stepId} is missing from the dependency layers.`,
+        );
+      }
+
+      const groupForLayer = groupByLayer.get(layer);
+      if (groupForLayer === undefined) {
+        groupByLayer.set(layer, step.groupId);
+      } else if (groupForLayer !== step.groupId) {
+        throw new Error(
+          `Step ${step.stepId} is assigned to group ${step.groupId}, but an earlier step in the same dependency layer is assigned to group ${groupForLayer}. Dependency layers must belong to the same group.`,
+        );
+      }
+
+      groupAssignments.push(step.groupId);
+    }
+
+    const getParallelGroupLayerDimensions = (groupSteps: StepDefinition[]) => {
+      const heightByLayer = new Map<number, number>();
+      let firstLayer = null;
+      let lastLayer = null;
+
+      /**
+       * @todo handle nested parallel groups – see how ELK lays them out to figure out how best to approach
+       */
+      for (const groupStep of groupSteps) {
+        const layer = layerByStepId.get(groupStep.stepId);
+        if (layer === undefined) {
           throw new Error(
-            `Step ${step.stepId} belongs to groupId ${step.groupId}, but appears after member(s) of group ${lastGroupAssigned}.`,
+            `Step ${groupStep.stepId} is missing from the dependency layers.`,
           );
         }
 
-        groupsAssigned.push(step.groupId);
+        if (firstLayer === null || layer < firstLayer) {
+          firstLayer = layer;
+        }
+        if (lastLayer === null || layer > lastLayer) {
+          lastLayer = layer;
+        }
+        heightByLayer.set(layer, (heightByLayer.get(layer) ?? 0) + 1);
       }
 
-      // @ts-expect-error –– excessively deep type. @todo look into this
-      const rootNode: CustomNodeType = {
-        id: step.stepId,
-        data: {
-          groupId: step.groupId,
-          stepDefinition:
-            step.kind === "action"
-              ? actionDefinitions[step.actionDefinitionId]
-              : null,
-          label: step.description,
-          inputSources:
-            step.kind === "parallel-group"
-              ? [step.inputSourceToParallelizeOn]
-              : step.inputSources,
-        },
-        type: step.kind,
-        position: { x: 0, y: 0 },
-        ...initialNodeDimensions,
+      const layerSpan = (lastLayer ?? 0) - (firstLayer ?? 0);
+
+      const maxLayerSize = Math.max(...Array.from(heightByLayer.values()));
+
+      const paddingBetweenStepsAndLayers = 100;
+
+      const nodeHeight = nodeDimensions.height + nodeTabHeight;
+
+      const dimensions = {
+        height:
+          nodeHeight * maxLayerSize +
+          paddingBetweenStepsAndLayers * (maxLayerSize - 1),
+        width:
+          (layerSpan + 1) * nodeDimensions.width +
+          paddingBetweenStepsAndLayers * layerSpan,
       };
 
-      const stepNodes: CustomNodeType[] = [rootNode];
+      const paddingAroundParallelGroupContents = 30;
 
-      if (step.kind === "parallel-group") {
-        const children = step.steps.map((step, index) => {
-          if (step.kind === "parallel-group") {
-            // @todo support nested parallel groups
-            throw new Error("Nested parallel groups are not yet supported");
-          }
+      dimensions.height += paddingAroundParallelGroupContents * 2;
+      dimensions.width += paddingAroundParallelGroupContents * 2;
 
-          const actionDefinition = actionDefinitions[step.actionDefinitionId];
+      return dimensions;
+    };
 
-          return {
-            id: step.stepId,
-            data: {
-              stepDefinition: actionDefinition,
-              label: actionDefinition.name,
-              inputSources: step.inputSources,
-            },
-            type: "action",
-            parentNode: rootNode.id,
-            extent: "parent" as const,
-            position: { x: 0, y: initialNodeDimensions.width * index },
-            ...initialNodeDimensions,
-          };
-        });
+    const node: CustomNodeType = {
+      id: step.stepId,
+      data: {
+        groupId: step.groupId,
+        kind: step.kind,
+        actionDefinition:
+          step.kind === "action"
+            ? actionDefinitions[step.actionDefinitionId]
+            : null,
+        label: step.description,
+        inputSources:
+          step.kind === "parallel-group"
+            ? [step.inputSourceToParallelizeOn]
+            : step.inputSources,
+      },
+      type: step.kind,
+      parentNode: step.parallelParentId,
+      extent: step.parallelParentId ? ("parent" as const) : undefined,
+      position: { x: 0, y: 0 },
+      ...(step.kind === "parallel-group"
+        ? getParallelGroupLayerDimensions(step.steps)
+        : {
+            width: nodeDimensions.width,
+            height: nodeDimensions.height,
+          }),
+    };
 
-        stepNodes.push(...children);
-
-        const bounds = getNodesBounds(children);
-
-        rootNode.width = bounds.width + 80;
-        rootNode.height = bounds.height + 80;
-      }
-
-      return stepNodes;
-    },
-  );
-
-  /**
-   * @todo validate that
-   *    1. all members of a dependency layer are assigned to the same step group, using groupStepsByDependencyLayer
-   *    2. graph is topologically sorted (check that steps appear in same order as dependency layers. order within layer irrelevant)
-   */
+    return node;
+  });
 
   const derivedEdges: Edge[] = [];
   for (let i = 0; i < derivedNodes.length; i++) {
@@ -159,7 +181,11 @@ const getGraphFromFlowDefinition = (
       const thisGroup = node.data.groupId;
       const nextGroup = nextNode?.data.groupId;
 
-      if (nextNode && thisGroup === nextGroup) {
+      if (
+        nextNode &&
+        nextNode.parentNode !== node.id &&
+        thisGroup === nextGroup
+      ) {
         derivedEdges.push({
           id: `${node.id}-${nextNode.id}`,
           source: node.id,
@@ -207,8 +233,9 @@ export const FlowDefinition = () => {
       }
 
       const group = selectedFlow.groups?.find(
-        (group) => group.groupId === node.data.groupId,
+        (grp) => grp.groupId === node.data.groupId,
       );
+
       if (!group) {
         throw new Error(
           `No group with id ${node.data.groupId} found in flow definition`,
@@ -298,8 +325,6 @@ export const FlowDefinition = () => {
     return { proposedEntities: proposed, persistedEntities: persisted };
   }, [selectedFlowRun]);
 
-  console.log({ persistedEntities, proposedEntities });
-
   const runOptions = useMemo(
     () =>
       flowRuns.filter(
@@ -361,7 +386,9 @@ export const FlowDefinition = () => {
         <Stack sx={{ flexGrow: 1 }}>
           {Object.entries(nodesAndEdgesByGroup).map(
             ([groupId, { group, nodes, edges }]) => (
-              <DAG key={groupId} group={group} nodes={nodes} edges={edges} />
+              <ReactFlowProvider key={groupId}>
+                <DAG group={group} nodes={nodes} edges={edges} />
+              </ReactFlowProvider>
             ),
           )}
         </Stack>

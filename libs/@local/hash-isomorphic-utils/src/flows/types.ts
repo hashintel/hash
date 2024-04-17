@@ -187,6 +187,11 @@ export type ActionStepWithParallelInput = ActionStepDefinition<{
   kind: "parallel-group-input";
 }>;
 
+export type StepDefinition =
+  | ActionStepDefinition
+  | ActionStepWithParallelInput
+  | ParallelGroupStepDefinition;
+
 export type ParallelGroupStepDefinition = {
   kind: "parallel-group";
   stepId: string;
@@ -202,7 +207,7 @@ export type ParallelGroupStepDefinition = {
    * The steps that will be executed in parallel branches for each payload
    * item in the provided `ArrayPayload`.
    */
-  steps: (ActionStepDefinition | ParallelGroupStepDefinition)[];
+  steps: StepDefinition[];
   /**
    * The aggregate output of the parallel group must be defined
    * as an `array` output.
@@ -220,8 +225,6 @@ export type ParallelGroupStepDefinition = {
     stepOutputName: string;
   };
 };
-
-export type StepDefinition = ActionStepDefinition | ParallelGroupStepDefinition;
 
 type FlowDefinitionTrigger =
   | {
