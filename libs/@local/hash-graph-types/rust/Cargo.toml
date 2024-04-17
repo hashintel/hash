@@ -16,7 +16,7 @@ codec =  { workspace = true, features = ["bytes"] }
 serde = { workspace = true, features = ["derive"] }
 
 bytes = { version = "1.6.0" }
-serde_json = { version = "1.0.115" }
+serde_json = { version = "1.0.116" }
 utoipa = { version = "4.2.0", optional = true }
 postgres-types = { version = "0.2.6", default-features = false, features = ["derive", "with-uuid-1", "with-serde_json-1"], optional = true }
 time = { version = "0.3.36", default-features = false, features = ["serde", "parsing", "formatting", "macros"] }
