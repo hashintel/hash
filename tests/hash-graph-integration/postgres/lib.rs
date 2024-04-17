@@ -5,7 +5,6 @@
     clippy::unwrap_used
 )]
 
-mod confidence;
 mod data_type;
 mod drafts;
 mod entity;
@@ -13,6 +12,7 @@ mod entity_type;
 mod links;
 mod multi_type;
 mod partial_updates;
+mod property_metadata;
 mod property_type;
 mod sorting;
 
