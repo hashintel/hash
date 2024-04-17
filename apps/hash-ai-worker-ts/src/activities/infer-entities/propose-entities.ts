@@ -199,7 +199,7 @@ export const proposeEntities = async (params: {
 
   const { stopReason, usage, parsedToolCalls } = llmResponse;
 
-  const { message } = llmResponse.choices[0]!;
+  const { message } = llmResponse.choices[0];
 
   const latestUsage = [...usageFromLastIteration, usage];
 
