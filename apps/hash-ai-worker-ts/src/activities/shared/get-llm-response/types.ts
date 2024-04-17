@@ -1,5 +1,6 @@
 import type { JSONSchema } from "openai/lib/jsonschema";
 import type {
+  ChatCompletion,
   ChatCompletion as OpenAiChatCompletion,
   ChatCompletionCreateParams as OpenAiChatCompletionCreateParams,
 } from "openai/resources";
@@ -42,8 +43,9 @@ export const isLlmParamsAnthropicLlmParams = (
 
 export type AnthropicResponse = AnthropicMessagesCreateResponse;
 
-export type OpenAiResponse = Omit<OpenAiChatCompletion, "usage"> & {
+export type OpenAiResponse = Omit<OpenAiChatCompletion, "usage" | "choices"> & {
   usage: NonNullable<OpenAiChatCompletion["usage"]>;
+  choices: [ChatCompletion.Choice, ...ChatCompletion.Choice[]];
 };
 
 export type ParsedToolCall = {

@@ -456,11 +456,12 @@ const getOpenAiResponse = async (
   };
 
   const response: LlmResponse<OpenAiLlmParams> = {
+    ...openAiResponse,
     status: "ok",
     stopReason,
     parsedToolCalls,
     usage,
-    ...openAiResponse,
+    choices: [firstChoice, ...openAiResponse.choices.slice(1)],
   };
 
   return response;
