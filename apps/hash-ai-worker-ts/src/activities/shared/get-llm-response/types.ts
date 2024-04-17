@@ -77,11 +77,9 @@ export type LlmResponse<T extends LlmParams> =
   | ({
       status: "ok";
       stopReason: LlmStopReason;
-      /**
-       * @todo: figure out how to infer the generic for `ParsedLlmToolCall`
-       * from the `LlmParams`
-       */
-      parsedToolCalls: ParsedLlmToolCall[];
+      parsedToolCalls: ParsedLlmToolCall<
+        NonNullable<T["tools"]>[number]["name"]
+      >[];
     } & (T extends AnthropicLlmParams ? AnthropicResponse : OpenAiResponse))
   | {
       status: "exceeded-maximum-retries";

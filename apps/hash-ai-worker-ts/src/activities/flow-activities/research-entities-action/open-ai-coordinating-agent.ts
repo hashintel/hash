@@ -85,9 +85,7 @@ const getNextToolCalls = async (params: {
 
   /** @todo: capture usage */
 
-  return {
-    toolCalls: parsedToolCalls as ParsedLlmToolCall<CoordinatorToolName>[],
-  };
+  return { toolCalls: parsedToolCalls };
 };
 const createInitialPlan = async (params: {
   prompt: string;

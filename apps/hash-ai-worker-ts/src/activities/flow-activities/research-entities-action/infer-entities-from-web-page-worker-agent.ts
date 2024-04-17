@@ -439,7 +439,7 @@ const getNextToolCalls = async (params: {
 
   /** @todo: capture usage */
 
-  return { toolCalls: parsedToolCalls as ParsedLlmToolCall<ToolName>[] };
+  return { toolCalls: parsedToolCalls };
 };
 
 export const inferEntitiesFromWebPageWorkerAgent = async (params: {
