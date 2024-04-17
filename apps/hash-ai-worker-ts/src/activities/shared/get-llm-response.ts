@@ -1,4 +1,5 @@
 import Ajv from "ajv";
+import addFormats from "ajv-formats";
 import dedent from "dedent";
 import type OpenAI from "openai";
 import type {
@@ -95,6 +96,8 @@ const mapAnthropicStopReasonToLlmStopReason = (
 };
 
 const ajv = new Ajv();
+
+addFormats(ajv);
 
 const maxRetryCount = 3;
 
