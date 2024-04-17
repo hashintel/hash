@@ -12,20 +12,20 @@ use crate::account::{EditionArchivedById, EditionCreatedById};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct OntologyProvenanceMetadata {
-    pub edition: OntologyEditionProvenanceMetadata,
+pub struct OntologyProvenance {
+    pub edition: OntologyEditionProvenance,
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct ProvidedOntologyEditionProvenanceMetadata {
+pub struct ProvidedOntologyEditionProvenance {
     /// This field is only used to generate a TS type.
     #[serde(default, rename = "__placeholder")]
     __placeholder: (),
 }
 
-impl ProvidedOntologyEditionProvenanceMetadata {
+impl ProvidedOntologyEditionProvenance {
     #[must_use]
     #[expect(clippy::unused_self, clippy::missing_const_for_fn)]
     pub fn is_empty(&self) -> bool {
@@ -36,17 +36,17 @@ impl ProvidedOntologyEditionProvenanceMetadata {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct OntologyEditionProvenanceMetadata {
+pub struct OntologyEditionProvenance {
     pub created_by_id: EditionCreatedById,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub archived_by_id: Option<EditionArchivedById>,
     #[serde(flatten)]
-    pub user_defined: ProvidedOntologyEditionProvenanceMetadata,
+    pub user_defined: ProvidedOntologyEditionProvenance,
 }
 
 #[cfg(feature = "postgres")]
-impl<'a> FromSql<'a> for OntologyEditionProvenanceMetadata {
+impl<'a> FromSql<'a> for OntologyEditionProvenance {
     fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
         Ok(Json::from_sql(ty, raw)?.0)
     }
@@ -57,7 +57,7 @@ impl<'a> FromSql<'a> for OntologyEditionProvenanceMetadata {
 }
 
 #[cfg(feature = "postgres")]
-impl ToSql for OntologyEditionProvenanceMetadata {
+impl ToSql for OntologyEditionProvenance {
     postgres_types::to_sql_checked!();
 
     fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>>

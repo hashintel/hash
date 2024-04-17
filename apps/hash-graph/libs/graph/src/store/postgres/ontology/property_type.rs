@@ -16,7 +16,7 @@ use error_stack::{Result, ResultExt};
 use graph_types::{
     account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
-        OntologyEditionProvenanceMetadata, OntologyProvenanceMetadata, OntologyTemporalMetadata,
+        OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
         OntologyTypeClassificationMetadata, OntologyTypeRecordId, PropertyTypeMetadata,
         PropertyTypeWithMetadata,
     },
@@ -288,8 +288,8 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         let mut inserted_ontology_ids = Vec::new();
 
         for parameters in params {
-            let provenance = OntologyProvenanceMetadata {
-                edition: OntologyEditionProvenanceMetadata {
+            let provenance = OntologyProvenance {
+                edition: OntologyEditionProvenance {
                     created_by_id: EditionCreatedById::new(actor_id),
                     archived_by_id: None,
                     user_defined: parameters.provenance,
@@ -571,8 +571,8 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
 
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
-        let provenance = OntologyProvenanceMetadata {
-            edition: OntologyEditionProvenanceMetadata {
+        let provenance = OntologyProvenance {
+            edition: OntologyEditionProvenance {
                 created_by_id: EditionCreatedById::new(actor_id),
                 archived_by_id: None,
                 user_defined: params.provenance,
@@ -683,7 +683,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         self.unarchive_ontology_type(
             &params.property_type_id,
-            &OntologyEditionProvenanceMetadata {
+            &OntologyEditionProvenance {
                 created_by_id: EditionCreatedById::new(actor_id),
                 archived_by_id: None,
                 user_defined: params.provenance,
@@ -801,7 +801,7 @@ impl QueryRecordDecode for PropertyTypeWithMetadata {
                 temporal_versioning: OntologyTemporalMetadata {
                     transaction_time: row.get(indices.transaction_time),
                 },
-                provenance: OntologyProvenanceMetadata {
+                provenance: OntologyProvenance {
                     edition: row.get(indices.edition_provenance),
                 },
             },

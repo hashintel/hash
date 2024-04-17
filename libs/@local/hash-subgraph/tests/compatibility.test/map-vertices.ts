@@ -13,14 +13,14 @@ import type {
   DataType as DataTypeGraphApi,
   DataTypeMetadata as DataTypeMetadataGraphApi,
   EntityMetadata as EntityMetadataGraphApi,
-  EntityProvenanceMetadata as EntityProvenanceMetadataGraphApi,
+  EntityProvenance as EntityProvenanceGraphApi,
   EntityRecordId as EntityRecordIdGraphApi,
   EntityTemporalMetadata as EntityTemporalMetadataGraphApi,
   EntityType as EntityTypeGraphApi,
   EntityTypeMetadata as EntityTypeMetadataGraphApi,
   KnowledgeGraphVertex as KnowledgeGraphVertexGraphApi,
   LinkData as LinkDataGraphApi,
-  OntologyProvenanceMetadata as OntologyProvenanceMetadataGraphApi,
+  OntologyProvenance as OntologyProvenanceGraphApi,
   OntologyTypeRecordId as OntologyTypeRecordIdGraphApi,
   OntologyVertex as OntologyVertexGraphApi,
   PropertyType as PropertyTypeGraphApi,
@@ -39,13 +39,13 @@ import type {
   EntityId,
   EntityMetadata,
   EntityPropertiesObject,
-  EntityProvenanceMetadata,
+  EntityProvenance,
   EntityRecordId,
   EntityTemporalVersioningMetadata,
   EntityTypeMetadata,
   KnowledgeGraphVertex,
   LinkData,
-  OntologyProvenanceMetadata,
+  OntologyProvenance,
   OntologyTypeRecordId,
   OntologyVertex,
   Timestamp,
@@ -109,9 +109,9 @@ const mapOntologyTypeRecordId = (
   };
 };
 
-const mapOntologyProvenanceMetadata = (
-  metadata: OntologyProvenanceMetadataGraphApi,
-): OntologyProvenanceMetadata => {
+const mapOntologyProvenance = (
+  metadata: OntologyProvenanceGraphApi,
+): OntologyProvenance => {
   return {
     edition: {
       createdById: metadata.edition.createdById as EditionCreatedById,
@@ -120,9 +120,9 @@ const mapOntologyProvenanceMetadata = (
   };
 };
 
-const mapEntityProvenanceMetadata = (
-  metadata: EntityProvenanceMetadataGraphApi,
-): EntityProvenanceMetadata => {
+const mapEntityProvenance = (
+  metadata: EntityProvenanceGraphApi,
+): EntityProvenance => {
   return {
     createdById: metadata.createdById as CreatedById,
     createdAtTransactionTime:
@@ -140,7 +140,7 @@ const mapDataTypeMetadata = (
 ): DataTypeMetadata => {
   return {
     recordId: mapOntologyTypeRecordId(metadata.recordId),
-    provenance: mapOntologyProvenanceMetadata(metadata.provenance),
+    provenance: mapOntologyProvenance(metadata.provenance),
     ...("fetchedAt" in metadata
       ? { fetchedAt: metadata.fetchedAt as Timestamp }
       : ({} as {
@@ -173,7 +173,7 @@ const mapPropertyTypeMetadata = (
 ): DataTypeMetadata => {
   return {
     recordId: mapOntologyTypeRecordId(metadata.recordId),
-    provenance: mapOntologyProvenanceMetadata(metadata.provenance),
+    provenance: mapOntologyProvenance(metadata.provenance),
     ...("fetchedAt" in metadata
       ? { fetchedAt: metadata.fetchedAt as Timestamp }
       : ({} as {
@@ -207,7 +207,7 @@ const mapEntityTypeMetadata = (
   return {
     recordId: mapOntologyTypeRecordId(metadata.recordId),
     labelProperty: metadata.labelProperty as BaseUrl,
-    provenance: mapOntologyProvenanceMetadata(metadata.provenance),
+    provenance: mapOntologyProvenance(metadata.provenance),
     ...("fetchedAt" in metadata
       ? { fetchedAt: metadata.fetchedAt as Timestamp }
       : ({} as {
@@ -332,7 +332,7 @@ const mapEntityMetadata = (
     temporalVersioning: mapEntityTemporalVersioningMetadata(
       metadata.temporalVersioning,
     ),
-    provenance: mapEntityProvenanceMetadata(metadata.provenance),
+    provenance: mapEntityProvenance(metadata.provenance),
     archived: metadata.archived,
   };
 };

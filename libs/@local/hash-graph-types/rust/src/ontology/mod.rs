@@ -23,8 +23,7 @@ pub use self::{
         PropertyTypeWithMetadata,
     },
     provenance::{
-        OntologyEditionProvenanceMetadata, OntologyProvenanceMetadata,
-        ProvidedOntologyEditionProvenanceMetadata,
+        OntologyEditionProvenance, OntologyProvenance, ProvidedOntologyEditionProvenance,
     },
 };
 use crate::owned_by_id::OwnedById;
@@ -139,7 +138,7 @@ impl OntologyTypeMetadata {
     }
 
     #[must_use]
-    pub const fn provenance(&self) -> &OntologyProvenanceMetadata {
+    pub const fn provenance(&self) -> &OntologyProvenance {
         match self {
             Self::DataType(metadata) => &metadata.provenance,
             Self::PropertyType(metadata) => &metadata.provenance,

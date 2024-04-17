@@ -68,7 +68,7 @@ use graph_types::{
     ontology::{
         DataTypeMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
         OntologyTypeClassificationMetadata, PropertyTypeMetadata, PropertyTypeWithMetadata,
-        ProvidedOntologyEditionProvenanceMetadata,
+        ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
 };
@@ -220,7 +220,7 @@ impl DatabaseTestWrapper {
                         },
                         relationships: data_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
-                        provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
+                        provenance: ProvidedOntologyEditionProvenance::default(),
                     }
                 }),
             )
@@ -241,7 +241,7 @@ impl DatabaseTestWrapper {
                         },
                         relationships: property_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
-                        provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
+                        provenance: ProvidedOntologyEditionProvenance::default(),
                     }
                 }),
             )
@@ -264,7 +264,7 @@ impl DatabaseTestWrapper {
                         icon: None,
                         relationships: entity_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
-                        provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
+                        provenance: ProvidedOntologyEditionProvenance::default(),
                     }
                 }),
             )
@@ -305,7 +305,7 @@ impl DatabaseApi<'_> {
                     },
                     relationships: data_type_relationships(),
                     conflict_behavior: ConflictBehavior::Fail,
-                    provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
+                    provenance: ProvidedOntologyEditionProvenance::default(),
                 },
             )
             .await
@@ -327,7 +327,7 @@ impl DatabaseApi<'_> {
                     },
                     relationships: data_type_relationships(),
                     conflict_behavior: ConflictBehavior::Fail,
-                    provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
+                    provenance: ProvidedOntologyEditionProvenance::default(),
                 },
             )
             .await
@@ -378,7 +378,7 @@ impl DatabaseApi<'_> {
                 UpdateDataTypesParams {
                     schema,
                     relationships: data_type_relationships(),
-                    provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
+                    provenance: ProvidedOntologyEditionProvenance::default(),
                 },
             )
             .await
@@ -400,7 +400,7 @@ impl DatabaseApi<'_> {
                     },
                     relationships: property_type_relationships(),
                     conflict_behavior: ConflictBehavior::Fail,
-                    provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
+                    provenance: ProvidedOntologyEditionProvenance::default(),
                 },
             )
             .await
@@ -451,7 +451,7 @@ impl DatabaseApi<'_> {
                 UpdatePropertyTypesParams {
                     schema: property_type,
                     relationships: property_type_relationships(),
-                    provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
+                    provenance: ProvidedOntologyEditionProvenance::default(),
                 },
             )
             .await
@@ -475,7 +475,7 @@ impl DatabaseApi<'_> {
                     icon: None,
                     relationships: entity_type_relationships(),
                     conflict_behavior: ConflictBehavior::Fail,
-                    provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
+                    provenance: ProvidedOntologyEditionProvenance::default(),
                 },
             )
             .await
@@ -528,7 +528,7 @@ impl DatabaseApi<'_> {
                     icon: None,
                     label_property: None,
                     relationships: entity_type_relationships(),
-                    provenance: ProvidedOntologyEditionProvenanceMetadata::default(),
+                    provenance: ProvidedOntologyEditionProvenance::default(),
                 },
             )
             .await
