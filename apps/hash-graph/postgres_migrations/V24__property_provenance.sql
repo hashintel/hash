@@ -1,11 +1,11 @@
 ALTER TABLE entity_property
     ADD COLUMN provenance JSONB;
 
--- ALTER TABLE entity_has_left_entity
---     ADD COLUMN provenance JSONB;
---
--- ALTER TABLE entity_has_right_entity
---     ADD COLUMN provenance JSONB;
+ALTER TABLE entity_has_left_entity
+    ADD COLUMN provenance JSONB;
+
+ALTER TABLE entity_has_right_entity
+    ADD COLUMN provenance JSONB;
 
 DROP VIEW entity_properties;
 CREATE VIEW entity_properties AS

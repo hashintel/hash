@@ -281,7 +281,7 @@ pub struct ProvidedEntityEditionProvenance {
     pub sources: Vec<SourceProvenance>,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub actor: Option<ActorType>,
+    pub actor_type: Option<ActorType>,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub origin: Option<OriginProvenance>,
@@ -333,7 +333,6 @@ impl ToSql for InferredEntityProvenance {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityProvenance {
-    // #[cfg_attr(feature = "utoipa", schema(inline))]
     #[serde(flatten)]
     pub inferred: InferredEntityProvenance,
     pub edition: EntityEditionProvenance,

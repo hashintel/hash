@@ -6216,7 +6216,7 @@
       "ProvidedEntityEditionProvenance": {
         "type": "object",
         "properties": {
-          "actor": {
+          "actorType": {
             "allOf": [
               {
                 "$ref": "#/components/schemas/ActorType"
