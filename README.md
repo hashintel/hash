@@ -30,9 +30,7 @@ This is HASH's _public monorepo_ which contains our public code, docs, and other
 
 ## [![a](/.github/assets/gh_icon_what-is-hash_20px-base.svg)][gh-what-is-hash] &nbsp; What is HASH?
 
-**HASH is a platform for decision-making, which helps you integrate, understand and use data in a variety of different ways.**
-
-HASH does this by combining various different powerful tools together into one simple interface. These range from data pipelines and a graph database, through to an all-in-one workspace, no-code tool builder, and agent-based simulation engine. These exist at varying stages of maturity, and while some are polished, not all are ready for real-world production use. You can read more about our big-picture vision at [hash.dev]
+**HASH is a self-buliding, open-source database which grows, structures and checks itself.** With it, we're creating a platform for decision-making, which helps you integrate, understand and use data in a variety of different ways. [Read our blog post →](https://hash.ai/blog/self-building-database)
 
 ## [![a](/.github/assets/gh_icon_getting-started_20px-base.svg)][gh-getting-started] &nbsp; Getting started
 
