@@ -104,7 +104,7 @@ const maxRetryCount = 3;
 const getAnthropicResponse = async (
   params: AnthropicLlmParams,
 ): Promise<LlmResponse<AnthropicLlmParams>> => {
-  const { tools, retryCount = 0 } = params;
+  const { tools, retryCount = 0, ...remainingParams } = params;
 
   const anthropicTools = tools?.map(
     mapLlmToolDefinitionToAnthropicToolDefinition,
@@ -120,7 +120,7 @@ const getAnthropicResponse = async (
 
   try {
     anthropicResponse = await createAnthropicMessagesWithTools({
-      ...params,
+      ...remainingParams,
       max_tokens: maxTokens,
       tools: anthropicTools,
     });
@@ -224,12 +224,17 @@ const getAnthropicResponse = async (
 const getOpenAiResponse = async (
   params: OpenAiLlmParams,
 ): Promise<LlmResponse<OpenAiLlmParams>> => {
-  const { tools, trimMessageAtIndex, retryCount = 0 } = params;
+  const {
+    tools,
+    trimMessageAtIndex,
+    retryCount = 0,
+    ...remainingParams
+  } = params;
 
   const openAiTools = tools?.map(mapLlmToolDefinitionToOpenAiToolDefinition);
 
   const completionPayload: ChatCompletionCreateParamsNonStreaming = {
-    ...params,
+    ...remainingParams,
     tools: openAiTools,
     stream: false,
   };
