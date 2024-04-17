@@ -1,7 +1,6 @@
 import Ajv from "ajv";
 import dedent from "dedent";
 import type OpenAI from "openai";
-import type { JSONSchema } from "openai/lib/jsonschema";
 import type {
   ChatCompletion,
   ChatCompletion as OpenAiChatCompletion,
@@ -25,27 +24,22 @@ import type {
   AnthropicLlmParams,
   AnthropicResponse,
   LlmParams,
+  LlmResponse,
   LlmStopReason,
+  LlmToolDefinition,
   OpenAiLlmParams,
-  OpenAiResponse,
-  ParsedToolCall,
+  ParsedLlmToolCall,
 } from "./get-llm-response/types";
 import { isLlmParamsAnthropicLlmParams } from "./get-llm-response/types";
 import { modelToContextWindow, openai } from "./openai-client";
 import { stringify } from "./stringify";
-
-type LlmToolDefinition = {
-  name: string;
-  description: string;
-  input_schema: JSONSchema;
-};
 
 const mapLlmToolDefinitionToAnthropicToolDefinition = (
   tool: LlmToolDefinition,
 ): AnthropicToolDefinition => ({
   name: tool.name,
   description: tool.description,
-  input_schema: tool.input_schema,
+  input_schema: tool.inputSchema,
 });
 
 const mapLlmToolDefinitionToOpenAiToolDefinition = (
@@ -54,14 +48,14 @@ const mapLlmToolDefinitionToOpenAiToolDefinition = (
   type: "function",
   function: {
     name: tool.name,
-    parameters: tool.input_schema as OpenAiFunctionParameters,
+    parameters: tool.inputSchema as OpenAiFunctionParameters,
     description: tool.description,
   },
 });
 
 const parseToolCallsFromAnthropicResponse = (
   response: AnthropicResponse,
-): ParsedToolCall[] =>
+): ParsedLlmToolCall[] =>
   response.content
     .filter(isAnthropicContentToolUseContent)
     .map(({ id, name, input }) => ({ id, name, input }));
@@ -99,19 +93,6 @@ const mapAnthropicStopReasonToLlmStopReason = (
       throw new Error(`Unexpected Anthropic stop reason: ${stopReason}`);
   }
 };
-
-type LlmResponse<T extends LlmParams> =
-  | ({
-      status: "ok";
-      stopReason: LlmStopReason;
-      parsedToolCalls: ParsedToolCall[];
-    } & (T extends AnthropicLlmParams ? AnthropicResponse : OpenAiResponse))
-  | {
-      status: "exceeded-maximum-retries";
-    }
-  | {
-      status: "api-error";
-    };
 
 const ajv = new Ajv();
 
@@ -198,7 +179,7 @@ const getAnthropicResponse = async (
       }
 
       const validate = ajv.compile({
-        ...toolDefinition.input_schema,
+        ...toolDefinition.inputSchema,
         additionalProperties: false,
       });
 
@@ -348,7 +329,7 @@ const getOpenAiResponse = async (
     });
   }
 
-  const parsedToolCalls: ParsedToolCall[] = [];
+  const parsedToolCalls: ParsedLlmToolCall[] = [];
 
   const retryMessages: OpenAiLlmParams["messages"] = [];
 
@@ -387,7 +368,7 @@ const getOpenAiResponse = async (
     }
 
     const validate = ajv.compile({
-      ...toolDefinition.input_schema,
+      ...toolDefinition.inputSchema,
       additionalProperties: false,
     });
 

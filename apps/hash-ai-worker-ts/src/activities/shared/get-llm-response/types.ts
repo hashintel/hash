@@ -13,29 +13,33 @@ import type {
 } from "./anthropic-client";
 import { isAnthropicMessageModel } from "./anthropic-client";
 
-export type LlmToolDefinition = {
-  name: string;
+export type LlmToolDefinition<ToolName extends string = string> = {
+  name: ToolName;
   description: string;
-  input_schema: JSONSchema;
+  inputSchema: JSONSchema;
 };
 
-export type CommonLlmParams = {
+export type CommonLlmParams<ToolName extends string = string> = {
   model: AnthropicMessageModel | PermittedOpenAiModel;
-  tools?: LlmToolDefinition[];
+  tools?: LlmToolDefinition<ToolName>[];
   retryCount?: number;
 };
 
-export type AnthropicLlmParams = CommonLlmParams & {
-  model: AnthropicMessageModel;
-  maxTokens?: number;
-} & Omit<AnthropicMessagesCreateParams, "tools" | "max_tokens">;
+export type AnthropicLlmParams<ToolName extends string = string> =
+  CommonLlmParams<ToolName> & {
+    model: AnthropicMessageModel;
+    maxTokens?: number;
+  } & Omit<AnthropicMessagesCreateParams, "tools" | "max_tokens">;
 
-export type OpenAiLlmParams = CommonLlmParams & {
-  model: PermittedOpenAiModel;
-  trimMessageAtIndex?: number;
-} & Omit<OpenAiChatCompletionCreateParams, "tools">;
+export type OpenAiLlmParams<ToolName extends string = string> =
+  CommonLlmParams<ToolName> & {
+    model: PermittedOpenAiModel;
+    trimMessageAtIndex?: number;
+  } & Omit<OpenAiChatCompletionCreateParams, "tools">;
 
-export type LlmParams = AnthropicLlmParams | OpenAiLlmParams;
+export type LlmParams<ToolName extends string = string> =
+  | AnthropicLlmParams<ToolName>
+  | OpenAiLlmParams<ToolName>;
 
 export const isLlmParamsAnthropicLlmParams = (
   params: LlmParams,
@@ -48,9 +52,9 @@ export type OpenAiResponse = Omit<OpenAiChatCompletion, "usage" | "choices"> & {
   choices: [ChatCompletion.Choice, ...ChatCompletion.Choice[]];
 };
 
-export type ParsedToolCall = {
+export type ParsedLlmToolCall<ToolName extends string = string> = {
   id: string;
-  name: string;
+  name: ToolName;
   input: object;
 };
 
@@ -69,7 +73,19 @@ export type LlmStopReason =
   | "content_filter"
   | "stop_sequence";
 
-export type LlmResponse<T extends LlmParams> = {
-  stopReason: LlmStopReason;
-  parsedToolCalls: ParsedToolCall[];
-} & (T extends AnthropicLlmParams ? AnthropicResponse : OpenAiResponse);
+export type LlmResponse<T extends LlmParams> =
+  | ({
+      status: "ok";
+      stopReason: LlmStopReason;
+      /**
+       * @todo: figure out how to infer the generic for `ParsedLlmToolCall`
+       * from the `LlmParams`
+       */
+      parsedToolCalls: ParsedLlmToolCall[];
+    } & (T extends AnthropicLlmParams ? AnthropicResponse : OpenAiResponse))
+  | {
+      status: "exceeded-maximum-retries";
+    }
+  | {
+      status: "api-error";
+    };
