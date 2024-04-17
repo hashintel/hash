@@ -189,6 +189,8 @@ pub struct EntityRecordRowIndices {
     pub entity_confidence: usize,
     pub left_entity_confidence: usize,
     pub right_entity_confidence: usize,
+    pub left_entity_provenance: usize,
+    pub right_entity_provenance: usize,
     pub property_paths: usize,
     pub property_confidences: usize,
     pub property_provenance: usize,
@@ -264,6 +266,8 @@ impl QueryRecordDecode for Entity {
                     },
                     left_entity_confidence: row.get(indices.left_entity_confidence),
                     right_entity_confidence: row.get(indices.right_entity_confidence),
+                    left_entity_provenance: row.get(indices.left_entity_provenance),
+                    right_entity_provenance: row.get(indices.right_entity_provenance),
                 }),
                 (None, None, None, None) => None,
                 _ => unreachable!(
@@ -400,8 +404,12 @@ impl PostgresRecord for Entity {
             entity_confidence: compiler.add_selection_path(&EntityQueryPath::EntityConfidence),
             left_entity_confidence: compiler
                 .add_selection_path(&EntityQueryPath::LeftEntityConfidence),
+            left_entity_provenance: compiler
+                .add_selection_path(&EntityQueryPath::LeftEntityProvenance),
             right_entity_confidence: compiler
                 .add_selection_path(&EntityQueryPath::RightEntityConfidence),
+            right_entity_provenance: compiler
+                .add_selection_path(&EntityQueryPath::RightEntityProvenance),
             property_paths: compiler.add_selection_path(&EntityQueryPath::PropertyPaths),
             property_confidences: compiler
                 .add_selection_path(&EntityQueryPath::PropertyConfidences),

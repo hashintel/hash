@@ -1075,6 +1075,7 @@ pub enum EntityHasLeftEntity {
     LeftEntityWebId,
     LeftEntityUuid,
     Confidence,
+    Provenance,
 }
 
 impl EntityHasLeftEntity {
@@ -1085,6 +1086,7 @@ impl EntityHasLeftEntity {
             Self::LeftEntityWebId => "left_web_id",
             Self::LeftEntityUuid => "left_entity_uuid",
             Self::Confidence => "confidence",
+            Self::Provenance => "provenance",
         };
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
@@ -1095,6 +1097,7 @@ impl EntityHasLeftEntity {
             Self::WebId | Self::EntityUuid | Self::LeftEntityWebId | Self::LeftEntityUuid => {
                 ParameterType::Uuid
             }
+            Self::Provenance => ParameterType::Any,
             Self::Confidence => ParameterType::F64,
         }
     }
@@ -1107,6 +1110,7 @@ pub enum EntityHasRightEntity {
     RightEntityWebId,
     RightEntityUuid,
     Confidence,
+    Provenance,
 }
 
 impl EntityHasRightEntity {
@@ -1117,6 +1121,7 @@ impl EntityHasRightEntity {
             Self::RightEntityWebId => "right_web_id",
             Self::RightEntityUuid => "right_entity_uuid",
             Self::Confidence => "confidence",
+            Self::Provenance => "provenance",
         };
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
@@ -1127,6 +1132,7 @@ impl EntityHasRightEntity {
             Self::WebId | Self::EntityUuid | Self::RightEntityWebId | Self::RightEntityUuid => {
                 ParameterType::Uuid
             }
+            Self::Provenance => ParameterType::Any,
             Self::Confidence => ParameterType::F64,
         }
     }

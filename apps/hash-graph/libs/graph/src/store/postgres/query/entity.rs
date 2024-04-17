@@ -26,8 +26,10 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 vec![Relation::EntityIds]
             }
             Self::Embedding => vec![Relation::EntityEmbeddings],
-            Self::LeftEntityConfidence => vec![Relation::LeftEntity],
-            Self::RightEntityConfidence => vec![Relation::RightEntity],
+            Self::LeftEntityConfidence | Self::LeftEntityProvenance => vec![Relation::LeftEntity],
+            Self::RightEntityConfidence | Self::RightEntityProvenance => {
+                vec![Relation::RightEntity]
+            }
             Self::PropertyPaths | Self::PropertyConfidences | Self::PropertyProvenance(_) => {
                 vec![Relation::EntityProperties]
             }
@@ -166,8 +168,14 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             Self::LeftEntityConfidence => {
                 Column::EntityHasLeftEntity(EntityHasLeftEntity::Confidence)
             }
+            Self::LeftEntityProvenance => {
+                Column::EntityHasLeftEntity(EntityHasLeftEntity::Provenance)
+            }
             Self::RightEntityConfidence => {
                 Column::EntityHasRightEntity(EntityHasRightEntity::Confidence)
+            }
+            Self::RightEntityProvenance => {
+                Column::EntityHasRightEntity(EntityHasRightEntity::Provenance)
             }
             Self::PropertyPaths => Column::EntityProperties(EntityProperties::PropertyPaths),
             Self::PropertyConfidences => Column::EntityProperties(EntityProperties::Confidences),

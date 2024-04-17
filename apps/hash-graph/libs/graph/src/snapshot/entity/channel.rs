@@ -152,6 +152,7 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
                     left_web_id: link_data.left_entity_id.owned_by_id,
                     left_entity_uuid: link_data.left_entity_id.entity_uuid,
                     confidence: link_data.left_entity_confidence,
+                    provenance: link_data.left_entity_provenance,
                 })
                 .change_context(SnapshotRestoreError::Read)
                 .attach_printable("could not send entity link edges")?;
@@ -162,6 +163,7 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
                     right_web_id: link_data.right_entity_id.owned_by_id,
                     right_entity_uuid: link_data.right_entity_id.entity_uuid,
                     confidence: link_data.right_entity_confidence,
+                    provenance: link_data.right_entity_provenance,
                 })
                 .change_context(SnapshotRestoreError::Read)
                 .attach_printable("could not send entity link edges")?;

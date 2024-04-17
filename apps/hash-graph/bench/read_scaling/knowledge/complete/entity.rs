@@ -22,7 +22,7 @@ use graph::{
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     account::AccountId,
-    knowledge::{entity::EntityMetadata, link::LinkData, PropertyObject},
+    knowledge::{entity::EntityMetadata, link::LinkData, PropertyObject, PropertyProvenance},
     owned_by_id::OwnedById,
 };
 use rand::{prelude::IteratorRandom, thread_rng};
@@ -135,7 +135,9 @@ async fn seed_db(
                             left_entity_id: entity_a_metadata.record_id.entity_id,
                             right_entity_id: entity_b_metadata.record_id.entity_id,
                             left_entity_confidence: None,
+                            left_entity_provenance: PropertyProvenance::default(),
                             right_entity_confidence: None,
+                            right_entity_provenance: PropertyProvenance::default(),
                         }),
                         None,
                     )

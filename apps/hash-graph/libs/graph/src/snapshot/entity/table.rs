@@ -73,6 +73,7 @@ pub struct EntityHasLeftEntityRow {
     pub left_web_id: OwnedById,
     pub left_entity_uuid: EntityUuid,
     pub confidence: Option<Confidence>,
+    pub provenance: PropertyProvenance,
 }
 
 #[derive(Debug, ToSql)]
@@ -83,6 +84,7 @@ pub struct EntityHasRightEntityRow {
     pub right_web_id: OwnedById,
     pub right_entity_uuid: EntityUuid,
     pub confidence: Option<Confidence>,
+    pub provenance: PropertyProvenance,
 }
 
 #[derive(Debug, ToSql)]

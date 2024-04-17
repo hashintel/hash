@@ -1,9 +1,10 @@
-use std::{
-    collections::{hash_map, HashMap},
-    error::Error,
-};
+use std::collections::{hash_map, HashMap};
+#[cfg(feature = "postgres")]
+use std::error::Error;
 
+#[cfg(feature = "postgres")]
 use bytes::BytesMut;
+#[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
 use serde::{Deserialize, Serialize};
 

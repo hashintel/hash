@@ -124,6 +124,10 @@ pub enum EntityQueryPath<'p> {
     ///
     /// It's currently not possible to query for the entity confidence value directly.
     LeftEntityConfidence,
+    /// The provenance for the [`Entity`]'s left entity link.
+    ///
+    /// It's currently not possible to query for the link provenance value directly.
+    LeftEntityProvenance,
     /// The confidence value for the [`Entity`]'s right entity link.
     ///
     /// It's currently not possible to query for the entity confidence value directly.
@@ -131,6 +135,10 @@ pub enum EntityQueryPath<'p> {
     /// The list of all property pointers of an [`Entity`].
     ///
     /// It's currently not possible to query for the list of property pointers directly.
+    RightEntityProvenance,
+    /// The provenance for the [`Entity`]'s right entity link.
+    ///
+    /// It's currently not possible to query for the link provenance value directly.
     PropertyPaths,
     /// The list of all confidence values belonging to [`PropertyPaths`]' properties.
     ///
@@ -427,7 +435,9 @@ impl fmt::Display for EntityQueryPath<'_> {
             } => write!(fmt, "incomingLinks.{path}"),
             Self::EntityConfidence => fmt.write_str("entityConfidence"),
             Self::LeftEntityConfidence => fmt.write_str("leftEntityConfidence"),
+            Self::LeftEntityProvenance => fmt.write_str("leftEntityProvenance"),
             Self::RightEntityConfidence => fmt.write_str("rightEntityConfidence"),
+            Self::RightEntityProvenance => fmt.write_str("rightEntityProvenance"),
             Self::PropertyPaths => fmt.write_str("propertyPaths"),
             Self::PropertyConfidences => fmt.write_str("propertyConfidences"),
         }
@@ -446,7 +456,9 @@ impl QueryPath for EntityQueryPath<'_> {
             Self::Properties(_)
             | Self::Provenance(_)
             | Self::EditionProvenance(_)
-            | Self::PropertyProvenance(_) => ParameterType::Any,
+            | Self::PropertyProvenance(_)
+            | Self::LeftEntityProvenance
+            | Self::RightEntityProvenance => ParameterType::Any,
             Self::EntityConfidence | Self::LeftEntityConfidence | Self::RightEntityConfidence => {
                 ParameterType::F64
             }
@@ -742,7 +754,9 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
             Self::Embedding => EntityQueryPath::Embedding,
             Self::EntityConfidence => EntityQueryPath::EntityConfidence,
             Self::LeftEntityConfidence => EntityQueryPath::LeftEntityConfidence,
+            Self::LeftEntityProvenance => EntityQueryPath::LeftEntityProvenance,
             Self::RightEntityConfidence => EntityQueryPath::RightEntityConfidence,
+            Self::RightEntityProvenance => EntityQueryPath::RightEntityProvenance,
             Self::PropertyPaths => EntityQueryPath::PropertyPaths,
             Self::PropertyConfidences => EntityQueryPath::PropertyConfidences,
             Self::Provenance(path) => EntityQueryPath::Provenance(path.map(JsonPath::into_owned)),

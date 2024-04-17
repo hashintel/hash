@@ -63,7 +63,7 @@ use graph_types::{
     knowledge::{
         entity::{Entity, EntityId, EntityMetadata, EntityUuid, ProvidedEntityEditionProvenance},
         link::LinkData,
-        Confidence, PropertyMetadataMap, PropertyObject,
+        Confidence, PropertyMetadataMap, PropertyObject, PropertyProvenance,
     },
     ontology::{
         DataTypeMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
@@ -812,7 +812,9 @@ impl DatabaseApi<'_> {
                         left_entity_id,
                         right_entity_id,
                         left_entity_confidence: None,
+                        left_entity_provenance: PropertyProvenance::default(),
                         right_entity_confidence: None,
+                        right_entity_provenance: PropertyProvenance::default(),
                     }),
                     draft: false,
                     relationships: [],

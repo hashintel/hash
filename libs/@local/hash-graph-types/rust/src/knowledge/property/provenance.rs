@@ -1,6 +1,9 @@
+#[cfg(feature = "postgres")]
 use std::error::Error;
 
+#[cfg(feature = "postgres")]
 use bytes::BytesMut;
+#[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
 use serde::{Deserialize, Serialize};
 
@@ -24,6 +27,10 @@ impl PropertyProvenance {
 impl<'a> FromSql<'a> for PropertyProvenance {
     fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
         Ok(Json::from_sql(ty, raw)?.0)
+    }
+
+    fn from_sql_null(_: &Type) -> Result<Self, Box<dyn Error + Sync + Send>> {
+        Ok(Self::default())
     }
 
     fn accepts(ty: &Type) -> bool {

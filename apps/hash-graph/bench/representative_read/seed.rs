@@ -12,7 +12,7 @@ use graph::store::{
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     account::AccountId,
-    knowledge::{entity::EntityUuid, link::LinkData, PropertyObject},
+    knowledge::{entity::EntityUuid, link::LinkData, PropertyObject, PropertyProvenance},
     owned_by_id::OwnedById,
 };
 use type_system::{url::VersionedUrl, EntityType};
@@ -209,7 +209,9 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
                                 left_entity_id: left_entity_metadata.record_id.entity_id,
                                 right_entity_id: right_entity_metadata.record_id.entity_id,
                                 left_entity_confidence: None,
+                                left_entity_provenance: PropertyProvenance::default(),
                                 right_entity_confidence: None,
+                                right_entity_provenance: PropertyProvenance::default(),
                             }),
                             None,
                         )
