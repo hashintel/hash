@@ -42,7 +42,9 @@ export const isLlmParamsAnthropicLlmParams = (
 
 export type AnthropicResponse = AnthropicMessagesCreateResponse;
 
-export type OpenAiResponse = OpenAiChatCompletion;
+export type OpenAiResponse = Omit<OpenAiChatCompletion, "usage"> & {
+  usage: NonNullable<OpenAiChatCompletion["usage"]>;
+};
 
 export type ParsedToolCall = {
   id: string;

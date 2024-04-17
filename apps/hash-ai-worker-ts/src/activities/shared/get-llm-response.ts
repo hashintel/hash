@@ -3,6 +3,7 @@ import dedent from "dedent";
 import type OpenAI from "openai";
 import type { JSONSchema } from "openai/lib/jsonschema";
 import type {
+  ChatCompletion,
   ChatCompletion as OpenAiChatCompletion,
   ChatCompletionCreateParamsNonStreaming,
   FunctionParameters as OpenAiFunctionParameters,
@@ -254,12 +255,11 @@ const getOpenAiResponse = async (
    * in favor of forcing the caller to chunk calls to the API
    * according to the model's context window size.
    */
+  let estimatedPromptTokens: number | undefined;
   if (typeof trimMessageAtIndex === "number") {
     const modelContextWindow = modelToContextWindow[params.model];
 
     const completionPayloadOverhead = 4_096;
-
-    let estimatedPromptTokens: number | undefined;
 
     let excessTokens: number;
     do {
@@ -294,7 +294,7 @@ const getOpenAiResponse = async (
     } while (excessTokens > 9);
   }
 
-  let openAiResponse: OpenAiResponse;
+  let openAiResponse: ChatCompletion;
 
   try {
     openAiResponse = await openai.chat.completions.create(completionPayload);
@@ -431,10 +431,35 @@ const getOpenAiResponse = async (
     firstChoice.finish_reason,
   );
 
+  if (!openAiResponse.usage) {
+    logger.error(`OpenAI returned no usage information for call`);
+  } else {
+    const { completion_tokens, prompt_tokens, total_tokens } =
+      openAiResponse.usage;
+    logger.info(
+      `Actual usage for iteration: prompt tokens: ${prompt_tokens}, completion tokens: ${completion_tokens}, total tokens: ${total_tokens}`,
+    );
+
+    if (estimatedPromptTokens) {
+      logger.info(
+        `Estimated prompt usage off by ${
+          prompt_tokens - estimatedPromptTokens
+        } tokens.`,
+      );
+    }
+  }
+
+  const usage = openAiResponse.usage ?? {
+    completion_tokens: 0,
+    prompt_tokens: 0,
+    total_tokens: 0,
+  };
+
   const response: LlmResponse<OpenAiLlmParams> = {
     status: "ok",
     stopReason,
     parsedToolCalls,
+    usage,
     ...openAiResponse,
   };
 
