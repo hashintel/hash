@@ -153,22 +153,41 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     );
   }
 
+  /**
+   * Force validation on the text input form.
+   * If the form is valid or if the form has been unmounted, allow <Grid /> to handle click events again.
+   */
   const validationHandler = () => {
-    if (!textInputFormRef.current) {
-      return;
+    if (textInputFormRef.current) {
+      textInputFormRef.current.requestSubmit();
+
+      if (!textInputFormRef.current.checkValidity()) {
+        return;
+      }
     }
-    textInputFormRef.current.requestSubmit();
-    if (textInputFormRef.current.checkValidity()) {
-      document.body.classList.remove(GRID_CLICK_IGNORE_CLASS);
-      onFinishedEditing(latestValueCellRef.current);
-      document.removeEventListener("click", validationHandler);
-    }
+
+    /**
+     * Update the value and clean up the validation handler in either of these scenarios:
+     * 1. The form is valid
+     * 2. The form has been unmounted and we can't check its validity – this happens if another grid cell is clicked
+     *
+     * If another grid cell is clicked, we cannot validate using the input and we may have an invalid value in the table.
+     * The alternative is that clicking another cell wipes the value, which is slightly worse UX.
+     * Ideally we would prevent the form being closed when another cell is clicked, to allow validation to run,
+     * and in any case have an indicator that an invalid value is in the form – tracked in H-1834
+     */
+    onFinishedEditing(latestValueCellRef.current);
+    document.removeEventListener("click", validationHandler);
+    document.body.classList.remove(GRID_CLICK_IGNORE_CLASS);
+
+    return true;
   };
 
   /**
    * Glide Grid will close the editing interface when it is clicked outside.
    * We need to prevent that behavior by adding the GRID_CLICK_IGNORE_CLASS to the body,
    * and only permitting it when the form is valid.
+   * This does not catch clicks on other cells, because the form is unmounted before validation can run.
    */
   const ensureFormValidation = () => {
     if (document.body.classList.contains(GRID_CLICK_IGNORE_CLASS)) {
@@ -193,16 +212,27 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
           value={(value as number | string | undefined) ?? ""}
           onChange={(newValue) => {
             if (
-              !(
-                "format" in expectedType &&
+              ("format" in expectedType &&
                 expectedType.format &&
-                ["date", "date-time", "time"].includes(expectedType.format)
-              )
+                /**
+                 * We use the native browser date/time inputs which handle validation for us,
+                 * and the validation click handler assumes there will be a click outside after a change
+                 * - which there won't for those inputs, because clicking to select a value closes the input.
+                 */
+                !["date", "date-time", "time"].includes(expectedType.format)) ||
+              "minLength" in expectedType ||
+              "maxLength" in expectedType ||
+              "minimum" in expectedType ||
+              "maximum" in expectedType ||
+              "step" in expectedType
             ) {
               /**
-               * We use the native browser date/time inputs which handle validation for us,
-               * and the validation click handler assumes there will be a click outside after a change
-               * - which there won't for those inputs, because clicking to select a value closes the input.
+               * Add the validation enforcer if there are any validation rules.
+               * We don't add this if we know the user cannot input an invalid value (e.g. unconstrained string or number).
+               * Adding the validation enforcer means clicking into another cell requires a second click to activate it,
+               * so we don't want to add it unnecessarily.
+               * Ideally we wouldn't need the click handler hacks to enforce validation, or have a different validation strategy –
+               * especially given that the validation enforcement can be bypassed by clicking another cell – see H-1834.
                */
               ensureFormValidation();
             }
