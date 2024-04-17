@@ -14,7 +14,6 @@ import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 import type {
-  ChatCompletionCreateParams,
   ChatCompletionMessageParam,
   ChatCompletionSystemMessageParam,
 } from "openai/resources";
@@ -22,24 +21,22 @@ import type {
 import { logger } from "../../../shared/logger";
 import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity";
 import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types";
-import { getOpenAiResponse } from "../../shared/openai";
+import { getLlmResponse } from "../../shared/get-llm-response";
+import type {
+  LlmToolDefinition,
+  ParsedLlmToolCall,
+} from "../../shared/get-llm-response/types";
 import type { PermittedOpenAiModel } from "../../shared/openai-client";
 import { stringify } from "../../shared/stringify";
-// import { getWebPageActivity } from "../../get-web-page-activity";
 import { inferEntitiesFromContentAction } from "../infer-entities-from-content-action";
 import { getWebPageInnerHtml } from "./infer-entities-from-web-page-worker-agent/get-web-page-inner-html";
 import type {
   InferEntitiesFromWebPageWorkerAgentState,
-  ToolId,
+  ToolName,
 } from "./infer-entities-from-web-page-worker-agent/types";
-import { isToolId } from "./infer-entities-from-web-page-worker-agent/types";
+import type { CompletedToolCall } from "./types";
 // import { retrievePreviousState, writeStateToFile } from "./testing-utils";
-import type { CompletedToolCall, ToolCall, ToolDefinition } from "./types";
-import {
-  mapPreviousCallsToChatCompletionMessages,
-  mapToolDefinitionToOpenAiTool,
-  parseOpenAiFunctionArguments,
-} from "./util";
+import { mapPreviousCallsToChatCompletionMessages } from "./util";
 
 const model: PermittedOpenAiModel = "gpt-4-0125-preview";
 
@@ -68,9 +65,9 @@ const explanationDefinition = {
     "An explanation of why this tool call is required to satisfy the task, and how it aligns with the current plan. If the plan needs to be modified",
 } as const;
 
-const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
+const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
   getWebPageInnerHtml: {
-    toolId: "getWebPageInnerHtml",
+    name: "getWebPageInnerHtml",
     description: "Get the inner HTML of a web page.",
     inputSchema: {
       type: "object",
@@ -85,7 +82,7 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
     },
   },
   inferEntitiesFromWebPage: {
-    toolId: "inferEntitiesFromWebPage",
+    name: "inferEntitiesFromWebPage",
     description: "Infer entities from some text content.",
     inputSchema: {
       type: "object",
@@ -180,7 +177,7 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
     },
   },
   submitProposedEntities: {
-    toolId: "submitProposedEntities",
+    name: "submitProposedEntities",
     description:
       "Submit one or more proposed entities as the `result` of the inference task.",
     inputSchema: {
@@ -202,7 +199,7 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
     },
   },
   complete: {
-    toolId: "complete",
+    name: "complete",
     description: dedent(`
       Complete the inference task.
       You must explain how the task has been completed with the existing submitted entities.
@@ -217,7 +214,7 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
     },
   },
   terminate: {
-    toolId: "terminate",
+    name: "terminate",
     description:
       "Terminate the inference task, because it cannot be completed with the provided tools.",
     inputSchema: {
@@ -229,7 +226,7 @@ const toolDefinitions: Record<ToolId, ToolDefinition<ToolId>> = {
     },
   },
   updatePlan: {
-    toolId: "updatePlan",
+    name: "updatePlan",
     description:
       "Update the plan for the research task. You should call this alongside other tool calls to progress towards completing the task.",
     inputSchema: {
@@ -341,29 +338,29 @@ const createInitialPlan = async (params: {
     generateUserMessage({ prompt, url, dereferencedEntityTypes }),
   ];
 
-  const openApiPayload: ChatCompletionCreateParams = {
+  const llmResponse = await getLlmResponse({
     messages,
     model,
-    tools: Object.values(toolDefinitions).map(mapToolDefinitionToOpenAiTool),
-  };
+    tools: Object.values(toolDefinitions),
+  });
 
-  const openAiResponse = await getOpenAiResponse(openApiPayload);
-
-  if (openAiResponse.code !== StatusCode.Ok) {
+  if (llmResponse.status !== "ok") {
     throw new Error(
-      `Failed to get OpenAI response: ${JSON.stringify(openAiResponse)}`,
+      `Failed to get OpenAI response: ${JSON.stringify(llmResponse)}`,
     );
   }
 
-  const { response, usage: _usage } = openAiResponse.contents[0]!;
+  const { choices, usage: _usage } = llmResponse;
+
+  const { message } = choices[0];
 
   /** @todo: capture usage */
 
-  const openAiAssistantMessageContent = response.message.content;
+  const openAiAssistantMessageContent = message.content;
 
   if (!openAiAssistantMessageContent) {
     throw new Error(
-      `Expected message content in response: ${JSON.stringify(response, null, 2)}`,
+      `Expected message content in response: ${JSON.stringify(llmResponse, null, 2)}`,
     );
   }
 
@@ -379,24 +376,14 @@ const getSubmittedProposedEntitiesFromState = (
     state.submittedEntityIds.includes(localEntityId),
   );
 
-const retryLimit = 3;
-
 const getNextToolCalls = async (params: {
   state: InferEntitiesFromWebPageWorkerAgentState;
   prompt: string;
   url: string;
   dereferencedEntityTypes: DereferencedEntityTypesByTypeId;
   retryMessages?: ChatCompletionMessageParam[];
-  retryCount?: number;
-}): Promise<{ toolCalls: ToolCall<ToolId>[] }> => {
-  const {
-    prompt,
-    url,
-    state,
-    retryMessages,
-    retryCount,
-    dereferencedEntityTypes,
-  } = params;
+}): Promise<{ toolCalls: ParsedLlmToolCall<ToolName>[] }> => {
+  const { prompt, url, state, retryMessages, dereferencedEntityTypes } = params;
 
   const submittedProposedEntities =
     getSubmittedProposedEntitiesFromState(state);
@@ -436,83 +423,23 @@ const getNextToolCalls = async (params: {
     ...(retryMessages ?? []),
   ];
 
-  const openApiPayload: ChatCompletionCreateParams = {
+  const llmResponse = await getLlmResponse({
     messages,
     model,
-    tools: Object.values(toolDefinitions).map(mapToolDefinitionToOpenAiTool),
-  };
+    tools: Object.values(toolDefinitions),
+  });
 
-  const openAiResponse = await getOpenAiResponse(openApiPayload);
-
-  if (openAiResponse.code !== StatusCode.Ok) {
+  if (llmResponse.status !== "ok") {
     throw new Error(
-      `Failed to get OpenAI response: ${JSON.stringify(openAiResponse)}`,
+      `Failed to get OpenAI response: ${JSON.stringify(llmResponse)}`,
     );
   }
 
-  const { response, usage: _usage } = openAiResponse.contents[0]!;
+  const { parsedToolCalls, usage: _usage } = llmResponse;
 
   /** @todo: capture usage */
 
-  const openAiToolCalls = response.message.tool_calls;
-
-  const retryWithMessage = async (message: string) => {
-    if (retryCount && retryCount > retryLimit) {
-      throw new Error(`Failed to process OpenAi response: ${message}`);
-    }
-
-    return getNextToolCalls({
-      ...params,
-      retryMessages: [
-        response.message,
-        {
-          role: "user" as const,
-          content: message,
-        },
-      ],
-      retryCount: (params.retryCount ?? 0) + 1,
-    });
-  };
-
-  if (!openAiToolCalls) {
-    return retryWithMessage(
-      "You didn't provide any tool calls. You must make at least one.",
-    );
-  }
-
-  const unexpectedToolCalls = openAiToolCalls.filter(
-    (openAiToolCall) => !isToolId(openAiToolCall.function.name),
-  );
-
-  if (unexpectedToolCalls.length > 0) {
-    return retryWithMessage(
-      dedent(`
-        You made the following unexpected tool calls: ${JSON.stringify(
-          unexpectedToolCalls,
-          null,
-          2,
-        )}
-
-        You must only make tool calls to the tools provided to you.
-      `),
-    );
-  }
-
-  const toolCalls = openAiToolCalls.map<ToolCall<ToolId>>((openAiToolCall) => {
-    if (isToolId(openAiToolCall.function.name)) {
-      return {
-        toolId: openAiToolCall.function.name,
-        openAiToolCall,
-        parsedArguments: parseOpenAiFunctionArguments({
-          stringifiedArguments: openAiToolCall.function.arguments,
-        }),
-      };
-    }
-
-    throw new Error(`Unexpected tool call: ${openAiToolCall.function.name}`);
-  });
-
-  return { toolCalls };
+  return { toolCalls: parsedToolCalls as ParsedLlmToolCall<ToolName>[] };
 };
 
 export const inferEntitiesFromWebPageWorkerAgent = async (params: {
@@ -573,14 +500,14 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
   });
 
   const processToolCalls = async (processToolCallsParams: {
-    toolCalls: ToolCall<ToolId>[];
+    toolCalls: ParsedLlmToolCall<ToolName>[];
   }): Promise<Status<never>> => {
     const { toolCalls } = processToolCallsParams;
 
     logger.debug(`Worker agent processing tool calls: ${stringify(toolCalls)}`);
 
     const terminatedToolCall = toolCalls.find(
-      (toolCall) => toolCall.toolId === "terminate",
+      (toolCall) => toolCall.name === "terminate",
     );
 
     if (terminatedToolCall) {
@@ -592,15 +519,14 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     }
 
     const toolCallsWithRelevantResults = toolCalls.filter(
-      ({ toolId }) => toolId !== "complete" && toolId !== "terminate",
+      ({ name }) => name !== "complete" && name !== "terminate",
     );
 
     const completedToolCalls = await Promise.all(
       toolCallsWithRelevantResults.map(
-        async (toolCall): Promise<CompletedToolCall<ToolId>> => {
-          if (toolCall.toolId === "updatePlan") {
-            const { plan } =
-              toolCall.parsedArguments as ToolCallArguments["updatePlan"];
+        async (toolCall): Promise<CompletedToolCall<ToolName>> => {
+          if (toolCall.name === "updatePlan") {
+            const { plan } = toolCall.input as ToolCallArguments["updatePlan"];
 
             state.currentPlan = plan;
 
@@ -608,9 +534,9 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               ...toolCall,
               output: `The plan has been successfully updated.`,
             };
-          } else if (toolCall.toolId === "getWebPageInnerHtml") {
+          } else if (toolCall.name === "getWebPageInnerHtml") {
             const { url: toolCallUrl } =
-              toolCall.parsedArguments as ToolCallArguments["getWebPageInnerHtml"];
+              toolCall.input as ToolCallArguments["getWebPageInnerHtml"];
 
             const { innerHtml } = await getWebPageInnerHtml({
               url: toolCallUrl,
@@ -621,11 +547,11 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               ...previousCall,
               completedToolCalls: previousCall.completedToolCalls.map(
                 (completedToolCall) => {
-                  if (completedToolCall.toolId === "getWebPageInnerHtml") {
+                  if (completedToolCall.name === "getWebPageInnerHtml") {
                     return {
                       ...completedToolCall,
                       redactedOutputMessage: dedent(`
-                        The inner HTML of the web page with URL ${(JSON.parse(completedToolCall.openAiToolCall.function.arguments) as ToolCallArguments["getWebPageInnerHtml"]).url} has been redacted to reduce the length of this chat.
+                        The inner HTML of the web page with URL ${(completedToolCall.input as ToolCallArguments["getWebPageInnerHtml"]).url} has been redacted to reduce the length of this chat.
                         If you want to see the inner HTML of this page, call the "getWebPageInnerHtml" tool again.
                       `),
                     };
@@ -652,7 +578,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                 tool call unless there are no entities to infer from this page.
               `),
             };
-          } else if (toolCall.toolId === "inferEntitiesFromWebPage") {
+          } else if (toolCall.name === "inferEntitiesFromWebPage") {
             const {
               hmtlContent,
               prompt: toolCallPrompt,
@@ -660,7 +586,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               expectedNumberOfEntities,
               validAt,
               entityTypeIds: inferringEntitiesOfTypeIds,
-            } = toolCall.parsedArguments as ToolCallArguments["inferEntitiesFromWebPage"];
+            } = toolCall.input as ToolCallArguments["inferEntitiesFromWebPage"];
 
             const invalidEntityTypeIds = inferringEntitiesOfTypeIds.filter(
               (entityTypeId) =>
@@ -798,9 +724,9 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               ...toolCall,
               output: JSON.stringify(summarizedNewProposedEntities),
             };
-          } else if (toolCall.toolId === "submitProposedEntities") {
+          } else if (toolCall.name === "submitProposedEntities") {
             const { entityIds } =
-              toolCall.parsedArguments as ToolCallArguments["submitProposedEntities"];
+              toolCall.input as ToolCallArguments["submitProposedEntities"];
 
             const invalidEntityIds = entityIds.filter(
               (entityId) =>
@@ -829,13 +755,13 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
             };
           }
 
-          throw new Error(`Unimplemented tool call: ${toolCall.toolId}`);
+          throw new Error(`Unimplemented tool call: ${toolCall.name}`);
         },
       ),
     );
 
     const isCompleted = toolCalls.some(
-      (toolCall) => toolCall.toolId === "complete",
+      (toolCall) => toolCall.name === "complete",
     );
 
     /**

@@ -11,7 +11,7 @@ import dedent from "dedent";
 import type OpenAI from "openai";
 
 import { logger } from "../../shared/logger";
-import { getOpenAiResponse } from "../shared/openai";
+import { getLlmResponse } from "../shared/get-llm-response";
 import { stringify } from "../shared/stringify";
 import type {
   CompletionPayload,
@@ -179,7 +179,7 @@ export const proposeEntities = async (params: {
 
   logger.debug(`Next message to model: ${stringify(nextMessage)}`);
 
-  const openApiPayload: OpenAI.ChatCompletionCreateParams = {
+  const llmResponse = await getLlmResponse({
     ...completionPayload,
     messages: [...completionPayload.messages, nextMessage],
     tools,
@@ -188,27 +188,21 @@ export const proposeEntities = async (params: {
      * so set the `temperature` to `0`.
      */
     temperature: 0,
-  };
+  });
 
-  const openAiResponse = await getOpenAiResponse(
-    openApiPayload,
-    firstUserMessageIndex,
-  );
-
-  if (openAiResponse.code !== StatusCode.Ok) {
+  if (llmResponse.status !== "ok") {
     return {
-      ...openAiResponse,
+      code: StatusCode.Internal,
       contents: [inferenceState],
     };
   }
 
-  const { response, usage } = openAiResponse.contents[0]!;
+  const { stopReason, usage, parsedToolCalls } = llmResponse;
 
-  const { finish_reason, message } = response;
-
-  const toolCalls = message.tool_calls;
+  const { message } = llmResponse.choices[0]!;
 
   const latestUsage = [...usageFromLastIteration, usage];
+
   inferenceState.usage = latestUsage;
 
   const retryWithMessages = ({
@@ -252,7 +246,7 @@ export const proposeEntities = async (params: {
     });
   };
 
-  switch (finish_reason) {
+  switch (stopReason) {
     case "stop": {
       const errorMessage = `AI Model returned 'stop' finish reason, with message: ${
         message.content ?? "no message"
@@ -273,7 +267,8 @@ export const proposeEntities = async (params: {
         `AI Model returned 'length' finish reason on attempt ${iterationCount}.`,
       );
 
-      const toolCallId = toolCalls?.[0]?.id;
+      const toolCallId = parsedToolCalls[0]?.id;
+
       if (!toolCallId) {
         return {
           code: StatusCode.ResourceExhausted,
@@ -311,69 +306,25 @@ export const proposeEntities = async (params: {
       };
     }
 
-    case "tool_calls": {
-      if (!toolCalls) {
-        const errorMessage =
-          "AI Model returned 'tool_calls' finish reason with no tool calls";
-
-        logger.error(`${errorMessage}. Message: ${stringify(message)}`);
-
-        return {
-          code: StatusCode.Internal,
-          contents: [inferenceState],
-          message: errorMessage,
-        };
-      }
-
+    case "tool_use": {
       const retryMessages: ((
         | OpenAI.ChatCompletionUserMessageParam
         | OpenAI.ChatCompletionToolMessageParam
       ) & { requiresOriginalContext: boolean })[] = [];
 
-      for (const toolCall of toolCalls) {
-        const toolCallId = toolCall.id;
-
-        const functionCall = toolCall.function;
-
-        const { arguments: modelProvidedArgument, name: functionName } =
-          functionCall;
-
-        try {
-          JSON.parse(modelProvidedArgument);
-        } catch {
-          logger.error(
-            `Could not parse AI Model response on attempt ${iterationCount}: ${stringify(
-              modelProvidedArgument,
-            )}`,
-          );
-
-          return retryWithMessages({
-            retryMessages: [
-              {
-                role: "tool",
-                content:
-                  "Your previous response contained invalid JSON. Please try again.",
-                tool_call_id: toolCallId,
-              },
-            ],
-            requiresOriginalContext: true,
-          });
-        }
-
-        if (functionName === "abandon_entities") {
+      for (const toolCall of parsedToolCalls) {
+        if (toolCall.name === "abandon_entities") {
           // The model is giving up on these entities
 
           // First, check the argument is valid
-          const abandonedEntityIds = JSON.parse(
-            modelProvidedArgument,
-          ) as unknown;
+          const abandonedEntityIds = toolCall.input;
           if (
             !Array.isArray(abandonedEntityIds) ||
             !abandonedEntityIds.every((item) => typeof item === "number")
           ) {
             logger.error(
               `Model provided invalid argument to abandon_entities function. Argument provided: ${stringify(
-                modelProvidedArgument,
+                toolCall.input,
               )}`,
             );
 
@@ -382,7 +333,7 @@ export const proposeEntities = async (params: {
                 "You provided an invalid argument to abandon_entities. Please try again",
               requiresOriginalContext: true,
               role: "tool",
-              tool_call_id: toolCallId,
+              tool_call_id: toolCall.id,
             });
             continue;
           }
@@ -395,12 +346,11 @@ export const proposeEntities = async (params: {
             );
         }
 
-        if (functionName === "create_entities") {
+        if (toolCall.name === "create_entities") {
           let proposedEntitiesByType: ProposedEntityCreationsByType;
           try {
-            proposedEntitiesByType = JSON.parse(
-              modelProvidedArgument,
-            ) as ProposedEntityCreationsByType;
+            proposedEntitiesByType =
+              toolCall.input as ProposedEntityCreationsByType;
 
             validateProposedEntitiesByType(proposedEntitiesByType, false);
 
@@ -550,7 +500,7 @@ export const proposeEntities = async (params: {
             if (retryMessageContent) {
               retryMessages.push({
                 role: "tool",
-                tool_call_id: toolCallId,
+                tool_call_id: toolCall.id,
                 content: retryMessageContent,
                 requiresOriginalContext: requiresOriginalContextForRetry,
               });
@@ -558,7 +508,7 @@ export const proposeEntities = async (params: {
           } catch (err) {
             logger.error(
               `Model provided invalid argument to create_entities function. Argument provided: ${stringify(
-                modelProvidedArgument,
+                toolCall.input,
               )}`,
             );
 
@@ -567,7 +517,7 @@ export const proposeEntities = async (params: {
                 "You provided an invalid argument to create_entities. Please try again",
               requiresOriginalContext: true,
               role: "tool",
-              tool_call_id: toolCallId,
+              tool_call_id: toolCall.id,
             });
             continue;
           }
@@ -604,7 +554,7 @@ export const proposeEntities = async (params: {
         };
       }
 
-      const toolCallsWithoutProblems = toolCalls.filter(
+      const toolCallsWithoutProblems = parsedToolCalls.filter(
         (toolCall) =>
           !retryMessages.some(
             (msg) => msg.role === "tool" && msg.tool_call_id === toolCall.id,
@@ -635,7 +585,7 @@ export const proposeEntities = async (params: {
     }
   }
 
-  const errorMessage = `AI Model returned unhandled finish reason: ${finish_reason}`;
+  const errorMessage = `AI Model returned unhandled finish reason: ${stopReason}`;
   logger.error(errorMessage);
 
   return {
