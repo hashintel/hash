@@ -31,6 +31,7 @@ import type {
 } from "./get-llm-response/types";
 import { isLlmParamsAnthropicLlmParams } from "./get-llm-response/types";
 import { modelToContextWindow, openai } from "./openai-client";
+import { stringify } from "./stringify";
 
 type LlmToolDefinition = {
   name: string;
@@ -106,6 +107,9 @@ type LlmResponse<T extends LlmParams> =
     } & (T extends AnthropicLlmParams ? AnthropicResponse : OpenAiResponse))
   | {
       status: "exceeded-maximum-retries";
+    }
+  | {
+      status: "api-error";
     };
 
 const ajv = new Ajv();
@@ -127,11 +131,23 @@ const getAnthropicResponse = async (
   const maxTokens =
     params.maxTokens ?? anthropicMessageModelToMaxOutput[params.model];
 
-  const anthropicResponse = await createAnthropicMessagesWithTools({
-    ...params,
-    max_tokens: maxTokens,
-    tools: anthropicTools,
-  });
+  let anthropicResponse: AnthropicResponse;
+
+  try {
+    anthropicResponse = await createAnthropicMessagesWithTools({
+      ...params,
+      max_tokens: maxTokens,
+      tools: anthropicTools,
+    });
+
+    logger.debug(`Anthropic API response: ${stringify(anthropicResponse)}`);
+  } catch (error) {
+    logger.error(`Anthropic API error: ${stringify(error)}`);
+
+    return {
+      status: "api-error",
+    };
+  }
 
   const retry = async (retryParams: {
     retryMessage: AnthropicMessagesCreateParams["messages"][number];
@@ -193,7 +209,7 @@ const getAnthropicResponse = async (
           tool_use_id: toolCall.id,
           content: dedent(`
             The provided input did not match the schema.
-            It contains the following errors: ${JSON.stringify(validate.errors)}
+            It contains the following errors: ${stringify(validate.errors)}
           `),
           is_error: true,
         });
@@ -278,8 +294,19 @@ const getOpenAiResponse = async (
     } while (excessTokens > 9);
   }
 
-  const openAiResponse =
-    await openai.chat.completions.create(completionPayload);
+  let openAiResponse: OpenAiResponse;
+
+  try {
+    openAiResponse = await openai.chat.completions.create(completionPayload);
+
+    logger.debug(`OpenAI response: ${stringify(openAiResponse)}`);
+  } catch (error) {
+    logger.error(`OpenAI API error: ${stringify(error)}`);
+
+    return {
+      status: "api-error",
+    };
+  }
 
   const retry = async (retryParams: {
     retryMessages: OpenAiLlmParams["messages"];
@@ -291,7 +318,7 @@ const getOpenAiResponse = async (
     }
 
     logger.debug(
-      `Retrying OpenAi call with the following retry messages: ${JSON.stringify(retryParams.retryMessages, null, 2)}`,
+      `Retrying OpenAi call with the following retry messages: ${stringify(retryParams.retryMessages)}`,
     );
 
     return getOpenAiResponse({
