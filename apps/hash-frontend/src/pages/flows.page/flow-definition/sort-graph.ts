@@ -60,7 +60,7 @@ export const sortStepsTopologically = (
 
     sortedItems.push(readyStep);
 
-    const stepsReducedToZeroDepdendenciesByReadyStep: string[] = [];
+    const stepsReducedToZeroDependenciesByReadyStep: string[] = [];
 
     for (const possiblyDependentStep of steps) {
       const inputSources =
@@ -108,7 +108,7 @@ export const sortStepsTopologically = (
                  * Any steps reduced to zero in this iteration will be processed in a future iteration,
                  * at which point the step dependent on the parallel group can be pushed into the zero deps queue.
                  */
-                !stepsReducedToZeroDepdendenciesByReadyStep.includes(
+                !stepsReducedToZeroDependenciesByReadyStep.includes(
                   step.stepId,
                 ) && dependencyCountByStepId.get(step.stepId) === 0,
             );
@@ -135,7 +135,7 @@ export const sortStepsTopologically = (
 
         if (newCount === 0) {
           stepsWithoutDependencies.push(possiblyDependentStep);
-          stepsReducedToZeroDepdendenciesByReadyStep.push(
+          stepsReducedToZeroDependenciesByReadyStep.push(
             possiblyDependentStep.stepId,
           );
         }
