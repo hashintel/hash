@@ -38,7 +38,7 @@ export const sortStepsTopologically = (
       step.kind === "action"
         ? step.inputSources
         : /**
-           * This is a parallel group, which has a single input source to parallelize on and its own steps,
+           * This is a parallel group, which has a single input source to parallelize
            */
           [step.inputSourceToParallelizeOn];
 
