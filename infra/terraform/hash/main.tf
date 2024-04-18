@@ -377,6 +377,10 @@ module "application" {
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_openai_api_key"])
     },
     {
+      name = "ANTHROPIC_API_KEY", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_anthropic_api_key"])
+    },
+    {
       name  = "INTERNAL_API_KEY", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["internal_api_key"])
     },
