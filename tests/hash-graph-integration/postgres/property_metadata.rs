@@ -63,11 +63,11 @@ fn property_provenance_a() -> PropertyProvenance {
     PropertyProvenance {
         sources: vec![SourceProvenance {
             ty: SourceType::Webpage,
-            authors: vec!["Alice".to_string()],
+            authors: vec!["Alice".to_owned()],
             location: Some(Location {
-                name: Some("Alice's blog".to_string()),
+                name: Some("Alice's blog".to_owned()),
                 uri: Some("https://alice.com".try_into().expect("could not parse URI")),
-                description: Some("Alice's blog".to_string()),
+                description: Some("Alice's blog".to_owned()),
             }),
             first_published: None,
             last_updated: None,
