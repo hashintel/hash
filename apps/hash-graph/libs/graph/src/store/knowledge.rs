@@ -274,17 +274,17 @@ pub struct UpdateEntityEmbeddingsParams<'e> {
 pub struct DiffEntityParams {
     pub first_entity_id: EntityId,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[cfg_attr(feature = "utoipa", schema(required = true))]
     pub first_decision_time: Option<Timestamp<DecisionTime>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[cfg_attr(feature = "utoipa", schema(required = true))]
     pub first_transaction_time: Option<Timestamp<TransactionTime>>,
     pub second_entity_id: EntityId,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[cfg_attr(feature = "utoipa", schema(required = true))]
     pub second_decision_time: Option<Timestamp<DecisionTime>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[cfg_attr(feature = "utoipa", schema(required = true))]
     pub second_transaction_time: Option<Timestamp<TransactionTime>>,
 }
 
