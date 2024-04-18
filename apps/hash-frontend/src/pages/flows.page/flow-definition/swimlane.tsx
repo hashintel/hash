@@ -152,6 +152,7 @@ export const Swimlane = ({
                 ? palette.red[10]
                 : palette.common.white,
         borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
+        borderRadius: 2.5,
         py: 2.5,
         px: 3,
         flex: 1,
