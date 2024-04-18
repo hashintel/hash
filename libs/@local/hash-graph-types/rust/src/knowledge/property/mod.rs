@@ -4,7 +4,7 @@ mod object;
 mod patch;
 mod path;
 
-use std::{cmp::Ordering, collections::HashMap, fmt, io};
+use std::{borrow::Cow, cmp::Ordering, collections::HashMap, fmt, io};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
@@ -111,7 +111,7 @@ impl Property {
                     path.push(index);
                     yield PropertyDiff::Added {
                         path: path.clone(),
-                        added: property,
+                        added: Cow::Borrowed(property),
                     };
                     path.pop();
                 }
@@ -122,7 +122,7 @@ impl Property {
                     path.push(index);
                     yield PropertyDiff::Removed {
                         path: path.clone(),
-                        removed: property,
+                        removed: Cow::Borrowed(property),
                     };
                     path.pop();
                 }
@@ -145,7 +145,7 @@ impl Property {
             } else {
                 yield PropertyDiff::Removed {
                     path: path.clone(),
-                    removed: property,
+                    removed: Cow::Borrowed(property),
                 };
             }
             path.pop();
@@ -155,7 +155,7 @@ impl Property {
                 path.push(key);
                 yield PropertyDiff::Added {
                     path: path.clone(),
-                    added: property,
+                    added: Cow::Borrowed(property),
                 };
                 path.pop();
             }
@@ -189,8 +189,8 @@ impl Property {
         if changed {
             yield PropertyDiff::Changed {
                 path: path.clone(),
-                old: self,
-                new: other,
+                old: Cow::Borrowed(self),
+                new: Cow::Borrowed(other),
             };
         }
     }
