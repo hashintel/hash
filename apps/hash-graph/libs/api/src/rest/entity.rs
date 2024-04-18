@@ -66,6 +66,7 @@ use crate::rest::{
         validate_entity,
         check_entity_permission,
         get_entities_by_query,
+        count_entities,
         patch_entity,
         update_entity_embeddings,
 
@@ -176,7 +177,12 @@ impl RoutedResource for EntityResource {
                             get(check_entity_permission::<A>),
                         ),
                 )
-                .route("/query", post(get_entities_by_query::<S, A>)),
+                .nest(
+                    "/query",
+                    Router::new()
+                        .route("/", post(get_entities_by_query::<S, A>))
+                        .route("/count", post(count_entities::<S, A>)),
+                ),
         )
     }
 }
@@ -461,6 +467,56 @@ where
         subgraph: subgraph.into(),
         cursor: cursor.map(EntityQueryCursor::into_owned),
     }))
+}
+
+#[utoipa::path(
+    post,
+    path = "/entities/query/count",
+    request_body = EntityStructuralQuery,
+    tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+
+    ),
+    responses(
+        (
+            status = 200,
+            content_type = "application/json",
+            body = usize,
+        ),
+        (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, request))]
+async fn count_entities<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    Json(request): Json<serde_json::Value>,
+) -> Result<Json<usize>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let store = store_pool.acquire().await.map_err(report_to_response)?;
+
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    let mut query = EntityStructuralQuery::deserialize(&request).map_err(report_to_response)?;
+    query
+        .filter
+        .convert_parameters()
+        .map_err(report_to_response)?;
+
+    store
+        .count_entities(actor_id, &authorization_api, query)
+        .await
+        .map(Json)
+        .map_err(report_to_response)
 }
 
 #[utoipa::path(

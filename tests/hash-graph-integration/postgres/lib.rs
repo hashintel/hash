@@ -568,24 +568,26 @@ impl DatabaseApi<'_> {
     }
 
     pub async fn get_entities(&self, entity_id: EntityId) -> Result<Vec<Entity>, QueryError> {
-        Ok(self
+        let query = StructuralQuery {
+            filter: Filter::for_entity_by_entity_id(entity_id),
+            graph_resolve_depths: GraphResolveDepths::default(),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
+            },
+            include_drafts: false,
+        };
+        let count = self
+            .store
+            .count_entities(self.account_id, &NoAuthorization, query.clone())
+            .await?;
+        let subgraph = self
             .store
             .get_entity(
                 self.account_id,
                 &NoAuthorization,
                 GetEntityParams {
-                    query: StructuralQuery {
-                        filter: Filter::for_entity_by_entity_id(entity_id),
-                        graph_resolve_depths: GraphResolveDepths::default(),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(
-                                Some(TemporalBound::Unbounded),
-                                None,
-                            ),
-                        },
-                        include_drafts: false,
-                    },
+                    query,
                     sorting: EntityQuerySorting {
                         paths: Vec::new(),
                         cursor: None,
@@ -594,11 +596,9 @@ impl DatabaseApi<'_> {
                 },
             )
             .await?
-            .0
-            .vertices
-            .entities
-            .into_values()
-            .collect())
+            .0;
+        assert_eq!(count, subgraph.roots.len());
+        Ok(subgraph.vertices.entities.into_values().collect())
     }
 
     pub async fn get_all_entities(
@@ -643,42 +643,48 @@ impl DatabaseApi<'_> {
         &self,
         entity_type_id: &VersionedUrl,
     ) -> Result<Vec<Entity>, QueryError> {
+        let query = StructuralQuery {
+            filter: Filter::All(vec![
+                Filter::Equal(
+                    Some(FilterExpression::Path(EntityQueryPath::EntityTypeEdge {
+                        edge_kind: SharedEdgeKind::IsOfType,
+                        path: EntityTypeQueryPath::BaseUrl,
+                        inheritance_depth: Some(0),
+                    })),
+                    Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                        entity_type_id.base_url.as_str(),
+                    )))),
+                ),
+                Filter::Equal(
+                    Some(FilterExpression::Path(EntityQueryPath::EntityTypeEdge {
+                        edge_kind: SharedEdgeKind::IsOfType,
+                        path: EntityTypeQueryPath::Version,
+                        inheritance_depth: Some(0),
+                    })),
+                    Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
+                        entity_type_id.version,
+                    ))),
+                ),
+            ]),
+            graph_resolve_depths: GraphResolveDepths::default(),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(None, None),
+            },
+            include_drafts: false,
+        };
+
+        let count = self
+            .store
+            .count_entities(self.account_id, &NoAuthorization, query.clone())
+            .await?;
         let (mut subgraph, _) = self
             .store
             .get_entity(
                 self.account_id,
                 &NoAuthorization,
                 GetEntityParams {
-                    query: StructuralQuery {
-                        filter: Filter::All(vec![
-                            Filter::Equal(
-                                Some(FilterExpression::Path(EntityQueryPath::EntityTypeEdge {
-                                    edge_kind: SharedEdgeKind::IsOfType,
-                                    path: EntityTypeQueryPath::BaseUrl,
-                                    inheritance_depth: Some(0),
-                                })),
-                                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                                    entity_type_id.base_url.as_str(),
-                                )))),
-                            ),
-                            Filter::Equal(
-                                Some(FilterExpression::Path(EntityQueryPath::EntityTypeEdge {
-                                    edge_kind: SharedEdgeKind::IsOfType,
-                                    path: EntityTypeQueryPath::Version,
-                                    inheritance_depth: Some(0),
-                                })),
-                                Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
-                                    entity_type_id.version,
-                                ))),
-                            ),
-                        ]),
-                        graph_resolve_depths: GraphResolveDepths::default(),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
-                        },
-                        include_drafts: false,
-                    },
+                    query,
                     sorting: EntityQuerySorting {
                         paths: Vec::new(),
                         cursor: None,
@@ -687,6 +693,8 @@ impl DatabaseApi<'_> {
                 },
             )
             .await?;
+        assert_eq!(count, subgraph.roots.len());
+
         Ok(subgraph
             .roots
             .into_iter()

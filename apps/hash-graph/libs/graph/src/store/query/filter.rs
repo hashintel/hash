@@ -25,7 +25,8 @@ use crate::{
 #[derive(Derivative, Deserialize)]
 #[derivative(
     Debug(bound = "R::QueryPath<'p>: fmt::Debug"),
-    PartialEq(bound = "R::QueryPath<'p>: PartialEq")
+    PartialEq(bound = "R::QueryPath<'p>: PartialEq"),
+    Clone(bound = "R::QueryPath<'p>: Clone")
 )]
 #[serde(
     rename_all = "camelCase",
@@ -183,7 +184,8 @@ where
 #[derive(Derivative, Deserialize)]
 #[derivative(
     Debug(bound = "R::QueryPath<'p>: fmt::Debug"),
-    PartialEq(bound = "R::QueryPath<'p>: PartialEq")
+    PartialEq(bound = "R::QueryPath<'p>: PartialEq"),
+    Clone(bound = "R::QueryPath<'p>: Clone")
 )]
 #[serde(
     rename_all = "camelCase",
@@ -194,7 +196,7 @@ pub enum FilterExpression<'p, R: QueryRecord + ?Sized> {
     Parameter(Parameter<'p>),
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(untagged)]
 pub enum Parameter<'p> {
     Boolean(bool),

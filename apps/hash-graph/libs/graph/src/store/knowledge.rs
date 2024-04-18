@@ -354,6 +354,20 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
         Output = Result<(Subgraph, Option<EntityQueryCursor<'static>>), Report<QueryError>>,
     > + Send;
 
+    /// Count the number of entities that would be returned in [`get_entity`].
+    ///
+    /// # Errors
+    ///
+    /// - if the request to the database fails
+    ///
+    /// [`get_entity`]: Self::get_entity
+    fn count_entities<A: AuthorizationApi + Sync>(
+        &self,
+        actor_id: AccountId,
+        authorization_api: &A,
+        query: EntityStructuralQuery<'_>,
+    ) -> impl Future<Output = Result<usize, Report<QueryError>>> + Send;
+
     fn patch_entity<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,

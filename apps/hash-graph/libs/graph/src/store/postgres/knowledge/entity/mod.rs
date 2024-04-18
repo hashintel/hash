@@ -67,6 +67,7 @@ use crate::{
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
         identifier::{EntityIdWithInterval, EntityVertexId},
+        query::EntityStructuralQuery,
         temporal_axes::{
             PinnedTemporalAxis, PinnedTemporalAxisUnresolved, QueryTemporalAxes,
             QueryTemporalAxesUnresolved, VariableAxis, VariableTemporalAxis,
@@ -1109,6 +1110,45 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .await?;
 
         Ok((subgraph, last))
+    }
+
+    async fn count_entities<Au: AuthorizationApi + Sync>(
+        &self,
+        actor_id: AccountId,
+        authorization_api: &Au,
+        query: EntityStructuralQuery<'_>,
+    ) -> Result<usize, QueryError> {
+        let temporal_axes = query.temporal_axes.resolve();
+
+        let entity_ids = Read::<Entity>::read(
+            self,
+            &query.filter,
+            Some(&temporal_axes),
+            query.include_drafts,
+        )
+        .await?
+        .map_ok(|entity| entity.metadata.record_id.entity_id)
+        .try_collect::<Vec<_>>()
+        .await?;
+
+        let permitted_ids = authorization_api
+            .check_entities_permission(
+                actor_id,
+                EntityPermission::View,
+                entity_ids.iter().copied(),
+                Consistency::FullyConsistent,
+            )
+            .await
+            .change_context(QueryError)?
+            .0
+            .into_iter()
+            .filter_map(|(entity_id, has_permission)| has_permission.then_some(entity_id))
+            .collect::<HashSet<_>>();
+
+        Ok(entity_ids
+            .into_iter()
+            .filter(|id| permitted_ids.contains(&id.entity_uuid))
+            .count())
     }
 
     #[tracing::instrument(level = "info", skip(self, authorization_api, temporal_client, params))]
