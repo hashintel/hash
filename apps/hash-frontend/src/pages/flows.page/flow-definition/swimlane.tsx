@@ -132,7 +132,12 @@ export const Swimlane = ({
     [nodes],
   );
 
-  const groupStatus = useStatusForSteps(nodes);
+  const stepsWithIds = useMemo(
+    () => nodes.map((node) => ({ stepId: node.id })),
+    [nodes],
+  );
+
+  const groupStatus = useStatusForSteps(stepsWithIds);
 
   return (
     <Stack

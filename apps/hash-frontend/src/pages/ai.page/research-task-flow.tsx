@@ -40,6 +40,7 @@ const constructFlowDefinition = (params: {
     flowDefinitionId: "research-task" as EntityUuid,
     trigger: {
       triggerDefinitionId: "userTrigger",
+      description: "User provides research prompt and entity types of interest",
       kind: "trigger",
       outputs: [
         {

@@ -1,6 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
+import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type {
   AllFilter,
   EntityMetadata,
@@ -56,7 +57,6 @@ import type {
   LinkedEntityDefinition,
 } from "../../../graphql/api-types.gen";
 import { isTestEnv } from "../../../lib/env-config";
-import type { TemporalClient } from "../../../temporal";
 import { linkedTreeFlatten } from "../../../util";
 import type { ImpureGraphFunction } from "../../context-types";
 import { rewriteSemanticFilter } from "../../shared/rewrite-semantic-filter";

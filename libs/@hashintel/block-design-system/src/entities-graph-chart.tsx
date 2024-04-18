@@ -4,7 +4,7 @@ import type {
   EntityRootType,
   Subgraph,
 } from "@blockprotocol/graph";
-import { getEntities, getEntityTypeById } from "@blockprotocol/graph/stdlib";
+import { getEntityTypeById } from "@blockprotocol/graph/stdlib";
 import type { Chart, ECOption } from "@hashintel/design-system";
 import { EChart } from "@hashintel/design-system";
 // eslint-disable-next-line no-restricted-imports

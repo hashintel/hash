@@ -132,7 +132,9 @@ export const statusToSimpleStatus = (
   return simpleStatus;
 };
 
-export const useStatusForSteps = (steps: StepDefinition[]): SimpleStatus => {
+export const useStatusForSteps = (
+  steps: { stepId: string }[],
+): SimpleStatus => {
   const { selectedFlowRun } = useFlowRunsContext();
 
   return useMemo(() => {

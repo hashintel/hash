@@ -404,7 +404,7 @@ export const FlowDefinition = () => {
         <Box sx={{ width: "40%", pl: 3, pt: 2.5 }}>
           <SectionLabel text="Deliverable" />
 
-          <Deliverable outputs={selectedFlowRun?.outputs} />
+          <Deliverable outputs={selectedFlowRun?.outputs ?? []} />
         </Box>
       </Stack>
     </Box>

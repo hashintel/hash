@@ -265,7 +265,11 @@ const recursivelyValidateSteps = (params: {
         }
       }
 
-      if ("fallbackValue" in inputSource && inputSource.fallbackPayload) {
+      if (
+        "fallbackValue" in inputSource &&
+        "fallbackPayload" in inputSource &&
+        inputSource.fallbackPayload
+      ) {
         if (
           !matchingDefinitionInput.oneOfPayloadKinds.includes(
             inputSource.fallbackPayload.kind,

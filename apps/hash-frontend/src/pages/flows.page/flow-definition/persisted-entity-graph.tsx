@@ -1,16 +1,12 @@
 import { useQuery } from "@apollo/client";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import { EntitiesGraphChart } from "@hashintel/block-design-system";
 import {
   fullOntologyResolveDepths,
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type {
-  Entity,
-  EntityRootType,
-  EntityTypeRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import type { SxProps, Theme } from "@mui/material";
 import { Box } from "@mui/material";
 
@@ -39,7 +35,7 @@ export const PersistedEntityGraph = ({
     (entity) => entity.metadata.entityTypeId,
   );
 
-  const { data: entityTypeResultData, loading: entityTypesLoading } = useQuery<
+  const { data: entityTypeResultData } = useQuery<
     QueryEntityTypesQuery,
     QueryEntityTypesQueryVariables
   >(queryEntityTypesQuery, {
@@ -58,9 +54,7 @@ export const PersistedEntityGraph = ({
     skip: persistedEntities.length === 0,
   });
 
-  const entityTypeSubgraph = entityTypeResultData?.queryEntityTypes as
-    | Subgraph<EntityTypeRootType>
-    | undefined;
+  const entityTypeSubgraph = entityTypeResultData?.queryEntityTypes;
 
   if (!entityTypeSubgraph && !persistedEntities.length) {
     return <Box sx={containerSx} />;
@@ -70,7 +64,7 @@ export const PersistedEntityGraph = ({
     <EntitiesGraphChart
       entities={persistedEntities}
       sx={containerSx}
-      subgraph={entityTypeSubgraph as Subgraph<EntityRootType>} // @todo sort out this param to EntitiesGraphChart
+      subgraph={entityTypeSubgraph as unknown as Subgraph<EntityRootType>} // @todo sort out this param to EntitiesGraphChart
     />
   );
 };
