@@ -17,6 +17,7 @@ export type LlmToolDefinition<ToolName extends string = string> = {
   name: ToolName;
   description: string;
   inputSchema: JSONSchema;
+  sanitizeInputBeforeValidation?: (rawInput: object) => object;
 };
 
 export type CommonLlmParams<ToolName extends string = string> = {

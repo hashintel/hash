@@ -95,9 +95,61 @@ const mapAnthropicStopReasonToLlmStopReason = (
   }
 };
 
+const sanitizeInputBeforeValidation = (params: {
+  input: object;
+  toolDefinition: LlmToolDefinition;
+}): object => {
+  const { input, toolDefinition } = params;
+
+  if (toolDefinition.sanitizeInputBeforeValidation) {
+    try {
+      const sanitizedInput =
+        toolDefinition.sanitizeInputBeforeValidation(input);
+
+      return sanitizedInput;
+    } catch {
+      /**
+       * If an error occurs during sanitization, it likely means that the
+       * sanitization function doesn't handle some incorrect version of the
+       * input. In this case, we can proceed to the JSON Schema validation
+       * step which should produce a more informative error message for the LLM.
+       */
+      logger.error(
+        `Error sanitizing input before validation: ${stringify(input)}`,
+      );
+    }
+  }
+
+  return input;
+};
+
 const ajv = new Ajv();
 
 addFormats(ajv);
+
+const getInputValidationErrors = (params: {
+  input: object;
+  toolDefinition: LlmToolDefinition;
+}) => {
+  const { input, toolDefinition } = params;
+
+  const validate = ajv.compile({
+    ...toolDefinition.inputSchema,
+    additionalProperties: false,
+  });
+
+  const inputIsValid = validate(input);
+
+  if (!inputIsValid) {
+    logger.error(
+      `Input did not match schema: ${stringify(validate.errors)} for tool: ${toolDefinition.name}`,
+    );
+
+    return validate.errors ?? [];
+  }
+
+  return null;
+};
 
 const maxRetryCount = 3;
 
@@ -157,17 +209,19 @@ const getAnthropicResponse = async (
     });
   };
 
-  const parsedToolCalls =
+  const parsedToolCalls: ParsedLlmToolCall[] = [];
+
+  const unvalidatedParsedToolCalls =
     parseToolCallsFromAnthropicResponse(anthropicResponse);
 
   const stopReason = mapAnthropicStopReasonToLlmStopReason(
     anthropicResponse.stop_reason,
   );
 
-  if (stopReason === "tool_use" && parsedToolCalls.length > 0) {
+  if (stopReason === "tool_use" && unvalidatedParsedToolCalls.length > 0) {
     const retryMessageContent: MessageContent = [];
 
-    for (const toolCall of parsedToolCalls) {
+    for (const toolCall of unvalidatedParsedToolCalls) {
       const toolDefinition = tools?.find((tool) => tool.name === toolCall.name);
 
       if (!toolDefinition) {
@@ -181,24 +235,29 @@ const getAnthropicResponse = async (
         continue;
       }
 
-      const validate = ajv.compile({
-        ...toolDefinition.inputSchema,
-        additionalProperties: false,
+      const sanitizedInput = sanitizeInputBeforeValidation({
+        input: toolCall.input,
+        toolDefinition,
       });
 
-      const inputIsValid = validate(toolCall.input);
+      const validationErrors = getInputValidationErrors({
+        input: sanitizedInput,
+        toolDefinition,
+      });
 
-      if (!inputIsValid) {
+      if (validationErrors) {
         retryMessageContent.push({
           type: "tool_result",
           tool_use_id: toolCall.id,
           content: dedent(`
             The provided input did not match the schema.
-            It contains the following errors: ${stringify(validate.errors)}
+            It contains the following errors: ${stringify(validationErrors)}
           `),
           is_error: true,
         });
       }
+
+      parsedToolCalls.push({ ...toolCall, input: sanitizedInput });
     }
 
     if (retryMessageContent.length > 0) {
@@ -375,27 +434,30 @@ const getOpenAiResponse = async (
       continue;
     }
 
-    const validate = ajv.compile({
-      ...toolDefinition.inputSchema,
-      additionalProperties: false,
+    const sanitizedInput = sanitizeInputBeforeValidation({
+      input: parsedInput,
+      toolDefinition,
     });
 
-    const inputIsValid = validate(parsedInput);
+    const validationErrors = getInputValidationErrors({
+      input: sanitizedInput,
+      toolDefinition,
+    });
 
-    if (!inputIsValid) {
+    if (validationErrors) {
       retryMessages.push({
         role: "tool",
         tool_call_id: id,
         content: dedent(`
           The provided input did not match the schema.
-          It contains the following errors: ${JSON.stringify(validate.errors)}
+          It contains the following errors: ${JSON.stringify(validationErrors)}
         `),
       });
 
       continue;
     }
 
-    parsedToolCalls.push({ id, name, input: parsedInput });
+    parsedToolCalls.push({ id, name, input: sanitizedInput });
   }
 
   if (retryMessages.length > 0) {

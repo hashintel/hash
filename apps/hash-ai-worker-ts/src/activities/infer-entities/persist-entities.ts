@@ -17,16 +17,14 @@ import type {
   InferenceState,
 } from "./inference-types";
 import { createEntities } from "./persist-entities/create-entities";
-import type {
-  ProposedEntityCreationsByType,
-  ProposedEntityUpdatesByType,
-} from "./persist-entities/generate-persist-entities-tools";
+import type { ProposedEntityUpdatesByType } from "./persist-entities/generate-persist-entities-tools";
 import {
   generatePersistEntitiesTools,
   validateProposedEntitiesByType,
 } from "./persist-entities/generate-persist-entities-tools";
 import { updateEntities } from "./persist-entities/update-entities";
 import { firstUserMessageIndex } from "./shared/first-user-message-index";
+import type { ProposedEntityCreationsByType } from "./shared/generate-propose-entities-tools";
 
 export const persistEntities = async (params: {
   authentication: { machineActorId: AccountId };
