@@ -8,7 +8,7 @@ import type {
   ValueOrArray,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
+import { extractVersion } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
   BaseUrl,
@@ -22,7 +22,12 @@ import {
   getEntityTypeAndParentsById,
   getPropertyTypeById,
 } from "@local/hash-subgraph/stdlib";
-import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
+import {
+  componentsFromVersionedUrl,
+  extractBaseUrl,
+} from "@local/hash-subgraph/type-system-patch";
+
+import { generateSimplifiedTypeId } from "../infer-entities/shared/generate-simplified-type-id";
 
 type MinimalDataType = Omit<CustomDataType, "$id" | "$schema" | "kind">;
 
@@ -39,71 +44,126 @@ export type DereferencedPropertyType = Pick<
 > &
   OneOf<MinimalPropertyTypeValue>;
 
-export type DereferencedEntityType = Pick<
-  EntityType,
-  "$id" | "description" | "links" | "title"
-> & {
+export type DereferencedEntityType<
+  PropertyTypeKey extends string | BaseUrl = BaseUrl,
+> = Pick<EntityType, "$id" | "description" | "links" | "title"> & {
   properties: Record<
-    BaseUrl,
+    PropertyTypeKey,
     DereferencedPropertyType | Array<DereferencedPropertyType>
   >;
 } & Pick<EntityTypeMetadata, "labelProperty">;
 
-function dereferencePropertyTypeValue(
-  valueReference: PropertyValues,
-  subgraph: Subgraph,
-): MinimalPropertyTypeValue {
+const dereferencePropertyTypeValue = (params: {
+  valueReference: PropertyValues;
+  subgraph: Subgraph;
+  existingSimplifiedPropertyTypeMappings: Record<string, BaseUrl>;
+  simplifyPropertyKeys: boolean;
+}): {
+  propertyValue: MinimalPropertyTypeValue;
+  updatedSimplifiedPropertyTypeMappings: Record<string, BaseUrl>;
+} => {
+  const { valueReference, subgraph, simplifyPropertyKeys } = params;
+
+  let simplifiedPropertyTypeMappings =
+    params.existingSimplifiedPropertyTypeMappings;
+
   const isArray = "items" in valueReference;
 
   if (isArray) {
     return {
-      items: {
-        oneOf: valueReference.items.oneOf.map((arrayValueReference) =>
-          dereferencePropertyTypeValue(arrayValueReference, subgraph),
-        ) as [MinimalPropertyTypeValue, ...MinimalPropertyTypeValue[]],
+      propertyValue: {
+        items: {
+          oneOf: valueReference.items.oneOf.map((arrayValueReference) => {
+            const { propertyValue, updatedSimplifiedPropertyTypeMappings } =
+              dereferencePropertyTypeValue({
+                valueReference: arrayValueReference,
+                subgraph,
+                existingSimplifiedPropertyTypeMappings:
+                  simplifiedPropertyTypeMappings,
+                simplifyPropertyKeys,
+              });
+
+            simplifiedPropertyTypeMappings =
+              updatedSimplifiedPropertyTypeMappings;
+
+            return propertyValue;
+          }) as [MinimalPropertyTypeValue, ...MinimalPropertyTypeValue[]],
+        },
+        maxItems: valueReference.maxItems,
+        minItems: valueReference.minItems,
+        type: "array",
       },
-      maxItems: valueReference.maxItems,
-      minItems: valueReference.minItems,
-      type: "array",
+      updatedSimplifiedPropertyTypeMappings: simplifiedPropertyTypeMappings,
     };
   }
 
   const isObject = "properties" in valueReference;
   if (isObject) {
     return {
-      properties: Object.values(valueReference.properties).reduce<
-        MinimalPropertyObject["properties"]
-      >((accumulator, propertyRefSchema) => {
-        const isInnerArray = "items" in propertyRefSchema;
-        const propertyTypeId = isInnerArray
-          ? propertyRefSchema.items.$ref
-          : propertyRefSchema.$ref;
+      propertyValue: {
+        properties: Object.values(valueReference.properties).reduce<
+          MinimalPropertyObject["properties"]
+        >((accumulator, propertyRefSchema) => {
+          const isInnerArray = "items" in propertyRefSchema;
+          const propertyTypeId = isInnerArray
+            ? propertyRefSchema.items.$ref
+            : propertyRefSchema.$ref;
 
-        const propertyType = getPropertyTypeById(subgraph, propertyTypeId);
+          const propertyType = getPropertyTypeById(subgraph, propertyTypeId);
 
-        if (!propertyType) {
-          throw new Error(`Could not find property with id ${propertyTypeId}`);
-        }
+          if (!propertyType) {
+            throw new Error(
+              `Could not find property with id ${propertyTypeId}`,
+            );
+          }
 
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define -- the function will be hoisted
-        const dereferencedPropertyType = dereferencePropertyType(
-          propertyType.schema.$id,
-          subgraph,
-        );
+          const {
+            dereferencedPropertyType,
+            updatedSimplifiedPropertyTypeMappings,
+            // eslint-disable-next-line @typescript-eslint/no-use-before-define -- the function will be hoisted
+          } = dereferencePropertyType({
+            propertyTypeId: propertyType.schema.$id,
+            subgraph,
+            existingSimplifiedPropertyTypeMappings:
+              simplifiedPropertyTypeMappings,
+            simplifyPropertyKeys,
+          });
 
-        accumulator[extractBaseUrl(propertyType.schema.$id)] = isInnerArray
-          ? {
-              type: "array",
-              items: dereferencedPropertyType,
-              minItems: propertyRefSchema.minItems,
-              maxItems: propertyRefSchema.maxItems,
-            }
-          : dereferencedPropertyType;
+          simplifiedPropertyTypeMappings =
+            updatedSimplifiedPropertyTypeMappings;
 
-        return accumulator;
-      }, {}),
-      required: valueReference.required,
-      type: "object",
+          const propertyTypeBaseUrl = extractBaseUrl(propertyType.schema.$id);
+
+          let propertyKey: string | BaseUrl = propertyTypeBaseUrl;
+
+          if (simplifyPropertyKeys) {
+            const { simplifiedTypeId, updatedTypeMappings } =
+              generateSimplifiedTypeId({
+                title: propertyType.schema.title,
+                typeIdOrBaseUrl: propertyTypeBaseUrl,
+                existingTypeMappings: simplifiedPropertyTypeMappings,
+              });
+
+            propertyKey = simplifiedTypeId;
+
+            simplifiedPropertyTypeMappings = updatedTypeMappings;
+          }
+
+          accumulator[propertyKey] = isInnerArray
+            ? {
+                type: "array",
+                items: dereferencedPropertyType,
+                minItems: propertyRefSchema.minItems,
+                maxItems: propertyRefSchema.maxItems,
+              }
+            : dereferencedPropertyType;
+
+          return accumulator;
+        }, {}),
+        required: valueReference.required,
+        type: "object",
+      },
+      updatedSimplifiedPropertyTypeMappings: simplifiedPropertyTypeMappings,
     };
   }
 
@@ -121,30 +181,56 @@ function dereferencePropertyTypeValue(
     ...minimalDataType
   } = dataType.schema;
 
-  return minimalDataType;
-}
+  return {
+    propertyValue: minimalDataType,
+    updatedSimplifiedPropertyTypeMappings: simplifiedPropertyTypeMappings,
+  };
+};
 
-function dereferencePropertyType(
-  propertyTypeId: VersionedUrl,
-  subgraph: Subgraph,
-): DereferencedPropertyType {
+const dereferencePropertyType = (params: {
+  propertyTypeId: VersionedUrl;
+  subgraph: Subgraph;
+  existingSimplifiedPropertyTypeMappings: Record<string, BaseUrl>;
+  simplifyPropertyKeys: boolean;
+}): {
+  dereferencedPropertyType: DereferencedPropertyType;
+  updatedSimplifiedPropertyTypeMappings: Record<string, BaseUrl>;
+} => {
+  const { propertyTypeId, subgraph, simplifyPropertyKeys } = params;
+
+  let simplifiedPropertyTypeMappings =
+    params.existingSimplifiedPropertyTypeMappings;
+
   const propertyType = getPropertyTypeById(subgraph, propertyTypeId);
 
   if (!propertyType) {
     throw new Error(`Could not find property with id ${propertyTypeId}`);
   }
 
-  const permittedValues = propertyType.schema.oneOf.map((reference) =>
-    dereferencePropertyTypeValue(reference, subgraph),
-  ) as [MinimalPropertyTypeValue, ...MinimalPropertyTypeValue[]];
+  const permittedValues = propertyType.schema.oneOf.map((reference) => {
+    const { updatedSimplifiedPropertyTypeMappings, propertyValue } =
+      dereferencePropertyTypeValue({
+        valueReference: reference,
+        subgraph,
+        existingSimplifiedPropertyTypeMappings: simplifiedPropertyTypeMappings,
+        simplifyPropertyKeys,
+      });
+
+    simplifiedPropertyTypeMappings = updatedSimplifiedPropertyTypeMappings;
+
+    return propertyValue;
+  }) as [MinimalPropertyTypeValue, ...MinimalPropertyTypeValue[]];
 
   return {
-    $id: propertyType.schema.$id,
-    title: propertyType.schema.title,
-    description: propertyType.schema.description,
-    oneOf: permittedValues,
+    dereferencedPropertyType: {
+      $id: propertyType.schema.$id,
+      title: propertyType.schema.title,
+      description: propertyType.schema.description,
+      oneOf: permittedValues,
+    },
+    updatedSimplifiedPropertyTypeMappings: simplifiedPropertyTypeMappings,
   };
-}
+};
 
 /**
  * For a given entityTypeId and a subgraph containing all its dependencies, return a single JSON schema with the following resolved:
@@ -156,10 +242,23 @@ function dereferencePropertyType(
  *
  * See the associated .test.ts file for example input/output
  */
-export const dereferenceEntityType = (
-  entityTypeId: VersionedUrl,
-  subgraph: Subgraph,
-): { isLink: boolean; schema: DereferencedEntityType } => {
+export const dereferenceEntityType = <
+  SimplifyPropertyKeys extends boolean | undefined = undefined,
+>(params: {
+  entityTypeId: VersionedUrl;
+  subgraph: Subgraph;
+  simplifyPropertyKeys?: SimplifyPropertyKeys;
+}): {
+  isLink: boolean;
+  schema: DereferencedEntityType<
+    SimplifyPropertyKeys extends true ? string : BaseUrl
+  >;
+  simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
+} => {
+  const { entityTypeId, subgraph, simplifyPropertyKeys = false } = params;
+
+  let simplifiedPropertyTypeMappings: Record<string, BaseUrl> = {};
+
   const entityTypeWithAncestors = getEntityTypeAndParentsById(
     subgraph,
     entityTypeId,
@@ -170,7 +269,9 @@ export const dereferenceEntityType = (
   );
 
   let labelProperty: BaseUrl | undefined;
-  const mergedProperties: DereferencedEntityType["properties"] = {};
+  const mergedProperties: DereferencedEntityType<
+    string | BaseUrl
+  >["properties"] = {};
 
   for (const entityType of entityTypeWithAncestors) {
     /**
@@ -191,7 +292,11 @@ export const dereferenceEntityType = (
 
       const { baseUrl, version } = componentsFromVersionedUrl(propertyTypeId);
 
-      const existingProperty = mergedProperties[baseUrl];
+      const existingProperty = simplifyPropertyKeys
+        ? simplifiedPropertyTypeMappings[baseUrl]
+          ? mergedProperties[simplifiedPropertyTypeMappings[baseUrl]!]
+          : undefined
+        : mergedProperties[baseUrl];
 
       /**
        * We prevent properties in an entity type's inheritance chain being added to an entity type via the UI,
@@ -206,14 +311,45 @@ export const dereferenceEntityType = (
             : existingProperty.$id,
         ) < version
       ) {
-        const propertySchema = dereferencePropertyType(
+        let propertyKey: string | BaseUrl = baseUrl;
+
+        if (simplifyPropertyKeys) {
+          const propertyType = getPropertyTypeById(subgraph, propertyTypeId);
+
+          if (!propertyType) {
+            throw new Error(
+              `Could not find property with id ${propertyTypeId}`,
+            );
+          }
+
+          const { simplifiedTypeId, updatedTypeMappings } =
+            generateSimplifiedTypeId({
+              title: propertyType.schema.title,
+              typeIdOrBaseUrl: baseUrl,
+              existingTypeMappings: simplifiedPropertyTypeMappings,
+            });
+
+          simplifiedPropertyTypeMappings = updatedTypeMappings;
+
+          propertyKey = simplifiedTypeId;
+        }
+
+        const {
+          dereferencedPropertyType,
+          updatedSimplifiedPropertyTypeMappings,
+        } = dereferencePropertyType({
           propertyTypeId,
           subgraph,
-        );
+          existingSimplifiedPropertyTypeMappings:
+            simplifiedPropertyTypeMappings,
+          simplifyPropertyKeys,
+        });
 
-        mergedProperties[baseUrl] = isArray
-          ? { ...propertyRefSchema, items: propertySchema }
-          : propertySchema;
+        simplifiedPropertyTypeMappings = updatedSimplifiedPropertyTypeMappings;
+
+        mergedProperties[propertyKey] = isArray
+          ? { ...propertyRefSchema, items: dereferencedPropertyType }
+          : dereferencedPropertyType;
       }
     }
   }
@@ -234,7 +370,9 @@ export const dereferenceEntityType = (
     );
   }
 
-  const mergedSchema: DereferencedEntityType = {
+  const mergedSchema: DereferencedEntityType<
+    SimplifyPropertyKeys extends true ? string : BaseUrl
+  > = {
     $id: entityType.schema.$id,
     title: entityType.schema.title,
     description: entityType.schema.description,
@@ -246,5 +384,6 @@ export const dereferenceEntityType = (
   return {
     isLink,
     schema: mergedSchema,
+    simplifiedPropertyTypeMappings,
   };
 };
