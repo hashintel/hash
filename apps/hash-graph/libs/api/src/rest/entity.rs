@@ -45,7 +45,7 @@ use graph_types::{
         },
         link::LinkData,
         Confidence, Property, PropertyDiff, PropertyMetadata, PropertyMetadataMap, PropertyObject,
-        PropertyPatchOperation, PropertyPath, PropertyProvenance,
+        PropertyPatchOperation, PropertyPath, PropertyPathElement, PropertyProvenance,
     },
     owned_by_id::OwnedById,
     Embedding,
@@ -141,6 +141,7 @@ use crate::rest::{
             DiffEntityResult,
             PropertyDiff,
             PropertyPath,
+            PropertyPathElement,
             Confidence,
         )
     ),

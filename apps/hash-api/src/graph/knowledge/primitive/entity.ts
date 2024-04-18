@@ -559,7 +559,7 @@ export const updateEntity: ImpureGraphFunction<
     properties: [
       {
         op: "replace",
-        path: "",
+        path: [],
         value: params.properties,
       },
     ],

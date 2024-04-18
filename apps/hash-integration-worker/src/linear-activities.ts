@@ -229,7 +229,7 @@ const createOrUpdateHashEntity = async (params: {
       properties: [
         {
           op: "replace",
-          path: "",
+          path: [],
           value: mergedProperties,
         },
       ],
