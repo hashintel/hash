@@ -1,13 +1,15 @@
 import { Box, Stack, Typography } from "@mui/material";
+import { formatDistance } from "date-fns";
 import type { NodeProps } from "reactflow";
 
-import { FlowStepStatus } from "../../../graphql/api-types.gen";
+import {
+  statusToSimpleStatus,
+  useStatusForCurrentStep,
+} from "../shared/flow-runs-context";
+import type { NodeData } from "../shared/types";
 import { Handles } from "./custom-node/handles";
 import { NodeContainer } from "./custom-node/node-container";
-import type { NodeData } from "./shared/types";
-import { useStatusForStep } from "./shared/flow-runs-context";
-import { statusSx, StepStatusName } from "./custom-node/styles";
-import { formatDistance } from "date-fns";
+import { statusSx } from "./custom-node/node-styles";
 
 const getTimeAgo = (isoString: string) =>
   formatDistance(new Date(isoString), new Date(), {
@@ -15,25 +17,9 @@ const getTimeAgo = (isoString: string) =>
   });
 
 export const CustomNode = ({ data, selected }: NodeProps<NodeData>) => {
-  const statusData = useStatusForStep();
+  const statusData = useStatusForCurrentStep();
 
-  let stepStatusName: StepStatusName = "Waiting";
-  if (statusData) {
-    switch (statusData.status) {
-      case FlowStepStatus.Completed:
-        stepStatusName = "Complete";
-        break;
-      case FlowStepStatus.Failed:
-      case FlowStepStatus.TimedOut:
-      case FlowStepStatus.Canceled:
-        stepStatusName = "Error";
-        break;
-      case FlowStepStatus.Scheduled:
-      case FlowStepStatus.Started:
-        stepStatusName = "In Progress";
-        break;
-    }
-  }
+  const stepStatusName = statusToSimpleStatus(statusData?.status ?? null);
 
   const isParallelizedGroup = data.kind === "parallel-group";
 
@@ -107,6 +93,7 @@ export const CustomNode = ({ data, selected }: NodeProps<NodeData>) => {
         )}
 
         <Handles
+          kind={data.kind}
           inputSources={data.inputSources}
           actionDefinition={data.actionDefinition}
           stepStatusName={stepStatusName}

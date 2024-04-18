@@ -280,7 +280,7 @@ export type StepOutput<P extends Payload = Payload> = {
   payload: P;
 };
 
-export type StepOutputStatus = Status<Required<Pick<ActionStep, "outputs">>>;
+export type StepRunOutput = Status<Required<Pick<ActionStep, "outputs">>>;
 
 export type ActionStep = {
   stepId: string;

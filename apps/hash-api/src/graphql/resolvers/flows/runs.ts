@@ -352,7 +352,7 @@ export const getFlowRuns: ResolverFn<
             .map((type) => `'${type}'`)
             .join(", ")})`,
         }
-      : { query: "WorkflowType IN 'runFlow'" },
+      : { query: "WorkflowType = 'runFlow'" },
   );
 
   for await (const workflow of workflowIterable) {

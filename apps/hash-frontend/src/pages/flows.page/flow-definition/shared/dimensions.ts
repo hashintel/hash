@@ -6,6 +6,8 @@ export const nodeDimensions = {
 export const nodeTabHeight = 40;
 
 export const parentGroupPadding = {
-  left: 30,
-  top: 80,
+  base: 30,
+  top: 85,
 };
+
+export const baseNodeZIndex = 0;

@@ -4,19 +4,30 @@ import { useState } from "react";
 import type { HandleProps } from "reactflow";
 import { Handle as BaseHandle, Handle, Position } from "reactflow";
 
-import { Modal } from "../../../../shared/ui/modal";
-import { NodeData } from "../shared/types";
-import type { StepStatusName } from "./styles";
-import { nodeDimensions, nodeTabHeight } from "../shared/dimensions";
+import { Modal } from "../../../../../shared/ui/modal";
+import { NodeData } from "../../shared/types";
+import { nodeDimensions, nodeTabHeight } from "../../shared/dimensions";
+import { SimpleStatus } from "../../shared/flow-runs-context";
+import { edgeColor } from "../shared/edge-styles";
 
-type InputOrOutput = {
+type InputOrOutputBase = {
   array?: boolean;
   kind: "input" | "output";
   name: string;
-  // eslint-disable-next-line react/no-unused-prop-types
   required?: boolean;
+};
+
+type Input = InputOrOutputBase & {
+  kind: "input";
   source?: NodeData["inputSources"][number];
 };
+
+type Output = InputOrOutputBase & {
+  kind: "output";
+  source?: null;
+};
+
+type InputOrOutput = Input | Output;
 
 const CustomHandle = ({
   array,
@@ -73,11 +84,12 @@ const CustomHandle = ({
 const halfContentHeight = (nodeDimensions.height - nodeTabHeight) / 2;
 
 export const Handles = ({
+  kind,
   inputSources,
   actionDefinition,
   stepStatusName,
-}: Pick<NodeData, "inputSources" | "actionDefinition"> & {
-  stepStatusName: StepStatusName;
+}: Pick<NodeData, "kind" | "inputSources" | "actionDefinition"> & {
+  stepStatusName: SimpleStatus;
 }) => {
   const [selectedProperty, setSelectedProperty] =
     useState<InputOrOutput | null>(null);
@@ -86,7 +98,9 @@ export const Handles = ({
     return null;
   }
 
-  const outputs: InputOrOutput[] = (actionDefinition?.outputs ?? []).map(
+  const showAllDependencies = false;
+
+  const outputs: Output[] = (actionDefinition?.outputs ?? []).map(
     ({ array, name, required }) => ({
       array,
       kind: "output",
@@ -95,7 +109,7 @@ export const Handles = ({
     }),
   );
 
-  const inputs: InputOrOutput[] = [];
+  const inputs: Input[] = [];
 
   for (const input of actionDefinition?.inputs ?? []) {
     const existingSource = inputSources.find(
@@ -111,8 +125,11 @@ export const Handles = ({
     });
   }
 
-  for (const source of inputSources) {
-    if (!inputs.some((input) => input.name === source.inputName)) {
+  if (kind === "parallel-group") {
+    /**
+     * A parallel group has no action definition, but does have inputSources
+     */
+    for (const source of inputSources) {
       inputs.push({
         name: source.inputName,
         kind: "input",
@@ -121,29 +138,14 @@ export const Handles = ({
     }
   }
 
-  let handleColor = customColors.gray[30];
-  switch (stepStatusName) {
-    case "Complete":
-      handleColor = customColors.green[70];
-      break;
-    case "In Progress":
-      handleColor = customColors.blue[70];
-      break;
-    case "Error":
-      handleColor = customColors.red[70];
-      break;
-  }
-
   const handleStyle = {
     width: 12,
     height: 12,
     background: "white",
-    border: `1px solid ${handleColor}`,
+    border: `1px solid ${edgeColor[stepStatusName]}`,
     top: halfContentHeight,
     transition: "border 0.2s ease-in-out",
   };
-
-  const showAllDependencies = false;
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- toggling to be added in follow up
   if (!showAllDependencies) {
@@ -155,6 +157,7 @@ export const Handles = ({
             position={Position.Left}
             style={{
               ...handleStyle,
+              visibility: "hidden",
               left: -6,
             }}
           />

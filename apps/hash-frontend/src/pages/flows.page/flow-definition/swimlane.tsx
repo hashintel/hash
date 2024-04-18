@@ -1,6 +1,6 @@
 import "reactflow/dist/style.css";
 
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, Stack, SvgIcon, Typography } from "@mui/material";
 import type { ElkNode } from "elkjs/lib/elk.bundled.js";
 import ELK from "elkjs/lib/elk.bundled.js";
 import { useEffect, useLayoutEffect, useMemo } from "react";
@@ -13,10 +13,12 @@ import ReactFlow, {
   useReactFlow,
 } from "reactflow";
 
-import { CustomNode } from "./custom-node";
+import { CustomNode } from "./swimlane/custom-node";
 import type { CustomNodeType } from "./shared/types";
 import type { StepGroup } from "@local/hash-isomorphic-utils/flows/types";
 import { parentGroupPadding } from "./shared/dimensions";
+import { useStatusForSteps } from "./shared/flow-runs-context";
+import { CustomEdge } from "./swimlane/custom-edge";
 
 const nodeTypes = {
   action: CustomNode,
@@ -24,21 +26,29 @@ const nodeTypes = {
   trigger: CustomNode,
 };
 
+const edgeTypes = {
+  "custom-edge": CustomEdge,
+};
+
+/**
+ * @see https://eclipse.dev/elk/documentation/tooldevelopers
+ * @see https://rtsys.informatik.uni-kiel.de/elklive/json.html for JSON playground
+ */
 const elk = new ELK();
 
+/**
+ * @see https://eclipse.dev/elk/reference.html
+ */
 const elkLayoutOptions: ElkNode["layoutOptions"] = {
   "elk.algorithm": "layered",
-  "elk.layered.spacing.nodeNodeBetweenLayers": "100",
-  "elk.layered.nodePlacement.strategy": "SIMPLE",
   "org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers": "100",
-  // "elk.spacing.nodeNode": "100",
   "elk.direction": "RIGHT",
-  "elk.hierarchyHandling": "INHERIT",
   "elk.padding": "[left=0,top=0,right=0,bottom=0]",
 };
 
 const parentGroupLayoutOptions: ElkNode["layoutOptions"] = {
-  "elk.padding": `[left=${parentGroupPadding.left}, top=${parentGroupPadding.top}, bottom=100, right=100]`,
+  ...elkLayoutOptions,
+  "elk.padding": `[left=${parentGroupPadding.base}, top=${parentGroupPadding.top}, bottom=${parentGroupPadding.base}, right=${parentGroupPadding.base}]`,
 };
 
 type DagProps = {
@@ -47,7 +57,33 @@ type DagProps = {
   edges: Edge[];
 };
 
-export const DAG = ({
+type NodeWithChildren = CustomNodeType & { children: NodeWithChildren[] };
+
+const flattedNodesToElkNodes = (
+  allNodes: CustomNodeType[],
+  parents: CustomNodeType[],
+): NodeWithChildren[] => {
+  return parents.map((parentNode) => ({
+    ...parentNode,
+    layoutOptions:
+      parentNode.data.kind === "parallel-group"
+        ? parentGroupLayoutOptions
+        : undefined,
+    children: flattedNodesToElkNodes(
+      allNodes,
+      allNodes.filter((node) => node.parentNode === parentNode.id),
+    ),
+  }));
+};
+
+const elkGraphToFlattenedPositionedNodes = (nodes: ElkNode[]): ElkNode[] => {
+  return nodes.flatMap(({ children, ...node }) => [
+    { ...node, position: { x: node.x, y: node.y } },
+    ...elkGraphToFlattenedPositionedNodes(children ?? []),
+  ]);
+};
+
+export const Swimlane = ({
   group,
   nodes: initialNodes,
   edges: initialEdges,
@@ -58,25 +94,24 @@ export const DAG = ({
   const [edges, setEdges, _onEdgesChange] = useEdgesState([]);
 
   useEffect(() => {
+    const childrenForElk = flattedNodesToElkNodes(
+      initialNodes,
+      initialNodes.filter((node) => !node.parentNode),
+    );
+
     const graph: ElkNode = {
       id: group?.groupId.toString() ?? "root",
-      layoutOptions: elkLayoutOptions,
       // @ts-expect-error –– mismatch between Elk and ReactFlow types
-      children: initialNodes.map((node) => ({
-        ...node,
-        layoutOptions: parentGroupLayoutOptions,
-      })),
+      children: childrenForElk,
       // @ts-expect-error –– mismatch between Elk and ReactFlow types
       edges: initialEdges,
+      layoutOptions: elkLayoutOptions,
     };
 
     void elk
       .layout(graph)
       .then(({ children }) => {
-        return (children ?? []).map((node) => ({
-          ...node,
-          position: { x: node.x, y: node.y },
-        }));
+        return elkGraphToFlattenedPositionedNodes(children ?? []);
       })
       .then((laidOutElements) => {
         /** Reset the nodes to stop mismatch issues between old and new graph data, repeated ids etc, when switching flows */
@@ -98,13 +133,23 @@ export const DAG = ({
     [nodes],
   );
 
-  console.log({ nodes });
+  const groupStatus = useStatusForSteps(nodes);
+
+  console.log({ groupStatus });
 
   return (
     <Stack
       direction="row"
       sx={{
-        borderBottom: ({ palette }) => `1px solid ${palette.gray[30]}`,
+        background: ({ palette }) =>
+          groupStatus === "Complete"
+            ? "rgba(239, 254, 250, 1)"
+            : groupStatus === "In Progress"
+              ? palette.blue[10]
+              : groupStatus === "Error"
+                ? palette.red[10]
+                : palette.common.white,
+        borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
         py: 2.5,
         px: 3,
         flex: 1,
@@ -127,12 +172,19 @@ export const DAG = ({
           {group?.description ?? "Flow"}
         </Typography>
       </Box>
-      <Box sx={{ pl: 4, width: "100%", height: bounds.height }}>
+      <Box
+        sx={{
+          pl: 4,
+          width: "100%",
+          height: bounds.height,
+        }}
+      >
         <ReactFlow
           key={group?.groupId ?? "root"}
           nodes={nodes}
           nodeTypes={nodeTypes}
           edges={edges}
+          edgeTypes={edgeTypes}
           // fitView
           // onNodesChange={onNodesChange}
           // onEdgesChange={onEdgesChange}

@@ -6,32 +6,32 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import { StepOutput } from "@local/hash-isomorphic-utils/src/flows/types";
+import { StepRunOutput } from "@local/hash-isomorphic-utils/flows/types";
 import { parse } from "papaparse";
 import { useMemo } from "react";
 import { OrgTable } from "../../settings/organizations/shared/org-table";
 import { Cell } from "../../settings/organizations/shared/cell";
-import { generateEntityLabel } from "@local/hash-isomorphic-utils/src/generate-entity-label";
-export const Deliverable = ({ outputs }: { outputs: StepOutput[] }) => {
-  const flowOutputs = outputs?.[0]?.contents?.[0]?.flowOutputs ?? [];
+
+export const Deliverable = ({ outputs }: { outputs?: StepRunOutput[] }) => {
+  const flowOutputs = useMemo(
+    () => outputs?.[0]?.contents?.[0]?.outputs ?? [],
+    [outputs],
+  );
 
   const parsedCsv = useMemo(() => {
     const answer = flowOutputs.find((output) => output.outputName === "answer")
       ?.payload.value;
 
-    if (!answer) {
+    if (typeof answer !== "string") {
       return null;
     }
 
     try {
-      const parsed = parse(answer, { header: false });
-      return parsed;
+      return parse<(string | number | boolean)[]>(answer, { header: false });
     } catch {
       return null;
     }
   }, [flowOutputs]);
-
-  console.log({ parsedCsv });
 
   return (
     <Box
@@ -48,7 +48,7 @@ export const Deliverable = ({ outputs }: { outputs: StepOutput[] }) => {
           <TableHead>
             <TableRow>
               {parsedCsv.data[0]?.map((column) => (
-                <Cell key={column}>{column}</Cell>
+                <Cell key={column.toString()}>{column}</Cell>
               ))}
             </TableRow>
           </TableHead>
@@ -56,9 +56,11 @@ export const Deliverable = ({ outputs }: { outputs: StepOutput[] }) => {
           <TableBody>
             {parsedCsv.data.slice(1).map((row, index) => {
               return (
+                // eslint-disable-next-line react/no-array-index-key -- no better alternative
                 <TableRow key={index} sx={{ fontSize: 13 }}>
-                  {row.map((content) => (
-                    <TableCell key={content}>{content}</TableCell>
+                  {row.map((content, index) => (
+                    // eslint-disable-next-line react/no-array-index-key
+                    <TableCell key={index}>{content}</TableCell>
                   ))}
                 </TableRow>
               );
@@ -69,6 +71,7 @@ export const Deliverable = ({ outputs }: { outputs: StepOutput[] }) => {
         <Box
           sx={{
             display: "flex",
+            height: "100%",
             justifyContent: "center",
             alignItems: "center",
             p: 4,

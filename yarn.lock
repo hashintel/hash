@@ -13143,10 +13143,10 @@ element-resize-detector@^1.2.2:
   dependencies:
     batch-processor "1.0.0"
 
-elkjs@0.9.2:
-  version "0.9.2"
-  resolved "https://registry.yarnpkg.com/elkjs/-/elkjs-0.9.2.tgz#3d4ef6f17fde06a5d7eaa3063bb875e25e59e972"
-  integrity sha512-2Y/RaA1pdgSHpY0YG4TYuYCD2wh97CRvu22eLG3Kz0pgQ/6KbIFTxsTnDc4MH/6hFlg2L/9qXrDMG0nMjP63iw==
+elkjs@0.9.3:
+  version "0.9.3"
+  resolved "https://registry.yarnpkg.com/elkjs/-/elkjs-0.9.3.tgz#16711f8ceb09f1b12b99e971b138a8384a529161"
+  integrity sha512-f/ZeWvW/BCXbhGEf1Ujp29EASo/lk1FDnETgNKwJrsVvGZhUWCZyg3xLJjAsxfOmt8KjswHmI5EwCQcPMpOYhQ==
 
 emoji-mart@5.2.1:
   version "5.2.1"

@@ -1,10 +1,11 @@
+import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import { Box, Stack, Typography } from "@mui/material";
 import type { PropsWithChildren } from "react";
 import { useNodeId, useStore } from "reactflow";
 
-import { statusSx, StepStatusName } from "./styles";
-import { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
-import { nodeTabHeight } from "../shared/dimensions";
+import { nodeTabHeight } from "../../shared/dimensions";
+import type { SimpleStatus } from "../../shared/flow-runs-context";
+import { statusSx } from "./node-styles";
 
 const Tab = ({
   label,
@@ -13,7 +14,7 @@ const Tab = ({
 }: {
   label: string;
   position: "left" | "right";
-  status: StepStatusName;
+  status: SimpleStatus;
 }) => {
   const styles = statusSx[status];
 
@@ -64,7 +65,7 @@ export const NodeContainer = ({
 }: PropsWithChildren<{
   kind: StepDefinition["kind"];
   selected: boolean;
-  stepStatusName: StepStatusName;
+  stepStatusName: SimpleStatus;
 }>) => {
   const nodeId = useNodeId();
 

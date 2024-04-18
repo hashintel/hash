@@ -6,12 +6,11 @@ import type {
   ProposedEntity,
   StepGroup,
 } from "@local/hash-isomorphic-utils/flows/types";
-import { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import type { Entity } from "@local/hash-subgraph";
 import { Box, Stack, Typography } from "@mui/material";
 import { useMemo } from "react";
 import type { Edge } from "reactflow";
-import { ReactFlowProvider } from "reactflow";
+import { MarkerType, ReactFlowProvider } from "reactflow";
 
 import { isNonNullable } from "../../lib/typeguards";
 import { Deliverable } from "./flow-definition/deliverable";
@@ -20,15 +19,13 @@ import { PersistedEntityGraph } from "./flow-definition/persisted-entity-graph";
 import { useFlowDefinitionsContext } from "./flow-definition/shared/flow-definitions-context";
 import { useFlowRunsContext } from "./flow-definition/shared/flow-runs-context";
 import type { CustomNodeType } from "./flow-definition/shared/types";
-import { DAG } from "./flow-definition/dag";
+import { Swimlane } from "./flow-definition/swimlane";
 import {
   getFlattenedSteps,
   groupStepsByDependencyLayer,
 } from "./flow-definition/sort-graph";
-import {
-  nodeDimensions,
-  nodeTabHeight,
-} from "./flow-definition/shared/dimensions";
+import { nodeDimensions } from "./flow-definition/shared/dimensions";
+import { customColors } from "@hashintel/design-system/theme";
 
 const getGraphFromFlowDefinition = (
   flowDefinition: FlowDefinitionType,
@@ -78,56 +75,6 @@ const getGraphFromFlowDefinition = (
       groupAssignments.push(step.groupId);
     }
 
-    const getParallelGroupLayerDimensions = (groupSteps: StepDefinition[]) => {
-      const heightByLayer = new Map<number, number>();
-      let firstLayer = null;
-      let lastLayer = null;
-
-      /**
-       * @todo handle nested parallel groups – see how ELK lays them out to figure out how best to approach
-       */
-      for (const groupStep of groupSteps) {
-        const layer = layerByStepId.get(groupStep.stepId);
-        if (layer === undefined) {
-          throw new Error(
-            `Step ${groupStep.stepId} is missing from the dependency layers.`,
-          );
-        }
-
-        if (firstLayer === null || layer < firstLayer) {
-          firstLayer = layer;
-        }
-        if (lastLayer === null || layer > lastLayer) {
-          lastLayer = layer;
-        }
-        heightByLayer.set(layer, (heightByLayer.get(layer) ?? 0) + 1);
-      }
-
-      const layerSpan = (lastLayer ?? 0) - (firstLayer ?? 0);
-
-      const maxLayerSize = Math.max(...Array.from(heightByLayer.values()));
-
-      const paddingBetweenStepsAndLayers = 100;
-
-      const nodeHeight = nodeDimensions.height + nodeTabHeight;
-
-      const dimensions = {
-        height:
-          nodeHeight * maxLayerSize +
-          paddingBetweenStepsAndLayers * (maxLayerSize - 1),
-        width:
-          (layerSpan + 1) * nodeDimensions.width +
-          paddingBetweenStepsAndLayers * layerSpan,
-      };
-
-      const paddingAroundParallelGroupContents = 30;
-
-      dimensions.height += paddingAroundParallelGroupContents * 2;
-      dimensions.width += paddingAroundParallelGroupContents * 2;
-
-      return dimensions;
-    };
-
     const node: CustomNodeType = {
       id: step.stepId,
       data: {
@@ -147,12 +94,7 @@ const getGraphFromFlowDefinition = (
       parentNode: step.parallelParentId,
       extent: step.parallelParentId ? ("parent" as const) : undefined,
       position: { x: 0, y: 0 },
-      ...(step.kind === "parallel-group"
-        ? getParallelGroupLayerDimensions(step.steps)
-        : {
-            width: nodeDimensions.width,
-            height: nodeDimensions.height,
-          }),
+      ...nodeDimensions,
     };
 
     return node;
@@ -161,6 +103,23 @@ const getGraphFromFlowDefinition = (
   const derivedEdges: Edge[] = [];
   for (let i = 0; i < derivedNodes.length; i++) {
     const node = derivedNodes[i]!;
+
+    /**
+     * If this isn't set, the edge container will have a zIndex of 0 and appear below a parent node,
+     * meaning that edges between nodes in a sub-flow are not visible.
+     * Needs further investigation with more complex flows.
+     */
+    const baseEdgeOptions = {
+      type: "custom-edge",
+      markerEnd: {
+        type: MarkerType.Arrow,
+        width: 18,
+        height: 18,
+        color: customColors.gray[50],
+      },
+      zIndex: 1,
+    };
+
     if (showAllDependencies) {
       for (const inputSource of node.data.inputSources) {
         if (inputSource.kind === "step-output") {
@@ -170,8 +129,7 @@ const getGraphFromFlowDefinition = (
             sourceHandle: inputSource.sourceStepOutputName,
             target: node.id,
             targetHandle: inputSource.inputName,
-            animated: true,
-            style: { stroke: "blue" },
+            ...baseEdgeOptions,
           });
         }
       }
@@ -190,6 +148,7 @@ const getGraphFromFlowDefinition = (
           id: `${node.id}-${nextNode.id}`,
           source: node.id,
           target: nextNode.id,
+          ...baseEdgeOptions,
         });
       }
     }
@@ -200,6 +159,19 @@ const getGraphFromFlowDefinition = (
     edges: derivedEdges,
   };
 };
+
+const SectionLabel = ({ text }: { text: string }) => (
+  <Typography
+    variant="smallCaps"
+    sx={{
+      color: ({ palette }) => palette.gray[50],
+      fontWeight: 600,
+      textTransform: "uppercase",
+    }}
+  >
+    {text}
+  </Typography>
+);
 
 export const FlowDefinition = () => {
   const { flowDefinitions, selectedFlow, setSelectedFlow } =
@@ -334,14 +306,14 @@ export const FlowDefinition = () => {
   );
 
   return (
-    <Stack
+    <Box
       sx={{
         width: "100%",
-        height: "calc(100vh - 160px)",
         background: ({ palette }) => palette.gray[10],
+        pb: 8,
       }}
     >
-      <Box p={4}>
+      <Box p={3}>
         <Box mb={1}>
           <select
             value={selectedFlow.name}
@@ -382,63 +354,59 @@ export const FlowDefinition = () => {
           </Box>
         )}
       </Box>
-      <Stack sx={{ height: "100%" }}>
-        <Stack sx={{ flexGrow: 1 }}>
+      <Box sx={{ px: 3 }}>
+        <SectionLabel text="status" />
+        <Box
+          sx={({ palette }) => ({
+            background: palette.common.white,
+            border: `1px solid ${palette.gray[20]}`,
+            borderRadius: 2.5,
+          })}
+        >
           {Object.entries(nodesAndEdgesByGroup).map(
             ([groupId, { group, nodes, edges }]) => (
               <ReactFlowProvider key={groupId}>
-                <DAG group={group} nodes={nodes} edges={edges} />
+                <Swimlane group={group} nodes={nodes} edges={edges} />
               </ReactFlowProvider>
             ),
           )}
-        </Stack>
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          px={2}
-          pt={1}
+        </Box>
+      </Box>
+
+      <Stack
+        direction="row"
+        justifyContent="space-between"
+        sx={{
+          borderTop: ({ palette }) => `1px solid ${palette.gray[20]}`,
+          height: 400,
+          px: 3,
+          mt: 3,
+        }}
+      >
+        <Box
           sx={{
-            borderTop: ({ palette }) => `1px solid ${palette.gray[20]}`,
-            minHeight: 300,
+            height: "100%",
+            width: "100%",
+            borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
+            pr: 3,
+            pt: 2.5,
           }}
         >
-          <Box
-            sx={{
-              height: "100%",
-              width: "100%",
-              borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
-              pr: 2,
-            }}
-          >
-            <Typography
-              variant="smallCaps"
-              sx={{ fontWeight: 600, color: ({ palette }) => palette.gray[50] }}
-            >
-              RAW OUTPUT
-            </Typography>
-            <Stack
-              direction="row"
-              gap={1}
-              sx={{ height: "100%", width: "100%" }}
-            >
-              <EntityResultTable
-                persistedEntities={persistedEntities}
-                proposedEntities={proposedEntities}
-              />
-              <PersistedEntityGraph persistedEntities={persistedEntities} />
-            </Stack>
-          </Box>
-          <Box sx={{ width: "40%", pl: 2 }}>
-            <Typography
-              variant="smallCaps"
-              sx={{ fontWeight: 600, color: ({ palette }) => palette.gray[50] }}
-            >
-              DELIVERABLE
-            </Typography>
-            <Deliverable outputs={selectedFlowRun?.outputs} />
-          </Box>
-        </Stack>
+          <SectionLabel text="Raw output" />
+          <Stack direction="row" gap={1} sx={{ height: "100%", width: "100%" }}>
+            <EntityResultTable
+              persistedEntities={persistedEntities}
+              proposedEntities={proposedEntities}
+            />
+            <PersistedEntityGraph persistedEntities={persistedEntities} />
+          </Stack>
+        </Box>
+        <Box sx={{ width: "40%", pl: 3, pt: 2.5 }}>
+          <SectionLabel text="Deliverable" />
+
+          <Deliverable outputs={selectedFlowRun?.outputs} />
+        </Box>
       </Stack>
-    </Stack>
+    </Box>
   );
 };

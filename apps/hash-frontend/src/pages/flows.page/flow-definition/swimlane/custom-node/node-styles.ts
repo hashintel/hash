@@ -1,5 +1,7 @@
 import type { SxProps, Theme } from "@mui/material";
 
+import type { SimpleStatus } from "../../shared/flow-runs-context";
+
 export const statusSx = {
   Complete: {
     borderColor: ({ palette }) => palette.green[30],
@@ -29,6 +31,4 @@ export const statusSx = {
     lightestBackground: ({ palette }) => palette.gray[10],
     text: ({ palette }) => palette.common.black,
   },
-} as const satisfies Record<string, SxProps<Theme>>;
-
-export type StepStatusName = keyof typeof statusSx;
+} as const satisfies Record<SimpleStatus, SxProps<Theme>>;
