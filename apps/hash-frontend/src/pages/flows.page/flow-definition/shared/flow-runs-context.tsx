@@ -1,17 +1,17 @@
 import { useQuery } from "@apollo/client";
+import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import { getFlowRunsQuery } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 import type { PropsWithChildren } from "react";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useNodeId } from "reactflow";
 
-import {
+import type {
   FlowRun,
-  FlowStepStatus,
   GetFlowRunsQuery,
   GetFlowRunsQueryVariables,
   StepRun,
 } from "../../../../graphql/api-types.gen";
-import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
+import { FlowStepStatus } from "../../../../graphql/api-types.gen";
 
 export type FlowRunsContextType = {
   flowRuns: FlowRun[];

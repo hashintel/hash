@@ -1,24 +1,23 @@
 import "reactflow/dist/style.css";
 
-import { Box, Stack, SvgIcon, Typography } from "@mui/material";
+import type { StepGroup } from "@local/hash-isomorphic-utils/flows/types";
+import { Box, Stack, Typography } from "@mui/material";
 import type { ElkNode } from "elkjs/lib/elk.bundled.js";
 import ELK from "elkjs/lib/elk.bundled.js";
-import { useEffect, useLayoutEffect, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import type { Edge } from "reactflow";
 import ReactFlow, {
   getNodesBounds,
-  getViewportForBounds,
   useEdgesState,
   useNodesState,
   useReactFlow,
 } from "reactflow";
 
-import { CustomNode } from "./swimlane/custom-node";
-import type { CustomNodeType } from "./shared/types";
-import type { StepGroup } from "@local/hash-isomorphic-utils/flows/types";
 import { parentGroupPadding } from "./shared/dimensions";
 import { useStatusForSteps } from "./shared/flow-runs-context";
+import type { CustomNodeType } from "./shared/types";
 import { CustomEdge } from "./swimlane/custom-edge";
+import { CustomNode } from "./swimlane/custom-node";
 
 const nodeTypes = {
   action: CustomNode,
@@ -134,8 +133,6 @@ export const Swimlane = ({
   );
 
   const groupStatus = useStatusForSteps(nodes);
-
-  console.log({ groupStatus });
 
   return (
     <Stack

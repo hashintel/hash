@@ -1,13 +1,12 @@
-import { customColors } from "@hashintel/design-system/theme";
 import { Box, Typography } from "@mui/material";
 import { useState } from "react";
 import type { HandleProps } from "reactflow";
 import { Handle as BaseHandle, Handle, Position } from "reactflow";
 
 import { Modal } from "../../../../../shared/ui/modal";
-import { NodeData } from "../../shared/types";
 import { nodeDimensions, nodeTabHeight } from "../../shared/dimensions";
-import { SimpleStatus } from "../../shared/flow-runs-context";
+import type { SimpleStatus } from "../../shared/flow-runs-context";
+import type { NodeData } from "../../shared/types";
 import { edgeColor } from "../shared/edge-styles";
 
 type InputOrOutputBase = {

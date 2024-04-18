@@ -13,6 +13,7 @@ import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-util
 import type { Entity, OwnedById } from "@local/hash-subgraph";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
+import { Context } from "@temporalio/activity";
 import isEqual from "lodash.isequal";
 import isMatch from "lodash.ismatch";
 
@@ -22,9 +23,8 @@ import {
   findExistingEntity,
   findExistingLinkEntity,
 } from "../shared/find-existing-entity";
-import type { FlowActionActivity } from "./types";
 import { logProgress } from "../shared/log-progress";
-import { Context } from "@temporalio/activity";
+import type { FlowActionActivity } from "./types";
 
 export const persistEntityAction: FlowActionActivity<{
   graphApiClient: GraphApi;
@@ -144,7 +144,7 @@ export const persistEntityAction: FlowActionActivity<{
       {
         persistedEntity: {
           entity,
-          existingEntity: existingEntity ? existingEntity : undefined,
+          existingEntity: existingEntity ?? undefined,
           operation,
         },
         recordedAt: new Date().toISOString(),

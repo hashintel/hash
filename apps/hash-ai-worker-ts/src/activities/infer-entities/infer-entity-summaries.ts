@@ -5,6 +5,7 @@ import { StatusCode } from "@local/status";
 import dedent from "dedent";
 import type OpenAI from "openai";
 
+import { logger } from "../shared/activity-logger";
 import { getOpenAiResponse } from "../shared/openai";
 import { stringify } from "../shared/stringify";
 import type {
@@ -21,7 +22,6 @@ import type {
   InferenceState,
   ProposedEntitySummary,
 } from "./inference-types";
-import { logger } from "../shared/activity-logger";
 
 export const inferEntitySummaries = async (params: {
   completionPayload: CompletionPayload;

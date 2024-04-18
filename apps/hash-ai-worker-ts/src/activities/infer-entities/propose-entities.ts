@@ -12,6 +12,7 @@ import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 import type OpenAI from "openai";
 
+import { logger } from "../shared/activity-logger";
 import { logProgress } from "../shared/log-progress";
 import { getOpenAiResponse } from "../shared/openai";
 import { stringify } from "../shared/stringify";
@@ -25,7 +26,6 @@ import { validateProposedEntitiesByType } from "./persist-entities/generate-pers
 import { generateProposeEntitiesTools } from "./propose-entities/generate-propose-entities-tools";
 import { extractErrorMessage } from "./shared/extract-validation-failure-details";
 import { firstUserMessageIndex } from "./shared/first-user-message-index";
-import { logger } from "../shared/activity-logger";
 
 const sanitizePropertyKeys = (
   properties: EntityPropertiesObject,

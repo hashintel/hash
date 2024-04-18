@@ -1,9 +1,9 @@
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
+import type { StepProgressLog } from "@local/hash-isomorphic-utils/flows/types";
 import { Context } from "@temporalio/activity";
 import debounce from "lodash.debounce";
 
 import { logProgressSignal } from "../../shared/signals";
-import { StepProgressLog } from "@local/hash-isomorphic-utils/flows/types";
 
 const temporalClient = await createTemporalClient();
 
@@ -24,18 +24,18 @@ const sendLogSignal = debounce(
       );
     }
 
+    logQueueByRunId.set(workflowId, []);
+
     await handle.signal(logProgressSignal, {
       attempt: Context.current().info.attempt,
       logs,
     });
-
-    logQueueByRunId.delete(workflowId);
   },
   1_000,
   { maxWait: 2_000 },
 );
 
-// eslint-disable-next-line @typescript-eslint/unbound-method
+// eslint-disable-next-line @typescript-eslint/unbound-method -- TODO use this to ensure all logs send before workflow closes
 export const flushLogs = sendLogSignal.flush;
 
 export const logProgress = (logs: StepProgressLog[]) => {

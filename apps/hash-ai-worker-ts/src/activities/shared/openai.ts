@@ -5,9 +5,9 @@ import { Context } from "@temporalio/activity";
 import type OpenAI from "openai";
 import { promptTokensEstimate } from "openai-chat-tokens";
 
+import { logger } from "./activity-logger";
 import { openai } from "./get-open-ai-response/openai-client";
 import { stringify } from "./stringify";
-import { logger } from "./activity-logger";
 
 export type PermittedOpenAiModel =
   | "gpt-3.5-turbo-1106"
@@ -21,7 +21,6 @@ const modelToContextWindow: Record<PermittedOpenAiModel, number> = {
   "gpt-4-1106-preview": 128_000,
   "gpt-4-turbo": 128_000,
   "gpt-4-0125-preview": 128_000,
-  "gpt-4-turbo": 128_000,
   "gpt-4": 8_192,
 };
 
@@ -161,6 +160,5 @@ export const modelAliasToSpecificModel = {
   // Dec 2023
   "gpt-4-turbo": "gpt-4-0125-preview",
   // preview only
-  "gpt-4-turbo": "gpt-4-turbo",
   "gpt-4": "gpt-4", // this points to the latest available anyway as of 6 Dec 2023
 } as const satisfies Record<InferenceModelName, PermittedOpenAiModel>;

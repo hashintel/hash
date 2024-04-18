@@ -1,3 +1,4 @@
+import type { StepRunOutput } from "@local/hash-isomorphic-utils/flows/types";
 import {
   Box,
   TableBody,
@@ -6,11 +7,11 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import { StepRunOutput } from "@local/hash-isomorphic-utils/flows/types";
 import { parse } from "papaparse";
 import { useMemo } from "react";
-import { OrgTable } from "../../settings/organizations/shared/org-table";
+
 import { Cell } from "../../settings/organizations/shared/cell";
+import { OrgTable } from "../../settings/organizations/shared/org-table";
 
 export const Deliverable = ({ outputs }: { outputs?: StepRunOutput[] }) => {
   const flowOutputs = useMemo(
@@ -56,11 +57,11 @@ export const Deliverable = ({ outputs }: { outputs?: StepRunOutput[] }) => {
           <TableBody>
             {parsedCsv.data.slice(1).map((row, index) => {
               return (
-                // eslint-disable-next-line react/no-array-index-key -- no better alternative
+                // eslint-disable-next-line react/no-array-index-key -- no better alternative, arbitrary CSV data
                 <TableRow key={index} sx={{ fontSize: 13 }}>
-                  {row.map((content, index) => (
+                  {row.map((content, idx) => (
                     // eslint-disable-next-line react/no-array-index-key
-                    <TableCell key={index}>{content}</TableCell>
+                    <TableCell key={idx}>{content}</TableCell>
                   ))}
                 </TableRow>
               );

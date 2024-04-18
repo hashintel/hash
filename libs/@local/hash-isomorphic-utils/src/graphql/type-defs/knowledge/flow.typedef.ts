@@ -1,5 +1,4 @@
 import { gql } from "apollo-server-express";
-import { StepProgressLog } from "@local/hash-isomorphic-utils/flows/types";
 
 export const flowTypedef = gql`
   enum FlowRunStatus {

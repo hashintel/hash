@@ -1,6 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { linearTypeMappings } from "@local/hash-backend-utils/linear-type-mappings";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import type { UpdateLinearDataWorkflow } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
 import type { GraphApi } from "@local/hash-graph-client";
@@ -14,7 +15,6 @@ import {
 import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
-import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import type { ImpureGraphContext } from "../../graph/context-types";
 import { getLatestEntityById } from "../../graph/knowledge/primitive/entity";
 import { getLinearSecretValueByHashWorkspaceId } from "../../graph/knowledge/system-types/linear-user-secret";

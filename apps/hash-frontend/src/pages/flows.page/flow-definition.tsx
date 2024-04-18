@@ -1,5 +1,6 @@
 import "reactflow/dist/style.css";
 
+import { customColors } from "@hashintel/design-system/theme";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   FlowDefinition as FlowDefinitionType,
@@ -16,16 +17,15 @@ import { isNonNullable } from "../../lib/typeguards";
 import { Deliverable } from "./flow-definition/deliverable";
 import { EntityResultTable } from "./flow-definition/entity-result-table";
 import { PersistedEntityGraph } from "./flow-definition/persisted-entity-graph";
+import { nodeDimensions } from "./flow-definition/shared/dimensions";
 import { useFlowDefinitionsContext } from "./flow-definition/shared/flow-definitions-context";
 import { useFlowRunsContext } from "./flow-definition/shared/flow-runs-context";
 import type { CustomNodeType } from "./flow-definition/shared/types";
-import { Swimlane } from "./flow-definition/swimlane";
 import {
   getFlattenedSteps,
   groupStepsByDependencyLayer,
 } from "./flow-definition/sort-graph";
-import { nodeDimensions } from "./flow-definition/shared/dimensions";
-import { customColors } from "@hashintel/design-system/theme";
+import { Swimlane } from "./flow-definition/swimlane";
 
 const getGraphFromFlowDefinition = (
   flowDefinition: FlowDefinitionType,
@@ -104,11 +104,6 @@ const getGraphFromFlowDefinition = (
   for (let i = 0; i < derivedNodes.length; i++) {
     const node = derivedNodes[i]!;
 
-    /**
-     * If this isn't set, the edge container will have a zIndex of 0 and appear below a parent node,
-     * meaning that edges between nodes in a sub-flow are not visible.
-     * Needs further investigation with more complex flows.
-     */
     const baseEdgeOptions = {
       type: "custom-edge",
       markerEnd: {
@@ -117,6 +112,11 @@ const getGraphFromFlowDefinition = (
         height: 18,
         color: customColors.gray[50],
       },
+      /**
+       * If this isn't set, the edge container will have a zIndex of 0 and appear below a parent node,
+       * meaning that edges between nodes in a sub-flow are not visible.
+       * Needs further investigation with more complex flows.
+       */
       zIndex: 1,
     };
 

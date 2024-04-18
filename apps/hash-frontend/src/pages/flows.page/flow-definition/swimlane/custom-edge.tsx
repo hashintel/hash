@@ -1,9 +1,11 @@
-import { BaseEdge, EdgeProps, getSmoothStepPath } from "reactflow";
+import { useMemo } from "react";
+import type { EdgeProps } from "reactflow";
+import { BaseEdge, getSmoothStepPath } from "reactflow";
+
 import {
   statusToSimpleStatus,
   useStatusForStep,
 } from "../shared/flow-runs-context";
-import { useMemo } from "react";
 import { edgeColor } from "./shared/edge-styles";
 
 /**

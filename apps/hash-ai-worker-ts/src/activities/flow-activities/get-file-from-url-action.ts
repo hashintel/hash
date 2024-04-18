@@ -31,11 +31,11 @@ import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-util
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { Entity } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
+import { Context } from "@temporalio/activity";
 import mime from "mime-types";
 
-import type { FlowActionActivity } from "./types";
 import { logProgress } from "../shared/log-progress";
-import { Context } from "@temporalio/activity";
+import type { FlowActionActivity } from "./types";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

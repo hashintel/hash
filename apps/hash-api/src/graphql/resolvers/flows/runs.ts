@@ -223,9 +223,9 @@ const mapTemporalWorkflowToFlowStatus = async (
               return null;
             }
             /**
-             * @todo handle cases where the activity has been retried
+             * @todo handle cases where the activity has been retried, where there may be logs from earlier attempts
              *    –– new start events are not written to the history until the activity has been closed,
-             *    so we need to count the previous close events to determine the attempt number
+             *    so we need to count the previous close events to determine the attempt number.
              */
 
             const logs = parseHistoryItemPayload(

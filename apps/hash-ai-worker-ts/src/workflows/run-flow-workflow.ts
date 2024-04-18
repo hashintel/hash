@@ -1,3 +1,4 @@
+import { sleep } from "@local/hash-backend-utils/utils";
 import {
   type ActionDefinitionId,
   actionDefinitions,
@@ -21,7 +22,6 @@ import {
   workflowInfo,
 } from "@temporalio/workflow";
 
-import { sleep } from "@local/hash-backend-utils/utils";
 import type {
   createFlowActionActivities,
   createFlowActivities,

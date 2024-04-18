@@ -1,3 +1,4 @@
+import { VersionedUrl } from "@blockprotocol/type-system";
 import type {
   CustomCell,
   Item,
@@ -5,24 +6,28 @@ import type {
   TextCell,
 } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
-import type { Entity, EntityId } from "@local/hash-subgraph";
-
-import { Grid } from "../../../components/grid/grid";
-import { renderChipCell } from "../../shared/chip-cell";
-import { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
+import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import type {
+  Entity,
+  EntityId,
+  EntityMetadata,
+  EntityRecordId,
+} from "@local/hash-subgraph";
 import {
   Box,
   Stack,
-  Table,
   TableBody,
   TableCell,
   TableHead,
   TableRow,
   Typography,
 } from "@mui/material";
-import { OrgTable } from "../../settings/organizations/shared/org-table";
+
+// import { Grid } from "../../../components/grid/grid";
 import { Cell } from "../../settings/organizations/shared/cell";
-import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import { OrgTable } from "../../settings/organizations/shared/org-table";
+// import { renderChipCell } from "../../shared/chip-cell";
 
 const columns: SizedGridColumn[] = [
   {
@@ -53,7 +58,7 @@ type EntityResultRow = {
   status: "Proposed" | "New" | "Updated";
 };
 
-const createGetCellContent =
+const _createGetCellContent =
   (entityRows: EntityResultRow[]) =>
   ([colIndex, rowIndex]: Item): TextCell | CustomCell => {
     const columnId = columns[colIndex]?.id;
@@ -116,6 +121,7 @@ export const EntityResultTable = ({
   proposedEntities,
 }: EntityResultTableProps) => {
   const hasData = persistedEntities.length || proposedEntities.length;
+
   return (
     <Box
       sx={{
@@ -141,7 +147,7 @@ export const EntityResultTable = ({
             {(persistedEntities.length
               ? persistedEntities
               : proposedEntities
-            ).map((entity, index) => {
+            ).map((entity) => {
               const entityId =
                 "localEntityId" in entity
                   ? entity.localEntityId
@@ -155,14 +161,15 @@ export const EntityResultTable = ({
                 ...entity,
                 metadata: {
                   recordId: {
-                    entityId,
-                  },
-                  entityTypeId,
-                },
+                    editionId: "irrelevant-here",
+                    entityId: entityId as EntityId,
+                  } satisfies EntityRecordId,
+                  entityTypeId: entityTypeId satisfies VersionedUrl,
+                } as EntityMetadata,
               });
 
               return (
-                <TableRow key={index}>
+                <TableRow key={entityId}>
                   <TableCell sx={{ fontSize: 13 }}>
                     {"localEntityId" in entity ? "Proposed" : "New"}
                   </TableCell>
@@ -194,6 +201,7 @@ export const EntityResultTable = ({
       )}
     </Box>
   );
+  // @todo figure out why this Grid is not rendering and replace the table above with it
   // const rows: EntityResultRow[] = [
   //   {
   //     rowId: "1",

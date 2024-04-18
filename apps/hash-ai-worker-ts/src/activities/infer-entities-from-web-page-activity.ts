@@ -11,9 +11,9 @@ import type {
   WebPage,
 } from "./infer-entities/inference-types";
 import { proposeEntities } from "./infer-entities/propose-entities";
+import { logger } from "./shared/activity-logger";
 import type { PermittedOpenAiModel } from "./shared/openai";
 import { stringify } from "./shared/stringify";
-import { logger } from "./shared/activity-logger";
 
 export const inferEntitiesFromWebPageActivity = async (params: {
   webPage: WebPage | string;
