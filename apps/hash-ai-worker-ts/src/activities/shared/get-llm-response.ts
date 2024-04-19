@@ -10,7 +10,7 @@ import type {
 } from "openai/resources";
 import { promptTokensEstimate } from "openai-chat-tokens";
 
-import { logger } from "../../shared/logger";
+import { logger } from "./activity-logger";
 import type {
   AnthropicMessagesCreateParams,
   AnthropicToolDefinition,
