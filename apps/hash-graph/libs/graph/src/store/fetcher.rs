@@ -43,7 +43,7 @@ use crate::{
         account::{InsertAccountGroupIdParams, InsertAccountIdParams, InsertWebIdParams},
         crud::{QueryResult, Read, ReadPaginated, Sorting},
         knowledge::{
-            CreateEntityParams, EntityQueryCursor, GetEntityParams, PatchEntityParams,
+            CreateEntityParams, GetEntityParams, GetEntityResponse, PatchEntityParams,
             UpdateEntityEmbeddingsParams, ValidateEntityError, ValidateEntityParams,
         },
         ontology::{
@@ -1312,7 +1312,7 @@ where
         actor_id: AccountId,
         authorization_api: &Au,
         params: GetEntityParams<'_>,
-    ) -> Result<(Subgraph, Option<EntityQueryCursor<'static>>), QueryError> {
+    ) -> Result<GetEntityResponse<'static>, QueryError> {
         self.store
             .get_entity(actor_id, authorization_api, params)
             .await

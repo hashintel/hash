@@ -172,6 +172,7 @@ pub fn bench_get_entity_by_id(
                             cursor: None,
                         },
                         limit: None,
+                        include_count: false,
                     },
                 )
                 .await

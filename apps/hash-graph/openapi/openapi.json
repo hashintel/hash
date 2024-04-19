@@ -4482,6 +4482,9 @@
             ],
             "nullable": true
           },
+          "includeCount": {
+            "type": "boolean"
+          },
           "limit": {
             "type": "integer",
             "nullable": true,
@@ -4506,6 +4509,11 @@
           "subgraph"
         ],
         "properties": {
+          "count": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          },
           "cursor": {
             "allOf": [
               {

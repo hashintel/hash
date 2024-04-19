@@ -579,7 +579,7 @@ impl DatabaseApi<'_> {
             .store
             .count_entities(self.account_id, &NoAuthorization, query.clone())
             .await?;
-        let subgraph = self
+        let response = self
             .store
             .get_entity(
                 self.account_id,
@@ -591,12 +591,13 @@ impl DatabaseApi<'_> {
                         cursor: None,
                     },
                     limit: None,
+                    include_count: true,
                 },
             )
-            .await?
-            .0;
-        assert_eq!(count, subgraph.roots.len());
-        Ok(subgraph.vertices.entities.into_values().collect())
+            .await?;
+        assert_eq!(count, response.subgraph.roots.len());
+        assert_eq!(response.count, Some(count));
+        Ok(response.subgraph.vertices.entities.into_values().collect())
     }
 
     pub async fn get_all_entities(
@@ -604,7 +605,7 @@ impl DatabaseApi<'_> {
         limit: usize,
         sorting: EntityQuerySorting<'static>,
     ) -> Result<(Vec<Entity>, Option<EntityQueryCursor<'static>>), QueryError> {
-        let (mut subgraph, cursor) = self
+        let mut response = self
             .store
             .get_entity(
                 self.account_id,
@@ -621,20 +622,22 @@ impl DatabaseApi<'_> {
                     },
                     sorting,
                     limit: Some(limit),
+                    include_count: false,
                 },
             )
             .await?;
-        let entities = subgraph
+        let entities = response
+            .subgraph
             .roots
             .into_iter()
             .filter_map(|vertex_id| {
                 let GraphElementVertexId::KnowledgeGraph(vertex_id) = vertex_id else {
                     panic!("unexpected vertex id found: {vertex_id:?}");
                 };
-                subgraph.vertices.entities.remove(&vertex_id)
+                response.subgraph.vertices.entities.remove(&vertex_id)
             })
             .collect();
-        Ok((entities, cursor))
+        Ok((entities, response.cursor))
     }
 
     pub async fn get_entities_by_type(
@@ -676,7 +679,7 @@ impl DatabaseApi<'_> {
             .store
             .count_entities(self.account_id, &NoAuthorization, query.clone())
             .await?;
-        let (mut subgraph, _) = self
+        let mut response = self
             .store
             .get_entity(
                 self.account_id,
@@ -688,19 +691,22 @@ impl DatabaseApi<'_> {
                         cursor: None,
                     },
                     limit: None,
+                    include_count: true,
                 },
             )
             .await?;
-        assert_eq!(count, subgraph.roots.len());
+        assert_eq!(count, response.subgraph.roots.len());
+        assert_eq!(response.count, Some(count));
 
-        Ok(subgraph
+        Ok(response
+            .subgraph
             .roots
             .into_iter()
             .filter_map(|vertex_id| {
                 let GraphElementVertexId::KnowledgeGraph(vertex_id) = vertex_id else {
                     panic!("unexpected vertex id found: {vertex_id:?}");
                 };
-                subgraph.vertices.entities.remove(&vertex_id)
+                response.subgraph.vertices.entities.remove(&vertex_id)
             })
             .collect())
     }
@@ -710,7 +716,7 @@ impl DatabaseApi<'_> {
         entity_id: EntityId,
         timestamp: Timestamp<DecisionTime>,
     ) -> Result<Entity, QueryError> {
-        let entities = self
+        let response = self
             .store
             .get_entity(
                 self.account_id,
@@ -733,15 +739,19 @@ impl DatabaseApi<'_> {
                         cursor: None,
                     },
                     limit: None,
+                    include_count: true,
                 },
             )
-            .await?
-            .0
+            .await?;
+        let entities = response
+            .subgraph
             .vertices
             .entities
             .into_values()
             .collect::<Vec<_>>();
         assert_eq!(entities.len(), 1);
+        assert_eq!(response.count, Some(1));
+
         Ok(entities.into_iter().next().unwrap())
     }
 
@@ -766,10 +776,11 @@ impl DatabaseApi<'_> {
                         cursor: None,
                     },
                     limit: None,
+                    include_count: false,
                 },
             )
             .await?
-            .0
+            .subgraph
             .vertices
             .entities
             .into_values()
@@ -881,7 +892,7 @@ impl DatabaseApi<'_> {
             ),
         ]);
 
-        let mut subgraph = self
+        let mut response = self
             .store
             .get_entity(
                 self.account_id,
@@ -904,17 +915,18 @@ impl DatabaseApi<'_> {
                         cursor: None,
                     },
                     limit: None,
+                    include_count: false,
                 },
             )
             .await?;
 
-        let roots = subgraph
-            .0
+        let roots = response
+            .subgraph
             .roots
             .into_iter()
             .filter_map(|vertex_id| match vertex_id {
                 GraphElementVertexId::KnowledgeGraph(vertex_id) => {
-                    subgraph.0.vertices.entities.remove(&vertex_id)
+                    response.subgraph.vertices.entities.remove(&vertex_id)
                 }
                 _ => None,
             })
@@ -957,7 +969,7 @@ impl DatabaseApi<'_> {
             ),
         ]);
 
-        let mut subgraph = self
+        let mut response = self
             .store
             .get_entity(
                 self.account_id,
@@ -977,17 +989,18 @@ impl DatabaseApi<'_> {
                         cursor: None,
                     },
                     limit: None,
+                    include_count: false,
                 },
             )
             .await?;
 
-        Ok(subgraph
-            .0
+        Ok(response
+            .subgraph
             .roots
             .into_iter()
             .filter_map(|vertex_id| match vertex_id {
                 GraphElementVertexId::KnowledgeGraph(edition_id) => {
-                    subgraph.0.vertices.entities.remove(&edition_id)
+                    response.subgraph.vertices.entities.remove(&edition_id)
                 }
                 _ => None,
             })

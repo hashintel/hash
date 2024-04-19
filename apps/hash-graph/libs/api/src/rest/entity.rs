@@ -348,6 +348,8 @@ struct GetEntityByQueryRequest<'q, 's, 'p> {
     sorting_paths: Option<Vec<EntityQuerySortingRecord<'p>>>,
     #[serde(borrow)]
     cursor: Option<EntityQueryCursor<'s>>,
+    #[serde(default)]
+    include_count: bool,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -356,6 +358,7 @@ struct GetEntityByQueryResponse<'r> {
     subgraph: Subgraph,
     #[serde(borrow)]
     cursor: Option<EntityQueryCursor<'r>>,
+    count: Option<usize>,
 }
 
 #[utoipa::path(
@@ -453,7 +456,7 @@ where
         },
     );
 
-    let (subgraph, cursor) = store
+    store
         .get_entity(
             actor_id,
             &authorization_api,
@@ -467,15 +470,18 @@ where
                     cursor: request.cursor.map(EntityQueryCursor::into_owned),
                 },
                 limit: request.limit,
+                include_count: request.include_count,
             },
         )
         .await
-        .map_err(report_to_response)?;
-
-    Ok(Json(GetEntityByQueryResponse {
-        subgraph: subgraph.into(),
-        cursor: cursor.map(EntityQueryCursor::into_owned),
-    }))
+        .map(|response| {
+            Json(GetEntityByQueryResponse {
+                subgraph: response.subgraph.into(),
+                cursor: response.cursor.map(EntityQueryCursor::into_owned),
+                count: response.count,
+            })
+        })
+        .map_err(report_to_response)
 }
 
 #[utoipa::path(

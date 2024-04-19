@@ -227,6 +227,15 @@ pub struct GetEntityParams<'a> {
     #[serde(borrow)]
     pub sorting: EntityQuerySorting<'static>,
     pub limit: Option<usize>,
+    #[serde(default)]
+    pub include_count: bool,
+}
+
+#[derive(Debug)]
+pub struct GetEntityResponse<'r> {
+    pub subgraph: Subgraph,
+    pub cursor: Option<EntityQueryCursor<'r>>,
+    pub count: Option<usize>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -350,9 +359,7 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
         actor_id: AccountId,
         authorization_api: &A,
         params: GetEntityParams<'_>,
-    ) -> impl Future<
-        Output = Result<(Subgraph, Option<EntityQueryCursor<'static>>), Report<QueryError>>,
-    > + Send;
+    ) -> impl Future<Output = Result<GetEntityResponse<'static>, Report<QueryError>>> + Send;
 
     /// Count the number of entities that would be returned in [`get_entity`].
     ///

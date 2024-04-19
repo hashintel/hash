@@ -51,9 +51,9 @@ use crate::{
         crud::{QueryResult, Read, ReadPaginated, Sorting},
         error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
         knowledge::{
-            CreateEntityParams, EntityQueryCursor, EntityQuerySorting, EntityValidationType,
-            GetEntityParams, PatchEntityParams, UpdateEntityEmbeddingsParams, ValidateEntityError,
-            ValidateEntityParams,
+            CreateEntityParams, EntityQuerySorting, EntityValidationType, GetEntityParams,
+            GetEntityResponse, PatchEntityParams, UpdateEntityEmbeddingsParams,
+            ValidateEntityError, ValidateEntityParams,
         },
         postgres::{
             knowledge::entity::read::EntityEdgeTraversalData, ontology::OntologyId,
@@ -980,7 +980,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         actor_id: AccountId,
         authorization_api: &A,
         mut params: GetEntityParams<'_>,
-    ) -> Result<(Subgraph, Option<EntityQueryCursor<'static>>), QueryError> {
+    ) -> Result<GetEntityResponse<'static>, QueryError> {
         let query = &mut params.query;
 
         let unresolved_temporal_axes = query.temporal_axes.clone();
@@ -988,6 +988,42 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let time_axis = temporal_axes.variable_time_axis();
 
         let mut root_entities = Vec::new();
+
+        let (permissions, count) = if params.include_count {
+            let entity_ids = Read::<Entity>::read(
+                self,
+                &query.filter,
+                Some(&temporal_axes),
+                query.include_drafts,
+            )
+            .await?
+            .map_ok(|entity| entity.metadata.record_id.entity_id)
+            .try_collect::<Vec<_>>()
+            .await?;
+
+            let (permissions, zookie) = authorization_api
+                .check_entities_permission(
+                    actor_id,
+                    EntityPermission::View,
+                    entity_ids.iter().copied(),
+                    Consistency::FullyConsistent,
+                )
+                .await
+                .change_context(QueryError)?;
+
+            let permitted_ids = permissions
+                .into_iter()
+                .filter_map(|(entity_id, has_permission)| has_permission.then_some(entity_id))
+                .collect::<HashSet<_>>();
+
+            let count = entity_ids
+                .into_iter()
+                .filter(|id| permitted_ids.contains(&id.entity_uuid))
+                .count();
+            (Some((permitted_ids, zookie)), Some(count))
+        } else {
+            (None, None)
+        };
 
         let (latest_zookie, last) = loop {
             // We query one more than requested to determine if there are more entities to return.
@@ -1014,29 +1050,41 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
             let num_returned_entities = entities.len();
 
-            // TODO: The subgraph structure differs from the API interface. At the API the vertices
-            //       are stored in a nested `HashMap` and here it's flattened. We need to adjust the
-            //       subgraph anyway so instead of refactoring this now this will just copy the ids.
-            //   see https://linear.app/hash/issue/H-297/revisit-subgraph-layout-to-allow-temporal-ontology-types
-            let filtered_ids = entities
-                .iter()
-                .map(|(entity, _)| entity.metadata.record_id.entity_id)
-                .collect::<HashSet<_>>();
+            let (permitted_ids, zookie) = if let Some((permitted_ids, zookie)) = &permissions {
+                (Cow::Borrowed(permitted_ids), Cow::Borrowed(zookie))
+            } else {
+                // TODO: The subgraph structure differs from the API interface. At the API the
+                //       vertices are stored in a nested `HashMap` and here it's flattened. We need
+                //       to adjust the subgraph anyway so instead of refactoring this now this will
+                //       just copy the ids.
+                //   see https://linear.app/hash/issue/H-297/revisit-subgraph-layout-to-allow-temporal-ontology-types
+                let filtered_ids = entities
+                    .iter()
+                    .map(|(entity, _)| entity.metadata.record_id.entity_id)
+                    .collect::<HashSet<_>>();
 
-            let (permissions, zookie) = authorization_api
-                .check_entities_permission(
-                    actor_id,
-                    EntityPermission::View,
-                    filtered_ids,
-                    Consistency::FullyConsistent,
+                let (permissions, zookie) = authorization_api
+                    .check_entities_permission(
+                        actor_id,
+                        EntityPermission::View,
+                        filtered_ids,
+                        Consistency::FullyConsistent,
+                    )
+                    .await
+                    .change_context(QueryError)?;
+
+                (
+                    Cow::Owned(
+                        permissions
+                            .into_iter()
+                            .filter_map(|(entity_id, has_permission)| {
+                                has_permission.then_some(entity_id)
+                            })
+                            .collect::<HashSet<_>>(),
+                    ),
+                    Cow::Owned(zookie),
                 )
-                .await
-                .change_context(QueryError)?;
-
-            let permitted_ids = permissions
-                .into_iter()
-                .filter_map(|(entity_id, has_permission)| has_permission.then_some(entity_id))
-                .collect::<HashSet<_>>();
+            };
 
             root_entities.extend(
                 entities
@@ -1113,7 +1161,11 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .read_traversed_vertices(self, &mut subgraph, query.include_drafts)
             .await?;
 
-        Ok((subgraph, last))
+        Ok(GetEntityResponse {
+            subgraph,
+            cursor: last,
+            count,
+        })
     }
 
     async fn count_entities<Au: AuthorizationApi + Sync>(
