@@ -25,8 +25,8 @@ import type {
   UpdateCandidate,
 } from "../inference-types";
 import { extractErrorMessage } from "../shared/extract-validation-failure-details";
+import type { ProposedEntityCreationsByType } from "../shared/generate-propose-entities-tools";
 import { ensureTrailingSlash } from "./ensure-trailing-slash";
-import type { ProposedEntityCreationsByType } from "./generate-persist-entities-tools";
 
 type StatusByTemporaryId<T> = Record<number, T>;
 

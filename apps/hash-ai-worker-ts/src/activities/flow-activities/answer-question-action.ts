@@ -16,64 +16,59 @@ import dedent from "dedent";
 import { CodeInterpreter, Sandbox } from "e2b";
 import OpenAI from "openai/index";
 
-import type { PermittedOpenAiModel } from "../shared/openai";
-import { getOpenAiResponse } from "../shared/openai";
+import { logger } from "../shared/activity-logger";
+import type { PermittedOpenAiModel } from "../shared/openai-client";
 import { stringify } from "../shared/stringify";
 import type { FlowActionActivity } from "./types";
 import ChatCompletionUserMessageParam = OpenAI.ChatCompletionUserMessageParam;
 import ChatCompletionToolMessageParam = OpenAI.ChatCompletionToolMessageParam;
-import { logger } from "../shared/activity-logger";
+import { getLlmResponse } from "../shared/get-llm-response";
+import type { LlmToolDefinition } from "../shared/get-llm-response/types";
 
-const answerTools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
+const answerTools: LlmToolDefinition[] = [
   {
-    type: "function",
-    function: {
-      name: "answer",
-      description:
-        "Submit the answer, or an explanation of why the question cannot be answered using the available data",
-      parameters: {
-        type: "object",
-        properties: {
-          answer: {
-            type: "string",
-            description: "The answer to the question, if one can be provided.",
-          },
-          explanation: {
-            type: "string",
-            description:
-              "A brief explanation of how the answer was reached, including any methodology, assumptions, or supporting context relied on, and why the confidence value was chosen. OR if no answer could be provided, an explanation as to why not, and what further data may help answer the question.",
-          },
-          confidence: {
-            type: "number",
-            description:
-              "Confidence score of the answer, expressed as a number between 0 and 1.",
-          },
+    name: "answer",
+    description:
+      "Submit the answer, or an explanation of why the question cannot be answered using the available data",
+    inputSchema: {
+      type: "object",
+      properties: {
+        answer: {
+          type: "string",
+          description: "The answer to the question, if one can be provided.",
         },
-        required: ["explanation"],
+        explanation: {
+          type: "string",
+          description:
+            "A brief explanation of how the answer was reached, including any methodology, assumptions, or supporting context relied on, and why the confidence value was chosen. OR if no answer could be provided, an explanation as to why not, and what further data may help answer the question.",
+        },
+        confidence: {
+          type: "number",
+          description:
+            "Confidence score of the answer, expressed as a number between 0 and 1.",
+        },
       },
+      required: ["explanation"],
     },
   },
   {
-    type: "function",
-    function: {
-      name: "run_python_code",
-      description:
-        "Run Python code to help analyze the data. Your code should output the values you need to stdout. You should explain your reasoning for the approach taken in the 'explanation' field.",
-      parameters: {
-        type: "object",
-        properties: {
-          code: {
-            type: "string",
-            description:
-              "Python code to run, logging the output you need to stdout. Add comments to explain your reasoning behind function use and data access. Make sure any JSON key or table column access are copied from the context data, and are not guessed at.",
-          },
-          explanation: {
-            type: "string",
-            description: "An explanation of what the code is doing and why.",
-          },
+    name: "run_python_code",
+    description:
+      "Run Python code to help analyze the data. Your code should output the values you need to stdout. You should explain your reasoning for the approach taken in the 'explanation' field.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        code: {
+          type: "string",
+          description:
+            "Python code to run, logging the output you need to stdout. Add comments to explain your reasoning behind function use and data access. Make sure any JSON key or table column access are copied from the context data, and are not guessed at.",
         },
-        required: ["code", "explanation"],
+        explanation: {
+          type: "string",
+          description: "An explanation of what the code is doing and why.",
+        },
       },
+      required: ["code", "explanation"],
     },
   },
 ];
@@ -143,37 +138,26 @@ const callModel = async (
     outputs: StepOutput[];
   }>
 > => {
-  const openApiPayload: OpenAI.ChatCompletionCreateParams = {
+  const llmResponse = await getLlmResponse({
     model,
     messages,
-    stream: false,
     temperature: 0,
     tools: answerTools,
-  };
+  });
 
-  const openAiResponse = await getOpenAiResponse(openApiPayload);
+  logger.debug(`Open AI Response received: ${stringify(llmResponse)}`);
 
-  logger.debug(`Open AI Response received: ${stringify(openAiResponse)}`);
-
-  const { response } = openAiResponse.contents[0]!;
-
-  const { message: modelResponseMessage } = response;
-
-  const toolCalls = modelResponseMessage.tool_calls;
-
-  if (!toolCalls?.length) {
-    const responseMessage: ChatCompletionUserMessageParam = {
-      role: "user",
-      content:
-        "You didn't make any tool calls as part of your response. Please review the tools available to you and use the appropriate one.",
+  if (llmResponse.status !== "ok") {
+    return {
+      code: StatusCode.Internal,
+      message: "An error occurred while calling the model.",
+      contents: [],
     };
-    return callModel(
-      [...messages, modelResponseMessage, responseMessage],
-      context,
-      codeUsed,
-      iteration + 1,
-    );
   }
+
+  const { choices, parsedToolCalls } = llmResponse;
+
+  const { message: modelResponseMessage } = choices[0];
 
   const responseMessages: ChatCompletionToolMessageParam[] = [];
 
@@ -184,34 +168,12 @@ const callModel = async (
   let explanation: string | undefined;
   let code: string | undefined;
 
-  for (const toolCall of toolCalls) {
-    let parsedArguments: ModelResponseArgs;
-    try {
-      parsedArguments = JSON.parse(
-        toolCall.function.arguments,
-      ) as ModelResponseArgs;
-    } catch (err) {
-      return callModel(
-        [
-          ...messages,
-          modelResponseMessage,
-          {
-            role: "tool",
-            content: `Your JSON arguments could not be parsed – the parsing function errored: ${
-              (err as Error).message
-            }. Please try again.`,
-            tool_call_id: toolCall.id,
-          },
-        ],
-        context,
-        null,
-        iteration + 1,
-      );
-    }
+  for (const toolCall of parsedToolCalls) {
+    const parsedArguments = toolCall.input as ModelResponseArgs;
 
-    switch (toolCall.function.name) {
+    switch (toolCall.name) {
       case "answer": {
-        if (toolCalls.length > 1) {
+        if (parsedToolCalls.length > 1) {
           responseMessages.push({
             role: "tool",
             content:

@@ -5,13 +5,11 @@ import {
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
-import type {
-  ChatCompletionCreateParams,
-  ChatCompletionSystemMessageParam,
-} from "openai/resources";
+import type { ChatCompletionSystemMessageParam } from "openai/resources";
 
 import { getWebPageActivity } from "../get-web-page-activity";
-import { getOpenAiResponse, modelAliasToSpecificModel } from "../shared/openai";
+import { getLlmResponse } from "../shared/get-llm-response";
+import { modelAliasToSpecificModel } from "../shared/openai-client";
 import type { FlowActionActivity } from "./types";
 
 const generateSummarizeWebPageSystemMessage = (params: {
@@ -48,7 +46,7 @@ export const getWebPageSummaryAction: FlowActionActivity = async ({
     numberOfSentences: numberOfSentences!,
   });
 
-  const openApiPayload: ChatCompletionCreateParams = {
+  const llmResponse = await getLlmResponse({
     messages: [
       systemPrompt,
       {
@@ -61,18 +59,20 @@ export const getWebPageSummaryAction: FlowActionActivity = async ({
       },
     ],
     model: modelAliasToSpecificModel[model],
-  };
+  });
 
-  const openAiResponse = await getOpenAiResponse(openApiPayload);
-
-  if (openAiResponse.code !== StatusCode.Ok) {
+  if (llmResponse.status !== "ok") {
     return {
-      ...openAiResponse,
+      code: StatusCode.Internal,
       contents: [],
     };
   }
 
-  const summary = openAiResponse.contents[0]?.response.message.content;
+  const { choices } = llmResponse;
+
+  const { message } = choices[0];
+
+  const summary = message.content;
 
   if (!summary) {
     return {

@@ -2,22 +2,10 @@ import dedent from "dedent";
 import type {
   ChatCompletionMessage,
   ChatCompletionMessageParam,
-  ChatCompletionTool,
   ChatCompletionToolMessageParam,
-  FunctionDefinition,
 } from "openai/resources";
 
-import type { CompletedToolCall, ToolDefinition } from "./types";
-
-export const parseOpenAiFunctionArguments = <
-  T extends Record<string, object>,
->(params: {
-  stringifiedArguments: string;
-}) => {
-  const { stringifiedArguments } = params;
-
-  return JSON.parse(stringifiedArguments) as T;
-};
+import type { CompletedToolCall } from "./types";
 
 export const mapPreviousCallsToChatCompletionMessages = (params: {
   previousCalls: {
@@ -41,13 +29,20 @@ export const mapPreviousCallsToChatCompletionMessages = (params: {
               content: null,
               tool_calls: completedToolCalls.map(
                 /** @todo: consider also omitting large arguments from prior tool calls */
-                ({ openAiToolCall }) => openAiToolCall,
+                ({ id, name, input }) => ({
+                  id,
+                  type: "function",
+                  function: {
+                    name,
+                    arguments: JSON.stringify(input),
+                  },
+                }),
               ),
             } satisfies ChatCompletionMessage,
             ...completedToolCalls.map<ChatCompletionToolMessageParam>(
               (completedToolCall) => ({
                 role: "tool",
-                tool_call_id: completedToolCall.openAiToolCall.id,
+                tool_call_id: completedToolCall.id,
                 content: isAfterOmitIndex
                   ? completedToolCall.redactedOutputMessage ??
                     dedent(`
@@ -62,17 +57,3 @@ export const mapPreviousCallsToChatCompletionMessages = (params: {
     },
   );
 };
-
-export const mapToolDefinitionToOpenAiTool = ({
-  toolId,
-  description,
-  inputSchema,
-}: ToolDefinition<string>): ChatCompletionTool =>
-  ({
-    function: {
-      name: toolId,
-      description,
-      parameters: inputSchema as FunctionDefinition["parameters"],
-    },
-    type: "function",
-  }) as const;

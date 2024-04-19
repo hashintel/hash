@@ -23,7 +23,7 @@ import type {
 } from "./infer-entities/inference-types";
 import { persistEntities } from "./infer-entities/persist-entities";
 import { logger } from "./shared/activity-logger";
-import { modelAliasToSpecificModel } from "./shared/openai";
+import { modelAliasToSpecificModel } from "./shared/openai-client";
 import { stringify } from "./shared/stringify";
 import { userExceededServiceUsageLimitActivity } from "./user-exceeded-service-usage-limit-activity";
 

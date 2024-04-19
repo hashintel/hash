@@ -36,6 +36,7 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "0.20.5",
     "@blockprotocol/type-system": "0.1.1",
     "@local/advanced-types": "0.0.0-private",
     "@local/hash-backend-utils": "0.0.0-private",
@@ -48,6 +49,8 @@
     "@temporalio/common": "1.8.1",
     "@temporalio/worker": "1.8.1",
     "@temporalio/workflow": "1.8.1",
+    "ajv": "^8.12.0",
+    "ajv-formats": "3.0.1",
     "axios": "1.6.0",
     "dedent": "0.7.0",
     "dotenv-flow": "3.2.0",

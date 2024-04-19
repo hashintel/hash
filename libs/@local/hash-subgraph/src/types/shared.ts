@@ -9,24 +9,24 @@ import type {
 export * from "./shared/branded";
 export * from "./shared/temporal-versioning";
 
-export type OntologyProvenanceMetadata = {
-  edition: OntologyEditionProvenanceMetadata;
+export type OntologyProvenance = {
+  edition: OntologyEditionProvenance;
 };
 
-export type OntologyEditionProvenanceMetadata = {
+export type OntologyEditionProvenance = {
   createdById: EditionCreatedById;
   archivedById?: EditionArchivedById;
 };
 
-export type EntityProvenanceMetadata = {
+export type EntityProvenance = {
   createdById: CreatedById;
   createdAtTransactionTime: CreatedAtTransactionTime;
   createdAtDecisionTime: CreatedAtDecisionTime;
-  edition: EntityEditionProvenanceMetadata;
+  edition: EntityEditionProvenance;
   firstNonDraftCreatedAtDecisionTime?: CreatedAtDecisionTime;
   firstNonDraftCreatedAtTransactionTime?: CreatedAtTransactionTime;
 };
 
-export type EntityEditionProvenanceMetadata = {
+export type EntityEditionProvenance = {
   createdById: EditionCreatedById;
 };

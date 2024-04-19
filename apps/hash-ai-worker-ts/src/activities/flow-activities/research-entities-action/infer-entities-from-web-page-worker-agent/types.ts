@@ -2,7 +2,7 @@ import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 
 import type { CompletedToolCall } from "../types";
 
-const toolIds = [
+const toolNames = [
   // "getWebPageInnerText",
   "getWebPageInnerHtml",
   // "getWebPageSummary",
@@ -13,15 +13,15 @@ const toolIds = [
   "updatePlan",
 ] as const;
 
-export type ToolId = (typeof toolIds)[number];
+export type ToolName = (typeof toolNames)[number];
 
-export const isToolId = (value: string): value is ToolId =>
-  toolIds.includes(value as ToolId);
+export const isToolName = (value: string): value is ToolName =>
+  toolNames.includes(value as ToolName);
 
 export type InferEntitiesFromWebPageWorkerAgentState = {
   currentPlan: string;
   previousCalls: {
-    completedToolCalls: CompletedToolCall<ToolId>[];
+    completedToolCalls: CompletedToolCall<ToolName>[];
   }[];
   proposedEntities: ProposedEntity[];
   submittedEntityIds: string[];
