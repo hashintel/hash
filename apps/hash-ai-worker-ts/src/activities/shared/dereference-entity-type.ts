@@ -160,7 +160,18 @@ const dereferencePropertyTypeValue = (params: {
 
           return accumulator;
         }, {}),
-        required: valueReference.required,
+        required: simplifyPropertyKeys
+          ? valueReference.required?.map((requiredPropertyBaseUrl) => {
+              const simplifiedPropertyId = Object.entries(
+                simplifiedPropertyTypeMappings,
+              ).find(
+                ([_, propertyBaseUrl]) =>
+                  propertyBaseUrl === requiredPropertyBaseUrl,
+              )?.[0];
+
+              return simplifiedPropertyId ?? requiredPropertyBaseUrl;
+            })
+          : valueReference.required,
         type: "object",
       },
       updatedSimplifiedPropertyTypeMappings: simplifiedPropertyTypeMappings,
