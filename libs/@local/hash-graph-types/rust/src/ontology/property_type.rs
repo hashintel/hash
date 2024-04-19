@@ -8,7 +8,7 @@ use utoipa::{
 
 use crate::{
     ontology::{
-        OntologyProvenanceMetadata, OntologyTemporalMetadata, OntologyType,
+        OntologyProvenance, OntologyTemporalMetadata, OntologyType,
         OntologyTypeClassificationMetadata, OntologyTypeRecordId, OntologyTypeReference,
         OntologyTypeWithMetadata,
     },
@@ -29,7 +29,7 @@ pub struct PropertyTypeMetadata {
     #[serde(flatten)]
     pub classification: OntologyTypeClassificationMetadata,
     pub temporal_versioning: OntologyTemporalMetadata,
-    pub provenance: OntologyProvenanceMetadata,
+    pub provenance: OntologyProvenance,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -59,10 +59,7 @@ impl ToSchema<'static> for PropertyTypeMetadata {
                                 Ref::from_schema_name("OntologyTemporalMetadata"),
                             )
                             .required("temporalVersioning")
-                            .property(
-                                "provenance",
-                                Ref::from_schema_name("OntologyProvenanceMetadata"),
-                            )
+                            .property("provenance", Ref::from_schema_name("OntologyProvenance"))
                             .required("provenance")
                             .build(),
                     )
@@ -78,10 +75,7 @@ impl ToSchema<'static> for PropertyTypeMetadata {
                                 Ref::from_schema_name("OntologyTemporalMetadata"),
                             )
                             .required("temporalVersioning")
-                            .property(
-                                "provenance",
-                                Ref::from_schema_name("OntologyProvenanceMetadata"),
-                            )
+                            .property("provenance", Ref::from_schema_name("OntologyProvenance"))
                             .required("provenance")
                             .build(),
                     )

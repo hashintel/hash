@@ -7,9 +7,8 @@ use utoipa::{
 };
 
 use crate::ontology::{
-    OntologyProvenanceMetadata, OntologyTemporalMetadata, OntologyType,
-    OntologyTypeClassificationMetadata, OntologyTypeRecordId, OntologyTypeReference,
-    OntologyTypeWithMetadata,
+    OntologyProvenance, OntologyTemporalMetadata, OntologyType, OntologyTypeClassificationMetadata,
+    OntologyTypeRecordId, OntologyTypeReference, OntologyTypeWithMetadata,
 };
 
 /// A [`DataTypeMetadata`] that has not yet been fully resolved.
@@ -26,7 +25,7 @@ pub struct DataTypeMetadata {
     #[serde(flatten)]
     pub classification: OntologyTypeClassificationMetadata,
     pub temporal_versioning: OntologyTemporalMetadata,
-    pub provenance: OntologyProvenanceMetadata,
+    pub provenance: OntologyProvenance,
 }
 
 #[cfg(feature = "utoipa")]
@@ -48,10 +47,7 @@ impl ToSchema<'static> for DataTypeMetadata {
                                 Ref::from_schema_name("OntologyTemporalMetadata"),
                             )
                             .required("temporalVersioning")
-                            .property(
-                                "provenance",
-                                Ref::from_schema_name("OntologyProvenanceMetadata"),
-                            )
+                            .property("provenance", Ref::from_schema_name("OntologyProvenance"))
                             .required("provenance")
                             .build(),
                     )
@@ -67,10 +63,7 @@ impl ToSchema<'static> for DataTypeMetadata {
                                 Ref::from_schema_name("OntologyTemporalMetadata"),
                             )
                             .required("temporalVersioning")
-                            .property(
-                                "provenance",
-                                Ref::from_schema_name("OntologyProvenanceMetadata"),
-                            )
+                            .property("provenance", Ref::from_schema_name("OntologyProvenance"))
                             .required("provenance")
                             .build(),
                     )

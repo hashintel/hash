@@ -10,7 +10,7 @@ use futures::{
     Sink, SinkExt, Stream, StreamExt,
 };
 use graph_types::ontology::{
-    OntologyProvenanceMetadata, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
+    OntologyProvenance, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
     OntologyTypeRecordId,
 };
 use uuid::Uuid;
@@ -37,7 +37,7 @@ impl
         OntologyTypeRecordId,
         OntologyTypeClassificationMetadata,
         OntologyTemporalMetadata,
-        OntologyProvenanceMetadata,
+        OntologyProvenance,
     )> for OntologyTypeMetadataSender
 {
     type Error = Report<SnapshotRestoreError>;
@@ -66,7 +66,7 @@ impl
             OntologyTypeRecordId,
             OntologyTypeClassificationMetadata,
             OntologyTemporalMetadata,
-            OntologyProvenanceMetadata,
+            OntologyProvenance,
         ),
     ) -> Result<(), Self::Error> {
         match classification {

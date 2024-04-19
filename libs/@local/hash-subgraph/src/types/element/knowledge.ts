@@ -17,7 +17,7 @@ import type { Subtype } from "@local/advanced-types/subtype";
 import type {
   BaseUrl,
   EntityId,
-  EntityProvenanceMetadata,
+  EntityProvenance,
   ExclusiveLimitedTemporalBound,
   InclusiveLimitedTemporalBound,
   TemporalAxis,
@@ -91,7 +91,7 @@ export type EntityMetadata = Subtype<
     entityTypeId: VersionedUrl;
     temporalVersioning: EntityTemporalVersioningMetadata;
     archived: boolean;
-    provenance: EntityProvenanceMetadata;
+    provenance: EntityProvenance;
   }
 >;
 
