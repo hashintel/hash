@@ -1,7 +1,6 @@
 import type { JsonObject } from "@blockprotocol/core";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { ProposedEntitySchemaOrData } from "@local/hash-isomorphic-utils/ai-inference-types";
-import type { Entity } from "@local/hash-subgraph";
 import dedent from "dedent";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
@@ -12,17 +11,19 @@ import type {
   ProposeEntitiesToolName,
 } from "../shared/generate-propose-entities-tools";
 import { generateProposeEntitiesTools } from "../shared/generate-propose-entities-tools";
+import { generateSimplifiedTypeId } from "../shared/generate-simplified-type-id";
+import type { EntityPropertyValueWithSimplifiedProperties } from "../shared/map-simplified-properties-to-properties";
 
 export type PersistEntitiesToolName =
   | "update_entities"
   | ProposeEntitiesToolName;
 
-export type ProposedEntityUpdatesByType = Record<
-  VersionedUrl,
+export type ProposedEntityToolUpdatesByType = Record<
+  string,
   {
     entityId: number;
     updateEntityId: string;
-    properties: Entity["properties"];
+    properties: Record<string, EntityPropertyValueWithSimplifiedProperties>;
   }[]
 >;
 
@@ -39,7 +40,7 @@ export const validateProposedEntitiesByType = <
   parsedJson: JsonObject,
   update: EntityUpdate,
 ): parsedJson is EntityUpdate extends true
-  ? ProposedEntityUpdatesByType
+  ? ProposedEntityToolUpdatesByType
   : ProposedEntityToolCreationsByType => {
   /** @todo: replace this with logic that validates simplified entity type Ids */
   // const maybeVersionedUrls = Object.keys(parsedJson);
@@ -116,14 +117,21 @@ export const generatePersistEntitiesTools = (
     schema: DereferencedEntityType;
     isLink: boolean;
   }[],
-): LlmToolDefinition<PersistEntitiesToolName>[] => {
-  const { tools } = generateProposeEntitiesTools(entityTypes);
+): {
+  tools: LlmToolDefinition<PersistEntitiesToolName>[];
+  simplifiedEntityTypeIdMappings: Record<string, VersionedUrl>;
+} => {
+  const {
+    tools: proposeEntitiesTools,
+    simplifiedEntityTypeIdMappings: existingSimplifiedTypeIdMappings,
+  } = generateProposeEntitiesTools(entityTypes);
 
-  /** @todo: simplify entity type IDs used as keys here */
-  return [
-    ...tools,
+  let simplifiedEntityTypeIdMappings = existingSimplifiedTypeIdMappings;
+
+  const tools = [
+    ...proposeEntitiesTools,
     {
-      name: "update_entities",
+      name: "update_entities" as const,
       description: dedent(`
             Update entities inferred from the provided text where you have been advised the entity already exists, 
             using the entityId provided. If you have additional information about properties that already exist,
@@ -132,9 +140,35 @@ export const generatePersistEntitiesTools = (
         `),
       inputSchema: {
         type: "object",
-        properties: entityTypes.reduce<Record<VersionedUrl, JSONSchema>>(
+        properties: entityTypes.reduce<Record<string, JSONSchema>>(
           (acc, { schema }) => {
-            acc[schema.$id] = {
+            const entityTypeId = schema.$id;
+
+            const existingSimplifiedEntityTypeId = Object.entries(
+              simplifiedEntityTypeIdMappings,
+            ).find(
+              ([_, existingMappedEntityTypeId]) =>
+                existingMappedEntityTypeId === entityTypeId,
+            )?.[0];
+
+            let simplifiedEntityTypeId = existingSimplifiedEntityTypeId;
+
+            if (!simplifiedEntityTypeId) {
+              const {
+                simplifiedTypeId: newSimplifiedTypeId,
+                updatedTypeMappings,
+              } = generateSimplifiedTypeId({
+                title: schema.title,
+                typeIdOrBaseUrl: entityTypeId,
+                existingTypeMappings: simplifiedEntityTypeIdMappings,
+              });
+
+              simplifiedEntityTypeId = newSimplifiedTypeId;
+
+              simplifiedEntityTypeIdMappings = updatedTypeMappings;
+            }
+
+            acc[simplifiedEntityTypeId] = {
               type: "array",
               title: `${schema.title} entities to update`,
               items: {
@@ -170,4 +204,6 @@ export const generatePersistEntitiesTools = (
       },
     },
   ];
+
+  return { tools, simplifiedEntityTypeIdMappings };
 };

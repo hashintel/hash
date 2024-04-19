@@ -359,20 +359,12 @@ export const proposeEntities = async (params: {
                         const { properties: simplifiedProperties } =
                           proposedEntityOfType;
 
-                        logger.debug(
-                          `Simplified properties: ${stringify(simplifiedProperties)}`,
-                        );
-
                         const properties = simplifiedProperties
                           ? mapSimplifiedPropertiesToProperties({
                               simplifiedProperties,
                               simplifiedPropertyTypeMappings,
                             })
                           : {};
-
-                        logger.debug(
-                          `Mapped properties: ${stringify(properties)}`,
-                        );
 
                         await graphApiClient.validateEntity(validationActorId, {
                           entityTypes: [entityTypeId],

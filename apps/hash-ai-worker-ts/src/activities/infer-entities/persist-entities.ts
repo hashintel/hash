@@ -1,7 +1,10 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/ai-inference-types";
-import type { AccountId, OwnedById } from "@local/hash-subgraph";
+import type {
+  InferEntitiesReturn,
+  ProposedEntity,
+} from "@local/hash-isomorphic-utils/ai-inference-types";
+import type { AccountId, Entity, OwnedById } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 import type OpenAI from "openai";
@@ -17,7 +20,7 @@ import type {
   InferenceState,
 } from "./inference-types";
 import { createEntities } from "./persist-entities/create-entities";
-import type { ProposedEntityUpdatesByType } from "./persist-entities/generate-persist-entities-tools";
+import type { ProposedEntityToolUpdatesByType } from "./persist-entities/generate-persist-entities-tools";
 import {
   generatePersistEntitiesTools,
   validateProposedEntitiesByType,
@@ -25,6 +28,7 @@ import {
 import { updateEntities } from "./persist-entities/update-entities";
 import { firstUserMessageIndex } from "./shared/first-user-message-index";
 import type { ProposedEntityToolCreationsByType } from "./shared/generate-propose-entities-tools";
+import { mapSimplifiedPropertiesToProperties } from "./shared/map-simplified-properties-to-properties";
 
 export const persistEntities = async (params: {
   authentication: { machineActorId: AccountId };
@@ -117,7 +121,8 @@ export const persistEntities = async (params: {
 
   const entityTypeIds = Object.keys(entityTypes);
 
-  const tools = generatePersistEntitiesTools(Object.values(entityTypes));
+  const { tools, simplifiedEntityTypeIdMappings } =
+    generatePersistEntitiesTools(Object.values(entityTypes));
 
   const entitiesToUpdate = inProgressEntityIds.filter(
     (inProgressEntityId) =>
@@ -333,11 +338,14 @@ export const persistEntities = async (params: {
         }
 
         if (toolCall.name === "create_entities") {
-          let proposedEntitiesByType: ProposedEntityToolCreationsByType;
+          let proposedEntitiesByTypeWithSimplifiedProperties: ProposedEntityToolCreationsByType;
           try {
-            proposedEntitiesByType =
+            proposedEntitiesByTypeWithSimplifiedProperties =
               toolCall.input as ProposedEntityToolCreationsByType;
-            validateProposedEntitiesByType(proposedEntitiesByType, false);
+            validateProposedEntitiesByType(
+              proposedEntitiesByTypeWithSimplifiedProperties,
+              false,
+            );
           } catch (err) {
             logger.error(
               `Model provided invalid argument to create_entities function. Argument provided: ${stringify(
@@ -355,10 +363,17 @@ export const persistEntities = async (params: {
             continue;
           }
 
-          const providedEntityTypes = Object.keys(proposedEntitiesByType);
+          const providedEntityTypes = Object.keys(
+            proposedEntitiesByTypeWithSimplifiedProperties,
+          );
+
           const notRequestedTypes = providedEntityTypes.filter(
-            (providedEntityTypeId) =>
-              !entityTypeIds.includes(providedEntityTypeId as VersionedUrl),
+            (providedSimplifiedEntityTypeId) => {
+              const entityTypeId =
+                simplifiedEntityTypeIdMappings[providedSimplifiedEntityTypeId];
+
+              return !entityTypeId || !entityTypeIds.includes(entityTypeId);
+            },
           );
 
           let retryMessageContent = "";
@@ -369,6 +384,54 @@ export const persistEntities = async (params: {
               ", ",
             )}, which were not requested. Please try again without them\n`;
           }
+
+          const proposedEntitiesByType = Object.entries(
+            proposedEntitiesByTypeWithSimplifiedProperties,
+          ).reduce(
+            (
+              prev,
+              [
+                simplifiedEntityTypeId,
+                proposedEntitiesWithSimplifiedProperties,
+              ],
+            ) => {
+              const entityTypeId =
+                simplifiedEntityTypeIdMappings[simplifiedEntityTypeId];
+
+              if (!entityTypeId) {
+                return prev;
+              }
+
+              const { simplifiedPropertyTypeMappings } =
+                entityTypes[entityTypeId] ?? {};
+
+              if (!simplifiedPropertyTypeMappings) {
+                throw new Error(
+                  `Could not find simplified property type mappings for entity type id ${entityTypeId}`,
+                );
+              }
+
+              return {
+                ...prev,
+                [entityTypeId]: proposedEntitiesWithSimplifiedProperties.map(
+                  ({ properties: simplifiedProperties, ...proposedEntity }) => {
+                    const properties = simplifiedProperties
+                      ? mapSimplifiedPropertiesToProperties({
+                          simplifiedProperties,
+                          simplifiedPropertyTypeMappings,
+                        })
+                      : {};
+
+                    return {
+                      ...proposedEntity,
+                      properties,
+                    };
+                  },
+                ),
+              };
+            },
+            {} as Record<`${string}v/${number}`, ProposedEntity[]>,
+          );
 
           try {
             const {
@@ -491,12 +554,15 @@ export const persistEntities = async (params: {
         }
 
         if (toolCall.name === "update_entities") {
-          let proposedEntityUpdatesByType: ProposedEntityUpdatesByType;
+          let proposedEntitiesByTypeWithSimplifiedProperties: ProposedEntityToolUpdatesByType;
           try {
-            proposedEntityUpdatesByType =
-              toolCall.input as ProposedEntityUpdatesByType;
+            proposedEntitiesByTypeWithSimplifiedProperties =
+              toolCall.input as ProposedEntityToolUpdatesByType;
 
-            validateProposedEntitiesByType(proposedEntityUpdatesByType, true);
+            validateProposedEntitiesByType(
+              proposedEntitiesByTypeWithSimplifiedProperties,
+              true,
+            );
           } catch (err) {
             logger.error(
               `Model provided invalid argument to update_entities function. Argument provided: ${stringify(
@@ -514,10 +580,17 @@ export const persistEntities = async (params: {
             continue;
           }
 
-          const providedEntityTypes = Object.keys(proposedEntityUpdatesByType);
+          const providedEntityTypes = Object.keys(
+            proposedEntitiesByTypeWithSimplifiedProperties,
+          );
+
           const notRequestedTypes = providedEntityTypes.filter(
-            (providedEntityTypeId) =>
-              !entityTypeIds.includes(providedEntityTypeId as VersionedUrl),
+            (providedSimplifiedEntityTypeId) => {
+              const entityTypeId =
+                simplifiedEntityTypeIdMappings[providedSimplifiedEntityTypeId];
+
+              return !entityTypeId || !entityTypeIds.includes(entityTypeId);
+            },
           );
 
           if (notRequestedTypes.length > 0) {
@@ -531,6 +604,65 @@ export const persistEntities = async (params: {
             });
             continue;
           }
+
+          const proposedEntityUpdatesByType = Object.entries(
+            proposedEntitiesByTypeWithSimplifiedProperties,
+          ).reduce(
+            (
+              prev,
+              [
+                simplifiedEntityTypeId,
+                proposedEntityUpdatesWithSimplifiedProperties,
+              ],
+            ) => {
+              const entityTypeId =
+                simplifiedEntityTypeIdMappings[simplifiedEntityTypeId];
+
+              if (!entityTypeId) {
+                return prev;
+              }
+
+              const { simplifiedPropertyTypeMappings } =
+                entityTypes[entityTypeId] ?? {};
+
+              if (!simplifiedPropertyTypeMappings) {
+                throw new Error(
+                  `Could not find simplified property type mappings for entity type id ${entityTypeId}`,
+                );
+              }
+
+              return {
+                ...prev,
+                [entityTypeId]:
+                  proposedEntityUpdatesWithSimplifiedProperties.map(
+                    ({
+                      entityId,
+                      updateEntityId,
+                      properties: simplifiedProperties,
+                    }) => {
+                      const properties = mapSimplifiedPropertiesToProperties({
+                        simplifiedProperties,
+                        simplifiedPropertyTypeMappings,
+                      });
+
+                      return {
+                        entityId,
+                        updateEntityId,
+                        properties,
+                      };
+                    },
+                  ),
+              };
+            },
+            {} as Record<
+              VersionedUrl,
+              {
+                entityId: number;
+                updateEntityId: string;
+                properties: Entity["properties"];
+              }[]
+            >,
+          );
 
           try {
             const { updateSuccesses, updateFailures } = await updateEntities({
