@@ -24,7 +24,9 @@ import {
 } from "@local/hash-subgraph";
 import isMatch from "lodash.ismatch";
 
+import { logger } from "../../../shared/logger";
 import { createEntityEmbeddings } from "../../shared/embeddings";
+import { stringify } from "../../shared/stringify";
 import type {
   DereferencedEntityTypesByTypeId,
   InferenceState,
@@ -32,7 +34,6 @@ import type {
 } from "../inference-types";
 import { extractErrorMessage } from "../shared/extract-validation-failure-details";
 import { getEntityByFilter } from "../shared/get-entity-by-filter";
-import { stringify } from "../stringify";
 import { ensureTrailingSlash } from "./ensure-trailing-slash";
 import type { ProposedEntityCreationsByType } from "./generate-persist-entities-tools";
 
@@ -50,7 +51,6 @@ export const createEntities = async ({
   createAsDraft,
   graphApiClient,
   inferenceState,
-  log,
   proposedEntitiesByType,
   requestedEntityTypes,
   ownedById,
@@ -59,7 +59,6 @@ export const createEntities = async ({
   createAsDraft: boolean;
   graphApiClient: GraphApi;
   inferenceState: InferenceState;
-  log: (message: string) => void;
   proposedEntitiesByType: ProposedEntityCreationsByType;
   requestedEntityTypes: DereferencedEntityTypesByTypeId;
   ownedById: OwnedById;
@@ -115,7 +114,7 @@ export const createEntities = async ({
              * the schema. Repeatedly advising the AI that it is providing a property not in the schema does not seem
              * to stop it from doing so.
              */
-            log(
+            logger.info(
               `Overwriting properties of entity with temporary id ${proposedEntity.entityId} to an empty object, as the target type has no properties`,
             );
             // eslint-disable-next-line no-param-reassign
@@ -204,7 +203,7 @@ export const createEntities = async ({
                 )?.embedding;
 
                 if (!foundEmbedding) {
-                  log(
+                  logger.info(
                     `Could not find embedding for property ${baseUrl} of entity with temporary id ${proposedEntity.entityId} – skipping`,
                   );
                   return null;
@@ -248,7 +247,7 @@ export const createEntities = async ({
             );
 
             if (!propertyObjectEmbedding) {
-              log(
+              logger.info(
                 `Could not find embedding for properties object of entity with temporary id ${proposedEntity.entityId} – skipping`,
               );
             } else {
@@ -292,7 +291,7 @@ export const createEntities = async ({
                 status: "update-candidate",
               };
             } else {
-              log(
+              logger.debug(
                 `Proposed entity ${proposedEntity.entityId} exactly matches existing entity – continuing`,
               );
               internalEntityStatusMap.unchangedEntities[
@@ -356,7 +355,7 @@ export const createEntities = async ({
                 status: "success",
               };
           } catch (err) {
-            log(
+            logger.error(
               `Creation of entity id ${
                 proposedEntity.entityId
               } failed with err: ${stringify(err)}`,
@@ -586,7 +585,7 @@ export const createEntities = async ({
                   status: "update-candidate",
                 };
               }
-              log(
+              logger.debug(
                 `Proposed link entity ${proposedEntity.entityId} exactly matches existing entity – continuing`,
               );
 
@@ -632,7 +631,7 @@ export const createEntities = async ({
                 status: "success",
               };
           } catch (err) {
-            log(
+            logger.error(
               `Creation of link entity id ${
                 proposedEntity.entityId
               } failed with err: ${stringify(err)}`,

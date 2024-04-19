@@ -79,7 +79,9 @@ const AdminUsersPage: NextPageWithLayout = () => {
                       {shortname ? (
                         <Link
                           sx={{ fontWeight: 700, textDecoration: "none" }}
-                          href={`/admin/users/${extractEntityUuidFromEntityId(entity.metadata.recordId.entityId)}`}
+                          href={`/admin/users/${extractEntityUuidFromEntityId(
+                            entity.metadata.recordId.entityId,
+                          )}`}
                         >
                           @{shortname}
                         </Link>

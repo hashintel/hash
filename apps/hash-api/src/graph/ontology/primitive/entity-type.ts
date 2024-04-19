@@ -39,7 +39,9 @@ import {
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { publicUserAccountId } from "../../../auth/public-user-account-id";
+import type { TemporalClient } from "../../../temporal";
 import type { ImpureGraphFunction } from "../../context-types";
+import { rewriteSemanticFilter } from "../../shared/rewrite-semantic-filter";
 import { getWebShortname, isExternalTypeId } from "./util";
 
 export const getEntityTypeAuthorizationRelationships: ImpureGraphFunction<
@@ -180,9 +182,12 @@ export const createEntityType: ImpureGraphFunction<
 export const getEntityTypes: ImpureGraphFunction<
   {
     query: Omit<EntityTypeStructuralQuery, "includeDrafts">;
+    temporalClient?: TemporalClient;
   },
   Promise<Subgraph<EntityTypeRootType>>
-> = async ({ graphApi }, { actorId }, { query }) => {
+> = async ({ graphApi }, { actorId }, { query, temporalClient }) => {
+  await rewriteSemanticFilter(query.filter, temporalClient);
+
   return await graphApi
     .getEntityTypesByQuery(actorId, { includeDrafts: false, ...query })
     .then(({ data }) => {

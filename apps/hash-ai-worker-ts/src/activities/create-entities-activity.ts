@@ -5,7 +5,6 @@ import type {
   DereferencedEntityTypesByTypeId,
   InferenceState,
 } from "./infer-entities/inference-types";
-import { log } from "./infer-entities/log";
 import { createEntities } from "./infer-entities/persist-entities/create-entities";
 import type { ProposedEntityCreationsByType } from "./infer-entities/persist-entities/generate-persist-entities-tools";
 
@@ -24,7 +23,7 @@ export const createEntitiesActivity = async (params: {
     /** @todo: handle creation failures and update candidates */
     creationFailures: _creationFailures,
     updateCandidates: _updateCandidates,
-  } = await createEntities({ ...params, log });
+  } = await createEntities(params);
 
   return { creationSuccesses, unchangedEntities };
 };

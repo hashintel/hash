@@ -1,4 +1,8 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import {
+  isStorageType,
+  storageProviderLookup,
+} from "@local/hash-backend-utils/file-storage";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
@@ -12,10 +16,6 @@ import type { PPTXPresentationProperties } from "@local/hash-isomorphic-utils/sy
 import type { Entity } from "@local/hash-subgraph";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
-import {
-  isStorageType,
-  storageProviderLookup,
-} from "../../../../../storage/storage-provider";
 import type { UpdateEntityHookCallback } from "../update-entity-hooks";
 
 export const entityTypesToParseTextFrom: VersionedUrl[] = [

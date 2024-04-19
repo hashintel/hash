@@ -11,6 +11,8 @@ import type {
 import type {
   AccountId,
   EntityRelationAndSubject,
+  EntityTypeRelationAndSubject,
+  PropertyTypeRelationAndSubject,
   QueryTemporalAxesUnresolved,
   Subgraph,
   SubgraphRootType,
@@ -256,3 +258,43 @@ export const createOrgMembershipAuthorizationRelationships = ({
     },
   },
 ];
+
+export const defaultPropertyTypeAuthorizationRelationships: PropertyTypeRelationAndSubject[] =
+  [
+    {
+      relation: "setting",
+      subject: {
+        kind: "setting",
+        subjectId: "updateFromWeb",
+      },
+    },
+    {
+      relation: "viewer",
+      subject: {
+        kind: "public",
+      },
+    },
+  ];
+
+export const defaultEntityTypeAuthorizationRelationships: EntityTypeRelationAndSubject[] =
+  [
+    {
+      relation: "setting",
+      subject: {
+        kind: "setting",
+        subjectId: "updateFromWeb",
+      },
+    },
+    {
+      relation: "viewer",
+      subject: {
+        kind: "public",
+      },
+    },
+    {
+      relation: "instantiator",
+      subject: {
+        kind: "public",
+      },
+    },
+  ];

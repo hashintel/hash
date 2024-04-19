@@ -1,6 +1,7 @@
 import { performance } from "node:perf_hooks";
 
 import { makeExecutableSchema } from "@graphql-tools/schema";
+import type { UploadableStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type { SearchAdapter } from "@local/hash-backend-utils/search/adapter";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
@@ -14,7 +15,6 @@ import { getActorIdFromRequest } from "../auth/get-actor-id";
 import type { CacheAdapter } from "../cache";
 import type { EmailTransporter } from "../email/transporters";
 import type { GraphApi } from "../graph/context-types";
-import type { UploadableStorageProvider } from "../storage/storage-provider";
 import type { TemporalClient } from "../temporal";
 import type { GraphQLContext } from "./context";
 import { resolvers } from "./resolvers";

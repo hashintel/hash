@@ -145,4 +145,14 @@ export const flowTypedef = gql`
   extend type Query {
     getFlowRuns(flowTypes: [String!]): [FlowRun!]!
   }
+
+  scalar FlowDefinition
+  scalar FlowTrigger
+
+  extend type Mutation {
+    startFlow(
+      flowDefinition: FlowDefinition!
+      flowTrigger: FlowTrigger!
+    ): JSONObject!
+  }
 `;

@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { Entity } from "@blockprotocol/graph";
+import type { Entity } from "@local/hash-subgraph";
 
 export type Thing = Entity<ThingProperties>;
 

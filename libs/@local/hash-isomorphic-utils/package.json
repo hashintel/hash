@@ -33,6 +33,7 @@
     "@sentry/browser": "7.93.0",
     "apollo-server-express": "3.9.0",
     "fractional-indexing": "2.1.0",
+    "id128": "1.6.6",
     "immer": "9.0.6",
     "jsonschema": "1.4.0",
     "lodash": "4.17.21",

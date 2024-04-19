@@ -9,6 +9,12 @@ services:
         condition: service_healthy
       temporal-setup:
         condition: service_completed_successfully
+      minio-ensure-bucket-exists:
+        # While it's extremely unlikely that the AI worker will attempt to use the bucket before it's been created,
+        # docker compose --wait currently will treat a service that exits with no dependencies as an error
+        # so we need _something_ to depend on the bucket creation service
+        # see https://github.com/docker/compose/issues/10596
+        condition: service_completed_successfully
     environment:
       HASH_TEMPORAL_SERVER_HOST: "http://temporal"
       HASH_TEMPORAL_SERVER_PORT: "${HASH_TEMPORAL_SERVER_PORT}"
@@ -16,6 +22,13 @@ services:
       HASH_GRAPH_API_HOST: graph
       HASH_GRAPH_API_PORT: "${HASH_GRAPH_API_PORT}"
       INTERNAL_API_KEY: "${INTERNAL_API_KEY}"
+
+      AWS_REGION: "${AWS_S3_REGION}"
+      AWS_S3_UPLOADS_BUCKET: "${AWS_S3_UPLOADS_BUCKET}"
+      AWS_S3_UPLOADS_ACCESS_KEY_ID: "${AWS_S3_UPLOADS_ACCESS_KEY_ID}"
+      AWS_S3_UPLOADS_SECRET_ACCESS_KEY: "${AWS_S3_UPLOADS_SECRET_ACCESS_KEY}"
+      AWS_S3_UPLOADS_ENDPOINT: "${AWS_S3_UPLOADS_ENDPOINT}"
+      AWS_S3_UPLOADS_FORCE_PATH_STYLE: "${AWS_S3_UPLOADS_FORCE_PATH_STYLE}"
     tmpfs:
       - /tmp
     read_only: false

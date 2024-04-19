@@ -1,4 +1,5 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
+import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import type { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 import {
@@ -14,7 +15,6 @@ import { useCallback, useMemo } from "react";
 import { useGetOwnerForEntity } from "../../../../../../../components/hooks/use-get-owner-for-entity";
 import { useEntityTypesContextRequired } from "../../../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { useFileUploads } from "../../../../../../../shared/file-upload-context";
-import { generateEntityHref } from "../../../../../../shared/use-entity-href";
 import { useMarkLinkEntityToArchive } from "../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../entity-editor-context";
 import type { LinkRow } from "./types";
@@ -35,7 +35,7 @@ export const useRows = () => {
       const { shortname } = getOwnerForEntity(entity);
 
       void router.push(
-        generateEntityHref({
+        generateEntityPath({
           shortname,
           entityId: entity.metadata.recordId.entityId,
           includeDraftId: !!extractDraftIdFromEntityId(

@@ -37,7 +37,10 @@
     "fix:eslint": {
       "dependsOn": ["codegen"]
     },
-    "fix:clippy": {}
+    "fix:clippy": {},
+    "sentry:sourcemaps": {
+      "dependsOn": ["build"]
+    }
   },
   "globalDependencies": [
     "**/turbo.json",

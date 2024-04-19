@@ -35,6 +35,8 @@ export const scalars = {
     "@local/hash-subgraph#EntityTemporalVersioningMetadata",
   EntityPropertiesObject: "@local/hash-subgraph#EntityPropertiesObject",
 
+  Filter: "@local/hash-graph-client#Filter",
+
   AggregatedUsageRecord:
     "@local/hash-isomorphic-utils/service-usage#AggregatedUsageRecord",
 
@@ -62,6 +64,6 @@ export const scalars = {
 
   OntologyTemporalMetadata: "@local/hash-graph-client#OntologyTemporalMetadata",
 
-  ResearchTaskResult:
-    "@local/hash-isomorphic-utils/research-task-types#ResearchTaskWorkflowResponse",
+  FlowTrigger: "@local/hash-isomorphic-utils/flows/types#FlowTrigger",
+  FlowDefinition: "@local/hash-isomorphic-utils/flows/types#FlowDefinition",
 };
