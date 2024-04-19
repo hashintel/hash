@@ -7,7 +7,7 @@
   "type": "module",
   "main": "index.ts",
   "scripts": {
-    "codegen": "redocly bundle --format=json -o openapi.bundle.json ../../../../apps/hash-graph/openapi/openapi.json && openapi-generator-cli generate && rm openapi.bundle.json"
+    "codegen": "redocly bundle -o openapi.bundle.json ../../../../apps/hash-graph/openapi/openapi.json && openapi-generator-cli generate && rm openapi.bundle.json"
   },
   "dependencies": {
     "@openapitools/openapi-generator-cli": "2.5.2",
