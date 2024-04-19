@@ -10,7 +10,7 @@ export const getFlowRunsQuery = gql`
       executedAt
       closedAt
       inputs
-      outputs
+      flowOutputs
       steps {
         stepId
         stepType

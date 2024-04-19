@@ -9,6 +9,8 @@ import type { FlowDefinition } from "./types";
 export const researchTaskFlowDefinition: FlowDefinition = {
   name: "Research Task",
   flowDefinitionId: "research-task" as EntityUuid,
+  description:
+    "Conduct research on a given topic, and provide expert analysis on the discovered data",
   trigger: {
     triggerDefinitionId: "userTrigger",
     description:
@@ -120,6 +122,8 @@ export const researchTaskFlowDefinition: FlowDefinition = {
 export const ftseInvestorsFlowDefinition: FlowDefinition = {
   name: "FTSE350 Investors",
   flowDefinitionId: "ftse-350-investors" as EntityUuid,
+  description:
+    "Research the FTSE350 index, its constituents, and the top investors in the index",
   trigger: {
     triggerDefinitionId: "userTrigger",
     description:
@@ -355,6 +359,8 @@ export const ftseInvestorsFlowDefinition: FlowDefinition = {
 export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
   name: "Infer User Entities from Web Page",
   flowDefinitionId: "infer-user-entities-from-web-page" as EntityUuid,
+  description:
+    "Infer entities from a web page, based on the user's provided entity types",
   trigger: {
     kind: "trigger",
     description: "Triggered when user visits a web page",
@@ -468,6 +474,7 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
 export const answerQuestionFlow: FlowDefinition = {
   name: "Answer Question Flow",
   flowDefinitionId: "answer-question-flow" as EntityUuid,
+  description: "Answer a question based on the provided context",
   trigger: {
     kind: "trigger",
     description: "Triggered when user asks a question and provides context",
@@ -548,6 +555,7 @@ export const answerQuestionFlow: FlowDefinition = {
 export const saveFileFromUrl: FlowDefinition = {
   name: "Save File From Url",
   flowDefinitionId: "saveFileFromUrl" as EntityUuid,
+  description: "Save file from URL to HASH",
   trigger: {
     triggerDefinitionId: "userTrigger",
     description: "Triggered when user provides a URL to a file",

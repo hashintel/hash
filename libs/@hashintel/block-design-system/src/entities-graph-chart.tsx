@@ -39,6 +39,8 @@ export const EntitiesGraphChart: FunctionComponent<{
 }) => {
   const [chart, setChart] = useState<Chart>();
 
+  /** @todo filter out duplicate entities, which crash the chart */
+
   const nonLinkEntities = useMemo(
     () =>
       entities?.filter(
@@ -122,7 +124,7 @@ export const EntitiesGraphChart: FunctionComponent<{
               ({ metadata }) => metadata.recordId.entityId === id,
             );
 
-            if (linkEntity) {
+            if (linkEntity && subgraph) {
               const leftEntity = entities?.find(
                 ({ metadata }) =>
                   metadata.recordId.entityId ===
@@ -136,18 +138,18 @@ export const EntitiesGraphChart: FunctionComponent<{
               );
 
               const linkEntityTypeTitle = getEntityTypeById(
-                subgraph!,
+                subgraph,
                 linkEntity.metadata.entityTypeId,
               )?.schema.title;
 
               return [
                 `<strong>${generateEntityLabel(
-                  subgraph!,
+                  subgraph,
                   leftEntity!,
                 )}</strong>`,
                 linkEntityTypeTitle?.toLowerCase(),
                 `<strong>${generateEntityLabel(
-                  subgraph!,
+                  subgraph,
                   rightEntity!,
                 )}</strong>`,
               ].join(" ");
@@ -157,9 +159,9 @@ export const EntitiesGraphChart: FunctionComponent<{
               ({ metadata }) => metadata.recordId.entityId === id,
             );
 
-            if (entity) {
+            if (entity && subgraph) {
               const entityType = getEntityTypeById(
-                subgraph!,
+                subgraph,
                 entity.metadata.entityTypeId,
               );
 

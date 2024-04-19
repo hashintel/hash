@@ -142,7 +142,7 @@ export const flowTypedef = gql`
     """
     Outputs of the flow run
     """
-    outputs: [StepRunOutput!]
+    flowOutputs: [StepRunOutput!]
     """
     The steps in the flow
     """

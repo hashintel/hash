@@ -9,7 +9,7 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { Entity } from "@local/hash-subgraph";
 import { Box, Stack, Typography } from "@mui/material";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { Edge } from "reactflow";
 import { MarkerType, ReactFlowProvider } from "reactflow";
 
@@ -26,6 +26,14 @@ import {
   groupStepsByDependencyLayer,
 } from "./flow-definition/sort-graph";
 import { Swimlane } from "./flow-definition/swimlane";
+import { transitionOptions } from "./flow-definition/shared/styles";
+import { Button } from "../../shared/ui/button";
+import { useMutation } from "@apollo/client";
+import {
+  StartFlowMutation,
+  StartFlowMutationVariables,
+} from "../../graphql/api-types.gen";
+import { startFlowMutation } from "../../graphql/queries/knowledge/entity.queries";
 
 const getGraphFromFlowDefinition = (
   flowDefinition: FlowDefinitionType,
@@ -184,6 +192,8 @@ export const FlowDefinition = () => {
     return getGraphFromFlowDefinition(selectedFlow);
   }, [selectedFlow]);
 
+  const [showRunModal, setShowRunModal] = useState(false);
+
   const nodesAndEdgesByGroup = useMemo(() => {
     const graphsByGroup: Record<
       number,
@@ -305,16 +315,40 @@ export const FlowDefinition = () => {
     [flowRuns, selectedFlow.name],
   );
 
+  const [startFlow] = useMutation<
+    StartFlowMutation,
+    StartFlowMutationVariables
+  >(startFlowMutation);
+
+  const handleRunFlowClicked = () => {
+    if (selectedFlow.trigger.outputs?.length) {
+      setShowRunModal(true);
+    } else {
+      void startFlow({
+        variables: {
+          flowDefinition: selectedFlow,
+          flowTrigger: {
+            triggerDefinitionId: "userTrigger",
+          },
+        },
+      });
+    }
+  };
+
   return (
     <Box
       sx={{
+        height: "calc(100vh - 60px)",
         width: "100%",
-        background: ({ palette }) => palette.gray[10],
+        background: ({ palette }) =>
+          selectedFlowRun ? palette.gray[10] : "rgb(241, 246, 251)",
         pb: 8,
+        transition: ({ transitions }) =>
+          transitions.create("background", transitionOptions),
       }}
     >
       <Box p={3}>
-        <Box mb={1}>
+        <Stack direction="row" justifyContent="space-between" mb={1}>
           <select
             value={selectedFlow.name}
             onChange={(event) => {
@@ -323,6 +357,7 @@ export const FlowDefinition = () => {
               );
               setSelectedFlowRun(null);
             }}
+            style={{ paddingLeft: 10 }}
           >
             {flowDefinitions.map((flow) => (
               <option key={flow.name} value={flow.name}>
@@ -330,19 +365,28 @@ export const FlowDefinition = () => {
               </option>
             ))}
           </select>
-        </Box>
+          {!selectedFlowRun && (
+            <Button onClick={handleRunFlowClicked} size="xs">
+              Run
+            </Button>
+          )}
+        </Stack>
         {runOptions.length > 0 && (
           <Box mb={1}>
             <select
-              value={selectedFlowRun?.runId}
+              value={selectedFlowRun?.runId ?? "none"}
               onChange={(event) => {
+                const value = event.target.value;
+                if (!value) {
+                  setSelectedFlowRun(null);
+                }
                 setSelectedFlowRun(
                   flowRuns.find((run) => run.runId === event.target.value) ??
                     null,
                 );
               }}
             >
-              <option disabled selected value="disabled">
+              <option selected value="none">
                 -- select a run to view status --
               </option>
               {runOptions.map((run) => (
@@ -355,14 +399,36 @@ export const FlowDefinition = () => {
         )}
       </Box>
       <Box sx={{ px: 3 }}>
-        <SectionLabel text="status" />
+        <SectionLabel text={selectedFlowRun ? "status" : "definition"} />
         <Box
-          sx={({ palette }) => ({
+          sx={({ palette, transitions }) => ({
             background: palette.common.white,
-            border: `1px solid ${palette.gray[20]}`,
+            border: `1px solid ${palette.gray[selectedFlowRun ? 20 : 30]}`,
             borderRadius: 2.5,
+            "& > :first-child": {
+              borderTopRightRadius: "10px",
+              borderTopLeftRadius: "10px",
+            },
+            "& > :last-child": {
+              borderBottomRightRadius: "10px",
+              borderBottomLeftRadius: "10px",
+            },
+            "& > :last-child > :first-child": {
+              borderBottomLeftRadius: "10px",
+            },
+            transition: transitions.create("border", transitionOptions),
           })}
         >
+          <Box
+            sx={{
+              borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
+              p: 3,
+            }}
+          >
+            <Typography sx={{ fontSize: 14, fontWeight: 400 }}>
+              {selectedFlow.description}
+            </Typography>
+          </Box>
           {Object.entries(nodesAndEdgesByGroup).map(
             ([groupId, { group, nodes, edges }]) => (
               <ReactFlowProvider key={groupId}>
@@ -404,7 +470,7 @@ export const FlowDefinition = () => {
         <Box sx={{ width: "40%", pl: 3, pt: 2.5 }}>
           <SectionLabel text="Deliverable" />
 
-          <Deliverable outputs={selectedFlowRun?.outputs ?? []} />
+          <Deliverable outputs={selectedFlowRun?.flowOutputs ?? []} />
         </Box>
       </Stack>
     </Box>

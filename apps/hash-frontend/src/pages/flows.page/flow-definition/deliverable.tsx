@@ -12,12 +12,19 @@ import { useMemo } from "react";
 
 import { Cell } from "../../settings/organizations/shared/cell";
 import { OrgTable } from "../../settings/organizations/shared/org-table";
+import { FlowRun } from "../../../graphql/api-types.gen";
 
-export const Deliverable = ({ outputs }: { outputs?: StepRunOutput[] }) => {
+export const Deliverable = ({
+  outputs,
+}: {
+  outputs?: FlowRun["flowOutputs"][];
+}) => {
   const flowOutputs = useMemo(
-    () => outputs?.[0]?.contents?.[0]?.outputs ?? [],
+    () => outputs?.[0]?.contents?.[0]?.flowOutputs ?? [],
     [outputs],
   );
+
+  console.log({ outputs });
 
   const parsedCsv = useMemo(() => {
     const answer = flowOutputs.find((output) => output.outputName === "answer")
@@ -34,6 +41,8 @@ export const Deliverable = ({ outputs }: { outputs?: StepRunOutput[] }) => {
     }
   }, [flowOutputs]);
 
+  console.log({ flowOutputs, parsedCsv });
+
   return (
     <Box
       sx={{
@@ -45,7 +54,14 @@ export const Deliverable = ({ outputs }: { outputs?: StepRunOutput[] }) => {
       }}
     >
       {parsedCsv ? (
-        <OrgTable sx={{ maxWidth: "100%", overflow: "hidden" }}>
+        <OrgTable
+          sx={{
+            maxWidth: "100%",
+            overflow: "auto",
+            maxHeight: "100%",
+            display: "block",
+          }}
+        >
           <TableHead>
             <TableRow>
               {parsedCsv.data[0]?.map((column) => (

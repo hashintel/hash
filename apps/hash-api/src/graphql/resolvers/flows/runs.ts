@@ -202,6 +202,10 @@ const mapTemporalWorkflowToFlowStatus = async (
         ? getActivityScheduledDetails(event)
         : getActivityStartedDetails(events, nonScheduledAttributes!);
 
+      if (activityType === "persistFlowActivity") {
+        continue;
+      }
+
       if (stepMap[activityId]) {
         // We've already encountered and therefore populated all the details for this step
         continue;
@@ -322,7 +326,7 @@ const mapTemporalWorkflowToFlowStatus = async (
     executedAt: executionTime?.toISOString(),
     closedAt: closeTime?.toISOString(),
     inputs: workflowInputs,
-    outputs: workflowOutputs,
+    flowOutputs: workflowOutputs,
     steps: Object.values(stepMap),
   };
 };

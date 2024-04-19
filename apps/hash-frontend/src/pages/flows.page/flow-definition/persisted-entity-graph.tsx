@@ -60,6 +60,8 @@ export const PersistedEntityGraph = ({
     return <Box sx={containerSx} />;
   }
 
+  console.log({ persistedEntities });
+
   return (
     <EntitiesGraphChart
       entities={persistedEntities}

@@ -3,11 +3,16 @@ export const nodeDimensions = {
   height: 245,
 };
 
-export const nodeTabHeight = 40;
+const tabHeight = 40;
+const offset = 12;
+
+export const nodeTabHeight = {
+  gross: tabHeight,
+  offset,
+  net: tabHeight - offset,
+};
 
 export const parentGroupPadding = {
   base: 30,
   top: 85,
 };
-
-export const baseNodeZIndex = 0;

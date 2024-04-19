@@ -10,6 +10,7 @@ import type { NodeData } from "../shared/types";
 import { Handles } from "./custom-node/handles";
 import { NodeContainer } from "./custom-node/node-container";
 import { statusSx } from "./custom-node/node-styles";
+import { useEffect, useState } from "react";
 
 const getTimeAgo = (isoString: string) =>
   formatDistance(new Date(isoString), new Date(), {
@@ -19,7 +20,20 @@ const getTimeAgo = (isoString: string) =>
 export const CustomNode = ({ data, selected }: NodeProps<NodeData>) => {
   const statusData = useStatusForCurrentStep();
 
+  const { closedAt, scheduledAt } = statusData ?? {};
+
   const stepStatusName = statusToSimpleStatus(statusData?.status ?? null);
+
+  const isoString =
+    (stepStatusName === "Complete" || stepStatusName === "Error") && closedAt
+      ? closedAt
+      : stepStatusName === "In Progress" && scheduledAt
+        ? scheduledAt
+        : null;
+
+  const [timeAgo, setTimeAgo] = useState(
+    isoString ? getTimeAgo(isoString) : "",
+  );
 
   const isParallelizedGroup = data.kind === "parallel-group";
 
@@ -29,14 +43,21 @@ export const CustomNode = ({ data, selected }: NodeProps<NodeData>) => {
 
   const styles = statusSx[stepStatusName];
 
-  const { closedAt, scheduledAt } = statusData ?? {};
+  useEffect(() => {
+    let timeUpdateInterval: NodeJS.Timeout | undefined;
 
-  const isoString =
-    (stepStatusName === "Complete" || stepStatusName === "Error") && closedAt
-      ? closedAt
-      : stepStatusName === "In Progress" && scheduledAt
-        ? scheduledAt
-        : null;
+    if (isoString) {
+      timeUpdateInterval = setInterval(() => {
+        setTimeAgo(getTimeAgo(isoString));
+      }, 5_000);
+    }
+
+    return () => {
+      if (timeUpdateInterval) {
+        clearInterval(timeUpdateInterval);
+      }
+    };
+  }, [isoString, timeAgo]);
 
   return (
     <NodeContainer
@@ -51,7 +72,7 @@ export const CustomNode = ({ data, selected }: NodeProps<NodeData>) => {
         </Typography>
         <Stack direction="row" mb={2} mt={1}>
           <Typography sx={{ fontSize: 12, fontWeight: 500 }}>
-            {isoString ? getTimeAgo(isoString) : ""}
+            {timeAgo}
           </Typography>
           <Typography
             sx={{
@@ -60,7 +81,7 @@ export const CustomNode = ({ data, selected }: NodeProps<NodeData>) => {
               color: ({ palette }) => palette.gray[60],
             }}
           >
-            {isoString ? `(${isoString})` : ""}
+            {timeAgo ? `(${isoString})` : ""}
           </Typography>
         </Stack>
 

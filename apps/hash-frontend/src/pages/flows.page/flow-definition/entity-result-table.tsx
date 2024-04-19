@@ -134,7 +134,14 @@ export const EntityResultTable = ({
       }}
     >
       {hasData ? (
-        <OrgTable sx={{ maxWidth: "100%", overflow: "hidden" }}>
+        <OrgTable
+          sx={{
+            maxWidth: "100%",
+            maxHeight: "100%",
+            display: "block",
+            overflow: "auto",
+          }}
+        >
           <TableHead>
             <TableRow>
               {columns.map((column) => (

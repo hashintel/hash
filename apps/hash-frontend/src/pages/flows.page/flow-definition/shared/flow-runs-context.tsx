@@ -133,19 +133,23 @@ export const statusToSimpleStatus = (
 
 export const useStatusForSteps = (
   steps: { stepId: string }[],
-): SimpleStatus => {
+): SimpleStatus | null => {
   const { selectedFlowRun } = useFlowRunsContext();
 
   return useMemo(() => {
-    const stepRuns = selectedFlowRun?.steps.filter((stepRun) =>
+    if (!selectedFlowRun) {
+      return null;
+    }
+
+    const stepRuns = selectedFlowRun.steps.filter((stepRun) =>
       steps.find((step) => step.stepId === stepRun.stepId),
     );
 
-    const statuses = stepRuns?.map((stepRun) =>
+    const statuses = stepRuns.map((stepRun) =>
       statusToSimpleStatus(stepRun.status),
     );
 
-    if (!statuses || statuses.length === 0) {
+    if (statuses.length === 0) {
       return "Waiting";
     }
 

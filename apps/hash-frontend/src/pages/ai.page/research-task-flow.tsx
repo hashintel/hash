@@ -38,6 +38,7 @@ const constructFlowDefinition = (params: {
   return {
     name: "Research Task",
     flowDefinitionId: "research-task" as EntityUuid,
+    description: "Research task",
     trigger: {
       triggerDefinitionId: "userTrigger",
       description: "User provides research prompt and entity types of interest",
@@ -136,28 +137,25 @@ const constructFlowDefinition = (params: {
         : []),
     ],
     outputs: [
-      {
-        stepId: "2",
-        stepOutputName:
-          "persistedEntities" satisfies OutputNameForAction<"persistEntities">,
-        name: "persistedEntities" as const,
-        payloadKind: "PersistedEntities",
-        array: false,
-        required: true,
-      },
-      ...(includeQuestionAnswerAction
-        ? [
-            {
-              stepId: "3",
-              stepOutputName:
-                "answer" satisfies OutputNameForAction<"answerQuestion">,
-              payloadKind: "Text",
-              name: "answer" as const,
-              array: false,
-              required: true,
-            } as const,
-          ]
-        : []),
+      includeQuestionAnswerAction
+        ? ({
+            stepId: "3",
+            stepOutputName:
+              "answer" satisfies OutputNameForAction<"answerQuestion">,
+            payloadKind: "Text",
+            name: "answer" as const,
+            array: false,
+            required: true,
+          } as const)
+        : {
+            stepId: "2",
+            stepOutputName:
+              "persistedEntities" satisfies OutputNameForAction<"persistEntities">,
+            name: "persistedEntities" as const,
+            payloadKind: "PersistedEntities",
+            array: false,
+            required: true,
+          },
     ],
   };
 };

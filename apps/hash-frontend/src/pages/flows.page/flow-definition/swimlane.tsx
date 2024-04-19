@@ -1,23 +1,30 @@
 import "reactflow/dist/style.css";
 
 import type { StepGroup } from "@local/hash-isomorphic-utils/flows/types";
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, Fade, Stack, Typography } from "@mui/material";
 import type { ElkNode } from "elkjs/lib/elk.bundled.js";
 import ELK from "elkjs/lib/elk.bundled.js";
 import { useEffect, useMemo } from "react";
 import type { Edge } from "reactflow";
 import ReactFlow, {
+  Background,
+  BackgroundVariant,
   getNodesBounds,
   useEdgesState,
   useNodesState,
   useReactFlow,
 } from "reactflow";
 
-import { parentGroupPadding } from "./shared/dimensions";
-import { useStatusForSteps } from "./shared/flow-runs-context";
+import { nodeTabHeight, parentGroupPadding } from "./shared/dimensions";
+import {
+  useFlowRunsContext,
+  useStatusForSteps,
+} from "./shared/flow-runs-context";
 import type { CustomNodeType } from "./shared/types";
 import { CustomEdge } from "./swimlane/custom-edge";
 import { CustomNode } from "./swimlane/custom-node";
+import { customColors } from "@hashintel/design-system/theme";
+import { transitionOptions } from "./shared/styles";
 
 const nodeTypes = {
   action: CustomNode,
@@ -35,6 +42,8 @@ const edgeTypes = {
  */
 const elk = new ELK();
 
+const graphPadding = 30;
+
 /**
  * @see https://eclipse.dev/elk/reference.html
  */
@@ -42,7 +51,7 @@ const elkLayoutOptions: ElkNode["layoutOptions"] = {
   "elk.algorithm": "layered",
   "org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers": "100",
   "elk.direction": "RIGHT",
-  "elk.padding": "[left=0,top=0,right=0,bottom=0]",
+  "elk.padding": `[left=${graphPadding},top=${graphPadding - nodeTabHeight.offset},right=${graphPadding},bottom=${graphPadding}]`,
 };
 
 const parentGroupLayoutOptions: ElkNode["layoutOptions"] = {
@@ -88,6 +97,8 @@ export const Swimlane = ({
   edges: initialEdges,
 }: DagProps) => {
   const { fitView } = useReactFlow();
+
+  const { selectedFlowRun } = useFlowRunsContext();
 
   const [nodes, setNodes, _onNodesChange] = useNodesState([]);
   const [edges, setEdges, _onEdgesChange] = useEdgesState([]);
@@ -144,42 +155,50 @@ export const Swimlane = ({
       direction="row"
       sx={{
         background: ({ palette }) =>
-          groupStatus === "Complete"
-            ? "rgba(239, 254, 250, 1)"
-            : groupStatus === "In Progress"
-              ? palette.blue[10]
-              : groupStatus === "Error"
-                ? palette.red[10]
-                : palette.common.white,
-        borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
-        borderRadius: 2.5,
-        py: 2.5,
-        px: 3,
+          !selectedFlowRun
+            ? palette.gray[10]
+            : groupStatus === "Complete"
+              ? "rgba(239, 254, 250, 1)"
+              : groupStatus === "In Progress"
+                ? palette.blue[10]
+                : groupStatus === "Error"
+                  ? palette.red[10]
+                  : palette.common.white,
+        "&:not(:last-of-type)": {
+          borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
+        },
         flex: 1,
+        transition: ({ transitions }) =>
+          transitions.create("background", transitionOptions),
       }}
     >
-      <Box
+      <Stack
+        direction="row"
         sx={({ palette }) => ({
+          background: !selectedFlowRun ? "white" : "inherit",
+          minWidth: 170,
           width: 170,
+          pl: 3,
           pr: 4,
+          py: 2.5,
           borderRight: `1px solid ${palette.gray[30]}`,
+          transition: ({ transitions }) =>
+            transitions.create("background", { duration: 100 }),
         })}
       >
         <Typography
           variant="smallCaps"
           sx={({ palette }) => ({
             color: palette.gray[50],
-            lineHeight: 1,
           })}
         >
           {group?.description ?? "Flow"}
         </Typography>
-      </Box>
+      </Stack>
       <Box
         sx={{
-          pl: 4,
-          width: "100%",
-          height: bounds.height,
+          flex: 1,
+          height: bounds.height + graphPadding * 2 - nodeTabHeight.offset,
         }}
       >
         <ReactFlow
@@ -192,7 +211,21 @@ export const Swimlane = ({
           // fitView
           // onNodesChange={onNodesChange}
           // onEdgesChange={onEdgesChange}
-        />
+        >
+          <Fade in={!selectedFlowRun} timeout={transitionOptions.duration}>
+            <div>
+              <Background
+                color={customColors.gray[50]}
+                gap={4}
+                style={{
+                  borderTopRightRadius: 10,
+                  borderBottomRightRadius: 10,
+                }}
+                variant={BackgroundVariant.Dots}
+              />
+            </div>
+          </Fade>
+        </ReactFlow>
       </Box>
     </Stack>
   );

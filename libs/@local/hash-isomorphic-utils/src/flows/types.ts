@@ -249,6 +249,7 @@ export type StepGroup = {
 
 export type FlowDefinition = {
   name: string;
+  description: string;
   flowDefinitionId: EntityUuid;
   trigger: FlowDefinitionTrigger;
   groups?: StepGroup[];

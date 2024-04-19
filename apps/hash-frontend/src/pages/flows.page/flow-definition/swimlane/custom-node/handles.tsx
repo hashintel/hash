@@ -80,7 +80,7 @@ const CustomHandle = ({
   );
 };
 
-const halfContentHeight = (nodeDimensions.height - nodeTabHeight) / 2;
+const halfContentHeight = (nodeDimensions.height - nodeTabHeight.gross) / 2;
 
 export const Handles = ({
   kind,

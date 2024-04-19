@@ -6,6 +6,8 @@ import { useNodeId, useStore } from "reactflow";
 import { nodeTabHeight } from "../../shared/dimensions";
 import type { SimpleStatus } from "../../shared/flow-runs-context";
 import { statusSx } from "./node-styles";
+import { useFlowRunsContext } from "../../shared/flow-runs-context";
+import { transitionOptions } from "../../shared/styles";
 
 const Tab = ({
   label,
@@ -24,23 +26,26 @@ const Tab = ({
         background:
           position === "left" ? styles.lightBackground : styles.darkBackground,
         borderColor: styles.borderColor,
-        transition: transitions.create(["background", "borderColor"]),
         borderWidth: 1,
         borderStyle: "solid",
         borderBottomWidth: 0,
         borderTopLeftRadius: "7px",
         borderTopRightRadius: "7px",
-        height: nodeTabHeight,
+        height: nodeTabHeight.gross,
         px: 1,
         pt: 0.5,
         pb: 2,
         position: "relative",
-        top: 12,
+        top: nodeTabHeight.offset,
+        transition: transitions.create(
+          ["background", "borderColor"],
+          transitionOptions,
+        ),
         zIndex: -1,
       })}
     >
       <Typography
-        sx={({ palette }) => ({
+        sx={({ palette, transitions }) => ({
           color:
             position === "left"
               ? styles.text
@@ -49,6 +54,7 @@ const Tab = ({
                 : palette.common.white,
           fontSize: 12,
           fontWeight: 500,
+          transition: transitions.create("color", transitionOptions),
         })}
       >
         {label}
@@ -68,6 +74,8 @@ export const NodeContainer = ({
   stepStatusName: SimpleStatus;
 }>) => {
   const nodeId = useNodeId();
+
+  const { selectedFlowRun } = useFlowRunsContext();
 
   const size = useStore((state) => {
     if (nodeId) {
@@ -95,7 +103,7 @@ export const NodeContainer = ({
           label={nodeId === "trigger" ? "Trigger" : `Action ${nodeId ?? "?"}`}
           position="left"
         />
-        {kind !== "parallel-group" && (
+        {selectedFlowRun && kind !== "parallel-group" && (
           <Tab
             status={stepStatusName}
             label={stepStatusName}
