@@ -40,10 +40,11 @@ use graph::{
         account::{InsertAccountIdParams, InsertWebIdParams},
         knowledge::{CreateEntityParams, GetEntityParams, PatchEntityParams},
         ontology::{
-            ArchiveDataTypeParams, CreateDataTypeParams, CreateEntityTypeParams,
-            CreatePropertyTypeParams, GetDataTypesParams, GetEntityTypesParams,
-            GetPropertyTypesParams, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
-            UpdateDataTypesParams, UpdateEntityTypesParams, UpdatePropertyTypesParams,
+            ArchiveDataTypeParams, ArchivePropertyTypeParams, CreateDataTypeParams,
+            CreateEntityTypeParams, CreatePropertyTypeParams, GetDataTypesParams,
+            GetEntityTypesParams, GetPropertyTypesParams, UnarchiveDataTypeParams,
+            UnarchivePropertyTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
+            UpdateEntityTypesParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
         },
         query::{Filter, FilterExpression, Parameter},
         AccountStore, ConflictBehavior, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
@@ -52,7 +53,7 @@ use graph::{
     },
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
-        identifier::{EntityTypeVertexId, GraphElementVertexId, PropertyTypeVertexId},
+        identifier::{EntityTypeVertexId, GraphElementVertexId},
         query::StructuralQuery,
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
@@ -71,7 +72,7 @@ use graph_types::{
     },
     ontology::{
         DataTypeMetadata, EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata,
-        OntologyTypeClassificationMetadata, PropertyTypeMetadata, PropertyTypeWithMetadata,
+        OntologyTypeClassificationMetadata, PropertyTypeMetadata,
         ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
@@ -341,75 +342,66 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
     }
 }
 
+impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
+    async fn create_property_types<P, R>(
+        &mut self,
+        actor_id: AccountId,
+        params: P,
+    ) -> Result<Vec<PropertyTypeMetadata>, InsertionError>
+    where
+        P: IntoIterator<Item = CreatePropertyTypeParams<R>, IntoIter: Send> + Send,
+        R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync,
+    {
+        self.store.create_property_types(actor_id, params).await
+    }
+
+    async fn get_property_type(
+        &self,
+        actor_id: AccountId,
+        params: GetPropertyTypesParams<'_>,
+    ) -> Result<Subgraph, QueryError> {
+        self.store.get_property_type(actor_id, params).await
+    }
+
+    async fn update_property_type<R>(
+        &mut self,
+        actor_id: AccountId,
+        params: UpdatePropertyTypesParams<R>,
+    ) -> Result<PropertyTypeMetadata, UpdateError>
+    where
+        R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync,
+    {
+        self.store.update_property_type(actor_id, params).await
+    }
+
+    async fn archive_property_type(
+        &mut self,
+        actor_id: AccountId,
+        params: ArchivePropertyTypeParams<'_>,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.store.archive_property_type(actor_id, params).await
+    }
+
+    async fn unarchive_property_type(
+        &mut self,
+        actor_id: AccountId,
+        params: UnarchivePropertyTypeParams<'_>,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.store.unarchive_property_type(actor_id, params).await
+    }
+
+    async fn update_property_type_embeddings(
+        &mut self,
+        actor_id: AccountId,
+        params: UpdatePropertyTypeEmbeddingParams<'_>,
+    ) -> Result<(), UpdateError> {
+        self.store
+            .update_property_type_embeddings(actor_id, params)
+            .await
+    }
+}
+
 impl<A: AuthorizationApi> DatabaseApi<'_, A> {
-    pub async fn create_property_type(
-        &mut self,
-        property_type: PropertyType,
-    ) -> Result<PropertyTypeMetadata, InsertionError> {
-        self.store
-            .create_property_type(
-                self.account_id,
-                CreatePropertyTypeParams {
-                    schema: property_type,
-                    classification: OntologyTypeClassificationMetadata::Owned {
-                        owned_by_id: OwnedById::new(self.account_id.into_uuid()),
-                    },
-                    relationships: property_type_relationships(),
-                    conflict_behavior: ConflictBehavior::Fail,
-                    provenance: ProvidedOntologyEditionProvenance::default(),
-                },
-            )
-            .await
-    }
-
-    pub async fn get_property_type(
-        &mut self,
-        url: &VersionedUrl,
-    ) -> Result<PropertyTypeWithMetadata, QueryError> {
-        Ok(self
-            .store
-            .get_property_type(
-                self.account_id,
-                GetPropertyTypesParams {
-                    query: StructuralQuery {
-                        filter: Filter::for_versioned_url(url),
-                        graph_resolve_depths: GraphResolveDepths::default(),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(
-                                Some(TemporalBound::Unbounded),
-                                None,
-                            ),
-                        },
-                        include_drafts: false,
-                    },
-                    after: None,
-                    limit: None,
-                },
-            )
-            .await?
-            .vertices
-            .property_types
-            .remove(&PropertyTypeVertexId::from(url.clone()))
-            .expect("no property type found"))
-    }
-
-    pub async fn update_property_type(
-        &mut self,
-        property_type: PropertyType,
-    ) -> Result<PropertyTypeMetadata, UpdateError> {
-        self.store
-            .update_property_type(
-                self.account_id,
-                UpdatePropertyTypesParams {
-                    schema: property_type,
-                    relationships: property_type_relationships(),
-                    provenance: ProvidedOntologyEditionProvenance::default(),
-                },
-            )
-            .await
-    }
-
     pub async fn create_entity_type(
         &mut self,
         entity_type: EntityType,
