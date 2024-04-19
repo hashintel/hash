@@ -166,12 +166,9 @@ export const proposeEntities = async (params: {
           {
             role: "user",
             content: dedent(`
-        ${firstUserMessage}
-
-        Please make calls to ${innerMessage}.
-        Remember to include as many properties as you can find matching values for in the website content.
-        If you can't find a value for a specified property, just omit it – don't pass 'null' as a value.
-      `),
+              ${firstUserMessage}
+              ${instructions}
+            `),
           },
         ];
 

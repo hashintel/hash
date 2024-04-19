@@ -34,8 +34,8 @@ import type {
   InferEntitiesFromWebPageWorkerAgentState,
   ToolName,
 } from "./infer-entities-from-web-page-worker-agent/types";
-import type { CompletedToolCall } from "./types";
 // import { retrievePreviousState, writeStateToFile } from "./testing-utils";
+import type { CompletedToolCall } from "./types";
 import { mapPreviousCallsToChatCompletionMessages } from "./util";
 
 const model: PermittedOpenAiModel = "gpt-4-0125-preview";
