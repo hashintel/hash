@@ -2,6 +2,7 @@ import Ajv from "ajv";
 import addFormats from "ajv-formats";
 import dedent from "dedent";
 import type OpenAI from "openai";
+import type { JSONSchema } from "openai/lib/jsonschema";
 import type {
   ChatCompletion,
   ChatCompletion as OpenAiChatCompletion,
@@ -127,16 +128,74 @@ const ajv = new Ajv();
 
 addFormats(ajv);
 
+const applyAdditionalPropertiesFalseToSchema = (params: {
+  schema: JSONSchema;
+}): JSONSchema => {
+  const { schema } = params;
+
+  if (typeof schema !== "object") {
+    return schema;
+  }
+
+  if (schema.type === "object") {
+    const updatedProperties = schema.properties
+      ? Object.fromEntries(
+          Object.entries(schema.properties).map(([key, value]) => [
+            key,
+            typeof value === "object"
+              ? applyAdditionalPropertiesFalseToSchema({ schema: value })
+              : value,
+          ]),
+        )
+      : {};
+
+    const updatedPatternProperties = schema.patternProperties
+      ? Object.fromEntries(
+          Object.entries(schema.patternProperties).map(([key, value]) => [
+            key,
+            typeof value === "object"
+              ? applyAdditionalPropertiesFalseToSchema({ schema: value })
+              : value,
+          ]),
+        )
+      : {};
+
+    return {
+      ...schema,
+      properties: updatedProperties,
+      patternProperties: updatedPatternProperties,
+      additionalProperties: false,
+    };
+  } else if (schema.type === "array" && schema.items) {
+    return {
+      ...schema,
+      items:
+        typeof schema.items === "object"
+          ? Array.isArray(schema.items)
+            ? schema.items.map((value) =>
+                typeof value === "object"
+                  ? applyAdditionalPropertiesFalseToSchema({ schema: value })
+                  : value,
+              )
+            : applyAdditionalPropertiesFalseToSchema({ schema: schema.items })
+          : schema.items,
+    };
+  }
+
+  return schema;
+};
+
 const getInputValidationErrors = (params: {
   input: object;
   toolDefinition: LlmToolDefinition;
 }) => {
   const { input, toolDefinition } = params;
 
-  const validate = ajv.compile({
-    ...toolDefinition.inputSchema,
-    additionalProperties: false,
-  });
+  const validate = ajv.compile(
+    applyAdditionalPropertiesFalseToSchema({
+      schema: toolDefinition.inputSchema,
+    }),
+  );
 
   const inputIsValid = validate(input);
 
