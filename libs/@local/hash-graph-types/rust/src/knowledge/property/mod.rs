@@ -1,8 +1,9 @@
-mod confidence;
 mod diff;
+mod metadata;
 mod object;
 mod patch;
 mod path;
+mod provenance;
 
 use std::{cmp::Ordering, collections::HashMap, fmt, io};
 
@@ -12,11 +13,12 @@ use thiserror::Error;
 use type_system::{url::BaseUrl, JsonSchemaValueType};
 
 pub use self::{
-    confidence::PropertyConfidence,
     diff::PropertyDiff,
+    metadata::{PropertyMetadata, PropertyMetadataMap},
     object::PropertyObject,
     patch::PropertyPatchOperation,
     path::{PropertyPath, PropertyPathElement},
+    provenance::PropertyProvenance,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

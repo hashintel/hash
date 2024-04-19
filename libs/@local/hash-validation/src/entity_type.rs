@@ -179,7 +179,7 @@ where
         }
         if let Err(error) = self
             .metadata
-            .property_confidence
+            .properties
             .validate(&self.properties, components, provider)
             .await
         {

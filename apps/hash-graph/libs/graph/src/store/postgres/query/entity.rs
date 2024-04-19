@@ -26,9 +26,13 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 vec![Relation::EntityIds]
             }
             Self::Embedding => vec![Relation::EntityEmbeddings],
-            Self::LeftEntityConfidence => vec![Relation::LeftEntity],
-            Self::RightEntityConfidence => vec![Relation::RightEntity],
-            Self::PropertyPaths | Self::PropertyConfidences => vec![Relation::EntityProperties],
+            Self::LeftEntityConfidence | Self::LeftEntityProvenance => vec![Relation::LeftEntity],
+            Self::RightEntityConfidence | Self::RightEntityProvenance => {
+                vec![Relation::RightEntity]
+            }
+            Self::PropertyPaths | Self::PropertyConfidences | Self::PropertyProvenance(_) => {
+                vec![Relation::EntityProperties]
+            }
             Self::Properties(_)
             | Self::EditionProvenance(_)
             | Self::Archived
@@ -152,12 +156,26 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                     ))))
                 },
             ),
+            Self::PropertyProvenance(path) => path.as_ref().map_or(
+                Column::EntityProperties(EntityProperties::Provenances(None)),
+                |path| {
+                    Column::EntityProperties(EntityProperties::Provenances(Some(
+                        JsonField::JsonPath(path),
+                    )))
+                },
+            ),
             Self::EntityConfidence => Column::EntityEditions(EntityEditions::Confidence),
             Self::LeftEntityConfidence => {
                 Column::EntityHasLeftEntity(EntityHasLeftEntity::Confidence)
             }
+            Self::LeftEntityProvenance => {
+                Column::EntityHasLeftEntity(EntityHasLeftEntity::Provenance)
+            }
             Self::RightEntityConfidence => {
                 Column::EntityHasRightEntity(EntityHasRightEntity::Confidence)
+            }
+            Self::RightEntityProvenance => {
+                Column::EntityHasRightEntity(EntityHasRightEntity::Provenance)
             }
             Self::PropertyPaths => Column::EntityProperties(EntityProperties::PropertyPaths),
             Self::PropertyConfidences => Column::EntityProperties(EntityProperties::Confidences),
