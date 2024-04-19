@@ -27,7 +27,7 @@ use graph_types::{
         PropertyObject,
     },
     ontology::{
-        OntologyEditionProvenanceMetadata, OntologyProvenanceMetadata, OntologyTemporalMetadata,
+        OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
         OntologyTypeClassificationMetadata, OntologyTypeRecordId,
     },
     owned_by_id::OwnedById,
@@ -215,7 +215,7 @@ where
     async fn create_ontology_temporal_metadata(
         &self,
         ontology_id: OntologyId,
-        provenance: &OntologyEditionProvenanceMetadata,
+        provenance: &OntologyEditionProvenance,
     ) -> Result<LeftClosedTemporalInterval<TransactionTime>, InsertionError> {
         let query = "
               INSERT INTO ontology_temporal_metadata (
@@ -294,7 +294,7 @@ where
     async fn unarchive_ontology_type(
         &self,
         id: &VersionedUrl,
-        provenance: &OntologyEditionProvenanceMetadata,
+        provenance: &OntologyEditionProvenance,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         let query = "
           INSERT INTO ontology_temporal_metadata (
@@ -722,7 +722,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         record_id: &OntologyTypeRecordId,
         classification: &OntologyTypeClassificationMetadata,
         on_conflict: ConflictBehavior,
-        provenance: &OntologyProvenanceMetadata,
+        provenance: &OntologyProvenance,
     ) -> Result<Option<(OntologyId, OntologyTemporalMetadata)>, InsertionError> {
         match classification {
             OntologyTypeClassificationMetadata::Owned { owned_by_id } => {
@@ -782,7 +782,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     async fn update<T>(
         &self,
         database_type: &T,
-        provenance: &OntologyEditionProvenanceMetadata,
+        provenance: &OntologyEditionProvenance,
     ) -> Result<(OntologyId, OwnedById, OntologyTemporalMetadata), UpdateError>
     where
         T: OntologyDatabaseType + Serialize + Debug + Sync,
@@ -809,7 +809,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     async fn update_owned_ontology_id(
         &self,
         url: &VersionedUrl,
-        provenance: &OntologyEditionProvenanceMetadata,
+        provenance: &OntologyEditionProvenance,
     ) -> Result<(OntologyId, OwnedById, OntologyTemporalMetadata), UpdateError> {
         let previous_version = OntologyTypeVersion::new(
             url.version

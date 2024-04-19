@@ -9,8 +9,8 @@ import type {
   Filter,
   GraphResolveDepths,
   ModifyRelationshipOperation,
-  PropertyConfidence,
-  ProvidedEntityEditionProvenanceMetadata,
+  PropertyMetadataMap,
+  ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -76,8 +76,8 @@ export type CreateEntityParams = {
   draft?: boolean;
   relationships: EntityRelationAndSubject[];
   confidence?: number;
-  propertyConfidence?: PropertyConfidence;
-  provenance?: ProvidedEntityEditionProvenanceMetadata;
+  propertyMetadata?: PropertyMetadataMap;
+  provenance?: ProvidedEntityEditionProvenance;
 };
 
 /** @todo: potentially directly export this from the subgraph package */
@@ -131,7 +131,7 @@ export const createEntity: ImpureGraphFunction<
     draft,
     relationships: params.relationships,
     confidence: params.confidence,
-    propertyConfidence: params.propertyConfidence,
+    propertyMetadata: params.propertyMetadata,
     provenance,
   });
 
@@ -403,7 +403,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
     linkedEntities?: LinkedEntityDefinition[];
     relationships: EntityRelationAndSubject[];
     draft?: boolean;
-    provenance?: ProvidedEntityEditionProvenanceMetadata;
+    provenance?: ProvidedEntityEditionProvenance;
   },
   Promise<Entity>,
   false,
@@ -536,7 +536,7 @@ export const updateEntity: ImpureGraphFunction<
     entityTypeId?: VersionedUrl;
     properties: EntityPropertiesObject;
     draft?: boolean;
-    provenance?: ProvidedEntityEditionProvenanceMetadata;
+    provenance?: ProvidedEntityEditionProvenance;
   },
   Promise<Entity>,
   false,
@@ -630,7 +630,7 @@ export const updateEntityProperties: ImpureGraphFunction<
       propertyTypeBaseUrl: BaseUrl;
       value: PropertyValue | undefined;
     }[];
-    provenance?: ProvidedEntityEditionProvenanceMetadata;
+    provenance?: ProvidedEntityEditionProvenance;
   },
   Promise<Entity>,
   false,
@@ -667,7 +667,7 @@ export const updateEntityProperty: ImpureGraphFunction<
     entity: Entity;
     propertyTypeBaseUrl: BaseUrl;
     value: PropertyValue | undefined;
-    provenance?: ProvidedEntityEditionProvenanceMetadata;
+    provenance?: ProvidedEntityEditionProvenance;
   },
   Promise<Entity>,
   false,
