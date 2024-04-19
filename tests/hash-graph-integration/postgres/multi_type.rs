@@ -3,8 +3,8 @@ use std::str::FromStr;
 use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::knowledge::{
-    entity::{Entity, ProvidedEntityEditionProvenanceMetadata},
-    PropertyConfidence, PropertyObject,
+    entity::{Entity, ProvidedEntityEditionProvenance},
+    PropertyMetadataMap, PropertyObject,
 };
 use pretty_assertions::assert_eq;
 use type_system::url::VersionedUrl;
@@ -63,7 +63,7 @@ async fn empty_entity() {
             None,
             false,
             None,
-            PropertyConfidence::default(),
+            PropertyMetadataMap::default(),
         )
         .await
         .expect_err("created entity with no types");
@@ -81,7 +81,7 @@ async fn initial_person() {
             None,
             false,
             None,
-            PropertyConfidence::default(),
+            PropertyMetadataMap::default(),
         )
         .await
         .expect("could not create entity");
@@ -109,7 +109,7 @@ async fn initial_person() {
             draft: None,
             archived: None,
             confidence: None,
-            provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+            provenance: ProvidedEntityEditionProvenance::default(),
         })
         .await
         .expect("could not create entity");
@@ -149,7 +149,7 @@ async fn create_multi() {
             None,
             false,
             None,
-            PropertyConfidence::default(),
+            PropertyMetadataMap::default(),
         )
         .await
         .expect("could not create entity");
@@ -185,7 +185,7 @@ async fn create_multi() {
             draft: None,
             archived: None,
             confidence: None,
-            provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+            provenance: ProvidedEntityEditionProvenance::default(),
         })
         .await
         .expect("could not create entity");

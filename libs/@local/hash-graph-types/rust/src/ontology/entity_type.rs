@@ -13,7 +13,7 @@ use utoipa::{
 
 use crate::{
     ontology::{
-        OntologyProvenanceMetadata, OntologyTemporalMetadata, OntologyType,
+        OntologyProvenance, OntologyTemporalMetadata, OntologyType,
         OntologyTypeClassificationMetadata, OntologyTypeRecordId, OntologyTypeReference,
         OntologyTypeWithMetadata,
     },
@@ -36,7 +36,7 @@ pub struct EntityTypeMetadata {
     #[serde(flatten)]
     pub classification: OntologyTypeClassificationMetadata,
     pub temporal_versioning: OntologyTemporalMetadata,
-    pub provenance: OntologyProvenanceMetadata,
+    pub provenance: OntologyProvenance,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub label_property: Option<BaseUrl>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -70,10 +70,7 @@ impl ToSchema<'static> for EntityTypeMetadata {
                                 Ref::from_schema_name("OntologyTemporalMetadata"),
                             )
                             .required("temporalVersioning")
-                            .property(
-                                "provenance",
-                                Ref::from_schema_name("OntologyProvenanceMetadata"),
-                            )
+                            .property("provenance", Ref::from_schema_name("OntologyProvenance"))
                             .required("provenance")
                             .property("labelProperty", Ref::from_schema_name("BaseUrl"))
                             .property(
@@ -96,10 +93,7 @@ impl ToSchema<'static> for EntityTypeMetadata {
                                 Ref::from_schema_name("OntologyTemporalMetadata"),
                             )
                             .required("temporalVersioning")
-                            .property(
-                                "provenance",
-                                Ref::from_schema_name("OntologyProvenanceMetadata"),
-                            )
+                            .property("provenance", Ref::from_schema_name("OntologyProvenance"))
                             .required("provenance")
                             .property("labelProperty", Ref::from_schema_name("BaseUrl"))
                             .property(

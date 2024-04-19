@@ -2673,6 +2673,13 @@
         "type": "string",
         "format": "uuid"
       },
+      "ActorType": {
+        "type": "string",
+        "enum": [
+          "human",
+          "ai"
+        ]
+      },
       "ArchiveDataTypeParams": {
         "type": "object",
         "required": [
@@ -2757,7 +2764,7 @@
             "$ref": "#/components/schemas/OwnedById"
           },
           "provenance": {
-            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
           },
           "relationships": {
             "type": "array",
@@ -2834,15 +2841,15 @@
           "properties": {
             "$ref": "#/components/schemas/PropertyObject"
           },
-          "propertyConfidence": {
+          "propertyMetadata": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/PropertyConfidence"
+                "$ref": "#/components/schemas/PropertyMetadataMap"
               }
             ]
           },
           "provenance": {
-            "$ref": "#/components/schemas/ProvidedEntityEditionProvenanceMetadata"
+            "$ref": "#/components/schemas/ProvidedEntityEditionProvenance"
           },
           "relationships": {
             "type": "array",
@@ -2877,7 +2884,7 @@
             "$ref": "#/components/schemas/OwnedById"
           },
           "provenance": {
-            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
           },
           "relationships": {
             "type": "array",
@@ -2913,7 +2920,7 @@
             "$ref": "#/components/schemas/OwnedById"
           },
           "provenance": {
-            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
           },
           "relationships": {
             "type": "array",
@@ -2957,7 +2964,7 @@
                 "$ref": "#/components/schemas/OwnedById"
               },
               "provenance": {
-                "$ref": "#/components/schemas/OntologyProvenanceMetadata"
+                "$ref": "#/components/schemas/OntologyProvenance"
               },
               "recordId": {
                 "$ref": "#/components/schemas/OntologyTypeRecordId"
@@ -2981,7 +2988,7 @@
                 "$ref": "#/components/schemas/Timestamp"
               },
               "provenance": {
-                "$ref": "#/components/schemas/OntologyProvenanceMetadata"
+                "$ref": "#/components/schemas/OntologyProvenance"
               },
               "recordId": {
                 "$ref": "#/components/schemas/OntologyTypeRecordId"
@@ -3352,10 +3359,10 @@
         "type": "string",
         "format": "uuid"
       },
-      "EntityEditionProvenanceMetadata": {
+      "EntityEditionProvenance": {
         "allOf": [
           {
-            "$ref": "#/components/schemas/ProvidedEntityEditionProvenanceMetadata"
+            "$ref": "#/components/schemas/ProvidedEntityEditionProvenance"
           },
           {
             "type": "object",
@@ -3464,8 +3471,8 @@
           "recordId",
           "temporalVersioning",
           "entityTypeIds",
-          "provenance",
-          "archived"
+          "archived",
+          "provenance"
         ],
         "properties": {
           "archived": {
@@ -3484,15 +3491,11 @@
               "$ref": "#/components/schemas/VersionedUrl"
             }
           },
-          "propertyConfidence": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/PropertyConfidence"
-              }
-            ]
+          "properties": {
+            "$ref": "#/components/schemas/PropertyMetadataMap"
           },
           "provenance": {
-            "$ref": "#/components/schemas/EntityProvenanceMetadata"
+            "$ref": "#/components/schemas/EntityProvenance"
           },
           "recordId": {
             "$ref": "#/components/schemas/EntityRecordId"
@@ -3536,43 +3539,23 @@
           "view"
         ]
       },
-      "EntityProvenanceMetadata": {
-        "type": "object",
-        "required": [
-          "createdById",
-          "createdAtTransactionTime",
-          "createdAtDecisionTime",
-          "edition"
-        ],
-        "properties": {
-          "createdAtDecisionTime": {
-            "$ref": "#/components/schemas/Timestamp"
+      "EntityProvenance": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/InferredEntityProvenance"
           },
-          "createdAtTransactionTime": {
-            "$ref": "#/components/schemas/Timestamp"
-          },
-          "createdById": {
-            "$ref": "#/components/schemas/CreatedById"
-          },
-          "edition": {
-            "$ref": "#/components/schemas/EntityEditionProvenanceMetadata"
-          },
-          "firstNonDraftCreatedAtDecisionTime": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/Timestamp"
+          {
+            "type": "object",
+            "required": [
+              "edition"
+            ],
+            "properties": {
+              "edition": {
+                "$ref": "#/components/schemas/EntityEditionProvenance"
               }
-            ]
-          },
-          "firstNonDraftCreatedAtTransactionTime": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/Timestamp"
-              }
-            ]
+            }
           }
-        },
-        "additionalProperties": false
+        ]
       },
       "EntityQueryCursor": {
         "type": "array",
@@ -3967,7 +3950,7 @@
                 "$ref": "#/components/schemas/OwnedById"
               },
               "provenance": {
-                "$ref": "#/components/schemas/OntologyProvenanceMetadata"
+                "$ref": "#/components/schemas/OntologyProvenance"
               },
               "recordId": {
                 "$ref": "#/components/schemas/OntologyTypeRecordId"
@@ -3997,7 +3980,7 @@
                 "$ref": "#/components/schemas/BaseUrl"
               },
               "provenance": {
-                "$ref": "#/components/schemas/OntologyProvenanceMetadata"
+                "$ref": "#/components/schemas/OntologyProvenance"
               },
               "recordId": {
                 "$ref": "#/components/schemas/OntologyTypeRecordId"
@@ -4662,6 +4645,40 @@
         },
         "additionalProperties": false
       },
+      "InferredEntityProvenance": {
+        "type": "object",
+        "required": [
+          "createdById",
+          "createdAtTransactionTime",
+          "createdAtDecisionTime"
+        ],
+        "properties": {
+          "createdAtDecisionTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "createdAtTransactionTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "createdById": {
+            "$ref": "#/components/schemas/CreatedById"
+          },
+          "firstNonDraftCreatedAtDecisionTime": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            ]
+          },
+          "firstNonDraftCreatedAtTransactionTime": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
       "InsertAccountGroupIdParams": {
         "type": "object",
         "properties": {
@@ -4860,6 +4877,9 @@
           "leftEntityId": {
             "$ref": "#/components/schemas/EntityId"
           },
+          "leftEntityProvenance": {
+            "$ref": "#/components/schemas/PropertyProvenance"
+          },
           "rightEntityConfidence": {
             "allOf": [
               {
@@ -4869,6 +4889,9 @@
           },
           "rightEntityId": {
             "$ref": "#/components/schemas/EntityId"
+          },
+          "rightEntityProvenance": {
+            "$ref": "#/components/schemas/PropertyProvenance"
           }
         },
         "additionalProperties": false
@@ -4894,7 +4917,7 @@
             ],
             "properties": {
               "provenance": {
-                "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
+                "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
               },
               "relationships": {
                 "type": "array",
@@ -4942,7 +4965,7 @@
                 "nullable": true
               },
               "provenance": {
-                "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
+                "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
               },
               "relationships": {
                 "type": "array",
@@ -4978,7 +5001,7 @@
             ],
             "properties": {
               "provenance": {
-                "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
+                "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
               },
               "relationships": {
                 "type": "array",
@@ -4992,6 +5015,26 @@
             }
           }
         ]
+      },
+      "Location": {
+        "type": "object",
+        "description": "A location where the source material can be found.",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Encapsulates a message intended to be read by the end user."
+          },
+          "name": {
+            "type": "string",
+            "description": "A string containing the name of the location."
+          },
+          "uri": {
+            "type": "string",
+            "format": "uri",
+            "description": "A string containing a valid relative or absolute URI."
+          }
+        },
+        "additionalProperties": false
       },
       "MaybeListOfDataTypeMetadata": {
         "oneOf": [
@@ -5158,10 +5201,10 @@
           "CONSTRAINS_LINK_DESTINATIONS_ON"
         ]
       },
-      "OntologyEditionProvenanceMetadata": {
+      "OntologyEditionProvenance": {
         "allOf": [
           {
-            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
           },
           {
             "type": "object",
@@ -5227,14 +5270,14 @@
           }
         ]
       },
-      "OntologyProvenanceMetadata": {
+      "OntologyProvenance": {
         "type": "object",
         "required": [
           "edition"
         ],
         "properties": {
           "edition": {
-            "$ref": "#/components/schemas/OntologyEditionProvenanceMetadata"
+            "$ref": "#/components/schemas/OntologyEditionProvenance"
           }
         },
         "additionalProperties": false
@@ -5407,6 +5450,232 @@
           "descending"
         ]
       },
+      "OriginProvenance": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "apiKeyPublicId": {
+                "type": "string"
+              },
+              "deviceId": {
+                "type": "string"
+              },
+              "environment": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "semanticVersion": {
+                "type": "string"
+              },
+              "sessionId": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "web-app"
+                ]
+              },
+              "version": {
+                "type": "string",
+                "description": "The origin version, in whatever format the origin natively\nprovides."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "apiKeyPublicId": {
+                "type": "string"
+              },
+              "deviceId": {
+                "type": "string"
+              },
+              "environment": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "semanticVersion": {
+                "type": "string"
+              },
+              "sessionId": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "mobile-app"
+                ]
+              },
+              "version": {
+                "type": "string",
+                "description": "The origin version, in whatever format the origin natively\nprovides."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "apiKeyPublicId": {
+                "type": "string"
+              },
+              "deviceId": {
+                "type": "string"
+              },
+              "environment": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "semanticVersion": {
+                "type": "string"
+              },
+              "sessionId": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "browser-extension"
+                ]
+              },
+              "version": {
+                "type": "string",
+                "description": "The origin version, in whatever format the origin natively\nprovides."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "apiKeyPublicId": {
+                "type": "string"
+              },
+              "deviceId": {
+                "type": "string"
+              },
+              "environment": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "semanticVersion": {
+                "type": "string"
+              },
+              "sessionId": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "api"
+                ]
+              },
+              "version": {
+                "type": "string",
+                "description": "The origin version, in whatever format the origin natively\nprovides."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "apiKeyPublicId": {
+                "type": "string"
+              },
+              "deviceId": {
+                "type": "string"
+              },
+              "environment": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "semanticVersion": {
+                "type": "string"
+              },
+              "sessionId": {
+                "type": "string"
+              },
+              "stepIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "flow"
+                ]
+              },
+              "version": {
+                "type": "string",
+                "description": "The origin version, in whatever format the origin natively\nprovides."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "apiKeyPublicId": {
+                "type": "string"
+              },
+              "deviceId": {
+                "type": "string"
+              },
+              "environment": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "semanticVersion": {
+                "type": "string"
+              },
+              "sessionId": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "migration"
+                ]
+              },
+              "version": {
+                "type": "string",
+                "description": "The origin version, in whatever format the origin natively\nprovides."
+              }
+            }
+          }
+        ]
+      },
       "OutgoingEdgeResolveDepth": {
         "type": "object",
         "required": [
@@ -5467,7 +5736,7 @@
             }
           },
           "provenance": {
-            "$ref": "#/components/schemas/ProvidedEntityEditionProvenanceMetadata"
+            "$ref": "#/components/schemas/ProvidedEntityEditionProvenance"
           }
         },
         "additionalProperties": false
@@ -5496,12 +5765,6 @@
           },
           {}
         ]
-      },
-      "PropertyConfidence": {
-        "type": "object",
-        "additionalProperties": {
-          "$ref": "#/components/schemas/Confidence"
-        }
       },
       "PropertyDiff": {
         "oneOf": [
@@ -5580,6 +5843,27 @@
           "propertyName": "op"
         }
       },
+      "PropertyMetadata": {
+        "type": "object",
+        "properties": {
+          "confidence": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Confidence"
+              }
+            ]
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/PropertyProvenance"
+          }
+        }
+      },
+      "PropertyMetadataMap": {
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/PropertyMetadata"
+        }
+      },
       "PropertyObject": {
         "type": "object",
         "additionalProperties": {
@@ -5611,6 +5895,13 @@
               },
               "path": {
                 "$ref": "#/components/schemas/PropertyPath"
+              },
+              "provenance": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/PropertyProvenance"
+                  }
+                ]
               },
               "value": {
                 "$ref": "#/components/schemas/Property"
@@ -5659,6 +5950,13 @@
               "path": {
                 "$ref": "#/components/schemas/PropertyPath"
               },
+              "provenance": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/PropertyProvenance"
+                  }
+                ]
+              },
               "value": {
                 "$ref": "#/components/schemas/Property"
               }
@@ -5690,6 +5988,13 @@
               },
               "path": {
                 "$ref": "#/components/schemas/PropertyPath"
+              },
+              "provenance": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/PropertyProvenance"
+                  }
+                ]
               }
             }
           },
@@ -5719,6 +6024,13 @@
               },
               "path": {
                 "$ref": "#/components/schemas/PropertyPath"
+              },
+              "provenance": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/PropertyProvenance"
+                  }
+                ]
               }
             }
           },
@@ -5751,6 +6063,17 @@
       },
       "PropertyPath": {
         "type": "string"
+      },
+      "PropertyProvenance": {
+        "type": "object",
+        "properties": {
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SourceProvenance"
+            }
+          }
+        }
       },
       "PropertyTypeEditorSubject": {
         "oneOf": [
@@ -5826,7 +6149,7 @@
                 "$ref": "#/components/schemas/OwnedById"
               },
               "provenance": {
-                "$ref": "#/components/schemas/OntologyProvenanceMetadata"
+                "$ref": "#/components/schemas/OntologyProvenance"
               },
               "recordId": {
                 "$ref": "#/components/schemas/OntologyTypeRecordId"
@@ -5850,7 +6173,7 @@
                 "$ref": "#/components/schemas/Timestamp"
               },
               "provenance": {
-                "$ref": "#/components/schemas/OntologyProvenanceMetadata"
+                "$ref": "#/components/schemas/OntologyProvenance"
               },
               "recordId": {
                 "$ref": "#/components/schemas/OntologyTypeRecordId"
@@ -6091,17 +6414,33 @@
           }
         }
       },
-      "ProvidedEntityEditionProvenanceMetadata": {
+      "ProvidedEntityEditionProvenance": {
         "type": "object",
         "properties": {
-          "__placeholder": {
-            "default": null,
-            "nullable": true
+          "actorType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ActorType"
+              }
+            ]
+          },
+          "origin": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OriginProvenance"
+              }
+            ]
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SourceProvenance"
+            }
           }
         },
         "additionalProperties": false
       },
-      "ProvidedOntologyEditionProvenanceMetadata": {
+      "ProvidedOntologyEditionProvenance": {
         "type": "object",
         "properties": {
           "__placeholder": {
@@ -6318,6 +6657,62 @@
           "IS_OF_TYPE"
         ]
       },
+      "SourceProvenance": {
+        "type": "object",
+        "description": "The source material used in producing a value.",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "authors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The people or organizations that authored the material."
+          },
+          "firstPublished": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            ]
+          },
+          "lastUpdated": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            ]
+          },
+          "loadedAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            ]
+          },
+          "location": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Location"
+              }
+            ]
+          },
+          "type": {
+            "$ref": "#/components/schemas/SourceType"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SourceType": {
+        "type": "string",
+        "description": "The type of source material which was used to produce a value.",
+        "enum": [
+          "webpage",
+          "document"
+        ]
+      },
       "Subgraph": {
         "type": "object",
         "required": [
@@ -6444,7 +6839,7 @@
             "$ref": "#/components/schemas/VersionedUrl"
           },
           "provenance": {
-            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
           }
         },
         "additionalProperties": false
@@ -6459,7 +6854,7 @@
             "$ref": "#/components/schemas/VersionedUrl"
           },
           "provenance": {
-            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
           }
         },
         "additionalProperties": false
@@ -6474,7 +6869,7 @@
             "$ref": "#/components/schemas/VersionedUrl"
           },
           "provenance": {
-            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
           }
         },
         "additionalProperties": false
@@ -6537,7 +6932,7 @@
         ],
         "properties": {
           "provenance": {
-            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
           },
           "relationships": {
             "type": "array",
@@ -6630,7 +7025,7 @@
             "nullable": true
           },
           "provenance": {
-            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
           },
           "relationships": {
             "type": "array",
@@ -6680,7 +7075,7 @@
         ],
         "properties": {
           "provenance": {
-            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenanceMetadata"
+            "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
           },
           "relationships": {
             "type": "array",
@@ -6739,10 +7134,10 @@
           "properties": {
             "$ref": "#/components/schemas/PropertyObject"
           },
-          "propertyConfidence": {
+          "propertyMetadata": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/PropertyConfidence"
+                "$ref": "#/components/schemas/PropertyMetadataMap"
               }
             ]
           }

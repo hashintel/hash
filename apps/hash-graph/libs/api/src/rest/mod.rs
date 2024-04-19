@@ -52,10 +52,9 @@ use graph::{
 use graph_types::{
     account::{AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
     ontology::{
-        DataTypeMetadata, EntityTypeMetadata, OntologyEditionProvenanceMetadata,
-        OntologyProvenanceMetadata, OntologyTemporalMetadata, OntologyTypeMetadata,
-        OntologyTypeRecordId, OntologyTypeReference, PropertyTypeMetadata,
-        ProvidedOntologyEditionProvenanceMetadata,
+        DataTypeMetadata, EntityTypeMetadata, OntologyEditionProvenance, OntologyProvenance,
+        OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeRecordId,
+        OntologyTypeReference, PropertyTypeMetadata, ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
 };
@@ -351,9 +350,9 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             CreatedById,
             EditionCreatedById,
             EditionArchivedById,
-            OntologyProvenanceMetadata,
-            OntologyEditionProvenanceMetadata,
-            ProvidedOntologyEditionProvenanceMetadata,
+            OntologyProvenance,
+            OntologyEditionProvenance,
+            ProvidedOntologyEditionProvenance,
             OntologyTypeRecordId,
             OntologyTemporalMetadata,
             DataTypeMetadata,
