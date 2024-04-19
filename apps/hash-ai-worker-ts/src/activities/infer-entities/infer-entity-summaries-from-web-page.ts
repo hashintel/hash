@@ -34,6 +34,7 @@ export const inferEntitySummariesFromWebPage = async (params: {
     relevantEntitiesPrompt ? "each relevant" : "each"
   } entity you can infer.
   It only needs to be long enough to uniquely identify the entity in the text – we'll worry about any more details in a future step.
+  Give each entity a unique numerical identifier as its 'entityId' property. These should be ascending from 1.
   ${
     relevantEntitiesPrompt
       ? dedent(`
