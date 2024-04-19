@@ -4,22 +4,24 @@ import { type AccountId } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
-import type OpenAI from "openai";
 
 import { logger } from "../../shared/logger";
 import { getLlmResponse } from "../shared/get-llm-response";
+import type { MessageContent } from "../shared/get-llm-response/anthropic-client";
+import type { AnthropicLlmParams } from "../shared/get-llm-response/types";
 import { stringify } from "../shared/stringify";
+import { inferEntitiesSystemMessageContent } from "./infer-entities-system-message";
 import type {
-  CompletionPayload,
   DereferencedEntityTypesByTypeId,
   InferenceState,
 } from "./inference-types";
 import { validateProposedEntitiesByType } from "./persist-entities/generate-persist-entities-tools";
 import { extractErrorMessage } from "./shared/extract-validation-failure-details";
-import { firstUserMessageIndex } from "./shared/first-user-message-index";
 import type { ProposedEntityToolCreationsByType } from "./shared/generate-propose-entities-tools";
 import { generateProposeEntitiesTools } from "./shared/generate-propose-entities-tools";
 import { mapSimplifiedPropertiesToProperties } from "./shared/map-simplified-properties-to-properties";
+
+type WithoutString<T> = T extends string ? never : T;
 
 /**
  * This method is based on the logic from the existing `persistEntities` method, which
@@ -28,35 +30,37 @@ import { mapSimplifiedPropertiesToProperties } from "./shared/map-simplified-pro
  * entity), it pushes the entities to the `proposedEntities` array in the `InferenceState`.
  */
 export const proposeEntities = async (params: {
-  completionPayload: CompletionPayload;
+  maxTokens?: number;
+  firstUserMessage: string;
+  previousMessages?: AnthropicLlmParams["messages"];
   entityTypes: DereferencedEntityTypesByTypeId;
   inferenceState: InferenceState;
   validationActorId: AccountId;
   graphApiClient: GraphApi;
-  originalPromptMessages: OpenAI.ChatCompletionMessageParam[];
 }): Promise<Status<InferenceState>> => {
   const {
-    completionPayload,
+    maxTokens,
+    previousMessages,
     entityTypes,
     validationActorId,
     graphApiClient,
     inferenceState,
-    originalPromptMessages,
+    firstUserMessage,
   } = params;
 
   const {
     iterationCount,
     inProgressEntityIds,
     proposedEntitySummaries,
-    usage: usageFromLastIteration,
+    // usage: usageFromLastIteration,
   } = inferenceState;
 
   if (iterationCount > 30) {
-    logger.info(
-      `Model reached maximum number of iterations. Messages: ${stringify(
-        completionPayload.messages,
-      )}`,
-    );
+    // logger.info(
+    //   `Model reached maximum number of iterations. Messages: ${stringify(
+    //     completionPayload.messages,
+    //   )}`,
+    // );
 
     return {
       code: StatusCode.ResourceExhausted,
@@ -129,19 +133,57 @@ export const proposeEntities = async (params: {
     .filter(Boolean)
     .join(" and ");
 
-  const nextMessage = {
-    role: "user",
-    content: dedent(
-      `Please make calls to ${innerMessage}. Remember to include as many properties as you can find matching values for in the website content.
-      If you can't find a value for a specified property, just omit it – don't pass 'null' as a value.`,
-    ),
-  } as const;
+  const instructions = dedent(`
+    Please make calls to ${innerMessage}.
+    Remember to include as many properties as you can find matching values for in the website content.
+    If you can't find a value for a specified property, just omit it – don't pass 'null' as a value.
+  `);
 
-  logger.debug(`Next message to model: ${stringify(nextMessage)}`);
+  const messages: AnthropicLlmParams["messages"] =
+    previousMessages && previousMessages.length > 1
+      ? [
+          ...previousMessages.slice(0, -1),
+          {
+            role: "user",
+            content:
+              typeof previousMessages[previousMessages.length - 1]!.content ===
+              "string"
+                ? dedent(`
+                  ${previousMessages[previousMessages.length - 1]!.content as string}
+                  ${instructions}
+                `)
+                : [
+                    ...(previousMessages[previousMessages.length - 1]!
+                      .content as WithoutString<MessageContent>),
+                    {
+                      type: "text",
+                      text: instructions,
+                    },
+                  ],
+          },
+        ]
+      : [
+          {
+            role: "user",
+            content: dedent(`
+        ${firstUserMessage}
+
+        Please make calls to ${innerMessage}.
+        Remember to include as many properties as you can find matching values for in the website content.
+        If you can't find a value for a specified property, just omit it – don't pass 'null' as a value.
+      `),
+          },
+        ];
+
+  logger.debug(`Next messages to model: ${stringify(messages)}`);
+
+  logger.debug(`Tools: stringified: ${stringify(tools)}`);
 
   const llmResponse = await getLlmResponse({
-    ...completionPayload,
-    messages: [...completionPayload.messages, nextMessage],
+    model: "claude-3-opus-20240229",
+    maxTokens,
+    system: inferEntitiesSystemMessageContent,
+    messages,
     tools,
     /**
      * We prefer consistency over creativity for the inference agent,
@@ -157,40 +199,42 @@ export const proposeEntities = async (params: {
     };
   }
 
-  const { stopReason, usage, parsedToolCalls } = llmResponse;
+  const { stopReason, usage: _usage, parsedToolCalls } = llmResponse;
 
-  const { message } = llmResponse.choices[0];
+  // const latestUsage = [...usageFromLastIteration, usage];
 
-  const latestUsage = [...usageFromLastIteration, usage];
-
-  inferenceState.usage = latestUsage;
+  // inferenceState.usage = latestUsage;
 
   const retryWithMessages = ({
-    retryMessages,
+    retryMessageContent,
     requiresOriginalContext,
   }: {
-    retryMessages: (
-      | OpenAI.ChatCompletionUserMessageParam
-      | OpenAI.ChatCompletionToolMessageParam
-    )[];
+    retryMessageContent: AnthropicLlmParams["messages"][number]["content"];
     requiresOriginalContext: boolean;
   }) => {
     logger.debug(
-      `Retrying with additional messages: ${stringify(retryMessages)}`,
+      `Retrying with additional message: ${stringify(retryMessageContent)}`,
     );
 
-    const newMessages = [
-      ...originalPromptMessages.map((msg, index) =>
-        index === firstUserMessageIndex && !requiresOriginalContext
-          ? {
-              ...msg,
-              content:
-                "I provided you text to infer entities, and you responded below – please see further instructions after your message.",
-            }
-          : msg,
-      ),
-      message,
-      ...retryMessages,
+    const newMessages: AnthropicLlmParams["messages"] = [
+      requiresOriginalContext
+        ? {
+            role: "user",
+            content: firstUserMessage,
+          }
+        : {
+            role: "user",
+            content:
+              "I provided you text to infer entities, and you responded below – please see further instructions after your message.",
+          },
+      {
+        role: "assistant",
+        content: llmResponse.content,
+      },
+      {
+        role: "user",
+        content: retryMessageContent,
+      },
     ];
 
     return proposeEntities({
@@ -199,18 +243,15 @@ export const proposeEntities = async (params: {
         ...inferenceState,
         iterationCount: iterationCount + 1,
       },
-      completionPayload: {
-        ...completionPayload,
-        messages: newMessages,
-      },
+      previousMessages: newMessages,
     });
   };
 
   switch (stopReason) {
     case "stop": {
-      const errorMessage = `AI Model returned 'stop' finish reason, with message: ${
-        message.content ?? "no message"
-      }`;
+      const errorMessage = `AI Model returned 'stop' finish reason, with message content: ${stringify(
+        llmResponse.content,
+      )}`;
 
       logger.error(errorMessage);
 
@@ -218,7 +259,9 @@ export const proposeEntities = async (params: {
         code: StatusCode.Unknown,
         contents: [inferenceState],
         message:
-          message.content ?? "No entities could be inferred from the page.",
+          llmResponse.content.length > 0
+            ? stringify(llmResponse.content)
+            : "No entities could be inferred from the page.",
       };
     }
 
@@ -239,13 +282,13 @@ export const proposeEntities = async (params: {
       }
 
       return retryWithMessages({
-        retryMessages: [
+        retryMessageContent: [
           {
-            role: "tool",
+            type: "tool_result",
+            tool_use_id: toolCallId,
+            // @todo see if we can get the model to respond continuing off the previous JSON argument to the function call
             content:
-              // @todo see if we can get the model to respond continuing off the previous JSON argument to the function call
               "Your previous response was cut off for length – please respond again with a shorter function call.",
-            tool_call_id: toolCallId,
           },
         ],
         requiresOriginalContext: true,
@@ -255,7 +298,7 @@ export const proposeEntities = async (params: {
     case "content_filter": {
       logger.error(
         `The content filter was triggered on attempt ${iterationCount} with input: ${stringify(
-          completionPayload.messages,
+          llmResponse.content,
         )}, `,
       );
 
@@ -267,10 +310,11 @@ export const proposeEntities = async (params: {
     }
 
     case "tool_use": {
-      const retryMessages: ((
-        | OpenAI.ChatCompletionUserMessageParam
-        | OpenAI.ChatCompletionToolMessageParam
-      ) & { requiresOriginalContext: boolean })[] = [];
+      const retryMessageContent: (WithoutString<
+        AnthropicLlmParams["messages"][number]["content"][number]
+      > & {
+        requiresOriginalContext: boolean;
+      })[] = [];
 
       for (const toolCall of parsedToolCalls) {
         if (toolCall.name === "abandon_entities") {
@@ -288,12 +332,12 @@ export const proposeEntities = async (params: {
               )}`,
             );
 
-            retryMessages.push({
+            retryMessageContent.push({
+              type: "tool_result",
               content:
                 "You provided an invalid argument to abandon_entities. Please try again",
               requiresOriginalContext: true,
-              role: "tool",
-              tool_call_id: toolCall.id,
+              tool_use_id: toolCall.id,
             });
             continue;
           }
@@ -314,7 +358,7 @@ export const proposeEntities = async (params: {
 
             validateProposedEntitiesByType(proposedEntitiesByType, false);
 
-            let retryMessageContent = "";
+            let retryMessageContentText = "";
             let requiresOriginalContextForRetry = false;
 
             /**
@@ -394,7 +438,7 @@ export const proposeEntities = async (params: {
             ).then((invalidProposals) => invalidProposals.flat());
 
             if (invalidProposedEntities.length > 0) {
-              retryMessageContent += dedent(`
+              retryMessageContentText += dedent(`
                 Some of the entities you suggested for creation were invalid. Please review their properties and try again. 
                 The entities you should review and make a 'create_entities' call for are:
                 ${invalidProposedEntities
@@ -504,11 +548,11 @@ export const proposeEntities = async (params: {
               inferenceState.proposedEntityCreationsByType,
             );
 
-            if (retryMessageContent) {
-              retryMessages.push({
-                role: "tool",
-                tool_call_id: toolCall.id,
-                content: retryMessageContent,
+            if (retryMessageContentText) {
+              retryMessageContent.push({
+                type: "tool_result",
+                content: retryMessageContentText,
+                tool_use_id: toolCall.id,
                 requiresOriginalContext: requiresOriginalContextForRetry,
               });
             }
@@ -519,12 +563,12 @@ export const proposeEntities = async (params: {
               )}`,
             );
 
-            retryMessages.push({
+            retryMessageContent.push({
+              type: "tool_result",
               content:
                 "You provided an invalid argument to create_entities. Please try again",
               requiresOriginalContext: true,
-              role: "tool",
-              tool_call_id: toolCall.id,
+              tool_use_id: toolCall.id,
             });
             continue;
           }
@@ -540,15 +584,14 @@ export const proposeEntities = async (params: {
         logger.info(
           `${remainingEntitySummaries} entities remain to be inferred, continuing.`,
         );
-        retryMessages.push({
-          content:
-            "There are other entities you haven't yet provided details for",
-          role: "user",
+        retryMessageContent.push({
+          type: "text",
+          text: "There are other entities you haven't yet provided details for",
           requiresOriginalContext: true,
         });
       }
 
-      if (retryMessages.length === 0) {
+      if (retryMessageContent.length === 0) {
         logger.info(
           `Returning proposed entities: ${stringify(
             inferenceState.proposedEntityCreationsByType,
@@ -563,8 +606,11 @@ export const proposeEntities = async (params: {
 
       const toolCallsWithoutProblems = parsedToolCalls.filter(
         (toolCall) =>
-          !retryMessages.some(
-            (msg) => msg.role === "tool" && msg.tool_call_id === toolCall.id,
+          !retryMessageContent.some(
+            (content) =>
+              typeof content === "object" &&
+              content.type === "tool_result" &&
+              content.tool_use_id === toolCall.id,
           ),
       );
 
@@ -572,20 +618,20 @@ export const proposeEntities = async (params: {
        * We require exactly one response to each tool call for subsequent messages – this fallback ensures that.
        * They must come before any other messages.
        */
-      retryMessages.unshift(
+      retryMessageContent.unshift(
         ...toolCallsWithoutProblems.map((toolCall) => ({
-          role: "tool" as const,
-          tool_call_id: toolCall.id,
+          type: "tool_result" as const,
+          tool_use_id: toolCall.id,
           content: "No problems found with this tool call.",
           requiresOriginalContext: false,
         })),
       );
 
       return retryWithMessages({
-        retryMessages: retryMessages.map(
-          ({ requiresOriginalContext: _, ...msg }) => msg,
+        retryMessageContent: retryMessageContent.map(
+          ({ requiresOriginalContext: _, ...content }) => content,
         ),
-        requiresOriginalContext: retryMessages.some(
+        requiresOriginalContext: retryMessageContent.some(
           (retryMessage) => retryMessage.requiresOriginalContext,
         ),
       });

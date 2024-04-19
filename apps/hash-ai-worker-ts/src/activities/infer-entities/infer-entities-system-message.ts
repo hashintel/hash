@@ -1,10 +1,6 @@
 import dedent from "dedent";
-import type OpenAI from "openai";
 
-export const inferEntitiesSystemMessage: OpenAI.ChatCompletionSystemMessageParam =
-  {
-    role: "system",
-    content: dedent(`
+export const inferEntitiesSystemMessageContent = dedent(`
     You are an Entity Inference Assistant. The user provides you with a text input, from which you infer entities for creation. 
     Each created entity should be given a unique numerical identifier as their 'entityId' property. 
     Some entities require sourceEntityId and targetEntityId properties – these are links between other entities, 
@@ -22,5 +18,4 @@ export const inferEntitiesSystemMessage: OpenAI.ChatCompletionSystemMessageParam
     The more entities you infer, the happier the user will be!
     Make sure you attempt to create entities of all the provided types, if there is data to do so!
     The user has requested that you fill out as many properties as possible, so please do so. Do not optimise for short responses.
-  `),
-  };
+  `);

@@ -1,7 +1,7 @@
 import dedent from "dedent";
 
 import type { PermittedOpenAiModel } from "../shared/openai-client";
-import { inferEntitiesSystemMessage } from "./infer-entities-system-message";
+import { inferEntitiesSystemMessageContent } from "./infer-entities-system-message";
 import { inferEntitySummaries } from "./infer-entity-summaries";
 import type {
   DereferencedEntityTypesByTypeId,
@@ -61,7 +61,10 @@ export const inferEntitySummariesFromWebPage = async (params: {
     completionPayload: {
       max_tokens: maxTokens,
       messages: [
-        inferEntitiesSystemMessage,
+        {
+          role: "system",
+          content: inferEntitiesSystemMessageContent,
+        },
         {
           role: "user",
           content: summariseEntitiesPrompt,

@@ -4,7 +4,6 @@ import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
 import { logger } from "../shared/logger";
-import { inferEntitiesSystemMessage } from "./infer-entities/infer-entities-system-message";
 import { inferEntitySummariesFromWebPage } from "./infer-entities/infer-entity-summaries-from-web-page";
 import type {
   DereferencedEntityTypesByTypeId,
@@ -96,27 +95,9 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     ${JSON.stringify(Object.values(inferenceState.proposedEntitySummaries))}
   `);
 
-  const promptMessages = [
-    inferEntitiesSystemMessage,
-    {
-      role: "user",
-      content: proposeEntitiesPrompt,
-    } as const,
-  ];
-
   return await proposeEntities({
-    completionPayload: {
-      max_tokens: maxTokens,
-      messages: [
-        inferEntitiesSystemMessage,
-        {
-          role: "user",
-          content: proposeEntitiesPrompt,
-        },
-      ],
-      model,
-      temperature,
-    },
+    maxTokens: maxTokens ?? undefined,
+    firstUserMessage: proposeEntitiesPrompt,
     validationActorId,
     graphApiClient,
     entityTypes,
@@ -124,6 +105,5 @@ export const inferEntitiesFromWebPageActivity = async (params: {
       ...inferenceState,
       iterationCount: inferenceState.iterationCount + 1,
     },
-    originalPromptMessages: promptMessages,
   });
 };
