@@ -304,7 +304,7 @@ pub struct DiffEntityResult<'e> {
 
 /// Describes the API of a store implementation for [Entities].
 ///
-/// [Entities]: Entity
+/// [Entities]: graph_types::knowledge::entity::Entity
 pub trait EntityStore {
     /// Creates a new [`Entity`].
     ///
@@ -316,6 +316,7 @@ pub trait EntityStore {
     /// - if an [`EntityUuid`] was supplied and already exists in the store
     ///
     /// [`EntityType`]: type_system::EntityType
+    /// [`Entity`]: graph_types::knowledge::entity::Entity
     fn create_entity<R>(
         &mut self,
         actor_id: AccountId,
@@ -329,6 +330,8 @@ pub trait EntityStore {
     /// # Errors:
     ///
     /// - if the validation failed
+    ///
+    /// [`Entity`]: graph_types::knowledge::entity::Entity
     fn validate_entity(
         &self,
         actor_id: AccountId,
@@ -352,6 +355,7 @@ pub trait EntityStore {
     /// - if the account referred to by `owned_by_id` does not exist
     /// - if an [`EntityUuid`] was supplied and already exists in the store
     ///
+    /// [`Entity`]: graph_types::knowledge::entity::Entity
     /// [`EntityType`]: type_system::EntityType
     fn insert_entities_batched_by_type(
         &mut self,
@@ -375,6 +379,7 @@ pub trait EntityStore {
     ///
     /// - if the requested [`Entity`] doesn't exist
     ///
+    /// [`Entity`]: graph_types::knowledge::entity::Entity
     /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
     fn get_entity(
         &self,
