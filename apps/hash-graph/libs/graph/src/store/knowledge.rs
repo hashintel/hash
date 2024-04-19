@@ -10,7 +10,7 @@ use graph_types::{
             ProvidedEntityEditionProvenance,
         },
         link::LinkData,
-        Confidence, PropertyMetadataMap, PropertyDiff, PropertyObject, PropertyPatchOperation,
+        Confidence, PropertyDiff, PropertyMetadataMap, PropertyObject, PropertyPatchOperation,
         PropertyPath,
     },
     owned_by_id::OwnedById,

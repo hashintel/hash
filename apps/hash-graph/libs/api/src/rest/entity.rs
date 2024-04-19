@@ -44,7 +44,7 @@ use graph_types::{
             SourceProvenance, SourceType,
         },
         link::LinkData,
-        Confidence, Property, PropertyMetadata, PropertyMetadataMap, PropertyDiff, PropertyObject,
+        Confidence, Property, PropertyDiff, PropertyMetadata, PropertyMetadataMap, PropertyObject,
         PropertyPatchOperation, PropertyPath, PropertyProvenance,
     },
     owned_by_id::OwnedById,
