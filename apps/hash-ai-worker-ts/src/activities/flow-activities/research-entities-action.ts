@@ -14,17 +14,15 @@ import type {
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
+import type { ParsedLlmToolCall } from "../shared/get-llm-response/types";
 import { getWebPageSummaryAction } from "./get-web-page-summary-action";
 import type {
   CoordinatorToolCallArguments,
-  CoordinatorToolId,
+  CoordinatorToolName,
 } from "./research-entities-action/coordinator-tools";
 import { inferEntitiesFromWebPageWorkerAgent } from "./research-entities-action/infer-entities-from-web-page-worker-agent";
 import { coordinatingAgent } from "./research-entities-action/open-ai-coordinating-agent";
-import type {
-  CompletedToolCall,
-  ToolCall,
-} from "./research-entities-action/types";
+import type { CompletedToolCall } from "./research-entities-action/types";
 import type { FlowActionActivity } from "./types";
 import { webSearchAction } from "./web-search-action";
 
@@ -57,15 +55,15 @@ export const researchEntitiesAction: FlowActionActivity<{
 
   const processToolCalls = async (params: {
     previousCalls?: {
-      completedToolCalls: CompletedToolCall<CoordinatorToolId>[];
+      completedToolCalls: CompletedToolCall<CoordinatorToolName>[];
     }[];
     previousPlan: string;
-    toolCalls: ToolCall<CoordinatorToolId>[];
+    toolCalls: ParsedLlmToolCall<CoordinatorToolName>[];
   }) => {
     const { toolCalls, previousCalls } = params;
 
     const isTerminated = toolCalls.some(
-      (toolCall) => toolCall.toolId === "terminate",
+      (toolCall) => toolCall.name === "terminate",
     );
 
     if (isTerminated) {
@@ -73,7 +71,7 @@ export const researchEntitiesAction: FlowActionActivity<{
     }
 
     const toolCallsWithRelevantResults = toolCalls.filter(
-      ({ toolId }) => toolId !== "complete" && toolId !== "terminate",
+      ({ name }) => name !== "complete" && name !== "terminate",
     );
 
     /**
@@ -84,10 +82,10 @@ export const researchEntitiesAction: FlowActionActivity<{
 
     const completedToolCalls = await Promise.all(
       toolCallsWithRelevantResults.map(
-        async (toolCall): Promise<CompletedToolCall<CoordinatorToolId>> => {
-          if (toolCall.toolId === "updatePlan") {
+        async (toolCall): Promise<CompletedToolCall<CoordinatorToolName>> => {
+          if (toolCall.name === "updatePlan") {
             const { plan } =
-              toolCall.parsedArguments as CoordinatorToolCallArguments["updatePlan"];
+              toolCall.input as CoordinatorToolCallArguments["updatePlan"];
 
             latestPlan = plan;
 
@@ -95,9 +93,9 @@ export const researchEntitiesAction: FlowActionActivity<{
               ...toolCall,
               output: `The plan has been successfully updated.`,
             };
-          } else if (toolCall.toolId === "submitProposedEntities") {
+          } else if (toolCall.name === "submitProposedEntities") {
             const { entityIds } =
-              toolCall.parsedArguments as CoordinatorToolCallArguments["submitProposedEntities"];
+              toolCall.input as CoordinatorToolCallArguments["submitProposedEntities"];
 
             submittedEntityIds.push(...entityIds);
 
@@ -105,9 +103,9 @@ export const researchEntitiesAction: FlowActionActivity<{
               ...toolCall,
               output: `The entities with IDs ${JSON.stringify(entityIds)} where successfully submitted.`,
             };
-          } else if (toolCall.toolId === "getWebPageSummary") {
+          } else if (toolCall.name === "getWebPageSummary") {
             const { url } =
-              toolCall.parsedArguments as CoordinatorToolCallArguments["getWebPageSummary"];
+              toolCall.input as CoordinatorToolCallArguments["getWebPageSummary"];
 
             const response = await getWebPageSummaryAction({
               inputs: [
@@ -139,9 +137,9 @@ export const researchEntitiesAction: FlowActionActivity<{
               ...toolCall,
               output: JSON.stringify(outputs),
             };
-          } else if (toolCall.toolId === "webSearch") {
+          } else if (toolCall.name === "webSearch") {
             const { query } =
-              toolCall.parsedArguments as CoordinatorToolCallArguments["webSearch"];
+              toolCall.input as CoordinatorToolCallArguments["webSearch"];
 
             const response = await webSearchAction({
               inputs: [
@@ -170,9 +168,9 @@ export const researchEntitiesAction: FlowActionActivity<{
               ...toolCall,
               output: JSON.stringify(outputs),
             };
-          } else if (toolCall.toolId === "inferEntitiesFromWebPage") {
+          } else if (toolCall.name === "inferEntitiesFromWebPage") {
             const { url, prompt: inferencePrompt } =
-              toolCall.parsedArguments as CoordinatorToolCallArguments["inferEntitiesFromWebPage"];
+              toolCall.input as CoordinatorToolCallArguments["inferEntitiesFromWebPage"];
 
             const status = await inferEntitiesFromWebPageWorkerAgent({
               prompt: inferencePrompt,
@@ -204,13 +202,13 @@ export const researchEntitiesAction: FlowActionActivity<{
             };
           }
 
-          throw new Error(`Unimplemented tool call: ${toolCall.toolId}`);
+          throw new Error(`Unimplemented tool call: ${toolCall.name}`);
         },
       ),
     );
 
     const isCompleted = toolCalls.some(
-      (toolCall) => toolCall.toolId === "complete",
+      (toolCall) => toolCall.name === "complete",
     );
 
     /**

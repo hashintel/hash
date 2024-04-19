@@ -3,10 +3,10 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import { validateVersionedUrl } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type OpenAI from "openai";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
+import type { LlmToolDefinition } from "../../shared/get-llm-response/types";
 import { stringify } from "../../shared/stringify";
 import type {
   DereferencedEntityTypesByTypeId,
@@ -178,87 +178,81 @@ export const generateSummaryTools = (
     schema: DereferencedEntityType;
     isLink: boolean;
   }[],
-): OpenAI.Chat.Completions.ChatCompletionTool[] => [
+): LlmToolDefinition[] => [
   {
-    type: "function",
-    function: {
-      name: "could_not_infer_entities" satisfies FunctionName,
-      description:
-        "Returns a warning to the user explaining why no entities could have been inferred from the provided text",
-      parameters: {
-        type: "object",
-        properties: {
-          reason: {
-            type: "string",
-            description:
-              "A brief explanation as to why no entities could have been inferred, and one suggestion on how to fix the issue",
-          },
-        } satisfies CouldNotInferEntitiesSchemaOrObject,
-      },
+    name: "could_not_infer_entities" satisfies FunctionName,
+    description:
+      "Returns a warning to the user explaining why no entities could have been inferred from the provided text",
+    inputSchema: {
+      type: "object",
+      properties: {
+        reason: {
+          type: "string",
+          description:
+            "A brief explanation as to why no entities could have been inferred, and one suggestion on how to fix the issue",
+        },
+      } satisfies CouldNotInferEntitiesSchemaOrObject,
     },
   },
   {
-    type: "function",
-    function: {
-      name: "register_entity_summaries" satisfies FunctionName,
-      description:
-        "Register a short summary for each entity that can be inferred from the providing text",
-      parameters: {
-        type: "object",
-        properties: entityTypes.reduce<Record<VersionedUrl, JSONSchema>>(
-          (acc, { schema, isLink }) => {
-            acc[schema.$id] = {
-              type: "array",
-              title: `Summaries of entities of type ${
-                schema.title
-              } that can be inferred from the provided text.${
-                isLink
-                  ? "This is a link type, which must link two other entities together by reference to their entityIds as source and target."
-                  : ""
-              }`,
-              items: {
-                $id: schema.$id,
-                type: "object",
-                title: schema.title,
-                description: schema.description,
-                properties: {
-                  entityId: {
-                    description:
-                      "Your numerical identifier for the entity, unique among the inferred entities in this conversation",
-                    type: "number",
-                  },
-                  summary: {
-                    description:
-                      "A short summary of the entity that can be used to uniquely identify it in the provided text. It need not be human-readable or user-friendly, it is only for use by AI Assistants.",
-                    type: "string",
-                  },
-                  ...(isLink
-                    ? {
-                        sourceEntityId: {
-                          description:
-                            "The entityId of the source entity of the link",
-                          type: "number",
-                        },
-                        targetEntityId: {
-                          description:
-                            "The entityId of the target entity of the link",
-                          type: "number",
-                        },
-                      }
-                    : {}),
+    name: "register_entity_summaries" satisfies FunctionName,
+    description:
+      "Register a short summary for each entity that can be inferred from the providing text",
+    inputSchema: {
+      type: "object",
+      properties: entityTypes.reduce<Record<VersionedUrl, JSONSchema>>(
+        (acc, { schema, isLink }) => {
+          acc[schema.$id] = {
+            type: "array",
+            title: `Summaries of entities of type ${
+              schema.title
+            } that can be inferred from the provided text.${
+              isLink
+                ? "This is a link type, which must link two other entities together by reference to their entityIds as source and target."
+                : ""
+            }`,
+            items: {
+              $id: schema.$id,
+              type: "object",
+              title: schema.title,
+              description: schema.description,
+              properties: {
+                entityId: {
+                  description:
+                    "Your numerical identifier for the entity, unique among the inferred entities in this conversation",
+                  type: "number",
                 },
-                required: [
-                  "entityId",
-                  "summary",
-                  ...(isLink ? ["sourceEntityId", "targetEntityId"] : []),
-                ],
+                summary: {
+                  description:
+                    "A short summary of the entity that can be used to uniquely identify it in the provided text. It need not be human-readable or user-friendly, it is only for use by AI Assistants.",
+                  type: "string",
+                },
+                ...(isLink
+                  ? {
+                      sourceEntityId: {
+                        description:
+                          "The entityId of the source entity of the link",
+                        type: "number",
+                      },
+                      targetEntityId: {
+                        description:
+                          "The entityId of the target entity of the link",
+                        type: "number",
+                      },
+                    }
+                  : {}),
               },
-            };
-            return acc;
-          },
-          {},
-        ),
-      },
+              required: [
+                "entityId",
+                "summary",
+                ...(isLink ? ["sourceEntityId", "targetEntityId"] : []),
+              ],
+            },
+          };
+          return acc;
+        },
+        {},
+      ),
     },
   },
 ];

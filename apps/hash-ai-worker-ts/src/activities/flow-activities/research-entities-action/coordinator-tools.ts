@@ -1,8 +1,8 @@
 import dedent from "dedent";
 
-import type { ToolDefinition } from "./types";
+import type { LlmToolDefinition } from "../../shared/get-llm-response/types";
 
-const coordinatorToolIds = [
+const coordinatorToolNames = [
   "webSearch",
   "inferEntitiesFromWebPage",
   "getWebPageSummary",
@@ -13,19 +13,19 @@ const coordinatorToolIds = [
   "updatePlan",
 ] as const;
 
-export type CoordinatorToolId = (typeof coordinatorToolIds)[number];
+export type CoordinatorToolName = (typeof coordinatorToolNames)[number];
 
-export const isCoordinatorToolId = (
+export const isCoordinatorToolName = (
   value: string,
-): value is CoordinatorToolId =>
-  coordinatorToolIds.includes(value as CoordinatorToolId);
+): value is CoordinatorToolName =>
+  coordinatorToolNames.includes(value as CoordinatorToolName);
 
 export const coordinatorToolDefinitions: Record<
-  CoordinatorToolId,
-  ToolDefinition<CoordinatorToolId>
+  CoordinatorToolName,
+  LlmToolDefinition<CoordinatorToolName>
 > = {
   webSearch: {
-    toolId: "webSearch",
+    name: "webSearch",
     description:
       "Perform a web search via a web search engine, returning a list of URLs. For best results, the query should be specific and concise.",
     inputSchema: {
@@ -40,7 +40,7 @@ export const coordinatorToolDefinitions: Record<
     },
   },
   inferEntitiesFromWebPage: {
-    toolId: "inferEntitiesFromWebPage",
+    name: "inferEntitiesFromWebPage",
     description:
       "Infer entities from the content of a web page. This tool is useful for extracting structured data from a web page. This is an expensive operation, so use it conservatively.",
     inputSchema: {
@@ -66,7 +66,7 @@ export const coordinatorToolDefinitions: Record<
     },
   },
   getWebPageSummary: {
-    toolId: "getWebPageSummary",
+    name: "getWebPageSummary",
     description:
       "Get the summary of a web page. This may be useful to decide whether to read the full page, or choose between a set of web pages which may be relevant to complete a task.",
     inputSchema: {
@@ -81,7 +81,7 @@ export const coordinatorToolDefinitions: Record<
     },
   },
   submitProposedEntities: {
-    toolId: "submitProposedEntities",
+    name: "submitProposedEntities",
     description:
       "Submit one or more proposed entities as the `result` of the research task.",
     inputSchema: {
@@ -99,7 +99,7 @@ export const coordinatorToolDefinitions: Record<
     },
   },
   complete: {
-    toolId: "complete",
+    name: "complete",
     description: "Complete the research task.",
     inputSchema: {
       type: "object",
@@ -108,7 +108,7 @@ export const coordinatorToolDefinitions: Record<
     },
   },
   terminate: {
-    toolId: "terminate",
+    name: "terminate",
     description:
       "Terminate the research task, because it cannot be completed with the provided tools.",
     inputSchema: {
@@ -118,7 +118,7 @@ export const coordinatorToolDefinitions: Record<
     },
   },
   updatePlan: {
-    toolId: "updatePlan",
+    name: "updatePlan",
     description:
       "Update the plan for the research task. You should call this alongside other tool calls to progress towards completing the task.",
     inputSchema: {
@@ -133,7 +133,7 @@ export const coordinatorToolDefinitions: Record<
     },
   },
   // discardProposedEntities: {
-  //   toolId: "discardProposedEntities",
+  //   name: "discardProposedEntities",
   //   description: "Discard previously submitted proposed entities.",
   //   inputSchema: {
   //     type: "object",
