@@ -6,8 +6,7 @@ use graph_types::{
     account::AccountId,
     knowledge::{
         entity::{
-            Entity, EntityEmbedding, EntityId, EntityMetadata, EntityUuid,
-            ProvidedEntityEditionProvenance,
+            EntityEmbedding, EntityId, EntityMetadata, EntityUuid, ProvidedEntityEditionProvenance,
         },
         link::LinkData,
         Confidence, PropertyDiff, PropertyMetadataMap, PropertyObject, PropertyPatchOperation,
@@ -29,8 +28,8 @@ use validation::ValidateEntityComponents;
 use crate::{
     knowledge::EntityQueryPath,
     store::{
-        crud, crud::Sorting, postgres::CursorField, InsertionError, NullOrdering, Ordering,
-        QueryError, UpdateError,
+        crud::Sorting, postgres::CursorField, InsertionError, NullOrdering, Ordering, QueryError,
+        UpdateError,
     },
     subgraph::{query::EntityStructuralQuery, Subgraph},
 };
@@ -306,7 +305,7 @@ pub struct DiffEntityResult<'e> {
 /// Describes the API of a store implementation for [Entities].
 ///
 /// [Entities]: Entity
-pub trait EntityStore: crud::ReadPaginated<Entity> {
+pub trait EntityStore {
     /// Creates a new [`Entity`].
     ///
     /// # Errors:

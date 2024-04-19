@@ -1,11 +1,29 @@
 use std::str::FromStr;
 
 use authorization::AuthorizationApi;
-use graph::store::knowledge::PatchEntityParams;
+use graph::{
+    store::{
+        knowledge::{CreateEntityParams, GetEntityParams, PatchEntityParams},
+        query::Filter,
+        EntityQuerySorting, EntityStore,
+    },
+    subgraph::{
+        edges::GraphResolveDepths,
+        identifier::GraphElementVertexId,
+        query::StructuralQuery,
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
+            VariableTemporalAxisUnresolved,
+        },
+    },
+};
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::{
-    entity::{Entity, ProvidedEntityEditionProvenance},
-    PropertyMetadataMap, PropertyObject,
+use graph_types::{
+    knowledge::{
+        entity::{Entity, ProvidedEntityEditionProvenance},
+        PropertyMetadataMap, PropertyObject,
+    },
+    owned_by_id::OwnedById,
 };
 use pretty_assertions::assert_eq;
 use type_system::url::VersionedUrl;
@@ -57,42 +75,92 @@ fn alice() -> PropertyObject {
 #[tokio::test]
 async fn empty_entity() {
     let mut database = DatabaseTestWrapper::new().await;
-    _ = seed(&mut database)
-        .await
+    let mut api = seed(&mut database).await;
+
+    let _ = api
         .create_entity(
-            PropertyObject::empty(),
-            vec![],
-            None,
-            false,
-            None,
-            PropertyMetadataMap::default(),
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: vec![],
+                properties: PropertyObject::empty(),
+                confidence: None,
+                property_metadata: PropertyMetadataMap::default(),
+                link_data: None,
+                draft: false,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
         )
         .await
         .expect_err("created entity with no types");
 }
 
 #[tokio::test]
+#[expect(clippy::too_many_lines)]
 async fn initial_person() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
 
     let entity_metadata = api
         .create_entity(
-            alice(),
-            vec![person_entity_type_id()],
-            None,
-            false,
-            None,
-            PropertyMetadataMap::default(),
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: vec![person_entity_type_id()],
+                properties: alice(),
+                confidence: None,
+                property_metadata: PropertyMetadataMap::default(),
+                link_data: None,
+                draft: false,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
         )
         .await
         .expect("could not create entity");
 
     assert_eq!(entity_metadata.entity_type_ids, [person_entity_type_id()]);
-    let entities = api
-        .get_entities_by_type(&person_entity_type_id())
+
+    let mut response = api
+        .get_entity(
+            api.account_id,
+            GetEntityParams {
+                query: StructuralQuery {
+                    filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
+                },
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: None,
+                include_count: true,
+            },
+        )
         .await
         .expect("could not get entities");
+    let entities = response
+        .subgraph
+        .roots
+        .into_iter()
+        .filter_map(|vertex_id| {
+            let GraphElementVertexId::KnowledgeGraph(vertex_id) = vertex_id else {
+                panic!("unexpected vertex id found: {vertex_id:?}");
+            };
+            response.subgraph.vertices.entities.remove(&vertex_id)
+        })
+        .collect::<Vec<_>>();
+
     assert_eq!(
         entities,
         [Entity {
@@ -103,16 +171,19 @@ async fn initial_person() {
     );
 
     let updated_entity_metadata = api
-        .patch_entity(PatchEntityParams {
-            entity_id: entity_metadata.record_id.entity_id,
-            decision_time: None,
-            entity_type_ids: vec![person_entity_type_id(), org_entity_type_id()],
-            properties: vec![],
-            draft: None,
-            archived: None,
-            confidence: None,
-            provenance: ProvidedEntityEditionProvenance::default(),
-        })
+        .patch_entity(
+            api.account_id,
+            PatchEntityParams {
+                entity_id: entity_metadata.record_id.entity_id,
+                decision_time: None,
+                entity_type_ids: vec![person_entity_type_id(), org_entity_type_id()],
+                properties: vec![],
+                draft: None,
+                archived: None,
+                confidence: None,
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not create entity");
 
@@ -120,14 +191,80 @@ async fn initial_person() {
         updated_entity_metadata.entity_type_ids,
         [person_entity_type_id(), org_entity_type_id()]
     );
-    let updated_person_entities = api
-        .get_entities_by_type(&person_entity_type_id())
+
+    let mut person_response = api
+        .get_entity(
+            api.account_id,
+            GetEntityParams {
+                query: StructuralQuery {
+                    filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
+                },
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: None,
+                include_count: true,
+            },
+        )
         .await
         .expect("could not get entities");
-    let updated_org_entities = api
-        .get_entities_by_type(&org_entity_type_id())
+    let updated_person_entities = person_response
+        .subgraph
+        .roots
+        .into_iter()
+        .filter_map(|vertex_id| {
+            let GraphElementVertexId::KnowledgeGraph(vertex_id) = vertex_id else {
+                panic!("unexpected vertex id found: {vertex_id:?}");
+            };
+            person_response
+                .subgraph
+                .vertices
+                .entities
+                .remove(&vertex_id)
+        })
+        .collect::<Vec<_>>();
+
+    let mut org_response = api
+        .get_entity(
+            api.account_id,
+            GetEntityParams {
+                query: StructuralQuery {
+                    filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
+                },
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: None,
+                include_count: true,
+            },
+        )
         .await
         .expect("could not get entities");
+    let updated_org_entities = org_response
+        .subgraph
+        .roots
+        .into_iter()
+        .filter_map(|vertex_id| {
+            let GraphElementVertexId::KnowledgeGraph(vertex_id) = vertex_id else {
+                panic!("unexpected vertex id found: {vertex_id:?}");
+            };
+            org_response.subgraph.vertices.entities.remove(&vertex_id)
+        })
+        .collect::<Vec<_>>();
 
     assert_eq!(updated_person_entities, updated_org_entities);
     assert_eq!(
@@ -141,18 +278,27 @@ async fn initial_person() {
 }
 
 #[tokio::test]
+#[expect(clippy::too_many_lines)]
 async fn create_multi() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
 
     let entity_metadata = api
         .create_entity(
-            alice(),
-            vec![person_entity_type_id(), org_entity_type_id()],
-            None,
-            false,
-            None,
-            PropertyMetadataMap::default(),
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: vec![person_entity_type_id(), org_entity_type_id()],
+                properties: alice(),
+                confidence: None,
+                property_metadata: PropertyMetadataMap::default(),
+                link_data: None,
+                draft: false,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
         )
         .await
         .expect("could not create entity");
@@ -161,14 +307,81 @@ async fn create_multi() {
         entity_metadata.entity_type_ids,
         [person_entity_type_id(), org_entity_type_id()]
     );
-    let person_entities = api
-        .get_entities_by_type(&person_entity_type_id())
+
+    let mut person_response = api
+        .get_entity(
+            api.account_id,
+            GetEntityParams {
+                query: StructuralQuery {
+                    filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
+                },
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: None,
+                include_count: true,
+            },
+        )
         .await
         .expect("could not get entities");
-    let org_entities = api
-        .get_entities_by_type(&org_entity_type_id())
+    let person_entities = person_response
+        .subgraph
+        .roots
+        .into_iter()
+        .filter_map(|vertex_id| {
+            let GraphElementVertexId::KnowledgeGraph(vertex_id) = vertex_id else {
+                panic!("unexpected vertex id found: {vertex_id:?}");
+            };
+            person_response
+                .subgraph
+                .vertices
+                .entities
+                .remove(&vertex_id)
+        })
+        .collect::<Vec<_>>();
+
+    let mut org_response = api
+        .get_entity(
+            api.account_id,
+            GetEntityParams {
+                query: StructuralQuery {
+                    filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
+                },
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: None,
+                include_count: true,
+            },
+        )
         .await
         .expect("could not get entities");
+    let org_entities = org_response
+        .subgraph
+        .roots
+        .into_iter()
+        .filter_map(|vertex_id| {
+            let GraphElementVertexId::KnowledgeGraph(vertex_id) = vertex_id else {
+                panic!("unexpected vertex id found: {vertex_id:?}");
+            };
+            org_response.subgraph.vertices.entities.remove(&vertex_id)
+        })
+        .collect::<Vec<_>>();
+
     assert_eq!(person_entities, org_entities);
     assert_eq!(
         person_entities,
@@ -180,16 +393,19 @@ async fn create_multi() {
     );
 
     let updated_entity_metadata = api
-        .patch_entity(PatchEntityParams {
-            entity_id: entity_metadata.record_id.entity_id,
-            decision_time: None,
-            entity_type_ids: vec![person_entity_type_id()],
-            properties: vec![],
-            draft: None,
-            archived: None,
-            confidence: None,
-            provenance: ProvidedEntityEditionProvenance::default(),
-        })
+        .patch_entity(
+            api.account_id,
+            PatchEntityParams {
+                entity_id: entity_metadata.record_id.entity_id,
+                decision_time: None,
+                entity_type_ids: vec![person_entity_type_id()],
+                properties: vec![],
+                draft: None,
+                archived: None,
+                confidence: None,
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not create entity");
 
@@ -197,10 +413,41 @@ async fn create_multi() {
         updated_entity_metadata.entity_type_ids,
         [person_entity_type_id()]
     );
-    let updated_person_entities = api
-        .get_entities_by_type(&person_entity_type_id())
+
+    let mut response = api
+        .get_entity(
+            api.account_id,
+            GetEntityParams {
+                query: StructuralQuery {
+                    filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
+                },
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: None,
+                include_count: true,
+            },
+        )
         .await
         .expect("could not get entities");
+    let updated_person_entities = response
+        .subgraph
+        .roots
+        .into_iter()
+        .filter_map(|vertex_id| {
+            let GraphElementVertexId::KnowledgeGraph(vertex_id) = vertex_id else {
+                panic!("unexpected vertex id found: {vertex_id:?}");
+            };
+            response.subgraph.vertices.entities.remove(&vertex_id)
+        })
+        .collect::<Vec<_>>();
 
     assert_eq!(
         updated_person_entities,
