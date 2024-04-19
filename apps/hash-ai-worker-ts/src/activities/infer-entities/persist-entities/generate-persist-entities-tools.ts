@@ -13,6 +13,7 @@ import type {
 import { generateProposeEntitiesTools } from "../shared/generate-propose-entities-tools";
 import { generateSimplifiedTypeId } from "../shared/generate-simplified-type-id";
 import type { EntityPropertyValueWithSimplifiedProperties } from "../shared/map-simplified-properties-to-properties";
+import { stripIdsFromDereferencedProperties } from "../shared/strip-ids-from-dereferenced-properties";
 
 export type PersistEntitiesToolName =
   | "update_entities"
@@ -191,7 +192,9 @@ export const generatePersistEntitiesTools = (
                     description: "The properties to update on the entity",
                     default: {},
                     type: "object",
-                    properties: schema.properties,
+                    properties: stripIdsFromDereferencedProperties({
+                      properties: schema.properties,
+                    }),
                   },
                 } satisfies ProposedEntitySchemaOrData,
                 required: ["entityId", "properties"],

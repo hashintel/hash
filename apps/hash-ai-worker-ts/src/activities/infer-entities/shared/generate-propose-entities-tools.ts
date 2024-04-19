@@ -1,4 +1,4 @@
-import { type VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
   ProposedEntity,
   ProposedEntitySchemaOrData,
@@ -9,6 +9,7 @@ import type { DereferencedEntityType } from "../../shared/dereference-entity-typ
 import type { LlmToolDefinition } from "../../shared/get-llm-response/types";
 import { generateSimplifiedTypeId } from "./generate-simplified-type-id";
 import type { EntityPropertyValueWithSimplifiedProperties } from "./map-simplified-properties-to-properties";
+import { stripIdsFromDereferencedProperties } from "./strip-ids-from-dereferenced-properties";
 
 export type ProposeEntitiesToolName = "abandon_entities" | "create_entities";
 
@@ -60,7 +61,6 @@ export const generateProposeEntitiesTools = (
               type: "array",
               title: `${schema.title} entities to create`,
               items: {
-                $id: schema.$id,
                 type: "object",
                 title: schema.title,
                 description: schema.description,
@@ -88,7 +88,9 @@ export const generateProposeEntitiesTools = (
                     description: "The properties to set on the entity",
                     default: {},
                     type: "object",
-                    properties: schema.properties,
+                    properties: stripIdsFromDereferencedProperties({
+                      properties: schema.properties,
+                    }),
                   },
                 } satisfies ProposedEntitySchemaOrData,
                 required: [
