@@ -177,8 +177,6 @@ export const proposeEntities = async (params: {
 
   logger.debug(`Next messages to model: ${stringify(messages)}`);
 
-  logger.debug(`Tools: stringified: ${stringify(tools)}`);
-
   const llmResponse = await getLlmResponse({
     model: "claude-3-opus-20240229",
     maxTokens,
