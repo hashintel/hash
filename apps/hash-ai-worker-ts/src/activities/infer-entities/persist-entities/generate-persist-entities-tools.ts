@@ -1,6 +1,5 @@
 import type { JsonObject } from "@blockprotocol/core";
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import { validateVersionedUrl } from "@blockprotocol/type-system";
 import type { ProposedEntitySchemaOrData } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { Entity } from "@local/hash-subgraph";
 import dedent from "dedent";
@@ -9,7 +8,7 @@ import type { JSONSchema } from "openai/lib/jsonschema";
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
 import type { LlmToolDefinition } from "../../shared/get-llm-response/types";
 import type {
-  ProposedEntityCreationsByType,
+  ProposedEntityToolCreationsByType,
   ProposeEntitiesToolName,
 } from "../shared/generate-propose-entities-tools";
 import { generateProposeEntitiesTools } from "../shared/generate-propose-entities-tools";
@@ -41,23 +40,24 @@ export const validateProposedEntitiesByType = <
   update: EntityUpdate,
 ): parsedJson is EntityUpdate extends true
   ? ProposedEntityUpdatesByType
-  : ProposedEntityCreationsByType => {
-  const maybeVersionedUrls = Object.keys(parsedJson);
+  : ProposedEntityToolCreationsByType => {
+  /** @todo: replace this with logic that validates simplified entity type Ids */
+  // const maybeVersionedUrls = Object.keys(parsedJson);
 
-  const invalidVersionedUrls = maybeVersionedUrls.filter(
-    (maybeVersionedUrl) => {
-      const result = validateVersionedUrl(maybeVersionedUrl);
+  // const invalidVersionedUrls = maybeVersionedUrls.filter(
+  //   (maybeVersionedUrl) => {
+  //     const result = validateVersionedUrl(maybeVersionedUrl);
 
-      return result.type !== "Ok";
-    },
-  );
-  if (invalidVersionedUrls.length > 0) {
-    throw new Error(
-      `Invalid versionedUrls in AI-provided response: ${invalidVersionedUrls.join(
-        ", ",
-      )}`,
-    );
-  }
+  //     return result.type !== "Ok";
+  //   },
+  // );
+  // if (invalidVersionedUrls.length > 0) {
+  //   throw new Error(
+  //     `Invalid versionedUrls in AI-provided response: ${invalidVersionedUrls.join(
+  //       ", ",
+  //     )}`,
+  //   );
+  // }
 
   const maybeEntitiesArrays = Object.values(parsedJson);
 
@@ -116,53 +116,58 @@ export const generatePersistEntitiesTools = (
     schema: DereferencedEntityType;
     isLink: boolean;
   }[],
-): LlmToolDefinition<PersistEntitiesToolName>[] => [
-  ...generateProposeEntitiesTools(entityTypes),
-  {
-    name: "update_entities",
-    description: dedent(`
+): LlmToolDefinition<PersistEntitiesToolName>[] => {
+  const { tools } = generateProposeEntitiesTools(entityTypes);
+
+  /** @todo: simplify entity type IDs used as keys here */
+  return [
+    ...tools,
+    {
+      name: "update_entities",
+      description: dedent(`
             Update entities inferred from the provided text where you have been advised the entity already exists, 
             using the entityId provided. If you have additional information about properties that already exist,
             you should provide an updated property value that appropriately merges the existing and new information,
             e.g. by updating an entity's 'description' property to incorporate new information.
         `),
-    inputSchema: {
-      type: "object",
-      properties: entityTypes.reduce<Record<VersionedUrl, JSONSchema>>(
-        (acc, { schema }) => {
-          acc[schema.$id] = {
-            type: "array",
-            title: `${schema.title} entities to update`,
-            items: {
-              $id: schema.$id,
-              type: "object",
-              title: schema.title,
-              description: schema.description,
-              properties: {
-                entityId: {
-                  description:
-                    "Your numerical identifier for the entity, unique among the inferred entities in this conversation",
-                  type: "number",
-                },
-                updateEntityId: {
-                  description:
-                    "The existing string identifier for the entity, provided to you by the user.",
-                  type: "string",
-                },
+      inputSchema: {
+        type: "object",
+        properties: entityTypes.reduce<Record<VersionedUrl, JSONSchema>>(
+          (acc, { schema }) => {
+            acc[schema.$id] = {
+              type: "array",
+              title: `${schema.title} entities to update`,
+              items: {
+                $id: schema.$id,
+                type: "object",
+                title: schema.title,
+                description: schema.description,
                 properties: {
-                  description: "The properties to update on the entity",
-                  default: {},
-                  type: "object",
-                  properties: schema.properties,
-                },
-              } satisfies ProposedEntitySchemaOrData,
-              required: ["entityId", "properties"],
-            },
-          };
-          return acc;
-        },
-        {},
-      ),
+                  entityId: {
+                    description:
+                      "Your numerical identifier for the entity, unique among the inferred entities in this conversation",
+                    type: "number",
+                  },
+                  updateEntityId: {
+                    description:
+                      "The existing string identifier for the entity, provided to you by the user.",
+                    type: "string",
+                  },
+                  properties: {
+                    description: "The properties to update on the entity",
+                    default: {},
+                    type: "object",
+                    properties: schema.properties,
+                  },
+                } satisfies ProposedEntitySchemaOrData,
+                required: ["entityId", "properties"],
+              },
+            };
+            return acc;
+          },
+          {},
+        ),
+      },
     },
-  },
-];
+  ];
+};

@@ -127,6 +127,7 @@ const inferEntities = async ({
       entityTypeIds,
       graphApiClient,
       actorId: aiAssistantAccountId,
+      simplifyPropertyKeys: true,
     });
   } catch (err) {
     return {

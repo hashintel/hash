@@ -24,7 +24,7 @@ import {
 } from "./persist-entities/generate-persist-entities-tools";
 import { updateEntities } from "./persist-entities/update-entities";
 import { firstUserMessageIndex } from "./shared/first-user-message-index";
-import type { ProposedEntityCreationsByType } from "./shared/generate-propose-entities-tools";
+import type { ProposedEntityToolCreationsByType } from "./shared/generate-propose-entities-tools";
 
 export const persistEntities = async (params: {
   authentication: { machineActorId: AccountId };
@@ -333,10 +333,10 @@ export const persistEntities = async (params: {
         }
 
         if (toolCall.name === "create_entities") {
-          let proposedEntitiesByType: ProposedEntityCreationsByType;
+          let proposedEntitiesByType: ProposedEntityToolCreationsByType;
           try {
             proposedEntitiesByType =
-              toolCall.input as ProposedEntityCreationsByType;
+              toolCall.input as ProposedEntityToolCreationsByType;
             validateProposedEntitiesByType(proposedEntitiesByType, false);
           } catch (err) {
             logger.error(

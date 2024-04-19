@@ -470,6 +470,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     entityTypeIds,
     graphApiClient,
     actorId: userAuthentication.actorId,
+    simplifyPropertyKeys: true,
   });
 
   const { plan: initialPlan } = await createInitialPlan({

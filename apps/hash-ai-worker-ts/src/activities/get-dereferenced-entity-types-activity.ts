@@ -15,8 +15,10 @@ export const getDereferencedEntityTypesActivity = async (params: {
   entityTypeIds: VersionedUrl[];
   graphApiClient: GraphApi;
   actorId: AccountId;
+  simplifyPropertyKeys: boolean;
 }): Promise<DereferencedEntityTypesByTypeId> => {
-  const { graphApiClient, entityTypeIds, actorId } = params;
+  const { graphApiClient, entityTypeIds, actorId, simplifyPropertyKeys } =
+    params;
 
   /** Fetch the full schemas for the requested entity types */
   const entityTypes: DereferencedEntityTypesByTypeId = {};
@@ -39,10 +41,11 @@ export const getDereferencedEntityTypesActivity = async (params: {
     });
 
   for (const entityTypeId of entityTypeIds) {
-    entityTypes[entityTypeId] = dereferenceEntityType(
+    entityTypes[entityTypeId] = dereferenceEntityType({
       entityTypeId,
-      mapGraphApiSubgraphToSubgraph(entityTypesSubgraph, actorId),
-    );
+      subgraph: mapGraphApiSubgraphToSubgraph(entityTypesSubgraph, actorId),
+      simplifyPropertyKeys,
+    });
   }
 
   const unusableTypeIds = entityTypeIds.filter((entityTypeId) => {

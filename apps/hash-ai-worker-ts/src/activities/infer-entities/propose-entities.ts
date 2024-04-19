@@ -1,5 +1,5 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { ProposedEntity } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { type AccountId } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
@@ -17,8 +17,9 @@ import type {
 import { validateProposedEntitiesByType } from "./persist-entities/generate-persist-entities-tools";
 import { extractErrorMessage } from "./shared/extract-validation-failure-details";
 import { firstUserMessageIndex } from "./shared/first-user-message-index";
-import type { ProposedEntityCreationsByType } from "./shared/generate-propose-entities-tools";
+import type { ProposedEntityToolCreationsByType } from "./shared/generate-propose-entities-tools";
 import { generateProposeEntitiesTools } from "./shared/generate-propose-entities-tools";
+import { mapSimplifiedPropertiesToProperties } from "./shared/map-simplified-properties-to-properties";
 
 /**
  * This method is based on the logic from the existing `persistEntities` method, which
@@ -103,7 +104,8 @@ export const proposeEntities = async (params: {
     )}.`,
   );
 
-  const tools = generateProposeEntitiesTools(Object.values(entityTypes));
+  const { tools, simplifiedEntityTypeIdMappings } =
+    generateProposeEntitiesTools(Object.values(entityTypes));
 
   const entitiesToUpdate = inProgressEntityIds.filter(
     (inProgressEntityId) =>
@@ -305,10 +307,10 @@ export const proposeEntities = async (params: {
         }
 
         if (toolCall.name === "create_entities") {
-          let proposedEntitiesByType: ProposedEntityCreationsByType;
+          let proposedEntitiesByType: ProposedEntityToolCreationsByType;
           try {
             proposedEntitiesByType =
-              toolCall.input as ProposedEntityCreationsByType;
+              toolCall.input as ProposedEntityToolCreationsByType;
 
             validateProposedEntitiesByType(proposedEntitiesByType, false);
 
@@ -321,7 +323,7 @@ export const proposeEntities = async (params: {
              */
             const invalidProposedEntities = await Promise.all(
               Object.entries(proposedEntitiesByType).map(
-                async ([entityTypeId, proposedEntitiesOfType]) => {
+                async ([simplifiedEntityTypeId, proposedEntitiesOfType]) => {
                   const invalidProposedEntitiesOfType = await Promise.all(
                     proposedEntitiesOfType.map(async (proposedEntityOfType) => {
                       try {
@@ -334,6 +336,44 @@ export const proposeEntities = async (params: {
                           return [];
                         }
 
+                        const entityTypeId =
+                          simplifiedEntityTypeIdMappings[
+                            simplifiedEntityTypeId
+                          ];
+
+                        if (!entityTypeId) {
+                          throw new Error(
+                            `Could not find entity type id for simplified entity type id ${simplifiedEntityTypeId}`,
+                          );
+                        }
+
+                        const { simplifiedPropertyTypeMappings } =
+                          entityTypes[entityTypeId] ?? {};
+
+                        if (!simplifiedPropertyTypeMappings) {
+                          throw new Error(
+                            `Could not find simplified property type mappings for entity type id ${entityTypeId}`,
+                          );
+                        }
+
+                        const { properties: simplifiedProperties } =
+                          proposedEntityOfType;
+
+                        logger.debug(
+                          `Simplified properties: ${stringify(simplifiedProperties)}`,
+                        );
+
+                        const properties = simplifiedProperties
+                          ? mapSimplifiedPropertiesToProperties({
+                              simplifiedProperties,
+                              simplifiedPropertyTypeMappings,
+                            })
+                          : {};
+
+                        logger.debug(
+                          `Mapped properties: ${stringify(properties)}`,
+                        );
+
                         await graphApiClient.validateEntity(validationActorId, {
                           entityTypes: [entityTypeId],
                           components: {
@@ -341,7 +381,7 @@ export const proposeEntities = async (params: {
                             numItems: false,
                             requiredProperties: false,
                           },
-                          properties: proposedEntityOfType.properties ?? {},
+                          properties,
                         });
 
                         return [];
@@ -406,28 +446,69 @@ export const proposeEntities = async (params: {
             inferenceState.proposedEntityCreationsByType = Object.entries(
               proposedEntitiesByType,
             ).reduce(
-              (prev, [entityTypeId, proposedEntitiesOfType]) => ({
-                ...prev,
-                [entityTypeId]: [
-                  ...(prev[entityTypeId as VersionedUrl] ?? []),
-                  ...proposedEntitiesOfType.filter(
-                    ({ entityId }) =>
-                      // Don't include invalid entities
-                      !invalidProposedEntities.some(
+              (prev, [simplifiedEntityTypeId, proposedEntitiesOfType]) => {
+                const entityTypeId =
+                  simplifiedEntityTypeIdMappings[simplifiedEntityTypeId];
+
+                if (!entityTypeId) {
+                  throw new Error(
+                    `Could not find entity type id for simplified entity type id ${simplifiedEntityTypeId}`,
+                  );
+                }
+
+                return {
+                  ...prev,
+                  [entityTypeId]: [
+                    ...(prev[entityTypeId] ?? []),
+                    ...proposedEntitiesOfType
+                      .filter(
+                        ({ entityId }) =>
+                          // Don't include invalid entities
+                          !invalidProposedEntities.some(
+                            ({
+                              invalidProposedEntity: {
+                                entityId: invalidEntityId,
+                              },
+                            }) => invalidEntityId === entityId,
+                          ) &&
+                          // Ignore entities we've inferred in a previous iteration, otherwise we'll get duplicates
+                          !inferenceState.proposedEntityCreationsByType[
+                            entityTypeId
+                          ]?.some(
+                            (existingEntity) =>
+                              existingEntity.entityId === entityId,
+                          ),
+                      )
+                      .map<ProposedEntity>(
                         ({
-                          invalidProposedEntity: { entityId: invalidEntityId },
-                        }) => invalidEntityId === entityId,
-                      ) &&
-                      // Ignore entities we've inferred in a previous iteration, otherwise we'll get duplicates
-                      !inferenceState.proposedEntityCreationsByType[
-                        entityTypeId as VersionedUrl
-                      ]?.some(
-                        (existingEntity) =>
-                          existingEntity.entityId === entityId,
+                          properties: simplifiedProperties,
+                          ...proposedEntity
+                        }) => {
+                          const { simplifiedPropertyTypeMappings } =
+                            entityTypes[entityTypeId] ?? {};
+
+                          if (!simplifiedPropertyTypeMappings) {
+                            throw new Error(
+                              `Could not find simplified property type mappings for entity type id ${entityTypeId}`,
+                            );
+                          }
+
+                          const properties = simplifiedProperties
+                            ? mapSimplifiedPropertiesToProperties({
+                                simplifiedProperties,
+                                simplifiedPropertyTypeMappings,
+                              })
+                            : {};
+
+                          return {
+                            ...proposedEntity,
+                            properties,
+                          };
+                        },
                       ),
-                  ),
-                ],
-              }),
+                  ],
+                };
+              },
               inferenceState.proposedEntityCreationsByType,
             );
 

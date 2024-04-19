@@ -1005,9 +1005,10 @@ const expectedResult = {
 
 describe("The dereferenceEntityType function", () => {
   it("correctly dereferences an entity type", () => {
-    const result = dereferenceEntityType(
-      "https://hash.ai/@test/types/entity-type/property-values-demo/v/4",
-      {
+    const result = dereferenceEntityType({
+      entityTypeId:
+        "https://hash.ai/@test/types/entity-type/property-values-demo/v/4",
+      subgraph: {
         ...testSubgraph,
         vertices: mapGraphApiVerticesToVertices(
           testSubgraph.vertices,
@@ -1015,8 +1016,10 @@ describe("The dereferenceEntityType function", () => {
           true,
         ),
       } as Subgraph,
-    );
+    });
 
     expect(result).toEqual(expectedResult);
+
+    /** @todo: consider adding tests for `simplifyPropertyKeys: true` */
   });
 });
