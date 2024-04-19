@@ -7,7 +7,7 @@ mod pool;
 mod query;
 mod traversal_context;
 
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
 
 use async_trait::async_trait;
 use authorization::{
@@ -34,6 +34,7 @@ use graph_types::{
 };
 use postgres_types::Json;
 use serde::Serialize;
+use temporal_client::TemporalClient;
 use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, Timestamp, TransactionTime};
 use time::OffsetDateTime;
 use tokio_postgres::{
@@ -62,8 +63,10 @@ use crate::store::{
 };
 
 /// A Postgres-backed store
-pub struct PostgresStore<C> {
+pub struct PostgresStore<C, A> {
     client: C,
+    pub authorization_api: A,
+    pub temporal_client: Option<Arc<TemporalClient>>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -72,14 +75,23 @@ enum OntologyLocation {
     External,
 }
 
-impl<C> PostgresStore<C>
+impl<C, A> PostgresStore<C, A>
 where
     C: AsClient,
+    A: Send + Sync,
 {
     /// Creates a new `PostgresDatabase` object.
     #[must_use]
-    pub const fn new(client: C) -> Self {
-        Self { client }
+    pub const fn new(
+        client: C,
+        authorization_api: A,
+        temporal_client: Option<Arc<TemporalClient>>,
+    ) -> Self {
+        Self {
+            client,
+            authorization_api,
+            temporal_client,
+        }
     }
 
     async fn create_base_url(
@@ -693,17 +705,23 @@ where
     /// - if the underlying client cannot start a transaction
     pub async fn transaction(
         &mut self,
-    ) -> Result<PostgresStore<tokio_postgres::Transaction<'_>>, StoreError> {
+    ) -> Result<PostgresStore<tokio_postgres::Transaction<'_>, &'_ mut A>, StoreError> {
         Ok(PostgresStore::new(
-            self.as_mut_client()
+            self.client
+                .as_mut_client()
                 .transaction()
                 .await
                 .change_context(StoreError)?,
+            &mut self.authorization_api,
+            self.temporal_client.clone(),
         ))
     }
 }
 
-impl PostgresStore<tokio_postgres::Transaction<'_>> {
+impl<A> PostgresStore<tokio_postgres::Transaction<'_>, A>
+where
+    A: Send + Sync,
+{
     /// Inserts the specified [`OntologyDatabaseType`].
     ///
     /// This first extracts the [`BaseUrl`] from the [`VersionedUrl`] and attempts to insert it into
@@ -1293,12 +1311,11 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
 }
 
 #[async_trait]
-impl<C: AsClient> AccountStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, _authorization_api))]
-    async fn insert_account_id<A: AuthorizationApi + Send + Sync>(
+impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn insert_account_id(
         &mut self,
         _actor_id: AccountId,
-        _authorization_api: &mut A,
         params: InsertAccountIdParams,
     ) -> Result<(), InsertionError> {
         self.as_client()
@@ -1312,11 +1329,10 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
         Ok(())
     }
 
-    #[tracing::instrument(level = "info", skip(self, authorization_api))]
-    async fn insert_account_group_id<A: AuthorizationApi + Send + Sync>(
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn insert_account_group_id(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
         params: InsertAccountGroupIdParams,
     ) -> Result<(), InsertionError> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
@@ -1331,7 +1347,8 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .change_context(InsertionError)
             .attach_printable(params.account_group_id)?;
 
-        authorization_api
+        transaction
+            .authorization_api
             .modify_account_group_relations([(
                 ModifyRelationshipOperation::Create,
                 params.account_group_id,
@@ -1344,7 +1361,8 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .change_context(InsertionError)?;
 
         if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
-            if let Err(auth_error) = authorization_api
+            if let Err(auth_error) = self
+                .authorization_api
                 .modify_account_group_relations([(
                     ModifyRelationshipOperation::Delete,
                     params.account_group_id,
@@ -1367,11 +1385,10 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
         }
     }
 
-    #[tracing::instrument(level = "info", skip(self, authorization_api))]
-    async fn insert_web_id<A: AuthorizationApi + Send + Sync>(
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn insert_web_id(
         &mut self,
         _actor_id: AccountId,
-        authorization_api: &mut A,
         params: InsertWebIdParams,
     ) -> Result<(), InsertionError> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
@@ -1424,7 +1441,8 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             ]);
         }
 
-        authorization_api
+        transaction
+            .authorization_api
             .modify_web_relations(
                 relationships
                     .clone()
@@ -1441,7 +1459,8 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .change_context(InsertionError)?;
 
         if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
-            if let Err(auth_error) = authorization_api
+            if let Err(auth_error) = self
+                .authorization_api
                 .modify_web_relations(relationships.into_iter().map(|relation_and_subject| {
                     (
                         ModifyRelationshipOperation::Delete,
@@ -1504,13 +1523,13 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
     }
 }
 
-impl<C: AsClient> PostgresStore<C> {
+impl<C, A> PostgresStore<C, A>
+where
+    C: AsClient,
+    A: Send + Sync,
+{
     #[tracing::instrument(level = "trace", skip(self))]
-    pub async fn delete_accounts<A: AuthorizationApi + Sync>(
-        &mut self,
-        actor_id: AccountId,
-        _: &A,
-    ) -> Result<(), DeletionError> {
+    pub async fn delete_accounts(&mut self, actor_id: AccountId) -> Result<(), DeletionError> {
         self.as_client()
             .client()
             .simple_query("DELETE FROM webs;")

@@ -1,5 +1,6 @@
 use std::{borrow::Cow, collections::HashSet};
 
+use authorization::AuthorizationApi;
 use graph::{
     knowledge::EntityQueryPath,
     store::{
@@ -15,8 +16,8 @@ use uuid::Uuid;
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
 
-async fn test_root_sorting_chunked<const N: usize, const M: usize>(
-    api: &DatabaseApi<'_>,
+async fn test_root_sorting_chunked<const N: usize, const M: usize, A: AuthorizationApi>(
+    api: &DatabaseApi<'_, A>,
     sort: [(EntityQueryPath<'static>, Ordering, NullOrdering); N],
     expected_order: [PropertyObject; M],
 ) {
@@ -25,8 +26,8 @@ async fn test_root_sorting_chunked<const N: usize, const M: usize>(
     }
 }
 
-async fn test_root_sorting(
-    api: &DatabaseApi<'_>,
+async fn test_root_sorting<A: AuthorizationApi>(
+    api: &DatabaseApi<'_, A>,
     chunk_size: usize,
     sort: impl IntoIterator<Item = (EntityQueryPath<'static>, Ordering, NullOrdering)> + Send,
     expected_order: impl IntoIterator<Item = &PropertyObject> + Send,
@@ -81,7 +82,9 @@ async fn test_root_sorting(
     );
 }
 
-async fn insert(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
+async fn insert<A: AuthorizationApi>(
+    database: &mut DatabaseTestWrapper<A>,
+) -> DatabaseApi<'_, &mut A> {
     let mut api = database
         .seed(
             [data_type::TEXT_V1, data_type::NUMBER_V1],

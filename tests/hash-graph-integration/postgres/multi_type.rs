@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use authorization::AuthorizationApi;
 use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::knowledge::{
@@ -11,7 +12,9 @@ use type_system::url::VersionedUrl;
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
 
-async fn seed(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
+async fn seed<A: AuthorizationApi>(
+    database: &mut DatabaseTestWrapper<A>,
+) -> DatabaseApi<'_, &mut A> {
     database
         .seed(
             [data_type::TEXT_V1, data_type::NUMBER_V1],
@@ -54,9 +57,8 @@ fn alice() -> PropertyObject {
 #[tokio::test]
 async fn empty_entity() {
     let mut database = DatabaseTestWrapper::new().await;
-    let mut api = seed(&mut database).await;
-
-    let _ = api
+    _ = seed(&mut database)
+        .await
         .create_entity(
             PropertyObject::empty(),
             vec![],
@@ -126,6 +128,7 @@ async fn initial_person() {
         .get_entities_by_type(&org_entity_type_id())
         .await
         .expect("could not get entities");
+
     assert_eq!(updated_person_entities, updated_org_entities);
     assert_eq!(
         updated_person_entities,
@@ -198,6 +201,7 @@ async fn create_multi() {
         .get_entities_by_type(&person_entity_type_id())
         .await
         .expect("could not get entities");
+
     assert_eq!(
         updated_person_entities,
         [Entity {

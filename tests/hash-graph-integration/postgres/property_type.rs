@@ -8,13 +8,12 @@ async fn insert() {
     let age_pt: PropertyType =
         serde_json::from_str(property_type::AGE_V1).expect("could not parse property type");
 
-    let mut database = DatabaseTestWrapper::new().await;
-    let mut api = database
+    DatabaseTestWrapper::new()
+        .await
         .seed([data_type::NUMBER_V1], [], [])
         .await
-        .expect("could not seed database");
-
-    api.create_property_type(age_pt)
+        .expect("could not seed database")
+        .create_property_type(age_pt)
         .await
         .expect("could not create property type");
 }

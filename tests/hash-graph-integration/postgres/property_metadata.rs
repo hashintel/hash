@@ -1,5 +1,6 @@
 use std::{borrow::Cow, collections::HashMap, iter::once, str::FromStr};
 
+use authorization::AuthorizationApi;
 use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::knowledge::{
@@ -13,7 +14,9 @@ use type_system::url::{BaseUrl, VersionedUrl};
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
 
-async fn seed(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
+async fn seed<A: AuthorizationApi>(
+    database: &mut DatabaseTestWrapper<A>,
+) -> DatabaseApi<'_, &mut A> {
     database
         .seed(
             [data_type::TEXT_V1, data_type::NUMBER_V1],

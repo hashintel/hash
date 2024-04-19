@@ -1,6 +1,6 @@
 use std::{iter::repeat, str::FromStr};
 
-use authorization::{schema::WebOwnerSubject, NoAuthorization};
+use authorization::{schema::WebOwnerSubject, AuthorizationApi, NoAuthorization};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use graph::{
@@ -35,9 +35,13 @@ use crate::util::{seed, setup, Store, StoreWrapper};
 
 const DB_NAME: &str = "entity_scale";
 
-async fn seed_db(
+#[expect(
+    clippy::significant_drop_tightening,
+    reason = "transaction is committed which consumes the object"
+)]
+async fn seed_db<A: AuthorizationApi>(
     account_id: AccountId,
-    store_wrapper: &mut StoreWrapper,
+    store_wrapper: &mut StoreWrapper<A>,
     total: usize,
 ) -> Vec<EntityMetadata> {
     let mut transaction = store_wrapper
@@ -50,17 +54,12 @@ async fn seed_db(
     eprintln!("Seeding database: {}", store_wrapper.bench_db_name);
 
     transaction
-        .insert_account_id(
-            account_id,
-            &mut NoAuthorization,
-            InsertAccountIdParams { account_id },
-        )
+        .insert_account_id(account_id, InsertAccountIdParams { account_id })
         .await
         .expect("could not insert account id");
     transaction
         .insert_web_id(
             account_id,
-            &mut NoAuthorization,
             InsertWebIdParams {
                 owned_by_id: OwnedById::new(account_id.into_uuid()),
                 owner: WebOwnerSubject::Account { id: account_id },
@@ -103,7 +102,6 @@ async fn seed_db(
     let entity_metadata_list = transaction
         .insert_entities_batched_by_type(
             account_id,
-            &mut NoAuthorization,
             repeat((
                 OwnedById::new(account_id.into_uuid()),
                 None,
@@ -132,10 +130,10 @@ async fn seed_db(
     entity_metadata_list
 }
 
-pub fn bench_get_entity_by_id(
+pub fn bench_get_entity_by_id<A: AuthorizationApi>(
     b: &mut Bencher,
     runtime: &Runtime,
-    store: &Store,
+    store: &Store<A>,
     actor_id: AccountId,
     entity_metadata_list: &[EntityMetadata],
 ) {
@@ -153,7 +151,6 @@ pub fn bench_get_entity_by_id(
             store
                 .get_entity(
                     actor_id,
-                    &NoAuthorization,
                     GetEntityParams {
                         query: StructuralQuery {
                             filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
@@ -192,7 +189,7 @@ fn bench_scaling_read_entity(c: &mut Criterion) {
     );
 
     for size in [1, 10, 100, 1_000, 10_000] {
-        let (runtime, mut store_wrapper) = setup(DB_NAME, true, true, account_id);
+        let (runtime, mut store_wrapper) = setup(DB_NAME, true, true, account_id, NoAuthorization);
 
         let entity_uuids = runtime.block_on(seed_db(account_id, &mut store_wrapper, size));
         let store = &store_wrapper.store;

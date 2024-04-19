@@ -1,3 +1,4 @@
+use authorization::AuthorizationApi;
 use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::knowledge::{
@@ -11,7 +12,9 @@ use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
 
-async fn seed(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
+async fn seed<A: AuthorizationApi>(
+    database: &mut DatabaseTestWrapper<A>,
+) -> DatabaseApi<'_, &mut A> {
     database
         .seed(
             [data_type::TEXT_V1, data_type::NUMBER_V1],
@@ -59,7 +62,7 @@ fn charles() -> PropertyObject {
 }
 
 #[must_use]
-async fn check_entity_exists(api: &DatabaseApi<'_>, id: EntityId) -> bool {
+async fn check_entity_exists<A: AuthorizationApi>(api: &DatabaseApi<'_, A>, id: EntityId) -> bool {
     api.get_latest_entity(id).await.is_ok()
 }
 
@@ -436,6 +439,7 @@ async fn multiple_drafts() {
         );
         assert!(!check_entity_exists(&api, draft).await);
         assert!(check_entity_exists(&api, updated_live_entity.record_id.entity_id).await);
+
         assert_eq!(
             updated_live_entity
                 .provenance

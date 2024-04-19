@@ -4,6 +4,11 @@
     clippy::missing_errors_doc,
     clippy::unwrap_used
 )]
+#![expect(
+    clippy::same_name_method,
+    clippy::significant_drop_tightening,
+    reason = "This should be enabled but it's currently too noisy"
+)]
 
 mod data_type;
 mod drafts;
@@ -25,7 +30,7 @@ use authorization::{
         EntityTypeViewerSubject, PropertyTypeRelationAndSubject, PropertyTypeSetting,
         PropertyTypeSettingSubject, PropertyTypeViewerSubject, WebOwnerSubject,
     },
-    NoAuthorization,
+    AuthorizationApi, NoAuthorization,
 };
 use error_stack::{Report, Result};
 use graph::{
@@ -36,8 +41,9 @@ use graph::{
         account::{InsertAccountIdParams, InsertWebIdParams},
         knowledge::{CreateEntityParams, GetEntityParams, PatchEntityParams},
         ontology::{
-            CreateDataTypeParams, CreateEntityTypeParams, CreatePropertyTypeParams,
-            GetDataTypesParams, GetEntityTypesParams, GetPropertyTypesParams,
+            ArchiveDataTypeParams, CreateDataTypeParams, CreateEntityTypeParams,
+            CreatePropertyTypeParams, GetDataTypesParams, GetEntityTypesParams,
+            GetPropertyTypesParams, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
             UpdateDataTypesParams, UpdateEntityTypesParams, UpdatePropertyTypesParams,
         },
         query::{Filter, FilterExpression, Parameter},
@@ -55,6 +61,7 @@ use graph::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
             VariableTemporalAxisUnresolved,
         },
+        Subgraph,
     },
     Environment,
 };
@@ -67,8 +74,8 @@ use graph_types::{
     },
     ontology::{
         DataTypeMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
-        OntologyTypeClassificationMetadata, PropertyTypeMetadata, PropertyTypeWithMetadata,
-        ProvidedOntologyEditionProvenance,
+        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, PropertyTypeMetadata,
+        PropertyTypeWithMetadata, ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
 };
@@ -78,13 +85,13 @@ use tokio_postgres::{NoTls, Transaction};
 use type_system::{url::VersionedUrl, DataType, EntityType, PropertyType};
 use uuid::Uuid;
 
-pub struct DatabaseTestWrapper {
+pub struct DatabaseTestWrapper<A: AuthorizationApi> {
     _pool: PostgresStorePool<NoTls>,
-    connection: <PostgresStorePool<NoTls> as StorePool>::Store<'static>,
+    connection: <PostgresStorePool<NoTls> as StorePool>::Store<'static, A>,
 }
 
-pub struct DatabaseApi<'pool> {
-    store: PostgresStore<Transaction<'pool>>,
+pub struct DatabaseApi<'pool, A: AuthorizationApi> {
+    store: PostgresStore<Transaction<'pool>, A>,
     account_id: AccountId,
 }
 
@@ -129,7 +136,7 @@ const fn entity_type_relationships() -> [EntityTypeRelationAndSubject; 3] {
     ]
 }
 
-impl DatabaseTestWrapper {
+impl DatabaseTestWrapper<NoAuthorization> {
     pub async fn new() -> Self {
         load_env(Environment::Test);
 
@@ -157,7 +164,7 @@ impl DatabaseTestWrapper {
             .expect("could not connect to database");
 
         let connection = pool
-            .acquire_owned()
+            .acquire_owned(NoAuthorization, None)
             .await
             .expect("could not acquire a database connection");
 
@@ -166,13 +173,15 @@ impl DatabaseTestWrapper {
             connection,
         }
     }
+}
 
+impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
     pub async fn seed<D, P, E>(
         &mut self,
         data_types: D,
         property_types: P,
         entity_types: E,
-    ) -> Result<DatabaseApi<'_>, InsertionError>
+    ) -> Result<DatabaseApi<'_, &mut A>, InsertionError>
     where
         D: IntoIterator<Item = &'static str, IntoIter: Send> + Send,
         P: IntoIterator<Item = &'static str, IntoIter: Send> + Send,
@@ -186,17 +195,12 @@ impl DatabaseTestWrapper {
 
         let account_id = AccountId::new(Uuid::new_v4());
         store
-            .insert_account_id(
-                account_id,
-                &mut NoAuthorization,
-                InsertAccountIdParams { account_id },
-            )
+            .insert_account_id(account_id, InsertAccountIdParams { account_id })
             .await
             .expect("could not insert account id");
         store
             .insert_web_id(
                 account_id,
-                &mut NoAuthorization,
                 InsertWebIdParams {
                     owned_by_id: OwnedById::new(account_id.into_uuid()),
                     owner: WebOwnerSubject::Account { id: account_id },
@@ -208,8 +212,6 @@ impl DatabaseTestWrapper {
         store
             .create_data_types(
                 account_id,
-                &mut NoAuthorization,
-                None,
                 data_types.into_iter().map(|data_type_str| {
                     let schema: DataType = serde_json::from_str(data_type_str)
                         .expect("could not parse data type representation");
@@ -229,8 +231,6 @@ impl DatabaseTestWrapper {
         store
             .create_property_types(
                 account_id,
-                &mut NoAuthorization,
-                None,
                 property_types.into_iter().map(|property_type_str| {
                     let schema: PropertyType = serde_json::from_str(property_type_str)
                         .expect("could not property data type representation");
@@ -250,8 +250,6 @@ impl DatabaseTestWrapper {
         store
             .create_entity_types(
                 account_id,
-                &mut NoAuthorization,
-                None,
                 entity_types.into_iter().map(|entity_type_str| {
                     let schema: EntityType = serde_json::from_str(entity_type_str)
                         .expect("could not entity data type representation");
@@ -287,8 +285,67 @@ fn generate_decision_time() -> Timestamp<DecisionTime> {
     .expect("could not parse timestamp")
 }
 
+impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
+    async fn create_data_types<P, R>(
+        &mut self,
+        actor_id: AccountId,
+        params: P,
+    ) -> Result<Vec<DataTypeMetadata>, InsertionError>
+    where
+        P: IntoIterator<Item = CreateDataTypeParams<R>, IntoIter: Send> + Send,
+        R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync,
+    {
+        self.store.create_data_types(actor_id, params).await
+    }
+
+    async fn get_data_type(
+        &self,
+        actor_id: AccountId,
+        params: GetDataTypesParams<'_>,
+    ) -> Result<Subgraph, QueryError> {
+        self.store.get_data_type(actor_id, params).await
+    }
+
+    async fn update_data_type<R>(
+        &mut self,
+        actor_id: AccountId,
+        params: UpdateDataTypesParams<R>,
+    ) -> Result<DataTypeMetadata, UpdateError>
+    where
+        R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync,
+    {
+        self.store.update_data_type(actor_id, params).await
+    }
+
+    async fn archive_data_type(
+        &mut self,
+        actor_id: AccountId,
+        params: ArchiveDataTypeParams<'_>,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.store.archive_data_type(actor_id, params).await
+    }
+
+    async fn unarchive_data_type(
+        &mut self,
+        actor_id: AccountId,
+        params: UnarchiveDataTypeParams,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.store.unarchive_data_type(actor_id, params).await
+    }
+
+    async fn update_data_type_embeddings(
+        &mut self,
+        actor_id: AccountId,
+        params: UpdateDataTypeEmbeddingParams<'_>,
+    ) -> Result<(), UpdateError> {
+        self.store
+            .update_data_type_embeddings(actor_id, params)
+            .await
+    }
+}
+
 // TODO: Add get_all_* methods
-impl DatabaseApi<'_> {
+impl<A: AuthorizationApi> DatabaseApi<'_, A> {
     pub async fn create_owned_data_type(
         &mut self,
         data_type: DataType,
@@ -296,8 +353,6 @@ impl DatabaseApi<'_> {
         self.store
             .create_data_type(
                 self.account_id,
-                &mut NoAuthorization,
-                None,
                 CreateDataTypeParams {
                     schema: data_type,
                     classification: OntologyTypeClassificationMetadata::Owned {
@@ -318,8 +373,6 @@ impl DatabaseApi<'_> {
         self.store
             .create_data_type(
                 self.account_id,
-                &mut NoAuthorization,
-                None,
                 CreateDataTypeParams {
                     schema: data_type,
                     classification: OntologyTypeClassificationMetadata::External {
@@ -341,7 +394,6 @@ impl DatabaseApi<'_> {
             .store
             .get_data_type(
                 self.account_id,
-                &NoAuthorization,
                 GetDataTypesParams {
                     query: StructuralQuery {
                         filter: Filter::for_versioned_url(url),
@@ -373,8 +425,6 @@ impl DatabaseApi<'_> {
         self.store
             .update_data_type(
                 self.account_id,
-                &mut NoAuthorization,
-                None,
                 UpdateDataTypesParams {
                     schema,
                     relationships: data_type_relationships(),
@@ -391,8 +441,6 @@ impl DatabaseApi<'_> {
         self.store
             .create_property_type(
                 self.account_id,
-                &mut NoAuthorization,
-                None,
                 CreatePropertyTypeParams {
                     schema: property_type,
                     classification: OntologyTypeClassificationMetadata::Owned {
@@ -414,7 +462,6 @@ impl DatabaseApi<'_> {
             .store
             .get_property_type(
                 self.account_id,
-                &NoAuthorization,
                 GetPropertyTypesParams {
                     query: StructuralQuery {
                         filter: Filter::for_versioned_url(url),
@@ -446,8 +493,6 @@ impl DatabaseApi<'_> {
         self.store
             .update_property_type(
                 self.account_id,
-                &mut NoAuthorization,
-                None,
                 UpdatePropertyTypesParams {
                     schema: property_type,
                     relationships: property_type_relationships(),
@@ -464,8 +509,6 @@ impl DatabaseApi<'_> {
         self.store
             .create_entity_type(
                 self.account_id,
-                &mut NoAuthorization,
-                None,
                 CreateEntityTypeParams {
                     schema: entity_type,
                     classification: OntologyTypeClassificationMetadata::Owned {
@@ -489,7 +532,6 @@ impl DatabaseApi<'_> {
             .store
             .get_entity_type(
                 self.account_id,
-                &NoAuthorization,
                 GetEntityTypesParams {
                     query: StructuralQuery {
                         filter: Filter::for_versioned_url(url),
@@ -521,8 +563,6 @@ impl DatabaseApi<'_> {
         self.store
             .update_entity_type(
                 self.account_id,
-                &mut NoAuthorization,
-                None,
                 UpdateEntityTypesParams {
                     schema: entity_type,
                     icon: None,
@@ -546,8 +586,6 @@ impl DatabaseApi<'_> {
         self.store
             .create_entity(
                 self.account_id,
-                &mut NoAuthorization,
-                None,
                 CreateEntityParams {
                     owned_by_id: OwnedById::new(self.account_id.into_uuid()),
                     entity_uuid,
@@ -577,13 +615,12 @@ impl DatabaseApi<'_> {
         };
         let count = self
             .store
-            .count_entities(self.account_id, &NoAuthorization, query.clone())
+            .count_entities(self.account_id, query.clone())
             .await?;
         let response = self
             .store
             .get_entity(
                 self.account_id,
-                &NoAuthorization,
                 GetEntityParams {
                     query,
                     sorting: EntityQuerySorting {
@@ -609,7 +646,6 @@ impl DatabaseApi<'_> {
             .store
             .get_entity(
                 self.account_id,
-                &NoAuthorization,
                 GetEntityParams {
                     query: StructuralQuery {
                         filter: Filter::All(Vec::new()),
@@ -677,13 +713,12 @@ impl DatabaseApi<'_> {
 
         let count = self
             .store
-            .count_entities(self.account_id, &NoAuthorization, query.clone())
+            .count_entities(self.account_id, query.clone())
             .await?;
         let mut response = self
             .store
             .get_entity(
                 self.account_id,
-                &NoAuthorization,
                 GetEntityParams {
                     query,
                     sorting: EntityQuerySorting {
@@ -720,7 +755,6 @@ impl DatabaseApi<'_> {
             .store
             .get_entity(
                 self.account_id,
-                &NoAuthorization,
                 GetEntityParams {
                     query: StructuralQuery {
                         filter: Filter::for_entity_by_entity_id(entity_id),
@@ -760,7 +794,6 @@ impl DatabaseApi<'_> {
             .store
             .get_entity(
                 self.account_id,
-                &NoAuthorization,
                 GetEntityParams {
                     query: StructuralQuery {
                         filter: Filter::for_entity_by_entity_id(entity_id),
@@ -802,9 +835,7 @@ impl DatabaseApi<'_> {
         if params.decision_time.is_none() {
             params.decision_time = Some(generate_decision_time());
         }
-        self.store
-            .patch_entity(self.account_id, &mut NoAuthorization, None, params)
-            .await
+        self.store.patch_entity(self.account_id, params).await
     }
 
     async fn create_link_entity(
@@ -818,8 +849,6 @@ impl DatabaseApi<'_> {
         self.store
             .create_entity(
                 self.account_id,
-                &mut NoAuthorization,
-                None,
                 CreateEntityParams {
                     owned_by_id: OwnedById::new(self.account_id.into_uuid()),
                     entity_uuid,
@@ -896,7 +925,6 @@ impl DatabaseApi<'_> {
             .store
             .get_entity(
                 self.account_id,
-                &NoAuthorization,
                 GetEntityParams {
                     query: StructuralQuery {
                         filter,
@@ -973,7 +1001,6 @@ impl DatabaseApi<'_> {
             .store
             .get_entity(
                 self.account_id,
-                &NoAuthorization,
                 GetEntityParams {
                     query: StructuralQuery {
                         filter,
@@ -1011,8 +1038,6 @@ impl DatabaseApi<'_> {
         self.store
             .patch_entity(
                 self.account_id,
-                &mut NoAuthorization,
-                None,
                 PatchEntityParams {
                     entity_id,
                     decision_time: Some(generate_decision_time()),

@@ -19,7 +19,11 @@ use crate::{
     subgraph::{edges::GraphResolveDepths, temporal_axes::VariableAxis, Subgraph},
 };
 
-impl<C: AsClient> PostgresStore<C> {
+impl<C, A> PostgresStore<C, A>
+where
+    C: AsClient,
+    A: Send + Sync,
+{
     async fn read_data_types_by_ids(
         &self,
         vertex_ids: impl IntoIterator<Item = OntologyId, IntoIter: Send> + Send,
@@ -226,9 +230,9 @@ pub struct TraversalContext {
 }
 
 impl TraversalContext {
-    pub async fn read_traversed_vertices<C: AsClient>(
+    pub async fn read_traversed_vertices<C: AsClient, A: Send + Sync>(
         &self,
-        store: &PostgresStore<C>,
+        store: &PostgresStore<C, A>,
         subgraph: &mut Subgraph,
         include_drafts: bool,
     ) -> Result<(), QueryError> {

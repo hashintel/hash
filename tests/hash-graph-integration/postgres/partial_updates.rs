@@ -1,5 +1,6 @@
 use std::{collections::HashSet, iter::once, str::FromStr};
 
+use authorization::AuthorizationApi;
 use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::knowledge::{
@@ -12,7 +13,9 @@ use type_system::url::{BaseUrl, VersionedUrl};
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
 
-async fn seed(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
+async fn seed<A: AuthorizationApi>(
+    database: &mut DatabaseTestWrapper<A>,
+) -> DatabaseApi<'_, &mut A> {
     database
         .seed(
             [data_type::TEXT_V1, data_type::NUMBER_V1],
@@ -107,6 +110,7 @@ async fn properties_add() {
         .get_latest_entity(entity_id)
         .await
         .expect("could not get entity");
+
     let properties = entity.properties.properties();
     assert_eq!(properties.len(), 2);
     assert_eq!(properties[&name_property_type_id()], json!("Alice"));
@@ -150,6 +154,7 @@ async fn properties_remove() {
         .get_latest_entity(entity_id)
         .await
         .expect("could not get entity");
+
     let properties = entity.properties.properties();
     assert_eq!(properties.len(), 0);
 }
@@ -194,6 +199,7 @@ async fn properties_replace() {
         .get_latest_entity(entity_id)
         .await
         .expect("could not get entity");
+
     let properties = entity.properties.properties();
     assert_eq!(properties.len(), 1);
     assert_eq!(properties[&name_property_type_id()], json!("Bob"));
@@ -276,6 +282,7 @@ async fn properties_move() {
         .get_latest_entity(entity_id)
         .await
         .expect("could not get entity");
+
     let properties = entity.properties.properties();
     assert_eq!(properties.len(), 1);
     assert_eq!(
@@ -341,6 +348,7 @@ async fn properties_copy() {
         .get_latest_entity(entity_id)
         .await
         .expect("could not get entity");
+
     let properties = entity.properties.properties();
     assert_eq!(properties.len(), 2);
     assert_eq!(properties[&name_property_type_id()], json!("Alice"));
@@ -435,5 +443,6 @@ async fn type_ids() {
         .get_latest_entity(entity_id)
         .await
         .expect("could not get entity");
+
     assert_eq!(entity.metadata.entity_type_ids, [person_entity_type_id()],);
 }

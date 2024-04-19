@@ -8,8 +8,8 @@ async fn insert() {
     let person_et: EntityType = serde_json::from_str(entity_type::PERSON_V1)
         .expect("could not parse entity type representation");
 
-    let mut database = DatabaseTestWrapper::new().await;
-    let mut api = database
+    DatabaseTestWrapper::new()
+        .await
         .seed(
             [data_type::TEXT_V1, data_type::NUMBER_V1],
             [
@@ -27,9 +27,8 @@ async fn insert() {
             ],
         )
         .await
-        .expect("could not seed database");
-
-    api.create_entity_type(person_et)
+        .expect("could not seed database")
+        .create_entity_type(person_et)
         .await
         .expect("could not create entity type");
 }

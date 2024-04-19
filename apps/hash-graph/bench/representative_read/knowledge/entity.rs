@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use authorization::NoAuthorization;
+use authorization::AuthorizationApi;
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
     knowledge::EntityQueryPath,
@@ -25,10 +25,10 @@ use tokio::runtime::Runtime;
 
 use crate::util::Store;
 
-pub fn bench_get_entity_by_id(
+pub fn bench_get_entity_by_id<A: AuthorizationApi>(
     b: &mut Bencher,
     runtime: &Runtime,
-    store: &Store,
+    store: &Store<A>,
     actor_id: AccountId,
     entity_uuids: &[EntityUuid],
 ) {
@@ -44,7 +44,6 @@ pub fn bench_get_entity_by_id(
             let response = store
                 .get_entity(
                     actor_id,
-                    &NoAuthorization,
                     GetEntityParams {
                         query: StructuralQuery {
                             filter: Filter::Equal(
@@ -76,10 +75,10 @@ pub fn bench_get_entity_by_id(
     );
 }
 
-pub fn bench_get_entities_by_property(
+pub fn bench_get_entities_by_property<A: AuthorizationApi>(
     b: &mut Bencher,
     runtime: &Runtime,
-    store: &Store,
+    store: &Store<A>,
     actor_id: AccountId,
     graph_resolve_depths: GraphResolveDepths,
 ) {
@@ -100,7 +99,6 @@ pub fn bench_get_entities_by_property(
         let response = store
             .get_entity(
                 actor_id,
-                &NoAuthorization,
                 GetEntityParams {
                     query: StructuralQuery {
                         filter,
@@ -128,10 +126,10 @@ pub fn bench_get_entities_by_property(
     });
 }
 
-pub fn bench_get_link_by_target_by_property(
+pub fn bench_get_link_by_target_by_property<A: AuthorizationApi>(
     b: &mut Bencher,
     runtime: &Runtime,
-    store: &Store,
+    store: &Store<A>,
     actor_id: AccountId,
     graph_resolve_depths: GraphResolveDepths,
 ) {
@@ -156,7 +154,6 @@ pub fn bench_get_link_by_target_by_property(
         let response = store
             .get_entity(
                 actor_id,
-                &NoAuthorization,
                 GetEntityParams {
                     query: StructuralQuery {
                         filter,

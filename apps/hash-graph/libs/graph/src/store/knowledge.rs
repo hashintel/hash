@@ -1,6 +1,6 @@
 use std::{borrow::Cow, error::Error, fmt};
 
-use authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency, AuthorizationApi};
+use authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency};
 use error_stack::Report;
 use graph_types::{
     account::AccountId,
@@ -16,7 +16,6 @@ use graph_types::{
     owned_by_id::OwnedById,
 };
 use serde::{Deserialize, Serialize};
-use temporal_client::TemporalClient;
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use type_system::{url::VersionedUrl, ClosedEntityType, EntityType};
 #[cfg(feature = "utoipa")]
@@ -318,11 +317,9 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
     /// - if an [`EntityUuid`] was supplied and already exists in the store
     ///
     /// [`EntityType`]: type_system::EntityType
-    fn create_entity<A: AuthorizationApi + Send + Sync, R>(
+    fn create_entity<R>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
-        temporal_client: Option<&TemporalClient>,
         params: CreateEntityParams<R>,
     ) -> impl Future<Output = Result<EntityMetadata, Report<InsertionError>>> + Send
     where
@@ -333,10 +330,9 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
     /// # Errors:
     ///
     /// - if the validation failed
-    fn validate_entity<A: AuthorizationApi + Sync>(
+    fn validate_entity(
         &self,
         actor_id: AccountId,
-        authorization_api: &A,
         consistency: Consistency<'_>,
         params: ValidateEntityParams<'_>,
     ) -> impl Future<Output = Result<(), Report<ValidateEntityError>>> + Send;
@@ -358,10 +354,9 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
     /// - if an [`EntityUuid`] was supplied and already exists in the store
     ///
     /// [`EntityType`]: type_system::EntityType
-    fn insert_entities_batched_by_type<A: AuthorizationApi + Send + Sync>(
+    fn insert_entities_batched_by_type(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
         entities: impl IntoIterator<
             Item = (
                 OwnedById,
@@ -382,10 +377,9 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
     /// - if the requested [`Entity`] doesn't exist
     ///
     /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
-    fn get_entity<A: AuthorizationApi + Sync>(
+    fn get_entity(
         &self,
         actor_id: AccountId,
-        authorization_api: &A,
         params: GetEntityParams<'_>,
     ) -> impl Future<Output = Result<GetEntityResponse<'static>, Report<QueryError>>> + Send;
 
@@ -396,10 +390,9 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
     /// - if the request to the database fails
     ///
     /// [`get_entity`]: Self::get_entity
-    fn count_entities<A: AuthorizationApi + Sync>(
+    fn count_entities(
         &self,
         actor_id: AccountId,
-        authorization_api: &A,
         query: EntityStructuralQuery<'_>,
     ) -> impl Future<Output = Result<usize, Report<QueryError>>> + Send;
 
@@ -412,11 +405,9 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
         decision_time: Option<Timestamp<DecisionTime>>,
     ) -> impl Future<Output = Result<Entity, Report<QueryError>>> + Send;
 
-    fn patch_entity<A: AuthorizationApi + Send + Sync>(
+    fn patch_entity(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
-        temporal_client: Option<&TemporalClient>,
         params: PatchEntityParams,
     ) -> impl Future<Output = Result<EntityMetadata, Report<UpdateError>>> + Send;
 
@@ -458,10 +449,9 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
         }
     }
 
-    fn update_entity_embeddings<A: AuthorizationApi + Send + Sync>(
+    fn update_entity_embeddings(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
         params: UpdateEntityEmbeddingsParams<'_>,
     ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;
 }

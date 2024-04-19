@@ -25,6 +25,7 @@ use error_stack::Report;
 use graph::store::{account::InsertWebIdParams, AccountStore, StorePool};
 use graph_types::owned_by_id::OwnedById;
 use serde::Deserialize;
+use temporal_client::TemporalClient;
 use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
@@ -106,6 +107,7 @@ impl RoutedResource for WebResource {
 async fn create_web<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
     Json(params): Json<InsertWebIdParams>,
 ) -> Result<StatusCode, StatusCode>
@@ -113,18 +115,21 @@ where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let mut store = store_pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
         tracing::error!(?error, "Could not acquire access to the authorization API");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not acquire store");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
     store
-        .insert_web_id(actor_id, &mut authorization_api, params)
+        .insert_web_id(actor_id, params)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create web id");

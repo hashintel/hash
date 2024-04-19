@@ -9,7 +9,7 @@ use std::{
 use authorization::{
     backend::{SpiceDbOpenApi, ZanzibarBackend},
     zanzibar::ZanzibarClient,
-    AuthorizationApi,
+    AuthorizationApi, NoAuthorization,
 };
 use clap::Parser;
 use error_stack::{Report, Result, ResultExt};
@@ -166,7 +166,7 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
             report
         })?;
     _ = pool
-        .acquire()
+        .acquire(NoAuthorization, None)
         .await
         .change_context(GraphError)
         .attach_printable("Connection to database failed")?;

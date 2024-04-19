@@ -86,6 +86,7 @@ async fn insert() {
         .get_link_entity_target(alice_metadata.record_id.entity_id, friend_of_type_id)
         .await
         .expect("could not fetch entity");
+
     let link_data = link_entity.link_data.expect("entity is not a link");
 
     assert_eq!(link_data.left_entity_id, alice_metadata.record_id.entity_id);

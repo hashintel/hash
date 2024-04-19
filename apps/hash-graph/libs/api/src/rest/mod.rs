@@ -21,7 +21,7 @@ mod web;
 use std::{borrow::Cow, fs, io, str::FromStr, sync::Arc};
 
 use async_trait::async_trait;
-use authorization::{AuthorizationApi, AuthorizationApiPool};
+use authorization::AuthorizationApiPool;
 use axum::{
     extract::{FromRequestParts, Path},
     http::{request::Parts, uri::PathAndQuery, HeaderValue, StatusCode},
@@ -184,11 +184,9 @@ struct Pagination<T> {
 
 #[async_trait]
 pub trait RestApiStore: Store + TypeFetcher {
-    async fn load_external_type<A: AuthorizationApi + Send + Sync>(
+    async fn load_external_type(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
-        temporal_client: Option<&TemporalClient>,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
     ) -> Result<OntologyTypeMetadata, Response>;
@@ -199,11 +197,9 @@ impl<S> RestApiStore for S
 where
     S: Store + TypeFetcher + Send,
 {
-    async fn load_external_type<A: AuthorizationApi + Send + Sync>(
+    async fn load_external_type(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
-        temporal_client: Option<&TemporalClient>,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
     ) -> Result<OntologyTypeMetadata, Response> {
@@ -217,7 +213,7 @@ where
             )));
         }
 
-        self.insert_external_ontology_type(actor_id, authorization_api, temporal_client, reference)
+        self.insert_external_ontology_type(actor_id, reference)
             .await
             .attach_printable("Could not insert external type")
             .attach_printable_lazy(|| reference.url().clone())
@@ -237,7 +233,7 @@ fn api_resources<S, A>() -> Vec<Router>
 where
     S: StorePool + Send + Sync + 'static,
     A: AuthorizationApiPool + Send + Sync + 'static,
-    for<'pool> S::Store<'pool>: RestApiStore,
+    for<'pool> S::Store<'pool, A::Api<'pool>>: RestApiStore,
 {
     vec![
         account::AccountResource::routes::<S, A>(),
@@ -289,7 +285,7 @@ pub fn rest_api_router<S, A>(dependencies: RestRouterDependencies<S, A>) -> Rout
 where
     S: StorePool + Send + Sync + 'static,
     A: AuthorizationApiPool + Send + Sync + 'static,
-    for<'pool> S::Store<'pool>: RestApiStore,
+    for<'pool> S::Store<'pool, A::Api<'pool>>: RestApiStore,
 {
     // All api resources are merged together into a super-router.
     let merged_routes = api_resources::<S, A>()
