@@ -37,6 +37,18 @@ export const zeroedGraphResolveDepths: GraphResolveDepths = {
   hasRightEntity: { incoming: 0, outgoing: 0 },
 };
 
+export const fullOntologyResolveDepths: Omit<
+  GraphResolveDepths,
+  "hasLeftEntity" | "hasRightEntity"
+> = {
+  constrainsValuesOn: { outgoing: 255 },
+  constrainsPropertiesOn: { outgoing: 255 },
+  constrainsLinksOn: { outgoing: 1 },
+  constrainsLinkDestinationsOn: { outgoing: 1 },
+  inheritsFrom: { outgoing: 255 },
+  isOfType: { outgoing: 1 },
+};
+
 /**
  * Slices the datastore across this instant of time.
  *

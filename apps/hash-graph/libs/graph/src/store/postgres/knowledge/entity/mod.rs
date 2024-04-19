@@ -19,20 +19,20 @@ use authorization::{
 use error_stack::{bail, ensure, Report, Result, ResultExt};
 use futures::TryStreamExt;
 use graph_types::{
-    account::{AccountId, CreatedById, EditionCreatedById},
+    account::{AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
     knowledge::{
         entity::{
-            DraftId, Entity, EntityEditionId, EntityEditionProvenanceMetadata, EntityEmbedding,
-            EntityId, EntityMetadata, EntityProperties, EntityProvenanceMetadata, EntityRecordId,
-            EntityTemporalMetadata, EntityUuid, PropertyPath,
+            DraftId, Entity, EntityEditionId, EntityEditionProvenance, EntityEmbedding, EntityId,
+            EntityMetadata, EntityProvenance, EntityRecordId, EntityTemporalMetadata, EntityUuid,
+            InferredEntityProvenance, ProvidedEntityEditionProvenance,
         },
         link::LinkData,
+        Confidence, PropertyMetadataMap, PropertyObject, PropertyPath,
     },
     owned_by_id::OwnedById,
     Embedding,
 };
 use hash_status::StatusCode;
-use json_patch::patch;
 use postgres_types::{Json, ToSql};
 use temporal_client::TemporalClient;
 use temporal_versioning::{
@@ -42,7 +42,7 @@ use temporal_versioning::{
 use tokio_postgres::{error::SqlState, GenericClient, Row};
 use type_system::{url::VersionedUrl, ClosedEntityType};
 use uuid::Uuid;
-use validation::{Validate, ValidationProfile};
+use validation::{Validate, ValidateEntityComponents};
 
 use crate::{
     knowledge::EntityQueryPath,
@@ -378,12 +378,18 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     INSERT INTO entity_ids (
                         web_id,
                         entity_uuid,
-                        created_by_id,
-                        created_at_transaction_time,
-                        created_at_decision_time,
-                        first_non_draft_created_at_transaction_time,
-                        first_non_draft_created_at_decision_time
-                    ) VALUES ($1, $2, $3, now(), $4, now(), $4);
+                        provenance
+                    ) VALUES (
+                        $1,
+                        $2,
+                        JSONB_BUILD_OBJECT(
+                            'createdById', $3::UUID,
+                            'createdAtTransactionTime', now(),
+                            'createdAtDecisionTime', $4::TIMESTAMPTZ,
+                            'firstNonDraftCreatedAtTransactionTime', now(),
+                            'firstNonDraftCreatedAtDecisionTime', $4::TIMESTAMPTZ
+                        )
+                    );
                 ",
                     &[
                         &entity_id.owned_by_id,
@@ -401,10 +407,16 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     INSERT INTO entity_ids (
                         web_id,
                         entity_uuid,
-                        created_by_id,
-                        created_at_transaction_time,
-                        created_at_decision_time
-                    ) VALUES ($1, $2, $3, now(), $4);
+                        provenance
+                    ) VALUES (
+                        $1,
+                        $2,
+                        JSONB_BUILD_OBJECT(
+                            'createdById', $3::UUID,
+                            'createdAtTransactionTime', now(),
+                            'createdAtDecisionTime', $4::TIMESTAMPTZ
+                        )
+                    );
                 ",
                     &[
                         &entity_id.owned_by_id,
@@ -422,12 +434,18 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     INSERT INTO entity_ids (
                         web_id,
                         entity_uuid,
-                        created_by_id,
-                        created_at_transaction_time,
-                        created_at_decision_time,
-                        first_non_draft_created_at_transaction_time,
-                        first_non_draft_created_at_decision_time
-                    ) VALUES ($1, $2, $3, now(), now(), now(), now());
+                        provenance
+                    ) VALUES (
+                        $1,
+                        $2,
+                        JSONB_BUILD_OBJECT(
+                            'createdById', $3::UUID,
+                            'createdAtTransactionTime', now(),
+                            'createdAtDecisionTime', now(),
+                            'firstNonDraftCreatedAtTransactionTime', now(),
+                            'firstNonDraftCreatedAtDecisionTime', now()
+                        )
+                    );
                 ",
                     &[
                         &entity_id.owned_by_id,
@@ -444,10 +462,16 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     INSERT INTO entity_ids (
                         web_id,
                         entity_uuid,
-                        created_by_id,
-                        created_at_transaction_time,
-                        created_at_decision_time
-                    ) VALUES ($1, $2, $3, now(), now());
+                        provenance
+                    ) VALUES (
+                        $1,
+                        $2,
+                        JSONB_BUILD_OBJECT(
+                            'createdById', $3::UUID,
+                            'createdAtTransactionTime', now(),
+                            'createdAtDecisionTime', now()
+                        )
+                    );
                 ",
                     &[
                         &entity_id.owned_by_id,
@@ -476,7 +500,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(InsertionError)?;
         }
 
-        if let Some(link_data) = params.link_data {
+        if let Some(link_data) = &params.link_data {
             transaction
                 .as_client()
                 .query(
@@ -485,14 +509,16 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                             web_id,
                             entity_uuid,
                             left_web_id,
-                            left_entity_uuid
-                        ) VALUES ($1, $2, $3, $4);
+                            left_entity_uuid,
+                            confidence
+                        ) VALUES ($1, $2, $3, $4, $5);
                     ",
                     &[
                         &entity_id.owned_by_id,
                         &entity_id.entity_uuid,
                         &link_data.left_entity_id.owned_by_id,
                         &link_data.left_entity_id.entity_uuid,
+                        &link_data.left_entity_confidence,
                     ],
                 )
                 .await
@@ -506,28 +532,39 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                             web_id,
                             entity_uuid,
                             right_web_id,
-                            right_entity_uuid
-                        ) VALUES ($1, $2, $3, $4);
+                            right_entity_uuid,
+                            confidence
+                        ) VALUES ($1, $2, $3, $4, $5);
                     ",
                     &[
                         &entity_id.owned_by_id,
                         &entity_id.entity_uuid,
                         &link_data.right_entity_id.owned_by_id,
                         &link_data.right_entity_id.entity_uuid,
+                        &link_data.right_entity_confidence,
                     ],
                 )
                 .await
                 .change_context(InsertionError)?;
         }
 
-        let edition_created_by_id = EditionCreatedById::new(actor_id);
+        let edition_provenance = EntityEditionProvenance {
+            created_by_id: EditionCreatedById::new(actor_id),
+            archived_by_id: None,
+            provided: params.provenance,
+        };
         let (edition_id, closed_schema) = transaction
             .insert_entity_edition(
-                edition_created_by_id,
                 false,
                 &params.entity_type_ids,
                 &params.properties,
+                params.confidence,
+                &edition_provenance,
             )
+            .await?;
+
+        transaction
+            .insert_properties(edition_id, &params.property_metadata)
             .await?;
 
         let temporal_versioning = transaction
@@ -555,11 +592,16 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 ValidateEntityParams {
                     entity_types: EntityValidationType::ClosedSchema(Cow::Owned(closed_schema)),
                     properties: Cow::Borrowed(&params.properties),
+                    property_metadata: Cow::Borrowed(&params.property_metadata),
                     link_data: params.link_data.as_ref().map(Cow::Borrowed),
-                    profile: if params.draft {
-                        ValidationProfile::Draft
+                    components: if params.draft {
+                        ValidateEntityComponents {
+                            num_items: false,
+                            required_properties: false,
+                            ..ValidateEntityComponents::full()
+                        }
                     } else {
-                        ValidationProfile::Full
+                        ValidateEntityComponents::full()
                     },
                 },
             )
@@ -597,27 +639,27 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     edition_id,
                 },
                 entity_type_ids: params.entity_type_ids,
-                provenance: EntityProvenanceMetadata {
-                    created_by_id: CreatedById::new(edition_created_by_id.as_account_id()),
-                    created_at_decision_time: Timestamp::from(
-                        *temporal_versioning.decision_time.start(),
-                    ),
-                    created_at_transaction_time: Timestamp::from(
-                        *temporal_versioning.transaction_time.start(),
-                    ),
-                    first_non_draft_created_at_decision_time: (!params.draft)
-                        .then_some(Timestamp::from(*temporal_versioning.decision_time.start())),
-                    first_non_draft_created_at_transaction_time: (!params.draft).then_some(
-                        Timestamp::from(*temporal_versioning.transaction_time.start()),
-                    ),
-                    edition: EntityEditionProvenanceMetadata {
-                        created_by_id: edition_created_by_id,
+                provenance: EntityProvenance {
+                    inferred: InferredEntityProvenance {
+                        created_by_id: CreatedById::new(actor_id),
+                        created_at_decision_time: Timestamp::from(
+                            *temporal_versioning.decision_time.start(),
+                        ),
+                        created_at_transaction_time: Timestamp::from(
+                            *temporal_versioning.transaction_time.start(),
+                        ),
+                        first_non_draft_created_at_decision_time: (!params.draft)
+                            .then_some(Timestamp::from(*temporal_versioning.decision_time.start())),
+                        first_non_draft_created_at_transaction_time: (!params.draft).then_some(
+                            Timestamp::from(*temporal_versioning.transaction_time.start()),
+                        ),
                     },
+                    edition: edition_provenance,
                 },
                 temporal_versioning,
                 archived: false,
-                confidence: None,
-                property_confidence: HashMap::new(),
+                confidence: params.confidence,
+                properties: params.property_metadata,
             };
             if let Some(temporal_client) = temporal_client {
                 temporal_client
@@ -732,7 +774,23 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         if let Err(error) = params
             .properties
-            .validate(&schema, params.profile, &validator_provider)
+            .validate(&schema, params.components, &validator_provider)
+            .await
+        {
+            if let Err(ref mut report) = status {
+                report.extend_one(error);
+            } else {
+                status = Err(error);
+            }
+        }
+
+        if let Err(error) = params
+            .property_metadata
+            .validate(
+                params.properties.as_ref(),
+                params.components,
+                &validator_provider,
+            )
             .await
         {
             if let Err(ref mut report) = status {
@@ -745,7 +803,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         if let Err(error) = params
             .link_data
             .as_deref()
-            .validate(&schema, params.profile, &validator_provider)
+            .validate(&schema, params.components, &validator_provider)
             .await
         {
             if let Err(ref mut report) = status {
@@ -769,7 +827,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             Item = (
                 OwnedById,
                 Option<EntityUuid>,
-                EntityProperties,
+                PropertyObject,
                 Option<LinkData>,
                 Option<Timestamp<DecisionTime>>,
             ),
@@ -884,28 +942,32 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         edition_id,
                     },
                     entity_type_ids: vec![entity_type_url.clone()],
-                    provenance: EntityProvenanceMetadata {
-                        created_by_id: CreatedById::new(actor_id),
-                        created_at_decision_time: Timestamp::from(
-                            *temporal_versioning.decision_time.start(),
-                        ),
-                        created_at_transaction_time: Timestamp::from(
-                            *temporal_versioning.transaction_time.start(),
-                        ),
-                        first_non_draft_created_at_decision_time: Some(Timestamp::from(
-                            *temporal_versioning.decision_time.start(),
-                        )),
-                        first_non_draft_created_at_transaction_time: Some(Timestamp::from(
-                            *temporal_versioning.transaction_time.start(),
-                        )),
-                        edition: EntityEditionProvenanceMetadata {
+                    provenance: EntityProvenance {
+                        inferred: InferredEntityProvenance {
+                            created_by_id: CreatedById::new(actor_id),
+                            created_at_decision_time: Timestamp::from(
+                                *temporal_versioning.decision_time.start(),
+                            ),
+                            created_at_transaction_time: Timestamp::from(
+                                *temporal_versioning.transaction_time.start(),
+                            ),
+                            first_non_draft_created_at_decision_time: Some(Timestamp::from(
+                                *temporal_versioning.decision_time.start(),
+                            )),
+                            first_non_draft_created_at_transaction_time: Some(Timestamp::from(
+                                *temporal_versioning.transaction_time.start(),
+                            )),
+                        },
+                        edition: EntityEditionProvenance {
                             created_by_id: EditionCreatedById::new(actor_id),
+                            archived_by_id: None,
+                            provided: ProvidedEntityEditionProvenance::default(),
                         },
                     },
                     temporal_versioning,
                     archived: false,
                     confidence: None,
-                    property_confidence: HashMap::new(),
+                    properties: PropertyMetadataMap::default(),
                 },
             )
             .collect())
@@ -1110,7 +1172,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             *locked_row.transaction_time.start();
         let ClosedTemporalBound::Inclusive(locked_decision_time) =
             *locked_row.decision_time.start();
-        let previous_entity = Read::<Entity>::read_one(
+        let mut previous_entity = Read::<Entity>::read_one(
             &transaction,
             &Filter::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::EditionId)),
@@ -1132,13 +1194,23 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         .attach(params.entity_id)
         .change_context(UpdateError)?;
 
+        let previous_properties = previous_entity.properties.clone();
+        let previous_property_metadata = previous_entity.metadata.properties.clone();
+        previous_entity
+            .patch(&params.properties)
+            .change_context(UpdateError)?;
+        let properties = previous_entity.properties;
+        let property_metadata = previous_entity.metadata.properties;
+
         let mut first_non_draft_created_at_decision_time = previous_entity
             .metadata
             .provenance
+            .inferred
             .first_non_draft_created_at_decision_time;
         let mut first_non_draft_created_at_transaction_time = previous_entity
             .metadata
             .provenance
+            .inferred
             .first_non_draft_created_at_transaction_time;
 
         let was_draft_before = previous_entity
@@ -1186,13 +1258,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
             (params.entity_type_ids, has_changed)
         };
-        let mut properties =
-            serde_json::to_value(&previous_entity.properties).change_context(UpdateError)?;
-        patch(&mut properties, &params.properties).change_context(UpdateError)?;
-        let properties = serde_json::from_value(properties).change_context(UpdateError)?;
+
         #[expect(clippy::needless_collect, reason = "Will be used later")]
-        let diff = previous_entity
-            .properties
+        let diff = previous_properties
             .diff(&properties, &mut PropertyPath::default())
             .collect::<Vec<_>>();
 
@@ -1200,6 +1268,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             && was_draft_before == draft
             && archived == previous_entity.metadata.archived
             && !entity_types_updated
+            && previous_property_metadata == property_metadata
+            && params.confidence == previous_entity.metadata.confidence
         {
             // No changes were made to the entity.
             return Ok(EntityMetadata {
@@ -1209,19 +1279,30 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 provenance: previous_entity.metadata.provenance,
                 archived,
                 confidence: previous_entity.metadata.confidence,
-                property_confidence: previous_entity.metadata.property_confidence,
+                properties: property_metadata,
             });
         }
 
         let link_data = previous_entity.link_data;
 
+        let edition_provenance = EntityEditionProvenance {
+            created_by_id: EditionCreatedById::new(actor_id),
+            archived_by_id: None,
+            provided: params.provenance,
+        };
         let (edition_id, closed_schema) = transaction
             .insert_entity_edition(
-                EditionCreatedById::new(actor_id),
                 archived,
                 &entity_type_ids,
                 &properties,
+                params.confidence,
+                &edition_provenance,
             )
+            .await
+            .change_context(UpdateError)?;
+
+        transaction
+            .insert_properties(edition_id, &property_metadata)
             .await
             .change_context(UpdateError)?;
 
@@ -1267,12 +1348,13 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         .query_one(
                             "
                             UPDATE entity_ids
-                            SET first_non_draft_created_at_decision_time = $1,
-                                first_non_draft_created_at_transaction_time = now()
+                            SET provenance = provenance || JSONB_BUILD_OBJECT(
+                                'firstNonDraftCreatedAtTransactionTime', now(),
+                                'firstNonDraftCreatedAtDecisionTime', $1::TIMESTAMPTZ
+                            )
                             WHERE web_id = $2
                               AND entity_uuid = $3
-                            RETURNING first_non_draft_created_at_decision_time,
-                                      first_non_draft_created_at_transaction_time;
+                            RETURNING now(), $1::TIMESTAMPTZ;
                             ",
                             &[
                                 &locked_row.updated_at_decision_time,
@@ -1283,15 +1365,17 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         .await
                         .change_context(UpdateError)?;
 
-                    first_non_draft_created_at_decision_time = row.get(0);
-                    first_non_draft_created_at_transaction_time = row.get(1);
+                    first_non_draft_created_at_transaction_time = row.get(0);
+                    first_non_draft_created_at_decision_time = row.get(1);
                 }
 
                 if let Some(previous_live_entity) = transaction
                     .lock_entity_edition(params.entity_id, params.decision_time)
                     .await?
                 {
-                    transaction.archive_entity(previous_live_entity).await?;
+                    transaction
+                        .archive_entity(actor_id, previous_live_entity)
+                        .await?;
                 }
                 transaction
                     .update_temporal_metadata(locked_row, edition_id, true)
@@ -1299,10 +1383,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             }
         };
 
-        let validation_profile = if draft {
-            ValidationProfile::Draft
+        let validation_components = if draft {
+            ValidateEntityComponents::draft()
         } else {
-            ValidationProfile::Full
+            ValidateEntityComponents::full()
         };
 
         transaction
@@ -1313,8 +1397,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 ValidateEntityParams {
                     entity_types: EntityValidationType::ClosedSchema(Cow::Borrowed(&closed_schema)),
                     properties: Cow::Borrowed(&properties),
+                    property_metadata: Cow::Borrowed(&property_metadata),
                     link_data: link_data.as_ref().map(Cow::Borrowed),
-                    profile: validation_profile,
+                    components: validation_components,
                 },
             )
             .await
@@ -1330,24 +1415,16 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             },
             temporal_versioning,
             entity_type_ids,
-            provenance: EntityProvenanceMetadata {
-                created_by_id: previous_entity.metadata.provenance.created_by_id,
-                created_at_transaction_time: previous_entity
-                    .metadata
-                    .provenance
-                    .created_at_transaction_time,
-                created_at_decision_time: previous_entity
-                    .metadata
-                    .provenance
-                    .created_at_decision_time,
-                first_non_draft_created_at_decision_time,
-                first_non_draft_created_at_transaction_time,
-                edition: EntityEditionProvenanceMetadata {
-                    created_by_id: EditionCreatedById::new(actor_id),
+            provenance: EntityProvenance {
+                inferred: InferredEntityProvenance {
+                    first_non_draft_created_at_transaction_time,
+                    first_non_draft_created_at_decision_time,
+                    ..previous_entity.metadata.provenance.inferred
                 },
+                edition: edition_provenance,
             },
-            confidence: None,
-            property_confidence: HashMap::new(),
+            confidence: params.confidence,
+            properties: property_metadata,
             archived,
         };
         if let Some(temporal_client) = temporal_client {
@@ -1503,10 +1580,11 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     #[tracing::instrument(level = "trace", skip(self))]
     async fn insert_entity_edition(
         &self,
-        edition_created_by_id: EditionCreatedById,
         archived: bool,
         entity_type_ids: &[VersionedUrl],
-        properties: &EntityProperties,
+        properties: &PropertyObject,
+        confidence: Option<Confidence>,
+        provenance: &EntityEditionProvenance,
     ) -> Result<(EntityEditionId, ClosedEntityType), InsertionError> {
         let edition_id: EntityEditionId = self
             .as_client()
@@ -1514,13 +1592,14 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 "
                     INSERT INTO entity_editions (
                         entity_edition_id,
-                        edition_created_by_id,
                         archived,
-                        properties
-                    ) VALUES (gen_random_uuid(), $1, $2, $3)
+                        properties,
+                        confidence,
+                        provenance
+                    ) VALUES (gen_random_uuid(), $1, $2, $3, $4)
                     RETURNING entity_edition_id;
                 ",
-                &[&edition_created_by_id, &archived, &properties],
+                &[&archived, &properties, &confidence, provenance],
             )
             .await
             .change_context(InsertionError)?
@@ -1558,6 +1637,49 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .change_context(InsertionError)?;
 
         Ok((edition_id, entity_type))
+    }
+
+    #[tracing::instrument(level = "trace", skip(self))]
+    async fn insert_properties(
+        &self,
+        entity_edition_id: EntityEditionId,
+        metadata: &PropertyMetadataMap<'_>,
+    ) -> Result<(), InsertionError> {
+        let mut property_paths = Vec::with_capacity(metadata.len());
+        let mut confidences = Vec::with_capacity(property_paths.len());
+        let mut provenances = Vec::with_capacity(property_paths.len());
+
+        for (property_path, metadata) in metadata {
+            property_paths.push(property_path);
+            confidences.push(metadata.confidence);
+            provenances.push(&metadata.provenance);
+        }
+
+        self.as_client()
+            .query(
+                "
+                    INSERT INTO entity_property (
+                        entity_edition_id,
+                        property_path,
+                        confidence,
+                        provenance
+                    ) VALUES (
+                        $1,
+                        UNNEST($2::TEXT[]),
+                        UNNEST($3::DOUBLE PRECISION[]),
+                        UNNEST($4::JSONB[])
+                    );
+                ",
+                &[
+                    &entity_edition_id,
+                    &property_paths,
+                    &confidences,
+                    &provenances,
+                ],
+            )
+            .await
+            .change_context(InsertionError)?;
+        Ok(())
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
@@ -1905,6 +2027,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     #[tracing::instrument(level = "trace", skip(self))]
     async fn archive_entity(
         &self,
+        actor_id: AccountId,
         locked_row: LockedEntityEdition,
     ) -> Result<EntityTemporalMetadata, UpdateError> {
         let row = if let Some(draft_id) = locked_row.entity_id.draft_id {
@@ -1980,6 +2103,22 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     &locked_row.entity_edition_id,
                     &locked_row.decision_time,
                     &locked_row.transaction_time,
+                ],
+            )
+            .await
+            .change_context(UpdateError)?;
+
+        self.client
+            .query(
+                "
+                    UPDATE entity_editions SET
+                        provenance = provenance || JSONB_BUILD_OBJECT(
+                            'archivedById', $2::UUID
+                        )
+                    WHERE entity_edition_id = $1",
+                &[
+                    &locked_row.entity_edition_id,
+                    &EditionArchivedById::new(actor_id),
                 ],
             )
             .await

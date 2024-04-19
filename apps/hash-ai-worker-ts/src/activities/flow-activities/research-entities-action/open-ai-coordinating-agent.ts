@@ -1,3 +1,4 @@
+import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 import type {
@@ -13,11 +14,7 @@ import {
   coordinatorToolDefinitions,
   isCoordinatorToolId,
 } from "./coordinator-tools";
-import type {
-  CompletedToolCall,
-  ProposedEntityWithLocalId,
-  ToolCall,
-} from "./types";
+import type { CompletedToolCall, ToolCall } from "./types";
 import {
   mapPreviousCallsToChatCompletionMessages,
   mapToolDefinitionToOpenAiTool,
@@ -27,7 +24,7 @@ import {
 const model: PermittedOpenAiModel = "gpt-4-0125-preview";
 
 const getNextToolCalls = async (params: {
-  submittedProposedEntities: ProposedEntityWithLocalId[];
+  submittedProposedEntities: ProposedEntity[];
   previousPlan: string;
   previousCalls?: {
     completedToolCalls: CompletedToolCall<CoordinatorToolId>[];

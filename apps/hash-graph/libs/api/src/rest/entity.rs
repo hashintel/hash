@@ -38,24 +38,22 @@ use graph::{
 use graph_types::{
     knowledge::{
         entity::{
-            Entity, EntityEditionId, EntityEditionProvenanceMetadata, EntityEmbedding, EntityId,
-            EntityMetadata, EntityProperties, EntityProvenanceMetadata, EntityRecordId,
-            EntityTemporalMetadata, EntityUuid, PropertyPath,
+            ActorType, Entity, EntityEditionId, EntityEditionProvenance, EntityEmbedding, EntityId,
+            EntityMetadata, EntityProvenance, EntityRecordId, EntityTemporalMetadata, EntityUuid,
+            InferredEntityProvenance, Location, OriginProvenance, ProvidedEntityEditionProvenance,
+            SourceProvenance, SourceType,
         },
         link::LinkData,
-        Confidence,
+        Confidence, Property, PropertyMetadata, PropertyMetadataMap, PropertyObject,
+        PropertyPatchOperation, PropertyPath, PropertyProvenance,
     },
     owned_by_id::OwnedById,
     Embedding,
 };
-use json_patch::{
-    AddOperation, CopyOperation, MoveOperation, PatchOperation, RemoveOperation, ReplaceOperation,
-    TestOperation,
-};
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use utoipa::{OpenApi, ToSchema};
-use validation::ValidationProfile;
+use validation::ValidateEntityComponents;
 
 use crate::rest::{
     api_resource::RoutedResource, json::Json, status::report_to_response,
@@ -85,7 +83,7 @@ use crate::rest::{
             CreateEntityRequest,
             ValidateEntityParams,
             EntityValidationType,
-            ValidationProfile,
+            ValidateEntityComponents,
             Embedding,
             UpdateEntityEmbeddingsParams,
             EntityEmbedding,
@@ -93,13 +91,7 @@ use crate::rest::{
             EntityStructuralQuery,
 
             PatchEntityParams,
-            PatchOperation,
-            AddOperation,
-            ReplaceOperation,
-            RemoveOperation,
-            CopyOperation,
-            MoveOperation,
-            TestOperation,
+            PropertyPatchOperation,
 
             EntityRelationAndSubject,
             EntityPermission,
@@ -121,13 +113,24 @@ use crate::rest::{
             GetEntityByQueryResponse,
 
             Entity,
+            Property,
+            PropertyProvenance,
+            PropertyObject,
+            PropertyMetadata,
+            PropertyMetadataMap,
             EntityUuid,
             EntityId,
             EntityEditionId,
             EntityMetadata,
-            EntityProvenanceMetadata,
-            EntityEditionProvenanceMetadata,
-            EntityProperties,
+            EntityProvenance,
+            EntityEditionProvenance,
+            InferredEntityProvenance,
+            ProvidedEntityEditionProvenance,
+            ActorType,
+            OriginProvenance,
+            SourceType,
+            SourceProvenance,
+            Location,
             EntityRecordId,
             EntityTemporalMetadata,
             EntityQueryToken,

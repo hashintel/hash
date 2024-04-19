@@ -19,7 +19,7 @@ import type {
   BaseUrl,
   ExclusiveLimitedTemporalBound,
   InclusiveLimitedTemporalBound,
-  OntologyProvenanceMetadata,
+  OntologyProvenance,
   OwnedById,
   TimeInterval,
   Timestamp,
@@ -64,7 +64,7 @@ export const isOntologyTypeRecordId = (
 export type OwnedOntologyElementMetadata = {
   recordId: OntologyTypeRecordId;
   ownedById: OwnedById;
-  provenance: OntologyProvenanceMetadata;
+  provenance: OntologyProvenance;
   temporalVersioning: {
     transactionTime: TimeInterval<
       InclusiveLimitedTemporalBound,
@@ -76,7 +76,7 @@ export type OwnedOntologyElementMetadata = {
 export type ExternalOntologyElementMetadata = {
   recordId: OntologyTypeRecordId;
   fetchedAt: Timestamp;
-  provenance: OntologyProvenanceMetadata;
+  provenance: OntologyProvenance;
   temporalVersioning: {
     transactionTime: TimeInterval<
       InclusiveLimitedTemporalBound,

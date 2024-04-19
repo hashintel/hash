@@ -25,7 +25,7 @@ impl PostgresQueryPath for DataTypeQueryPath<'_> {
             Self::OwnedById => vec![Relation::OntologyOwnedMetadata],
             Self::AdditionalMetadata => vec![Relation::OntologyAdditionalMetadata],
             Self::Embedding => vec![Relation::DataTypeEmbeddings],
-            Self::TransactionTime | Self::EditionCreatedById | Self::EditionArchivedById => vec![],
+            Self::TransactionTime | Self::EditionProvenance(_) => vec![],
             Self::PropertyTypeEdge {
                 edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
                 path,
@@ -47,12 +47,6 @@ impl PostgresQueryPath for DataTypeQueryPath<'_> {
                 Column::OntologyTemporalMetadata(OntologyTemporalMetadata::TransactionTime)
             }
             Self::OwnedById => Column::OntologyOwnedMetadata(OntologyOwnedMetadata::WebId),
-            Self::EditionCreatedById => {
-                Column::OntologyTemporalMetadata(OntologyTemporalMetadata::CreatedById)
-            }
-            Self::EditionArchivedById => {
-                Column::OntologyTemporalMetadata(OntologyTemporalMetadata::ArchivedById)
-            }
             Self::OntologyId => Column::DataTypes(DataTypes::OntologyId),
             Self::Embedding => Column::DataTypeEmbeddings(DataTypeEmbeddings::Embedding),
             Self::Schema(path) => path
@@ -74,6 +68,14 @@ impl PostgresQueryPath for DataTypeQueryPath<'_> {
             Self::AdditionalMetadata => {
                 Column::OntologyAdditionalMetadata(OntologyAdditionalMetadata::AdditionalMetadata)
             }
+            Self::EditionProvenance(path) => path.as_ref().map_or(
+                Column::OntologyTemporalMetadata(OntologyTemporalMetadata::Provenance(None)),
+                |path| {
+                    Column::OntologyTemporalMetadata(OntologyTemporalMetadata::Provenance(Some(
+                        JsonField::JsonPath(path),
+                    )))
+                },
+            ),
         }
     }
 }

@@ -56,6 +56,9 @@ export const coordinatorToolDefinitions: Record<
             A prompt instructing the inference agent which entities should be inferred from the webpage.
             Do not specify any information of the structure of the entities, as this is predefined by
               the entity type.
+
+            You must be specific about which and how many entities you need from the webpage to satisfy the
+            research task.
           `),
         },
       },

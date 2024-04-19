@@ -1,4 +1,3 @@
-import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import type { JSONSchema } from "openai/lib/jsonschema";
 import type { ChatCompletionMessageToolCall } from "openai/resources";
 
@@ -18,5 +17,3 @@ export type CompletedToolCall<ToolId extends string> = {
   redactedOutputMessage?: string;
   output: string;
 } & ToolCall<ToolId>;
-
-export type ProposedEntityWithLocalId = ProposedEntity & { localId: string };

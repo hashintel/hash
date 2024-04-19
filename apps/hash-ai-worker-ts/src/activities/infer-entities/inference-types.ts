@@ -7,8 +7,8 @@ import type {
 import type { Entity } from "@local/hash-subgraph";
 import type OpenAI from "openai";
 
+import type { DereferencedEntityType } from "../shared/dereference-entity-type";
 import type { PermittedOpenAiModel } from "../shared/openai";
-import type { DereferencedEntityType } from "./dereference-entity-type";
 import type { ProposedEntityCreationsByType } from "./persist-entities/generate-persist-entities-tools";
 
 export type CompletionPayload = Omit<

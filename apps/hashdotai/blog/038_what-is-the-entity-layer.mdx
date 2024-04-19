@@ -33,17 +33,13 @@ Because we cannot guarantee universal alignment between standards, or their adop
 Consider the humble todo list. **As a user, you might want to be able to sync todo list items from one application to another.** Sounds simple, right? To do this...
 
 1. You could manually re-enter the information inside of each app whenever you change it in one. _Fun! Not to mention error prone._
-
 2. Or you can hope that each application:
-
    - (a) allows exporting and importing to a common format (e.g. CSV);
    - (b) formats their exports in such a way that the other can import it without additional transformation;
    - (c) is at feature parity to avoid data loss as you transfer between platforms; and
    - (d) is capable of partial-syncing to avoid duplication of data upon imports.
    - _You still have to do this process manually, so with any luck you don't need to do it very often, and hopefully it doesn't take too long._
-
 3. Another alternative is that you find a third-party service like _IFTTT_, or _Zapier_, which just happens to support both apps you use works reliably, and doesn't cause more issues than it solves... breaking on occasion, resulting in duplicate or missing data, or even corrupting information in a way that might only be realized 6 months down the line. _Good luck!_
-
 4. Finally, you pray that a native "integration" exists. Most apps don't offer integrations, and those that do typically only support one-way sync or the one-time import of data. Why should app developers incur engineering effort and expense making it easy for people to get data _out_ of their platform, after all, beyond any minimum legal requirement to do so? _See: **walled gardens** above._
 
 To cut a long story short, the process sucks, and is heavily reliant on app developers to pick and choose who they want to support. In effect, scaling out the final strategy given (number four) would today require every application developer in the world to build a set of translations for every other application in the world, supporting and maintaining all of these indefinitely themselves. What we really need is a _translation layer_.
@@ -83,7 +79,7 @@ The [Block Protocol](https://blockprotocol.org/) (**Þ**) defines what entities 
 
 The Block Protocol's specification also provides a process for translating between different conceptions of what single entities or types of entities actually are. This allows different applications which value different things to reconcile their differences and work with the same underlying entity, ensuring a common semantic representation of the information that _users_ care about, making digital data easier to manage, understand, and keep in sync. No more silos.
 
-> _To learn more about the Þ, read "[What is the Block Protocol?](https://hash.ai/blog/what-is-the-block-protocol)"_
+> _To learn more about the Þ, read "[What is the Block Protocol?](/blog/what-is-the-block-protocol)"_
 
 ### Making data understandable
 
@@ -121,7 +117,7 @@ Block Protocol RFCs propose support for creating new types that link back to the
 - **Type extension:** if you need to make a more specific sub-type of an entity type which adds certain new fields, you can do so by extending an entity type.
 - **Type forking:** where differences arise between your conception of a type and an existing one which require changing one or more of the existing properties (not merely adding new ones), you can fork a type. Creating a fork duplicates a type in a user's own workspace, or one in which they're a member. By default this duplicate contains a "same as" linkback between it and the original, outlining that the creator of the fork believes the two types to at least conceptually refer to the same _thing_). The new type initially inherits all of the properties of its ancestor, but unlike types that 'extend' others, any of these properties can subsequently be changed, allowing the fork and the original to diverge.
 
-Block Protocol compliant applications that allow users to create and manage their own types, such as [HASH](https://hash.ai/platform/hash), also encourage type convergence in other ways. For example, HASH encourages type reuse by surfacing existing types to users whenever they look to add new ones.
+Block Protocol compliant applications that allow users to create and manage their own types, such as [HASH](/platform/hash), also encourage type convergence in other ways. For example, HASH encourages type reuse by surfacing existing types to users whenever they look to add new ones.
 
 ![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/e2ef1176-f7f3-4eed-77d1-6a0379fd4700/public)
 
@@ -178,18 +174,14 @@ At HASH, our [non-negotiable principle](https://hash.dev/blog/one-principle) is 
       <td>
         Developers build their own entity stores based on the Þ reference
         architecture, or simply self-host the open-source version of{" "}
-        <a
-          rel="noreferrer noopener"
-          href="https://hash.ai/platform/hash"
-          target="_blank"
-        >
+        <a rel="noreferrer noopener" href="/platform/hash" target="_blank">
           HASH
         </a>
       </td>
       <td>
         Developers build their applications on top of hosted entity stores such
         as{" "}
-        <a rel="noreferrer noopener" href="https://hash.ai/" target="_blank">
+        <a rel="noreferrer noopener" href="/" target="_blank">
           hash.ai
         </a>
         , allowing users to sign in to their applications via these third-parties
@@ -317,7 +309,5 @@ Incentives faced by application developers
 For consumers, the promise of an entity layer is in having data that works everywhere.
 
 - **Instant availability of data across applications:** no waiting for sync jobs to complete
-
 - **Control over data:** the ability to grant and withdraw permissioned access to data at will
-
 - **A single source of truth:** the ability to merge entities that exist in multiple systems into one

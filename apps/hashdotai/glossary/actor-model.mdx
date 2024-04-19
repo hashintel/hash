@@ -6,7 +6,7 @@ slug: actor-model
 tags: ["Simulation Modeling", "Software Engineering"]
 ---
 
-[HASH Engine](https://hash.ai/platform/engine) (which powers [HASH Core](https://hash.ai/platform/core) and our [cloud compute platform](https://hash.ai/platform/cloud)) provides an ultra-fast framework for running large-scale simulations in a distributed fashion. To enable this, an _actor model_ is utilized, and simulations built atop HASH must take this into account. This sets HASH apart from more traditionally _object-oriented_ simulation packages.
+[HASH Engine](/platform/engine) (which powers [HASH Core](/platform/core) and our [cloud compute platform](/platform/cloud)) provides an ultra-fast framework for running large-scale simulations in a distributed fashion. To enable this, an _actor model_ is utilized, and simulations built atop HASH must take this into account. This sets HASH apart from more traditionally _object-oriented_ simulation packages.
 
 ## What is object-oriented simulation?
 
@@ -27,7 +27,7 @@ To illustrate the key differences between the traditional object-oriented approa
 
 This example simulation consists of several people scattered on a grid, each starting with 1,000 “coins”. On each iteration, agents engage in a bet with one of their neighbors. Both agents in a bet stake an amount of coins equal to 10% of the coins owned by the agent with fewer coins, and the winner is chosen by the flip of a coin.
 
-The code block below shows a traditional object-oriented approach to implementing this simulation. The full implementation is available [here](https://gist.github.com/eadanfahey/b79139054a0ad03be73445545074887c).
+The code block below shows a traditional object-oriented approach to implementing this simulation. The full implementation is available [here](https://gist.github.com/nonparibus/bc30b19ba18a200b192ca144a398eaea).
 
 ```python
 # Traditional OOP Approach
@@ -87,7 +87,7 @@ In the actor model, agents consist of **state**, have **behaviors**, and communi
 
 ## Actor-based implementation
 
-The same simulation shown in object-oriented form can easily be implemented using the actor-based framework in HASH. This simulation is available to view and run on [hIndex](https://hash.ai/@hash/random-coins). We start by initializing the simulation — specifying which agents should be created and setting their initial state. This may be performed declaratively as shown in `init.json` below.
+The same simulation shown in object-oriented form can easily be implemented using the actor-based framework in HASH. This simulation is available to view and run on [hIndex](https://simulation.hash.ai/@hash/random-coins). We start by initializing the simulation — specifying which agents should be created and setting their initial state. This may be performed declaratively as shown in `init.json` below.
 
 ```json
 [

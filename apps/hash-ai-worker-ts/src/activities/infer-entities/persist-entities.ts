@@ -1,13 +1,13 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { createGraphChangeNotification } from "@local/hash-backend-utils/notifications";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/ai-inference-types";
-import type { AccountId, Entity, OwnedById } from "@local/hash-subgraph";
+import type { AccountId, OwnedById } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 import type OpenAI from "openai";
 
 import { logger } from "../../shared/logger";
+import { createInferredEntityNotification } from "../shared/create-inferred-entity-notification";
 import { getOpenAiResponse } from "../shared/openai";
 import { stringify } from "../shared/stringify";
 import { getResultsFromInferenceState } from "./get-results-from-inference-state";
@@ -224,28 +224,6 @@ export const persistEntities = async (params: {
         messages: newMessages,
       },
     });
-  };
-
-  const createInferredEntityNotification = async ({
-    entity,
-    operation,
-  }: {
-    entity: Entity;
-    operation: "create" | "update";
-  }) => {
-    const entityEditionTimestamp =
-      entity.metadata.temporalVersioning.decisionTime.start.limit;
-
-    await createGraphChangeNotification(
-      { graphApi: graphApiClient },
-      authentication,
-      {
-        changedEntityId: entity.metadata.recordId.entityId,
-        changedEntityEditionId: entityEditionTimestamp,
-        notifiedUserAccountId: requestingUserAccountId,
-        operation,
-      },
-    );
   };
 
   switch (finish_reason) {
@@ -494,13 +472,13 @@ export const persistEntities = async (params: {
               }
             }
 
-            if (createAs === "live") {
-              for (const success of successes) {
-                void createInferredEntityNotification({
-                  entity: success.entity,
-                  operation: "create",
-                });
-              }
+            for (const success of successes) {
+              void createInferredEntityNotification({
+                entity: success.entity,
+                graphApiClient,
+                notifiedUserAccountId: requestingUserAccountId,
+                operation: "create",
+              });
             }
 
             if (failures.length > 0) {
@@ -630,12 +608,12 @@ export const persistEntities = async (params: {
             logger.info(`Update failures: ${stringify(updateFailures)}`);
 
             for (const success of successes) {
-              if (createAs === "live") {
-                void createInferredEntityNotification({
-                  entity: success.entity,
-                  operation: "update",
-                });
-              }
+              void createInferredEntityNotification({
+                entity: success.entity,
+                graphApiClient,
+                notifiedUserAccountId: requestingUserAccountId,
+                operation: "update",
+              });
 
               inferenceState.inProgressEntityIds =
                 inferenceState.inProgressEntityIds.filter(

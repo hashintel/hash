@@ -1,6 +1,13 @@
 pub mod entity;
 pub mod link;
 
-mod confidence;
+pub use self::{
+    confidence::Confidence,
+    property::{
+        Property, PropertyDiff, PropertyMetadata, PropertyMetadataMap, PropertyObject,
+        PropertyPatchOperation, PropertyPath, PropertyPathElement, PropertyProvenance,
+    },
+};
 
-pub use self::confidence::Confidence;
+mod confidence;
+mod property;

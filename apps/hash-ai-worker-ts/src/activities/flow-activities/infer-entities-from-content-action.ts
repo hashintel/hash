@@ -6,7 +6,8 @@ import {
   type OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
-import type { OwnedById } from "@local/hash-subgraph/.";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import type { OwnedById } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 
 import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity";
@@ -84,20 +85,32 @@ export const inferEntitiesFromContentAction: FlowActionActivity<{
     };
   }
 
+  const actionIdPrefix = generateUuid();
+
   webPageInferenceState = status.contents[0]!;
 
   const proposedEntities = Object.entries(
     webPageInferenceState.proposedEntityCreationsByType,
   ).flatMap(([entityTypeId, proposedEntitiesByType]) =>
-    proposedEntitiesByType.map<ProposedEntity>(({ entityId, properties }) => {
+    proposedEntitiesByType.map<ProposedEntity>((proposal) => {
       const summary = webPageInferenceState.proposedEntitySummaries.find(
-        (proposedEntitySummary) => proposedEntitySummary.entityId === entityId,
+        (proposedEntitySummary) =>
+          proposedEntitySummary.entityId === proposal.entityId,
       )?.summary;
 
       return {
+        localEntityId: `${actionIdPrefix}-${proposal.entityId}`,
         entityTypeId: entityTypeId as VersionedUrl,
         summary,
-        properties: properties ?? {},
+        properties: proposal.properties ?? {},
+        sourceEntityLocalId:
+          "sourceEntityId" in proposal
+            ? `${actionIdPrefix}-${proposal.sourceEntityId}`
+            : undefined,
+        targetEntityLocalId:
+          "targetEntityId" in proposal
+            ? `${actionIdPrefix}-${proposal.targetEntityId}`
+            : undefined,
       };
     }),
   );
