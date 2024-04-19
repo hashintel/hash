@@ -5,7 +5,6 @@
     clippy::unwrap_used
 )]
 #![expect(
-    clippy::same_name_method,
     clippy::significant_drop_tightening,
     reason = "This should be enabled but it's currently too noisy"
 )]
@@ -53,9 +52,7 @@ use graph::{
     },
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
-        identifier::{
-            DataTypeVertexId, EntityTypeVertexId, GraphElementVertexId, PropertyTypeVertexId,
-        },
+        identifier::{EntityTypeVertexId, GraphElementVertexId, PropertyTypeVertexId},
         query::StructuralQuery,
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
@@ -73,9 +70,9 @@ use graph_types::{
         Confidence, PropertyMetadataMap, PropertyObject, PropertyProvenance,
     },
     ontology::{
-        DataTypeMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
-        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, PropertyTypeMetadata,
-        PropertyTypeWithMetadata, ProvidedOntologyEditionProvenance,
+        DataTypeMetadata, EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata,
+        OntologyTypeClassificationMetadata, PropertyTypeMetadata, PropertyTypeWithMetadata,
+        ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
 };
@@ -344,96 +341,7 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
     }
 }
 
-// TODO: Add get_all_* methods
 impl<A: AuthorizationApi> DatabaseApi<'_, A> {
-    pub async fn create_owned_data_type(
-        &mut self,
-        data_type: DataType,
-    ) -> Result<DataTypeMetadata, InsertionError> {
-        self.store
-            .create_data_type(
-                self.account_id,
-                CreateDataTypeParams {
-                    schema: data_type,
-                    classification: OntologyTypeClassificationMetadata::Owned {
-                        owned_by_id: OwnedById::new(self.account_id.into_uuid()),
-                    },
-                    relationships: data_type_relationships(),
-                    conflict_behavior: ConflictBehavior::Fail,
-                    provenance: ProvidedOntologyEditionProvenance::default(),
-                },
-            )
-            .await
-    }
-
-    pub async fn create_external_data_type(
-        &mut self,
-        data_type: DataType,
-    ) -> Result<DataTypeMetadata, InsertionError> {
-        self.store
-            .create_data_type(
-                self.account_id,
-                CreateDataTypeParams {
-                    schema: data_type,
-                    classification: OntologyTypeClassificationMetadata::External {
-                        fetched_at: OffsetDateTime::now_utc(),
-                    },
-                    relationships: data_type_relationships(),
-                    conflict_behavior: ConflictBehavior::Fail,
-                    provenance: ProvidedOntologyEditionProvenance::default(),
-                },
-            )
-            .await
-    }
-
-    pub async fn get_data_type(
-        &mut self,
-        url: &VersionedUrl,
-    ) -> Result<DataTypeWithMetadata, QueryError> {
-        Ok(self
-            .store
-            .get_data_type(
-                self.account_id,
-                GetDataTypesParams {
-                    query: StructuralQuery {
-                        filter: Filter::for_versioned_url(url),
-                        graph_resolve_depths: GraphResolveDepths::default(),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(
-                                Some(TemporalBound::Unbounded),
-                                None,
-                            ),
-                        },
-                        include_drafts: false,
-                    },
-                    limit: None,
-                    after: None,
-                },
-            )
-            .await?
-            .vertices
-            .data_types
-            .remove(&DataTypeVertexId::from(url.clone()))
-            .expect("no data type found"))
-    }
-
-    pub async fn update_data_type(
-        &mut self,
-        schema: DataType,
-    ) -> Result<DataTypeMetadata, UpdateError> {
-        self.store
-            .update_data_type(
-                self.account_id,
-                UpdateDataTypesParams {
-                    schema,
-                    relationships: data_type_relationships(),
-                    provenance: ProvidedOntologyEditionProvenance::default(),
-                },
-            )
-            .await
-    }
-
     pub async fn create_property_type(
         &mut self,
         property_type: PropertyType,
