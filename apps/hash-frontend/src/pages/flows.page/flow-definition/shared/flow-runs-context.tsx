@@ -1,5 +1,4 @@
 import { useQuery } from "@apollo/client";
-import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import { getFlowRunsQuery } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 import type { PropsWithChildren } from "react";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";

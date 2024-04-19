@@ -188,6 +188,7 @@ export const Swimlane = ({
           nodeTypes={nodeTypes}
           edges={edges}
           edgeTypes={edgeTypes}
+          proOptions={{ hideAttribution: true }}
           // fitView
           // onNodesChange={onNodesChange}
           // onEdgesChange={onEdgesChange}
