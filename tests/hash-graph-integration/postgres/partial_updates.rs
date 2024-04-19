@@ -3,8 +3,8 @@ use std::{collections::HashSet, iter::once, str::FromStr};
 use graph::store::knowledge::PatchEntityParams;
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::knowledge::{
-    entity::ProvidedEntityEditionProvenanceMetadata, Property, PropertyConfidence, PropertyObject,
-    PropertyPatchOperation, PropertyPathElement,
+    entity::ProvidedEntityEditionProvenance, Property, PropertyMetadataMap, PropertyObject,
+    PropertyPatchOperation, PropertyPathElement, PropertyProvenance,
 };
 use pretty_assertions::assert_eq;
 use serde_json::json;
@@ -79,7 +79,7 @@ async fn properties_add() {
             None,
             false,
             None,
-            PropertyConfidence::default(),
+            PropertyMetadataMap::default(),
         )
         .await
         .expect("could not create entity");
@@ -93,11 +93,12 @@ async fn properties_add() {
             path: once(PropertyPathElement::from(age_property_type_id())).collect(),
             value: Property::Value(json!(30)),
             confidence: None,
+            provenance: PropertyProvenance::default(),
         }],
         draft: None,
         archived: None,
         confidence: None,
-        provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+        provenance: ProvidedEntityEditionProvenance::default(),
     })
     .await
     .expect("could not patch entity");
@@ -124,7 +125,7 @@ async fn properties_remove() {
             None,
             false,
             None,
-            PropertyConfidence::default(),
+            PropertyMetadataMap::default(),
         )
         .await
         .expect("could not create entity");
@@ -140,7 +141,7 @@ async fn properties_remove() {
         draft: None,
         archived: None,
         confidence: None,
-        provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+        provenance: ProvidedEntityEditionProvenance::default(),
     })
     .await
     .expect("could not patch entity");
@@ -165,7 +166,7 @@ async fn properties_replace() {
             None,
             false,
             None,
-            PropertyConfidence::default(),
+            PropertyMetadataMap::default(),
         )
         .await
         .expect("could not create entity");
@@ -179,11 +180,12 @@ async fn properties_replace() {
             path: once(PropertyPathElement::from(name_property_type_id())).collect(),
             value: Property::Value(json!("Bob")),
             confidence: None,
+            provenance: PropertyProvenance::default(),
         }],
         draft: None,
         archived: None,
         confidence: None,
-        provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+        provenance: ProvidedEntityEditionProvenance::default(),
     })
     .await
     .expect("could not patch entity");
@@ -209,7 +211,7 @@ async fn properties_move() {
             None,
             false,
             None,
-            PropertyConfidence::default(),
+            PropertyMetadataMap::default(),
         )
         .await
         .expect("could not create entity");
@@ -229,11 +231,12 @@ async fn properties_move() {
                 .into_iter()
                 .collect(),
                 confidence: None,
+                provenance: PropertyProvenance::default(),
             }],
             draft: None,
             archived: None,
             confidence: None,
-            provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+            provenance: ProvidedEntityEditionProvenance::default(),
         })
         .await
         .expect_err("Could patch entity with invalid move operation");
@@ -247,6 +250,7 @@ async fn properties_move() {
                 path: once(PropertyPathElement::from(interests_property_type_id())).collect(),
                 value: Property::Value(json!({})),
                 confidence: None,
+                provenance: PropertyProvenance::default(),
             },
             PropertyPatchOperation::Move {
                 from: once(PropertyPathElement::from(name_property_type_id())).collect(),
@@ -257,12 +261,13 @@ async fn properties_move() {
                 .into_iter()
                 .collect(),
                 confidence: None,
+                provenance: PropertyProvenance::default(),
             },
         ],
         draft: None,
         archived: None,
         confidence: None,
-        provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+        provenance: ProvidedEntityEditionProvenance::default(),
     })
     .await
     .expect("could not patch entity");
@@ -291,7 +296,7 @@ async fn properties_copy() {
             None,
             false,
             None,
-            PropertyConfidence::default(),
+            PropertyMetadataMap::default(),
         )
         .await
         .expect("could not create entity");
@@ -306,6 +311,7 @@ async fn properties_copy() {
                 path: once(PropertyPathElement::from(interests_property_type_id())).collect(),
                 value: Property::Value(json!({})),
                 confidence: None,
+                provenance: PropertyProvenance::default(),
             },
             PropertyPatchOperation::Test {
                 path: once(PropertyPathElement::from(interests_property_type_id())).collect(),
@@ -320,12 +326,13 @@ async fn properties_copy() {
                 .into_iter()
                 .collect(),
                 confidence: None,
+                provenance: PropertyProvenance::default(),
             },
         ],
         draft: None,
         archived: None,
         confidence: None,
-        provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+        provenance: ProvidedEntityEditionProvenance::default(),
     })
     .await
     .expect("could not patch entity");
@@ -355,7 +362,7 @@ async fn type_ids() {
             None,
             false,
             None,
-            PropertyConfidence::default(),
+            PropertyMetadataMap::default(),
         )
         .await
         .expect("could not create entity");
@@ -369,7 +376,7 @@ async fn type_ids() {
         draft: None,
         archived: None,
         confidence: None,
-        provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+        provenance: ProvidedEntityEditionProvenance::default(),
     })
     .await
     .expect("could not patch entity");
@@ -392,7 +399,7 @@ async fn type_ids() {
         draft: None,
         archived: None,
         confidence: None,
-        provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+        provenance: ProvidedEntityEditionProvenance::default(),
     })
     .await
     .expect("could not patch entity");
@@ -419,7 +426,7 @@ async fn type_ids() {
         draft: None,
         archived: None,
         confidence: None,
-        provenance: ProvidedEntityEditionProvenanceMetadata::default(),
+        provenance: ProvidedEntityEditionProvenance::default(),
     })
     .await
     .expect("could not patch entity");
