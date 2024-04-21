@@ -46,12 +46,12 @@ impl<'a> WorkspaceMember<'a> {
         self.package
             .manifest_path
             .components()
-            .any(|component| component == "@blockprotocol")
+            .any(|component| component.as_str() == "@blockprotocol")
     }
 
     fn package_name(&self) -> String {
         if self.is_blockprotocol() {
-            return format!("@blockprotocol/{}-rust", self.package.name);
+            return format!("@blockprotocol/{}-rs", self.package.name);
         }
 
         format!("@rust/{}", self.package.name)
@@ -112,7 +112,7 @@ impl<'a> WorkspaceMember<'a> {
             PackageJson::default()
         };
 
-        if self.is_ignored(&package_json) {
+        if self.is_ignored() {
             eprintln!("package.json in {} is ignored", path.display());
             return;
         }
