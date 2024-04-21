@@ -1,8 +1,9 @@
-//! ```cargo
-//! [dependencies]
-//! serde = {version = "*", features = ["derive"]}
-//! toml = {version = "*", features = ["parse"]}
-//! ```
+#!/usr/bin/env -S cargo +nightly -Zscript
+```cargo
+[dependencies]
+serde = {version = "*", features = ["derive"]}
+toml = {version = "*", features = ["parse"]}
+```
 
 #![allow(non_snake_case)]
 

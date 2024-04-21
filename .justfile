@@ -111,10 +111,6 @@ install-cargo-nextest:
   @just install-cargo-tool 'cargo nextest' cargo-nextest 0.9.37
 
 [private]
-install-rust-script:
-  @just install-cargo-tool 'rust-script' rust-script 0.23.0
-
-[private]
 install-llvm-cov:
   @just install-cargo-tool 'cargo llvm-cov' cargo-llvm-cov 0.5.9
 
@@ -131,7 +127,7 @@ install-cargo-insta:
 [private]
 [no-cd]
 lint-toml mode:
-  @rust-script "{{repo}}/.github/scripts/rust/lint.rs" {{mode}} `cargo metadata --no-deps --format-version 1 | jq '.workspace_root' -r`
+  @cargo run --manifest-path "{{repo}}/.github/scripts/rust/lint.rs" {{mode}} `cargo metadata --no-deps --format-version 1 | jq '.workspace_root' -r`
 
 # Runs all linting commands and fails if the CI would fail
 [no-cd]
