@@ -60,7 +60,7 @@ use graph::{
 use graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{EntityMetadata, EntityUuid},
+        entity::{Entity, EntityId, EntityMetadata, EntityUuid},
         link::LinkData,
         PropertyObject,
     },
@@ -71,7 +71,7 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use temporal_versioning::{DecisionTime, Timestamp};
+use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use time::{format_description::well_known::Iso8601, Duration, OffsetDateTime};
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{url::VersionedUrl, DataType, EntityType, PropertyType};
@@ -535,6 +535,18 @@ where
         query: EntityStructuralQuery<'_>,
     ) -> Result<usize, QueryError> {
         self.store.count_entities(actor_id, query).await
+    }
+
+    async fn get_entity_by_id(
+        &self,
+        actor_id: AccountId,
+        entity_id: EntityId,
+        transaction_time: Option<Timestamp<TransactionTime>>,
+        decision_time: Option<Timestamp<DecisionTime>>,
+    ) -> Result<Entity, QueryError> {
+        self.store
+            .get_entity_by_id(actor_id, entity_id, transaction_time, decision_time)
+            .await
     }
 
     async fn patch_entity(

@@ -6,7 +6,8 @@ use graph_types::{
     account::AccountId,
     knowledge::{
         entity::{
-            EntityEmbedding, EntityId, EntityMetadata, EntityUuid, ProvidedEntityEditionProvenance,
+            Entity, EntityEmbedding, EntityId, EntityMetadata, EntityUuid,
+            ProvidedEntityEditionProvenance,
         },
         link::LinkData,
         Confidence, PropertyDiff, PropertyMetadataMap, PropertyObject, PropertyPatchOperation,
@@ -304,7 +305,7 @@ pub struct DiffEntityResult<'e> {
 
 /// Describes the API of a store implementation for [Entities].
 ///
-/// [Entities]: graph_types::knowledge::entity::Entity
+/// [Entities]: Entity
 pub trait EntityStore {
     /// Creates a new [`Entity`].
     ///
@@ -314,9 +315,6 @@ pub trait EntityStore {
     /// - if the [`PropertyObject`] is not valid with respect to the specified [`EntityType`]
     /// - if the account referred to by `owned_by_id` does not exist
     /// - if an [`EntityUuid`] was supplied and already exists in the store
-    ///
-    /// [`EntityType`]: type_system::EntityType
-    /// [`Entity`]: graph_types::knowledge::entity::Entity
     fn create_entity<R>(
         &mut self,
         actor_id: AccountId,
@@ -330,8 +328,6 @@ pub trait EntityStore {
     /// # Errors:
     ///
     /// - if the validation failed
-    ///
-    /// [`Entity`]: graph_types::knowledge::entity::Entity
     fn validate_entity(
         &self,
         actor_id: AccountId,
@@ -354,9 +350,6 @@ pub trait EntityStore {
     /// - if on of the [`Entity`] is not valid with respect to the specified [`EntityType`]
     /// - if the account referred to by `owned_by_id` does not exist
     /// - if an [`EntityUuid`] was supplied and already exists in the store
-    ///
-    /// [`Entity`]: graph_types::knowledge::entity::Entity
-    /// [`EntityType`]: type_system::EntityType
     fn insert_entities_batched_by_type(
         &mut self,
         actor_id: AccountId,
@@ -379,7 +372,6 @@ pub trait EntityStore {
     ///
     /// - if the requested [`Entity`] doesn't exist
     ///
-    /// [`Entity`]: graph_types::knowledge::entity::Entity
     /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
     fn get_entity(
         &self,
@@ -400,10 +392,9 @@ pub trait EntityStore {
         query: EntityStructuralQuery<'_>,
     ) -> impl Future<Output = Result<usize, Report<QueryError>>> + Send;
 
-    fn get_entity_by_id<A: AuthorizationApi + Sync>(
+    fn get_entity_by_id(
         &self,
         actor_id: AccountId,
-        authorization_api: &A,
         entity_id: EntityId,
         transaction_time: Option<Timestamp<TransactionTime>>,
         decision_time: Option<Timestamp<DecisionTime>>,
@@ -415,17 +406,18 @@ pub trait EntityStore {
         params: PatchEntityParams,
     ) -> impl Future<Output = Result<EntityMetadata, Report<UpdateError>>> + Send;
 
-    fn diff_entity<A: AuthorizationApi + Sync>(
+    fn diff_entity(
         &self,
         actor_id: AccountId,
-        authorization_api: &A,
         params: DiffEntityParams,
-    ) -> impl Future<Output = Result<DiffEntityResult<'static>, Report<QueryError>>> + Send {
+    ) -> impl Future<Output = Result<DiffEntityResult<'static>, Report<QueryError>>> + Send
+    where
+        Self: Sync,
+    {
         async move {
             let first_entity = self
                 .get_entity_by_id(
                     actor_id,
-                    authorization_api,
                     params.first_entity_id,
                     params.first_transaction_time,
                     params.first_decision_time,
@@ -434,7 +426,6 @@ pub trait EntityStore {
             let second_entity = self
                 .get_entity_by_id(
                     actor_id,
-                    authorization_api,
                     params.second_entity_id,
                     params.second_transaction_time,
                     params.second_decision_time,

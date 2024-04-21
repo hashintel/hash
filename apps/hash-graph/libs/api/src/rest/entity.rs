@@ -674,20 +674,25 @@ async fn diff_entity<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(params): Json<DiffEntityParams>,
 ) -> Result<Json<DiffEntityResult<'static>>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let store = store_pool.acquire().await.map_err(report_to_response)?;
     let authorization_api = authorization_api_pool
         .acquire()
         .await
         .map_err(report_to_response)?;
 
+    let store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
     store
-        .diff_entity(actor_id, &authorization_api, params)
+        .diff_entity(actor_id, params)
         .await
         .map_err(|report| {
             if report.contains::<EntityDoesNotExist>() {

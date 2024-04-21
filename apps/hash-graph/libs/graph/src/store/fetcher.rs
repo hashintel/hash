@@ -1183,22 +1183,15 @@ where
         self.store.get_entity(actor_id, params).await
     }
 
-    async fn get_entity_by_id<Au: AuthorizationApi + Sync>(
+    async fn get_entity_by_id(
         &self,
         actor_id: AccountId,
-        authorization_api: &Au,
         entity_id: EntityId,
         transaction_time: Option<Timestamp<TransactionTime>>,
         decision_time: Option<Timestamp<DecisionTime>>,
     ) -> Result<Entity, QueryError> {
         self.store
-            .get_entity_by_id(
-                actor_id,
-                authorization_api,
-                entity_id,
-                transaction_time,
-                decision_time,
-            )
+            .get_entity_by_id(actor_id, entity_id, transaction_time, decision_time)
             .await
     }
 

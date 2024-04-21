@@ -1213,15 +1213,14 @@ where
             .count())
     }
 
-    async fn get_entity_by_id<A: AuthorizationApi + Sync>(
+    async fn get_entity_by_id(
         &self,
         actor_id: AccountId,
-        authorization_api: &A,
         entity_id: EntityId,
         transaction_time: Option<Timestamp<TransactionTime>>,
         decision_time: Option<Timestamp<DecisionTime>>,
     ) -> Result<Entity, QueryError> {
-        authorization_api
+        self.authorization_api
             .check_entity_permission(
                 actor_id,
                 EntityPermission::View,
