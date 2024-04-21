@@ -114,10 +114,11 @@ impl<'a> WorkspaceMember<'a> {
         // set the version of the package.json file to the version of the package
         package_json.version = Some(self.package.version.to_string());
 
-        // force the package to be private
+        // set the package to private if the package is private
+        let is_private = self.package.publish.map_or(false, |registries| registries.is_empty());
         package_json
             .other_fields
-            .insert("private".to_string(), true.into());
+            .insert("private".to_string(), is_private.into());
 
         // set the name of the package.json
         package_json.name = Some(self.package_name());

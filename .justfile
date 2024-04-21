@@ -137,6 +137,12 @@ lint:
   @RUSTDOCFLAGS='-Z unstable-options --check' just doc
   @RUSTDOCFLAGS='-Z unstable-options --check' just doc --document-private-items
 
+
+# Sync the package.json files to the `Cargo.toml` file
+[no-cd]
+sync-turborepo:
+  @cargo -Zscript run --manifest-path "{{repo}}/.github/scripts/rust/sync-turborepo.rs" "{{repo}}"
+
 # Format the code using `rustfmt`
 [no-cd]
 format *arguments:
