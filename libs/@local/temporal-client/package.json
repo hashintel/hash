@@ -1,12 +1,13 @@
 {
-  "name": "@local/temporal-client-rs",
-  "version": "0.0.0-private",
+  "name": "@rust/temporal-client",
+  "version": "0.0.0",
   "private": true,
   "scripts": {
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy"
   },
   "dependencies": {
-    "@local/hash-graph-types-rs": "0.0.0-private"
-  }
+    "@rust/graph-types": "0.0.0"
+  },
+  "devDependencies": {}
 }

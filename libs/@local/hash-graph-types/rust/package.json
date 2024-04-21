@@ -1,6 +1,6 @@
 {
-  "name": "@local/hash-graph-types-rs",
-  "version": "0.0.0-private",
+  "name": "@rust/graph-types",
+  "version": "0.0.0",
   "private": true,
   "scripts": {
     "fix:clippy": "just clippy --fix",
@@ -8,11 +8,11 @@
     "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
   },
   "dependencies": {
-    "@blockprotocol/type-system-rs": "0.0.0-private",
-    "@local/codec-rs": "0.0.0-private",
-    "@local/temporal-versioning-rs": "0.0.0-private"
+    "@rust/codec": "0.0.0",
+    "@rust/temporal-versioning": "0.0.0",
+    "@rust/type-system": "0.0.0"
   },
   "devDependencies": {
-    "@tests/hash-graph-test-data-rs": "0.0.0-private"
+    "@rust/graph-test-data": "0.0.0"
   }
 }

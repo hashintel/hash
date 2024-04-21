@@ -1,9 +1,11 @@
 {
-  "name": "@tests/hash-graph-test-data-rs",
-  "version": "0.0.0-private",
+  "name": "@rust/graph-test-data",
+  "version": "0.0.0",
   "private": true,
   "scripts": {
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy"
-  }
+  },
+  "dependencies": {},
+  "devDependencies": {}
 }

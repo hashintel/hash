@@ -1,0 +1,9 @@
+{
+  "name": "@rust/type-fetcher",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "@rust/type-system": "0.0.0"
+  },
+  "devDependencies": {}
+}

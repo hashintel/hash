@@ -1,13 +1,12 @@
 {
-  "name": "@local/status-rust",
-  "version": "0.0.0-private",
+  "name": "@rust/hash-status",
+  "version": "0.0.0",
   "private": true,
   "license": "(MIT OR Apache-2.0)",
   "scripts": {
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy"
   },
-  "dependencies": {
-    "@local/status": "0.0.0-private"
-  }
+  "dependencies": {},
+  "devDependencies": {}
 }
