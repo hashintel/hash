@@ -1,25 +1,17 @@
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
-import { StatusCode } from "@local/status";
 import dedent from "dedent";
 import type {
-  ChatCompletionCreateParams,
   ChatCompletionMessageParam,
   ChatCompletionSystemMessageParam,
 } from "openai/resources";
 
-import type { PermittedOpenAiModel } from "../../shared/openai";
-import { getOpenAiResponse } from "../../shared/openai";
-import type { CoordinatorToolId } from "./coordinator-tools";
-import {
-  coordinatorToolDefinitions,
-  isCoordinatorToolId,
-} from "./coordinator-tools";
-import type { CompletedToolCall, ToolCall } from "./types";
-import {
-  mapPreviousCallsToChatCompletionMessages,
-  mapToolDefinitionToOpenAiTool,
-  parseOpenAiFunctionArguments,
-} from "./util";
+import { getLlmResponse } from "../../shared/get-llm-response";
+import type { ParsedLlmToolCall } from "../../shared/get-llm-response/types";
+import type { PermittedOpenAiModel } from "../../shared/openai-client";
+import type { CoordinatorToolName } from "./coordinator-tools";
+import { coordinatorToolDefinitions } from "./coordinator-tools";
+import type { CompletedToolCall } from "./types";
+import { mapPreviousCallsToChatCompletionMessages } from "./util";
 
 const model: PermittedOpenAiModel = "gpt-4-0125-preview";
 
@@ -27,11 +19,11 @@ const getNextToolCalls = async (params: {
   submittedProposedEntities: ProposedEntity[];
   previousPlan: string;
   previousCalls?: {
-    completedToolCalls: CompletedToolCall<CoordinatorToolId>[];
+    completedToolCalls: CompletedToolCall<CoordinatorToolName>[];
   }[];
   prompt: string;
 }): Promise<{
-  toolCalls: ToolCall<CoordinatorToolId>[];
+  toolCalls: ParsedLlmToolCall<CoordinatorToolName>[];
 }> => {
   const { prompt, previousCalls, submittedProposedEntities, previousPlan } =
     params;
@@ -75,56 +67,26 @@ const getNextToolCalls = async (params: {
       : []),
   ];
 
-  const openApiPayload: ChatCompletionCreateParams = {
+  const tools = Object.values(coordinatorToolDefinitions);
+
+  const llmResponse = await getLlmResponse({
     messages,
     model,
-    tools: Object.values(coordinatorToolDefinitions).map(
-      mapToolDefinitionToOpenAiTool,
-    ),
-  };
+    tools,
+  });
 
-  const openAiResponse = await getOpenAiResponse(openApiPayload);
-
-  if (openAiResponse.code !== StatusCode.Ok) {
+  if (llmResponse.status !== "ok") {
     throw new Error(
-      `Failed to get OpenAI response: ${JSON.stringify(openAiResponse)}`,
+      `Failed to get LLM response: ${JSON.stringify(llmResponse)}`,
     );
   }
 
-  const { response, usage: _usage } = openAiResponse.contents[0]!;
+  const { parsedToolCalls, usage: _usage } = llmResponse;
 
   /** @todo: capture usage */
 
-  const openAiToolCalls = response.message.tool_calls;
-
-  if (!openAiToolCalls) {
-    /** @todo: retry this instead */
-    throw new Error(
-      `Expected tool calls in response: ${JSON.stringify(response)}`,
-    );
-  }
-
-  const coordinatorToolCalls = openAiToolCalls.map<ToolCall<CoordinatorToolId>>(
-    (openAiToolCall) => {
-      if (isCoordinatorToolId(openAiToolCall.function.name)) {
-        return {
-          toolId: openAiToolCall.function.name,
-          openAiToolCall,
-          parsedArguments: parseOpenAiFunctionArguments({
-            stringifiedArguments: openAiToolCall.function.arguments,
-          }),
-        };
-      }
-
-      throw new Error(`Unexpected tool call: ${openAiToolCall.function.name}`);
-    },
-  );
-
-  return {
-    toolCalls: coordinatorToolCalls,
-  };
+  return { toolCalls: parsedToolCalls };
 };
-
 const createInitialPlan = async (params: {
   prompt: string;
 }): Promise<{ plan: string }> => {
@@ -151,31 +113,31 @@ const createInitialPlan = async (params: {
     },
   ];
 
-  const openApiPayload: ChatCompletionCreateParams = {
+  const llmResponse = await getLlmResponse({
     messages,
     model,
-    tools: Object.values(coordinatorToolDefinitions)
-      .filter(({ toolId }) => toolId !== "updatePlan")
-      .map(mapToolDefinitionToOpenAiTool),
-  };
+    tools: Object.values(coordinatorToolDefinitions).filter(
+      ({ name }) => name !== "updatePlan",
+    ),
+  });
 
-  const openAiResponse = await getOpenAiResponse(openApiPayload);
-
-  if (openAiResponse.code !== StatusCode.Ok) {
+  if (llmResponse.status !== "ok") {
     throw new Error(
-      `Failed to get OpenAI response: ${JSON.stringify(openAiResponse)}`,
+      `Failed to get OpenAI response: ${JSON.stringify(llmResponse)}`,
     );
   }
 
-  const { response, usage: _usage } = openAiResponse.contents[0]!;
+  const { usage: _usage, choices } = llmResponse;
+
+  const { message } = choices[0];
 
   /** @todo: capture usage */
 
-  const openAiAssistantMessageContent = response.message.content;
+  const openAiAssistantMessageContent = message.content;
 
   if (!openAiAssistantMessageContent) {
     throw new Error(
-      `Expected message content in response: ${JSON.stringify(response, null, 2)}`,
+      `Expected message content in message: ${JSON.stringify(message, null, 2)}`,
     );
   }
 

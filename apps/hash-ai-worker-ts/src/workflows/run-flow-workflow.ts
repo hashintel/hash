@@ -10,6 +10,7 @@ import type {
   FlowDefinition,
   FlowStep,
   Payload,
+  StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { validateFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
 import type { EntityUuid } from "@local/hash-subgraph";
@@ -25,6 +26,7 @@ import type {
   createFlowActionActivities,
   createFlowActivities,
 } from "../activities/flow-activities";
+import { stringify } from "../activities/shared/stringify";
 import { getAllStepsInFlow } from "./run-flow-workflow/get-all-steps-in-flow";
 import { getStepDefinitionFromFlowDefinition } from "./run-flow-workflow/get-step-definition-from-flow";
 import {
@@ -219,10 +221,27 @@ export const runFlowWorkflow = async (
         }" action with ${(currentStep.inputs ?? []).length} inputs`,
       );
 
-      const actionResponse = await actionActivity({
-        inputs: currentStep.inputs ?? [],
-        userAuthentication,
-      });
+      let actionResponse: Status<{
+        outputs: StepOutput[];
+      }>;
+
+      try {
+        actionResponse = await actionActivity({
+          inputs: currentStep.inputs ?? [],
+          userAuthentication,
+        });
+      } catch (error) {
+        log(
+          `Step ${currentStepId}: encountered runtime error executing "${currentStep.actionDefinitionId}" action: ${stringify(error)}`,
+        );
+
+        processStepErrors[currentStepId] = {
+          code: StatusCode.Internal,
+          message: `Error executing action ${currentStep.actionDefinitionId}: ${stringify(error)}`,
+        };
+
+        return;
+      }
 
       /**
        * Consider the step processed, even if the action failed to prevent

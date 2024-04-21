@@ -4,7 +4,9 @@ import { StatusCode } from "@local/status";
 import dedent from "dedent";
 import type OpenAI from "openai";
 
-import { getOpenAiResponse, modelAliasToSpecificModel } from "../shared/openai";
+import { getLlmResponse } from "../shared/get-llm-response";
+import type { LlmToolDefinition } from "../shared/get-llm-response/types";
+import { modelAliasToSpecificModel } from "../shared/openai-client";
 import type { FlowActionActivity } from "./types";
 
 const webQueriesSystemMessage: OpenAI.ChatCompletionSystemMessageParam = {
@@ -17,23 +19,20 @@ const webQueriesSystemMessage: OpenAI.ChatCompletionSystemMessageParam = {
    `),
 };
 
-const tools: OpenAI.ChatCompletionTool[] = [
+const tools: LlmToolDefinition[] = [
   {
-    function: {
-      name: "propose_query",
-      description: "Propose a web search query",
-      parameters: {
-        type: "object",
-        properties: {
-          query: {
-            type: "string",
-            description: "The web search query",
-          },
+    name: "propose_query",
+    description: "Propose a web search query",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "The web search query",
         },
-        required: ["query"],
       },
+      required: ["query"],
     },
-    type: "function",
   },
 ];
 
@@ -57,7 +56,7 @@ export const generateWebQueriesAction: FlowActionActivity = async ({
     };
   }
 
-  const openApiPayload: OpenAI.ChatCompletionCreateParams = {
+  const llmResponse = await getLlmResponse({
     messages: [
       webQueriesSystemMessage,
       {
@@ -67,45 +66,24 @@ export const generateWebQueriesAction: FlowActionActivity = async ({
     ],
     model: modelAliasToSpecificModel[model],
     tools,
-  };
+  });
 
-  const openAiResponse = await getOpenAiResponse(openApiPayload);
-
-  if (openAiResponse.code !== StatusCode.Ok) {
+  if (llmResponse.status !== "ok") {
     return {
-      ...openAiResponse,
+      code: StatusCode.Internal,
       contents: [],
     };
   }
 
-  const { response, usage: _usage } = openAiResponse.contents[0]!;
+  const { usage: _usage, parsedToolCalls } = llmResponse;
 
   /** @todo: capture usage */
 
-  const toolCalls = response.message.tool_calls;
-
-  if (!toolCalls) {
-    /** @todo: retry if there are no tool calls with retry message */
-
-    return {
-      code: StatusCode.Internal,
-      message: "No tool calls found in Open AI response",
-      contents: [],
-    };
-  }
-
   const queries: string[] = [];
 
-  for (const toolCall of toolCalls) {
-    const functionCall = toolCall.function;
-
-    const { arguments: modelProvidedArguments, name: functionName } =
-      functionCall;
-
-    if (functionName === "propose_query") {
-      const { query } = JSON.parse(
-        modelProvidedArguments,
-      ) as ProposeQueryFunctionCallArguments;
+  for (const toolCall of parsedToolCalls) {
+    if (toolCall.name === "propose_query") {
+      const { query } = toolCall.input as ProposeQueryFunctionCallArguments;
 
       /** @todo: handle invalid JSON object and retry with retry message */
 

@@ -1207,6 +1207,44 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .count())
     }
 
+    async fn get_entity_by_id<A: AuthorizationApi + Sync>(
+        &self,
+        actor_id: AccountId,
+        authorization_api: &A,
+        entity_id: EntityId,
+        transaction_time: Option<Timestamp<TransactionTime>>,
+        decision_time: Option<Timestamp<DecisionTime>>,
+    ) -> Result<Entity, QueryError> {
+        authorization_api
+            .check_entity_permission(
+                actor_id,
+                EntityPermission::View,
+                entity_id,
+                Consistency::FullyConsistent,
+            )
+            .await
+            .change_context(QueryError)?
+            .assert_permission()
+            .change_context(QueryError)?;
+
+        let temporal_axes = QueryTemporalAxesUnresolved::TransactionTime {
+            pinned: PinnedTemporalAxisUnresolved::new(decision_time),
+            variable: VariableTemporalAxisUnresolved::new(
+                transaction_time.map(TemporalBound::Inclusive),
+                transaction_time.map(LimitedTemporalBound::Inclusive),
+            ),
+        }
+        .resolve();
+
+        Read::<Entity>::read_one(
+            self,
+            &Filter::for_entity_by_entity_id(entity_id),
+            Some(&temporal_axes),
+            entity_id.draft_id.is_some(),
+        )
+        .await
+    }
+
     #[tracing::instrument(level = "info", skip(self, authorization_api, temporal_client, params))]
     async fn patch_entity<A: AuthorizationApi + Send + Sync>(
         &mut self,
