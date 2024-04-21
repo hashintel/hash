@@ -72,14 +72,20 @@ impl<'a> WorkspaceMember<'a> {
     }
 
     fn package_dependencies(&self) -> BTreeMap<String, String> {
-        self.dependencies
+        let extra = self.extra_dependencies();
+
+        let mut dependencies: BTreeMap<_, _> = self.dependencies
             .iter()
             .map(|id| {
                 let member = self.workspace.member(id);
 
                 member.dependency_declaration()
             })
-            .collect()
+            .collect();
+
+        dependencies.extend(extra);
+
+        dependencies
     }
 
     fn package_dev_dependencies(&self) -> BTreeMap<String, String> {
@@ -94,12 +100,57 @@ impl<'a> WorkspaceMember<'a> {
             .collect()
     }
 
+    fn extra_dependencies(&self) -> BTreeMap<String, String> {
+        let Some(sync) = self.package.metadata.get("sync") else {
+            return BTreeMap::new();
+        };
+
+        let Some(turborepo) = sync.get("turborepo") else {
+            return BTreeMap::new();
+        };
+
+        let Some(dependencies) = turborepo.get("extra-dependencies") else {
+            return BTreeMap::new();
+        };
+
+        let Some(dependencies) = dependencies.as_array() else {
+            eprintln!(
+                "extra-dependencies of {} should be an array",
+                self.package.name
+            );
+            return BTreeMap::new();
+        };
+
+        dependencies
+            .iter()
+            .map(|dependency| {
+                let name = dependency
+                    .get("name")
+                    .expect("dependency should have a name");
+                let version = dependency
+                    .get("version")
+                    .expect("dependency should have a version");
+
+                (
+                    name.as_str().expect("name should be a string").to_owned(),
+                    version
+                        .as_str()
+                        .expect("version should be a string")
+                        .to_owned(),
+                )
+            })
+            .collect()
+    }
+
     fn is_ignored(&self) -> bool {
         self.is_blockprotocol()
     }
 
     fn is_private(&self) -> bool {
-        self.package.publish.as_ref().map_or(false, |registries| registries.is_empty())
+        self.package
+            .publish
+            .as_ref()
+            .map_or(false, |registries| registries.is_empty())
     }
 
     // first find the package.json file in the package
@@ -121,7 +172,10 @@ impl<'a> WorkspaceMember<'a> {
             serde_json::from_str(&buffer).expect("package.json should be valid JSON")
         } else {
             // time to generate a package.json file
-            eprintln!("package.json does not exist in {}, creating package.json", path.display());
+            eprintln!(
+                "package.json does not exist in {}, creating package.json",
+                path.display()
+            );
 
             PackageJson::default()
         };
@@ -147,8 +201,8 @@ impl<'a> WorkspaceMember<'a> {
         package_json.dev_dependencies = Some(self.package_dev_dependencies());
 
         // write the package.json file back to disk
-        let package_json =
-            serde_json::to_string_pretty(&package_json).expect("package.json should be serializable");
+        let package_json = serde_json::to_string_pretty(&package_json)
+            .expect("package.json should be serializable");
         fs::write(&path, package_json).expect("package.json should be writable");
     }
 }
