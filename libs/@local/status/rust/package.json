@@ -7,6 +7,8 @@
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@local/status": "0.0.0-private"
+  },
   "devDependencies": {}
 }
