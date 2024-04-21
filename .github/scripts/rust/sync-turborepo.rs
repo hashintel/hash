@@ -19,7 +19,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use cargo_metadata::{DependencyKind, Metadata, MetadataCommand, Package, PackageId, Source};
+use cargo_metadata::{DependencyKind, Metadata, MetadataCommand, Package, PackageId};
 use nodejs_package_json::PackageJson;
 
 // take the metadata of the current package (indicated by the first argument)
@@ -115,7 +115,7 @@ impl<'a> WorkspaceMember<'a> {
         package_json.version = Some(self.package.version.to_string());
 
         // set the package to private if the package is private
-        let is_private = self.package.publish.map_or(false, |registries| registries.is_empty());
+        let is_private = self.package.publish.as_ref().map_or(false, |registries| registries.is_empty());
         package_json
             .other_fields
             .insert("private".to_string(), is_private.into());
@@ -165,10 +165,6 @@ impl<'a> Workspace<'a> {
             members,
             reverse_path,
         }
-    }
-
-    fn contains(&self, package: &PackageId) -> bool {
-        self.members.contains(package)
     }
 
     fn lookup_path(&self, path: &Path) -> Option<&PackageId> {

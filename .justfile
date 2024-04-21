@@ -150,7 +150,7 @@ format *arguments:
 
 # Lint the code using `clippy`
 [no-cd]
-clippy *arguments: install-cargo-hack install-rust-script
+clippy *arguments: install-cargo-hack
   @just lint-toml "generate"
   @just in-pr cargo clippy --profile {{profile}} --all-features --all-targets --no-deps {{arguments}}
   @just not-in-pr cargo hack --optional-deps --feature-powerset clippy --profile {{profile}} --all-targets --no-deps {{arguments}}
