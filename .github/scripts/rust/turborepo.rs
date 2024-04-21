@@ -72,6 +72,16 @@ impl<'a> WorkspaceMember<'a> {
             .collect()
     }
 
+    fn is_ignored(&self, package: &PackageJson) -> bool {
+        // if the package name starts with "@blockprotocol" then it is ignored
+
+        let Some(name) = package.name.as_ref() else {
+            return false;
+        };
+
+        name.starts_with("@blockprotocol/")
+    }
+
     // first find the package.json file in the package
     // if none is found print a warning and return
     fn sync(&self) {
@@ -91,10 +101,15 @@ impl<'a> WorkspaceMember<'a> {
             serde_json::from_str(&buffer).expect("package.json is valid JSON")
         } else {
             // time to generate a package.json file
-            eprintln!("package.json does not exist in {}", path.display());
+            eprintln!("package.json does not exist in {}, creating package.json", path.display());
 
             PackageJson::default()
         };
+
+        if self.is_ignored(&package_json) {
+            eprintln!("package.json in {} is ignored", path.display());
+            return;
+        }
 
         // set the version of the package.json file to the version of the package
         package_json.version = Some(self.package.version.to_string());
