@@ -1,6 +1,6 @@
 {
   "name": "@rust/graph-integration",
-  "version": "0.0.0",
+  "version": "0.0.0-private",
   "private": true,
   "scripts": {
     "fix:clippy": "just clippy --fix",
@@ -9,11 +9,11 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "@blockprotocol/type-system-rs": "0.0.0",
-    "@rust/authorization": "0.0.0",
-    "@rust/graph": "0.0.0",
-    "@rust/graph-test-data": "0.0.0",
-    "@rust/graph-types": "0.0.0",
-    "@rust/temporal-versioning": "0.0.0"
+    "@blockprotocol/type-system-rs": "0.0.0-private",
+    "@rust/authorization": "0.0.0-private",
+    "@rust/graph": "0.0.0-private",
+    "@rust/graph-test-data": "0.0.0-private",
+    "@rust/graph-types": "0.0.0-private",
+    "@rust/temporal-versioning": "0.0.0-private"
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@rust/hash-status",
-  "version": "0.0.0",
+  "version": "0.0.0-private",
   "private": true,
   "license": "(MIT OR Apache-2.0)",
   "scripts": {

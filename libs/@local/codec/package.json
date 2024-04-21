@@ -1,6 +1,6 @@
 {
   "name": "@rust/codec",
-  "version": "0.0.0",
+  "version": "0.0.0-private",
   "private": true,
   "scripts": {
     "fix:clippy": "just clippy --fix",

@@ -1,6 +1,6 @@
 {
   "name": "@rust/temporal-versioning",
-  "version": "0.0.0",
+  "version": "0.0.0-private",
   "private": true,
   "scripts": {
     "fix:clippy": "just clippy --fix",
@@ -8,7 +8,7 @@
     "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
   },
   "dependencies": {
-    "@rust/codec": "0.0.0"
+    "@rust/codec": "0.0.0-private"
   },
   "devDependencies": {}
 }

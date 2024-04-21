@@ -1,18 +1,18 @@
 {
   "name": "@rust/graph-api",
-  "version": "0.0.0",
+  "version": "0.0.0-private",
   "private": true,
   "dependencies": {
-    "@blockprotocol/type-system-rs": "0.0.0",
-    "@rust/authorization": "0.0.0",
-    "@rust/codec": "0.0.0",
-    "@rust/graph": "0.0.0",
-    "@rust/graph-types": "0.0.0",
-    "@rust/hash-status": "0.0.0",
-    "@rust/hash-tracing": "0.0.0",
-    "@rust/temporal-client": "0.0.0",
-    "@rust/temporal-versioning": "0.0.0",
-    "@rust/validation": "0.0.0"
+    "@blockprotocol/type-system-rs": "0.0.0-private",
+    "@rust/authorization": "0.0.0-private",
+    "@rust/codec": "0.0.0-private",
+    "@rust/graph": "0.0.0-private",
+    "@rust/graph-types": "0.0.0-private",
+    "@rust/hash-status": "0.0.0-private",
+    "@rust/hash-tracing": "0.0.0-private",
+    "@rust/temporal-client": "0.0.0-private",
+    "@rust/temporal-versioning": "0.0.0-private",
+    "@rust/validation": "0.0.0-private"
   },
   "devDependencies": {}
 }
