@@ -27,7 +27,7 @@ fn collect_metadata(cwd: &Path) -> Metadata {
     let mut cmd = MetadataCommand::new();
     cmd.manifest_path(cwd.join("Cargo.toml"));
     cmd.exec()
-        .expect("Workspace root is in current working directory")
+        .expect("workspace root should be in current working directory")
 }
 
 #[derive(Debug)]
@@ -109,7 +109,7 @@ impl<'a> WorkspaceMember<'a> {
             .package
             .manifest_path
             .parent()
-            .expect("package has a parent directory")
+            .expect("package should have a parent directory")
             .as_std_path();
 
         let path = directory.join("package.json");
@@ -117,8 +117,8 @@ impl<'a> WorkspaceMember<'a> {
         let mut package_json = if path.exists() {
             // read the package.json file
             // (in theory first reading to a string is unnecessary, but this is a script after all)
-            let buffer = fs::read_to_string(&path).expect("package.json is readable");
-            serde_json::from_str(&buffer).expect("package.json is valid JSON")
+            let buffer = fs::read_to_string(&path).expect("package.json should be readable");
+            serde_json::from_str(&buffer).expect("package.json should be valid JSON")
         } else {
             // time to generate a package.json file
             eprintln!("package.json does not exist in {}, creating package.json", path.display());
@@ -148,8 +148,8 @@ impl<'a> WorkspaceMember<'a> {
 
         // write the package.json file back to disk
         let package_json =
-            serde_json::to_string_pretty(&package_json).expect("package.json is serializable");
-        fs::write(&path, package_json).expect("package.json is writable");
+            serde_json::to_string_pretty(&package_json).expect("package.json should be serializable");
+        fs::write(&path, package_json).expect("package.json should be writable");
     }
 }
 
@@ -197,7 +197,7 @@ impl<'a> Workspace<'a> {
             .packages
             .iter()
             .find(|p| p.id == *id)
-            .expect("workspace member is in metadata");
+            .expect("workspace member should be contained in metadata");
 
         // find the dependencies of the package that are also workspace members
         let mut dependencies = HashSet::new();
@@ -255,7 +255,7 @@ fn main() {
         .map(PathBuf::from)
         .map(Ok)
         .unwrap_or_else(env::current_dir)
-        .expect("able to determine current working directory");
+        .expect("should be able to determine the current working directory");
 
     let metadata = collect_metadata(&cwd);
 
