@@ -326,8 +326,7 @@ fn main() {
         "generate" => generate(&cwd),
         "check" => check(&cwd),
         arg => panic!(
-            "unrecognized mode `{}`, available: `generate`, `check`",
-            arg
+            "unrecognized mode `{arg}`, available: `generate`, `check`"
         ),
     };
 }
