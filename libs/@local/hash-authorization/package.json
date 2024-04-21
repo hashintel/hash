@@ -9,9 +9,9 @@
     "test:unit:disabled": "cargo hack nextest run --feature-powerset --lib && cargo test --all-features --doc"
   },
   "dependencies": {
+    "@blockprotocol/type-system-rs": "0.0.0",
     "@rust/codec": "0.0.0",
-    "@rust/graph-types": "0.0.0",
-    "@rust/type-system": "0.0.0"
+    "@rust/graph-types": "0.0.0"
   },
   "devDependencies": {}
 }

@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "dependencies": {
+    "@blockprotocol/type-system-rs": "0.0.0",
     "@rust/authorization": "0.0.0",
     "@rust/codec": "0.0.0",
     "@rust/graph-types": "0.0.0",
@@ -10,7 +11,6 @@
     "@rust/temporal-client": "0.0.0",
     "@rust/temporal-versioning": "0.0.0",
     "@rust/type-fetcher": "0.0.0",
-    "@rust/type-system": "0.0.0",
     "@rust/validation": "0.0.0"
   },
   "devDependencies": {
