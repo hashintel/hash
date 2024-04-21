@@ -9,17 +9,18 @@ edition = "2024"
 serde = {version = "*", features = ["derive"]}
 serde_json = {version = "*", features = ["preserve_order"]}
 cargo_metadata = {version = "*"}
-nodejs_package_json = { version = "*" }
+nodejs_package_json = { version = "*", features = ["serialize"] }
 ```
 #![feature(gen_blocks)]
 
 use std::{
-    collections::{HashMap, HashSet},
-    env,
+    collections::{BTreeMap, HashMap, HashSet},
+    env, fs,
     path::{Path, PathBuf},
 };
 
 use cargo_metadata::{DependencyKind, Metadata, MetadataCommand, Package, PackageId, Source};
+use nodejs_package_json::PackageJson;
 
 // take the metadata of the current package (indicated by the first argument)
 fn collect_metadata(cwd: &Path) -> Metadata {
@@ -49,33 +50,45 @@ impl<'a> WorkspaceMember<'a> {
     }
 
     fn package_dependencies(&self) -> BTreeMap<String, String> {
-        self.dependencies.iter().map(|id| {
-            let member = self.workspace.member(id);
+        self.dependencies
+            .iter()
+            .map(|id| {
+                let member = self.workspace.member(id);
 
-            member.dependency_declaration()
-        }).collect()
+                member.dependency_declaration()
+            })
+            .collect()
     }
 
     fn package_dev_dependencies(&self) -> BTreeMap<String, String> {
-        self.dev_dependencies.iter().chain(self.build_dependencies.iter()).map(|id| {
-            let member = self.workspace.member(id);
+        self.dev_dependencies
+            .iter()
+            .chain(self.build_dependencies.iter())
+            .map(|id| {
+                let member = self.workspace.member(id);
 
-            member.dependency_declaration()
-        }).collect()
+                member.dependency_declaration()
+            })
+            .collect()
     }
 
     // first find the package.json file in the package
     // if none is found print a warning and return
     fn sync(&self) {
-        let path = self.package.manifest_path.parent().expect("package has a parent directory").as_std_path();
+        let directory = self
+            .package
+            .manifest_path
+            .parent()
+            .expect("package has a parent directory")
+            .as_std_path();
 
-        let package_json = path.join("package.json");
+        let path = directory.join("package.json");
 
-        let package_json = if package_json.exists() {
+        let mut package_json = if path.exists() {
             // read the package.json file
             // (in theory first reading to a string is unnecessary, but this is a script after all)
-            let package_json = fs::read_to_string(&package_json).expect("package.json is readable");
-            serde_json::from_str(&buffer).expect("package.json is valid JSON");
+            let buffer = fs::read_to_string(&path).expect("package.json is readable");
+            serde_json::from_str(&buffer).expect("package.json is valid JSON")
         } else {
             // time to generate a package.json file
             eprintln!("package.json does not exist in {}", path.display());
@@ -87,7 +100,9 @@ impl<'a> WorkspaceMember<'a> {
         package_json.version = Some(self.package.version.to_string());
 
         // force the package to be private
-        package_json.other_fields.insert("private".to_string(), true.into());
+        package_json
+            .other_fields
+            .insert("private".to_string(), true.into());
 
         // set the name of the package.json
         package_json.name = Some(self.package_name());
@@ -97,8 +112,9 @@ impl<'a> WorkspaceMember<'a> {
         package_json.dev_dependencies = Some(self.package_dev_dependencies());
 
         // write the package.json file back to disk
-        let package_json = serde_json::to_string_pretty(&package_json).expect("package.json is serializable");
-        fs::write(&package_json, package_json).expect("package.json is writable");
+        let package_json =
+            serde_json::to_string_pretty(&package_json).expect("package.json is serializable");
+        fs::write(&path, package_json).expect("package.json is writable");
     }
 }
 
@@ -145,7 +161,8 @@ impl<'a> Workspace<'a> {
 
     fn member(&self, id: &PackageId) -> WorkspaceMember {
         // find the package in the metadata
-        let package = self.metadata
+        let package = self
+            .metadata
             .packages
             .iter()
             .find(|p| p.id == *id)
@@ -214,6 +231,7 @@ fn main() {
     let workspace = Workspace::new(&metadata);
 
     for member in workspace.members() {
-        println!("{:#?}", member);
+        println!("Syncing {}...", member.package_name());
+        member.sync();
     }
 }
