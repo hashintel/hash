@@ -57,8 +57,18 @@ impl<'a> WorkspaceMember<'a> {
         format!("@rust/{}", self.package.name)
     }
 
+    fn package_version(&self) -> String {
+        let version = self.package.version.to_string();
+
+        if self.is_private() {
+            return format!("{version}-private");
+        }
+
+        version
+    }
+
     fn dependency_declaration(&self) -> (String, String) {
-        (self.package_name(), self.package.version.to_string())
+        (self.package_name(), self.package_version())
     }
 
     fn package_dependencies(&self) -> BTreeMap<String, String> {
@@ -86,6 +96,10 @@ impl<'a> WorkspaceMember<'a> {
 
     fn is_ignored(&self) -> bool {
         self.is_blockprotocol()
+    }
+
+    fn is_private(&self) -> bool {
+        self.package.publish.as_ref().map_or(false, |registries| registries.is_empty())
     }
 
     // first find the package.json file in the package
@@ -118,13 +132,12 @@ impl<'a> WorkspaceMember<'a> {
         }
 
         // set the version of the package.json file to the version of the package
-        package_json.version = Some(self.package.version.to_string());
+        package_json.version = Some(self.package_version());
 
         // set the package to private if the package is private
-        let is_private = self.package.publish.as_ref().map_or(false, |registries| registries.is_empty());
         package_json
             .other_fields
-            .insert("private".to_string(), is_private.into());
+            .insert("private".to_string(), self.is_private().into());
 
         // set the name of the package.json
         package_json.name = Some(self.package_name());
