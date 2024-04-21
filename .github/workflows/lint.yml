@@ -105,7 +105,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.lints.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@b23c83949ccaee05b69f67e606215c7a9789fa54 # v2.31.3
+        uses: taiki-e/install-action@99774fec7fd4f75144bd0134a24a992297768308 # v2.32.17
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
 
@@ -175,7 +175,7 @@ jobs:
           mv "$tmp" clippy.sarif
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@1b1aada464948af03b950897e5eb522f92603cc2 # v3.24.9
+        uses: github/codeql-action/upload-sarif@c7f9125735019aa87cfc361530512d50ea439c71 # v3.25.1
         if: always() && steps.lints.outputs.has-clippy == 'true'
         with:
           sarif_file: ${{ matrix.directory }}/clippy.sarif
@@ -338,3 +338,15 @@ jobs:
       - name: Check global results
         run: |
           [[ ${{ needs.global.result }} =~ success|skipped ]]
+
+      - name: Notify Slack on failure
+        uses: rtCamp/action-slack-notify@19c86e40d4bc3be986b18f1459d4549536887065
+        if: ${{ failure() && github.event_name == 'merge_group' }}
+        env:
+          SLACK_LINK_NAMES: true
+          SLACK_MESSAGE: "At least one linting job failed for a Pull Request in the Merge Queue failed <@U0143NL4GMP> <@U027NPY8Y3X> <@U02NLJY0FGX>"
+          SLACK_TITLE: Linting failed
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_USERNAME: GitHub
+          VAULT_ADDR: ""
+          VAULT_TOKEN: ""

@@ -1,32 +1,30 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { createGraphChangeNotification } from "@local/hash-backend-utils/notifications";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/ai-inference-types";
-import type { AccountId, Entity, OwnedById } from "@local/hash-subgraph";
+import type { AccountId, OwnedById } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 import type OpenAI from "openai";
 
+import { logger } from "../../shared/logger";
+import { createInferredEntityNotification } from "../shared/create-inferred-entity-notification";
+import { getLlmResponse } from "../shared/get-llm-response";
+import { stringify } from "../shared/stringify";
 import { getResultsFromInferenceState } from "./get-results-from-inference-state";
 import type {
   CompletionPayload,
   DereferencedEntityTypesByTypeId,
   InferenceState,
 } from "./inference-types";
-import { log } from "./log";
 import { createEntities } from "./persist-entities/create-entities";
-import type {
-  ProposedEntityCreationsByType,
-  ProposedEntityUpdatesByType,
-} from "./persist-entities/generate-persist-entities-tools";
+import type { ProposedEntityUpdatesByType } from "./persist-entities/generate-persist-entities-tools";
 import {
   generatePersistEntitiesTools,
   validateProposedEntitiesByType,
 } from "./persist-entities/generate-persist-entities-tools";
 import { updateEntities } from "./persist-entities/update-entities";
 import { firstUserMessageIndex } from "./shared/first-user-message-index";
-import { getOpenAiResponse } from "./shared/get-open-ai-response";
-import { stringify } from "./stringify";
+import type { ProposedEntityCreationsByType } from "./shared/generate-propose-entities-tools";
 
 export const persistEntities = async (params: {
   authentication: { machineActorId: AccountId };
@@ -60,7 +58,7 @@ export const persistEntities = async (params: {
   } = inferenceState;
 
   if (iterationCount > 30) {
-    log(
+    logger.info(
       `Model reached maximum number of iterations. Messages: ${stringify(
         completionPayload.messages,
       )}`,
@@ -85,7 +83,7 @@ export const persistEntities = async (params: {
     if (inProgressEntity) {
       inProgressEntity.takenFromQueue = true;
     } else {
-      log(
+      logger.error(
         `Could not find in progress entity with id ${inProgressEntityId} in proposedEntitySummaries: ${stringify(
           proposedEntitySummaries,
         )}`,
@@ -111,7 +109,7 @@ export const persistEntities = async (params: {
     nextProposedEntity.takenFromQueue = true;
   }
 
-  log(
+  logger.info(
     `Iteration ${iterationCount} begun, seeking details on entities with temporary ids ${inProgressEntityIds.join(
       ", ",
     )}.`,
@@ -151,19 +149,18 @@ export const persistEntities = async (params: {
     ),
   } as const;
 
-  log(`Next message to model: ${stringify(nextMessage)}`);
+  logger.debug(`Next message to model: ${stringify(nextMessage)}`);
 
-  const openApiPayload: OpenAI.ChatCompletionCreateParams = {
+  const llmResponse = await getLlmResponse({
     ...completionPayload,
     messages: [...completionPayload.messages, nextMessage],
     tools,
-  };
+    firstUserMessageIndex,
+  });
 
-  const openAiResponse = await getOpenAiResponse(openApiPayload);
-
-  if (openAiResponse.code !== StatusCode.Ok) {
+  if (llmResponse.status !== "ok") {
     return {
-      ...openAiResponse,
+      code: StatusCode.Internal,
       contents: [
         {
           results: getResultsFromInferenceState(inferenceState),
@@ -173,11 +170,9 @@ export const persistEntities = async (params: {
     };
   }
 
-  const { response, usage } = openAiResponse.contents[0]!;
+  const { stopReason, usage, parsedToolCalls, choices } = llmResponse;
 
-  const { finish_reason, message } = response;
-
-  const toolCalls = message.tool_calls;
+  const { message } = choices[0];
 
   const latestUsage = [...usageFromLastIteration, usage];
   inferenceState.usage = latestUsage;
@@ -192,7 +187,9 @@ export const persistEntities = async (params: {
     )[];
     requiresOriginalContext: boolean;
   }) => {
-    log(`Retrying with additional messages: ${stringify(retryMessages)}`);
+    logger.debug(
+      `Retrying with additional messages: ${stringify(retryMessages)}`,
+    );
 
     const newMessages = [
       ...originalPromptMessages.map((msg, index) =>
@@ -221,35 +218,13 @@ export const persistEntities = async (params: {
     });
   };
 
-  const createInferredEntityNotification = async ({
-    entity,
-    operation,
-  }: {
-    entity: Entity;
-    operation: "create" | "update";
-  }) => {
-    const entityEditionTimestamp =
-      entity.metadata.temporalVersioning.decisionTime.start.limit;
-
-    await createGraphChangeNotification(
-      { graphApi: graphApiClient },
-      authentication,
-      {
-        changedEntityId: entity.metadata.recordId.entityId,
-        changedEntityEditionId: entityEditionTimestamp,
-        notifiedUserAccountId: requestingUserAccountId,
-        operation,
-      },
-    );
-  };
-
-  switch (finish_reason) {
+  switch (stopReason) {
     case "stop": {
       const errorMessage = `AI Model returned 'stop' finish reason, with message: ${
         message.content ?? "no message"
       }`;
 
-      log(errorMessage);
+      logger.error(errorMessage);
 
       return {
         code: StatusCode.Unknown,
@@ -265,11 +240,11 @@ export const persistEntities = async (params: {
     }
 
     case "length": {
-      log(
+      logger.error(
         `AI Model returned 'length' finish reason on attempt ${iterationCount}.`,
       );
 
-      const toolCallId = toolCalls?.[0]?.id;
+      const toolCallId = parsedToolCalls[0]?.id;
       if (!toolCallId) {
         return {
           code: StatusCode.ResourceExhausted,
@@ -299,7 +274,7 @@ export const persistEntities = async (params: {
     }
 
     case "content_filter": {
-      log(
+      logger.error(
         `The content filter was triggered on attempt ${iterationCount} with input: ${stringify(
           completionPayload.messages,
         )}, `,
@@ -317,74 +292,25 @@ export const persistEntities = async (params: {
       };
     }
 
-    case "tool_calls": {
-      if (!toolCalls) {
-        const errorMessage =
-          "AI Model returned 'tool_calls' finish reason with no tool calls";
-
-        log(`${errorMessage}. Message: ${stringify(message)}`);
-
-        return {
-          code: StatusCode.Internal,
-          contents: [
-            {
-              results: getResultsFromInferenceState(inferenceState),
-              usage: latestUsage,
-            },
-          ],
-          message: errorMessage,
-        };
-      }
-
+    case "tool_use": {
       const retryMessages: ((
         | OpenAI.ChatCompletionUserMessageParam
         | OpenAI.ChatCompletionToolMessageParam
       ) & { requiresOriginalContext: boolean })[] = [];
 
-      for (const toolCall of toolCalls) {
-        const toolCallId = toolCall.id;
-
-        const functionCall = toolCall.function;
-
-        const { arguments: modelProvidedArgument, name: functionName } =
-          functionCall;
-
-        try {
-          JSON.parse(modelProvidedArgument);
-        } catch {
-          log(
-            `Could not parse AI Model response on attempt ${iterationCount}: ${stringify(
-              modelProvidedArgument,
-            )}`,
-          );
-
-          return retryWithMessages({
-            retryMessages: [
-              {
-                role: "tool",
-                content:
-                  "Your previous response contained invalid JSON. Please try again.",
-                tool_call_id: toolCallId,
-              },
-            ],
-            requiresOriginalContext: true,
-          });
-        }
-
-        if (functionName === "abandon_entities") {
+      for (const toolCall of parsedToolCalls) {
+        if (toolCall.name === "abandon_entities") {
           // The model is giving up on these entities
 
           // First, check the argument is valid
-          const abandonedEntityIds = JSON.parse(
-            modelProvidedArgument,
-          ) as unknown;
+          const abandonedEntityIds = toolCall.input;
           if (
             !Array.isArray(abandonedEntityIds) ||
             !abandonedEntityIds.every((item) => typeof item === "number")
           ) {
-            log(
+            logger.error(
               `Model provided invalid argument to abandon_entities function. Argument provided: ${stringify(
-                modelProvidedArgument,
+                toolCall.input,
               )}`,
             );
 
@@ -393,7 +319,7 @@ export const persistEntities = async (params: {
                 "You provided an invalid argument to abandon_entities. Please try again",
               requiresOriginalContext: true,
               role: "tool",
-              tool_call_id: toolCallId,
+              tool_call_id: toolCall.id,
             });
             continue;
           }
@@ -406,17 +332,16 @@ export const persistEntities = async (params: {
             );
         }
 
-        if (functionName === "create_entities") {
+        if (toolCall.name === "create_entities") {
           let proposedEntitiesByType: ProposedEntityCreationsByType;
           try {
-            proposedEntitiesByType = JSON.parse(
-              modelProvidedArgument,
-            ) as ProposedEntityCreationsByType;
+            proposedEntitiesByType =
+              toolCall.input as ProposedEntityCreationsByType;
             validateProposedEntitiesByType(proposedEntitiesByType, false);
           } catch (err) {
-            log(
+            logger.error(
               `Model provided invalid argument to create_entities function. Argument provided: ${stringify(
-                modelProvidedArgument,
+                toolCall.input,
               )}`,
             );
 
@@ -425,7 +350,7 @@ export const persistEntities = async (params: {
                 "You provided an invalid argument to create_entities. Please try again",
               requiresOriginalContext: true,
               role: "tool",
-              tool_call_id: toolCallId,
+              tool_call_id: toolCall.id,
             });
             continue;
           }
@@ -456,15 +381,14 @@ export const persistEntities = async (params: {
               createAsDraft: createAs === "draft",
               graphApiClient,
               inferenceState,
-              log,
               ownedById,
               proposedEntitiesByType,
               requestedEntityTypes: entityTypes,
             });
 
-            log(`Creation successes: ${stringify(creationSuccesses)}`);
-            log(`Creation failures: ${stringify(creationFailures)}`);
-            log(`Update candidates: ${stringify(updateCandidates)}`);
+            logger.info(`Creation successes: ${stringify(creationSuccesses)}`);
+            logger.info(`Creation failures: ${stringify(creationFailures)}`);
+            logger.info(`Update candidates: ${stringify(updateCandidates)}`);
 
             const successes = Object.values(creationSuccesses);
             const failures = Object.values(creationFailures);
@@ -490,13 +414,13 @@ export const persistEntities = async (params: {
               }
             }
 
-            if (createAs === "live") {
-              for (const success of successes) {
-                void createInferredEntityNotification({
-                  entity: success.entity,
-                  operation: "create",
-                });
-              }
+            for (const success of successes) {
+              void createInferredEntityNotification({
+                entity: success.entity,
+                graphApiClient,
+                notifiedUserAccountId: requestingUserAccountId,
+                operation: "create",
+              });
             }
 
             if (failures.length > 0) {
@@ -542,7 +466,7 @@ export const persistEntities = async (params: {
             if (retryMessageContent) {
               retryMessages.push({
                 role: "tool",
-                tool_call_id: toolCallId,
+                tool_call_id: toolCall.id,
                 content: retryMessageContent,
                 requiresOriginalContext: requiresOriginalContextForRetry,
               });
@@ -551,7 +475,7 @@ export const persistEntities = async (params: {
             const errorMessage = `Error creating entities: ${
               (err as Error).message
             }`;
-            log(errorMessage);
+            logger.error(errorMessage);
 
             return {
               code: StatusCode.Internal,
@@ -566,18 +490,17 @@ export const persistEntities = async (params: {
           }
         }
 
-        if (functionName === "update_entities") {
+        if (toolCall.name === "update_entities") {
           let proposedEntityUpdatesByType: ProposedEntityUpdatesByType;
           try {
-            proposedEntityUpdatesByType = JSON.parse(
-              modelProvidedArgument,
-            ) as ProposedEntityUpdatesByType;
+            proposedEntityUpdatesByType =
+              toolCall.input as ProposedEntityUpdatesByType;
 
             validateProposedEntitiesByType(proposedEntityUpdatesByType, true);
           } catch (err) {
-            log(
+            logger.error(
               `Model provided invalid argument to update_entities function. Argument provided: ${stringify(
-                modelProvidedArgument,
+                toolCall.input,
               )}`,
             );
 
@@ -585,7 +508,7 @@ export const persistEntities = async (params: {
               content:
                 "You provided an invalid argument to update_entities. Please try again",
               role: "tool",
-              tool_call_id: toolCallId,
+              tool_call_id: toolCall.id,
               requiresOriginalContext: true,
             });
             continue;
@@ -603,7 +526,7 @@ export const persistEntities = async (params: {
                 ", ",
               )} for update, which were not requested. Please try again`,
               role: "tool",
-              tool_call_id: toolCallId,
+              tool_call_id: toolCall.id,
               requiresOriginalContext: true,
             });
             continue;
@@ -614,7 +537,6 @@ export const persistEntities = async (params: {
               actorId: authentication.machineActorId,
               createAsDraft: createAs === "draft",
               graphApiClient,
-              log,
               ownedById,
               proposedEntityUpdatesByType,
               requestedEntityTypes: entityTypes,
@@ -623,16 +545,16 @@ export const persistEntities = async (params: {
             const successes = Object.values(updateSuccesses);
             const failures = Object.values(updateFailures);
 
-            log(`Update successes: ${stringify(updateSuccesses)}`);
-            log(`Update failures: ${stringify(updateFailures)}`);
+            logger.info(`Update successes: ${stringify(updateSuccesses)}`);
+            logger.info(`Update failures: ${stringify(updateFailures)}`);
 
             for (const success of successes) {
-              if (createAs === "live") {
-                void createInferredEntityNotification({
-                  entity: success.entity,
-                  operation: "update",
-                });
-              }
+              void createInferredEntityNotification({
+                entity: success.entity,
+                graphApiClient,
+                notifiedUserAccountId: requestingUserAccountId,
+                operation: "update",
+              });
 
               inferenceState.inProgressEntityIds =
                 inferenceState.inProgressEntityIds.filter(
@@ -658,7 +580,7 @@ export const persistEntities = async (params: {
             if (failuresToRetry.length > 0) {
               retryMessages.push({
                 role: "tool",
-                tool_call_id: toolCallId,
+                tool_call_id: toolCall.id,
                 content: dedent(`
                   Some of the entities you suggested for update were invalid. Please review their properties and try again. 
                   The entities you should review and make a 'update_entities' call for are:
@@ -694,7 +616,7 @@ export const persistEntities = async (params: {
           (entity) => !entity.takenFromQueue,
         )
       ) {
-        log(`Entities remain to be inferred, continuing.`);
+        logger.info(`Entities remain to be inferred, continuing.`);
         retryMessages.push({
           content:
             "There are other entities you haven't yet provided details for",
@@ -705,14 +627,14 @@ export const persistEntities = async (params: {
 
       if (retryMessages.length === 0) {
         const results = getResultsFromInferenceState(inferenceState);
-        log(`Returning results: ${stringify(results)}`);
+        logger.info(`Returning results: ${stringify(results)}`);
         return {
           code: StatusCode.Ok,
           contents: [{ results, usage: latestUsage }],
         };
       }
 
-      const toolCallsWithoutProblems = toolCalls.filter(
+      const toolCallsWithoutProblems = parsedToolCalls.filter(
         (toolCall) =>
           !retryMessages.some(
             (msg) => msg.role === "tool" && msg.tool_call_id === toolCall.id,
@@ -743,8 +665,8 @@ export const persistEntities = async (params: {
     }
   }
 
-  const errorMessage = `AI Model returned unhandled finish reason: ${finish_reason}`;
-  log(errorMessage);
+  const errorMessage = `AI Model returned unhandled finish reason: ${stopReason}`;
+  logger.error(errorMessage);
 
   return {
     code: StatusCode.Internal,

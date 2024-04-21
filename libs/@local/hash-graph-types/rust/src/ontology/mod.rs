@@ -1,6 +1,7 @@
 mod data_type;
 mod entity_type;
 mod property_type;
+mod provenance;
 
 use core::fmt;
 
@@ -21,11 +22,11 @@ pub use self::{
         PartialPropertyTypeMetadata, PropertyTypeEmbedding, PropertyTypeMetadata,
         PropertyTypeWithMetadata,
     },
+    provenance::{
+        OntologyEditionProvenance, OntologyProvenance, ProvidedOntologyEditionProvenance,
+    },
 };
-use crate::{
-    account::{EditionArchivedById, EditionCreatedById},
-    owned_by_id::OwnedById,
-};
+use crate::owned_by_id::OwnedById;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -68,22 +69,6 @@ pub struct OntologyTemporalMetadata {
     pub transaction_time: LeftClosedTemporalInterval<TransactionTime>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct OntologyProvenanceMetadata {
-    pub edition: OntologyEditionProvenanceMetadata,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct OntologyEditionProvenanceMetadata {
-    pub created_by_id: EditionCreatedById,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub archived_by_id: Option<EditionArchivedById>,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(untagged)]
@@ -92,7 +77,7 @@ pub enum OntologyTypeClassificationMetadata {
     Owned { owned_by_id: OwnedById },
     #[serde(rename_all = "camelCase")]
     External {
-        #[serde(with = "temporal_versioning::serde::time")]
+        #[serde(with = "codec::serde::time")]
         fetched_at: OffsetDateTime,
     },
 }
@@ -153,7 +138,7 @@ impl OntologyTypeMetadata {
     }
 
     #[must_use]
-    pub const fn provenance(&self) -> &OntologyProvenanceMetadata {
+    pub const fn provenance(&self) -> &OntologyProvenance {
         match self {
             Self::DataType(metadata) => &metadata.provenance,
             Self::PropertyType(metadata) => &metadata.provenance,

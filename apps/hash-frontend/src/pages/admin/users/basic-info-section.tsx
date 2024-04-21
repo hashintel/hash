@@ -103,7 +103,9 @@ export const BasicInfoSection: FunctionComponent<{
                   {...getTagProps({ index })}
                   key={option}
                   variant="outlined"
-                  label={`${option.slice(0, 1).toUpperCase()}${option.slice(1)}`}
+                  label={`${option.slice(0, 1).toUpperCase()}${option.slice(
+                    1,
+                  )}`}
                 />
               ))
             }

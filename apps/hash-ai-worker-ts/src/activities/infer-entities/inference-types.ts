@@ -7,13 +7,9 @@ import type {
 import type { Entity } from "@local/hash-subgraph";
 import type OpenAI from "openai";
 
-import type { DereferencedEntityType } from "./dereference-entity-type";
-import type { ProposedEntityCreationsByType } from "./persist-entities/generate-persist-entities-tools";
-
-export type PermittedOpenAiModel =
-  | "gpt-3.5-turbo-1106"
-  | "gpt-4-1106-preview"
-  | "gpt-4";
+import type { DereferencedEntityType } from "../shared/dereference-entity-type";
+import type { PermittedOpenAiModel } from "../shared/openai-client";
+import type { ProposedEntityCreationsByType } from "./shared/generate-propose-entities-tools";
 
 export type CompletionPayload = Omit<
   OpenAI.ChatCompletionCreateParams,

@@ -1,4 +1,5 @@
 import { useLazyQuery } from "@apollo/client";
+import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
@@ -37,7 +38,6 @@ import type {
 } from "../../../graphql/api-types.gen";
 import type { NextPageWithLayout } from "../../../shared/layout";
 import { getLayoutWithSidebar } from "../../../shared/layout";
-import { generateEntityHref } from "../../shared/use-entity-href";
 import { EditBar } from "../shared/edit-bar";
 import { useRouteNamespace } from "../shared/use-route-namespace";
 import { EntityEditorPage } from "./[entity-uuid].page/entity-editor-page";
@@ -255,7 +255,7 @@ const Page: NextPageWithLayout = () => {
          * or has a draftId when it didn't before,
          * we need to update the router params. This will trigger the effect which fetches the entity.
          */
-        const entityHref = generateEntityHref({
+        const entityHref = generateEntityPath({
           shortname: routeNamespace.shortname,
           entityId,
           includeDraftId: !!latestDraftId,

@@ -178,12 +178,11 @@ export const getEntityAuthorizationRelationshipsQuery = gql`
   }
 `;
 
-export const startResearchTaskMutation = gql`
-  mutation startResearchTask(
-    $prompt: String!
-    $entityTypeIds: [VersionedUrl!]!
+export const startFlowMutation = gql`
+  mutation startFlow(
+    $flowTrigger: FlowTrigger!
+    $flowDefinition: FlowDefinition!
   ) {
-    # This is a scalar, which has no selection.
-    startResearchTask(prompt: $prompt, entityTypeIds: $entityTypeIds)
+    startFlow(flowTrigger: $flowTrigger, flowDefinition: $flowDefinition)
   }
 `;

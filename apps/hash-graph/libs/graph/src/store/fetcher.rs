@@ -14,20 +14,21 @@ use error_stack::{Report, Result, ResultExt};
 use graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{EntityMetadata, EntityProperties, EntityUuid},
+        entity::{Entity, EntityId, EntityMetadata, EntityUuid},
         link::LinkData,
+        PropertyObject,
     },
     ontology::{
         DataTypeMetadata, EntityTypeMetadata, OntologyTemporalMetadata, OntologyType,
         OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
         PartialDataTypeMetadata, PartialEntityTypeMetadata, PartialPropertyTypeMetadata,
-        PropertyTypeMetadata,
+        PropertyTypeMetadata, ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
 };
 use tarpc::context;
 use temporal_client::TemporalClient;
-use temporal_versioning::{DecisionTime, Timestamp};
+use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use tokio::net::ToSocketAddrs;
 use tokio_serde::formats::Json;
 use type_fetcher::fetcher::{FetchedOntologyType, FetcherClient};
@@ -549,6 +550,7 @@ where
                             classification: metadata.classification,
                             relationships: DATA_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
+                            provenance: ProvidedOntologyEditionProvenance::default(),
                         }),
                 )
                 .await?;
@@ -568,6 +570,7 @@ where
                             classification: metadata.classification,
                             relationships: PROPERTY_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
+                            provenance: ProvidedOntologyEditionProvenance::default(),
                         }),
                 )
                 .await?;
@@ -589,6 +592,7 @@ where
                             label_property: metadata.label_property,
                             relationships: ENTITY_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
+                            provenance: ProvidedOntologyEditionProvenance::default(),
                         }),
                 )
                 .await?;
@@ -645,6 +649,7 @@ where
                                 classification: metadata.classification,
                                 relationships: DATA_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
+                                provenance: ProvidedOntologyEditionProvenance::default(),
                             }),
                     )
                     .await?
@@ -664,6 +669,7 @@ where
                                 classification: metadata.classification,
                                 relationships: PROPERTY_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
+                                provenance: ProvidedOntologyEditionProvenance::default(),
                             },
                         ),
                     )
@@ -686,6 +692,7 @@ where
                                 label_property: metadata.label_property,
                                 relationships: ENTITY_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
+                                provenance: ProvidedOntologyEditionProvenance::default(),
                             },
                         ),
                     )
@@ -1275,7 +1282,7 @@ where
             Item = (
                 OwnedById,
                 Option<EntityUuid>,
-                EntityProperties,
+                PropertyObject,
                 Option<LinkData>,
                 Option<Timestamp<DecisionTime>>,
             ),
@@ -1308,6 +1315,25 @@ where
     ) -> Result<(Subgraph, Option<EntityQueryCursor<'static>>), QueryError> {
         self.store
             .get_entity(actor_id, authorization_api, params)
+            .await
+    }
+
+    async fn get_entity_by_id<Au: AuthorizationApi + Sync>(
+        &self,
+        actor_id: AccountId,
+        authorization_api: &Au,
+        entity_id: EntityId,
+        transaction_time: Option<Timestamp<TransactionTime>>,
+        decision_time: Option<Timestamp<DecisionTime>>,
+    ) -> Result<Entity, QueryError> {
+        self.store
+            .get_entity_by_id(
+                actor_id,
+                authorization_api,
+                entity_id,
+                transaction_time,
+                decision_time,
+            )
             .await
     }
 

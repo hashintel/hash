@@ -8,7 +8,7 @@ pub use self::{
     channel::{channel, EntityReceiver, EntitySender},
     record::{EntityEmbeddingRecord, EntityRelationRecord, EntitySnapshotRecord},
     table::{
-        EntityEditionRow, EntityEmbeddingRow, EntityIdRow, EntityLinkEdgeRow,
+        EntityEditionRow, EntityEmbeddingRow, EntityHasLeftEntityRow, EntityIdRow,
         EntityTemporalMetadataRow,
     },
 };

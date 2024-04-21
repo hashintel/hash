@@ -29,7 +29,7 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
             Self::BaseUrl | Self::Version => vec![Relation::OntologyIds],
             Self::OwnedById => vec![Relation::OntologyOwnedMetadata],
             Self::AdditionalMetadata => vec![Relation::OntologyAdditionalMetadata],
-            Self::TransactionTime | Self::EditionCreatedById | Self::EditionArchivedById => vec![],
+            Self::TransactionTime | Self::EditionProvenance(_) => vec![],
             Self::Embedding => vec![Relation::EntityTypeEmbeddings],
             Self::PropertyTypeEdge {
                 edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
@@ -121,12 +121,6 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
                 Column::OntologyTemporalMetadata(OntologyTemporalMetadata::TransactionTime)
             }
             Self::OwnedById => Column::OntologyOwnedMetadata(OntologyOwnedMetadata::WebId),
-            Self::EditionCreatedById => {
-                Column::OntologyTemporalMetadata(OntologyTemporalMetadata::CreatedById)
-            }
-            Self::EditionArchivedById => {
-                Column::OntologyTemporalMetadata(OntologyTemporalMetadata::ArchivedById)
-            }
             Self::OntologyId => Column::EntityTypes(EntityTypes::OntologyId),
             Self::Embedding => Column::EntityTypeEmbeddings(EntityTypeEmbeddings::Embedding),
             Self::Schema(path) => path
@@ -157,6 +151,14 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
             }
             Self::LabelProperty => Column::EntityTypes(EntityTypes::LabelProperty),
             Self::Icon => Column::EntityTypes(EntityTypes::Icon),
+            Self::EditionProvenance(path) => path.as_ref().map_or(
+                Column::OntologyTemporalMetadata(OntologyTemporalMetadata::Provenance(None)),
+                |path| {
+                    Column::OntologyTemporalMetadata(OntologyTemporalMetadata::Provenance(Some(
+                        JsonField::JsonPath(path),
+                    )))
+                },
+            ),
             Self::PropertyTypeEdge { path, .. } => path.terminating_column(),
             Self::EntityTypeEdge { path, .. } => path.terminating_column(),
             Self::EntityEdge { path, .. } => path.terminating_column(),

@@ -1,11 +1,18 @@
 import { useQuery } from "@apollo/client";
+import type { EntityType } from "@blockprotocol/type-system";
 import { Chip, IconButton } from "@hashintel/design-system";
+import type { Filter } from "@local/hash-graph-client";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type {
+  Entity,
+  EntityRootType,
+  EntityTypeRootType,
+  Subgraph,
+} from "@local/hash-subgraph";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
@@ -18,15 +25,19 @@ import {
 import type { SxProps, Theme } from "@mui/material";
 import { Box, useMediaQuery, useTheme } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebounce, useKey, useOutsideClickRef } from "rooks";
 
 import { useUserOrOrgShortnameByOwnedById } from "../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import type {
+  QueryEntityTypesQuery,
+  QueryEntityTypesQueryVariables,
   StructuralQueryEntitiesQuery,
   StructuralQueryEntitiesQueryVariables,
 } from "../../../graphql/api-types.gen";
 import { structuralQueryEntitiesQuery } from "../../../graphql/queries/knowledge/entity.queries";
+import { queryEntityTypesQuery } from "../../../graphql/queries/ontology/entity-type.queries";
+import { generateLinkParameters } from "../../generate-link-parameters";
 import { SearchIcon } from "../../icons";
 import { Button, Link } from "../../ui";
 import { SearchInput } from "./search-bar/search-input";
@@ -98,10 +109,13 @@ const ResultItem: FunctionComponent<{
   );
 };
 
+const chipStyles = { cursor: "pointer !important", ml: 1 };
+
 const EntityResult: FunctionComponent<{
   entity: Entity;
+  onClick: () => void;
   subgraph: Subgraph<EntityRootType>;
-}> = ({ entity, subgraph }) => {
+}> = ({ entity, onClick, subgraph }) => {
   const entityId = entity.metadata.recordId.entityId;
 
   const ownedById = extractOwnedByIdFromEntityId(entityId);
@@ -112,19 +126,38 @@ const EntityResult: FunctionComponent<{
   const entityType = getEntityTypeById(subgraph, entity.metadata.entityTypeId);
 
   return (
-    <ResultItem>
-      <Link
-        noLinkStyle
-        href={`/@${entityOwningShortname}/entities/${extractEntityUuidFromEntityId(
-          entityId,
-        )}`}
-      >
+    <Link
+      onClick={onClick}
+      noLinkStyle
+      href={`/@${entityOwningShortname}/entities/${extractEntityUuidFromEntityId(
+        entityId,
+      )}`}
+    >
+      <ResultItem>
         {generateEntityLabel(subgraph, entity)}
-      </Link>
-      {entityType && (
-        <Chip color="teal" label={entityType.schema.title} sx={{ ml: 1 }} />
-      )}
-    </ResultItem>
+        {entityType && (
+          <Chip color="teal" label={entityType.schema.title} sx={chipStyles} />
+        )}
+      </ResultItem>
+    </Link>
+  );
+};
+
+const EntityTypeResult: FunctionComponent<{
+  entityType: EntityType;
+  onClick: () => void;
+}> = ({ entityType, onClick }) => {
+  return (
+    <Link
+      onClick={onClick}
+      noLinkStyle
+      href={generateLinkParameters(entityType.$id)}
+    >
+      <ResultItem>
+        {entityType.title}
+        <Chip color="aqua" label="Entity Type" sx={chipStyles} />
+      </ResultItem>
+    </Link>
   );
 };
 
@@ -154,7 +187,7 @@ const getSearchBarResponsiveStyles = (
       return {
         position: "absolute",
         width: "100%",
-        zIndex: 1,
+        zIndex: ({ zIndex }) => zIndex.drawer + 5,
         left: 0,
         top: "12px",
         px: 2,
@@ -172,7 +205,7 @@ const getSearchBarResponsiveStyles = (
 /**
  * The maximum distance between the search query and an entity's embedding for it to appear in results
  */
-const maximumSemanticDistance = 0.75;
+const maximumSemanticDistance = 0.7;
 
 export const SearchBar: FunctionComponent = () => {
   const theme = useTheme();
@@ -190,21 +223,26 @@ export const SearchBar: FunctionComponent = () => {
     }
   }, [displayedQuery, displaySearchInput]);
 
-  const { data: resultData, loading } = useQuery<
+  const queryFilter: Filter = useMemo(
+    () => ({
+      cosineDistance: [
+        { path: ["embedding"] },
+        {
+          parameter: submittedQuery,
+        },
+        { parameter: maximumSemanticDistance },
+      ],
+    }),
+    [submittedQuery],
+  );
+
+  const { data: entityResultData, loading: entitiesLoading } = useQuery<
     StructuralQueryEntitiesQuery,
     StructuralQueryEntitiesQueryVariables
   >(structuralQueryEntitiesQuery, {
     variables: {
       query: {
-        filter: {
-          cosineDistance: [
-            { path: ["embedding"] },
-            {
-              parameter: submittedQuery,
-            },
-            { parameter: maximumSemanticDistance },
-          ],
-        },
+        filter: queryFilter,
         temporalAxes: currentTimeInstantTemporalAxes,
         graphResolveDepths: {
           ...zeroedGraphResolveDepths,
@@ -218,19 +256,45 @@ export const SearchBar: FunctionComponent = () => {
     skip: !submittedQuery,
   });
 
-  const subgraph =
-    resultData &&
-    isEntityRootedSubgraph(resultData.structuralQueryEntities.subgraph)
-      ? resultData.structuralQueryEntities.subgraph
+  const { data: entityTypeResultData, loading: entityTypesLoading } = useQuery<
+    QueryEntityTypesQuery,
+    QueryEntityTypesQueryVariables
+  >(queryEntityTypesQuery, {
+    variables: {
+      filter: queryFilter,
+      latestOnly: true,
+      ...zeroedGraphResolveDepths,
+    },
+    skip: !submittedQuery,
+  });
+
+  const entitySubgraph =
+    entityResultData &&
+    isEntityRootedSubgraph(entityResultData.structuralQueryEntities.subgraph)
+      ? entityResultData.structuralQueryEntities.subgraph
       : undefined;
 
-  const results = subgraph ? getRoots(subgraph) : [];
+  const entityResults = entitySubgraph ? getRoots(entitySubgraph) : [];
+
+  const entityTypeSubgraph =
+    entityTypeResultData &&
+    /**
+     * Ideally we would use {@link isEntityTypeRootedSubgraph} here, but we cannot because one of the checks it makes
+     * is that the root's revisionId is a stringified integer. In HASH, the revisionId for a type root is a number.
+     * Either the types in @blockprotocol/graph or the value delivered by HASH needs to change
+     * H-2489
+     */
+    (entityTypeResultData.queryEntityTypes as Subgraph<EntityTypeRootType>);
+
+  const entityTypeResults = entityTypeSubgraph
+    ? getRoots(entityTypeSubgraph)
+    : [];
 
   useKey(["Escape"], () => setResultListVisible(false));
 
   const [rootRef] = useOutsideClickRef(() => setResultListVisible(false));
 
-  const isLoading = loading || displayedQuery !== submittedQuery;
+  const isLoading = entityTypesLoading || entitiesLoading;
 
   return (
     <Box
@@ -257,7 +321,6 @@ export const SearchBar: FunctionComponent = () => {
             alignItems: "center",
             width: "100%",
             background: "white",
-            zIndex: 1,
           }}
         >
           <SearchInput
@@ -285,24 +348,36 @@ export const SearchBar: FunctionComponent = () => {
 
       {isResultListVisible && displayedQuery && (
         <ResultList isMobile={isMobile}>
-          {isLoading ? (
+          {submittedQuery !== displayedQuery ? null : isLoading ? (
             <ResultItem sx={{ display: "block" }}>
               Loading results for&nbsp;<b>{submittedQuery}</b>.
             </ResultItem>
-          ) : !results.length ? (
+          ) : !entityResults.length && !entityTypeResults.length ? (
             <ResultItem sx={{ display: "block" }}>
               No results found for&nbsp;<b>{submittedQuery}</b>.
             </ResultItem>
           ) : (
-            results.map((entity) => {
-              return (
-                <EntityResult
-                  key={entity.metadata.recordId.entityId}
-                  entity={entity}
-                  subgraph={subgraph!}
-                />
-              );
-            })
+            <>
+              {entityTypeResults.map((entityType) => {
+                return (
+                  <EntityTypeResult
+                    onClick={() => setResultListVisible(false)}
+                    entityType={entityType.schema}
+                    key={entityType.schema.$id}
+                  />
+                );
+              })}
+              {entityResults.map((entity) => {
+                return (
+                  <EntityResult
+                    onClick={() => setResultListVisible(false)}
+                    key={entity.metadata.recordId.entityId}
+                    entity={entity}
+                    subgraph={entitySubgraph!}
+                  />
+                );
+              })}
+            </>
           )}
         </ResultList>
       )}

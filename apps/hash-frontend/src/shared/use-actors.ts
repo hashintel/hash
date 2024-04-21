@@ -54,7 +54,7 @@ export const useActors = (params: {
             all: [
               {
                 equal: [
-                  { path: ["editionCreatedById"] },
+                  { path: ["editionProvenance", "createdById"] },
                   { parameter: accountId },
                 ],
               },

@@ -1,6 +1,5 @@
 import type { OwnedById } from "@local/hash-subgraph";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
-import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 
 import { logger } from "../../../../logger";
 import { createEntity } from "../../../knowledge/primitive/entity";
@@ -10,7 +9,7 @@ import {
   anyUserInstantiator,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
-  generateSystemTypeBaseUrl,
+  getCurrentHashDataTypeId,
   getEntitiesByType,
 } from "../util";
 
@@ -76,16 +75,10 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const dateDataTypeBaseUrl = generateSystemTypeBaseUrl({
-    kind: "data-type",
-    title: "DateTime",
-    shortname: "hash",
+  const datetimeDataTypeVersionedUrl = getCurrentHashDataTypeId({
+    dataTypeKey: "datetime",
+    migrationState,
   });
-  const dataTypeVersion = migrationState.dataTypeVersions[dateDataTypeBaseUrl]!;
-  const dataTypeVersionUrl = versionedUrlFromComponents(
-    dateDataTypeBaseUrl,
-    dataTypeVersion,
-  );
 
   const appliesFromPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -94,7 +87,7 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Applies From",
         description: "The point in time at which something begins to apply",
-        possibleValues: [{ dataTypeId: dataTypeVersionUrl }],
+        possibleValues: [{ dataTypeId: datetimeDataTypeVersionedUrl }],
       },
       webShortname: "hash",
       migrationState,
@@ -108,7 +101,7 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Applies Until",
         description: "The point at which something ceases to apply",
-        possibleValues: [{ dataTypeId: dataTypeVersionUrl }],
+        possibleValues: [{ dataTypeId: datetimeDataTypeVersionedUrl }],
       },
       webShortname: "hash",
       migrationState,

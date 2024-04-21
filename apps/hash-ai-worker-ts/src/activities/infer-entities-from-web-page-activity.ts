@@ -3,20 +3,20 @@ import type { AccountId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
+import { logger } from "../shared/logger";
 import { inferEntitiesSystemMessage } from "./infer-entities/infer-entities-system-message";
 import { inferEntitySummariesFromWebPage } from "./infer-entities/infer-entity-summaries-from-web-page";
 import type {
   DereferencedEntityTypesByTypeId,
   InferenceState,
-  PermittedOpenAiModel,
   WebPage,
 } from "./infer-entities/inference-types";
-import { log } from "./infer-entities/log";
 import { proposeEntities } from "./infer-entities/propose-entities";
-import { stringify } from "./infer-entities/stringify";
+import type { PermittedOpenAiModel } from "./shared/openai-client";
+import { stringify } from "./shared/stringify";
 
 export const inferEntitiesFromWebPageActivity = async (params: {
-  webPage: WebPage;
+  webPage: WebPage | string;
   relevantEntitiesPrompt?: string;
   entityTypes: DereferencedEntityTypesByTypeId;
   inferenceState: InferenceState;
@@ -61,10 +61,12 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     temperature,
   });
 
-  log(`Inference state after entity summaries: ${stringify(inferenceState)}`);
+  logger.debug(
+    `Inference state after entity summaries: ${stringify(inferenceState)}`,
+  );
 
   if (status.code !== StatusCode.Ok) {
-    log(
+    logger.error(
       `Returning early after error inferring entity summaries: ${
         status.message ?? "no message provided"
       }`,
@@ -79,10 +81,17 @@ export const inferEntitiesFromWebPageActivity = async (params: {
    */
 
   const proposeEntitiesPrompt = dedent(`
-    The website page title is ${webPage.title}, hosted at ${webPage.url}. Its content is as follows:
-    ${webPage.textContent}
+    ${typeof webPage === "string" ? "The content of the web page is as follows:" : `The website page title is ${webPage.title}, hosted at ${webPage.url}. Its content is as follows:`}
+    ${typeof webPage === "string" ? webPage : webPage.textContent}
     ---WEBSITE CONTENT ENDS---
-    
+
+    Pay careful attention to the units of data, which may be defined
+      in a column header, or in the table row.
+
+    If you are asked to store a unit alongside a value in properties,
+      ensure that the values is stored in the correct unit. Do not
+      change units, you must use the units specified in the data.
+
     You already provided a summary of the ${relevantEntitiesPrompt ? "relevant entities you inferred" : "entities you can infer"} from the website. Here it is:
     ${JSON.stringify(Object.values(inferenceState.proposedEntitySummaries))}
   `);

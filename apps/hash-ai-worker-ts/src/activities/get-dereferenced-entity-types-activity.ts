@@ -8,8 +8,8 @@ import {
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { AccountId } from "@local/hash-subgraph";
 
-import { dereferenceEntityType } from "./infer-entities/dereference-entity-type";
 import type { DereferencedEntityTypesByTypeId } from "./infer-entities/inference-types";
+import { dereferenceEntityType } from "./shared/dereference-entity-type";
 
 export const getDereferencedEntityTypesActivity = async (params: {
   entityTypeIds: VersionedUrl[];
