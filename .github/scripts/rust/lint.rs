@@ -7,9 +7,6 @@ toml = {version = "*", features = ["parse"]}
 
 #![allow(non_snake_case)]
 
-extern crate serde;
-extern crate toml;
-
 use std::{
     collections::{BTreeSet, HashMap},
     env, fs,
@@ -311,6 +308,7 @@ fn check(cwd: &Path) {
 
 fn main() {
     let mut args = env::args();
+
     let mode = args
         .by_ref()
         .skip(1)
@@ -320,8 +318,9 @@ fn main() {
     let cwd = args
         .next()
         .map(PathBuf::from)
-        .ok_or_else(env::current_dir)
-        .expect("unable to read working directory");
+        .map(Ok)
+        .unwrap_or_else(env::current_dir)
+        .expect("able to determine current working directory");
 
     match mode.as_str() {
         "generate" => generate(&cwd),

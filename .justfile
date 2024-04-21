@@ -127,7 +127,7 @@ install-cargo-insta:
 [private]
 [no-cd]
 lint-toml mode:
-  @cargo run --manifest-path "{{repo}}/.github/scripts/rust/lint.rs" {{mode}} `cargo metadata --no-deps --format-version 1 | jq '.workspace_root' -r`
+  @cargo -Zscript run --manifest-path "{{repo}}/.github/scripts/rust/lint.rs" {{mode}} `cargo metadata --no-deps --format-version 1 | jq '.workspace_root' -r`
 
 # Runs all linting commands and fails if the CI would fail
 [no-cd]
