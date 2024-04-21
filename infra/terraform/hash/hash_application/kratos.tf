@@ -8,7 +8,6 @@ locals {
 }
 
 
-
 resource "aws_ssm_parameter" "kratos_env_vars" {
   # Only put secrets into SSM
   for_each = { for env_var in local.kratos_env_vars : env_var.name => env_var if env_var.secret }
@@ -24,7 +23,7 @@ resource "aws_ssm_parameter" "kratos_env_vars" {
 locals {
   kratos_migration_container_def = {
     name        = "${local.kratos_prefix}-migration"
-    image       = "${var.kratos_image.url}:latest"
+    image       = "${var.kratos_image.url}:1.1.0"
     cpu         = 0 # let ECS divvy up the available CPU
     mountPoints = []
     volumesFrom = []
@@ -39,25 +38,32 @@ locals {
       }
     }
 
-    Environment = [for env_var in local.kratos_env_vars :
-      { name = env_var.name, value = env_var.value } if !env_var.secret]
+    Environment = [
+      for env_var in local.kratos_env_vars :
+      { name = env_var.name, value = env_var.value } if !env_var.secret
+    ]
 
-    secrets = [for env_name, ssm_param in aws_ssm_parameter.kratos_env_vars :
-      { name = env_name, valueFrom = ssm_param.arn }]
+    secrets = [
+      for env_name, ssm_param in aws_ssm_parameter.kratos_env_vars :
+      { name = env_name, valueFrom = ssm_param.arn }
+    ]
 
     essential = false
   }
   kratos_service_container_def = {
     name        = "${local.kratos_prefix}container"
-    image       = "${var.kratos_image.url}:latest"
+    image       = "${var.kratos_image.url}:1.1.0"
     cpu         = 0 # let ECS divvy up the available CPU
     mountPoints = []
     volumesFrom = []
-    dependsOn   = [
+    dependsOn = [
       { condition = "SUCCESS", containerName = local.kratos_migration_container_def.name },
     ]
     healthCheck = {
-      command     = ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:${local.kratos_public_port}/health/ready || exit 1"]
+      command = [
+        "CMD-SHELL",
+        "wget --no-verbose --tries=1 --spider http://localhost:${local.kratos_public_port}/health/ready || exit 1"
+      ]
       retries     = 5
       startPeriod = 10
       interval    = 30
@@ -86,11 +92,15 @@ locals {
         "awslogs-region"        = var.region
       }
     }
-    Environment = [for env_var in local.kratos_env_vars :
-    { name = env_var.name, value = env_var.value } if !env_var.secret]
+    Environment = [
+      for env_var in local.kratos_env_vars :
+      { name = env_var.name, value = env_var.value } if !env_var.secret
+    ]
 
-    secrets = [for env_name, ssm_param in aws_ssm_parameter.kratos_env_vars :
-    { name = env_name, valueFrom = ssm_param.arn }]
+    secrets = [
+      for env_name, ssm_param in aws_ssm_parameter.kratos_env_vars :
+      { name = env_name, valueFrom = ssm_param.arn }
+    ]
 
     essential = true
   }
