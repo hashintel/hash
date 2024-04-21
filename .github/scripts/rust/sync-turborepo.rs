@@ -41,7 +41,19 @@ struct WorkspaceMember<'a> {
 }
 
 impl<'a> WorkspaceMember<'a> {
+    fn is_blockprotocol(&self) -> bool {
+        // if any of the path components are "@blockprotocol" then it is a blockprotocol package
+        self.package
+            .manifest_path
+            .components()
+            .any(|component| component == "@blockprotocol")
+    }
+
     fn package_name(&self) -> String {
+        if self.is_blockprotocol() {
+            return format!("@blockprotocol/{}-rust", self.package.name);
+        }
+
         format!("@rust/{}", self.package.name)
     }
 
@@ -72,14 +84,8 @@ impl<'a> WorkspaceMember<'a> {
             .collect()
     }
 
-    fn is_ignored(&self, package: &PackageJson) -> bool {
-        // if the package name starts with "@blockprotocol" then it is ignored
-
-        let Some(name) = package.name.as_ref() else {
-            return false;
-        };
-
-        name.starts_with("@blockprotocol/")
+    fn is_ignored(&self) -> bool {
+        self.is_blockprotocol()
     }
 
     // first find the package.json file in the package
