@@ -10,22 +10,7 @@ impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
     fn into_report(self) -> Result<T, EyreReport> {
         match self {
             Ok(t) => Ok(t),
-            Err(eyre) => {
-                let sources = eyre
-                    .chain()
-                    .skip(1)
-                    .map(alloc::string::ToString::to_string)
-                    .collect::<alloc::vec::Vec<_>>();
-
-                #[cfg_attr(not(feature = "std"), allow(unused_mut))]
-                let mut report = Report::from_frame(Frame::from_eyre(eyre, Box::new([])));
-
-                for source in sources {
-                    report = report.attach_printable(source);
-                }
-
-                Err(report)
-            }
+            Err(eyre) => Err(Report::from_frame(Frame::from_error(eyre))),
         }
     }
 }

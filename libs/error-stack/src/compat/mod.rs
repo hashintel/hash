@@ -2,12 +2,12 @@
 //!
 //! In order to convert these error types, use [`IntoReportCompat::into_report()`].
 
-use crate::Report;
+use crate::{Frame, Report};
 
-#[cfg(feature = "anyhow")]
-mod anyhow;
-#[cfg(feature = "eyre")]
-mod eyre;
+// #[cfg(feature = "anyhow")]
+// mod anyhow;
+// #[cfg(feature = "eyre")]
+// mod eyre;
 
 /// Compatibility trait to convert from external libraries to [`Report`].
 ///
@@ -33,4 +33,20 @@ pub trait IntoReportCompat: Sized {
     ///
     /// [`Report`]: crate::Report
     fn into_report(self) -> Result<Self::Ok, Report<Self::Err>>;
+}
+
+impl<T, E> IntoReportCompat for Result<T, E>
+where
+    E: AsRef<dyn std::error::Error> + Send + Sync + 'static,
+{
+    type Err = E;
+    type Ok = T;
+
+    #[track_caller]
+    fn into_report(self) -> crate::Result<T, E> {
+        match self {
+            Ok(t) => Ok(t),
+            Err(anyhow) => Err(Report::from_frame(Frame::from_error(anyhow))),
+        }
+    }
 }

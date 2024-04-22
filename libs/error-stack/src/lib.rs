@@ -482,6 +482,7 @@
     doc(test(attr(deny(warnings, clippy::pedantic, clippy::nursery))))
 )]
 #![allow(unsafe_code)]
+#![feature(min_specialization)]
 
 extern crate alloc;
 

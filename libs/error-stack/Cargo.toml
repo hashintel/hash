@@ -49,6 +49,7 @@ default = ["std"]
 
 spantrace = ["dep:tracing-error", "std"]
 std = ["anyhow?/std"]
+anyhow = ["dep:anyhow", "std"]
 eyre = ["dep:eyre", "std"]
 serde = ["dep:serde"]
 hooks = ['dep:spin']

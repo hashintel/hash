@@ -108,7 +108,7 @@ install-cargo-hack:
 
 [private]
 install-cargo-nextest:
-  @just install-cargo-tool 'cargo nextest' cargo-nextest 0.9.37
+  @just install-cargo-tool 'cargo nextest' cargo-nextest 0.9.68
 
 [private]
 install-rust-script:

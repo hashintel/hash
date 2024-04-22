@@ -41,10 +41,12 @@ fn anyhow() {
     let anyhow: Result<(), _> = Err(anyhow::anyhow!(RootError)
         .context(PrintableA(0))
         .context(PrintableB(0)));
+    // println!("{anyhow:?}");
 
     let report = create_report()
         .attach_printable(PrintableA(0))
         .attach_printable(PrintableB(0));
+    println!("{report:?}\n\n\n");
 
     #[allow(unused_mut)]
     let mut report_messages = messages(&report);
@@ -53,10 +55,11 @@ fn anyhow() {
         .into_report()
         .expect_err("should have returned error");
     #[allow(unused_mut)]
+    println!("{anyhow_report:?}");
     let mut anyhow_messages = messages(&anyhow_report);
 
     assert_eq!(
-        remove_builtin_messages(anyhow_messages.into_iter().rev()),
+        remove_builtin_messages(anyhow_messages),
         remove_builtin_messages(report_messages),
     );
 }
@@ -166,7 +169,7 @@ fn eyre() {
     let mut eyre_messages = messages(&eyre_report);
 
     assert_eq!(
-        remove_builtin_messages(eyre_messages.into_iter().rev()),
+        remove_builtin_messages(eyre_messages.into_iter()),
         remove_builtin_messages(report_messages),
     );
 }

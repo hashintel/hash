@@ -111,25 +111,30 @@ impl<A: 'static + fmt::Debug + fmt::Display + Send + Sync> FrameImpl
     }
 }
 
-#[cfg(feature = "anyhow")]
-struct AnyhowContext(anyhow::Error);
+struct ErrorFrame<T>(T);
 
-#[cfg(feature = "anyhow")]
-impl fmt::Debug for AnyhowContext {
+impl<T: AsRef<dyn Error>> fmt::Debug for ErrorFrame<T> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Debug::fmt(&self.0, fmt)
+        fmt::Debug::fmt(self.0.as_ref(), fmt)
+    }
+}
+
+impl<T: AsRef<dyn Error>> fmt::Display for ErrorFrame<T> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(self.0.as_ref(), fmt)
+    }
+}
+
+impl<T: AsRef<dyn Error> + Send + Sync + 'static> Context for ErrorFrame<T> {
+    #[cfg(all(nightly, feature = "std"))]
+    #[inline]
+    default fn provide<'a>(&'a self, request: &mut Request<'a>) {
+        self.0.as_ref().provide(request);
     }
 }
 
 #[cfg(feature = "anyhow")]
-impl fmt::Display for AnyhowContext {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.0, fmt)
-    }
-}
-
-#[cfg(feature = "anyhow")]
-impl Context for AnyhowContext {
+impl Context for ErrorFrame<anyhow::Error> {
     #[cfg(all(nightly, feature = "std"))]
     #[inline]
     fn provide<'a>(&'a self, request: &mut Request<'a>) {
@@ -137,8 +142,7 @@ impl Context for AnyhowContext {
     }
 }
 
-#[cfg(feature = "anyhow")]
-impl FrameImpl for AnyhowContext {
+impl<T: AsRef<dyn Error> + Send + Sync + 'static> FrameImpl for ErrorFrame<T> {
     fn kind(&self) -> FrameKind<'_> {
         FrameKind::Context(self)
     }
@@ -152,54 +156,6 @@ impl FrameImpl for AnyhowContext {
     }
 
     #[cfg(nightly)]
-    #[inline]
-    fn provide<'a>(&'a self, request: &mut Request<'a>) {
-        Context::provide(self, request);
-    }
-}
-
-#[cfg(feature = "eyre")]
-struct EyreContext(eyre::Report);
-
-#[cfg(feature = "eyre")]
-impl fmt::Debug for EyreContext {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Debug::fmt(&self.0, fmt)
-    }
-}
-
-#[cfg(feature = "eyre")]
-impl fmt::Display for EyreContext {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.0, fmt)
-    }
-}
-
-#[cfg(feature = "eyre")]
-impl Context for EyreContext {
-    #[cfg(nightly)]
-    #[inline]
-    fn provide<'a>(&'a self, request: &mut Request<'a>) {
-        Error::provide(self.0.as_ref() as &dyn Error, request);
-    }
-}
-
-#[cfg(feature = "eyre")]
-impl FrameImpl for EyreContext {
-    fn kind(&self) -> FrameKind<'_> {
-        FrameKind::Context(self)
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        &self.0
-    }
-
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        &mut self.0
-    }
-
-    #[cfg(nightly)]
-    #[inline]
     fn provide<'a>(&'a self, request: &mut Request<'a>) {
         Context::provide(self, request);
     }
@@ -242,21 +198,27 @@ impl Frame {
         }
     }
 
-    /// Creates a frame from an [`anyhow::Error`].
-    #[cfg(feature = "anyhow")]
-    pub(crate) fn from_anyhow(error: anyhow::Error, sources: Box<[Self]>) -> Self {
-        Self {
-            frame: Box::new(AnyhowContext(error)),
-            sources,
-        }
-    }
+    pub(crate) fn from_error<E>(error: E) -> Self
+    where
+        E: AsRef<dyn Error> + Send + Sync + 'static,
+    {
+        let error_ref = error.as_ref();
+        let mut source = error_ref.source();
+        let mut sources = alloc::vec::Vec::new();
 
-    /// Creates a frame from an [`eyre::Report`].
-    #[cfg(feature = "eyre")]
-    pub(crate) fn from_eyre(report: eyre::Report, sources: Box<[Self]>) -> Self {
+        while let Some(err) = source {
+            sources.push(alloc::string::ToString::to_string(err));
+            source = err.source();
+        }
+
+        println!("{sources:?}");
+        let mut source_frames: Box<[Self]> = Box::new([]);
+        while let Some(source) = sources.pop() {
+            source_frames = Box::new([Self::from_printable_attachment(source, source_frames)]);
+        }
         Self {
-            frame: Box::new(EyreContext(report)),
-            sources,
+            frame: Box::new(ErrorFrame(error)),
+            sources: source_frames,
         }
     }
 }
