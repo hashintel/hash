@@ -20,6 +20,8 @@ rustflags = [
     "-Aclippy::arithmetic_side_effects",
     "-Aclippy::as_conversions",
     "-Aclippy::blanket_clippy_restriction_lints",
+    "-Aclippy::cast_possible_truncation",
+    "-Aclippy::cast_precision_loss",
     "-Aclippy::default_numeric_fallback",
     "-Aclippy::else_if_without_else",
     "-Aclippy::enum_variant_names",
