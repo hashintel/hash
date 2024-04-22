@@ -1,11 +1,12 @@
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import dedent from "dedent";
-import type {
-  ChatCompletionMessageParam,
-  ChatCompletionSystemMessageParam,
-} from "openai/resources";
 
 import { getLlmResponse } from "../../shared/get-llm-response";
+import {
+  getTextContentFromLlmMessage,
+  getToolCallsFromLlmAssistantMessage,
+  mapOpenAiMessagesToLlmMessages,
+} from "../../shared/get-llm-response/llm-message";
 import type { ParsedLlmToolCall } from "../../shared/get-llm-response/types";
 import type { PermittedOpenAiModel } from "../../shared/openai-client";
 import type { CoordinatorToolName } from "./coordinator-tools";
@@ -28,9 +29,7 @@ const getNextToolCalls = async (params: {
   const { prompt, previousCalls, submittedProposedEntities, previousPlan } =
     params;
 
-  const systemMessage: ChatCompletionSystemMessageParam = {
-    role: "system",
-    content: dedent(`
+  const systemMessageContent = dedent(`
       You are a coordinating agent for a research task.
       The user will provides you with a text prompt, from which you will be
         able to make the relevant function calls to progress towards 
@@ -53,23 +52,24 @@ const getNextToolCalls = async (params: {
       ${previousPlan}
       If you want to deviate from this plan, update it using the "updatePlan" tool.
       You must call the "updatePlan" tool alongside other tool calls to progress towards completing the task.
-    `),
-  };
+    `);
 
-  const messages: ChatCompletionMessageParam[] = [
-    systemMessage,
-    {
-      role: "user",
-      content: prompt,
-    },
-    ...(previousCalls
-      ? mapPreviousCallsToChatCompletionMessages({ previousCalls })
-      : []),
-  ];
+  const messages = mapOpenAiMessagesToLlmMessages({
+    messages: [
+      {
+        role: "user",
+        content: prompt,
+      },
+      ...(previousCalls
+        ? mapPreviousCallsToChatCompletionMessages({ previousCalls })
+        : []),
+    ],
+  });
 
   const tools = Object.values(coordinatorToolDefinitions);
 
   const llmResponse = await getLlmResponse({
+    systemMessageContent,
     messages,
     model,
     tools,
@@ -81,40 +81,39 @@ const getNextToolCalls = async (params: {
     );
   }
 
-  const { parsedToolCalls, usage: _usage } = llmResponse;
+  const { message, usage: _usage } = llmResponse;
+
+  const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
 
   /** @todo: capture usage */
 
-  return { toolCalls: parsedToolCalls };
+  return { toolCalls };
 };
 const createInitialPlan = async (params: {
   prompt: string;
 }): Promise<{ plan: string }> => {
   const { prompt } = params;
 
-  const messages: ChatCompletionMessageParam[] = [
-    {
-      role: "system",
-      content: dedent(`
-        You are a coordinating agent for a research task.
-        The user will provides you with a text prompt, from which you will be
-          able to make the relevant function calls to progress towards 
-          completing the task.
-        You must completely satisfy the research prompt, without any missing information.
+  const systemMessageContent = dedent(`
+    You are a coordinating agent for a research task.
+    The user will provides you with a text prompt, from which you will be
+      able to make the relevant function calls to progress towards 
+      completing the task.
+    You must completely satisfy the research prompt, without any missing information.
 
-        Do not make *any* tool calls. You must first provide a plan of how you will use
-          the tools to progress towards completing the task.
-        This should be a list of steps in plain English.
-      `),
-    },
-    {
-      role: "user",
-      content: prompt,
-    },
-  ];
+    Do not make *any* tool calls. You must first provide a plan of how you will use
+      the tools to progress towards completing the task.
+    This should be a list of steps in plain English.
+  `);
 
   const llmResponse = await getLlmResponse({
-    messages,
+    systemMessageContent,
+    messages: [
+      {
+        role: "user",
+        content: [{ type: "text", text: prompt }],
+      },
+    ],
     model,
     tools: Object.values(coordinatorToolDefinitions).filter(
       ({ name }) => name !== "updatePlan",
@@ -127,23 +126,19 @@ const createInitialPlan = async (params: {
     );
   }
 
-  const { usage: _usage, choices } = llmResponse;
+  const { usage: _usage, message } = llmResponse;
 
-  const { message } = choices[0];
+  const messageTextContent = getTextContentFromLlmMessage({ message });
 
   /** @todo: capture usage */
 
-  const openAiAssistantMessageContent = message.content;
-
-  if (!openAiAssistantMessageContent) {
+  if (!messageTextContent) {
     throw new Error(
       `Expected message content in message: ${JSON.stringify(message, null, 2)}`,
     );
   }
 
-  return {
-    plan: openAiAssistantMessageContent,
-  };
+  return { plan: messageTextContent };
 };
 
 export const coordinatingAgent = {

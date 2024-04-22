@@ -7,21 +7,28 @@ import type {
   ChatCompletion,
   ChatCompletion as OpenAiChatCompletion,
   ChatCompletionCreateParamsNonStreaming,
+  ChatCompletionMessageParam,
   FunctionParameters as OpenAiFunctionParameters,
 } from "openai/resources";
 import { promptTokensEstimate } from "openai-chat-tokens";
 
 import { logger } from "../../shared/logger";
 import type {
-  AnthropicMessagesCreateParams,
+  AnthropicMessagesCreateResponse,
   AnthropicToolDefinition,
-  MessageContent,
 } from "./get-llm-response/anthropic-client";
 import {
   anthropicMessageModelToMaxOutput,
   createAnthropicMessagesWithTools,
   isAnthropicContentToolUseContent,
 } from "./get-llm-response/anthropic-client";
+import type { LlmUserMessage } from "./get-llm-response/llm-message";
+import {
+  mapAnthropicMessageToLlmMessage,
+  mapLlmMessageToAnthropicMessage,
+  mapLlmMessageToOpenAiMessages,
+  mapOpenAiMessagesToLlmMessages,
+} from "./get-llm-response/llm-message";
 import type {
   AnthropicLlmParams,
   AnthropicResponse,
@@ -56,7 +63,7 @@ const mapLlmToolDefinitionToOpenAiToolDefinition = (
 });
 
 const parseToolCallsFromAnthropicResponse = (
-  response: AnthropicResponse,
+  response: AnthropicMessagesCreateResponse,
 ): ParsedLlmToolCall[] =>
   response.content
     .filter(isAnthropicContentToolUseContent)
@@ -215,10 +222,20 @@ const maxRetryCount = 3;
 const getAnthropicResponse = async (
   params: AnthropicLlmParams,
 ): Promise<LlmResponse<AnthropicLlmParams>> => {
-  const { tools, retryCount = 0, ...remainingParams } = params;
+  const {
+    tools,
+    retryCount = 0,
+    messages,
+    systemMessageContent,
+    ...remainingParams
+  } = params;
 
   const anthropicTools = tools?.map(
     mapLlmToolDefinitionToAnthropicToolDefinition,
+  );
+
+  const anthropicMessages = messages.map((message) =>
+    mapLlmMessageToAnthropicMessage({ message }),
   );
 
   /**
@@ -227,11 +244,13 @@ const getAnthropicResponse = async (
   const maxTokens =
     params.maxTokens ?? anthropicMessageModelToMaxOutput[params.model];
 
-  let anthropicResponse: AnthropicResponse;
+  let anthropicResponse: AnthropicMessagesCreateResponse;
 
   try {
     anthropicResponse = await createAnthropicMessagesWithTools({
       ...remainingParams,
+      system: systemMessageContent,
+      messages: anthropicMessages,
       max_tokens: maxTokens,
       tools: anthropicTools,
     });
@@ -246,7 +265,7 @@ const getAnthropicResponse = async (
   }
 
   const retry = async (retryParams: {
-    retryMessage: AnthropicMessagesCreateParams["messages"][number];
+    retryMessageContent: LlmUserMessage["content"];
   }): Promise<LlmResponse<AnthropicLlmParams>> => {
     if (retryCount > maxRetryCount) {
       return {
@@ -259,11 +278,13 @@ const getAnthropicResponse = async (
       retryCount: retryCount + 1,
       messages: [
         ...params.messages,
+        mapAnthropicMessageToLlmMessage({
+          anthropicMessage: anthropicResponse,
+        }),
         {
-          role: "assistant",
-          content: anthropicResponse.content,
+          role: "user",
+          content: retryParams.retryMessageContent,
         },
-        retryParams.retryMessage,
       ],
     });
   };
@@ -278,7 +299,7 @@ const getAnthropicResponse = async (
   );
 
   if (stopReason === "tool_use" && unvalidatedParsedToolCalls.length > 0) {
-    const retryMessageContent: MessageContent = [];
+    const retryMessageContent: LlmUserMessage["content"] = [];
 
     for (const toolCall of unvalidatedParsedToolCalls) {
       const toolDefinition = tools?.find((tool) => tool.name === toolCall.name);
@@ -320,19 +341,22 @@ const getAnthropicResponse = async (
     }
 
     if (retryMessageContent.length > 0) {
-      return retry({
-        retryMessage: {
-          role: "user",
-          content: retryMessageContent,
-        },
-      });
+      return retry({ retryMessageContent });
     }
+  }
+
+  const message = mapAnthropicMessageToLlmMessage({
+    anthropicMessage: anthropicResponse,
+  });
+
+  if (message.role === "user") {
+    throw new Error("Unexpected user message in response");
   }
 
   const response: LlmResponse<AnthropicLlmParams> = {
     status: "ok",
-    parsedToolCalls,
     stopReason,
+    message,
     ...anthropicResponse,
   };
 
@@ -346,13 +370,30 @@ const getOpenAiResponse = async (
     tools,
     trimMessageAtIndex,
     retryCount = 0,
+    messages,
+    systemMessageContent,
     ...remainingParams
   } = params;
 
   const openAiTools = tools?.map(mapLlmToolDefinitionToOpenAiToolDefinition);
 
+  const openAiMessages: ChatCompletionMessageParam[] = [
+    ...(systemMessageContent
+      ? [
+          {
+            role: "system" as const,
+            content: systemMessageContent,
+          },
+        ]
+      : []),
+    ...messages.flatMap((message) =>
+      mapLlmMessageToOpenAiMessages({ message }),
+    ),
+  ];
+
   const completionPayload: ChatCompletionCreateParamsNonStreaming = {
     ...remainingParams,
+    messages: openAiMessages,
     tools: openAiTools,
     stream: false,
   };
@@ -371,7 +412,7 @@ const getOpenAiResponse = async (
     let excessTokens: number;
     do {
       estimatedPromptTokens = promptTokensEstimate({
-        messages: params.messages,
+        messages: openAiMessages,
         functions: openAiTools?.map((tool) => tool.function),
       });
 
@@ -416,7 +457,7 @@ const getOpenAiResponse = async (
   }
 
   const retry = async (retryParams: {
-    retryMessages: OpenAiLlmParams["messages"];
+    retryMessageContent: LlmUserMessage["content"];
   }): Promise<LlmResponse<OpenAiLlmParams>> => {
     if (retryCount > maxRetryCount) {
       return {
@@ -425,17 +466,28 @@ const getOpenAiResponse = async (
     }
 
     logger.debug(
-      `Retrying OpenAI call with the following retry messages: ${stringify(retryParams.retryMessages)}`,
+      `Retrying OpenAI call with the following retry message content: ${stringify(retryParams.retryMessageContent)}`,
     );
+
+    const openAiResponseMessage = openAiResponse.choices[0]?.message;
+
+    const responseMessages = openAiResponseMessage
+      ? mapOpenAiMessagesToLlmMessages({
+          messages: [openAiResponseMessage],
+        })
+      : undefined;
 
     return getOpenAiResponse({
       ...params,
       retryCount: retryCount + 1,
       messages: [
         ...params.messages,
-        openAiResponse.choices[0]?.message ?? [],
-        ...retryParams.retryMessages,
-      ].flat(),
+        ...(responseMessages ?? []),
+        {
+          role: "user",
+          content: retryParams.retryMessageContent,
+        },
+      ],
     });
   };
 
@@ -446,10 +498,10 @@ const getOpenAiResponse = async (
 
   if (!firstChoice) {
     return retry({
-      retryMessages: [
+      retryMessageContent: [
         {
-          role: "user",
-          content: "No response was provided by the model",
+          type: "text",
+          text: "No response was provided by the model",
         },
       ],
     });
@@ -457,7 +509,7 @@ const getOpenAiResponse = async (
 
   const parsedToolCalls: ParsedLlmToolCall[] = [];
 
-  const retryMessages: OpenAiLlmParams["messages"] = [];
+  const retryMessageContent: LlmUserMessage["content"] = [];
 
   for (const openAiToolCall of firstChoice.message.tool_calls ?? []) {
     const {
@@ -468,10 +520,11 @@ const getOpenAiResponse = async (
     const toolDefinition = tools?.find((tool) => tool.name === name);
 
     if (!toolDefinition) {
-      retryMessages.push({
-        role: "tool",
-        tool_call_id: id,
+      retryMessageContent.push({
+        type: "tool_result",
+        tool_use_id: id,
         content: "Tool not found",
+        is_error: true,
       });
 
       continue;
@@ -482,9 +535,9 @@ const getOpenAiResponse = async (
     try {
       parsedInput = JSON.parse(functionArguments) as object;
     } catch (error) {
-      retryMessages.push({
-        role: "tool",
-        tool_call_id: id,
+      retryMessageContent.push({
+        type: "tool_result",
+        tool_use_id: id,
         content: `Your JSON arguments could not be parsed – the parsing function errored: ${
           (error as Error).message
         }. Please try again.`,
@@ -504,9 +557,9 @@ const getOpenAiResponse = async (
     });
 
     if (validationErrors) {
-      retryMessages.push({
-        role: "tool",
-        tool_call_id: id,
+      retryMessageContent.push({
+        type: "tool_result",
+        tool_use_id: id,
         content: dedent(`
           The provided input did not match the schema.
           It contains the following errors: ${JSON.stringify(validationErrors)}
@@ -519,8 +572,8 @@ const getOpenAiResponse = async (
     parsedToolCalls.push({ id, name, input: sanitizedInput });
   }
 
-  if (retryMessages.length > 0) {
-    return retry({ retryMessages });
+  if (retryMessageContent.length > 0) {
+    return retry({ retryMessageContent });
   }
 
   if (
@@ -528,10 +581,10 @@ const getOpenAiResponse = async (
     parsedToolCalls.length === 0
   ) {
     return retry({
-      retryMessages: [
+      retryMessageContent: [
         {
-          role: "user",
-          content: `You indicated "tool_calls" as the finish reason, but no tool calls were made.`,
+          type: "text",
+          text: `You indicated "tool_calls" as the finish reason, but no tool calls were made.`,
         },
       ],
     });
@@ -559,6 +612,24 @@ const getOpenAiResponse = async (
     }
   }
 
+  const responseMessages = mapOpenAiMessagesToLlmMessages({
+    messages: [firstChoice.message],
+  });
+
+  if (responseMessages.length > 1) {
+    throw new Error("Unexpected multiple messages in response");
+  }
+
+  const responseMessage = responseMessages[0];
+
+  if (!responseMessage) {
+    throw new Error("Unexpected missing message in response");
+  }
+
+  if (responseMessage.role === "user") {
+    throw new Error("Unexpected user message in response");
+  }
+
   const usage = openAiResponse.usage ?? {
     completion_tokens: 0,
     prompt_tokens: 0,
@@ -568,10 +639,9 @@ const getOpenAiResponse = async (
   const response: LlmResponse<OpenAiLlmParams> = {
     ...openAiResponse,
     status: "ok",
+    message: responseMessage,
     stopReason,
-    parsedToolCalls,
     usage,
-    choices: [firstChoice, ...openAiResponse.choices.slice(1)],
   };
 
   return response;

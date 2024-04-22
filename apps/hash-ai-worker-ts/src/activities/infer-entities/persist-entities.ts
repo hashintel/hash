@@ -12,8 +12,15 @@ import type OpenAI from "openai";
 import { logger } from "../../shared/logger";
 import { createInferredEntityNotification } from "../shared/create-inferred-entity-notification";
 import { getLlmResponse } from "../shared/get-llm-response";
+import {
+  getTextContentFromLlmMessage,
+  getToolCallsFromLlmAssistantMessage,
+  mapLlmMessageToOpenAiMessages,
+  mapOpenAiMessagesToLlmMessages,
+} from "../shared/get-llm-response/llm-message";
 import { stringify } from "../shared/stringify";
 import { getResultsFromInferenceState } from "./get-results-from-inference-state";
+import { inferEntitiesSystemMessageContent } from "./infer-entities-system-message";
 import type {
   CompletionPayload,
   DereferencedEntityTypesByTypeId,
@@ -158,7 +165,10 @@ export const persistEntities = async (params: {
 
   const llmResponse = await getLlmResponse({
     ...completionPayload,
-    messages: [...completionPayload.messages, nextMessage],
+    systemMessageContent: inferEntitiesSystemMessageContent,
+    messages: mapOpenAiMessagesToLlmMessages({
+      messages: [...completionPayload.messages, nextMessage],
+    }),
     tools,
     firstUserMessageIndex,
   });
@@ -175,9 +185,9 @@ export const persistEntities = async (params: {
     };
   }
 
-  const { stopReason, usage, parsedToolCalls, choices } = llmResponse;
+  const { stopReason, usage, message } = llmResponse;
 
-  const { message } = choices[0];
+  const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
 
   const latestUsage = [...usageFromLastIteration, usage];
   inferenceState.usage = latestUsage;
@@ -206,7 +216,7 @@ export const persistEntities = async (params: {
             }
           : msg,
       ),
-      message,
+      ...mapLlmMessageToOpenAiMessages({ message }),
       ...retryMessages,
     ];
 
@@ -225,8 +235,10 @@ export const persistEntities = async (params: {
 
   switch (stopReason) {
     case "stop": {
+      const textContent = getTextContentFromLlmMessage({ message });
+
       const errorMessage = `AI Model returned 'stop' finish reason, with message: ${
-        message.content ?? "no message"
+        textContent ?? "no message"
       }`;
 
       logger.error(errorMessage);
@@ -239,8 +251,7 @@ export const persistEntities = async (params: {
             usage: latestUsage,
           },
         ],
-        message:
-          message.content ?? "No entities could be inferred from the page.",
+        message: textContent ?? "No entities could be inferred from the page.",
       };
     }
 
@@ -249,7 +260,8 @@ export const persistEntities = async (params: {
         `AI Model returned 'length' finish reason on attempt ${iterationCount}.`,
       );
 
-      const toolCallId = parsedToolCalls[0]?.id;
+      const toolCallId = toolCalls[0]?.id;
+
       if (!toolCallId) {
         return {
           code: StatusCode.ResourceExhausted,
@@ -303,7 +315,7 @@ export const persistEntities = async (params: {
         | OpenAI.ChatCompletionToolMessageParam
       ) & { requiresOriginalContext: boolean })[] = [];
 
-      for (const toolCall of parsedToolCalls) {
+      for (const toolCall of toolCalls) {
         if (toolCall.name === "abandon_entities") {
           // The model is giving up on these entities
 
@@ -766,7 +778,7 @@ export const persistEntities = async (params: {
         };
       }
 
-      const toolCallsWithoutProblems = parsedToolCalls.filter(
+      const toolCallsWithoutProblems = toolCalls.filter(
         (toolCall) =>
           !retryMessages.some(
             (msg) => msg.role === "tool" && msg.tool_call_id === toolCall.id,

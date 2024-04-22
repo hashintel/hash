@@ -7,7 +7,14 @@ import type OpenAI from "openai";
 
 import { logger } from "../../shared/logger";
 import { getLlmResponse } from "../shared/get-llm-response";
+import {
+  getTextContentFromLlmMessage,
+  getToolCallsFromLlmAssistantMessage,
+  mapLlmMessageToOpenAiMessages,
+  mapOpenAiMessagesToLlmMessages,
+} from "../shared/get-llm-response/llm-message";
 import { stringify } from "../shared/stringify";
+import { inferEntitiesSystemMessageContent } from "./infer-entities-system-message";
 import type {
   CouldNotInferEntitiesReturn,
   ProposedEntitySummariesByType,
@@ -58,6 +65,10 @@ export const inferEntitySummaries = async (params: {
 
   const llmResponse = await getLlmResponse({
     ...completionPayload,
+    systemMessageContent: inferEntitiesSystemMessageContent,
+    messages: mapOpenAiMessagesToLlmMessages({
+      messages: completionPayload.messages,
+    }),
     tools,
   });
 
@@ -68,9 +79,7 @@ export const inferEntitySummaries = async (params: {
     };
   }
 
-  const { stopReason, usage, choices, parsedToolCalls } = llmResponse;
-
-  const { message } = choices[0];
+  const { stopReason, usage, message } = llmResponse;
 
   inferenceState.usage = [...usageFromPreviousIterations, usage];
 
@@ -87,7 +96,7 @@ export const inferEntitySummaries = async (params: {
 
     const newMessages = [
       ...completionPayload.messages,
-      message,
+      ...mapLlmMessageToOpenAiMessages({ message }),
       ...retryMessages,
     ];
 
@@ -105,10 +114,13 @@ export const inferEntitySummaries = async (params: {
     });
   };
 
+  const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
+
   switch (stopReason) {
     case "stop": {
+      const textContent = getTextContentFromLlmMessage({ message });
       const errorMessage = `AI Model returned 'stop' finish reason, with message: ${
-        message.content ?? "no message"
+        textContent ?? "no message"
       }`;
 
       logger.error(errorMessage);
@@ -116,8 +128,7 @@ export const inferEntitySummaries = async (params: {
       return {
         code: StatusCode.Unknown,
         contents: [inferenceState],
-        message:
-          message.content ?? "No entities could be inferred from the page.",
+        message: textContent ?? "No entities could be inferred from the page.",
       };
     }
 
@@ -126,7 +137,8 @@ export const inferEntitySummaries = async (params: {
         `AI Model returned 'length' finish reason on attempt ${iterationCount}.`,
       );
 
-      const toolCallId = parsedToolCalls[0]?.id;
+      const toolCallId = toolCalls[0]?.id;
+
       if (!toolCallId) {
         return {
           code: StatusCode.ResourceExhausted,
@@ -169,7 +181,7 @@ export const inferEntitySummaries = async (params: {
         | OpenAI.ChatCompletionUserMessageParam
       )[] = [];
 
-      for (const toolCall of parsedToolCalls) {
+      for (const toolCall of toolCalls) {
         if (toolCall.name === "could_not_infer_entities") {
           if (Object.keys(inferenceState.proposedEntitySummaries).length > 0) {
             return {
@@ -277,7 +289,7 @@ export const inferEntitySummaries = async (params: {
         };
       }
 
-      const toolCallsWithoutProblems = parsedToolCalls.filter(
+      const toolCallsWithoutProblems = toolCalls.filter(
         (toolCall) =>
           !retryMessages.some(
             (msg) => msg.role === "tool" && msg.tool_call_id === toolCall.id,

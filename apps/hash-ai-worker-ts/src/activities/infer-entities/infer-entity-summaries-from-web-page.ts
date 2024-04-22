@@ -62,10 +62,6 @@ export const inferEntitySummariesFromWebPage = async (params: {
       max_tokens: maxTokens,
       messages: [
         {
-          role: "system",
-          content: inferEntitiesSystemMessageContent,
-        },
-        {
           role: "user",
           content: summariseEntitiesPrompt,
         },

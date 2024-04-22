@@ -7,8 +7,11 @@ import dedent from "dedent";
 
 import { logger } from "../../shared/logger";
 import { getLlmResponse } from "../shared/get-llm-response";
-import type { MessageContent } from "../shared/get-llm-response/anthropic-client";
-import type { AnthropicLlmParams } from "../shared/get-llm-response/types";
+import type {
+  LlmMessage,
+  LlmUserMessage,
+} from "../shared/get-llm-response/llm-message";
+import { getToolCallsFromLlmAssistantMessage } from "../shared/get-llm-response/llm-message";
 import { stringify } from "../shared/stringify";
 import { inferEntitiesSystemMessageContent } from "./infer-entities-system-message";
 import type {
@@ -21,8 +24,6 @@ import type { ProposedEntityToolCreationsByType } from "./shared/generate-propos
 import { generateProposeEntitiesTools } from "./shared/generate-propose-entities-tools";
 import { mapSimplifiedPropertiesToProperties } from "./shared/map-simplified-properties-to-properties";
 
-type WithoutString<T> = T extends string ? never : T;
-
 /**
  * This method is based on the logic from the existing `persistEntities` method, which
  * would ideally be reconciled to reduce code duplication. The primary difference
@@ -32,7 +33,7 @@ type WithoutString<T> = T extends string ? never : T;
 export const proposeEntities = async (params: {
   maxTokens?: number;
   firstUserMessage: string;
-  previousMessages?: AnthropicLlmParams["messages"];
+  previousMessages?: LlmMessage[];
   entityTypes: DereferencedEntityTypesByTypeId;
   inferenceState: InferenceState;
   validationActorId: AccountId;
@@ -139,36 +140,34 @@ export const proposeEntities = async (params: {
     If you can't find a value for a specified property, just omit it – don't pass 'null' as a value.
   `);
 
-  const messages: AnthropicLlmParams["messages"] =
+  const messages: LlmMessage[] =
     previousMessages && previousMessages.length > 1
       ? [
           ...previousMessages.slice(0, -1),
           {
             role: "user",
-            content:
-              typeof previousMessages[previousMessages.length - 1]!.content ===
-              "string"
-                ? dedent(`
-                  ${previousMessages[previousMessages.length - 1]!.content as string}
-                  ${instructions}
-                `)
-                : [
-                    ...(previousMessages[previousMessages.length - 1]!
-                      .content as WithoutString<MessageContent>),
-                    {
-                      type: "text",
-                      text: instructions,
-                    },
-                  ],
+            content: [
+              ...(previousMessages[previousMessages.length - 1]!
+                .content as LlmUserMessage["content"]),
+              {
+                type: "text",
+                text: instructions,
+              },
+            ],
           },
         ]
       : [
           {
             role: "user",
-            content: dedent(`
-              ${firstUserMessage}
-              ${instructions}
-            `),
+            content: [
+              {
+                type: "text",
+                text: dedent(`
+                ${firstUserMessage}
+                ${instructions}
+              `),
+              },
+            ],
           },
         ];
 
@@ -177,7 +176,7 @@ export const proposeEntities = async (params: {
   const llmResponse = await getLlmResponse({
     model: "claude-3-opus-20240229",
     maxTokens,
-    system: inferEntitiesSystemMessageContent,
+    systemMessageContent: inferEntitiesSystemMessageContent,
     messages,
     tools,
     /**
@@ -194,7 +193,7 @@ export const proposeEntities = async (params: {
     };
   }
 
-  const { stopReason, usage: _usage, parsedToolCalls } = llmResponse;
+  const { stopReason, usage: _usage, message } = llmResponse;
 
   // const latestUsage = [...usageFromLastIteration, usage];
 
@@ -204,27 +203,31 @@ export const proposeEntities = async (params: {
     retryMessageContent,
     requiresOriginalContext,
   }: {
-    retryMessageContent: AnthropicLlmParams["messages"][number]["content"];
+    retryMessageContent: LlmUserMessage["content"];
     requiresOriginalContext: boolean;
   }) => {
     logger.debug(
       `Retrying with additional message: ${stringify(retryMessageContent)}`,
     );
 
-    const newMessages: AnthropicLlmParams["messages"] = [
+    const newMessages: LlmMessage[] = [
       requiresOriginalContext
         ? {
             role: "user",
-            content: firstUserMessage,
+            content: [{ type: "text", text: firstUserMessage }],
           }
         : {
             role: "user",
-            content:
-              "I provided you text to infer entities, and you responded below – please see further instructions after your message.",
+            content: [
+              {
+                type: "text",
+                text: "I provided you text to infer entities, and you responded below – please see further instructions after your message.",
+              },
+            ],
           },
       {
         role: "assistant",
-        content: llmResponse.content,
+        content: message.content,
       },
       {
         role: "user",
@@ -242,10 +245,12 @@ export const proposeEntities = async (params: {
     });
   };
 
+  const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
+
   switch (stopReason) {
     case "stop": {
       const errorMessage = `AI Model returned 'stop' finish reason, with message content: ${stringify(
-        llmResponse.content,
+        message.content,
       )}`;
 
       logger.error(errorMessage);
@@ -254,8 +259,8 @@ export const proposeEntities = async (params: {
         code: StatusCode.Unknown,
         contents: [inferenceState],
         message:
-          llmResponse.content.length > 0
-            ? stringify(llmResponse.content)
+          message.content.length > 0
+            ? stringify(message.content)
             : "No entities could be inferred from the page.",
       };
     }
@@ -265,7 +270,7 @@ export const proposeEntities = async (params: {
         `AI Model returned 'length' finish reason on attempt ${iterationCount}.`,
       );
 
-      const toolCallId = parsedToolCalls[0]?.id;
+      const toolCallId = toolCalls[0]?.id;
 
       if (!toolCallId) {
         return {
@@ -293,7 +298,7 @@ export const proposeEntities = async (params: {
     case "content_filter": {
       logger.error(
         `The content filter was triggered on attempt ${iterationCount} with input: ${stringify(
-          llmResponse.content,
+          message.content,
         )}, `,
       );
 
@@ -305,13 +310,11 @@ export const proposeEntities = async (params: {
     }
 
     case "tool_use": {
-      const retryMessageContent: (WithoutString<
-        AnthropicLlmParams["messages"][number]["content"][number]
-      > & {
+      const retryMessageContent: (LlmUserMessage["content"][number] & {
         requiresOriginalContext: boolean;
       })[] = [];
 
-      for (const toolCall of parsedToolCalls) {
+      for (const toolCall of toolCalls) {
         if (toolCall.name === "abandon_entities") {
           // The model is giving up on these entities
 
@@ -599,7 +602,7 @@ export const proposeEntities = async (params: {
         };
       }
 
-      const toolCallsWithoutProblems = parsedToolCalls.filter(
+      const toolCallsWithoutProblems = toolCalls.filter(
         (toolCall) =>
           !retryMessageContent.some(
             (content) =>

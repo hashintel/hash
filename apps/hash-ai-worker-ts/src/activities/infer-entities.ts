@@ -16,7 +16,6 @@ import { createInferenceUsageRecordActivity } from "./create-inference-usage-rec
 import { getAiAssistantAccountIdActivity } from "./get-ai-assistant-account-id-activity";
 import { getDereferencedEntityTypesActivity } from "./get-dereferenced-entity-types-activity";
 import { getResultsFromInferenceState } from "./infer-entities/get-results-from-inference-state";
-import { inferEntitiesSystemMessageContent } from "./infer-entities/infer-entities-system-message";
 import { inferEntitySummariesFromWebPage } from "./infer-entities/infer-entity-summaries-from-web-page";
 import type {
   DereferencedEntityTypesByTypeId,
@@ -216,10 +215,6 @@ const inferEntities = async ({
 
   const promptMessages = [
     {
-      role: "system",
-      content: inferEntitiesSystemMessageContent,
-    } as const,
-    {
       role: "user",
       content: persistEntitiesPrompt,
     } as const,
@@ -230,10 +225,6 @@ const inferEntities = async ({
     completionPayload: {
       max_tokens: maxTokens,
       messages: [
-        {
-          role: "system",
-          content: inferEntitiesSystemMessageContent,
-        },
         {
           role: "user",
           content: persistEntitiesPrompt,

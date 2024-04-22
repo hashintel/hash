@@ -7,36 +7,42 @@ import type {
 
 import type { AnthropicMessage } from "./anthropic-client";
 
-type MessageTextContent = {
+export type LlmMessageTextContent = {
   type: "text";
   text: string;
 };
 
-type MessageToolUseContent = {
+export type LlmMessageToolUseContent<ToolName = string> = {
   type: "tool_use";
   id: string;
-  name: string;
+  name: ToolName;
   input: object;
 };
 
-type LlmAssistantMessage = {
+export type LlmAssistantMessage<ToolName = string> = {
   role: "assistant";
-  content: (MessageTextContent | MessageToolUseContent)[];
+  content: (LlmMessageTextContent | LlmMessageToolUseContent<ToolName>)[];
 };
 
-type MessageToolResultContent = {
+export type LlmMessageToolResultContent = {
   type: "tool_result";
   tool_use_id: string;
   content?: string;
   is_error?: true;
 };
 
-type LlmUserMessage = {
+export type LlmUserMessage = {
   role: "user";
-  content: (MessageTextContent | MessageToolResultContent)[];
+  content: (LlmMessageTextContent | LlmMessageToolResultContent)[];
 };
 
-type LlmMessage = LlmAssistantMessage | LlmUserMessage;
+export type LlmMessage = LlmAssistantMessage | LlmUserMessage;
+
+type LlmMessageContent = (
+  | LlmMessageTextContent
+  | LlmMessageToolUseContent
+  | LlmMessageToolResultContent
+)[];
 
 export const mapLlmMessageToAnthropicMessage = (params: {
   message: LlmMessage;
@@ -97,24 +103,43 @@ export const mapAnthropicMessageToLlmMessage = (params: {
   };
 };
 
+export const getToolCallsFromLlmAssistantMessage = <
+  ToolName extends string = string,
+>(params: {
+  message: LlmAssistantMessage<ToolName>;
+}): LlmMessageToolUseContent<ToolName>[] =>
+  params.message.content.filter(
+    (content): content is LlmMessageToolUseContent<ToolName> =>
+      content.type === "tool_use",
+  );
+
+export const getTextContentFromLlmMessage = (params: {
+  message: LlmMessage;
+}): string | undefined => {
+  const { message } = params;
+
+  const textContents = (message.content as LlmMessageContent).filter(
+    (content): content is LlmMessageTextContent => content.type === "text",
+  );
+
+  if (textContents.length === 0) {
+    return undefined;
+  }
+
+  return textContents.map(({ text }) => text).join("\n");
+};
+
 export const mapLlmMessageToOpenAiMessages = (params: {
   message: LlmMessage;
 }): OpenAiMessage[] => {
   const { message } = params;
 
   if (message.role === "assistant") {
-    const textContents = message.content.filter(
-      (content): content is MessageTextContent => content.type === "text",
-    );
-
-    const toolCalls = message.content.filter(
-      (content): content is MessageToolUseContent =>
-        content.type === "tool_use",
-    );
+    const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
 
     const assistantMessage: ChatCompletionAssistantMessageParam = {
       role: message.role,
-      content: textContents.map(({ text }) => text).join("\n"),
+      content: getTextContentFromLlmMessage({ message }) ?? null,
       tool_calls: toolCalls.map((toolCall) => ({
         id: toolCall.id,
         type: "function",
@@ -152,14 +177,15 @@ export const mapOpenAiMessagesToLlmMessages = (params: {
   return messages.reduce<LlmMessage[]>(
     (previousLlmMessages, currentMessage) => {
       if (currentMessage.role === "assistant") {
-        const toolCalls = currentMessage.tool_calls?.map<MessageToolUseContent>(
-          (toolCall) => ({
-            type: "tool_use" as const,
-            id: toolCall.id,
-            name: toolCall.function.name,
-            input: JSON.parse(toolCall.function.arguments) as object,
-          }),
-        );
+        const toolCalls =
+          currentMessage.tool_calls?.map<LlmMessageToolUseContent>(
+            (toolCall) => ({
+              type: "tool_use" as const,
+              id: toolCall.id,
+              name: toolCall.function.name,
+              input: JSON.parse(toolCall.function.arguments) as object,
+            }),
+          );
 
         return [
           ...previousLlmMessages,
