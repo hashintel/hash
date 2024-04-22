@@ -50,9 +50,9 @@ use crate::{
         crud::{QueryResult, Read, ReadPaginated, Sorting},
         error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
         knowledge::{
-            CreateEntityParams, EntityQuerySorting, EntityValidationType, GetEntityParams,
-            GetEntityResponse, PatchEntityParams, UpdateEntityEmbeddingsParams,
-            ValidateEntityError, ValidateEntityParams,
+            CountEntitiesParams, CreateEntityParams, EntityQuerySorting, EntityValidationType,
+            GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams,
+            UpdateEntityEmbeddingsParams, ValidateEntityError, ValidateEntityParams,
         },
         postgres::{
             knowledge::entity::read::EntityEdgeTraversalData, ontology::OntologyId,
@@ -66,7 +66,6 @@ use crate::{
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
         identifier::{EntityIdWithInterval, EntityVertexId},
-        query::EntityStructuralQuery,
         temporal_axes::{
             PinnedTemporalAxis, PinnedTemporalAxisUnresolved, QueryTemporalAxes,
             QueryTemporalAxesUnresolved, VariableAxis, VariableTemporalAxis,
@@ -981,14 +980,12 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
-    async fn get_entity(
+    async fn get_entity_subgraph(
         &self,
         actor_id: AccountId,
-        mut params: GetEntityParams<'_>,
-    ) -> Result<GetEntityResponse<'static>, QueryError> {
-        let query = &mut params.query;
-
-        let unresolved_temporal_axes = query.temporal_axes.clone();
+        mut params: GetEntitySubgraphParams<'_>,
+    ) -> Result<GetEntitySubgraphResponse<'static>, QueryError> {
+        let unresolved_temporal_axes = params.temporal_axes.clone();
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
@@ -997,9 +994,9 @@ where
         let (permissions, count) = if params.include_count {
             let entity_ids = Read::<Entity>::read(
                 self,
-                &query.filter,
+                &params.filter,
                 Some(&temporal_axes),
-                query.include_drafts,
+                params.include_drafts,
             )
             .await?
             .map_ok(|entity| entity.metadata.record_id.entity_id)
@@ -1036,11 +1033,11 @@ where
             let (rows, artifacts) =
                 ReadPaginated::<Entity, EntityQuerySorting>::read_paginated_vec(
                     self,
-                    &query.filter,
+                    &params.filter,
                     Some(&temporal_axes),
                     &params.sorting,
                     params.limit,
-                    query.include_drafts,
+                    params.include_drafts,
                 )
                 .await?;
             let entities = rows
@@ -1124,7 +1121,7 @@ where
         };
 
         let mut subgraph = Subgraph::new(
-            query.graph_resolve_depths,
+            params.graph_resolve_depths,
             unresolved_temporal_axes,
             temporal_axes,
         );
@@ -1164,10 +1161,10 @@ where
         .await?;
 
         traversal_context
-            .read_traversed_vertices(self, &mut subgraph, query.include_drafts)
+            .read_traversed_vertices(self, &mut subgraph, params.include_drafts)
             .await?;
 
-        Ok(GetEntityResponse {
+        Ok(GetEntitySubgraphResponse {
             subgraph,
             cursor: last,
             count,
@@ -1177,15 +1174,15 @@ where
     async fn count_entities(
         &self,
         actor_id: AccountId,
-        query: EntityStructuralQuery<'_>,
+        params: CountEntitiesParams<'_>,
     ) -> Result<usize, QueryError> {
-        let temporal_axes = query.temporal_axes.resolve();
+        let temporal_axes = params.temporal_axes.resolve();
 
         let entity_ids = Read::<Entity>::read(
             self,
-            &query.filter,
+            &params.filter,
             Some(&temporal_axes),
-            query.include_drafts,
+            params.include_drafts,
         )
         .await?
         .map_ok(|entity| entity.metadata.record_id.entity_id)

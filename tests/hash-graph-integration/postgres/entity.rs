@@ -1,12 +1,13 @@
 use graph::{
     store::{
-        knowledge::{CreateEntityParams, GetEntityParams, PatchEntityParams},
+        knowledge::{
+            CountEntitiesParams, CreateEntityParams, GetEntitySubgraphParams, PatchEntityParams,
+        },
         query::Filter,
         EntityQuerySorting, EntityStore,
     },
     subgraph::{
         edges::GraphResolveDepths,
-        query::StructuralQuery,
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
             VariableTemporalAxisUnresolved,
@@ -80,20 +81,17 @@ async fn insert() {
         .expect("could not create entity");
 
     let entities = api
-        .get_entity(
+        .get_entity_subgraph(
             api.account_id,
-            GetEntityParams {
-                query: StructuralQuery {
-                    filter: Filter::for_entity_by_entity_id(metadata.record_id.entity_id),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
-                    },
-                    include_drafts: false,
+            GetEntitySubgraphParams {
+                filter: Filter::for_entity_by_entity_id(metadata.record_id.entity_id),
+                graph_resolve_depths: GraphResolveDepths::default(),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Unbounded),
+                        None,
+                    ),
                 },
                 sorting: EntityQuerySorting {
                     paths: Vec::new(),
@@ -101,6 +99,7 @@ async fn insert() {
                 },
                 limit: None,
                 include_count: true,
+                include_drafts: false,
             },
         )
         .await
@@ -158,20 +157,17 @@ async fn query() {
         .expect("could not create entity");
 
     let queried_organizations = api
-        .get_entity(
+        .get_entity_subgraph(
             api.account_id,
-            GetEntityParams {
-                query: StructuralQuery {
-                    filter: Filter::for_entity_by_entity_id(metadata.record_id.entity_id),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
-                    },
-                    include_drafts: false,
+            GetEntitySubgraphParams {
+                filter: Filter::for_entity_by_entity_id(metadata.record_id.entity_id),
+                graph_resolve_depths: GraphResolveDepths::default(),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Unbounded),
+                        None,
+                    ),
                 },
                 sorting: EntityQuerySorting {
                     paths: Vec::new(),
@@ -179,6 +175,7 @@ async fn query() {
                 },
                 limit: None,
                 include_count: true,
+                include_drafts: false,
             },
         )
         .await
@@ -262,9 +259,8 @@ async fn update() {
     let num_entities = api
         .count_entities(
             api.account_id,
-            StructuralQuery {
+            CountEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(v2_metadata.record_id.entity_id),
-                graph_resolve_depths: GraphResolveDepths::default(),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -280,17 +276,14 @@ async fn update() {
     assert_eq!(num_entities, 2);
 
     let entities = api
-        .get_entity(
+        .get_entity_subgraph(
             api.account_id,
-            GetEntityParams {
-                query: StructuralQuery {
-                    filter: Filter::for_entity_by_entity_id(v2_metadata.record_id.entity_id),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
-                    },
-                    include_drafts: false,
+            GetEntitySubgraphParams {
+                filter: Filter::for_entity_by_entity_id(v2_metadata.record_id.entity_id),
+                graph_resolve_depths: GraphResolveDepths::default(),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
                 },
                 sorting: EntityQuerySorting {
                     paths: Vec::new(),
@@ -298,6 +291,7 @@ async fn update() {
                 },
                 limit: None,
                 include_count: false,
+                include_drafts: false,
             },
         )
         .await
@@ -316,20 +310,17 @@ async fn update() {
         *v1_metadata.temporal_versioning.decision_time.start();
 
     let response_v1 = api
-        .get_entity(
+        .get_entity_subgraph(
             api.account_id,
-            GetEntityParams {
-                query: StructuralQuery {
-                    filter: Filter::for_entity_by_entity_id(v1_metadata.record_id.entity_id),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Inclusive(entity_v1_timestamp)),
-                            Some(LimitedTemporalBound::Inclusive(entity_v1_timestamp)),
-                        ),
-                    },
-                    include_drafts: false,
+            GetEntitySubgraphParams {
+                filter: Filter::for_entity_by_entity_id(v1_metadata.record_id.entity_id),
+                graph_resolve_depths: GraphResolveDepths::default(),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Inclusive(entity_v1_timestamp)),
+                        Some(LimitedTemporalBound::Inclusive(entity_v1_timestamp)),
+                    ),
                 },
                 sorting: EntityQuerySorting {
                     paths: Vec::new(),
@@ -337,6 +328,7 @@ async fn update() {
                 },
                 limit: None,
                 include_count: true,
+                include_drafts: false,
             },
         )
         .await
@@ -354,20 +346,17 @@ async fn update() {
     let ClosedTemporalBound::Inclusive(entity_v2_timestamp) =
         *v2_metadata.temporal_versioning.decision_time.start();
     let response_v2 = api
-        .get_entity(
+        .get_entity_subgraph(
             api.account_id,
-            GetEntityParams {
-                query: StructuralQuery {
-                    filter: Filter::for_entity_by_entity_id(v2_metadata.record_id.entity_id),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Inclusive(entity_v2_timestamp)),
-                            Some(LimitedTemporalBound::Inclusive(entity_v2_timestamp)),
-                        ),
-                    },
-                    include_drafts: false,
+            GetEntitySubgraphParams {
+                filter: Filter::for_entity_by_entity_id(v2_metadata.record_id.entity_id),
+                graph_resolve_depths: GraphResolveDepths::default(),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Inclusive(entity_v2_timestamp)),
+                        Some(LimitedTemporalBound::Inclusive(entity_v2_timestamp)),
+                    ),
                 },
                 sorting: EntityQuerySorting {
                     paths: Vec::new(),
@@ -375,6 +364,7 @@ async fn update() {
                 },
                 limit: None,
                 include_count: true,
+                include_drafts: false,
             },
         )
         .await

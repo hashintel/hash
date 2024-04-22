@@ -4,14 +4,13 @@ use authorization::AuthorizationApi;
 use graph::{
     knowledge::EntityQueryPath,
     store::{
-        knowledge::{CreateEntityParams, GetEntityParams},
+        knowledge::{CreateEntityParams, GetEntitySubgraphParams},
         query::{Filter, JsonPath, PathToken},
         EntityQuerySorting, EntityQuerySortingRecord, EntityStore, NullOrdering, Ordering,
     },
     subgraph::{
         edges::GraphResolveDepths,
         identifier::GraphElementVertexId,
-        query::StructuralQuery,
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
             VariableTemporalAxisUnresolved,
@@ -63,17 +62,14 @@ async fn test_root_sorting<A: AuthorizationApi>(
 
     loop {
         let mut response = api
-            .get_entity(
+            .get_entity_subgraph(
                 api.account_id,
-                GetEntityParams {
-                    query: StructuralQuery {
-                        filter: Filter::All(Vec::new()),
-                        graph_resolve_depths: GraphResolveDepths::default(),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
-                        },
-                        include_drafts: false,
+                GetEntitySubgraphParams {
+                    filter: Filter::All(Vec::new()),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
                     sorting: EntityQuerySorting {
                         paths: sorting_paths.clone(),
@@ -81,6 +77,7 @@ async fn test_root_sorting<A: AuthorizationApi>(
                     },
                     limit: Some(chunk_size),
                     include_count: false,
+                    include_drafts: false,
                 },
             )
             .await

@@ -5,13 +5,12 @@ use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
     knowledge::EntityQueryPath,
     store::{
-        knowledge::GetEntityParams,
+        knowledge::GetEntitySubgraphParams,
         query::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
         EntityQuerySorting, EntityStore,
     },
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind},
-        query::StructuralQuery,
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
             VariableTemporalAxisUnresolved,
@@ -42,22 +41,19 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
         },
         |entity_uuid| async move {
             let response = store
-                .get_entity(
+                .get_entity_subgraph(
                     actor_id,
-                    GetEntityParams {
-                        query: StructuralQuery {
-                            filter: Filter::Equal(
-                                Some(FilterExpression::Path(EntityQueryPath::Uuid)),
-                                Some(FilterExpression::Parameter(Parameter::Uuid(
-                                    entity_uuid.into_uuid(),
-                                ))),
-                            ),
-                            graph_resolve_depths: GraphResolveDepths::default(),
-                            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                                pinned: PinnedTemporalAxisUnresolved::new(None),
-                                variable: VariableTemporalAxisUnresolved::new(None, None),
-                            },
-                            include_drafts: false,
+                    GetEntitySubgraphParams {
+                        filter: Filter::Equal(
+                            Some(FilterExpression::Path(EntityQueryPath::Uuid)),
+                            Some(FilterExpression::Parameter(Parameter::Uuid(
+                                entity_uuid.into_uuid(),
+                            ))),
+                        ),
+                        graph_resolve_depths: GraphResolveDepths::default(),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
                         },
                         sorting: EntityQuerySorting {
                             paths: Vec::new(),
@@ -65,6 +61,7 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
                         },
                         limit: None,
                         include_count: false,
+                        include_drafts: false,
                     },
                 )
                 .await
@@ -97,20 +94,17 @@ pub fn bench_get_entities_by_property<A: AuthorizationApi>(
             .convert_parameters()
             .expect("failed to convert parameters");
         let response = store
-            .get_entity(
+            .get_entity_subgraph(
                 actor_id,
-                GetEntityParams {
-                    query: StructuralQuery {
-                        filter,
-                        graph_resolve_depths,
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(
-                                Some(TemporalBound::Unbounded),
-                                None,
-                            ),
-                        },
-                        include_drafts: false,
+                GetEntitySubgraphParams {
+                    filter,
+                    graph_resolve_depths,
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(
+                            Some(TemporalBound::Unbounded),
+                            None,
+                        ),
                     },
                     sorting: EntityQuerySorting {
                         paths: Vec::new(),
@@ -118,6 +112,7 @@ pub fn bench_get_entities_by_property<A: AuthorizationApi>(
                     },
                     limit: None,
                     include_count: false,
+                    include_drafts: false,
                 },
             )
             .await
@@ -152,20 +147,17 @@ pub fn bench_get_link_by_target_by_property<A: AuthorizationApi>(
             .convert_parameters()
             .expect("failed to convert parameters");
         let response = store
-            .get_entity(
+            .get_entity_subgraph(
                 actor_id,
-                GetEntityParams {
-                    query: StructuralQuery {
-                        filter,
-                        graph_resolve_depths,
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(
-                                Some(TemporalBound::Unbounded),
-                                None,
-                            ),
-                        },
-                        include_drafts: false,
+                GetEntitySubgraphParams {
+                    filter,
+                    graph_resolve_depths,
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(
+                            Some(TemporalBound::Unbounded),
+                            None,
+                        ),
                     },
                     sorting: EntityQuerySorting {
                         paths: Vec::new(),
@@ -173,6 +165,7 @@ pub fn bench_get_link_by_target_by_property<A: AuthorizationApi>(
                     },
                     limit: None,
                     include_count: false,
+                    include_drafts: false,
                 },
             )
             .await

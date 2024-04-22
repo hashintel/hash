@@ -32,8 +32,8 @@ import {
   canUserReadEntity,
   checkEntityPermission,
   createEntityWithLinks,
-  getEntities,
   getEntityAuthorizationRelationships,
+  getEntitySubgraph,
   getLatestEntityById,
   modifyEntityAuthorizationRelationships,
   removeEntityAdministrator,
@@ -61,9 +61,9 @@ import type {
   MutationUpdateEntityArgs,
   Query,
   QueryGetEntityArgs,
+  QueryGetEntitySubgraphArgs,
   QueryIsEntityPublicArgs,
   QueryResolvers,
-  QueryStructuralQueryEntitiesArgs,
   ResolverFn,
 } from "../../../api-types.gen";
 import {
@@ -183,23 +183,21 @@ export const queryEntitiesResolver: NonNullable<
     );
   }
 
-  const entitySubgraph = await getEntities(context, authentication, {
-    query: {
-      filter,
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        constrainsValuesOn,
-        constrainsPropertiesOn,
-        constrainsLinksOn,
-        constrainsLinkDestinationsOn,
-        inheritsFrom,
-        isOfType,
-        hasLeftEntity,
-        hasRightEntity,
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: includeDrafts ?? false,
+  const entitySubgraph = await getEntitySubgraph(context, authentication, {
+    filter,
+    graphResolveDepths: {
+      ...zeroedGraphResolveDepths,
+      constrainsValuesOn,
+      constrainsPropertiesOn,
+      constrainsLinksOn,
+      constrainsLinkDestinationsOn,
+      inheritsFrom,
+      isOfType,
+      hasLeftEntity,
+      hasRightEntity,
     },
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: includeDrafts ?? false,
   });
 
   return createSubgraphAndPermissionsReturn(
@@ -209,20 +207,20 @@ export const queryEntitiesResolver: NonNullable<
   );
 };
 
-export const structuralQueryEntitiesResolver: ResolverFn<
-  Query["structuralQueryEntities"],
+export const getEntitySubgraphResolver: ResolverFn<
+  Query["getEntitySubgraph"],
   Record<string, never>,
   GraphQLContext,
-  QueryStructuralQueryEntitiesArgs
-> = async (_, { query }, graphQLContext, info) => {
+  QueryGetEntitySubgraphArgs
+> = async (_, { request }, graphQLContext, info) => {
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  const subgraph = await getEntities(
+  const subgraph = await getEntitySubgraph(
     graphQLContextToImpureGraphContext(graphQLContext),
     graphQLContext.authentication,
     {
       temporalClient: context.temporalClient,
-      query,
+      ...request,
     },
   );
 
@@ -288,26 +286,24 @@ export const getEntityResolver: ResolverFn<
       }
     : currentTimeInstantTemporalAxes;
 
-  const entitySubgraph = await getEntities(
+  const entitySubgraph = await getEntitySubgraph(
     graphQLContextToImpureGraphContext(graphQLContext),
     graphQLContext.authentication,
     {
-      query: {
-        filter,
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          constrainsValuesOn,
-          constrainsPropertiesOn,
-          constrainsLinksOn,
-          constrainsLinkDestinationsOn,
-          inheritsFrom,
-          isOfType,
-          hasLeftEntity,
-          hasRightEntity,
-        },
-        temporalAxes,
-        includeDrafts: includeDrafts ?? false,
+      filter,
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        constrainsValuesOn,
+        constrainsPropertiesOn,
+        constrainsLinksOn,
+        constrainsLinkDestinationsOn,
+        inheritsFrom,
+        isOfType,
+        hasLeftEntity,
+        hasRightEntity,
       },
+      temporalAxes,
+      includeDrafts: includeDrafts ?? false,
     },
   );
 

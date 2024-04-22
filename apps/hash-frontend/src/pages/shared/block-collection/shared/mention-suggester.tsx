@@ -44,10 +44,10 @@ import {
 import { useKey } from "rooks";
 
 import type {
-  StructuralQueryEntitiesQuery,
-  StructuralQueryEntitiesQueryVariables,
+  GetEntitySubgraphQuery,
+  GetEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { structuralQueryEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { isPageArchived } from "../../../../shared/is-archived";
 import { isEntityPageEntity } from "../../../../shared/is-of-type";
 import { usePropertyTypes } from "../../../../shared/property-types-context";
@@ -138,12 +138,12 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   );
 
   const { data, loading: loadingEntities } = useQuery<
-    StructuralQueryEntitiesQuery,
-    StructuralQueryEntitiesQueryVariables
-  >(structuralQueryEntitiesQuery, {
+    GetEntitySubgraphQuery,
+    GetEntitySubgraphQueryVariables
+  >(getEntitySubgraphQuery, {
     variables: {
       includePermissions: false,
-      query: {
+      request: {
         filter: {
           all: [
             {
@@ -193,7 +193,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
 
   const entitiesSubgraph = data
     ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-        data.structuralQueryEntities.subgraph,
+        data.getEntitySubgraph.subgraph,
       )
     : undefined;
 

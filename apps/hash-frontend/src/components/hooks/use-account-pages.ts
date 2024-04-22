@@ -20,10 +20,10 @@ import {
 import { useMemo } from "react";
 
 import type {
-  StructuralQueryEntitiesQuery,
-  StructuralQueryEntitiesQueryVariables,
+  GetEntitySubgraphQuery,
+  GetEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { getAccountPagesVariables } from "../../shared/account-pages-variables";
 import { useHashInstance } from "./use-hash-instance";
 
@@ -37,7 +37,7 @@ export type AccountPagesInfo = {
   data: SimplePage[];
   lastRootPageIndex: string | null;
   loading: boolean;
-  refetch: () => Promise<ApolloQueryResult<StructuralQueryEntitiesQuery>>;
+  refetch: () => Promise<ApolloQueryResult<GetEntitySubgraphQuery>>;
 };
 
 export const useAccountPages = (
@@ -47,9 +47,9 @@ export const useAccountPages = (
   const { hashInstance } = useHashInstance();
 
   const { data, loading, refetch } = useQuery<
-    StructuralQueryEntitiesQuery,
-    StructuralQueryEntitiesQueryVariables
-  >(structuralQueryEntitiesQuery, {
+    GetEntitySubgraphQuery,
+    GetEntitySubgraphQueryVariables
+  >(getEntitySubgraphQuery, {
     variables: getAccountPagesVariables({
       ownedById,
       includeArchived,
@@ -58,7 +58,7 @@ export const useAccountPages = (
   });
 
   const pages = useMemo<SimplePage[]>(() => {
-    const subgraph = data?.structuralQueryEntities.subgraph;
+    const subgraph = data?.getEntitySubgraph.subgraph;
 
     if (!subgraph) {
       return [];

@@ -68,10 +68,9 @@ pub enum PropertyTypeQueryPath<'p> {
     /// The transaction time of the [`PropertyType`].
     ///
     /// It's not possible to query for the temporal axis directly, this has to be done via the
-    /// `temporalAxes` parameter on [`StructuralQuery`].
+    /// `temporalAxes` parameter on the request.
     ///
     /// [`PropertyType`]: type_system::PropertyType
-    /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
     TransactionTime,
     /// The [`OwnedById`] of the [`PropertyTypeMetadata`] belonging to the [`PropertyType`].
     ///

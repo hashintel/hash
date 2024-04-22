@@ -3,14 +3,13 @@ use std::str::FromStr;
 use authorization::AuthorizationApi;
 use graph::{
     store::{
-        knowledge::{CreateEntityParams, GetEntityParams, PatchEntityParams},
+        knowledge::{CreateEntityParams, GetEntitySubgraphParams, PatchEntityParams},
         query::Filter,
         EntityQuerySorting, EntityStore,
     },
     subgraph::{
         edges::GraphResolveDepths,
         identifier::GraphElementVertexId,
-        query::StructuralQuery,
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
             VariableTemporalAxisUnresolved,
@@ -127,17 +126,14 @@ async fn initial_person() {
     assert_eq!(entity_metadata.entity_type_ids, [person_entity_type_id()]);
 
     let mut response = api
-        .get_entity(
+        .get_entity_subgraph(
             api.account_id,
-            GetEntityParams {
-                query: StructuralQuery {
-                    filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
-                    },
-                    include_drafts: false,
+            GetEntitySubgraphParams {
+                filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
+                graph_resolve_depths: GraphResolveDepths::default(),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
                 },
                 sorting: EntityQuerySorting {
                     paths: Vec::new(),
@@ -145,6 +141,7 @@ async fn initial_person() {
                 },
                 limit: None,
                 include_count: true,
+                include_drafts: false,
             },
         )
         .await
@@ -193,17 +190,14 @@ async fn initial_person() {
     );
 
     let mut person_response = api
-        .get_entity(
+        .get_entity_subgraph(
             api.account_id,
-            GetEntityParams {
-                query: StructuralQuery {
-                    filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
-                    },
-                    include_drafts: false,
+            GetEntitySubgraphParams {
+                filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
+                graph_resolve_depths: GraphResolveDepths::default(),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
                 },
                 sorting: EntityQuerySorting {
                     paths: Vec::new(),
@@ -211,6 +205,7 @@ async fn initial_person() {
                 },
                 limit: None,
                 include_count: true,
+                include_drafts: false,
             },
         )
         .await
@@ -232,17 +227,14 @@ async fn initial_person() {
         .collect::<Vec<_>>();
 
     let mut org_response = api
-        .get_entity(
+        .get_entity_subgraph(
             api.account_id,
-            GetEntityParams {
-                query: StructuralQuery {
-                    filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
-                    },
-                    include_drafts: false,
+            GetEntitySubgraphParams {
+                filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
+                graph_resolve_depths: GraphResolveDepths::default(),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
                 },
                 sorting: EntityQuerySorting {
                     paths: Vec::new(),
@@ -250,6 +242,7 @@ async fn initial_person() {
                 },
                 limit: None,
                 include_count: true,
+                include_drafts: false,
             },
         )
         .await
@@ -309,17 +302,14 @@ async fn create_multi() {
     );
 
     let mut person_response = api
-        .get_entity(
+        .get_entity_subgraph(
             api.account_id,
-            GetEntityParams {
-                query: StructuralQuery {
-                    filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
-                    },
-                    include_drafts: false,
+            GetEntitySubgraphParams {
+                filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
+                graph_resolve_depths: GraphResolveDepths::default(),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
                 },
                 sorting: EntityQuerySorting {
                     paths: Vec::new(),
@@ -327,6 +317,7 @@ async fn create_multi() {
                 },
                 limit: None,
                 include_count: true,
+                include_drafts: false,
             },
         )
         .await
@@ -348,17 +339,14 @@ async fn create_multi() {
         .collect::<Vec<_>>();
 
     let mut org_response = api
-        .get_entity(
+        .get_entity_subgraph(
             api.account_id,
-            GetEntityParams {
-                query: StructuralQuery {
-                    filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
-                    },
-                    include_drafts: false,
+            GetEntitySubgraphParams {
+                filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
+                graph_resolve_depths: GraphResolveDepths::default(),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
                 },
                 sorting: EntityQuerySorting {
                     paths: Vec::new(),
@@ -366,6 +354,7 @@ async fn create_multi() {
                 },
                 limit: None,
                 include_count: true,
+                include_drafts: false,
             },
         )
         .await
@@ -415,17 +404,14 @@ async fn create_multi() {
     );
 
     let mut response = api
-        .get_entity(
+        .get_entity_subgraph(
             api.account_id,
-            GetEntityParams {
-                query: StructuralQuery {
-                    filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
-                    },
-                    include_drafts: false,
+            GetEntitySubgraphParams {
+                filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
+                graph_resolve_depths: GraphResolveDepths::default(),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
                 },
                 sorting: EntityQuerySorting {
                     paths: Vec::new(),
@@ -433,6 +419,7 @@ async fn create_multi() {
                 },
                 limit: None,
                 include_count: true,
+                include_drafts: false,
             },
         )
         .await

@@ -32,8 +32,9 @@ use crate::{
         crud::{QueryResult, ReadPaginated, VertexIdSorting},
         error::DeletionError,
         ontology::{
-            ArchiveDataTypeParams, CreateDataTypeParams, GetDataTypesParams,
-            UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
+            ArchiveDataTypeParams, CreateDataTypeParams, GetDataTypeSubgraphParams,
+            GetDataTypeSubgraphResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
+            UpdateDataTypesParams,
         },
         postgres::{
             crud::QueryRecordDecode,
@@ -44,9 +45,7 @@ use crate::{
         AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, SubgraphRecord,
         UpdateError,
     },
-    subgraph::{
-        edges::GraphResolveDepths, query::StructuralQuery, temporal_axes::VariableAxis, Subgraph,
-    },
+    subgraph::{edges::GraphResolveDepths, temporal_axes::VariableAxis, Subgraph},
 };
 
 impl<C, A> PostgresStore<C, A>
@@ -298,19 +297,12 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    async fn get_data_type(
+    async fn get_data_type_subgraph(
         &self,
         actor_id: AccountId,
-        params: GetDataTypesParams<'_>,
-    ) -> Result<Subgraph, QueryError> {
-        let StructuralQuery {
-            ref filter,
-            graph_resolve_depths,
-            temporal_axes: ref unresolved_temporal_axes,
-            include_drafts,
-        } = params.query;
-
-        let temporal_axes = unresolved_temporal_axes.clone().resolve();
+        params: GetDataTypeSubgraphParams<'_>,
+    ) -> Result<GetDataTypeSubgraphResponse, QueryError> {
+        let temporal_axes = params.temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
         // TODO: Remove again when subgraph logic was revisited
@@ -319,13 +311,13 @@ where
 
         let (data, artifacts) = ReadPaginated::<DataTypeWithMetadata>::read_paginated_vec(
             self,
-            filter,
+            &params.filter,
             Some(&temporal_axes),
             &VertexIdSorting {
                 cursor: params.after,
             },
             params.limit,
-            include_drafts,
+            params.include_drafts,
         )
         .await?;
         let data_types = data
@@ -358,8 +350,8 @@ where
             .change_context(QueryError)?;
 
         let mut subgraph = Subgraph::new(
-            graph_resolve_depths,
-            unresolved_temporal_axes.clone(),
+            params.graph_resolve_depths,
+            params.temporal_axes,
             temporal_axes.clone(),
         );
 
@@ -398,10 +390,10 @@ where
         .await?;
 
         traversal_context
-            .read_traversed_vertices(self, &mut subgraph, include_drafts)
+            .read_traversed_vertices(self, &mut subgraph, params.include_drafts)
             .await?;
 
-        Ok(subgraph)
+        Ok(GetDataTypeSubgraphResponse { subgraph })
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]

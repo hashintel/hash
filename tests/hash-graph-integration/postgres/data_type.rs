@@ -1,14 +1,13 @@
 use graph::{
     store::{
         error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
-        ontology::{CreateDataTypeParams, GetDataTypesParams, UpdateDataTypesParams},
+        ontology::{CreateDataTypeParams, GetDataTypeSubgraphParams, UpdateDataTypesParams},
         query::Filter,
         BaseUrlAlreadyExists, ConflictBehavior, DataTypeStore,
     },
     subgraph::{
         edges::GraphResolveDepths,
         identifier::DataTypeVertexId,
-        query::StructuralQuery,
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
             VariableTemporalAxisUnresolved,
@@ -79,27 +78,26 @@ async fn query() {
     .expect("could not create data type");
 
     let data_type = api
-        .get_data_type(
+        .get_data_type_subgraph(
             api.account_id,
-            GetDataTypesParams {
-                query: StructuralQuery {
-                    filter: Filter::for_versioned_url(empty_list_dt.id()),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
-                    },
-                    include_drafts: false,
+            GetDataTypeSubgraphParams {
+                filter: Filter::for_versioned_url(empty_list_dt.id()),
+                graph_resolve_depths: GraphResolveDepths::default(),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Unbounded),
+                        None,
+                    ),
                 },
                 after: None,
                 limit: None,
+                include_drafts: false,
             },
         )
         .await
         .expect("could not get data type")
+        .subgraph
         .vertices
         .data_types
         .remove(&DataTypeVertexId::from(empty_list_dt.id().clone()))
@@ -149,54 +147,52 @@ async fn update() {
     .expect("could not update data type");
 
     let returned_object_dt_v1 = api
-        .get_data_type(
+        .get_data_type_subgraph(
             api.account_id,
-            GetDataTypesParams {
-                query: StructuralQuery {
-                    filter: Filter::for_versioned_url(object_dt_v1.id()),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
-                    },
-                    include_drafts: false,
+            GetDataTypeSubgraphParams {
+                filter: Filter::for_versioned_url(object_dt_v1.id()),
+                graph_resolve_depths: GraphResolveDepths::default(),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Unbounded),
+                        None,
+                    ),
                 },
                 after: None,
                 limit: None,
+                include_drafts: false,
             },
         )
         .await
         .expect("could not get data type")
+        .subgraph
         .vertices
         .data_types
         .remove(&DataTypeVertexId::from(object_dt_v1.id().clone()))
         .expect("no data type found");
 
     let returned_object_dt_v2 = api
-        .get_data_type(
+        .get_data_type_subgraph(
             api.account_id,
-            GetDataTypesParams {
-                query: StructuralQuery {
-                    filter: Filter::for_versioned_url(object_dt_v2.id()),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
-                    },
-                    include_drafts: false,
+            GetDataTypeSubgraphParams {
+                filter: Filter::for_versioned_url(object_dt_v2.id()),
+                graph_resolve_depths: GraphResolveDepths::default(),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Unbounded),
+                        None,
+                    ),
                 },
                 after: None,
                 limit: None,
+                include_drafts: false,
             },
         )
         .await
         .expect("could not get data type")
+        .subgraph
         .vertices
         .data_types
         .remove(&DataTypeVertexId::from(object_dt_v2.id().clone()))

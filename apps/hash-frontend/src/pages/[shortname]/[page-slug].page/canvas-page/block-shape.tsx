@@ -16,7 +16,7 @@ import {
 } from "@tldraw/tldraw";
 
 import { BlockLoader } from "../../../../components/block-loader/block-loader";
-import { structuralQueryEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../../../../lib/apollo-client";
 import { BlockContextProvider } from "../../../shared/block-collection/block-context";
 import { getBlockCollectionContentsStructuralQueryVariables } from "../../../shared/block-collection-contents";
@@ -64,7 +64,7 @@ const persistBlockPosition = ({
     refetchQueries: [
       // Refetch the page
       {
-        query: structuralQueryEntitiesQuery,
+        query: getEntitySubgraphQuery,
         variables: getBlockCollectionContentsStructuralQueryVariables(
           extractEntityUuidFromEntityId(pageEntityId),
         ),
