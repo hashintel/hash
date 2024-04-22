@@ -228,17 +228,18 @@ export const researchEntitiesAction: FlowActionActivity<{
       ({ localEntityId }) => submittedEntityIds.includes(localEntityId),
     );
 
-    const openAiResponse = await coordinatingAgent.getNextToolCalls({
-      previousPlan: latestPlan,
-      submittedProposedEntities,
-      previousCalls: updatedPreviousCalls,
-      prompt,
-    });
+    const { toolCalls: nextToolCalls } =
+      await coordinatingAgent.getNextToolCalls({
+        previousPlan: latestPlan,
+        submittedProposedEntities,
+        previousCalls: updatedPreviousCalls,
+        prompt,
+      });
 
     await processToolCalls({
       previousPlan: latestPlan,
       previousCalls: updatedPreviousCalls,
-      toolCalls: openAiResponse.toolCalls,
+      toolCalls: nextToolCalls,
     });
   };
 

@@ -13,16 +13,18 @@ import type { AccountId } from "@local/hash-subgraph/.";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
-import type { ChatCompletionMessageParam } from "openai/resources";
 
 import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity";
 import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types";
 import { logger } from "../../shared/activity-logger";
 import { getLlmResponse } from "../../shared/get-llm-response";
+import type {
+  LlmMessage,
+  LlmUserMessage,
+} from "../../shared/get-llm-response/llm-message";
 import {
   getTextContentFromLlmMessage,
   getToolCallsFromLlmAssistantMessage,
-  mapOpenAiMessagesToLlmMessages,
 } from "../../shared/get-llm-response/llm-message";
 import type {
   LlmToolDefinition,
@@ -38,7 +40,7 @@ import type {
 } from "./infer-entities-from-web-page-worker-agent/types";
 // import { retrievePreviousState, writeStateToFile } from "./testing-utils";
 import type { CompletedToolCall } from "./types";
-import { mapPreviousCallsToChatCompletionMessages } from "./util";
+import { mapPreviousCallsToLlmMessages } from "./util";
 
 const model: PermittedOpenAiModel = "gpt-4-0125-preview";
 
@@ -298,17 +300,22 @@ const generateUserMessage = (params: {
   url: string;
   dereferencedEntityTypes: DereferencedEntityTypesByTypeId;
   innerHtml?: string;
-}): ChatCompletionMessageParam => {
+}): LlmUserMessage => {
   const { prompt, url, innerHtml, dereferencedEntityTypes } = params;
 
   return {
     role: "user",
-    content: dedent(`
-      Prompt: ${prompt}
-      Initial web page url: ${url}
-      ${innerHtml ? `Initial web page inner HTML: ${innerHtml}` : ""}
-      Entity Types: ${JSON.stringify(dereferencedEntityTypes)}
-    `),
+    content: [
+      {
+        type: "text",
+        text: dedent(`
+          Prompt: ${prompt}
+          Initial web page url: ${url}
+          ${innerHtml ? `Initial web page inner HTML: ${innerHtml}` : ""}
+          Entity Types: ${JSON.stringify(dereferencedEntityTypes)}
+        `),
+      },
+    ],
   };
 };
 
@@ -332,9 +339,9 @@ const createInitialPlan = async (params: {
       initial web page, to find all the entities required to satisfy the prompt.
     `);
 
-  const messages = mapOpenAiMessagesToLlmMessages({
-    messages: [generateUserMessage({ prompt, url, dereferencedEntityTypes })],
-  });
+  const messages = [
+    generateUserMessage({ prompt, url, dereferencedEntityTypes }),
+  ];
 
   const llmResponse = await getLlmResponse({
     systemPrompt,
@@ -345,7 +352,7 @@ const createInitialPlan = async (params: {
 
   if (llmResponse.status !== "ok") {
     throw new Error(
-      `Failed to get OpenAI response: ${JSON.stringify(llmResponse)}`,
+      `Failed to get LLM response: ${JSON.stringify(llmResponse)}`,
     );
   }
 
@@ -378,9 +385,8 @@ const getNextToolCalls = async (params: {
   prompt: string;
   url: string;
   dereferencedEntityTypes: DereferencedEntityTypesByTypeId;
-  retryMessages?: ChatCompletionMessageParam[];
 }): Promise<{ toolCalls: ParsedLlmToolCall<ToolName>[] }> => {
-  const { prompt, url, state, retryMessages, dereferencedEntityTypes } = params;
+  const { prompt, url, state, dereferencedEntityTypes } = params;
 
   const submittedProposedEntities =
     getSubmittedProposedEntitiesFromState(state);
@@ -408,15 +414,12 @@ const getNextToolCalls = async (params: {
       }
     `);
 
-  const messages = mapOpenAiMessagesToLlmMessages({
-    messages: [
-      generateUserMessage({ prompt, url, dereferencedEntityTypes }),
-      ...mapPreviousCallsToChatCompletionMessages({
-        previousCalls: state.previousCalls,
-      }),
-      ...(retryMessages ?? []),
-    ],
-  });
+  const messages: LlmMessage[] = [
+    generateUserMessage({ prompt, url, dereferencedEntityTypes }),
+    ...mapPreviousCallsToLlmMessages({
+      previousCalls: state.previousCalls,
+    }),
+  ];
 
   const llmResponse = await getLlmResponse({
     systemPrompt,
@@ -427,7 +430,7 @@ const getNextToolCalls = async (params: {
 
   if (llmResponse.status !== "ok") {
     throw new Error(
-      `Failed to get OpenAI response: ${JSON.stringify(llmResponse)}`,
+      `Failed to get LLM response: ${JSON.stringify(llmResponse)}`,
     );
   }
 
@@ -775,7 +778,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
 
     // writeStateToFile(state);
 
-    const openAiResponse = await getNextToolCalls({
+    const { toolCalls: nextToolCalls } = await getNextToolCalls({
       state,
       prompt,
       url,
@@ -783,7 +786,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     });
 
     return await processToolCalls({
-      toolCalls: openAiResponse.toolCalls,
+      toolCalls: nextToolCalls,
     });
   };
 

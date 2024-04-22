@@ -2,17 +2,17 @@ import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import dedent from "dedent";
 
 import { getLlmResponse } from "../../shared/get-llm-response";
+import type { LlmMessage } from "../../shared/get-llm-response/llm-message";
 import {
   getTextContentFromLlmMessage,
   getToolCallsFromLlmAssistantMessage,
-  mapOpenAiMessagesToLlmMessages,
 } from "../../shared/get-llm-response/llm-message";
 import type { ParsedLlmToolCall } from "../../shared/get-llm-response/types";
 import type { PermittedOpenAiModel } from "../../shared/openai-client";
 import type { CoordinatorToolName } from "./coordinator-tools";
 import { coordinatorToolDefinitions } from "./coordinator-tools";
 import type { CompletedToolCall } from "./types";
-import { mapPreviousCallsToChatCompletionMessages } from "./util";
+import { mapPreviousCallsToLlmMessages } from "./util";
 
 const model: PermittedOpenAiModel = "gpt-4-0125-preview";
 
@@ -54,17 +54,13 @@ const getNextToolCalls = async (params: {
       You must call the "updatePlan" tool alongside other tool calls to progress towards completing the task.
     `);
 
-  const messages = mapOpenAiMessagesToLlmMessages({
-    messages: [
-      {
-        role: "user",
-        content: prompt,
-      },
-      ...(previousCalls
-        ? mapPreviousCallsToChatCompletionMessages({ previousCalls })
-        : []),
-    ],
-  });
+  const messages: LlmMessage[] = [
+    {
+      role: "user",
+      content: [{ type: "text", text: prompt }],
+    },
+    ...(previousCalls ? mapPreviousCallsToLlmMessages({ previousCalls }) : []),
+  ];
 
   const tools = Object.values(coordinatorToolDefinitions);
 
@@ -122,7 +118,7 @@ const createInitialPlan = async (params: {
 
   if (llmResponse.status !== "ok") {
     throw new Error(
-      `Failed to get OpenAI response: ${JSON.stringify(llmResponse)}`,
+      `Failed to get LLM response: ${JSON.stringify(llmResponse)}`,
     );
   }
 
