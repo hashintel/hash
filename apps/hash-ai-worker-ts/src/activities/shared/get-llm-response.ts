@@ -450,6 +450,8 @@ const getOpenAiResponse = async (
     logger.debug(`OpenAI response: ${stringify(openAiResponse)}`);
   } catch (error) {
     logger.error(`OpenAI API error: ${stringify(error)}`);
+    logger.debug(`OpenAI API request payload: ${stringify(completionPayload)}`);
+    logger.debug(`Original messages: ${stringify(messages)}`);
 
     return {
       status: "api-error",

@@ -235,27 +235,35 @@ export const mapOpenAiMessagesToLlmMessages = (params: {
           } satisfies LlmUserMessage,
         ];
       } else if (currentMessage.role === "tool") {
-        const latestUserMessageIndex = previousLlmMessages.reduceRight(
-          (resultIndex, previousLlmMessage, currentIndex) =>
-            resultIndex < 0 && previousLlmMessage.role === "user"
-              ? currentIndex
-              : resultIndex,
-          -1,
-        );
-
-        if (latestUserMessageIndex < 0) {
-          throw new Error("No user message found before tool message");
-        }
-
-        const latestUserMessage = previousLlmMessages[
-          latestUserMessageIndex
-        ] as LlmUserMessage;
-
-        latestUserMessage.content.push({
-          type: "tool_result" as const,
+        const toolResultContent: LlmMessageToolResultContent = {
+          type: "tool_result",
           tool_use_id: currentMessage.tool_call_id,
           content: currentMessage.content ?? undefined,
-        });
+        };
+
+        const previousLlmMessage = previousLlmMessages.slice(-1)[0];
+
+        if (!previousLlmMessage || previousLlmMessage.role !== "user") {
+          /**
+           * If there is no previous message, or the previous message
+           * is not a `user` message, then create a new `user` message
+           * with the tool result content.
+           */
+          return [
+            ...previousLlmMessages,
+            {
+              role: "user",
+              content: [toolResultContent],
+            } as LlmUserMessage,
+          ];
+        }
+
+        /**
+         * If the previous message is a `user` message, then append
+         * the tool result content to the previous message to avoid
+         * consecutive `user` messages.
+         */
+        previousLlmMessage.content.push(toolResultContent);
 
         return previousLlmMessages;
       }
