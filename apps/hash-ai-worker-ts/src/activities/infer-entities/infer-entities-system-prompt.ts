@@ -30,9 +30,4 @@ export const inferEntitiesSystemPrompt = dedent(`
 
     Do not infer units from the name of the properties, or what you believe they should be.
     You must base units on the information provided in the text.
-
-    If a property value is numeric, and some multiplier is specified (e.g. "millions (m)", "thousands (k)"), you must
-    either convert the value to the base unit.
-
-
   `);
