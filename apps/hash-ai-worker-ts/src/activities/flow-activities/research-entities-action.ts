@@ -7,13 +7,11 @@ import {
   actionDefinitions,
   getSimplifiedActionInputs,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type {
-  ProposedEntity,
-  StepInput,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { StepInput } from "@local/hash-isomorphic-utils/flows/types";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
+import { getDereferencedEntityTypesActivity } from "../get-dereferenced-entity-types-activity";
 import type { ParsedLlmToolCall } from "../shared/get-llm-response/types";
 import { getWebPageSummaryAction } from "./get-web-page-summary-action";
 import type {
@@ -21,6 +19,10 @@ import type {
   CoordinatorToolName,
 } from "./research-entities-action/coordinator-tools";
 import { inferEntitiesFromWebPageWorkerAgent } from "./research-entities-action/infer-entities-from-web-page-worker-agent";
+import type {
+  CoordinatingAgentInput,
+  CoordinatingAgentState,
+} from "./research-entities-action/open-ai-coordinating-agent";
 import { coordinatingAgent } from "./research-entities-action/open-ai-coordinating-agent";
 import type { CompletedToolCall } from "./research-entities-action/types";
 import type { FlowActionActivity } from "./types";
@@ -29,38 +31,75 @@ import { webSearchAction } from "./web-search-action";
 export const researchEntitiesAction: FlowActionActivity<{
   graphApiClient: GraphApi;
 }> = async ({ inputs, userAuthentication, graphApiClient }) => {
-  const { prompt, entityTypeIds } = getSimplifiedActionInputs({
+  const {
+    prompt,
+    entityTypeIds,
+    existingEntities: inputExistingEntities,
+  } = getSimplifiedActionInputs({
     inputs,
     actionType: "researchEntities",
   });
 
-  const proposedEntities: ProposedEntity[] = [];
+  const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
+    graphApiClient,
+    entityTypeIds: entityTypeIds!,
+    actorId: userAuthentication.actorId,
+    simplifyPropertyKeys: true,
+  });
 
-  const submittedEntityIds: string[] = [];
+  const entityTypes = Object.values(dereferencedEntityTypes)
+    .filter(({ isLink }) => !isLink)
+    .map(({ schema }) => schema);
+
+  const linkEntityTypes = Object.values(dereferencedEntityTypes)
+    .filter(({ isLink }) => isLink)
+    .map(({ schema }) => schema);
+
+  /**
+   * @todo: simplify the properties in the existing entities
+   */
+  const existingEntities = inputExistingEntities
+    ? inputExistingEntities.flatMap((inputEntity) =>
+        "metadata" in inputEntity
+          ? inputEntity
+          : inputEntity.persistedEntities.flatMap(
+              ({ entity, existingEntity }) => entity ?? existingEntity ?? [],
+            ),
+      )
+    : undefined;
+
+  const input: CoordinatingAgentInput = {
+    prompt,
+    entityTypes,
+    linkEntityTypes: linkEntityTypes.length > 0 ? linkEntityTypes : undefined,
+    existingEntities,
+  };
 
   /**
    * We start by asking the coordinator agent to create an initial plan
    * for the research task.
    */
   const { plan: initialPlan } = await coordinatingAgent.createInitialPlan({
-    prompt,
+    input,
   });
+
+  const state: CoordinatingAgentState = {
+    plan: initialPlan,
+    proposedEntities: [],
+    submittedEntityIds: [],
+    previousCalls: [],
+  };
 
   const { toolCalls: initialToolCalls } =
     await coordinatingAgent.getNextToolCalls({
-      previousPlan: initialPlan,
-      submittedProposedEntities: [],
-      prompt,
+      input,
+      state,
     });
 
   const processToolCalls = async (params: {
-    previousCalls?: {
-      completedToolCalls: CompletedToolCall<CoordinatorToolName>[];
-    }[];
-    previousPlan: string;
     toolCalls: ParsedLlmToolCall<CoordinatorToolName>[];
   }) => {
-    const { toolCalls, previousCalls } = params;
+    const { toolCalls } = params;
 
     const isTerminated = toolCalls.some(
       (toolCall) => toolCall.name === "terminate",
@@ -78,7 +117,6 @@ export const researchEntitiesAction: FlowActionActivity<{
      * This plan may be updated by the tool calls that are about to be
      * evaluated.
      */
-    let latestPlan = params.previousPlan;
 
     const completedToolCalls = await Promise.all(
       toolCallsWithRelevantResults.map(
@@ -87,7 +125,7 @@ export const researchEntitiesAction: FlowActionActivity<{
             const { plan } =
               toolCall.input as CoordinatorToolCallArguments["updatePlan"];
 
-            latestPlan = plan;
+            state.plan = plan;
 
             return {
               ...toolCall,
@@ -97,7 +135,7 @@ export const researchEntitiesAction: FlowActionActivity<{
             const { entityIds } =
               toolCall.input as CoordinatorToolCallArguments["submitProposedEntities"];
 
-            submittedEntityIds.push(...entityIds);
+            state.submittedEntityIds.push(...entityIds);
 
             return {
               ...toolCall,
@@ -194,7 +232,7 @@ export const researchEntitiesAction: FlowActionActivity<{
 
             const { inferredEntities } = status.contents[0]!;
 
-            proposedEntities.push(...inferredEntities);
+            state.proposedEntities.push(...inferredEntities);
 
             return {
               ...toolCall,
@@ -219,37 +257,25 @@ export const researchEntitiesAction: FlowActionActivity<{
       return;
     }
 
-    const updatedPreviousCalls = [
-      ...(previousCalls ?? []),
-      { completedToolCalls },
-    ];
-
-    const submittedProposedEntities = proposedEntities.filter(
-      ({ localEntityId }) => submittedEntityIds.includes(localEntityId),
-    );
+    state.previousCalls = [...state.previousCalls, { completedToolCalls }];
 
     const { toolCalls: nextToolCalls } =
       await coordinatingAgent.getNextToolCalls({
-        previousPlan: latestPlan,
-        submittedProposedEntities,
-        previousCalls: updatedPreviousCalls,
-        prompt,
+        input,
+        state,
       });
 
     await processToolCalls({
-      previousPlan: latestPlan,
-      previousCalls: updatedPreviousCalls,
       toolCalls: nextToolCalls,
     });
   };
 
   await processToolCalls({
-    previousPlan: initialPlan,
     toolCalls: initialToolCalls,
   });
 
-  const submittedProposedEntities = proposedEntities.filter(
-    ({ localEntityId }) => submittedEntityIds.includes(localEntityId),
+  const submittedProposedEntities = state.proposedEntities.filter(
+    ({ localEntityId }) => state.submittedEntityIds.includes(localEntityId),
   );
 
   return {
