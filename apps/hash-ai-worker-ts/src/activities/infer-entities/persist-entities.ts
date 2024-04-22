@@ -1,7 +1,10 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/ai-inference-types";
-import type { AccountId, OwnedById } from "@local/hash-subgraph";
+import type {
+  InferEntitiesReturn,
+  ProposedEntity,
+} from "@local/hash-isomorphic-utils/ai-inference-types";
+import type { AccountId, Entity, OwnedById } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 import type OpenAI from "openai";
@@ -9,22 +12,30 @@ import type OpenAI from "openai";
 import { logger } from "../shared/activity-logger";
 import { createInferredEntityNotification } from "../shared/create-inferred-entity-notification";
 import { getLlmResponse } from "../shared/get-llm-response";
+import {
+  getTextContentFromLlmMessage,
+  getToolCallsFromLlmAssistantMessage,
+  mapLlmMessageToOpenAiMessages,
+  mapOpenAiMessagesToLlmMessages,
+} from "../shared/get-llm-response/llm-message";
 import { stringify } from "../shared/stringify";
 import { getResultsFromInferenceState } from "./get-results-from-inference-state";
+import { inferEntitiesSystemPrompt } from "./infer-entities-system-prompt";
 import type {
   CompletionPayload,
   DereferencedEntityTypesByTypeId,
   InferenceState,
 } from "./inference-types";
 import { createEntities } from "./persist-entities/create-entities";
-import type { ProposedEntityUpdatesByType } from "./persist-entities/generate-persist-entities-tools";
+import type { ProposedEntityToolUpdatesByType } from "./persist-entities/generate-persist-entities-tools";
 import {
   generatePersistEntitiesTools,
   validateProposedEntitiesByType,
 } from "./persist-entities/generate-persist-entities-tools";
 import { updateEntities } from "./persist-entities/update-entities";
 import { firstUserMessageIndex } from "./shared/first-user-message-index";
-import type { ProposedEntityCreationsByType } from "./shared/generate-propose-entities-tools";
+import type { ProposedEntityToolCreationsByType } from "./shared/generate-propose-entities-tools";
+import { mapSimplifiedPropertiesToProperties } from "./shared/map-simplified-properties-to-properties";
 
 export const persistEntities = async (params: {
   authentication: { machineActorId: AccountId };
@@ -69,7 +80,13 @@ export const persistEntities = async (params: {
       contents: [
         {
           results: getResultsFromInferenceState(inferenceState),
-          usage: inferenceState.usage,
+          usage: inferenceState.usage.map(
+            ({ inputTokens, outputTokens, totalTokens }) => ({
+              prompt_tokens: inputTokens,
+              completion_tokens: outputTokens,
+              total_tokens: totalTokens,
+            }),
+          ),
         },
       ],
       message: `Maximum number of iterations reached.`,
@@ -117,7 +134,8 @@ export const persistEntities = async (params: {
 
   const entityTypeIds = Object.keys(entityTypes);
 
-  const tools = generatePersistEntitiesTools(Object.values(entityTypes));
+  const { tools, simplifiedEntityTypeIdMappings } =
+    generatePersistEntitiesTools(Object.values(entityTypes));
 
   const entitiesToUpdate = inProgressEntityIds.filter(
     (inProgressEntityId) =>
@@ -153,7 +171,10 @@ export const persistEntities = async (params: {
 
   const llmResponse = await getLlmResponse({
     ...completionPayload,
-    messages: [...completionPayload.messages, nextMessage],
+    systemPrompt: inferEntitiesSystemPrompt,
+    messages: mapOpenAiMessagesToLlmMessages({
+      messages: [...completionPayload.messages, nextMessage],
+    }),
     tools,
     firstUserMessageIndex,
   });
@@ -164,15 +185,21 @@ export const persistEntities = async (params: {
       contents: [
         {
           results: getResultsFromInferenceState(inferenceState),
-          usage: inferenceState.usage,
+          usage: inferenceState.usage.map(
+            ({ inputTokens, outputTokens, totalTokens }) => ({
+              prompt_tokens: inputTokens,
+              completion_tokens: outputTokens,
+              total_tokens: totalTokens,
+            }),
+          ),
         },
       ],
     };
   }
 
-  const { stopReason, usage, parsedToolCalls, choices } = llmResponse;
+  const { stopReason, usage, message } = llmResponse;
 
-  const { message } = choices[0];
+  const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
 
   const latestUsage = [...usageFromLastIteration, usage];
   inferenceState.usage = latestUsage;
@@ -201,7 +228,7 @@ export const persistEntities = async (params: {
             }
           : msg,
       ),
-      message,
+      ...mapLlmMessageToOpenAiMessages({ message }),
       ...retryMessages,
     ];
 
@@ -220,8 +247,10 @@ export const persistEntities = async (params: {
 
   switch (stopReason) {
     case "stop": {
+      const textContent = getTextContentFromLlmMessage({ message });
+
       const errorMessage = `AI Model returned 'stop' finish reason, with message: ${
-        message.content ?? "no message"
+        textContent ?? "no message"
       }`;
 
       logger.error(errorMessage);
@@ -231,11 +260,16 @@ export const persistEntities = async (params: {
         contents: [
           {
             results: getResultsFromInferenceState(inferenceState),
-            usage: latestUsage,
+            usage: latestUsage.map(
+              ({ inputTokens, outputTokens, totalTokens }) => ({
+                prompt_tokens: inputTokens,
+                completion_tokens: outputTokens,
+                total_tokens: totalTokens,
+              }),
+            ),
           },
         ],
-        message:
-          message.content ?? "No entities could be inferred from the page.",
+        message: textContent ?? "No entities could be inferred from the page.",
       };
     }
 
@@ -244,14 +278,21 @@ export const persistEntities = async (params: {
         `AI Model returned 'length' finish reason on attempt ${iterationCount}.`,
       );
 
-      const toolCallId = parsedToolCalls[0]?.id;
+      const toolCallId = toolCalls[0]?.id;
+
       if (!toolCallId) {
         return {
           code: StatusCode.ResourceExhausted,
           contents: [
             {
               results: getResultsFromInferenceState(inferenceState),
-              usage: latestUsage,
+              usage: latestUsage.map(
+                ({ inputTokens, outputTokens, totalTokens }) => ({
+                  prompt_tokens: inputTokens,
+                  completion_tokens: outputTokens,
+                  total_tokens: totalTokens,
+                }),
+              ),
             },
           ],
           message:
@@ -285,7 +326,13 @@ export const persistEntities = async (params: {
         contents: [
           {
             results: getResultsFromInferenceState(inferenceState),
-            usage: latestUsage,
+            usage: latestUsage.map(
+              ({ inputTokens, outputTokens, totalTokens }) => ({
+                prompt_tokens: inputTokens,
+                completion_tokens: outputTokens,
+                total_tokens: totalTokens,
+              }),
+            ),
           },
         ],
         message: "The content filter was triggered",
@@ -298,7 +345,7 @@ export const persistEntities = async (params: {
         | OpenAI.ChatCompletionToolMessageParam
       ) & { requiresOriginalContext: boolean })[] = [];
 
-      for (const toolCall of parsedToolCalls) {
+      for (const toolCall of toolCalls) {
         if (toolCall.name === "abandon_entities") {
           // The model is giving up on these entities
 
@@ -333,11 +380,14 @@ export const persistEntities = async (params: {
         }
 
         if (toolCall.name === "create_entities") {
-          let proposedEntitiesByType: ProposedEntityCreationsByType;
+          let proposedEntitiesByTypeWithSimplifiedProperties: ProposedEntityToolCreationsByType;
           try {
-            proposedEntitiesByType =
-              toolCall.input as ProposedEntityCreationsByType;
-            validateProposedEntitiesByType(proposedEntitiesByType, false);
+            proposedEntitiesByTypeWithSimplifiedProperties =
+              toolCall.input as ProposedEntityToolCreationsByType;
+            validateProposedEntitiesByType(
+              proposedEntitiesByTypeWithSimplifiedProperties,
+              false,
+            );
           } catch (err) {
             logger.error(
               `Model provided invalid argument to create_entities function. Argument provided: ${stringify(
@@ -355,10 +405,17 @@ export const persistEntities = async (params: {
             continue;
           }
 
-          const providedEntityTypes = Object.keys(proposedEntitiesByType);
+          const providedEntityTypes = Object.keys(
+            proposedEntitiesByTypeWithSimplifiedProperties,
+          );
+
           const notRequestedTypes = providedEntityTypes.filter(
-            (providedEntityTypeId) =>
-              !entityTypeIds.includes(providedEntityTypeId as VersionedUrl),
+            (providedSimplifiedEntityTypeId) => {
+              const entityTypeId =
+                simplifiedEntityTypeIdMappings[providedSimplifiedEntityTypeId];
+
+              return !entityTypeId || !entityTypeIds.includes(entityTypeId);
+            },
           );
 
           let retryMessageContent = "";
@@ -369,6 +426,54 @@ export const persistEntities = async (params: {
               ", ",
             )}, which were not requested. Please try again without them\n`;
           }
+
+          const proposedEntitiesByType = Object.entries(
+            proposedEntitiesByTypeWithSimplifiedProperties,
+          ).reduce(
+            (
+              prev,
+              [
+                simplifiedEntityTypeId,
+                proposedEntitiesWithSimplifiedProperties,
+              ],
+            ) => {
+              const entityTypeId =
+                simplifiedEntityTypeIdMappings[simplifiedEntityTypeId];
+
+              if (!entityTypeId) {
+                return prev;
+              }
+
+              const { simplifiedPropertyTypeMappings } =
+                entityTypes[entityTypeId] ?? {};
+
+              if (!simplifiedPropertyTypeMappings) {
+                throw new Error(
+                  `Could not find simplified property type mappings for entity type id ${entityTypeId}`,
+                );
+              }
+
+              return {
+                ...prev,
+                [entityTypeId]: proposedEntitiesWithSimplifiedProperties.map(
+                  ({ properties: simplifiedProperties, ...proposedEntity }) => {
+                    const properties = simplifiedProperties
+                      ? mapSimplifiedPropertiesToProperties({
+                          simplifiedProperties,
+                          simplifiedPropertyTypeMappings,
+                        })
+                      : {};
+
+                    return {
+                      ...proposedEntity,
+                      properties,
+                    };
+                  },
+                ),
+              };
+            },
+            {} as Record<`${string}v/${number}`, ProposedEntity[]>,
+          );
 
           try {
             const {
@@ -482,7 +587,13 @@ export const persistEntities = async (params: {
               contents: [
                 {
                   results: getResultsFromInferenceState(inferenceState),
-                  usage: latestUsage,
+                  usage: latestUsage.map(
+                    ({ inputTokens, outputTokens, totalTokens }) => ({
+                      prompt_tokens: inputTokens,
+                      completion_tokens: outputTokens,
+                      total_tokens: totalTokens,
+                    }),
+                  ),
                 },
               ],
               message: errorMessage,
@@ -491,12 +602,15 @@ export const persistEntities = async (params: {
         }
 
         if (toolCall.name === "update_entities") {
-          let proposedEntityUpdatesByType: ProposedEntityUpdatesByType;
+          let proposedEntitiesByTypeWithSimplifiedProperties: ProposedEntityToolUpdatesByType;
           try {
-            proposedEntityUpdatesByType =
-              toolCall.input as ProposedEntityUpdatesByType;
+            proposedEntitiesByTypeWithSimplifiedProperties =
+              toolCall.input as ProposedEntityToolUpdatesByType;
 
-            validateProposedEntitiesByType(proposedEntityUpdatesByType, true);
+            validateProposedEntitiesByType(
+              proposedEntitiesByTypeWithSimplifiedProperties,
+              true,
+            );
           } catch (err) {
             logger.error(
               `Model provided invalid argument to update_entities function. Argument provided: ${stringify(
@@ -514,10 +628,17 @@ export const persistEntities = async (params: {
             continue;
           }
 
-          const providedEntityTypes = Object.keys(proposedEntityUpdatesByType);
+          const providedEntityTypes = Object.keys(
+            proposedEntitiesByTypeWithSimplifiedProperties,
+          );
+
           const notRequestedTypes = providedEntityTypes.filter(
-            (providedEntityTypeId) =>
-              !entityTypeIds.includes(providedEntityTypeId as VersionedUrl),
+            (providedSimplifiedEntityTypeId) => {
+              const entityTypeId =
+                simplifiedEntityTypeIdMappings[providedSimplifiedEntityTypeId];
+
+              return !entityTypeId || !entityTypeIds.includes(entityTypeId);
+            },
           );
 
           if (notRequestedTypes.length > 0) {
@@ -531,6 +652,65 @@ export const persistEntities = async (params: {
             });
             continue;
           }
+
+          const proposedEntityUpdatesByType = Object.entries(
+            proposedEntitiesByTypeWithSimplifiedProperties,
+          ).reduce(
+            (
+              prev,
+              [
+                simplifiedEntityTypeId,
+                proposedEntityUpdatesWithSimplifiedProperties,
+              ],
+            ) => {
+              const entityTypeId =
+                simplifiedEntityTypeIdMappings[simplifiedEntityTypeId];
+
+              if (!entityTypeId) {
+                return prev;
+              }
+
+              const { simplifiedPropertyTypeMappings } =
+                entityTypes[entityTypeId] ?? {};
+
+              if (!simplifiedPropertyTypeMappings) {
+                throw new Error(
+                  `Could not find simplified property type mappings for entity type id ${entityTypeId}`,
+                );
+              }
+
+              return {
+                ...prev,
+                [entityTypeId]:
+                  proposedEntityUpdatesWithSimplifiedProperties.map(
+                    ({
+                      entityId,
+                      updateEntityId,
+                      properties: simplifiedProperties,
+                    }) => {
+                      const properties = mapSimplifiedPropertiesToProperties({
+                        simplifiedProperties,
+                        simplifiedPropertyTypeMappings,
+                      });
+
+                      return {
+                        entityId,
+                        updateEntityId,
+                        properties,
+                      };
+                    },
+                  ),
+              };
+            },
+            {} as Record<
+              VersionedUrl,
+              {
+                entityId: number;
+                updateEntityId: string;
+                properties: Entity["properties"];
+              }[]
+            >,
+          );
 
           try {
             const { updateSuccesses, updateFailures } = await updateEntities({
@@ -602,7 +782,13 @@ export const persistEntities = async (params: {
               contents: [
                 {
                   results: getResultsFromInferenceState(inferenceState),
-                  usage: latestUsage,
+                  usage: latestUsage.map(
+                    ({ inputTokens, outputTokens, totalTokens }) => ({
+                      prompt_tokens: inputTokens,
+                      completion_tokens: outputTokens,
+                      total_tokens: totalTokens,
+                    }),
+                  ),
                 },
               ],
               message: `Error update entities: ${(err as Error).message}`,
@@ -630,11 +816,22 @@ export const persistEntities = async (params: {
         logger.info(`Returning results: ${stringify(results)}`);
         return {
           code: StatusCode.Ok,
-          contents: [{ results, usage: latestUsage }],
+          contents: [
+            {
+              results,
+              usage: latestUsage.map(
+                ({ inputTokens, outputTokens, totalTokens }) => ({
+                  prompt_tokens: inputTokens,
+                  completion_tokens: outputTokens,
+                  total_tokens: totalTokens,
+                }),
+              ),
+            },
+          ],
         };
       }
 
-      const toolCallsWithoutProblems = parsedToolCalls.filter(
+      const toolCallsWithoutProblems = toolCalls.filter(
         (toolCall) =>
           !retryMessages.some(
             (msg) => msg.role === "tool" && msg.tool_call_id === toolCall.id,
@@ -673,7 +870,13 @@ export const persistEntities = async (params: {
     contents: [
       {
         results: getResultsFromInferenceState(inferenceState),
-        usage: latestUsage,
+        usage: latestUsage.map(
+          ({ inputTokens, outputTokens, totalTokens }) => ({
+            prompt_tokens: inputTokens,
+            completion_tokens: outputTokens,
+            total_tokens: totalTokens,
+          }),
+        ),
       },
     ],
     message: errorMessage,

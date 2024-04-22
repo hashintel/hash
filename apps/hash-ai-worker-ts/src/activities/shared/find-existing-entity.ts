@@ -73,7 +73,7 @@ export const findExistingEntity = async ({
           return;
         }
 
-        return dereferenceEntityType(entityTypeId, subgraph).schema;
+        return dereferenceEntityType({ entityTypeId, subgraph }).schema;
       }));
 
   if (!entityType) {

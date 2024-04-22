@@ -23,6 +23,11 @@ import type { FlowActionActivity } from "./types";
 import ChatCompletionUserMessageParam = OpenAI.ChatCompletionUserMessageParam;
 import ChatCompletionToolMessageParam = OpenAI.ChatCompletionToolMessageParam;
 import { getLlmResponse } from "../shared/get-llm-response";
+import {
+  getToolCallsFromLlmAssistantMessage,
+  mapLlmMessageToOpenAiMessages,
+  mapOpenAiMessagesToLlmMessages,
+} from "../shared/get-llm-response/llm-message";
 import type { LlmToolDefinition } from "../shared/get-llm-response/types";
 
 const answerTools: LlmToolDefinition[] = [
@@ -140,7 +145,8 @@ const callModel = async (
 > => {
   const llmResponse = await getLlmResponse({
     model,
-    messages,
+    systemPrompt,
+    messages: mapOpenAiMessagesToLlmMessages({ messages }),
     temperature: 0,
     tools: answerTools,
   });
@@ -155,9 +161,9 @@ const callModel = async (
     };
   }
 
-  const { choices, parsedToolCalls } = llmResponse;
+  const { message } = llmResponse;
 
-  const { message: modelResponseMessage } = choices[0];
+  const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
 
   const responseMessages: ChatCompletionToolMessageParam[] = [];
 
@@ -168,12 +174,12 @@ const callModel = async (
   let explanation: string | undefined;
   let code: string | undefined;
 
-  for (const toolCall of parsedToolCalls) {
+  for (const toolCall of toolCalls) {
     const parsedArguments = toolCall.input as ModelResponseArgs;
 
     switch (toolCall.name) {
       case "answer": {
-        if (parsedToolCalls.length > 1) {
+        if (toolCalls.length > 1) {
           responseMessages.push({
             role: "tool",
             content:
@@ -238,7 +244,7 @@ const callModel = async (
           return callModel(
             [
               ...messages,
-              modelResponseMessage,
+              ...mapLlmMessageToOpenAiMessages({ message }),
               {
                 role: "tool",
                 content: "You didn't provide any 'code' to run.",
@@ -323,7 +329,11 @@ const callModel = async (
 
   if (responseMessages.length) {
     return callModel(
-      [...messages, modelResponseMessage, ...responseMessages],
+      [
+        ...messages,
+        ...mapLlmMessageToOpenAiMessages({ message }),
+        ...responseMessages,
+      ],
       context,
       codeUsed,
       iteration + 1,
@@ -337,7 +347,11 @@ const callModel = async (
   };
 
   return callModel(
-    [...messages, modelResponseMessage, responseMessage],
+    [
+      ...messages,
+      ...mapLlmMessageToOpenAiMessages({ message }),
+      responseMessage,
+    ],
     context,
     codeUsed,
     iteration + 1,
@@ -440,10 +454,6 @@ export const answerQuestionAction: FlowActionActivity<{
   }
 
   const messages: OpenAI.ChatCompletionCreateParams["messages"] = [
-    {
-      role: "system",
-      content: systemPrompt,
-    },
     {
       role: "user",
       content: dedent(
