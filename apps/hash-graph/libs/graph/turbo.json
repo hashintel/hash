@@ -1,0 +1,8 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "pipeline": {
+    "build": {
+      "inputs": ["$TURBO_DEFAULT$", "../../postgres_migrations"]
+    }
+  }
+}
