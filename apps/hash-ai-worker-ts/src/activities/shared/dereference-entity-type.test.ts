@@ -1005,7 +1005,10 @@ const expectedResult = {
 
 describe("The dereferenceEntityType function", () => {
   it("correctly dereferences an entity type", () => {
-    const result = dereferenceEntityType({
+    const {
+      simplifiedPropertyTypeMappings: _simplifiedPropertyTypeMappings,
+      ...result
+    } = dereferenceEntityType({
       entityTypeId:
         "https://hash.ai/@test/types/entity-type/property-values-demo/v/4",
       subgraph: {
