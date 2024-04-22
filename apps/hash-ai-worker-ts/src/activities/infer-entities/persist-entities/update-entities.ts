@@ -16,7 +16,7 @@ import {
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
 
-import { logger } from "../../../shared/logger";
+import { logger } from "../../shared/activity-logger";
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
 import { getEntityByFilter } from "../../shared/get-entity-by-filter";
 import { stringify } from "../../shared/stringify";

@@ -283,6 +283,19 @@ const actionDefinitionsAsConst = {
         required: true,
         array: false,
       },
+      /**
+       * This is a placeholder for an 'additional context' input that can be used to provide context to the model,
+       * e.g. a list of entities that are already known to the user, whether to enable the model to link proposed entities to,
+       * or as useful context for a research task where some relevant data is already known.
+       *
+       * @todo make this do something / rethink it as needed
+       */
+      {
+        oneOfPayloadKinds: ["Entity", "PersistedEntities"],
+        name: "existingEntities",
+        required: false,
+        array: true,
+      },
     ],
     outputs: [
       {

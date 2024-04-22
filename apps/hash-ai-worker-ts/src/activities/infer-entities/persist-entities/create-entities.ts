@@ -15,7 +15,7 @@ import type {
 } from "@local/hash-subgraph";
 import isMatch from "lodash.ismatch";
 
-import { logger } from "../../../shared/logger";
+import { logger } from "../../shared/activity-logger";
 import {
   findExistingEntity,
   findExistingLinkEntity,

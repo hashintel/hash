@@ -1,17 +1,21 @@
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { type AccountId } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
+import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 
-import { logger } from "../../shared/logger";
+import { logger } from "../shared/activity-logger";
 import { getLlmResponse } from "../shared/get-llm-response";
 import type {
   LlmMessage,
   LlmUserMessage,
 } from "../shared/get-llm-response/llm-message";
 import { getToolCallsFromLlmAssistantMessage } from "../shared/get-llm-response/llm-message";
+import { logProgress } from "../shared/log-progress";
 import { stringify } from "../shared/stringify";
 import { inferEntitiesSystemPrompt } from "./infer-entities-system-prompt";
 import type {
@@ -451,16 +455,76 @@ export const proposeEntities = async (params: {
               requiresOriginalContextForRetry = true;
             }
 
-            const validProposedEntities = Object.values(proposedEntitiesByType)
-              .flat()
-              .filter(
-                ({ entityId }) =>
-                  !invalidProposedEntities.some(
-                    ({
-                      invalidProposedEntity: { entityId: invalidEntityId },
-                    }) => invalidEntityId === entityId,
-                  ),
+            const validProposedEntitiesByType = Object.fromEntries(
+              typedEntries(proposedEntitiesByType).map(
+                ([simplifiedEntityTypeId, entities]) => {
+                  const entityTypeId =
+                    simplifiedEntityTypeIdMappings[simplifiedEntityTypeId];
+
+                  if (!entityTypeId) {
+                    throw new Error(
+                      `Could not find entity type id for simplified entity type id ${simplifiedEntityTypeId}`,
+                    );
+                  }
+
+                  return [
+                    entityTypeId,
+                    entities.filter(
+                      ({ entityId }) =>
+                        // Don't include invalid entities
+                        !invalidProposedEntities.some(
+                          ({
+                            invalidProposedEntity: {
+                              entityId: invalidEntityId,
+                            },
+                          }) => invalidEntityId === entityId,
+                        ) &&
+                        // Ignore entities we've inferred in a previous iteration, otherwise we'll get duplicates
+                        !inferenceState.proposedEntityCreationsByType[
+                          entityTypeId
+                        ]?.some(
+                          (existingEntity) =>
+                            existingEntity.entityId === entityId,
+                        ),
+                    ),
+                  ];
+                },
+              ),
+            );
+
+            const validProposedEntities = Object.values(
+              validProposedEntitiesByType,
+            ).flat();
+
+            const now = new Date().toISOString();
+
+            if (validProposedEntities.length > 0) {
+              logProgress(
+                typedEntries(validProposedEntitiesByType).flatMap(
+                  ([entityTypeId, entities]) =>
+                    entities.map((entity) => ({
+                      proposedEntity: {
+                        ...entity,
+                        localEntityId: entity.entityId.toString(),
+                        entityTypeId: entityTypeId as VersionedUrl,
+                        properties: entity.properties ?? {},
+                        /** @todo: figure out why TS cannot infer that `entity` has `ProposedEntityLinkFields` */
+                        sourceEntityLocalId:
+                          "sourceEntityId" in entity
+                            ? (entity.sourceEntityId as string).toString()
+                            : undefined,
+                        targetEntityLocalId:
+                          "targetEntityId" in entity
+                            ? (entity.targetEntityId as string).toString()
+                            : undefined,
+                      },
+                      recordedAt: now,
+                      type: "ProposedEntity",
+                      stepId: Context.current().info.activityId,
+                    })),
+                ),
               );
+            }
 
             logger.info(
               `Proposed ${validProposedEntities.length} valid additional entities.`,
@@ -478,7 +542,7 @@ export const proposeEntities = async (params: {
             }
 
             inferenceState.proposedEntityCreationsByType = Object.entries(
-              proposedEntitiesByType,
+              validProposedEntitiesByType,
             ).reduce(
               (prev, [simplifiedEntityTypeId, proposedEntitiesOfType]) => {
                 const entityTypeId =
