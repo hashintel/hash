@@ -53,15 +53,15 @@ export const proposeEntities = async (params: {
     iterationCount,
     inProgressEntityIds,
     proposedEntitySummaries,
-    // usage: usageFromLastIteration,
+    usage: usageFromLastIteration,
   } = inferenceState;
 
   if (iterationCount > 30) {
-    // logger.info(
-    //   `Model reached maximum number of iterations. Messages: ${stringify(
-    //     completionPayload.messages,
-    //   )}`,
-    // );
+    logger.info(
+      `Model reached maximum number of iterations. Messages: ${stringify(
+        previousMessages,
+      )}`,
+    );
 
     return {
       code: StatusCode.ResourceExhausted,
@@ -193,11 +193,11 @@ export const proposeEntities = async (params: {
     };
   }
 
-  const { stopReason, usage: _usage, message } = llmResponse;
+  const { stopReason, usage, message } = llmResponse;
 
-  // const latestUsage = [...usageFromLastIteration, usage];
+  const latestUsage = [...usageFromLastIteration, usage];
 
-  // inferenceState.usage = latestUsage;
+  inferenceState.usage = latestUsage;
 
   const retryWithMessages = ({
     retryMessageContent,

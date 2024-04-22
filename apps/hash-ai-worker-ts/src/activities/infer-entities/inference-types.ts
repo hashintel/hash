@@ -1,6 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type {
-  InferenceTokenUsage,
   InferredEntityChangeResult,
   ProposedEntity,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
@@ -8,6 +7,7 @@ import type { BaseUrl, Entity } from "@local/hash-subgraph";
 import type OpenAI from "openai";
 
 import type { DereferencedEntityType } from "../shared/dereference-entity-type";
+import type { LlmUsage } from "../shared/get-llm-response/types";
 import type { PermittedOpenAiModel } from "../shared/openai-client";
 
 export type CompletionPayload = Omit<
@@ -54,7 +54,7 @@ export type InferenceState = {
     InferredEntityChangeResult | UpdateCandidate
   >;
   /** The token usage for each iteration, in order */
-  usage: InferenceTokenUsage[];
+  usage: LlmUsage[];
 };
 
 export type WebPage = {

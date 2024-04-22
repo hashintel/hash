@@ -176,7 +176,18 @@ const inferEntities = async ({
     );
     return {
       code,
-      contents: [{ results: [], usage: inferenceState.usage }],
+      contents: [
+        {
+          results: [],
+          usage: inferenceState.usage.map(
+            ({ inputTokens, outputTokens, totalTokens }) => ({
+              prompt_tokens: inputTokens,
+              completion_tokens: outputTokens,
+              total_tokens: totalTokens,
+            }),
+          ),
+        },
+      ],
       message,
     };
   }
@@ -398,7 +409,16 @@ export const inferEntitiesActivity = async ({
      */
     return {
       ...resultOrCancelledError,
-      contents: [{ results, usage }],
+      contents: [
+        {
+          results,
+          usage: usage.map(({ inputTokens, outputTokens, totalTokens }) => ({
+            prompt_tokens: inputTokens,
+            completion_tokens: outputTokens,
+            total_tokens: totalTokens,
+          })),
+        },
+      ],
     };
   }
 

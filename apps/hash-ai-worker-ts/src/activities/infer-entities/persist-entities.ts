@@ -80,7 +80,13 @@ export const persistEntities = async (params: {
       contents: [
         {
           results: getResultsFromInferenceState(inferenceState),
-          usage: inferenceState.usage,
+          usage: inferenceState.usage.map(
+            ({ inputTokens, outputTokens, totalTokens }) => ({
+              prompt_tokens: inputTokens,
+              completion_tokens: outputTokens,
+              total_tokens: totalTokens,
+            }),
+          ),
         },
       ],
       message: `Maximum number of iterations reached.`,
@@ -179,7 +185,13 @@ export const persistEntities = async (params: {
       contents: [
         {
           results: getResultsFromInferenceState(inferenceState),
-          usage: inferenceState.usage,
+          usage: inferenceState.usage.map(
+            ({ inputTokens, outputTokens, totalTokens }) => ({
+              prompt_tokens: inputTokens,
+              completion_tokens: outputTokens,
+              total_tokens: totalTokens,
+            }),
+          ),
         },
       ],
     };
@@ -248,7 +260,13 @@ export const persistEntities = async (params: {
         contents: [
           {
             results: getResultsFromInferenceState(inferenceState),
-            usage: latestUsage,
+            usage: latestUsage.map(
+              ({ inputTokens, outputTokens, totalTokens }) => ({
+                prompt_tokens: inputTokens,
+                completion_tokens: outputTokens,
+                total_tokens: totalTokens,
+              }),
+            ),
           },
         ],
         message: textContent ?? "No entities could be inferred from the page.",
@@ -268,7 +286,13 @@ export const persistEntities = async (params: {
           contents: [
             {
               results: getResultsFromInferenceState(inferenceState),
-              usage: latestUsage,
+              usage: latestUsage.map(
+                ({ inputTokens, outputTokens, totalTokens }) => ({
+                  prompt_tokens: inputTokens,
+                  completion_tokens: outputTokens,
+                  total_tokens: totalTokens,
+                }),
+              ),
             },
           ],
           message:
@@ -302,7 +326,13 @@ export const persistEntities = async (params: {
         contents: [
           {
             results: getResultsFromInferenceState(inferenceState),
-            usage: latestUsage,
+            usage: latestUsage.map(
+              ({ inputTokens, outputTokens, totalTokens }) => ({
+                prompt_tokens: inputTokens,
+                completion_tokens: outputTokens,
+                total_tokens: totalTokens,
+              }),
+            ),
           },
         ],
         message: "The content filter was triggered",
@@ -557,7 +587,13 @@ export const persistEntities = async (params: {
               contents: [
                 {
                   results: getResultsFromInferenceState(inferenceState),
-                  usage: latestUsage,
+                  usage: latestUsage.map(
+                    ({ inputTokens, outputTokens, totalTokens }) => ({
+                      prompt_tokens: inputTokens,
+                      completion_tokens: outputTokens,
+                      total_tokens: totalTokens,
+                    }),
+                  ),
                 },
               ],
               message: errorMessage,
@@ -746,7 +782,13 @@ export const persistEntities = async (params: {
               contents: [
                 {
                   results: getResultsFromInferenceState(inferenceState),
-                  usage: latestUsage,
+                  usage: latestUsage.map(
+                    ({ inputTokens, outputTokens, totalTokens }) => ({
+                      prompt_tokens: inputTokens,
+                      completion_tokens: outputTokens,
+                      total_tokens: totalTokens,
+                    }),
+                  ),
                 },
               ],
               message: `Error update entities: ${(err as Error).message}`,
@@ -774,7 +816,18 @@ export const persistEntities = async (params: {
         logger.info(`Returning results: ${stringify(results)}`);
         return {
           code: StatusCode.Ok,
-          contents: [{ results, usage: latestUsage }],
+          contents: [
+            {
+              results,
+              usage: latestUsage.map(
+                ({ inputTokens, outputTokens, totalTokens }) => ({
+                  prompt_tokens: inputTokens,
+                  completion_tokens: outputTokens,
+                  total_tokens: totalTokens,
+                }),
+              ),
+            },
+          ],
         };
       }
 
@@ -817,7 +870,13 @@ export const persistEntities = async (params: {
     contents: [
       {
         results: getResultsFromInferenceState(inferenceState),
-        usage: latestUsage,
+        usage: latestUsage.map(
+          ({ inputTokens, outputTokens, totalTokens }) => ({
+            prompt_tokens: inputTokens,
+            completion_tokens: outputTokens,
+            total_tokens: totalTokens,
+          }),
+        ),
       },
     ],
     message: errorMessage,

@@ -53,12 +53,10 @@ export const isLlmParamsAnthropicLlmParams = (
 
 export type AnthropicResponse = Omit<
   AnthropicMessagesCreateResponse,
-  "content" | "role"
+  "content" | "role" | "usage"
 >;
 
-export type OpenAiResponse = Omit<OpenAiChatCompletion, "usage" | "choices"> & {
-  usage: NonNullable<OpenAiChatCompletion["usage"]>;
-};
+export type OpenAiResponse = Omit<OpenAiChatCompletion, "usage" | "choices">;
 
 export type ParsedLlmToolCall<ToolName extends string = string> = {
   id: string;
@@ -81,10 +79,28 @@ export type LlmStopReason =
   | "content_filter"
   | "stop_sequence";
 
+export type LlmUsage = {
+  /**
+   * The number of input tokens which were used.
+   * Equivalent to `prompt_tokens` in the OpenAI API, or `input_tokens` in the Anthropic API.
+   */
+  inputTokens: number;
+  /**
+   * The number of output tokens which were used.
+   * Equivalent to `completion_tokens` in the OpenAI API, or `output_tokens` in the Anthropic API.
+   */
+  outputTokens: number;
+  /**
+   * Total number of tokens used in the request (input + output tokens)
+   */
+  totalTokens: number;
+};
+
 export type LlmResponse<T extends LlmParams> =
   | ({
       status: "ok";
       stopReason: LlmStopReason;
+      usage: LlmUsage;
       message: LlmAssistantMessage<
         T["tools"] extends (infer U)[]
           ? U extends { name: infer N }

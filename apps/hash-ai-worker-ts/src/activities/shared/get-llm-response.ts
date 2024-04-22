@@ -36,6 +36,7 @@ import type {
   LlmResponse,
   LlmStopReason,
   LlmToolDefinition,
+  LlmUsage,
   OpenAiLlmParams,
   ParsedLlmToolCall,
 } from "./get-llm-response/types";
@@ -353,11 +354,20 @@ const getAnthropicResponse = async (
     throw new Error("Unexpected user message in response");
   }
 
+  const usage: LlmUsage = {
+    inputTokens: anthropicResponse.usage.input_tokens,
+    outputTokens: anthropicResponse.usage.output_tokens,
+    totalTokens:
+      anthropicResponse.usage.input_tokens +
+      anthropicResponse.usage.output_tokens,
+  };
+
   const response: LlmResponse<AnthropicLlmParams> = {
+    ...anthropicResponse,
     status: "ok",
     stopReason,
     message,
-    ...anthropicResponse,
+    usage,
   };
 
   return response;
@@ -632,10 +642,10 @@ const getOpenAiResponse = async (
     throw new Error("Unexpected user message in response");
   }
 
-  const usage = openAiResponse.usage ?? {
-    completion_tokens: 0,
-    prompt_tokens: 0,
-    total_tokens: 0,
+  const usage: LlmUsage = {
+    inputTokens: openAiResponse.usage?.prompt_tokens ?? 0,
+    outputTokens: openAiResponse.usage?.completion_tokens ?? 0,
+    totalTokens: openAiResponse.usage?.total_tokens ?? 0,
   };
 
   const response: LlmResponse<OpenAiLlmParams> = {
