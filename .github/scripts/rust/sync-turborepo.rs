@@ -98,6 +98,16 @@ impl<'a> WorkspaceMember<'a> {
             .any(|component| component.as_str() == "@blockprotocol")
     }
 
+    fn is_local(dependencies: &str) -> bool {
+        // the following prefixes are considered local dependencies
+        // @blockprotocol, @rust, @libs, @apps, @repo
+        dependencies.starts_with("@blockprotocol/")
+            || dependencies.starts_with("@rust/")
+            || dependencies.starts_with("@libs/")
+            || dependencies.starts_with("@apps/")
+            || dependencies.starts_with("@repo/")
+    }
+
     fn package_name(&self) -> String {
         if self.is_blockprotocol() {
             return format!("@blockprotocol/{}-rs", self.package.name);
@@ -120,40 +130,45 @@ impl<'a> WorkspaceMember<'a> {
         (self.package_name(), self.package_version())
     }
 
-    fn package_dependencies(&self, ctx: EvaluationContext) -> BTreeMap<String, String> {
-        let extra = self.extra_dependencies();
+    fn package_dependencies(&self, ctx: EvaluationContext, dependencies: &mut Option<BTreeMap<String, String>>) {
+        let dependencies = dependencies.get_or_insert_with(BTreeMap::new);
 
-        let mut dependencies: BTreeMap<_, _> = self
+        dependencies.retain(|name, _| !Self::is_local(name));
+
+        dependencies.extend(self.extra_dependencies());
+
+
+        let members = self
             .dependencies
             .iter()
             .map(|id| {
                 let member = ctx.workspace.member(id);
 
                 member.dependency_declaration()
-            })
-            .collect();
+            });
 
-        dependencies.extend(extra);
-
-        dependencies
+        dependencies.extend(members);
     }
 
-    fn package_dev_dependencies(&self, ctx: EvaluationContext) -> BTreeMap<String, String> {
-        let extra = self.extra_dev_dependencies();
+    fn package_dev_dependencies(&self, ctx: EvaluationContext, dependencies: &mut Option<BTreeMap<String, String>>) {
+        let dependencies = dependencies.get_or_insert_with(BTreeMap::new);
 
-        let mut dependencies: BTreeMap<_, _> = self.dev_dependencies
+        dependencies.retain(|name, _| !Self::is_local(name));
+
+        dependencies.extend(self.extra_dev_dependencies());
+
+
+        let members = self.dev_dependencies
             .iter()
             .chain(self.build_dependencies.iter())
             .map(|id| {
                 let member = ctx.workspace.member(id);
 
                 member.dependency_declaration()
-            })
-            .collect();
+            });
 
-        dependencies.extend(extra);
+        dependencies.extend(members);
 
-        dependencies
     }
 
     fn parse_extra_dependencies(dependencies: &[serde_json::Value]) -> BTreeMap<String, String> {
@@ -174,8 +189,7 @@ impl<'a> WorkspaceMember<'a> {
                         .expect("version should be a string")
                         .to_owned(),
                 )
-            })
-            .collect()
+            }).collect()
     }
 
     fn extra_dependencies(&self) -> BTreeMap<String, String> {
@@ -278,8 +292,8 @@ impl<'a> WorkspaceMember<'a> {
         package_json.name = Some(self.package_name());
 
         // set the dependencies of the package.json file to the dependencies of the crate
-        package_json.dependencies = Some(self.package_dependencies(ctx));
-        package_json.dev_dependencies = Some(self.package_dev_dependencies(ctx));
+        self.package_dependencies(ctx, &mut package_json.dependencies);
+        self.package_dev_dependencies(ctx, &mut package_json.dev_dependencies);
 
         // write the package.json file back to disk
         let package_json = serde_json::to_string_pretty(&package_json)

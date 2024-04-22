@@ -16,6 +16,6 @@
   },
   "devDependencies": {
     "@rust/graph-test-data": "0.0.0-private",
-    "tsc": "3.13.3"
+    "tsx": "3.13.3"
   }
 }
