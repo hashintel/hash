@@ -13,7 +13,7 @@ import type {
 } from "../shared/get-llm-response/llm-message";
 import { getToolCallsFromLlmAssistantMessage } from "../shared/get-llm-response/llm-message";
 import { stringify } from "../shared/stringify";
-import { inferEntitiesSystemMessageContent } from "./infer-entities-system-message";
+import { inferEntitiesSystemPrompt } from "./infer-entities-system-prompt";
 import type {
   DereferencedEntityTypesByTypeId,
   InferenceState,
@@ -176,7 +176,7 @@ export const proposeEntities = async (params: {
   const llmResponse = await getLlmResponse({
     model: "claude-3-opus-20240229",
     maxTokens,
-    systemMessageContent: inferEntitiesSystemMessageContent,
+    systemPrompt: inferEntitiesSystemPrompt,
     messages,
     tools,
     /**

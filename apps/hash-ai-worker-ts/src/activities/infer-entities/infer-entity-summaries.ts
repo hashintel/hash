@@ -14,7 +14,7 @@ import {
   mapOpenAiMessagesToLlmMessages,
 } from "../shared/get-llm-response/llm-message";
 import { stringify } from "../shared/stringify";
-import { inferEntitiesSystemMessageContent } from "./infer-entities-system-message";
+import { inferEntitiesSystemPrompt } from "./infer-entities-system-prompt";
 import type {
   CouldNotInferEntitiesReturn,
   ProposedEntitySummariesByType,
@@ -65,7 +65,7 @@ export const inferEntitySummaries = async (params: {
 
   const llmResponse = await getLlmResponse({
     ...completionPayload,
-    systemMessageContent: inferEntitiesSystemMessageContent,
+    systemPrompt: inferEntitiesSystemPrompt,
     messages: mapOpenAiMessagesToLlmMessages({
       messages: completionPayload.messages,
     }),

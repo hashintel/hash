@@ -29,7 +29,7 @@ const getNextToolCalls = async (params: {
   const { prompt, previousCalls, submittedProposedEntities, previousPlan } =
     params;
 
-  const systemMessageContent = dedent(`
+  const systemPrompt = dedent(`
       You are a coordinating agent for a research task.
       The user will provides you with a text prompt, from which you will be
         able to make the relevant function calls to progress towards 
@@ -69,7 +69,7 @@ const getNextToolCalls = async (params: {
   const tools = Object.values(coordinatorToolDefinitions);
 
   const llmResponse = await getLlmResponse({
-    systemMessageContent,
+    systemPrompt,
     messages,
     model,
     tools,
@@ -94,7 +94,7 @@ const createInitialPlan = async (params: {
 }): Promise<{ plan: string }> => {
   const { prompt } = params;
 
-  const systemMessageContent = dedent(`
+  const systemPrompt = dedent(`
     You are a coordinating agent for a research task.
     The user will provides you with a text prompt, from which you will be
       able to make the relevant function calls to progress towards 
@@ -107,7 +107,7 @@ const createInitialPlan = async (params: {
   `);
 
   const llmResponse = await getLlmResponse({
-    systemMessageContent,
+    systemPrompt,
     messages: [
       {
         role: "user",

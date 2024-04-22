@@ -320,7 +320,7 @@ const createInitialPlan = async (params: {
 }): Promise<{ plan: string }> => {
   const { prompt, url, dereferencedEntityTypes } = params;
 
-  const systemMessageContent = dedent(`
+  const systemPrompt = dedent(`
       ${systemMessagePrefix}
 
       Do not make *any* tool calls. You must first provide a plan of how you will use
@@ -337,7 +337,7 @@ const createInitialPlan = async (params: {
   });
 
   const llmResponse = await getLlmResponse({
-    systemMessageContent,
+    systemPrompt,
     messages,
     model,
     tools: Object.values(toolDefinitions),
@@ -385,7 +385,7 @@ const getNextToolCalls = async (params: {
   const submittedProposedEntities =
     getSubmittedProposedEntitiesFromState(state);
 
-  const systemMessageContent = dedent(`
+  const systemPrompt = dedent(`
       ${systemMessagePrefix}
 
       You have previously proposed the following plan:
@@ -419,7 +419,7 @@ const getNextToolCalls = async (params: {
   });
 
   const llmResponse = await getLlmResponse({
-    systemMessageContent,
+    systemPrompt,
     messages,
     model,
     tools: Object.values(toolDefinitions),

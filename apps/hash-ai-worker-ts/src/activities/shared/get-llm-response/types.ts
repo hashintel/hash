@@ -24,7 +24,7 @@ export type CommonLlmParams<ToolName extends string = string> = {
   model: AnthropicMessageModel | PermittedOpenAiModel;
   tools?: LlmToolDefinition<ToolName>[];
   retryCount?: number;
-  systemMessageContent?: string;
+  systemPrompt?: string;
   messages: LlmMessage[];
 };
 

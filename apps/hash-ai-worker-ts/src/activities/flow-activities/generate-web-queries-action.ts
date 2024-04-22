@@ -9,7 +9,7 @@ import type { LlmToolDefinition } from "../shared/get-llm-response/types";
 import { modelAliasToSpecificModel } from "../shared/openai-client";
 import type { FlowActionActivity } from "./types";
 
-const webQueriesSystemMessageContent = dedent(`
+const webQueriesSystemPrompt = dedent(`
     You are a Web Search Assistant.
     The user provides you with a text prompt, from which you create one or more queries
       for a web search engine (such as Google, Bing, Duck Duck Go, etc) which lead
@@ -54,7 +54,7 @@ export const generateWebQueriesAction: FlowActionActivity = async ({
   }
 
   const llmResponse = await getLlmResponse({
-    systemMessageContent: webQueriesSystemMessageContent,
+    systemPrompt: webQueriesSystemPrompt,
     messages: [
       {
         role: "user",

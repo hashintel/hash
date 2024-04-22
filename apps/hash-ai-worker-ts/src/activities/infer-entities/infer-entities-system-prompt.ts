@@ -1,6 +1,6 @@
 import dedent from "dedent";
 
-export const inferEntitiesSystemMessageContent = dedent(`
+export const inferEntitiesSystemPrompt = dedent(`
     You are an Entity Inference Assistant. The user provides you with a text input, from which you infer entities for creation. 
     Each created entity should be given a unique numerical identifier as their 'entityId' property. 
     Some entities require sourceEntityId and targetEntityId properties – these are links between other entities, 

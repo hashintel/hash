@@ -20,7 +20,7 @@ import {
 } from "../shared/get-llm-response/llm-message";
 import { stringify } from "../shared/stringify";
 import { getResultsFromInferenceState } from "./get-results-from-inference-state";
-import { inferEntitiesSystemMessageContent } from "./infer-entities-system-message";
+import { inferEntitiesSystemPrompt } from "./infer-entities-system-prompt";
 import type {
   CompletionPayload,
   DereferencedEntityTypesByTypeId,
@@ -171,7 +171,7 @@ export const persistEntities = async (params: {
 
   const llmResponse = await getLlmResponse({
     ...completionPayload,
-    systemMessageContent: inferEntitiesSystemMessageContent,
+    systemPrompt: inferEntitiesSystemPrompt,
     messages: mapOpenAiMessagesToLlmMessages({
       messages: [...completionPayload.messages, nextMessage],
     }),

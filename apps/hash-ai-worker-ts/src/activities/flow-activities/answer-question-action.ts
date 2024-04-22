@@ -145,7 +145,7 @@ const callModel = async (
 > => {
   const llmResponse = await getLlmResponse({
     model,
-    systemMessageContent: systemPrompt,
+    systemPrompt,
     messages: mapOpenAiMessagesToLlmMessages({ messages }),
     temperature: 0,
     tools: answerTools,

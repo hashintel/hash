@@ -227,7 +227,7 @@ const getAnthropicResponse = async (
     tools,
     retryCount = 0,
     messages,
-    systemMessageContent,
+    systemPrompt,
     ...remainingParams
   } = params;
 
@@ -250,7 +250,7 @@ const getAnthropicResponse = async (
   try {
     anthropicResponse = await createAnthropicMessagesWithTools({
       ...remainingParams,
-      system: systemMessageContent,
+      system: systemPrompt,
       messages: anthropicMessages,
       max_tokens: maxTokens,
       tools: anthropicTools,
@@ -381,18 +381,18 @@ const getOpenAiResponse = async (
     trimMessageAtIndex,
     retryCount = 0,
     messages,
-    systemMessageContent,
+    systemPrompt,
     ...remainingParams
   } = params;
 
   const openAiTools = tools?.map(mapLlmToolDefinitionToOpenAiToolDefinition);
 
   const openAiMessages: ChatCompletionMessageParam[] = [
-    ...(systemMessageContent
+    ...(systemPrompt
       ? [
           {
             role: "system" as const,
-            content: systemMessageContent,
+            content: systemPrompt,
           },
         ]
       : []),

@@ -1,7 +1,6 @@
 import dedent from "dedent";
 
 import type { PermittedOpenAiModel } from "../shared/openai-client";
-import { inferEntitiesSystemMessageContent } from "./infer-entities-system-message";
 import { inferEntitySummaries } from "./infer-entity-summaries";
 import type {
   DereferencedEntityTypesByTypeId,

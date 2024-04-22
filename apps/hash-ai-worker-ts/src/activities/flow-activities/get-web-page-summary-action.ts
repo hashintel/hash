@@ -12,7 +12,7 @@ import { getTextContentFromLlmMessage } from "../shared/get-llm-response/llm-mes
 import { modelAliasToSpecificModel } from "../shared/openai-client";
 import type { FlowActionActivity } from "./types";
 
-const generateSummarizeWebPageSystemMessageContent = (params: {
+const generateSummarizeWebPageSystemPrompt = (params: {
   numberOfSentences: number;
 }): string =>
   dedent(`
@@ -40,12 +40,12 @@ export const getWebPageSummaryAction: FlowActionActivity = async ({
 
   const webPage = await getWebPageActivity({ url });
 
-  const systemMessageContent = generateSummarizeWebPageSystemMessageContent({
+  const systemPrompt = generateSummarizeWebPageSystemPrompt({
     numberOfSentences: numberOfSentences!,
   });
 
   const llmResponse = await getLlmResponse({
-    systemMessageContent,
+    systemPrompt,
     messages: [
       {
         role: "user",
