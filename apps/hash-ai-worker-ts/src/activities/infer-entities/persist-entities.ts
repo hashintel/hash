@@ -6,7 +6,7 @@ import { StatusCode } from "@local/status";
 import dedent from "dedent";
 import type OpenAI from "openai";
 
-import { logger } from "../../shared/logger";
+import { logger } from "../shared/activity-logger";
 import { createInferredEntityNotification } from "../shared/create-inferred-entity-notification";
 import { getLlmResponse } from "../shared/get-llm-response";
 import { stringify } from "../shared/stringify";

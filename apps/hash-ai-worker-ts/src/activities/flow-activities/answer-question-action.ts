@@ -16,7 +16,7 @@ import dedent from "dedent";
 import { CodeInterpreter, Sandbox } from "e2b";
 import OpenAI from "openai/index";
 
-import { logger } from "../../shared/logger";
+import { logger } from "../shared/activity-logger";
 import type { PermittedOpenAiModel } from "../shared/openai-client";
 import { stringify } from "../shared/stringify";
 import type { FlowActionActivity } from "./types";

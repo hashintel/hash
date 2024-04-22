@@ -18,9 +18,9 @@ import type {
   ChatCompletionSystemMessageParam,
 } from "openai/resources";
 
-import { logger } from "../../../shared/logger";
 import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity";
 import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types";
+import { logger } from "../../shared/activity-logger";
 import { getLlmResponse } from "../../shared/get-llm-response";
 import type {
   LlmToolDefinition,

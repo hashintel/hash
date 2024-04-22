@@ -45,7 +45,7 @@
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
-    "@types/lodash.debounce": "4.0.7",
+    "@types/lodash.debounce": "4.0.9",
     "@types/react-dom": "18.0.10",
     "@types/uuid": "8.3.0",
     "block-scripts": "0.3.4",

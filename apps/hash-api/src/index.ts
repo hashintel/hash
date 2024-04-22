@@ -25,6 +25,7 @@ import { getAwsRegion } from "@local/hash-backend-utils/aws-config";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
+import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
 import { getRequiredEnv } from "@local/hash-isomorphic-utils/environment";
 import * as Sentry from "@sentry/node";
@@ -90,7 +91,6 @@ import {
   setupStorageProviders,
 } from "./storage";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
-import { createTemporalClient } from "./temporal";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 

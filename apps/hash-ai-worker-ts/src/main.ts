@@ -23,7 +23,8 @@ import { config } from "dotenv-flow";
 
 import { createAiActivities, createGraphActivities } from "./activities";
 import { createFlowActivities } from "./activities/flow-activities";
-import { logger, logToConsole } from "./shared/logger";
+import { logger } from "./activities/shared/activity-logger";
+import { logToConsole } from "./shared/logger";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

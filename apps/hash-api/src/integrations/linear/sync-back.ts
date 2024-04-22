@@ -1,6 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { linearTypeMappings } from "@local/hash-backend-utils/linear-type-mappings";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import type { UpdateLinearDataWorkflow } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
 import type { GraphApi } from "@local/hash-graph-client";
@@ -18,7 +19,6 @@ import type { ImpureGraphContext } from "../../graph/context-types";
 import { getLatestEntityById } from "../../graph/knowledge/primitive/entity";
 import { getLinearSecretValueByHashWorkspaceId } from "../../graph/knowledge/system-types/linear-user-secret";
 import { systemAccountId } from "../../graph/system-account";
-import { createTemporalClient } from "../../temporal";
 
 const supportedLinearEntityTypeIds = linearTypeMappings.map(
   ({ hashEntityTypeId }) => hashEntityTypeId as VersionedUrl,

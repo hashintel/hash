@@ -30,6 +30,9 @@ export const startFlow: ResolverFn<
         userAuthentication: { actorId: user.accountId },
       },
     ],
+    memo: {
+      flowDefinitionId: flowDefinition.flowDefinitionId,
+    },
     workflowId: generateUuid(),
     retry: {
       maximumAttempts: 1,

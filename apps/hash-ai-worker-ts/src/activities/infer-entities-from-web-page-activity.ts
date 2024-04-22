@@ -3,7 +3,6 @@ import type { AccountId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
-import { logger } from "../shared/logger";
 import { inferEntitiesSystemMessage } from "./infer-entities/infer-entities-system-message";
 import { inferEntitySummariesFromWebPage } from "./infer-entities/infer-entity-summaries-from-web-page";
 import type {
@@ -12,6 +11,7 @@ import type {
   WebPage,
 } from "./infer-entities/inference-types";
 import { proposeEntities } from "./infer-entities/propose-entities";
+import { logger } from "./shared/activity-logger";
 import type { PermittedOpenAiModel } from "./shared/openai-client";
 import { stringify } from "./shared/stringify";
 

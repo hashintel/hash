@@ -4,7 +4,7 @@ import type {
   EntityRootType,
   Subgraph,
 } from "@blockprotocol/graph";
-import { getEntities, getEntityTypeById } from "@blockprotocol/graph/stdlib";
+import { getEntityTypeById } from "@blockprotocol/graph/stdlib";
 import type { Chart, ECOption } from "@hashintel/design-system";
 import { EChart } from "@hashintel/design-system";
 // eslint-disable-next-line no-restricted-imports
@@ -23,18 +23,21 @@ const generateEntityLabel = (
 };
 
 export const EntitiesGraphChart: FunctionComponent<{
+  entities?: Entity[];
   filterEntity?: (entity: Entity) => boolean;
   onEntityClick?: (entity: Entity) => void;
   isPrimaryEntity?: (entity: Entity) => boolean;
   subgraph?: Subgraph<EntityRootType>;
   sx?: BoxProps["sx"];
-}> = ({ filterEntity, isPrimaryEntity, subgraph, sx, onEntityClick }) => {
+}> = ({
+  entities,
+  filterEntity,
+  isPrimaryEntity,
+  subgraph,
+  sx,
+  onEntityClick,
+}) => {
   const [chart, setChart] = useState<Chart>();
-
-  const entities = useMemo(
-    () => (subgraph ? getEntities(subgraph) : undefined),
-    [subgraph],
-  );
 
   const nonLinkEntities = useMemo(
     () =>
