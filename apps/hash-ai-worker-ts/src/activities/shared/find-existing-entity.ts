@@ -46,8 +46,6 @@ export const findExistingEntity = async ({
 }): Promise<Entity | undefined> => {
   const entityTypeId = proposedEntity.entityTypeId;
 
-  return undefined;
-
   const entityType: DereferencedEntityType | undefined =
     dereferencedEntityType ??
     (await graphApiClient

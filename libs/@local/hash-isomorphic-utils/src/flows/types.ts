@@ -113,10 +113,13 @@ export type InputDefinition = {
   default?: Payload;
 };
 
-export type OutputDefinition<A extends boolean = boolean> = {
+export type OutputDefinition<
+  A extends boolean = boolean,
+  K extends PayloadKind = PayloadKind,
+> = {
   name: string;
   description?: string;
-  payloadKind: PayloadKind;
+  payloadKind: K;
   array: A;
   required: boolean;
 };

@@ -4,6 +4,7 @@ import { customColors } from "@hashintel/design-system/theme";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   FlowDefinition as FlowDefinitionType,
+  FlowTrigger,
   ProposedEntity,
   StepGroup,
 } from "@local/hash-isomorphic-utils/flows/types";
@@ -34,6 +35,7 @@ import {
   StartFlowMutationVariables,
 } from "../../graphql/api-types.gen";
 import { startFlowMutation } from "../../graphql/queries/knowledge/entity.queries";
+import { RunFlowModal } from "./flow-definition/run-flow-modal";
 
 const getGraphFromFlowDefinition = (
   flowDefinition: FlowDefinitionType,
@@ -347,6 +349,24 @@ export const FlowDefinition = () => {
           transitions.create("background", transitionOptions),
       }}
     >
+      <RunFlowModal
+        key={selectedFlow.name}
+        flowDefinition={selectedFlow}
+        open={showRunModal}
+        onClose={() => setShowRunModal(false)}
+        runFlow={(outputs: FlowTrigger["outputs"]) => {
+          void startFlow({
+            variables: {
+              flowDefinition: selectedFlow,
+              flowTrigger: {
+                outputs,
+                triggerDefinitionId: "userTrigger",
+              },
+            },
+          });
+          setShowRunModal(false);
+        }}
+      />
       <Box p={3}>
         <Stack direction="row" justifyContent="space-between" mb={1}>
           <select
@@ -431,7 +451,9 @@ export const FlowDefinition = () => {
           </Box>
           {Object.entries(nodesAndEdgesByGroup).map(
             ([groupId, { group, nodes, edges }]) => (
-              <ReactFlowProvider key={groupId}>
+              <ReactFlowProvider
+                key={`${selectedFlow.name}-${groupId}-${selectedFlowRun?.runId ?? "definition"}`}
+              >
                 <Swimlane group={group} nodes={nodes} edges={edges} />
               </ReactFlowProvider>
             ),

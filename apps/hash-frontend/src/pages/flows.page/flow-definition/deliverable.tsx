@@ -17,10 +17,10 @@ import { FlowRun } from "../../../graphql/api-types.gen";
 export const Deliverable = ({
   outputs,
 }: {
-  outputs?: FlowRun["flowOutputs"][];
+  outputs?: FlowRun["flowOutputs"];
 }) => {
   const flowOutputs = useMemo(
-    () => outputs?.[0]?.contents?.[0]?.flowOutputs ?? [],
+    () => outputs?.[0]?.contents?.[0]?.outputs ?? [],
     [outputs],
   );
 

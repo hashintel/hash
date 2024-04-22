@@ -186,9 +186,8 @@ export const BlockSelectDataModal: FunctionComponent<
       {...modalProps}
       contentStyle={{
         overflow: "hidden",
-        /** @todo: figure out why !important is required here */
-        padding: "0px !important",
-        width: "fit-content !important",
+        p: { xs: 0, md: 0 },
+        width: { xs: "fit-content", sm: "fit-content" },
         maxWidth: "90vw",
       }}
       onClose={onClose}
