@@ -11,7 +11,6 @@ serde_json = {version = "*", features = ["preserve_order"]}
 cargo_metadata = {version = "*"}
 nodejs_package_json = { version = "*", features = ["serialize"] }
 ```
-#![feature(gen_blocks)]
 
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
@@ -30,9 +29,13 @@ fn collect_metadata(cwd: &Path) -> Metadata {
         .expect("workspace root should be in current working directory")
 }
 
+#[derive(Debug, Copy, Clone)]
+struct EvaluationContext<'a> {
+    workspace: &'a Workspace<'a>,
+}
+
 #[derive(Debug)]
 struct WorkspaceMember<'a> {
-    workspace: &'a Workspace<'a>,
     package: &'a Package,
 
     dependencies: HashSet<PackageId>,
@@ -41,6 +44,52 @@ struct WorkspaceMember<'a> {
 }
 
 impl<'a> WorkspaceMember<'a> {
+    fn new(workspace: &Workspace<'a>, id: &PackageId) -> Self {
+        // find the package in the metadata
+        let package = workspace
+            .metadata
+            .packages
+            .iter()
+            .find(|p| p.id == *id)
+            .expect("workspace member should be contained in metadata");
+
+        // find the dependencies of the package that are also workspace members
+        let mut dependencies = HashSet::new();
+        let mut dev_dependencies = HashSet::new();
+        let mut build_dependencies = HashSet::new();
+
+        for dependency in &package.dependencies {
+            let Some(source_path) = dependency.path.as_ref() else {
+                continue;
+            };
+
+            let Some(source_id) = workspace.lookup_path(source_path.as_std_path()).cloned() else {
+                continue;
+            };
+
+            match dependency.kind {
+                DependencyKind::Normal => {
+                    dependencies.insert(source_id);
+                }
+                DependencyKind::Development => {
+                    dev_dependencies.insert(source_id);
+                }
+                DependencyKind::Build => {
+                    build_dependencies.insert(source_id);
+                }
+                _ => {}
+            }
+        }
+
+        Self {
+            package,
+
+            dependencies,
+            dev_dependencies,
+            build_dependencies,
+        }
+    }
+
     fn is_blockprotocol(&self) -> bool {
         // if any of the path components are "@blockprotocol" then it is a blockprotocol package
         self.package
@@ -71,13 +120,14 @@ impl<'a> WorkspaceMember<'a> {
         (self.package_name(), self.package_version())
     }
 
-    fn package_dependencies(&self) -> BTreeMap<String, String> {
+    fn package_dependencies(&self, ctx: EvaluationContext) -> BTreeMap<String, String> {
         let extra = self.extra_dependencies();
 
-        let mut dependencies: BTreeMap<_, _> = self.dependencies
+        let mut dependencies: BTreeMap<_, _> = self
+            .dependencies
             .iter()
             .map(|id| {
-                let member = self.workspace.member(id);
+                let member = ctx.workspace.member(id);
 
                 member.dependency_declaration()
             })
@@ -88,12 +138,12 @@ impl<'a> WorkspaceMember<'a> {
         dependencies
     }
 
-    fn package_dev_dependencies(&self) -> BTreeMap<String, String> {
+    fn package_dev_dependencies(&self, ctx: EvaluationContext) -> BTreeMap<String, String> {
         self.dev_dependencies
             .iter()
             .chain(self.build_dependencies.iter())
             .map(|id| {
-                let member = self.workspace.member(id);
+                let member = ctx.workspace.member(id);
 
                 member.dependency_declaration()
             })
@@ -154,8 +204,8 @@ impl<'a> WorkspaceMember<'a> {
     }
 
     // first find the package.json file in the package
-    // if none is found print a warning and return
-    fn sync(&self) {
+    // if it doesn't exist, create it
+    fn sync(&self, ctx: EvaluationContext) -> Option<PathBuf> {
         let directory = self
             .package
             .manifest_path
@@ -182,13 +232,22 @@ impl<'a> WorkspaceMember<'a> {
 
         if self.is_ignored() {
             eprintln!("package.json in {} is ignored", path.display());
-            return;
+            return None;
         }
 
-        // set the version of the package.json file to the version of the package
+        // set the version of the package.json file to the version of the crate
         package_json.version = Some(self.package_version());
 
-        // set the package to private if the package is private
+        // set the license of the package.json file to the license of the crate
+        if let Some(license) = self.package.license.as_ref() {
+            package_json
+                .other_fields
+                .insert("license".to_string(), license.to_owned().into());
+        } else {
+            package_json.other_fields.remove("license");
+        }
+
+        // set the package to private if the crate is private
         package_json
             .other_fields
             .insert("private".to_string(), self.is_private().into());
@@ -196,14 +255,16 @@ impl<'a> WorkspaceMember<'a> {
         // set the name of the package.json
         package_json.name = Some(self.package_name());
 
-        // set the dependencies of the package.json file to the dependencies of the package
-        package_json.dependencies = Some(self.package_dependencies());
-        package_json.dev_dependencies = Some(self.package_dev_dependencies());
+        // set the dependencies of the package.json file to the dependencies of the crate
+        package_json.dependencies = Some(self.package_dependencies(ctx));
+        package_json.dev_dependencies = Some(self.package_dev_dependencies(ctx));
 
         // write the package.json file back to disk
         let package_json = serde_json::to_string_pretty(&package_json)
             .expect("package.json should be serializable");
         fs::write(&path, package_json).expect("package.json should be writable");
+
+        Some(path)
     }
 }
 
@@ -213,7 +274,7 @@ impl<'a> WorkspaceMember<'a> {
 struct Workspace<'a> {
     metadata: &'a Metadata,
 
-    members: HashSet<PackageId>,
+    members: HashMap<PackageId, WorkspaceMember<'a>>,
     reverse_path: HashMap<PathBuf, PackageId>,
 }
 
@@ -233,68 +294,30 @@ impl<'a> Workspace<'a> {
             })
             .collect();
 
-        Self {
+        let mut this = Self {
             metadata,
-            members,
+            members: HashMap::new(),
             reverse_path,
+        };
+
+        for id in metadata.workspace_members.iter() {
+            this.members
+                .insert(id.clone(), WorkspaceMember::new(&this, id));
         }
+
+        this
     }
 
     fn lookup_path(&self, path: &Path) -> Option<&PackageId> {
         self.reverse_path.get(path)
     }
 
-    fn member(&self, id: &PackageId) -> WorkspaceMember {
-        // find the package in the metadata
-        let package = self
-            .metadata
-            .packages
-            .iter()
-            .find(|p| p.id == *id)
-            .expect("workspace member should be contained in metadata");
-
-        // find the dependencies of the package that are also workspace members
-        let mut dependencies = HashSet::new();
-        let mut dev_dependencies = HashSet::new();
-        let mut build_dependencies = HashSet::new();
-
-        for dependency in &package.dependencies {
-            let Some(source_path) = dependency.path.as_ref() else {
-                continue;
-            };
-
-            let Some(source_id) = self.lookup_path(source_path.as_std_path()).cloned() else {
-                continue;
-            };
-
-            match dependency.kind {
-                DependencyKind::Normal => {
-                    dependencies.insert(source_id);
-                }
-                DependencyKind::Development => {
-                    dev_dependencies.insert(source_id);
-                }
-                DependencyKind::Build => {
-                    build_dependencies.insert(source_id);
-                }
-                _ => {}
-            }
-        }
-
-        WorkspaceMember {
-            workspace: self,
-            package,
-
-            dependencies,
-            dev_dependencies,
-            build_dependencies,
-        }
+    fn member(&self, id: &PackageId) -> &WorkspaceMember<'a> {
+        self.members.get(id).expect("member should exist")
     }
 
-    gen fn members(&self) -> WorkspaceMember {
-        for member in &self.members {
-            yield self.member(member);
-        }
+    fn members(&self) -> impl Iterator<Item = &WorkspaceMember<'a>> {
+        self.members.values()
     }
 }
 
@@ -315,8 +338,15 @@ fn main() {
 
     let workspace = Workspace::new(&metadata);
 
+    let ctx = EvaluationContext {
+        workspace: &workspace,
+    };
+
     for member in workspace.members() {
-        println!("Syncing {}...", member.package_name());
-        member.sync();
+        eprintln!("Syncing {}...", member.package_name());
+        let path = member.sync(ctx);
+        if let Some(path) = path {
+            println!("{}", path.display());
+        }
     }
 }
