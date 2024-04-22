@@ -23,6 +23,13 @@ type RunFlowModalProps = {
   runFlow: (outputs: FlowTrigger["outputs"]) => void;
 };
 
+type LocalInputValue =
+  | string
+  | number
+  | boolean
+  | EntityTypeWithMetadata
+  | OwnedById;
+
 type LocalInputValues = {
   Text: string;
   Number: number;
@@ -33,9 +40,9 @@ type LocalInputValues = {
 
 type LocalPayloadKind = keyof LocalInputValues;
 
-type LocalPayload<K extends LocalPayloadKind = LocalPayloadKind> = {
-  kind: K;
-  value: LocalInputValues[K] | LocalInputValues[K][];
+type LocalPayload = {
+  kind: LocalPayloadKind;
+  value: LocalInputValue | LocalInputValue[];
 };
 
 type FormState = {
@@ -45,25 +52,15 @@ type FormState = {
   };
 };
 
-const ManualTriggerInput = <
-  Array extends boolean,
-  Kind extends keyof LocalInputValues,
->({
+const ManualTriggerInput = ({
   outputDefinition,
   value,
   setValue,
 }: {
-  outputDefinition: OutputDefinition<Array, Kind>;
-  value?: Array extends true
-    ? LocalInputValues[Kind][]
-    : LocalInputValues[Kind];
-  setValue: (
-    value: Array extends true
-      ? LocalInputValues[Kind][]
-      : LocalInputValues[Kind],
-  ) => void;
+  outputDefinition: OutputDefinition;
+  value?: LocalInputValue | LocalInputValue[];
+  setValue: (value: LocalInputValue | LocalInputValue[]) => void;
 }) => {
-  console.log({ outputDefinition });
   switch (outputDefinition.payloadKind) {
     case "Text":
       if (outputDefinition.array) {
@@ -93,7 +90,7 @@ const ManualTriggerInput = <
       );
     case "VersionedUrl": {
       return (
-        <EntityTypeSelector<Array>
+        <EntityTypeSelector
           autoFocus={false}
           disableCreate
           multiple={outputDefinition.array}
@@ -109,7 +106,7 @@ const ManualTriggerInput = <
       }
       return (
         <WebSelector
-          selectedWebOwnedById={value}
+          selectedWebOwnedById={value as OwnedById | undefined}
           setSelectedWebOwnedById={(newValue) => setValue(newValue)}
         />
       );
@@ -177,7 +174,7 @@ export const RunFlowModal = ({
   };
 
   const allRequiredValuesPresent = (outputs ?? []).every(
-    (output) => !output.required || formState[output.name].payload.value,
+    (output) => !output.required || formState[output.name]?.payload.value,
   );
 
   return (
@@ -218,10 +215,13 @@ export const RunFlowModal = ({
           </Typography>
           {(outputs ?? []).map((outputDef) => {
             switch (outputDef.payloadKind) {
+              case "Entity":
+              case "EntityType":
               case "PersistedEntities":
               case "PersistedEntity":
               case "ProposedEntity":
-              case "ProposedEntityWithResolvedLinks": {
+              case "ProposedEntityWithResolvedLinks":
+              case "WebPage": {
                 throw new Error("Unsupported input kind");
               }
             }
@@ -230,11 +230,17 @@ export const RunFlowModal = ({
               <ManualTriggerInput
                 key={outputDef.name}
                 outputDefinition={outputDef}
-                value={formState[outputDef.name]}
+                value={formState[outputDef.name]?.payload.value}
                 setValue={(newValue) =>
                   setFormState((currentValue) => ({
                     ...currentValue,
-                    [outputDef.name]: newValue,
+                    [outputDef.name]: {
+                      outputName: outputDef.name,
+                      payload: {
+                        kind: outputDef.payloadKind,
+                        value: newValue,
+                      },
+                    },
                   }))
                 }
               />
