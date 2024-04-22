@@ -3,6 +3,7 @@
   "version": "0.0.0-private",
   "private": true,
   "dependencies": {
+    "@apps/hash-graph-type-defs": "0.0.0-private",
     "@blockprotocol/type-system-rs": "0.0.0-private",
     "@rust/authorization": "0.0.0-private",
     "@rust/codec": "0.0.0-private",
