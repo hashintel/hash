@@ -130,35 +130,39 @@ impl<'a> WorkspaceMember<'a> {
         (self.package_name(), self.package_version())
     }
 
-    fn package_dependencies(&self, ctx: EvaluationContext, dependencies: &mut Option<BTreeMap<String, String>>) {
+    fn package_dependencies(
+        &self,
+        ctx: EvaluationContext,
+        dependencies: &mut Option<BTreeMap<String, String>>,
+    ) {
         let dependencies = dependencies.get_or_insert_with(BTreeMap::new);
 
         dependencies.retain(|name, _| !Self::is_local(name));
 
         dependencies.extend(self.extra_dependencies());
 
+        let members = self.dependencies.iter().map(|id| {
+            let member = ctx.workspace.member(id);
 
-        let members = self
-            .dependencies
-            .iter()
-            .map(|id| {
-                let member = ctx.workspace.member(id);
-
-                member.dependency_declaration()
-            });
+            member.dependency_declaration()
+        });
 
         dependencies.extend(members);
     }
 
-    fn package_dev_dependencies(&self, ctx: EvaluationContext, dependencies: &mut Option<BTreeMap<String, String>>) {
+    fn package_dev_dependencies(
+        &self,
+        ctx: EvaluationContext,
+        dependencies: &mut Option<BTreeMap<String, String>>,
+    ) {
         let dependencies = dependencies.get_or_insert_with(BTreeMap::new);
 
         dependencies.retain(|name, _| !Self::is_local(name));
 
         dependencies.extend(self.extra_dev_dependencies());
 
-
-        let members = self.dev_dependencies
+        let members = self
+            .dev_dependencies
             .iter()
             .chain(self.build_dependencies.iter())
             .map(|id| {
@@ -168,7 +172,6 @@ impl<'a> WorkspaceMember<'a> {
             });
 
         dependencies.extend(members);
-
     }
 
     fn parse_extra_dependencies(dependencies: &[serde_json::Value]) -> BTreeMap<String, String> {
@@ -189,7 +192,8 @@ impl<'a> WorkspaceMember<'a> {
                         .expect("version should be a string")
                         .to_owned(),
                 )
-            }).collect()
+            })
+            .collect()
     }
 
     fn extra_dependencies(&self) -> BTreeMap<String, String> {
@@ -205,7 +209,9 @@ impl<'a> WorkspaceMember<'a> {
             return BTreeMap::new();
         };
 
-        let dependencies = dependencies.as_array().expect("extra-dependencies should be an array");
+        let dependencies = dependencies
+            .as_array()
+            .expect("extra-dependencies should be an array");
 
         Self::parse_extra_dependencies(dependencies)
     }
@@ -223,7 +229,9 @@ impl<'a> WorkspaceMember<'a> {
             return BTreeMap::new();
         };
 
-        let dependencies = dependencies.as_array().expect("extra-dev-dependencies should be an array");
+        let dependencies = dependencies
+            .as_array()
+            .expect("extra-dev-dependencies should be an array");
 
         Self::parse_extra_dependencies(dependencies)
     }
