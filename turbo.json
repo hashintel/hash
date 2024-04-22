@@ -51,6 +51,7 @@
     ".justfile",
     ".yarnrc",
     "Cargo.toml",
-    "package.json"
+    "package.json",
+    "apps/hash-external-services/**"
   ]
 }

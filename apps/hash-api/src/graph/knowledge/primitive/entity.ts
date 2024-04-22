@@ -4,6 +4,7 @@ import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type {
   AllFilter,
+  DiffEntityResult,
   EntityMetadata,
   EntityPermission,
   EntityStructuralQuery,
@@ -39,6 +40,7 @@ import type {
   EntityUuid,
   OwnedById,
   Subgraph,
+  Timestamp,
 } from "@local/hash-subgraph";
 import {
   extractDraftIdFromEntityId,
@@ -1064,3 +1066,16 @@ export const getEntityAuthorizationRelationships: ImpureGraphFunction<
           }) as EntityAuthorizationRelationship,
       ),
     );
+
+export const calculateEntityDiff: ImpureGraphFunction<
+  {
+    firstEntityId: EntityId;
+    firstTransactionTime: Timestamp | null;
+    firstDecisionTime: Timestamp | null;
+    secondEntityId: EntityId;
+    secondDecisionTime: Timestamp | null;
+    secondTransactionTime: Timestamp | null;
+  },
+  Promise<DiffEntityResult>
+> = async ({ graphApi }, { actorId }, params) =>
+  graphApi.diffEntity(actorId, params).then(({ data }) => data);

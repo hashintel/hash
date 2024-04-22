@@ -18,7 +18,7 @@ email_address.workspace = true
 futures.workspace = true
 regex = "1.10.4"
 serde_json.workspace = true
-thiserror = "1.0.58"
+thiserror = "1.0.59"
 iso8601-duration = "0.2.0"
 serde = { workspace = true, features = ["derive"] }
 url.workspace = true
