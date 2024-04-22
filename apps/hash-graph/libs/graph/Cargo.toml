@@ -11,6 +11,7 @@ description = "HASH Graph API"
 extra-dependencies = [
     { name = "@apps/hash-graph-migrations", version = "0.0.0-private" },
 ]
+extra-dev-dependencies = [{ name = "tsc", version = "3.13.3" }]
 
 [dependencies]
 graph-types = { workspace = true, features = ["postgres"] }

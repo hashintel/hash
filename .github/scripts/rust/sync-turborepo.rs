@@ -139,7 +139,9 @@ impl<'a> WorkspaceMember<'a> {
     }
 
     fn package_dev_dependencies(&self, ctx: EvaluationContext) -> BTreeMap<String, String> {
-        self.dev_dependencies
+        let extra = self.extra_dev_dependencies();
+
+        let mut dependencies: BTreeMap<_, _> = self.dev_dependencies
             .iter()
             .chain(self.build_dependencies.iter())
             .map(|id| {
@@ -147,30 +149,14 @@ impl<'a> WorkspaceMember<'a> {
 
                 member.dependency_declaration()
             })
-            .collect()
+            .collect();
+
+        dependencies.extend(extra);
+
+        dependencies
     }
 
-    fn extra_dependencies(&self) -> BTreeMap<String, String> {
-        let Some(sync) = self.package.metadata.get("sync") else {
-            return BTreeMap::new();
-        };
-
-        let Some(turborepo) = sync.get("turborepo") else {
-            return BTreeMap::new();
-        };
-
-        let Some(dependencies) = turborepo.get("extra-dependencies") else {
-            return BTreeMap::new();
-        };
-
-        let Some(dependencies) = dependencies.as_array() else {
-            eprintln!(
-                "extra-dependencies of {} should be an array",
-                self.package.name
-            );
-            return BTreeMap::new();
-        };
-
+    fn parse_extra_dependencies(dependencies: &[serde_json::Value]) -> BTreeMap<String, String> {
         dependencies
             .iter()
             .map(|dependency| {
@@ -190,6 +176,42 @@ impl<'a> WorkspaceMember<'a> {
                 )
             })
             .collect()
+    }
+
+    fn extra_dependencies(&self) -> BTreeMap<String, String> {
+        let Some(sync) = self.package.metadata.get("sync") else {
+            return BTreeMap::new();
+        };
+
+        let Some(turborepo) = sync.get("turborepo") else {
+            return BTreeMap::new();
+        };
+
+        let Some(dependencies) = turborepo.get("extra-dependencies") else {
+            return BTreeMap::new();
+        };
+
+        let dependencies = dependencies.as_array().expect("extra-dependencies should be an array");
+
+        Self::parse_extra_dependencies(dependencies)
+    }
+
+    fn extra_dev_dependencies(&self) -> BTreeMap<String, String> {
+        let Some(sync) = self.package.metadata.get("sync") else {
+            return BTreeMap::new();
+        };
+
+        let Some(turborepo) = sync.get("turborepo") else {
+            return BTreeMap::new();
+        };
+
+        let Some(dependencies) = turborepo.get("extra-dev-dependencies") else {
+            return BTreeMap::new();
+        };
+
+        let dependencies = dependencies.as_array().expect("extra-dev-dependencies should be an array");
+
+        Self::parse_extra_dependencies(dependencies)
     }
 
     fn is_ignored(&self) -> bool {

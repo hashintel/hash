@@ -15,6 +15,7 @@
     "@rust/validation": "0.0.0-private"
   },
   "devDependencies": {
-    "@rust/graph-test-data": "0.0.0-private"
+    "@rust/graph-test-data": "0.0.0-private",
+    "tsc": "3.13.3"
   }
 }
