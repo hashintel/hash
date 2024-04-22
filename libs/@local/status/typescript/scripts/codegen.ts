@@ -134,7 +134,7 @@ const codegen = async ({
           "--no-combine-classes",
         ]);
       }
-    } else if (fileName === "package.json") {
+    } else if (fileName === "package" && fileExtension === ".json") {
       console.info("Skipping package.json file");
       continue;
     } else {
