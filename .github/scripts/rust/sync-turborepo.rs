@@ -100,10 +100,10 @@ impl<'a> WorkspaceMember<'a> {
 
     fn is_local(dependencies: &str) -> bool {
         // the following prefixes are considered local dependencies
-        // @blockprotocol, @rust, @libs, @apps, @repo
+        // @blockprotocol, @rust, @local, @apps, @repo
         dependencies.starts_with("@blockprotocol/")
             || dependencies.starts_with("@rust/")
-            || dependencies.starts_with("@libs/")
+            || dependencies.starts_with("@local/")
             || dependencies.starts_with("@apps/")
             || dependencies.starts_with("@repo/")
     }
