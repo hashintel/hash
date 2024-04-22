@@ -511,11 +511,11 @@ export const proposeEntities = async (params: {
                         /** @todo: figure out why TS cannot infer that `entity` has `ProposedEntityLinkFields` */
                         sourceEntityLocalId:
                           "sourceEntityId" in entity
-                            ? (entity.sourceEntityId as string).toString()
+                            ? entity.sourceEntityId.toString()
                             : undefined,
                         targetEntityLocalId:
                           "targetEntityId" in entity
-                            ? (entity.targetEntityId as string).toString()
+                            ? entity.targetEntityId.toString()
                             : undefined,
                       },
                       recordedAt: now,

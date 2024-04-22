@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type {
   ProposedEntity,
   ProposedEntitySchemaOrData,
@@ -13,7 +14,7 @@ import { stripIdsFromDereferencedProperties } from "./strip-ids-from-dereference
 
 export type ProposeEntitiesToolName = "abandon_entities" | "create_entities";
 
-type ProposedEntityWithSimplifiedProperties = Omit<
+type ProposedEntityWithSimplifiedProperties = DistributiveOmit<
   ProposedEntity,
   "properties"
 > & {
