@@ -2,6 +2,7 @@ import {
   Configuration,
   DefaultApi as InternalApiClient,
 } from "@local/internal-api-client";
+import type { AxiosError } from "axios";
 import axios from "axios";
 
 const basePath = process.env.INTERNAL_API_HOST ?? "http://localhost:5002";
@@ -21,6 +22,19 @@ const config = new Configuration({ basePath });
 const axiosInstance = axios.create({
   headers: { "internal-api-key": internalApiKey },
 });
+
+/**
+ * Add a prefix to the errors that occur when calling the internal API,
+ * to make it more clear where the error originated.
+ */
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError) => {
+    // eslint-disable-next-line no-param-reassign
+    error.message = `Error occurred calling the Internal API: ${error.message}`;
+    return Promise.reject(error);
+  },
+);
 
 export const internalApi = new InternalApiClient(
   config,
