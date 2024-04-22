@@ -212,6 +212,20 @@ const seedFlowTestTypes = async () => {
     },
   );
 
+  const multiplierPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Multiplier",
+        description:
+          'The multiplier of something (e.g. "millions", "thousands", etc.)',
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      ownedById,
+    },
+  );
+
   const measuredOnPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
@@ -241,6 +255,9 @@ const seedFlowTestTypes = async () => {
               },
               [unitPropertyType.metadata.recordId.baseUrl]: {
                 $ref: unitPropertyType.schema.$id,
+              },
+              [multiplierPropertyType.metadata.recordId.baseUrl]: {
+                $ref: multiplierPropertyType.schema.$id,
               },
             },
             propertyTypeObjectRequiredProperties: [
