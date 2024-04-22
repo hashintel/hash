@@ -12,5 +12,10 @@ allow = [
     "missing_docs",
     "clippy::missing_errors_doc",
     "clippy::error_impl_error",
-    "clippy::panic_in_result_fn"
+    "clippy::panic_in_result_fn",
+
+    # `cast_*` lints should be enabled but is too noisy currently
+    "clippy::cast_possible_truncation",
+    "clippy::cast_precision_loss",
+    "clippy::cast_lossless",
 ]
