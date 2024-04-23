@@ -269,10 +269,9 @@ export const ResearchTaskFlow: FunctionComponent = () => {
           const status = data.startFlow as RunFlowWorkflowResponse;
 
           if (status.code === StatusCode.Ok) {
-            const persistedEntitiesOutput =
-              status.contents[0]?.flowOutputs?.find(
-                (output) => output.outputName === "persistedEntities",
-              );
+            const persistedEntitiesOutput = status.contents[0]?.outputs?.find(
+              (output) => output.outputName === "persistedEntities",
+            );
 
             if (!persistedEntitiesOutput) {
               throw new Error(
@@ -285,7 +284,7 @@ export const ResearchTaskFlow: FunctionComponent = () => {
             );
 
             if (includeQuestionAnswerAction) {
-              const answerOutput = status.contents[0]?.flowOutputs?.find(
+              const answerOutput = status.contents[0]?.outputs?.find(
                 (output) => output.outputName === "answer",
               );
 

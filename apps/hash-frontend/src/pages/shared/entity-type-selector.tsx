@@ -16,6 +16,7 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
   disableCreate,
   disableCreateNewEmpty,
   excludeEntityTypeIds,
+  inputHeight,
   autoFocus,
   multiple,
   onCancel,
@@ -25,6 +26,7 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
   value,
 }: {
   excludeEntityTypeIds?: VersionedUrl[];
+  inputHeight?: number;
   multiple?: Multiple;
   onSelect: (
     value: Multiple extends true
@@ -74,6 +76,7 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
         variant: "entity type",
       }}
       autoFocus={autoFocus}
+      inputHeight={inputHeight}
       options={filteredEntityTypes ?? []}
       multiple={multiple}
       filterOptions={(options, { inputValue }) => {

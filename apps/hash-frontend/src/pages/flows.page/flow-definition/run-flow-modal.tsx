@@ -1,49 +1,22 @@
-import { IconButton, TextField } from "@hashintel/design-system";
-import {
+import { IconButton } from "@hashintel/design-system";
+import { typedValues } from "@local/advanced-types/typed-entries";
+import type {
   FlowDefinition,
   FlowTrigger,
   OutputDefinition,
   PayloadKind,
 } from "@local/hash-isomorphic-utils/flows/types";
-import { EntityTypeWithMetadata, OwnedById } from "@local/hash-subgraph";
-import { Box, Stack, Switch, Typography } from "@mui/material";
-import { PropsWithChildren, useState } from "react";
+import type { OwnedById } from "@local/hash-subgraph";
+import { Box, Stack, Typography } from "@mui/material";
+import type { PropsWithChildren } from "react";
+import { useState } from "react";
 
 import { XMarkRegularIcon } from "../../../shared/icons/x-mark-regular-icon";
 import { Button } from "../../../shared/ui/button";
 import { Modal } from "../../../shared/ui/modal";
-import { EntityTypeSelector } from "../../shared/entity-type-selector";
-import { WebSelector } from "./run-flow-modal/web-selector";
-import { typedValues } from "@local/advanced-types/typed-entries";
-
-type RunFlowModalProps = {
-  flowDefinition: FlowDefinition;
-  open: boolean;
-  onClose: () => void;
-  runFlow: (outputs: FlowTrigger["outputs"]) => void;
-};
-
-type LocalInputValue =
-  | string
-  | number
-  | boolean
-  | EntityTypeWithMetadata
-  | OwnedById;
-
-type LocalInputValues = {
-  Text: string;
-  Number: number;
-  Boolean: boolean;
-  VersionedUrl: EntityTypeWithMetadata;
-  WebId: OwnedById;
-};
-
-type LocalPayloadKind = keyof LocalInputValues;
-
-type LocalPayload = {
-  kind: LocalPayloadKind;
-  value: LocalInputValue | LocalInputValue[];
-};
+import { useAuthenticatedUser } from "../../shared/auth-info-context";
+import { ManualTriggerInput } from "./run-flow-modal/manual-trigger-input";
+import type { LocalPayload, LocalPayloadKind } from "./run-flow-modal/types";
 
 type FormState = {
   [outputName: string]: {
@@ -52,90 +25,76 @@ type FormState = {
   };
 };
 
-const ManualTriggerInput = ({
-  outputDefinition,
-  value,
-  setValue,
-}: {
-  outputDefinition: OutputDefinition;
-  value?: LocalInputValue | LocalInputValue[];
-  setValue: (value: LocalInputValue | LocalInputValue[]) => void;
-}) => {
-  switch (outputDefinition.payloadKind) {
-    case "Text":
-      if (outputDefinition.array) {
-        throw new Error("Selecting multiple texts is not supported");
-      }
-      return (
-        <TextField
-          onChange={(event) => setValue(event.target.value)}
-          value={value}
-        />
-      );
-    case "Number":
-      return (
-        <TextField
-          onChange={(event) => setValue(event.target.value)}
-          type="number"
-          value={value}
-        />
-      );
-    case "Boolean":
-      return (
-        <Switch
-          size="small"
-          checked={!!value}
-          onChange={(event) => setValue(event.target.checked)}
-        />
-      );
-    case "VersionedUrl": {
-      return (
-        <EntityTypeSelector
-          autoFocus={false}
-          disableCreate
-          multiple={outputDefinition.array}
-          onSelect={(newValue) =>
-            setValue(Array.isArray(newValue) ? newValue : newValue)
-          }
-        />
-      );
-    }
-    case "WebId": {
-      if (outputDefinition.array) {
-        throw new Error("Selecting multiple webs is not supported");
-      }
-      return (
-        <WebSelector
-          selectedWebOwnedById={value as OwnedById | undefined}
-          setSelectedWebOwnedById={(newValue) => setValue(newValue)}
-        />
-      );
-    }
-  }
-
-  throw new Error(
-    `Unhandled trigger input type: ${outputDefinition.array ? "array of " : ""}${outputDefinition.payloadKind}`,
-  );
-};
-
-const Label = ({
+const InputWrapper = ({
   children,
   required,
-  text,
-}: PropsWithChildren<{ required: boolean; text: string }>) => (
-  <Typography
-    component="label"
-    variant="smallTextLabels"
-    sx={{
-      color: ({ palette }) => palette.gray[70],
-      fontWeight: 500,
-      lineHeight: 1.5,
-    }}
-  >
-    {text}
-    {children}
-  </Typography>
+  label,
+}: PropsWithChildren<{ required: boolean; label: string }>) => (
+  <Box mb={2.5}>
+    <Typography
+      component="label"
+      variant="smallTextLabels"
+      sx={{
+        color: ({ palette }) => palette.gray[70],
+        fontWeight: 500,
+        lineHeight: 1.5,
+      }}
+    >
+      {label}
+      {required ? "*" : ""}
+      <Box>{children}</Box>
+    </Typography>
+  </Box>
 );
+
+type UnsupportedPayloadKind = Exclude<PayloadKind, LocalPayloadKind>;
+
+const unsupportedPayloadKinds: UnsupportedPayloadKind[] = [
+  "Entity",
+  "EntityType",
+  "PersistedEntities",
+  "PersistedEntity",
+  "ProposedEntity",
+  "ProposedEntityWithResolvedLinks",
+  "WebPage",
+];
+
+const isSupportedPayloadKind = (kind: PayloadKind): kind is LocalPayloadKind =>
+  !unsupportedPayloadKinds.includes(kind as UnsupportedPayloadKind);
+
+const generateInitialFormState = (
+  outputDefinitions: OutputDefinition[],
+  userWebId: OwnedById,
+) =>
+  outputDefinitions.reduce<FormState>((acc, outputDefinition) => {
+    if (isSupportedPayloadKind(outputDefinition.payloadKind)) {
+      let defaultValue: LocalPayload["value"] = outputDefinition.array
+        ? []
+        : "";
+
+      if (outputDefinition.payloadKind === "WebId") {
+        defaultValue = userWebId;
+      } else if (outputDefinition.payloadKind === "Boolean") {
+        defaultValue = false;
+      }
+
+      acc[outputDefinition.name] = {
+        outputName: outputDefinition.name,
+        payload: {
+          kind: outputDefinition.payloadKind satisfies LocalPayload["kind"],
+          value: defaultValue satisfies LocalPayload["value"],
+        } as LocalPayload,
+      };
+    }
+    return acc;
+  }, {});
+
+type RunFlowModalProps = {
+  flowDefinition: FlowDefinition;
+  open: boolean;
+  onClose: () => void;
+  runFlow: (outputs: FlowTrigger["outputs"]) => void;
+};
 
 export const RunFlowModal = ({
   flowDefinition,
@@ -145,37 +104,57 @@ export const RunFlowModal = ({
 }: RunFlowModalProps) => {
   const { outputs } = flowDefinition.trigger;
 
-  const [formState, setFormState] = useState<FormState>({});
+  const { authenticatedUser } = useAuthenticatedUser();
+
+  const [formState, setFormState] = useState<FormState>(() =>
+    generateInitialFormState(
+      outputs ?? [],
+      authenticatedUser.accountId as OwnedById,
+    ),
+  );
+
+  const allRequiredValuesPresent = (outputs ?? []).every((output) => {
+    const stateValue = formState[output.name]?.payload.value;
+    return (
+      !output.required ||
+      (output.payloadKind === "Text"
+        ? stateValue !== ""
+        : stateValue !== undefined)
+    );
+  });
 
   const submitValues = () => {
     if (!allRequiredValuesPresent) {
       return;
     }
 
-    const outputValues: FlowTrigger["outputs"] = typedValues(formState).map(
-      ({ outputName, payload }) => ({
-        outputName,
-        payload:
-          payload.kind === "VersionedUrl"
-            ? {
-                kind: payload.kind,
-                value: Array.isArray(payload.value)
-                  ? payload.value.map(
-                      (entityType) =>
-                        (entityType as EntityTypeWithMetadata).schema.$id,
-                    )
-                  : (payload.value as EntityTypeWithMetadata).schema.$id,
-              }
-            : payload,
-      }),
-    );
+    const outputValues: FlowTrigger["outputs"] = [];
+    for (const { outputName, payload } of typedValues(formState)) {
+      if (typeof payload.value !== "undefined") {
+        if (Array.isArray(payload.value) && payload.value.length === 0) {
+          continue;
+        }
+        if (payload.kind === "VersionedUrl") {
+          outputValues.push({
+            outputName,
+            payload: {
+              kind: payload.kind,
+              value: Array.isArray(payload.value)
+                ? payload.value.map((entityType) => entityType.schema.$id)
+                : payload.value.schema.$id,
+            },
+          });
+        } else {
+          outputValues.push({
+            outputName,
+            payload,
+          });
+        }
+      }
+    }
 
     runFlow(outputValues);
   };
-
-  const allRequiredValuesPresent = (outputs ?? []).every(
-    (output) => !output.required || formState[output.name]?.payload.value,
-  );
 
   return (
     <Modal contentStyle={{ p: { xs: 0, md: 0 } }} open={open} onClose={onClose}>
@@ -196,7 +175,11 @@ export const RunFlowModal = ({
           >
             Run flow
           </Typography>
-          <IconButton onClick={onClose} sx={{ "& svg": { fontSize: 20 } }}>
+          <IconButton
+            aria-label="Cancel"
+            onClick={onClose}
+            sx={{ "& svg": { fontSize: 20 } }}
+          >
             <XMarkRegularIcon />
           </IconButton>
         </Stack>
@@ -208,49 +191,55 @@ export const RunFlowModal = ({
               color: ({ palette }) => palette.gray[70],
               fontWeight: 500,
               lineHeight: 1.5,
+              mb: 2.5,
             }}
           >
             In order to run the <strong>{flowDefinition.name}</strong> flow,
             you'll need to provide a bit more information first.
           </Typography>
           {(outputs ?? []).map((outputDef) => {
-            switch (outputDef.payloadKind) {
-              case "Entity":
-              case "EntityType":
-              case "PersistedEntities":
-              case "PersistedEntity":
-              case "ProposedEntity":
-              case "ProposedEntityWithResolvedLinks":
-              case "WebPage": {
-                throw new Error("Unsupported input kind");
-              }
+            if (!isSupportedPayloadKind(outputDef.payloadKind)) {
+              throw new Error("Unsupported input kind");
+            }
+
+            const payload = formState[outputDef.name]?.payload;
+
+            if (!payload) {
+              throw new Error("Missing form state for output");
             }
 
             return (
-              <ManualTriggerInput
+              <InputWrapper
                 key={outputDef.name}
-                outputDefinition={outputDef}
-                value={formState[outputDef.name]?.payload.value}
-                setValue={(newValue) =>
-                  setFormState((currentValue) => ({
-                    ...currentValue,
-                    [outputDef.name]: {
-                      outputName: outputDef.name,
-                      payload: {
-                        kind: outputDef.payloadKind,
-                        value: newValue,
+                label={outputDef.name}
+                required={outputDef.required}
+              >
+                <ManualTriggerInput
+                  array={outputDef.array}
+                  key={outputDef.name}
+                  payload={payload}
+                  required={!!outputDef.required}
+                  setValue={(newValue) =>
+                    setFormState((currentFormState) => ({
+                      ...currentFormState,
+                      [outputDef.name]: {
+                        outputName: outputDef.name,
+                        payload: {
+                          kind: payload.kind satisfies LocalPayload["kind"],
+                          value: newValue satisfies LocalPayload["value"],
+                        } as LocalPayload,
                       },
-                    },
-                  }))
-                }
-              />
+                    }))
+                  }
+                />
+              </InputWrapper>
             );
           })}
           <Button
-            disabled={allRequiredValuesPresent}
+            disabled={!allRequiredValuesPresent}
             size="small"
             onClick={submitValues}
-            sx={{ mt: 2 }}
+            sx={{ mt: 1 }}
           >
             Run flow
           </Button>

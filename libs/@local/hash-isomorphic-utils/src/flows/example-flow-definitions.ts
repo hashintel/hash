@@ -19,19 +19,31 @@ export const researchTaskFlowDefinition: FlowDefinition = {
     outputs: [
       {
         payloadKind: "Text",
-        name: "prompt" as const,
+        name: "Research guidance" as const,
         array: false,
         required: true,
       },
       {
         payloadKind: "VersionedUrl",
-        name: "entityTypeIds",
+        name: "Entity Types",
         array: true,
         required: true,
       },
       {
         payloadKind: "Text",
-        name: "question",
+        name: "Research question",
+        array: false,
+        required: true,
+      },
+      {
+        payloadKind: "WebId",
+        name: "Create in",
+        array: false,
+        required: true,
+      },
+      {
+        payloadKind: "Boolean",
+        name: "Create as draft",
         array: false,
         required: true,
       },
@@ -49,14 +61,14 @@ export const researchTaskFlowDefinition: FlowDefinition = {
           inputName: "prompt" satisfies InputNameForAction<"researchEntities">,
           kind: "step-output",
           sourceStepId: "trigger",
-          sourceStepOutputName: "prompt",
+          sourceStepOutputName: "Research guidance",
         },
         {
           inputName:
             "entityTypeIds" satisfies InputNameForAction<"researchEntities">,
           kind: "step-output",
           sourceStepId: "trigger",
-          sourceStepOutputName: "entityTypeIds",
+          sourceStepOutputName: "Entity Types",
         },
       ],
     },
@@ -74,6 +86,19 @@ export const researchTaskFlowDefinition: FlowDefinition = {
           sourceStepOutputName:
             "proposedEntities" satisfies OutputNameForAction<"researchEntities">,
         },
+        {
+          inputName: "webId" satisfies InputNameForAction<"persistEntities">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "Create in",
+        },
+        {
+          inputName:
+            "proposedEntities" satisfies InputNameForAction<"persistEntities">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "Create as draft",
+        },
       ],
     },
     {
@@ -86,7 +111,7 @@ export const researchTaskFlowDefinition: FlowDefinition = {
           inputName: "question" satisfies InputNameForAction<"answerQuestion">,
           kind: "step-output",
           sourceStepId: "trigger",
-          sourceStepOutputName: "question",
+          sourceStepOutputName: "Research question",
         },
         {
           inputName: "entities" satisfies InputNameForAction<"answerQuestion">,

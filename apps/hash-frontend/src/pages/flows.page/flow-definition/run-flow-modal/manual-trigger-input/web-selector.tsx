@@ -1,31 +1,38 @@
 import { Autocomplete, Avatar } from "@hashintel/design-system";
 import type { OwnedById } from "@local/hash-subgraph";
-import { Stack, Typography } from "@mui/material";
+import {
+  autocompleteClasses,
+  Box,
+  outlinedInputClasses,
+  Stack,
+  Typography,
+} from "@mui/material";
 import type { ReactElement } from "react";
 import { useMemo } from "react";
 
-import { useAuthenticatedUser } from "../../../shared/auth-info-context";
-import { getImageUrlFromEntityProperties } from "../../../shared/get-image-url-from-properties";
-import { MenuItem } from "../../../../shared/ui/menu-item";
+import { MenuItem } from "../../../../../shared/ui/menu-item";
+import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
+import { getImageUrlFromEntityProperties } from "../../../../shared/get-image-url-from-properties";
+import { inputHeight } from "../shared/dimensions";
 
 const RenderOptionContent = ({
   avatarComponent,
-  title,
+  label,
 }: {
   avatarComponent: ReactElement;
-  title: string;
+  label: string;
 }) => {
   return (
-    <Stack direction="row" alignItems="center">
+    <Stack direction="row" alignItems="center" py={0.5} px={0}>
       {avatarComponent}
       <Typography
         sx={{
           fontSize: 14,
           fontWeight: 500,
-          ml: 1,
+          ml: 1.2,
         }}
       >
-        {title}
+        {label}
       </Typography>
     </Stack>
   );
@@ -35,6 +42,8 @@ type WebSelectorProps = {
   selectedWebOwnedById?: OwnedById;
   setSelectedWebOwnedById: (ownedById: OwnedById) => void;
 };
+
+const optionPx = 2;
 
 export const WebSelector = ({
   selectedWebOwnedById,
@@ -47,7 +56,7 @@ export const WebSelector = ({
       {
         avatarComponent: (
           <Avatar
-            size={22}
+            size={26}
             src={
               authenticatedUser.hasAvatar
                 ? getImageUrlFromEntityProperties(
@@ -58,14 +67,14 @@ export const WebSelector = ({
             title={authenticatedUser.displayName ?? "?"}
           />
         ),
-        ownedById: authenticatedUser.accountId as OwnedById,
-        title: "My web",
+        label: "My web",
+        value: authenticatedUser.accountId as OwnedById,
       },
       ...authenticatedUser.memberOf.map(
         ({ org: { accountGroupId, name, hasAvatar } }) => ({
           avatarComponent: (
             <Avatar
-              size={22}
+              size={26}
               src={
                 hasAvatar
                   ? getImageUrlFromEntityProperties(
@@ -76,15 +85,15 @@ export const WebSelector = ({
               title={name}
             />
           ),
-          ownedById: accountGroupId as OwnedById,
-          title: name,
+          label: name,
+          value: accountGroupId as OwnedById,
         }),
       ),
     ];
   }, [authenticatedUser]);
 
   const selectedWeb = options.find(
-    (option) => option.ownedById === selectedWebOwnedById,
+    (option) => option.value === selectedWebOwnedById,
   );
 
   return (
@@ -99,22 +108,41 @@ export const WebSelector = ({
         popper: { placement: "top" },
       }}
       disableClearable
+      inputHeight={inputHeight}
       inputProps={{
         endAdornment: <div />,
-        startAdornment: selectedWeb ? selectedWeb.avatarComponent : undefined,
+        startAdornment: selectedWeb ? (
+          <Box mr={0.5}>{selectedWeb.avatarComponent}</Box>
+        ) : undefined,
+        sx: {
+          [`&.${outlinedInputClasses.root}`]: {
+            px: optionPx,
+            py: 0,
+          },
+          height: inputHeight,
+        },
       }}
       multiple={false}
       onChange={(_event, option) => {
-        setSelectedWebOwnedById(option.ownedById);
+        setSelectedWebOwnedById(option.value);
       }}
       options={options}
       renderOption={(props, option) => (
-        <MenuItem {...props} key={option.ownedById} value={option.ownedById}>
+        <MenuItem
+          {...props}
+          key={option.value}
+          value={option.value}
+          sx={{
+            [`&.${autocompleteClasses.option}`]: {
+              px: optionPx - 0.5,
+            },
+          }}
+        >
           <RenderOptionContent {...option} />
         </MenuItem>
       )}
       sx={{
-        width: 150,
+        width: 250,
       }}
       value={selectedWeb}
     />

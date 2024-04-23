@@ -337,3 +337,8 @@ export type PersistedEntityLog = {
 };
 
 export type StepProgressLog = PersistedEntityLog | ProposedEntityLog;
+
+export type ProgressLogSignalData = {
+  attempt: number;
+  logs: StepProgressLog[];
+};

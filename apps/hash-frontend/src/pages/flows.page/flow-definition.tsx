@@ -1,5 +1,6 @@
 import "reactflow/dist/style.css";
 
+import { useMutation } from "@apollo/client";
 import { customColors } from "@hashintel/design-system/theme";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
@@ -14,28 +15,27 @@ import { useMemo, useState } from "react";
 import type { Edge } from "reactflow";
 import { MarkerType, ReactFlowProvider } from "reactflow";
 
+import type {
+  StartFlowMutation,
+  StartFlowMutationVariables,
+} from "../../graphql/api-types.gen";
+import { startFlowMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { isNonNullable } from "../../lib/typeguards";
+import { Button } from "../../shared/ui/button";
 import { Deliverable } from "./flow-definition/deliverable";
 import { EntityResultTable } from "./flow-definition/entity-result-table";
 import { PersistedEntityGraph } from "./flow-definition/persisted-entity-graph";
+import { RunFlowModal } from "./flow-definition/run-flow-modal";
 import { nodeDimensions } from "./flow-definition/shared/dimensions";
 import { useFlowDefinitionsContext } from "./flow-definition/shared/flow-definitions-context";
 import { useFlowRunsContext } from "./flow-definition/shared/flow-runs-context";
+import { transitionOptions } from "./flow-definition/shared/styles";
 import type { CustomNodeType } from "./flow-definition/shared/types";
 import {
   getFlattenedSteps,
   groupStepsByDependencyLayer,
 } from "./flow-definition/sort-graph";
 import { Swimlane } from "./flow-definition/swimlane";
-import { transitionOptions } from "./flow-definition/shared/styles";
-import { Button } from "../../shared/ui/button";
-import { useMutation } from "@apollo/client";
-import {
-  StartFlowMutation,
-  StartFlowMutationVariables,
-} from "../../graphql/api-types.gen";
-import { startFlowMutation } from "../../graphql/queries/knowledge/entity.queries";
-import { RunFlowModal } from "./flow-definition/run-flow-modal";
 
 const getGraphFromFlowDefinition = (
   flowDefinition: FlowDefinitionType,
@@ -368,7 +368,12 @@ export const FlowDefinition = () => {
         }}
       />
       <Box p={3}>
-        <Stack direction="row" justifyContent="space-between" mb={1}>
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          mb={1}
+          sx={{ height: 40 }}
+        >
           <select
             value={selectedFlow.name}
             onChange={(event) => {
@@ -425,7 +430,7 @@ export const FlowDefinition = () => {
             background: palette.common.white,
             border: `1px solid ${palette.gray[selectedFlowRun ? 20 : 30]}`,
             borderRadius: 2.5,
-            "& > :first-child": {
+            "& > :first-of-type": {
               borderTopRightRadius: "10px",
               borderTopLeftRadius: "10px",
             },
@@ -433,27 +438,32 @@ export const FlowDefinition = () => {
               borderBottomRightRadius: "10px",
               borderBottomLeftRadius: "10px",
             },
-            "& > :last-child > :first-child": {
+            "& > :last-child > :first-of-type": {
               borderBottomLeftRadius: "10px",
             },
             transition: transitions.create("border", transitionOptions),
           })}
         >
-          <Box
+          <Stack
+            direction="row"
             sx={{
               borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
               p: 3,
             }}
           >
-            <Typography sx={{ fontSize: 14, fontWeight: 400 }}>
+            <Typography
+              component="span"
+              sx={{ fontSize: 14, fontWeight: 600, mr: 2 }}
+            >
+              {selectedFlow.name}
+            </Typography>
+            <Typography component="span" sx={{ fontSize: 14, fontWeight: 400 }}>
               {selectedFlow.description}
             </Typography>
-          </Box>
+          </Stack>
           {Object.entries(nodesAndEdgesByGroup).map(
             ([groupId, { group, nodes, edges }]) => (
-              <ReactFlowProvider
-                key={`${selectedFlow.name}-${groupId}-${selectedFlowRun?.runId ?? "definition"}`}
-              >
+              <ReactFlowProvider key={`${selectedFlow.name}-${groupId}`}>
                 <Swimlane group={group} nodes={nodes} edges={edges} />
               </ReactFlowProvider>
             ),
@@ -492,7 +502,7 @@ export const FlowDefinition = () => {
         <Box sx={{ width: "40%", pl: 3, pt: 2.5 }}>
           <SectionLabel text="Deliverable" />
 
-          <Deliverable outputs={selectedFlowRun?.flowOutputs ?? []} />
+          <Deliverable outputs={selectedFlowRun?.outputs ?? []} />
         </Box>
       </Stack>
     </Box>

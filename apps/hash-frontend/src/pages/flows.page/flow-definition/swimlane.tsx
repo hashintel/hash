@@ -1,5 +1,6 @@
 import "reactflow/dist/style.css";
 
+import { customColors } from "@hashintel/design-system/theme";
 import type { StepGroup } from "@local/hash-isomorphic-utils/flows/types";
 import { Box, Fade, Stack, Typography } from "@mui/material";
 import type { ElkNode } from "elkjs/lib/elk.bundled.js";
@@ -20,11 +21,10 @@ import {
   useFlowRunsContext,
   useStatusForSteps,
 } from "./shared/flow-runs-context";
+import { transitionOptions } from "./shared/styles";
 import type { CustomNodeType } from "./shared/types";
 import { CustomEdge } from "./swimlane/custom-edge";
 import { CustomNode } from "./swimlane/custom-node";
-import { customColors } from "@hashintel/design-system/theme";
-import { transitionOptions } from "./shared/styles";
 
 const nodeTypes = {
   action: CustomNode,

@@ -32,6 +32,7 @@ export const TYPE_SELECTOR_HEIGHT = 57;
 export type TypeListSelectorDropdownProps = {
   query: string;
   createButtonProps: Omit<ButtonProps, "children" | "variant" | "size"> | null;
+  inputHeight?: number;
   variant: "entity type" | "property type" | "entity" | "file" | "link type";
 };
 
@@ -48,11 +49,17 @@ const useDropdownProps = () => {
   return value;
 };
 
-const TypeListSelectorDropdown = ({ children, ...props }: PaperProps) => {
-  const { query, createButtonProps, variant } = useDropdownProps();
+const TypeListSelectorDropdown = ({
+  children,
+  ...props
+}: PaperProps & { inputHeight?: number }) => {
+  const { query, createButtonProps, inputHeight, variant } = useDropdownProps();
 
   return (
-    <AutocompleteDropdown {...props} inputHeight={TYPE_SELECTOR_HEIGHT}>
+    <AutocompleteDropdown
+      {...props}
+      inputHeight={inputHeight ?? TYPE_SELECTOR_HEIGHT}
+    >
       {children}
       {createButtonProps ? (
         <Button
@@ -120,6 +127,7 @@ type SelectorAutocompleteProps<
   AutocompleteProps<T, Multiple, true, false>,
   "renderInput" | "renderOption" | "getOptionLabel" | "componentsProps"
 > & {
+  inputHeight?: number;
   inputRef?: Ref<Element>;
   inputPlaceholder?: string;
   /** Determines if a given option matches a selected value (defaults to strict equality) */
@@ -145,6 +153,7 @@ export const SelectorAutocomplete = <
   isOptionEqualToValue,
   optionToRenderData,
   sx,
+  inputHeight,
   inputRef,
   inputPlaceholder,
   dropdownProps,
@@ -218,7 +227,8 @@ export const SelectorAutocomplete = <
                   (theme) => ({
                     // The popover needs to know how tall this is to draw
                     // a shadow around it
-                    height: TYPE_SELECTOR_HEIGHT,
+                    height: inputHeight ?? TYPE_SELECTOR_HEIGHT,
+                    py: "0 !important",
 
                     // Focus is handled by the options popover
                     "&.Mui-focused": {

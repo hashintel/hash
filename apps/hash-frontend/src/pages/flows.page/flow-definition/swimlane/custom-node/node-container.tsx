@@ -5,9 +5,9 @@ import { useNodeId, useStore } from "reactflow";
 
 import { nodeTabHeight } from "../../shared/dimensions";
 import type { SimpleStatus } from "../../shared/flow-runs-context";
-import { statusSx } from "./node-styles";
 import { useFlowRunsContext } from "../../shared/flow-runs-context";
 import { transitionOptions } from "../../shared/styles";
+import { statusSx } from "./node-styles";
 
 const Tab = ({
   label,

@@ -1,6 +1,6 @@
 export const nodeDimensions = {
   width: 350,
-  height: 245,
+  height: 225,
 };
 
 const tabHeight = 40;

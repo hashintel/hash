@@ -103,8 +103,6 @@ const SigninPage: NextPageWithLayout = () => {
     return redirectPath;
   }, [router]);
 
-  console.log({ returnTo });
-
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>();

@@ -1,5 +1,6 @@
 import { Box, Stack, Typography } from "@mui/material";
 import { formatDistance } from "date-fns";
+import { useEffect, useState } from "react";
 import type { NodeProps } from "reactflow";
 
 import {
@@ -10,7 +11,6 @@ import type { NodeData } from "../shared/types";
 import { Handles } from "./custom-node/handles";
 import { NodeContainer } from "./custom-node/node-container";
 import { statusSx } from "./custom-node/node-styles";
-import { useEffect, useState } from "react";
 
 const getTimeAgo = (isoString: string) =>
   formatDistance(new Date(isoString), new Date(), {
@@ -47,9 +47,13 @@ export const CustomNode = ({ data, selected }: NodeProps<NodeData>) => {
     let timeUpdateInterval: NodeJS.Timeout | undefined;
 
     if (isoString) {
+      setTimeAgo(getTimeAgo(isoString));
+
       timeUpdateInterval = setInterval(() => {
         setTimeAgo(getTimeAgo(isoString));
       }, 5_000);
+    } else {
+      setTimeAgo("");
     }
 
     return () => {
@@ -57,7 +61,7 @@ export const CustomNode = ({ data, selected }: NodeProps<NodeData>) => {
         clearInterval(timeUpdateInterval);
       }
     };
-  }, [isoString, timeAgo]);
+  }, [isoString]);
 
   return (
     <NodeContainer
@@ -85,7 +89,7 @@ export const CustomNode = ({ data, selected }: NodeProps<NodeData>) => {
           </Typography>
         </Stack>
 
-        {!isParallelizedGroup && (
+        {!isParallelizedGroup && statusData && (
           <Box
             sx={{
               background: styles.lightestBackground,

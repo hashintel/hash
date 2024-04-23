@@ -6,9 +6,10 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type { Entity } from "@local/hash-subgraph";
+import type { Entity, EntityId } from "@local/hash-subgraph";
 import type { SxProps, Theme } from "@mui/material";
 import { Box } from "@mui/material";
+import { useMemo } from "react";
 
 import type {
   QueryEntityTypesQuery,
@@ -56,15 +57,32 @@ export const PersistedEntityGraph = ({
 
   const entityTypeSubgraph = entityTypeResultData?.queryEntityTypes;
 
+  const deduplicatedPersistedEntities = useMemo(() => {
+    const deduplicatedLatestEntitiesByEntityId: Record<EntityId, Entity> = {};
+    for (const entity of persistedEntities) {
+      const entityId = entity.metadata.recordId.entityId;
+
+      const existing = deduplicatedLatestEntitiesByEntityId[entityId];
+
+      if (
+        !existing ||
+        existing.metadata.temporalVersioning.decisionTime.start.limit <
+          entity.metadata.temporalVersioning.decisionTime.start.limit
+      ) {
+        deduplicatedLatestEntitiesByEntityId[entityId] = entity;
+      }
+    }
+
+    return Object.values(deduplicatedLatestEntitiesByEntityId);
+  }, [persistedEntities]);
+
   if (!entityTypeSubgraph && !persistedEntities.length) {
     return <Box sx={containerSx} />;
   }
 
-  console.log({ persistedEntities });
-
   return (
     <EntitiesGraphChart
-      entities={persistedEntities}
+      entities={deduplicatedPersistedEntities}
       sx={containerSx}
       subgraph={entityTypeSubgraph as unknown as Subgraph<EntityRootType>} // @todo sort out this param to EntitiesGraphChart
     />

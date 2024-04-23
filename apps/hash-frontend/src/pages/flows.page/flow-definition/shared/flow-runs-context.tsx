@@ -166,5 +166,5 @@ export const useStatusForSteps = (
     }
 
     return "Complete";
-  }, [selectedFlowRun?.steps, steps]);
+  }, [selectedFlowRun, steps]);
 };
