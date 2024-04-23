@@ -26,7 +26,7 @@ type-system = { workspace = true }
 axum = "0.7.5"
 clap = { workspace = true, features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete = "4.5.2"
-mimalloc = { version = "0.1.39", default-features = false }
+mimalloc = { version = "0.1.41", default-features = false }
 futures = { version = "0.3.30" }
 regex = "1.10.4"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
