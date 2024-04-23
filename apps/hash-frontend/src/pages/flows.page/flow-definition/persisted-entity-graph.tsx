@@ -57,6 +57,12 @@ export const PersistedEntityGraph = ({
 
   const entityTypeSubgraph = entityTypeResultData?.queryEntityTypes;
 
+  /**
+   * If a Flow updates the same entity as non-draft multiple times, it will have a record of persisting
+   * an entity with the same id multiple times. Duplicates crash the chart.
+   * We could also deduplicate in the entities table, but having duplicates be visible there
+   * will help to detect where update / deduplication logic can be improved in the inference process.
+   */
   const deduplicatedPersistedEntities = useMemo(() => {
     const deduplicatedLatestEntitiesByEntityId: Record<EntityId, Entity> = {};
     for (const entity of persistedEntities) {
