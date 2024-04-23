@@ -237,7 +237,7 @@ export const getFileFromUrlAction: FlowActionActivity<{
         properties: [
           {
             op: "replace",
-            path: "",
+            path: [],
             value: properties,
           },
         ],

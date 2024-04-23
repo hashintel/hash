@@ -5916,9 +5916,21 @@
         }
       },
       "PropertyMetadataMap": {
-        "type": "object",
-        "additionalProperties": {
-          "$ref": "#/components/schemas/PropertyMetadata"
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "path",
+            "metadata"
+          ],
+          "properties": {
+            "metadata": {
+              "$ref": "#/components/schemas/PropertyMetadata"
+            },
+            "path": {
+              "$ref": "#/components/schemas/PropertyPath"
+            }
+          }
         }
       },
       "PropertyObject": {
@@ -6119,7 +6131,21 @@
         }
       },
       "PropertyPath": {
-        "type": "string"
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/PropertyPathElement"
+        }
+      },
+      "PropertyPathElement": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/BaseUrl"
+          },
+          {
+            "type": "integer",
+            "minimum": 0
+          }
+        ]
       },
       "PropertyProvenance": {
         "type": "object",

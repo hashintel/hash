@@ -103,12 +103,10 @@ export const persistEntityAction: FlowActionActivity<{
   if (existingEntity) {
     for (const [key, value] of typedEntries(properties)) {
       // @todo better handle property objects, will currently overwrite the entire object if there are any differences
-      const jsonPointerKey = `/${key.replace(/\//g, "~1")}`;
-
       if (!isEqual(existingEntity.properties[key], value)) {
         patchOperations.push({
           op: existingEntity.properties[key] ? "replace" : "add",
-          path: jsonPointerKey,
+          path: [key],
           value,
         });
       }

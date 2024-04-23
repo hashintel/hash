@@ -135,7 +135,7 @@ export const updateEntities = async ({
                 properties: [
                   {
                     op: "replace",
-                    path: "",
+                    path: [],
                     value: newProperties,
                   },
                 ],

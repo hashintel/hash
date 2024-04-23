@@ -58,7 +58,7 @@ export const parseTextFromFile = async (
       properties: [
         {
           op: "replace",
-          path: "",
+          path: [],
           value: updatedProperties,
         },
       ],

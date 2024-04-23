@@ -157,7 +157,7 @@ export const updateLinkEntity: ImpureGraphFunction<
     properties: [
       {
         op: "replace",
-        path: "",
+        path: [],
         value: properties,
       },
     ],
