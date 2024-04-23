@@ -105,6 +105,14 @@ const constructFlowDefinition = (params: {
             sourceStepOutputName:
               "proposedEntities" satisfies OutputNameForAction<"researchEntities">,
           },
+          {
+            inputName: "draft" satisfies InputNameForAction<"persistEntities">,
+            kind: "hardcoded",
+            payload: {
+              kind: "Boolean",
+              value: true,
+            },
+          },
         ],
       },
       ...(includeQuestionAnswerAction
