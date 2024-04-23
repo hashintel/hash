@@ -39,8 +39,6 @@ export const EntitiesGraphChart: FunctionComponent<{
 }) => {
   const [chart, setChart] = useState<Chart>();
 
-  /** @todo filter out duplicate entities, which crash the chart */
-
   const nonLinkEntities = useMemo(
     () =>
       entities?.filter(
