@@ -519,14 +519,19 @@ export const proposeEntities = async (params: {
                       localEntityId: entity.entityId.toString(),
                       entityTypeId: entityTypeId as VersionedUrl,
                       properties: entity.properties ?? {},
-                      /** @todo: figure out why TS cannot infer that `entity` has `ProposedEntityLinkFields` */
-                      sourceEntityLocalId:
+                      sourceEntityId:
                         "sourceEntityId" in entity
-                          ? entity.sourceEntityId.toString()
+                          ? {
+                              kind: "proposed-entity",
+                              localId: entity.sourceEntityId.toString(),
+                            }
                           : undefined,
-                      targetEntityLocalId:
+                      targetEntityId:
                         "targetEntityId" in entity
-                          ? entity.targetEntityId.toString()
+                          ? {
+                              kind: "proposed-entity",
+                              localId: entity.targetEntityId.toString(),
+                            }
                           : undefined,
                     },
                     recordedAt: now,
