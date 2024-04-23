@@ -8,6 +8,7 @@ const coordinatorToolNames = [
   "getWebPageSummary",
   "submitProposedEntities",
   // "discardProposedEntities",
+  "proposeLink",
   "complete",
   "terminate",
   "updatePlan",
@@ -175,6 +176,37 @@ export const coordinatorToolDefinitions: Record<
       required: ["plan", "explanation"],
     },
   },
+  proposeLink: {
+    name: "proposeLink",
+    description: dedent(`
+      Propose a link between two entities.
+      The source or target entity may be a previously proposed entity, or an existing entity.
+    `),
+    inputSchema: {
+      type: "object",
+      properties: {
+        explanation: explanationDefinition,
+        sourceEntityId: {
+          type: "string",
+          description: "The ID of the source proposed or existing entity.",
+        },
+        targetEntityId: {
+          type: "string",
+          description: "The ID of the target proposed or existing entity.",
+        },
+        linkEntityTypeId: {
+          type: "string",
+          description: "The link entity type ID of the proposed link.",
+        },
+      },
+      required: [
+        "sourceEntityId",
+        "targetEntityId",
+        "linkEntityTypeId",
+        "explanation",
+      ],
+    },
+  },
   // discardProposedEntities: {
   //   name: "discardProposedEntities",
   //   description: "Discard previously submitted proposed entities.",
@@ -213,6 +245,11 @@ export type CoordinatorToolCallArguments = {
   };
   updatePlan: {
     plan: string;
+  };
+  proposeLink: {
+    sourceEntityId: string;
+    targetEntityId: string;
+    linkEntityTypeId: string;
   };
   complete: object;
   terminate: object;

@@ -26,6 +26,10 @@ export type WebPage = {
   textContent: string;
 };
 
+type LocalOrExistingEntityId =
+  | { kind: "proposed-entity"; localId: string }
+  | { kind: "existing-entity"; entityId: EntityId };
+
 /**
  * @todo sort out mismatch between this and the ProposedEntity type inside infer-entities/
  *    possibly just resolved by removing the latter when browser plugin inference migrated to a Flow
@@ -35,8 +39,8 @@ export type ProposedEntity = {
   entityTypeId: VersionedUrl;
   summary?: string;
   properties: EntityPropertiesObject;
-  sourceEntityLocalId?: string;
-  targetEntityLocalId?: string;
+  sourceEntityId?: LocalOrExistingEntityId;
+  targetEntityId?: LocalOrExistingEntityId;
 };
 
 export type ProposedEntityWithResolvedLinks = Omit<

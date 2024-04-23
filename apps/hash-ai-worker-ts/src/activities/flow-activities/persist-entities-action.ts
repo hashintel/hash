@@ -31,13 +31,13 @@ export const persistEntitiesAction: FlowActionActivity<{
   const entitiesWithDependenciesSortedLast = [...proposedEntities].sort(
     (a, b) => {
       if (
-        (a.sourceEntityLocalId && b.sourceEntityLocalId) ||
-        (!a.sourceEntityLocalId && !b.sourceEntityLocalId)
+        (a.sourceEntityId && b.sourceEntityId) ||
+        (!a.sourceEntityId && !b.sourceEntityId)
       ) {
         return 0;
       }
 
-      if (a.sourceEntityLocalId) {
+      if (a.sourceEntityId) {
         return 1;
       }
 
@@ -53,52 +53,52 @@ export const persistEntitiesAction: FlowActionActivity<{
    * if performance of this function becomes an issue.
    */
   for (const unresolvedEntity of entitiesWithDependenciesSortedLast) {
-    const {
-      entityTypeId,
-      properties,
-      sourceEntityLocalId,
-      targetEntityLocalId,
-    } = unresolvedEntity;
+    const { entityTypeId, properties, sourceEntityId, targetEntityId } =
+      unresolvedEntity;
 
     const entityWithResolvedLinks: ProposedEntityWithResolvedLinks = {
       entityTypeId,
       properties,
     };
 
-    if (sourceEntityLocalId ?? targetEntityLocalId) {
-      if (!sourceEntityLocalId || !targetEntityLocalId) {
+    if (sourceEntityId ?? targetEntityId) {
+      if (!sourceEntityId || !targetEntityId) {
         failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
           proposedEntity: unresolvedEntity,
-          message: `Expected both sourceEntityLocalId and targetEntityLocalId to be set, but got sourceEntityLocalId='${sourceEntityLocalId}' and 'targetEntityLocalId='${targetEntityLocalId}'`,
+          message: `Expected both sourceEntityLocalId and targetEntityLocalId to be set, but got sourceEntityId='${JSON.stringify(sourceEntityId)}' and targetEntityId='${JSON.stringify(targetEntityId)}'`,
         };
         continue;
       }
 
-      const sourceEntity =
-        persistedEntitiesByLocalId[sourceEntityLocalId]?.entity;
-      const targetEntity =
-        persistedEntitiesByLocalId[targetEntityLocalId]?.entity;
+      const leftEntityId =
+        sourceEntityId.kind === "proposed-entity"
+          ? persistedEntitiesByLocalId[sourceEntityId.localId]?.entity?.metadata
+              .recordId.entityId
+          : sourceEntityId.entityId;
 
-      if (!sourceEntity) {
+      const rightEntityId =
+        targetEntityId.kind === "proposed-entity"
+          ? persistedEntitiesByLocalId[targetEntityId.localId]?.entity?.metadata
+              .recordId.entityId
+          : targetEntityId.entityId;
+
+      if (!leftEntityId) {
         failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
           proposedEntity: unresolvedEntity,
-          message: `Linked entity with sourceEntityLocalId='${sourceEntityLocalId}' has not been successfully persisted`,
+          message: `Linked entity with sourceEntityId='${JSON.stringify(sourceEntityId)}' has not been successfully persisted`,
         };
         continue;
       }
 
-      if (!targetEntity) {
+      if (!rightEntityId) {
         failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
           proposedEntity: unresolvedEntity,
-          message: `Linked entity with targetEntityLocalId='${targetEntityLocalId}' has not been successfully persisted`,
+          message: `Linked entity with targetEntityId='${JSON.stringify(targetEntityId)}' has not been successfully persisted`,
         };
         continue;
       }
 
-      entityWithResolvedLinks.linkData = {
-        leftEntityId: sourceEntity.metadata.recordId.entityId,
-        rightEntityId: targetEntity.metadata.recordId.entityId,
-      };
+      entityWithResolvedLinks.linkData = { leftEntityId, rightEntityId };
     }
 
     const persistedEntityOutputs = await persistEntityAction({
