@@ -14,9 +14,8 @@ import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
-import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity";
-import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types";
 import { logger } from "../../shared/activity-logger";
+import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
 import { getLlmResponse } from "../../shared/get-llm-response";
 import type {
   LlmMessage,
@@ -171,6 +170,15 @@ const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
             An array of entity type IDs which should be inferred from the provided HTML content.
           `),
         },
+        linkEntityTypeIds: {
+          type: "array",
+          items: {
+            type: "string",
+          },
+          description: dedent(`
+            An array of link entity type IDs which should be inferred from provided HTML content.
+          `),
+        },
       },
       required: [
         "url",
@@ -267,6 +275,7 @@ type ToolCallArguments = {
     validAt: string;
     prompt: string;
     entityTypeIds: VersionedUrl[];
+    linkEntityTypeIds?: VersionedUrl[];
   };
   submitProposedEntities: {
     entityIds: string[];
@@ -304,13 +313,18 @@ const systemMessagePrefix = dedent(`
     been provided with.
 `);
 
-const generateUserMessage = (params: {
+type WorkerAgentInput = {
   prompt: string;
+  entityTypes: DereferencedEntityType[];
+  linkEntityTypes?: DereferencedEntityType[];
   url: string;
-  dereferencedEntityTypes: DereferencedEntityTypesByTypeId;
   innerHtml?: string;
+};
+
+const generateUserMessage = (params: {
+  input: WorkerAgentInput;
 }): LlmUserMessage => {
-  const { prompt, url, innerHtml, dereferencedEntityTypes } = params;
+  const { prompt, url, innerHtml, entityTypes, linkEntityTypes } = params.input;
 
   return {
     role: "user",
@@ -320,8 +334,9 @@ const generateUserMessage = (params: {
         text: dedent(`
           Prompt: ${prompt}
           Initial web page url: ${url}
+          Entity Types: ${JSON.stringify(entityTypes)}
+          ${linkEntityTypes ? `Link Types: ${JSON.stringify(linkEntityTypes)}` : ""}
           ${innerHtml ? `Initial web page inner HTML: ${innerHtml}` : ""}
-          Entity Types: ${JSON.stringify(dereferencedEntityTypes)}
         `),
       },
     ],
@@ -329,12 +344,9 @@ const generateUserMessage = (params: {
 };
 
 const createInitialPlan = async (params: {
-  prompt: string;
-  url: string;
-  dereferencedEntityTypes: DereferencedEntityTypesByTypeId;
-  innerHtml: string;
+  input: WorkerAgentInput;
 }): Promise<{ plan: string }> => {
-  const { prompt, url, dereferencedEntityTypes } = params;
+  const { input } = params;
 
   const systemPrompt = dedent(`
       ${systemMessagePrefix}
@@ -348,9 +360,7 @@ const createInitialPlan = async (params: {
       initial web page, to find all the entities required to satisfy the prompt.
     `);
 
-  const messages = [
-    generateUserMessage({ prompt, url, dereferencedEntityTypes }),
-  ];
+  const messages = [generateUserMessage({ input })];
 
   const llmResponse = await getLlmResponse({
     systemPrompt,
@@ -390,12 +400,10 @@ const getSubmittedProposedEntitiesFromState = (
   );
 
 const getNextToolCalls = async (params: {
+  input: WorkerAgentInput;
   state: InferEntitiesFromWebPageWorkerAgentState;
-  prompt: string;
-  url: string;
-  dereferencedEntityTypes: DereferencedEntityTypesByTypeId;
 }): Promise<{ toolCalls: ParsedLlmToolCall<ToolName>[] }> => {
-  const { prompt, url, state, dereferencedEntityTypes } = params;
+  const { state, input } = params;
 
   const submittedProposedEntities =
     getSubmittedProposedEntitiesFromState(state);
@@ -424,7 +432,7 @@ const getNextToolCalls = async (params: {
     `);
 
   const messages: LlmMessage[] = [
-    generateUserMessage({ prompt, url, dereferencedEntityTypes }),
+    generateUserMessage({ input }),
     ...mapPreviousCallsToLlmMessages({
       previousCalls: state.previousCalls,
     }),
@@ -454,7 +462,8 @@ const getNextToolCalls = async (params: {
 
 export const inferEntitiesFromWebPageWorkerAgent = async (params: {
   prompt: string;
-  entityTypeIds: VersionedUrl[];
+  entityTypes: DereferencedEntityType[];
+  linkEntityTypes?: DereferencedEntityType[];
   url: string;
   userAuthentication: { actorId: AccountId };
   graphApiClient: GraphApi;
@@ -463,8 +472,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     inferredEntities: ProposedEntity[];
   }>
 > => {
-  const { prompt, url, entityTypeIds, userAuthentication, graphApiClient } =
-    params;
+  const { userAuthentication, graphApiClient, url } = params;
 
   /**
    * We start by making a asking the coordinator agent to create an initial plan
@@ -476,18 +484,16 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     sanitizeForLlm: true,
   });
 
-  const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
-    entityTypeIds,
-    graphApiClient,
-    actorId: userAuthentication.actorId,
-    simplifyPropertyKeys: true,
-  });
-
-  const { plan: initialPlan } = await createInitialPlan({
-    prompt,
+  const input: WorkerAgentInput = {
+    prompt: params.prompt,
+    entityTypes: params.entityTypes,
+    linkEntityTypes: params.linkEntityTypes,
     url,
     innerHtml: initialWebPageInnerHtml,
-    dereferencedEntityTypes,
+  };
+
+  const { plan: initialPlan } = await createInitialPlan({
+    input,
   });
 
   logger.debug(`Worker agent initial plan: ${initialPlan}`);
@@ -505,9 +511,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
 
   const { toolCalls: initialToolCalls } = await getNextToolCalls({
     state,
-    prompt,
-    url,
-    dereferencedEntityTypes,
+    input,
   });
 
   const processToolCalls = async (processToolCallsParams: {
@@ -597,15 +601,8 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               expectedNumberOfEntities,
               validAt,
               entityTypeIds: inferringEntitiesOfTypeIds,
+              linkEntityTypeIds: inferringLinkEntitiesOfTypeIds,
             } = toolCall.input as ToolCallArguments["inferEntitiesFromWebPage"];
-
-            const invalidEntityTypeIds = inferringEntitiesOfTypeIds.filter(
-              (entityTypeId) =>
-                !entityTypeIds.some(
-                  (expectedEntityTypeId) =>
-                    expectedEntityTypeId === entityTypeId,
-                ),
-            );
 
             if (expectedNumberOfEntities < 1) {
               return {
@@ -614,20 +611,59 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                   You provided an expected number of entities which is less than 1. You must provide
                   a positive integer as the expected number of entities to infer.
                 `),
+                isError: true,
               };
             }
 
-            if (invalidEntityTypeIds.length > 0) {
+            const validEntityTypeIds = input.entityTypes.map(({ $id }) => $id);
+
+            const invalidEntityTypeIds = inferringEntitiesOfTypeIds.filter(
+              (entityTypeId) => !validEntityTypeIds.includes(entityTypeId),
+            );
+
+            const validLinkEntityTypeIds = input.linkEntityTypes?.map(
+              ({ $id }) => $id,
+            );
+
+            const invalidLinkEntityTypeIds =
+              inferringLinkEntitiesOfTypeIds?.filter(
+                (entityTypeId) =>
+                  !validLinkEntityTypeIds?.includes(entityTypeId),
+              ) ?? [];
+
+            if (
+              invalidEntityTypeIds.length > 0 ||
+              invalidLinkEntityTypeIds.length > 0
+            ) {
               return {
                 ...toolCall,
                 output: dedent(`
-                  You provided invalid entity type IDs which don't correspond to the entity types
-                  which were initially provided: ${JSON.stringify(invalidEntityTypeIds)}
+                  ${
+                    invalidEntityTypeIds.length > 0
+                      ? dedent(`
+                        You provided invalid entity type IDs which don't correspond to the entity types
+                        which were initially provided: ${JSON.stringify(invalidEntityTypeIds)}
 
-                  The possible entity types you can submit are: ${JSON.stringify(
-                    entityTypeIds,
-                  )}
+                        The possible entity types you can submit are: ${JSON.stringify(
+                          validEntityTypeIds,
+                        )}
+                      `)
+                      : ""
+                  }
+                  ${
+                    invalidLinkEntityTypeIds.length > 0
+                      ? dedent(`
+                        You provided invalid link entity type IDs which don't correspond to the link entity types
+                        which were initially provided: ${JSON.stringify(invalidLinkEntityTypeIds)}
+
+                        The possible link entity types you can submit are: ${JSON.stringify(
+                          validLinkEntityTypeIds,
+                        )}
+                      `)
+                      : ""
+                  }
                 `),
+                isError: true,
               };
             }
 
@@ -638,6 +674,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                   You provided an empty string as the HTML content from the web page. You must provide
                   the relevant HTML content from the web page to infer entities.
                 `),
+                isError: true,
               };
             }
 
@@ -651,6 +688,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                   You must make the "inferEntitiesFromWebPage" tool call again with the full HTML content
                   required to infer the expected number of entities.
                 `),
+                isError: true,
               };
             }
 
@@ -789,9 +827,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
 
     const { toolCalls: nextToolCalls } = await getNextToolCalls({
       state,
-      prompt,
-      url,
-      dereferencedEntityTypes,
+      input,
     });
 
     return await processToolCalls({

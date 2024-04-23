@@ -226,10 +226,12 @@ export const researchEntitiesAction: FlowActionActivity<{
 
             const status = await inferEntitiesFromWebPageWorkerAgent({
               prompt: inferencePrompt,
-              entityTypeIds: [
-                ...(entityTypeIds as VersionedUrl[]),
-                ...(linkEntityTypeIds as VersionedUrl[]),
-              ],
+              entityTypes: input.entityTypes.filter(({ $id }) =>
+                entityTypeIds.includes($id),
+              ),
+              linkEntityTypes: input.linkEntityTypes?.filter(
+                ({ $id }) => linkEntityTypeIds?.includes($id) ?? false,
+              ),
               url,
               userAuthentication,
               graphApiClient,
