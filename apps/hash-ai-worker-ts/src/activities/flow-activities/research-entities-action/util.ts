@@ -48,6 +48,7 @@ export const mapPreviousCallsToLlmMessages = (params: {
                         ${completedToolCall.output}
                       `)
                   : "This output has been omitted to reduce the length of the chat.",
+                is_error: completedToolCall.isError,
               })),
             } satisfies LlmUserMessage,
           ]

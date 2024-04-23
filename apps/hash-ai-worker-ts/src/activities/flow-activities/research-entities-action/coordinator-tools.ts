@@ -71,8 +71,26 @@ export const coordinatorToolDefinitions: Record<
             research task.
           `),
         },
+        entityTypeIds: {
+          type: "array",
+          items: {
+            type: "string",
+            description: dedent(`
+              The entity type IDs of the kind of entities to infer from the web page.
+              You must specify at least one.
+            `),
+          },
+        },
+        linkEntityTypeIds: {
+          type: "array",
+          items: {
+            type: "string",
+            description:
+              "The link entity type IDs of the kind of link entities to infer from the web page",
+          },
+        },
       },
-      required: ["url", "prompt", "explanation"],
+      required: ["url", "prompt", "explanation", "entityTypeIds"],
     },
   },
   getWebPageSummary: {
@@ -184,6 +202,8 @@ export type CoordinatorToolCallArguments = {
   inferEntitiesFromWebPage: {
     url: string;
     prompt: string;
+    entityTypeIds: string[];
+    linkEntityTypeIds?: string[];
   };
   getWebPageSummary: {
     url: string;

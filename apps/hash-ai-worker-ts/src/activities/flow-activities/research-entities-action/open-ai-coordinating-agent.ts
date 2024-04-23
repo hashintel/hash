@@ -1,7 +1,13 @@
-import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
-import type { Entity } from "@local/hash-subgraph";
+import type { GraphApi } from "@local/hash-graph-client";
+import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type {
+  ProposedEntity,
+  StepInput,
+} from "@local/hash-isomorphic-utils/flows/types";
+import type { AccountId, Entity } from "@local/hash-subgraph";
 import dedent from "dedent";
 
+import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity";
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
 import { getLlmResponse } from "../../shared/get-llm-response";
 import type {
@@ -195,7 +201,60 @@ const createInitialPlan = async (params: {
   return { plan: messageTextContent };
 };
 
+const parseCoordinatorInputs = async (params: {
+  graphApiClient: GraphApi;
+  userAuthentication: { actorId: AccountId };
+  stepInputs: StepInput[];
+}): Promise<CoordinatingAgentInput> => {
+  const { stepInputs, graphApiClient, userAuthentication } = params;
+
+  const {
+    prompt,
+    entityTypeIds,
+    existingEntities: inputExistingEntities,
+  } = getSimplifiedActionInputs({
+    inputs: stepInputs,
+    actionType: "researchEntities",
+  });
+
+  const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
+    graphApiClient,
+    entityTypeIds: entityTypeIds!,
+    actorId: userAuthentication.actorId,
+    simplifyPropertyKeys: true,
+  });
+
+  const entityTypes = Object.values(dereferencedEntityTypes)
+    .filter(({ isLink }) => !isLink)
+    .map(({ schema }) => schema);
+
+  const linkEntityTypes = Object.values(dereferencedEntityTypes)
+    .filter(({ isLink }) => isLink)
+    .map(({ schema }) => schema);
+
+  /**
+   * @todo: simplify the properties in the existing entities
+   */
+  const existingEntities = inputExistingEntities
+    ? inputExistingEntities.flatMap((inputEntity) =>
+        "metadata" in inputEntity
+          ? inputEntity
+          : inputEntity.persistedEntities.flatMap(
+              ({ entity, existingEntity }) => entity ?? existingEntity ?? [],
+            ),
+      )
+    : undefined;
+
+  return {
+    prompt,
+    entityTypes,
+    linkEntityTypes: linkEntityTypes.length > 0 ? linkEntityTypes : undefined,
+    existingEntities,
+  };
+};
+
 export const coordinatingAgent = {
   createInitialPlan,
   getNextToolCalls,
+  parseCoordinatorInputs,
 };

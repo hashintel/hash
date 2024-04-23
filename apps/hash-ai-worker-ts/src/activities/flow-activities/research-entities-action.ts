@@ -1,17 +1,14 @@
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type {
   InputNameForAction,
   OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import {
-  actionDefinitions,
-  getSimplifiedActionInputs,
-} from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { StepInput } from "@local/hash-isomorphic-utils/flows/types";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
-import { getDereferencedEntityTypesActivity } from "../get-dereferenced-entity-types-activity";
 import type { ParsedLlmToolCall } from "../shared/get-llm-response/types";
 import { getWebPageSummaryAction } from "./get-web-page-summary-action";
 import type {
@@ -19,10 +16,7 @@ import type {
   CoordinatorToolName,
 } from "./research-entities-action/coordinator-tools";
 import { inferEntitiesFromWebPageWorkerAgent } from "./research-entities-action/infer-entities-from-web-page-worker-agent";
-import type {
-  CoordinatingAgentInput,
-  CoordinatingAgentState,
-} from "./research-entities-action/open-ai-coordinating-agent";
+import type { CoordinatingAgentState } from "./research-entities-action/open-ai-coordinating-agent";
 import { coordinatingAgent } from "./research-entities-action/open-ai-coordinating-agent";
 import type { CompletedToolCall } from "./research-entities-action/types";
 import type { FlowActionActivity } from "./types";
@@ -30,50 +24,12 @@ import { webSearchAction } from "./web-search-action";
 
 export const researchEntitiesAction: FlowActionActivity<{
   graphApiClient: GraphApi;
-}> = async ({ inputs, userAuthentication, graphApiClient }) => {
-  const {
-    prompt,
-    entityTypeIds,
-    existingEntities: inputExistingEntities,
-  } = getSimplifiedActionInputs({
-    inputs,
-    actionType: "researchEntities",
-  });
-
-  const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
+}> = async ({ inputs: stepInputs, userAuthentication, graphApiClient }) => {
+  const input = await coordinatingAgent.parseCoordinatorInputs({
+    stepInputs,
+    userAuthentication,
     graphApiClient,
-    entityTypeIds: entityTypeIds!,
-    actorId: userAuthentication.actorId,
-    simplifyPropertyKeys: true,
   });
-
-  const entityTypes = Object.values(dereferencedEntityTypes)
-    .filter(({ isLink }) => !isLink)
-    .map(({ schema }) => schema);
-
-  const linkEntityTypes = Object.values(dereferencedEntityTypes)
-    .filter(({ isLink }) => isLink)
-    .map(({ schema }) => schema);
-
-  /**
-   * @todo: simplify the properties in the existing entities
-   */
-  const existingEntities = inputExistingEntities
-    ? inputExistingEntities.flatMap((inputEntity) =>
-        "metadata" in inputEntity
-          ? inputEntity
-          : inputEntity.persistedEntities.flatMap(
-              ({ entity, existingEntity }) => entity ?? existingEntity ?? [],
-            ),
-      )
-    : undefined;
-
-  const input: CoordinatingAgentInput = {
-    prompt,
-    entityTypes,
-    linkEntityTypes: linkEntityTypes.length > 0 ? linkEntityTypes : undefined,
-    existingEntities,
-  };
 
   /**
    * We start by asking the coordinator agent to create an initial plan
@@ -166,6 +122,7 @@ export const researchEntitiesAction: FlowActionActivity<{
               return {
                 ...toolCall,
                 output: `An unexpected error occurred trying to summarize the web page at url ${url}, try a different web page.`,
+                isError: true,
               };
             }
 
@@ -207,12 +164,72 @@ export const researchEntitiesAction: FlowActionActivity<{
               output: JSON.stringify(outputs),
             };
           } else if (toolCall.name === "inferEntitiesFromWebPage") {
-            const { url, prompt: inferencePrompt } =
-              toolCall.input as CoordinatorToolCallArguments["inferEntitiesFromWebPage"];
+            const {
+              url,
+              prompt: inferencePrompt,
+              entityTypeIds,
+              linkEntityTypeIds,
+            } = toolCall.input as CoordinatorToolCallArguments["inferEntitiesFromWebPage"];
+
+            const validEntityTypeIds = input.entityTypes.map(({ $id }) => $id);
+
+            const invalidEntityTypeIds = entityTypeIds.filter(
+              (entityTypeId) =>
+                !validEntityTypeIds.includes(entityTypeId as VersionedUrl),
+            );
+
+            const validLinkEntityTypeIds =
+              input.linkEntityTypes?.map(({ $id }) => $id) ?? [];
+
+            const invalidLinkEntityTypeIds =
+              linkEntityTypeIds?.filter(
+                (entityTypeId) =>
+                  !validLinkEntityTypeIds.includes(
+                    entityTypeId as VersionedUrl,
+                  ),
+              ) ?? [];
+
+            if (
+              invalidEntityTypeIds.length > 0 ||
+              invalidLinkEntityTypeIds.length > 0
+            ) {
+              return {
+                ...toolCall,
+                output: dedent(`
+                  ${
+                    invalidEntityTypeIds.length > 0
+                      ? dedent(`
+                        The following entity type IDs are invalid: ${JSON.stringify(
+                          invalidEntityTypeIds,
+                        )}
+                        
+                        Valid entity type IDs are: ${JSON.stringify(validEntityTypeIds)}
+                      `)
+                      : ""
+                  }
+                  ${
+                    invalidLinkEntityTypeIds.length > 0
+                      ? dedent(`
+                        The following link entity type IDs are invalid: ${JSON.stringify(
+                          invalidLinkEntityTypeIds,
+                        )}
+                        
+                        The valid link entity types type IDs are: ${JSON.stringify(linkEntityTypeIds)}
+                      `)
+                      : ""
+                  }
+                 
+                `),
+                isError: true,
+              };
+            }
 
             const status = await inferEntitiesFromWebPageWorkerAgent({
               prompt: inferencePrompt,
-              entityTypeIds: entityTypeIds!,
+              entityTypeIds: [
+                ...(entityTypeIds as VersionedUrl[]),
+                ...(linkEntityTypeIds as VersionedUrl[]),
+              ],
               url,
               userAuthentication,
               graphApiClient,
@@ -227,6 +244,7 @@ export const researchEntitiesAction: FlowActionActivity<{
                   
                   Try another website.
                 `),
+                isError: true,
               };
             }
 
