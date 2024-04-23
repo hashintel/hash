@@ -1,5 +1,6 @@
 import Ajv from "ajv";
 import addFormats from "ajv-formats";
+import { isAxiosError } from "axios";
 import dedent from "dedent";
 import type OpenAI from "openai";
 import type { JSONSchema } from "openai/lib/jsonschema";
@@ -460,11 +461,12 @@ const getOpenAiResponse = async (
     logger.debug(`OpenAI response: ${stringify(openAiResponse)}`);
   } catch (error) {
     logger.error(`OpenAI API error: ${stringify(error)}`);
-    logger.debug(`OpenAI API request payload: ${stringify(completionPayload)}`);
-    logger.debug(`Original messages: ${stringify(messages)}`);
+
+    const axiosError = isAxiosError(error) ? error : undefined;
 
     return {
       status: "api-error",
+      axiosError,
     };
   }
 
