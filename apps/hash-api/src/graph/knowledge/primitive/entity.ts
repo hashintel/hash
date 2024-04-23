@@ -212,6 +212,14 @@ export const getEntities: ImpureGraphFunction<
     });
 };
 
+export const countEntities: ImpureGraphFunction<
+  {
+    query: EntityStructuralQuery;
+  },
+  Promise<number>
+> = async ({ graphApi }, { actorId }, params) =>
+  graphApi.countEntities(actorId, params.query).then(({ data }) => data);
+
 /**
  * Get the latest edition of an entity by its entityId. See notes on params.
  *

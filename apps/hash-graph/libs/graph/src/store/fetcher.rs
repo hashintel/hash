@@ -43,7 +43,7 @@ use crate::{
         account::{InsertAccountGroupIdParams, InsertAccountIdParams, InsertWebIdParams},
         crud::{QueryResult, Read, ReadPaginated, Sorting},
         knowledge::{
-            CreateEntityParams, EntityQueryCursor, GetEntityParams, PatchEntityParams,
+            CreateEntityParams, GetEntityParams, GetEntityResponse, PatchEntityParams,
             UpdateEntityEmbeddingsParams, ValidateEntityError, ValidateEntityParams,
         },
         ontology::{
@@ -62,7 +62,7 @@ use crate::{
     subgraph::{
         edges::GraphResolveDepths,
         identifier::VertexId,
-        query::StructuralQuery,
+        query::{EntityStructuralQuery, StructuralQuery},
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
             VariableTemporalAxisUnresolved,
@@ -1312,7 +1312,7 @@ where
         actor_id: AccountId,
         authorization_api: &Au,
         params: GetEntityParams<'_>,
-    ) -> Result<(Subgraph, Option<EntityQueryCursor<'static>>), QueryError> {
+    ) -> Result<GetEntityResponse<'static>, QueryError> {
         self.store
             .get_entity(actor_id, authorization_api, params)
             .await
@@ -1334,6 +1334,17 @@ where
                 transaction_time,
                 decision_time,
             )
+            .await
+    }
+
+    async fn count_entities<Au: AuthorizationApi + Sync>(
+        &self,
+        actor_id: AccountId,
+        authorization_api: &Au,
+        query: EntityStructuralQuery<'_>,
+    ) -> Result<usize, QueryError> {
+        self.store
+            .count_entities(actor_id, authorization_api, query)
             .await
     }
 

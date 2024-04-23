@@ -1033,6 +1033,55 @@
         }
       }
     },
+    "/entities/query/count": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
+        "operationId": "count_entities",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntityStructuralQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Provided query is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/entities/relationships": {
       "post": {
         "tags": [
@@ -4551,6 +4600,9 @@
             ],
             "nullable": true
           },
+          "includeCount": {
+            "type": "boolean"
+          },
           "limit": {
             "type": "integer",
             "nullable": true,
@@ -4575,6 +4627,11 @@
           "subgraph"
         ],
         "properties": {
+          "count": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          },
           "cursor": {
             "allOf": [
               {
