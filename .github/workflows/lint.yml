@@ -23,7 +23,7 @@ jobs:
       packages: ${{ steps.packages.outputs.packages }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
         with:
           fetch-depth: 2
 
@@ -51,7 +51,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
         with:
           fetch-depth: 2
 
@@ -202,7 +202,7 @@ jobs:
     name: Global
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
