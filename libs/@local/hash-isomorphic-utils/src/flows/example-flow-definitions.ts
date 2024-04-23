@@ -93,8 +93,7 @@ export const researchTaskFlowDefinition: FlowDefinition = {
           sourceStepOutputName: "Create in",
         },
         {
-          inputName:
-            "proposedEntities" satisfies InputNameForAction<"persistEntities">,
+          inputName: "draft" satisfies InputNameForAction<"persistEntities">,
           kind: "step-output",
           sourceStepId: "trigger",
           sourceStepOutputName: "Create as draft",

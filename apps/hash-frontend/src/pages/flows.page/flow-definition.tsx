@@ -1,6 +1,7 @@
 import "reactflow/dist/style.css";
 
 import { useMutation } from "@apollo/client";
+import { PlayIconSolid } from "@hashintel/design-system";
 import { customColors } from "@hashintel/design-system/theme";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
@@ -392,6 +393,13 @@ export const FlowDefinition = () => {
           </select>
           {!selectedFlowRun && (
             <Button onClick={handleRunFlowClicked} size="xs">
+              <PlayIconSolid
+                sx={{
+                  fill: ({ palette }) => palette.blue[40],
+                  fontSize: 14,
+                  mr: 1,
+                }}
+              />
               Run
             </Button>
           )}
