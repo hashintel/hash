@@ -232,8 +232,6 @@ export const InheritanceRow = ({
           <TypeSelector
             dropdownProps={{
               query: typeSelectorSearchText,
-              createButtonProps: null,
-              variant: "entity type",
             }}
             inputRef={selectorInputRef}
             onAdd={addParent}
