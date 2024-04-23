@@ -9,7 +9,7 @@ import type {
   ProposedEntity,
   StepInput,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type { AccountId } from "@local/hash-subgraph/.";
+import type { AccountId, Entity } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
@@ -285,40 +285,59 @@ type ToolCallArguments = {
   };
 };
 
-const systemMessagePrefix = dedent(`
-  You are an infer entities from web page worker agent, with the goal
-    of inferring specific entities from a web page or pages linked to by
-    the web page.
-
-  You are provided by the user with:
-    - Prompt: the prompt you need to satisfy to complete the research task
-    - Initial web page url: the url of the initial web page you should use to infer entities
-    - Entity Types: a list of entity types which define the structure of the entities
-      that can be inferred by the "inferEntitiesFromWebPage" tool.
-
-    You will be provided with a variety of tools to complete the task.
-
-  To fully satisfy the prompt, you may need to use the tools to navigate
-    to linked pages, and evaluate them as well as the initial page that
-    is provided.
-
-  This is particularly important if the contents of a page are paginated
-    over multiple web pages (for example web pages containing a table).
-
-  Make as many different tool calls in parallel as possible. For example, call "inferEntitiesFromWebPage"
-    alongside "getWebPageInnerHtml" to get the content of another web page which may contain
-    more entities. Do not make more than one "getWebPageInnerHtml" tool call at a time.
-
-  Do not under any circumstances make a tool call to a tool which you haven't
-    been provided with.
-`);
-
 type WorkerAgentInput = {
   prompt: string;
   entityTypes: DereferencedEntityType[];
   linkEntityTypes?: DereferencedEntityType[];
+  existingEntities?: Entity[];
   url: string;
   innerHtml?: string;
+};
+
+const generateSystemMessagePrefix = (params: { input: WorkerAgentInput }) => {
+  const { linkEntityTypes, existingEntities } = params.input;
+
+  return dedent(`
+    You are an infer entities from web page worker agent, with the goal
+      of inferring specific entities from a web page or pages linked to by
+      the web page.
+
+    You are provided by the user with:
+      - Prompt: the prompt you need to satisfy to complete the research task
+      - Initial web page url: the url of the initial web page you should use to infer entities
+      - Entity Types: the types of entities you can propose to satisfy the research prompt
+      ${
+        linkEntityTypes
+          ? dedent(`
+      - Link Types: the types of links you can propose between entities
+      `)
+          : ""
+      }
+      ${
+        existingEntities
+          ? dedent(`
+      - Existing Entities: a list of existing entities, that may contain relevant information
+        and you may want to link to from the proposed entities.
+      `)
+          : ""
+      }
+
+    You will be provided with a variety of tools to complete the task.
+
+    To fully satisfy the prompt, you may need to use the tools to navigate
+      to linked pages, and evaluate them as well as the initial page that
+      is provided.
+
+    This is particularly important if the contents of a page are paginated
+      over multiple web pages (for example web pages containing a table).
+
+    Make as many different tool calls in parallel as possible. For example, call "inferEntitiesFromWebPage"
+      alongside "getWebPageInnerHtml" to get the content of another web page which may contain
+      more entities. Do not make more than one "getWebPageInnerHtml" tool call at a time.
+
+    Do not under any circumstances make a tool call to a tool which you haven't
+      been provided with.
+  `);
 };
 
 const generateUserMessage = (params: {
@@ -349,7 +368,7 @@ const createInitialPlan = async (params: {
   const { input } = params;
 
   const systemPrompt = dedent(`
-      ${systemMessagePrefix}
+      ${generateSystemMessagePrefix({ input })}
 
       Do not make *any* tool calls. You must first provide a plan of how you will use
         the tools to progress towards completing the task.
@@ -409,7 +428,7 @@ const getNextToolCalls = async (params: {
     getSubmittedProposedEntitiesFromState(state);
 
   const systemPrompt = dedent(`
-      ${systemMessagePrefix}
+      ${generateSystemMessagePrefix({ input })}
 
       You have previously proposed the following plan:
       ${state.currentPlan}
@@ -465,6 +484,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
   entityTypes: DereferencedEntityType[];
   linkEntityTypes?: DereferencedEntityType[];
   url: string;
+  existingEntities?: Entity[];
   userAuthentication: { actorId: AccountId };
   graphApiClient: GraphApi;
 }): Promise<
@@ -472,7 +492,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     inferredEntities: ProposedEntity[];
   }>
 > => {
-  const { userAuthentication, graphApiClient, url } = params;
+  const { userAuthentication, graphApiClient, url, existingEntities } = params;
 
   /**
    * We start by making a asking the coordinator agent to create an initial plan
@@ -488,6 +508,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     prompt: params.prompt,
     entityTypes: params.entityTypes,
     linkEntityTypes: params.linkEntityTypes,
+    existingEntities,
     url,
     innerHtml: initialWebPageInnerHtml,
   };
