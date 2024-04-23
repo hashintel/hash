@@ -65,8 +65,11 @@ const mapProposedEntityToSummarizedEntity = (
 
 const explanationDefinition = {
   type: "string",
-  description:
-    "An explanation of why this tool call is required to satisfy the task, and how it aligns with the current plan. If the plan needs to be modified",
+  description: dedent(`
+    An explanation of why this tool call is required to satisfy the task,
+    and how it aligns with the current plan. If the plan needs to be modified,
+    make a call to the "updatePlan" tool.
+  `),
 } as const;
 
 const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
@@ -236,7 +239,13 @@ const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
     inputSchema: {
       type: "object",
       properties: {
-        explanation: explanationDefinition,
+        explanation: {
+          type: "string",
+          description: dedent(`
+            An explanation of why the plan needs to be updated, and
+            how it aligns with the current plan.
+          `),
+        },
         plan: {
           type: "string",
           description: "The updated plan for the research task.",

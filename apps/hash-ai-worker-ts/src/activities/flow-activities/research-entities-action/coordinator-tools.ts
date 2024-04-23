@@ -20,6 +20,15 @@ export const isCoordinatorToolName = (
 ): value is CoordinatorToolName =>
   coordinatorToolNames.includes(value as CoordinatorToolName);
 
+const explanationDefinition = {
+  type: "string",
+  description: dedent(`
+    An explanation of why this tool call is required to satisfy the task,
+    and how it aligns with the current plan. If the plan needs to be modified,
+    make a call to the "updatePlan" tool.
+  `),
+} as const;
+
 export const coordinatorToolDefinitions: Record<
   CoordinatorToolName,
   LlmToolDefinition<CoordinatorToolName>
@@ -46,6 +55,7 @@ export const coordinatorToolDefinitions: Record<
     inputSchema: {
       type: "object",
       properties: {
+        explanation: explanationDefinition,
         url: {
           type: "string",
           description: "The URL of the web page",
@@ -62,7 +72,7 @@ export const coordinatorToolDefinitions: Record<
           `),
         },
       },
-      required: ["url", "prompt"],
+      required: ["url", "prompt", "explanation"],
     },
   },
   getWebPageSummary: {
@@ -72,12 +82,13 @@ export const coordinatorToolDefinitions: Record<
     inputSchema: {
       type: "object",
       properties: {
+        explanation: explanationDefinition,
         url: {
           type: "string",
           description: "The URL of the web page to summarize",
         },
       },
-      required: ["url"],
+      required: ["url", "explanation"],
     },
   },
   submitProposedEntities: {
@@ -87,6 +98,7 @@ export const coordinatorToolDefinitions: Record<
     inputSchema: {
       type: "object",
       properties: {
+        explanation: explanationDefinition,
         entityIds: {
           type: "array",
           items: {
@@ -95,7 +107,7 @@ export const coordinatorToolDefinitions: Record<
           description: "An array of entity IDs of the entities to submit.",
         },
       },
-      required: ["entityIds"],
+      required: ["entityIds", "explanation"],
     },
   },
   complete: {
@@ -103,8 +115,10 @@ export const coordinatorToolDefinitions: Record<
     description: "Complete the research task.",
     inputSchema: {
       type: "object",
-      properties: {},
-      required: [],
+      properties: {
+        explanation: explanationDefinition,
+      },
+      required: ["explanation"],
     },
   },
   terminate: {
@@ -113,23 +127,34 @@ export const coordinatorToolDefinitions: Record<
       "Terminate the research task, because it cannot be completed with the provided tools.",
     inputSchema: {
       type: "object",
-      properties: {},
-      required: [],
+      properties: {
+        explanation: explanationDefinition,
+      },
+      required: ["explanation"],
     },
   },
   updatePlan: {
     name: "updatePlan",
-    description:
-      "Update the plan for the research task. You should call this alongside other tool calls to progress towards completing the task.",
+    description: dedent(`
+      Update the plan for the research task.
+      You can call this alongside other tool calls to progress towards completing the task.
+    `),
     inputSchema: {
       type: "object",
       properties: {
+        explanation: {
+          type: "string",
+          description: dedent(`
+            An explanation of why the plan needs to be updated, and
+            how the updated plan aligns with the task.
+          `),
+        },
         plan: {
           type: "string",
           description: "The updated plan for the research task.",
         },
       },
-      required: ["plan"],
+      required: ["plan", "explanation"],
     },
   },
   // discardProposedEntities: {
