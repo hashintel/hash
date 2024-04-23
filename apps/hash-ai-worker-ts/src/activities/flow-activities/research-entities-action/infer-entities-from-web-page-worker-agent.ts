@@ -291,7 +291,7 @@ type WorkerAgentInput = {
   linkEntityTypes?: DereferencedEntityType[];
   existingEntities?: Entity[];
   url: string;
-  innerHtml?: string;
+  innerHtml: string;
 };
 
 const generateSystemMessagePrefix = (params: { input: WorkerAgentInput }) => {
@@ -342,8 +342,10 @@ const generateSystemMessagePrefix = (params: { input: WorkerAgentInput }) => {
 
 const generateUserMessage = (params: {
   input: WorkerAgentInput;
+  includeInnerHtml?: boolean;
 }): LlmUserMessage => {
-  const { prompt, url, innerHtml, entityTypes, linkEntityTypes } = params.input;
+  const { includeInnerHtml = false, input } = params;
+  const { prompt, url, innerHtml, entityTypes, linkEntityTypes } = input;
 
   return {
     role: "user",
@@ -355,7 +357,7 @@ const generateUserMessage = (params: {
           Initial web page url: ${url}
           Entity Types: ${JSON.stringify(entityTypes)}
           ${linkEntityTypes ? `Link Types: ${JSON.stringify(linkEntityTypes)}` : ""}
-          ${innerHtml ? `Initial web page inner HTML: ${innerHtml}` : ""}
+          ${includeInnerHtml ? `Initial web page inner HTML: ${innerHtml}` : ""}
         `),
       },
     ],
@@ -379,7 +381,7 @@ const createInitialPlan = async (params: {
       initial web page, to find all the entities required to satisfy the prompt.
     `);
 
-  const messages = [generateUserMessage({ input })];
+  const messages = [generateUserMessage({ input, includeInnerHtml: true })];
 
   const llmResponse = await getLlmResponse({
     systemPrompt,
