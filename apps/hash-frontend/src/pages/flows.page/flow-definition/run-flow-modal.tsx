@@ -5,6 +5,7 @@ import type {
   FlowTrigger,
   OutputDefinition,
   PayloadKind,
+  StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { OwnedById } from "@local/hash-subgraph";
 import { Box, Stack, Typography } from "@mui/material";
@@ -50,7 +51,6 @@ const InputWrapper = ({
 type UnsupportedPayloadKind = Exclude<PayloadKind, LocalPayloadKind>;
 
 const unsupportedPayloadKinds: UnsupportedPayloadKind[] = [
-  "Entity",
   "EntityType",
   "PersistedEntities",
   "PersistedEntity",
@@ -68,14 +68,16 @@ const generateInitialFormState = (
 ) =>
   outputDefinitions.reduce<FormState>((acc, outputDefinition) => {
     if (isSupportedPayloadKind(outputDefinition.payloadKind)) {
-      let defaultValue: LocalPayload["value"] = outputDefinition.array
-        ? []
-        : "";
+      let defaultValue: LocalPayload["value"] = "";
 
-      if (outputDefinition.payloadKind === "WebId") {
+      if (outputDefinition.array) {
+        defaultValue = [];
+      } else if (outputDefinition.payloadKind === "WebId") {
         defaultValue = userWebId;
       } else if (outputDefinition.payloadKind === "Boolean") {
         defaultValue = false;
+      } else if (outputDefinition.payloadKind === "Entity") {
+        defaultValue = undefined;
       }
 
       acc[outputDefinition.name] = {
@@ -134,6 +136,7 @@ export const RunFlowModal = ({
         if (Array.isArray(payload.value) && payload.value.length === 0) {
           continue;
         }
+
         if (payload.kind === "VersionedUrl") {
           outputValues.push({
             outputName,
@@ -145,9 +148,14 @@ export const RunFlowModal = ({
             },
           });
         } else {
+          const assertedPayload = {
+            kind: payload.kind satisfies LocalPayload["kind"],
+            value: payload.value satisfies LocalPayload["value"],
+          } as StepOutput["payload"]; // this is necessary because TS isn't inferring that payload.value is not undefined
+
           outputValues.push({
             outputName,
-            payload,
+            payload: assertedPayload,
           });
         }
       }

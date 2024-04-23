@@ -2,6 +2,7 @@ import { TextField } from "@hashintel/design-system";
 import type { SxProps, Theme } from "@mui/material";
 import { Switch } from "@mui/material";
 
+import { EntitySelector } from "../../../shared/entity-selector";
 import { EntityTypeSelector } from "../../../shared/entity-type-selector";
 import { WebSelector } from "./manual-trigger-input/web-selector";
 import { inputHeight } from "./shared/dimensions";
@@ -91,6 +92,18 @@ export const ManualTriggerInput = <Payload extends LocalPayload>({
         <WebSelector
           selectedWebOwnedById={payload.value}
           setSelectedWebOwnedById={(newValue) => setValue(newValue)}
+        />
+      );
+    }
+    case "Entity": {
+      return (
+        <EntitySelector
+          autoFocus={false}
+          includeDrafts={false}
+          inputHeight={inputHeight}
+          multiple={array}
+          onSelect={setValue}
+          value={payload.value}
         />
       );
     }

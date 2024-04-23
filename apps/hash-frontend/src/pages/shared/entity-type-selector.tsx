@@ -63,17 +63,19 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
     <SelectorAutocomplete<EntityTypeWithMetadata, Multiple>
       dropdownProps={{
         query: search,
-        createButtonProps: disableCreate
-          ? null
-          : {
-              onMouseDown: (evt) => {
-                evt.preventDefault();
-                evt.stopPropagation();
-                onCreateNew?.(search);
+        creationProps: {
+          createButtonProps: disableCreate
+            ? null
+            : {
+                onMouseDown: (evt) => {
+                  evt.preventDefault();
+                  evt.stopPropagation();
+                  onCreateNew?.(search);
+                },
+                disabled: disableCreateNewEmpty && search === "",
               },
-              disabled: disableCreateNewEmpty && search === "",
-            },
-        variant: "entity type",
+          variant: "entity type",
+        },
       }}
       autoFocus={autoFocus}
       inputHeight={inputHeight}

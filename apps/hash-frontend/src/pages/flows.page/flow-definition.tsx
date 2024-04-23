@@ -338,6 +338,9 @@ export const FlowDefinition = () => {
     }
   };
 
+  const flowDefinitionStateKey = `${selectedFlow.name}`;
+  const flowRunStateKey = `${flowDefinitionStateKey}-${selectedFlowRun?.runId ?? "definition"}`;
+
   return (
     <Box
       sx={{
@@ -471,7 +474,7 @@ export const FlowDefinition = () => {
           </Stack>
           {Object.entries(nodesAndEdgesByGroup).map(
             ([groupId, { group, nodes, edges }]) => (
-              <ReactFlowProvider key={`${selectedFlow.name}-${groupId}`}>
+              <ReactFlowProvider key={`${flowDefinitionStateKey}-${groupId}`}>
                 <Swimlane group={group} nodes={nodes} edges={edges} />
               </ReactFlowProvider>
             ),
@@ -501,16 +504,23 @@ export const FlowDefinition = () => {
           <SectionLabel text="Raw output" />
           <Stack direction="row" gap={1} sx={{ height: "100%", width: "100%" }}>
             <EntityResultTable
+              key={`${flowRunStateKey}-entity-result-table`}
               persistedEntities={persistedEntities}
               proposedEntities={proposedEntities}
             />
-            <PersistedEntityGraph persistedEntities={persistedEntities} />
+            <PersistedEntityGraph
+              key={`${flowRunStateKey}-persisted-entity-graph`}
+              persistedEntities={persistedEntities}
+            />
           </Stack>
         </Box>
         <Box sx={{ width: "40%", pl: 3, pt: 2.5 }}>
           <SectionLabel text="Deliverable" />
 
-          <Deliverable outputs={selectedFlowRun?.outputs ?? []} />
+          <Deliverable
+            key={`${flowRunStateKey}-deliverable`}
+            outputs={selectedFlowRun?.outputs ?? []}
+          />
         </Box>
       </Stack>
     </Box>
