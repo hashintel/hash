@@ -353,271 +353,11 @@ export const proposeEntities = async (params: {
         }
 
         if (toolCall.name === "create_entities") {
-          let proposedEntitiesByType: ProposedEntityToolCreationsByType;
+          const proposedEntitiesByType =
+            toolCall.input as ProposedEntityToolCreationsByType;
+
           try {
-            proposedEntitiesByType =
-              toolCall.input as ProposedEntityToolCreationsByType;
-
             validateProposedEntitiesByType(proposedEntitiesByType, false);
-
-            let retryMessageContentText = "";
-            let requiresOriginalContextForRetry = false;
-
-            /**
-             * Check if any proposed entities are invalid according to the Graph API,
-             * to prevent a validation error when creating the entity in the graph.
-             */
-            const invalidProposedEntities = await Promise.all(
-              Object.entries(proposedEntitiesByType).map(
-                async ([simplifiedEntityTypeId, proposedEntitiesOfType]) => {
-                  const invalidProposedEntitiesOfType = await Promise.all(
-                    proposedEntitiesOfType.map(async (proposedEntityOfType) => {
-                      try {
-                        /**
-                         * We can't validate links at the moment because they will always fail validation,
-                         * since they don't have references to existing entities.
-                         * @todo remove this when we can update the `validateEntity` call to only check properties
-                         */
-                        if ("sourceEntityId" in proposedEntityOfType) {
-                          return [];
-                        }
-
-                        const entityTypeId =
-                          simplifiedEntityTypeIdMappings[
-                            simplifiedEntityTypeId
-                          ];
-
-                        if (!entityTypeId) {
-                          throw new Error(
-                            `Could not find entity type id for simplified entity type id ${simplifiedEntityTypeId}`,
-                          );
-                        }
-
-                        const { simplifiedPropertyTypeMappings } =
-                          entityTypes[entityTypeId] ?? {};
-
-                        if (!simplifiedPropertyTypeMappings) {
-                          throw new Error(
-                            `Could not find simplified property type mappings for entity type id ${entityTypeId}`,
-                          );
-                        }
-
-                        const { properties: simplifiedProperties } =
-                          proposedEntityOfType;
-
-                        const properties = simplifiedProperties
-                          ? mapSimplifiedPropertiesToProperties({
-                              simplifiedProperties,
-                              simplifiedPropertyTypeMappings,
-                            })
-                          : {};
-
-                        await graphApiClient.validateEntity(validationActorId, {
-                          entityTypes: [entityTypeId],
-                          components: {
-                            linkData: false,
-                            numItems: false,
-                            requiredProperties: false,
-                          },
-                          properties,
-                        });
-
-                        return [];
-                      } catch (error) {
-                        const invalidReason = `${extractErrorMessage(error)}.`;
-
-                        return {
-                          invalidProposedEntity: proposedEntityOfType,
-                          invalidReason,
-                        };
-                      }
-                    }),
-                  ).then((invalidProposals) => invalidProposals.flat());
-
-                  return invalidProposedEntitiesOfType;
-                },
-              ),
-            ).then((invalidProposals) => invalidProposals.flat());
-
-            if (invalidProposedEntities.length > 0) {
-              retryMessageContentText += dedent(`
-                Some of the entities you suggested for creation were invalid. Please review their properties and try again. 
-                The entities you should review and make a 'create_entities' call for are:
-                ${invalidProposedEntities
-                  .map(
-                    ({ invalidProposedEntity, invalidReason }) => `
-                  your proposed entity: ${stringify(invalidProposedEntity)}
-                  invalid reason: ${invalidReason}
-                `,
-                  )
-                  .join("\n")}
-              `);
-              requiresOriginalContextForRetry = true;
-            }
-
-            const validProposedEntitiesByType = Object.fromEntries(
-              typedEntries(proposedEntitiesByType).map(
-                ([simplifiedEntityTypeId, entities]) => {
-                  const entityTypeId =
-                    simplifiedEntityTypeIdMappings[simplifiedEntityTypeId];
-
-                  if (!entityTypeId) {
-                    throw new Error(
-                      `Could not find entity type id for simplified entity type id ${simplifiedEntityTypeId}`,
-                    );
-                  }
-
-                  return [
-                    entityTypeId,
-                    entities.filter(
-                      ({ entityId }) =>
-                        // Don't include invalid entities
-                        !invalidProposedEntities.some(
-                          ({
-                            invalidProposedEntity: {
-                              entityId: invalidEntityId,
-                            },
-                          }) => invalidEntityId === entityId,
-                        ) &&
-                        // Ignore entities we've inferred in a previous iteration, otherwise we'll get duplicates
-                        !inferenceState.proposedEntityCreationsByType[
-                          entityTypeId
-                        ]?.some(
-                          (existingEntity) =>
-                            existingEntity.entityId === entityId,
-                        ),
-                    ),
-                  ];
-                },
-              ),
-            );
-
-            const validProposedEntities = Object.values(
-              validProposedEntitiesByType,
-            ).flat();
-
-            const now = new Date().toISOString();
-
-            if (validProposedEntities.length > 0) {
-              logProgress(
-                typedEntries(validProposedEntitiesByType).flatMap(
-                  ([entityTypeId, entities]) =>
-                    entities.map((entity) => ({
-                      proposedEntity: {
-                        ...entity,
-                        localEntityId: entity.entityId.toString(),
-                        entityTypeId: entityTypeId as VersionedUrl,
-                        properties: entity.properties ?? {},
-                        /** @todo: figure out why TS cannot infer that `entity` has `ProposedEntityLinkFields` */
-                        sourceEntityLocalId:
-                          "sourceEntityId" in entity
-                            ? entity.sourceEntityId.toString()
-                            : undefined,
-                        targetEntityLocalId:
-                          "targetEntityId" in entity
-                            ? entity.targetEntityId.toString()
-                            : undefined,
-                      },
-                      recordedAt: now,
-                      type: "ProposedEntity",
-                      stepId: Context.current().info.activityId,
-                    })),
-                ),
-              );
-            }
-
-            logger.info(
-              `Proposed ${validProposedEntities.length} valid additional entities.`,
-            );
-            logger.info(
-              `Proposed ${invalidProposedEntities.length} invalid additional entities.`,
-            );
-
-            for (const proposedEntity of validProposedEntities) {
-              inferenceState.inProgressEntityIds =
-                inferenceState.inProgressEntityIds.filter(
-                  (inProgressEntityId) =>
-                    inProgressEntityId !== proposedEntity.entityId,
-                );
-            }
-
-            inferenceState.proposedEntityCreationsByType = Object.entries(
-              validProposedEntitiesByType,
-            ).reduce(
-              (prev, [simplifiedEntityTypeId, proposedEntitiesOfType]) => {
-                const entityTypeId =
-                  simplifiedEntityTypeIdMappings[simplifiedEntityTypeId];
-
-                if (!entityTypeId) {
-                  throw new Error(
-                    `Could not find entity type id for simplified entity type id ${simplifiedEntityTypeId}`,
-                  );
-                }
-
-                return {
-                  ...prev,
-                  [entityTypeId]: [
-                    ...(prev[entityTypeId] ?? []),
-                    ...proposedEntitiesOfType
-                      .filter(
-                        ({ entityId }) =>
-                          // Don't include invalid entities
-                          !invalidProposedEntities.some(
-                            ({
-                              invalidProposedEntity: {
-                                entityId: invalidEntityId,
-                              },
-                            }) => invalidEntityId === entityId,
-                          ) &&
-                          // Ignore entities we've inferred in a previous iteration, otherwise we'll get duplicates
-                          !inferenceState.proposedEntityCreationsByType[
-                            entityTypeId
-                          ]?.some(
-                            (existingEntity) =>
-                              existingEntity.entityId === entityId,
-                          ),
-                      )
-                      .map<ProposedEntity>(
-                        ({
-                          properties: simplifiedProperties,
-                          ...proposedEntity
-                        }) => {
-                          const { simplifiedPropertyTypeMappings } =
-                            entityTypes[entityTypeId] ?? {};
-
-                          if (!simplifiedPropertyTypeMappings) {
-                            throw new Error(
-                              `Could not find simplified property type mappings for entity type id ${entityTypeId}`,
-                            );
-                          }
-
-                          const properties = simplifiedProperties
-                            ? mapSimplifiedPropertiesToProperties({
-                                simplifiedProperties,
-                                simplifiedPropertyTypeMappings,
-                              })
-                            : {};
-
-                          return {
-                            ...proposedEntity,
-                            properties,
-                          };
-                        },
-                      ),
-                  ],
-                };
-              },
-              inferenceState.proposedEntityCreationsByType,
-            );
-
-            if (retryMessageContentText) {
-              retryMessageContent.push({
-                type: "tool_result",
-                content: retryMessageContentText,
-                tool_use_id: toolCall.id,
-                requiresOriginalContext: requiresOriginalContextForRetry,
-              });
-            }
           } catch (err) {
             logger.error(
               `Model provided invalid argument to create_entities function. Argument provided: ${stringify(
@@ -633,6 +373,256 @@ export const proposeEntities = async (params: {
               tool_use_id: toolCall.id,
             });
             continue;
+          }
+
+          let retryMessageContentText = "";
+          let requiresOriginalContextForRetry = false;
+
+          /**
+           * Check if any proposed entities are invalid according to the Graph API,
+           * to prevent a validation error when creating the entity in the graph.
+           */
+          const invalidProposedEntities = await Promise.all(
+            Object.entries(proposedEntitiesByType).map(
+              async ([simplifiedEntityTypeId, proposedEntitiesOfType]) => {
+                const invalidProposedEntitiesOfType = await Promise.all(
+                  proposedEntitiesOfType.map(async (proposedEntityOfType) => {
+                    try {
+                      /**
+                       * We can't validate links at the moment because they will always fail validation,
+                       * since they don't have references to existing entities.
+                       * @todo remove this when we can update the `validateEntity` call to only check properties
+                       */
+                      if ("sourceEntityId" in proposedEntityOfType) {
+                        return [];
+                      }
+
+                      const entityTypeId =
+                        simplifiedEntityTypeIdMappings[simplifiedEntityTypeId];
+
+                      if (!entityTypeId) {
+                        throw new Error(
+                          `Could not find entity type id for simplified entity type id ${simplifiedEntityTypeId}`,
+                        );
+                      }
+
+                      const { simplifiedPropertyTypeMappings } =
+                        entityTypes[entityTypeId] ?? {};
+
+                      if (!simplifiedPropertyTypeMappings) {
+                        throw new Error(
+                          `Could not find simplified property type mappings for entity type id ${entityTypeId}`,
+                        );
+                      }
+
+                      const { properties: simplifiedProperties } =
+                        proposedEntityOfType;
+
+                      const properties = simplifiedProperties
+                        ? mapSimplifiedPropertiesToProperties({
+                            simplifiedProperties,
+                            simplifiedPropertyTypeMappings,
+                          })
+                        : {};
+
+                      await graphApiClient.validateEntity(validationActorId, {
+                        entityTypes: [entityTypeId],
+                        components: {
+                          linkData: false,
+                          numItems: false,
+                          requiredProperties: false,
+                        },
+                        properties,
+                      });
+
+                      return [];
+                    } catch (error) {
+                      const invalidReason = `${extractErrorMessage(error)}.`;
+
+                      return {
+                        invalidProposedEntity: proposedEntityOfType,
+                        invalidReason,
+                      };
+                    }
+                  }),
+                ).then((invalidProposals) => invalidProposals.flat());
+
+                return invalidProposedEntitiesOfType;
+              },
+            ),
+          ).then((invalidProposals) => invalidProposals.flat());
+
+          if (invalidProposedEntities.length > 0) {
+            retryMessageContentText += dedent(`
+              Some of the entities you suggested for creation were invalid. Please review their properties and try again. 
+              The entities you should review and make a 'create_entities' call for are:
+              ${invalidProposedEntities
+                .map(
+                  ({ invalidProposedEntity, invalidReason }) => `
+                your proposed entity: ${stringify(invalidProposedEntity)}
+                invalid reason: ${invalidReason}
+              `,
+                )
+                .join("\n")}
+            `);
+            requiresOriginalContextForRetry = true;
+          }
+
+          const validProposedEntitiesByType = Object.fromEntries(
+            typedEntries(proposedEntitiesByType).map(
+              ([simplifiedEntityTypeId, entities]) => {
+                const entityTypeId =
+                  simplifiedEntityTypeIdMappings[simplifiedEntityTypeId];
+
+                if (!entityTypeId) {
+                  throw new Error(
+                    `Could not find entity type id for simplified entity type id ${simplifiedEntityTypeId}`,
+                  );
+                }
+
+                return [
+                  entityTypeId,
+                  entities.filter(
+                    ({ entityId }) =>
+                      // Don't include invalid entities
+                      !invalidProposedEntities.some(
+                        ({
+                          invalidProposedEntity: { entityId: invalidEntityId },
+                        }) => invalidEntityId === entityId,
+                      ) &&
+                      // Ignore entities we've inferred in a previous iteration, otherwise we'll get duplicates
+                      !inferenceState.proposedEntityCreationsByType[
+                        entityTypeId
+                      ]?.some(
+                        (existingEntity) =>
+                          existingEntity.entityId === entityId,
+                      ),
+                  ),
+                ];
+              },
+            ),
+          );
+
+          const validProposedEntities = Object.values(
+            validProposedEntitiesByType,
+          ).flat();
+
+          const now = new Date().toISOString();
+
+          if (validProposedEntities.length > 0) {
+            logProgress(
+              typedEntries(validProposedEntitiesByType).flatMap(
+                ([entityTypeId, entities]) =>
+                  entities.map((entity) => ({
+                    proposedEntity: {
+                      ...entity,
+                      localEntityId: entity.entityId.toString(),
+                      entityTypeId: entityTypeId as VersionedUrl,
+                      properties: entity.properties ?? {},
+                      /** @todo: figure out why TS cannot infer that `entity` has `ProposedEntityLinkFields` */
+                      sourceEntityLocalId:
+                        "sourceEntityId" in entity
+                          ? entity.sourceEntityId.toString()
+                          : undefined,
+                      targetEntityLocalId:
+                        "targetEntityId" in entity
+                          ? entity.targetEntityId.toString()
+                          : undefined,
+                    },
+                    recordedAt: now,
+                    type: "ProposedEntity",
+                    stepId: Context.current().info.activityId,
+                  })),
+              ),
+            );
+          }
+
+          logger.info(
+            `Proposed ${validProposedEntities.length} valid additional entities.`,
+          );
+          logger.info(
+            `Proposed ${invalidProposedEntities.length} invalid additional entities.`,
+          );
+
+          for (const proposedEntity of validProposedEntities) {
+            inferenceState.inProgressEntityIds =
+              inferenceState.inProgressEntityIds.filter(
+                (inProgressEntityId) =>
+                  inProgressEntityId !== proposedEntity.entityId,
+              );
+          }
+
+          inferenceState.proposedEntityCreationsByType = Object.entries(
+            validProposedEntitiesByType,
+          ).reduce((prev, [simplifiedEntityTypeId, proposedEntitiesOfType]) => {
+            const entityTypeId =
+              simplifiedEntityTypeIdMappings[simplifiedEntityTypeId];
+
+            if (!entityTypeId) {
+              throw new Error(
+                `Could not find entity type id for simplified entity type id ${simplifiedEntityTypeId}`,
+              );
+            }
+
+            return {
+              ...prev,
+              [entityTypeId]: [
+                ...(prev[entityTypeId] ?? []),
+                ...proposedEntitiesOfType
+                  .filter(
+                    ({ entityId }) =>
+                      // Don't include invalid entities
+                      !invalidProposedEntities.some(
+                        ({
+                          invalidProposedEntity: { entityId: invalidEntityId },
+                        }) => invalidEntityId === entityId,
+                      ) &&
+                      // Ignore entities we've inferred in a previous iteration, otherwise we'll get duplicates
+                      !inferenceState.proposedEntityCreationsByType[
+                        entityTypeId
+                      ]?.some(
+                        (existingEntity) =>
+                          existingEntity.entityId === entityId,
+                      ),
+                  )
+                  .map<ProposedEntity>(
+                    ({
+                      properties: simplifiedProperties,
+                      ...proposedEntity
+                    }) => {
+                      const { simplifiedPropertyTypeMappings } =
+                        entityTypes[entityTypeId] ?? {};
+
+                      if (!simplifiedPropertyTypeMappings) {
+                        throw new Error(
+                          `Could not find simplified property type mappings for entity type id ${entityTypeId}`,
+                        );
+                      }
+
+                      const properties = simplifiedProperties
+                        ? mapSimplifiedPropertiesToProperties({
+                            simplifiedProperties,
+                            simplifiedPropertyTypeMappings,
+                          })
+                        : {};
+
+                      return {
+                        ...proposedEntity,
+                        properties,
+                      };
+                    },
+                  ),
+              ],
+            };
+          }, inferenceState.proposedEntityCreationsByType);
+
+          if (retryMessageContentText) {
+            retryMessageContent.push({
+              type: "tool_result",
+              content: retryMessageContentText,
+              tool_use_id: toolCall.id,
+              requiresOriginalContext: requiresOriginalContextForRetry,
+            });
           }
         }
       }
