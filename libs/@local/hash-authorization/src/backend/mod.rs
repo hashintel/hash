@@ -241,6 +241,112 @@ pub trait ZanzibarBackend {
     ) -> impl Future<Output = Result<DeleteRelationshipResponse, Report<DeleteRelationshipError>>> + Send;
 }
 
+impl<Z: ZanzibarBackend + Send + Sync> ZanzibarBackend for &mut Z {
+    async fn import_schema(
+        &mut self,
+        schema: &str,
+    ) -> Result<ImportSchemaResponse, Report<ImportSchemaError>> {
+        ZanzibarBackend::import_schema(&mut **self, schema).await
+    }
+
+    async fn export_schema(&self) -> Result<ExportSchemaResponse, Report<ExportSchemaError>> {
+        ZanzibarBackend::export_schema(&**self).await
+    }
+
+    async fn modify_relationships<R>(
+        &mut self,
+        relationships: impl IntoIterator<Item = (ModifyRelationshipOperation, R), IntoIter: Send> + Send,
+    ) -> Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>
+    where
+        R: Relationship<
+                Resource: Resource<Kind: Serialize, Id: Serialize>,
+                Relation: Serialize,
+                Subject: Resource<Kind: Serialize, Id: Serialize>,
+                SubjectSet: Serialize,
+            > + Send
+            + Sync,
+    {
+        ZanzibarBackend::modify_relationships(&mut **self, relationships).await
+    }
+
+    async fn check_permission<O, R, S>(
+        &self,
+        resource: &O,
+        permission: &R,
+        subject: &S,
+        consistency: Consistency<'_>,
+    ) -> Result<CheckResponse, Report<CheckError>>
+    where
+        O: Resource<Kind: Serialize, Id: Serialize> + Sync,
+        R: Serialize + Permission<O> + Sync,
+        S: Subject<Resource: Resource<Kind: Serialize, Id: Serialize>, Relation: Serialize> + Sync,
+    {
+        ZanzibarBackend::check_permission(&**self, resource, permission, subject, consistency).await
+    }
+
+    async fn check_permissions<O, R, S>(
+        &self,
+        relationships: impl IntoIterator<Item = (O, R, S)> + Send,
+        consistency: Consistency<'_>,
+    ) -> Result<
+        BulkCheckResponse<impl IntoIterator<Item = BulkCheckItem<O, R, S>>>,
+        Report<CheckError>,
+    >
+    where
+        O: Resource<Kind: Serialize + DeserializeOwned, Id: Serialize + DeserializeOwned>
+            + Send
+            + Sync,
+        R: Serialize + DeserializeOwned + Permission<O> + Send + Sync,
+        S: Subject<
+                Resource: Resource<
+                    Kind: Serialize + DeserializeOwned,
+                    Id: Serialize + DeserializeOwned,
+                >,
+                Relation: Serialize + DeserializeOwned,
+            > + Send
+            + Sync,
+    {
+        ZanzibarBackend::check_permissions(&**self, relationships, consistency).await
+    }
+
+    async fn read_relations<R>(
+        &self,
+        filter: RelationshipFilter<
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+        >,
+        consistency: Consistency<'_>,
+    ) -> Result<impl Stream<Item = Result<R, Report<ReadError>>> + Send, Report<ReadError>>
+    where
+        for<'de> R: Relationship<
+                Resource: Resource<Kind: Deserialize<'de>, Id: Deserialize<'de>>,
+                Relation: Deserialize<'de>,
+                Subject: Resource<Kind: Deserialize<'de>, Id: Deserialize<'de>>,
+                SubjectSet: Deserialize<'de>,
+            > + Send,
+    {
+        ZanzibarBackend::read_relations(&**self, filter, consistency).await
+    }
+
+    async fn delete_relations(
+        &mut self,
+        filter: RelationshipFilter<
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+        >,
+    ) -> Result<DeleteRelationshipResponse, Report<DeleteRelationshipError>> {
+        ZanzibarBackend::delete_relations(&mut **self, filter).await
+    }
+}
+
 impl ZanzibarBackend for NoAuthorization {
     async fn import_schema(
         &mut self,

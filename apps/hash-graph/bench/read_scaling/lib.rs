@@ -10,6 +10,10 @@
     reason = "This is a benchmark but as we want to document this crate as well this should be a \
               warning instead"
 )]
+#![expect(
+    clippy::significant_drop_in_scrutinee,
+    reason = "This should be enabled but it's currently too noisy"
+)]
 
 //! TODO: Introduce benchmarks testing the differing performance of operations as the graph's scale
 //!  changes

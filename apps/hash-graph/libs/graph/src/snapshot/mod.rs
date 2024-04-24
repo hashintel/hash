@@ -32,6 +32,7 @@ use authorization::{
         types::{RelationshipFilter, ResourceFilter},
         Consistency,
     },
+    AuthorizationApi, NoAuthorization,
 };
 use error_stack::{ensure, Context, Report, Result, ResultExt};
 use futures::{
@@ -232,23 +233,19 @@ impl SnapshotEntry {
 }
 
 #[async_trait]
-trait WriteBatch<C> {
-    async fn begin(postgres_client: &PostgresStore<C>) -> Result<(), InsertionError>;
-    async fn write(
-        self,
-        postgres_client: &PostgresStore<C>,
-        authorization_api: &mut (impl ZanzibarBackend + Send),
-    ) -> Result<(), InsertionError>;
+trait WriteBatch<C, A> {
+    async fn begin(postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError>;
+    async fn write(self, postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError>;
     async fn commit(
-        postgres_client: &PostgresStore<C>,
+        postgres_client: &mut PostgresStore<C, A>,
         validation: bool,
     ) -> Result<(), InsertionError>;
 }
 
-pub struct SnapshotStore<C>(PostgresStore<C>);
+pub struct SnapshotStore<C, A>(PostgresStore<C, A>);
 
-impl<C> SnapshotStore<C> {
-    pub const fn new(store: PostgresStore<C>) -> Self {
+impl<C, A> SnapshotStore<C, A> {
+    pub const fn new(store: PostgresStore<C, A>) -> Self {
         Self(store)
     }
 }
@@ -268,7 +265,7 @@ where
         // TODO: Make accounts a first-class `Record` type
         //   see https://linear.app/hash/issue/H-752
         Ok(self
-            .acquire()
+            .acquire(NoAuthorization, None)
             .await
             .change_context(SnapshotDumpError::Query)?
             .as_client()
@@ -292,7 +289,7 @@ where
         // TODO: Make account groups a first-class `Record` type
         //   see https://linear.app/hash/issue/H-752
         Ok(self
-            .acquire()
+            .acquire(NoAuthorization, None)
             .await
             .change_context(SnapshotDumpError::Query)?
             .as_client()
@@ -328,7 +325,7 @@ where
     ) -> Result<impl Stream<Item = Result<Web, SnapshotDumpError>> + Send + 'a, SnapshotDumpError>
     {
         Ok(self
-            .acquire()
+            .acquire(NoAuthorization, None)
             .await
             .change_context(SnapshotDumpError::Query)?
             .as_client()
@@ -360,12 +357,12 @@ where
         &'pool self,
     ) -> Result<impl Stream<Item = Result<T, SnapshotDumpError>> + Send + 'pool, SnapshotDumpError>
     where
-        <Self as StorePool>::Store<'pool>: Read<T>,
+        <Self as StorePool>::Store<'pool, NoAuthorization>: Read<T>,
         T: QueryRecord + 'pool,
     {
         Ok(Read::<T>::read(
             &self
-                .acquire()
+                .acquire(NoAuthorization, None)
                 .await
                 .change_context(SnapshotDumpError::Query)?,
             &Filter::All(vec![]),
@@ -384,7 +381,7 @@ where
         SnapshotDumpError,
     > {
         Ok(self
-            .acquire()
+            .acquire(NoAuthorization, None)
             .await
             .change_context(SnapshotDumpError::Query)?
             .as_client()
@@ -416,7 +413,7 @@ where
         SnapshotDumpError,
     > {
         Ok(self
-            .acquire()
+            .acquire(NoAuthorization, None)
             .await
             .change_context(SnapshotDumpError::Query)?
             .as_client()
@@ -448,7 +445,7 @@ where
         SnapshotDumpError,
     > {
         Ok(self
-            .acquire()
+            .acquire(NoAuthorization, None)
             .await
             .change_context(SnapshotDumpError::Query)?
             .as_client()
@@ -480,7 +477,7 @@ where
         SnapshotDumpError,
     > {
         Ok(self
-            .acquire()
+            .acquire(NoAuthorization, None)
             .await
             .change_context(SnapshotDumpError::Query)?
             .as_client()
@@ -710,8 +707,12 @@ where
     }
 }
 
-impl<C: AsClient> SnapshotStore<C> {
-    /// Reads the snapshot from from the stream into the store.
+impl<C, A> SnapshotStore<C, A>
+where
+    C: AsClient,
+    A: ZanzibarBackend + AuthorizationApi,
+{
+    /// Reads the snapshot from the stream into the store.
     ///
     /// The data emitted by the stream is read in a separate thread and is sent to different
     /// channels for each record type. Each channel holds a buffer of `chunk_size` entries. The
@@ -745,7 +746,6 @@ impl<C: AsClient> SnapshotStore<C> {
     pub async fn restore_snapshot(
         &mut self,
         snapshot: impl Stream<Item = Result<SnapshotEntry, impl Context>> + Send + 'static,
-        authorization_api: &mut (impl ZanzibarBackend + Send),
         chunk_size: usize,
         validation: bool,
     ) -> Result<(), SnapshotRestoreError> {
@@ -762,26 +762,26 @@ impl<C: AsClient> SnapshotStore<C> {
                 ),
         );
 
-        let client = self
+        let mut client = self
             .0
             .transaction()
             .await
             .change_context(SnapshotRestoreError::Write)?;
 
-        SnapshotRecordBatch::begin(&client)
+        SnapshotRecordBatch::begin(&mut client)
             .await
             .change_context(SnapshotRestoreError::Write)?;
 
-        let (client, _) = snapshot_record_rx
+        let mut client = snapshot_record_rx
             .map(Ok::<_, Report<SnapshotRestoreError>>)
             .try_fold(
-                (client, authorization_api),
-                |(client, authorization_api), records: SnapshotRecordBatch| async move {
+                client,
+                |mut client, records: SnapshotRecordBatch| async move {
                     records
-                        .write(&client, authorization_api)
+                        .write(&mut client)
                         .await
                         .change_context(SnapshotRestoreError::Write)?;
-                    Ok((client, authorization_api))
+                    Ok(client)
                 },
             )
             .await?;
@@ -792,7 +792,7 @@ impl<C: AsClient> SnapshotStore<C> {
             .await
             .change_context(SnapshotRestoreError::Read)??;
 
-        SnapshotRecordBatch::commit(&client, validation)
+        SnapshotRecordBatch::commit(&mut client, validation)
             .await
             .change_context(SnapshotRestoreError::Write)
             .map_err(|report| {

@@ -1,10 +1,28 @@
 use std::{collections::HashSet, iter::once, str::FromStr};
 
-use graph::store::knowledge::PatchEntityParams;
+use authorization::AuthorizationApi;
+use graph::{
+    store::{
+        knowledge::{CreateEntityParams, GetEntityParams, PatchEntityParams},
+        query::Filter,
+        EntityQuerySorting, EntityStore,
+    },
+    subgraph::{
+        edges::GraphResolveDepths,
+        query::StructuralQuery,
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
+            VariableTemporalAxisUnresolved,
+        },
+    },
+};
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::{
-    entity::ProvidedEntityEditionProvenance, Property, PropertyMetadataMap, PropertyObject,
-    PropertyPatchOperation, PropertyPathElement, PropertyProvenance,
+use graph_types::{
+    knowledge::{
+        entity::ProvidedEntityEditionProvenance, Property, PropertyMetadataMap, PropertyObject,
+        PropertyPatchOperation, PropertyPathElement, PropertyProvenance,
+    },
+    owned_by_id::OwnedById,
 };
 use pretty_assertions::assert_eq;
 use serde_json::json;
@@ -12,7 +30,9 @@ use type_system::url::{BaseUrl, VersionedUrl};
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
 
-async fn seed(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
+async fn seed<A: AuthorizationApi>(
+    database: &mut DatabaseTestWrapper<A>,
+) -> DatabaseApi<'_, &mut A> {
     database
         .seed(
             [data_type::TEXT_V1, data_type::NUMBER_V1],
@@ -74,39 +94,77 @@ async fn properties_add() {
 
     let entity = api
         .create_entity(
-            alice(),
-            vec![person_entity_type_id()],
-            None,
-            false,
-            None,
-            PropertyMetadataMap::default(),
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: vec![person_entity_type_id()],
+                properties: alice(),
+                confidence: None,
+                property_metadata: PropertyMetadataMap::default(),
+                link_data: None,
+                draft: false,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
         )
         .await
         .expect("could not create entity");
     let entity_id = entity.record_id.entity_id;
 
-    api.patch_entity(PatchEntityParams {
-        entity_id,
-        decision_time: None,
-        entity_type_ids: vec![],
-        properties: vec![PropertyPatchOperation::Add {
-            path: once(PropertyPathElement::from(age_property_type_id())).collect(),
-            value: Property::Value(json!(30)),
+    api.patch_entity(
+        api.account_id,
+        PatchEntityParams {
+            entity_id,
+            decision_time: None,
+            entity_type_ids: vec![],
+            properties: vec![PropertyPatchOperation::Add {
+                path: once(PropertyPathElement::from(age_property_type_id())).collect(),
+                value: Property::Value(json!(30)),
+                confidence: None,
+                provenance: PropertyProvenance::default(),
+            }],
+            draft: None,
+            archived: None,
             confidence: None,
-            provenance: PropertyProvenance::default(),
-        }],
-        draft: None,
-        archived: None,
-        confidence: None,
-        provenance: ProvidedEntityEditionProvenance::default(),
-    })
+            provenance: ProvidedEntityEditionProvenance::default(),
+        },
+    )
     .await
     .expect("could not patch entity");
 
-    let entity = api
-        .get_latest_entity(entity_id)
+    let entities = api
+        .get_entity(
+            api.account_id,
+            GetEntityParams {
+                query: StructuralQuery {
+                    filter: Filter::for_entity_by_entity_id(entity_id),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
+                },
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: None,
+                include_count: false,
+            },
+        )
         .await
-        .expect("could not get entity");
+        .expect("could not get entity")
+        .subgraph
+        .vertices
+        .entities
+        .into_values()
+        .collect::<Vec<_>>();
+    assert_eq!(entities.len(), 1, "unexpected number of entities found");
+    let entity = entities.into_iter().next().unwrap();
+
     let properties = entity.properties.properties();
     assert_eq!(properties.len(), 2);
     assert_eq!(properties[&name_property_type_id()], json!("Alice"));
@@ -120,36 +178,74 @@ async fn properties_remove() {
 
     let entity = api
         .create_entity(
-            alice(),
-            vec![person_entity_type_id()],
-            None,
-            false,
-            None,
-            PropertyMetadataMap::default(),
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: vec![person_entity_type_id()],
+                properties: alice(),
+                confidence: None,
+                property_metadata: PropertyMetadataMap::default(),
+                link_data: None,
+                draft: false,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
         )
         .await
         .expect("could not create entity");
     let entity_id = entity.record_id.entity_id;
 
-    api.patch_entity(PatchEntityParams {
-        entity_id,
-        decision_time: None,
-        entity_type_ids: vec![],
-        properties: vec![PropertyPatchOperation::Remove {
-            path: once(PropertyPathElement::from(name_property_type_id())).collect(),
-        }],
-        draft: None,
-        archived: None,
-        confidence: None,
-        provenance: ProvidedEntityEditionProvenance::default(),
-    })
+    api.patch_entity(
+        api.account_id,
+        PatchEntityParams {
+            entity_id,
+            decision_time: None,
+            entity_type_ids: vec![],
+            properties: vec![PropertyPatchOperation::Remove {
+                path: once(PropertyPathElement::from(name_property_type_id())).collect(),
+            }],
+            draft: None,
+            archived: None,
+            confidence: None,
+            provenance: ProvidedEntityEditionProvenance::default(),
+        },
+    )
     .await
     .expect("could not patch entity");
 
-    let entity = api
-        .get_latest_entity(entity_id)
+    let entities = api
+        .get_entity(
+            api.account_id,
+            GetEntityParams {
+                query: StructuralQuery {
+                    filter: Filter::for_entity_by_entity_id(entity_id),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
+                },
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: None,
+                include_count: false,
+            },
+        )
         .await
-        .expect("could not get entity");
+        .expect("could not get entity")
+        .subgraph
+        .vertices
+        .entities
+        .into_values()
+        .collect::<Vec<_>>();
+    assert_eq!(entities.len(), 1, "unexpected number of entities found");
+    let entity = entities.into_iter().next().unwrap();
+
     let properties = entity.properties.properties();
     assert_eq!(properties.len(), 0);
 }
@@ -161,75 +257,34 @@ async fn properties_replace() {
 
     let entity = api
         .create_entity(
-            alice(),
-            vec![person_entity_type_id()],
-            None,
-            false,
-            None,
-            PropertyMetadataMap::default(),
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: vec![person_entity_type_id()],
+                properties: alice(),
+                confidence: None,
+                property_metadata: PropertyMetadataMap::default(),
+                link_data: None,
+                draft: false,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
         )
         .await
         .expect("could not create entity");
     let entity_id = entity.record_id.entity_id;
 
-    api.patch_entity(PatchEntityParams {
-        entity_id,
-        decision_time: None,
-        entity_type_ids: vec![],
-        properties: vec![PropertyPatchOperation::Replace {
-            path: once(PropertyPathElement::from(name_property_type_id())).collect(),
-            value: Property::Value(json!("Bob")),
-            confidence: None,
-            provenance: PropertyProvenance::default(),
-        }],
-        draft: None,
-        archived: None,
-        confidence: None,
-        provenance: ProvidedEntityEditionProvenance::default(),
-    })
-    .await
-    .expect("could not patch entity");
-
-    let entity = api
-        .get_latest_entity(entity_id)
-        .await
-        .expect("could not get entity");
-    let properties = entity.properties.properties();
-    assert_eq!(properties.len(), 1);
-    assert_eq!(properties[&name_property_type_id()], json!("Bob"));
-}
-
-#[tokio::test]
-async fn properties_move() {
-    let mut database = DatabaseTestWrapper::new().await;
-    let mut api = seed(&mut database).await;
-
-    let entity = api
-        .create_entity(
-            alice(),
-            vec![person_entity_type_id()],
-            None,
-            false,
-            None,
-            PropertyMetadataMap::default(),
-        )
-        .await
-        .expect("could not create entity");
-    let entity_id = entity.record_id.entity_id;
-
-    let _ = api
-        .patch_entity(PatchEntityParams {
+    api.patch_entity(
+        api.account_id,
+        PatchEntityParams {
             entity_id,
             decision_time: None,
             entity_type_ids: vec![],
-            properties: vec![PropertyPatchOperation::Move {
-                from: once(PropertyPathElement::from(name_property_type_id())).collect(),
-                path: [
-                    PropertyPathElement::from(interests_property_type_id()),
-                    PropertyPathElement::from(film_property_type_id()),
-                ]
-                .into_iter()
-                .collect(),
+            properties: vec![PropertyPatchOperation::Replace {
+                path: once(PropertyPathElement::from(name_property_type_id())).collect(),
+                value: Property::Value(json!("Bob")),
                 confidence: None,
                 provenance: PropertyProvenance::default(),
             }],
@@ -237,45 +292,166 @@ async fn properties_move() {
             archived: None,
             confidence: None,
             provenance: ProvidedEntityEditionProvenance::default(),
-        })
-        .await
-        .expect_err("Could patch entity with invalid move operation");
-
-    api.patch_entity(PatchEntityParams {
-        entity_id,
-        decision_time: None,
-        entity_type_ids: vec![],
-        properties: vec![
-            PropertyPatchOperation::Add {
-                path: once(PropertyPathElement::from(interests_property_type_id())).collect(),
-                value: Property::Value(json!({})),
-                confidence: None,
-                provenance: PropertyProvenance::default(),
-            },
-            PropertyPatchOperation::Move {
-                from: once(PropertyPathElement::from(name_property_type_id())).collect(),
-                path: [
-                    PropertyPathElement::from(interests_property_type_id()),
-                    PropertyPathElement::from(film_property_type_id()),
-                ]
-                .into_iter()
-                .collect(),
-                confidence: None,
-                provenance: PropertyProvenance::default(),
-            },
-        ],
-        draft: None,
-        archived: None,
-        confidence: None,
-        provenance: ProvidedEntityEditionProvenance::default(),
-    })
+        },
+    )
     .await
     .expect("could not patch entity");
 
-    let entity = api
-        .get_latest_entity(entity_id)
+    let entities = api
+        .get_entity(
+            api.account_id,
+            GetEntityParams {
+                query: StructuralQuery {
+                    filter: Filter::for_entity_by_entity_id(entity_id),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
+                },
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: None,
+                include_count: false,
+            },
+        )
         .await
-        .expect("could not get entity");
+        .expect("could not get entity")
+        .subgraph
+        .vertices
+        .entities
+        .into_values()
+        .collect::<Vec<_>>();
+    assert_eq!(entities.len(), 1, "unexpected number of entities found");
+    let entity = entities.into_iter().next().unwrap();
+
+    let properties = entity.properties.properties();
+    assert_eq!(properties.len(), 1);
+    assert_eq!(properties[&name_property_type_id()], json!("Bob"));
+}
+
+#[tokio::test]
+#[expect(clippy::too_many_lines)]
+async fn properties_move() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed(&mut database).await;
+
+    let entity = api
+        .create_entity(
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: vec![person_entity_type_id()],
+                properties: alice(),
+                confidence: None,
+                property_metadata: PropertyMetadataMap::default(),
+                link_data: None,
+                draft: false,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
+        .await
+        .expect("could not create entity");
+    let entity_id = entity.record_id.entity_id;
+
+    let _ = api
+        .patch_entity(
+            api.account_id,
+            PatchEntityParams {
+                entity_id,
+                decision_time: None,
+                entity_type_ids: vec![],
+                properties: vec![PropertyPatchOperation::Move {
+                    from: once(PropertyPathElement::from(name_property_type_id())).collect(),
+                    path: [
+                        PropertyPathElement::from(interests_property_type_id()),
+                        PropertyPathElement::from(film_property_type_id()),
+                    ]
+                    .into_iter()
+                    .collect(),
+                    confidence: None,
+                    provenance: PropertyProvenance::default(),
+                }],
+                draft: None,
+                archived: None,
+                confidence: None,
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
+        .await
+        .expect_err("Could patch entity with invalid move operation");
+
+    api.patch_entity(
+        api.account_id,
+        PatchEntityParams {
+            entity_id,
+            decision_time: None,
+            entity_type_ids: vec![],
+            properties: vec![
+                PropertyPatchOperation::Add {
+                    path: once(PropertyPathElement::from(interests_property_type_id())).collect(),
+                    value: Property::Value(json!({})),
+                    confidence: None,
+                    provenance: PropertyProvenance::default(),
+                },
+                PropertyPatchOperation::Move {
+                    from: once(PropertyPathElement::from(name_property_type_id())).collect(),
+                    path: [
+                        PropertyPathElement::from(interests_property_type_id()),
+                        PropertyPathElement::from(film_property_type_id()),
+                    ]
+                    .into_iter()
+                    .collect(),
+                    confidence: None,
+                    provenance: PropertyProvenance::default(),
+                },
+            ],
+            draft: None,
+            archived: None,
+            confidence: None,
+            provenance: ProvidedEntityEditionProvenance::default(),
+        },
+    )
+    .await
+    .expect("could not patch entity");
+
+    let entities = api
+        .get_entity(
+            api.account_id,
+            GetEntityParams {
+                query: StructuralQuery {
+                    filter: Filter::for_entity_by_entity_id(entity_id),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
+                },
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: None,
+                include_count: false,
+            },
+        )
+        .await
+        .expect("could not get entity")
+        .subgraph
+        .vertices
+        .entities
+        .into_values()
+        .collect::<Vec<_>>();
+    assert_eq!(entities.len(), 1, "unexpected number of entities found");
+    let entity = entities.into_iter().next().unwrap();
+
     let properties = entity.properties.properties();
     assert_eq!(properties.len(), 1);
     assert_eq!(
@@ -291,56 +467,94 @@ async fn properties_copy() {
 
     let entity = api
         .create_entity(
-            alice(),
-            vec![person_entity_type_id()],
-            None,
-            false,
-            None,
-            PropertyMetadataMap::default(),
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: vec![person_entity_type_id()],
+                properties: alice(),
+                confidence: None,
+                property_metadata: PropertyMetadataMap::default(),
+                link_data: None,
+                draft: false,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
         )
         .await
         .expect("could not create entity");
     let entity_id = entity.record_id.entity_id;
 
-    api.patch_entity(PatchEntityParams {
-        entity_id,
-        decision_time: None,
-        entity_type_ids: vec![],
-        properties: vec![
-            PropertyPatchOperation::Add {
-                path: once(PropertyPathElement::from(interests_property_type_id())).collect(),
-                value: Property::Value(json!({})),
-                confidence: None,
-                provenance: PropertyProvenance::default(),
-            },
-            PropertyPatchOperation::Test {
-                path: once(PropertyPathElement::from(interests_property_type_id())).collect(),
-                value: Property::Value(json!({})),
-            },
-            PropertyPatchOperation::Copy {
-                from: once(PropertyPathElement::from(name_property_type_id())).collect(),
-                path: [
-                    PropertyPathElement::from(interests_property_type_id()),
-                    PropertyPathElement::from(film_property_type_id()),
-                ]
-                .into_iter()
-                .collect(),
-                confidence: None,
-                provenance: PropertyProvenance::default(),
-            },
-        ],
-        draft: None,
-        archived: None,
-        confidence: None,
-        provenance: ProvidedEntityEditionProvenance::default(),
-    })
+    api.patch_entity(
+        api.account_id,
+        PatchEntityParams {
+            entity_id,
+            decision_time: None,
+            entity_type_ids: vec![],
+            properties: vec![
+                PropertyPatchOperation::Add {
+                    path: once(PropertyPathElement::from(interests_property_type_id())).collect(),
+                    value: Property::Value(json!({})),
+                    confidence: None,
+                    provenance: PropertyProvenance::default(),
+                },
+                PropertyPatchOperation::Test {
+                    path: once(PropertyPathElement::from(interests_property_type_id())).collect(),
+                    value: Property::Value(json!({})),
+                },
+                PropertyPatchOperation::Copy {
+                    from: once(PropertyPathElement::from(name_property_type_id())).collect(),
+                    path: [
+                        PropertyPathElement::from(interests_property_type_id()),
+                        PropertyPathElement::from(film_property_type_id()),
+                    ]
+                    .into_iter()
+                    .collect(),
+                    confidence: None,
+                    provenance: PropertyProvenance::default(),
+                },
+            ],
+            draft: None,
+            archived: None,
+            confidence: None,
+            provenance: ProvidedEntityEditionProvenance::default(),
+        },
+    )
     .await
     .expect("could not patch entity");
 
-    let entity = api
-        .get_latest_entity(entity_id)
+    let entities = api
+        .get_entity(
+            api.account_id,
+            GetEntityParams {
+                query: StructuralQuery {
+                    filter: Filter::for_entity_by_entity_id(entity_id),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
+                },
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: None,
+                include_count: false,
+            },
+        )
         .await
-        .expect("could not get entity");
+        .expect("could not get entity")
+        .subgraph
+        .vertices
+        .entities
+        .into_values()
+        .collect::<Vec<_>>();
+    assert_eq!(entities.len(), 1, "unexpected number of entities found");
+    let entity = entities.into_iter().next().unwrap();
+
     let properties = entity.properties.properties();
     assert_eq!(properties.len(), 2);
     assert_eq!(properties[&name_property_type_id()], json!("Alice"));
@@ -351,63 +565,130 @@ async fn properties_copy() {
 }
 
 #[tokio::test]
+#[expect(clippy::too_many_lines)]
 async fn type_ids() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
 
     let entity = api
         .create_entity(
-            PropertyObject::empty(),
-            vec![person_entity_type_id()],
-            None,
-            false,
-            None,
-            PropertyMetadataMap::default(),
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: vec![person_entity_type_id()],
+                properties: PropertyObject::empty(),
+                confidence: None,
+                property_metadata: PropertyMetadataMap::default(),
+                link_data: None,
+                draft: false,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
         )
         .await
         .expect("could not create entity");
     let entity_id = entity.record_id.entity_id;
 
-    api.patch_entity(PatchEntityParams {
-        entity_id,
-        decision_time: None,
-        entity_type_ids: vec![],
-        properties: vec![],
-        draft: None,
-        archived: None,
-        confidence: None,
-        provenance: ProvidedEntityEditionProvenance::default(),
-    })
+    api.patch_entity(
+        api.account_id,
+        PatchEntityParams {
+            entity_id,
+            decision_time: None,
+            entity_type_ids: vec![],
+            properties: vec![],
+            draft: None,
+            archived: None,
+            confidence: None,
+            provenance: ProvidedEntityEditionProvenance::default(),
+        },
+    )
     .await
     .expect("could not patch entity");
 
-    let entity = api
-        .get_latest_entity(entity_id)
+    let entities = api
+        .get_entity(
+            api.account_id,
+            GetEntityParams {
+                query: StructuralQuery {
+                    filter: Filter::for_entity_by_entity_id(entity_id),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
+                },
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: None,
+                include_count: false,
+            },
+        )
         .await
-        .expect("could not get entity");
+        .expect("could not get entity")
+        .subgraph
+        .vertices
+        .entities
+        .into_values()
+        .collect::<Vec<_>>();
+    assert_eq!(entities.len(), 1, "unexpected number of entities found");
+    let entity = entities.into_iter().next().unwrap();
     assert_eq!(
         entity.metadata.entity_type_ids,
         [person_entity_type_id()],
         "Entity type ids changed even though none were provided in the patch operation"
     );
 
-    api.patch_entity(PatchEntityParams {
-        entity_id,
-        decision_time: None,
-        entity_type_ids: vec![person_entity_type_id(), org_entity_type_id()],
-        properties: vec![],
-        draft: None,
-        archived: None,
-        confidence: None,
-        provenance: ProvidedEntityEditionProvenance::default(),
-    })
+    api.patch_entity(
+        api.account_id,
+        PatchEntityParams {
+            entity_id,
+            decision_time: None,
+            entity_type_ids: vec![person_entity_type_id(), org_entity_type_id()],
+            properties: vec![],
+            draft: None,
+            archived: None,
+            confidence: None,
+            provenance: ProvidedEntityEditionProvenance::default(),
+        },
+    )
     .await
     .expect("could not patch entity");
 
-    let entity = api
-        .get_latest_entity(entity_id)
+    let entities = api
+        .get_entity(
+            api.account_id,
+            GetEntityParams {
+                query: StructuralQuery {
+                    filter: Filter::for_entity_by_entity_id(entity_id),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
+                },
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: None,
+                include_count: false,
+            },
+        )
         .await
-        .expect("could not get entity");
+        .expect("could not get entity")
+        .subgraph
+        .vertices
+        .entities
+        .into_values()
+        .collect::<Vec<_>>();
+    assert_eq!(entities.len(), 1, "unexpected number of entities found");
+    let entity = entities.into_iter().next().unwrap();
     assert_eq!(
         entity
             .metadata
@@ -418,22 +699,52 @@ async fn type_ids() {
         HashSet::from([person_entity_type_id(), org_entity_type_id()]),
     );
 
-    api.patch_entity(PatchEntityParams {
-        entity_id,
-        decision_time: None,
-        entity_type_ids: vec![person_entity_type_id()],
-        properties: vec![],
-        draft: None,
-        archived: None,
-        confidence: None,
-        provenance: ProvidedEntityEditionProvenance::default(),
-    })
+    api.patch_entity(
+        api.account_id,
+        PatchEntityParams {
+            entity_id,
+            decision_time: None,
+            entity_type_ids: vec![person_entity_type_id()],
+            properties: vec![],
+            draft: None,
+            archived: None,
+            confidence: None,
+            provenance: ProvidedEntityEditionProvenance::default(),
+        },
+    )
     .await
     .expect("could not patch entity");
 
-    let entity = api
-        .get_latest_entity(entity_id)
+    let entities = api
+        .get_entity(
+            api.account_id,
+            GetEntityParams {
+                query: StructuralQuery {
+                    filter: Filter::for_entity_by_entity_id(entity_id),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
+                },
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: None,
+                include_count: false,
+            },
+        )
         .await
-        .expect("could not get entity");
+        .expect("could not get entity")
+        .subgraph
+        .vertices
+        .entities
+        .into_values()
+        .collect::<Vec<_>>();
+    assert_eq!(entities.len(), 1, "unexpected number of entities found");
+    let entity = entities.into_iter().next().unwrap();
+
     assert_eq!(entity.metadata.entity_type_ids, [person_entity_type_id()],);
 }

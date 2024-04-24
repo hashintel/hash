@@ -1,10 +1,29 @@
-use graph::store::{
-    error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
-    BaseUrlAlreadyExists,
+use graph::{
+    store::{
+        error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
+        ontology::{CreateDataTypeParams, GetDataTypesParams, UpdateDataTypesParams},
+        query::Filter,
+        BaseUrlAlreadyExists, ConflictBehavior, DataTypeStore,
+    },
+    subgraph::{
+        edges::GraphResolveDepths,
+        identifier::DataTypeVertexId,
+        query::StructuralQuery,
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
+            VariableTemporalAxisUnresolved,
+        },
+    },
 };
+use graph_types::{
+    ontology::{OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance},
+    owned_by_id::OwnedById,
+};
+use temporal_versioning::TemporalBound;
+use time::OffsetDateTime;
 use type_system::DataType;
 
-use crate::DatabaseTestWrapper;
+use crate::{data_type_relationships, DatabaseTestWrapper};
 
 #[tokio::test]
 async fn insert() {
@@ -17,9 +36,20 @@ async fn insert() {
         .await
         .expect("could not seed database");
 
-    api.create_owned_data_type(boolean_dt)
-        .await
-        .expect("could not create data type");
+    api.create_data_type(
+        api.account_id,
+        CreateDataTypeParams {
+            schema: boolean_dt,
+            classification: OntologyTypeClassificationMetadata::Owned {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+            },
+            relationships: data_type_relationships(),
+            conflict_behavior: ConflictBehavior::Fail,
+            provenance: ProvidedOntologyEditionProvenance::default(),
+        },
+    )
+    .await
+    .expect("could not create data type");
 }
 
 #[tokio::test]
@@ -33,14 +63,47 @@ async fn query() {
         .await
         .expect("could not seed database");
 
-    api.create_owned_data_type(empty_list_dt.clone())
-        .await
-        .expect("could not create data type");
+    api.create_data_type(
+        api.account_id,
+        CreateDataTypeParams {
+            schema: empty_list_dt.clone(),
+            classification: OntologyTypeClassificationMetadata::Owned {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+            },
+            relationships: data_type_relationships(),
+            conflict_behavior: ConflictBehavior::Fail,
+            provenance: ProvidedOntologyEditionProvenance::default(),
+        },
+    )
+    .await
+    .expect("could not create data type");
 
     let data_type = api
-        .get_data_type(empty_list_dt.id())
+        .get_data_type(
+            api.account_id,
+            GetDataTypesParams {
+                query: StructuralQuery {
+                    filter: Filter::for_versioned_url(empty_list_dt.id()),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(
+                            Some(TemporalBound::Unbounded),
+                            None,
+                        ),
+                    },
+                    include_drafts: false,
+                },
+                after: None,
+                limit: None,
+            },
+        )
         .await
-        .expect("could not get data type");
+        .expect("could not get data type")
+        .vertices
+        .data_types
+        .remove(&DataTypeVertexId::from(empty_list_dt.id().clone()))
+        .expect("no data type found");
 
     assert_eq!(data_type.schema, empty_list_dt);
 }
@@ -59,26 +122,85 @@ async fn update() {
         .await
         .expect("could not seed database");
 
-    api.create_owned_data_type(object_dt_v1.clone())
-        .await
-        .expect("could not create data type");
+    api.create_data_type(
+        api.account_id,
+        CreateDataTypeParams {
+            schema: object_dt_v1.clone(),
+            classification: OntologyTypeClassificationMetadata::Owned {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+            },
+            relationships: data_type_relationships(),
+            conflict_behavior: ConflictBehavior::Fail,
+            provenance: ProvidedOntologyEditionProvenance::default(),
+        },
+    )
+    .await
+    .expect("could not create data type");
 
-    api.update_data_type(object_dt_v2.clone())
-        .await
-        .expect("could not update data type");
+    api.update_data_type(
+        api.account_id,
+        UpdateDataTypesParams {
+            schema: object_dt_v2.clone(),
+            relationships: data_type_relationships(),
+            provenance: ProvidedOntologyEditionProvenance::default(),
+        },
+    )
+    .await
+    .expect("could not update data type");
 
     let returned_object_dt_v1 = api
-        .get_data_type(object_dt_v1.id())
+        .get_data_type(
+            api.account_id,
+            GetDataTypesParams {
+                query: StructuralQuery {
+                    filter: Filter::for_versioned_url(object_dt_v1.id()),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(
+                            Some(TemporalBound::Unbounded),
+                            None,
+                        ),
+                    },
+                    include_drafts: false,
+                },
+                after: None,
+                limit: None,
+            },
+        )
         .await
-        .expect("could not get property type");
+        .expect("could not get data type")
+        .vertices
+        .data_types
+        .remove(&DataTypeVertexId::from(object_dt_v1.id().clone()))
+        .expect("no data type found");
 
-    // TODO: we probably want to be testing more interesting queries, checking an update should
-    //  probably use getLatestVersion
-    //  https://app.asana.com/0/0/1202884883200974/f
     let returned_object_dt_v2 = api
-        .get_data_type(object_dt_v2.id())
+        .get_data_type(
+            api.account_id,
+            GetDataTypesParams {
+                query: StructuralQuery {
+                    filter: Filter::for_versioned_url(object_dt_v2.id()),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(
+                            Some(TemporalBound::Unbounded),
+                            None,
+                        ),
+                    },
+                    include_drafts: false,
+                },
+                after: None,
+                limit: None,
+            },
+        )
         .await
-        .expect("could not get property type");
+        .expect("could not get data type")
+        .vertices
+        .data_types
+        .remove(&DataTypeVertexId::from(object_dt_v2.id().clone()))
+        .expect("no data type found");
 
     assert_eq!(object_dt_v1, returned_object_dt_v1.schema);
     assert_eq!(object_dt_v2, returned_object_dt_v2.schema);
@@ -98,12 +220,34 @@ async fn insert_same_base_url() {
         .await
         .expect("could not seed database");
 
-    api.create_owned_data_type(object_dt_v1.clone())
-        .await
-        .expect("could not create data type");
+    api.create_data_type(
+        api.account_id,
+        CreateDataTypeParams {
+            schema: object_dt_v1.clone(),
+            classification: OntologyTypeClassificationMetadata::Owned {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+            },
+            relationships: data_type_relationships(),
+            conflict_behavior: ConflictBehavior::Fail,
+            provenance: ProvidedOntologyEditionProvenance::default(),
+        },
+    )
+    .await
+    .expect("could not create data type");
 
     let report = api
-        .create_owned_data_type(object_dt_v1.clone())
+        .create_data_type(
+            api.account_id,
+            CreateDataTypeParams {
+                schema: object_dt_v1.clone(),
+                classification: OntologyTypeClassificationMetadata::Owned {
+                    owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                },
+                relationships: data_type_relationships(),
+                conflict_behavior: ConflictBehavior::Fail,
+                provenance: ProvidedOntologyEditionProvenance::default(),
+            },
+        )
         .await
         .expect_err("could create data type");
     assert!(
@@ -112,7 +256,18 @@ async fn insert_same_base_url() {
     );
 
     let report = api
-        .create_owned_data_type(object_dt_v2.clone())
+        .create_data_type(
+            api.account_id,
+            CreateDataTypeParams {
+                schema: object_dt_v2.clone(),
+                classification: OntologyTypeClassificationMetadata::Owned {
+                    owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                },
+                relationships: data_type_relationships(),
+                conflict_behavior: ConflictBehavior::Fail,
+                provenance: ProvidedOntologyEditionProvenance::default(),
+            },
+        )
         .await
         .expect_err("could create data type");
     assert!(
@@ -121,7 +276,18 @@ async fn insert_same_base_url() {
     );
 
     let report = api
-        .create_external_data_type(object_dt_v1.clone())
+        .create_data_type(
+            api.account_id,
+            CreateDataTypeParams {
+                schema: object_dt_v1,
+                classification: OntologyTypeClassificationMetadata::External {
+                    fetched_at: OffsetDateTime::now_utc(),
+                },
+                relationships: data_type_relationships(),
+                conflict_behavior: ConflictBehavior::Fail,
+                provenance: ProvidedOntologyEditionProvenance::default(),
+            },
+        )
         .await
         .expect_err("could create data type");
     assert!(
@@ -130,7 +296,18 @@ async fn insert_same_base_url() {
     );
 
     let report = api
-        .create_external_data_type(object_dt_v2.clone())
+        .create_data_type(
+            api.account_id,
+            CreateDataTypeParams {
+                schema: object_dt_v2,
+                classification: OntologyTypeClassificationMetadata::External {
+                    fetched_at: OffsetDateTime::now_utc(),
+                },
+                relationships: data_type_relationships(),
+                conflict_behavior: ConflictBehavior::Fail,
+                provenance: ProvidedOntologyEditionProvenance::default(),
+            },
+        )
         .await
         .expect_err("could create data type");
     assert!(
@@ -154,7 +331,14 @@ async fn wrong_update_order() {
         .expect("could not seed database");
 
     let report = api
-        .update_data_type(object_dt_v1.clone())
+        .update_data_type(
+            api.account_id,
+            UpdateDataTypesParams {
+                schema: object_dt_v1.clone(),
+                relationships: data_type_relationships(),
+                provenance: ProvidedOntologyEditionProvenance::default(),
+            },
+        )
         .await
         .expect_err("could create data type");
     assert!(
@@ -162,12 +346,30 @@ async fn wrong_update_order() {
         "wrong error, expected `OntologyVersionDoesNotExist`, got {report:?}"
     );
 
-    api.create_owned_data_type(object_dt_v1.clone())
-        .await
-        .expect("could not create data type");
+    api.create_data_type(
+        api.account_id,
+        CreateDataTypeParams {
+            schema: object_dt_v1.clone(),
+            classification: OntologyTypeClassificationMetadata::Owned {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+            },
+            relationships: data_type_relationships(),
+            conflict_behavior: ConflictBehavior::Fail,
+            provenance: ProvidedOntologyEditionProvenance::default(),
+        },
+    )
+    .await
+    .expect("could not create data type");
 
     let report = api
-        .update_data_type(object_dt_v1.clone())
+        .update_data_type(
+            api.account_id,
+            UpdateDataTypesParams {
+                schema: object_dt_v1.clone(),
+                relationships: data_type_relationships(),
+                provenance: ProvidedOntologyEditionProvenance::default(),
+            },
+        )
         .await
         .expect_err("could update data type");
     assert!(
@@ -175,12 +377,26 @@ async fn wrong_update_order() {
         "wrong error, expected `OntologyVersionDoesNotExist`, got {report:?}"
     );
 
-    api.update_data_type(object_dt_v2.clone())
-        .await
-        .expect("could not update data type");
+    api.update_data_type(
+        api.account_id,
+        UpdateDataTypesParams {
+            schema: object_dt_v2.clone(),
+            relationships: data_type_relationships(),
+            provenance: ProvidedOntologyEditionProvenance::default(),
+        },
+    )
+    .await
+    .expect("could not update data type");
 
     let report = api
-        .update_data_type(object_dt_v2.clone())
+        .update_data_type(
+            api.account_id,
+            UpdateDataTypesParams {
+                schema: object_dt_v2.clone(),
+                relationships: data_type_relationships(),
+                provenance: ProvidedOntologyEditionProvenance::default(),
+            },
+        )
         .await
         .expect_err("could update data type");
     assert!(
@@ -203,12 +419,30 @@ async fn update_external_with_owned() {
         .await
         .expect("could not seed database");
 
-    api.create_external_data_type(object_dt_v1.clone())
-        .await
-        .expect("could not create data type");
+    api.create_data_type(
+        api.account_id,
+        CreateDataTypeParams {
+            schema: object_dt_v1,
+            classification: OntologyTypeClassificationMetadata::External {
+                fetched_at: OffsetDateTime::now_utc(),
+            },
+            relationships: data_type_relationships(),
+            conflict_behavior: ConflictBehavior::Fail,
+            provenance: ProvidedOntologyEditionProvenance::default(),
+        },
+    )
+    .await
+    .expect("could not create data type");
 
     let report = api
-        .update_data_type(object_dt_v2.clone())
+        .update_data_type(
+            api.account_id,
+            UpdateDataTypesParams {
+                schema: object_dt_v2.clone(),
+                relationships: data_type_relationships(),
+                provenance: ProvidedOntologyEditionProvenance::default(),
+            },
+        )
         .await
         .expect_err("could update data type");
     assert!(
@@ -216,12 +450,30 @@ async fn update_external_with_owned() {
         "wrong error, expected `OntologyTypeIsNotOwned`, got {report:?}"
     );
 
-    api.create_external_data_type(object_dt_v2.clone())
-        .await
-        .expect("could not create data type");
+    api.create_data_type(
+        api.account_id,
+        CreateDataTypeParams {
+            schema: object_dt_v2.clone(),
+            classification: OntologyTypeClassificationMetadata::External {
+                fetched_at: OffsetDateTime::now_utc(),
+            },
+            relationships: data_type_relationships(),
+            conflict_behavior: ConflictBehavior::Fail,
+            provenance: ProvidedOntologyEditionProvenance::default(),
+        },
+    )
+    .await
+    .expect("could not create data type");
 
     let report = api
-        .update_data_type(object_dt_v2.clone())
+        .update_data_type(
+            api.account_id,
+            UpdateDataTypesParams {
+                schema: object_dt_v2,
+                relationships: data_type_relationships(),
+                provenance: ProvidedOntologyEditionProvenance::default(),
+            },
+        )
         .await
         .expect_err("could update data type");
     assert!(

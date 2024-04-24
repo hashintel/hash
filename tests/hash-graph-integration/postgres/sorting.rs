@@ -1,22 +1,39 @@
 use std::{borrow::Cow, collections::HashSet};
 
+use authorization::AuthorizationApi;
 use graph::{
     knowledge::EntityQueryPath,
     store::{
-        query::{JsonPath, PathToken},
-        EntityQuerySorting, EntityQuerySortingRecord, NullOrdering, Ordering,
+        knowledge::{CreateEntityParams, GetEntityParams},
+        query::{Filter, JsonPath, PathToken},
+        EntityQuerySorting, EntityQuerySortingRecord, EntityStore, NullOrdering, Ordering,
+    },
+    subgraph::{
+        edges::GraphResolveDepths,
+        identifier::GraphElementVertexId,
+        query::StructuralQuery,
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
+            VariableTemporalAxisUnresolved,
+        },
     },
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::{entity::EntityUuid, PropertyMetadataMap, PropertyObject};
+use graph_types::{
+    knowledge::{
+        entity::{EntityUuid, ProvidedEntityEditionProvenance},
+        PropertyMetadataMap, PropertyObject,
+    },
+    owned_by_id::OwnedById,
+};
 use pretty_assertions::assert_eq;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 use uuid::Uuid;
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
 
-async fn test_root_sorting_chunked<const N: usize, const M: usize>(
-    api: &DatabaseApi<'_>,
+async fn test_root_sorting_chunked<const N: usize, const M: usize, A: AuthorizationApi>(
+    api: &DatabaseApi<'_, A>,
     sort: [(EntityQueryPath<'static>, Ordering, NullOrdering); N],
     expected_order: [PropertyObject; M],
 ) {
@@ -25,8 +42,8 @@ async fn test_root_sorting_chunked<const N: usize, const M: usize>(
     }
 }
 
-async fn test_root_sorting(
-    api: &DatabaseApi<'_>,
+async fn test_root_sorting<A: AuthorizationApi>(
+    api: &DatabaseApi<'_, A>,
     chunk_size: usize,
     sort: impl IntoIterator<Item = (EntityQueryPath<'static>, Ordering, NullOrdering)> + Send,
     expected_order: impl IntoIterator<Item = &PropertyObject> + Send,
@@ -45,16 +62,41 @@ async fn test_root_sorting(
     let mut entities = Vec::new();
 
     loop {
-        let (new_entities, new_cursor) = api
-            .get_all_entities(
-                chunk_size,
-                EntityQuerySorting {
-                    paths: sorting_paths.clone(),
-                    cursor: cursor.take(),
+        let mut response = api
+            .get_entity(
+                api.account_id,
+                GetEntityParams {
+                    query: StructuralQuery {
+                        filter: Filter::All(Vec::new()),
+                        graph_resolve_depths: GraphResolveDepths::default(),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
+                        },
+                        include_drafts: false,
+                    },
+                    sorting: EntityQuerySorting {
+                        paths: sorting_paths.clone(),
+                        cursor: cursor.take(),
+                    },
+                    limit: Some(chunk_size),
+                    include_count: false,
                 },
             )
             .await
-            .expect("could not get entities");
+            .expect("could not get entity");
+
+        let new_entities = response
+            .subgraph
+            .roots
+            .into_iter()
+            .filter_map(|vertex_id| {
+                let GraphElementVertexId::KnowledgeGraph(vertex_id) = vertex_id else {
+                    panic!("unexpected vertex id found: {vertex_id:?}");
+                };
+                response.subgraph.vertices.entities.remove(&vertex_id)
+            })
+            .collect::<Vec<_>>();
         let num_entities = new_entities.len();
         for entity in new_entities {
             assert!(
@@ -67,7 +109,7 @@ async fn test_root_sorting(
         if num_entities < chunk_size {
             break;
         }
-        if let Some(new_cursor) = new_cursor {
+        if let Some(new_cursor) = response.cursor {
             cursor.replace(new_cursor);
         }
     }
@@ -81,7 +123,9 @@ async fn test_root_sorting(
     );
 }
 
-async fn insert(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
+async fn insert<A: AuthorizationApi>(
+    database: &mut DatabaseTestWrapper<A>,
+) -> DatabaseApi<'_, &mut A> {
     let mut api = database
         .seed(
             [data_type::TEXT_V1, data_type::NUMBER_V1],
@@ -131,12 +175,20 @@ async fn insert(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
         let properties: PropertyObject =
             serde_json::from_str(entity).expect("could not parse entity");
         api.create_entity(
-            properties.clone(),
-            vec![type_id.clone()],
-            Some(EntityUuid::new(Uuid::from_u128(idx as u128))),
-            false,
-            None,
-            PropertyMetadataMap::default(),
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: Some(EntityUuid::new(Uuid::from_u128(idx as u128))),
+                decision_time: None,
+                entity_type_ids: vec![type_id.clone()],
+                properties: properties.clone(),
+                confidence: None,
+                property_metadata: PropertyMetadataMap::default(),
+                link_data: None,
+                draft: false,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
         )
         .await
         .expect("could not create entity");
