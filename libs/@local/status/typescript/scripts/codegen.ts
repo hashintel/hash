@@ -93,7 +93,7 @@ const codegen = async ({
 
     const skip =
       (fileName === "package" && fileExtension === ".json") ||
-      fileName.toLowerCase().startsWith("license");
+      (fileName.toLowerCase().startsWith("license") && fileExtension !== ".ts");
 
     if (fileExtension === ".ts") {
       if (rustOutputDir) {
