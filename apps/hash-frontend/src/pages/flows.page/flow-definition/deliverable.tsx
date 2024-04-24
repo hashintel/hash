@@ -1,36 +1,32 @@
-import type { StepRunOutput } from "@local/hash-isomorphic-utils/flows/types";
-import {
-  Box,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Typography,
-} from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { parse } from "papaparse";
 import { useMemo } from "react";
 
-import { Cell } from "../../settings/organizations/shared/cell";
-import { OrgTable } from "../../settings/organizations/shared/org-table";
+import type { FlowRun } from "../../../graphql/api-types.gen";
+import { Csv } from "./deliverable/csv";
 
-export const Deliverable = ({ outputs }: { outputs?: StepRunOutput[] }) => {
+export const Deliverable = ({ outputs }: { outputs?: FlowRun["outputs"] }) => {
   const flowOutputs = useMemo(
     () => outputs?.[0]?.contents?.[0]?.outputs ?? [],
     [outputs],
   );
 
-  const parsedCsv = useMemo(() => {
+  const { parsedCsv, textAnswer } = useMemo(() => {
     const answer = flowOutputs.find((output) => output.outputName === "answer")
       ?.payload.value;
 
     if (typeof answer !== "string") {
-      return null;
+      return { parsedCsv: undefined, textAnswer: undefined };
     }
 
     try {
-      return parse<(string | number | boolean)[]>(answer, { header: false });
+      return {
+        parsedCsv: parse<(string | number | boolean)[]>(answer, {
+          header: false,
+        }),
+      };
     } catch {
-      return null;
+      return { textAnswer: answer };
     }
   }, [flowOutputs]);
 
@@ -45,29 +41,7 @@ export const Deliverable = ({ outputs }: { outputs?: StepRunOutput[] }) => {
       }}
     >
       {parsedCsv ? (
-        <OrgTable sx={{ maxWidth: "100%", overflow: "hidden" }}>
-          <TableHead>
-            <TableRow>
-              {parsedCsv.data[0]?.map((column) => (
-                <Cell key={column.toString()}>{column}</Cell>
-              ))}
-            </TableRow>
-          </TableHead>
-
-          <TableBody>
-            {parsedCsv.data.slice(1).map((row, index) => {
-              return (
-                // eslint-disable-next-line react/no-array-index-key -- no better alternative, arbitrary CSV data
-                <TableRow key={index} sx={{ fontSize: 13 }}>
-                  {row.map((content, idx) => (
-                    // eslint-disable-next-line react/no-array-index-key
-                    <TableCell key={idx}>{content}</TableCell>
-                  ))}
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </OrgTable>
+        <Csv parsedCsv={parsedCsv} />
       ) : (
         <Box
           sx={{
@@ -85,7 +59,8 @@ export const Deliverable = ({ outputs }: { outputs?: StepRunOutput[] }) => {
               fontWeight: 500,
             }}
           >
-            The end output of this task will appear here when ready
+            {textAnswer ??
+              "The end output of this task will appear here when ready"}
           </Typography>
         </Box>
       )}

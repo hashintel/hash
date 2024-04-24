@@ -38,6 +38,7 @@ const constructFlowDefinition = (params: {
   return {
     name: "Research Task",
     flowDefinitionId: "research-task" as EntityUuid,
+    description: "Research task",
     trigger: {
       triggerDefinitionId: "userTrigger",
       description: "User provides research prompt and entity types of interest",
@@ -136,28 +137,25 @@ const constructFlowDefinition = (params: {
         : []),
     ],
     outputs: [
-      {
-        stepId: "2",
-        stepOutputName:
-          "persistedEntities" satisfies OutputNameForAction<"persistEntities">,
-        name: "persistedEntities" as const,
-        payloadKind: "PersistedEntities",
-        array: false,
-        required: true,
-      },
-      ...(includeQuestionAnswerAction
-        ? [
-            {
-              stepId: "3",
-              stepOutputName:
-                "answer" satisfies OutputNameForAction<"answerQuestion">,
-              payloadKind: "Text",
-              name: "answer" as const,
-              array: false,
-              required: true,
-            } as const,
-          ]
-        : []),
+      includeQuestionAnswerAction
+        ? ({
+            stepId: "3",
+            stepOutputName:
+              "answer" satisfies OutputNameForAction<"answerQuestion">,
+            payloadKind: "Text",
+            name: "answer" as const,
+            array: false,
+            required: true,
+          } as const)
+        : {
+            stepId: "2",
+            stepOutputName:
+              "persistedEntities" satisfies OutputNameForAction<"persistEntities">,
+            name: "persistedEntities" as const,
+            payloadKind: "PersistedEntities",
+            array: false,
+            required: true,
+          },
     ],
   };
 };
@@ -271,10 +269,9 @@ export const ResearchTaskFlow: FunctionComponent = () => {
           const status = data.startFlow as RunFlowWorkflowResponse;
 
           if (status.code === StatusCode.Ok) {
-            const persistedEntitiesOutput =
-              status.contents[0]?.flowOutputs?.find(
-                (output) => output.outputName === "persistedEntities",
-              );
+            const persistedEntitiesOutput = status.contents[0]?.outputs?.find(
+              (output) => output.outputName === "persistedEntities",
+            );
 
             if (!persistedEntitiesOutput) {
               throw new Error(
@@ -287,7 +284,7 @@ export const ResearchTaskFlow: FunctionComponent = () => {
             );
 
             if (includeQuestionAnswerAction) {
-              const answerOutput = status.contents[0]?.flowOutputs?.find(
+              const answerOutput = status.contents[0]?.outputs?.find(
                 (output) => output.outputName === "answer",
               );
 

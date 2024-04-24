@@ -12,6 +12,8 @@ export const mapFlowDefinitionToEntityProperties = (
 ): FlowDefinitionProperties => ({
   "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
     flowDefinition.name,
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
+    flowDefinition.description,
   "https://hash.ai/@hash/types/property-type/output-definitions/":
     flowDefinition.outputs,
   "https://hash.ai/@hash/types/property-type/step-definitions/":
@@ -27,11 +29,17 @@ export const mapFlowDefinitionToEntityProperties = (
 export const mapFlowDefinitionEntityToFlowDefinition = (
   entity: Entity<FlowDefinitionProperties>,
 ): FlowDefinition => {
-  const { name, outputDefinitions, stepDefinitions, triggerDefinition } =
-    simplifyProperties(entity.properties);
+  const {
+    name,
+    description,
+    outputDefinitions,
+    stepDefinitions,
+    triggerDefinition,
+  } = simplifyProperties(entity.properties);
 
   return {
     name,
+    description,
     flowDefinitionId: extractEntityUuidFromEntityId(
       entity.metadata.recordId.entityId,
     ),

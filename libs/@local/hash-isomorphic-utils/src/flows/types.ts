@@ -113,10 +113,13 @@ export type InputDefinition = {
   default?: Payload;
 };
 
-export type OutputDefinition<A extends boolean = boolean> = {
+export type OutputDefinition<
+  A extends boolean = boolean,
+  K extends PayloadKind = PayloadKind,
+> = {
   name: string;
   description?: string;
-  payloadKind: PayloadKind;
+  payloadKind: K;
   array: A;
   required: boolean;
 };
@@ -249,6 +252,7 @@ export type StepGroup = {
 
 export type FlowDefinition = {
   name: string;
+  description: string;
   flowDefinitionId: EntityUuid;
   trigger: FlowDefinitionTrigger;
   groups?: StepGroup[];
@@ -333,3 +337,8 @@ export type PersistedEntityLog = {
 };
 
 export type StepProgressLog = PersistedEntityLog | ProposedEntityLog;
+
+export type ProgressLogSignalData = {
+  attempt: number;
+  logs: StepProgressLog[];
+};

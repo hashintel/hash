@@ -1,25 +1,36 @@
 import "reactflow/dist/style.css";
 
+import { useMutation } from "@apollo/client";
+import { PlayIconSolid } from "@hashintel/design-system";
 import { customColors } from "@hashintel/design-system/theme";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   FlowDefinition as FlowDefinitionType,
+  FlowTrigger,
   ProposedEntity,
   StepGroup,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { Entity } from "@local/hash-subgraph";
 import { Box, Stack, Typography } from "@mui/material";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { Edge } from "reactflow";
 import { MarkerType, ReactFlowProvider } from "reactflow";
 
+import type {
+  StartFlowMutation,
+  StartFlowMutationVariables,
+} from "../../graphql/api-types.gen";
+import { startFlowMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { isNonNullable } from "../../lib/typeguards";
+import { Button } from "../../shared/ui/button";
 import { Deliverable } from "./flow-definition/deliverable";
 import { EntityResultTable } from "./flow-definition/entity-result-table";
 import { PersistedEntityGraph } from "./flow-definition/persisted-entity-graph";
+import { RunFlowModal } from "./flow-definition/run-flow-modal";
 import { nodeDimensions } from "./flow-definition/shared/dimensions";
 import { useFlowDefinitionsContext } from "./flow-definition/shared/flow-definitions-context";
 import { useFlowRunsContext } from "./flow-definition/shared/flow-runs-context";
+import { transitionOptions } from "./flow-definition/shared/styles";
 import type { CustomNodeType } from "./flow-definition/shared/types";
 import {
   getFlattenedSteps,
@@ -184,6 +195,8 @@ export const FlowDefinition = () => {
     return getGraphFromFlowDefinition(selectedFlow);
   }, [selectedFlow]);
 
+  const [showRunModal, setShowRunModal] = useState(false);
+
   const nodesAndEdgesByGroup = useMemo(() => {
     const graphsByGroup: Record<
       number,
@@ -305,16 +318,66 @@ export const FlowDefinition = () => {
     [flowRuns, selectedFlow.name],
   );
 
+  const [startFlow] = useMutation<
+    StartFlowMutation,
+    StartFlowMutationVariables
+  >(startFlowMutation);
+
+  const handleRunFlowClicked = () => {
+    if (selectedFlow.trigger.outputs?.length) {
+      setShowRunModal(true);
+    } else {
+      void startFlow({
+        variables: {
+          flowDefinition: selectedFlow,
+          flowTrigger: {
+            triggerDefinitionId: "userTrigger",
+          },
+        },
+      });
+    }
+  };
+
+  const flowDefinitionStateKey = `${selectedFlow.name}`;
+  const flowRunStateKey = `${flowDefinitionStateKey}-${selectedFlowRun?.runId ?? "definition"}`;
+
   return (
     <Box
       sx={{
+        height: "calc(100vh - 60px)",
         width: "100%",
-        background: ({ palette }) => palette.gray[10],
+        background: ({ palette }) =>
+          selectedFlowRun ? palette.gray[10] : "rgb(241, 246, 251)",
         pb: 8,
+        transition: ({ transitions }) =>
+          transitions.create("background", transitionOptions),
       }}
     >
+      <RunFlowModal
+        key={selectedFlow.name}
+        flowDefinition={selectedFlow}
+        open={showRunModal}
+        onClose={() => setShowRunModal(false)}
+        runFlow={(outputs: FlowTrigger["outputs"]) => {
+          void startFlow({
+            variables: {
+              flowDefinition: selectedFlow,
+              flowTrigger: {
+                outputs,
+                triggerDefinitionId: "userTrigger",
+              },
+            },
+          });
+          setShowRunModal(false);
+        }}
+      />
       <Box p={3}>
-        <Box mb={1}>
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          mb={1}
+          sx={{ height: 40 }}
+        >
           <select
             value={selectedFlow.name}
             onChange={(event) => {
@@ -323,6 +386,7 @@ export const FlowDefinition = () => {
               );
               setSelectedFlowRun(null);
             }}
+            style={{ paddingLeft: 10 }}
           >
             {flowDefinitions.map((flow) => (
               <option key={flow.name} value={flow.name}>
@@ -330,19 +394,35 @@ export const FlowDefinition = () => {
               </option>
             ))}
           </select>
-        </Box>
+          {!selectedFlowRun && (
+            <Button onClick={handleRunFlowClicked} size="xs">
+              <PlayIconSolid
+                sx={{
+                  fill: ({ palette }) => palette.blue[40],
+                  fontSize: 14,
+                  mr: 1,
+                }}
+              />
+              Run
+            </Button>
+          )}
+        </Stack>
         {runOptions.length > 0 && (
           <Box mb={1}>
             <select
-              value={selectedFlowRun?.runId}
+              value={selectedFlowRun?.runId ?? "none"}
               onChange={(event) => {
+                const value = event.target.value;
+                if (!value) {
+                  setSelectedFlowRun(null);
+                }
                 setSelectedFlowRun(
                   flowRuns.find((run) => run.runId === event.target.value) ??
                     null,
                 );
               }}
             >
-              <option disabled selected value="disabled">
+              <option selected value="none">
                 -- select a run to view status --
               </option>
               {runOptions.map((run) => (
@@ -355,17 +435,46 @@ export const FlowDefinition = () => {
         )}
       </Box>
       <Box sx={{ px: 3 }}>
-        <SectionLabel text="status" />
+        <SectionLabel text={selectedFlowRun ? "status" : "definition"} />
         <Box
-          sx={({ palette }) => ({
+          sx={({ palette, transitions }) => ({
             background: palette.common.white,
-            border: `1px solid ${palette.gray[20]}`,
+            border: `1px solid ${palette.gray[selectedFlowRun ? 20 : 30]}`,
             borderRadius: 2.5,
+            "& > :first-of-type": {
+              borderTopRightRadius: "10px",
+              borderTopLeftRadius: "10px",
+            },
+            "& > :last-child": {
+              borderBottomRightRadius: "10px",
+              borderBottomLeftRadius: "10px",
+            },
+            "& > :last-child > :first-of-type": {
+              borderBottomLeftRadius: "10px",
+            },
+            transition: transitions.create("border", transitionOptions),
           })}
         >
+          <Stack
+            direction="row"
+            sx={{
+              borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
+              p: 3,
+            }}
+          >
+            <Typography
+              component="span"
+              sx={{ fontSize: 14, fontWeight: 600, mr: 2 }}
+            >
+              {selectedFlow.name}
+            </Typography>
+            <Typography component="span" sx={{ fontSize: 14, fontWeight: 400 }}>
+              {selectedFlow.description}
+            </Typography>
+          </Stack>
           {Object.entries(nodesAndEdgesByGroup).map(
             ([groupId, { group, nodes, edges }]) => (
-              <ReactFlowProvider key={groupId}>
+              <ReactFlowProvider key={`${flowDefinitionStateKey}-${groupId}`}>
                 <Swimlane group={group} nodes={nodes} edges={edges} />
               </ReactFlowProvider>
             ),
@@ -395,16 +504,23 @@ export const FlowDefinition = () => {
           <SectionLabel text="Raw output" />
           <Stack direction="row" gap={1} sx={{ height: "100%", width: "100%" }}>
             <EntityResultTable
+              key={`${flowRunStateKey}-entity-result-table`}
               persistedEntities={persistedEntities}
               proposedEntities={proposedEntities}
             />
-            <PersistedEntityGraph persistedEntities={persistedEntities} />
+            <PersistedEntityGraph
+              key={`${flowRunStateKey}-persisted-entity-graph`}
+              persistedEntities={persistedEntities}
+            />
           </Stack>
         </Box>
         <Box sx={{ width: "40%", pl: 3, pt: 2.5 }}>
           <SectionLabel text="Deliverable" />
 
-          <Deliverable outputs={selectedFlowRun?.outputs ?? []} />
+          <Deliverable
+            key={`${flowRunStateKey}-deliverable`}
+            outputs={selectedFlowRun?.outputs ?? []}
+          />
         </Box>
       </Stack>
     </Box>
