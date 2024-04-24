@@ -559,20 +559,11 @@ export const proposeEntities = async (params: {
 
           inferenceState.proposedEntityCreationsByType = Object.entries(
             validProposedEntitiesByType,
-          ).reduce((prev, [simplifiedEntityTypeId, proposedEntitiesOfType]) => {
-            const entityTypeId =
-              simplifiedEntityTypeIdMappings[simplifiedEntityTypeId];
-
-            if (!entityTypeId) {
-              throw new Error(
-                `Could not find entity type id for simplified entity type id ${simplifiedEntityTypeId}`,
-              );
-            }
-
+          ).reduce((prev, [entityTypeId, proposedEntitiesOfType]) => {
             return {
               ...prev,
               [entityTypeId]: [
-                ...(prev[entityTypeId] ?? []),
+                ...(prev[entityTypeId as VersionedUrl] ?? []),
                 ...proposedEntitiesOfType
                   .filter(
                     ({ entityId }) =>
@@ -584,7 +575,7 @@ export const proposeEntities = async (params: {
                       ) &&
                       // Ignore entities we've inferred in a previous iteration, otherwise we'll get duplicates
                       !inferenceState.proposedEntityCreationsByType[
-                        entityTypeId
+                        entityTypeId as VersionedUrl
                       ]?.some(
                         (existingEntity) =>
                           existingEntity.entityId === entityId,
@@ -596,7 +587,7 @@ export const proposeEntities = async (params: {
                       ...proposedEntity
                     }) => {
                       const { simplifiedPropertyTypeMappings } =
-                        entityTypes[entityTypeId] ?? {};
+                        entityTypes[entityTypeId as VersionedUrl] ?? {};
 
                       if (!simplifiedPropertyTypeMappings) {
                         throw new Error(
