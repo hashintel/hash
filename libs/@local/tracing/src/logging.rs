@@ -178,6 +178,14 @@ pub struct FileRotation {
     )]
     pub filename_suffix: Option<String>,
 
+    #[cfg_attr(
+        feature = "clap",
+        clap(
+            id = "logging-file-max-log-files",
+            long = "logging-file-max-log-files",
+            global = true
+        )
+    )]
     pub max_log_files: Option<usize>,
 }
 
