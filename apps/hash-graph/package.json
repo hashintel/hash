@@ -28,18 +28,13 @@
     "test:unit": "just test-unit"
   },
   "dependencies": {
-    "@blockprotocol/type-system-rs": "0.0.0-private",
-    "@local/codec-rs": "0.0.0-private",
-    "@local/hash-authorization-rs": "0.0.0-private",
-    "@local/hash-graph-types-rs": "0.0.0-private",
-    "@local/hash-validation-rs": "0.0.0-private",
-    "@local/status-rust": "0.0.0-private",
-    "@local/temporal-client-rs": "0.0.0-private",
-    "@local/temporal-versioning-rs": "0.0.0-private",
-    "@local/tracing-rs": "0.0.0-private"
+    "@rust/graph": "0.0.0-private",
+    "@rust/graph-api": "0.0.0-private",
+    "@rust/hash-graph": "0.0.0-private",
+    "@rust/type-fetcher": "0.0.0-private"
   },
   "devDependencies": {
-    "@tests/hash-graph-test-data-rs": "0.0.0-private",
+    "@rust/graph-test-data": "0.0.0-private",
     "httpyac": "6.12.2",
     "quicktype": "^16.0.43",
     "tsx": "3.13.0",
