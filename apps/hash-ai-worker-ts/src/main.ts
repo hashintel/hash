@@ -18,6 +18,7 @@ import { createGraphClient } from "@local/hash-backend-utils/create-graph-client
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { SentryActivityInboundInterceptor } from "@local/hash-backend-utils/temporal/interceptors/activities/sentry";
 import { sentrySinks } from "@local/hash-backend-utils/temporal/sinks/sentry";
+import { createVaultClient } from "@local/hash-backend-utils/vault";
 import { defaultSinks, NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 
@@ -76,6 +77,11 @@ async function run() {
     port: parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10),
   });
 
+  const vaultClient = createVaultClient();
+  if (!vaultClient) {
+    throw new Error("Vault client not created");
+  }
+
   const worker = await Worker.create({
     ...workflowOption(),
     activities: {
@@ -87,6 +93,7 @@ async function run() {
       }),
       ...createFlowActivities({
         graphApiClient,
+        vaultClient,
       }),
     },
     connection: await NativeConnection.connect({

@@ -12,10 +12,9 @@ import type {
   Entity,
   EntityId,
   EntityRootType,
-  Subgraph,
 } from "@local/hash-subgraph";
 
-import { getLatestEntityById } from "./shared/graph-requests";
+import { getLatestEntityById } from "../shared/graph-requests";
 
 export const getSubgraphFromBlockProtocolQueryEntity = async ({
   authentication,
@@ -74,24 +73,3 @@ export const getSubgraphFromBlockProtocolQueryEntity = async ({
     authentication.actorId,
   );
 };
-
-export const createGraphActivities = ({
-  graphApiClient,
-}: {
-  graphApiClient: GraphApi;
-}) => ({
-  async getSubgraphFromBlockProtocolQueryEntity({
-    authentication,
-    queryEntityId,
-  }: {
-    authentication: { actorId: AccountId };
-    queryEntityId: EntityId;
-  }): Promise<Subgraph<EntityRootType>> {
-    return await getSubgraphFromBlockProtocolQueryEntity({
-      authentication,
-      graphApiClient,
-      queryEntityId,
-      traversalDepth: 2, // @todo make configurable – should be using a Structural Query rather than BP Query
-    });
-  },
-});

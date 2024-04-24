@@ -134,7 +134,7 @@ export const createUserSecret = async <
   if (archiveExistingSecrets) {
     const linkAndSecretPairs = await getSecretEntitiesForIntegration({
       authentication,
-      graphApi,
+      graphApiClient: graphApi,
       integrationEntityId: sourceIntegrationEntityId,
     });
 

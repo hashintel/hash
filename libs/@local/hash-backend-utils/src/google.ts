@@ -1,7 +1,10 @@
+import type { ImpureGraphFunction } from "@apps/hash-api/src/graph/context-types";
+import { getEntities } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import { getSecretEntitiesForIntegration } from "@local/hash-backend-utils/user-secret";
 import type { GraphApi } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -56,21 +59,84 @@ export const createGoogleOAuth2Client = () => {
   );
 };
 
+/**
+ * Get a Google Account entity by the account id in Google
+ */
+export const getGoogleAccountById = async ({
+  graphApiClient,
+  googleAccountId,
+  userAccountId,
+}: {
+  userAccountId: AccountId;
+  googleAccountId: string;
+  graphApiClient: GraphApi;
+}): Promise<Entity<GoogleAccountProperties> | undefined> => {
+  const entities = await graphApiClient
+    .getEntitiesByQuery(userAccountId, {
+      query: {
+        filter: {
+          all: [
+            {
+              equal: [{ path: ["ownedById"] }, { parameter: userAccountId }],
+            },
+            { equal: [{ path: ["archived"] }, { parameter: false }] },
+            generateVersionedUrlMatchingFilter(
+              googleEntityTypes.account.entityTypeId,
+              { ignoreParents: true },
+            ),
+            {
+              equal: [
+                {
+                  path: [
+                    "properties",
+                    "https://hash.ai/@google/types/property-type/account-id/",
+                  ],
+                },
+                { parameter: googleAccountId },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
+      },
+    })
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
+        data.subgraph,
+        userAccountId,
+      );
+
+      return getRoots(subgraph);
+    });
+
+  if (entities.length > 1) {
+    throw new Error(
+      `More than one Google Account with id ${googleAccountId} found for user ${userAccountId}`,
+    );
+  }
+
+  const entity = entities[0];
+
+  return entity as Entity<GoogleAccountProperties> | undefined;
+};
+
 export const getTokensForGoogleAccount = async ({
   googleAccountEntityId,
-  graphApi,
+  graphApiClient,
   userAccountId,
   vaultClient,
 }: {
   googleAccountEntityId: EntityId;
-  graphApi: GraphApi;
+  graphApiClient: GraphApi;
   userAccountId: AccountId;
   vaultClient: VaultClient;
 }): Promise<Auth.Credentials | null> => {
   const secretAndLinkPairs = await getSecretEntitiesForIntegration({
     authentication: { actorId: userAccountId },
     integrationEntityId: googleAccountEntityId,
-    graphApi,
+    graphApiClient,
   });
 
   if (!secretAndLinkPairs[0]) {

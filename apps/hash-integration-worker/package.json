@@ -32,7 +32,6 @@
     "agentkeepalive": "4.2.1",
     "axios": "1.6.0",
     "dotenv-flow": "3.2.0",
-    "googleapis": "133.0.0",
     "tsx": "3.13.0",
     "typescript": "5.1.6"
   },

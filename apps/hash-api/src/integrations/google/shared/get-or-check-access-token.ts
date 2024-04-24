@@ -1,11 +1,12 @@
 import {
   createGoogleOAuth2Client,
+  getGoogleAccountById,
   getTokensForGoogleAccount,
 } from "@local/hash-backend-utils/google";
+import { context } from "@opentelemetry/api";
 import type { Request, Response } from "express";
 
 import { enabledIntegrations } from "../../enabled-integrations";
-import { getGoogleAccountById } from "./get-google-account";
 
 /**
  * Shared function to retrieve a Google access token for an Express request,
@@ -36,19 +37,14 @@ export const getGoogleAccessTokenForExpressRequest = async ({
     return;
   }
 
-  const authentication = { actorId: req.user.accountId };
-
   /**
    * Get the Google Account and ensure it has an available token
    */
-  const googleAccount = await getGoogleAccountById(
-    req.context,
-    authentication,
-    {
-      userAccountId: req.user.accountId,
-      googleAccountId,
-    },
-  );
+  const googleAccount = await getGoogleAccountById({
+    graphApiClient: req.context.graphApi,
+    userAccountId: req.user.accountId,
+    googleAccountId,
+  });
 
   if (!googleAccount) {
     res.status(404).send({
@@ -58,7 +54,7 @@ export const getGoogleAccessTokenForExpressRequest = async ({
   }
 
   const tokens = await getTokensForGoogleAccount({
-    graphApi: req.context.graphApi,
+    graphApiClient: req.context.graphApi,
     googleAccountEntityId: googleAccount.metadata.recordId.entityId,
     userAccountId: req.user.accountId,
     vaultClient: req.context.vaultClient,

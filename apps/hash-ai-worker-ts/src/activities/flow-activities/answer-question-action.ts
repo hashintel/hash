@@ -2,6 +2,7 @@ import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
 import type { GraphApi } from "@local/hash-graph-client";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { StepOutput } from "@local/hash-isomorphic-utils/flows/types";
+import { textFormats } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -39,8 +40,20 @@ const answerTools: LlmToolDefinition[] = [
       type: "object",
       properties: {
         answer: {
-          type: "string",
+          type: "object",
           description: "The answer to the question, if one can be provided.",
+          properties: {
+            format: {
+              type: "string",
+              enum: textFormats,
+              description:
+                "The format of the answer 'content'. Use 'Plain' if no particular formatting is applied",
+            },
+            content: {
+              type: "string",
+              description: "The content of the answer",
+            },
+          },
         },
         explanation: {
           type: "string",

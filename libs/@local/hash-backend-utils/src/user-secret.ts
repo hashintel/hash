@@ -24,13 +24,13 @@ import { getEntityRevision, getRoots } from "@local/hash-subgraph/stdlib";
 
 export const getSecretEntitiesForIntegration = async ({
   authentication,
-  graphApi,
+  graphApiClient,
   integrationEntityId,
 }: {
   authentication: {
     actorId: AccountId;
   };
-  graphApi: GraphApi;
+  graphApiClient: GraphApi;
   integrationEntityId: EntityId;
 }): Promise<
   {
@@ -38,7 +38,7 @@ export const getSecretEntitiesForIntegration = async ({
     userSecret: Entity<UserSecretProperties>;
   }[]
 > => {
-  return await graphApi
+  return await graphApiClient
     .getEntitiesByQuery(authentication.actorId, {
       query: {
         filter: {

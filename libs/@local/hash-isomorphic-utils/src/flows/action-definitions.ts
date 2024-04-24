@@ -17,6 +17,7 @@ const actionDefinitionIds = [
   "researchEntities",
   "getWebPageSummary",
   "answerQuestion",
+  "writeGoogleSheet",
 ] as const;
 
 export type ActionDefinitionId = (typeof actionDefinitionIds)[number];
@@ -377,6 +378,64 @@ const actionDefinitionsAsConst = {
     outputs: [
       {
         payloadKind: "Text",
+        description: "The answer to the question, if one can be provided.",
+        name: "answer",
+        array: false,
+        required: false,
+      },
+      {
+        payloadKind: "Text",
+        name: "explanation",
+        description:
+          "An explanation of the methodology and supporting context used to reach the answer, OR if no answer was provided, an explanation of why not, and what further data may help answer the question.",
+        array: false,
+        required: true,
+      },
+      {
+        payloadKind: "Number",
+        name: "confidence",
+        description:
+          "Confidence score of the answer, expressed as a number between 0 and 1",
+        array: false,
+        required: false,
+      },
+      {
+        description: "Any source code used to generate the answer .",
+        payloadKind: "Text",
+        name: "sourceCode",
+        array: false,
+        required: false,
+      },
+    ],
+  },
+  writeGoogleSheet: {
+    actionDefinitionId: "writeGoogleSheet",
+    name: "Write Google Sheet Action",
+    description: "Writes the requested data to the specified Google Sheet",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "googleAccountId",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "spreadsheetId",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Entity", "PersistedEntities"],
+        name: "entities",
+        required: false,
+        array: true,
+      },
+    ],
+    outputs: [
+      {
+        payloadKind: "FormattedText",
         description: "The answer to the question, if one can be provided.",
         name: "answer",
         array: false,

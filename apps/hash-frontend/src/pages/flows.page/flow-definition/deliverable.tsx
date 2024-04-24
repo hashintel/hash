@@ -21,7 +21,7 @@ export const Deliverable = ({ outputs }: { outputs?: FlowRun["outputs"] }) => {
 
     try {
       return {
-        parsedCsv: parse<(string | number | boolean)[]>(answer, {
+        parsedCsv: parse<string[]>(answer, {
           header: false,
         }),
       };

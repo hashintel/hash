@@ -67,7 +67,17 @@ export type PersistedEntities = {
   failedEntityProposals: FailedEntityProposal[];
 };
 
+export const textFormats = ["CSV", "HTML", "Markdown", "Plain"] as const;
+
+export type TextFormat = (typeof textFormats)[number];
+
+export type FormattedText = {
+  content: string;
+  format: TextFormat;
+};
+
 export type PayloadKindValues = {
+  FormattedText: FormattedText;
   Text: string;
   Number: number;
   Boolean: boolean;

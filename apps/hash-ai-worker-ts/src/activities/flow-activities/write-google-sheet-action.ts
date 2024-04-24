@@ -1,44 +1,45 @@
 import {
   createGoogleOAuth2Client,
-  getGoogleSheetsIntegrationEntities,
+  getGoogleAccountById,
   getTokensForGoogleAccount,
 } from "@local/hash-backend-utils/google";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
 import type { GraphApi } from "@local/hash-graph-client";
-import type {
-  AccountId,
-  EntityId,
-  EntityRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
+import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { google } from "googleapis";
 
-import { createSheetRequestsFromEntitySubgraph } from "./google-activities/convert-subgraph-to-sheet-requests";
+import type { FlowActionActivity } from "./types";
+import { createSheetRequestsFromEntitySubgraph } from "./write-google-sheet-action/convert-subgraph-to-sheet-requests";
 
-export const writeSubgraphToGoogleSheet = async ({
-  audience,
-  entitySubgraph,
-  googleAccountEntityId,
-  graphApi,
-  spreadsheetId,
-  userAccountId,
-  vaultClient,
-}: {
-  audience: "human" | "machine";
-  /**
-   * A subgraph containing the entities to write and all related types
-   */
-  entitySubgraph: Subgraph<EntityRootType>;
-  graphApi: GraphApi;
-  googleAccountEntityId: EntityId;
-  spreadsheetId: string;
-  userAccountId: AccountId;
+export const writeGoogleSheetAction: FlowActionActivity<{
+  graphApiClient: GraphApi;
   vaultClient: VaultClient;
-}) => {
+}> = async ({ graphApiClient, inputs, userAuthentication, vaultClient }) => {
+  const { googleAccountId, spreadsheetId } = getSimplifiedActionInputs({
+    inputs,
+    actionType: "writeGoogleSheet",
+  });
+
+  /**
+   * Get the Google Account and ensure it has an available token
+   */
+  const googleAccount = await getGoogleAccountById({
+    googleAccountId,
+    graphApiClient,
+    userAccountId: userAuthentication.actorId,
+  });
+
+  const googleAccountEntityId = googleAccount.metadata.recordId.entityId;
+  const userAccountId = userAuthentication.actorId;
+
+  if (!googleAccount) {
+    throw new Error(`Google account with id ${googleAccountId} not found.`);
+  }
+
   const tokens = await getTokensForGoogleAccount({
     googleAccountEntityId,
-    graphApi,
-    userAccountId,
+    graphApiClient,
+    userAccountId: userAuthentication.actorId,
     vaultClient,
   });
 
@@ -99,43 +100,3 @@ export const writeSubgraphToGoogleSheet = async ({
     },
   });
 };
-
-export const createGoogleActivities = ({
-  graphApiClient,
-  vaultClient,
-}: {
-  graphApiClient: GraphApi;
-  vaultClient: VaultClient;
-}) => ({
-  getGoogleSheetsIntegrationEntities(params: {
-    authentication: { actorId: AccountId };
-    integrationEntityId: EntityId;
-  }) {
-    return getGoogleSheetsIntegrationEntities({
-      ...params,
-      graphApi: graphApiClient,
-    });
-  },
-  getTokensForGoogleAccount(params: {
-    googleAccountEntityId: EntityId;
-    userAccountId: AccountId;
-    vaultClient: VaultClient;
-  }) {
-    return getTokensForGoogleAccount({
-      ...params,
-      graphApi: graphApiClient,
-    });
-  },
-  writeSubgraphToGoogleSheet(
-    params: Omit<
-      Parameters<typeof writeSubgraphToGoogleSheet>[0],
-      "graphApi" | "vaultClient"
-    >,
-  ) {
-    return writeSubgraphToGoogleSheet({
-      ...params,
-      graphApi: graphApiClient,
-      vaultClient,
-    });
-  },
-});
