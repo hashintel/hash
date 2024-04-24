@@ -1,13 +1,16 @@
 pub use bytes::Bytes;
 use error_stack::{Result, ResultExt};
-use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::{
+    io::{AsyncRead, AsyncWrite},
+    pin,
+};
 
 use self::{
     body::{RequestBody, RequestBodyContext},
     codec::{DecodeError, EncodeError},
     header::RequestHeader,
 };
-use crate::codec::{Decode, DecodePure, Encode};
+use crate::codec::{Decode, Encode};
 
 pub mod authorization;
 pub mod begin;
@@ -95,7 +98,9 @@ pub struct Request {
 impl Encode for Request {
     type Error = EncodeError;
 
-    async fn encode(&self, mut write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, mut write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
+        pin!(write);
+
         self.header
             .apply_body(&self.body)
             .encode(&mut write)
@@ -106,11 +111,14 @@ impl Encode for Request {
     }
 }
 
-impl DecodePure for Request {
+impl Decode for Request {
+    type Context = ();
     type Error = DecodeError;
 
-    async fn decode_pure(mut read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
-        let header = RequestHeader::decode_pure(&mut read)
+    async fn decode(mut read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
+        pin!(read);
+
+        let header = RequestHeader::decode(&mut read, ())
             .await
             .change_context(DecodeError)?;
         let body = RequestBody::decode(read, RequestBodyContext::from_flags(header.flags))

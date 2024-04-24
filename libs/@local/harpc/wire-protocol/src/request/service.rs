@@ -2,9 +2,12 @@ use std::io;
 
 use error_stack::Result;
 use harpc_types::service::{ServiceId, ServiceVersion};
-use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::{
+    io::{AsyncRead, AsyncWrite},
+    pin,
+};
 
-use crate::codec::{DecodePure, Encode};
+use crate::codec::{Decode, Encode};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -16,18 +19,23 @@ pub struct ServiceDescriptor {
 impl Encode for ServiceDescriptor {
     type Error = io::Error;
 
-    async fn encode(&self, mut write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
+        pin!(write);
+
         self.id.encode(&mut write).await?;
         self.version.encode(write).await
     }
 }
 
-impl DecodePure for ServiceDescriptor {
+impl Decode for ServiceDescriptor {
+    type Context = ();
     type Error = io::Error;
 
-    async fn decode_pure(mut read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
-        let id = ServiceId::decode_pure(&mut read).await?;
-        let version = ServiceVersion::decode_pure(read).await?;
+    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
+        pin!(read);
+
+        let id = ServiceId::decode(&mut read, ()).await?;
+        let version = ServiceVersion::decode(read, ()).await?;
 
         Ok(Self { id, version })
     }

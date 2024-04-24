@@ -1,9 +1,12 @@
 use std::io;
 
 use error_stack::{Report, Result, ResultExt};
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tokio::{
+    io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
+    pin,
+};
 
-use crate::codec::{DecodePure, Encode};
+use crate::codec::{Decode, Encode};
 
 const MAGIC_LEN: usize = 5;
 const MAGIC: &[u8; MAGIC_LEN] = b"harpc";
@@ -19,16 +22,17 @@ impl ProtocolVersion {
 impl Encode for ProtocolVersion {
     type Error = io::Error;
 
-    async fn encode(&self, write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
         self.0.encode(write).await
     }
 }
 
-impl DecodePure for ProtocolVersion {
+impl Decode for ProtocolVersion {
+    type Context = ();
     type Error = io::Error;
 
-    async fn decode_pure(read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
-        u8::decode_pure(read).await.map(Self)
+    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
+        u8::decode(read, ()).await.map(Self)
     }
 }
 
@@ -41,7 +45,9 @@ pub struct Protocol {
 impl Encode for Protocol {
     type Error = io::Error;
 
-    async fn encode(&self, mut write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
+        pin!(write);
+
         write.write_all(MAGIC).await?;
         self.version.encode(write).await
     }
@@ -58,10 +64,13 @@ pub enum ProtocolDecodeError {
     Io,
 }
 
-impl DecodePure for Protocol {
+impl Decode for Protocol {
+    type Context = ();
     type Error = ProtocolDecodeError;
 
-    async fn decode_pure(mut read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
+    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
+        pin!(read);
+
         let mut buffer = [0_u8; MAGIC_LEN];
         read.read_exact(&mut buffer)
             .await
@@ -74,7 +83,7 @@ impl DecodePure for Protocol {
             }));
         }
 
-        let version = ProtocolVersion::decode_pure(read)
+        let version = ProtocolVersion::decode(read, ())
             .await
             .change_context(ProtocolDecodeError::Io)?;
 

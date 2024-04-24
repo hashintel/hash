@@ -1,8 +1,9 @@
 use std::io;
 
 use error_stack::{Report, Result, ResultExt};
+use tokio::io::{AsyncRead, AsyncWrite};
 
-use crate::codec::{DecodePure, Encode};
+use crate::codec::{Decode, Encode};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -39,10 +40,7 @@ impl From<ResponseKind> for u8 {
 impl Encode for ResponseKind {
     type Error = io::Error;
 
-    async fn encode(
-        &self,
-        write: impl tokio::io::AsyncWrite + Unpin + Send,
-    ) -> Result<(), Self::Error> {
+    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
         u8::from(*self).encode(write).await
     }
 }
@@ -55,13 +53,12 @@ pub enum ResponseKindDecodeError {
     Io,
 }
 
-impl DecodePure for ResponseKind {
+impl Decode for ResponseKind {
+    type Context = ();
     type Error = ResponseKindDecodeError;
 
-    async fn decode_pure(
-        read: impl tokio::io::AsyncRead + Unpin + Send,
-    ) -> Result<Self, Self::Error> {
-        let value = u8::decode_pure(read)
+    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
+        let value = u8::decode(read, ())
             .await
             .change_context(ResponseKindDecodeError::Io)?;
 

@@ -2,9 +2,12 @@ use std::io;
 
 use enumflags2::BitFlags;
 use error_stack::{Report, Result, ResultExt};
-use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::{
+    io::{AsyncRead, AsyncWrite},
+    pin,
+};
 
-use crate::codec::{DecodePure, Encode};
+use crate::codec::{Decode, Encode};
 
 // TODO: this might be problematic in the future, as it only allows for 16 different encodings.
 // we could also use a more packed encoding, in that case `Accept` would need to not be `BitFlag`
@@ -22,7 +25,7 @@ pub enum Encoding {
 impl Encode for Encoding {
     type Error = io::Error;
 
-    async fn encode(&self, write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
         (*self as u16).encode(write).await
     }
 }
@@ -37,11 +40,12 @@ pub enum EncodingDecodeError {
     Io,
 }
 
-impl DecodePure for Encoding {
+impl Decode for Encoding {
+    type Context = ();
     type Error = EncodingDecodeError;
 
-    async fn decode_pure(read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
-        let value = u16::decode_pure(read)
+    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
+        let value = u16::decode(read, ())
             .await
             .change_context(EncodingDecodeError::Io)?;
 
@@ -82,16 +86,19 @@ impl AcceptEncoding {
 impl Encode for AcceptEncoding {
     type Error = io::Error;
 
-    async fn encode(&self, write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
+        pin!(write);
+
         self.0.bits().encode(write).await
     }
 }
 
-impl DecodePure for AcceptEncoding {
+impl Decode for AcceptEncoding {
+    type Context = ();
     type Error = EncodingDecodeError;
 
-    async fn decode_pure(read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
-        let value = u16::decode_pure(read)
+    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
+        let value = u16::decode(read, ())
             .await
             .change_context(EncodingDecodeError::Io)?;
 

@@ -1,11 +1,14 @@
 use std::io;
 
 use error_stack::{Result, ResultExt};
-use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::{
+    io::{AsyncRead, AsyncWrite},
+    pin,
+};
 
 use super::codec::DecodeError;
 use crate::{
-    codec::{DecodePure, Encode},
+    codec::{Decode, Encode},
     encoding::{AcceptEncoding, Encoding},
 };
 
@@ -19,20 +22,25 @@ pub struct EncodingHeader {
 impl Encode for EncodingHeader {
     type Error = io::Error;
 
-    async fn encode(&self, mut write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
+        pin!(write);
+
         self.encoding.encode(&mut write).await?;
         self.accept.encode(write).await
     }
 }
 
-impl DecodePure for EncodingHeader {
+impl Decode for EncodingHeader {
+    type Context = ();
     type Error = DecodeError;
 
-    async fn decode_pure(mut read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
-        let encoding = Encoding::decode_pure(&mut read)
+    async fn decode(mut read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
+        pin!(read);
+
+        let encoding = Encoding::decode(&mut read, ())
             .await
             .change_context(DecodeError)?;
-        let accept = AcceptEncoding::decode_pure(read)
+        let accept = AcceptEncoding::decode(read, ())
             .await
             .change_context(DecodeError)?;
 

@@ -6,7 +6,7 @@ use tokio::io::{AsyncRead, AsyncWrite};
 
 use super::body::RequestBody;
 use crate::{
-    codec::{DecodePure, Encode},
+    codec::{Decode, Encode},
     flags::BitFlagsOp,
 };
 
@@ -64,16 +64,17 @@ impl From<RequestFlag> for RequestFlags {
 impl Encode for RequestFlags {
     type Error = io::Error;
 
-    async fn encode(&self, write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
         self.0.bits().encode(write).await
     }
 }
 
-impl DecodePure for RequestFlags {
+impl Decode for RequestFlags {
+    type Context = ();
     type Error = io::Error;
 
-    async fn decode_pure(read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
-        u8::decode_pure(read)
+    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
+        u8::decode(read, ())
             .await
             .map(BitFlags::from_bits_truncate)
             .map(From::from)

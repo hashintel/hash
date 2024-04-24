@@ -4,7 +4,7 @@ use error_stack::Result;
 use harpc_types::procedure::ProcedureId;
 use tokio::io::{AsyncRead, AsyncWrite};
 
-use crate::codec::{DecodePure, Encode};
+use crate::codec::{Decode, Encode};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -15,17 +15,18 @@ pub struct ProcedureDescriptor {
 impl Encode for ProcedureDescriptor {
     type Error = io::Error;
 
-    async fn encode(&self, write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
         self.id.encode(write).await
     }
 }
 
-impl DecodePure for ProcedureDescriptor {
+impl Decode for ProcedureDescriptor {
+    type Context = ();
     type Error = io::Error;
 
-    async fn decode_pure(read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
+    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
         Ok(Self {
-            id: ProcedureId::decode_pure(read).await?,
+            id: ProcedureId::decode(read, ()).await?,
         })
     }
 }

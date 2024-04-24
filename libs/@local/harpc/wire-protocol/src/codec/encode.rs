@@ -2,23 +2,26 @@ use std::io;
 
 use bytes::Bytes;
 use error_stack::{Context, Result, ResultExt};
-use graph_types::account::AccountId;
-use tokio::io::{AsyncWrite, AsyncWriteExt};
-use uuid::Uuid;
+use tokio::{
+    io::{AsyncWrite, AsyncWriteExt},
+    pin,
+};
 
-pub trait Encode: Send + Sync {
+pub trait Encode {
     type Error: Context;
 
     fn encode(
         &self,
-        write: impl AsyncWrite + Unpin + Send,
+        write: impl AsyncWrite + Send,
     ) -> impl Future<Output = Result<(), Self::Error>> + Send;
 }
 
 impl Encode for u8 {
     type Error = io::Error;
 
-    async fn encode(&self, mut write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
+        pin!(write);
+
         write.write_u8(*self).await.map_err(From::from)
     }
 }
@@ -26,24 +29,10 @@ impl Encode for u8 {
 impl Encode for u16 {
     type Error = io::Error;
 
-    async fn encode(&self, mut write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
+        pin!(write);
+
         write.write_u16(*self).await.map_err(From::from)
-    }
-}
-
-impl Encode for Uuid {
-    type Error = io::Error;
-
-    async fn encode(&self, mut write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
-        write.write_all(self.as_bytes()).await.map_err(From::from)
-    }
-}
-
-impl Encode for AccountId {
-    type Error = io::Error;
-
-    async fn encode(&self, write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
-        self.as_uuid().encode(write).await
     }
 }
 
@@ -58,7 +47,9 @@ pub enum BytesEncodeError {
 impl Encode for Bytes {
     type Error = BytesEncodeError;
 
-    async fn encode(&self, mut write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
+        pin!(write);
+
         // write the length in u16 (this is ok because we never send more than 64KiB).
         let length = u16::try_from(self.len()).change_context(BytesEncodeError::TooLarge)?;
 
@@ -79,6 +70,7 @@ pub(crate) mod test {
     use core::fmt::Debug;
 
     use bytes::Bytes;
+    use expect_test::Expect;
     use graph_types::account::AccountId;
     use uuid::Uuid;
 
@@ -98,12 +90,14 @@ pub(crate) mod test {
     }
 
     #[track_caller]
-    pub(crate) async fn assert_encode<T>(value: &T, expected: &[u8])
+    pub(crate) async fn assert_encode<T>(value: &T, expected: Expect)
     where
         T: Encode,
     {
         let buffer = encode_value(value).await;
-        assert_eq!(buffer, expected);
+        let actual = format!("{buffer:#04x}");
+
+        expected.assert_eq(&actual);
     }
 
     #[track_caller]

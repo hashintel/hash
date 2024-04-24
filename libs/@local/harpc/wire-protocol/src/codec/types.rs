@@ -6,25 +6,34 @@ use harpc_types::{
     service::{ServiceId, ServiceVersion},
     version::Version,
 };
-use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
+use tokio::{
+    io::{AsyncRead, AsyncWrite, AsyncWriteExt},
+    pin,
+};
 
-use crate::codec::{DecodePure, Encode};
+use super::Decode;
+use crate::codec::Encode;
 
 impl Encode for Version {
     type Error = io::Error;
 
-    async fn encode(&self, mut write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
+        pin!(write);
+
         write.write_u8(self.major).await.map_err(Report::from)?;
         write.write_u8(self.minor).await.map_err(Report::from)
     }
 }
 
-impl DecodePure for Version {
+impl Decode for Version {
+    type Context = ();
     type Error = io::Error;
 
-    async fn decode_pure(mut read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
-        let major = u8::decode_pure(&mut read).await?;
-        let minor = u8::decode_pure(read).await?;
+    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
+        pin!(read);
+
+        let major = u8::decode(&mut read, ()).await?;
+        let minor = u8::decode(read, ()).await?;
         Ok(Self { major, minor })
     }
 }
@@ -32,48 +41,51 @@ impl DecodePure for Version {
 impl Encode for ProcedureId {
     type Error = io::Error;
 
-    async fn encode(&self, mut write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
-        self.value().encode(&mut write).await
+    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
+        self.value().encode(write).await
     }
 }
 
-impl DecodePure for ProcedureId {
+impl Decode for ProcedureId {
+    type Context = ();
     type Error = io::Error;
 
-    async fn decode_pure(read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
-        u16::decode_pure(read).await.map(Self::new)
+    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
+        u16::decode(read, ()).await.map(Self::new)
     }
 }
 
 impl Encode for ServiceId {
     type Error = io::Error;
 
-    async fn encode(&self, mut write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
-        self.value().encode(&mut write).await
+    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
+        self.value().encode(write).await
     }
 }
 
-impl DecodePure for ServiceId {
+impl Decode for ServiceId {
+    type Context = ();
     type Error = io::Error;
 
-    async fn decode_pure(read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
-        u16::decode_pure(read).await.map(Self::new)
+    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
+        u16::decode(read, ()).await.map(Self::new)
     }
 }
 
 impl Encode for ServiceVersion {
     type Error = io::Error;
 
-    async fn encode(&self, write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
         self.value().encode(write).await
     }
 }
 
-impl DecodePure for ServiceVersion {
+impl Decode for ServiceVersion {
+    type Context = ();
     type Error = io::Error;
 
-    async fn decode_pure(read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
-        Version::decode_pure(read).await.map(From::from)
+    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
+        Version::decode(read, ()).await.map(From::from)
     }
 }
 

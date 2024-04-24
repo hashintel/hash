@@ -8,7 +8,7 @@ use super::{
     frame::RequestFrame,
 };
 use crate::{
-    codec::{Decode, DecodePure, Encode},
+    codec::{Decode, Encode},
     flags::BitFlagsOp,
 };
 
@@ -38,7 +38,7 @@ impl RequestBody {
 impl Encode for RequestBody {
     type Error = EncodeError;
 
-    async fn encode(&self, write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
         match self {
             Self::Begin(body) => body.encode(write).await,
             Self::Frame(body) => body.encode(write).await,
@@ -95,14 +95,14 @@ impl Decode for RequestBody {
     type Error = DecodeError;
 
     async fn decode(
-        read: impl AsyncRead + Unpin + Send,
+        read: impl AsyncRead + Send,
         context: Self::Context,
     ) -> Result<Self, Self::Error> {
         match context.variant {
             RequestVariant::Begin => RequestBegin::decode(read, context.into())
                 .await
                 .map(RequestBody::Begin),
-            RequestVariant::Frame => RequestFrame::decode_pure(read)
+            RequestVariant::Frame => RequestFrame::decode(read, ())
                 .await
                 .map(RequestBody::Frame)
                 .change_context(DecodeError),

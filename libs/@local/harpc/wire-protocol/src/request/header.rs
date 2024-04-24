@@ -1,11 +1,14 @@
 use std::io;
 
 use error_stack::{Result, ResultExt};
-use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::{
+    io::{AsyncRead, AsyncWrite},
+    pin,
+};
 
 use super::{body::RequestBody, codec::DecodeError, flags::RequestFlags, id::RequestId};
 use crate::{
-    codec::{DecodePure, Encode},
+    codec::{Decode, Encode},
     protocol::Protocol,
 };
 
@@ -30,24 +33,29 @@ impl RequestHeader {
 impl Encode for RequestHeader {
     type Error = io::Error;
 
-    async fn encode(&self, mut write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, mut write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
+        pin!(write);
+
         self.protocol.encode(&mut write).await?;
         self.request_id.encode(&mut write).await?;
         self.flags.encode(write).await
     }
 }
 
-impl DecodePure for RequestHeader {
+impl Decode for RequestHeader {
+    type Context = ();
     type Error = DecodeError;
 
-    async fn decode_pure(mut read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
-        let protocol = Protocol::decode_pure(&mut read)
+    async fn decode(mut read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
+        pin!(read);
+
+        let protocol = Protocol::decode(&mut read, ())
             .await
             .change_context(DecodeError)?;
-        let request_id = RequestId::decode_pure(&mut read)
+        let request_id = RequestId::decode(&mut read, ())
             .await
             .change_context(DecodeError)?;
-        let flags = RequestFlags::decode_pure(read)
+        let flags = RequestFlags::decode(read, ())
             .await
             .change_context(DecodeError)?;
 

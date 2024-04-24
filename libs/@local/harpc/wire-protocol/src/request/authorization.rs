@@ -4,7 +4,7 @@ use error_stack::Result;
 use graph_types::account::AccountId;
 use tokio::io::{AsyncRead, AsyncWrite};
 
-use crate::codec::{DecodePure, Encode};
+use crate::codec::{Decode, Encode};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -16,18 +16,17 @@ pub struct Authorization {
 impl Encode for Authorization {
     type Error = io::Error;
 
-    async fn encode(&self, write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
-        self.account.encode(write).await
+    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
+        unimplemented!("will be removed in upcoming commit")
     }
 }
 
-impl DecodePure for Authorization {
+impl Decode for Authorization {
+    type Context = ();
     type Error = io::Error;
 
-    async fn decode_pure(read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
-        Ok(Self {
-            account: AccountId::decode_pure(read).await?,
-        })
+    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
+        unimplemented!("will be removed in upcoming commit")
     }
 }
 

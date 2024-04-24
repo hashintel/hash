@@ -3,7 +3,7 @@ use std::io;
 use error_stack::Result;
 use tokio::io::{AsyncRead, AsyncWrite};
 
-use crate::codec::{DecodePure, Encode};
+use crate::codec::{Decode, Encode};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -24,16 +24,17 @@ impl RequestId {
 impl Encode for RequestId {
     type Error = io::Error;
 
-    async fn encode(&self, write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
         self.0.encode(write).await
     }
 }
 
-impl DecodePure for RequestId {
+impl Decode for RequestId {
+    type Context = ();
     type Error = io::Error;
 
-    async fn decode_pure(read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
-        u16::decode_pure(read).await.map(Self)
+    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
+        u16::decode(read, ()).await.map(Self)
     }
 }
 

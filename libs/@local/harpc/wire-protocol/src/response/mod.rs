@@ -1,12 +1,15 @@
 use error_stack::{Result, ResultExt};
-use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::{
+    io::{AsyncRead, AsyncWrite},
+    pin,
+};
 
 use self::{
     body::{ResponseBody, ResponseBodyContext},
     header::ResponseHeader,
 };
 use crate::{
-    codec::{Decode, DecodePure, Encode},
+    codec::{Decode, Encode},
     request::codec::{DecodeError, EncodeError},
 };
 
@@ -82,7 +85,9 @@ pub struct Response {
 impl Encode for Response {
     type Error = EncodeError;
 
-    async fn encode(&self, mut write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, mut write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
+        pin!(write);
+
         let header = self.header.apply_body(&self.body);
         header
             .encode(&mut write)
@@ -93,11 +98,14 @@ impl Encode for Response {
     }
 }
 
-impl DecodePure for Response {
+impl Decode for Response {
+    type Context = ();
     type Error = DecodeError;
 
-    async fn decode_pure(mut read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
-        let header = ResponseHeader::decode_pure(&mut read)
+    async fn decode(mut read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
+        pin!(read);
+
+        let header = ResponseHeader::decode(&mut read, ())
             .await
             .change_context(DecodeError)?;
 

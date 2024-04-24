@@ -4,7 +4,7 @@ use bytes::Bytes;
 use error_stack::Result;
 use tokio::io::{AsyncRead, AsyncWrite};
 
-use crate::codec::{BytesEncodeError, DecodePure, Encode};
+use crate::codec::{BytesEncodeError, Decode, Encode};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -39,17 +39,18 @@ impl Encode for Payload {
 
     fn encode(
         &self,
-        write: impl AsyncWrite + Unpin + Send,
+        write: impl AsyncWrite + Send,
     ) -> impl Future<Output = Result<(), Self::Error>> + Send {
         Bytes::encode(&self.0, write)
     }
 }
 
-impl DecodePure for Payload {
+impl Decode for Payload {
+    type Context = ();
     type Error = io::Error;
 
-    async fn decode_pure(read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
-        Bytes::decode_pure(read).await.map(Self)
+    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
+        Bytes::decode(read, ()).await.map(Self)
     }
 }
 

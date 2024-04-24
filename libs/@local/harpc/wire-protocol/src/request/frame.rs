@@ -5,7 +5,7 @@ use tokio::io::{AsyncRead, AsyncWrite};
 
 use super::codec::EncodeError;
 use crate::{
-    codec::{DecodePure, Encode},
+    codec::{Decode, Encode},
     payload::Payload,
 };
 
@@ -18,17 +18,18 @@ pub struct RequestFrame {
 impl Encode for RequestFrame {
     type Error = EncodeError;
 
-    async fn encode(&self, write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
         self.payload.encode(write).await.change_context(EncodeError)
     }
 }
 
-impl DecodePure for RequestFrame {
+impl Decode for RequestFrame {
+    type Context = ();
     type Error = io::Error;
 
-    async fn decode_pure(read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
+    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
         Ok(Self {
-            payload: Payload::decode_pure(read).await?,
+            payload: Payload::decode(read, ()).await?,
         })
     }
 }

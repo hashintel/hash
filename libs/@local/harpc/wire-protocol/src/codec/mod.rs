@@ -2,7 +2,7 @@ mod decode;
 mod encode;
 mod types;
 
-pub use decode::{Decode, DecodePure};
+pub use decode::Decode;
 pub use encode::{BytesEncodeError, Encode};
 
 #[cfg(test)]

@@ -2,89 +2,57 @@ use std::io;
 
 use bytes::Bytes;
 use error_stack::{Context, Result};
-use graph_types::account::AccountId;
-use tokio::io::{AsyncRead, AsyncReadExt};
-use uuid::Uuid;
+use tokio::{
+    io::{AsyncRead, AsyncReadExt},
+    pin,
+};
 
-pub trait DecodePure: Send + Sync + Sized {
-    type Error: Context;
-
-    fn decode_pure(
-        read: impl AsyncRead + Unpin + Send,
-    ) -> impl Future<Output = Result<Self, Self::Error>> + Send;
-}
-
-pub trait Decode: Send + Sync + Sized {
+pub trait Decode: Sized {
     type Context: Send + Sync = ();
     type Error: Context;
 
     fn decode(
-        read: impl AsyncRead + Unpin + Send,
+        read: impl AsyncRead + Send,
         context: Self::Context,
     ) -> impl Future<Output = Result<Self, Self::Error>> + Send;
 }
 
-impl<T> Decode for T
-where
-    T: DecodePure,
-{
+impl Decode for u8 {
     type Context = ();
-    type Error = T::Error;
-
-    fn decode(
-        read: impl AsyncRead + Unpin + Send,
-        (): Self::Context,
-    ) -> impl Future<Output = Result<Self, Self::Error>> + Send {
-        T::decode_pure(read)
-    }
-}
-
-impl DecodePure for u8 {
     type Error = io::Error;
 
-    async fn decode_pure(mut read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
+    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
+        pin!(read);
+
         read.read_u8().await.map_err(From::from)
     }
 }
 
-impl DecodePure for u16 {
+impl Decode for u16 {
+    type Context = ();
     type Error = io::Error;
 
     #[expect(
         clippy::big_endian_bytes,
         reason = "u16 is encoded in big-endian format"
     )]
-    async fn decode_pure(mut read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
+    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
+        pin!(read);
+
         let mut buffer = [0; 2];
         read.read_exact(&mut buffer).await?;
         Ok(Self::from_be_bytes(buffer))
     }
 }
 
-impl DecodePure for Uuid {
+impl Decode for Bytes {
+    type Context = ();
     type Error = io::Error;
 
-    async fn decode_pure(mut read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
-        let mut buffer = [0; 16];
-        read.read_exact(&mut buffer).await?;
+    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
+        pin!(read);
 
-        Ok(Self::from_bytes(buffer))
-    }
-}
-
-impl DecodePure for AccountId {
-    type Error = io::Error;
-
-    async fn decode_pure(read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
-        Uuid::decode_pure(read).await.map(Self::new)
-    }
-}
-
-impl DecodePure for Bytes {
-    type Error = io::Error;
-
-    async fn decode_pure(mut read: impl AsyncRead + Unpin + Send) -> Result<Self, Self::Error> {
-        let length = u16::decode_pure(&mut read).await?;
+        let length = u16::decode(&mut read, ()).await?;
 
         let mut buffer = vec![0; usize::from(length)];
         read.read_exact(&mut buffer).await?;
@@ -98,6 +66,7 @@ pub(crate) mod test {
     use core::fmt::Debug;
 
     use bytes::Bytes;
+    use expect_test::Expect;
     use graph_types::account::AccountId;
     use uuid::Uuid;
 
@@ -122,13 +91,13 @@ pub(crate) mod test {
     }
 
     #[track_caller]
-    pub(crate) async fn assert_decode<T>(buffer: &[u8], expected: &T, context: T::Context)
+    pub(crate) async fn assert_decode<T>(buffer: &[u8], expected: Expect, context: T::Context)
     where
-        T: Debug + PartialEq + Decode,
+        T: Debug + Decode,
     {
         let value: T = decode_value(buffer, context).await;
 
-        assert_eq!(value, *expected);
+        expected.assert_debug_eq(&value);
     }
 
     #[track_caller]
@@ -137,7 +106,9 @@ pub(crate) mod test {
         T: Debug + PartialEq + Decode + Encode,
     {
         let buffer = encode_value(value).await;
-        assert_decode(&buffer, value, context).await;
+        let decoded = decode_value(&buffer, context).await;
+
+        assert_eq!(*value, decoded);
     }
 
     #[tokio::test]

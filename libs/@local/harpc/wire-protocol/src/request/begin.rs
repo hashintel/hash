@@ -1,5 +1,5 @@
 use error_stack::{Result, ResultExt};
-use tokio::io::AsyncWrite;
+use tokio::{io::AsyncWrite, pin};
 
 use super::{
     authorization::Authorization,
@@ -9,7 +9,7 @@ use super::{
     service::ServiceDescriptor,
 };
 use crate::{
-    codec::{Decode, DecodePure, Encode},
+    codec::{Decode, Encode},
     payload::Payload,
 };
 
@@ -29,7 +29,9 @@ pub struct RequestBegin {
 impl Encode for RequestBegin {
     type Error = EncodeError;
 
-    async fn encode(&self, mut write: impl AsyncWrite + Unpin + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
+        pin!(write);
+
         self.service
             .encode(&mut write)
             .await
@@ -65,17 +67,19 @@ impl Decode for RequestBegin {
     type Error = DecodeError;
 
     async fn decode(
-        mut read: impl tokio::io::AsyncRead + Unpin + Send,
+        mut read: impl tokio::io::AsyncRead + Send,
         context: Self::Context,
     ) -> Result<Self, Self::Error> {
-        let service = ServiceDescriptor::decode_pure(&mut read)
+        pin!(read);
+
+        let service = ServiceDescriptor::decode(&mut read, ())
             .await
             .change_context(DecodeError)?;
-        let procedure = ProcedureDescriptor::decode_pure(&mut read)
+        let procedure = ProcedureDescriptor::decode(&mut read, ())
             .await
             .change_context(DecodeError)?;
 
-        let encoding = EncodingHeader::decode_pure(&mut read).await?;
+        let encoding = EncodingHeader::decode(&mut read, ()).await?;
 
         #[expect(
             clippy::if_then_some_else_none,
@@ -83,7 +87,7 @@ impl Decode for RequestBegin {
         )]
         let authorization = if context.contains_authorization {
             Some(
-                Authorization::decode_pure(&mut read)
+                Authorization::decode(&mut read, ())
                     .await
                     .change_context(DecodeError)?,
             )
@@ -91,7 +95,7 @@ impl Decode for RequestBegin {
             None
         };
 
-        let payload = Payload::decode_pure(read)
+        let payload = Payload::decode(read, ())
             .await
             .change_context(DecodeError)?;
 
