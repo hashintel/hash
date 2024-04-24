@@ -40,9 +40,9 @@ use crate::{
         account::{InsertAccountGroupIdParams, InsertAccountIdParams, InsertWebIdParams},
         crud::{QueryResult, Read, ReadPaginated, Sorting},
         knowledge::{
-            CountEntitiesParams, CreateEntityParams, GetEntitySubgraphParams,
-            GetEntitySubgraphResponse, PatchEntityParams, UpdateEntityEmbeddingsParams,
-            ValidateEntityError, ValidateEntityParams,
+            CountEntitiesParams, CreateEntityParams, GetEntitiesParams, GetEntitiesResponse,
+            GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams,
+            UpdateEntityEmbeddingsParams, ValidateEntityError, ValidateEntityParams,
         },
         ontology::{
             ArchiveDataTypeParams, ArchiveEntityTypeParams, ArchivePropertyTypeParams,
@@ -1173,6 +1173,14 @@ where
         self.store
             .insert_entities_batched_by_type(actor_id, entities, entity_type_id)
             .await
+    }
+
+    async fn get_entities(
+        &self,
+        actor_id: AccountId,
+        params: GetEntitiesParams<'_>,
+    ) -> Result<GetEntitiesResponse<'static>, QueryError> {
+        self.store.get_entities(actor_id, params).await
     }
 
     async fn get_entity_subgraph(

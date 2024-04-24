@@ -221,6 +221,28 @@ pub struct ValidateEntityParams<'a> {
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct GetEntitiesParams<'a> {
+    #[serde(borrow)]
+    pub filter: Filter<'a, Entity>,
+    pub temporal_axes: QueryTemporalAxesUnresolved,
+    #[serde(borrow)]
+    pub sorting: EntityQuerySorting<'static>,
+    pub limit: Option<usize>,
+    pub include_drafts: bool,
+    #[serde(default)]
+    pub include_count: bool,
+}
+
+#[derive(Debug)]
+pub struct GetEntitiesResponse<'r> {
+    pub entities: Vec<Entity>,
+    pub cursor: Option<EntityQueryCursor<'r>>,
+    pub count: Option<usize>,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct GetEntitySubgraphParams<'a> {
     #[serde(borrow)]
     pub filter: Filter<'a, Entity>,
@@ -379,11 +401,22 @@ pub trait EntityStore {
         entity_type_id: &VersionedUrl,
     ) -> impl Future<Output = Result<Vec<EntityMetadata>, Report<InsertionError>>> + Send;
 
+    /// Get a list of entities specified by the [`GetEntitiesParams`].
+    ///
+    /// # Errors
+    ///
+    /// - if the requested [`Entities`][Entity] cannot be retrieved
+    fn get_entities(
+        &self,
+        actor_id: AccountId,
+        params: GetEntitiesParams<'_>,
+    ) -> impl Future<Output = Result<GetEntitiesResponse<'static>, Report<QueryError>>> + Send;
+
     /// Get the [`Subgraph`]s specified by the [`GetEntitySubgraphParams`].
     ///
     /// # Errors
     ///
-    /// - if the requested [`Entity`] doesn't exist
+    /// - if the requested [`Entities`][Entity] cannot be retrieved
     fn get_entity_subgraph(
         &self,
         actor_id: AccountId,

@@ -39,9 +39,9 @@ use graph::{
     store::{
         account::{InsertAccountIdParams, InsertWebIdParams},
         knowledge::{
-            CountEntitiesParams, CreateEntityParams, GetEntitySubgraphParams,
-            GetEntitySubgraphResponse, PatchEntityParams, UpdateEntityEmbeddingsParams,
-            ValidateEntityError, ValidateEntityParams,
+            CountEntitiesParams, CreateEntityParams, GetEntitiesParams, GetEntitiesResponse,
+            GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams,
+            UpdateEntityEmbeddingsParams, ValidateEntityError, ValidateEntityParams,
         },
         ontology::{
             ArchiveDataTypeParams, ArchiveEntityTypeParams, ArchivePropertyTypeParams,
@@ -518,6 +518,41 @@ where
         self.store
             .insert_entities_batched_by_type(actor_id, entities, entity_type_id)
             .await
+    }
+
+    async fn get_entities(
+        &self,
+        actor_id: AccountId,
+        mut params: GetEntitiesParams<'_>,
+    ) -> Result<GetEntitiesResponse<'static>, QueryError> {
+        let include_count = params.include_count;
+        let has_limit = params.limit.is_some();
+        params.include_count = true;
+
+        let count = self
+            .count_entities(
+                actor_id,
+                CountEntitiesParams {
+                    filter: params.filter.clone(),
+                    temporal_axes: params.temporal_axes.clone(),
+                    include_drafts: params.include_drafts,
+                },
+            )
+            .await?;
+
+        let mut response = self.store.get_entities(actor_id, params).await?;
+
+        // We can ensure that `count_entities` and `get_entity` return the same count;
+        assert_eq!(response.count, Some(count));
+        // if the limit is not set, the count should be equal to the number of entities returned
+        if !has_limit {
+            assert_eq!(count, response.entities.len());
+        }
+
+        if !include_count {
+            response.count = None;
+        }
+        Ok(response)
     }
 
     async fn get_entity_subgraph(
