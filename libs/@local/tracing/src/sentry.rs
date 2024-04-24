@@ -105,7 +105,7 @@ pub struct SentryConfig {
     pub sentry_event_filter: tracing::Level,
 }
 
-pub fn init_sentry(
+pub fn init(
     config: &SentryConfig,
     release: impl Into<Option<Cow<'static, str>>>,
 ) -> ClientInitGuard {
@@ -142,7 +142,7 @@ where
     if config.sentry_enable_span_attributes {
         layer = layer.enable_span_attributes();
     }
-    let span_filter = config.sentry_event_filter;
+    let span_filter = config.sentry_span_filter;
     let event_filter = config.sentry_event_filter;
     layer
         .span_filter(move |metadata| *metadata.level() <= span_filter)

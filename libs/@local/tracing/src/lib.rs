@@ -5,6 +5,7 @@ pub mod logging;
 
 pub mod opentelemetry;
 pub mod sentry;
+mod console;
 
 use tracing::{level_filters::LevelFilter, warn};
 use tracing_subscriber::{
