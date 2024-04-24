@@ -91,6 +91,10 @@ const codegen = async ({
     const fileName = path.parse(filePath).name;
     const fileExtension = path.extname(filePath);
 
+    const skip =
+      (fileName === "package" && fileExtension === ".json") ||
+      fileName.toLowerCase().startsWith("license");
+
     if (fileExtension === ".ts") {
       if (rustOutputDir) {
         const rustParentsPath = path.join(rustOutputDir, fileParentStructure);
@@ -134,8 +138,8 @@ const codegen = async ({
           "--no-combine-classes",
         ]);
       }
-    } else if (fileName === "package" && fileExtension === ".json") {
-      console.info("Skipping package.json file");
+    } else if (skip) {
+      console.info(`Skipping ${fileName}${fileExtension} file`);
       continue;
     } else {
       throw new Error(`Unsupported quicktype input format: ${fileExtension}`);
