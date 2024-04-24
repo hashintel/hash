@@ -406,11 +406,7 @@ where
     A: AuthorizationApi,
 {
     #[expect(refining_impl_trait)]
-    async fn provide_entity(
-        &self,
-        entity_id: EntityId,
-        include_drafts: bool,
-    ) -> Result<Entity, Report<QueryError>> {
+    async fn provide_entity(&self, entity_id: EntityId) -> Result<Entity, Report<QueryError>> {
         if let Some((authorization_api, actor_id, consistency)) = self.authorization {
             authorization_api
                 .check_entity_permission(actor_id, EntityPermission::View, entity_id, consistency)
@@ -430,7 +426,7 @@ where
                     }
                     .resolve(),
                 ),
-                include_drafts,
+                entity_id.draft_id.is_some(),
             )
             .await
     }
