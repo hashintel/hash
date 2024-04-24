@@ -436,7 +436,10 @@ jobs:
           max_attempts: 3
           timeout_minutes: 10
           shell: bash
-          command: npx playwright install --with-deps chromium
+          command: |
+            # Temporary workaround for unsigned repository 'https://packages.microsoft.com/ubuntu/22.04/prod jammy InRelease'
+            sudo rm -f /etc/apt/sources.list.d/archive_uri-*
+            npx playwright install --with-deps chromium
 
       - name: Show disk usage
         run: df -h
