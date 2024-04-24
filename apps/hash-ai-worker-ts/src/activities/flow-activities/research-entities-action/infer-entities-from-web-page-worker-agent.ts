@@ -364,10 +364,14 @@ const generateUserMessage = (params: {
   };
 };
 
+const maxRetryCount = 3;
+
 const createInitialPlan = async (params: {
   input: WorkerAgentInput;
+  retryMessages?: LlmMessage[];
+  retryCount?: number;
 }): Promise<{ plan: string }> => {
-  const { input } = params;
+  const { input, retryMessages } = params;
 
   const systemPrompt = dedent(`
       ${generateSystemMessagePrefix({ input })}
@@ -381,7 +385,10 @@ const createInitialPlan = async (params: {
       initial web page, to find all the entities required to satisfy the prompt.
     `);
 
-  const messages = [generateUserMessage({ input, includeInnerHtml: true })];
+  const messages = [
+    generateUserMessage({ input, includeInnerHtml: true }),
+    ...(retryMessages ?? []),
+  ];
 
   const llmResponse = await getLlmResponse({
     systemPrompt,
@@ -396,21 +403,57 @@ const createInitialPlan = async (params: {
     );
   }
 
-  const { message, usage: _usage } = llmResponse;
+  const { message, stopReason, usage: _usage } = llmResponse;
 
   /** @todo: capture usage */
+
+  const retry = (retryParams: {
+    retryMessageContent: LlmUserMessage["content"];
+  }) => {
+    if ((params.retryCount ?? 0) >= maxRetryCount) {
+      throw new Error(
+        `Exceeded retry count when generating initial plan, with retry reasons: ${JSON.stringify(retryParams.retryMessageContent)}`,
+      );
+    }
+
+    return createInitialPlan({
+      input,
+      retryMessages: [
+        message,
+        {
+          role: "user",
+          content: retryParams.retryMessageContent,
+        },
+      ],
+      retryCount: (params.retryCount ?? 0) + 1,
+    });
+  };
+
+  if (stopReason === "tool_use") {
+    return retry({
+      retryMessageContent: [
+        {
+          type: "text",
+          text: "You must not make any tool calls yet. Provide your initial plan instead.",
+        },
+      ],
+    });
+  }
 
   const messageText = getTextContentFromLlmMessage({ message });
 
   if (!messageText) {
-    throw new Error(
-      `Expected message text content in response: ${JSON.stringify(llmResponse, null, 2)}`,
-    );
+    return retry({
+      retryMessageContent: [
+        {
+          type: "text",
+          text: "You did not provide a plan in your response.",
+        },
+      ],
+    });
   }
 
-  return {
-    plan: messageText,
-  };
+  return { plan: messageText };
 };
 
 const getSubmittedProposedEntitiesFromState = (
