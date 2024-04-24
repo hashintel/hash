@@ -744,20 +744,6 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               };
             }
 
-            if (hmtlContent.endsWith("...")) {
-              return {
-                ...toolCall,
-                output: dedent(`
-                  You provided a truncated HTML content from the web page. You must provide the entire
-                  HTML content necessary to accurately infer properties of the relevant entities.
-
-                  You must make the "inferEntitiesFromWebPage" tool call again with the full HTML content
-                  required to infer the expected number of entities.
-                `),
-                isError: true,
-              };
-            }
-
             state.inferredEntitiesFromWebPageUrls.push(
               inferringEntitiesFromWebPageUrl,
             );

@@ -9,7 +9,9 @@ import type { StepInput } from "@local/hash-isomorphic-utils/flows/types";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
+import { logger } from "../shared/activity-logger";
 import type { ParsedLlmToolCall } from "../shared/get-llm-response/types";
+import { stringify } from "../shared/stringify";
 import { getWebPageSummaryAction } from "./get-web-page-summary-action";
 import type {
   CoordinatorToolCallArguments,
@@ -44,6 +46,7 @@ export const researchEntitiesAction: FlowActionActivity<{
     proposedEntities: [],
     submittedEntityIds: [],
     previousCalls: [],
+    hasConductedCheckStep: false,
   };
 
   const { toolCalls: initialToolCalls } =
@@ -51,6 +54,11 @@ export const researchEntitiesAction: FlowActionActivity<{
       input,
       state,
     });
+
+  const getSubmittedProposedEntities = () =>
+    state.proposedEntities.filter(({ localEntityId }) =>
+      state.submittedEntityIds.includes(localEntityId),
+    );
 
   const processToolCalls = async (params: {
     toolCalls: ParsedLlmToolCall<CoordinatorToolName>[];
@@ -66,13 +74,8 @@ export const researchEntitiesAction: FlowActionActivity<{
     }
 
     const toolCallsWithRelevantResults = toolCalls.filter(
-      ({ name }) => name !== "complete" && name !== "terminate",
+      ({ name }) => name !== "terminate",
     );
-
-    /**
-     * This plan may be updated by the tool calls that are about to be
-     * evaluated.
-     */
 
     const completedToolCalls = await Promise.all(
       toolCallsWithRelevantResults.map(
@@ -258,15 +261,17 @@ export const researchEntitiesAction: FlowActionActivity<{
               ...toolCall,
               output: JSON.stringify(inferredEntities),
             };
-          } else if (toolCall.name === "proposeLink") {
+          } else if (toolCall.name === "proposeAndSubmitLink") {
             const { sourceEntityId, targetEntityId, linkEntityTypeId } =
               toolCall.input as CoordinatorToolCallArguments["proposeLink"];
+
+            const submittedProposedEntities = getSubmittedProposedEntities();
 
             const sourceEntity =
               input.existingEntities?.find(
                 ({ metadata }) => metadata.recordId.entityId === sourceEntityId,
               ) ??
-              state.proposedEntities.find(
+              submittedProposedEntities.find(
                 ({ localEntityId }) => localEntityId === sourceEntityId,
               );
 
@@ -274,7 +279,7 @@ export const researchEntitiesAction: FlowActionActivity<{
               input.existingEntities?.find(
                 ({ metadata }) => metadata.recordId.entityId === targetEntityId,
               ) ??
-              state.proposedEntities.find(
+              submittedProposedEntities.find(
                 ({ localEntityId }) => localEntityId === targetEntityId,
               );
 
@@ -282,10 +287,12 @@ export const researchEntitiesAction: FlowActionActivity<{
               return {
                 ...toolCall,
                 output: dedent(`
-                  There is no ${input.existingEntities ? "existing or " : ""}proposed entity with ID "${sourceEntityId}".
+                  There is no ${input.existingEntities ? "existing or " : ""}submitted proposed entity with ID "${sourceEntityId}".
                   
                   ${input.existingEntities ? `Possible existing entity IDs are: ${JSON.stringify(input.existingEntities.map(({ metadata }) => metadata.recordId.entityId))}.` : ""}
-                  Possible proposed entity IDs are: ${JSON.stringify(state.proposedEntities.map(({ localEntityId }) => localEntityId))}.
+                  Possible submitted proposed entity IDs are: ${JSON.stringify(submittedProposedEntities.map(({ localEntityId }) => localEntityId))}.
+
+                  You can use the "submitProposedEntities" tool call to submit additional proposed entities.
                 `),
                 isError: true,
               };
@@ -346,6 +353,77 @@ export const researchEntitiesAction: FlowActionActivity<{
               ...toolCall,
               output: `The link between the entities with IDs ${sourceEntityId} and ${targetEntityId} has been successfully proposed.`,
             };
+          } else if (toolCall.name === "complete") {
+            if (!state.hasConductedCheckStep) {
+              const warnings: string[] = [];
+
+              if (state.proposedEntities.length === 0) {
+                warnings.push("No entities have been proposed.");
+              }
+
+              const submittedProposedEntities = getSubmittedProposedEntities();
+
+              const missingEntityTypes = input.entityTypes.filter(
+                ({ $id }) =>
+                  !submittedProposedEntities.some(
+                    ({ entityTypeId }) => entityTypeId === $id,
+                  ),
+              );
+
+              if (missingEntityTypes.length > 0) {
+                warnings.push(
+                  `You have not proposed any entities for the following types: ${JSON.stringify(
+                    missingEntityTypes.map(({ $id }) => $id),
+                  )}`,
+                );
+              }
+
+              const missingLinkEntityTypes = input.linkEntityTypes?.filter(
+                ({ $id }) =>
+                  !submittedProposedEntities.some(
+                    ({ entityTypeId }) => entityTypeId === $id,
+                  ),
+              );
+
+              if (missingLinkEntityTypes && missingLinkEntityTypes.length > 0) {
+                warnings.push(
+                  dedent(`
+                    You have not proposed any links for the following link types: ${JSON.stringify(
+                      missingLinkEntityTypes.map(({ $id }) => $id),
+                    )}
+
+                    You can propose links using the "proposeAndSubmitLink" tool, or infer links
+                      from the text of a web page with the "inferEntitiesFromWebPage" tool.
+                `),
+                );
+              }
+
+              if (warnings.length > 0) {
+                logger.debug(
+                  `Conducting check step with warnings: ${stringify(warnings)}`,
+                );
+                return {
+                  ...toolCall,
+                  output: dedent(`
+                    Are you sure the research task is complete considering the following warnings?
+
+                    Warnings:
+                    ${warnings.join("\n")}
+
+                    If you are sure the task is complete, call the "complete" tool again.
+                    Otherwise, either continue to make tool calls or call the "terminate" tool to end the task if it cannot be completed.
+                  `),
+                  isError: true,
+                };
+              } else {
+                state.hasConductedCheckStep = true;
+              }
+            }
+
+            return {
+              ...toolCall,
+              output: `The research task has been completed.`,
+            };
           }
 
           throw new Error(`Unimplemented tool call: ${toolCall.name}`);
@@ -362,7 +440,11 @@ export const researchEntitiesAction: FlowActionActivity<{
      * incase the agent has made other tool calls at the same time as the "complete" tool call.
      */
     if (isCompleted) {
-      return;
+      if (state.hasConductedCheckStep) {
+        return;
+      } else {
+        state.hasConductedCheckStep = true;
+      }
     }
 
     state.previousCalls = [...state.previousCalls, { completedToolCalls }];
@@ -382,9 +464,7 @@ export const researchEntitiesAction: FlowActionActivity<{
     toolCalls: initialToolCalls,
   });
 
-  const submittedProposedEntities = state.proposedEntities.filter(
-    ({ localEntityId }) => state.submittedEntityIds.includes(localEntityId),
-  );
+  const submittedProposedEntities = getSubmittedProposedEntities();
 
   return {
     code: StatusCode.Ok,

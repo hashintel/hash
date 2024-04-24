@@ -93,6 +93,7 @@ export type CoordinatingAgentState = {
   previousCalls: {
     completedToolCalls: CompletedToolCall<CoordinatorToolName>[];
   }[];
+  hasConductedCheckStep: boolean;
 };
 
 const getNextToolCalls = async (params: {

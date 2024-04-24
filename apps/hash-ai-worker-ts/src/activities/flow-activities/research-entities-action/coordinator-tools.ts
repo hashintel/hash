@@ -8,7 +8,7 @@ const coordinatorToolNames = [
   "getWebPageSummary",
   "submitProposedEntities",
   // "discardProposedEntities",
-  "proposeLink",
+  "proposeAndSubmitLink",
   "complete",
   "terminate",
   "updatePlan",
@@ -176,11 +176,17 @@ export const coordinatorToolDefinitions: Record<
       required: ["plan", "explanation"],
     },
   },
-  proposeLink: {
-    name: "proposeLink",
+  proposeAndSubmitLink: {
+    name: "proposeAndSubmitLink",
     description: dedent(`
-      Propose a link between two entities.
-      The source or target entity may be a previously proposed entity, or an existing entity.
+      Propose and submit a link between two entities.
+      The source or target entity can be:
+        - a previously submitted proposed entity
+        - an existing entity
+
+      If you want to use a proposed entity as the source or target entity, you must first
+        submit the proposed entity using the "submitProposedEntities" tool.
+        
       Proposing a link will also submit it as a proposed link entity for the research task.
     `),
     inputSchema: {
