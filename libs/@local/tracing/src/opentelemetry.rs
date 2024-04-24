@@ -4,11 +4,12 @@ use opentelemetry::{global, KeyValue};
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::{
     propagation::TraceContextPropagator,
-    trace::{RandomIdGenerator, Sampler, Tracer},
+    trace::{RandomIdGenerator, Sampler},
     Resource,
 };
-use tracing_opentelemetry::OpenTelemetryLayer;
-use tracing_subscriber::{layer::Layered, EnvFilter, Registry};
+use tokio::runtime::Handle;
+use tracing::Subscriber;
+use tracing_subscriber::{registry::LookupSpan, Layer};
 
 /// Arguments for configuring the logging setup
 #[derive(Debug, Clone)]
@@ -17,12 +18,17 @@ pub struct OpenTelemetryConfig {
     /// The OpenTelemetry protocol endpoint for sending traces.
     #[cfg_attr(
         feature = "clap",
-        clap(long, default_value = None, env = "HASH_GRAPH_OTLP_ENDPOINT", global = true)
+        clap(long = "otlp-endpoint", default_value = None, env = "HASH_GRAPH_OTLP_ENDPOINT", global = true)
     )]
-    pub otlp_endpoint: Option<String>,
+    pub endpoint: Option<String>,
 }
 
 const OPENTELEMETRY_TIMEOUT_DURATION: Duration = Duration::from_secs(5);
+
+pub type OtlpLayer<S>
+where
+    S: Subscriber + for<'a> LookupSpan<'a>,
+= impl Layer<S>;
 
 /// Creates a layer which connects to the `OpenTelemetry` collector.
 ///
@@ -30,11 +36,16 @@ const OPENTELEMETRY_TIMEOUT_DURATION: Duration = Duration::from_secs(5);
 ///
 /// Panics if the `OpenTelemetry` configuration is invalid.
 #[must_use]
-#[expect(
-    clippy::unused_async,
-    reason = "Creating a pipeline requires a Tokio context"
-)]
-pub async fn layer(endpoint: String) -> OpenTelemetryLayer<Layered<EnvFilter, Registry>, Tracer> {
+pub fn layer<S>(config: &OpenTelemetryConfig, handle: &Handle) -> OtlpLayer<S>
+where
+    S: Subscriber + for<'a> LookupSpan<'a>,
+{
+    // pipeline spawns a background task to export telemetry data.
+    // The handle is used so that we can spawn the task on the correct runtime.
+    let _guard = handle.enter();
+
+    let endpoint = config.endpoint.as_deref()?;
+
     // Allow correlating trace IDs
     global::set_text_map_propagator(TraceContextPropagator::new());
     // If we need to set any tokens in the header for the tracing collector, this would be the place
@@ -70,5 +81,5 @@ pub async fn layer(endpoint: String) -> OpenTelemetryLayer<Layered<EnvFilter, Re
         .install_batch(opentelemetry_sdk::runtime::Tokio)
         .expect("failed to create OTLP tracer, check configuration values");
 
-    tracing_opentelemetry::layer().with_tracer(tracer)
+    Some(tracing_opentelemetry::layer().with_tracer(tracer))
 }

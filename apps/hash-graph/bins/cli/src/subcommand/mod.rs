@@ -8,6 +8,7 @@ mod type_fetcher;
 
 use error_stack::Result;
 use hash_tracing::{init_tracing, TracingConfig};
+use tokio::runtime::Handle;
 
 #[cfg(feature = "test-server")]
 pub use self::test_server::{test_server, TestServerArgs};
@@ -47,7 +48,9 @@ fn block_on(
         .build()
         .expect("failed to create runtime")
         .block_on(async {
-            let _log_guard = init_tracing(tracing_config).await;
+            let handle = Handle::current();
+            let _log_guard = init_tracing(tracing_config, &handle).await;
+
             future.await
         })
 }

@@ -67,49 +67,15 @@ impl ConsoleStream {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
-pub enum LogLevel {
-    Trace,
-    Debug,
-    Info,
-    Warning,
-    Error,
-}
-
-impl Display for LogLevel {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Trace => fmt.write_str("trace"),
-            Self::Debug => fmt.write_str("debug"),
-            Self::Info => fmt.write_str("info"),
-            Self::Warning => fmt.write_str("warning"),
-            Self::Error => fmt.write_str("error"),
-        }
-    }
-}
-
-impl From<LogLevel> for Level {
-    fn from(level: LogLevel) -> Self {
-        match level {
-            LogLevel::Trace => Self::TRACE,
-            LogLevel::Debug => Self::DEBUG,
-            LogLevel::Info => Self::INFO,
-            LogLevel::Warning => Self::WARN,
-            LogLevel::Error => Self::ERROR,
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "clap", derive(Parser))]
+#[cfg_attr(feature = "clap", derive(clap::Parser))]
 pub struct ConsoleConfig {
     /// Whether to enable logging to stdout/stderr
     #[cfg_attr(
         feature = "clap",
         clap(
-            long,
-            default_value = true,
+            long = "logging-console-enabled",
+            default_value_t = true,
             env = "HASH_GRAPH_LOG_CONSOLE_ENABLED",
             global = true
         )
@@ -120,8 +86,8 @@ pub struct ConsoleConfig {
     #[cfg_attr(
         feature = "clap",
         clap(
-            long,
-            default_value = "compact",
+            long = "logging-console-format",
+            default_value_t = LogFormat::Pretty,
             value_enum,
             env = "HASH_GRAPH_LOG_CONSOLE_FORMAT",
             global = true,
@@ -130,11 +96,14 @@ pub struct ConsoleConfig {
     pub format: LogFormat,
 
     /// Logging verbosity to use.
-    #[cfg_attr(feature = "clap", clap(long, value_enum, global = true))]
-    pub level: Option<LogLevel>,
+    #[cfg_attr(feature = "clap", clap(long = "logging-console-level", global = true))]
+    pub level: Option<Level>,
 
     /// Stream to write to
-    #[cfg_attr(feature = "clap", clap(long, value_enum, global = true))]
+    #[cfg_attr(
+        feature = "clap",
+        clap(long = "logging-console-stream", value_enum, default_value_t=ConsoleStream::Stderr, global = true)
+    )]
     pub stream: ConsoleStream,
 }
 
@@ -160,17 +129,23 @@ impl From<RotationInterval> for Rotation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-#[cfg_attr(feature = "clap", derive(Parser))]
+#[cfg_attr(feature = "clap", derive(clap::Parser))]
 pub struct FileRotation {
-    #[cfg_attr(feature = "clap", clap(long, value_enum, global = true))]
+    #[cfg_attr(
+        feature = "clap",
+        clap(long = "logging-file-rotation", value_enum, global = true)
+    )]
     pub rotation: RotationInterval,
 
     #[cfg_attr(
         feature = "clap",
-        clap(short, long, default_value = Some("out"), global = true)
+        clap(long = "logging-file-filename-prefix", default_value = Some("out"), global = true)
     )]
     pub filename_prefix: Option<String>,
-    #[cfg_attr(feature = "clap", clap(long, global = true))]
+    #[cfg_attr(
+        feature = "clap",
+        clap(long = "logging-file-filename-suffix", global = true)
+    )]
     pub filename_suffix: Option<String>,
 
     pub max_log_files: Option<usize>,
@@ -199,14 +174,14 @@ impl FileRotation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "clap", derive(Parser))]
+#[cfg_attr(feature = "clap", derive(clap::Parser))]
 pub struct FileConfig {
     /// Whether to enable logging to a file
     #[cfg_attr(
         feature = "clap",
         clap(
-            long,
-            default_value = false,
+            long = "logging-file-enabled",
+            default_value_t = false,
             env = "HASH_GRAPH_LOG_FILE_ENABLED",
             global = true
         )
@@ -217,8 +192,8 @@ pub struct FileConfig {
     #[cfg_attr(
         feature = "clap",
         clap(
-            long,
-            default_value = "compact",
+            long = "logging-file-format",
+            default_value_t = LogFormat::Compact,
             value_enum,
             env = "HASH_GRAPH_LOG_FORMAT",
             global = true,
@@ -227,14 +202,18 @@ pub struct FileConfig {
     pub format: LogFormat,
 
     /// Logging verbosity to use.
-    #[cfg_attr(feature = "clap", clap(long, value_enum, global = true))]
-    pub level: Option<LogLevel>,
+    #[cfg_attr(
+        feature = "clap",
+        clap(long = "logging-file-level", value_enum, global = true)
+    )]
+    pub level: Option<Level>,
 
     /// Logging output folder. The folder is created if it doesn't exist.
     #[cfg_attr(
         feature = "clap",
         clap(
-            long,
+            long = "logging-file-output",
+            value_hint = clap::ValueHint::DirPath,
             default_value = "./logs",
             env = "HASH_GRAPH_LOG_FOLDER",
             global = true
@@ -249,7 +228,7 @@ pub struct FileConfig {
 
 /// Arguments for configuring the logging setup
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "clap", derive(Parser))]
+#[cfg_attr(feature = "clap", derive(clap::Parser))]
 pub struct LoggingConfig {
     /// Configuration for logging to the console
     #[cfg_attr(feature = "clap", clap(flatten))]
@@ -261,18 +240,24 @@ pub struct LoggingConfig {
 }
 
 fn env_filter(level: Option<Level>) -> EnvFilter {
-    // TODO: do we maybe want to have another default level
     level.map_or_else(
         || {
-            EnvFilter::builder()
-                .with_default_directive(if cfg!(debug_assertions) {
-                    LevelFilter::DEBUG.into()
-                } else {
-                    LevelFilter::INFO.into()
-                })
-                .from_env_lossy()
+            // Both environment variables are supported but `HASH_GRAPH_LOG_LEVEL` takes precedence
+            // over `RUST_LOG`. If `RUST_LOG` is set we emit a warning at the end of this function.
+            std::env::var("HASH_GRAPH_LOG_LEVEL")
+                .or_else(|_| std::env::var("RUST_LOG"))
+                .map_or_else(
+                    |_| {
+                        if cfg!(debug_assertions) {
+                            EnvFilter::default().add_directive(Directive::from(LevelFilter::DEBUG))
+                        } else {
+                            EnvFilter::default().add_directive(Directive::from(LevelFilter::INFO))
+                        }
+                    },
+                    EnvFilter::new,
+                )
         },
-        |level| EnvFilter::default().add_directive(Directive::from(level)),
+        |log_level| EnvFilter::default().add_directive(Directive::from(log_level)),
     )
 }
 
@@ -336,7 +321,7 @@ where
 }
 
 #[must_use]
-pub fn file_layer<S>(config: FileConfig) -> (impl Layer<S>, impl Drop)
+pub(crate) fn file_layer<S>(config: FileConfig) -> (impl Layer<S>, impl Drop)
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {
@@ -348,13 +333,13 @@ where
     (layer, guard)
 }
 
-pub type ConsoleLayer<S>
+pub(crate) type ConsoleLayer<S>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 = impl Layer<S>;
 
 #[must_use]
-pub fn console_layer<S>(config: &ConsoleConfig) -> ConsoleLayer<S>
+pub(crate) fn console_layer<S>(config: &ConsoleConfig) -> ConsoleLayer<S>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {

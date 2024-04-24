@@ -1,18 +1,20 @@
 #![feature(lint_reasons)]
 #![feature(type_alias_impl_trait)]
+#![feature(can_vector)]
+#![feature(write_all_vectored)]
 
+pub(crate) mod console;
+pub(crate) mod formatter;
 pub mod logging;
-
 pub mod opentelemetry;
 pub mod sentry;
-mod console;
 
-use tracing::{level_filters::LevelFilter, warn};
+use tokio::runtime::Handle;
+use tracing::warn;
+use tracing_error::ErrorLayer;
 use tracing_subscriber::{
-    filter::Directive,
     layer::SubscriberExt,
     util::{SubscriberInitExt, TryInitError},
-    EnvFilter,
 };
 
 use crate::{logging::LoggingConfig, opentelemetry::OpenTelemetryConfig, sentry::SentryConfig};
@@ -36,52 +38,21 @@ pub struct TracingConfig {
 /// # Errors
 ///
 /// - [`TryInitError`], if initializing the [`tracing_subscriber::Registry`] fails.
-pub async fn init_tracing(config: TracingConfig) -> Result<impl Drop, TryInitError> {
-    let LoggingConfig {
-        log_format,
-        log_folder,
-        log_level,
-        log_file_prefix,
-    } = config.logging;
+pub fn init_tracing(config: TracingConfig, handle: &Handle) -> Result<impl Drop, TryInitError> {
+    let error = ErrorLayer::default();
 
-    let filter = log_level.map_or_else(
-        || {
-            // Both environment variables are supported but `HASH_GRAPH_LOG_LEVEL` takes precedence
-            // over `RUST_LOG`. If `RUST_LOG` is set we emit a warning at the end of this function.
-            std::env::var("HASH_GRAPH_LOG_LEVEL")
-                .or_else(|_| std::env::var("RUST_LOG"))
-                .map_or_else(
-                    |_| {
-                        if cfg!(debug_assertions) {
-                            EnvFilter::default().add_directive(Directive::from(LevelFilter::DEBUG))
-                        } else {
-                            EnvFilter::default().add_directive(Directive::from(LevelFilter::INFO))
-                        }
-                    },
-                    EnvFilter::new,
-                )
-        },
-        |log_level| EnvFilter::default().add_directive(Directive::from(log_level)),
-    );
+    let console = logging::console_layer(&config.logging.console);
+    let (file, file_guard) = logging::file_layer(config.logging.file);
 
-    let error_layer = tracing_error::ErrorLayer::default();
-    let (output_layer, json_output_layer) = logging::console_logger(log_format);
-    let (json_file_layer, json_file_guard) = logging::file_logger(log_folder, &log_file_prefix);
-    let opentelemetry_layer = if let Some(endpoint) = config.otlp.otlp_endpoint {
-        Some(opentelemetry::layer(endpoint).await)
-    } else {
-        None
-    };
-    let sentry_layer = sentry::layer(&config.sentry);
+    let sentry = sentry::layer(&config.sentry);
+    let opentelemetry = opentelemetry::layer(&config.otlp, handle);
 
     tracing_subscriber::registry()
-        .with(filter)
-        .with(opentelemetry_layer)
-        .with(sentry_layer)
-        .with(output_layer)
-        .with(json_output_layer)
-        .with(json_file_layer)
-        .with(error_layer)
+        .with(sentry)
+        .with(opentelemetry)
+        .with(console)
+        .with(file)
+        .with(error)
         .try_init()?;
 
     // We have to wait until logging is initialized before we can print the warning.
@@ -96,5 +67,5 @@ pub async fn init_tracing(config: TracingConfig) -> Result<impl Drop, TryInitErr
         }
     }
 
-    Ok(json_file_guard)
+    Ok(file_guard)
 }
