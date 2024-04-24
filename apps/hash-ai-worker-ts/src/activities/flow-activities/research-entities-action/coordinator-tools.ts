@@ -181,6 +181,7 @@ export const coordinatorToolDefinitions: Record<
     description: dedent(`
       Propose a link between two entities.
       The source or target entity may be a previously proposed entity, or an existing entity.
+      Proposing a link will also submit it as a proposed link entity for the research task.
     `),
     inputSchema: {
       type: "object",

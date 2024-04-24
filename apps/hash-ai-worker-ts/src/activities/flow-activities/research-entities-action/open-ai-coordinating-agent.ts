@@ -104,7 +104,15 @@ const getNextToolCalls = async (params: {
   const { input, state } = params;
 
   const submittedProposedEntities = state.proposedEntities.filter(
-    ({ localEntityId }) => state.submittedEntityIds.includes(localEntityId),
+    (proposedEntity) =>
+      !("sourceEntityId" in proposedEntity) &&
+      state.submittedEntityIds.includes(proposedEntity.localEntityId),
+  );
+
+  const submittedProposedLinks = state.proposedEntities.filter(
+    (proposedEntity) =>
+      "sourceEntityId" in proposedEntity &&
+      state.submittedEntityIds.includes(proposedEntity.localEntityId),
   );
 
   const systemPrompt = dedent(`
@@ -117,11 +125,20 @@ const getNextToolCalls = async (params: {
           ? dedent(`
             You have previously submitted the following proposed entities:
             ${JSON.stringify(submittedProposedEntities, null, 2)}
-
-            If the submitted entities satisfy the research prompt, call the "complete" tool.
           `)
           : "You have not previously submitted any proposed entities."
       }
+
+      ${
+        submittedProposedLinks.length > 0
+          ? dedent(`
+            You have previously submitted the following proposed links:
+            ${JSON.stringify(submittedProposedLinks, null, 2)}
+          `)
+          : "You have not previously submitted any proposed links."
+      }
+
+      ${submittedProposedEntities.length > 0 || submittedProposedLinks.length > 0 ? 'If the submitted entities and links satisfy the research prompt, call the "complete" tool.' : ""}
 
       You have previously proposed the following plan:
       ${state.plan}

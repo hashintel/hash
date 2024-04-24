@@ -308,9 +308,11 @@ export const researchEntitiesAction: FlowActionActivity<{
               };
             }
 
+            /** @todo: improve generation of local entity id */
+            const localEntityId = `${linkEntityTypeId}-${state.proposedEntities.length}`;
+
             state.proposedEntities.push({
-              /** @todo: improve generation of local entity id */
-              localEntityId: `${linkEntityTypeId}-${state.proposedEntities.length}`,
+              localEntityId,
               entityTypeId: linkEntityTypeId as VersionedUrl,
               sourceEntityId:
                 "metadata" in sourceEntity
@@ -337,6 +339,8 @@ export const researchEntitiesAction: FlowActionActivity<{
                */
               properties: {},
             });
+
+            state.submittedEntityIds.push(localEntityId);
 
             return {
               ...toolCall,
