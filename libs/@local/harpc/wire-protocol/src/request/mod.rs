@@ -12,7 +12,6 @@ use self::{
 };
 use crate::codec::{Decode, Encode};
 
-pub mod authorization;
 pub mod begin;
 pub mod body;
 pub mod codec;

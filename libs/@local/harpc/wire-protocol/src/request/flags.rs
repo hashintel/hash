@@ -16,7 +16,6 @@ use crate::{
 pub enum RequestFlag {
     // Computed flags
     BeginOfRequest = 0b1000_0000,
-    ContainsAuthorization = 0b0100_0000,
     // Controlled flags
     EndOfRequest = 0b0000_0001,
 }
@@ -31,11 +30,7 @@ pub struct RequestFlags(
 
 impl RequestFlags {
     pub(super) fn apply_body(self, body: &RequestBody) -> Self {
-        self.set(
-            RequestFlag::ContainsAuthorization,
-            body.contains_authorization(),
-        )
-        .set(RequestFlag::BeginOfRequest, body.begin_of_request())
+        self.set(RequestFlag::BeginOfRequest, body.begin_of_request())
     }
 }
 
@@ -90,14 +85,12 @@ mod test {
 
     #[tokio::test]
     async fn encode() {
-        let flags = RequestFlag::BeginOfRequest
-            | RequestFlag::ContainsAuthorization
-            | RequestFlag::EndOfRequest;
+        let flags = RequestFlag::BeginOfRequest | RequestFlag::EndOfRequest;
         let flags = RequestFlags::from(flags);
 
         assert_encode(&flags, &[0b1100_0001]).await;
 
-        let flags = RequestFlag::BeginOfRequest | RequestFlag::ContainsAuthorization;
+        let flags = RequestFlag::BeginOfRequest;
         let flags = RequestFlags::from(flags);
 
         assert_encode(&flags, &[0b1100_0000]).await;
@@ -107,7 +100,7 @@ mod test {
 
         assert_encode(&flags, &[0b1000_0001]).await;
 
-        let flags = RequestFlag::ContainsAuthorization | RequestFlag::EndOfRequest;
+        let flags = RequestFlag::EndOfRequest;
         let flags = RequestFlags::from(flags);
 
         assert_encode(&flags, &[0b0100_0001]).await;
@@ -115,14 +108,12 @@ mod test {
 
     #[tokio::test]
     async fn decode() {
-        let flags = RequestFlag::BeginOfRequest
-            | RequestFlag::ContainsAuthorization
-            | RequestFlag::EndOfRequest;
+        let flags = RequestFlag::BeginOfRequest | RequestFlag::EndOfRequest;
         let flags = RequestFlags::from(flags);
 
         assert_decode(&[0b1100_0001], &flags, ()).await;
 
-        let flags = RequestFlag::BeginOfRequest | RequestFlag::ContainsAuthorization;
+        let flags = RequestFlag::BeginOfRequest;
         let flags = RequestFlags::from(flags);
 
         assert_decode(&[0b1100_0000], &flags, ()).await;
@@ -132,7 +123,7 @@ mod test {
 
         assert_decode(&[0b1000_0001], &flags, ()).await;
 
-        let flags = RequestFlag::ContainsAuthorization | RequestFlag::EndOfRequest;
+        let flags = RequestFlag::EndOfRequest;
         let flags = RequestFlags::from(flags);
 
         assert_decode(&[0b0100_0001], &flags, ()).await;

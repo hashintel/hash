@@ -33,7 +33,7 @@ impl RequestHeader {
 impl Encode for RequestHeader {
     type Error = io::Error;
 
-    async fn encode(&self, mut write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
         pin!(write);
 
         self.protocol.encode(&mut write).await?;

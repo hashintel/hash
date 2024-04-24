@@ -26,6 +26,8 @@ impl Encode for Encoding {
     type Error = io::Error;
 
     async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
+        pin!(write);
+
         (*self as u16).encode(write).await
     }
 }

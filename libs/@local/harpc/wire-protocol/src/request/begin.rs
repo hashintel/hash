@@ -2,7 +2,6 @@ use error_stack::{Result, ResultExt};
 use tokio::{io::AsyncWrite, pin};
 
 use super::{
-    authorization::Authorization,
     codec::{DecodeError, EncodeError},
     encoding::EncodingHeader,
     procedure::ProcedureDescriptor,
@@ -20,8 +19,6 @@ pub struct RequestBegin {
     pub procedure: ProcedureDescriptor,
 
     pub encoding: EncodingHeader,
-
-    pub authorization: Option<Authorization>,
 
     pub payload: Payload,
 }
@@ -47,23 +44,12 @@ impl Encode for RequestBegin {
             .await
             .change_context(EncodeError)?;
 
-        if let Some(authorization) = &self.authorization {
-            authorization
-                .encode(&mut write)
-                .await
-                .change_context(EncodeError)?;
-        }
-
         self.payload.encode(write).await.change_context(EncodeError)
     }
 }
 
-pub struct RequestBeginContext {
-    pub contains_authorization: bool,
-}
-
 impl Decode for RequestBegin {
-    type Context = RequestBeginContext;
+    type Context = ();
     type Error = DecodeError;
 
     async fn decode(
@@ -81,20 +67,6 @@ impl Decode for RequestBegin {
 
         let encoding = EncodingHeader::decode(&mut read, ()).await?;
 
-        #[expect(
-            clippy::if_then_some_else_none,
-            reason = "false positive, contains await"
-        )]
-        let authorization = if context.contains_authorization {
-            Some(
-                Authorization::decode(&mut read, ())
-                    .await
-                    .change_context(DecodeError)?,
-            )
-        } else {
-            None
-        };
-
         let payload = Payload::decode(read, ())
             .await
             .change_context(DecodeError)?;
@@ -103,7 +75,6 @@ impl Decode for RequestBegin {
             service,
             procedure,
             encoding,
-            authorization,
             payload,
         })
     }

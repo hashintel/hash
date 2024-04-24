@@ -21,15 +21,6 @@ pub enum RequestBody {
 
 impl RequestBody {
     #[must_use]
-    pub(super) const fn contains_authorization(&self) -> bool {
-        let Self::Begin(body) = self else {
-            return false;
-        };
-
-        body.authorization.is_some()
-    }
-
-    #[must_use]
     pub(super) const fn begin_of_request(&self) -> bool {
         matches!(self, Self::Begin(_))
     }
