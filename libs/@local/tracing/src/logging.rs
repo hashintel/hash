@@ -68,12 +68,13 @@ impl ConsoleStream {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "clap", derive(clap::Parser))]
+#[cfg_attr(feature = "clap", derive(clap::Args))]
 pub struct ConsoleConfig {
     /// Whether to enable logging to stdout/stderr
     #[cfg_attr(
         feature = "clap",
         clap(
+            id = "logging-console-enabled",
             long = "logging-console-enabled",
             default_value_t = true,
             env = "HASH_GRAPH_LOG_CONSOLE_ENABLED",
@@ -86,6 +87,7 @@ pub struct ConsoleConfig {
     #[cfg_attr(
         feature = "clap",
         clap(
+            id = "logging-console-format",
             long = "logging-console-format",
             default_value_t = LogFormat::Pretty,
             value_enum,
@@ -96,13 +98,26 @@ pub struct ConsoleConfig {
     pub format: LogFormat,
 
     /// Logging verbosity to use.
-    #[cfg_attr(feature = "clap", clap(long = "logging-console-level", global = true))]
+    #[cfg_attr(
+        feature = "clap",
+        clap(
+            id = "logging-console-level",
+            long = "logging-console-level",
+            global = true
+        )
+    )]
     pub level: Option<Level>,
 
     /// Stream to write to
     #[cfg_attr(
         feature = "clap",
-        clap(long = "logging-console-stream", value_enum, default_value_t=ConsoleStream::Stderr, global = true)
+        clap(
+            id = "logging-console-stream",
+            long = "logging-console-stream",
+            value_enum,
+            default_value_t=ConsoleStream::Stderr,
+            global = true
+        )
     )]
     pub stream: ConsoleStream,
 }
@@ -129,22 +144,37 @@ impl From<RotationInterval> for Rotation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-#[cfg_attr(feature = "clap", derive(clap::Parser))]
+#[cfg_attr(feature = "clap", derive(clap::Args))]
 pub struct FileRotation {
     #[cfg_attr(
         feature = "clap",
-        clap(long = "logging-file-rotation", value_enum, global = true)
+        clap(
+            id = "logging-file-rotation",
+            long = "logging-file-rotation",
+            value_enum,
+            default_value_t = RotationInterval::Never,
+            global = true
+        )
     )]
     pub rotation: RotationInterval,
 
     #[cfg_attr(
         feature = "clap",
-        clap(long = "logging-file-filename-prefix", default_value = Some("out"), global = true)
+        clap(
+            id = "logging-file-filename-prefix",
+            long = "logging-file-filename-prefix",
+            default_value = Some("out"),
+            global = true
+        )
     )]
     pub filename_prefix: Option<String>,
     #[cfg_attr(
         feature = "clap",
-        clap(long = "logging-file-filename-suffix", global = true)
+        clap(
+            id = "logging-file-filename-suffix",
+            long = "logging-file-filename-suffix",
+            global = true
+        )
     )]
     pub filename_suffix: Option<String>,
 
@@ -174,12 +204,13 @@ impl FileRotation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "clap", derive(clap::Parser))]
+#[cfg_attr(feature = "clap", derive(clap::Args))]
 pub struct FileConfig {
     /// Whether to enable logging to a file
     #[cfg_attr(
         feature = "clap",
         clap(
+            id = "logging-file-enabled",
             long = "logging-file-enabled",
             default_value_t = false,
             env = "HASH_GRAPH_LOG_FILE_ENABLED",
@@ -192,6 +223,7 @@ pub struct FileConfig {
     #[cfg_attr(
         feature = "clap",
         clap(
+            id = "logging-file-format",
             long = "logging-file-format",
             default_value_t = LogFormat::Compact,
             value_enum,
@@ -204,7 +236,12 @@ pub struct FileConfig {
     /// Logging verbosity to use.
     #[cfg_attr(
         feature = "clap",
-        clap(long = "logging-file-level", value_enum, global = true)
+        clap(
+            id = "logging-file-level",
+            long = "logging-file-level",
+            value_enum,
+            global = true
+        )
     )]
     pub level: Option<Level>,
 
@@ -212,6 +249,7 @@ pub struct FileConfig {
     #[cfg_attr(
         feature = "clap",
         clap(
+            id = "logging-file-output",
             long = "logging-file-output",
             value_hint = clap::ValueHint::DirPath,
             default_value = "./logs",
@@ -228,7 +266,7 @@ pub struct FileConfig {
 
 /// Arguments for configuring the logging setup
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "clap", derive(clap::Parser))]
+#[cfg_attr(feature = "clap", derive(clap::Args))]
 pub struct LoggingConfig {
     /// Configuration for logging to the console
     #[cfg_attr(feature = "clap", clap(flatten))]

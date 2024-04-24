@@ -49,7 +49,8 @@ fn block_on(
         .expect("failed to create runtime")
         .block_on(async {
             let handle = Handle::current();
-            let _log_guard = init_tracing(tracing_config, &handle).await;
+            let _log_guard = init_tracing(tracing_config, &handle)
+                .expect("should be able to initialize tracing");
 
             future.await
         })

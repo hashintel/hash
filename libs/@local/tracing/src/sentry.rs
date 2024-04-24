@@ -74,10 +74,17 @@ impl TypedValueParser for OptionalSentryDsnParser {
 pub struct SentryConfig {
     // we need to qualify `Option` here, as otherwise `clap` tries to be too smart and only uses
     // the `value_parser` on the internal `sentry::types::Dsn`, failing.
-    #[cfg_attr(feature = "clap", arg(long = "sentry-dsn", env = "HASH_GRAPH_SENTRY_DSN", value_parser = OptionalSentryDsnParser, default_value = ""))]
+    #[cfg_attr(feature = "clap", arg(
+        id = "sentry-dsn",
+        long = "sentry-dsn",
+        env = "HASH_GRAPH_SENTRY_DSN",
+        value_parser = OptionalSentryDsnParser,
+        default_value = ""
+    ))]
     pub dsn: core::option::Option<Dsn>,
 
     #[cfg_attr(feature = "clap", arg(
+        id = "sentry-release",
         long = "sentry-environment",
         env = "HASH_GRAPH_SENTRY_ENVIRONMENT",
         default_value_t = SentryEnvironment::default(),
@@ -88,6 +95,7 @@ pub struct SentryConfig {
     #[cfg_attr(
         feature = "clap",
         arg(
+            id = "sentry-enable-span-attributes",
             long = "sentry-enable-span-attribute ",
             env = "HASH_GRAPH_SENTRY_ENABLE_SPAN_ATTRIBUTES",
         )
@@ -96,13 +104,23 @@ pub struct SentryConfig {
 
     #[cfg_attr(
         feature = "clap",
-        arg(long = "sentry-span-filter", env = "HASH_GRAPH_SENTRY_SPAN_FILTER", default_value_t = tracing::Level::INFO)
+        arg(
+            id = "sentry-span-filter",
+            long = "sentry-span-filter",
+            env = "HASH_GRAPH_SENTRY_SPAN_FILTER",
+            default_value_t = tracing::Level::INFO
+        )
     )]
     pub span_filter: tracing::Level,
 
     #[cfg_attr(
         feature = "clap",
-        arg(long = "sentry-event-filter", env = "HASH_GRAPH_SENTRY_EVENT_FILTER", default_value_t = tracing::Level::INFO)
+        arg(
+            id = "sentry-event-filter",
+            long = "sentry-event-filter",
+            env = "HASH_GRAPH_SENTRY_EVENT_FILTER",
+            default_value_t = tracing::Level::INFO
+        )
     )]
     pub event_filter: tracing::Level,
 }

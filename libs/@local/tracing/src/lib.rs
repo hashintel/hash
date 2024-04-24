@@ -21,7 +21,7 @@ use crate::{logging::LoggingConfig, opentelemetry::OpenTelemetryConfig, sentry::
 
 /// Arguments for configuring the logging setup
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "clap", derive(clap::Parser))]
+#[cfg_attr(feature = "clap", derive(clap::Args))]
 pub struct TracingConfig {
     #[cfg_attr(feature = "clap", clap(flatten))]
     pub logging: LoggingConfig,
