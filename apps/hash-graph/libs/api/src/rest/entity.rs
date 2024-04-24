@@ -27,8 +27,8 @@ use graph::{
     store::{
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
         knowledge::{
-            CreateEntityRequest, GetEntityParams, PatchEntityParams, UpdateEntityEmbeddingsParams,
-            ValidateEntityParams,
+            CreateEntityRequest, DiffEntityParams, DiffEntityResult, GetEntityParams,
+            PatchEntityParams, UpdateEntityEmbeddingsParams, ValidateEntityParams,
         },
         AccountStore, EntityQueryCursor, EntityQuerySorting, EntityQuerySortingRecord, EntityStore,
         EntityValidationType, NullOrdering, Ordering, StorePool,
@@ -38,23 +38,22 @@ use graph::{
 use graph_types::{
     knowledge::{
         entity::{
-            Entity, EntityEditionId, EntityEditionProvenanceMetadata, EntityEmbedding, EntityId,
-            EntityMetadata, EntityProperties, EntityProvenanceMetadata, EntityRecordId,
-            EntityTemporalMetadata, EntityUuid,
+            ActorType, Entity, EntityEditionId, EntityEditionProvenance, EntityEmbedding, EntityId,
+            EntityMetadata, EntityProvenance, EntityRecordId, EntityTemporalMetadata, EntityUuid,
+            InferredEntityProvenance, Location, OriginProvenance, ProvidedEntityEditionProvenance,
+            SourceProvenance, SourceType,
         },
         link::LinkData,
+        Confidence, Property, PropertyDiff, PropertyMetadata, PropertyMetadataMap, PropertyObject,
+        PropertyPatchOperation, PropertyPath, PropertyPathElement, PropertyProvenance,
     },
     owned_by_id::OwnedById,
     Embedding,
 };
-use json_patch::{
-    AddOperation, CopyOperation, MoveOperation, PatchOperation, RemoveOperation, ReplaceOperation,
-    TestOperation,
-};
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use utoipa::{OpenApi, ToSchema};
-use validation::ValidationProfile;
+use validation::ValidateEntityComponents;
 
 use crate::rest::{
     api_resource::RoutedResource, json::Json, status::report_to_response,
@@ -68,8 +67,10 @@ use crate::rest::{
         validate_entity,
         check_entity_permission,
         get_entities_by_query,
+        count_entities,
         patch_entity,
         update_entity_embeddings,
+        diff_entity,
 
         get_entity_authorization_relationships,
         modify_entity_authorization_relationships,
@@ -84,7 +85,7 @@ use crate::rest::{
             CreateEntityRequest,
             ValidateEntityParams,
             EntityValidationType,
-            ValidationProfile,
+            ValidateEntityComponents,
             Embedding,
             UpdateEntityEmbeddingsParams,
             EntityEmbedding,
@@ -92,13 +93,7 @@ use crate::rest::{
             EntityStructuralQuery,
 
             PatchEntityParams,
-            PatchOperation,
-            AddOperation,
-            ReplaceOperation,
-            RemoveOperation,
-            CopyOperation,
-            MoveOperation,
-            TestOperation,
+            PropertyPatchOperation,
 
             EntityRelationAndSubject,
             EntityPermission,
@@ -120,17 +115,35 @@ use crate::rest::{
             GetEntityByQueryResponse,
 
             Entity,
+            Property,
+            PropertyProvenance,
+            PropertyObject,
+            PropertyMetadata,
+            PropertyMetadataMap,
             EntityUuid,
             EntityId,
             EntityEditionId,
             EntityMetadata,
-            EntityProvenanceMetadata,
-            EntityEditionProvenanceMetadata,
-            EntityProperties,
+            EntityProvenance,
+            EntityEditionProvenance,
+            InferredEntityProvenance,
+            ProvidedEntityEditionProvenance,
+            ActorType,
+            OriginProvenance,
+            SourceType,
+            SourceProvenance,
+            Location,
             EntityRecordId,
             EntityTemporalMetadata,
             EntityQueryToken,
             LinkData,
+
+            DiffEntityParams,
+            DiffEntityResult,
+            PropertyDiff,
+            PropertyPath,
+            PropertyPathElement,
+            Confidence,
         )
     ),
     tags(
@@ -155,6 +168,7 @@ impl RoutedResource for EntityResource {
                     "/relationships",
                     post(modify_entity_authorization_relationships::<A>),
                 )
+                .route("/diff", post(diff_entity::<S, A>))
                 .route("/validate", post(validate_entity::<S, A>))
                 .route("/embeddings", post(update_entity_embeddings::<S, A>))
                 .nest(
@@ -178,7 +192,12 @@ impl RoutedResource for EntityResource {
                             get(check_entity_permission::<A>),
                         ),
                 )
-                .route("/query", post(get_entities_by_query::<S, A>)),
+                .nest(
+                    "/query",
+                    Router::new()
+                        .route("/", post(get_entities_by_query::<S, A>))
+                        .route("/count", post(count_entities::<S, A>)),
+                ),
         )
     }
 }
@@ -335,6 +354,8 @@ struct GetEntityByQueryRequest<'q, 's, 'p> {
     sorting_paths: Option<Vec<EntityQuerySortingRecord<'p>>>,
     #[serde(borrow)]
     cursor: Option<EntityQueryCursor<'s>>,
+    #[serde(default)]
+    include_count: bool,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -343,6 +364,7 @@ struct GetEntityByQueryResponse<'r> {
     subgraph: Subgraph,
     #[serde(borrow)]
     cursor: Option<EntityQueryCursor<'r>>,
+    count: Option<usize>,
 }
 
 #[utoipa::path(
@@ -440,7 +462,7 @@ where
         },
     );
 
-    let (subgraph, cursor) = store
+    store
         .get_entity(
             actor_id,
             &authorization_api,
@@ -454,15 +476,68 @@ where
                     cursor: request.cursor.map(EntityQueryCursor::into_owned),
                 },
                 limit: request.limit,
+                include_count: request.include_count,
             },
         )
         .await
+        .map(|response| {
+            Json(GetEntityByQueryResponse {
+                subgraph: response.subgraph.into(),
+                cursor: response.cursor.map(EntityQueryCursor::into_owned),
+                count: response.count,
+            })
+        })
+        .map_err(report_to_response)
+}
+
+#[utoipa::path(
+    post,
+    path = "/entities/query/count",
+    request_body = EntityStructuralQuery,
+    tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+
+    ),
+    responses(
+        (
+            status = 200,
+            content_type = "application/json",
+            body = usize,
+        ),
+        (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, request))]
+async fn count_entities<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    Json(request): Json<serde_json::Value>,
+) -> Result<Json<usize>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let store = store_pool.acquire().await.map_err(report_to_response)?;
+
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
         .map_err(report_to_response)?;
 
-    Ok(Json(GetEntityByQueryResponse {
-        subgraph: subgraph.into(),
-        cursor: cursor.map(EntityQueryCursor::into_owned),
-    }))
+    let mut query = EntityStructuralQuery::deserialize(&request).map_err(report_to_response)?;
+    query
+        .filter
+        .convert_parameters()
+        .map_err(report_to_response)?;
+
+    store
+        .count_entities(actor_id, &authorization_api, query)
+        .await
+        .map(Json)
+        .map_err(report_to_response)
 }
 
 #[utoipa::path(
@@ -566,6 +641,53 @@ where
         .update_entity_embeddings(actor_id, &mut authorization_api, params)
         .await
         .map_err(report_to_response)
+}
+
+#[utoipa::path(
+    post,
+    path = "/entities/diff",
+    tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (status = 200, content_type = "application/json", description = "The difference between the two entities", body = DiffEntityResult),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+
+        (status = 404, description = "Entity ID was not found"),
+        (status = 500, description = "Store error occurred"),
+    ),
+    request_body = DiffEntityParams,
+)]
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+async fn diff_entity<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    Json(params): Json<DiffEntityParams>,
+) -> Result<Json<DiffEntityResult<'static>>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let store = store_pool.acquire().await.map_err(report_to_response)?;
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    store
+        .diff_entity(actor_id, &authorization_api, params)
+        .await
+        .map_err(|report| {
+            if report.contains::<EntityDoesNotExist>() {
+                report.attach(hash_status::StatusCode::NotFound)
+            } else {
+                report
+            }
+        })
+        .map_err(report_to_response)
+        .map(Json)
 }
 
 #[utoipa::path(

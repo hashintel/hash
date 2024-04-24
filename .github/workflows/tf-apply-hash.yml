@@ -49,7 +49,7 @@ jobs:
       matrix:
         env: ${{ fromJson(needs.matrix-eval.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
 
       - name: Prepare SSH key
         run: |
@@ -63,7 +63,7 @@ jobs:
           env: ${{ matrix.env }}
 
       - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@72c987ec9674843e8a882c6beb4fb043c1ea926e
+        uses: rtCamp/action-slack-notify@19c86e40d4bc3be986b18f1459d4549536887065
         if: ${{ failure() }}
         env:
           SLACK_LINK_NAMES: true

@@ -1,4 +1,4 @@
-FROM node:18.15-alpine AS builder
+FROM node:20.12-alpine AS builder
 
 WORKDIR /app
 
@@ -38,7 +38,7 @@ ENV FRONTEND_URL ${FRONTEND_URL}
 RUN turbo build --filter '@apps/hash-frontend'
 
 
-FROM node:18.15-alpine
+FROM node:20.12-alpine
 
 RUN #apk add --no-cache libc6-compat
 

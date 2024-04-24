@@ -145,7 +145,7 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
                 .attach_printable("could not send entity type embedding"),
             SnapshotEntry::Entity(entity) => self
                 .entity
-                .start_send_unpin(entity)
+                .start_send_unpin(*entity)
                 .attach_printable("could not send entity"),
             SnapshotEntry::Relation(AuthorizationRelation::Entity {
                 object: entity_uuid,

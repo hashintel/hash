@@ -1,16 +1,22 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { extractVersion } from "@blockprotocol/type-system";
-import { AsteriskRegularIcon } from "@hashintel/design-system";
+import {
+  AsteriskRegularIcon,
+  EyeIconSolid,
+  PenToSquareIconSolid,
+} from "@hashintel/design-system";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
 import type { EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { isBaseUrl } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+import type { SxProps, Theme } from "@mui/material";
 import {
   Box,
   buttonClasses,
   Container,
   Fade,
+  Stack,
   styled,
   Typography,
 } from "@mui/material";
@@ -39,6 +45,7 @@ import { Button } from "../shared/ui";
 import { TabLink } from "../shared/ui/tab-link";
 import { Tabs } from "../shared/ui/tabs";
 import { useUserPermissionsOnEntityType } from "../shared/use-user-permissions-on-entity-type";
+import type { Breadcrumb } from "./shared/breadcrumbs";
 import { EntitiesTable } from "./shared/entities-table";
 import { TopContextBar } from "./shared/top-context-bar";
 import { useEnabledFeatureFlags } from "./shared/use-enabled-feature-flags";
@@ -173,6 +180,12 @@ export const CreateButtons: FunctionComponent<{
   );
 };
 
+const typeIconSx: SxProps<Theme> = {
+  ml: 1,
+  fill: ({ palette }) => palette.common.white,
+  fontSize: 14,
+};
+
 const EntitiesPage: NextPageWithLayout = () => {
   const router = useRouter();
 
@@ -252,27 +265,36 @@ const EntitiesPage: NextPageWithLayout = () => {
     userPermissionsLoading,
   ]);
 
+  const breadcrumbs = useMemo(() => {
+    const rootCrumb = {
+      title: "Entities",
+      href: entityType ? "/entities" : undefined,
+      id: "entities",
+      icon: <AsteriskRegularIcon />,
+    };
+    const crumbs: Breadcrumb[] = [rootCrumb];
+
+    if (entityType) {
+      crumbs.push({
+        title: pageTitle,
+        id: pageTitle,
+        icon: isViewAllPagesPage ? (
+          <FilesRegularIcon />
+        ) : (
+          <AsteriskRegularIcon />
+        ),
+      });
+    }
+
+    return crumbs;
+  }, [entityType, isViewAllPagesPage, pageTitle]);
+
   return (
     <>
       <NextSeo title={pageTitle} />
       <TopContextBar
         defaultCrumbIcon={null}
-        crumbs={[
-          {
-            title: pageTitle,
-            href: isViewAllPagesPage
-              ? "/pages"
-              : `/entities${
-                  entityTypeId ? `?entityTypeIdOrBaseUrl=${entityTypeId}` : ""
-                }`,
-            id: entityTypeId ?? "entities",
-            icon: isViewAllPagesPage ? (
-              <FilesRegularIcon />
-            ) : (
-              <AsteriskRegularIcon />
-            ),
-          },
-        ]}
+        crumbs={breadcrumbs}
         scrollToTop={() => {}}
       />
       <Box
@@ -284,22 +306,42 @@ const EntitiesPage: NextPageWithLayout = () => {
         }}
       >
         <Container sx={{ maxWidth: { lg: contentMaxWidth } }}>
-          <Typography variant="h1" fontWeight="bold" my={3}>
-            <Box
-              display="inline-flex"
-              sx={({ palette }) => ({
-                svg: {
-                  fontSize: 40,
-                  mr: 2,
-                  color: palette.gray[70],
-                  verticalAlign: "middle",
-                },
-              })}
-            >
-              {isViewAllPagesPage ? <FilesLightIcon /> : <AsteriskLightIcon />}
-            </Box>
-            {pageTitle}
-          </Typography>
+          <Stack direction="row" justifyContent="space-between">
+            <Typography variant="h1" fontWeight="bold" my={3}>
+              <Box
+                display="inline-flex"
+                sx={({ palette }) => ({
+                  svg: {
+                    fontSize: 40,
+                    mr: 2,
+                    color: palette.gray[70],
+                    verticalAlign: "middle",
+                  },
+                })}
+              >
+                {isViewAllPagesPage ? (
+                  <FilesLightIcon />
+                ) : (
+                  <AsteriskLightIcon />
+                )}
+              </Box>
+              {pageTitle}
+            </Typography>
+            {entityType && (
+              <Button
+                href={generateLinkParameters(entityType.schema.$id).href}
+                size="small"
+                sx={{ alignSelf: "center" }}
+              >
+                {userPermissions?.edit ? "Edit" : "View"} Type
+                {userPermissions?.edit ? (
+                  <PenToSquareIconSolid sx={typeIconSx} />
+                ) : (
+                  <EyeIconSolid sx={typeIconSx} />
+                )}
+              </Button>
+            )}
+          </Stack>
           <Box display="flex" justifyContent="space-between">
             <Tabs value="all">
               <TabLink

@@ -10,6 +10,7 @@ import {
   googleEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
 import type {
   AccountProperties as GoogleAccountProperties,
@@ -27,7 +28,6 @@ import { splitEntityId } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
-  mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
 import type { Auth } from "googleapis";
 import { google } from "googleapis";
@@ -161,7 +161,10 @@ export const getGoogleSheetsIntegrationEntities = async ({
       },
     })
     .then(({ data }) =>
-      mapGraphApiSubgraphToSubgraph<EntityRootType>(data.subgraph),
+      mapGraphApiSubgraphToSubgraph<EntityRootType>(
+        data.subgraph,
+        authentication.actorId,
+      ),
     );
 
   const integrationEntity = getRoots(existingIntegrationEntitySubgraph)[0] as

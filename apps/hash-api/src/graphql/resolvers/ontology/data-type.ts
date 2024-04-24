@@ -3,8 +3,8 @@ import {
   fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { DataTypeRootType, Subgraph } from "@local/hash-subgraph";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-subgraph/stdlib";
 
 import { getDataTypeSubgraphById } from "../../../graph/ontology/primitive/data-type";
 import type {
@@ -41,7 +41,10 @@ export const queryDataTypes: ResolverFn<
     includeDrafts: false,
   });
 
-  const subgraph = mapGraphApiSubgraphToSubgraph<DataTypeRootType>(data);
+  const subgraph = mapGraphApiSubgraphToSubgraph<DataTypeRootType>(
+    data,
+    authentication.actorId,
+  );
 
   return subgraph;
 };

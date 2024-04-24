@@ -17,6 +17,7 @@ import {
   DataEditor,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
+import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import type { PopperProps } from "@mui/material";
 import { Box, useTheme } from "@mui/material";
 import type { Instance as PopperInstance } from "@popperjs/core";
@@ -71,8 +72,6 @@ export type GridProps<T extends Row & { rowId: string }> = Omit<
 const gridHeaderHeight = 42;
 
 export const gridHeaderHeightWithBorder = gridHeaderHeight + 1;
-
-export const gridRowHeight = 42;
 
 export const gridHorizontalScrollbarHeight = 17;
 

@@ -6,5 +6,8 @@
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
     "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
+  },
+  "dependencies": {
+    "@local/codec-rs": "0.0.0-private"
   }
 }

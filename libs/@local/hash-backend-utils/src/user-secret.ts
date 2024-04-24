@@ -8,6 +8,7 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   UserSecretProperties,
   UsesUserSecretProperties,
@@ -19,11 +20,7 @@ import type {
   EntityRootType,
 } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
-import {
-  getEntityRevision,
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { getEntityRevision, getRoots } from "@local/hash-subgraph/stdlib";
 
 export const getSecretEntitiesForIntegration = async ({
   authentication,
@@ -82,6 +79,7 @@ export const getSecretEntitiesForIntegration = async ({
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
         data.subgraph,
+        authentication.actorId,
       );
 
       const linkEntities = getRoots(subgraph);

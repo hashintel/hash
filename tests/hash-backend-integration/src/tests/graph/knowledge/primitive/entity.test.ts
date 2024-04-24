@@ -22,6 +22,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   Entity,
   EntityRootType,
@@ -30,10 +31,7 @@ import type {
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
@@ -291,7 +289,12 @@ describe("Entity CRU", () => {
         },
       })
       .then(({ data }) =>
-        getRoots(mapGraphApiSubgraphToSubgraph<EntityRootType>(data.subgraph)),
+        getRoots(
+          mapGraphApiSubgraphToSubgraph<EntityRootType>(
+            data.subgraph,
+            testUser.accountId,
+          ),
+        ),
       );
 
     const newlyUpdated = allEntities.find(

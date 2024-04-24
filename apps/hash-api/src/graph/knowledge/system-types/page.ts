@@ -16,6 +16,7 @@ import {
   pageEntityTypeIds,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
 import type {
   HasDataProperties,
@@ -28,10 +29,7 @@ import type {
   EntityRootType,
   OwnedById,
 } from "@local/hash-subgraph";
-import {
-  getEntities as getEntitiesFromSubgraph,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { getEntities as getEntitiesFromSubgraph } from "@local/hash-subgraph/stdlib";
 import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { ApolloError } from "apollo-server-errors";
@@ -276,6 +274,7 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
         data.subgraph,
+        authentication.actorId,
       );
 
       return getEntitiesFromSubgraph(subgraph);

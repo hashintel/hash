@@ -108,7 +108,7 @@ pub enum SnapshotEntry {
     PropertyTypeEmbedding(PropertyTypeEmbeddingRecord),
     EntityType(EntityTypeSnapshotRecord),
     EntityTypeEmbedding(EntityTypeEmbeddingRecord),
-    Entity(EntitySnapshotRecord),
+    Entity(Box<EntitySnapshotRecord>),
     EntityEmbedding(EntityEmbeddingRecord),
     Relation(AuthorizationRelation),
 }
@@ -649,11 +649,11 @@ where
                 self.create_dump_stream::<Entity>()
                     .try_flatten_stream()
                     .and_then(move |entity| async move {
-                        Ok(SnapshotEntry::Entity(EntitySnapshotRecord {
+                        Ok(SnapshotEntry::Entity(Box::new(EntitySnapshotRecord {
                             properties: entity.properties,
                             link_data: entity.link_data,
                             metadata: entity.metadata,
-                        }))
+                        })))
                     })
                     .forward(snapshot_record_tx.clone()),
             );

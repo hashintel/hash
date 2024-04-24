@@ -11,6 +11,7 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   LinearIntegrationProperties,
   SyncLinearDataWithProperties,
@@ -28,7 +29,6 @@ import {
 import {
   getRightEntityForLinkEntity,
   getRoots,
-  mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
@@ -108,6 +108,8 @@ export const getAllLinearIntegrationsWithLinearOrgId: ImpureGraphFunction<
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
         data.subgraph,
+        null,
+        true,
       );
       return getRoots(subgraph);
     });
@@ -158,6 +160,8 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
         data.subgraph,
+        null,
+        true,
       );
       return getRoots(subgraph);
     });
@@ -232,6 +236,8 @@ export const getSyncedWorkspacesForLinearIntegration: ImpureGraphFunction<
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
         data.subgraph,
+        null,
+        true,
       );
 
       const syncLinearDataWithLinkEntities = getRoots(subgraph);
@@ -306,6 +312,8 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
         data.subgraph,
+        null,
+        true,
       );
 
       return getRoots(subgraph);

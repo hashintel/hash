@@ -5,6 +5,7 @@ import type {
   TextCell,
 } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
+import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -20,7 +21,6 @@ import {
   Grid,
   gridHeaderHeightWithBorder,
   gridHorizontalScrollbarHeight,
-  gridRowHeight,
 } from "../../../components/grid/grid";
 import { useOrgs } from "../../../components/hooks/use-orgs";
 import { useUsers } from "../../../components/hooks/use-users";

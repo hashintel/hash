@@ -1,4 +1,4 @@
-FROM node:18-alpine3.19 AS base
+FROM node:20.12-alpine AS base
 
 WORKDIR /app
 
@@ -21,7 +21,7 @@ RUN turbo prune --scope='@apps/hash-api' --docker && \
 COPY patches /app/out/full/patches
 
 
-FROM node:18.15-slim AS rust
+FROM node:20.12-slim AS rust
 
 WORKDIR /usr/local/
 
@@ -55,7 +55,7 @@ COPY --from=base /app/out/full/ .
 RUN yarn turbo build --filter '@apps/hash-api'
 
 
-FROM node:18.15-slim AS runner
+FROM node:20.12-slim AS runner
 
 COPY --from=installer /usr/local/src /usr/local/src
 WORKDIR /usr/local/src/apps/hash-api

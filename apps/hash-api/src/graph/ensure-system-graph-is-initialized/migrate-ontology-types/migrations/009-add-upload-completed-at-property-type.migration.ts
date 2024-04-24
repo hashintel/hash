@@ -1,18 +1,13 @@
 import type { EntityType } from "@blockprotocol/type-system";
-import {
-  systemDataTypes,
-  systemEntityTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { BaseUrl } from "@local/hash-subgraph";
-import {
-  extractBaseUrl,
-  versionedUrlFromComponents,
-} from "@local/hash-subgraph/type-system-patch";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { getEntityTypeById } from "../../../ontology/primitive/entity-type";
 import type { MigrationFunction } from "../types";
 import {
   createSystemPropertyTypeIfNotExists,
+  getCurrentHashDataTypeId,
   getCurrentHashSystemEntityTypeId,
   updateSystemEntityType,
   upgradeDependenciesInHashEntityType,
@@ -25,22 +20,11 @@ const migrate: MigrationFunction = async ({
   migrationState,
 }) => {
   /** Step 1: Create the upload completed at */
-  const dateTimeDataTypeBaseUrl = systemDataTypes.datetime
-    .dataTypeBaseUrl as BaseUrl;
 
-  const dateTimeDataTypeVersion =
-    migrationState.dataTypeVersions[dateTimeDataTypeBaseUrl];
-
-  if (typeof dateTimeDataTypeVersion === "undefined") {
-    throw new Error(
-      `Expected data type version for ${dateTimeDataTypeBaseUrl} to be defined`,
-    );
-  }
-
-  const dateTimeDataTypeId = versionedUrlFromComponents(
-    dateTimeDataTypeBaseUrl,
-    dateTimeDataTypeVersion,
-  );
+  const dateTimeDataTypeId = getCurrentHashDataTypeId({
+    dataTypeKey: "datetime",
+    migrationState,
+  });
 
   const uploadCompletedAtPropertyType =
     await createSystemPropertyTypeIfNotExists(context, authentication, {

@@ -41,7 +41,7 @@ pub fn bench_get_entity_by_id(
                 .expect("could not choose random entity")
         },
         |entity_uuid| async move {
-            let subgraph = store
+            let response = store
                 .get_entity(
                     actor_id,
                     &NoAuthorization,
@@ -65,11 +65,12 @@ pub fn bench_get_entity_by_id(
                             cursor: None,
                         },
                         limit: None,
+                        include_count: false,
                     },
                 )
                 .await
                 .expect("failed to read entity from store");
-            assert_eq!(subgraph.0.roots.len(), 1);
+            assert_eq!(response.subgraph.roots.len(), 1);
         },
         SmallInput,
     );
@@ -96,7 +97,7 @@ pub fn bench_get_entities_by_property(
         filter
             .convert_parameters()
             .expect("failed to convert parameters");
-        let subgraph = store
+        let response = store
             .get_entity(
                 actor_id,
                 &NoAuthorization,
@@ -118,11 +119,12 @@ pub fn bench_get_entities_by_property(
                         cursor: None,
                     },
                     limit: None,
+                    include_count: false,
                 },
             )
             .await
             .expect("failed to read entity from store");
-        assert_eq!(subgraph.0.roots.len(), 100);
+        assert_eq!(response.subgraph.roots.len(), 100);
     });
 }
 
@@ -151,7 +153,7 @@ pub fn bench_get_link_by_target_by_property(
         filter
             .convert_parameters()
             .expect("failed to convert parameters");
-        let subgraph = store
+        let response = store
             .get_entity(
                 actor_id,
                 &NoAuthorization,
@@ -173,10 +175,11 @@ pub fn bench_get_link_by_target_by_property(
                         cursor: None,
                     },
                     limit: None,
+                    include_count: false,
                 },
             )
             .await
             .expect("failed to read entity from store");
-        assert_eq!(subgraph.0.roots.len(), 100);
+        assert_eq!(response.subgraph.roots.len(), 100);
     });
 }

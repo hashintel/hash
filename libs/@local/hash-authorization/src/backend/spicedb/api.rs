@@ -172,10 +172,6 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         })
     }
 
-    #[expect(
-        clippy::missing_errors_doc,
-        reason = "False positive, documented on trait"
-    )]
     async fn export_schema(&self) -> Result<ExportSchemaResponse, Report<ExportSchemaError>> {
         #[derive(Deserialize)]
         #[serde(rename_all = "camelCase")]
@@ -195,10 +191,6 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         })
     }
 
-    #[expect(
-        clippy::missing_errors_doc,
-        reason = "False positive, documented on trait"
-    )]
     async fn modify_relationships<T>(
         &mut self,
         relationships: impl IntoIterator<Item = (ModifyRelationshipOperation, T), IntoIter: Send> + Send,
@@ -301,10 +293,6 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         )
     }
 
-    #[expect(
-        clippy::missing_errors_doc,
-        reason = "False positive, documented on trait"
-    )]
     async fn check_permission<O, R, S>(
         &self,
         resource: &O,
@@ -360,10 +348,6 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         })
     }
 
-    #[expect(
-        clippy::missing_errors_doc,
-        reason = "False positive, documented on trait"
-    )]
     #[expect(clippy::too_many_lines)]
     async fn check_permissions<O, R, S>(
         &self,
@@ -500,10 +484,6 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         })
     }
 
-    #[expect(
-        clippy::missing_errors_doc,
-        reason = "False positive, documented on trait"
-    )]
     async fn read_relations<R>(
         &self,
         filter: RelationshipFilter<
@@ -566,10 +546,6 @@ impl ZanzibarBackend for SpiceDbOpenApi {
             .map_err(|error| error.change_context(ReadError)))
     }
 
-    #[expect(
-        clippy::missing_errors_doc,
-        reason = "False positive, documented on trait"
-    )]
     async fn delete_relations(
         &mut self,
         filter: RelationshipFilter<

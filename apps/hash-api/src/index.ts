@@ -1,5 +1,6 @@
 /* eslint-disable import/first */
 
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   monorepoRootDir,
   realtimeSyncEnabled,
@@ -20,11 +21,13 @@ import http from "node:http";
 import path from "node:path";
 import { promisify } from "node:util";
 
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
+import { getAwsRegion } from "@local/hash-backend-utils/aws-config";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
+import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
+import { getRequiredEnv } from "@local/hash-isomorphic-utils/environment";
 import * as Sentry from "@sentry/node";
 import bodyParser from "body-parser";
 import cors from "cors";
@@ -69,7 +72,6 @@ import { googleOAuthCallback } from "./integrations/google/oauth-callback";
 import { oAuthLinear, oAuthLinearCallback } from "./integrations/linear/oauth";
 import { linearWebhook } from "./integrations/linear/webhook";
 import { createIntegrationSyncBackWatcher } from "./integrations/sync-back-watcher";
-import { getAwsRegion } from "./lib/aws-config";
 import {
   CORS_CONFIG,
   getEnvStorageType,
@@ -89,8 +91,6 @@ import {
   setupStorageProviders,
 } from "./storage";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
-import { createTemporalClient } from "./temporal";
-import { getRequiredEnv } from "./util";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 

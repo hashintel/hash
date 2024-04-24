@@ -1,4 +1,15 @@
 import { extractBaseUrl } from "@blockprotocol/type-system";
+import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
+import type {
+  FileStorageProvider,
+  StorageType,
+  UploadableStorageProvider,
+} from "@local/hash-backend-utils/file-storage";
+import {
+  isStorageType,
+  storageProviderLookup,
+} from "@local/hash-backend-utils/file-storage";
+import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import {
   fullDecisionTimeAxis,
@@ -9,33 +20,20 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { Entity, EntityId, EntityRootType } from "@local/hash-subgraph";
 import { isEntityId, splitEntityId } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { Express } from "express";
 
 import { getActorIdFromRequest } from "../auth/get-actor-id";
 import type { CacheAdapter } from "../cache";
 import type { ImpureGraphContext } from "../graph/context-types";
 import type { AuthenticationContext } from "../graphql/authentication-context";
-import { getAwsS3Config } from "../lib/aws-config";
 import { LOCAL_FILE_UPLOAD_PATH } from "../lib/config";
 import { logger } from "../logger";
-import { AwsS3StorageProvider } from "./aws-s3-storage-provider";
 import { LocalFileSystemStorageProvider } from "./local-file-storage";
-import type {
-  StorageProvider,
-  StorageType,
-  UploadableStorageProvider,
-} from "./storage-provider";
-import { isStorageType, storageProviderLookup } from "./storage-provider";
-
-export * from "./aws-s3-storage-provider";
-export * from "./storage-provider";
 
 // S3-like APIs have a upper bound.
 // 7 days.
@@ -46,7 +44,7 @@ const DOWNLOAD_URL_CACHE_OFFSET_SECONDS = 60 * 60;
 
 type StorageProviderInitialiser = (
   app: Express,
-) => StorageProvider | UploadableStorageProvider;
+) => FileStorageProvider | UploadableStorageProvider;
 
 const storageProviderInitialiserLookup: Record<
   StorageType,
@@ -140,6 +138,7 @@ const getFileEntity = async (
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
         data.subgraph,
+        actorId,
       );
 
       return getRoots(subgraph);

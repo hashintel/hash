@@ -4,6 +4,7 @@ import type {
   InferredEntityUpdateFailure,
   InferredEntityUpdateSuccess,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
+import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   AccountId,
   Entity,
@@ -14,14 +15,13 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
-import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-subgraph/stdlib";
 
-import type { DereferencedEntityType } from "../dereference-entity-type";
+import { logger } from "../../shared/activity-logger";
+import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
+import { getEntityByFilter } from "../../shared/get-entity-by-filter";
+import { stringify } from "../../shared/stringify";
 import { extractErrorMessage } from "../shared/extract-validation-failure-details";
-import { getEntityByFilter } from "../shared/get-entity-by-filter";
-import { stringify } from "../stringify";
 import { ensureTrailingSlash } from "./ensure-trailing-slash";
-import type { ProposedEntityUpdatesByType } from "./generate-persist-entities-tools";
 
 type StatusByTemporaryId<T> = Record<string, T>;
 
@@ -34,15 +34,20 @@ export const updateEntities = async ({
   actorId,
   createAsDraft,
   graphApiClient,
-  log,
   proposedEntityUpdatesByType,
   requestedEntityTypes,
 }: {
   actorId: AccountId;
   createAsDraft: boolean;
   graphApiClient: GraphApi;
-  log: (message: string) => void;
-  proposedEntityUpdatesByType: ProposedEntityUpdatesByType;
+  proposedEntityUpdatesByType: Record<
+    VersionedUrl,
+    {
+      entityId: number;
+      updateEntityId: string;
+      properties: Entity["properties"];
+    }[]
+  >;
   requestedEntityTypes: Record<
     VersionedUrl,
     { isLink: boolean; schema: DereferencedEntityType }
@@ -115,7 +120,9 @@ export const updateEntities = async ({
 
             await graphApiClient.validateEntity(actorId, {
               entityTypes: [entityTypeId],
-              profile: createAsDraft ? "draft" : "full",
+              components: createAsDraft
+                ? { numItems: false, requiredProperties: false }
+                : {},
               properties,
               linkData: existingEntity.linkData,
             });
@@ -128,7 +135,7 @@ export const updateEntities = async ({
                 properties: [
                   {
                     op: "replace",
-                    path: "",
+                    path: [],
                     value: newProperties,
                   },
                 ],
@@ -149,7 +156,7 @@ export const updateEntities = async ({
               status: "success",
             };
           } catch (err) {
-            log(
+            logger.error(
               `Update of entity with temporary id ${
                 proposedEntity.entityId
               } and entityId ${

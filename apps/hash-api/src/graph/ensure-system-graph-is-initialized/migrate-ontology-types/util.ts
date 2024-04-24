@@ -35,6 +35,7 @@ import {
 import {
   blockProtocolDataTypes,
   googleEntityTypes,
+  systemDataTypes,
   systemEntityTypes,
   systemLinkEntityTypes,
   systemPropertyTypes,
@@ -47,6 +48,7 @@ import {
   generateLinkMapWithConsistentSelfReferences,
   generateTypeBaseUrl,
 } from "@local/hash-isomorphic-utils/ontology-types";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   BaseUrl,
   ConstructDataTypeParams,
@@ -63,10 +65,7 @@ import type {
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import {
   componentsFromVersionedUrl,
   extractBaseUrl,
@@ -323,14 +322,17 @@ export const loadExternalEntityTypeIfNotExists: ImpureGraphFunction<
   return await getEntityTypeById(context, authentication, { entityTypeId });
 };
 
-type PropertyTypeDefinition = {
+export type PropertyTypeDefinition = {
   propertyTypeId: VersionedUrl;
   title: string;
   description?: string;
   possibleValues: {
     dataTypeId?: VersionedUrl;
     primitiveDataType?: PrimitiveDataTypeKey;
-    propertyTypeObjectProperties?: { [_ in string]: { $ref: VersionedUrl } };
+    propertyTypeObjectProperties?: Record<
+      string,
+      ValueOrArray<PropertyTypeReference>
+    >;
     propertyTypeObjectRequiredProperties?: BaseUrl[];
     array?: boolean;
   }[];
@@ -899,6 +901,25 @@ export const getCurrentHashPropertyTypeId = ({
   return versionedUrlFromComponents(propertyTypeBaseUrl, propertyTypeVersion);
 };
 
+export const getCurrentHashDataTypeId = ({
+  dataTypeKey,
+  migrationState,
+}: {
+  dataTypeKey: keyof typeof systemDataTypes;
+  migrationState: MigrationState;
+}) => {
+  const dataTypeBaseUrl = systemDataTypes[dataTypeKey]
+    .dataTypeBaseUrl as BaseUrl;
+
+  const dataTypeVersion = migrationState.dataTypeVersions[dataTypeBaseUrl];
+
+  if (typeof dataTypeVersion === "undefined") {
+    throw new Error(`Expected '${dataTypeKey}' data type to have been seeded`);
+  }
+
+  return versionedUrlFromComponents(dataTypeBaseUrl, dataTypeVersion);
+};
+
 type BaseUpdateTypeParameters = {
   migrationState: MigrationState;
 };
@@ -1138,7 +1159,11 @@ export const getEntitiesByType: ImpureGraphFunction<
     })
     .then((resp) =>
       getRoots(
-        mapGraphApiSubgraphToSubgraph<EntityRootType>(resp.data.subgraph),
+        mapGraphApiSubgraphToSubgraph<EntityRootType>(
+          resp.data.subgraph,
+          null,
+          true,
+        ),
       ),
     );
 };

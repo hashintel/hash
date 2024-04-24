@@ -1,23 +1,28 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
+import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
+import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type {
   AllFilter,
+  DiffEntityResult,
   EntityMetadata,
   EntityPermission,
   EntityStructuralQuery,
   Filter,
   GraphResolveDepths,
   ModifyRelationshipOperation,
+  PropertyMetadataMap,
+  ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
-import type {
-  CreateEmbeddingsParams,
-  CreateEmbeddingsReturn,
-} from "@local/hash-isomorphic-utils/ai-inference-types";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  mapGraphApiEntityMetadataToMetadata,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   UserPermissions,
   UserPermissionsOnEntities,
@@ -35,6 +40,7 @@ import type {
   EntityUuid,
   OwnedById,
   Subgraph,
+  Timestamp,
 } from "@local/hash-subgraph";
 import {
   extractDraftIdFromEntityId,
@@ -43,11 +49,7 @@ import {
   isEntityVertex,
   splitEntityId,
 } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiEntityMetadataToMetadata,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { ApolloError } from "apollo-server-errors";
 
@@ -56,9 +58,10 @@ import type {
   EntityDefinition,
   LinkedEntityDefinition,
 } from "../../../graphql/api-types.gen";
-import type { TemporalClient } from "../../../temporal";
-import { genId, linkedTreeFlatten } from "../../../util";
+import { isTestEnv } from "../../../lib/env-config";
+import { linkedTreeFlatten } from "../../../util";
 import type { ImpureGraphFunction } from "../../context-types";
+import { rewriteSemanticFilter } from "../../shared/rewrite-semantic-filter";
 import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 import { afterUpdateEntityHooks } from "./entity/after-update-entity-hooks";
 import { beforeCreateEntityHooks } from "./entity/before-create-entity-hooks";
@@ -74,6 +77,9 @@ export type CreateEntityParams = {
   entityUuid?: EntityUuid;
   draft?: boolean;
   relationships: EntityRelationAndSubject[];
+  confidence?: number;
+  propertyMetadata?: PropertyMetadataMap;
+  provenance?: ProvidedEntityEditionProvenance;
 };
 
 /** @todo: potentially directly export this from the subgraph package */
@@ -98,6 +104,7 @@ export const createEntity: ImpureGraphFunction<
     outgoingLinks,
     entityUuid: overrideEntityUuid,
     draft = false,
+    provenance,
   } = params;
 
   const { graphApi } = context;
@@ -125,6 +132,9 @@ export const createEntity: ImpureGraphFunction<
     entityUuid: overrideEntityUuid,
     draft,
     relationships: params.relationships,
+    confidence: params.confidence,
+    propertyMetadata: params.propertyMetadata,
+    provenance,
   });
 
   const entity = {
@@ -164,47 +174,23 @@ export const getEntities: ImpureGraphFunction<
   },
   Promise<Subgraph<EntityRootType>>
 > = async ({ graphApi }, { actorId }, { query, temporalClient }) => {
-  /**
-   * Convert any strings provided under a top-level 'cosineDistance' filter into embeddings
-   * This doesn't deal with 'cosineDistance' inside a nested filter (e.g. 'any'), so for now
-   * this is only good for single-string inputs.
-   */
-  for (const [filterName, expression] of Object.entries(query.filter)) {
-    if (filterName === "cosineDistance") {
-      if (
-        Array.isArray(expression) &&
-        expression[1] &&
-        "parameter" in expression[1] &&
-        typeof expression[1].parameter === "string"
-      ) {
-        if (!temporalClient) {
-          throw new Error(
-            "Cannot query cosine distance without temporal client",
-          );
-        }
+  await rewriteSemanticFilter(query.filter, temporalClient);
 
-        const stringInputValue = expression[1].parameter;
-        const { embeddings } = await temporalClient.workflow.execute<
-          (params: CreateEmbeddingsParams) => Promise<CreateEmbeddingsReturn>
-        >("createEmbeddings", {
-          taskQueue: "ai",
-          args: [
-            {
-              input: [stringInputValue],
-            },
-          ],
-          workflowId: genId(),
-        });
-        expression[1].parameter = embeddings[0];
-      }
-    }
-  }
+  const isRequesterAdmin = isTestEnv
+    ? false
+    : await isUserHashInstanceAdmin(
+        { graphApi },
+        { actorId },
+        { userAccountId: actorId },
+      );
 
   return await graphApi
     .getEntitiesByQuery(actorId, { query })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
         data.subgraph,
+        actorId,
+        isRequesterAdmin,
       );
       // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
       for (const [entityId, editionMap] of typedEntries(subgraph.vertices)) {
@@ -225,6 +211,14 @@ export const getEntities: ImpureGraphFunction<
       return subgraph;
     });
 };
+
+export const countEntities: ImpureGraphFunction<
+  {
+    query: EntityStructuralQuery;
+  },
+  Promise<number>
+> = async ({ graphApi }, { actorId }, params) =>
+  graphApi.countEntities(actorId, params.query).then(({ data }) => data);
 
 /**
  * Get the latest edition of an entity by its entityId. See notes on params.
@@ -309,7 +303,9 @@ export const getLatestEntityById: ImpureGraphFunction<
   ).then(getRoots);
 
   if (unexpectedEntities.length > 0) {
-    const errorMessage = `Latest entity with entityId ${entityId} returned more than one result with ids: ${unexpectedEntities.map((unexpectedEntity) => unexpectedEntity.metadata.recordId.entityId).join(", ")}`;
+    const errorMessage = `Latest entity with entityId ${entityId} returned more than one result with ids: ${unexpectedEntities
+      .map((unexpectedEntity) => unexpectedEntity.metadata.recordId.entityId)
+      .join(", ")}`;
     throw new Error(errorMessage);
   }
 
@@ -336,7 +332,8 @@ export const getLatestEntityById: ImpureGraphFunction<
  * @param params.includeDrafts
  *    - count the existence of a draft as the entity existing.
  *    - this parameter will be treated as `true` if an entityId CONTAINING a draftUuid is passed
- *    - useful for when creating a draft link or link to/from a draft entity, because a draft source/target is permissible
+ *    - useful for when creating a draft link or link to/from a draft entity, because a draft source/target is
+ *   permissible
  *
  * @returns true if at least one version of the entity exists
  * @throws Error if the entity does not exist as far as the requesting user is concerned
@@ -408,6 +405,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
     linkedEntities?: LinkedEntityDefinition[];
     relationships: EntityRelationAndSubject[];
     draft?: boolean;
+    provenance?: ProvidedEntityEditionProvenance;
   },
   Promise<Entity>,
   false,
@@ -420,6 +418,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
     linkedEntities,
     relationships,
     draft,
+    provenance,
   } = params;
 
   const entitiesInTree = linkedTreeFlatten<
@@ -451,14 +450,17 @@ export const createEntityWithLinks: ImpureGraphFunction<
         (!definition.entityProperties || !definition.entityTypeId)
       ) {
         throw new Error(
-          `One of existingEntityId or (entityProperties && entityTypeId) must be provided in linked entity definition: ${JSON.stringify(definition)}`,
+          `One of existingEntityId or (entityProperties && entityTypeId) must be provided in linked entity definition: ${JSON.stringify(
+            definition,
+          )}`,
         );
       }
 
       /**
-       * This will throw an error if existingEntityId does not have a draftId and there is no live version of the entity being linked to.
-       * We currently only use this field for updating block collections, which do not link to draft entities, but would need changing if we change this.
-       * H-2430 which would introduce draft/live versions of pages which may affect this.
+       * This will throw an error if existingEntityId does not have a draftId and there is no live version of the
+       * entity being linked to. We currently only use this field for updating block collections, which do not link to
+       * draft entities, but would need changing if we change this. H-2430 which would introduce draft/live versions of
+       * pages which may affect this.
        */
       const entity = existingEntityId
         ? await getLatestEntityById(context, authentication, {
@@ -470,6 +472,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
             ownedById,
             relationships,
             draft,
+            provenance,
           });
 
       return {
@@ -535,12 +538,13 @@ export const updateEntity: ImpureGraphFunction<
     entityTypeId?: VersionedUrl;
     properties: EntityPropertiesObject;
     draft?: boolean;
+    provenance?: ProvidedEntityEditionProvenance;
   },
   Promise<Entity>,
   false,
   true
 > = async (context, authentication, params) => {
-  const { entity, properties, entityTypeId } = params;
+  const { entity, properties, entityTypeId, provenance } = params;
 
   for (const beforeUpdateHook of beforeUpdateEntityHooks) {
     if (beforeUpdateHook.entityTypeId === entity.metadata.entityTypeId) {
@@ -563,10 +567,11 @@ export const updateEntity: ImpureGraphFunction<
     properties: [
       {
         op: "replace",
-        path: "",
+        path: [],
         value: params.properties,
       },
     ],
+    provenance,
   });
 
   for (const afterUpdateHook of afterUpdateEntityHooks) {
@@ -627,12 +632,13 @@ export const updateEntityProperties: ImpureGraphFunction<
       propertyTypeBaseUrl: BaseUrl;
       value: PropertyValue | undefined;
     }[];
+    provenance?: ProvidedEntityEditionProvenance;
   },
   Promise<Entity>,
   false,
   true
 > = async (ctx, authentication, params) => {
-  const { entity, updatedProperties } = params;
+  const { entity, updatedProperties, provenance } = params;
 
   return await updateEntity(ctx, authentication, {
     entity,
@@ -646,6 +652,7 @@ export const updateEntityProperties: ImpureGraphFunction<
           : prev,
       entity.properties,
     ),
+    provenance,
   });
 };
 
@@ -662,16 +669,18 @@ export const updateEntityProperty: ImpureGraphFunction<
     entity: Entity;
     propertyTypeBaseUrl: BaseUrl;
     value: PropertyValue | undefined;
+    provenance?: ProvidedEntityEditionProvenance;
   },
   Promise<Entity>,
   false,
   true
 > = async (ctx, authentication, params) => {
-  const { entity, propertyTypeBaseUrl, value } = params;
+  const { entity, propertyTypeBaseUrl, value, provenance } = params;
 
   return await updateEntityProperties(ctx, authentication, {
     entity,
     updatedProperties: [{ propertyTypeBaseUrl, value }],
+    provenance,
   });
 };
 
@@ -1065,3 +1074,16 @@ export const getEntityAuthorizationRelationships: ImpureGraphFunction<
           }) as EntityAuthorizationRelationship,
       ),
     );
+
+export const calculateEntityDiff: ImpureGraphFunction<
+  {
+    firstEntityId: EntityId;
+    firstTransactionTime: Timestamp | null;
+    firstDecisionTime: Timestamp | null;
+    secondEntityId: EntityId;
+    secondDecisionTime: Timestamp | null;
+    secondTransactionTime: Timestamp | null;
+  },
+  Promise<DiffEntityResult>
+> = async ({ graphApi }, { actorId }, params) =>
+  graphApi.diffEntity(actorId, params).then(({ data }) => data);

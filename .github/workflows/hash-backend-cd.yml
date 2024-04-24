@@ -51,7 +51,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
 
       - name: Authenticate Vault
         id: secrets
@@ -89,7 +89,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
 
       - name: Authenticate Vault
         id: secrets
@@ -127,7 +127,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
 
       - name: Authenticate Vault
         id: secrets
@@ -168,7 +168,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
 
       - name: Authenticate Vault
         id: secrets
@@ -208,7 +208,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
 
       - name: Authenticate Vault
         id: secrets
@@ -246,7 +246,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
 
       - name: Authenticate Vault
         id: secrets
@@ -284,7 +284,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
 
       - name: Authenticate Vault
         id: secrets
@@ -325,7 +325,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
 
       - name: Authenticate Vault
         id: secrets
@@ -371,7 +371,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
 
       - name: Authenticate Vault
         id: secrets
@@ -408,7 +408,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
 
       - name: Authenticate Vault
         id: secrets
@@ -445,7 +445,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
 
       - name: Authenticate Vault
         id: secrets
@@ -483,7 +483,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
 
       - name: Authenticate Vault
         id: secrets
@@ -522,7 +522,7 @@ jobs:
     if: ${{ failure() }}
     steps:
       - name: Slack Notification
-        uses: rtCamp/action-slack-notify@72c987ec9674843e8a882c6beb4fb043c1ea926e
+        uses: rtCamp/action-slack-notify@19c86e40d4bc3be986b18f1459d4549536887065
         env:
           SLACK_LINK_NAMES: true
           SLACK_MESSAGE: "Error deploying the HASH backend <@U0143NL4GMP> <@U027NPY8Y3X> <@U02NLJY0FGX>"

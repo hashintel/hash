@@ -1,3 +1,4 @@
+import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
   extractDraftIdFromEntityId,
@@ -39,7 +40,6 @@ import type {
   PageRelatedNotification,
 } from "./shared/notifications-with-links-context";
 import { useNotificationsWithLinksContextValue } from "./shared/notifications-with-links-context";
-import { generateEntityHref } from "./shared/use-entity-href";
 
 const Table = styled(MuiTable)(({ theme }) => ({
   borderCollapse: "separate",
@@ -192,7 +192,7 @@ const NotificationRow: FunctionComponent<{ notification: Notification }> = ({
     }
 
     if (notification.kind === "graph-change") {
-      return generateEntityHref({
+      return generateEntityPath({
         entityId: notification.occurredInEntity.metadata.recordId.entityId,
         includeDraftId: true,
         shortname: entityOwningShortname,

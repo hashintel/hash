@@ -7,6 +7,7 @@ import type {
   OntologyTemporalMetadata,
   PropertyTypePermission,
   PropertyTypeStructuralQuery,
+  ProvidedOntologyEditionProvenance,
   UnarchivePropertyTypeParams,
   UpdatePropertyTypeRequest,
 } from "@local/hash-graph-client";
@@ -15,6 +16,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { ConstructPropertyTypeParams } from "@local/hash-isomorphic-utils/types";
 import type {
   OntologyTypeRecordId,
@@ -27,10 +29,7 @@ import type {
   Subgraph,
 } from "@local/hash-subgraph";
 import { ontologyTypeRecordIdToVersionedUrl } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { getWebShortname, isExternalTypeId } from "./util";
@@ -50,10 +49,11 @@ export const createPropertyType: ImpureGraphFunction<
     schema: ConstructPropertyTypeParams;
     webShortname?: string;
     relationships: PropertyTypeRelationAndSubject[];
+    provenance?: ProvidedOntologyEditionProvenance;
   },
   Promise<PropertyTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { ownedById, webShortname } = params;
+  const { ownedById, webShortname, provenance } = params;
 
   const shortname =
     webShortname ??
@@ -82,6 +82,7 @@ export const createPropertyType: ImpureGraphFunction<
       ownedById,
       schema,
       relationships: params.relationships,
+      provenance,
     },
   );
 
@@ -102,7 +103,7 @@ export const getPropertyTypes: ImpureGraphFunction<
   return await graphApi
     .getPropertyTypesByQuery(actorId, { includeDrafts: false, ...query })
     .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph(data);
+      const subgraph = mapGraphApiSubgraphToSubgraph(data, actorId);
       return subgraph as Subgraph<PropertyTypeRootType>;
     });
 };
@@ -189,10 +190,11 @@ export const updatePropertyType: ImpureGraphFunction<
     propertyTypeId: VersionedUrl;
     schema: ConstructPropertyTypeParams;
     relationships: PropertyTypeRelationAndSubject[];
+    provenance?: ProvidedOntologyEditionProvenance;
   },
   Promise<PropertyTypeWithMetadata>
 > = async ({ graphApi }, { actorId }, params) => {
-  const { schema, propertyTypeId } = params;
+  const { schema, propertyTypeId, provenance } = params;
   const updateArguments: UpdatePropertyTypeRequest = {
     typeToUpdate: propertyTypeId,
     schema: {
@@ -201,6 +203,7 @@ export const updatePropertyType: ImpureGraphFunction<
       ...schema,
     },
     relationships: params.relationships,
+    provenance,
   };
 
   const { data: metadata } = await graphApi.updatePropertyType(

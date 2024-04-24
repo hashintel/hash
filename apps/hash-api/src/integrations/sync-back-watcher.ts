@@ -4,19 +4,17 @@ import { RedisQueueExclusiveConsumer } from "@local/hash-backend-utils/queue/red
 import { AsyncRedisClient } from "@local/hash-backend-utils/redis";
 import type { Wal2JsonMsg } from "@local/hash-backend-utils/wal2json";
 import type { GraphApi } from "@local/hash-graph-client";
+import { getRequiredEnv } from "@local/hash-isomorphic-utils/environment";
 import {
   fullDecisionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { Entity, EntityRootType } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { systemAccountId } from "../graph/system-account";
 import { logger } from "../logger";
-import { getRequiredEnv } from "../util";
 import {
   processEntityChange as processLinearEntityChange,
   supportedLinearTypeIds,
@@ -75,6 +73,8 @@ export const createIntegrationSyncBackWatcher = async (
             .then(({ data }) => {
               const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
                 data.subgraph,
+                null,
+                true,
               );
               return getRoots(subgraph);
             })

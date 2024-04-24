@@ -12,6 +12,7 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { AggregatedUsageRecord } from "@local/hash-isomorphic-utils/service-usage";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { ServiceFeatureProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { UsageRecordProperties } from "@local/hash-isomorphic-utils/system-types/usagerecord";
 import type {
@@ -24,7 +25,6 @@ import type {
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
-  mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
 
 const generateAggregateUsageKey = ({
@@ -87,7 +87,10 @@ export const getUserServiceUsage = async (
       },
     })
     .then(({ data }) => {
-      return mapGraphApiSubgraphToSubgraph<EntityRootType>(data.subgraph);
+      return mapGraphApiSubgraphToSubgraph<EntityRootType>(
+        data.subgraph,
+        authentication.actorId,
+      );
     });
 
   const serviceUsageRecords = getRoots(serviceUsageRecordSubgraph);
@@ -261,6 +264,7 @@ export const createUsageRecord = async (
     .then((data) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
         data.data.subgraph,
+        authentication.actorId,
       );
 
       return getRoots(subgraph);

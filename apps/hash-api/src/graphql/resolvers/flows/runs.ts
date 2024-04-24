@@ -2,7 +2,7 @@ import type {
   Client as TemporalClient,
   WorkflowExecutionInfo,
 } from "@temporalio/client";
-import * as proto from "@temporalio/proto";
+import proto from "@temporalio/proto";
 
 import { isProdEnv } from "../../../lib/env-config";
 import type {
@@ -20,10 +20,15 @@ const parseHistoryItemPayload = (
 ) =>
   inputOrResults?.payloads
     ?.map(({ data }) => {
-      if (!data) {
+      if (!data || !data.toString()) {
         return data;
       }
-      return JSON.parse(data.toString());
+
+      try {
+        return JSON.parse(data.toString());
+      } catch {
+        return data.toString();
+      }
     })
     .filter((item) => item !== undefined);
 
@@ -208,6 +213,31 @@ const mapTemporalWorkflowToFlowStatus = async (
         startedAt,
         scheduledAt,
         inputs,
+        logs: events
+          .flatMap((historyEvent) => {
+            const { workflowExecutionSignaledEventAttributes } = historyEvent;
+            if (
+              workflowExecutionSignaledEventAttributes?.signalName !==
+              "logProgress"
+            ) {
+              return null;
+            }
+            /**
+             * @todo handle cases where the activity has been retried, where there may be logs from earlier attempts
+             *    –– new start events are not written to the history until the activity has been closed,
+             *    so we need to count the previous close events to determine the attempt number.
+             */
+
+            const logs = parseHistoryItemPayload(
+              workflowExecutionSignaledEventAttributes.input,
+            )?.[0]?.logs;
+
+            return logs;
+          })
+          .filter(
+            (historyEvent): historyEvent is NonNullable<typeof historyEvent> =>
+              !!historyEvent,
+          ),
         status: FlowStepStatus.Scheduled,
         attempt,
       };
@@ -281,10 +311,11 @@ const mapTemporalWorkflowToFlowStatus = async (
     }
   }
 
-  const { type, runId, status, startTime, executionTime, closeTime } = workflow;
+  const { runId, status, startTime, executionTime, closeTime, memo } = workflow;
 
   return {
-    flowDefinitionId: type,
+    flowDefinitionId:
+      (memo?.flowDefinitionId as string | undefined) ?? "unknown",
     runId,
     status: status.name as FlowRunStatus,
     startedAt: startTime.toISOString(),
@@ -317,9 +348,11 @@ export const getFlowRuns: ResolverFn<
            * Can also filter by runId, useful for e.g. getting all Temporal runIds for a given user
            * and then retrieving a list of details from Temporal
            */
-          query: `WorkflowType IN (${flowTypes.map((type) => `'${type}'`).join(", ")})`,
+          query: `WorkflowType IN (${flowTypes
+            .map((type) => `'${type}'`)
+            .join(", ")})`,
         }
-      : {},
+      : { query: "WorkflowType = 'runFlow'" },
   );
 
   for await (const workflow of workflowIterable) {

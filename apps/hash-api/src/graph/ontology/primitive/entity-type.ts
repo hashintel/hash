@@ -1,6 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
+import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type {
   ArchiveEntityTypeParams,
   EntityType,
@@ -8,6 +9,7 @@ import type {
   EntityTypeStructuralQuery,
   ModifyRelationshipOperation,
   OntologyTemporalMetadata,
+  ProvidedOntologyEditionProvenance,
   UnarchiveEntityTypeParams,
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
@@ -16,6 +18,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   ConstructEntityTypeParams,
   UserPermissionsOnEntityType,
@@ -35,13 +38,11 @@ import {
   linkEntityTypeUrl,
   ontologyTypeRecordIdToVersionedUrl,
 } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { publicUserAccountId } from "../../../auth/public-user-account-id";
 import type { ImpureGraphFunction } from "../../context-types";
+import { rewriteSemanticFilter } from "../../shared/rewrite-semantic-filter";
 import { getWebShortname, isExternalTypeId } from "./util";
 
 export const getEntityTypeAuthorizationRelationships: ImpureGraphFunction<
@@ -134,10 +135,11 @@ export const createEntityType: ImpureGraphFunction<
     icon?: string | null;
     webShortname?: string;
     relationships: EntityTypeRelationAndSubject[];
+    provenance?: ProvidedOntologyEditionProvenance;
   },
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { ownedById, labelProperty, icon, webShortname } = params;
+  const { ownedById, labelProperty, icon, webShortname, provenance } = params;
 
   const shortname =
     webShortname ??
@@ -168,6 +170,7 @@ export const createEntityType: ImpureGraphFunction<
       labelProperty,
       icon,
       relationships: params.relationships,
+      provenance,
     },
   );
 
@@ -182,13 +185,19 @@ export const createEntityType: ImpureGraphFunction<
 export const getEntityTypes: ImpureGraphFunction<
   {
     query: Omit<EntityTypeStructuralQuery, "includeDrafts">;
+    temporalClient?: TemporalClient;
   },
   Promise<Subgraph<EntityTypeRootType>>
-> = async ({ graphApi }, { actorId }, { query }) => {
+> = async ({ graphApi }, { actorId }, { query, temporalClient }) => {
+  await rewriteSemanticFilter(query.filter, temporalClient);
+
   return await graphApi
     .getEntityTypesByQuery(actorId, { includeDrafts: false, ...query })
     .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(data);
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(
+        data,
+        actorId,
+      );
 
       return subgraph;
     });
@@ -279,10 +288,11 @@ export const updateEntityType: ImpureGraphFunction<
     labelProperty?: BaseUrl;
     icon?: string | null;
     relationships: EntityTypeRelationAndSubject[];
+    provenance?: ProvidedOntologyEditionProvenance;
   },
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { entityTypeId, schema, labelProperty, icon } = params;
+  const { entityTypeId, schema, labelProperty, icon, provenance } = params;
   const updateArguments: UpdateEntityTypeRequest = {
     typeToUpdate: entityTypeId,
     schema: {
@@ -293,6 +303,7 @@ export const updateEntityType: ImpureGraphFunction<
     labelProperty,
     icon,
     relationships: params.relationships,
+    provenance,
   };
 
   const { data: metadata } = await ctx.graphApi.updateEntityType(

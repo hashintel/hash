@@ -7,6 +7,7 @@ import type {
   EntityRevisionId as EntityRevisionIdBp,
   EntityTemporalVersioningMetadata as EntityTemporalVersioningMetadataBp,
   isEntityRecordId as isEntityRecordIdBp,
+  JsonValue as JsonValueBp,
   LinkData as LinkDataBp,
   LinkEntityAndRightEntity as LinkEntityAndRightEntityBp,
 } from "@blockprotocol/graph/temporal";
@@ -17,7 +18,7 @@ import type { Subtype } from "@local/advanced-types/subtype";
 import type {
   BaseUrl,
   EntityId,
-  EntityProvenanceMetadata,
+  EntityProvenance,
   ExclusiveLimitedTemporalBound,
   InclusiveLimitedTemporalBound,
   TemporalAxis,
@@ -65,7 +66,7 @@ export const isEntityRecordId: typeof isEntityRecordIdBp = (
     "editionId" in recordId
   );
 };
-
+export type JsonValue = JsonValueBp;
 export type EntityPropertyValue = EntityPropertyValueBp;
 export type EntityPropertiesObject = Subtype<
   EntityPropertiesObjectBp,
@@ -91,7 +92,7 @@ export type EntityMetadata = Subtype<
     entityTypeId: VersionedUrl;
     temporalVersioning: EntityTemporalVersioningMetadata;
     archived: boolean;
-    provenance: EntityProvenanceMetadata;
+    provenance: EntityProvenance;
   }
 >;
 
@@ -100,6 +101,8 @@ export type LinkData = Subtype<
   {
     leftEntityId: EntityId;
     rightEntityId: EntityId;
+    leftEntityConfidence?: number;
+    rightEntityConfidence?: number;
   }
 >;
 

@@ -9,6 +9,7 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { OrganizationProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type {
   AccountGroupEntityId,
@@ -21,10 +22,7 @@ import type {
   OwnedById,
 } from "@local/hash-subgraph";
 import { extractAccountGroupId } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import {
   extractBaseUrl,
   versionedUrlFromComponents,
@@ -235,7 +233,7 @@ export const getOrgByShortname: ImpureGraphFunction<
     })
     .then(({ data }) => {
       const userEntitiesSubgraph =
-        mapGraphApiSubgraphToSubgraph<EntityRootType>(data.subgraph);
+        mapGraphApiSubgraphToSubgraph<EntityRootType>(data.subgraph, actorId);
 
       return getRoots(userEntitiesSubgraph);
     });

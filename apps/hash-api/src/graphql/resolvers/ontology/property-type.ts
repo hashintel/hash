@@ -1,16 +1,17 @@
 import type { OntologyTemporalMetadata } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
+  defaultPropertyTypeAuthorizationRelationships,
   fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   OwnedById,
   PropertyTypeRootType,
   PropertyTypeWithMetadata,
   Subgraph,
 } from "@local/hash-subgraph";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-subgraph/stdlib";
 
 import {
   archivePropertyType,
@@ -49,21 +50,7 @@ export const createPropertyTypeResolver: ResolverFn<
     {
       ownedById: (ownedById ?? user.accountId) as OwnedById,
       schema: propertyType,
-      relationships: [
-        {
-          relation: "setting",
-          subject: {
-            kind: "setting",
-            subjectId: "updateFromWeb",
-          },
-        },
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
+      relationships: defaultPropertyTypeAuthorizationRelationships,
     },
   );
 
@@ -114,7 +101,10 @@ export const queryPropertyTypesResolver: ResolverFn<
     },
   );
 
-  const subgraph = mapGraphApiSubgraphToSubgraph<PropertyTypeRootType>(data);
+  const subgraph = mapGraphApiSubgraphToSubgraph<PropertyTypeRootType>(
+    data,
+    authentication.actorId,
+  );
 
   return subgraph;
 };

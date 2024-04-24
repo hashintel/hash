@@ -14,6 +14,7 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import type { UserSecretProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type {
@@ -27,10 +28,7 @@ import {
   extractOwnedByIdFromEntityId,
   splitEntityId,
 } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type {
@@ -129,6 +127,8 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
         data.subgraph,
+        null,
+        true,
       );
 
       return getRoots(subgraph);
@@ -209,6 +209,8 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
         data.subgraph,
+        null,
+        true,
       );
       return getRoots(subgraph);
     });

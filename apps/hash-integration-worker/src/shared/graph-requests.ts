@@ -6,6 +6,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   AccountId,
   Entity,
@@ -18,10 +19,7 @@ import {
   extractOwnedByIdFromEntityId,
   splitEntityId,
 } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
 export const getEntitiesByLinearId = async (params: {
@@ -73,6 +71,7 @@ export const getEntitiesByLinearId = async (params: {
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
         data.subgraph,
+        params.authentication.actorId,
       );
       return getRoots(subgraph);
     });
@@ -123,7 +122,10 @@ export const getEntityOutgoingLinks = async (params: {
   );
 
   const outgoingLinkEntitiesSubgraph =
-    mapGraphApiSubgraphToSubgraph<EntityRootType>(response.data.subgraph);
+    mapGraphApiSubgraphToSubgraph<EntityRootType>(
+      response.data.subgraph,
+      authentication.actorId,
+    );
 
   const outgoingLinkEntities = getRoots(
     outgoingLinkEntitiesSubgraph,
@@ -173,6 +175,7 @@ export const getLatestEntityById = async (params: {
 
   const entitiesSubgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
     response.data.subgraph,
+    authentication.actorId,
   );
 
   const [entity, ...unexpectedEntities] = getRoots(entitiesSubgraph);

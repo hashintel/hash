@@ -2,11 +2,9 @@ use std::convert::identity;
 
 use graph_types::{
     knowledge::{
-        entity::{
-            Entity, EntityEditionProvenanceMetadata, EntityId, EntityMetadata,
-            EntityProvenanceMetadata, EntityRecordId, EntityUuid,
-        },
+        entity::{Entity, EntityId, EntityMetadata, EntityProvenance, EntityRecordId, EntityUuid},
         link::LinkData,
+        Confidence, PropertyMetadata, PropertyMetadataMap, PropertyPath, PropertyProvenance,
     },
     owned_by_id::OwnedById,
 };
@@ -185,12 +183,17 @@ pub struct EntityRecordRowIndices {
     pub right_entity_uuid: usize,
     pub right_entity_owned_by_id: usize,
 
-    pub created_by_id: usize,
-    pub created_at_transaction_time: usize,
-    pub created_at_decision_time: usize,
-    pub first_non_draft_created_at_transaction_time: usize,
-    pub first_non_draft_created_at_decision_time: usize,
-    pub edition_created_by_id: usize,
+    pub provenance: usize,
+    pub edition_provenance: usize,
+
+    pub entity_confidence: usize,
+    pub left_entity_confidence: usize,
+    pub right_entity_confidence: usize,
+    pub left_entity_provenance: usize,
+    pub right_entity_provenance: usize,
+    pub property_paths: usize,
+    pub property_confidences: usize,
+    pub property_provenance: usize,
 
     pub archived: usize,
 }
@@ -261,6 +264,10 @@ impl QueryRecordDecode for Entity {
                         entity_uuid: EntityUuid::new(right_entity_uuid),
                         draft_id: None,
                     },
+                    left_entity_confidence: row.get(indices.left_entity_confidence),
+                    right_entity_confidence: row.get(indices.right_entity_confidence),
+                    left_entity_provenance: row.get(indices.left_entity_provenance),
+                    right_entity_provenance: row.get(indices.right_entity_provenance),
                 }),
                 (None, None, None, None) => None,
                 _ => unreachable!(
@@ -280,6 +287,31 @@ impl QueryRecordDecode for Entity {
             tracing::trace!(%entity_id, %distance, "Entity embedding was calculated");
         }
 
+        let property_metadata: PropertyMetadataMap = row
+            .get::<_, Option<Vec<PropertyPath<'_>>>>(indices.property_paths)
+            .unwrap_or_default()
+            .into_iter()
+            .zip(
+                row.get::<_, Option<Vec<Option<Confidence>>>>(indices.property_confidences)
+                    .unwrap_or_default(),
+            )
+            .zip(
+                row.get::<_, Option<Vec<PropertyProvenance>>>(indices.property_provenance)
+                    .unwrap_or_default(),
+            )
+            .filter_map(|((path, confidence), provenance)| {
+                (confidence.is_some() || !provenance.is_empty()).then(|| {
+                    (
+                        path.into_owned(),
+                        PropertyMetadata {
+                            confidence,
+                            provenance,
+                        },
+                    )
+                })
+            })
+            .collect();
+
         Self {
             properties: row.get(indices.properties),
             link_data,
@@ -298,18 +330,12 @@ impl QueryRecordDecode for Entity {
                     .zip(row.get::<_, Vec<OntologyTypeVersion>>(indices.type_versions_id))
                     .map(|(base_url, version)| VersionedUrl { base_url, version })
                     .collect(),
-                provenance: EntityProvenanceMetadata {
-                    created_by_id: row.get(indices.created_by_id),
-                    created_at_transaction_time: row.get(indices.created_at_transaction_time),
-                    created_at_decision_time: row.get(indices.created_at_decision_time),
-                    first_non_draft_created_at_transaction_time: row
-                        .get(indices.first_non_draft_created_at_transaction_time),
-                    first_non_draft_created_at_decision_time: row
-                        .get(indices.first_non_draft_created_at_decision_time),
-                    edition: EntityEditionProvenanceMetadata {
-                        created_by_id: row.get(indices.edition_created_by_id),
-                    },
+                provenance: EntityProvenance {
+                    inferred: row.get(indices.provenance),
+                    edition: row.get(indices.edition_provenance),
                 },
+                confidence: row.get(indices.entity_confidence),
+                properties: property_metadata,
                 archived: row.get(indices.archived),
             },
         }
@@ -369,17 +395,24 @@ impl PostgresRecord for Entity {
             right_entity_uuid: compiler.add_selection_path(&paths.right_entity_uuid),
             right_entity_owned_by_id: compiler.add_selection_path(&paths.right_owned_by_id),
 
-            created_by_id: compiler.add_selection_path(&EntityQueryPath::CreatedById),
-            created_at_transaction_time: compiler
-                .add_selection_path(&EntityQueryPath::CreatedAtTransactionTime),
-            created_at_decision_time: compiler
-                .add_selection_path(&EntityQueryPath::CreatedAtDecisionTime),
-            first_non_draft_created_at_transaction_time: compiler
-                .add_selection_path(&EntityQueryPath::FirstNonDraftCreatedAtTransactionTime),
-            first_non_draft_created_at_decision_time: compiler
-                .add_selection_path(&EntityQueryPath::FirstNonDraftCreatedAtDecisionTime),
-            edition_created_by_id: compiler
-                .add_selection_path(&EntityQueryPath::EditionCreatedById),
+            provenance: compiler.add_selection_path(&EntityQueryPath::Provenance(None)),
+            edition_provenance: compiler
+                .add_selection_path(&EntityQueryPath::EditionProvenance(None)),
+            property_provenance: compiler
+                .add_selection_path(&EntityQueryPath::PropertyProvenance(None)),
+
+            entity_confidence: compiler.add_selection_path(&EntityQueryPath::EntityConfidence),
+            left_entity_confidence: compiler
+                .add_selection_path(&EntityQueryPath::LeftEntityConfidence),
+            left_entity_provenance: compiler
+                .add_selection_path(&EntityQueryPath::LeftEntityProvenance),
+            right_entity_confidence: compiler
+                .add_selection_path(&EntityQueryPath::RightEntityConfidence),
+            right_entity_provenance: compiler
+                .add_selection_path(&EntityQueryPath::RightEntityProvenance),
+            property_paths: compiler.add_selection_path(&EntityQueryPath::PropertyPaths),
+            property_confidences: compiler
+                .add_selection_path(&EntityQueryPath::PropertyConfidences),
 
             archived: compiler.add_selection_path(&EntityQueryPath::Archived),
         }

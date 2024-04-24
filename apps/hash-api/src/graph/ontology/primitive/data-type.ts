@@ -7,6 +7,7 @@ import type {
   DataTypeStructuralQuery,
   ModifyRelationshipOperation,
   OntologyTemporalMetadata,
+  ProvidedOntologyEditionProvenance,
   UnarchiveDataTypeParams,
 } from "@local/hash-graph-client";
 import {
@@ -14,6 +15,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   ConstructDataTypeParams,
   DataTypeAuthorizationRelationship,
@@ -26,10 +28,7 @@ import type {
   Subgraph,
 } from "@local/hash-subgraph";
 import { ontologyTypeRecordIdToVersionedUrl } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { getWebShortname, isExternalTypeId } from "./util";
@@ -55,10 +54,11 @@ export const createDataType: ImpureGraphFunction<
     schema: ConstructDataTypeParams;
     webShortname?: string;
     relationships: DataTypeRelationAndSubject[];
+    provenance?: ProvidedOntologyEditionProvenance;
   },
   Promise<DataTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { ownedById, webShortname } = params;
+  const { ownedById, webShortname, provenance } = params;
 
   const shortname =
     webShortname ??
@@ -87,6 +87,7 @@ export const createDataType: ImpureGraphFunction<
       schema,
       ownedById,
       relationships: params.relationships,
+      provenance,
     },
   );
 
@@ -107,7 +108,10 @@ export const getDataTypes: ImpureGraphFunction<
   return await graphApi
     .getDataTypesByQuery(actorId, { includeDrafts: false, ...query })
     .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<DataTypeRootType>(data);
+      const subgraph = mapGraphApiSubgraphToSubgraph<DataTypeRootType>(
+        data,
+        actorId,
+      );
 
       return subgraph;
     });
@@ -199,10 +203,11 @@ export const updateDataType: ImpureGraphFunction<
     dataTypeId: VersionedUrl;
     schema: ConstructDataTypeParams;
     relationships: DataTypeRelationAndSubject[];
+    provenance?: ProvidedOntologyEditionProvenance;
   },
   Promise<DataTypeWithMetadata>
 > = async ({ graphApi }, { actorId }, params) => {
-  const { dataTypeId, schema } = params;
+  const { dataTypeId, schema, provenance } = params;
 
   const { data: metadata } = await graphApi.updateDataType(actorId, {
     typeToUpdate: dataTypeId,
@@ -212,6 +217,7 @@ export const updateDataType: ImpureGraphFunction<
       ...schema,
     },
     relationships: params.relationships,
+    provenance,
   });
 
   const { recordId } = metadata;

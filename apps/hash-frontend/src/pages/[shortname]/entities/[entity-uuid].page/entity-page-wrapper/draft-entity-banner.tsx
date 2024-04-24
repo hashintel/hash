@@ -1,4 +1,5 @@
 import { FeatherRegularIcon } from "@hashintel/design-system";
+import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph/.";
 import { Box, Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
@@ -9,7 +10,6 @@ import type { ButtonProps } from "../../../../../shared/ui";
 import { Link } from "../../../../../shared/ui";
 import { AcceptDraftEntityButton } from "../../../../shared/accept-draft-entity-button";
 import { DiscardDraftEntityButton } from "../../../../shared/discard-draft-entity-button";
-import { generateEntityHref } from "../../../../shared/use-entity-href";
 
 const buttonSx: ButtonProps["sx"] = ({ palette }) => ({
   minWidth: 0,
@@ -96,7 +96,7 @@ export const DraftEntityBanner: FunctionComponent<{
             <>
               <Box component="span"> –</Box>
               <Link
-                href={generateEntityHref({
+                href={generateEntityPath({
                   entityId: draftEntity.metadata.recordId.entityId,
                   includeDraftId: false,
                   shortname: owningShortname,

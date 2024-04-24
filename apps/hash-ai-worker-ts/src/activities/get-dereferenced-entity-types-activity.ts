@@ -5,18 +5,20 @@ import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { AccountId } from "@local/hash-subgraph";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-subgraph/stdlib";
 
-import { dereferenceEntityType } from "./infer-entities/dereference-entity-type";
 import type { DereferencedEntityTypesByTypeId } from "./infer-entities/inference-types";
+import { dereferenceEntityType } from "./shared/dereference-entity-type";
 
 export const getDereferencedEntityTypesActivity = async (params: {
   entityTypeIds: VersionedUrl[];
   graphApiClient: GraphApi;
   actorId: AccountId;
+  simplifyPropertyKeys: boolean;
 }): Promise<DereferencedEntityTypesByTypeId> => {
-  const { graphApiClient, entityTypeIds, actorId } = params;
+  const { graphApiClient, entityTypeIds, actorId, simplifyPropertyKeys } =
+    params;
 
   /** Fetch the full schemas for the requested entity types */
   const entityTypes: DereferencedEntityTypesByTypeId = {};
@@ -39,10 +41,11 @@ export const getDereferencedEntityTypesActivity = async (params: {
     });
 
   for (const entityTypeId of entityTypeIds) {
-    entityTypes[entityTypeId] = dereferenceEntityType(
+    entityTypes[entityTypeId] = dereferenceEntityType({
       entityTypeId,
-      mapGraphApiSubgraphToSubgraph(entityTypesSubgraph),
-    );
+      subgraph: mapGraphApiSubgraphToSubgraph(entityTypesSubgraph, actorId),
+      simplifyPropertyKeys,
+    });
   }
 
   const unusableTypeIds = entityTypeIds.filter((entityTypeId) => {

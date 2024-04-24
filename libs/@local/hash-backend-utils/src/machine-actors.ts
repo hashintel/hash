@@ -10,6 +10,10 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { systemTypeWebShortnames } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  mapGraphApiEntityMetadataToMetadata,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { MachineProperties } from "@local/hash-isomorphic-utils/system-types/machine";
 import type {
   AccountId,
@@ -17,11 +21,7 @@ import type {
   EntityRootType,
   OwnedById,
 } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiEntityMetadataToMetadata,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 export type WebMachineActorIdentifier = `system-${OwnedById}`;
@@ -84,6 +84,7 @@ export const getMachineActorId = async (
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
         data.subgraph,
+        authentication.actorId,
       );
 
       return getRoots(subgraph);

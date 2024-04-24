@@ -20,9 +20,17 @@ We're still writing documentation outlining how you can self-host HASH, but we'l
 
 </InfoCard>
 
-We're working with early "lighthouse partners" to help them self-host HASH in production, but we haven't yet released public documentation for self-hosting HASH. Once this is ready, we'll publish it here. In the meantime, feel free to [get in touch](https://hash.ai/contact) to tell us more about our use case; or if you're comfortable finding your way round a monorepo, download the code and Terraform files [on GitHub](https://github.com/hashintel/hash). We're also happy to answer questions [over on Discord](https://hash.ai/discord).
+We're developing HASH in the open ([on GitHub](https://github.com/hashintel/hash)), and working with early "lighthouse partners" to help them self-host HASH in production. However, because of the application's current rate of change, we haven't yet released public docs for self-hosting HASH. Once these are ready, we'll publish them here. In the meantime, feel free to [get in touch](https://hash.ai/contact) to tell us more about your use case; or if you're comfortable finding your way round a monorepo, download the code and Terraform files from our repository. We're happy to try and answer questions [over on Discord](https://hash.ai/discord), but are only providing self-hosting support to our lighthouse partners presently.
 
 </InfoCardWrapper>
+
+<InfoCardWrapper>
+
+<InfoCard variant="warning" title="Coming soon">
+
+While we're in _alpha_, we recommend you use the hosted version of HASH available at [hash.ai](https://app.hash.ai/signup).
+
+</InfoCard>
 
 ## Choosing A Version
 
@@ -33,3 +41,5 @@ We're working with early "lighthouse partners" to help them self-host HASH in pr
 **If security, availability, processing integrity, confidentiality and privacy are concerns:** we're currently in the process of obtaining SOC2 compliance certification. However, we understand that many enterprise organizations may nevertheless wish to host HASH within their own walled infrastructure, even then. Please [contact us](https://hash.ai/contact) if you have specific requirements you'd like to discuss, and to learn more about getting set up.
 
 **If you're still uncertain about which version to use:** you can always switch between the hosted and self-hosted versions of HASH later, without being locked in to either. Do whatever's easiest for you now and you can always change it up later. It's quicker to get started with the hosted version, so we generally recommend that. In the future we plan to allow self-hosted instances of HASH to be linked with one another and the global network. These "federated instances" will be able to see and pull public information from the global network, as well as publish to it for use by others. Right now, entity visibility settings are unique "per instance" of HASH. For example, a user of `hash.ai` will be able to see other `hash.ai` user's _public_ information, but nothing 'public' of a self-hosted user. Conversely, users of another instance (e.g. `example.com`) would be able to see other `example.com` user's public entities and types, but not those of `hash.ai` users. The data model we've adopted allows everybody to stay in control of their data, fully owning their records, while still enabling the secure, on-demand, easy-sharing of information when required.
+
+</InfoCardWrapper>

@@ -1,5 +1,10 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
+  PropertyMetadataMap,
+  ProvidedEntityEditionProvenance,
+} from "@local/hash-graph-client";
+import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import type {
   AccountGroupId,
   AccountId,
   Entity,
@@ -9,7 +14,6 @@ import type {
   LinkData,
   OwnedById,
 } from "@local/hash-subgraph";
-import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-subgraph/stdlib";
 import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
 import type { ImpureGraphFunction } from "../../context-types";
@@ -27,8 +31,13 @@ export type CreateLinkEntityParams = {
   owner?: AccountId | AccountGroupId;
   draft?: boolean;
   leftEntityId: EntityId;
+  leftEntityConfidence?: number;
   rightEntityId: EntityId;
+  rightEntityConfidence?: number;
   relationships: EntityRelationAndSubject[];
+  confidence?: number;
+  propertyMetadata?: PropertyMetadataMap;
+  provenance?: ProvidedEntityEditionProvenance;
 };
 
 export const isEntityLinkEntity = (entity: Entity): entity is LinkEntity =>
@@ -54,6 +63,12 @@ export const createLinkEntity: ImpureGraphFunction<
     rightEntityId,
     properties = {},
     draft = false,
+    relationships,
+    leftEntityConfidence,
+    rightEntityConfidence,
+    confidence,
+    propertyMetadata,
+    provenance,
   } = params;
 
   const linkEntityType = await getEntityTypeById(context, authentication, {
@@ -79,6 +94,8 @@ export const createLinkEntity: ImpureGraphFunction<
   const linkData: LinkData = {
     leftEntityId,
     rightEntityId,
+    leftEntityConfidence,
+    rightEntityConfidence,
   };
 
   const { data: metadata } = await context.graphApi.createEntity(
@@ -89,7 +106,10 @@ export const createLinkEntity: ImpureGraphFunction<
       entityTypeIds: [linkEntityType.schema.$id],
       properties,
       draft,
-      relationships: params.relationships,
+      relationships,
+      confidence,
+      propertyMetadata,
+      provenance,
     },
   );
 
@@ -124,6 +144,7 @@ export const updateLinkEntity: ImpureGraphFunction<
     linkEntity: LinkEntity;
     properties?: EntityPropertiesObject;
     draft?: boolean;
+    provenance?: ProvidedEntityEditionProvenance;
   },
   Promise<LinkEntity>
 > = async ({ graphApi }, { actorId }, params) => {
@@ -136,11 +157,12 @@ export const updateLinkEntity: ImpureGraphFunction<
     properties: [
       {
         op: "replace",
-        path: "",
+        path: [],
         value: properties,
       },
     ],
     draft: params.draft,
+    provenance: params.provenance,
   });
 
   return {
