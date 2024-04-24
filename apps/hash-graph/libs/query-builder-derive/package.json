@@ -1,7 +1,7 @@
 {
   "name": "@rust/query-builder-derive",
   "version": "0.1.0",
-  "private": false,
+  "private": true,
   "dependencies": {},
   "devDependencies": {}
 }
