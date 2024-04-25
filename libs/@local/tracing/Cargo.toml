@@ -13,12 +13,21 @@ error-stack = { workspace = true }
 opentelemetry_sdk = { version = "0.22.1", features = ["rt-tokio"] }
 opentelemetry = "0.22.0"
 opentelemetry-otlp = "0.15.0"
-sentry = { version = "0.32.3", features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tracing"], default-features = false }
+sentry = { version = "0.32.3", features = [
+    "backtrace",
+    "contexts",
+    "debug-images",
+    "panic",
+    "reqwest",
+    "rustls",
+    "tracing",
+], default-features = false }
 tracing = { workspace = true }
 tracing-appender = "0.2.3"
 tracing-error = "0.2.0"
 tracing-opentelemetry = "0.23.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json"] }
+tokio.workspace = true
 
 clap = { workspace = true, optional = true, features = ["derive", "env"] }
 
