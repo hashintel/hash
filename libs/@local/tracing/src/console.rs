@@ -1,10 +1,11 @@
 use std::io::{self, Stderr, Stdout};
 
-use tracing_subscriber::fmt::MakeWriter;
+use tracing_subscriber::fmt::{MakeWriter, TestWriter};
 
 pub(crate) enum ConsoleMakeWriter {
     Stdout,
     Stderr,
+    Test,
 }
 
 impl<'writer> MakeWriter<'writer> for ConsoleMakeWriter {
@@ -14,6 +15,7 @@ impl<'writer> MakeWriter<'writer> for ConsoleMakeWriter {
         match self {
             Self::Stdout => ConsoleWriter::Stdout(io::stdout()),
             Self::Stderr => ConsoleWriter::Stderr(io::stderr()),
+            Self::Test => ConsoleWriter::Test(TestWriter::default()),
         }
     }
 }
@@ -21,6 +23,7 @@ impl<'writer> MakeWriter<'writer> for ConsoleMakeWriter {
 pub(crate) enum ConsoleWriter {
     Stdout(Stdout),
     Stderr(Stderr),
+    Test(TestWriter),
 }
 
 impl io::Write for ConsoleWriter {
@@ -29,6 +32,7 @@ impl io::Write for ConsoleWriter {
         match self {
             Self::Stdout(w) => w.write(buf),
             Self::Stderr(w) => w.write(buf),
+            Self::Test(w) => w.write(buf),
         }
     }
 
@@ -37,6 +41,7 @@ impl io::Write for ConsoleWriter {
         match self {
             Self::Stdout(w) => w.write_vectored(bufs),
             Self::Stderr(w) => w.write_vectored(bufs),
+            Self::Test(w) => w.write_vectored(bufs),
         }
     }
 
@@ -45,6 +50,7 @@ impl io::Write for ConsoleWriter {
         match self {
             Self::Stdout(w) => w.is_write_vectored(),
             Self::Stderr(w) => w.is_write_vectored(),
+            Self::Test(w) => w.is_write_vectored(),
         }
     }
 
@@ -53,6 +59,7 @@ impl io::Write for ConsoleWriter {
         match self {
             Self::Stdout(w) => w.flush(),
             Self::Stderr(w) => w.flush(),
+            Self::Test(w) => w.flush(),
         }
     }
 
@@ -61,6 +68,7 @@ impl io::Write for ConsoleWriter {
         match self {
             Self::Stdout(w) => w.write_all(buf),
             Self::Stderr(w) => w.write_all(buf),
+            Self::Test(w) => w.write_all(buf),
         }
     }
 
@@ -69,6 +77,7 @@ impl io::Write for ConsoleWriter {
         match self {
             Self::Stdout(w) => w.write_all_vectored(bufs),
             Self::Stderr(w) => w.write_all_vectored(bufs),
+            Self::Test(w) => w.write_all_vectored(bufs),
         }
     }
 
@@ -77,6 +86,7 @@ impl io::Write for ConsoleWriter {
         match self {
             Self::Stdout(w) => w.write_fmt(fmt),
             Self::Stderr(w) => w.write_fmt(fmt),
+            Self::Test(w) => w.write_fmt(fmt),
         }
     }
 }
