@@ -122,6 +122,7 @@ export const createEntities = async ({
               entityTypeId,
               properties,
             },
+            includeDrafts: createAsDraft,
           });
 
           if (existingEntity) {
@@ -386,6 +387,7 @@ export const createEntities = async ({
               graphApiClient,
               linkData,
               ownedById,
+              includeDrafts: createAsDraft,
             });
 
             if (existingLinkEntity) {
