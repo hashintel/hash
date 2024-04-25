@@ -773,6 +773,22 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                     "relevantEntitiesPrompt" satisfies InputNameForAction<"inferEntitiesFromContent">,
                   payload: { kind: "Text", value: toolCallPrompt },
                 },
+                /**
+                 * Consider allowing the worker agent to decide which existing entities
+                 * are provided to the inference agent.
+                 */
+                ...(existingEntities && existingEntities.length > 0
+                  ? [
+                      {
+                        inputName:
+                          "existingEntities" satisfies InputNameForAction<"inferEntitiesFromContent">,
+                        payload: {
+                          kind: "Entity" as const,
+                          value: existingEntities,
+                        },
+                      },
+                    ]
+                  : []),
                 ...actionDefinitions.inferEntitiesFromContent.inputs.flatMap<StepInput>(
                   ({ name, default: defaultValue }) =>
                     defaultValue
