@@ -394,15 +394,6 @@ export const proposeEntities = async (params: {
                 const invalidProposedEntitiesOfType = await Promise.all(
                   proposedEntitiesOfType.map(async (proposedEntityOfType) => {
                     try {
-                      /**
-                       * We can't validate links at the moment because they will always fail validation,
-                       * since they don't have references to existing entities.
-                       * @todo remove this when we can update the `validateEntity` call to only check properties
-                       */
-                      if ("sourceEntityId" in proposedEntityOfType) {
-                        return [];
-                      }
-
                       const entityTypeId =
                         simplifiedEntityTypeIdMappings[simplifiedEntityTypeId];
 
