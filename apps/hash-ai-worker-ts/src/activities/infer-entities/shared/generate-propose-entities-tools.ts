@@ -4,6 +4,7 @@ import type {
   ProposedEntity,
   ProposedEntitySchemaOrData,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
+import dedent from "dedent";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
@@ -26,15 +27,59 @@ export type ProposedEntityToolCreationsByType = Record<
   ProposedEntityWithSimplifiedProperties[]
 >;
 
-export const generateProposeEntitiesTools = (
+export const generateToolLinkFields = (params: {
+  canLinkToExistingEntities?: boolean;
+}) => ({
+  sourceEntityId: {
+    description: dedent(`
+      The entityId of the source entity of the link.
+      ${params.canLinkToExistingEntities ? "If the source is an existing entity, it must be a string. If it is a proposed entity, it must be a number." : ""}
+    `),
+    ...(params.canLinkToExistingEntities
+      ? {
+          oneOf: [
+            {
+              type: "number",
+            },
+            {
+              type: "string",
+            },
+          ],
+        }
+      : { type: "number" }),
+  },
+  targetEntityId: {
+    description: dedent(`
+      The entityId of the target entity of the link.
+      ${params.canLinkToExistingEntities ? "If the target is an existing entity, it must be a string. If it is a proposed entity, it must be a number." : ""}
+    `),
+    ...(params.canLinkToExistingEntities
+      ? {
+          oneOf: [
+            {
+              type: "number",
+            },
+            {
+              type: "string",
+            },
+          ],
+        }
+      : { type: "number" }),
+  },
+});
+
+export const generateProposeEntitiesTools = (params: {
   entityTypes: {
     schema: DereferencedEntityType<string>;
     isLink: boolean;
-  }[],
-): {
+  }[];
+  canLinkToExistingEntities: boolean;
+}): {
   tools: LlmToolDefinition<ProposeEntitiesToolName>[];
   simplifiedEntityTypeIdMappings: Record<string, VersionedUrl>;
 } => {
+  const { entityTypes, canLinkToExistingEntities } = params;
+
   let simplifiedEntityTypeIdMappings: Record<string, VersionedUrl> = {};
 
   const tools: LlmToolDefinition<ProposeEntitiesToolName>[] = [
@@ -72,18 +117,7 @@ export const generateProposeEntitiesTools = (
                     type: "number",
                   },
                   ...(isLink
-                    ? {
-                        sourceEntityId: {
-                          description:
-                            "The entityId of the source entity of the link",
-                          type: "number",
-                        },
-                        targetEntityId: {
-                          description:
-                            "The entityId of the target entity of the link",
-                          type: "number",
-                        },
-                      }
+                    ? generateToolLinkFields({ canLinkToExistingEntities })
                     : {}),
                   properties: {
                     description: "The properties to set on the entity",

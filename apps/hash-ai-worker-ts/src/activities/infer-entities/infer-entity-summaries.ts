@@ -1,5 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { typedKeys } from "@local/advanced-types/typed-entries";
+import type { Entity } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
@@ -35,12 +36,14 @@ export const inferEntitySummaries = async (params: {
   entityTypes: DereferencedEntityTypesByTypeId;
   inferenceState: InferenceState;
   providedOrRerequestedEntityTypes: Set<VersionedUrl>;
+  existingEntities?: Entity[];
 }): Promise<Status<InferenceState>> => {
   const {
     completionPayload,
     entityTypes,
     inferenceState,
     providedOrRerequestedEntityTypes,
+    existingEntities,
   } = params;
 
   const { iterationCount, usage: usageFromPreviousIterations } = inferenceState;
@@ -61,7 +64,11 @@ export const inferEntitySummaries = async (params: {
 
   logger.info(`Iteration ${iterationCount} begun.`);
 
-  const tools = generateSummaryTools(Object.values(entityTypes));
+  const tools = generateSummaryTools({
+    entityTypes: Object.values(entityTypes),
+    canLinkToExistingEntities:
+      !!existingEntities && existingEntities.length > 0,
+  });
 
   const llmResponse = await getLlmResponse({
     ...completionPayload,
@@ -222,11 +229,12 @@ export const inferEntitySummaries = async (params: {
           }
 
           const { validSummaries, errorMessage } =
-            validateEntitySummariesByType(
-              proposedEntitySummariesByType,
-              entityTypes,
-              inferenceState.proposedEntitySummaries,
-            );
+            validateEntitySummariesByType({
+              parsedJson: proposedEntitySummariesByType,
+              entityTypesById: entityTypes,
+              existingSummaries: inferenceState.proposedEntitySummaries,
+              existingEntities,
+            });
 
           for (const validSummary of validSummaries) {
             if (
@@ -276,7 +284,7 @@ export const inferEntitySummaries = async (params: {
           content: dedent(`
                    You did not suggest any entities of the following entity types: ${typesWithNoSuggestionsToRerequest.join(
                      ", ",
-                   )}. Please reconsider the input text to see if you can identify any entities of those types.
+                   )}. Please reconsider the input text${existingEntities && existingEntities.length > 0 ? " and the existing entities" : ""} to see if you can identify any entities of those types.
                 `),
           role: "user",
         });

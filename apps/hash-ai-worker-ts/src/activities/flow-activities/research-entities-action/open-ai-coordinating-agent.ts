@@ -19,6 +19,7 @@ import {
   getToolCallsFromLlmAssistantMessage,
 } from "../../shared/get-llm-response/llm-message";
 import type { ParsedLlmToolCall } from "../../shared/get-llm-response/types";
+import { mapActionInputEntitiesToEntities } from "../../shared/map-action-input-entities-to-entities";
 import type { PermittedOpenAiModel } from "../../shared/openai-client";
 import type { CoordinatorToolName } from "./coordinator-tools";
 import { coordinatorToolDefinitions } from "./coordinator-tools";
@@ -254,13 +255,7 @@ const parseCoordinatorInputs = async (params: {
    * @todo: simplify the properties in the existing entities
    */
   const existingEntities = inputExistingEntities
-    ? inputExistingEntities.flatMap((inputEntity) =>
-        "metadata" in inputEntity
-          ? inputEntity
-          : inputEntity.persistedEntities.flatMap(
-              ({ entity, existingEntity }) => entity ?? existingEntity ?? [],
-            ),
-      )
+    ? mapActionInputEntitiesToEntities({ inputEntities: inputExistingEntities })
     : undefined;
 
   return {

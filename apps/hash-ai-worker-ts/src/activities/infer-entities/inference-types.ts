@@ -27,8 +27,8 @@ export type DereferencedEntityTypesByTypeId = Record<
 export type ProposedEntitySummary = {
   entityId: number;
   entityTypeId: VersionedUrl;
-  sourceEntityId?: number;
-  targetEntityId?: number;
+  sourceEntityId?: number | string;
+  targetEntityId?: number | string;
   takenFromQueue?: boolean;
   summary: string;
 };

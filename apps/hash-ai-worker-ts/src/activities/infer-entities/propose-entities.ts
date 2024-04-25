@@ -2,7 +2,7 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/ai-inference-types";
-import { type AccountId } from "@local/hash-subgraph";
+import type { AccountId, Entity, EntityId } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
@@ -42,6 +42,7 @@ export const proposeEntities = async (params: {
   inferenceState: InferenceState;
   validationActorId: AccountId;
   graphApiClient: GraphApi;
+  existingEntities?: Entity[];
 }): Promise<Status<InferenceState>> => {
   const {
     maxTokens,
@@ -51,6 +52,7 @@ export const proposeEntities = async (params: {
     graphApiClient,
     inferenceState,
     firstUserMessage,
+    existingEntities,
   } = params;
 
   const {
@@ -114,7 +116,11 @@ export const proposeEntities = async (params: {
   );
 
   const { tools, simplifiedEntityTypeIdMappings } =
-    generateProposeEntitiesTools(Object.values(entityTypes));
+    generateProposeEntitiesTools({
+      entityTypes: Object.values(entityTypes),
+      canLinkToExistingEntities:
+        !!existingEntities && existingEntities.length > 0,
+    });
 
   const entitiesToUpdate = inProgressEntityIds.filter(
     (inProgressEntityId) =>
@@ -521,17 +527,27 @@ export const proposeEntities = async (params: {
                       properties: entity.properties ?? {},
                       sourceEntityId:
                         "sourceEntityId" in entity
-                          ? {
-                              kind: "proposed-entity",
-                              localId: entity.sourceEntityId.toString(),
-                            }
+                          ? typeof entity.sourceEntityId === "number"
+                            ? {
+                                kind: "proposed-entity",
+                                localId: entity.sourceEntityId.toString(),
+                              }
+                            : {
+                                kind: "existing-entity",
+                                entityId: entity.sourceEntityId as EntityId,
+                              }
                           : undefined,
                       targetEntityId:
                         "targetEntityId" in entity
-                          ? {
-                              kind: "proposed-entity",
-                              localId: entity.targetEntityId.toString(),
-                            }
+                          ? typeof entity.targetEntityId === "number"
+                            ? {
+                                kind: "proposed-entity",
+                                localId: entity.targetEntityId.toString(),
+                              }
+                            : {
+                                kind: "existing-entity",
+                                entityId: entity.targetEntityId as EntityId,
+                              }
                           : undefined,
                     },
                     recordedAt: now,
@@ -549,13 +565,40 @@ export const proposeEntities = async (params: {
             `Proposed ${invalidProposedEntities.length} invalid additional entities.`,
           );
 
-          for (const proposedEntity of validProposedEntities) {
-            inferenceState.inProgressEntityIds =
-              inferenceState.inProgressEntityIds.filter(
-                (inProgressEntityId) =>
-                  inProgressEntityId !== proposedEntity.entityId,
-              );
-          }
+          /**
+           * Remove the valid entities from the list of entities in progress.
+           */
+          inferenceState.inProgressEntityIds =
+            inferenceState.inProgressEntityIds.filter(
+              (inProgressEntityId) =>
+                !validProposedEntities.some(
+                  ({ entityId }) => entityId === inProgressEntityId,
+                ),
+            );
+
+          /**
+           * The agent may have inferred valid entities that we didn't yet ask it for,
+           * in which case we need to mark them as taken from the queue so we don't
+           * ask for them again.
+           */
+          inferenceState.proposedEntitySummaries =
+            inferenceState.proposedEntitySummaries.map(
+              (proposedEntitySummary) => {
+                if (
+                  !proposedEntitySummary.takenFromQueue &&
+                  validProposedEntities.some(
+                    ({ entityId }) =>
+                      entityId === proposedEntitySummary.entityId,
+                  )
+                ) {
+                  return {
+                    ...proposedEntitySummary,
+                    takenFromQueue: true,
+                  };
+                }
+                return proposedEntitySummary;
+              },
+            );
 
           inferenceState.proposedEntityCreationsByType = Object.entries(
             validProposedEntitiesByType,
