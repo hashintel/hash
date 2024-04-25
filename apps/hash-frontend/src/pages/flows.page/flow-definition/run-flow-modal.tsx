@@ -51,7 +51,6 @@ const InputWrapper = ({
 type UnsupportedPayloadKind = Exclude<PayloadKind, LocalPayloadKind>;
 
 const unsupportedPayloadKinds: UnsupportedPayloadKind[] = [
-  "EntityType",
   "PersistedEntities",
   "PersistedEntity",
   "ProposedEntity",

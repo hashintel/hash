@@ -1,9 +1,9 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { ActorTypeDataType } from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
 import type {
   Entity,
   EntityId,
   EntityPropertiesObject,
-  EntityTypeWithMetadata,
   EntityUuid,
   OwnedById,
 } from "@local/hash-subgraph";
@@ -76,20 +76,25 @@ export type FormattedText = {
   format: TextFormat;
 };
 
+export type GoogleSheet = { spreadsheetId: string } | { newSheetName: string };
+
 export type PayloadKindValues = {
-  FormattedText: FormattedText;
-  Text: string;
-  Number: number;
+  ActorType: ActorTypeDataType;
   Boolean: boolean;
+  Entity: Entity;
+  EntityId: EntityId;
+  FormattedText: FormattedText;
+  GoogleAccountId: string;
+  GoogleSheet: GoogleSheet;
+  Number: number;
+  PersistedEntities: PersistedEntities;
+  PersistedEntity: PersistedEntity;
   ProposedEntity: ProposedEntity;
   ProposedEntityWithResolvedLinks: ProposedEntityWithResolvedLinks;
-  Entity: Entity;
-  PersistedEntity: PersistedEntity;
-  PersistedEntities: PersistedEntities;
-  WebPage: WebPage;
-  EntityType: EntityTypeWithMetadata;
-  WebId: OwnedById;
+  Text: string;
   VersionedUrl: VersionedUrl;
+  WebId: OwnedById;
+  WebPage: WebPage;
 };
 
 export type PayloadKind = keyof PayloadKindValues;

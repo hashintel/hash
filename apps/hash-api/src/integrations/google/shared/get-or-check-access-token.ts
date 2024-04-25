@@ -3,7 +3,6 @@ import {
   getGoogleAccountById,
   getTokensForGoogleAccount,
 } from "@local/hash-backend-utils/google";
-import { context } from "@opentelemetry/api";
 import type { Request, Response } from "express";
 
 import { enabledIntegrations } from "../../enabled-integrations";

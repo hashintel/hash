@@ -3,7 +3,7 @@ import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   mapGqlSubgraphFieldsFragmentToSubgraph,
-  notArchivedFilter,
+  pageOrNotificationNotArchivedFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -89,7 +89,7 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
               systemEntityTypes.notification.entityTypeId,
               { ignoreParents: false },
             ),
-            notArchivedFilter,
+            pageOrNotificationNotArchivedFilter,
           ],
         },
         graphResolveDepths: zeroedGraphResolveDepths,

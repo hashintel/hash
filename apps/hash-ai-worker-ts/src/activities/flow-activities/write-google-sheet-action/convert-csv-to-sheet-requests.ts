@@ -16,7 +16,7 @@ type ParsedCsvRow = (string | number | boolean)[];
  * This function could later return an abstraction of sheet requests (e.g. Create Sheet, Insert Rows)
  * to be converted into calls to different spreadsheet APIs.
  */
-export const createSheetRequestsFromCsvString = ({
+export const convertCsvToSheetRequests = ({
   csvString,
   format,
 }: {

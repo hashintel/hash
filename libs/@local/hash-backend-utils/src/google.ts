@@ -1,5 +1,3 @@
-import type { ImpureGraphFunction } from "@apps/hash-api/src/graph/context-types";
-import { getEntities } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import { getSecretEntitiesForIntegration } from "@local/hash-backend-utils/user-secret";
 import type { GraphApi } from "@local/hash-graph-client";
 import {

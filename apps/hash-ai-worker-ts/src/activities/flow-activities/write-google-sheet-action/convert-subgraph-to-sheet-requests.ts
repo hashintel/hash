@@ -193,13 +193,16 @@ type EntitySheetRequests = {
  * This function could later return an abstraction of sheet requests (e.g. Create Sheet, Insert Rows)
  * to be converted into calls to different spreadsheet APIs.
  */
-export const createSheetRequestsFromEntitySubgraph = (
-  entitySubgraph: Subgraph<EntityRootType>,
-  format: SheetOutputFormat,
-): sheets_v4.Schema$Request[] => {
+export const convertSubgraphToSheetRequests = ({
+  subgraph,
+  format,
+}: {
+  subgraph: Subgraph<EntityRootType>;
+  format: SheetOutputFormat;
+}): sheets_v4.Schema$Request[] => {
   const entitySheetRequests: EntitySheetRequests = {};
 
-  const sortedEntities = typedValues(entitySubgraph.vertices)
+  const sortedEntities = typedValues(subgraph.vertices)
     .flatMap((editionMap) => typedValues(editionMap))
     .filter((vertex): vertex is EntityVertex => isEntityVertex(vertex))
     .map((vertex) => vertex.inner)
@@ -271,7 +274,7 @@ export const createSheetRequestsFromEntitySubgraph = (
 
   for (const entity of sortedEntities) {
     const entityType = getEntityTypeById(
-      entitySubgraph,
+      subgraph,
       entity.metadata.entityTypeId,
     );
     if (!entityType) {
@@ -290,7 +293,7 @@ export const createSheetRequestsFromEntitySubgraph = (
       isLinkType,
       linkColumnCount,
       propertyColumnCount,
-    } = createColumnsForEntity(entityType.schema, entitySubgraph, format);
+    } = createColumnsForEntity(entityType.schema, subgraph, format);
 
     /**
      * If we haven't yet created a sheet for this entity type, add it to the map and add its header row(s)
@@ -499,7 +502,7 @@ export const createSheetRequestsFromEntitySubgraph = (
       } else if (key === "label") {
         entityCells.push(
           createCellFromValue({
-            value: generateEntityLabel(entitySubgraph, entity),
+            value: generateEntityLabel(subgraph, entity),
           }),
         );
       } else if (key === "editionCreatedAt") {
@@ -534,15 +537,12 @@ export const createSheetRequestsFromEntitySubgraph = (
              * list the id. It might be excluded from the query due to permissions, archive or draft status.
              */
             const { sheetId, rowIndex } = entityPosition;
-            const linkedEntity = getEntityRevision(
-              entitySubgraph,
-              leftEntityId,
-            );
+            const linkedEntity = getEntityRevision(subgraph, leftEntityId);
 
             /** Create the link from this sheet to the source entity */
             entityCells.push(
               createHyperlinkCell({
-                label: generateEntityLabel(entitySubgraph, linkedEntity),
+                label: generateEntityLabel(subgraph, linkedEntity),
                 sheetId,
                 startCellInclusive: `A${rowIndex + 1}`,
                 endCellInclusive: `${entityPosition.lastColumnLetter}${
@@ -594,14 +594,11 @@ export const createSheetRequestsFromEntitySubgraph = (
           if (humanReadable && entityPosition) {
             const { sheetId, rowIndex } = entityPosition;
 
-            const linkedEntity = getEntityRevision(
-              entitySubgraph,
-              rightEntityId,
-            );
+            const linkedEntity = getEntityRevision(subgraph, rightEntityId);
 
             entityCells.push(
               createHyperlinkCell({
-                label: generateEntityLabel(entitySubgraph, linkedEntity),
+                label: generateEntityLabel(subgraph, linkedEntity),
                 sheetId,
                 startCellInclusive: `A${rowIndex + 1}`,
                 endCellInclusive: `${entityPosition.lastColumnLetter}${

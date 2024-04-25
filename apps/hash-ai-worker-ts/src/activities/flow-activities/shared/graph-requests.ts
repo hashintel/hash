@@ -1,4 +1,8 @@
-import type { GraphApi } from "@local/hash-graph-client";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import type {
+  GraphApi,
+  PropertyPatchOperation,
+} from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -8,10 +12,16 @@ import type {
   AccountId,
   Entity,
   EntityId,
+  EntityPropertiesObject,
   EntityRootType,
 } from "@local/hash-subgraph";
-import { splitEntityId } from "@local/hash-subgraph";
+import {
+  extractDraftIdFromEntityId,
+  splitEntityId,
+} from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
+import isEqual from "lodash.isequal";
+import isMatch from "lodash.ismatch";
 
 /**
  * @todo: move the primitive node helper methods from the Node API into a shared
@@ -84,4 +94,39 @@ export const archiveEntity = async (params: {
     entityId: entity.metadata.recordId.entityId,
     archived: true,
   });
+};
+
+export const getEntityUpdate = <T extends EntityPropertiesObject>({
+  existingEntity,
+  newProperties,
+}: {
+  existingEntity: Entity;
+  newProperties: T;
+}) => {
+  const patchOperations: PropertyPatchOperation[] = [];
+
+  const isExactMatch = isMatch(existingEntity.properties, newProperties);
+
+  if (!isExactMatch) {
+    for (const [key, value] of typedEntries(newProperties)) {
+      // @todo better handle property objects, will currently overwrite the entire object if there are any differences
+      if (!isEqual(existingEntity.properties[key], value)) {
+        patchOperations.push({
+          op: existingEntity.properties[key] ? "replace" : "add",
+          path: [key],
+          value,
+        });
+      }
+    }
+  }
+
+  const existingEntityIsDraft = !!extractDraftIdFromEntityId(
+    existingEntity.metadata.recordId.entityId,
+  );
+
+  return {
+    existingEntityIsDraft,
+    isExactMatch,
+    patchOperations,
+  };
 };
