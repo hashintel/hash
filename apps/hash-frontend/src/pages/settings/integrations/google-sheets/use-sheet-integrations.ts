@@ -1,25 +1,8 @@
 import { useQuery } from "@apollo/client";
 import {
   currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import {
-  blockProtocolEntityTypes,
-  googleEntityTypes,
-  systemEntityTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  AccountProperties as GoogleAccountProperties,
-  GoogleSheetsIntegrationProperties,
-  QueryProperties,
-} from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
-import type { Entity, EntityRootType } from "@local/hash-subgraph";
-import {
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import type {
@@ -27,19 +10,15 @@ import type {
   StructuralQueryEntitiesQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import { structuralQueryEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
-import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 
-export type UseSheetsIntegrationsData = {
-  integrations: (Entity<GoogleSheetsIntegrationProperties> & {
-    account: Entity<GoogleAccountProperties>;
-    query: Entity<QueryProperties>;
-  })[];
+export type UseSheetsFlows = {
+  flows: [];
   loading: boolean;
   refetch: () => void;
 };
 
-export const useSheetsIntegrations = (): UseSheetsIntegrationsData => {
-  const { authenticatedUser } = useAuthenticatedUser();
+export const useSheetsFlows = (): UseSheetsFlows => {
+  // const { authenticatedUser } = useAuthenticatedUser();
 
   const { data, loading, refetch } = useQuery<
     StructuralQueryEntitiesQuery,
@@ -50,17 +29,7 @@ export const useSheetsIntegrations = (): UseSheetsIntegrationsData => {
       query: {
         filter: {
           all: [
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.googleSheetsIntegration.entityTypeId,
-              { ignoreParents: true },
-            ),
-            {
-              equal: [
-                { path: ["ownedById"] },
-                { parameter: authenticatedUser.accountId },
-              ],
-            },
-            { equal: [{ path: ["archived"] }, { parameter: false }] },
+            // @todo query for Sheets-related Flow definitions / runs instead (depending on what this UI becomes)
           ],
         },
         graphResolveDepths: {
@@ -72,68 +41,14 @@ export const useSheetsIntegrations = (): UseSheetsIntegrationsData => {
         includeDrafts: false,
       },
     },
-    skip: !authenticatedUser,
+    // @todo make this !authenticatedUser once re-implemented
+    skip: true,
     fetchPolicy: "network-only",
   });
 
   return useMemo(() => {
-    const subgraph = data
-      ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-          data.structuralQueryEntities.subgraph,
-        )
-      : undefined;
-
-    if (!subgraph) {
-      return {
-        integrations: [],
-        refetch,
-        loading: true,
-      };
-    }
-
-    const integrations = getRoots(
-      subgraph,
-    ) as Entity<GoogleSheetsIntegrationProperties>[];
-
-    const integrationsWithAccounts = integrations.map((integration) => {
-      const linkedEntities = getOutgoingLinkAndTargetEntities(
-        subgraph,
-        integration.metadata.recordId.entityId,
-      );
-
-      const accountEntity = linkedEntities.find(
-        (linkAndTarget) =>
-          linkAndTarget.rightEntity[0]?.metadata.entityTypeId ===
-          googleEntityTypes.account.entityTypeId,
-      )?.rightEntity[0];
-
-      if (!accountEntity) {
-        throw new Error(
-          `Could not find Google account entity for integration with id ${integration.metadata.recordId.entityId}`,
-        );
-      }
-
-      const queryEntity = linkedEntities.find(
-        (linkAndTarget) =>
-          linkAndTarget.rightEntity[0]?.metadata.entityTypeId ===
-          blockProtocolEntityTypes.query.entityTypeId,
-      )?.rightEntity[0];
-
-      if (!queryEntity) {
-        throw new Error(
-          `Could not find query entity for integration with id ${integration.metadata.recordId.entityId}`,
-        );
-      }
-
-      return {
-        ...integration,
-        account: accountEntity as Entity<GoogleAccountProperties>,
-        query: queryEntity as Entity<QueryProperties>,
-      };
-    });
-
     return {
-      integrations: integrationsWithAccounts,
+      flows: [],
       loading,
       refetch,
     };

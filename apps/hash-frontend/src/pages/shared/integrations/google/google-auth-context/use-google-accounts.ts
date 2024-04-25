@@ -16,7 +16,7 @@ import type {
   StructuralQueryEntitiesQueryVariables,
 } from "../../../../../graphql/api-types.gen";
 import { structuralQueryEntitiesQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
-import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
+import { useAuthenticatedUser } from "../../../auth-info-context";
 
 type UseGoogleAccountsResult = {
   accounts: Entity<GoogleAccountProperties>[];

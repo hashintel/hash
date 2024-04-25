@@ -20,7 +20,7 @@ import {
   getEntityTypeAndParentsById,
   getEntityTypeById,
   getPropertyTypeForEntity,
-} from "@local/hash-subgraph/src/stdlib";
+} from "@local/hash-subgraph/stdlib";
 import type { sheets_v4 } from "googleapis";
 
 import type { SheetOutputFormat } from "./shared/config";

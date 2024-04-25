@@ -4,7 +4,6 @@ import type {
   FlowDefinition,
   FlowTrigger,
   OutputDefinition,
-  PayloadKind,
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { OwnedById } from "@local/hash-subgraph";
@@ -16,15 +15,10 @@ import { XMarkRegularIcon } from "../../../shared/icons/x-mark-regular-icon";
 import { Button } from "../../../shared/ui/button";
 import { Modal } from "../../../shared/ui/modal";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
+import { GoogleAuthProvider } from "../../shared/integrations/google/google-auth-context";
 import { ManualTriggerInput } from "./run-flow-modal/manual-trigger-input";
-import type { LocalPayload, LocalPayloadKind } from "./run-flow-modal/types";
-
-type FormState = {
-  [outputName: string]: {
-    outputName: string;
-    payload: LocalPayload;
-  };
-};
+import type { FormState, LocalPayload } from "./run-flow-modal/types";
+import { isSupportedPayloadKind } from "./run-flow-modal/types";
 
 const InputWrapper = ({
   children,
@@ -47,19 +41,6 @@ const InputWrapper = ({
     </Typography>
   </Box>
 );
-
-type UnsupportedPayloadKind = Exclude<PayloadKind, LocalPayloadKind>;
-
-const unsupportedPayloadKinds: UnsupportedPayloadKind[] = [
-  "PersistedEntities",
-  "PersistedEntity",
-  "ProposedEntity",
-  "ProposedEntityWithResolvedLinks",
-  "WebPage",
-];
-
-const isSupportedPayloadKind = (kind: PayloadKind): kind is LocalPayloadKind =>
-  !unsupportedPayloadKinds.includes(kind as UnsupportedPayloadKind);
 
 const generateInitialFormState = (
   outputDefinitions: OutputDefinition[],
@@ -163,9 +144,11 @@ export const RunFlowModal = ({
     runFlow(outputValues);
   };
 
+  console.log({ formState });
+
   return (
     <Modal contentStyle={{ p: { xs: 0, md: 0 } }} open={open} onClose={onClose}>
-      <>
+      <GoogleAuthProvider>
         <Stack
           alignItems="center"
           direction="row"
@@ -223,6 +206,7 @@ export const RunFlowModal = ({
               >
                 <ManualTriggerInput
                   array={outputDef.array}
+                  formState={formState}
                   key={outputDef.name}
                   payload={payload}
                   required={!!outputDef.required}
@@ -251,7 +235,7 @@ export const RunFlowModal = ({
             Run flow
           </Button>
         </Box>
-      </>
+      </GoogleAuthProvider>
     </Modal>
   );
 };

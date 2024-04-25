@@ -172,16 +172,16 @@ export const writeGoogleSheetAction: FlowActionActivity<{
    * This is the first step that might mutate data, by creating a new sheet.
    * Any additional non-mutating checks or actions should occur before it, in case they fail.
    */
-  const newFileName =
+  const newSheetName =
     "newSheetName" in googleSheet ? googleSheet.newSheetName : undefined;
 
   const existingSpreadsheetId =
     "spreadsheetId" in googleSheet ? googleSheet.spreadsheetId : undefined;
 
-  if (!existingSpreadsheetId && !newFileName) {
+  if (!existingSpreadsheetId && !newSheetName) {
     return {
       code: StatusCode.InvalidArgument,
-      message: "Either spreadsheetId or newFileName must be provided.",
+      message: "Either spreadsheetId or newSheetName must be provided.",
       contents: [],
     };
   }
@@ -219,7 +219,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
     }
   } else {
     spreadsheet = await createSpreadsheet({
-      filename: newFileName!,
+      filename: newSheetName!,
       sheetsClient,
     });
   }

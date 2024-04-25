@@ -36,6 +36,18 @@ export const researchTaskFlowDefinition: FlowDefinition = {
         required: true,
       },
       {
+        payloadKind: "GoogleAccountId",
+        name: "Google Account",
+        array: false,
+        required: true,
+      },
+      {
+        payloadKind: "GoogleSheet",
+        name: "Google Sheet",
+        array: false,
+        required: true,
+      },
+      {
         payloadKind: "WebId",
         name: "Create in",
         array: false,
@@ -121,22 +133,67 @@ export const researchTaskFlowDefinition: FlowDefinition = {
         },
       ],
     },
+    {
+      stepId: "4",
+      kind: "action",
+      actionDefinitionId: "writeGoogleSheet",
+      description: "Answer user's question using discovered entities",
+      inputSources: [
+        {
+          inputName:
+            "audience" satisfies InputNameForAction<"writeGoogleSheet">,
+          kind: "hardcoded",
+          payload: {
+            kind: "ActorType",
+            value: "human",
+          },
+        },
+        {
+          inputName:
+            "googleAccountId" satisfies InputNameForAction<"writeGoogleSheet">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "Google Account",
+        },
+        {
+          inputName:
+            "googleSheet" satisfies InputNameForAction<"writeGoogleSheet">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "Google Sheet",
+        },
+        {
+          inputName: "webId" satisfies InputNameForAction<"writeGoogleSheet">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "Create in",
+        },
+        {
+          inputName:
+            "dataToWrite" satisfies InputNameForAction<"writeGoogleSheet">,
+          kind: "step-output",
+          sourceStepId: "2",
+          sourceStepOutputName:
+            "answer" satisfies OutputNameForAction<"answerQuestion">,
+        },
+      ],
+    },
   ],
   outputs: [
-    {
-      stepId: "2",
-      stepOutputName:
-        "persistedEntities" satisfies OutputNameForAction<"persistEntities">,
-      name: "persistedEntities" as const,
-      payloadKind: "PersistedEntities",
-      array: false,
-      required: true,
-    },
     {
       stepId: "3",
       stepOutputName: "answer" satisfies OutputNameForAction<"answerQuestion">,
       payloadKind: "Text",
       name: "answer" as const,
+      array: false,
+      required: true,
+    },
+    {
+      stepId: "4",
+      stepOutputName:
+        "googleSheetEntity" satisfies OutputNameForAction<"writeGoogleSheet">,
+      payloadKind: "Entity",
+      name: "googleSheetEntity" as const,
       array: false,
       required: true,
     },
@@ -336,7 +393,7 @@ export const ftseInvestorsFlowDefinition: FlowDefinition = {
       },
     },
     {
-      stepId: "5",
+      stepId: "4",
       groupId: 3,
       kind: "action",
       actionDefinitionId: "answerQuestion",
@@ -370,7 +427,7 @@ export const ftseInvestorsFlowDefinition: FlowDefinition = {
       required: true,
     },
     {
-      stepId: "5",
+      stepId: "4",
       stepOutputName: "answer" satisfies OutputNameForAction<"answerQuestion">,
       payloadKind: "Text",
       name: "answer" as const,
