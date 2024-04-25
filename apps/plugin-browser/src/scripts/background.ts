@@ -32,7 +32,7 @@ browser.runtime.onInstalled.addListener(({ reason }) => {
   if (reason === "install") {
     // Open the options page when the extension is first installed
     void browser.tabs.create({
-      url: "options.html",
+      fileUrl: "options.html",
     });
   }
 });

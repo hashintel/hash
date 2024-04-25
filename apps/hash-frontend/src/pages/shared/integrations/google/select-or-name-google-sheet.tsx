@@ -58,9 +58,11 @@ export const SelectOrNameGoogleSheet = ({
           onUserChoice={(file) => {
             setAccessToken(null);
 
-            setGoogleSheet({
-              spreadsheetId: file.id,
-            });
+            if (file) {
+              setGoogleSheet({
+                spreadsheetId: file.id,
+              });
+            }
           }}
         />
       )}
@@ -88,7 +90,7 @@ export const SelectOrNameGoogleSheet = ({
             Choose {existingSpreadsheetId ? "a different" : "a"} file
           </Button>
         </Box>
-        <Typography>or</Typography>
+        <Typography variant="smallTextParagraphs">or</Typography>
         <Box>
           <TextField
             value={newSheetName}

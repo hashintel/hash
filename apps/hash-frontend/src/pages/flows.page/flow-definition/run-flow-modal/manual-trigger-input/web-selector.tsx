@@ -12,7 +12,7 @@ import { useMemo } from "react";
 
 import { MenuItem } from "../../../../../shared/ui/menu-item";
 import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
-import { getImageUrlFromEntityProperties } from "../../../../shared/get-image-url-from-properties";
+import { getImageUrlFromEntityProperties } from "../../../../shared/get-file-properties";
 import { inputHeight } from "../shared/dimensions";
 
 const RenderOptionContent = ({

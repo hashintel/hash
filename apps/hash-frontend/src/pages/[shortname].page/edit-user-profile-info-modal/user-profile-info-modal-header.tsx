@@ -24,7 +24,7 @@ import type { ButtonProps } from "../../../shared/ui";
 import { Button } from "../../../shared/ui";
 import { useUpdateProfileAvatar } from "../../[shortname]/shared/use-update-profile-avatar";
 import { useAuthInfo } from "../../shared/auth-info-context";
-import { getImageUrlFromEntityProperties } from "../../shared/get-image-url-from-properties";
+import { getImageUrlFromEntityProperties } from "../../shared/get-file-properties";
 import { leftColumnWidth } from "../util";
 
 const AvatarButton = styled((props: ButtonProps) => (

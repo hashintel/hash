@@ -1,5 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { ActorTypeDataType } from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
+import type { ActorTypeDataType } from "@local/hash-isomorphic-utils/system-types/google/googlesheetsfile";
 import type {
   Entity,
   EntityId,

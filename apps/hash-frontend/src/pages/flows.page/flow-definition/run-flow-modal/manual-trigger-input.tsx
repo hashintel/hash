@@ -1,5 +1,5 @@
 import { TextField } from "@hashintel/design-system";
-import { SxProps, Theme } from "@mui/material";
+import type { SxProps, Theme } from "@mui/material";
 import { Switch } from "@mui/material";
 
 import { EntitySelector } from "../../../shared/entity-selector";
@@ -131,8 +131,6 @@ export const ManualTriggerInput = <Payload extends LocalPayload>({
         (entry) => entry.payload.kind === "GoogleAccountId",
       );
       const googleAccountId = googleAccountInput?.payload.value;
-
-      console.log({ googleAccountInput });
 
       return (
         <SelectOrNameGoogleSheet

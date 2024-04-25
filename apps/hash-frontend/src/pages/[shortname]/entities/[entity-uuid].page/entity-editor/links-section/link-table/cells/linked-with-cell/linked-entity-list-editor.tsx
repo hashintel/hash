@@ -18,7 +18,7 @@ import { Box } from "@mui/material";
 import produce from "immer";
 import { useMemo, useState } from "react";
 
-import { getImageUrlFromEntityProperties } from "../../../../../../../../shared/get-image-url-from-properties";
+import { getImageUrlFromEntityProperties } from "../../../../../../../../shared/get-file-properties";
 import { useMarkLinkEntityToArchive } from "../../../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../../../entity-editor-context";
 import { AddAnotherButton } from "../../../../properties-section/property-table/cells/value-cell/array-editor/add-another-button";

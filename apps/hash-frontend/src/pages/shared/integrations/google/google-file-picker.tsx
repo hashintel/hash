@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 
 type GoogleFilePickerProps = {
   accessToken: string;
-  onUserChoice: (selectedFile: google.picker.DocumentObject) => void;
+  onUserChoice: (selectedFile: google.picker.DocumentObject | null) => void;
 };
 
 export const GoogleFilePicker = ({
@@ -23,6 +23,7 @@ export const GoogleFilePicker = ({
               response.action !== google.picker.Action.PICKED ||
               !response.docs[0]
             ) {
+              onUserChoice(null);
               return;
             }
 
@@ -39,7 +40,7 @@ export const GoogleFilePicker = ({
       async
       defer
       src="https://apis.google.com/js/api.js"
-      onLoad={() => setReady(true)}
+      onReady={() => setReady(true)}
     />
   );
 };

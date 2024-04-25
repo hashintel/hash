@@ -1,8 +1,9 @@
-import { Autocomplete } from "@hashintel/design-system";
+import { Select } from "@hashintel/design-system";
 import { Stack, Typography } from "@mui/material";
 import { useEffect, useMemo, useRef } from "react";
 
 import { Button } from "../../../../shared/ui/button";
+import { MenuItem } from "../../../../shared/ui/menu-item";
 import { useGoogleAuth } from "./google-auth-context";
 
 type GoogleAccountSelectProps = {
@@ -40,10 +41,6 @@ export const GoogleAccountSelect = ({
       }));
   }, [authContext]);
 
-  const value = options.find((option) => option.value === googleAccountId);
-
-  console.log({ googleAccountId, options, value }, options[0] === value);
-
   const lastOptionsLength = useRef(options.length);
   useEffect(() => {
     if (
@@ -62,20 +59,23 @@ export const GoogleAccountSelect = ({
 
   return (
     <Stack direction="row" alignItems="center" gap={2}>
-      <Autocomplete
-        autoFocus={false}
-        autoHighlight={false}
-        disableClearable
-        getOptionLabel={(option) => option.label}
-        isOptionEqualToValue={(option, val) => option.value === val.value}
-        inputHeight={50}
-        multiple={false}
-        onChange={(_event, { value: newValue }) => setGoogleAccountId(newValue)}
-        options={options}
-        sx={{ width: 200 }}
-        value={value}
-      />
-      <Typography>or</Typography>
+      {options.length > 0 ? (
+        <>
+          <Select
+            displayEmpty
+            onChange={(event) => setGoogleAccountId(event.target.value)}
+            placeholder="Select Google Account"
+            value={googleAccountId}
+          >
+            {options.map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </Select>
+          <Typography variant="smallTextParagraphs">or</Typography>
+        </>
+      ) : null}
       <Button
         disabled={authContext.loading}
         onClick={() => {

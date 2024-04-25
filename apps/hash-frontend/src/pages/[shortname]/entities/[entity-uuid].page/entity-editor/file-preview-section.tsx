@@ -26,7 +26,7 @@ import {
 } from "../../../../../shared/file-upload-context";
 import { FileUploadDropzone } from "../../../../settings/shared/file-upload-dropzone";
 import { useAuthInfo } from "../../../../shared/auth-info-context";
-import { getFileUrlFromFileProperties } from "../../../../shared/get-image-url-from-properties";
+import { getFileProperties } from "../../../../shared/get-file-properties";
 import { GrayToBlueIconButton } from "../../../../shared/gray-to-blue-icon-button";
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { useEntityEditor } from "./entity-editor-context";
@@ -164,9 +164,9 @@ export const FilePreviewSection = () => {
 
   const entity = getRoots(entitySubgraph)[0]!;
 
-  const { isImage, url } = getFileUrlFromFileProperties(entity.properties);
+  const { isImage, fileUrl } = getFileProperties(entity.properties);
 
-  if (!url) {
+  if (!fileUrl) {
     return null;
   }
 
@@ -220,7 +220,7 @@ export const FilePreviewSection = () => {
               <Tooltip placement="top" title="Download">
                 <Box
                   component="a"
-                  href={url}
+                  href={fileUrl}
                   target="_blank"
                   rel="nofollow noopener noreferrer"
                 >
@@ -233,7 +233,7 @@ export const FilePreviewSection = () => {
             {isImage ? (
               <ImageWithCheckedBackground
                 alt={alt}
-                src={url}
+                src={fileUrl}
                 sx={{ height: previewHeight }}
               />
             ) : (

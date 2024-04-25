@@ -69,12 +69,6 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/github-account/",
   },
-  googleSheetsIntegration: {
-    entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/google-sheets-integration/v/1",
-    entityTypeBaseUrl:
-      "https://hash.ai/@hash/types/entity-type/google-sheets-integration/",
-  },
   graphChangeNotification: {
     entityTypeId:
       "https://hash.ai/@hash/types/entity-type/graph-change-notification/v/1",

@@ -1,6 +1,6 @@
 import type { sheets_v4 } from "googleapis";
 import type { ParseResult } from "papaparse";
-import { parse } from "papaparse";
+import Papa from "papaparse";
 
 import { createCellFromValue } from "./shared/create-sheet-data";
 
@@ -25,13 +25,15 @@ export const convertCsvToSheetRequests = ({
 }): sheets_v4.Schema$Request[] => {
   let parsedCsv: ParseResult<ParsedCsvRow>;
   try {
-    parsedCsv = parse<ParsedCsvRow>(csvString, {
+    parsedCsv = Papa.parse<ParsedCsvRow>(csvString, {
       dynamicTyping: true,
       header: false,
       skipEmptyLines: "greedy", // ignore empty lines, whitespace counts as empty
     });
-  } catch {
-    throw new Error(`Could not parse csvString content`);
+  } catch (err) {
+    throw new Error(
+      `Could not parse csvString content: ${(err as Error).message}`,
+    );
   }
 
   const data = parsedCsv.data;
@@ -87,13 +89,15 @@ export const convertCsvToSheetRequests = ({
               filter: {
                 range: {
                   sheetId,
-                  startRowIndex: 1,
+                  startRowIndex: 0,
                   endRowIndex: rows.length,
                   startColumnIndex: 0,
                   endColumnIndex: rows[0]?.values?.length ?? 0,
                 },
               },
             },
+          },
+          {
             autoResizeDimensions: {
               dimensions: {
                 sheetId,

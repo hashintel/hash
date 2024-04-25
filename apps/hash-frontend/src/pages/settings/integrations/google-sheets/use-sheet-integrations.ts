@@ -20,7 +20,7 @@ export type UseSheetsFlows = {
 export const useSheetsFlows = (): UseSheetsFlows => {
   // const { authenticatedUser } = useAuthenticatedUser();
 
-  const { data, loading, refetch } = useQuery<
+  const { loading, refetch } = useQuery<
     StructuralQueryEntitiesQuery,
     StructuralQueryEntitiesQueryVariables
   >(structuralQueryEntitiesQuery, {
@@ -52,5 +52,5 @@ export const useSheetsFlows = (): UseSheetsFlows => {
       loading,
       refetch,
     };
-  }, [data, loading, refetch]);
+  }, [loading, refetch]);
 };

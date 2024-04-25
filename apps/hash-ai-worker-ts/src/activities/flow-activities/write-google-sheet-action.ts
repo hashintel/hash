@@ -21,6 +21,7 @@ import type { GoogleSheetsFileProperties } from "@local/hash-isomorphic-utils/sy
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 import type { Entity } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
+import { Context } from "@temporalio/activity";
 import type { sheets_v4 } from "googleapis";
 import { google } from "googleapis";
 
@@ -60,6 +61,10 @@ const createSpreadsheet = async ({
   }
 
   return { ...response.data, spreadsheetId, spreadsheetUrl };
+};
+
+type ActivityHeartbeatDetails = {
+  spreadsheetId?: string;
 };
 
 export const writeGoogleSheetAction: FlowActionActivity<{
@@ -129,10 +134,18 @@ export const writeGoogleSheetAction: FlowActionActivity<{
       };
     }
 
-    sheetRequests = convertCsvToSheetRequests({
-      csvString: dataToWrite.content,
-      format: { audience },
-    });
+    try {
+      sheetRequests = convertCsvToSheetRequests({
+        csvString: dataToWrite.content,
+        format: { audience },
+      });
+    } catch {
+      return {
+        code: StatusCode.InvalidArgument,
+        message: `Invalid CSV content provided.`,
+        contents: [],
+      };
+    }
   } else {
     const queryFilter =
       typeof dataToWrite === "string"
@@ -172,11 +185,22 @@ export const writeGoogleSheetAction: FlowActionActivity<{
    * This is the first step that might mutate data, by creating a new sheet.
    * Any additional non-mutating checks or actions should occur before it, in case they fail.
    */
+
+  /**
+   * If a previous iteration of the activity failed after the spreadsheetId was resolved, we will have saved
+   * it as a heartbeat. This avoids us creating a duplicate spreadsheet when the activity is retried.
+   */
+  const { spreadsheetId: spreadsheetIdFromFailedAttempt } =
+    (Context.current().info.heartbeatDetails as
+      | ActivityHeartbeatDetails
+      | undefined) ?? {};
+
   const newSheetName =
     "newSheetName" in googleSheet ? googleSheet.newSheetName : undefined;
 
   const existingSpreadsheetId =
-    "spreadsheetId" in googleSheet ? googleSheet.spreadsheetId : undefined;
+    spreadsheetIdFromFailedAttempt ??
+    ("spreadsheetId" in googleSheet ? googleSheet.spreadsheetId : undefined);
 
   if (!existingSpreadsheetId && !newSheetName) {
     return {
@@ -222,6 +246,8 @@ export const writeGoogleSheetAction: FlowActionActivity<{
       filename: newSheetName!,
       sheetsClient,
     });
+
+    Context.current().heartbeat({ spreadsheetId: spreadsheet.spreadsheetId });
   }
 
   /**
@@ -267,9 +293,11 @@ export const writeGoogleSheetAction: FlowActionActivity<{
    * 5. Create or update and return the associated Google Sheets entity
    */
   const fileProperties: GoogleSheetsFileProperties = {
+    "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+      spreadsheet.properties?.title ?? "Untitled",
     "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
       spreadsheet.spreadsheetUrl,
-    "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+    "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
       spreadsheet.properties?.title ?? "Untitled",
     "https://hash.ai/@hash/types/property-type/file-id/":
       spreadsheet.spreadsheetId,
@@ -293,7 +321,12 @@ export const writeGoogleSheetAction: FlowActionActivity<{
         },
         {
           equal: [
-            { path: [systemPropertyTypes.fileId.propertyTypeBaseUrl] },
+            {
+              path: [
+                "properties",
+                systemPropertyTypes.fileId.propertyTypeBaseUrl,
+              ],
+            },
             { parameter: spreadsheet.spreadsheetId },
           ],
         },

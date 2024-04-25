@@ -3,7 +3,7 @@ import type { MultiFilter } from "@blockprotocol/graph";
 import { CheckIcon } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { QueryProperties } from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
+import type { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
 import type { OwnedById } from "@local/hash-subgraph";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import type { PropsWithChildren } from "react";
@@ -137,8 +137,6 @@ export const CreateOrEditSheetsSync = ({
   if (authContext.loading) {
     return null;
   }
-
-  const { addGoogleAccount } = authContext;
 
   const submittable =
     !!integrationData.googleAccountId &&

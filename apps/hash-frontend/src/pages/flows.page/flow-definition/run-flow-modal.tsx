@@ -144,10 +144,14 @@ export const RunFlowModal = ({
     runFlow(outputValues);
   };
 
-  console.log({ formState });
-
   return (
-    <Modal contentStyle={{ p: { xs: 0, md: 0 } }} open={open} onClose={onClose}>
+    <Modal
+      hideBackdrop
+      contentStyle={{ p: { xs: 0, md: 0 } }}
+      open={open}
+      onClose={onClose}
+      sx={{ zIndex: 1000 }} // Google File Picker has zIndex 1001, MUI Modal default is 1300
+    >
       <GoogleAuthProvider>
         <Stack
           alignItems="center"
