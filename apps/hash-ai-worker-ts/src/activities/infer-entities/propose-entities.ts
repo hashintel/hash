@@ -466,20 +466,22 @@ export const proposeEntities = async (params: {
           }
 
           const validProposedEntitiesByType = Object.fromEntries(
-            typedEntries(proposedEntitiesByType).map(
-              ([simplifiedEntityTypeId, entities]) => {
-                const entityTypeId =
-                  simplifiedEntityTypeIdMappings[simplifiedEntityTypeId];
+            typedEntries(proposedEntitiesByType).map<
+              [VersionedUrl, ProposedEntity[]]
+            >(([simplifiedEntityTypeId, entities]) => {
+              const entityTypeId =
+                simplifiedEntityTypeIdMappings[simplifiedEntityTypeId];
 
-                if (!entityTypeId) {
-                  throw new Error(
-                    `Could not find entity type id for simplified entity type id ${simplifiedEntityTypeId}`,
-                  );
-                }
+              if (!entityTypeId) {
+                throw new Error(
+                  `Could not find entity type id for simplified entity type id ${simplifiedEntityTypeId}`,
+                );
+              }
 
-                return [
-                  entityTypeId,
-                  entities.filter(
+              return [
+                entityTypeId,
+                entities
+                  .filter(
                     ({ entityId }) =>
                       // Don't include invalid entities
                       !invalidProposedEntities.some(
@@ -494,10 +496,36 @@ export const proposeEntities = async (params: {
                         (existingEntity) =>
                           existingEntity.entityId === entityId,
                       ),
+                  )
+                  .map(
+                    ({
+                      properties: simplifiedProperties,
+                      ...proposedEntity
+                    }) => {
+                      const { simplifiedPropertyTypeMappings } =
+                        entityTypes[entityTypeId] ?? {};
+
+                      if (!simplifiedPropertyTypeMappings) {
+                        throw new Error(
+                          `Could not find simplified property type mappings for entity type id ${entityTypeId}`,
+                        );
+                      }
+
+                      const properties = simplifiedProperties
+                        ? mapSimplifiedPropertiesToProperties({
+                            simplifiedProperties,
+                            simplifiedPropertyTypeMappings,
+                          })
+                        : {};
+
+                      return {
+                        ...proposedEntity,
+                        properties,
+                      };
+                    },
                   ),
-                ];
-              },
-            ),
+              ];
+            }),
           );
 
           const validProposedEntities = Object.values(
@@ -598,50 +626,7 @@ export const proposeEntities = async (params: {
               ...prev,
               [entityTypeId]: [
                 ...(prev[entityTypeId as VersionedUrl] ?? []),
-                ...proposedEntitiesOfType
-                  .filter(
-                    ({ entityId }) =>
-                      // Don't include invalid entities
-                      !invalidProposedEntities.some(
-                        ({
-                          invalidProposedEntity: { entityId: invalidEntityId },
-                        }) => invalidEntityId === entityId,
-                      ) &&
-                      // Ignore entities we've inferred in a previous iteration, otherwise we'll get duplicates
-                      !inferenceState.proposedEntityCreationsByType[
-                        entityTypeId as VersionedUrl
-                      ]?.some(
-                        (existingEntity) =>
-                          existingEntity.entityId === entityId,
-                      ),
-                  )
-                  .map<ProposedEntity>(
-                    ({
-                      properties: simplifiedProperties,
-                      ...proposedEntity
-                    }) => {
-                      const { simplifiedPropertyTypeMappings } =
-                        entityTypes[entityTypeId as VersionedUrl] ?? {};
-
-                      if (!simplifiedPropertyTypeMappings) {
-                        throw new Error(
-                          `Could not find simplified property type mappings for entity type id ${entityTypeId}`,
-                        );
-                      }
-
-                      const properties = simplifiedProperties
-                        ? mapSimplifiedPropertiesToProperties({
-                            simplifiedProperties,
-                            simplifiedPropertyTypeMappings,
-                          })
-                        : {};
-
-                      return {
-                        ...proposedEntity,
-                        properties,
-                      };
-                    },
-                  ),
+                ...proposedEntitiesOfType,
               ],
             };
           }, inferenceState.proposedEntityCreationsByType);
