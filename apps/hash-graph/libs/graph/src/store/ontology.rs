@@ -13,7 +13,7 @@ use graph_types::{
     },
     Embedding,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use temporal_versioning::{Timestamp, TransactionTime};
 use type_system::{
     url::{BaseUrl, VersionedUrl},
@@ -76,9 +76,9 @@ pub struct GetDataTypesParams<'p> {
     pub include_drafts: bool,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[serde(rename_all = "camelCase")]
 pub struct GetDataTypesResponse {
     pub data_types: Vec<DataTypeWithMetadata>,
 }
@@ -281,9 +281,9 @@ pub struct GetPropertyTypesParams<'p> {
     pub include_drafts: bool,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[serde(rename_all = "camelCase")]
 pub struct GetPropertyTypesResponse {
     pub property_types: Vec<PropertyTypeWithMetadata>,
 }
@@ -489,9 +489,9 @@ pub struct GetEntityTypesParams<'p> {
     pub include_drafts: bool,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[serde(rename_all = "camelCase")]
 pub struct GetEntityTypesResponse {
     pub entity_types: Vec<EntityTypeWithMetadata>,
 }
