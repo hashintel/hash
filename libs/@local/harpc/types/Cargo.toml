@@ -1,7 +1,10 @@
+cargo-features = ["edition2024"]
+
 [package]
 name = "harpc-types"
-version = "0.1.0"
-edition = "2021"
+version = "0.0.0"
+edition.workspace = true
+publish = false
 
 [dependencies]
 proptest = { version = "1.4.0", optional = true }

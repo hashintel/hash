@@ -1,5 +1,5 @@
 {
-  "name": "@rust/query-builder-derive",
+  "name": "@rust/harpc-types",
   "version": "0.0.0-private",
   "private": true,
   "dependencies": {},

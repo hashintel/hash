@@ -1,0 +1,12 @@
+{
+  "name": "@rust/harpc-wire-protocol",
+  "version": "0.0.0-private",
+  "private": true,
+  "dependencies": {
+    "@rust/graph-types": "0.0.0-private",
+    "@rust/harpc-types": "0.0.0-private"
+  },
+  "devDependencies": {
+    "@rust/harpc-types": "0.0.0-private"
+  }
+}

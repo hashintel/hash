@@ -1157,6 +1157,7 @@ dependencies = [
  "rand",
  "serde",
  "serde_json",
+ "temporal-client 0.0.0",
  "temporal-versioning",
  "time",
  "tokio",
@@ -1223,7 +1224,7 @@ dependencies = [
 
 [[package]]
 name = "harpc-types"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "proptest",
  "test-strategy",
@@ -1231,7 +1232,7 @@ dependencies = [
 
 [[package]]
 name = "harpc-wire-protocol"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "bytes",
  "enumflags2",
@@ -1299,6 +1300,7 @@ dependencies = [
  "opentelemetry-otlp",
  "opentelemetry_sdk 0.22.1",
  "sentry",
+ "tokio",
  "tracing",
  "tracing-appender",
  "tracing-error",
@@ -1690,9 +1692,9 @@ checksum = "4ec2a862134d2a7d32d7983ddcdd1c4923530833c9f2ea1a44fc5fa473989058"
 
 [[package]]
 name = "libmimalloc-sys"
-version = "0.1.35"
+version = "0.1.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3979b5c37ece694f1f5e51e7ecc871fdb0f517ed04ee45f88d15d6d553cb9664"
+checksum = "81eb4061c0582dedea1cbc7aff2240300dd6982e0239d1c99e65c1dbf4a30ba7"
 dependencies = [
  "cc",
  "libc",
@@ -1753,9 +1755,9 @@ checksum = "523dc4f511e55ab87b694dc30d0f820d60906ef06413f93d4d7a1385599cc149"
 
 [[package]]
 name = "mimalloc"
-version = "0.1.39"
+version = "0.1.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa01922b5ea280a911e323e4d2fd24b7fe5cc4042e0d2cda3c40775cdc4bdc9c"
+checksum = "9f41a2280ded0da56c8cf898babb86e8f10651a34adcfff190ae9a1159c6908d"
 dependencies = [
  "libmimalloc-sys",
 ]
@@ -2423,7 +2425,7 @@ dependencies = [
 
 [[package]]
 name = "query-builder-derive"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "syn 2.0.60",
  "trybuild",
