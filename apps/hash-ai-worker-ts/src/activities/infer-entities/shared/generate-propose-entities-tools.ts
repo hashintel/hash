@@ -68,6 +68,10 @@ export const generateToolLinkFields = (params: {
   },
 });
 
+/**
+ * @todo: consider adding tool call for proposing updates to existing entities
+ * if they are provided.
+ */
 export const generateProposeEntitiesTools = (params: {
   entityTypes: {
     schema: DereferencedEntityType<string>;
