@@ -5,7 +5,6 @@ import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -13,14 +12,12 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import type {
   AccountEntityId,
   AccountId,
   Entity,
   EntityId,
-  EntityRootType,
   EntityUuid,
   OwnedById,
 } from "@local/hash-subgraph";
@@ -28,7 +25,6 @@ import {
   extractAccountId,
   extractEntityUuidFromEntityId,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type {
@@ -44,6 +40,7 @@ import type {
 import { systemAccountId } from "../../system-account";
 import {
   createEntity,
+  getEntities,
   getEntityOutgoingLinks,
   getLatestEntityById,
 } from "../primitive/entity";
@@ -125,9 +122,11 @@ export const getUserById: ImpureGraphFunction<
 export const getUserByShortname: ImpureGraphFunction<
   { shortname: string; includeDrafts?: boolean },
   Promise<User | null>
-> = async ({ graphApi }, { actorId }, params) => {
-  const [userEntity, ...unexpectedEntities] = await graphApi
-    .getEntitySubgraph(actorId, {
+> = async (context, authentication, params) => {
+  const [userEntity, ...unexpectedEntities] = await getEntities(
+    context,
+    authentication,
+    {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
@@ -147,22 +146,14 @@ export const getUserByShortname: ImpureGraphFunction<
           },
         ],
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
       // TODO: Should this be an all-time query? What happens if the user is
       //       archived/deleted, do we want to allow users to replace their
       //       shortname?
       //   see https://linear.app/hash/issue/H-757
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: params.includeDrafts ?? false,
-    })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-        actorId,
-      );
-
-      return getRoots(subgraph);
-    });
+    },
+  );
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
@@ -181,9 +172,11 @@ export const getUserByShortname: ImpureGraphFunction<
 export const getUserByKratosIdentityId: ImpureGraphFunction<
   { kratosIdentityId: string; includeDrafts?: boolean },
   Promise<User | null>
-> = async ({ graphApi }, { actorId }, params) => {
-  const [userEntity, ...unexpectedEntities] = await graphApi
-    .getEntitySubgraph(actorId, {
+> = async (context, authentication, params) => {
+  const [userEntity, ...unexpectedEntities] = await getEntities(
+    context,
+    authentication,
+    {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
@@ -205,19 +198,10 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
           },
         ],
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: params.includeDrafts ?? false,
-    })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-        null,
-        true,
-      );
-
-      return getRoots(subgraph);
-    });
+    },
+  );
 
   if (unexpectedEntities.length > 0) {
     throw new Error(

@@ -1,11 +1,7 @@
 import type { Filter, GraphApi } from "@local/hash-graph-client";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { AccountId, Entity, EntityRootType } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import type { AccountId, Entity } from "@local/hash-subgraph";
 
 export const getEntityByFilter = async ({
   actorId,
@@ -19,20 +15,16 @@ export const getEntityByFilter = async ({
   includeDrafts: boolean;
 }): Promise<Entity | undefined> => {
   const matchedEntities = await graphApiClient
-    .getEntitySubgraph(actorId, {
+    .getEntities(actorId, {
       filter,
-      graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
     })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-        actorId,
-      );
-
-      return getRoots(subgraph);
-    });
+    .then(({ data: response }) =>
+      response.entities.map((entity) =>
+        mapGraphApiEntityToEntity(entity, actorId),
+      ),
+    );
 
   return matchedEntities[0];
 };

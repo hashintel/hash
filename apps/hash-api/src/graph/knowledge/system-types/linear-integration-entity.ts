@@ -11,7 +11,10 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import {
+  mapGraphApiEntityToEntity,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   LinearIntegrationProperties,
   SyncLinearDataWithProperties,
@@ -77,7 +80,7 @@ export const getAllLinearIntegrationsWithLinearOrgId: ImpureGraphFunction<
   const { linearOrgId, includeDrafts = false } = params;
 
   const entities = await graphApi
-    .getEntitySubgraph(actorId, {
+    .getEntities(actorId, {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
@@ -99,18 +102,14 @@ export const getAllLinearIntegrationsWithLinearOrgId: ImpureGraphFunction<
           },
         ],
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
     })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-        null,
-        true,
-      );
-      return getRoots(subgraph);
-    });
+    .then(({ data: response }) =>
+      response.entities.map((entity) =>
+        mapGraphApiEntityToEntity(entity, null, true),
+      ),
+    );
 
   return entities.map((entity) => getLinearIntegrationFromEntity({ entity }));
 };
@@ -124,7 +123,7 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
 > = async ({ graphApi }, { actorId }, params) => {
   const { userAccountId, linearOrgId, includeDrafts = false } = params;
   const entities = await graphApi
-    .getEntitySubgraph(actorId, {
+    .getEntities(actorId, {
       filter: {
         all: [
           {
@@ -149,18 +148,14 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
           },
         ],
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
     })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-        null,
-        true,
-      );
-      return getRoots(subgraph);
-    });
+    .then(({ data: response }) =>
+      response.entities.map((entity) =>
+        mapGraphApiEntityToEntity(entity, null, true),
+      ),
+    );
 
   if (entities.length > 1) {
     throw new Error(
@@ -267,7 +262,7 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
   } = params;
 
   const existingLinkEntities = await context.graphApi
-    .getEntitySubgraph(authentication.actorId, {
+    .getEntities(authentication.actorId, {
       filter: {
         all: [
           {
@@ -297,19 +292,14 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
           },
         ],
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
     })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-        null,
-        true,
-      );
-
-      return getRoots(subgraph);
-    });
+    .then(({ data: response }) =>
+      response.entities.map((entity) =>
+        mapGraphApiEntityToEntity(entity, null, true),
+      ),
+    );
 
   if (existingLinkEntities.length > 1) {
     throw new Error(

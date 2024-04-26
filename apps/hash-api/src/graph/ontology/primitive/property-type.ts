@@ -12,10 +12,7 @@ import type {
   UnarchivePropertyTypeParams,
   UpdatePropertyTypeRequest,
 } from "@local/hash-graph-client";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   mapGraphApiPropertyTypeToPropertyType,
@@ -33,7 +30,6 @@ import type {
   Subgraph,
 } from "@local/hash-subgraph";
 import { ontologyTypeRecordIdToVersionedUrl } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { getWebShortname, isExternalTypeId } from "./util";
@@ -131,17 +127,12 @@ export const getPropertyTypeById: ImpureGraphFunction<
 > = async (context, authentication, params) => {
   const { propertyTypeId } = params;
 
-  const [propertyType] = await getPropertyTypeSubgraph(
-    context,
-    authentication,
-    {
-      filter: {
-        equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
-      },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
+  const [propertyType] = await getPropertyTypes(context, authentication, {
+    filter: {
+      equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
     },
-  ).then(getRoots);
+    temporalAxes: currentTimeInstantTemporalAxes,
+  });
 
   if (!propertyType) {
     throw new NotFoundError(

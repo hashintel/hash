@@ -11,25 +11,21 @@ import {
 } from "@local/hash-backend-utils/file-storage";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
-import {
-  fullDecisionTimeAxis,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { fullDecisionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolPropertyTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { Entity, EntityId, EntityRootType } from "@local/hash-subgraph";
+import type { Entity, EntityId } from "@local/hash-subgraph";
 import { isEntityId, splitEntityId } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { Express } from "express";
 
 import { getActorIdFromRequest } from "../auth/get-actor-id";
 import type { CacheAdapter } from "../cache";
 import type { ImpureGraphContext } from "../graph/context-types";
+import { getEntities } from "../graph/knowledge/primitive/entity";
 import type { AuthenticationContext } from "../graphql/authentication-context";
 import { LOCAL_FILE_UPLOAD_PATH } from "../lib/config";
 import { logger } from "../logger";
@@ -97,50 +93,40 @@ const isFileEntity = (entity: Entity): entity is Entity<FileProperties> =>
   blockProtocolPropertyTypes.fileUrl.propertyTypeBaseUrl in entity.properties;
 
 const getFileEntity = async (
-  { graphApi }: ImpureGraphContext,
-  { actorId }: AuthenticationContext,
+  context: ImpureGraphContext,
+  authentication: AuthenticationContext,
   params: { entityId: EntityId; key: string; includeDrafts?: boolean },
 ) => {
   const { entityId, key, includeDrafts = false } = params;
   const [ownedById, entityUuid] = splitEntityId(entityId);
 
-  const fileEntityRevisions = await graphApi
-    .getEntitySubgraph(actorId, {
-      filter: {
-        all: [
-          {
-            equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
-          },
-          {
-            equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
-          },
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  extractBaseUrl(
-                    systemPropertyTypes.fileStorageKey.propertyTypeId,
-                  ),
-                ],
-              },
-              { parameter: key },
-            ],
-          },
-        ],
-      },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: fullDecisionTimeAxis,
-      includeDrafts,
-    })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-        actorId,
-      );
-
-      return getRoots(subgraph);
-    });
+  const fileEntityRevisions = await getEntities(context, authentication, {
+    filter: {
+      all: [
+        {
+          equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+        },
+        {
+          equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+        },
+        {
+          equal: [
+            {
+              path: [
+                "properties",
+                extractBaseUrl(
+                  systemPropertyTypes.fileStorageKey.propertyTypeId,
+                ),
+              ],
+            },
+            { parameter: key },
+          ],
+        },
+      ],
+    },
+    temporalAxes: fullDecisionTimeAxis,
+    includeDrafts,
+  });
 
   const latestFileEntityRevision = fileEntityRevisions.reduce<
     Entity | undefined

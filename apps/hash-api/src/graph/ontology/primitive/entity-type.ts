@@ -14,10 +14,7 @@ import type {
   UnarchiveEntityTypeParams,
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   mapGraphApiEntityTypeToEntityType,
@@ -42,7 +39,6 @@ import {
   linkEntityTypeUrl,
   ontologyTypeRecordIdToVersionedUrl,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { publicUserAccountId } from "../../../auth/public-user-account-id";
 import type { ImpureGraphFunction } from "../../context-types";
@@ -234,13 +230,12 @@ export const getEntityTypeById: ImpureGraphFunction<
 > = async (context, authentication, params) => {
   const { entityTypeId } = params;
 
-  const [entityType] = await getEntityTypeSubgraph(context, authentication, {
+  const [entityType] = await getEntityTypes(context, authentication, {
     filter: {
       equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
     },
-    graphResolveDepths: zeroedGraphResolveDepths,
     temporalAxes: currentTimeInstantTemporalAxes,
-  }).then(getRoots);
+  });
 
   if (!entityType) {
     throw new NotFoundError(

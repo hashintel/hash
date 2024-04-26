@@ -1,10 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type { GraphApi } from "@local/hash-graph-client";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemPropertyTypes,
@@ -12,16 +9,14 @@ import {
 import { systemTypeWebShortnames } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   mapGraphApiEntityMetadataToMetadata,
-  mapGraphApiSubgraphToSubgraph,
+  mapGraphApiEntityToEntity,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { MachineProperties } from "@local/hash-isomorphic-utils/system-types/machine";
 import type {
   AccountId,
   EntityMetadata,
-  EntityRootType,
   OwnedById,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 export type WebMachineActorIdentifier = `system-${OwnedById}`;
@@ -47,7 +42,7 @@ export const getMachineActorId = async (
   { identifier }: { identifier: MachineActorIdentifier },
 ): Promise<AccountId> => {
   const [machineEntity, ...unexpectedEntities] = await context.graphApi
-    .getEntitySubgraph(authentication.actorId, {
+    .getEntities(authentication.actorId, {
       filter: {
         all: [
           {
@@ -75,18 +70,14 @@ export const getMachineActorId = async (
           },
         ],
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
     })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-        authentication.actorId,
-      );
-
-      return getRoots(subgraph);
-    });
+    .then(({ data: response }) =>
+      response.entities.map((entity) =>
+        mapGraphApiEntityToEntity(entity, authentication.actorId),
+      ),
+    );
 
   if (unexpectedEntities.length > 0) {
     throw new Error(

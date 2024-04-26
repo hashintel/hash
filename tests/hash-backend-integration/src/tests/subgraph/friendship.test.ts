@@ -1,29 +1,35 @@
 import path from "node:path";
 
 import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
-import { getEntitySubgraph } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
+import {
+  getEntities,
+  getEntitySubgraph,
+} from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import {
   archiveDataType,
+  getDataTypes,
   getDataTypeSubgraph,
   unarchiveDataType,
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import {
   archiveEntityType,
   getEntityTypeById,
+  getEntityTypes,
   getEntityTypeSubgraph,
   unarchiveEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import {
   archivePropertyType,
+  getPropertyTypes,
   getPropertyTypeSubgraph,
   unarchivePropertyType,
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
-  GetDataTypeSubgraphRequest,
+  GetDataTypesRequest,
   GetEntitySubgraphRequest,
-  GetEntityTypeSubgraphRequest,
-  GetPropertyTypeSubgraphRequest,
+  GetEntityTypesRequest,
+  GetPropertyTypesRequest,
 } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -155,50 +161,41 @@ beforeAll(async () => {
     entityTypeId: `${friendshipTypeBaseId}v/1`,
   });
 
-  aliceEntities = await getEntitySubgraph(graphContext, authentication, {
+  aliceEntities = await getEntities(graphContext, authentication, {
     filter: aliceFilter,
-    graphResolveDepths: zeroedGraphResolveDepths,
     temporalAxes: fullDecisionTimeAxis,
     includeDrafts: false,
-  })
-    .then(getRoots)
-    .then((entities) =>
-      entities.sort((a, b) =>
-        a.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
-          b.metadata.temporalVersioning.decisionTime.start.limit,
-        ),
+  }).then((entities) =>
+    entities.sort((a, b) =>
+      a.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
+        b.metadata.temporalVersioning.decisionTime.start.limit,
       ),
-    );
+    ),
+  );
 
-  bobEntities = await getEntitySubgraph(graphContext, authentication, {
+  bobEntities = await getEntities(graphContext, authentication, {
     filter: bobFilter,
-    graphResolveDepths: zeroedGraphResolveDepths,
     temporalAxes: fullDecisionTimeAxis,
     includeDrafts: false,
-  })
-    .then(getRoots)
-    .then((entities) =>
-      entities.sort((a, b) =>
-        a.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
-          b.metadata.temporalVersioning.decisionTime.start.limit,
-        ),
+  }).then((entities) =>
+    entities.sort((a, b) =>
+      a.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
+        b.metadata.temporalVersioning.decisionTime.start.limit,
       ),
-    );
+    ),
+  );
 
-  linkEntities = await getEntitySubgraph(graphContext, authentication, {
+  linkEntities = await getEntities(graphContext, authentication, {
     filter: linkFilter,
-    graphResolveDepths: zeroedGraphResolveDepths,
     temporalAxes: fullDecisionTimeAxis,
     includeDrafts: false,
-  })
-    .then(getRoots)
-    .then((entities) =>
-      entities.sort((a, b) =>
-        a.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
-          b.metadata.temporalVersioning.decisionTime.start.limit,
-        ),
+  }).then((entities) =>
+    entities.sort((a, b) =>
+      a.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
+        b.metadata.temporalVersioning.decisionTime.start.limit,
       ),
-    );
+    ),
+  );
 });
 
 afterAll(async () => {
@@ -242,7 +239,7 @@ describe("Ontology queries", () => {
     const dataTypeId: VersionedUrl =
       "http://localhost:3000/@alice/types/data-type/number/v/1";
 
-    const request: GetDataTypeSubgraphRequest = {
+    const request: GetDataTypesRequest = {
       filter: {
         equal: [
           {
@@ -253,20 +250,19 @@ describe("Ontology queries", () => {
           },
         ],
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
     };
 
-    const initialSubgraph = await getDataTypeSubgraph(
+    const initialDataTypes = await getDataTypes(
       graphContext,
       authentication,
       request,
     );
-    expect(initialSubgraph.roots.length).toEqual(1);
+    expect(initialDataTypes.length).toEqual(1);
 
     const actorId =
-      getRoots(initialSubgraph)[0]!.metadata.provenance.edition.createdById;
+      initialDataTypes[0]!.metadata.provenance.edition.createdById;
 
     await archiveDataType(
       graphContext,
@@ -276,12 +272,12 @@ describe("Ontology queries", () => {
       },
     );
 
-    const emptySubgraph = await getDataTypeSubgraph(
+    const emptyDataTypes = await getDataTypes(
       graphContext,
       authentication,
       request,
     );
-    expect(emptySubgraph.roots.length).toEqual(0);
+    expect(emptyDataTypes.length).toEqual(0);
 
     await unarchiveDataType(
       graphContext,
@@ -291,12 +287,12 @@ describe("Ontology queries", () => {
       },
     );
 
-    const nonEmptySubgraph = await getDataTypeSubgraph(
+    const nonEmptyDataTypes = await getDataTypes(
       graphContext,
       authentication,
       request,
     );
-    expect(nonEmptySubgraph.roots.length).toEqual(1);
+    expect(nonEmptyDataTypes.length).toEqual(1);
   });
 
   it.each([
@@ -342,7 +338,7 @@ describe("Ontology queries", () => {
     const propertyTypeId: VersionedUrl =
       "http://localhost:3000/@alice/types/property-type/name/v/1";
 
-    const request: GetPropertyTypeSubgraphRequest = {
+    const request: GetPropertyTypesRequest = {
       filter: {
         equal: [
           {
@@ -353,20 +349,19 @@ describe("Ontology queries", () => {
           },
         ],
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
     };
 
-    const initialSubgraph = await getPropertyTypeSubgraph(
+    const initialPropertyTypes = await getPropertyTypes(
       graphContext,
       authentication,
       request,
     );
-    expect(initialSubgraph.roots.length).toEqual(1);
+    expect(initialPropertyTypes.length).toEqual(1);
 
     const actorId =
-      getRoots(initialSubgraph)[0]!.metadata.provenance.edition.createdById;
+      initialPropertyTypes[0]!.metadata.provenance.edition.createdById;
 
     await archivePropertyType(
       graphContext,
@@ -376,12 +371,12 @@ describe("Ontology queries", () => {
       },
     );
 
-    const emptySubgraph = await getPropertyTypeSubgraph(
+    const emptyPropertyTypes = await getPropertyTypes(
       graphContext,
       authentication,
       request,
     );
-    expect(emptySubgraph.roots.length).toEqual(0);
+    expect(emptyPropertyTypes.length).toEqual(0);
 
     await unarchivePropertyType(
       graphContext,
@@ -391,12 +386,12 @@ describe("Ontology queries", () => {
       },
     );
 
-    const nonEmptySubgraph = await getPropertyTypeSubgraph(
+    const nonEmptyPropertyTypes = await getPropertyTypes(
       graphContext,
       authentication,
       request,
     );
-    expect(nonEmptySubgraph.roots.length).toEqual(1);
+    expect(nonEmptyPropertyTypes.length).toEqual(1);
   });
 
   it.each([
@@ -464,7 +459,7 @@ it("archives/unarchives entity types", async () => {
   const entityTypeId: VersionedUrl =
     "http://localhost:3000/@alice/types/entity-type/person/v/1";
 
-  const request: GetEntityTypeSubgraphRequest = {
+  const request: GetEntityTypesRequest = {
     filter: {
       equal: [
         {
@@ -475,20 +470,19 @@ it("archives/unarchives entity types", async () => {
         },
       ],
     },
-    graphResolveDepths: zeroedGraphResolveDepths,
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts: false,
   };
 
-  const initialSubgraph = await getEntityTypeSubgraph(
+  const initialEntityTypes = await getEntityTypes(
     graphContext,
     authentication,
     request,
   );
-  expect(initialSubgraph.roots.length).toEqual(1);
+  expect(initialEntityTypes.length).toEqual(1);
 
   const actorId =
-    getRoots(initialSubgraph)[0]!.metadata.provenance.edition.createdById;
+    initialEntityTypes[0]!.metadata.provenance.edition.createdById;
 
   await archiveEntityType(
     graphContext,
@@ -498,12 +492,12 @@ it("archives/unarchives entity types", async () => {
     },
   );
 
-  const emptySubgraph = await getEntityTypeSubgraph(
+  const emptyEntityTypes = await getEntityTypes(
     graphContext,
     authentication,
     request,
   );
-  expect(emptySubgraph.roots.length).toEqual(0);
+  expect(emptyEntityTypes.length).toEqual(0);
 
   await unarchiveEntityType(
     graphContext,
@@ -513,12 +507,12 @@ it("archives/unarchives entity types", async () => {
     },
   );
 
-  const nonEmptySubgraph = await getEntityTypeSubgraph(
+  const nonEmptyEntityTypes = await getEntityTypes(
     graphContext,
     authentication,
     request,
   );
-  expect(nonEmptySubgraph.roots.length).toEqual(1);
+  expect(nonEmptyEntityTypes.length).toEqual(1);
 });
 
 describe("Simple queries", () => {

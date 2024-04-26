@@ -30,7 +30,6 @@ import type {
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolDataTypes,
@@ -48,7 +47,6 @@ import {
   generateLinkMapWithConsistentSelfReferences,
   generateTypeBaseUrl,
 } from "@local/hash-isomorphic-utils/ontology-types";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   BaseUrl,
   ConstructDataTypeParams,
@@ -56,7 +54,6 @@ import type {
   DataTypeWithMetadata,
   Entity,
   EntityPropertiesObject,
-  EntityRootType,
   EntityTypeInstantiatorSubject,
   EntityTypeRelationAndSubject,
   EntityTypeWithMetadata,
@@ -65,7 +62,6 @@ import type {
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import {
   componentsFromVersionedUrl,
   extractBaseUrl,
@@ -78,10 +74,7 @@ import {
   CACHED_PROPERTY_TYPE_SCHEMAS,
 } from "../../../seed-data";
 import type { ImpureGraphFunction } from "../../context-types";
-import {
-  getEntitySubgraph,
-  updateEntity,
-} from "../../knowledge/primitive/entity";
+import { getEntities, updateEntity } from "../../knowledge/primitive/entity";
 import {
   createDataType,
   getDataTypeById,
@@ -1144,30 +1137,18 @@ export const upgradeDependenciesInHashEntityType: ImpureGraphFunction<
 export const getEntitiesByType: ImpureGraphFunction<
   { entityTypeId: VersionedUrl },
   Promise<Entity[]>
-> = async (context, authentication, { entityTypeId }) => {
-  return await context.graphApi
-    .getEntitySubgraph(authentication.actorId, {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(entityTypeId, {
-            ignoreParents: true,
-          }),
-        ],
-      },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      includeDrafts: false,
-      temporalAxes: currentTimeInstantTemporalAxes,
-    })
-    .then((resp) =>
-      getRoots(
-        mapGraphApiSubgraphToSubgraph<EntityRootType>(
-          resp.data.subgraph,
-          null,
-          true,
-        ),
-      ),
-    );
-};
+> = async (context, authentication, { entityTypeId }) =>
+  getEntities(context, authentication, {
+    filter: {
+      all: [
+        generateVersionedUrlMatchingFilter(entityTypeId, {
+          ignoreParents: true,
+        }),
+      ],
+    },
+    includeDrafts: false,
+    temporalAxes: currentTimeInstantTemporalAxes,
+  });
 
 export const anyUserInstantiator: EntityTypeInstantiatorSubject = {
   kind: "public",
@@ -1178,7 +1159,7 @@ export const getExistingUsersAndOrgs: ImpureGraphFunction<
   Promise<{ users: Entity[]; orgs: Entity[] }>
 > = async (context, authentication) => {
   const [users, orgs] = await Promise.all([
-    getEntitySubgraph(context, authentication, {
+    getEntities(context, authentication, {
       filter: {
         all: [
           {
@@ -1189,11 +1170,10 @@ export const getExistingUsersAndOrgs: ImpureGraphFunction<
           },
         ],
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
       includeDrafts: false,
       temporalAxes: currentTimeInstantTemporalAxes,
-    }).then((subgraph) => getRoots(subgraph)),
-    getEntitySubgraph(context, authentication, {
+    }),
+    getEntities(context, authentication, {
       filter: {
         all: [
           {
@@ -1204,10 +1184,9 @@ export const getExistingUsersAndOrgs: ImpureGraphFunction<
           },
         ],
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
       includeDrafts: false,
       temporalAxes: currentTimeInstantTemporalAxes,
-    }).then((subgraph) => getRoots(subgraph)),
+    }),
   ]);
 
   return { users, orgs };
@@ -1256,35 +1235,30 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
 
     const webBotAuthentication = { actorId: webBotAccountId };
 
-    const existingEntities = await getEntitySubgraph(
-      context,
-      webBotAuthentication,
-      {
-        filter: {
-          all: [
-            {
-              any: entityTypeBaseUrls.map((baseUrl) => ({
-                equal: [
-                  { path: ["type(inheritanceDepth = 0)", "baseUrl"] },
-                  { parameter: baseUrl },
-                ],
-              })),
-            },
-            {
+    const existingEntities = await getEntities(context, webBotAuthentication, {
+      filter: {
+        all: [
+          {
+            any: entityTypeBaseUrls.map((baseUrl) => ({
               equal: [
-                { path: ["ownedById"] },
-                {
-                  parameter: webOwnedById,
-                },
+                { path: ["type(inheritanceDepth = 0)", "baseUrl"] },
+                { parameter: baseUrl },
               ],
-            },
-          ],
-        },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        includeDrafts: true,
-        temporalAxes: currentTimeInstantTemporalAxes,
+            })),
+          },
+          {
+            equal: [
+              { path: ["ownedById"] },
+              {
+                parameter: webOwnedById,
+              },
+            ],
+          },
+        ],
       },
-    ).then((subgraph) => getRoots(subgraph));
+      includeDrafts: true,
+      temporalAxes: currentTimeInstantTemporalAxes,
+    });
 
     for (const entity of existingEntities) {
       const baseUrl = extractBaseUrl(entity.metadata.entityTypeId);

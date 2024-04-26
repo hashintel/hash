@@ -3,17 +3,15 @@ import { getUserServiceUsage } from "@local/hash-backend-utils/service-usage";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import type { AccountEntityId } from "@local/hash-subgraph";
 import { extractAccountId } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { ForbiddenError } from "apollo-server-express";
 
-import { getEntitySubgraph } from "../../../../graph/knowledge/primitive/entity";
+import { getEntities } from "../../../../graph/knowledge/primitive/entity";
 import type {
   Query,
   ResolverFn,
@@ -39,7 +37,7 @@ export const getUsageRecordsResolver: ResolverFn<
     throw new ForbiddenError("User is not a HASH instance admin");
   }
 
-  const users = await getEntitySubgraph(
+  const users = await getEntities(
     graphQLContextToImpureGraphContext(graphQLContext),
     authentication,
     {
@@ -51,11 +49,10 @@ export const getUsageRecordsResolver: ResolverFn<
           ),
         ],
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
     },
-  ).then((subgraph) => getRoots(subgraph));
+  );
 
   const records: UserUsageRecords[] = [];
   for (const user of users) {
