@@ -1377,7 +1377,8 @@ where
                 has_changed = true;
 
                 let entity_type_id = EntityTypeId::from_url(entity_type_id);
-                authorization_api
+                transaction
+                    .authorization_api
                     .check_entity_type_permission(
                         actor_id,
                         EntityTypePermission::Instantiate,
