@@ -4,7 +4,7 @@ import { NotFoundError } from "@local/hash-backend-utils/error";
 import type {
   ArchiveDataTypeParams,
   DataTypePermission,
-  DataTypeStructuralQuery,
+  GetDataTypeSubgraphRequest,
   ModifyRelationshipOperation,
   OntologyTemporalMetadata,
   ProvidedOntologyEditionProvenance,
@@ -100,16 +100,14 @@ export const createDataType: ImpureGraphFunction<
  * @param params.query the structural query to filter data types by.
  */
 export const getDataTypes: ImpureGraphFunction<
-  {
-    query: Omit<DataTypeStructuralQuery, "includeDrafts">;
-  },
+  Omit<GetDataTypeSubgraphRequest, "includeDrafts">,
   Promise<Subgraph<DataTypeRootType>>
-> = async ({ graphApi }, { actorId }, { query }) => {
+> = async ({ graphApi }, { actorId }, request) => {
   return await graphApi
-    .getDataTypesByQuery(actorId, { includeDrafts: false, ...query })
-    .then(({ data }) => {
+    .getDataTypeSubgraph(actorId, { includeDrafts: false, ...request })
+    .then(({ data: response }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<DataTypeRootType>(
-        data,
+        response.subgraph,
         actorId,
       );
 
@@ -131,13 +129,11 @@ export const getDataTypeById: ImpureGraphFunction<
   const { dataTypeId } = params;
 
   const [dataType] = await getDataTypes(context, authentication, {
-    query: {
-      filter: {
-        equal: [{ path: ["versionedUrl"] }, { parameter: dataTypeId }],
-      },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
+    filter: {
+      equal: [{ path: ["versionedUrl"] }, { parameter: dataTypeId }],
     },
+    graphResolveDepths: zeroedGraphResolveDepths,
+    temporalAxes: currentTimeInstantTemporalAxes,
   }).then(getRoots);
 
   if (!dataType) {
@@ -153,14 +149,14 @@ export const getDataTypeById: ImpureGraphFunction<
  * If the type does not already exist within the Graph, and is an externally-hosted type, this will also load the type into the Graph.
  */
 export const getDataTypeSubgraphById: ImpureGraphFunction<
-  Omit<DataTypeStructuralQuery, "filter" | "includeDrafts"> & {
+  Omit<GetDataTypeSubgraphRequest, "filter" | "includeDrafts"> & {
     dataTypeId: VersionedUrl;
   },
   Promise<Subgraph<DataTypeRootType>>
 > = async (context, authentication, params) => {
   const { graphResolveDepths, temporalAxes, dataTypeId } = params;
 
-  const query: Omit<DataTypeStructuralQuery, "includeDrafts"> = {
+  const request: Omit<GetDataTypeSubgraphRequest, "includeDrafts"> = {
     filter: {
       equal: [{ path: ["versionedUrl"] }, { parameter: dataTypeId }],
     },
@@ -168,18 +164,14 @@ export const getDataTypeSubgraphById: ImpureGraphFunction<
     temporalAxes,
   };
 
-  let subgraph = await getDataTypes(context, authentication, {
-    query,
-  });
+  let subgraph = await getDataTypes(context, authentication, request);
 
   if (subgraph.roots.length === 0 && isExternalTypeId(dataTypeId)) {
     await context.graphApi.loadExternalDataType(authentication.actorId, {
       dataTypeId,
     });
 
-    subgraph = await getDataTypes(context, authentication, {
-      query,
-    });
+    subgraph = await getDataTypes(context, authentication, request);
   }
 
   return subgraph;

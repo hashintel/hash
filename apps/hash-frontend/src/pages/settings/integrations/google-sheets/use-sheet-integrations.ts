@@ -23,10 +23,10 @@ import {
 import { useMemo } from "react";
 
 import type {
-  StructuralQueryEntitiesQuery,
-  StructuralQueryEntitiesQueryVariables,
+  GetEntitySubgraphQuery,
+  GetEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { structuralQueryEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 
 export type UseSheetsIntegrationsData = {
@@ -42,12 +42,12 @@ export const useSheetsIntegrations = (): UseSheetsIntegrationsData => {
   const { authenticatedUser } = useAuthenticatedUser();
 
   const { data, loading, refetch } = useQuery<
-    StructuralQueryEntitiesQuery,
-    StructuralQueryEntitiesQueryVariables
-  >(structuralQueryEntitiesQuery, {
+    GetEntitySubgraphQuery,
+    GetEntitySubgraphQueryVariables
+  >(getEntitySubgraphQuery, {
     variables: {
       includePermissions: false,
-      query: {
+      request: {
         filter: {
           all: [
             generateVersionedUrlMatchingFilter(
@@ -79,7 +79,7 @@ export const useSheetsIntegrations = (): UseSheetsIntegrationsData => {
   return useMemo(() => {
     const subgraph = data
       ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-          data.structuralQueryEntities.subgraph,
+          data.getEntitySubgraph.subgraph,
         )
       : undefined;
 

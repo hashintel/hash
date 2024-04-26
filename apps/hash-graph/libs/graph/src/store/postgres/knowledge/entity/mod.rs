@@ -50,8 +50,9 @@ use crate::{
         crud::{QueryResult, Read, ReadPaginated, Sorting},
         error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
         knowledge::{
-            CreateEntityParams, EntityQuerySorting, EntityValidationType, GetEntityParams,
-            GetEntityResponse, PatchEntityParams, UpdateEntityEmbeddingsParams,
+            CountEntitiesParams, CreateEntityParams, EntityQuerySorting, EntityValidationType,
+            GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams,
+            GetEntitySubgraphResponse, PatchEntityParams, UpdateEntityEmbeddingsParams,
             ValidateEntityError, ValidateEntityParams,
         },
         postgres::{
@@ -66,7 +67,6 @@ use crate::{
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
         identifier::{EntityIdWithInterval, EntityVertexId},
-        query::EntityStructuralQuery,
         temporal_axes::{
             PinnedTemporalAxis, PinnedTemporalAxisUnresolved, QueryTemporalAxes,
             QueryTemporalAxesUnresolved, VariableAxis, VariableTemporalAxis,
@@ -296,6 +296,157 @@ where
             .change_context(DeletionError)?;
 
         Ok(())
+    }
+
+    #[tracing::instrument(level = "info", skip(self, params))]
+    async fn get_entities_impl(
+        &self,
+        actor_id: AccountId,
+        mut params: GetEntitiesParams<'_>,
+        temporal_axes: &QueryTemporalAxes,
+    ) -> Result<(GetEntitiesResponse<'static>, Zookie<'static>), QueryError> {
+        let mut root_entities = Vec::new();
+
+        let (permissions, count) = if params.include_count {
+            let entity_ids = Read::<Entity>::read(
+                self,
+                &params.filter,
+                Some(temporal_axes),
+                params.include_drafts,
+            )
+            .await?
+            .map_ok(|entity| entity.metadata.record_id.entity_id)
+            .try_collect::<Vec<_>>()
+            .await?;
+
+            let (permissions, zookie) = self
+                .authorization_api
+                .check_entities_permission(
+                    actor_id,
+                    EntityPermission::View,
+                    entity_ids.iter().copied(),
+                    Consistency::FullyConsistent,
+                )
+                .await
+                .change_context(QueryError)?;
+
+            let permitted_ids = permissions
+                .into_iter()
+                .filter_map(|(entity_id, has_permission)| has_permission.then_some(entity_id))
+                .collect::<HashSet<_>>();
+
+            let count = entity_ids
+                .into_iter()
+                .filter(|id| permitted_ids.contains(&id.entity_uuid))
+                .count();
+            (Some((permitted_ids, zookie)), Some(count))
+        } else {
+            (None, None)
+        };
+
+        let (latest_zookie, last) = loop {
+            // We query one more than requested to determine if there are more entities to return.
+            let (rows, artifacts) =
+                ReadPaginated::<Entity, EntityQuerySorting>::read_paginated_vec(
+                    self,
+                    &params.filter,
+                    Some(temporal_axes),
+                    &params.sorting,
+                    params.limit,
+                    params.include_drafts,
+                )
+                .await?;
+            let entities = rows
+                .into_iter()
+                .map(|row: Row| (row.decode_record(&artifacts), row))
+                .collect::<Vec<_>>();
+            if let Some(cursor) = entities
+                .last()
+                .map(|(_, row): &(Entity, Row)| row.decode_cursor(&artifacts))
+            {
+                params.sorting.set_cursor(cursor);
+            }
+
+            let num_returned_entities = entities.len();
+
+            let (permitted_ids, zookie) = if let Some((permitted_ids, zookie)) = &permissions {
+                (Cow::Borrowed(permitted_ids), Cow::Borrowed(zookie))
+            } else {
+                // TODO: The subgraph structure differs from the API interface. At the API the
+                //       vertices are stored in a nested `HashMap` and here it's flattened. We need
+                //       to adjust the subgraph anyway so instead of refactoring this now this will
+                //       just copy the ids.
+                //   see https://linear.app/hash/issue/H-297/revisit-subgraph-layout-to-allow-temporal-ontology-types
+                let filtered_ids = entities
+                    .iter()
+                    .map(|(entity, _)| entity.metadata.record_id.entity_id)
+                    .collect::<HashSet<_>>();
+
+                let (permissions, zookie) = self
+                    .authorization_api
+                    .check_entities_permission(
+                        actor_id,
+                        EntityPermission::View,
+                        filtered_ids,
+                        Consistency::FullyConsistent,
+                    )
+                    .await
+                    .change_context(QueryError)?;
+
+                (
+                    Cow::Owned(
+                        permissions
+                            .into_iter()
+                            .filter_map(|(entity_id, has_permission)| {
+                                has_permission.then_some(entity_id)
+                            })
+                            .collect::<HashSet<_>>(),
+                    ),
+                    Cow::Owned(zookie),
+                )
+            };
+
+            root_entities.extend(
+                entities
+                    .into_iter()
+                    .filter(|(entity, _)| {
+                        permitted_ids.contains(&entity.metadata.record_id.entity_id.entity_uuid)
+                    })
+                    .take(params.limit.unwrap_or(usize::MAX) - root_entities.len()),
+            );
+
+            if let Some(limit) = params.limit {
+                if num_returned_entities < limit {
+                    // When the returned entities are less than the requested amount we know
+                    // that there are no more entities to return.
+                    break (zookie, None);
+                }
+                if root_entities.len() == limit {
+                    // The requested limit is reached, so we can stop here.
+                    break (
+                        zookie,
+                        root_entities
+                            .last()
+                            .map(|(_, row)| row.decode_cursor(&artifacts)),
+                    );
+                }
+            } else {
+                // Without a limit all entities are returned.
+                break (zookie, None);
+            }
+        };
+
+        Ok((
+            GetEntitiesResponse {
+                entities: root_entities
+                    .into_iter()
+                    .map(|(entity, _)| entity)
+                    .collect(),
+                cursor: last,
+                count,
+            },
+            latest_zookie.into_owned(),
+        ))
     }
 }
 
@@ -981,150 +1132,52 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
-    async fn get_entity(
+    async fn get_entities(
         &self,
         actor_id: AccountId,
-        mut params: GetEntityParams<'_>,
-    ) -> Result<GetEntityResponse<'static>, QueryError> {
-        let query = &mut params.query;
+        params: GetEntitiesParams<'_>,
+    ) -> Result<GetEntitiesResponse<'static>, QueryError> {
+        let temporal_axes = params.temporal_axes.clone().resolve();
+        self.get_entities_impl(actor_id, params, &temporal_axes)
+            .await
+            .map(|(response, _)| response)
+    }
 
-        let unresolved_temporal_axes = query.temporal_axes.clone();
+    #[tracing::instrument(level = "info", skip(self, params))]
+    async fn get_entity_subgraph(
+        &self,
+        actor_id: AccountId,
+        params: GetEntitySubgraphParams<'_>,
+    ) -> Result<GetEntitySubgraphResponse<'static>, QueryError> {
+        let unresolved_temporal_axes = params.temporal_axes.clone();
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
+
         let time_axis = temporal_axes.variable_time_axis();
 
-        let mut root_entities = Vec::new();
-
-        let (permissions, count) = if params.include_count {
-            let entity_ids = Read::<Entity>::read(
-                self,
-                &query.filter,
-                Some(&temporal_axes),
-                query.include_drafts,
+        let (
+            GetEntitiesResponse {
+                entities: root_entities,
+                cursor,
+                count,
+            },
+            zookie,
+        ) = self
+            .get_entities_impl(
+                actor_id,
+                GetEntitiesParams {
+                    filter: params.filter,
+                    temporal_axes: params.temporal_axes,
+                    sorting: params.sorting,
+                    limit: params.limit,
+                    include_drafts: params.include_drafts,
+                    include_count: false,
+                },
+                &temporal_axes,
             )
-            .await?
-            .map_ok(|entity| entity.metadata.record_id.entity_id)
-            .try_collect::<Vec<_>>()
             .await?;
 
-            let (permissions, zookie) = self
-                .authorization_api
-                .check_entities_permission(
-                    actor_id,
-                    EntityPermission::View,
-                    entity_ids.iter().copied(),
-                    Consistency::FullyConsistent,
-                )
-                .await
-                .change_context(QueryError)?;
-
-            let permitted_ids = permissions
-                .into_iter()
-                .filter_map(|(entity_id, has_permission)| has_permission.then_some(entity_id))
-                .collect::<HashSet<_>>();
-
-            let count = entity_ids
-                .into_iter()
-                .filter(|id| permitted_ids.contains(&id.entity_uuid))
-                .count();
-            (Some((permitted_ids, zookie)), Some(count))
-        } else {
-            (None, None)
-        };
-
-        let (latest_zookie, last) = loop {
-            // We query one more than requested to determine if there are more entities to return.
-            let (rows, artifacts) =
-                ReadPaginated::<Entity, EntityQuerySorting>::read_paginated_vec(
-                    self,
-                    &query.filter,
-                    Some(&temporal_axes),
-                    &params.sorting,
-                    params.limit,
-                    query.include_drafts,
-                )
-                .await?;
-            let entities = rows
-                .into_iter()
-                .map(|row: Row| (row.decode_record(&artifacts), row))
-                .collect::<Vec<_>>();
-            if let Some(cursor) = entities
-                .last()
-                .map(|(_, row): &(Entity, Row)| row.decode_cursor(&artifacts))
-            {
-                params.sorting.set_cursor(cursor);
-            }
-
-            let num_returned_entities = entities.len();
-
-            let (permitted_ids, zookie) = if let Some((permitted_ids, zookie)) = &permissions {
-                (Cow::Borrowed(permitted_ids), Cow::Borrowed(zookie))
-            } else {
-                // TODO: The subgraph structure differs from the API interface. At the API the
-                //       vertices are stored in a nested `HashMap` and here it's flattened. We need
-                //       to adjust the subgraph anyway so instead of refactoring this now this will
-                //       just copy the ids.
-                //   see https://linear.app/hash/issue/H-297/revisit-subgraph-layout-to-allow-temporal-ontology-types
-                let filtered_ids = entities
-                    .iter()
-                    .map(|(entity, _)| entity.metadata.record_id.entity_id)
-                    .collect::<HashSet<_>>();
-
-                let (permissions, zookie) = self
-                    .authorization_api
-                    .check_entities_permission(
-                        actor_id,
-                        EntityPermission::View,
-                        filtered_ids,
-                        Consistency::FullyConsistent,
-                    )
-                    .await
-                    .change_context(QueryError)?;
-
-                (
-                    Cow::Owned(
-                        permissions
-                            .into_iter()
-                            .filter_map(|(entity_id, has_permission)| {
-                                has_permission.then_some(entity_id)
-                            })
-                            .collect::<HashSet<_>>(),
-                    ),
-                    Cow::Owned(zookie),
-                )
-            };
-
-            root_entities.extend(
-                entities
-                    .into_iter()
-                    .filter(|(entity, _)| {
-                        permitted_ids.contains(&entity.metadata.record_id.entity_id.entity_uuid)
-                    })
-                    .take(params.limit.unwrap_or(usize::MAX) - root_entities.len()),
-            );
-
-            if let Some(limit) = params.limit {
-                if num_returned_entities < limit {
-                    // When the returned entities are less than the requested amount we know
-                    // that there are no more entities to return.
-                    break (zookie, None);
-                }
-                if root_entities.len() == limit {
-                    // The requested limit is reached, so we can stop here.
-                    break (
-                        zookie,
-                        root_entities
-                            .last()
-                            .map(|(_, row)| row.decode_cursor(&artifacts)),
-                    );
-                }
-            } else {
-                // Without a limit all entities are returned.
-                break (zookie, None);
-            }
-        };
-
         let mut subgraph = Subgraph::new(
-            query.graph_resolve_depths,
+            params.graph_resolve_depths,
             unresolved_temporal_axes,
             temporal_axes,
         );
@@ -1132,11 +1185,11 @@ where
         subgraph.roots.extend(
             root_entities
                 .iter()
-                .map(|(entity, _)| entity.vertex_id(time_axis).into()),
+                .map(|entity| entity.vertex_id(time_axis).into()),
         );
         subgraph.vertices.entities = root_entities
             .into_iter()
-            .map(|(entity, _)| (entity.vertex_id(time_axis), entity))
+            .map(|entity| (entity.vertex_id(time_axis), entity))
             .collect();
 
         let mut traversal_context = TraversalContext::default();
@@ -1158,18 +1211,18 @@ where
                 .collect(),
             &mut traversal_context,
             actor_id,
-            &latest_zookie,
+            &zookie,
             &mut subgraph,
         )
         .await?;
 
         traversal_context
-            .read_traversed_vertices(self, &mut subgraph, query.include_drafts)
+            .read_traversed_vertices(self, &mut subgraph, params.include_drafts)
             .await?;
 
-        Ok(GetEntityResponse {
+        Ok(GetEntitySubgraphResponse {
             subgraph,
-            cursor: last,
+            cursor,
             count,
         })
     }
@@ -1177,15 +1230,15 @@ where
     async fn count_entities(
         &self,
         actor_id: AccountId,
-        query: EntityStructuralQuery<'_>,
+        params: CountEntitiesParams<'_>,
     ) -> Result<usize, QueryError> {
-        let temporal_axes = query.temporal_axes.resolve();
+        let temporal_axes = params.temporal_axes.resolve();
 
         let entity_ids = Read::<Entity>::read(
             self,
-            &query.filter,
+            &params.filter,
             Some(&temporal_axes),
-            query.include_drafts,
+            params.include_drafts,
         )
         .await?
         .map_ok(|entity| entity.metadata.record_id.entity_id)

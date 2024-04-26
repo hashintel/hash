@@ -30,16 +30,17 @@ use graph::{
     store::{
         error::VersionedUrlAlreadyExists,
         ontology::{
-            ArchivePropertyTypeParams, CreatePropertyTypeParams, GetPropertyTypesParams,
+            ArchivePropertyTypeParams, CreatePropertyTypeParams, GetPropertyTypeSubgraphParams,
             UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams,
             UpdatePropertyTypesParams,
         },
+        query::Filter,
         BaseUrlAlreadyExists, ConflictBehavior, OntologyVersionDoesNotExist, PropertyTypeStore,
         StorePool,
     },
     subgraph::{
-        identifier::PropertyTypeVertexId,
-        query::{PropertyTypeStructuralQuery, StructuralQuery},
+        edges::GraphResolveDepths, identifier::PropertyTypeVertexId,
+        temporal_axes::QueryTemporalAxesUnresolved,
     },
 };
 use graph_types::{
@@ -77,7 +78,7 @@ use crate::rest::{
 
         create_property_type,
         load_external_property_type,
-        get_property_types_by_query,
+        get_property_type_subgraph,
         update_property_type,
         update_property_type_embeddings,
         archive_property_type,
@@ -102,7 +103,8 @@ use crate::rest::{
             UpdatePropertyTypeRequest,
             UpdatePropertyTypeEmbeddingParams,
             PropertyTypeQueryToken,
-            PropertyTypeStructuralQuery,
+            GetPropertyTypeSubgraphRequest,
+            GetPropertyTypeSubgraphResponse,
             ArchivePropertyTypeParams,
             UnarchivePropertyTypeParams,
         )
@@ -145,7 +147,7 @@ impl RoutedResource for PropertyTypeResource {
                             get(check_property_type_permission::<A>),
                         ),
                 )
-                .route("/query", post(get_property_types_by_query::<S, A>))
+                .route("/query", post(get_property_type_subgraph::<S, A>))
                 .route("/load", post(load_external_property_type::<S, A>))
                 .route("/archive", put(archive_property_type::<S, A>))
                 .route("/unarchive", put(unarchive_property_type::<S, A>))
@@ -377,10 +379,26 @@ where
     }
 }
 
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct GetPropertyTypeSubgraphRequest<'q> {
+    #[serde(borrow)]
+    filter: Filter<'q, PropertyTypeWithMetadata>,
+    graph_resolve_depths: GraphResolveDepths,
+    temporal_axes: QueryTemporalAxesUnresolved,
+    include_drafts: bool,
+}
+
+#[derive(Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct GetPropertyTypeSubgraphResponse {
+    subgraph: Subgraph,
+}
+
 #[utoipa::path(
     post,
     path = "/property-types/query",
-    request_body = PropertyTypeStructuralQuery,
+    request_body = GetPropertyTypeSubgraphRequest,
     tag = "PropertyType",
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -389,7 +407,7 @@ where
         (
             status = 200,
             content_type = "application/json",
-            body = Subgraph,
+            body = GetPropertyTypeSubgraphResponse,
             description = "A subgraph rooted at property types that satisfy the given query, each resolved to the requested depth.",
             headers(
                 ("Link" = String, description = "The link to be used to query the next page of property types"),
@@ -401,16 +419,16 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, query))]
-async fn get_property_types_by_query<S, A>(
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, request))]
+async fn get_property_type_subgraph<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Query(pagination): Query<Pagination<PropertyTypeVertexId>>,
     OriginalUri(uri): OriginalUri,
-    Json(query): Json<serde_json::Value>,
-) -> Result<(HeaderMap, Json<Subgraph>), Response>
+    Json(request): Json<serde_json::Value>,
+) -> Result<(HeaderMap, Json<GetPropertyTypeSubgraphResponse>), Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -425,29 +443,38 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let mut query = StructuralQuery::deserialize(&query).map_err(report_to_response)?;
-    query
+    let mut request =
+        GetPropertyTypeSubgraphRequest::deserialize(&request).map_err(report_to_response)?;
+    request
         .filter
         .convert_parameters()
         .map_err(report_to_response)?;
-    let subgraph = store
-        .get_property_type(
+    let response = store
+        .get_property_type_subgraph(
             actor_id,
-            GetPropertyTypesParams {
-                query,
+            GetPropertyTypeSubgraphParams {
+                filter: request.filter,
+                graph_resolve_depths: request.graph_resolve_depths,
+                temporal_axes: request.temporal_axes,
                 after: pagination.after.map(|cursor| cursor.0),
                 limit: pagination.limit,
+                include_drafts: request.include_drafts,
             },
         )
         .await
         .map_err(report_to_response)?;
 
-    let cursor = subgraph.roots.iter().last().map(Cursor);
+    let cursor = response.subgraph.roots.iter().last().map(Cursor);
     let mut headers = HeaderMap::new();
     if let (Some(cursor), Some(limit)) = (cursor, pagination.limit) {
         headers.insert(LINK, cursor.link_header("next", uri, limit)?);
     }
-    Ok((headers, Json(Subgraph::from(subgraph))))
+    Ok((
+        headers,
+        Json(GetPropertyTypeSubgraphResponse {
+            subgraph: Subgraph::from(response.subgraph),
+        }),
+    ))
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]

@@ -5,7 +5,7 @@ import {
 } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
-import { structuralQueryEntitiesQuery } from "../../../graphql/queries/knowledge/entity.queries";
+import { getEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import { getBlockCollectionContentsStructuralQueryVariables } from "../../../pages/shared/block-collection-contents";
 import { getAccountPagesVariables } from "../../../shared/account-pages-variables";
 
@@ -21,7 +21,7 @@ export const useGetPageRefetchQueries = () =>
   useCallback(
     (pageEntityId: EntityId) => [
       {
-        query: structuralQueryEntitiesQuery,
+        query: getEntitySubgraphQuery,
         variables: getAccountPagesVariables({
           ownedById: extractOwnedByIdFromEntityId(pageEntityId),
           // Breadcrumbs use the archived query (since they may be archived)
@@ -29,14 +29,14 @@ export const useGetPageRefetchQueries = () =>
         }),
       },
       {
-        query: structuralQueryEntitiesQuery,
+        query: getEntitySubgraphQuery,
         variables: getAccountPagesVariables({
           // The page sidebar does not include archived pages
           ownedById: extractOwnedByIdFromEntityId(pageEntityId),
         }),
       },
       {
-        query: structuralQueryEntitiesQuery,
+        query: getEntitySubgraphQuery,
         variables: getBlockCollectionContentsStructuralQueryVariables(
           extractEntityUuidFromEntityId(pageEntityId),
         ),

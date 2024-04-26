@@ -84,24 +84,22 @@ export const queryEntityTypesResolver: ResolverFn<
   };
 
   const subgraph = await getEntityTypes({ graphApi }, authentication, {
-    query: {
-      filter: latestOnly
-        ? filter
-          ? { all: [filter, latestOnlyFilter] }
-          : latestOnlyFilter
-        : { all: [] },
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        constrainsValuesOn,
-        constrainsPropertiesOn,
-        constrainsLinksOn,
-        constrainsLinkDestinationsOn,
-        inheritsFrom,
-      },
-      temporalAxes: includeArchived
-        ? fullTransactionTimeAxis
-        : currentTimeInstantTemporalAxes,
+    filter: latestOnly
+      ? filter
+        ? { all: [filter, latestOnlyFilter] }
+        : latestOnlyFilter
+      : { all: [] },
+    graphResolveDepths: {
+      ...zeroedGraphResolveDepths,
+      constrainsValuesOn,
+      constrainsPropertiesOn,
+      constrainsLinksOn,
+      constrainsLinkDestinationsOn,
+      inheritsFrom,
     },
+    temporalAxes: includeArchived
+      ? fullTransactionTimeAxis
+      : currentTimeInstantTemporalAxes,
     temporalClient: temporal,
   });
 
