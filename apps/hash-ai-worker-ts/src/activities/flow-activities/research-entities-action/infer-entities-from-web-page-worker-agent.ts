@@ -713,7 +713,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                   ${
                     invalidEntityTypeIds.length > 0
                       ? dedent(`
-                        You provided invalid entity type IDs which don't correspond to the entity types
+                        You provided invalid entityTypeIds which don't correspond to the entity types
                         which were initially provided: ${JSON.stringify(invalidEntityTypeIds)}
 
                         The possible entity types you can submit are: ${JSON.stringify(
@@ -725,7 +725,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                   ${
                     invalidLinkEntityTypeIds.length > 0
                       ? dedent(`
-                        You provided invalid link entity type IDs which don't correspond to the link entity types
+                        You provided invalid linkEntityTypeIds which don't correspond to the link entity types
                         which were initially provided: ${JSON.stringify(invalidLinkEntityTypeIds)}
 
                         The possible link entity types you can submit are: ${JSON.stringify(
