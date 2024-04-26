@@ -37,7 +37,7 @@ impl Decode for ResponseFrame {
 #[cfg(test)]
 mod test {
     use crate::{
-        codec::test::{assert_decode, assert_encode, assert_encode_decode},
+        codec::test::{assert_codec, assert_decode, assert_encode},
         payload::Payload,
         response::frame::ResponseFrame,
     };
@@ -75,6 +75,6 @@ mod test {
 
     #[test_strategy::proptest(async = "tokio")]
     async fn codec(frame: ResponseFrame) {
-        assert_encode_decode(&frame, ()).await;
+        assert_codec(&frame, ()).await;
     }
 }

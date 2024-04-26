@@ -88,7 +88,7 @@ impl Decode for ResponseBody {
 #[cfg(test)]
 mod test {
     use crate::{
-        codec::test::{assert_decode, assert_encode, assert_encode_decode},
+        codec::test::{assert_codec, assert_decode, assert_encode},
         encoding::Encoding,
         payload::Payload,
         response::{
@@ -170,6 +170,6 @@ mod test {
             variant: ResponseVariant::from(&body),
         };
 
-        assert_encode_decode(&body, context).await;
+        assert_codec(&body, context).await;
     }
 }

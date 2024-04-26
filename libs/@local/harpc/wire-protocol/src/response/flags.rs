@@ -80,7 +80,7 @@ impl Decode for ResponseFlags {
 mod test {
     use super::ResponseFlags;
     use crate::{
-        codec::test::{assert_decode, assert_encode, assert_encode_decode},
+        codec::test::{assert_codec, assert_decode, assert_encode},
         request::flags::{RequestFlag, RequestFlags},
     };
 
@@ -100,6 +100,6 @@ mod test {
 
     #[test_strategy::proptest(async = "tokio")]
     async fn codec(flags: ResponseFlags) {
-        assert_encode_decode(&flags, ()).await;
+        assert_codec(&flags, ()).await;
     }
 }

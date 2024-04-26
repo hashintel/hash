@@ -101,7 +101,7 @@ pub(crate) mod test {
     }
 
     #[track_caller]
-    pub(crate) async fn assert_encode_decode<T>(value: &T, context: T::Context)
+    pub(crate) async fn assert_codec<T>(value: &T, context: T::Context)
     where
         T: Debug + PartialEq + Decode + Encode,
     {

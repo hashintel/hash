@@ -7,7 +7,6 @@ use tokio::{
 use super::kind::ResponseKind;
 use crate::{
     codec::{Decode, Encode},
-    encoding::Encoding,
     payload::Payload,
     request::codec::{DecodeError, EncodeError},
 };
@@ -16,7 +15,6 @@ use crate::{
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub struct ResponseBegin {
     pub kind: ResponseKind,
-    pub encoding: Encoding,
 
     pub payload: Payload,
 }
@@ -25,12 +23,9 @@ impl Encode for ResponseBegin {
     type Error = EncodeError;
 
     async fn encode(&self, mut write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        self.kind
-            .encode(&mut write)
-            .await
-            .change_context(EncodeError)?;
+        pin!(write);
 
-        self.encoding
+        self.kind
             .encode(&mut write)
             .await
             .change_context(EncodeError)?;
@@ -50,26 +45,18 @@ impl Decode for ResponseBegin {
             .await
             .change_context(DecodeError)?;
 
-        let encoding = Encoding::decode(&mut read, ())
-            .await
-            .change_context(DecodeError)?;
-
         let payload = Payload::decode(read, ())
             .await
             .change_context(DecodeError)?;
 
-        Ok(Self {
-            kind,
-            encoding,
-            payload,
-        })
+        Ok(Self { kind, payload })
     }
 }
 
 #[cfg(test)]
 mod test {
     use crate::{
-        codec::test::{assert_decode, assert_encode, assert_encode_decode},
+        codec::test::{assert_codec, assert_decode, assert_encode},
         encoding::Encoding,
         payload::Payload,
         response::{begin::ResponseBegin, kind::ResponseKind},
@@ -79,7 +66,6 @@ mod test {
     async fn encode() {
         let frame = ResponseBegin {
             kind: ResponseKind::Ok,
-            encoding: Encoding::Raw,
             payload: Payload::new(b"hello world" as &[_]),
         };
 
@@ -98,7 +84,7 @@ mod test {
     async fn decode() {
         let frame = ResponseBegin {
             kind: ResponseKind::Ok,
-            encoding: Encoding::Raw,
+
             payload: Payload::new(b"hello world" as &[_]),
         };
 
@@ -116,6 +102,6 @@ mod test {
 
     #[test_strategy::proptest(async = "tokio")]
     async fn codec(frame: ResponseBegin) {
-        assert_encode_decode(&frame, ()).await;
+        assert_codec(&frame, ()).await;
     }
 }

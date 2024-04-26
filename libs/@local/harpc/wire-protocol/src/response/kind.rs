@@ -72,7 +72,7 @@ mod test {
 
     use crate::{
         codec::{
-            test::{assert_decode, assert_encode, assert_encode_decode},
+            test::{assert_codec, assert_decode, assert_encode},
             DecodePure,
         },
         response::kind::{ResponseKind, ResponseKindDecodeError},
@@ -103,6 +103,6 @@ mod test {
 
     #[test_strategy::proptest(async = "tokio")]
     async fn codec(kind: ResponseKind) {
-        assert_encode_decode(&kind, ()).await;
+        assert_codec(&kind, ()).await;
     }
 }

@@ -99,7 +99,7 @@ mod test {
 
     use super::{RequestBody, RequestBodyContext};
     use crate::{
-        codec::test::{assert_decode, assert_encode, assert_encode_decode, encode_value},
+        codec::test::{assert_codec, assert_decode, assert_encode, encode_value},
         encoding::{AcceptEncoding, Encoding},
         payload::Payload,
         request::{
@@ -173,6 +173,6 @@ mod test {
             variant: (&body).into(),
         };
 
-        assert_encode_decode(&body, context).await;
+        assert_codec(&body, context).await;
     }
 }

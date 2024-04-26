@@ -3,7 +3,6 @@ use tokio::{io::AsyncWrite, pin};
 
 use super::{
     codec::{DecodeError, EncodeError},
-    encoding::EncodingHeader,
     procedure::ProcedureDescriptor,
     service::ServiceDescriptor,
 };
@@ -17,8 +16,6 @@ use crate::{
 pub struct RequestBegin {
     pub service: ServiceDescriptor,
     pub procedure: ProcedureDescriptor,
-
-    pub encoding: EncodingHeader,
 
     pub payload: Payload,
 }
@@ -35,11 +32,6 @@ impl Encode for RequestBegin {
             .change_context(EncodeError)?;
 
         self.procedure
-            .encode(&mut write)
-            .await
-            .change_context(EncodeError)?;
-
-        self.encoding
             .encode(&mut write)
             .await
             .change_context(EncodeError)?;
@@ -65,8 +57,6 @@ impl Decode for RequestBegin {
             .await
             .change_context(DecodeError)?;
 
-        let encoding = EncodingHeader::decode(&mut read, ()).await?;
-
         let payload = Payload::decode(read, ())
             .await
             .change_context(DecodeError)?;
@@ -74,7 +64,6 @@ impl Decode for RequestBegin {
         Ok(Self {
             service,
             procedure,
-            encoding,
             payload,
         })
     }
@@ -94,7 +83,7 @@ mod test {
 
     use crate::{
         codec::{
-            test::{assert_decode, assert_encode, assert_encode_decode, decode_value},
+            test::{assert_codec, assert_decode, assert_encode, decode_value},
             Decode,
         },
         encoding::{AcceptEncoding, Encoding},
@@ -120,13 +109,6 @@ mod test {
         },
         procedure: ProcedureDescriptor {
             id: ProcedureId::new(0x78),
-        },
-        encoding: EncodingHeader {
-            encoding: Encoding::Raw,
-            accept: AcceptEncoding::from_flags(BitFlags::<Encoding, u16>::from_bits_truncate_c(
-                Encoding::Raw as u16,
-                BitFlags::CONST_TOKEN,
-            )),
         },
         payload: Payload::from_static(&[0x90, 0xAB, 0xCD]),
     };
@@ -156,18 +138,11 @@ mod test {
             0x00, 0x03, 0x90, 0xAB, 0xCD, // payload
         ];
 
-        assert_decode(
-            bytes,
-            &EXAMPLE_REQUEST,
-            RequestBeginContext {
-                contains_authorization: true,
-            },
-        )
-        .await;
+        assert_decode(bytes, &EXAMPLE_REQUEST, ()).await;
     }
 
     #[test_strategy::proptest(async = "tokio")]
-    async fn encode_decode(request: RequestBegin) {
-        assert_encode_decode(&request, ()).await;
+    async fn codec(request: RequestBegin) {
+        assert_codec(&request, ()).await;
     }
 }

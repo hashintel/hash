@@ -15,7 +15,6 @@ use crate::codec::{Decode, Encode};
 pub mod begin;
 pub mod body;
 pub mod codec;
-pub mod encoding;
 pub mod flags;
 pub mod frame;
 pub mod header;
@@ -137,7 +136,7 @@ mod test {
 
     use super::id::test::mock_request_id;
     use crate::{
-        codec::test::{assert_decode, assert_encode, assert_encode_decode},
+        codec::test::{assert_codec, assert_decode, assert_encode},
         encoding::{AcceptEncoding, Encoding},
         flags::BitFlagsOp,
         payload::Payload,
@@ -329,6 +328,6 @@ mod test {
             ..request
         };
 
-        assert_encode_decode(&request, ()).await;
+        assert_codec(&request, ()).await;
     }
 }

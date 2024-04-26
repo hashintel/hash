@@ -1,11 +1,7 @@
 use std::io;
 
 use error_stack::{Report, Result};
-use harpc_types::{
-    procedure::ProcedureId,
-    service::{ServiceId, ServiceVersion},
-    version::Version,
-};
+use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
 use tokio::{
     io::{AsyncRead, AsyncWrite, AsyncWriteExt},
     pin,
@@ -72,23 +68,6 @@ impl Decode for ServiceId {
     }
 }
 
-impl Encode for ServiceVersion {
-    type Error = io::Error;
-
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        self.value().encode(write).await
-    }
-}
-
-impl Decode for ServiceVersion {
-    type Context = ();
-    type Error = io::Error;
-
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        Version::decode(read, ()).await.map(From::from)
-    }
-}
-
 #[cfg(test)]
 mod test {
 
@@ -97,7 +76,7 @@ mod test {
         version::Version,
     };
 
-    use crate::codec::test::{assert_decode, assert_encode, assert_encode_decode};
+    use crate::codec::test::{assert_codec, assert_decode, assert_encode};
 
     #[tokio::test]
     async fn encode_version() {
@@ -136,16 +115,16 @@ mod test {
 
     #[test_strategy::proptest(async = "tokio")]
     async fn codec_service_id(id: ServiceId) {
-        assert_encode_decode(&id, ()).await;
+        assert_codec(&id, ()).await;
     }
 
     #[test_strategy::proptest(async = "tokio")]
     async fn codec_service_version(version: ServiceVersion) {
-        assert_encode_decode(&version, ()).await;
+        assert_codec(&version, ()).await;
     }
 
     #[test_strategy::proptest(async = "tokio")]
     async fn codec_version(version: Version) {
-        assert_encode_decode(&version, ()).await;
+        assert_codec(&version, ()).await;
     }
 }

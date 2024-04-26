@@ -13,13 +13,13 @@ pub(crate) mod test {
     use uuid::Builder;
 
     pub(crate) use super::{
-        decode::test::{assert_decode, assert_encode_decode, decode_value},
+        decode::test::{assert_codec, assert_decode, decode_value},
         encode::test::{assert_encode, encode_value},
     };
 
     #[test_strategy::proptest(async = "tokio")]
     async fn codec_u16(value: u16) {
-        assert_encode_decode(&value, ()).await;
+        assert_codec(&value, ()).await;
     }
 
     fn uuid_strategy() -> impl Strategy<Value = uuid::Uuid> {
@@ -28,7 +28,7 @@ pub(crate) mod test {
 
     #[test_strategy::proptest(async = "tokio")]
     async fn codec_uuid(#[strategy(uuid_strategy())] value: uuid::Uuid) {
-        assert_encode_decode(&value, ()).await;
+        assert_codec(&value, ()).await;
     }
 
     pub(crate) fn account_id_strategy() -> impl Strategy<Value = graph_types::account::AccountId> {
@@ -37,7 +37,7 @@ pub(crate) mod test {
 
     #[test_strategy::proptest(async = "tokio")]
     async fn codec_account_id(#[strategy(account_id_strategy())] value: AccountId) {
-        assert_encode_decode(&value, ()).await;
+        assert_codec(&value, ()).await;
     }
 
     // 1024 ensures that we spill over into the second length byte while still having a good
@@ -46,6 +46,6 @@ pub(crate) mod test {
     async fn codec_bytes(#[any(size_range(0..1024).lift())] payload: Vec<u8>) {
         let buffer = Bytes::from(payload);
 
-        assert_encode_decode(&buffer, ()).await;
+        assert_codec(&buffer, ()).await;
     }
 }

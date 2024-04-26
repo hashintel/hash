@@ -73,7 +73,7 @@ impl Default for RequestIdProducer {
 pub(crate) mod test {
     use super::RequestIdProducer;
     use crate::{
-        codec::test::{assert_decode, assert_encode, assert_encode_decode},
+        codec::test::{assert_codec, assert_decode, assert_encode},
         request::id::RequestId,
     };
 
@@ -118,6 +118,6 @@ pub(crate) mod test {
 
     #[test_strategy::proptest(async = "tokio")]
     async fn encode_decode_id(id: RequestId) {
-        assert_encode_decode(&id, ()).await;
+        assert_codec(&id, ()).await;
     }
 }

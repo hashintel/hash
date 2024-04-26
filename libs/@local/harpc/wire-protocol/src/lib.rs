@@ -13,7 +13,6 @@
 #![feature(lint_reasons, associated_type_defaults)]
 
 pub mod codec;
-pub mod encoding;
 pub mod flags;
 pub mod payload;
 pub mod protocol;

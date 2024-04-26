@@ -21,35 +21,3 @@ impl ServiceId {
         self.0 & 0xF000 == 0xF000
     }
 }
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[cfg_attr(feature = "proptest", derive(test_strategy::Arbitrary))]
-pub struct ServiceVersion(Version);
-
-impl ServiceVersion {
-    #[must_use]
-    pub const fn new(major: u8, minor: u8) -> Self {
-        Self(Version { major, minor })
-    }
-
-    #[must_use]
-    pub const fn value(self) -> Version {
-        self.0
-    }
-
-    #[must_use]
-    pub const fn major(self) -> u8 {
-        self.0.major
-    }
-
-    #[must_use]
-    pub const fn minor(self) -> u8 {
-        self.0.minor
-    }
-}
-
-impl From<Version> for ServiceVersion {
-    fn from(version: Version) -> Self {
-        Self(version)
-    }
-}

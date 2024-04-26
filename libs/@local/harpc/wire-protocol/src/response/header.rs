@@ -71,7 +71,7 @@ impl Decode for ResponseHeader {
 #[cfg(test)]
 mod test {
     use crate::{
-        codec::test::{assert_decode, assert_encode, assert_encode_decode},
+        codec::test::{assert_codec, assert_decode, assert_encode},
         flags::BitFlagsOp,
         protocol::{Protocol, ProtocolVersion},
         request::id::test::mock_request_id,
@@ -127,6 +127,6 @@ mod test {
 
     #[test_strategy::proptest(async = "tokio")]
     async fn codec(header: ResponseHeader) {
-        assert_encode_decode(&header, ()).await;
+        assert_codec(&header, ()).await;
     }
 }

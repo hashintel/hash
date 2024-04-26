@@ -1,7 +1,10 @@
 use std::io;
 
 use error_stack::Result;
-use harpc_types::service::{ServiceId, ServiceVersion};
+use harpc_types::{
+    service::{ServiceId, ServiceVersion},
+    version::Version,
+};
 use tokio::{
     io::{AsyncRead, AsyncWrite},
     pin,
@@ -13,7 +16,7 @@ use crate::codec::{Decode, Encode};
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub struct ServiceDescriptor {
     pub id: ServiceId,
-    pub version: ServiceVersion,
+    pub version: Version,
 }
 
 impl Encode for ServiceDescriptor {
@@ -46,7 +49,7 @@ mod test {
     use harpc_types::service::{ServiceId, ServiceVersion};
 
     use crate::{
-        codec::test::{assert_decode, assert_encode, assert_encode_decode},
+        codec::test::{assert_codec, assert_decode, assert_encode},
         request::service::ServiceDescriptor,
     };
 
@@ -72,6 +75,6 @@ mod test {
 
     #[test_strategy::proptest(async = "tokio")]
     async fn encode_decode(service: ServiceDescriptor) {
-        assert_encode_decode(&service, ()).await;
+        assert_codec(&service, ()).await;
     }
 }

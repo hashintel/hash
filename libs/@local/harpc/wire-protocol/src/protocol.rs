@@ -94,7 +94,7 @@ impl Decode for Protocol {
 #[cfg(test)]
 mod test {
     use crate::{
-        codec::test::{assert_decode, assert_encode, assert_encode_decode},
+        codec::test::{assert_codec, assert_decode, assert_encode},
         protocol::ProtocolVersion,
     };
 
@@ -133,11 +133,11 @@ mod test {
 
     #[test_strategy::proptest(async = "tokio")]
     async fn codec_version(version: ProtocolVersion) {
-        assert_encode_decode(&version, ()).await;
+        assert_codec(&version, ()).await;
     }
 
     #[test_strategy::proptest(async = "tokio")]
     async fn codec_protocol(protocol: crate::protocol::Protocol) {
-        assert_encode_decode(&protocol, ()).await;
+        assert_codec(&protocol, ()).await;
     }
 }

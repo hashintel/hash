@@ -123,7 +123,7 @@ impl Decode for Response {
 mod test {
     use super::{flags::ResponseFlags, header::ResponseHeader};
     use crate::{
-        codec::test::{assert_decode, assert_encode, assert_encode_decode},
+        codec::test::{assert_codec, assert_decode, assert_encode},
         encoding::Encoding,
         flags::BitFlagsOp,
         payload::Payload,
@@ -274,6 +274,6 @@ mod test {
             ..response
         };
 
-        assert_encode_decode(&response, ()).await;
+        assert_codec(&response, ()).await;
     }
 }

@@ -59,7 +59,7 @@ mod test {
     use bytes::Bytes;
 
     use crate::{
-        codec::test::{assert_decode, assert_encode, assert_encode_decode},
+        codec::test::{assert_codec, assert_decode, assert_encode},
         payload::Payload,
     };
 
@@ -92,6 +92,6 @@ mod test {
 
     #[test_strategy::proptest(async = "tokio")]
     async fn encode_decode(payload: Payload) {
-        assert_encode_decode(&payload, ()).await;
+        assert_codec(&payload, ()).await;
     }
 }
