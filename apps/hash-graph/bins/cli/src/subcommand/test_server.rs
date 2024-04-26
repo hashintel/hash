@@ -78,9 +78,8 @@ pub async fn test_server(args: TestServerArgs) -> Result<(), GraphError> {
 
     let mut zanzibar_client = ZanzibarClient::new(spicedb_client);
     zanzibar_client.seed().await.change_context(GraphError)?;
-    let authorization_api = zanzibar_client.into_backend();
 
-    let router = graph_api::rest::test_server::routes(pool, authorization_api);
+    let router = graph_api::rest::test_server::routes(pool, zanzibar_client);
 
     tracing::info!("Listening on {}", args.api_address);
     axum::serve(

@@ -71,41 +71,61 @@ impl TypedValueParser for OptionalSentryDsnParser {
 /// Arguments for configuring the logging setup
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "clap", derive(Parser))]
-#[expect(clippy::struct_field_names, reason = "Used as clap arguments")]
 pub struct SentryConfig {
     // we need to qualify `Option` here, as otherwise `clap` tries to be too smart and only uses
     // the `value_parser` on the internal `sentry::types::Dsn`, failing.
-    #[cfg_attr(feature = "clap", arg(long, env = "HASH_GRAPH_SENTRY_DSN", value_parser = OptionalSentryDsnParser, default_value = ""))]
-    pub sentry_dsn: core::option::Option<Dsn>,
+    #[cfg_attr(feature = "clap", arg(
+        id = "sentry-dsn",
+        long = "sentry-dsn",
+        env = "HASH_GRAPH_SENTRY_DSN",
+        value_parser = OptionalSentryDsnParser,
+        default_value = ""
+    ))]
+    pub dsn: core::option::Option<Dsn>,
 
     #[cfg_attr(feature = "clap", arg(
-        long,
+        id = "sentry-environment",
+        long = "sentry-environment",
         env = "HASH_GRAPH_SENTRY_ENVIRONMENT",
         default_value_t = SentryEnvironment::default(),
     ))]
-    pub sentry_environment: SentryEnvironment,
+    pub environment: SentryEnvironment,
 
     /// Enable every parent span's attributes to be sent along with own event's attributes.
     #[cfg_attr(
         feature = "clap",
-        arg(long, env = "HASH_GRAPH_SENTRY_ENABLE_SPAN_ATTRIBUTES",)
+        arg(
+            id = "sentry-enable-span-attributes",
+            long = "sentry-enable-span-attribute ",
+            env = "HASH_GRAPH_SENTRY_ENABLE_SPAN_ATTRIBUTES",
+        )
     )]
-    pub sentry_enable_span_attributes: bool,
+    pub enable_span_attributes: bool,
 
     #[cfg_attr(
         feature = "clap",
-        arg(long, env = "HASH_GRAPH_SENTRY_SPAN_FILTER", default_value_t = tracing::Level::INFO)
+        arg(
+            id = "sentry-span-filter",
+            long = "sentry-span-filter",
+            env = "HASH_GRAPH_SENTRY_SPAN_FILTER",
+            default_value_t = tracing::Level::INFO
+        )
     )]
-    pub sentry_span_filter: tracing::Level,
+    pub span_filter: tracing::Level,
 
     #[cfg_attr(
         feature = "clap",
-        arg(long, env = "HASH_GRAPH_SENTRY_EVENT_FILTER", default_value_t = tracing::Level::INFO)
+        arg(
+            id = "sentry-event-filter",
+            long = "sentry-event-filter",
+            env = "HASH_GRAPH_SENTRY_EVENT_FILTER",
+            default_value_t = tracing::Level::INFO
+        )
     )]
-    pub sentry_event_filter: tracing::Level,
+    pub event_filter: tracing::Level,
 }
 
-pub fn init_sentry(
+pub fn init(
     config: &SentryConfig,
     release: impl Into<Option<Cow<'static, str>>>,
 ) -> ClientInitGuard {
@@ -113,7 +133,7 @@ pub fn init_sentry(
     // When initializing Sentry, a `Drop` guard is returned, once dropped any remaining events are
     // flushed. This means we need to keep the guard around for the entire lifetime of the program.
     sentry::init(sentry::ClientOptions {
-        dsn: config.sentry_dsn.clone(),
+        dsn: config.dsn.clone(),
         release: release.into(),
         session_mode: sentry::SessionMode::Request,
         traces_sampler: Some(Arc::new(|ctx| {
@@ -125,7 +145,7 @@ pub fn init_sentry(
                 1.0
             }
         })),
-        environment: Some(Cow::Owned(config.sentry_environment.to_string())),
+        environment: Some(Cow::Owned(config.environment.to_string())),
         attach_stacktrace: true,
         in_app_exclude: vec!["tracing", "axum", "futures", "tower", "tokio"],
 
@@ -139,11 +159,11 @@ where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {
     let mut layer = ::sentry::integrations::tracing::layer();
-    if config.sentry_enable_span_attributes {
+    if config.enable_span_attributes {
         layer = layer.enable_span_attributes();
     }
-    let span_filter = config.sentry_event_filter;
-    let event_filter = config.sentry_event_filter;
+    let span_filter = config.span_filter;
+    let event_filter = config.event_filter;
     layer
         .span_filter(move |metadata| *metadata.level() <= span_filter)
         .event_filter(move |metadata| match *metadata.level() {

@@ -61,7 +61,10 @@ impl OntologyDatabaseType for EntityType {
     }
 }
 
-impl PostgresStore<Transaction<'_>> {
+impl<A> PostgresStore<Transaction<'_>, A>
+where
+    A: Send + Sync,
+{
     #[tracing::instrument(level = "trace", skip(self))]
     pub async fn delete_ontology_ids(
         &self,

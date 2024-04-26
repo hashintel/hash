@@ -24,6 +24,6 @@
     "test:unit": "cargo nextest run --all-features --all-targets && cargo test --all-features --doc"
   },
   "devDependencies": {
-    "@tests/hash-graph-test-data-rs": "0.0.0-private"
+    "@rust/graph-test-data": "0.0.0-private"
   }
 }

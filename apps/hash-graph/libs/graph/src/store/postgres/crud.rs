@@ -41,11 +41,12 @@ where
     }
 }
 
-impl<Cl, R, S> ReadPaginated<R, S> for PostgresStore<Cl>
+impl<Cl, A, R, S> ReadPaginated<R, S> for PostgresStore<Cl, A>
 where
     Cl: AsClient,
     for<'c> R: PostgresRecord<QueryPath<'c>: PostgresQueryPath>,
     for<'s> S: PostgresSorting<'s, R> + Sync,
+    A: Send + Sync,
 {
     type QueryResult = Row;
 
@@ -101,10 +102,11 @@ where
 }
 
 #[async_trait]
-impl<Cl, R> Read<R> for PostgresStore<Cl>
+impl<Cl, A, R> Read<R> for PostgresStore<Cl, A>
 where
     Cl: AsClient,
     for<'c> R: PostgresRecord<QueryPath<'c>: PostgresQueryPath>,
+    A: Send + Sync,
 {
     type ReadStream = impl Stream<Item = Result<R, Report<QueryError>>> + Send + Sync;
 

@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use authorization::backend::ZanzibarBackend;
 use error_stack::{Result, ResultExt};
 use tokio_postgres::GenericClient;
 
@@ -22,8 +21,12 @@ pub enum OntologyTypeMetadataRowBatch {
 }
 
 #[async_trait]
-impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
-    async fn begin(postgres_client: &PostgresStore<C>) -> Result<(), InsertionError> {
+impl<C, A> WriteBatch<C, A> for OntologyTypeMetadataRowBatch
+where
+    C: AsClient,
+    A: Send + Sync,
+{
+    async fn begin(postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError> {
         postgres_client
             .as_client()
             .client()
@@ -55,11 +58,7 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
         Ok(())
     }
 
-    async fn write(
-        self,
-        postgres_client: &PostgresStore<C>,
-        _authorization_api: &mut (impl ZanzibarBackend + Send),
-    ) -> Result<(), InsertionError> {
+    async fn write(self, postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError> {
         let client = postgres_client.as_client().client();
         match self {
             Self::Ids(ontology_ids) => {
@@ -134,7 +133,7 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
     }
 
     async fn commit(
-        postgres_client: &PostgresStore<C>,
+        postgres_client: &mut PostgresStore<C, A>,
         _validation: bool,
     ) -> Result<(), InsertionError> {
         postgres_client

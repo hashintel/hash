@@ -9,6 +9,8 @@ import type { FlowDefinition } from "./types";
 export const researchTaskFlowDefinition: FlowDefinition = {
   name: "Research Task",
   flowDefinitionId: "research-task" as EntityUuid,
+  description:
+    "Conduct research on a given topic, and provide expert analysis on the discovered data",
   trigger: {
     triggerDefinitionId: "userTrigger",
     description:
@@ -17,19 +19,31 @@ export const researchTaskFlowDefinition: FlowDefinition = {
     outputs: [
       {
         payloadKind: "Text",
-        name: "prompt" as const,
+        name: "Research guidance" as const,
         array: false,
         required: true,
       },
       {
         payloadKind: "VersionedUrl",
-        name: "entityTypeIds",
+        name: "Entity Types",
         array: true,
         required: true,
       },
       {
         payloadKind: "Text",
-        name: "question",
+        name: "Research question",
+        array: false,
+        required: true,
+      },
+      {
+        payloadKind: "WebId",
+        name: "Create in",
+        array: false,
+        required: true,
+      },
+      {
+        payloadKind: "Boolean",
+        name: "Create as draft",
         array: false,
         required: true,
       },
@@ -47,14 +61,14 @@ export const researchTaskFlowDefinition: FlowDefinition = {
           inputName: "prompt" satisfies InputNameForAction<"researchEntities">,
           kind: "step-output",
           sourceStepId: "trigger",
-          sourceStepOutputName: "prompt",
+          sourceStepOutputName: "Research guidance",
         },
         {
           inputName:
             "entityTypeIds" satisfies InputNameForAction<"researchEntities">,
           kind: "step-output",
           sourceStepId: "trigger",
-          sourceStepOutputName: "entityTypeIds",
+          sourceStepOutputName: "Entity Types",
         },
       ],
     },
@@ -72,6 +86,18 @@ export const researchTaskFlowDefinition: FlowDefinition = {
           sourceStepOutputName:
             "proposedEntities" satisfies OutputNameForAction<"researchEntities">,
         },
+        {
+          inputName: "webId" satisfies InputNameForAction<"persistEntities">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "Create in",
+        },
+        {
+          inputName: "draft" satisfies InputNameForAction<"persistEntities">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "Create as draft",
+        },
       ],
     },
     {
@@ -84,7 +110,7 @@ export const researchTaskFlowDefinition: FlowDefinition = {
           inputName: "question" satisfies InputNameForAction<"answerQuestion">,
           kind: "step-output",
           sourceStepId: "trigger",
-          sourceStepOutputName: "question",
+          sourceStepOutputName: "Research question",
         },
         {
           inputName: "entities" satisfies InputNameForAction<"answerQuestion">,
@@ -120,6 +146,8 @@ export const researchTaskFlowDefinition: FlowDefinition = {
 export const ftseInvestorsFlowDefinition: FlowDefinition = {
   name: "FTSE350 Investors",
   flowDefinitionId: "ftse-350-investors" as EntityUuid,
+  description:
+    "Research the FTSE350 index, its constituents, and the top investors in the index",
   trigger: {
     triggerDefinitionId: "userTrigger",
     description:
@@ -355,6 +383,8 @@ export const ftseInvestorsFlowDefinition: FlowDefinition = {
 export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
   name: "Infer User Entities from Web Page",
   flowDefinitionId: "infer-user-entities-from-web-page" as EntityUuid,
+  description:
+    "Infer entities from a web page, based on the user's provided entity types",
   trigger: {
     kind: "trigger",
     description: "Triggered when user visits a web page",
@@ -468,6 +498,7 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
 export const answerQuestionFlow: FlowDefinition = {
   name: "Answer Question Flow",
   flowDefinitionId: "answer-question-flow" as EntityUuid,
+  description: "Answer a question based on the provided context",
   trigger: {
     kind: "trigger",
     description: "Triggered when user asks a question and provides context",
@@ -548,6 +579,7 @@ export const answerQuestionFlow: FlowDefinition = {
 export const saveFileFromUrl: FlowDefinition = {
   name: "Save File From Url",
   flowDefinitionId: "saveFileFromUrl" as EntityUuid,
+  description: "Save file from URL to HASH",
   trigger: {
     triggerDefinitionId: "userTrigger",
     description: "Triggered when user provides a URL to a file",

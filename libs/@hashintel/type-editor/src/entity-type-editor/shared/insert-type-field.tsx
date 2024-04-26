@@ -108,18 +108,20 @@ export const InsertTypeField = <T extends TypeSelectorType>({
             options={options}
             dropdownProps={{
               query: searchText,
-              createButtonProps: createModalPopupState
-                ? {
-                    ...withHandler(bindTrigger(createModalPopupState), () => {
-                      ourInputRef.current?.focus();
-                    }),
-                    onMouseDown: (evt) => {
-                      evt.preventDefault();
-                      evt.stopPropagation();
-                    },
-                  }
-                : null,
-              variant,
+              creationProps: {
+                createButtonProps: createModalPopupState
+                  ? {
+                      ...withHandler(bindTrigger(createModalPopupState), () => {
+                        ourInputRef.current?.focus();
+                      }),
+                      onMouseDown: (evt) => {
+                        evt.preventDefault();
+                        evt.stopPropagation();
+                      },
+                    }
+                  : null,
+                variant,
+              },
             }}
             variant={variant}
           />

@@ -118,7 +118,7 @@ export const findExistingEntity = async ({
   ] satisfies AllFilter["all"];
 
   // starting point for a threshold that will get only values which are a semantic match
-  const maximumSemanticDistance = 0.5;
+  const maximumSemanticDistance = 0.3;
 
   /**
    * First find suitable specific properties to match on

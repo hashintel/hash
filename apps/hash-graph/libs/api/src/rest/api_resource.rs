@@ -15,7 +15,7 @@ pub(crate) trait RoutedResource: utoipa::OpenApi {
     where
         S: StorePool + Send + Sync + 'static,
         A: AuthorizationApiPool + Send + Sync + 'static,
-        for<'pool> S::Store<'pool>: RestApiStore;
+        for<'pool> S::Store<'pool, A::Api<'pool>>: RestApiStore;
 
     fn documentation() -> utoipa::openapi::OpenApi {
         Self::openapi()

@@ -7,11 +7,11 @@ import { useMemo } from "react";
 import { useMarkLinkEntityToArchive } from "../../../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../../../entity-editor-context";
 import type { LinkedWithCell } from "../linked-with-cell";
-import { EntitySelector } from "./entity-selector";
 import {
   createDraftLinkEntity,
   LinkedEntityListEditor,
 } from "./linked-entity-list-editor";
+import { LinkedEntitySelector } from "./linked-entity-selector";
 
 export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
   props,
@@ -78,7 +78,7 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
       linkAndTargetEntities[0]?.rightEntity.metadata.recordId.entityId;
 
     return (
-      <EntitySelector
+      <LinkedEntitySelector
         includeDrafts={
           !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId)
         }

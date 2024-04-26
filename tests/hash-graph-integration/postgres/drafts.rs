@@ -1,9 +1,27 @@
-use graph::store::knowledge::PatchEntityParams;
+use authorization::AuthorizationApi;
+use graph::{
+    store::{
+        knowledge::{CreateEntityParams, PatchEntityParams},
+        query::Filter,
+        EntityStore,
+    },
+    subgraph::{
+        edges::GraphResolveDepths,
+        query::StructuralQuery,
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
+            VariableTemporalAxisUnresolved,
+        },
+    },
+};
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::{
-    entity::{EntityId, ProvidedEntityEditionProvenance},
-    Property, PropertyMetadataMap, PropertyObject, PropertyPatchOperation, PropertyPath,
-    PropertyProvenance,
+use graph_types::{
+    knowledge::{
+        entity::{EntityId, ProvidedEntityEditionProvenance},
+        Property, PropertyMetadataMap, PropertyObject, PropertyPatchOperation, PropertyPath,
+        PropertyProvenance,
+    },
+    owned_by_id::OwnedById,
 };
 use pretty_assertions::assert_eq;
 use temporal_versioning::ClosedTemporalBound;
@@ -11,7 +29,9 @@ use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
 
-async fn seed(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
+async fn seed<A: AuthorizationApi>(
+    database: &mut DatabaseTestWrapper<A>,
+) -> DatabaseApi<'_, &mut A> {
     database
         .seed(
             [data_type::TEXT_V1, data_type::NUMBER_V1],
@@ -59,8 +79,22 @@ fn charles() -> PropertyObject {
 }
 
 #[must_use]
-async fn check_entity_exists(api: &DatabaseApi<'_>, id: EntityId) -> bool {
-    api.get_latest_entity(id).await.is_ok()
+async fn check_entity_exists<A: AuthorizationApi>(api: &DatabaseApi<'_, A>, id: EntityId) -> bool {
+    api.count_entities(
+        api.account_id,
+        StructuralQuery {
+            filter: Filter::for_entity_by_entity_id(id),
+            graph_resolve_depths: GraphResolveDepths::default(),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(None, None),
+            },
+            include_drafts: id.draft_id.is_some(),
+        },
+    )
+    .await
+    .expect("could not count entities")
+        == 1
 }
 
 #[tokio::test]
@@ -71,12 +105,20 @@ async fn initial_draft() {
 
     let entity = api
         .create_entity(
-            alice(),
-            vec![person_entity_type_id()],
-            None,
-            true,
-            None,
-            PropertyMetadataMap::default(),
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: vec![person_entity_type_id()],
+                properties: alice(),
+                confidence: None,
+                property_metadata: PropertyMetadataMap::default(),
+                link_data: None,
+                draft: true,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
         )
         .await
         .expect("could not create entity");
@@ -99,21 +141,24 @@ async fn initial_draft() {
     );
 
     let updated_entity = api
-        .patch_entity(PatchEntityParams {
-            entity_id: entity.record_id.entity_id,
-            properties: vec![PropertyPatchOperation::Replace {
-                path: PropertyPath::default(),
-                value: Property::Object(bob()),
+        .patch_entity(
+            api.account_id,
+            PatchEntityParams {
+                entity_id: entity.record_id.entity_id,
+                properties: vec![PropertyPatchOperation::Replace {
+                    path: PropertyPath::default(),
+                    value: Property::Object(bob()),
+                    confidence: None,
+                    provenance: PropertyProvenance::default(),
+                }],
+                entity_type_ids: vec![],
+                archived: None,
+                draft: Some(true),
+                decision_time: None,
                 confidence: None,
-                provenance: PropertyProvenance::default(),
-            }],
-            entity_type_ids: vec![],
-            archived: None,
-            draft: Some(true),
-            decision_time: None,
-            confidence: None,
-            provenance: ProvidedEntityEditionProvenance::default(),
-        })
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not update entity");
 
@@ -139,21 +184,24 @@ async fn initial_draft() {
     );
 
     let updated_live_entity = api
-        .patch_entity(PatchEntityParams {
-            entity_id: updated_entity.record_id.entity_id,
-            properties: vec![PropertyPatchOperation::Replace {
-                path: PropertyPath::default(),
-                value: Property::Object(charles()),
+        .patch_entity(
+            api.account_id,
+            PatchEntityParams {
+                entity_id: updated_entity.record_id.entity_id,
+                properties: vec![PropertyPatchOperation::Replace {
+                    path: PropertyPath::default(),
+                    value: Property::Object(charles()),
+                    confidence: None,
+                    provenance: PropertyProvenance::default(),
+                }],
+                entity_type_ids: vec![],
+                archived: None,
+                draft: Some(false),
+                decision_time: None,
                 confidence: None,
-                provenance: PropertyProvenance::default(),
-            }],
-            entity_type_ids: vec![],
-            archived: None,
-            draft: Some(false),
-            decision_time: None,
-            confidence: None,
-            provenance: ProvidedEntityEditionProvenance::default(),
-        })
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not update entity");
 
@@ -203,12 +251,20 @@ async fn no_initial_draft() {
 
     let entity = api
         .create_entity(
-            alice(),
-            vec![person_entity_type_id()],
-            None,
-            false,
-            None,
-            PropertyMetadataMap::default(),
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: vec![person_entity_type_id()],
+                properties: alice(),
+                confidence: None,
+                property_metadata: PropertyMetadataMap::default(),
+                link_data: None,
+                draft: false,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
         )
         .await
         .expect("could not create entity");
@@ -236,21 +292,24 @@ async fn no_initial_draft() {
 
     for _ in 0..5 {
         let updated_entity = api
-            .patch_entity(PatchEntityParams {
-                entity_id: entity.record_id.entity_id,
-                properties: vec![PropertyPatchOperation::Replace {
-                    path: PropertyPath::default(),
-                    value: Property::Object(bob()),
+            .patch_entity(
+                api.account_id,
+                PatchEntityParams {
+                    entity_id: entity.record_id.entity_id,
+                    properties: vec![PropertyPatchOperation::Replace {
+                        path: PropertyPath::default(),
+                        value: Property::Object(bob()),
+                        confidence: None,
+                        provenance: PropertyProvenance::default(),
+                    }],
+                    entity_type_ids: vec![],
+                    archived: None,
+                    draft: Some(true),
+                    decision_time: None,
                     confidence: None,
-                    provenance: PropertyProvenance::default(),
-                }],
-                entity_type_ids: vec![],
-                archived: None,
-                draft: Some(true),
-                decision_time: None,
-                confidence: None,
-                provenance: ProvidedEntityEditionProvenance::default(),
-            })
+                    provenance: ProvidedEntityEditionProvenance::default(),
+                },
+            )
             .await
             .expect("could not update entity");
 
@@ -281,21 +340,24 @@ async fn no_initial_draft() {
         );
 
         let updated_live_entity = api
-            .patch_entity(PatchEntityParams {
-                entity_id: updated_entity.record_id.entity_id,
-                properties: vec![PropertyPatchOperation::Replace {
-                    path: PropertyPath::default(),
-                    value: Property::Object(charles()),
+            .patch_entity(
+                api.account_id,
+                PatchEntityParams {
+                    entity_id: updated_entity.record_id.entity_id,
+                    properties: vec![PropertyPatchOperation::Replace {
+                        path: PropertyPath::default(),
+                        value: Property::Object(charles()),
+                        confidence: None,
+                        provenance: PropertyProvenance::default(),
+                    }],
+                    entity_type_ids: vec![],
+                    archived: None,
+                    draft: Some(false),
+                    decision_time: None,
                     confidence: None,
-                    provenance: PropertyProvenance::default(),
-                }],
-                entity_type_ids: vec![],
-                archived: None,
-                draft: Some(false),
-                decision_time: None,
-                confidence: None,
-                provenance: ProvidedEntityEditionProvenance::default(),
-            })
+                    provenance: ProvidedEntityEditionProvenance::default(),
+                },
+            )
             .await
             .expect("could not update entity");
 
@@ -331,12 +393,20 @@ async fn multiple_drafts() {
 
     let entity = api
         .create_entity(
-            alice(),
-            vec![person_entity_type_id()],
-            None,
-            false,
-            None,
-            PropertyMetadataMap::default(),
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: vec![person_entity_type_id()],
+                properties: alice(),
+                confidence: None,
+                property_metadata: PropertyMetadataMap::default(),
+                link_data: None,
+                draft: false,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
         )
         .await
         .expect("could not create entity");
@@ -364,21 +434,24 @@ async fn multiple_drafts() {
     let mut drafts = Vec::new();
     for _ in 0..5 {
         let updated_entity = api
-            .patch_entity(PatchEntityParams {
-                entity_id: entity.record_id.entity_id,
-                properties: vec![PropertyPatchOperation::Replace {
-                    path: PropertyPath::default(),
-                    value: Property::Object(bob()),
+            .patch_entity(
+                api.account_id,
+                PatchEntityParams {
+                    entity_id: entity.record_id.entity_id,
+                    properties: vec![PropertyPatchOperation::Replace {
+                        path: PropertyPath::default(),
+                        value: Property::Object(bob()),
+                        confidence: None,
+                        provenance: PropertyProvenance::default(),
+                    }],
+                    entity_type_ids: vec![],
+                    archived: None,
+                    draft: Some(true),
+                    decision_time: None,
                     confidence: None,
-                    provenance: PropertyProvenance::default(),
-                }],
-                entity_type_ids: vec![],
-                archived: None,
-                draft: Some(true),
-                decision_time: None,
-                confidence: None,
-                provenance: ProvidedEntityEditionProvenance::default(),
-            })
+                    provenance: ProvidedEntityEditionProvenance::default(),
+                },
+            )
             .await
             .expect("could not update entity");
 
@@ -412,21 +485,24 @@ async fn multiple_drafts() {
 
     for draft in drafts {
         let updated_live_entity = api
-            .patch_entity(PatchEntityParams {
-                entity_id: draft,
-                properties: vec![PropertyPatchOperation::Replace {
-                    path: PropertyPath::default(),
-                    value: Property::Object(charles()),
+            .patch_entity(
+                api.account_id,
+                PatchEntityParams {
+                    entity_id: draft,
+                    properties: vec![PropertyPatchOperation::Replace {
+                        path: PropertyPath::default(),
+                        value: Property::Object(charles()),
+                        confidence: None,
+                        provenance: PropertyProvenance::default(),
+                    }],
+                    entity_type_ids: vec![],
+                    archived: None,
+                    draft: Some(false),
+                    decision_time: None,
                     confidence: None,
-                    provenance: PropertyProvenance::default(),
-                }],
-                entity_type_ids: vec![],
-                archived: None,
-                draft: Some(false),
-                decision_time: None,
-                confidence: None,
-                provenance: ProvidedEntityEditionProvenance::default(),
-            })
+                    provenance: ProvidedEntityEditionProvenance::default(),
+                },
+            )
             .await
             .expect("could not update entity");
 
@@ -436,6 +512,7 @@ async fn multiple_drafts() {
         );
         assert!(!check_entity_exists(&api, draft).await);
         assert!(check_entity_exists(&api, updated_live_entity.record_id.entity_id).await);
+
         assert_eq!(
             updated_live_entity
                 .provenance

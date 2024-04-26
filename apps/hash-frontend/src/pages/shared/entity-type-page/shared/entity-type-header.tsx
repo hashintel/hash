@@ -125,10 +125,7 @@ export const EntityTypeHeader = ({
           <EntityTypeDescription readonly={isReadonly} />
         </Box>
       </Box>
-      <Modal
-        open={showExtendTypeModal}
-        contentStyle={{ padding: "0px !important" }}
-      >
+      <Modal open={showExtendTypeModal} contentStyle={{ p: { xs: 0, md: 0 } }}>
         <>
           <Typography
             sx={({ palette }) => ({

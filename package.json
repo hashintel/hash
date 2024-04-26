@@ -3,7 +3,7 @@
   "description": "HASH monorepo",
   "workspaces": {
     "packages": [
-      "apps/*",
+      "apps/**",
       "blocks/*",
       "libs/**",
       "tests/**"

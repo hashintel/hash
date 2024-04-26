@@ -19,7 +19,6 @@ use graph_types::{
     Embedding,
 };
 use postgres_types::{Json, ToSql};
-use temporal_client::TemporalClient;
 use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
 use tokio_postgres::{GenericClient, Row};
 use type_system::{
@@ -50,9 +49,13 @@ use crate::{
     },
 };
 
-impl<C: AsClient> PostgresStore<C> {
+impl<C, A> PostgresStore<C, A>
+where
+    C: AsClient,
+    A: AuthorizationApi,
+{
     #[tracing::instrument(level = "trace", skip(data_types, authorization_api, zookie))]
-    pub(crate) async fn filter_data_types_by_permission<I, T, A>(
+    pub(crate) async fn filter_data_types_by_permission<I, T>(
         data_types: impl IntoIterator<Item = (I, T)> + Send,
         actor_id: AccountId,
         authorization_api: &A,
@@ -61,7 +64,6 @@ impl<C: AsClient> PostgresStore<C> {
     where
         I: Into<DataTypeId> + Send,
         T: Send,
-        A: AuthorizationApi + Sync,
     {
         let (ids, data_types): (Vec<_>, Vec<_>) = data_types
             .into_iter()
@@ -95,7 +97,7 @@ impl<C: AsClient> PostgresStore<C> {
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     #[tracing::instrument(level = "info", skip(self))]
-    pub(crate) async fn traverse_data_types<A: AuthorizationApi + Sync>(
+    pub(crate) async fn traverse_data_types(
         &self,
         queue: Vec<(
             OntologyId,
@@ -104,7 +106,6 @@ impl<C: AsClient> PostgresStore<C> {
         )>,
         _: &mut TraversalContext,
         actor_id: AccountId,
-        _: &A,
         _: &Zookie<'static>,
         _: &mut Subgraph,
     ) -> Result<(), QueryError> {
@@ -152,13 +153,15 @@ impl<C: AsClient> PostgresStore<C> {
     }
 }
 
-impl<C: AsClient> DataTypeStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, authorization_api, params))]
-    async fn create_data_types<A: AuthorizationApi + Send + Sync, P, R>(
+impl<C, A> DataTypeStore for PostgresStore<C, A>
+where
+    C: AsClient,
+    A: AuthorizationApi,
+{
+    #[tracing::instrument(level = "info", skip(self, params))]
+    async fn create_data_types<P, R>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
-        temporal_client: Option<&TemporalClient>,
         params: P,
     ) -> Result<Vec<DataTypeMetadata>, InsertionError>
     where
@@ -186,7 +189,8 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             if let OntologyTypeClassificationMetadata::Owned { owned_by_id } =
                 &parameters.classification
             {
-                authorization_api
+                transaction
+                    .authorization_api
                     .check_web_permission(
                         actor_id,
                         WebPermission::CreateDataType,
@@ -232,7 +236,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                     temporal_versioning,
                     provenance,
                 };
-                if temporal_client.is_some() {
+                if transaction.temporal_client.is_some() {
                     inserted_data_types.push(DataTypeWithMetadata {
                         schema: parameters.schema,
                         metadata: metadata.clone(),
@@ -243,7 +247,8 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         }
 
         #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
-        authorization_api
+        transaction
+            .authorization_api
             .modify_data_type_relations(
                 relationships
                     .iter()
@@ -260,7 +265,8 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             .change_context(InsertionError)?;
 
         if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
-            if let Err(auth_error) = authorization_api
+            if let Err(auth_error) = self
+                .authorization_api
                 .modify_data_type_relations(relationships.into_iter().map(
                     |(resource, relation_and_subject)| {
                         (
@@ -280,7 +286,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
             Err(error)
         } else {
-            if let Some(temporal_client) = temporal_client {
+            if let Some(temporal_client) = &self.temporal_client {
                 temporal_client
                     .start_update_data_type_embeddings_workflow(actor_id, &inserted_data_types)
                     .await
@@ -291,11 +297,10 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         }
     }
 
-    #[tracing::instrument(level = "info", skip(self, authorization_api))]
-    async fn get_data_type<A: AuthorizationApi + Sync>(
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn get_data_type(
         &self,
         actor_id: AccountId,
-        authorization_api: &A,
         params: GetDataTypesParams<'_>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
@@ -341,7 +346,8 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             .map(|(data_type_id, _)| *data_type_id)
             .collect::<Vec<_>>();
 
-        let (permissions, zookie) = authorization_api
+        let (permissions, zookie) = self
+            .authorization_api
             .check_data_types_permission(
                 actor_id,
                 DataTypePermission::View,
@@ -386,7 +392,6 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                 .collect(),
             &mut traversal_context,
             actor_id,
-            authorization_api,
             &zookie,
             &mut subgraph,
         )
@@ -399,12 +404,10 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         Ok(subgraph)
     }
 
-    #[tracing::instrument(level = "info", skip(self, authorization_api, params))]
-    async fn update_data_type<A: AuthorizationApi + Send + Sync, R>(
+    #[tracing::instrument(level = "info", skip(self, params))]
+    async fn update_data_type<R>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
-        temporal_client: Option<&TemporalClient>,
         params: UpdateDataTypesParams<R>,
     ) -> Result<DataTypeMetadata, UpdateError>
     where
@@ -425,7 +428,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                     )?,
             ),
         });
-        authorization_api
+        self.authorization_api
             .check_data_type_permission(
                 actor_id,
                 DataTypePermission::Update,
@@ -461,7 +464,8 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             }))
             .collect::<Vec<_>>();
 
-        authorization_api
+        transaction
+            .authorization_api
             .modify_data_type_relations(relationships.clone().into_iter().map(
                 |relation_and_subject| {
                     (
@@ -475,7 +479,8 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             .change_context(UpdateError)?;
 
         if let Err(mut error) = transaction.commit().await.change_context(UpdateError) {
-            if let Err(auth_error) = authorization_api
+            if let Err(auth_error) = self
+                .authorization_api
                 .modify_data_type_relations(relationships.into_iter().map(|relation_and_subject| {
                     (
                         ModifyRelationshipOperation::Delete,
@@ -500,7 +505,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                 provenance,
             };
 
-            if let Some(temporal_client) = temporal_client {
+            if let Some(temporal_client) = &self.temporal_client {
                 temporal_client
                     .start_update_data_type_embeddings_workflow(
                         actor_id,
@@ -518,10 +523,9 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    async fn archive_data_type<A: AuthorizationApi + Send + Sync>(
+    async fn archive_data_type(
         &mut self,
         actor_id: AccountId,
-        _: &mut A,
         params: ArchiveDataTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         self.archive_ontology_type(&params.data_type_id, EditionArchivedById::new(actor_id))
@@ -529,10 +533,9 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    async fn unarchive_data_type<A: AuthorizationApi + Send + Sync>(
+    async fn unarchive_data_type(
         &mut self,
         actor_id: AccountId,
-        _: &mut A,
         params: UnarchiveDataTypeParams,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         self.unarchive_ontology_type(
@@ -547,10 +550,9 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
-    async fn update_data_type_embeddings<A: AuthorizationApi + Send + Sync>(
+    async fn update_data_type_embeddings(
         &mut self,
         _: AccountId,
-        _: &mut A,
         params: UpdateDataTypeEmbeddingParams<'_>,
     ) -> Result<(), UpdateError> {
         #[derive(Debug, ToSql)]

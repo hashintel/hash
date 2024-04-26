@@ -64,7 +64,7 @@ export const DeleteExpectedValueModal = ({
     <Modal
       {...bindDialog(popupState)}
       contentStyle={(theme) => ({
-        p: "0px !important",
+        p: { xs: 0, md: 0 },
         border: 1,
         borderColor: theme.palette.gray[20],
       })}

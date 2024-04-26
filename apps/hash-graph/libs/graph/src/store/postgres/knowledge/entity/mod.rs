@@ -34,7 +34,6 @@ use graph_types::{
 };
 use hash_status::StatusCode;
 use postgres_types::{Json, ToSql};
-use temporal_client::TemporalClient;
 use temporal_versioning::{
     ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
     RightBoundedTemporalInterval, TemporalBound, Timestamp, TransactionTime,
@@ -77,15 +76,16 @@ use crate::{
     },
 };
 
-impl<C: AsClient> PostgresStore<C> {
+impl<C, A> PostgresStore<C, A>
+where
+    C: AsClient,
+    A: AuthorizationApi,
+{
     /// Internal method to read an [`Entity`] into a [`TraversalContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[tracing::instrument(
-        level = "info",
-        skip(self, traversal_context, subgraph, authorization_api, zookie)
-    )]
-    pub(crate) async fn traverse_entities<A>(
+    #[tracing::instrument(level = "info", skip(self, traversal_context, subgraph, zookie))]
+    pub(crate) async fn traverse_entities(
         &self,
         mut entity_queue: Vec<(
             EntityVertexId,
@@ -94,13 +94,9 @@ impl<C: AsClient> PostgresStore<C> {
         )>,
         traversal_context: &mut TraversalContext,
         actor_id: AccountId,
-        authorization_api: &A,
         zookie: &Zookie<'static>,
         subgraph: &mut Subgraph,
-    ) -> Result<(), QueryError>
-    where
-        A: AuthorizationApi + Sync,
-    {
+    ) -> Result<(), QueryError> {
         let variable_axis = subgraph.temporal_axes.resolved.variable_time_axis();
 
         let mut entity_type_queue = Vec::new();
@@ -180,7 +176,7 @@ impl<C: AsClient> PostgresStore<C> {
                     Self::filter_entity_types_by_permission(
                         self.read_shared_edges(&traversal_data, Some(0)).await?,
                         actor_id,
-                        authorization_api,
+                        &self.authorization_api,
                         zookie,
                     )
                     .await?
@@ -214,7 +210,8 @@ impl<C: AsClient> PostgresStore<C> {
                         continue;
                     }
 
-                    let permissions = authorization_api
+                    let permissions = self
+                        .authorization_api
                         .check_entities_permission(
                             actor_id,
                             EntityPermission::View,
@@ -270,7 +267,6 @@ impl<C: AsClient> PostgresStore<C> {
             entity_type_queue,
             traversal_context,
             actor_id,
-            authorization_api,
             zookie,
             subgraph,
         )
@@ -303,13 +299,15 @@ impl<C: AsClient> PostgresStore<C> {
     }
 }
 
-impl<C: AsClient> EntityStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, authorization_api, temporal_client, params))]
-    async fn create_entity<A: AuthorizationApi + Send + Sync, R>(
+impl<C, A> EntityStore for PostgresStore<C, A>
+where
+    C: AsClient,
+    A: AuthorizationApi,
+{
+    #[tracing::instrument(level = "info", skip(self, params))]
+    async fn create_entity<R>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
-        temporal_client: Option<&TemporalClient>,
         params: CreateEntityParams<R>,
     ) -> Result<EntityMetadata, InsertionError>
     where
@@ -332,7 +330,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         for entity_type_id in &params.entity_type_ids {
             let entity_type_id = EntityTypeId::from_url(entity_type_id);
-            authorization_api
+            self.authorization_api
                 .check_entity_type_permission(
                     actor_id,
                     EntityTypePermission::Instantiate,
@@ -347,7 +345,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         }
 
         if Some(params.owned_by_id.into_uuid()) != params.entity_uuid.map(EntityUuid::into_uuid) {
-            authorization_api
+            self.authorization_api
                 .check_web_permission(
                     actor_id,
                     WebPermission::CreateEntity,
@@ -572,7 +570,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .insert_temporal_metadata(entity_id, edition_id, params.decision_time)
             .await?;
 
-        authorization_api
+        transaction
+            .authorization_api
             .modify_entity_relations(relationships.clone().into_iter().map(
                 |relation_and_subject| {
                     (
@@ -588,7 +587,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         transaction
             .validate_entity(
                 actor_id,
-                authorization_api,
                 Consistency::FullyConsistent,
                 ValidateEntityParams {
                     entity_types: EntityValidationType::ClosedSchema(Cow::Owned(closed_schema)),
@@ -616,7 +614,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             transaction.commit().await.change_context(InsertionError)
         };
         if let Err(mut error) = commit_result {
-            if let Err(auth_error) = authorization_api
+            if let Err(auth_error) = self
+                .authorization_api
                 .modify_entity_relations(relationships.into_iter().map(|relation_and_subject| {
                     (
                         ModifyRelationshipOperation::Delete,
@@ -662,7 +661,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 confidence: params.confidence,
                 properties: params.property_metadata,
             };
-            if let Some(temporal_client) = temporal_client {
+            if let Some(temporal_client) = &self.temporal_client {
                 temporal_client
                     .start_update_entity_embeddings_workflow(
                         actor_id,
@@ -683,11 +682,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     //   see https://linear.app/hash/issue/H-1449
     // TODO: Restrict non-draft links to non-draft entities
     //   see https://linear.app/hash/issue/H-1450
-    #[tracing::instrument(level = "info", skip(self, authorization_api))]
-    async fn validate_entity<A: AuthorizationApi + Sync>(
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn validate_entity(
         &self,
         actor_id: AccountId,
-        authorization_api: &A,
         consistency: Consistency<'_>,
         params: ValidateEntityParams<'_>,
     ) -> Result<(), ValidateEntityError> {
@@ -704,7 +702,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     })
                     .unzip();
 
-                if !authorization_api
+                if !self
+                    .authorization_api
                     .check_entity_types_permission(
                         actor_id,
                         EntityTypePermission::View,
@@ -770,7 +769,11 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let validator_provider = StoreProvider {
             store: self,
             cache: StoreCache::default(),
-            authorization: Some((authorization_api, actor_id, Consistency::FullyConsistent)),
+            authorization: Some((
+                &self.authorization_api,
+                actor_id,
+                Consistency::FullyConsistent,
+            )),
         };
 
         if let Err(error) = params
@@ -819,11 +822,14 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .attach(StatusCode::InvalidArgument)
     }
 
-    #[tracing::instrument(level = "info", skip(self, authorization_api, entities))]
-    async fn insert_entities_batched_by_type<A: AuthorizationApi + Send + Sync>(
+    #[expect(
+        clippy::significant_drop_tightening,
+        reason = "The connection is required to borrow the client"
+    )]
+    #[tracing::instrument(level = "info", skip(self, entities))]
+    async fn insert_entities_batched_by_type(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
         entities: impl IntoIterator<
             Item = (
                 OwnedById,
@@ -837,7 +843,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         entity_type_url: &VersionedUrl,
     ) -> Result<Vec<EntityMetadata>, InsertionError> {
         let entity_type_id = EntityTypeId::from_url(entity_type_url);
-        authorization_api
+        self.authorization_api
             .check_entity_type_permission(
                 actor_id,
                 EntityTypePermission::Instantiate,
@@ -974,11 +980,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .collect())
     }
 
-    #[tracing::instrument(level = "info", skip(self, authorization_api, params))]
-    async fn get_entity<A: AuthorizationApi + Sync>(
+    #[tracing::instrument(level = "info", skip(self, params))]
+    async fn get_entity(
         &self,
         actor_id: AccountId,
-        authorization_api: &A,
         mut params: GetEntityParams<'_>,
     ) -> Result<GetEntityResponse<'static>, QueryError> {
         let query = &mut params.query;
@@ -1001,7 +1006,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .try_collect::<Vec<_>>()
             .await?;
 
-            let (permissions, zookie) = authorization_api
+            let (permissions, zookie) = self
+                .authorization_api
                 .check_entities_permission(
                     actor_id,
                     EntityPermission::View,
@@ -1063,7 +1069,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     .map(|(entity, _)| entity.metadata.record_id.entity_id)
                     .collect::<HashSet<_>>();
 
-                let (permissions, zookie) = authorization_api
+                let (permissions, zookie) = self
+                    .authorization_api
                     .check_entities_permission(
                         actor_id,
                         EntityPermission::View,
@@ -1151,7 +1158,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .collect(),
             &mut traversal_context,
             actor_id,
-            authorization_api,
             &latest_zookie,
             &mut subgraph,
         )
@@ -1168,10 +1174,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         })
     }
 
-    async fn count_entities<Au: AuthorizationApi + Sync>(
+    async fn count_entities(
         &self,
         actor_id: AccountId,
-        authorization_api: &Au,
         query: EntityStructuralQuery<'_>,
     ) -> Result<usize, QueryError> {
         let temporal_axes = query.temporal_axes.resolve();
@@ -1187,7 +1192,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         .try_collect::<Vec<_>>()
         .await?;
 
-        let permitted_ids = authorization_api
+        let permitted_ids = self
+            .authorization_api
             .check_entities_permission(
                 actor_id,
                 EntityPermission::View,
@@ -1207,15 +1213,14 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .count())
     }
 
-    async fn get_entity_by_id<A: AuthorizationApi + Sync>(
+    async fn get_entity_by_id(
         &self,
         actor_id: AccountId,
-        authorization_api: &A,
         entity_id: EntityId,
         transaction_time: Option<Timestamp<TransactionTime>>,
         decision_time: Option<Timestamp<DecisionTime>>,
     ) -> Result<Entity, QueryError> {
-        authorization_api
+        self.authorization_api
             .check_entity_permission(
                 actor_id,
                 EntityPermission::View,
@@ -1245,12 +1250,14 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         .await
     }
 
-    #[tracing::instrument(level = "info", skip(self, authorization_api, temporal_client, params))]
-    async fn patch_entity<A: AuthorizationApi + Send + Sync>(
+    #[expect(
+        clippy::significant_drop_tightening,
+        reason = "The connection is required to borrow the client"
+    )]
+    #[tracing::instrument(level = "info", skip(self, params))]
+    async fn patch_entity(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
-        temporal_client: Option<&TemporalClient>,
         mut params: PatchEntityParams,
     ) -> Result<EntityMetadata, UpdateError> {
         let entity_type_ids = params
@@ -1259,7 +1266,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .map(EntityTypeId::from_url)
             .collect::<Vec<_>>();
 
-        if !authorization_api
+        if !self
+            .authorization_api
             .check_entity_types_permission(
                 actor_id,
                 EntityTypePermission::Instantiate,
@@ -1275,7 +1283,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             bail!(Report::new(UpdateError).attach(StatusCode::PermissionDenied));
         }
 
-        authorization_api
+        self.authorization_api
             .check_entity_permission(
                 actor_id,
                 EntityPermission::Update,
@@ -1519,7 +1527,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         transaction
             .validate_entity(
                 actor_id,
-                authorization_api,
                 Consistency::FullyConsistent,
                 ValidateEntityParams {
                     entity_types: EntityValidationType::ClosedSchema(Cow::Borrowed(&closed_schema)),
@@ -1554,7 +1561,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             properties: property_metadata,
             archived,
         };
-        if let Some(temporal_client) = temporal_client {
+        if let Some(temporal_client) = &self.temporal_client {
             temporal_client
                 .start_update_entity_embeddings_workflow(
                     actor_id,
@@ -1571,10 +1578,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
-    async fn update_entity_embeddings<A: AuthorizationApi + Send + Sync>(
+    async fn update_entity_embeddings(
         &mut self,
         _: AccountId,
-        _: &mut A,
         params: UpdateEntityEmbeddingsParams<'_>,
     ) -> Result<(), UpdateError> {
         #[derive(Debug, ToSql)]
@@ -1703,7 +1709,10 @@ struct LockedEntityEdition {
     updated_at_decision_time: Timestamp<DecisionTime>,
 }
 
-impl PostgresStore<tokio_postgres::Transaction<'_>> {
+impl<A> PostgresStore<tokio_postgres::Transaction<'_>, A>
+where
+    A: Send + Sync,
+{
     #[tracing::instrument(level = "trace", skip(self))]
     async fn insert_entity_edition(
         &self,

@@ -6,7 +6,7 @@ use authorization::{
         EntityTypeRelationAndSubject, EntityTypeViewerSubject, PropertyTypeRelationAndSubject,
         PropertyTypeViewerSubject,
     },
-    NoAuthorization,
+    AuthorizationApi, NoAuthorization,
 };
 use graph::{
     load_env,
@@ -31,25 +31,33 @@ use tokio_postgres::NoTls;
 use type_system::{DataType, EntityType, PropertyType};
 
 type Pool = PostgresStorePool<NoTls>;
-pub type Store = <Pool as StorePool>::Store<'static>;
+pub type Store<A> = <Pool as StorePool>::Store<'static, A>;
 
 // TODO - deduplicate with integration/postgres.rs
-pub struct StoreWrapper {
+pub struct StoreWrapper<A: AuthorizationApi> {
     delete_on_drop: bool,
     pub bench_db_name: String,
     source_db_pool: Pool,
     pool: ManuallyDrop<Pool>,
-    pub store: ManuallyDrop<Store>,
+    pub store: ManuallyDrop<Store<A>>,
     #[allow(dead_code, reason = "False positive")]
     pub account_id: AccountId,
 }
 
-impl StoreWrapper {
+impl<A> StoreWrapper<A>
+where
+    A: AuthorizationApi,
+{
+    #[expect(
+        clippy::significant_drop_tightening,
+        reason = "The connection is required to borrow the client"
+    )]
     pub async fn new(
         bench_db_name: &str,
         fail_on_exists: bool,
         delete_on_drop: bool,
         account_id: AccountId,
+        mut authorization_api: A,
     ) -> Self {
         load_env(Environment::Test);
 
@@ -95,7 +103,7 @@ impl StoreWrapper {
         // Create a new connection to the source database, copy the database, drop the connection
         {
             let conn = source_db_pool
-                .acquire_owned()
+                .acquire_owned(&mut authorization_api, None)
                 .await
                 .expect("could not acquire a database connection");
             let client = conn.as_client();
@@ -154,7 +162,7 @@ impl StoreWrapper {
 
         // _owned is necessary as otherwise we have a self-referential struct
         let store = pool
-            .acquire_owned()
+            .acquire_owned(authorization_api, None)
             .await
             .expect("could not acquire a database connection");
 
@@ -169,7 +177,10 @@ impl StoreWrapper {
     }
 }
 
-impl Drop for StoreWrapper {
+impl<A> Drop for StoreWrapper<A>
+where
+    A: AuthorizationApi,
+{
     fn drop(&mut self) {
         if !(self.delete_on_drop) {
             return;
@@ -185,13 +196,11 @@ impl Drop for StoreWrapper {
 
         let runtime = Runtime::new().expect("could not create runtime");
         runtime.block_on(async {
-            let conn = self
-                .source_db_pool
-                .acquire_owned()
+            self.source_db_pool
+                .acquire_owned(NoAuthorization, None)
                 .await
-                .expect("could not acquire a database connection");
-
-            conn.as_client()
+                .expect("could not acquire a database connection")
+                .as_client()
                 .execute(
                     &format!(
                         r#"
@@ -208,8 +217,8 @@ impl Drop for StoreWrapper {
 }
 
 #[expect(clippy::too_many_lines)]
-pub async fn seed<D, P, E, C>(
-    store: &mut PostgresStore<C>,
+pub async fn seed<D, P, E, C, A>(
+    store: &mut PostgresStore<C, A>,
     account_id: AccountId,
     data_types: D,
     property_types: P,
@@ -219,6 +228,7 @@ pub async fn seed<D, P, E, C>(
     P: IntoIterator<Item = &'static str, IntoIter: Send> + Send,
     E: IntoIterator<Item = &'static str, IntoIter: Send> + Send,
     C: AsClient,
+    A: AuthorizationApi,
 {
     for data_type_str in data_types {
         let data_type: DataType =
@@ -227,8 +237,6 @@ pub async fn seed<D, P, E, C>(
         match store
             .create_data_type(
                 account_id,
-                &mut NoAuthorization,
-                None,
                 CreateDataTypeParams {
                     schema: data_type.clone(),
                     classification: OntologyTypeClassificationMetadata::Owned {
@@ -250,8 +258,6 @@ pub async fn seed<D, P, E, C>(
                     store
                         .update_data_type(
                             account_id,
-                            &mut NoAuthorization,
-                            None,
                             UpdateDataTypesParams {
                                 schema: data_type,
                                 relationships: [DataTypeRelationAndSubject::Viewer {
@@ -277,8 +283,6 @@ pub async fn seed<D, P, E, C>(
         match store
             .create_property_type(
                 account_id,
-                &mut NoAuthorization,
-                None,
                 CreatePropertyTypeParams {
                     schema: property_type.clone(),
                     classification: OntologyTypeClassificationMetadata::Owned {
@@ -300,8 +304,6 @@ pub async fn seed<D, P, E, C>(
                     store
                         .update_property_type(
                             account_id,
-                            &mut NoAuthorization,
-                            None,
                             UpdatePropertyTypesParams {
                                 schema: property_type,
                                 relationships: [PropertyTypeRelationAndSubject::Viewer {
@@ -327,8 +329,6 @@ pub async fn seed<D, P, E, C>(
         match store
             .create_entity_type(
                 account_id,
-                &mut NoAuthorization,
-                None,
                 CreateEntityTypeParams {
                     schema: entity_type.clone(),
                     classification: OntologyTypeClassificationMetadata::Owned {
@@ -352,8 +352,6 @@ pub async fn seed<D, P, E, C>(
                     store
                         .update_entity_type(
                             account_id,
-                            &mut NoAuthorization,
-                            None,
                             UpdateEntityTypesParams {
                                 schema: entity_type,
                                 icon: None,
@@ -381,12 +379,13 @@ pub async fn seed<D, P, E, C>(
     }
 }
 
-pub fn setup(
+pub fn setup<A: AuthorizationApi>(
     db_name: &str,
     fail_on_exists: bool,
     delete_on_drop: bool,
     account_id: AccountId,
-) -> (Runtime, StoreWrapper) {
+    authorization_api: A,
+) -> (Runtime, StoreWrapper<A>) {
     let runtime = Runtime::new().expect("could not create runtime");
 
     let store_wrapper = runtime.block_on(StoreWrapper::new(
@@ -394,6 +393,7 @@ pub fn setup(
         fail_on_exists,
         delete_on_drop,
         account_id,
+        authorization_api,
     ));
     (runtime, store_wrapper)
 }

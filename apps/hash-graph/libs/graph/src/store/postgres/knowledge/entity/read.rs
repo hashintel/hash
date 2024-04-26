@@ -82,7 +82,11 @@ pub struct KnowledgeEdgeTraversal {
     pub traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
 }
 
-impl<C: AsClient> PostgresStore<C> {
+impl<C, A> PostgresStore<C, A>
+where
+    C: AsClient,
+    A: Send + Sync,
+{
     #[tracing::instrument(level = "trace", skip(self))]
     pub(crate) async fn read_shared_edges<'t>(
         &self,

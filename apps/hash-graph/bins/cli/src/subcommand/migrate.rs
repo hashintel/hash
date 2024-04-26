@@ -1,3 +1,4 @@
+use authorization::NoAuthorization;
 use clap::Parser;
 use error_stack::{Result, ResultExt};
 use graph::store::{DatabaseConnectionInfo, PostgresStorePool, StoreMigration, StorePool};
@@ -21,16 +22,13 @@ pub async fn migrate(args: MigrateArgs) -> Result<(), GraphError> {
             report
         })?;
 
-    let mut connection = pool
-        .acquire()
+    pool.acquire(NoAuthorization, None)
         .await
         .change_context(GraphError)
         .map_err(|report| {
             tracing::error!(error = ?report, "Failed to acquire database connection");
             report
-        })?;
-
-    connection
+        })?
         .run_migrations()
         .await
         .change_context(GraphError)

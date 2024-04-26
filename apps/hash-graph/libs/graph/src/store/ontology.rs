@@ -1,10 +1,7 @@
 use std::{borrow::Cow, iter};
 
-use authorization::{
-    schema::{
-        DataTypeRelationAndSubject, EntityTypeRelationAndSubject, PropertyTypeRelationAndSubject,
-    },
-    AuthorizationApi,
+use authorization::schema::{
+    DataTypeRelationAndSubject, EntityTypeRelationAndSubject, PropertyTypeRelationAndSubject,
 };
 use error_stack::Result;
 use graph_types::{
@@ -17,7 +14,6 @@ use graph_types::{
     Embedding,
 };
 use serde::Deserialize;
-use temporal_client::TemporalClient;
 use temporal_versioning::{Timestamp, TransactionTime};
 use type_system::{
     url::{BaseUrl, VersionedUrl},
@@ -108,11 +104,9 @@ pub trait DataTypeStore {
     /// - if the [`BaseUrl`] of the `data_type` already exists.
     ///
     /// [`BaseUrl`]: type_system::url::BaseUrl
-    fn create_data_type<A: AuthorizationApi + Send + Sync, R>(
+    fn create_data_type<R>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
-        temporal_client: Option<&TemporalClient>,
         params: CreateDataTypeParams<R>,
     ) -> impl Future<Output = Result<DataTypeMetadata, InsertionError>> + Send
     where
@@ -121,12 +115,7 @@ pub trait DataTypeStore {
     {
         async move {
             Ok(self
-                .create_data_types(
-                    actor_id,
-                    authorization_api,
-                    temporal_client,
-                    iter::once(params),
-                )
+                .create_data_types(actor_id, iter::once(params))
                 .await?
                 .pop()
                 .expect("created exactly one data type"))
@@ -141,11 +130,9 @@ pub trait DataTypeStore {
     /// - if any [`BaseUrl`] of the data type already exists.
     ///
     /// [`BaseUrl`]: type_system::url::BaseUrl
-    fn create_data_types<A: AuthorizationApi + Send + Sync, P, R>(
+    fn create_data_types<P, R>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
-        temporal_client: Option<&TemporalClient>,
         params: P,
     ) -> impl Future<Output = Result<Vec<DataTypeMetadata>, InsertionError>> + Send
     where
@@ -157,10 +144,9 @@ pub trait DataTypeStore {
     /// # Errors
     ///
     /// - if the requested [`DataType`] doesn't exist.
-    fn get_data_type<A: AuthorizationApi + Sync>(
+    fn get_data_type(
         &self,
         actor_id: AccountId,
-        authorization_api: &A,
         params: GetDataTypesParams<'_>,
     ) -> impl Future<Output = Result<Subgraph, QueryError>> + Send;
 
@@ -169,11 +155,9 @@ pub trait DataTypeStore {
     /// # Errors
     ///
     /// - if the [`DataType`] doesn't exist.
-    fn update_data_type<A: AuthorizationApi + Send + Sync, R>(
+    fn update_data_type<R>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
-        temporal_client: Option<&TemporalClient>,
         params: UpdateDataTypesParams<R>,
     ) -> impl Future<Output = Result<DataTypeMetadata, UpdateError>> + Send
     where
@@ -184,10 +168,9 @@ pub trait DataTypeStore {
     /// # Errors
     ///
     /// - if the [`DataType`] doesn't exist.
-    fn archive_data_type<A: AuthorizationApi + Send + Sync>(
+    fn archive_data_type(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
         params: ArchiveDataTypeParams,
     ) -> impl Future<Output = Result<OntologyTemporalMetadata, UpdateError>> + Send;
 
@@ -196,17 +179,17 @@ pub trait DataTypeStore {
     /// # Errors
     ///
     /// - if the [`DataType`] doesn't exist.
-    fn unarchive_data_type<A: AuthorizationApi + Send + Sync>(
+    fn unarchive_data_type(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
+
         params: UnarchiveDataTypeParams,
     ) -> impl Future<Output = Result<OntologyTemporalMetadata, UpdateError>> + Send;
 
-    fn update_data_type_embeddings<A: AuthorizationApi + Send + Sync>(
+    fn update_data_type_embeddings(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
+
         params: UpdateDataTypeEmbeddingParams<'_>,
     ) -> impl Future<Output = Result<(), UpdateError>> + Send;
 }
@@ -286,11 +269,9 @@ pub trait PropertyTypeStore {
     /// - if the [`BaseUrl`] of the `property_type` already exists.
     ///
     /// [`BaseUrl`]: type_system::url::BaseUrl
-    fn create_property_type<A: AuthorizationApi + Send + Sync, R>(
+    fn create_property_type<R>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
-        temporal_client: Option<&TemporalClient>,
         params: CreatePropertyTypeParams<R>,
     ) -> impl Future<Output = Result<PropertyTypeMetadata, InsertionError>> + Send
     where
@@ -299,12 +280,7 @@ pub trait PropertyTypeStore {
     {
         async move {
             Ok(self
-                .create_property_types(
-                    actor_id,
-                    authorization_api,
-                    temporal_client,
-                    iter::once(params),
-                )
+                .create_property_types(actor_id, iter::once(params))
                 .await?
                 .pop()
                 .expect("created exactly one property type"))
@@ -319,11 +295,9 @@ pub trait PropertyTypeStore {
     /// - if any [`BaseUrl`] of the property type already exists.
     ///
     /// [`BaseUrl`]: type_system::url::BaseUrl
-    fn create_property_types<A: AuthorizationApi + Send + Sync, P, R>(
+    fn create_property_types<P, R>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
-        temporal_client: Option<&TemporalClient>,
         params: P,
     ) -> impl Future<Output = Result<Vec<PropertyTypeMetadata>, InsertionError>> + Send
     where
@@ -335,10 +309,9 @@ pub trait PropertyTypeStore {
     /// # Errors
     ///
     /// - if the requested [`PropertyType`] doesn't exist.
-    fn get_property_type<A: AuthorizationApi + Sync>(
+    fn get_property_type(
         &self,
         actor_id: AccountId,
-        authorization_api: &A,
         params: GetPropertyTypesParams<'_>,
     ) -> impl Future<Output = Result<Subgraph, QueryError>> + Send;
 
@@ -347,11 +320,9 @@ pub trait PropertyTypeStore {
     /// # Errors
     ///
     /// - if the [`PropertyType`] doesn't exist.
-    fn update_property_type<A: AuthorizationApi + Send + Sync, R>(
+    fn update_property_type<R>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
-        temporal_client: Option<&TemporalClient>,
         params: UpdatePropertyTypesParams<R>,
     ) -> impl Future<Output = Result<PropertyTypeMetadata, UpdateError>> + Send
     where
@@ -362,10 +333,10 @@ pub trait PropertyTypeStore {
     /// # Errors
     ///
     /// - if the [`PropertyType`] doesn't exist.
-    fn archive_property_type<A: AuthorizationApi + Send + Sync>(
+    fn archive_property_type(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
+
         params: ArchivePropertyTypeParams<'_>,
     ) -> impl Future<Output = Result<OntologyTemporalMetadata, UpdateError>> + Send;
 
@@ -374,17 +345,17 @@ pub trait PropertyTypeStore {
     /// # Errors
     ///
     /// - if the [`PropertyType`] doesn't exist.
-    fn unarchive_property_type<A: AuthorizationApi + Send + Sync>(
+    fn unarchive_property_type(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
+
         params: UnarchivePropertyTypeParams<'_>,
     ) -> impl Future<Output = Result<OntologyTemporalMetadata, UpdateError>> + Send;
 
-    fn update_property_type_embeddings<A: AuthorizationApi + Send + Sync>(
+    fn update_property_type_embeddings(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
+
         params: UpdatePropertyTypeEmbeddingParams<'_>,
     ) -> impl Future<Output = Result<(), UpdateError>> + Send;
 }
@@ -468,11 +439,9 @@ pub trait EntityTypeStore {
     /// - if the [`BaseUrl`] of the `entity_type` already exists.
     ///
     /// [`BaseUrl`]: type_system::url::BaseUrl
-    fn create_entity_type<A: AuthorizationApi + Send + Sync, R>(
+    fn create_entity_type<R>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
-        temporal_client: Option<&TemporalClient>,
         params: CreateEntityTypeParams<R>,
     ) -> impl Future<Output = Result<EntityTypeMetadata, InsertionError>> + Send
     where
@@ -481,12 +450,7 @@ pub trait EntityTypeStore {
     {
         async move {
             Ok(self
-                .create_entity_types(
-                    actor_id,
-                    authorization_api,
-                    temporal_client,
-                    iter::once(params),
-                )
+                .create_entity_types(actor_id, iter::once(params))
                 .await?
                 .pop()
                 .expect("created exactly one entity type"))
@@ -501,11 +465,9 @@ pub trait EntityTypeStore {
     /// - if any [`BaseUrl`] of the entity type already exists.
     ///
     /// [`BaseUrl`]: type_system::url::BaseUrl
-    fn create_entity_types<A: AuthorizationApi + Send + Sync, P, R>(
+    fn create_entity_types<P, R>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
-        temporal_client: Option<&TemporalClient>,
         params: P,
     ) -> impl Future<Output = Result<Vec<EntityTypeMetadata>, InsertionError>> + Send
     where
@@ -517,10 +479,9 @@ pub trait EntityTypeStore {
     /// # Errors
     ///
     /// - if the requested [`EntityType`] doesn't exist.
-    fn get_entity_type<A: AuthorizationApi + Sync>(
+    fn get_entity_type(
         &self,
         actor_id: AccountId,
-        authorization_api: &A,
         params: GetEntityTypesParams<'_>,
     ) -> impl Future<Output = Result<Subgraph, QueryError>> + Send;
 
@@ -529,11 +490,9 @@ pub trait EntityTypeStore {
     /// # Errors
     ///
     /// - if the [`EntityType`] doesn't exist.
-    fn update_entity_type<A: AuthorizationApi + Send + Sync, R>(
+    fn update_entity_type<R>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
-        temporal_client: Option<&TemporalClient>,
         params: UpdateEntityTypesParams<R>,
     ) -> impl Future<Output = Result<EntityTypeMetadata, UpdateError>> + Send
     where
@@ -544,10 +503,10 @@ pub trait EntityTypeStore {
     /// # Errors
     ///
     /// - if the [`EntityType`] doesn't exist.
-    fn archive_entity_type<A: AuthorizationApi + Send + Sync>(
+    fn archive_entity_type(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
+
         params: ArchiveEntityTypeParams,
     ) -> impl Future<Output = Result<OntologyTemporalMetadata, UpdateError>> + Send;
 
@@ -556,17 +515,17 @@ pub trait EntityTypeStore {
     /// # Errors
     ///
     /// - if the [`EntityType`] doesn't exist.
-    fn unarchive_entity_type<A: AuthorizationApi + Send + Sync>(
+    fn unarchive_entity_type(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
+
         params: UnarchiveEntityTypeParams,
     ) -> impl Future<Output = Result<OntologyTemporalMetadata, UpdateError>> + Send;
 
-    fn update_entity_type_embeddings<A: AuthorizationApi + Send + Sync>(
+    fn update_entity_type_embeddings(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
+
         params: UpdateEntityTypeEmbeddingParams<'_>,
     ) -> impl Future<Output = Result<(), UpdateError>> + Send;
 }
