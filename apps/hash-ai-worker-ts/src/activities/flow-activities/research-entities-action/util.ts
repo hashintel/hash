@@ -1,5 +1,3 @@
-import dedent from "dedent";
-
 import type {
   LlmAssistantMessage,
   LlmMessage,
@@ -43,10 +41,7 @@ export const mapPreviousCallsToLlmMessages = (params: {
                 tool_use_id: completedToolCall.id,
                 content: isAfterOmitIndex
                   ? completedToolCall.redactedOutputMessage ??
-                    dedent(`
-                        The output fo the tool call is:
-                        ${completedToolCall.output}
-                      `)
+                    completedToolCall.output
                   : "This output has been omitted to reduce the length of the chat.",
                 is_error: completedToolCall.isError,
               })),
