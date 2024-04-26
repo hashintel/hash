@@ -11,6 +11,7 @@ const toolNames = [
   "complete",
   "terminate",
   "updatePlan",
+  "queryPdf",
 ] as const;
 
 export type ToolName = (typeof toolNames)[number];

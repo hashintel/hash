@@ -35,6 +35,7 @@ import { graphApiClient } from "../../shared/graph-api-client";
 import type { PermittedOpenAiModel } from "../../shared/openai-client";
 import { stringify } from "../../shared/stringify";
 import { inferEntitiesFromContentAction } from "../infer-entities-from-content-action";
+import { indexPdfFile } from "./infer-entities-from-web-page-worker-agent/llama-index/index-pdf-file";
 import type {
   InferEntitiesFromWebPageWorkerAgentState,
   ToolName,
@@ -76,7 +77,11 @@ const explanationDefinition = {
 const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
   getWebPageInnerHtml: {
     name: "getWebPageInnerHtml",
-    description: "Get the inner HTML of a web page.",
+    description: dedent(`
+      Get the inner HTML of a web page.
+      Do not call this tool for files hosted at a URL, only for web pages.
+      You can use the "queryPdf" tool to query a PDF document at a URL instead.
+    `),
     inputSchema: {
       type: "object",
       properties: {
@@ -215,6 +220,34 @@ const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
       required: ["entityIds", "explanation"],
     },
   },
+  queryPdf: {
+    name: "queryPdf",
+    description: dedent(`
+      Query a PDF document at a URL.
+      Use this tool to ask questions about the content of a PDF document, hosted at a URL.
+      You will be provided with a response to the query, as well as the relevant text from the document
+        used to answer the query.
+    `),
+    inputSchema: {
+      type: "object",
+      properties: {
+        explanation: explanationDefinition,
+        fileUrl: {
+          type: "string",
+          description: "The URL of the PDF document.",
+        },
+        query: {
+          type: "string",
+          description: dedent(`
+            The query to search for in the PDF document.
+            Be as specific as possible about the information you are looking for.
+            If you are looking for a list of something, specify the list and what data it should contain.
+          `),
+        },
+      },
+      required: ["fileUrl", "query", "explanation"],
+    },
+  },
   complete: {
     name: "complete",
     description: dedent(`
@@ -289,6 +322,10 @@ type ToolCallArguments = Subtype<
     };
     complete: never;
     terminate: never;
+    queryPdf: {
+      fileUrl: string;
+      query: string;
+    };
   }
 >;
 
@@ -892,6 +929,25 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               ...toolCall,
               output: `The entities with IDs ${JSON.stringify(entityIds)} where successfully submitted.   Do not call the "complete" tool unless the submitted entities satisfy
               the initial research prompt.`,
+            };
+          } else if (toolCall.name === "queryPdf") {
+            const { query, fileUrl } =
+              toolCall.input as ToolCallArguments["queryPdf"];
+
+            const { vectorStoreIndex } = await indexPdfFile({ fileUrl });
+
+            const queryEngine = vectorStoreIndex.asQueryEngine();
+
+            const { response, sourceNodes } = await queryEngine.query({
+              query,
+            });
+
+            return {
+              ...toolCall,
+              output: dedent(`
+                Response: ${response}
+                Source Nodes: ${JSON.stringify(sourceNodes)}
+              `),
             };
           }
 
