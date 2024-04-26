@@ -51,6 +51,7 @@ async fn test_root_sorting<A: AuthorizationApi>(
         })
         .collect::<Vec<_>>();
     let mut cursor = None;
+    let expected_order = expected_order.into_iter().collect::<Vec<_>>();
 
     let mut found_entities = HashSet::new();
     let mut entities = Vec::new();
@@ -80,6 +81,8 @@ async fn test_root_sorting<A: AuthorizationApi>(
             )
             .await
             .expect("could not get entity");
+        assert_eq!(count, Some(expected_order.len()));
+        let num_entities = new_entities.len();
 
         for entity in new_entities {
             assert!(
@@ -89,7 +92,7 @@ async fn test_root_sorting<A: AuthorizationApi>(
             );
             entities.push(entity);
         }
-        if count.expect("Count was not returned from query") < chunk_size {
+        if num_entities < chunk_size {
             break;
         }
         if let Some(new_cursor) = new_cursor {
