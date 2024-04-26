@@ -180,15 +180,14 @@ export const coordinatorToolDefinitions: Record<
   proposeAndSubmitLink: {
     name: "proposeAndSubmitLink",
     description: dedent(`
-      Propose and submit a link between two entities.
+      Propose and submit a link entity, which creates a link between two entities.
+
       The source or target entity can be:
-        - a previously submitted proposed entity
+        - a proposed entity
         - an existing entity
 
-      If you want to use a proposed entity as the source or target entity, you must first
-        submit the proposed entity using the "submitProposedEntities" tool.
-        
-      Proposing a link will also submit it as a proposed link entity for the research task.
+      If the source or target are a proposed entity that has not yet been submitted,
+        they will be submitted in this tool call.
     `),
     inputSchema: {
       type: "object",

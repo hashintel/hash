@@ -263,15 +263,13 @@ export const researchEntitiesAction: FlowActionActivity<{
             };
           } else if (toolCall.name === "proposeAndSubmitLink") {
             const { sourceEntityId, targetEntityId, linkEntityTypeId } =
-              toolCall.input as CoordinatorToolCallArguments["proposeLink"];
-
-            const submittedProposedEntities = getSubmittedProposedEntities();
+              toolCall.input as CoordinatorToolCallArguments["proposeAndSubmitLink"];
 
             const sourceEntity =
               input.existingEntities?.find(
                 ({ metadata }) => metadata.recordId.entityId === sourceEntityId,
               ) ??
-              submittedProposedEntities.find(
+              state.proposedEntities.find(
                 ({ localEntityId }) => localEntityId === sourceEntityId,
               );
 
@@ -279,7 +277,7 @@ export const researchEntitiesAction: FlowActionActivity<{
               input.existingEntities?.find(
                 ({ metadata }) => metadata.recordId.entityId === targetEntityId,
               ) ??
-              submittedProposedEntities.find(
+              state.proposedEntities.find(
                 ({ localEntityId }) => localEntityId === targetEntityId,
               );
 
@@ -287,12 +285,10 @@ export const researchEntitiesAction: FlowActionActivity<{
               return {
                 ...toolCall,
                 output: dedent(`
-                  There is no ${input.existingEntities ? "existing or " : ""}submitted proposed entity with ID "${sourceEntityId}".
+                  There is no ${input.existingEntities ? "existing or " : ""} proposed entity with ID "${sourceEntityId}".
                   
                   ${input.existingEntities ? `Possible existing entity IDs are: ${JSON.stringify(input.existingEntities.map(({ metadata }) => metadata.recordId.entityId))}.` : ""}
-                  Possible submitted proposed entity IDs are: ${JSON.stringify(submittedProposedEntities.map(({ localEntityId }) => localEntityId))}.
-
-                  You can use the "submitProposedEntities" tool call to submit additional proposed entities.
+                  Possible proposed entity IDs are: ${JSON.stringify(state.proposedEntities.map(({ localEntityId }) => localEntityId))}.
                 `),
                 isError: true,
               };
@@ -349,9 +345,32 @@ export const researchEntitiesAction: FlowActionActivity<{
 
             state.submittedEntityIds.push(localEntityId);
 
+            let submittedSourceProposedEntityId: string | undefined;
+
+            if (
+              "localEntityId" in sourceEntity &&
+              !state.submittedEntityIds.includes(sourceEntity.localEntityId)
+            ) {
+              state.submittedEntityIds.push(sourceEntity.localEntityId);
+              submittedSourceProposedEntityId = sourceEntity.localEntityId;
+            }
+
+            let submittedTargetProposedEntityId: string | undefined;
+            if (
+              "localEntityId" in targetEntity &&
+              !state.submittedEntityIds.includes(targetEntity.localEntityId)
+            ) {
+              state.submittedEntityIds.push(targetEntity.localEntityId);
+              submittedTargetProposedEntityId = targetEntity.localEntityId;
+            }
+
             return {
               ...toolCall,
-              output: `The link between the entities with IDs ${sourceEntityId} and ${targetEntityId} has been successfully proposed.`,
+              output: dedent(`
+                The link between the entities with IDs ${sourceEntityId} and ${targetEntityId} has been successfully proposed and submitted.
+                ${submittedSourceProposedEntityId ? `The source proposed entity with ID ${sourceEntityId} has also been submitted.` : ""}
+                ${submittedTargetProposedEntityId ? `The target proposed entity with ID ${targetEntityId} has also been submitted.` : ""}
+              `),
             };
           } else if (toolCall.name === "complete") {
             if (!state.hasConductedCheckStep) {
