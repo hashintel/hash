@@ -46,12 +46,13 @@ use graph::{
         ontology::{
             ArchiveDataTypeParams, ArchiveEntityTypeParams, ArchivePropertyTypeParams,
             CreateDataTypeParams, CreateEntityTypeParams, CreatePropertyTypeParams,
-            GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetEntityTypeSubgraphParams,
-            GetEntityTypeSubgraphResponse, GetPropertyTypeSubgraphParams,
-            GetPropertyTypeSubgraphResponse, UnarchiveDataTypeParams, UnarchiveEntityTypeParams,
-            UnarchivePropertyTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
-            UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
-            UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
+            GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
+            GetDataTypesResponse, GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse,
+            GetEntityTypesParams, GetEntityTypesResponse, GetPropertyTypeSubgraphParams,
+            GetPropertyTypeSubgraphResponse, GetPropertyTypesParams, GetPropertyTypesResponse,
+            UnarchiveDataTypeParams, UnarchiveEntityTypeParams, UnarchivePropertyTypeParams,
+            UpdateDataTypeEmbeddingParams, UpdateDataTypesParams, UpdateEntityTypeEmbeddingParams,
+            UpdateEntityTypesParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
         },
         AccountStore, ConflictBehavior, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
         EntityStore, EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool,
@@ -304,6 +305,14 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
         self.store.create_data_types(actor_id, params).await
     }
 
+    async fn get_data_types(
+        &self,
+        actor_id: AccountId,
+        params: GetDataTypesParams<'_>,
+    ) -> Result<GetDataTypesResponse, QueryError> {
+        self.store.get_data_types(actor_id, params).await
+    }
+
     async fn get_data_type_subgraph(
         &self,
         actor_id: AccountId,
@@ -361,6 +370,14 @@ impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
         R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync,
     {
         self.store.create_property_types(actor_id, params).await
+    }
+
+    async fn get_property_types(
+        &self,
+        actor_id: AccountId,
+        params: GetPropertyTypesParams<'_>,
+    ) -> Result<GetPropertyTypesResponse, QueryError> {
+        self.store.get_property_types(actor_id, params).await
     }
 
     async fn get_property_type_subgraph(
@@ -422,6 +439,14 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
         R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
     {
         self.store.create_entity_types(actor_id, params).await
+    }
+
+    async fn get_entity_types(
+        &self,
+        actor_id: AccountId,
+        params: GetEntityTypesParams<'_>,
+    ) -> Result<GetEntityTypesResponse, QueryError> {
+        self.store.get_entity_types(actor_id, params).await
     }
 
     async fn get_entity_type_subgraph(

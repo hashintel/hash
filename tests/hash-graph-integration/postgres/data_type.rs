@@ -1,17 +1,12 @@
 use graph::{
     store::{
         error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
-        ontology::{CreateDataTypeParams, GetDataTypeSubgraphParams, UpdateDataTypesParams},
+        ontology::{CreateDataTypeParams, GetDataTypesParams, UpdateDataTypesParams},
         query::Filter,
         BaseUrlAlreadyExists, ConflictBehavior, DataTypeStore,
     },
-    subgraph::{
-        edges::GraphResolveDepths,
-        identifier::DataTypeVertexId,
-        temporal_axes::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
-            VariableTemporalAxisUnresolved,
-        },
+    subgraph::temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },
 };
 use graph_types::{
@@ -77,12 +72,11 @@ async fn query() {
     .await
     .expect("could not create data type");
 
-    let data_type = api
-        .get_data_type_subgraph(
+    let data_types = api
+        .get_data_types(
             api.account_id,
-            GetDataTypeSubgraphParams {
+            GetDataTypesParams {
                 filter: Filter::for_versioned_url(empty_list_dt.id()),
-                graph_resolve_depths: GraphResolveDepths::default(),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -97,13 +91,14 @@ async fn query() {
         )
         .await
         .expect("could not get data type")
-        .subgraph
-        .vertices
-        .data_types
-        .remove(&DataTypeVertexId::from(empty_list_dt.id().clone()))
-        .expect("no data type found");
+        .data_types;
 
-    assert_eq!(data_type.schema, empty_list_dt);
+    assert_eq!(
+        data_types.len(),
+        1,
+        "expected one data type, got {data_types:?}"
+    );
+    assert_eq!(data_types[0].schema, empty_list_dt);
 }
 
 #[tokio::test]
@@ -147,11 +142,10 @@ async fn update() {
     .expect("could not update data type");
 
     let returned_object_dt_v1 = api
-        .get_data_type_subgraph(
+        .get_data_types(
             api.account_id,
-            GetDataTypeSubgraphParams {
+            GetDataTypesParams {
                 filter: Filter::for_versioned_url(object_dt_v1.id()),
-                graph_resolve_depths: GraphResolveDepths::default(),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -166,18 +160,15 @@ async fn update() {
         )
         .await
         .expect("could not get data type")
-        .subgraph
-        .vertices
         .data_types
-        .remove(&DataTypeVertexId::from(object_dt_v1.id().clone()))
+        .pop()
         .expect("no data type found");
 
     let returned_object_dt_v2 = api
-        .get_data_type_subgraph(
+        .get_data_types(
             api.account_id,
-            GetDataTypeSubgraphParams {
+            GetDataTypesParams {
                 filter: Filter::for_versioned_url(object_dt_v2.id()),
-                graph_resolve_depths: GraphResolveDepths::default(),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -192,10 +183,8 @@ async fn update() {
         )
         .await
         .expect("could not get data type")
-        .subgraph
-        .vertices
         .data_types
-        .remove(&DataTypeVertexId::from(object_dt_v2.id().clone()))
+        .pop()
         .expect("no data type found");
 
     assert_eq!(object_dt_v1, returned_object_dt_v1.schema);

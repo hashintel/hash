@@ -1,18 +1,11 @@
 use graph::{
     store::{
-        ontology::{
-            CreatePropertyTypeParams, GetPropertyTypeSubgraphParams, UpdatePropertyTypesParams,
-        },
+        ontology::{CreatePropertyTypeParams, GetPropertyTypesParams, UpdatePropertyTypesParams},
         query::Filter,
         ConflictBehavior, PropertyTypeStore,
     },
-    subgraph::{
-        edges::GraphResolveDepths,
-        identifier::PropertyTypeVertexId,
-        temporal_axes::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
-            VariableTemporalAxisUnresolved,
-        },
+    subgraph::temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },
 };
 use graph_test_data::{data_type, property_type};
@@ -79,11 +72,10 @@ async fn query() {
     .expect("could not create property type");
 
     let property_type = api
-        .get_property_type_subgraph(
+        .get_property_types(
             api.account_id,
-            GetPropertyTypeSubgraphParams {
+            GetPropertyTypesParams {
                 filter: Filter::for_versioned_url(favorite_quote_pt.id()),
-                graph_resolve_depths: GraphResolveDepths::default(),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -98,10 +90,8 @@ async fn query() {
         )
         .await
         .expect("could not get property type")
-        .subgraph
-        .vertices
         .property_types
-        .remove(&PropertyTypeVertexId::from(favorite_quote_pt.id().clone()))
+        .pop()
         .expect("no property type found");
 
     assert_eq!(property_type.schema, favorite_quote_pt);
@@ -148,11 +138,10 @@ async fn update() {
     .expect("could not update property type");
 
     let returned_user_id_pt_v1 = api
-        .get_property_type_subgraph(
+        .get_property_types(
             api.account_id,
-            GetPropertyTypeSubgraphParams {
+            GetPropertyTypesParams {
                 filter: Filter::for_versioned_url(user_id_pt_v1.id()),
-                graph_resolve_depths: GraphResolveDepths::default(),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -167,18 +156,15 @@ async fn update() {
         )
         .await
         .expect("could not get property type")
-        .subgraph
-        .vertices
         .property_types
-        .remove(&PropertyTypeVertexId::from(user_id_pt_v1.id().clone()))
+        .pop()
         .expect("no property type found");
 
     let returned_user_id_pt_v2 = api
-        .get_property_type_subgraph(
+        .get_property_types(
             api.account_id,
-            GetPropertyTypeSubgraphParams {
+            GetPropertyTypesParams {
                 filter: Filter::for_versioned_url(user_id_pt_v2.id()),
-                graph_resolve_depths: GraphResolveDepths::default(),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -193,10 +179,8 @@ async fn update() {
         )
         .await
         .expect("could not get property type")
-        .subgraph
-        .vertices
         .property_types
-        .remove(&PropertyTypeVertexId::from(user_id_pt_v2.id().clone()))
+        .pop()
         .expect("no property type found");
 
     assert_eq!(user_id_pt_v1, returned_user_id_pt_v1.schema);

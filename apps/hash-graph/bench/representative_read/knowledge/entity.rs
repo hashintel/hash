@@ -5,7 +5,7 @@ use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
     knowledge::EntityQueryPath,
     store::{
-        knowledge::GetEntitySubgraphParams,
+        knowledge::{GetEntitiesParams, GetEntitySubgraphParams},
         query::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
         EntityQuerySorting, EntityStore,
     },
@@ -41,16 +41,15 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
         },
         |entity_uuid| async move {
             let response = store
-                .get_entity_subgraph(
+                .get_entities(
                     actor_id,
-                    GetEntitySubgraphParams {
+                    GetEntitiesParams {
                         filter: Filter::Equal(
                             Some(FilterExpression::Path(EntityQueryPath::Uuid)),
                             Some(FilterExpression::Parameter(Parameter::Uuid(
                                 entity_uuid.into_uuid(),
                             ))),
                         ),
-                        graph_resolve_depths: GraphResolveDepths::default(),
                         temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                             pinned: PinnedTemporalAxisUnresolved::new(None),
                             variable: VariableTemporalAxisUnresolved::new(None, None),
@@ -66,7 +65,7 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
                 )
                 .await
                 .expect("failed to read entity from store");
-            assert_eq!(response.subgraph.roots.len(), 1);
+            assert_eq!(response.entities.len(), 1);
         },
         SmallInput,
     );

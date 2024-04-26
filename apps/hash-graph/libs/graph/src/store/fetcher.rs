@@ -47,24 +47,22 @@ use crate::{
         ontology::{
             ArchiveDataTypeParams, ArchiveEntityTypeParams, ArchivePropertyTypeParams,
             CreateDataTypeParams, CreateEntityTypeParams, CreatePropertyTypeParams,
-            GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetEntityTypeSubgraphParams,
-            GetEntityTypeSubgraphResponse, GetPropertyTypeSubgraphParams,
-            GetPropertyTypeSubgraphResponse, UnarchiveDataTypeParams, UnarchiveEntityTypeParams,
-            UnarchivePropertyTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
-            UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
-            UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
+            GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
+            GetDataTypesResponse, GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse,
+            GetEntityTypesParams, GetEntityTypesResponse, GetPropertyTypeSubgraphParams,
+            GetPropertyTypeSubgraphResponse, GetPropertyTypesParams, GetPropertyTypesResponse,
+            UnarchiveDataTypeParams, UnarchiveEntityTypeParams, UnarchivePropertyTypeParams,
+            UpdateDataTypeEmbeddingParams, UpdateDataTypesParams, UpdateEntityTypeEmbeddingParams,
+            UpdateEntityTypesParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
         },
         query::Filter,
         AccountStore, ConflictBehavior, DataTypeStore, EntityStore, EntityTypeStore,
         InsertionError, PropertyTypeStore, QueryError, QueryRecord, StoreError, StorePool,
         UpdateError,
     },
-    subgraph::{
-        edges::GraphResolveDepths,
-        temporal_axes::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
-            VariableTemporalAxisUnresolved,
-        },
+    subgraph::temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
+        VariableTemporalAxisUnresolved,
     },
 };
 
@@ -259,11 +257,10 @@ where
         match ontology_type_reference {
             OntologyTypeReference::DataTypeReference(_) => self
                 .store
-                .get_data_type_subgraph(
+                .get_data_types(
                     actor_id,
-                    GetDataTypeSubgraphParams {
+                    GetDataTypesParams {
                         filter: Filter::for_versioned_url(url),
-                        graph_resolve_depths: GraphResolveDepths::default(),
                         temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                             pinned: PinnedTemporalAxisUnresolved::new(None),
                             variable: VariableTemporalAxisUnresolved::new(None, None),
@@ -274,14 +271,13 @@ where
                     },
                 )
                 .await
-                .map(|response| !response.subgraph.roots.is_empty()),
+                .map(|response| !response.data_types.is_empty()),
             OntologyTypeReference::PropertyTypeReference(_) => self
                 .store
-                .get_property_type_subgraph(
+                .get_property_types(
                     actor_id,
-                    GetPropertyTypeSubgraphParams {
+                    GetPropertyTypesParams {
                         filter: Filter::for_versioned_url(url),
-                        graph_resolve_depths: GraphResolveDepths::default(),
                         temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                             pinned: PinnedTemporalAxisUnresolved::new(None),
                             variable: VariableTemporalAxisUnresolved::new(None, None),
@@ -292,14 +288,13 @@ where
                     },
                 )
                 .await
-                .map(|response| !response.subgraph.roots.is_empty()),
+                .map(|response| !response.property_types.is_empty()),
             OntologyTypeReference::EntityTypeReference(_) => self
                 .store
-                .get_entity_type_subgraph(
+                .get_entity_types(
                     actor_id,
-                    GetEntityTypeSubgraphParams {
+                    GetEntityTypesParams {
                         filter: Filter::for_versioned_url(url),
-                        graph_resolve_depths: GraphResolveDepths::default(),
                         temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                             pinned: PinnedTemporalAxisUnresolved::new(None),
                             variable: VariableTemporalAxisUnresolved::new(None, None),
@@ -310,7 +305,7 @@ where
                     },
                 )
                 .await
-                .map(|response| !response.subgraph.roots.is_empty()),
+                .map(|response| !response.entity_types.is_empty()),
         }
         .change_context(StoreError)
         .attach_printable("Could not check if ontology type exists")
@@ -848,6 +843,14 @@ where
             .await
     }
 
+    async fn get_data_types(
+        &self,
+        actor_id: AccountId,
+        params: GetDataTypesParams<'_>,
+    ) -> Result<GetDataTypesResponse, QueryError> {
+        self.store.get_data_types(actor_id, params).await
+    }
+
     async fn get_data_type_subgraph(
         &self,
         actor_id: AccountId,
@@ -945,6 +948,14 @@ where
         self.store
             .create_property_types(actor_id, creation_parameters)
             .await
+    }
+
+    async fn get_property_types(
+        &self,
+        actor_id: AccountId,
+        params: GetPropertyTypesParams<'_>,
+    ) -> Result<GetPropertyTypesResponse, QueryError> {
+        self.store.get_property_types(actor_id, params).await
     }
 
     async fn get_property_type_subgraph(
@@ -1046,6 +1057,14 @@ where
         self.store
             .create_entity_types(actor_id, creation_parameters)
             .await
+    }
+
+    async fn get_entity_types(
+        &self,
+        actor_id: AccountId,
+        params: GetEntityTypesParams<'_>,
+    ) -> Result<GetEntityTypesResponse, QueryError> {
+        self.store.get_entity_types(actor_id, params).await
     }
 
     async fn get_entity_type_subgraph(

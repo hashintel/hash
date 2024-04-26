@@ -1,16 +1,11 @@
 use graph::{
     store::{
-        ontology::{CreateEntityTypeParams, GetEntityTypeSubgraphParams, UpdateEntityTypesParams},
+        ontology::{CreateEntityTypeParams, GetEntityTypesParams, UpdateEntityTypesParams},
         query::Filter,
         ConflictBehavior, EntityTypeStore,
     },
-    subgraph::{
-        edges::GraphResolveDepths,
-        identifier::EntityTypeVertexId,
-        temporal_axes::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
-            VariableTemporalAxisUnresolved,
-        },
+    subgraph::temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },
 };
 use graph_test_data::{data_type, entity_type, property_type};
@@ -96,11 +91,10 @@ async fn query() {
     .expect("could not create entity type");
 
     let entity_type = api
-        .get_entity_type_subgraph(
+        .get_entity_types(
             api.account_id,
-            GetEntityTypeSubgraphParams {
+            GetEntityTypesParams {
                 filter: Filter::for_versioned_url(organization_et.id()),
-                graph_resolve_depths: GraphResolveDepths::default(),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -115,10 +109,8 @@ async fn query() {
         )
         .await
         .expect("could not get entity type")
-        .subgraph
-        .vertices
         .entity_types
-        .remove(&EntityTypeVertexId::from(organization_et.id().clone()))
+        .pop()
         .expect("no entity type found");
 
     assert_eq!(entity_type.schema, organization_et);
@@ -190,11 +182,10 @@ async fn update() {
     .expect("could not update entity type");
 
     let returned_page_et_v1 = api
-        .get_entity_type_subgraph(
+        .get_entity_types(
             api.account_id,
-            GetEntityTypeSubgraphParams {
+            GetEntityTypesParams {
                 filter: Filter::for_versioned_url(page_et_v1.id()),
-                graph_resolve_depths: GraphResolveDepths::default(),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -209,18 +200,15 @@ async fn update() {
         )
         .await
         .expect("could not get entity type")
-        .subgraph
-        .vertices
         .entity_types
-        .remove(&EntityTypeVertexId::from(page_et_v1.id().clone()))
+        .pop()
         .expect("no entity type found");
 
     let returned_page_et_v2 = api
-        .get_entity_type_subgraph(
+        .get_entity_types(
             api.account_id,
-            GetEntityTypeSubgraphParams {
+            GetEntityTypesParams {
                 filter: Filter::for_versioned_url(page_et_v2.id()),
-                graph_resolve_depths: GraphResolveDepths::default(),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -235,10 +223,8 @@ async fn update() {
         )
         .await
         .expect("could not get entity type")
-        .subgraph
-        .vertices
         .entity_types
-        .remove(&EntityTypeVertexId::from(page_et_v2.id().clone()))
+        .pop()
         .expect("no entity type found");
 
     assert_eq!(page_et_v1, returned_page_et_v1.schema);
