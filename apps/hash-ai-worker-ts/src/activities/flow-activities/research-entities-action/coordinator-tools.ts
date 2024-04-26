@@ -1,3 +1,4 @@
+import type { Subtype } from "@local/advanced-types/subtype";
 import dedent from "dedent";
 
 import type { LlmToolDefinition } from "../../shared/get-llm-response/types";
@@ -234,30 +235,33 @@ export const coordinatorToolDefinitions: Record<
   // },
 };
 
-export type CoordinatorToolCallArguments = {
-  webSearch: {
-    query: string;
-  };
-  inferEntitiesFromWebPage: {
-    url: string;
-    prompt: string;
-    entityTypeIds: string[];
-    linkEntityTypeIds?: string[];
-  };
-  getWebPageSummary: {
-    url: string;
-  };
-  submitProposedEntities: {
-    entityIds: string[];
-  };
-  updatePlan: {
-    plan: string;
-  };
-  proposeLink: {
-    sourceEntityId: string;
-    targetEntityId: string;
-    linkEntityTypeId: string;
-  };
-  complete: object;
-  terminate: object;
-};
+export type CoordinatorToolCallArguments = Subtype<
+  Record<CoordinatorToolName, unknown>,
+  {
+    webSearch: {
+      query: string;
+    };
+    inferEntitiesFromWebPage: {
+      url: string;
+      prompt: string;
+      entityTypeIds: string[];
+      linkEntityTypeIds?: string[];
+    };
+    getWebPageSummary: {
+      url: string;
+    };
+    submitProposedEntities: {
+      entityIds: string[];
+    };
+    updatePlan: {
+      plan: string;
+    };
+    proposeAndSubmitLink: {
+      sourceEntityId: string;
+      targetEntityId: string;
+      linkEntityTypeId: string;
+    };
+    complete: never;
+    terminate: never;
+  }
+>;

@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { Subtype } from "@local/advanced-types/subtype";
 import type { GraphApi } from "@local/hash-graph-client";
 import type {
   InputNameForAction,
@@ -264,26 +265,31 @@ const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
   },
 };
 
-type ToolCallArguments = {
-  getWebPageInnerHtml: {
-    url: string;
-  };
-  inferEntitiesFromWebPage: {
-    url: string;
-    hmtlContent: string;
-    expectedNumberOfEntities: number;
-    validAt: string;
-    prompt: string;
-    entityTypeIds: VersionedUrl[];
-    linkEntityTypeIds?: VersionedUrl[];
-  };
-  submitProposedEntities: {
-    entityIds: string[];
-  };
-  updatePlan: {
-    plan: string;
-  };
-};
+type ToolCallArguments = Subtype<
+  Record<ToolName, unknown>,
+  {
+    getWebPageInnerHtml: {
+      url: string;
+    };
+    inferEntitiesFromWebPage: {
+      url: string;
+      hmtlContent: string;
+      expectedNumberOfEntities: number;
+      validAt: string;
+      prompt: string;
+      entityTypeIds: VersionedUrl[];
+      linkEntityTypeIds?: VersionedUrl[];
+    };
+    submitProposedEntities: {
+      entityIds: string[];
+    };
+    updatePlan: {
+      plan: string;
+    };
+    complete: never;
+    terminate: never;
+  }
+>;
 
 type WorkerAgentInput = {
   prompt: string;
