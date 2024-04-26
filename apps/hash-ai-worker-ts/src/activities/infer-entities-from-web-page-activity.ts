@@ -100,8 +100,6 @@ export const inferEntitiesFromWebPageActivity = async (params: {
         ? dedent(`
           The user has provided these existing entities, which do not need to be inferred again: ${JSON.stringify(existingEntities.map(simplifyEntity))}
   
-          Do not provide summaries for entities which are already in this list.
-
           You are encouraged to link to existing entities from the new entities you propose, where it may be relevant.
         `)
         : ""
