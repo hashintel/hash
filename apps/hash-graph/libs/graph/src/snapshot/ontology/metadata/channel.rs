@@ -33,15 +33,15 @@ pub struct OntologyTypeMetadataSender {
     external_metadata: Sender<OntologyExternalMetadataRow>,
 }
 
-impl
-    Sink<(
-        OntologyId,
-        OntologyTypeRecordId,
-        OntologyTypeClassificationMetadata,
-        OntologyTemporalMetadata,
-        OntologyProvenance,
-    )> for OntologyTypeMetadataSender
-{
+pub struct OntologyTypeMetadata {
+    pub ontology_id: OntologyId,
+    pub record_id: OntologyTypeRecordId,
+    pub classification: OntologyTypeClassificationMetadata,
+    pub temporal_versioning: OntologyTemporalMetadata,
+    pub provenance: OntologyProvenance,
+}
+
+impl Sink<OntologyTypeMetadata> for OntologyTypeMetadataSender {
     type Error = Report<SnapshotRestoreError>;
 
     fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
@@ -63,19 +63,13 @@ impl
 
     fn start_send(
         mut self: Pin<&mut Self>,
-        (ontology_id, record_id, classification, temporal_versioning, provenance): (
-            OntologyId,
-            OntologyTypeRecordId,
-            OntologyTypeClassificationMetadata,
-            OntologyTemporalMetadata,
-            OntologyProvenance,
-        ),
+        metadata: OntologyTypeMetadata,
     ) -> Result<(), Self::Error> {
-        match classification {
+        match metadata.classification {
             OntologyTypeClassificationMetadata::Owned { owned_by_id } => {
                 self.owned_metadata
                     .start_send(OntologyOwnedMetadataRow {
-                        ontology_id,
+                        ontology_id: metadata.ontology_id,
                         web_id: owned_by_id,
                     })
                     .change_context(SnapshotRestoreError::Read)
@@ -84,7 +78,7 @@ impl
             OntologyTypeClassificationMetadata::External { fetched_at } => {
                 self.external_metadata
                     .start_send(OntologyExternalMetadataRow {
-                        ontology_id,
+                        ontology_id: metadata.ontology_id,
                         fetched_at,
                     })
                     .change_context(SnapshotRestoreError::Read)
@@ -94,18 +88,18 @@ impl
 
         self.id
             .start_send(OntologyIdRow {
-                ontology_id,
-                base_url: record_id.base_url,
-                version: record_id.version,
+                ontology_id: metadata.ontology_id,
+                base_url: metadata.record_id.base_url,
+                version: metadata.record_id.version,
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send id")?;
 
         self.temporal_metadata
             .start_send(OntologyTemporalMetadataRow {
-                ontology_id,
-                transaction_time: temporal_versioning.transaction_time,
-                provenance: provenance.edition,
+                ontology_id: metadata.ontology_id,
+                transaction_time: metadata.temporal_versioning.transaction_time,
+                provenance: metadata.provenance.edition,
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send temporal metadata")?;

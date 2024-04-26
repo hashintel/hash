@@ -429,7 +429,9 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     let parameter_expression = self.compile_parameter(parameter).0;
                     let maximum_expression = self.compile_filter_expression(max).0;
 
-                    let embeddings_column = path.terminating_column().0;
+                    let (embeddings_column, _field) = path.terminating_column() else {
+                        panic!("Only embeddings are supported for cosine distance");
+                    };
                     let embeddings_table = embeddings_column.table();
                     let embeddings_alias = Alias {
                         condition_index: 0,

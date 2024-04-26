@@ -15,8 +15,8 @@ use graph_types::ontology::PropertyTypeId;
 use crate::{
     snapshot::{
         ontology::{
-            property_type::batch::PropertyTypeRowBatch, OntologyTypeMetadataSender,
-            PropertyTypeSnapshotRecord,
+            metadata::OntologyTypeMetadata, property_type::batch::PropertyTypeRowBatch,
+            OntologyTypeMetadataSender, PropertyTypeSnapshotRecord,
         },
         SnapshotRestoreError,
     },
@@ -71,13 +71,13 @@ impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
         let ontology_id = PropertyTypeId::from_record_id(&property_type.metadata.record_id);
 
         self.metadata
-            .start_send_unpin((
-                ontology_id.into(),
-                property_type.metadata.record_id,
-                property_type.metadata.classification,
-                property_type.metadata.temporal_versioning,
-                property_type.metadata.provenance,
-            ))
+            .start_send_unpin(OntologyTypeMetadata {
+                ontology_id: ontology_id.into(),
+                record_id: property_type.metadata.record_id,
+                classification: property_type.metadata.classification,
+                temporal_versioning: property_type.metadata.temporal_versioning,
+                provenance: property_type.metadata.provenance,
+            })
             .attach_printable("could not send metadata")?;
 
         let values: Vec<_> = property_type

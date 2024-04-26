@@ -16,8 +16,8 @@ use type_system::ClosedEntityType;
 use crate::{
     snapshot::{
         ontology::{
-            entity_type::batch::EntityTypeRowBatch, EntityTypeSnapshotRecord,
-            OntologyTypeMetadataSender,
+            entity_type::batch::EntityTypeRowBatch, metadata::OntologyTypeMetadata,
+            EntityTypeSnapshotRecord, OntologyTypeMetadataSender,
         },
         SnapshotRestoreError,
     },
@@ -82,13 +82,13 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
         let ontology_id = EntityTypeId::from_record_id(&entity_type.metadata.record_id);
 
         self.metadata
-            .start_send_unpin((
-                ontology_id.into(),
-                entity_type.metadata.record_id,
-                entity_type.metadata.classification,
-                entity_type.metadata.temporal_versioning,
-                entity_type.metadata.provenance,
-            ))
+            .start_send_unpin(OntologyTypeMetadata {
+                ontology_id: ontology_id.into(),
+                record_id: entity_type.metadata.record_id,
+                classification: entity_type.metadata.classification,
+                temporal_versioning: entity_type.metadata.temporal_versioning,
+                provenance: entity_type.metadata.provenance,
+            })
             .attach_printable("could not send metadata")?;
 
         let inherits_from: Vec<_> = entity_type

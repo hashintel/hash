@@ -15,7 +15,8 @@ use graph_types::ontology::DataTypeId;
 use crate::{
     snapshot::{
         ontology::{
-            data_type::batch::DataTypeRowBatch, DataTypeSnapshotRecord, OntologyTypeMetadataSender,
+            data_type::batch::DataTypeRowBatch, metadata::OntologyTypeMetadata,
+            DataTypeSnapshotRecord, OntologyTypeMetadataSender,
         },
         SnapshotRestoreError,
     },
@@ -58,13 +59,13 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
         let ontology_id = DataTypeId::from_record_id(&data_type.metadata.record_id);
 
         self.metadata
-            .start_send_unpin((
-                ontology_id.into(),
-                data_type.metadata.record_id,
-                data_type.metadata.classification,
-                data_type.metadata.temporal_versioning,
-                data_type.metadata.provenance,
-            ))
+            .start_send_unpin(OntologyTypeMetadata {
+                ontology_id: ontology_id.into(),
+                record_id: data_type.metadata.record_id,
+                classification: data_type.metadata.classification,
+                temporal_versioning: data_type.metadata.temporal_versioning,
+                provenance: data_type.metadata.provenance,
+            })
             .attach_printable("could not send metadata")?;
         self.schema
             .start_send_unpin(DataTypeRow {
