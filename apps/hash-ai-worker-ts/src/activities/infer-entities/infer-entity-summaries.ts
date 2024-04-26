@@ -1,5 +1,4 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { typedKeys } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
@@ -259,10 +258,12 @@ export const inferEntitySummaries = async (params: {
         }
       }
 
-      const typesWithNoSuggestionsToRerequest = typedKeys(entityTypes).filter(
-        (entityTypeId) =>
+      const typesWithNoSuggestionsToRerequest = Object.values(
+        entityTypes,
+      ).filter(
+        ({ schema }) =>
           // We track which types we've already requested the model try again for – we won't ask again
-          !providedOrRerequestedEntityTypes.has(entityTypeId),
+          !providedOrRerequestedEntityTypes.has(schema.$id),
       );
 
       /**
@@ -276,16 +277,28 @@ export const inferEntitySummaries = async (params: {
           )}`,
         );
 
-        for (const entityTypeId of typesWithNoSuggestionsToRerequest) {
-          providedOrRerequestedEntityTypes.add(entityTypeId);
+        for (const { schema } of typesWithNoSuggestionsToRerequest) {
+          providedOrRerequestedEntityTypes.add(schema.$id);
         }
+
+        const isMissingEntities = typesWithNoSuggestionsToRerequest.some(
+          ({ isLink }) => !isLink,
+        );
+
+        const isMissingLinks = typesWithNoSuggestionsToRerequest.some(
+          ({ isLink }) => isLink,
+        );
+
+        const missingContentKinds = `${isMissingEntities ? "entities" : ""}${isMissingEntities && isMissingLinks ? " or " : ""}${isMissingLinks ? "links" : ""}`;
 
         retryMessages.push({
           content: dedent(`
-                   You did not suggest any entities of the following entity types: ${typesWithNoSuggestionsToRerequest.join(
-                     ", ",
-                   )}. Please reconsider the input text${existingEntities && existingEntities.length > 0 ? " and the existing entities" : ""} to see if you can identify any entities of those types.
-                `),
+            You did not suggest any ${missingContentKinds} of the following types: ${typesWithNoSuggestionsToRerequest.join(
+              ", ",
+            )}.
+            
+            Please reconsider the input text to see if you can identify any ${missingContentKinds} of those types${existingEntities && existingEntities.length > 0 && isMissingLinks ? ", including whether any links can be created to the existing entities provided." : "."}
+          `),
           role: "user",
         });
       }
