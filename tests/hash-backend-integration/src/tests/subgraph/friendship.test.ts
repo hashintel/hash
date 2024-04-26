@@ -4,18 +4,18 @@ import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types"
 import { getEntitySubgraph } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import {
   archiveDataType,
-  getDataTypes,
+  getDataTypeSubgraph,
   unarchiveDataType,
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import {
   archiveEntityType,
   getEntityTypeById,
-  getEntityTypes,
+  getEntityTypeSubgraph,
   unarchiveEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import {
   archivePropertyType,
-  getPropertyTypes,
+  getPropertyTypeSubgraph,
   unarchivePropertyType,
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import type { VersionedUrl } from "@blockprotocol/type-system";
@@ -217,7 +217,7 @@ describe("Ontology queries", () => {
       inheritsFrom: { outgoing: 255 },
     },
   ])("read data types %#", async (resolve_depths) => {
-    const subgraph = await getDataTypes(graphContext, authentication, {
+    const subgraph = await getDataTypeSubgraph(graphContext, authentication, {
       filter: {
         all: [],
       },
@@ -258,7 +258,7 @@ describe("Ontology queries", () => {
       includeDrafts: false,
     };
 
-    const initialSubgraph = await getDataTypes(
+    const initialSubgraph = await getDataTypeSubgraph(
       graphContext,
       authentication,
       request,
@@ -276,7 +276,7 @@ describe("Ontology queries", () => {
       },
     );
 
-    const emptySubgraph = await getDataTypes(
+    const emptySubgraph = await getDataTypeSubgraph(
       graphContext,
       authentication,
       request,
@@ -291,7 +291,7 @@ describe("Ontology queries", () => {
       },
     );
 
-    const nonEmptySubgraph = await getDataTypes(
+    const nonEmptySubgraph = await getDataTypeSubgraph(
       graphContext,
       authentication,
       request,
@@ -315,13 +315,17 @@ describe("Ontology queries", () => {
       constrainsPropertiesOn: { outgoing: 255 },
     },
   ])("read property types %#", async (resolve_depths) => {
-    const subgraph = await getPropertyTypes(graphContext, authentication, {
-      filter: {
-        all: [],
+    const subgraph = await getPropertyTypeSubgraph(
+      graphContext,
+      authentication,
+      {
+        filter: {
+          all: [],
+        },
+        graphResolveDepths: resolve_depths,
+        temporalAxes: fullDecisionTimeAxis,
       },
-      graphResolveDepths: resolve_depths,
-      temporalAxes: fullDecisionTimeAxis,
-    });
+    );
     expect(subgraph.roots.length).toEqual(2);
 
     expect(
@@ -354,7 +358,7 @@ describe("Ontology queries", () => {
       includeDrafts: false,
     };
 
-    const initialSubgraph = await getPropertyTypes(
+    const initialSubgraph = await getPropertyTypeSubgraph(
       graphContext,
       authentication,
       request,
@@ -372,7 +376,7 @@ describe("Ontology queries", () => {
       },
     );
 
-    const emptySubgraph = await getPropertyTypes(
+    const emptySubgraph = await getPropertyTypeSubgraph(
       graphContext,
       authentication,
       request,
@@ -387,7 +391,7 @@ describe("Ontology queries", () => {
       },
     );
 
-    const nonEmptySubgraph = await getPropertyTypes(
+    const nonEmptySubgraph = await getPropertyTypeSubgraph(
       graphContext,
       authentication,
       request,
@@ -421,7 +425,7 @@ describe("Ontology queries", () => {
       constrainsLinkDestinationsOn: { outgoing: 255 },
     },
   ])("read entity types %#", async (resolve_depths) => {
-    const subgraph = await getEntityTypes(graphContext, authentication, {
+    const subgraph = await getEntityTypeSubgraph(graphContext, authentication, {
       filter: {
         all: [],
       },
@@ -476,7 +480,7 @@ it("archives/unarchives entity types", async () => {
     includeDrafts: false,
   };
 
-  const initialSubgraph = await getEntityTypes(
+  const initialSubgraph = await getEntityTypeSubgraph(
     graphContext,
     authentication,
     request,
@@ -494,7 +498,7 @@ it("archives/unarchives entity types", async () => {
     },
   );
 
-  const emptySubgraph = await getEntityTypes(
+  const emptySubgraph = await getEntityTypeSubgraph(
     graphContext,
     authentication,
     request,
@@ -509,7 +513,7 @@ it("archives/unarchives entity types", async () => {
     },
   );
 
-  const nonEmptySubgraph = await getEntityTypes(
+  const nonEmptySubgraph = await getEntityTypeSubgraph(
     graphContext,
     authentication,
     request,

@@ -17,7 +17,7 @@ import {
   archiveEntityType,
   checkPermissionsOnEntityType,
   createEntityType,
-  getEntityTypes,
+  getEntityTypeSubgraph,
   getEntityTypeSubgraphById,
   unarchiveEntityType,
   updateEntityType,
@@ -83,7 +83,7 @@ export const queryEntityTypesResolver: ResolverFn<
     equal: [{ path: ["version"] }, { parameter: "latest" }],
   };
 
-  const subgraph = await getEntityTypes({ graphApi }, authentication, {
+  const subgraph = await getEntityTypeSubgraph({ graphApi }, authentication, {
     filter: latestOnly
       ? filter
         ? { all: [filter, latestOnlyFilter] }

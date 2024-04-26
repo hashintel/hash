@@ -27,12 +27,12 @@ import type {
 } from "./graph/context-types";
 import type { Org } from "./graph/knowledge/system-types/org";
 import { getOrgByShortname } from "./graph/knowledge/system-types/org";
-import { getDataTypes } from "./graph/ontology/primitive/data-type";
+import { getDataTypeSubgraph } from "./graph/ontology/primitive/data-type";
 import {
-  getEntityTypes,
+  getEntityTypeSubgraph,
   isEntityTypeLinkEntityType,
 } from "./graph/ontology/primitive/entity-type";
-import { getPropertyTypes } from "./graph/ontology/primitive/property-type";
+import { getPropertyTypeSubgraph } from "./graph/ontology/primitive/property-type";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -237,55 +237,55 @@ const generateOntologyIds = async () => {
     blockProtocolDataTypes,
   ] = await Promise.all([
     // HASH types
-    getEntityTypes(
+    getEntityTypeSubgraph(
       graphContext,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: hashOrg }),
     ).then((subgraph) => getRoots(subgraph)),
-    getPropertyTypes(
+    getPropertyTypeSubgraph(
       graphContext,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: hashOrg }),
     ).then((subgraph) => getRoots(subgraph)),
-    getDataTypes(
+    getDataTypeSubgraph(
       graphContext,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: hashOrg }),
     ).then((subgraph) => getRoots(subgraph)),
     // Google types
-    getEntityTypes(
+    getEntityTypeSubgraph(
       graphContext,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: googleOrg }),
     ).then((subgraph) => getRoots(subgraph)),
-    getPropertyTypes(
+    getPropertyTypeSubgraph(
       graphContext,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: googleOrg }),
     ).then((subgraph) => getRoots(subgraph)),
     // Linear types
-    getEntityTypes(
+    getEntityTypeSubgraph(
       graphContext,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: linearOrg }),
     ).then((subgraph) => getRoots(subgraph)),
-    getPropertyTypes(
+    getPropertyTypeSubgraph(
       graphContext,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: linearOrg }),
     ).then((subgraph) => getRoots(subgraph)),
     // BlockProtocol types
-    getEntityTypes(
+    getEntityTypeSubgraph(
       graphContext,
       authentication,
       getLatestBlockprotocolTypesQuery,
     ).then((subgraph) => getRoots(subgraph)),
-    getPropertyTypes(
+    getPropertyTypeSubgraph(
       graphContext,
       authentication,
       getLatestBlockprotocolTypesQuery,
     ).then((subgraph) => getRoots(subgraph)),
-    getDataTypes(
+    getDataTypeSubgraph(
       graphContext,
       authentication,
       getLatestBlockprotocolTypesQuery,
