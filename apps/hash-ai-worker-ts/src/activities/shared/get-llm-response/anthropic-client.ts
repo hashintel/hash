@@ -87,12 +87,14 @@ export type MessageContent =
   | (TextBlockParam | ImageBlockParam | ToolUseContent | ToolResultContent)[]
   | string;
 
+export type AnthropicMessage = Omit<MessageParam, "content"> & {
+  content: MessageContent;
+};
+
 export type AnthropicMessagesCreateParams = {
   tools?: AnthropicToolDefinition[];
   model: AnthropicMessageModel;
-  messages: (Omit<MessageParam, "content"> & {
-    content: MessageContent;
-  })[];
+  messages: AnthropicMessage[];
 } & Omit<MessageCreateParamsNonStreaming, "model" | "messages">;
 
 type AnthropicMessagesCreateResponseContent =

@@ -1,15 +1,14 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type {
-  InferenceTokenUsage,
   InferredEntityChangeResult,
   ProposedEntity,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
-import type { Entity } from "@local/hash-subgraph";
+import type { BaseUrl, Entity } from "@local/hash-subgraph";
 import type OpenAI from "openai";
 
 import type { DereferencedEntityType } from "../shared/dereference-entity-type";
+import type { LlmUsage } from "../shared/get-llm-response/types";
 import type { PermittedOpenAiModel } from "../shared/openai-client";
-import type { ProposedEntityCreationsByType } from "./shared/generate-propose-entities-tools";
 
 export type CompletionPayload = Omit<
   OpenAI.ChatCompletionCreateParams,
@@ -18,7 +17,11 @@ export type CompletionPayload = Omit<
 
 export type DereferencedEntityTypesByTypeId = Record<
   VersionedUrl,
-  { isLink: boolean; schema: DereferencedEntityType }
+  {
+    isLink: boolean;
+    schema: DereferencedEntityType;
+    simplifiedPropertyTypeMappings?: Record<string, BaseUrl>;
+  }
 >;
 
 export type ProposedEntitySummary = {
@@ -44,14 +47,14 @@ export type InferenceState = {
   /** A list of entities that can be inferred from the input, in summary form (no properties) */
   proposedEntitySummaries: ProposedEntitySummary[];
   /** A map of entity type IDs to a set of proposed entities, in entity form (with properties) */
-  proposedEntityCreationsByType: ProposedEntityCreationsByType;
+  proposedEntityCreationsByType: Record<VersionedUrl, ProposedEntity[]>;
   /** The results of attempting to persist entities inferred from the input */
   resultsByTemporaryId: Record<
     number,
     InferredEntityChangeResult | UpdateCandidate
   >;
   /** The token usage for each iteration, in order */
-  usage: InferenceTokenUsage[];
+  usage: LlmUsage[];
 };
 
 export type WebPage = {

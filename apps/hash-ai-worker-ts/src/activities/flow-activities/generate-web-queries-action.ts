@@ -2,22 +2,19 @@ import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
-import type OpenAI from "openai";
 
 import { getLlmResponse } from "../shared/get-llm-response";
+import { getToolCallsFromLlmAssistantMessage } from "../shared/get-llm-response/llm-message";
 import type { LlmToolDefinition } from "../shared/get-llm-response/types";
 import { modelAliasToSpecificModel } from "../shared/openai-client";
 import type { FlowActionActivity } from "./types";
 
-const webQueriesSystemMessage: OpenAI.ChatCompletionSystemMessageParam = {
-  role: "system",
-  content: dedent(`
+const webQueriesSystemPrompt = dedent(`
     You are a Web Search Assistant.
     The user provides you with a text prompt, from which you create one or more queries
       for a web search engine (such as Google, Bing, Duck Duck Go, etc) which lead
       to search results that can satisfy the prompt.
-   `),
-};
+   `);
 
 const tools: LlmToolDefinition[] = [
   {
@@ -57,11 +54,11 @@ export const generateWebQueriesAction: FlowActionActivity = async ({
   }
 
   const llmResponse = await getLlmResponse({
+    systemPrompt: webQueriesSystemPrompt,
     messages: [
-      webQueriesSystemMessage,
       {
         role: "user",
-        content: prompt,
+        content: [{ type: "text", text: prompt }],
       },
     ],
     model: modelAliasToSpecificModel[model],
@@ -75,13 +72,15 @@ export const generateWebQueriesAction: FlowActionActivity = async ({
     };
   }
 
-  const { usage: _usage, parsedToolCalls } = llmResponse;
+  const { usage: _usage, message } = llmResponse;
+
+  const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
 
   /** @todo: capture usage */
 
   const queries: string[] = [];
 
-  for (const toolCall of parsedToolCalls) {
+  for (const toolCall of toolCalls) {
     if (toolCall.name === "propose_query") {
       const { query } = toolCall.input as ProposeQueryFunctionCallArguments;
 

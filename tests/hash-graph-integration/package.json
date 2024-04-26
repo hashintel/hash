@@ -1,5 +1,5 @@
 {
-  "name": "@tests/hash-graph-integration-rs",
+  "name": "@rust/graph-integration",
   "version": "0.0.0-private",
   "private": true,
   "scripts": {
@@ -7,10 +7,13 @@
     "lint:clippy": "just clippy",
     "test:integration": "cargo nextest run --all-features --all-targets"
   },
-  "dependencies": {
-    "@apps/hash-graph": "0.0.0-private",
-    "@local/hash-authorization-rs": "0.0.0-private",
-    "@local/hash-graph-types-rs": "0.0.0-private",
-    "@tests/hash-graph-test-data-rs": "0.0.0-private"
+  "dependencies": {},
+  "devDependencies": {
+    "@blockprotocol/type-system-rs": "0.0.0-private",
+    "@rust/authorization": "0.0.0-private",
+    "@rust/graph": "0.0.0-private",
+    "@rust/graph-test-data": "0.0.0-private",
+    "@rust/graph-types": "0.0.0-private",
+    "@rust/temporal-versioning": "0.0.0-private"
   }
 }

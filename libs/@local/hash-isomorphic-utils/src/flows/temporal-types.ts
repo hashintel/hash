@@ -10,7 +10,7 @@ export type RunFlowWorkflowParams = {
 };
 
 export type RunFlowWorkflowResponse = Status<{
-  flowOutputs?: Flow["outputs"];
   flow?: Flow;
+  outputs?: Flow["outputs"];
   stepErrors?: Status<{ stepId: string }>[];
 }>;

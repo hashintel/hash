@@ -1,24 +1,32 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { ProposedEntity } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { type AccountId } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
+import { Context } from "@temporalio/activity";
 import dedent from "dedent";
-import type OpenAI from "openai";
 
-import { logger } from "../../shared/logger";
+import { logger } from "../shared/activity-logger";
 import { getLlmResponse } from "../shared/get-llm-response";
-import { stringify } from "../shared/stringify";
 import type {
-  CompletionPayload,
+  LlmMessage,
+  LlmUserMessage,
+} from "../shared/get-llm-response/llm-message";
+import { getToolCallsFromLlmAssistantMessage } from "../shared/get-llm-response/llm-message";
+import { logProgress } from "../shared/log-progress";
+import { stringify } from "../shared/stringify";
+import { inferEntitiesSystemPrompt } from "./infer-entities-system-prompt";
+import type {
   DereferencedEntityTypesByTypeId,
   InferenceState,
 } from "./inference-types";
 import { validateProposedEntitiesByType } from "./persist-entities/generate-persist-entities-tools";
 import { extractErrorMessage } from "./shared/extract-validation-failure-details";
-import { firstUserMessageIndex } from "./shared/first-user-message-index";
-import type { ProposedEntityCreationsByType } from "./shared/generate-propose-entities-tools";
+import type { ProposedEntityToolCreationsByType } from "./shared/generate-propose-entities-tools";
 import { generateProposeEntitiesTools } from "./shared/generate-propose-entities-tools";
+import { mapSimplifiedPropertiesToProperties } from "./shared/map-simplified-properties-to-properties";
 
 /**
  * This method is based on the logic from the existing `persistEntities` method, which
@@ -27,20 +35,22 @@ import { generateProposeEntitiesTools } from "./shared/generate-propose-entities
  * entity), it pushes the entities to the `proposedEntities` array in the `InferenceState`.
  */
 export const proposeEntities = async (params: {
-  completionPayload: CompletionPayload;
+  maxTokens?: number;
+  firstUserMessage: string;
+  previousMessages?: LlmMessage[];
   entityTypes: DereferencedEntityTypesByTypeId;
   inferenceState: InferenceState;
   validationActorId: AccountId;
   graphApiClient: GraphApi;
-  originalPromptMessages: OpenAI.ChatCompletionMessageParam[];
 }): Promise<Status<InferenceState>> => {
   const {
-    completionPayload,
+    maxTokens,
+    previousMessages,
     entityTypes,
     validationActorId,
     graphApiClient,
     inferenceState,
-    originalPromptMessages,
+    firstUserMessage,
   } = params;
 
   const {
@@ -53,7 +63,7 @@ export const proposeEntities = async (params: {
   if (iterationCount > 30) {
     logger.info(
       `Model reached maximum number of iterations. Messages: ${stringify(
-        completionPayload.messages,
+        previousMessages,
       )}`,
     );
 
@@ -103,7 +113,8 @@ export const proposeEntities = async (params: {
     )}.`,
   );
 
-  const tools = generateProposeEntitiesTools(Object.values(entityTypes));
+  const { tools, simplifiedEntityTypeIdMappings } =
+    generateProposeEntitiesTools(Object.values(entityTypes));
 
   const entitiesToUpdate = inProgressEntityIds.filter(
     (inProgressEntityId) =>
@@ -127,19 +138,50 @@ export const proposeEntities = async (params: {
     .filter(Boolean)
     .join(" and ");
 
-  const nextMessage = {
-    role: "user",
-    content: dedent(
-      `Please make calls to ${innerMessage}. Remember to include as many properties as you can find matching values for in the website content.
-      If you can't find a value for a specified property, just omit it – don't pass 'null' as a value.`,
-    ),
-  } as const;
+  const instructions = dedent(`
+    Please make calls to ${innerMessage}.
+    Remember to include as many properties as you can find matching values for in the website content.
+    If you can't find a value for a specified property, just omit it – don't pass 'null' as a value.
+  `);
 
-  logger.debug(`Next message to model: ${stringify(nextMessage)}`);
+  const messages: LlmMessage[] =
+    previousMessages && previousMessages.length > 1
+      ? [
+          ...previousMessages.slice(0, -1),
+          {
+            role: "user",
+            content: [
+              ...(previousMessages[previousMessages.length - 1]!
+                .content as LlmUserMessage["content"]),
+              {
+                type: "text",
+                text: instructions,
+              },
+            ],
+          },
+        ]
+      : [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: dedent(`
+                ${firstUserMessage}
+                ${instructions}
+              `),
+              },
+            ],
+          },
+        ];
+
+  logger.debug(`Next messages to model: ${stringify(messages)}`);
 
   const llmResponse = await getLlmResponse({
-    ...completionPayload,
-    messages: [...completionPayload.messages, nextMessage],
+    model: "claude-3-opus-20240229",
+    maxTokens,
+    systemPrompt: inferEntitiesSystemPrompt,
+    messages,
     tools,
     /**
      * We prefer consistency over creativity for the inference agent,
@@ -155,40 +197,46 @@ export const proposeEntities = async (params: {
     };
   }
 
-  const { stopReason, usage, parsedToolCalls } = llmResponse;
-
-  const { message } = llmResponse.choices[0];
+  const { stopReason, usage, message } = llmResponse;
 
   const latestUsage = [...usageFromLastIteration, usage];
 
   inferenceState.usage = latestUsage;
 
   const retryWithMessages = ({
-    retryMessages,
+    retryMessageContent,
     requiresOriginalContext,
   }: {
-    retryMessages: (
-      | OpenAI.ChatCompletionUserMessageParam
-      | OpenAI.ChatCompletionToolMessageParam
-    )[];
+    retryMessageContent: LlmUserMessage["content"];
     requiresOriginalContext: boolean;
   }) => {
     logger.debug(
-      `Retrying with additional messages: ${stringify(retryMessages)}`,
+      `Retrying with additional message: ${stringify(retryMessageContent)}`,
     );
 
-    const newMessages = [
-      ...originalPromptMessages.map((msg, index) =>
-        index === firstUserMessageIndex && !requiresOriginalContext
-          ? {
-              ...msg,
-              content:
-                "I provided you text to infer entities, and you responded below – please see further instructions after your message.",
-            }
-          : msg,
-      ),
-      message,
-      ...retryMessages,
+    const newMessages: LlmMessage[] = [
+      requiresOriginalContext
+        ? {
+            role: "user",
+            content: [{ type: "text", text: firstUserMessage }],
+          }
+        : {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "I provided you text to infer entities, and you responded below – please see further instructions after your message.",
+              },
+            ],
+          },
+      {
+        role: "assistant",
+        content: message.content,
+      },
+      {
+        role: "user",
+        content: retryMessageContent,
+      },
     ];
 
     return proposeEntities({
@@ -197,18 +245,17 @@ export const proposeEntities = async (params: {
         ...inferenceState,
         iterationCount: iterationCount + 1,
       },
-      completionPayload: {
-        ...completionPayload,
-        messages: newMessages,
-      },
+      previousMessages: newMessages,
     });
   };
 
+  const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
+
   switch (stopReason) {
     case "stop": {
-      const errorMessage = `AI Model returned 'stop' finish reason, with message: ${
-        message.content ?? "no message"
-      }`;
+      const errorMessage = `AI Model returned 'stop' finish reason, with message content: ${stringify(
+        message.content,
+      )}`;
 
       logger.error(errorMessage);
 
@@ -216,7 +263,9 @@ export const proposeEntities = async (params: {
         code: StatusCode.Unknown,
         contents: [inferenceState],
         message:
-          message.content ?? "No entities could be inferred from the page.",
+          message.content.length > 0
+            ? stringify(message.content)
+            : "No entities could be inferred from the page.",
       };
     }
 
@@ -225,7 +274,7 @@ export const proposeEntities = async (params: {
         `AI Model returned 'length' finish reason on attempt ${iterationCount}.`,
       );
 
-      const toolCallId = parsedToolCalls[0]?.id;
+      const toolCallId = toolCalls[0]?.id;
 
       if (!toolCallId) {
         return {
@@ -237,13 +286,13 @@ export const proposeEntities = async (params: {
       }
 
       return retryWithMessages({
-        retryMessages: [
+        retryMessageContent: [
           {
-            role: "tool",
+            type: "tool_result",
+            tool_use_id: toolCallId,
+            // @todo see if we can get the model to respond continuing off the previous JSON argument to the function call
             content:
-              // @todo see if we can get the model to respond continuing off the previous JSON argument to the function call
               "Your previous response was cut off for length – please respond again with a shorter function call.",
-            tool_call_id: toolCallId,
           },
         ],
         requiresOriginalContext: true,
@@ -253,7 +302,7 @@ export const proposeEntities = async (params: {
     case "content_filter": {
       logger.error(
         `The content filter was triggered on attempt ${iterationCount} with input: ${stringify(
-          completionPayload.messages,
+          message.content,
         )}, `,
       );
 
@@ -265,12 +314,11 @@ export const proposeEntities = async (params: {
     }
 
     case "tool_use": {
-      const retryMessages: ((
-        | OpenAI.ChatCompletionUserMessageParam
-        | OpenAI.ChatCompletionToolMessageParam
-      ) & { requiresOriginalContext: boolean })[] = [];
+      const retryMessageContent: (LlmUserMessage["content"][number] & {
+        requiresOriginalContext: boolean;
+      })[] = [];
 
-      for (const toolCall of parsedToolCalls) {
+      for (const toolCall of toolCalls) {
         if (toolCall.name === "abandon_entities") {
           // The model is giving up on these entities
 
@@ -286,12 +334,12 @@ export const proposeEntities = async (params: {
               )}`,
             );
 
-            retryMessages.push({
+            retryMessageContent.push({
+              type: "tool_result",
               content:
                 "You provided an invalid argument to abandon_entities. Please try again",
               requiresOriginalContext: true,
-              role: "tool",
-              tool_call_id: toolCall.id,
+              tool_use_id: toolCall.id,
             });
             continue;
           }
@@ -305,14 +353,14 @@ export const proposeEntities = async (params: {
         }
 
         if (toolCall.name === "create_entities") {
-          let proposedEntitiesByType: ProposedEntityCreationsByType;
+          let proposedEntitiesByType: ProposedEntityToolCreationsByType;
           try {
             proposedEntitiesByType =
-              toolCall.input as ProposedEntityCreationsByType;
+              toolCall.input as ProposedEntityToolCreationsByType;
 
             validateProposedEntitiesByType(proposedEntitiesByType, false);
 
-            let retryMessageContent = "";
+            let retryMessageContentText = "";
             let requiresOriginalContextForRetry = false;
 
             /**
@@ -321,7 +369,7 @@ export const proposeEntities = async (params: {
              */
             const invalidProposedEntities = await Promise.all(
               Object.entries(proposedEntitiesByType).map(
-                async ([entityTypeId, proposedEntitiesOfType]) => {
+                async ([simplifiedEntityTypeId, proposedEntitiesOfType]) => {
                   const invalidProposedEntitiesOfType = await Promise.all(
                     proposedEntitiesOfType.map(async (proposedEntityOfType) => {
                       try {
@@ -334,6 +382,36 @@ export const proposeEntities = async (params: {
                           return [];
                         }
 
+                        const entityTypeId =
+                          simplifiedEntityTypeIdMappings[
+                            simplifiedEntityTypeId
+                          ];
+
+                        if (!entityTypeId) {
+                          throw new Error(
+                            `Could not find entity type id for simplified entity type id ${simplifiedEntityTypeId}`,
+                          );
+                        }
+
+                        const { simplifiedPropertyTypeMappings } =
+                          entityTypes[entityTypeId] ?? {};
+
+                        if (!simplifiedPropertyTypeMappings) {
+                          throw new Error(
+                            `Could not find simplified property type mappings for entity type id ${entityTypeId}`,
+                          );
+                        }
+
+                        const { properties: simplifiedProperties } =
+                          proposedEntityOfType;
+
+                        const properties = simplifiedProperties
+                          ? mapSimplifiedPropertiesToProperties({
+                              simplifiedProperties,
+                              simplifiedPropertyTypeMappings,
+                            })
+                          : {};
+
                         await graphApiClient.validateEntity(validationActorId, {
                           entityTypes: [entityTypeId],
                           components: {
@@ -341,7 +419,7 @@ export const proposeEntities = async (params: {
                             numItems: false,
                             requiredProperties: false,
                           },
-                          properties: proposedEntityOfType.properties ?? {},
+                          properties,
                         });
 
                         return [];
@@ -362,7 +440,7 @@ export const proposeEntities = async (params: {
             ).then((invalidProposals) => invalidProposals.flat());
 
             if (invalidProposedEntities.length > 0) {
-              retryMessageContent += dedent(`
+              retryMessageContentText += dedent(`
                 Some of the entities you suggested for creation were invalid. Please review their properties and try again. 
                 The entities you should review and make a 'create_entities' call for are:
                 ${invalidProposedEntities
@@ -377,16 +455,76 @@ export const proposeEntities = async (params: {
               requiresOriginalContextForRetry = true;
             }
 
-            const validProposedEntities = Object.values(proposedEntitiesByType)
-              .flat()
-              .filter(
-                ({ entityId }) =>
-                  !invalidProposedEntities.some(
-                    ({
-                      invalidProposedEntity: { entityId: invalidEntityId },
-                    }) => invalidEntityId === entityId,
-                  ),
+            const validProposedEntitiesByType = Object.fromEntries(
+              typedEntries(proposedEntitiesByType).map(
+                ([simplifiedEntityTypeId, entities]) => {
+                  const entityTypeId =
+                    simplifiedEntityTypeIdMappings[simplifiedEntityTypeId];
+
+                  if (!entityTypeId) {
+                    throw new Error(
+                      `Could not find entity type id for simplified entity type id ${simplifiedEntityTypeId}`,
+                    );
+                  }
+
+                  return [
+                    entityTypeId,
+                    entities.filter(
+                      ({ entityId }) =>
+                        // Don't include invalid entities
+                        !invalidProposedEntities.some(
+                          ({
+                            invalidProposedEntity: {
+                              entityId: invalidEntityId,
+                            },
+                          }) => invalidEntityId === entityId,
+                        ) &&
+                        // Ignore entities we've inferred in a previous iteration, otherwise we'll get duplicates
+                        !inferenceState.proposedEntityCreationsByType[
+                          entityTypeId
+                        ]?.some(
+                          (existingEntity) =>
+                            existingEntity.entityId === entityId,
+                        ),
+                    ),
+                  ];
+                },
+              ),
+            );
+
+            const validProposedEntities = Object.values(
+              validProposedEntitiesByType,
+            ).flat();
+
+            const now = new Date().toISOString();
+
+            if (validProposedEntities.length > 0) {
+              logProgress(
+                typedEntries(validProposedEntitiesByType).flatMap(
+                  ([entityTypeId, entities]) =>
+                    entities.map((entity) => ({
+                      proposedEntity: {
+                        ...entity,
+                        localEntityId: entity.entityId.toString(),
+                        entityTypeId: entityTypeId as VersionedUrl,
+                        properties: entity.properties ?? {},
+                        /** @todo: figure out why TS cannot infer that `entity` has `ProposedEntityLinkFields` */
+                        sourceEntityLocalId:
+                          "sourceEntityId" in entity
+                            ? entity.sourceEntityId.toString()
+                            : undefined,
+                        targetEntityLocalId:
+                          "targetEntityId" in entity
+                            ? entity.targetEntityId.toString()
+                            : undefined,
+                      },
+                      recordedAt: now,
+                      type: "ProposedEntity",
+                      stepId: Context.current().info.activityId,
+                    })),
+                ),
               );
+            }
 
             logger.info(
               `Proposed ${validProposedEntities.length} valid additional entities.`,
@@ -404,38 +542,79 @@ export const proposeEntities = async (params: {
             }
 
             inferenceState.proposedEntityCreationsByType = Object.entries(
-              proposedEntitiesByType,
+              validProposedEntitiesByType,
             ).reduce(
-              (prev, [entityTypeId, proposedEntitiesOfType]) => ({
-                ...prev,
-                [entityTypeId]: [
-                  ...(prev[entityTypeId as VersionedUrl] ?? []),
-                  ...proposedEntitiesOfType.filter(
-                    ({ entityId }) =>
-                      // Don't include invalid entities
-                      !invalidProposedEntities.some(
+              (prev, [simplifiedEntityTypeId, proposedEntitiesOfType]) => {
+                const entityTypeId =
+                  simplifiedEntityTypeIdMappings[simplifiedEntityTypeId];
+
+                if (!entityTypeId) {
+                  throw new Error(
+                    `Could not find entity type id for simplified entity type id ${simplifiedEntityTypeId}`,
+                  );
+                }
+
+                return {
+                  ...prev,
+                  [entityTypeId]: [
+                    ...(prev[entityTypeId] ?? []),
+                    ...proposedEntitiesOfType
+                      .filter(
+                        ({ entityId }) =>
+                          // Don't include invalid entities
+                          !invalidProposedEntities.some(
+                            ({
+                              invalidProposedEntity: {
+                                entityId: invalidEntityId,
+                              },
+                            }) => invalidEntityId === entityId,
+                          ) &&
+                          // Ignore entities we've inferred in a previous iteration, otherwise we'll get duplicates
+                          !inferenceState.proposedEntityCreationsByType[
+                            entityTypeId
+                          ]?.some(
+                            (existingEntity) =>
+                              existingEntity.entityId === entityId,
+                          ),
+                      )
+                      .map<ProposedEntity>(
                         ({
-                          invalidProposedEntity: { entityId: invalidEntityId },
-                        }) => invalidEntityId === entityId,
-                      ) &&
-                      // Ignore entities we've inferred in a previous iteration, otherwise we'll get duplicates
-                      !inferenceState.proposedEntityCreationsByType[
-                        entityTypeId as VersionedUrl
-                      ]?.some(
-                        (existingEntity) =>
-                          existingEntity.entityId === entityId,
+                          properties: simplifiedProperties,
+                          ...proposedEntity
+                        }) => {
+                          const { simplifiedPropertyTypeMappings } =
+                            entityTypes[entityTypeId] ?? {};
+
+                          if (!simplifiedPropertyTypeMappings) {
+                            throw new Error(
+                              `Could not find simplified property type mappings for entity type id ${entityTypeId}`,
+                            );
+                          }
+
+                          const properties = simplifiedProperties
+                            ? mapSimplifiedPropertiesToProperties({
+                                simplifiedProperties,
+                                simplifiedPropertyTypeMappings,
+                              })
+                            : {};
+
+                          return {
+                            ...proposedEntity,
+                            properties,
+                          };
+                        },
                       ),
-                  ),
-                ],
-              }),
+                  ],
+                };
+              },
               inferenceState.proposedEntityCreationsByType,
             );
 
-            if (retryMessageContent) {
-              retryMessages.push({
-                role: "tool",
-                tool_call_id: toolCall.id,
-                content: retryMessageContent,
+            if (retryMessageContentText) {
+              retryMessageContent.push({
+                type: "tool_result",
+                content: retryMessageContentText,
+                tool_use_id: toolCall.id,
                 requiresOriginalContext: requiresOriginalContextForRetry,
               });
             }
@@ -446,12 +625,12 @@ export const proposeEntities = async (params: {
               )}`,
             );
 
-            retryMessages.push({
+            retryMessageContent.push({
+              type: "tool_result",
               content:
                 "You provided an invalid argument to create_entities. Please try again",
               requiresOriginalContext: true,
-              role: "tool",
-              tool_call_id: toolCall.id,
+              tool_use_id: toolCall.id,
             });
             continue;
           }
@@ -467,15 +646,14 @@ export const proposeEntities = async (params: {
         logger.info(
           `${remainingEntitySummaries} entities remain to be inferred, continuing.`,
         );
-        retryMessages.push({
-          content:
-            "There are other entities you haven't yet provided details for",
-          role: "user",
+        retryMessageContent.push({
+          type: "text",
+          text: "There are other entities you haven't yet provided details for",
           requiresOriginalContext: true,
         });
       }
 
-      if (retryMessages.length === 0) {
+      if (retryMessageContent.length === 0) {
         logger.info(
           `Returning proposed entities: ${stringify(
             inferenceState.proposedEntityCreationsByType,
@@ -488,10 +666,13 @@ export const proposeEntities = async (params: {
         };
       }
 
-      const toolCallsWithoutProblems = parsedToolCalls.filter(
+      const toolCallsWithoutProblems = toolCalls.filter(
         (toolCall) =>
-          !retryMessages.some(
-            (msg) => msg.role === "tool" && msg.tool_call_id === toolCall.id,
+          !retryMessageContent.some(
+            (content) =>
+              typeof content === "object" &&
+              content.type === "tool_result" &&
+              content.tool_use_id === toolCall.id,
           ),
       );
 
@@ -499,20 +680,20 @@ export const proposeEntities = async (params: {
        * We require exactly one response to each tool call for subsequent messages – this fallback ensures that.
        * They must come before any other messages.
        */
-      retryMessages.unshift(
+      retryMessageContent.unshift(
         ...toolCallsWithoutProblems.map((toolCall) => ({
-          role: "tool" as const,
-          tool_call_id: toolCall.id,
+          type: "tool_result" as const,
+          tool_use_id: toolCall.id,
           content: "No problems found with this tool call.",
           requiresOriginalContext: false,
         })),
       );
 
       return retryWithMessages({
-        retryMessages: retryMessages.map(
-          ({ requiresOriginalContext: _, ...msg }) => msg,
+        retryMessageContent: retryMessageContent.map(
+          ({ requiresOriginalContext: _, ...content }) => content,
         ),
-        requiresOriginalContext: retryMessages.some(
+        requiresOriginalContext: retryMessageContent.some(
           (retryMessage) => retryMessage.requiresOriginalContext,
         ),
       });

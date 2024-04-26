@@ -13,6 +13,7 @@ import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-util
 import type { Entity, OwnedById } from "@local/hash-subgraph";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
+import { Context } from "@temporalio/activity";
 import isEqual from "lodash.isequal";
 import isMatch from "lodash.ismatch";
 
@@ -22,6 +23,7 @@ import {
   findExistingEntity,
   findExistingLinkEntity,
 } from "../shared/find-existing-entity";
+import { logProgress } from "../shared/log-progress";
 import type { FlowActionActivity } from "./types";
 
 export const persistEntityAction: FlowActionActivity<{
@@ -101,12 +103,10 @@ export const persistEntityAction: FlowActionActivity<{
   if (existingEntity) {
     for (const [key, value] of typedEntries(properties)) {
       // @todo better handle property objects, will currently overwrite the entire object if there are any differences
-      const jsonPointerKey = `/${key.replace(/\//g, "~1")}`;
-
       if (!isEqual(existingEntity.properties[key], value)) {
         patchOperations.push({
           op: existingEntity.properties[key] ? "replace" : "add",
-          path: jsonPointerKey,
+          path: [key],
           value,
         });
       }
@@ -137,6 +137,19 @@ export const persistEntityAction: FlowActionActivity<{
       metadata: mapGraphApiEntityMetadataToMetadata(entityMetadata),
       ...entityValues,
     };
+
+    logProgress([
+      {
+        persistedEntity: {
+          entity,
+          existingEntity: existingEntity ?? undefined,
+          operation,
+        },
+        recordedAt: new Date().toISOString(),
+        stepId: Context.current().info.activityId,
+        type: "PersistedEntity",
+      },
+    ]);
 
     await createInferredEntityNotification({
       graphApiClient,

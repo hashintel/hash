@@ -1,8 +1,10 @@
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type {
   InferredEntityCreationFailure,
   InferredEntityCreationSuccess,
   InferredEntityMatchesExisting,
+  ProposedEntity,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
@@ -13,7 +15,7 @@ import type {
 } from "@local/hash-subgraph";
 import isMatch from "lodash.ismatch";
 
-import { logger } from "../../../shared/logger";
+import { logger } from "../../shared/activity-logger";
 import {
   findExistingEntity,
   findExistingLinkEntity,
@@ -25,7 +27,6 @@ import type {
   UpdateCandidate,
 } from "../inference-types";
 import { extractErrorMessage } from "../shared/extract-validation-failure-details";
-import type { ProposedEntityCreationsByType } from "../shared/generate-propose-entities-tools";
 import { ensureTrailingSlash } from "./ensure-trailing-slash";
 
 type StatusByTemporaryId<T> = Record<number, T>;
@@ -50,7 +51,7 @@ export const createEntities = async ({
   createAsDraft: boolean;
   graphApiClient: GraphApi;
   inferenceState: InferenceState;
-  proposedEntitiesByType: ProposedEntityCreationsByType;
+  proposedEntitiesByType: Record<VersionedUrl, ProposedEntity[]>;
   requestedEntityTypes: DereferencedEntityTypesByTypeId;
   ownedById: OwnedById;
 }): Promise<EntityStatusMap> => {

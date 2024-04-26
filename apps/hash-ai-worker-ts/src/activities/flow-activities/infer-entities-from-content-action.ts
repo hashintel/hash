@@ -48,6 +48,7 @@ export const inferEntitiesFromContentAction: FlowActionActivity<{
     entityTypeIds,
     graphApiClient,
     actorId: aiAssistantAccountId,
+    simplifyPropertyKeys: true,
   });
 
   let webPageInferenceState: InferenceState = {

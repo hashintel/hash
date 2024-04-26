@@ -7,6 +7,7 @@ import type {
   EntityUuid,
   OwnedById,
 } from "@local/hash-subgraph";
+import type { Status } from "@local/status";
 
 import type { ActionDefinitionId } from "./action-definitions";
 import type { TriggerDefinitionId } from "./trigger-definitions";
@@ -112,10 +113,13 @@ export type InputDefinition = {
   default?: Payload;
 };
 
-export type OutputDefinition<A extends boolean = boolean> = {
+export type OutputDefinition<
+  A extends boolean = boolean,
+  K extends PayloadKind = PayloadKind,
+> = {
   name: string;
   description?: string;
-  payloadKind: PayloadKind;
+  payloadKind: K;
   array: A;
   required: boolean;
 };
@@ -151,7 +155,7 @@ export type StepInputSource<P extends Payload = Payload> = {
       kind: "step-output";
       sourceStepId: string;
       sourceStepOutputName: string;
-      fallbackValue?: P;
+      fallbackPayload?: P;
     }
   | {
       /**
@@ -159,7 +163,7 @@ export type StepInputSource<P extends Payload = Payload> = {
        * for all flow runs.
        */
       kind: "hardcoded";
-      value: P;
+      payload: P;
     }
 );
 
@@ -168,16 +172,34 @@ export type ActionStepDefinition<
 > = {
   kind: "action";
   stepId: string;
+  groupId?: number;
   actionDefinitionId: ActionDefinitionId;
+  description: string;
   inputSources: AdditionalInputSources extends null
     ? StepInputSource[]
     : (StepInputSource | AdditionalInputSources)[];
   retryCount?: number;
 };
 
+export type ActionStepWithParallelInput = ActionStepDefinition<{
+  /**
+   * This additional input source refers to the dispersed input
+   * for a parallel group.
+   */
+  inputName: string;
+  kind: "parallel-group-input";
+}>;
+
+export type StepDefinition =
+  | ActionStepDefinition
+  | ActionStepWithParallelInput
+  | ParallelGroupStepDefinition;
+
 export type ParallelGroupStepDefinition = {
   kind: "parallel-group";
   stepId: string;
+  groupId?: number;
+  description: string;
   /**
    * The input source to parallelize on must expect an `ArrayPayload`,
    * so that each item in the array can be processed by the steps in
@@ -188,17 +210,7 @@ export type ParallelGroupStepDefinition = {
    * The steps that will be executed in parallel branches for each payload
    * item in the provided `ArrayPayload`.
    */
-  steps: (
-    | ActionStepDefinition<{
-        /**
-         * This additional input source refers to the dispersed input
-         * for a parallel group.
-         */
-        inputName: string;
-        kind: "parallel-group-input";
-      }>
-    | ParallelGroupStepDefinition
-  )[];
+  steps: StepDefinition[];
   /**
    * The aggregate output of the parallel group must be defined
    * as an `array` output.
@@ -217,26 +229,33 @@ export type ParallelGroupStepDefinition = {
   };
 };
 
-export type StepDefinition = ActionStepDefinition | ParallelGroupStepDefinition;
-
 type FlowDefinitionTrigger =
   | {
       kind: "trigger";
+      description: string;
       triggerDefinitionId: Exclude<TriggerDefinitionId, "scheduledTrigger">;
       outputs?: OutputDefinition[];
     }
   | {
       kind: "scheduled";
+      description: string;
       triggerDefinitionId: "scheduledTrigger";
       active: boolean;
       cronSchedule: string;
       outputs?: OutputDefinition[];
     };
 
+export type StepGroup = {
+  groupId: number;
+  description: string;
+};
+
 export type FlowDefinition = {
   name: string;
+  description: string;
   flowDefinitionId: EntityUuid;
   trigger: FlowDefinitionTrigger;
+  groups?: StepGroup[];
   steps: StepDefinition[];
   outputs: (OutputDefinition & {
     /**
@@ -264,6 +283,8 @@ export type StepOutput<P extends Payload = Payload> = {
   outputName: string;
   payload: P;
 };
+
+export type StepRunOutput = Status<Required<Pick<ActionStep, "outputs">>>;
 
 export type ActionStep = {
   stepId: string;
@@ -299,4 +320,25 @@ export type Flow = {
   flowDefinitionId: EntityUuid;
   steps: FlowStep[];
   outputs?: StepOutput[];
+};
+
+export type ProposedEntityLog = {
+  proposedEntity: ProposedEntity;
+  recordedAt: string;
+  stepId: string;
+  type: "ProposedEntity";
+};
+
+export type PersistedEntityLog = {
+  persistedEntity: PersistedEntity;
+  recordedAt: string;
+  stepId: string;
+  type: "PersistedEntity";
+};
+
+export type StepProgressLog = PersistedEntityLog | ProposedEntityLog;
+
+export type ProgressLogSignalData = {
+  attempt: number;
+  logs: StepProgressLog[];
 };

@@ -1,0 +1,7 @@
+{
+  "name": "@apps/hash-graph-type-defs",
+  "version": "0.0.0-private",
+  "private": true,
+  "dependencies": {},
+  "devDependencies": {}
+}

@@ -1,173 +1,130 @@
-import {
-  validateVersionedUrl,
-  type VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type {
   ProposedEntity,
   ProposedEntitySchemaOrData,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
-import { type EntityPropertiesObject, isBaseUrl } from "@local/hash-subgraph";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
 import type { LlmToolDefinition } from "../../shared/get-llm-response/types";
+import { generateSimplifiedTypeId } from "./generate-simplified-type-id";
+import type { EntityPropertyValueWithSimplifiedProperties } from "./map-simplified-properties-to-properties";
+import { stripIdsFromDereferencedProperties } from "./strip-ids-from-dereferenced-properties";
 
 export type ProposeEntitiesToolName = "abandon_entities" | "create_entities";
 
-export type ProposedEntityCreationsByType = Record<
-  VersionedUrl,
-  ProposedEntity[]
->;
-
-const sanitizePropertyKeys = (
-  properties: EntityPropertiesObject,
-): EntityPropertiesObject => {
-  return Object.entries(properties).reduce((prev, [key, value]) => {
-    let sanitizedKey = key;
-
-    /**
-     * Sometimes the model attaches a "?" to the base URL for no reason.
-     * If it's there, remove it.
-     */
-    if (sanitizedKey.endsWith("?")) {
-      sanitizedKey = sanitizedKey.slice(0, -1);
-    }
-
-    /**
-     * Ensure that the key ends with a trailing slash if it's a base URL.
-     */
-    if (!sanitizedKey.endsWith("/") && isBaseUrl(`${sanitizedKey}/`)) {
-      sanitizedKey = `${sanitizedKey}/`;
-    }
-
-    return {
-      ...prev,
-      [sanitizedKey]:
-        typeof value === "object" && value !== null
-          ? Array.isArray(value)
-            ? value.map((arrayItem) =>
-                typeof arrayItem === "object" &&
-                arrayItem !== null &&
-                !Array.isArray(arrayItem)
-                  ? sanitizePropertyKeys(arrayItem)
-                  : arrayItem,
-              )
-            : sanitizePropertyKeys(value)
-          : value,
-    };
-  }, {} as EntityPropertiesObject);
+type ProposedEntityWithSimplifiedProperties = DistributiveOmit<
+  ProposedEntity,
+  "properties"
+> & {
+  properties?: Record<string, EntityPropertyValueWithSimplifiedProperties>;
 };
+
+export type ProposedEntityToolCreationsByType = Record<
+  string,
+  ProposedEntityWithSimplifiedProperties[]
+>;
 
 export const generateProposeEntitiesTools = (
   entityTypes: {
-    schema: DereferencedEntityType;
+    schema: DereferencedEntityType<string>;
     isLink: boolean;
   }[],
-): LlmToolDefinition<ProposeEntitiesToolName>[] => [
-  {
-    name: "create_entities",
-    description: "Create entities inferred from the provided text",
-    inputSchema: {
-      type: "object",
-      properties: entityTypes.reduce<Record<VersionedUrl, JSONSchema>>(
-        (acc, { schema, isLink }) => {
-          acc[schema.$id] = {
-            type: "array",
-            title: `${schema.title} entities to create`,
-            items: {
-              $id: schema.$id,
-              type: "object",
+): {
+  tools: LlmToolDefinition<ProposeEntitiesToolName>[];
+  simplifiedEntityTypeIdMappings: Record<string, VersionedUrl>;
+} => {
+  let simplifiedEntityTypeIdMappings: Record<string, VersionedUrl> = {};
+
+  const tools: LlmToolDefinition<ProposeEntitiesToolName>[] = [
+    {
+      name: "create_entities",
+      description: "Create entities inferred from the provided text",
+      inputSchema: {
+        type: "object",
+        properties: entityTypes.reduce<Record<string, JSONSchema>>(
+          (acc, { schema, isLink }) => {
+            const entityTypeId = schema.$id;
+
+            const {
+              simplifiedTypeId: simplifiedEntityTypeId,
+              updatedTypeMappings,
+            } = generateSimplifiedTypeId({
               title: schema.title,
-              description: schema.description,
-              properties: {
-                entityId: {
-                  description:
-                    "Your numerical identifier for the entity, unique among the inferred entities in this conversation",
-                  type: "number",
-                },
-                ...(isLink
-                  ? {
-                      sourceEntityId: {
-                        description:
-                          "The entityId of the source entity of the link",
-                        type: "number",
-                      },
-                      targetEntityId: {
-                        description:
-                          "The entityId of the target entity of the link",
-                        type: "number",
-                      },
-                    }
-                  : {}),
+              typeIdOrBaseUrl: entityTypeId,
+              existingTypeMappings: simplifiedEntityTypeIdMappings,
+            });
+
+            simplifiedEntityTypeIdMappings = updatedTypeMappings;
+
+            acc[simplifiedEntityTypeId] = {
+              type: "array",
+              title: `${schema.title} entities to create`,
+              items: {
+                type: "object",
+                title: schema.title,
+                description: schema.description,
                 properties: {
-                  description: "The properties to set on the entity",
-                  default: {},
-                  type: "object",
-                  properties: schema.properties,
-                },
-              } satisfies ProposedEntitySchemaOrData,
-              required: [
-                "entityId",
-                "properties",
-                ...(isLink ? ["sourceEntityId", "targetEntityId"] : []),
-              ],
-            },
-          };
-          return acc;
-        },
-        {},
-      ),
-    },
-    sanitizeInputBeforeValidation: (unsanitizedInput: object) => {
-      return Object.entries(unsanitizedInput).reduce(
-        (prev, [entityTypeId, proposedEntitiesOfType]) => {
-          /** */
-          if (
-            !Array.isArray(proposedEntitiesOfType) ||
-            validateVersionedUrl(entityTypeId).type !== "Ok"
-          ) {
-            return {
-              ...prev,
-              [entityTypeId as VersionedUrl]:
-                proposedEntitiesOfType as ProposedEntity[],
-            };
-          }
-
-          return {
-            ...prev,
-            [entityTypeId]: proposedEntitiesOfType.map(
-              (proposedEntity: ProposedEntity) => {
-                const propertiesWithTrialingSlashes = proposedEntity.properties
-                  ? sanitizePropertyKeys(proposedEntity.properties)
-                  : proposedEntity.properties;
-
-                return {
-                  ...proposedEntity,
-                  properties: propertiesWithTrialingSlashes,
-                };
+                  entityId: {
+                    description:
+                      "Your numerical identifier for the entity, unique among the inferred entities in this conversation",
+                    type: "number",
+                  },
+                  ...(isLink
+                    ? {
+                        sourceEntityId: {
+                          description:
+                            "The entityId of the source entity of the link",
+                          type: "number",
+                        },
+                        targetEntityId: {
+                          description:
+                            "The entityId of the target entity of the link",
+                          type: "number",
+                        },
+                      }
+                    : {}),
+                  properties: {
+                    description: "The properties to set on the entity",
+                    default: {},
+                    type: "object",
+                    properties: stripIdsFromDereferencedProperties({
+                      properties: schema.properties,
+                    }),
+                  },
+                } satisfies ProposedEntitySchemaOrData,
+                required: [
+                  "entityId",
+                  "properties",
+                  ...(isLink ? ["sourceEntityId", "targetEntityId"] : []),
+                ],
               },
-            ),
-          };
-        },
-        {} as ProposedEntityCreationsByType,
-      );
+            };
+            return acc;
+          },
+          {},
+        ),
+      },
     },
-  },
-  {
-    name: "abandon_entities",
-    description:
-      "Give up trying to create, following failures which you cannot correct",
-    inputSchema: {
-      type: "object",
-      properties: {
-        entityIds: {
-          type: "array",
-          title: "The entityIds of the entities to abandon",
-          items: {
-            type: "number",
+    {
+      name: "abandon_entities",
+      description:
+        "Give up trying to create, following failures which you cannot correct",
+      inputSchema: {
+        type: "object",
+        properties: {
+          entityIds: {
+            type: "array",
+            title: "The entityIds of the entities to abandon",
+            items: {
+              type: "number",
+            },
           },
         },
       },
     },
-  },
-];
+  ];
+
+  return { tools, simplifiedEntityTypeIdMappings };
+};

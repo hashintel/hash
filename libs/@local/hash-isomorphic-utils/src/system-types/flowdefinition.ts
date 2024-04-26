@@ -23,6 +23,7 @@ export type FlowDefinitionOutgoingLinksByLinkEntityTypeId = {};
  */
 export type FlowDefinitionProperties = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/": TextDataType;
   "https://hash.ai/@hash/types/property-type/output-definitions/": OutputDefinitionsPropertyValue;
   "https://hash.ai/@hash/types/property-type/step-definitions/": StepDefinitionsPropertyValue;
   "https://hash.ai/@hash/types/property-type/trigger-definition/": TriggerDefinitionPropertyValue;

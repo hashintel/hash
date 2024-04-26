@@ -41,6 +41,7 @@ export * from "./icon-list-regular";
 export * from "./icon-magnifying-glass-regular";
 export * from "./icon-pen-to-square-solid";
 export * from "./icon-person-running-regular";
+export * from "./icon-play-solid";
 export * from "./icon-plus";
 export * from "./icon-rainbow-hash";
 export * from "./icon-rotate-regular";

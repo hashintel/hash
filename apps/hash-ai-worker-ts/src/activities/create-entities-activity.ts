@@ -1,4 +1,6 @@
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { ProposedEntity } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { AccountId, OwnedById } from "@local/hash-subgraph";
 
 import type {
@@ -6,14 +8,13 @@ import type {
   InferenceState,
 } from "./infer-entities/inference-types";
 import { createEntities } from "./infer-entities/persist-entities/create-entities";
-import type { ProposedEntityCreationsByType } from "./infer-entities/shared/generate-propose-entities-tools";
 
 export const createEntitiesActivity = async (params: {
   actorId: AccountId;
   createAsDraft: boolean;
   graphApiClient: GraphApi;
   inferenceState: InferenceState;
-  proposedEntitiesByType: ProposedEntityCreationsByType;
+  proposedEntitiesByType: Record<VersionedUrl, ProposedEntity[]>;
   requestedEntityTypes: DereferencedEntityTypesByTypeId;
   ownedById: OwnedById;
 }) => {

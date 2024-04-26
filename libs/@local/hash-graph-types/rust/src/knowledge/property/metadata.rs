@@ -1,12 +1,20 @@
-use std::collections::{hash_map, HashMap};
 #[cfg(feature = "postgres")]
 use std::error::Error;
+use std::{
+    borrow::Cow,
+    collections::{hash_map, HashMap},
+};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
-use serde::{Deserialize, Serialize};
+use serde::{ser::SerializeSeq, Deserialize, Serialize};
+#[cfg(feature = "utoipa")]
+use utoipa::{
+    openapi::{self, ToArray},
+    ToSchema,
+};
 
 use crate::knowledge::{
     property::provenance::PropertyProvenance, Confidence, PropertyPatchOperation, PropertyPath,
@@ -49,11 +57,50 @@ impl ToSql for PropertyMetadata {
     }
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct PropertyMetadataMap<'p> {
-    #[serde(flatten)]
     values: HashMap<PropertyPath<'p>, PropertyMetadata>,
+}
+
+#[cfg(feature = "utoipa")]
+impl ToSchema<'_> for PropertyMetadataMap<'_> {
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
+            "PropertyMetadataMap",
+            PropertyMetadataMapRepr::schema().1.to_array().into(),
+        )
+    }
+}
+
+impl<'p> Serialize for PropertyMetadataMap<'p> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut seq = serializer.serialize_seq(Some(self.values.len()))?;
+        for (path, metadata) in &self.values {
+            seq.serialize_element(&PropertyMetadataMapRepr {
+                path: Cow::Borrowed(path),
+                metadata: Cow::Borrowed(metadata),
+            })?;
+        }
+        seq.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for PropertyMetadataMap<'_> {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        Ok(Self {
+            values: Vec::<PropertyMetadataMapRepr>::deserialize(deserializer)?
+                .into_iter()
+                .map(|value| (value.path.into_owned(), value.metadata.into_owned()))
+                .collect(),
+        })
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+struct PropertyMetadataMapRepr<'p> {
+    path: Cow<'p, PropertyPath<'p>>,
+    metadata: Cow<'p, PropertyMetadata>,
 }
 
 impl<'p> PropertyMetadataMap<'p> {

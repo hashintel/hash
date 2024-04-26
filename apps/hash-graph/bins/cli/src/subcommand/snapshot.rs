@@ -78,7 +78,6 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
 
     let mut zanzibar_client = ZanzibarClient::new(spicedb_client);
     zanzibar_client.seed().await.change_context(GraphError)?;
-    let mut authorization_api = zanzibar_client.into_backend();
 
     match args.command {
         SnapshotCommand::Dump(_) => {
@@ -87,7 +86,7 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
                     io::BufWriter::new(io::stdout()),
                     codec::bytes::JsonLinesEncoder::default(),
                 ),
-                &authorization_api,
+                &zanzibar_client,
                 10_000,
             )
             .change_context(GraphError)
@@ -96,18 +95,20 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
             tracing::info!("Snapshot dumped successfully");
         }
         SnapshotCommand::Restore(args) => {
-            SnapshotStore::new(pool.acquire().await.change_context(GraphError).map_err(
-                |report| {
-                    tracing::error!(error = ?report, "Failed to acquire database connection");
-                    report
-                },
-            )?)
+            SnapshotStore::new(
+                pool.acquire(zanzibar_client, None)
+                    .await
+                    .change_context(GraphError)
+                    .map_err(|report| {
+                        tracing::error!(error = ?report, "Failed to acquire database connection");
+                        report
+                    })?,
+            )
             .restore_snapshot(
                 FramedRead::new(
                     io::BufReader::new(io::stdin()),
                     codec::bytes::JsonLinesDecoder::default(),
                 ),
-                &mut authorization_api,
                 10_000,
                 !args.skip_validation,
             )

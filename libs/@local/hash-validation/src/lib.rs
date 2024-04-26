@@ -1,9 +1,5 @@
 #![feature(lint_reasons)]
 #![feature(extend_one)]
-#![expect(
-    clippy::missing_errors_doc,
-    reason = "It's obvious that validation may error on invalid data."
-)]
 
 pub mod error;
 

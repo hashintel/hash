@@ -1,7 +1,9 @@
+cargo-features = ["edition2024"]
+
 [package]
 name = "graph-integration"
 version = "0.0.0"
-edition = "2021"
+edition.workspace = true
 publish = false
 
 [dev-dependencies]
@@ -10,6 +12,7 @@ graph-test-data = { workspace = true }
 graph-types = { workspace = true }
 temporal-versioning = { workspace = true }
 authorization = { workspace = true }
+temporal-client = { workspace = true }
 
 error-stack = { workspace = true, features = ["spantrace"] }
 type-system = { workspace = true }

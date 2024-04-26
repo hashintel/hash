@@ -1,6 +1,6 @@
 use std::{borrow::Cow, error::Error, fmt};
 
-use authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency, AuthorizationApi};
+use authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency};
 use error_stack::Report;
 use graph_types::{
     account::AccountId,
@@ -16,7 +16,6 @@ use graph_types::{
     owned_by_id::OwnedById,
 };
 use serde::{Deserialize, Serialize};
-use temporal_client::TemporalClient;
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use type_system::{url::VersionedUrl, ClosedEntityType, EntityType};
 #[cfg(feature = "utoipa")]
@@ -30,8 +29,8 @@ use validation::ValidateEntityComponents;
 use crate::{
     knowledge::EntityQueryPath,
     store::{
-        crud, crud::Sorting, postgres::CursorField, InsertionError, NullOrdering, Ordering,
-        QueryError, UpdateError,
+        crud::Sorting, postgres::CursorField, InsertionError, NullOrdering, Ordering, QueryError,
+        UpdateError,
     },
     subgraph::{query::EntityStructuralQuery, Subgraph},
 };
@@ -228,6 +227,15 @@ pub struct GetEntityParams<'a> {
     #[serde(borrow)]
     pub sorting: EntityQuerySorting<'static>,
     pub limit: Option<usize>,
+    #[serde(default)]
+    pub include_count: bool,
+}
+
+#[derive(Debug)]
+pub struct GetEntityResponse<'r> {
+    pub subgraph: Subgraph,
+    pub cursor: Option<EntityQueryCursor<'r>>,
+    pub count: Option<usize>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -298,7 +306,7 @@ pub struct DiffEntityResult<'e> {
 /// Describes the API of a store implementation for [Entities].
 ///
 /// [Entities]: Entity
-pub trait EntityStore: crud::ReadPaginated<Entity> {
+pub trait EntityStore {
     /// Creates a new [`Entity`].
     ///
     /// # Errors:
@@ -307,13 +315,9 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
     /// - if the [`PropertyObject`] is not valid with respect to the specified [`EntityType`]
     /// - if the account referred to by `owned_by_id` does not exist
     /// - if an [`EntityUuid`] was supplied and already exists in the store
-    ///
-    /// [`EntityType`]: type_system::EntityType
-    fn create_entity<A: AuthorizationApi + Send + Sync, R>(
+    fn create_entity<R>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
-        temporal_client: Option<&TemporalClient>,
         params: CreateEntityParams<R>,
     ) -> impl Future<Output = Result<EntityMetadata, Report<InsertionError>>> + Send
     where
@@ -324,10 +328,9 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
     /// # Errors:
     ///
     /// - if the validation failed
-    fn validate_entity<A: AuthorizationApi + Sync>(
+    fn validate_entity(
         &self,
         actor_id: AccountId,
-        authorization_api: &A,
         consistency: Consistency<'_>,
         params: ValidateEntityParams<'_>,
     ) -> impl Future<Output = Result<(), Report<ValidateEntityError>>> + Send;
@@ -347,12 +350,9 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
     /// - if on of the [`Entity`] is not valid with respect to the specified [`EntityType`]
     /// - if the account referred to by `owned_by_id` does not exist
     /// - if an [`EntityUuid`] was supplied and already exists in the store
-    ///
-    /// [`EntityType`]: type_system::EntityType
-    fn insert_entities_batched_by_type<A: AuthorizationApi + Send + Sync>(
+    fn insert_entities_batched_by_type(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
         entities: impl IntoIterator<
             Item = (
                 OwnedById,
@@ -373,43 +373,51 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
     /// - if the requested [`Entity`] doesn't exist
     ///
     /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
-    fn get_entity<A: AuthorizationApi + Sync>(
+    fn get_entity(
         &self,
         actor_id: AccountId,
-        authorization_api: &A,
         params: GetEntityParams<'_>,
-    ) -> impl Future<
-        Output = Result<(Subgraph, Option<EntityQueryCursor<'static>>), Report<QueryError>>,
-    > + Send;
+    ) -> impl Future<Output = Result<GetEntityResponse<'static>, Report<QueryError>>> + Send;
 
-    fn get_entity_by_id<A: AuthorizationApi + Sync>(
+    /// Count the number of entities that would be returned in [`get_entity`].
+    ///
+    /// # Errors
+    ///
+    /// - if the request to the database fails
+    ///
+    /// [`get_entity`]: Self::get_entity
+    fn count_entities(
         &self,
         actor_id: AccountId,
-        authorization_api: &A,
+        query: EntityStructuralQuery<'_>,
+    ) -> impl Future<Output = Result<usize, Report<QueryError>>> + Send;
+
+    fn get_entity_by_id(
+        &self,
+        actor_id: AccountId,
         entity_id: EntityId,
         transaction_time: Option<Timestamp<TransactionTime>>,
         decision_time: Option<Timestamp<DecisionTime>>,
     ) -> impl Future<Output = Result<Entity, Report<QueryError>>> + Send;
 
-    fn patch_entity<A: AuthorizationApi + Send + Sync>(
+    fn patch_entity(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
-        temporal_client: Option<&TemporalClient>,
         params: PatchEntityParams,
     ) -> impl Future<Output = Result<EntityMetadata, Report<UpdateError>>> + Send;
 
-    fn diff_entity<A: AuthorizationApi + Sync>(
+    fn diff_entity(
         &self,
         actor_id: AccountId,
-        authorization_api: &A,
         params: DiffEntityParams,
-    ) -> impl Future<Output = Result<DiffEntityResult<'static>, Report<QueryError>>> + Send {
+    ) -> impl Future<Output = Result<DiffEntityResult<'static>, Report<QueryError>>> + Send
+    where
+        Self: Sync,
+    {
         async move {
             let first_entity = self
                 .get_entity_by_id(
                     actor_id,
-                    authorization_api,
                     params.first_entity_id,
                     params.first_transaction_time,
                     params.first_decision_time,
@@ -418,7 +426,6 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
             let second_entity = self
                 .get_entity_by_id(
                     actor_id,
-                    authorization_api,
                     params.second_entity_id,
                     params.second_transaction_time,
                     params.second_decision_time,
@@ -437,10 +444,9 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
         }
     }
 
-    fn update_entity_embeddings<A: AuthorizationApi + Send + Sync>(
+    fn update_entity_embeddings(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
         params: UpdateEntityEmbeddingsParams<'_>,
     ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;
 }

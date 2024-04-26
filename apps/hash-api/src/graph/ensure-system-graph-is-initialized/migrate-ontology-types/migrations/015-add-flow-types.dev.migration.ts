@@ -100,6 +100,10 @@ const migrate: MigrationFunction = async ({
             required: true,
           },
           {
+            propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
+            required: true,
+          },
+          {
             propertyType: triggerDefinitionPropertyType,
             required: true,
           },

@@ -131,7 +131,7 @@ pub struct StoreProvider<'a, S, A> {
 impl<S, A> StoreProvider<'_, S, A>
 where
     S: Read<DataTypeWithMetadata>,
-    A: AuthorizationApi + Sync,
+    A: AuthorizationApi,
 {
     async fn authorize_data_type(&self, type_id: DataTypeId) -> Result<(), Report<QueryError>> {
         if let Some((authorization_api, actor_id, consistency)) = self.authorization {
@@ -155,7 +155,7 @@ where
 impl<S, A> OntologyTypeProvider<DataType> for StoreProvider<'_, S, A>
 where
     S: Read<DataTypeWithMetadata>,
-    A: AuthorizationApi + Sync,
+    A: AuthorizationApi,
 {
     #[expect(refining_impl_trait)]
     async fn provide_type(
@@ -198,7 +198,7 @@ where
 impl<S, A> StoreProvider<'_, S, A>
 where
     S: Read<PropertyTypeWithMetadata>,
-    A: AuthorizationApi + Sync,
+    A: AuthorizationApi,
 {
     async fn authorize_property_type(
         &self,
@@ -225,7 +225,7 @@ where
 impl<S, A> OntologyTypeProvider<PropertyType> for StoreProvider<'_, S, A>
 where
     S: Read<PropertyTypeWithMetadata>,
-    A: AuthorizationApi + Sync,
+    A: AuthorizationApi,
 {
     #[expect(refining_impl_trait)]
     async fn provide_type(
@@ -269,10 +269,10 @@ where
     }
 }
 
-impl<C, A> StoreProvider<'_, PostgresStore<C>, A>
+impl<C, A> StoreProvider<'_, PostgresStore<C, A>, A>
 where
     C: AsClient,
-    A: AuthorizationApi + Sync,
+    A: AuthorizationApi,
 {
     async fn authorize_entity_type(&self, type_id: EntityTypeId) -> Result<(), Report<QueryError>> {
         if let Some((authorization_api, actor_id, consistency)) = self.authorization {
@@ -333,10 +333,10 @@ where
     }
 }
 
-impl<C, A> OntologyTypeProvider<ClosedEntityType> for StoreProvider<'_, PostgresStore<C>, A>
+impl<C, A> OntologyTypeProvider<ClosedEntityType> for StoreProvider<'_, PostgresStore<C, A>, A>
 where
     C: AsClient,
-    A: AuthorizationApi + Sync,
+    A: AuthorizationApi,
 {
     #[expect(refining_impl_trait)]
     async fn provide_type(
@@ -367,10 +367,10 @@ where
     }
 }
 
-impl<C, A> EntityTypeProvider for StoreProvider<'_, PostgresStore<C>, A>
+impl<C, A> EntityTypeProvider for StoreProvider<'_, PostgresStore<C, A>, A>
 where
     C: AsClient,
-    A: AuthorizationApi + Sync,
+    A: AuthorizationApi,
 {
     #[expect(refining_impl_trait)]
     async fn is_parent_of(
@@ -403,7 +403,7 @@ where
 impl<S, A> EntityProvider for StoreProvider<'_, S, A>
 where
     S: Read<Entity>,
-    A: AuthorizationApi + Sync,
+    A: AuthorizationApi,
 {
     #[expect(refining_impl_trait)]
     async fn provide_entity(

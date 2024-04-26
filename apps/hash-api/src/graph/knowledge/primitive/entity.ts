@@ -1,6 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
+import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type {
   AllFilter,
   DiffEntityResult,
@@ -58,7 +59,6 @@ import type {
   LinkedEntityDefinition,
 } from "../../../graphql/api-types.gen";
 import { isTestEnv } from "../../../lib/env-config";
-import type { TemporalClient } from "../../../temporal";
 import { linkedTreeFlatten } from "../../../util";
 import type { ImpureGraphFunction } from "../../context-types";
 import { rewriteSemanticFilter } from "../../shared/rewrite-semantic-filter";
@@ -211,6 +211,14 @@ export const getEntities: ImpureGraphFunction<
       return subgraph;
     });
 };
+
+export const countEntities: ImpureGraphFunction<
+  {
+    query: EntityStructuralQuery;
+  },
+  Promise<number>
+> = async ({ graphApi }, { actorId }, params) =>
+  graphApi.countEntities(actorId, params.query).then(({ data }) => data);
 
 /**
  * Get the latest edition of an entity by its entityId. See notes on params.
@@ -559,7 +567,7 @@ export const updateEntity: ImpureGraphFunction<
     properties: [
       {
         op: "replace",
-        path: "",
+        path: [],
         value: params.properties,
       },
     ],

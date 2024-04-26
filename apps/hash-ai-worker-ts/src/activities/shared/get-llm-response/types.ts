@@ -1,6 +1,5 @@
 import type { JSONSchema } from "openai/lib/jsonschema";
 import type {
-  ChatCompletion,
   ChatCompletion as OpenAiChatCompletion,
   ChatCompletionCreateParams as OpenAiChatCompletionCreateParams,
 } from "openai/resources";
@@ -12,6 +11,7 @@ import type {
   AnthropicMessagesCreateResponse,
 } from "./anthropic-client";
 import { isAnthropicMessageModel } from "./anthropic-client";
+import type { LlmAssistantMessage, LlmMessage } from "./llm-message";
 
 export type LlmToolDefinition<ToolName extends string = string> = {
   name: ToolName;
@@ -24,19 +24,24 @@ export type CommonLlmParams<ToolName extends string = string> = {
   model: AnthropicMessageModel | PermittedOpenAiModel;
   tools?: LlmToolDefinition<ToolName>[];
   retryCount?: number;
+  systemPrompt?: string;
+  messages: LlmMessage[];
 };
 
 export type AnthropicLlmParams<ToolName extends string = string> =
   CommonLlmParams<ToolName> & {
     model: AnthropicMessageModel;
     maxTokens?: number;
-  } & Omit<AnthropicMessagesCreateParams, "tools" | "max_tokens">;
+  } & Omit<
+      AnthropicMessagesCreateParams,
+      "tools" | "max_tokens" | "system" | "messages"
+    >;
 
 export type OpenAiLlmParams<ToolName extends string = string> =
   CommonLlmParams<ToolName> & {
     model: PermittedOpenAiModel;
     trimMessageAtIndex?: number;
-  } & Omit<OpenAiChatCompletionCreateParams, "tools">;
+  } & Omit<OpenAiChatCompletionCreateParams, "tools" | "messages">;
 
 export type LlmParams<ToolName extends string = string> =
   | AnthropicLlmParams<ToolName>
@@ -46,12 +51,12 @@ export const isLlmParamsAnthropicLlmParams = (
   params: LlmParams,
 ): params is AnthropicLlmParams => isAnthropicMessageModel(params.model);
 
-export type AnthropicResponse = AnthropicMessagesCreateResponse;
+export type AnthropicResponse = Omit<
+  AnthropicMessagesCreateResponse,
+  "content" | "role" | "usage"
+>;
 
-export type OpenAiResponse = Omit<OpenAiChatCompletion, "usage" | "choices"> & {
-  usage: NonNullable<OpenAiChatCompletion["usage"]>;
-  choices: [ChatCompletion.Choice, ...ChatCompletion.Choice[]];
-};
+export type OpenAiResponse = Omit<OpenAiChatCompletion, "usage" | "choices">;
 
 export type ParsedLlmToolCall<ToolName extends string = string> = {
   id: string;
@@ -74,13 +79,35 @@ export type LlmStopReason =
   | "content_filter"
   | "stop_sequence";
 
+export type LlmUsage = {
+  /**
+   * The number of input tokens which were used.
+   * Equivalent to `prompt_tokens` in the OpenAI API, or `input_tokens` in the Anthropic API.
+   */
+  inputTokens: number;
+  /**
+   * The number of output tokens which were used.
+   * Equivalent to `completion_tokens` in the OpenAI API, or `output_tokens` in the Anthropic API.
+   */
+  outputTokens: number;
+  /**
+   * Total number of tokens used in the request (input + output tokens)
+   */
+  totalTokens: number;
+};
+
 export type LlmResponse<T extends LlmParams> =
   | ({
       status: "ok";
       stopReason: LlmStopReason;
-      parsedToolCalls: ParsedLlmToolCall<
-        NonNullable<T["tools"]>[number]["name"]
-      >[];
+      usage: LlmUsage;
+      message: LlmAssistantMessage<
+        T["tools"] extends (infer U)[]
+          ? U extends { name: infer N }
+            ? N
+            : never
+          : string
+      >;
     } & (T extends AnthropicLlmParams ? AnthropicResponse : OpenAiResponse))
   | {
       status: "exceeded-maximum-retries";

@@ -1,17 +1,21 @@
 use std::collections::HashMap;
 
 use error_stack::{Report, Result, ResultExt};
-use futures::TryStreamExt;
+use futures::{Stream, TryStreamExt};
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{EntityId, EntityUuid},
     owned_by_id::OwnedById,
 };
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::{
     backend::{
-        CheckError, CheckResponse, ModifyRelationError, ModifyRelationshipOperation, ReadError,
-        RpcError, ZanzibarBackend,
+        BulkCheckItem, BulkCheckResponse, CheckError, CheckResponse, DeleteRelationshipError,
+        DeleteRelationshipResponse, ExportSchemaError, ExportSchemaResponse, ImportSchemaError,
+        ImportSchemaResponse, ModifyRelationError, ModifyRelationshipError,
+        ModifyRelationshipOperation, ModifyRelationshipResponse, ReadError, RpcError,
+        ZanzibarBackend,
     },
     schema::{
         AccountGroupPermission, AccountGroupRelationAndSubject, DataTypeId, DataTypePermission,
@@ -20,7 +24,10 @@ use crate::{
         PropertyTypePermission, PropertyTypeRelationAndSubject, SettingName,
         SettingRelationAndSubject, SettingSubject, WebPermission, WebRelationAndSubject,
     },
-    zanzibar::{types::RelationshipFilter, Consistency, Zookie},
+    zanzibar::{
+        types::{Relationship, RelationshipFilter, Resource, Subject},
+        Consistency, Permission, Zookie,
+    },
     AuthorizationApi,
 };
 
@@ -32,10 +39,6 @@ pub struct ZanzibarClient<B> {
 impl<B> ZanzibarClient<B> {
     pub const fn new(backend: B) -> Self {
         Self { backend }
-    }
-
-    pub fn into_backend(self) -> B {
-        self.backend
     }
 }
 
@@ -565,5 +568,115 @@ where
             .map_ok(|(_, relation)| relation)
             .try_collect()
             .await
+    }
+}
+
+impl<B> ZanzibarBackend for ZanzibarClient<B>
+where
+    B: ZanzibarBackend + Send + Sync,
+{
+    async fn import_schema(
+        &mut self,
+        schema: &str,
+    ) -> Result<ImportSchemaResponse, ImportSchemaError> {
+        self.backend.import_schema(schema).await
+    }
+
+    async fn export_schema(&self) -> Result<ExportSchemaResponse, ExportSchemaError> {
+        self.backend.export_schema().await
+    }
+
+    async fn modify_relationships<R>(
+        &mut self,
+        relationships: impl IntoIterator<Item = (ModifyRelationshipOperation, R), IntoIter: Send> + Send,
+    ) -> Result<ModifyRelationshipResponse, ModifyRelationshipError>
+    where
+        R: Relationship<
+                Resource: Resource<Kind: Serialize, Id: Serialize>,
+                Relation: Serialize,
+                Subject: Resource<Kind: Serialize, Id: Serialize>,
+                SubjectSet: Serialize,
+            > + Send
+            + Sync,
+    {
+        self.backend.modify_relationships(relationships).await
+    }
+
+    async fn check_permission<O, R, S>(
+        &self,
+        resource: &O,
+        permission: &R,
+        subject: &S,
+        consistency: Consistency<'_>,
+    ) -> Result<CheckResponse, CheckError>
+    where
+        O: Resource<Kind: Serialize, Id: Serialize> + Sync,
+        R: Serialize + Permission<O> + Sync,
+        S: Subject<Resource: Resource<Kind: Serialize, Id: Serialize>, Relation: Serialize> + Sync,
+    {
+        self.backend
+            .check_permission(resource, permission, subject, consistency)
+            .await
+    }
+
+    async fn check_permissions<O, R, S>(
+        &self,
+        relationships: impl IntoIterator<Item = (O, R, S)> + Send,
+        consistency: Consistency<'_>,
+    ) -> Result<BulkCheckResponse<impl IntoIterator<Item = BulkCheckItem<O, R, S>>>, CheckError>
+    where
+        O: Resource<Kind: Serialize + DeserializeOwned, Id: Serialize + DeserializeOwned>
+            + Send
+            + Sync,
+        R: Serialize + DeserializeOwned + Permission<O> + Send + Sync,
+        S: Subject<
+                Resource: Resource<
+                    Kind: Serialize + DeserializeOwned,
+                    Id: Serialize + DeserializeOwned,
+                >,
+                Relation: Serialize + DeserializeOwned,
+            > + Send
+            + Sync,
+    {
+        self.backend
+            .check_permissions(relationships, consistency)
+            .await
+    }
+
+    async fn read_relations<R>(
+        &self,
+        filter: RelationshipFilter<
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+        >,
+        consistency: Consistency<'_>,
+    ) -> Result<impl Stream<Item = Result<R, ReadError>> + Send, ReadError>
+    where
+        for<'de> R: Relationship<
+                Resource: Resource<Kind: Deserialize<'de>, Id: Deserialize<'de>>,
+                Relation: Deserialize<'de>,
+                Subject: Resource<Kind: Deserialize<'de>, Id: Deserialize<'de>>,
+                SubjectSet: Deserialize<'de>,
+            > + Send,
+    {
+        self.backend.read_relations(filter, consistency).await
+    }
+
+    async fn delete_relations(
+        &mut self,
+        filter: RelationshipFilter<
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+        >,
+    ) -> Result<DeleteRelationshipResponse, DeleteRelationshipError> {
+        self.backend.delete_relations(filter).await
     }
 }

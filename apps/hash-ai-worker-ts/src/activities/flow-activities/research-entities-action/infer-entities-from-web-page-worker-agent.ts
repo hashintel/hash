@@ -13,15 +13,17 @@ import type { AccountId } from "@local/hash-subgraph/.";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
-import type {
-  ChatCompletionMessageParam,
-  ChatCompletionSystemMessageParam,
-} from "openai/resources";
+import type { ChatCompletionMessageParam } from "openai/resources";
 
-import { logger } from "../../../shared/logger";
 import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity";
 import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types";
+import { logger } from "../../shared/activity-logger";
 import { getLlmResponse } from "../../shared/get-llm-response";
+import {
+  getTextContentFromLlmMessage,
+  getToolCallsFromLlmAssistantMessage,
+  mapOpenAiMessagesToLlmMessages,
+} from "../../shared/get-llm-response/llm-message";
 import type {
   LlmToolDefinition,
   ParsedLlmToolCall,
@@ -34,8 +36,8 @@ import type {
   InferEntitiesFromWebPageWorkerAgentState,
   ToolName,
 } from "./infer-entities-from-web-page-worker-agent/types";
-import type { CompletedToolCall } from "./types";
 // import { retrievePreviousState, writeStateToFile } from "./testing-utils";
+import type { CompletedToolCall } from "./types";
 import { mapPreviousCallsToChatCompletionMessages } from "./util";
 
 const model: PermittedOpenAiModel = "gpt-4-0125-preview";
@@ -318,9 +320,7 @@ const createInitialPlan = async (params: {
 }): Promise<{ plan: string }> => {
   const { prompt, url, dereferencedEntityTypes } = params;
 
-  const systemMessage: ChatCompletionSystemMessageParam = {
-    role: "system",
-    content: dedent(`
+  const systemPrompt = dedent(`
       ${systemMessagePrefix}
 
       Do not make *any* tool calls. You must first provide a plan of how you will use
@@ -330,15 +330,14 @@ const createInitialPlan = async (params: {
 
       Remember that you may need to navigate to other web pages which are linked on the
       initial web page, to find all the entities required to satisfy the prompt.
-    `),
-  };
+    `);
 
-  const messages: ChatCompletionMessageParam[] = [
-    systemMessage,
-    generateUserMessage({ prompt, url, dereferencedEntityTypes }),
-  ];
+  const messages = mapOpenAiMessagesToLlmMessages({
+    messages: [generateUserMessage({ prompt, url, dereferencedEntityTypes })],
+  });
 
   const llmResponse = await getLlmResponse({
+    systemPrompt,
     messages,
     model,
     tools: Object.values(toolDefinitions),
@@ -350,22 +349,20 @@ const createInitialPlan = async (params: {
     );
   }
 
-  const { choices, usage: _usage } = llmResponse;
-
-  const { message } = choices[0];
+  const { message, usage: _usage } = llmResponse;
 
   /** @todo: capture usage */
 
-  const openAiAssistantMessageContent = message.content;
+  const messageText = getTextContentFromLlmMessage({ message });
 
-  if (!openAiAssistantMessageContent) {
+  if (!messageText) {
     throw new Error(
-      `Expected message content in response: ${JSON.stringify(llmResponse, null, 2)}`,
+      `Expected message text content in response: ${JSON.stringify(llmResponse, null, 2)}`,
     );
   }
 
   return {
-    plan: openAiAssistantMessageContent,
+    plan: messageText,
   };
 };
 
@@ -388,9 +385,7 @@ const getNextToolCalls = async (params: {
   const submittedProposedEntities =
     getSubmittedProposedEntitiesFromState(state);
 
-  const systemMessage: ChatCompletionSystemMessageParam = {
-    role: "system",
-    content: dedent(`
+  const systemPrompt = dedent(`
       ${systemMessagePrefix}
 
       You have previously proposed the following plan:
@@ -411,19 +406,20 @@ const getNextToolCalls = async (params: {
           `)
           : "You have not previously submitted any proposed entities."
       }
-    `),
-  };
+    `);
 
-  const messages: ChatCompletionMessageParam[] = [
-    systemMessage,
-    generateUserMessage({ prompt, url, dereferencedEntityTypes }),
-    ...mapPreviousCallsToChatCompletionMessages({
-      previousCalls: state.previousCalls,
-    }),
-    ...(retryMessages ?? []),
-  ];
+  const messages = mapOpenAiMessagesToLlmMessages({
+    messages: [
+      generateUserMessage({ prompt, url, dereferencedEntityTypes }),
+      ...mapPreviousCallsToChatCompletionMessages({
+        previousCalls: state.previousCalls,
+      }),
+      ...(retryMessages ?? []),
+    ],
+  });
 
   const llmResponse = await getLlmResponse({
+    systemPrompt,
     messages,
     model,
     tools: Object.values(toolDefinitions),
@@ -435,11 +431,13 @@ const getNextToolCalls = async (params: {
     );
   }
 
-  const { parsedToolCalls, usage: _usage } = llmResponse;
+  const { message, usage: _usage } = llmResponse;
+
+  const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
 
   /** @todo: capture usage */
 
-  return { toolCalls: parsedToolCalls };
+  return { toolCalls };
 };
 
 export const inferEntitiesFromWebPageWorkerAgent = async (params: {
@@ -470,6 +468,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     entityTypeIds,
     graphApiClient,
     actorId: userAuthentication.actorId,
+    simplifyPropertyKeys: true,
   });
 
   const { plan: initialPlan } = await createInitialPlan({

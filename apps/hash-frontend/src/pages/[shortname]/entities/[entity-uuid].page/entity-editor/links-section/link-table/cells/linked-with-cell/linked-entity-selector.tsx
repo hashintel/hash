@@ -1,29 +1,12 @@
-import { useQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import {
-  ArrowLeftIcon,
-  AutocompleteDropdown,
-  SelectorAutocomplete,
-} from "@hashintel/design-system";
+import { ArrowLeftIcon, AutocompleteDropdown } from "@hashintel/design-system";
 import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
-import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
 import type {
   Entity,
   EntityId,
   EntityRootType,
   EntityTypeWithMetadata,
   Subgraph,
-} from "@local/hash-subgraph";
-import {
-  entityIdFromComponents,
-  extractDraftIdFromEntityId,
-  splitEntityId,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { PaperProps } from "@mui/material";
@@ -37,15 +20,11 @@ import {
   useState,
 } from "react";
 
-import type {
-  StructuralQueryEntitiesQuery,
-  StructuralQueryEntitiesQueryVariables,
-} from "../../../../../../../../../graphql/api-types.gen";
-import { structuralQueryEntitiesQuery } from "../../../../../../../../../graphql/queries/knowledge/entity.queries";
 import { useEntityTypesContextRequired } from "../../../../../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { useFileUploads } from "../../../../../../../../../shared/file-upload-context";
 import { Button } from "../../../../../../../../../shared/ui/button";
 import { FileUploadDropzone } from "../../../../../../../../settings/shared/file-upload-dropzone";
+import { EntitySelector } from "../../../../../../../../shared/entity-selector";
 import { WorkspaceContext } from "../../../../../../../../shared/workspace-context";
 import { useEntityEditor } from "../../../../entity-editor-context";
 
@@ -88,7 +67,7 @@ const FileCreationPane = (props: PaperProps) => {
   );
 };
 
-export const EntitySelector = ({
+export const LinkedEntitySelector = ({
   includeDrafts,
   onSelect,
   onFinishedEditing,
@@ -97,7 +76,6 @@ export const EntitySelector = ({
   linkEntityTypeId,
 }: EntitySelectorProps) => {
   const { entitySubgraph } = useEntityEditor();
-  const [search, setSearch] = useState("");
 
   const entityId = getRoots(entitySubgraph)[0]?.metadata.recordId
     .entityId as EntityId;
@@ -116,109 +94,6 @@ export const EntitySelector = ({
       (expectedType) =>
         isSpecialEntityTypeLookup?.[expectedType.schema.$id]?.isImage,
     );
-
-  const { data: entitiesData, loading } = useQuery<
-    StructuralQueryEntitiesQuery,
-    StructuralQueryEntitiesQueryVariables
-  >(structuralQueryEntitiesQuery, {
-    variables: {
-      query: {
-        filter:
-          expectedEntityTypes.length === 0
-            ? { all: [] }
-            : {
-                any: expectedEntityTypes.map(({ schema }) =>
-                  generateVersionedUrlMatchingFilter(schema.$id, {
-                    ignoreParents: true,
-                  }),
-                ),
-              },
-        temporalAxes: currentTimeInstantTemporalAxes,
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          inheritsFrom: { outgoing: 255 },
-          isOfType: { outgoing: 1 },
-        },
-        includeDrafts,
-      },
-      includePermissions: false,
-    },
-  });
-
-  const entitiesSubgraph = entitiesData
-    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-        entitiesData.structuralQueryEntities.subgraph,
-      )
-    : undefined;
-
-  const highlightedRef = useRef<null | Entity>(null);
-
-  const sortedAndFilteredEntities = useMemo(() => {
-    if (!entitiesSubgraph) {
-      return [];
-    }
-    const subgraphRoots = getRoots(entitiesSubgraph);
-
-    const hasLiveVersion: Record<EntityId, boolean> = {};
-
-    return subgraphRoots
-      .filter((entity) => {
-        const rootEntityId = entity.metadata.recordId.entityId;
-
-        if (entity.metadata.archived) {
-          return false;
-        }
-
-        if (entityIdsToFilterOut?.includes(rootEntityId)) {
-          return false;
-        }
-
-        if (includeDrafts) {
-          /**
-           * If we have included drafts in the query, we may have multiple roots for a single entity for the current time,
-           * in the case where it has a 'live' (non-draft) version and one or more unarchived draft updates.
-           *
-           * We only want one result, which should be the live version if it exists, or the single draft if there's no live.
-           * Entities without a live version can't have multiple drafts at a point in time because there's nothing to fork multiple from.
-           */
-          const [ownedById, entityUuid, draftId] = splitEntityId(rootEntityId);
-          if (!draftId) {
-            /** If there is no draftId, this is the live version, which is always preferred in the selector */
-            hasLiveVersion[rootEntityId] = true;
-            return true;
-          }
-
-          /** This has a draftId, and therefore is only permitted if there is no live version */
-          const liveEntityId = entityIdFromComponents(ownedById, entityUuid);
-          if (hasLiveVersion[liveEntityId]) {
-            /**
-             * We already checked for this entityId and there is a live version
-             */
-            return false;
-          }
-          if (
-            subgraphRoots.some(
-              (possiblyLiveEntity) =>
-                possiblyLiveEntity.metadata.recordId.entityId === liveEntityId,
-            )
-          ) {
-            hasLiveVersion[liveEntityId] = true;
-            return false;
-          }
-          /**
-           * We don't bother to memoize a false result because there will only one draft version if there isn't a live,
-           * and therefore we're not going to see this liveEntityId again in the loop.
-           */
-        }
-
-        return true;
-      })
-      .sort((a, b) =>
-        a.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
-          b.metadata.temporalVersioning.decisionTime.start.limit,
-        ),
-      );
-  }, [entitiesSubgraph, entityIdsToFilterOut, includeDrafts]);
 
   const onCreateNew = () => {
     if (!expectedEntityTypes[0]) {
@@ -301,47 +176,35 @@ export const EntitySelector = ({
     [isImage, onFileProvided],
   );
 
+  const highlightedRef = useRef<null | Entity>(null);
+
   return (
     <FileCreationContext.Provider value={fileCreationContextValue}>
-      <SelectorAutocomplete
+      <EntitySelector
+        entityIdsToFilterOut={entityIdsToFilterOut}
+        expectedEntityTypes={expectedEntityTypes}
+        includeDrafts={includeDrafts}
+        multiple={false}
+        onSelect={onSelect}
         className={GRID_CLICK_IGNORE_CLASS}
         open
         PaperComponent={showUploadFileMenu ? FileCreationPane : undefined}
         dropdownProps={{
-          query: search,
-          createButtonProps: {
-            className: GRID_CLICK_IGNORE_CLASS,
-            onMouseDown: (evt) => {
-              evt.preventDefault();
-              evt.stopPropagation();
-              onCreateNew();
+          creationProps: {
+            createButtonProps: {
+              className: GRID_CLICK_IGNORE_CLASS,
+              onMouseDown: (evt) => {
+                evt.preventDefault();
+                evt.stopPropagation();
+                onCreateNew();
+              },
             },
+            variant: isFileType ? "file" : "entity",
           },
-          variant: isFileType ? "file" : "entity",
         }}
-        loading={loading}
-        options={sortedAndFilteredEntities}
-        optionToRenderData={(entity) => ({
-          entityProperties: entity.properties,
-          uniqueId: entity.metadata.recordId.entityId,
-          icon: null,
-          /**
-           * @todo update SelectorAutocomplete to show an entity's namespace as well as / instead of its entityTypeId
-           * */
-          typeId: entity.metadata.entityTypeId,
-          title: generateEntityLabel(entitiesSubgraph!, entity),
-          draft: !!extractDraftIdFromEntityId(
-            entity.metadata.recordId.entityId,
-          ),
-        })}
         inputPlaceholder={isFileType ? "No file" : "No entity"}
-        inputValue={search}
-        onInputChange={(_, value) => setSearch(value)}
         onHighlightChange={(_, value) => {
           highlightedRef.current = value;
-        }}
-        onChange={(_, option) => {
-          onSelect(option, entitiesSubgraph ?? null);
         }}
         onKeyUp={(evt) => {
           if (evt.key === "Enter" && !highlightedRef.current) {

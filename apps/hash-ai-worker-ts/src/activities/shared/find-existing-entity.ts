@@ -73,7 +73,7 @@ export const findExistingEntity = async ({
           return;
         }
 
-        return dereferenceEntityType(entityTypeId, subgraph).schema;
+        return dereferenceEntityType({ entityTypeId, subgraph }).schema;
       }));
 
   if (!entityType) {
@@ -117,7 +117,8 @@ export const findExistingEntity = async ({
     generateVersionedUrlMatchingFilter(entityTypeId),
   ] satisfies AllFilter["all"];
 
-  const maximumSemanticDistance = 0.55;
+  // starting point for a threshold that will get only values which are a semantic match
+  const maximumSemanticDistance = 0.3;
 
   /**
    * First find suitable specific properties to match on
@@ -174,7 +175,7 @@ export const findExistingEntity = async ({
             {
               parameter: foundEmbedding,
             },
-            { parameter: maximumSemanticDistance }, // starting point for a threshold that will get only values which are a semantic match
+            { parameter: maximumSemanticDistance },
           ],
         } satisfies CosineDistanceFilter;
       })

@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use authorization::{
     backend::ZanzibarBackend,
     schema::{EntityRelationAndSubject, EntityTypeId},
-    NoAuthorization,
+    AuthorizationApi,
 };
 use error_stack::{Report, ResultExt};
 use futures::TryStreamExt;
@@ -44,8 +44,14 @@ pub enum EntityRowBatch {
 }
 
 #[async_trait]
-impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
-    async fn begin(postgres_client: &PostgresStore<C>) -> Result<(), Report<InsertionError>> {
+impl<C, A> WriteBatch<C, A> for EntityRowBatch
+where
+    C: AsClient,
+    A: ZanzibarBackend + AuthorizationApi,
+{
+    async fn begin(
+        postgres_client: &mut PostgresStore<C, A>,
+    ) -> Result<(), Report<InsertionError>> {
         postgres_client
             .as_client()
             .client()
@@ -99,8 +105,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
     #[expect(clippy::too_many_lines)]
     async fn write(
         self,
-        postgres_client: &PostgresStore<C>,
-        authorization_api: &mut (impl ZanzibarBackend + Send),
+        postgres_client: &mut PostgresStore<C, A>,
     ) -> Result<(), Report<InsertionError>> {
         let client = postgres_client.as_client().client();
         match self {
@@ -238,7 +243,8 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                 }
             }
             Self::Relations(relations) => {
-                authorization_api
+                postgres_client
+                    .authorization_api
                     .touch_relationships(relations)
                     .await
                     .change_context(InsertionError)?;
@@ -264,7 +270,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
     }
 
     async fn commit(
-        postgres_client: &PostgresStore<C>,
+        postgres_client: &mut PostgresStore<C, A>,
         validation: bool,
     ) -> Result<(), Report<InsertionError>> {
         postgres_client
@@ -317,7 +323,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                 .await
                 .change_context(InsertionError)?;
 
-            let validator_provider = StoreProvider::<_, NoAuthorization> {
+            let validator_provider = StoreProvider::<_, A> {
                 store: postgres_client,
                 cache: StoreCache::default(),
                 authorization: None,

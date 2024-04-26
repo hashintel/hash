@@ -1,3 +1,4 @@
+import { sleep } from "@local/hash-backend-utils/utils";
 import {
   type ActionDefinitionId,
   actionDefinitions,
@@ -397,22 +398,14 @@ export const runFlowWorkflow = async (
 
   log("All processable steps have completed processing");
 
-  if (Object.entries(processStepErrors).length > 0) {
-    return {
-      code: StatusCode.Internal,
-      message:
-        "One or more errors occurred while processing the steps in the flow.",
-      contents: [
-        {
-          flow,
-          stepErrors: Object.entries(processStepErrors).map(
-            ([stepId, status]) => ({ ...status, contents: [{ stepId }] }),
-          ),
-        },
-      ],
-    };
-  }
+  /**
+   * Wait to flush logs
+   * @todo flush logs by calling the debounced function's flush, flushLogs – need to deal with it importing code that
+   *   the workflow can't
+   */
+  await sleep(3_000);
 
+  /** @todo this is not necessarily an error once there are branches */
   if (processedStepIds.length !== getAllStepsInFlow(flow).length) {
     return {
       code: StatusCode.Unknown,
@@ -485,12 +478,20 @@ export const runFlowWorkflow = async (
     }
   }
 
+  const stepErrors = Object.entries(processStepErrors).map(
+    ([stepId, status]) => ({ ...status, contents: [{ stepId }] }),
+  );
+
   await flowActivities.persistFlowActivity({ flow, userAuthentication });
 
-  const flowOutputs = flow.outputs ?? [];
+  const outputs = flow.outputs ?? [];
 
   return {
-    code: StatusCode.Ok,
-    contents: [{ flowOutputs }],
+    /**
+     * Steps may error and be retried, or the whole workflow retried, while still producing the required outputs
+     * – start with an initial status of OK if the outputs are present, to be adjusted if necessary.
+     */
+    code: outputs.length ? StatusCode.Ok : StatusCode.Internal,
+    contents: [{ outputs, stepErrors }],
   };
 };

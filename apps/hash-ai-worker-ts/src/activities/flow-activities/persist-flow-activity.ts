@@ -82,7 +82,7 @@ export const createPersistFlowActivity =
         properties: [
           {
             op: "replace",
-            path: "",
+            path: [],
             value: flowProperties,
           },
         ],
