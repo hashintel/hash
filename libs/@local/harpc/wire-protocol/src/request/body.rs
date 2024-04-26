@@ -2,7 +2,7 @@ use error_stack::{Result, ResultExt};
 use tokio::io::{AsyncRead, AsyncWrite};
 
 use super::{
-    begin::{RequestBegin, RequestBeginContext},
+    begin::RequestBegin,
     codec::{DecodeError, EncodeError},
     flags::{RequestFlag, RequestFlags},
     frame::RequestFrame,
@@ -54,7 +54,6 @@ impl From<&RequestBody> for RequestVariant {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RequestBodyContext {
-    pub contains_authorization: bool,
     pub variant: RequestVariant,
 }
 
@@ -66,18 +65,7 @@ impl RequestBodyContext {
             RequestVariant::Frame
         };
 
-        Self {
-            contains_authorization: flags.contains(RequestFlag::ContainsAuthorization),
-            variant,
-        }
-    }
-}
-
-impl From<RequestBodyContext> for RequestBeginContext {
-    fn from(context: RequestBodyContext) -> Self {
-        Self {
-            contains_authorization: context.contains_authorization,
-        }
+        Self { variant }
     }
 }
 
@@ -90,9 +78,7 @@ impl Decode for RequestBody {
         context: Self::Context,
     ) -> Result<Self, Self::Error> {
         match context.variant {
-            RequestVariant::Begin => RequestBegin::decode(read, context.into())
-                .await
-                .map(RequestBody::Begin),
+            RequestVariant::Begin => RequestBegin::decode(read, ()).await.map(RequestBody::Begin),
             RequestVariant::Frame => RequestFrame::decode(read, ())
                 .await
                 .map(RequestBody::Frame)
@@ -138,7 +124,6 @@ mod test {
                 BitFlags::CONST_TOKEN,
             )),
         },
-        authorization: None,
         payload: Payload::from_static(&[]),
     };
 
@@ -165,7 +150,6 @@ mod test {
         let bytes = encode_value(&EXAMPLE_BEGIN).await;
 
         let context = RequestBodyContext {
-            contains_authorization: false,
             variant: RequestVariant::Begin,
         };
 
@@ -173,57 +157,19 @@ mod test {
     }
 
     #[tokio::test]
-    async fn decode_begin_with_authorization() {
-        let begin = RequestBegin {
-            authorization: Some(Authorization {
-                account: AccountId::new(Uuid::new_v4()),
-            }),
-            ..EXAMPLE_BEGIN.clone()
-        };
-
-        let bytes = encode_value(&begin).await;
-
-        let context = RequestBodyContext {
-            contains_authorization: true,
-            variant: RequestVariant::Begin,
-        };
-
-        assert_decode(&bytes, &RequestBody::Begin(begin), context).await;
-    }
-
-    #[tokio::test]
     async fn decode_frame() {
         let bytes = encode_value(&EXAMPLE_FRAME).await;
 
         let context = RequestBodyContext {
-            contains_authorization: false,
             variant: RequestVariant::Frame,
         };
 
         assert_decode(&bytes, &RequestBody::Frame(EXAMPLE_FRAME.clone()), context).await;
     }
 
-    #[tokio::test]
-    async fn decode_frame_with_authorization() {
-        // ensure that `contains_authorization` is ignored for `RequestFrame`
-        let frame = RequestFrame {
-            payload: Payload::from_static(&[]),
-        };
-
-        let bytes = encode_value(&frame).await;
-
-        let context = RequestBodyContext {
-            contains_authorization: true,
-            variant: RequestVariant::Frame,
-        };
-
-        assert_decode(&bytes, &RequestBody::Frame(frame), context).await;
-    }
-
     #[test_strategy::proptest(async = "tokio")]
     async fn codec(body: RequestBody) {
         let context = RequestBodyContext {
-            contains_authorization: body.contains_authorization(),
             variant: (&body).into(),
         };
 
