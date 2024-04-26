@@ -3,7 +3,7 @@
 #![feature(can_vector)]
 #![feature(write_all_vectored)]
 
-pub(crate) mod console;
+pub mod console;
 pub(crate) mod formatter;
 pub mod logging;
 pub mod opentelemetry;

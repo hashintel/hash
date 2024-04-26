@@ -56,6 +56,8 @@ pub enum ConsoleStream {
     Stdout,
     #[default]
     Stderr,
+    #[cfg_attr(feature = "clap", clap(skip))]
+    Test,
 }
 
 impl ConsoleStream {
@@ -63,6 +65,7 @@ impl ConsoleStream {
         match self {
             Self::Stdout => ConsoleMakeWriter::Stdout,
             Self::Stderr => ConsoleMakeWriter::Stderr,
+            Self::Test => ConsoleMakeWriter::Test,
         }
     }
 }
@@ -285,7 +288,8 @@ pub struct LoggingConfig {
     pub file: FileConfig,
 }
 
-fn env_filter(level: Option<Level>) -> EnvFilter {
+#[must_use]
+pub fn env_filter(level: Option<Level>) -> EnvFilter {
     level.map_or_else(
         || {
             // Both environment variables are supported but `HASH_GRAPH_LOG_LEVEL` takes precedence
@@ -379,13 +383,13 @@ where
     (layer, guard)
 }
 
-pub(crate) type ConsoleLayer<S>
+pub type ConsoleLayer<S>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 = impl Layer<S>;
 
 #[must_use]
-pub(crate) fn console_layer<S>(config: &ConsoleConfig) -> ConsoleLayer<S>
+pub fn console_layer<S>(config: &ConsoleConfig) -> ConsoleLayer<S>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {
