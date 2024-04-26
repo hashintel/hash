@@ -45,6 +45,23 @@ impl Decode for u16 {
     }
 }
 
+impl Decode for u32 {
+    type Context = ();
+    type Error = io::Error;
+
+    #[expect(
+        clippy::big_endian_bytes,
+        reason = "u32 is encoded in big-endian format"
+    )]
+    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
+        pin!(read);
+
+        let mut buffer = [0; 4];
+        read.read_exact(&mut buffer).await?;
+        Ok(Self::from_be_bytes(buffer))
+    }
+}
+
 impl Decode for Bytes {
     type Context = ();
     type Error = io::Error;

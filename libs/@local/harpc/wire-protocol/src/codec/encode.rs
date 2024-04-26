@@ -36,6 +36,16 @@ impl Encode for u16 {
     }
 }
 
+impl Encode for u32 {
+    type Error = io::Error;
+
+    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
+        pin!(write);
+
+        write.write_u32(*self).await.map_err(From::from)
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
 pub enum BytesEncodeError {
     #[error("io error")]

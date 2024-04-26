@@ -7,7 +7,7 @@ use crate::codec::{Decode, Encode};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
-pub struct RequestId(u16);
+pub struct RequestId(u32);
 
 impl RequestId {
     const fn zero() -> Self {
@@ -34,7 +34,7 @@ impl Decode for RequestId {
     type Error = io::Error;
 
     async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        u16::decode(read, ()).await.map(Self)
+        u32::decode(read, ()).await.map(Self)
     }
 }
 
