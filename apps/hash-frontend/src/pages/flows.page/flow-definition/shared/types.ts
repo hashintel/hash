@@ -4,8 +4,9 @@ import type {
   ActionStepWithParallelInput,
   ParallelGroupStepDefinition,
   StepDefinition,
+  StepGroup,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type { Node } from "reactflow";
+import type { Edge, Node } from "reactflow";
 
 export type NodeData = {
   kind: StepDefinition["kind"];
@@ -19,3 +20,13 @@ export type NodeData = {
 };
 
 export type CustomNodeType = Node<NodeData>;
+
+export type GroupWithEdgesAndNodes = {
+  group: StepGroup;
+  edges: Edge[];
+  nodes: CustomNodeType[];
+};
+
+export type GroupsByGroupId =
+  | Record<number, GroupWithEdgesAndNodes>
+  | { 0: { edges: Edge[]; group: null; nodes: CustomNodeType[] } };

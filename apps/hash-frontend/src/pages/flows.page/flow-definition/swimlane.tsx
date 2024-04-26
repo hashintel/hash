@@ -148,7 +148,7 @@ export const Swimlane = ({
     [nodes],
   );
 
-  const groupStatus = useStatusForSteps(stepsWithIds);
+  const { simpleStatus: groupStatus } = useStatusForSteps(stepsWithIds) ?? {};
 
   return (
     <Stack

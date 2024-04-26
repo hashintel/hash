@@ -133,7 +133,11 @@ export const statusToSimpleStatus = (
 
 export const useStatusForSteps = (
   steps: { stepId: string }[],
-): SimpleStatus | null => {
+): {
+  closedAt?: string;
+  scheduledAt?: string;
+  simpleStatus: SimpleStatus;
+} | null => {
   const { selectedFlowRun } = useFlowRunsContext();
 
   return useMemo(() => {
@@ -145,26 +149,51 @@ export const useStatusForSteps = (
       steps.find((step) => step.stepId === stepRun.stepId),
     );
 
-    const statuses = stepRuns.map((stepRun) =>
-      statusToSimpleStatus(stepRun.status),
-    );
-
-    if (statuses.length === 0) {
-      return "Waiting";
+    if (stepRuns.length === 0) {
+      return {
+        simpleStatus: "Waiting",
+      };
     }
 
-    for (const status of statuses) {
-      if (status === "Error") {
-        return "Error";
+    let scheduledAt: string | undefined;
+    let closedAt: string | undefined;
+    let status: SimpleStatus = "Complete";
+
+    let hasError: boolean = false;
+    let hasWaiting: boolean = false;
+    let hasInProgress: boolean = false;
+
+    for (const stepRun of stepRuns) {
+      if (!scheduledAt || stepRun.scheduledAt < scheduledAt) {
+        scheduledAt = stepRun.scheduledAt;
       }
-      if (status === "In Progress") {
-        return "In Progress";
+      if (stepRun.closedAt && (!closedAt || stepRun.closedAt > closedAt)) {
+        closedAt = stepRun.closedAt;
       }
-      if (status === "Waiting") {
-        return "Waiting";
+
+      const simpleStatus = statusToSimpleStatus(stepRun.status);
+
+      if (simpleStatus === "Error") {
+        hasError = true;
+      } else if (simpleStatus === "In Progress") {
+        hasInProgress = true;
+      } else if (simpleStatus === "Waiting") {
+        hasWaiting = true;
       }
     }
 
-    return "Complete";
+    if (hasError) {
+      status = "Error";
+    } else if (hasInProgress) {
+      status = "In Progress";
+    } else if (hasWaiting) {
+      status = "Waiting";
+    }
+
+    return {
+      closedAt,
+      scheduledAt,
+      simpleStatus: status,
+    };
   }, [selectedFlowRun, steps]);
 };

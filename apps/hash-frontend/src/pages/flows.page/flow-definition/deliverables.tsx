@@ -7,6 +7,7 @@ import type { FlowRun } from "../../../graphql/api-types.gen";
 import { Link } from "../../../shared/ui/link";
 import { getFileProperties } from "../../shared/get-file-properties";
 import { Csv } from "./deliverable/csv";
+import { flowSectionBorderRadius } from "./shared/styles";
 
 const Deliverable = ({ output }: { output: StepOutput }) => {
   const { payload } = output;
@@ -58,7 +59,7 @@ export const Deliverables = ({ outputs }: { outputs?: FlowRun["outputs"] }) => {
       sx={{
         background: ({ palette }) => palette.common.white,
         border: ({ palette }) => `1px solid ${palette.gray[20]}`,
-        borderRadius: 2,
+        borderRadius: flowSectionBorderRadius,
         height: "100%",
         textAlign: "center",
         justifyContent: "center",
