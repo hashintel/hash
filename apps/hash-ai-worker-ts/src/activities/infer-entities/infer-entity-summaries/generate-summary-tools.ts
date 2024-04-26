@@ -3,6 +3,7 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import { validateVersionedUrl } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
 import { typedEntries } from "@local/advanced-types/typed-entries";
+import type { Entity } from "@local/hash-subgraph";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
@@ -12,6 +13,7 @@ import type {
   DereferencedEntityTypesByTypeId,
   ProposedEntitySummary,
 } from "../inference-types";
+import { generateToolLinkFields } from "../shared/generate-propose-entities-tools";
 
 type FunctionName = "could_not_infer_entities" | "register_entity_summaries";
 
@@ -24,14 +26,17 @@ export type ProposedEntitySummariesByType = Record<
  * Validates that the provided object is a valid ProposedEntitiesByType object.
  * @throws Error if the provided object does not match ProposedEntitiesByType
  */
-export const validateEntitySummariesByType = (
-  parsedJson: JsonObject,
-  entityTypesById: DereferencedEntityTypesByTypeId,
-  existingSummaries: ProposedEntitySummary[],
-): {
+export const validateEntitySummariesByType = (params: {
+  parsedJson: JsonObject;
+  entityTypesById: DereferencedEntityTypesByTypeId;
+  existingSummaries: ProposedEntitySummary[];
+  existingEntities?: Entity[];
+}): {
   errorMessage?: string;
   validSummaries: ProposedEntitySummary[];
 } => {
+  const { parsedJson, entityTypesById, existingSummaries, existingEntities } =
+    params;
   const errorMessages: string[] = [];
 
   const validSummariesWithLinksUnchecked: ProposedEntitySummary[] = [
@@ -103,8 +108,14 @@ export const validateEntitySummariesByType = (
         validSummariesWithLinksUnchecked.push({
           entityId: entitySummary.entityId as number,
           summary: entitySummary.summary as string,
-          sourceEntityId: entitySummary.sourceEntityId as number | undefined,
-          targetEntityId: entitySummary.targetEntityId as number | undefined,
+          sourceEntityId: entitySummary.sourceEntityId as
+            | number
+            | string
+            | undefined,
+          targetEntityId: entitySummary.targetEntityId as
+            | number
+            | string
+            | undefined,
           entityTypeId: entityTypeId as VersionedUrl,
         });
       }
@@ -118,24 +129,25 @@ export const validateEntitySummariesByType = (
     if (!entityType.isLink) {
       validSummaries.push(potentiallyLinkEntity);
     } else {
-      if (
-        typeof potentiallyLinkEntity.sourceEntityId !== "number" ||
-        typeof potentiallyLinkEntity.targetEntityId !== "number"
-      ) {
-        errorMessages.push(
-          `Link entity with entityId ${stringify(
-            potentiallyLinkEntity,
-          )} must have number values for both sourceEntityId and targetEntityId`,
+      const source =
+        validSummariesWithLinksUnchecked.find(
+          (entity) => entity.entityId === potentiallyLinkEntity.sourceEntityId,
+        ) ??
+        existingEntities?.find(
+          (entity) =>
+            entity.metadata.recordId.entityId ===
+            potentiallyLinkEntity.sourceEntityId,
         );
-        continue;
-      }
 
-      const source = validSummariesWithLinksUnchecked.find(
-        (entity) => entity.entityId === potentiallyLinkEntity.sourceEntityId,
-      );
-      const target = validSummariesWithLinksUnchecked.find(
-        (entity) => entity.entityId === potentiallyLinkEntity.targetEntityId,
-      );
+      const target =
+        validSummariesWithLinksUnchecked.find(
+          (entity) => entity.entityId === potentiallyLinkEntity.targetEntityId,
+        ) ??
+        existingEntities?.find(
+          (entity) =>
+            entity.metadata.recordId.entityId ===
+            potentiallyLinkEntity.targetEntityId,
+        );
 
       if (!source) {
         errorMessages.push(
@@ -173,86 +185,80 @@ export type CouldNotInferEntitiesReturn = Subtype<
   }
 >;
 
-export const generateSummaryTools = (
+export const generateSummaryTools = (params: {
   entityTypes: {
     schema: DereferencedEntityType;
     isLink: boolean;
-  }[],
-): LlmToolDefinition[] => [
-  {
-    name: "could_not_infer_entities" satisfies FunctionName,
-    description:
-      "Returns a warning to the user explaining why no entities could have been inferred from the provided text",
-    inputSchema: {
-      type: "object",
-      properties: {
-        reason: {
-          type: "string",
-          description:
-            "A brief explanation as to why no entities could have been inferred, and one suggestion on how to fix the issue",
-        },
-      } satisfies CouldNotInferEntitiesSchemaOrObject,
+  }[];
+  canLinkToExistingEntities: boolean;
+}): LlmToolDefinition[] => {
+  const { entityTypes, canLinkToExistingEntities } = params;
+
+  return [
+    {
+      name: "could_not_infer_entities" satisfies FunctionName,
+      description:
+        "Returns a warning to the user explaining why no entities could have been inferred from the provided text",
+      inputSchema: {
+        type: "object",
+        properties: {
+          reason: {
+            type: "string",
+            description:
+              "A brief explanation as to why no entities could have been inferred, and one suggestion on how to fix the issue",
+          },
+        } satisfies CouldNotInferEntitiesSchemaOrObject,
+      },
     },
-  },
-  {
-    name: "register_entity_summaries" satisfies FunctionName,
-    description:
-      "Register a short summary for each entity that can be inferred from the providing text",
-    inputSchema: {
-      type: "object",
-      properties: entityTypes.reduce<Record<VersionedUrl, JSONSchema>>(
-        (acc, { schema, isLink }) => {
-          acc[schema.$id] = {
-            type: "array",
-            title: `Summaries of entities of type ${
-              schema.title
-            } that can be inferred from the provided text.${
-              isLink
-                ? "This is a link type, which must link two other entities together by reference to their entityIds as source and target."
-                : ""
-            }`,
-            items: {
-              $id: schema.$id,
-              type: "object",
-              title: schema.title,
-              description: schema.description,
-              properties: {
-                entityId: {
-                  description:
-                    "Your numerical identifier for the entity, unique among the inferred entities in this conversation",
-                  type: "number",
+    {
+      name: "register_entity_summaries" satisfies FunctionName,
+      description:
+        "Register a short summary for each entity that can be inferred from the providing text",
+      inputSchema: {
+        type: "object",
+        properties: entityTypes.reduce<Record<VersionedUrl, JSONSchema>>(
+          (acc, { schema, isLink }) => {
+            acc[schema.$id] = {
+              type: "array",
+              title: `Summaries of entities of type ${
+                schema.title
+              } that can be inferred from the provided text.${
+                isLink
+                  ? "This is a link type, which must link two other entities together by reference to their entityIds as source and target."
+                  : ""
+              }`,
+              items: {
+                $id: schema.$id,
+                type: "object",
+                title: schema.title,
+                description: schema.description,
+                properties: {
+                  entityId: {
+                    description:
+                      "Your numerical identifier for the entity, unique among the inferred entities in this conversation",
+                    type: "number",
+                  },
+                  summary: {
+                    description:
+                      "A short summary of the entity that can be used to uniquely identify it in the provided text. It need not be human-readable or user-friendly, it is only for use by AI Assistants.",
+                    type: "string",
+                  },
+                  ...(isLink
+                    ? generateToolLinkFields({ canLinkToExistingEntities })
+                    : {}),
                 },
-                summary: {
-                  description:
-                    "A short summary of the entity that can be used to uniquely identify it in the provided text. It need not be human-readable or user-friendly, it is only for use by AI Assistants.",
-                  type: "string",
-                },
-                ...(isLink
-                  ? {
-                      sourceEntityId: {
-                        description:
-                          "The entityId of the source entity of the link",
-                        type: "number",
-                      },
-                      targetEntityId: {
-                        description:
-                          "The entityId of the target entity of the link",
-                        type: "number",
-                      },
-                    }
-                  : {}),
+                required: [
+                  "entityId",
+                  "summary",
+                  ...(isLink ? ["sourceEntityId", "targetEntityId"] : []),
+                ],
               },
-              required: [
-                "entityId",
-                "summary",
-                ...(isLink ? ["sourceEntityId", "targetEntityId"] : []),
-              ],
-            },
-          };
-          return acc;
-        },
-        {},
-      ),
+            };
+            return acc;
+          },
+          {},
+        ),
+      },
     },
-  },
-];
+  ];
+};

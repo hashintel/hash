@@ -122,6 +122,7 @@ export const createEntities = async ({
               entityTypeId,
               properties,
             },
+            includeDrafts: createAsDraft,
           });
 
           if (existingEntity) {
@@ -276,6 +277,12 @@ export const createEntities = async ({
 
           const { sourceEntityId, targetEntityId } = proposedEntity;
 
+          if (typeof sourceEntityId === "string") {
+            throw new Error(
+              `Expected source entity ID to be a number instead of "${sourceEntityId}", as existing entities are not supported in the legacy "inferEntities" activity.`,
+            );
+          }
+
           const sourceEntity = findPersistedEntity(sourceEntityId);
 
           if (!sourceEntity) {
@@ -313,6 +320,12 @@ export const createEntities = async ({
               };
 
             return;
+          }
+
+          if (typeof targetEntityId === "string") {
+            throw new Error(
+              `Expected target entity ID to be a number instead of "${targetEntityId}", as existing entities are not supported in the legacy "inferEntities" activity.`,
+            );
           }
 
           const targetEntity = findPersistedEntity(targetEntityId);
@@ -374,6 +387,7 @@ export const createEntities = async ({
               graphApiClient,
               linkData,
               ownedById,
+              includeDrafts: createAsDraft,
             });
 
             if (existingLinkEntity) {

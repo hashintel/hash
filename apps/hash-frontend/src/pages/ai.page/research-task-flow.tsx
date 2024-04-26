@@ -106,6 +106,14 @@ const constructFlowDefinition = (params: {
             sourceStepOutputName:
               "proposedEntities" satisfies OutputNameForAction<"researchEntities">,
           },
+          {
+            inputName: "draft" satisfies InputNameForAction<"persistEntities">,
+            kind: "hardcoded",
+            payload: {
+              kind: "Boolean",
+              value: true,
+            },
+          },
         ],
       },
       ...(includeQuestionAnswerAction
@@ -207,7 +215,7 @@ export const ResearchTaskFlow: FunctionComponent = () => {
     StartFlowMutationVariables
   >(startFlowMutation);
 
-  const [entityType, setEntityType] = useState<EntityTypeWithMetadata>();
+  const [entityTypes, setEntityTypes] = useState<EntityTypeWithMetadata[]>([]);
   const [prompt, setPrompt] = useState<string>("");
   const [question, setQuestion] = useState<string>("");
 
@@ -219,7 +227,7 @@ export const ResearchTaskFlow: FunctionComponent = () => {
     async (event: FormEvent) => {
       event.preventDefault();
 
-      if (entityType && prompt && question) {
+      if (entityTypes.length && prompt) {
         setPersistedEntities(undefined);
         setAnswer(undefined);
 
@@ -246,7 +254,7 @@ export const ResearchTaskFlow: FunctionComponent = () => {
                   outputName: "entityTypeIds",
                   payload: {
                     kind: "VersionedUrl",
-                    value: [entityType.schema.$id],
+                    value: entityTypes.map(({ schema }) => schema.$id),
                   },
                 },
                 ...(question
@@ -298,10 +306,10 @@ export const ResearchTaskFlow: FunctionComponent = () => {
         }
       }
     },
-    [entityType, prompt, question, startFlow],
+    [entityTypes, prompt, question, startFlow],
   );
 
-  const isDisabled = !entityType || !prompt;
+  const isDisabled = !entityTypes.length || !prompt;
 
   return (
     <SectionContainer>
@@ -327,10 +335,17 @@ export const ResearchTaskFlow: FunctionComponent = () => {
             </Box>
           </InputLabel>
           <EntityTypeSelector
-            onSelect={(selectedEntityType) => setEntityType(selectedEntityType)}
+            onSelect={(selectedEntityType) => {
+              setEntityTypes((prev) => [...prev, selectedEntityType]);
+            }}
             disableCreateNewEmpty
             autoFocus={false}
           />
+          {entityTypes.map((entityType) => (
+            <Typography key={entityType.schema.$id}>
+              {entityType.schema.$id}
+            </Typography>
+          ))}
         </Box>
         <Box>
           <InputLabel>
