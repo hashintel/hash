@@ -18,7 +18,7 @@ error-stack = { git = "https://github.com/hashintel/hash", rev = "0829935", defa
 
 num-traits = { version = "0.2.18", default_features = false }
 
-serde = { version = "1.0.198", default_features = false, features = ['alloc', 'derive'] }
+serde = { version = "1.0.199", default_features = false, features = ['alloc', 'derive'] }
 erased-serde = { version = "0.4.4", default_features = false, features = ['alloc'] }
 
 [dev-dependencies]
