@@ -82,18 +82,20 @@ pub enum EntityQueryPath<'p> {
     /// The decision time axis of the [`EntityTemporalMetadata`] belonging to the [`Entity`].
     ///
     /// It's not possible to query for the temporal axis directly, this has to be done via the
-    /// `temporalAxes` parameter on the request. The decision time is returned as part of
+    /// `temporalAxes` parameter on [`StructuralQuery`]. The decision time is returned as part of
     /// [`EntityTemporalMetadata`] of the [`EntityMetadata`].
     ///
+    /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
     /// [`EntityMetadata`]: graph_types::knowledge::entity::EntityMetadata
     /// [`EntityTemporalMetadata`]: graph_types::knowledge::entity::EntityTemporalMetadata
     DecisionTime,
     /// The transaction time axis of the [`EntityTemporalMetadata`] belonging to the [`Entity`].
     ///
     /// It's not possible to query for the temporal axis directly, this has to be done via the
-    /// `temporalAxes` parameter on the request. The transaction time is returned as part
+    /// `temporalAxes` parameter on [`StructuralQuery`]. The transaction time is returned as part
     /// of [`EntityTemporalMetadata`] of the [`EntityMetadata`].
     ///
+    /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
     /// [`EntityMetadata`]: graph_types::knowledge::entity::EntityMetadata
     /// [`EntityTemporalMetadata`]: graph_types::knowledge::entity::EntityTemporalMetadata
     TransactionTime,

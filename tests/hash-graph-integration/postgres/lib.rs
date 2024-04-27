@@ -39,17 +39,13 @@ use graph::{
     store::{
         account::{InsertAccountIdParams, InsertWebIdParams},
         knowledge::{
-            CountEntitiesParams, CreateEntityParams, GetEntitiesParams, GetEntitiesResponse,
-            GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams,
+            CreateEntityParams, GetEntityParams, GetEntityResponse, PatchEntityParams,
             UpdateEntityEmbeddingsParams, ValidateEntityError, ValidateEntityParams,
         },
         ontology::{
             ArchiveDataTypeParams, ArchiveEntityTypeParams, ArchivePropertyTypeParams,
             CreateDataTypeParams, CreateEntityTypeParams, CreatePropertyTypeParams,
-            GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
-            GetDataTypesResponse, GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse,
-            GetEntityTypesParams, GetEntityTypesResponse, GetPropertyTypeSubgraphParams,
-            GetPropertyTypeSubgraphResponse, GetPropertyTypesParams, GetPropertyTypesResponse,
+            GetDataTypesParams, GetEntityTypesParams, GetPropertyTypesParams,
             UnarchiveDataTypeParams, UnarchiveEntityTypeParams, UnarchivePropertyTypeParams,
             UpdateDataTypeEmbeddingParams, UpdateDataTypesParams, UpdateEntityTypeEmbeddingParams,
             UpdateEntityTypesParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
@@ -58,6 +54,7 @@ use graph::{
         EntityStore, EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool,
         PropertyTypeStore, QueryError, StorePool, UpdateError,
     },
+    subgraph::{query::EntityStructuralQuery, Subgraph},
     Environment,
 };
 use graph_types::{
@@ -305,20 +302,12 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
         self.store.create_data_types(actor_id, params).await
     }
 
-    async fn get_data_types(
+    async fn get_data_type(
         &self,
         actor_id: AccountId,
         params: GetDataTypesParams<'_>,
-    ) -> Result<GetDataTypesResponse, QueryError> {
-        self.store.get_data_types(actor_id, params).await
-    }
-
-    async fn get_data_type_subgraph(
-        &self,
-        actor_id: AccountId,
-        params: GetDataTypeSubgraphParams<'_>,
-    ) -> Result<GetDataTypeSubgraphResponse, QueryError> {
-        self.store.get_data_type_subgraph(actor_id, params).await
+    ) -> Result<Subgraph, QueryError> {
+        self.store.get_data_type(actor_id, params).await
     }
 
     async fn update_data_type<R>(
@@ -372,22 +361,12 @@ impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
         self.store.create_property_types(actor_id, params).await
     }
 
-    async fn get_property_types(
+    async fn get_property_type(
         &self,
         actor_id: AccountId,
         params: GetPropertyTypesParams<'_>,
-    ) -> Result<GetPropertyTypesResponse, QueryError> {
-        self.store.get_property_types(actor_id, params).await
-    }
-
-    async fn get_property_type_subgraph(
-        &self,
-        actor_id: AccountId,
-        params: GetPropertyTypeSubgraphParams<'_>,
-    ) -> Result<GetPropertyTypeSubgraphResponse, QueryError> {
-        self.store
-            .get_property_type_subgraph(actor_id, params)
-            .await
+    ) -> Result<Subgraph, QueryError> {
+        self.store.get_property_type(actor_id, params).await
     }
 
     async fn update_property_type<R>(
@@ -441,20 +420,12 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
         self.store.create_entity_types(actor_id, params).await
     }
 
-    async fn get_entity_types(
+    async fn get_entity_type(
         &self,
         actor_id: AccountId,
         params: GetEntityTypesParams<'_>,
-    ) -> Result<GetEntityTypesResponse, QueryError> {
-        self.store.get_entity_types(actor_id, params).await
-    }
-
-    async fn get_entity_type_subgraph(
-        &self,
-        actor_id: AccountId,
-        params: GetEntityTypeSubgraphParams<'_>,
-    ) -> Result<GetEntityTypeSubgraphResponse, QueryError> {
-        self.store.get_entity_type_subgraph(actor_id, params).await
+    ) -> Result<Subgraph, QueryError> {
+        self.store.get_entity_type(actor_id, params).await
     }
 
     async fn update_entity_type<R>(
@@ -545,61 +516,17 @@ where
             .await
     }
 
-    async fn get_entities(
+    async fn get_entity(
         &self,
         actor_id: AccountId,
-        mut params: GetEntitiesParams<'_>,
-    ) -> Result<GetEntitiesResponse<'static>, QueryError> {
+        mut params: GetEntityParams<'_>,
+    ) -> Result<GetEntityResponse<'static>, QueryError> {
         let include_count = params.include_count;
         let has_limit = params.limit.is_some();
         params.include_count = true;
 
-        let count = self
-            .count_entities(
-                actor_id,
-                CountEntitiesParams {
-                    filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
-                    include_drafts: params.include_drafts,
-                },
-            )
-            .await?;
-
-        let mut response = self.store.get_entities(actor_id, params).await?;
-
-        // We can ensure that `count_entities` and `get_entity` return the same count;
-        assert_eq!(response.count, Some(count));
-        // if the limit is not set, the count should be equal to the number of entities returned
-        if !has_limit {
-            assert_eq!(count, response.entities.len());
-        }
-
-        if !include_count {
-            response.count = None;
-        }
-        Ok(response)
-    }
-
-    async fn get_entity_subgraph(
-        &self,
-        actor_id: AccountId,
-        mut params: GetEntitySubgraphParams<'_>,
-    ) -> Result<GetEntitySubgraphResponse<'static>, QueryError> {
-        let include_count = params.include_count;
-        let has_limit = params.limit.is_some();
-        params.include_count = true;
-
-        let count = self
-            .count_entities(
-                actor_id,
-                CountEntitiesParams {
-                    filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
-                    include_drafts: params.include_drafts,
-                },
-            )
-            .await?;
-        let mut response = self.store.get_entity_subgraph(actor_id, params).await?;
+        let count = self.count_entities(actor_id, params.query.clone()).await?;
+        let mut response = self.store.get_entity(actor_id, params).await?;
 
         // We can ensure that `count_entities` and `get_entity` return the same count;
         assert_eq!(response.count, Some(count));
@@ -617,9 +544,9 @@ where
     async fn count_entities(
         &self,
         actor_id: AccountId,
-        params: CountEntitiesParams<'_>,
+        query: EntityStructuralQuery<'_>,
     ) -> Result<usize, QueryError> {
-        self.store.count_entities(actor_id, params).await
+        self.store.count_entities(actor_id, query).await
     }
 
     async fn get_entity_by_id(

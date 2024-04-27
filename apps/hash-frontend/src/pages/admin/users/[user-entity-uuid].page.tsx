@@ -38,7 +38,7 @@ const AdminUserPage: NextPageWithLayout = () => {
   const refetchUser = useCallback(async () => {
     const {
       data: {
-        getEntitySubgraph: { subgraph: refetchedSubgraph },
+        structuralQueryEntities: { subgraph: refetchedSubgraph },
       },
     } = await refetch();
 

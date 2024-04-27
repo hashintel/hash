@@ -19,10 +19,10 @@ import { NextSeo } from "next-seo";
 import { useMemo, useState } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  StructuralQueryEntitiesQuery,
+  StructuralQueryEntitiesQueryVariables,
 } from "../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
+import { structuralQueryEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
 import { useDraftEntities } from "../shared/draft-entities-context";
 import { BarsSortRegularIcon } from "../shared/icons/bars-sort-regular-icon";
 import type { NextPageWithLayout } from "../shared/layout";
@@ -69,14 +69,14 @@ const ActionsPage: NextPageWithLayout = () => {
   const [
     previouslyFetchedDraftEntitiesWithLinkedDataResponse,
     setPreviouslyFetchedDraftEntitiesWithLinkedDataResponse,
-  ] = useState<GetEntitySubgraphQuery>();
+  ] = useState<StructuralQueryEntitiesQuery>();
 
   const { data: draftEntitiesWithLinkedDataResponse } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    StructuralQueryEntitiesQuery,
+    StructuralQueryEntitiesQueryVariables
+  >(structuralQueryEntitiesQuery, {
     variables: {
-      request: {
+      query: {
         filter: getDraftEntitiesFilter,
         includeDrafts: true,
         temporalAxes: currentTimeInstantTemporalAxes,
@@ -106,7 +106,7 @@ const ActionsPage: NextPageWithLayout = () => {
         ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
             (draftEntitiesWithLinkedDataResponse ??
               previouslyFetchedDraftEntitiesWithLinkedDataResponse)!
-              .getEntitySubgraph.subgraph,
+              .structuralQueryEntities.subgraph,
           )
         : undefined,
     [

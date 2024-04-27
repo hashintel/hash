@@ -38,10 +38,10 @@ import type { FunctionComponent, PropsWithChildren } from "react";
 import { createContext, useContext, useMemo, useRef } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  StructuralQueryEntitiesQuery,
+  StructuralQueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import type { MinimalUser } from "../../lib/user-and-org";
 import { constructMinimalUser } from "../../lib/user-and-org";
 import { useNotificationEntities } from "../../shared/notification-entities-context";
@@ -137,12 +137,12 @@ export const useNotificationsWithLinksContextValue =
     );
 
     const { data: notificationsWithOutgoingLinksData } = useQuery<
-      GetEntitySubgraphQuery,
-      GetEntitySubgraphQueryVariables
-    >(getEntitySubgraphQuery, {
+      StructuralQueryEntitiesQuery,
+      StructuralQueryEntitiesQueryVariables
+    >(structuralQueryEntitiesQuery, {
       variables: {
         includePermissions: false,
-        request: {
+        query: {
           filter: getNotificationEntitiesFilter,
           graphResolveDepths: {
             ...zeroedGraphResolveDepths,
@@ -164,7 +164,8 @@ export const useNotificationsWithLinksContextValue =
       () =>
         notificationsWithOutgoingLinksData
           ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-              notificationsWithOutgoingLinksData.getEntitySubgraph.subgraph,
+              notificationsWithOutgoingLinksData.structuralQueryEntities
+                .subgraph,
             )
           : undefined,
       [notificationsWithOutgoingLinksData],

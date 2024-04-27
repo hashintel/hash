@@ -19,10 +19,10 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { BlockLoadedProvider } from "../blocks/on-block-loaded";
 import { UserBlocksProvider } from "../blocks/user-blocks";
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  StructuralQueryEntitiesQuery,
+  StructuralQueryEntitiesQueryVariables,
 } from "../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
+import { structuralQueryEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
 import { NoteIcon } from "../shared/icons/note-icon";
 import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar } from "../shared/layout";
@@ -39,15 +39,15 @@ const NotesPage: NextPageWithLayout = () => {
   const sectionRefs = useRef<Array<HTMLDivElement>>([]);
 
   const [previouslyFetchedQuickNotesData, setPreviouslyFetchedQuickNotesData] =
-    useState<GetEntitySubgraphQuery>();
+    useState<StructuralQueryEntitiesQuery>();
 
   const { data: quickNotesData, refetch } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    StructuralQueryEntitiesQuery,
+    StructuralQueryEntitiesQueryVariables
+  >(structuralQueryEntitiesQuery, {
     variables: {
       includePermissions: true,
-      request: {
+      query: {
         filter: {
           all: [
             generateVersionedUrlMatchingFilter(
@@ -72,7 +72,7 @@ const NotesPage: NextPageWithLayout = () => {
   });
 
   const quickNotesSubgraph = (quickNotesData ?? previouslyFetchedQuickNotesData)
-    ?.getEntitySubgraph.subgraph as Subgraph<EntityRootType> | undefined;
+    ?.structuralQueryEntities.subgraph as Subgraph<EntityRootType> | undefined;
 
   const latestQuickNoteEntities = useMemo<Entity[] | undefined>(() => {
     if (!quickNotesSubgraph) {
@@ -204,7 +204,8 @@ const NotesPage: NextPageWithLayout = () => {
             <BlockCollectionContextProvider
               blockCollectionSubgraph={quickNotesSubgraph}
               userPermissionsOnEntities={
-                quickNotesData?.getEntitySubgraph.userPermissionsOnEntities
+                quickNotesData?.structuralQueryEntities
+                  .userPermissionsOnEntities
               }
             >
               <TodaySection

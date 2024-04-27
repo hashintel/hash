@@ -46,29 +46,31 @@ export const getSubgraphFromBlockProtocolQueryEntity = async ({
 
   const filter = convertBpFilterToGraphFilter(multiFilter as MultiFilter);
 
-  const { data: response } = await graphApiClient.getEntitySubgraph(
+  const response = await graphApiClient.getEntitiesByQuery(
     authentication.actorId,
     {
-      filter,
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        isOfType: { outgoing: 255 },
-        inheritsFrom: { outgoing: 255 },
-        constrainsPropertiesOn: { outgoing: 255 },
-        constrainsLinksOn: { outgoing: 255 },
-        hasRightEntity: {
-          outgoing: traversalDepth,
-          incoming: traversalDepth,
+      query: {
+        filter,
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          isOfType: { outgoing: 255 },
+          inheritsFrom: { outgoing: 255 },
+          constrainsPropertiesOn: { outgoing: 255 },
+          constrainsLinksOn: { outgoing: 255 },
+          hasRightEntity: {
+            outgoing: traversalDepth,
+            incoming: traversalDepth,
+          },
+          hasLeftEntity: { incoming: traversalDepth, outgoing: traversalDepth },
         },
-        hasLeftEntity: { incoming: traversalDepth, outgoing: traversalDepth },
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
       },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
     },
   );
 
   return mapGraphApiSubgraphToSubgraph<EntityRootType>(
-    response.subgraph,
+    response.data.subgraph,
     authentication.actorId,
   );
 };

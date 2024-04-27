@@ -23,9 +23,8 @@ export const getDereferencedEntityTypesActivity = async (params: {
   /** Fetch the full schemas for the requested entity types */
   const entityTypes: DereferencedEntityTypesByTypeId = {};
 
-  const { data: response } = await graphApiClient.getEntityTypeSubgraph(
-    actorId,
-    {
+  const { data: entityTypesSubgraph } =
+    await graphApiClient.getEntityTypesByQuery(actorId, {
       filter: {
         any: entityTypeIds.map((entityTypeId) => ({
           equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
@@ -39,13 +38,12 @@ export const getDereferencedEntityTypesActivity = async (params: {
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
-    },
-  );
+    });
 
   for (const entityTypeId of entityTypeIds) {
     entityTypes[entityTypeId] = dereferenceEntityType({
       entityTypeId,
-      subgraph: mapGraphApiSubgraphToSubgraph(response.subgraph, actorId),
+      subgraph: mapGraphApiSubgraphToSubgraph(entityTypesSubgraph, actorId),
       simplifyPropertyKeys,
     });
   }

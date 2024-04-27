@@ -11,10 +11,10 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  StructuralQueryEntitiesQuery,
+  StructuralQueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import type { Org } from "../../lib/user-and-org";
 import { constructOrg, isEntityOrgEntity } from "../../lib/user-and-org";
 
@@ -28,15 +28,15 @@ export const useOrgsWithLinks = ({
 }): {
   loading: boolean;
   orgs?: Org[];
-  refetch: () => Promise<ApolloQueryResult<GetEntitySubgraphQuery>>;
+  refetch: () => Promise<ApolloQueryResult<StructuralQueryEntitiesQuery>>;
 } => {
   const { data, loading, refetch } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    StructuralQueryEntitiesQuery,
+    StructuralQueryEntitiesQueryVariables
+  >(structuralQueryEntitiesQuery, {
     variables: {
       includePermissions: false,
-      request: {
+      query: {
         filter: {
           all: [
             ...(orgAccountGroupIds
@@ -80,7 +80,7 @@ export const useOrgsWithLinks = ({
     skip: !orgAccountGroupIds || !orgAccountGroupIds.length,
   });
 
-  const { getEntitySubgraph: subgraphAndPermissions } = data ?? {};
+  const { structuralQueryEntities: subgraphAndPermissions } = data ?? {};
 
   const orgs = useMemo(() => {
     if (!subgraphAndPermissions) {

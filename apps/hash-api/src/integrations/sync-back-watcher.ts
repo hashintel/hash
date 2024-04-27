@@ -57,16 +57,18 @@ export const createIntegrationSyncBackWatcher = async (
 
         const entity = (
           await graphApiClient
-            .getEntitySubgraph(linearBotAccountId, {
-              filter: {
-                equal: [
-                  { path: ["editionId"] },
-                  { parameter: entityEdition.entityEditionId },
-                ],
+            .getEntitiesByQuery(linearBotAccountId, {
+              query: {
+                filter: {
+                  equal: [
+                    { path: ["editionId"] },
+                    { parameter: entityEdition.entityEditionId },
+                  ],
+                },
+                graphResolveDepths: zeroedGraphResolveDepths,
+                temporalAxes: fullDecisionTimeAxis,
+                includeDrafts: false,
               },
-              graphResolveDepths: zeroedGraphResolveDepths,
-              temporalAxes: fullDecisionTimeAxis,
-              includeDrafts: false,
             })
             .then(({ data }) => {
               const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(

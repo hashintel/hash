@@ -4,14 +4,14 @@ use graph::{
     knowledge::EntityQueryPath,
     ontology::EntityTypeQueryPath,
     store::{
-        knowledge::{
-            CountEntitiesParams, CreateEntityParams, GetEntitiesParams, PatchEntityParams,
-        },
+        knowledge::{CreateEntityParams, GetEntityParams, PatchEntityParams},
         query::{Filter, FilterExpression, Parameter},
         EntityQuerySorting, EntityStore,
     },
     subgraph::{
-        edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
+        edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
+        identifier::GraphElementVertexId,
+        query::StructuralQuery,
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
             VariableTemporalAxisUnresolved,
@@ -142,74 +142,88 @@ async fn insert() {
     .await
     .expect("could not create link");
 
-    let entities = api
-        .get_entities(
+    let mut response = api
+        .get_entity(
             api.account_id,
-            GetEntitiesParams {
-                filter: Filter::All(vec![
-                    Filter::Equal(
-                        Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                            edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                            path: Box::new(EntityQueryPath::Uuid),
-                            direction: EdgeDirection::Outgoing,
-                        })),
-                        Some(FilterExpression::Parameter(Parameter::Uuid(
-                            alice_metadata.record_id.entity_id.entity_uuid.into_uuid(),
-                        ))),
-                    ),
-                    Filter::Equal(
-                        Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                            edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                            path: Box::new(EntityQueryPath::OwnedById),
-                            direction: EdgeDirection::Outgoing,
-                        })),
-                        Some(FilterExpression::Parameter(Parameter::Uuid(
-                            alice_metadata.record_id.entity_id.owned_by_id.into_uuid(),
-                        ))),
-                    ),
-                    Filter::Equal(
-                        Some(FilterExpression::Path(EntityQueryPath::EntityTypeEdge {
-                            edge_kind: SharedEdgeKind::IsOfType,
-                            path: EntityTypeQueryPath::BaseUrl,
-                            inheritance_depth: Some(0),
-                        })),
-                        Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                            friend_of_type_id.base_url.as_str(),
-                        )))),
-                    ),
-                    Filter::Equal(
-                        Some(FilterExpression::Path(EntityQueryPath::EntityTypeEdge {
-                            edge_kind: SharedEdgeKind::IsOfType,
-                            path: EntityTypeQueryPath::Version,
-                            inheritance_depth: Some(0),
-                        })),
-                        Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
-                            friend_of_type_id.version,
-                        ))),
-                    ),
-                ]),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Unbounded),
-                        None,
-                    ),
+            GetEntityParams {
+                query: StructuralQuery {
+                    filter: Filter::All(vec![
+                        Filter::Equal(
+                            Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                                edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                                path: Box::new(EntityQueryPath::Uuid),
+                                direction: EdgeDirection::Outgoing,
+                            })),
+                            Some(FilterExpression::Parameter(Parameter::Uuid(
+                                alice_metadata.record_id.entity_id.entity_uuid.into_uuid(),
+                            ))),
+                        ),
+                        Filter::Equal(
+                            Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                                edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                                path: Box::new(EntityQueryPath::OwnedById),
+                                direction: EdgeDirection::Outgoing,
+                            })),
+                            Some(FilterExpression::Parameter(Parameter::Uuid(
+                                alice_metadata.record_id.entity_id.owned_by_id.into_uuid(),
+                            ))),
+                        ),
+                        Filter::Equal(
+                            Some(FilterExpression::Path(EntityQueryPath::EntityTypeEdge {
+                                edge_kind: SharedEdgeKind::IsOfType,
+                                path: EntityTypeQueryPath::BaseUrl,
+                                inheritance_depth: Some(0),
+                            })),
+                            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                                friend_of_type_id.base_url.as_str(),
+                            )))),
+                        ),
+                        Filter::Equal(
+                            Some(FilterExpression::Path(EntityQueryPath::EntityTypeEdge {
+                                edge_kind: SharedEdgeKind::IsOfType,
+                                path: EntityTypeQueryPath::Version,
+                                inheritance_depth: Some(0),
+                            })),
+                            Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
+                                friend_of_type_id.version,
+                            ))),
+                        ),
+                    ]),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(
+                            Some(TemporalBound::Unbounded),
+                            None,
+                        ),
+                    },
+                    include_drafts: false,
                 },
                 sorting: EntityQuerySorting {
                     paths: Vec::new(),
                     cursor: None,
                 },
                 limit: None,
-                include_count: true,
-                include_drafts: false,
+                include_count: false,
             },
         )
         .await
-        .expect("could not get entity")
-        .entities;
+        .expect("could not get entity");
 
-    let link_entity = match entities.len() {
-        1 => entities.into_iter().next().unwrap(),
+    let roots = response
+        .subgraph
+        .roots
+        .into_iter()
+        .filter_map(|vertex_id| match vertex_id {
+            GraphElementVertexId::KnowledgeGraph(vertex_id) => {
+                response.subgraph.vertices.entities.remove(&vertex_id)
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+
+    let link_entity = match roots.len() {
+        1 => roots.into_iter().next().unwrap(),
         len => panic!("unexpected number of entities found, expected 1 but received {len}"),
     };
 
@@ -384,23 +398,27 @@ async fn get_entity_links() {
     .await
     .expect("could not create link");
 
-    let links_from_source = api
-        .get_entities(
+    let mut response = api
+        .get_entity(
             api.account_id,
-            GetEntitiesParams {
-                filter: Filter::Equal(
-                    Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                        edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                        path: Box::new(EntityQueryPath::Uuid),
-                        direction: EdgeDirection::Outgoing,
-                    })),
-                    Some(FilterExpression::Parameter(Parameter::Uuid(
-                        alice_metadata.record_id.entity_id.entity_uuid.into_uuid(),
-                    ))),
-                ),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
+            GetEntityParams {
+                query: StructuralQuery {
+                    filter: Filter::Equal(
+                        Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                            edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                            path: Box::new(EntityQueryPath::Uuid),
+                            direction: EdgeDirection::Outgoing,
+                        })),
+                        Some(FilterExpression::Parameter(Parameter::Uuid(
+                            alice_metadata.record_id.entity_id.entity_uuid.into_uuid(),
+                        ))),
+                    ),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
                 },
                 sorting: EntityQuerySorting {
                     paths: Vec::new(),
@@ -408,12 +426,22 @@ async fn get_entity_links() {
                 },
                 limit: None,
                 include_count: false,
-                include_drafts: false,
             },
         )
         .await
-        .expect("could not get entities")
-        .entities;
+        .expect("could not get entity");
+
+    let links_from_source = response
+        .subgraph
+        .roots
+        .into_iter()
+        .filter_map(|vertex_id| match vertex_id {
+            GraphElementVertexId::KnowledgeGraph(edition_id) => {
+                response.subgraph.vertices.entities.remove(&edition_id)
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
 
     assert!(
         links_from_source
@@ -559,36 +587,57 @@ async fn remove_link() {
         .await
         .expect("could not create link");
 
-    let has_link = api
-        .count_entities(
+    let response = api
+        .get_entity(
             api.account_id,
-            CountEntitiesParams {
-                filter: Filter::All(vec![
-                    Filter::Equal(
-                        Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                            edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                            path: Box::new(EntityQueryPath::Uuid),
-                            direction: EdgeDirection::Outgoing,
-                        })),
-                        Some(FilterExpression::Parameter(Parameter::Uuid(
-                            alice_metadata.record_id.entity_id.entity_uuid.into_uuid(),
-                        ))),
-                    ),
-                    Filter::Equal(
-                        Some(FilterExpression::Path(EntityQueryPath::Archived)),
-                        Some(FilterExpression::Parameter(Parameter::Boolean(false))),
-                    ),
-                ]),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
+            GetEntityParams {
+                query: StructuralQuery {
+                    filter: Filter::All(vec![
+                        Filter::Equal(
+                            Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                                edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                                path: Box::new(EntityQueryPath::Uuid),
+                                direction: EdgeDirection::Outgoing,
+                            })),
+                            Some(FilterExpression::Parameter(Parameter::Uuid(
+                                alice_metadata.record_id.entity_id.entity_uuid.into_uuid(),
+                            ))),
+                        ),
+                        Filter::Equal(
+                            Some(FilterExpression::Path(EntityQueryPath::Archived)),
+                            Some(FilterExpression::Parameter(Parameter::Boolean(false))),
+                        ),
+                    ]),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
                 },
-                include_drafts: false,
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: None,
+                include_count: false,
             },
         )
         .await
-        .expect("could not count entities")
-        > 0;
+        .expect("could not get entity");
+
+    let has_link = response
+        .subgraph
+        .roots
+        .into_iter()
+        .any(|vertex_id| match vertex_id {
+            GraphElementVertexId::KnowledgeGraph(edition_id) => response
+                .subgraph
+                .vertices
+                .entities
+                .contains_key(&edition_id),
+            _ => false,
+        });
     assert!(has_link);
 
     api.patch_entity(
@@ -607,35 +656,56 @@ async fn remove_link() {
     .await
     .expect("could not remove link");
 
-    let has_link = api
-        .count_entities(
+    let response = api
+        .get_entity(
             api.account_id,
-            CountEntitiesParams {
-                filter: Filter::All(vec![
-                    Filter::Equal(
-                        Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                            edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                            path: Box::new(EntityQueryPath::Uuid),
-                            direction: EdgeDirection::Outgoing,
-                        })),
-                        Some(FilterExpression::Parameter(Parameter::Uuid(
-                            alice_metadata.record_id.entity_id.entity_uuid.into_uuid(),
-                        ))),
-                    ),
-                    Filter::Equal(
-                        Some(FilterExpression::Path(EntityQueryPath::Archived)),
-                        Some(FilterExpression::Parameter(Parameter::Boolean(false))),
-                    ),
-                ]),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
+            GetEntityParams {
+                query: StructuralQuery {
+                    filter: Filter::All(vec![
+                        Filter::Equal(
+                            Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                                edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                                path: Box::new(EntityQueryPath::Uuid),
+                                direction: EdgeDirection::Outgoing,
+                            })),
+                            Some(FilterExpression::Parameter(Parameter::Uuid(
+                                alice_metadata.record_id.entity_id.entity_uuid.into_uuid(),
+                            ))),
+                        ),
+                        Filter::Equal(
+                            Some(FilterExpression::Path(EntityQueryPath::Archived)),
+                            Some(FilterExpression::Parameter(Parameter::Boolean(false))),
+                        ),
+                    ]),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
                 },
-                include_drafts: false,
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: None,
+                include_count: false,
             },
         )
         .await
-        .expect("could not count entities")
-        > 0;
+        .expect("could not get entity");
+
+    let has_link = response
+        .subgraph
+        .roots
+        .into_iter()
+        .any(|vertex_id| match vertex_id {
+            GraphElementVertexId::KnowledgeGraph(edition_id) => response
+                .subgraph
+                .vertices
+                .entities
+                .contains_key(&edition_id),
+            _ => false,
+        });
     assert!(!has_link);
 }

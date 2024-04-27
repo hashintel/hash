@@ -31,40 +31,42 @@ export const getEntitiesByLinearId = async (params: {
   includeDrafts?: boolean;
 }): Promise<Entity[]> => {
   const entities = await params.graphApiClient
-    .getEntitySubgraph(params.authentication.actorId, {
-      filter: {
-        all: [
-          params.entityTypeId
-            ? generateVersionedUrlMatchingFilter(params.entityTypeId, {
-                ignoreParents: true,
-              })
-            : [],
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  linearPropertyTypes.id.propertyTypeBaseUrl,
-                ],
-              },
-              { parameter: params.linearId },
-            ],
-          },
-          params.webOwnedById
-            ? {
-                equal: [
-                  {
-                    path: ["ownedById"],
-                  },
-                  { parameter: params.webOwnedById },
-                ],
-              }
-            : [],
-        ].flat(),
+    .getEntitiesByQuery(params.authentication.actorId, {
+      query: {
+        filter: {
+          all: [
+            params.entityTypeId
+              ? generateVersionedUrlMatchingFilter(params.entityTypeId, {
+                  ignoreParents: true,
+                })
+              : [],
+            {
+              equal: [
+                {
+                  path: [
+                    "properties",
+                    linearPropertyTypes.id.propertyTypeBaseUrl,
+                  ],
+                },
+                { parameter: params.linearId },
+              ],
+            },
+            params.webOwnedById
+              ? {
+                  equal: [
+                    {
+                      path: ["ownedById"],
+                    },
+                    { parameter: params.webOwnedById },
+                  ],
+                }
+              : [],
+          ].flat(),
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: params.includeDrafts ?? false,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: params.includeDrafts ?? false,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
@@ -85,41 +87,43 @@ export const getEntityOutgoingLinks = async (params: {
 }) => {
   const { graphApiClient, authentication, entityId } = params;
 
-  const { data: response } = await graphApiClient.getEntitySubgraph(
+  const response = await graphApiClient.getEntitiesByQuery(
     authentication.actorId,
     {
-      filter: {
-        all: [
-          {
-            equal: [
-              { path: ["leftEntity", "uuid"] },
-              {
-                parameter: extractEntityUuidFromEntityId(entityId),
-              },
-            ],
-          },
-          {
-            equal: [
-              { path: ["leftEntity", "ownedById"] },
-              {
-                parameter: extractOwnedByIdFromEntityId(entityId),
-              },
-            ],
-          },
-          {
-            equal: [{ path: ["archived"] }, { parameter: false }],
-          },
-        ],
+      query: {
+        filter: {
+          all: [
+            {
+              equal: [
+                { path: ["leftEntity", "uuid"] },
+                {
+                  parameter: extractEntityUuidFromEntityId(entityId),
+                },
+              ],
+            },
+            {
+              equal: [
+                { path: ["leftEntity", "ownedById"] },
+                {
+                  parameter: extractOwnedByIdFromEntityId(entityId),
+                },
+              ],
+            },
+            {
+              equal: [{ path: ["archived"] }, { parameter: false }],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: params.includeDrafts ?? false,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: params.includeDrafts ?? false,
     },
   );
 
   const outgoingLinkEntitiesSubgraph =
     mapGraphApiSubgraphToSubgraph<EntityRootType>(
-      response.subgraph,
+      response.data.subgraph,
       authentication.actorId,
     );
 
@@ -147,28 +151,30 @@ export const getLatestEntityById = async (params: {
 
   const [ownedById, entityUuid] = splitEntityId(entityId);
 
-  const { data: response } = await graphApiClient.getEntitySubgraph(
+  const response = await graphApiClient.getEntitiesByQuery(
     authentication.actorId,
     {
-      filter: {
-        all: [
-          {
-            equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
-          },
-          {
-            equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
-          },
-          { equal: [{ path: ["archived"] }, { parameter: false }] },
-        ],
+      query: {
+        filter: {
+          all: [
+            {
+              equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+            },
+            {
+              equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+            },
+            { equal: [{ path: ["archived"] }, { parameter: false }] },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: params.includeDrafts ?? false,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: params.includeDrafts ?? false,
     },
   );
 
   const entitiesSubgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-    response.subgraph,
+    response.data.subgraph,
     authentication.actorId,
   );
 

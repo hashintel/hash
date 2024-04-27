@@ -7,7 +7,7 @@ export const entityTypedef = gql`
   scalar EntityPropertiesObject
   scalar EntityMetadata
   scalar EntityRelationAndSubject
-  scalar GetEntitySubgraphRequest
+  scalar EntityStructuralQuery
   scalar LinkData
   scalar QueryOperationInput
   scalar UserPermissions
@@ -102,8 +102,8 @@ export const entityTypedef = gql`
       includeDrafts: Boolean
     ): SubgraphAndPermissions!
 
-    getEntitySubgraph(
-      request: GetEntitySubgraphRequest!
+    structuralQueryEntities(
+      query: EntityStructuralQuery!
     ): SubgraphAndPermissions!
 
     """

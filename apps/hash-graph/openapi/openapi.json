@@ -524,7 +524,7 @@
           "Graph",
           "DataType"
         ],
-        "operationId": "get_data_type_subgraph",
+        "operationId": "get_data_types_by_query",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -540,7 +540,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetDataTypeSubgraphRequest"
+                "$ref": "#/components/schemas/DataTypeStructuralQuery"
               }
             }
           },
@@ -560,7 +560,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetDataTypeSubgraphResponse"
+                  "$ref": "#/components/schemas/Subgraph"
                 }
               }
             }
@@ -970,7 +970,7 @@
           "Graph",
           "Entity"
         ],
-        "operationId": "get_entity_subgraph",
+        "operationId": "get_entities_by_query",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -1007,7 +1007,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetEntitySubgraphRequest"
+                "$ref": "#/components/schemas/GetEntityByQueryRequest"
               }
             }
           },
@@ -1019,7 +1019,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetEntitySubgraphResponse"
+                  "$ref": "#/components/schemas/GetEntityByQueryResponse"
                 }
               }
             }
@@ -1055,7 +1055,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CountEntitiesParams"
+                "$ref": "#/components/schemas/EntityStructuralQuery"
               }
             }
           },
@@ -1762,7 +1762,7 @@
           "Graph",
           "EntityType"
         ],
-        "operationId": "get_entity_type_subgraph",
+        "operationId": "get_entity_types_by_query",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -1778,7 +1778,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetEntityTypeSubgraphRequest"
+                "$ref": "#/components/schemas/EntityTypeStructuralQuery"
               }
             }
           },
@@ -1798,7 +1798,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetEntityTypeSubgraphResponse"
+                  "$ref": "#/components/schemas/Subgraph"
                 }
               }
             }
@@ -2280,7 +2280,7 @@
           "Graph",
           "PropertyType"
         ],
-        "operationId": "get_property_type_subgraph",
+        "operationId": "get_property_types_by_query",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -2296,7 +2296,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetPropertyTypeSubgraphRequest"
+                "$ref": "#/components/schemas/PropertyTypeStructuralQuery"
               }
             }
           },
@@ -2316,7 +2316,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetPropertyTypeSubgraphResponse"
+                  "$ref": "#/components/schemas/Subgraph"
                 }
               }
             }
@@ -2801,26 +2801,6 @@
         "maximum": 1,
         "minimum": 0
       },
-      "CountEntitiesParams": {
-        "type": "object",
-        "required": [
-          "filter",
-          "temporalAxes",
-          "includeDrafts"
-        ],
-        "properties": {
-          "filter": {
-            "$ref": "#/components/schemas/Filter"
-          },
-          "includeDrafts": {
-            "type": "boolean"
-          },
-          "temporalAxes": {
-            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
-          }
-        },
-        "additionalProperties": false
-      },
       "CreateDataTypeRequest": {
         "type": "object",
         "required": [
@@ -3157,6 +3137,29 @@
         ],
         "discriminator": {
           "propertyName": "relation"
+        }
+      },
+      "DataTypeStructuralQuery": {
+        "type": "object",
+        "required": [
+          "filter",
+          "graphResolveDepths",
+          "temporalAxes",
+          "includeDrafts"
+        ],
+        "properties": {
+          "filter": {
+            "$ref": "#/components/schemas/Filter"
+          },
+          "graphResolveDepths": {
+            "$ref": "#/components/schemas/GraphResolveDepths"
+          },
+          "includeDrafts": {
+            "type": "boolean"
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          }
         }
       },
       "DataTypeVertexId": {
@@ -3820,6 +3823,29 @@
           "propertyName": "kind"
         }
       },
+      "EntityStructuralQuery": {
+        "type": "object",
+        "required": [
+          "filter",
+          "graphResolveDepths",
+          "temporalAxes",
+          "includeDrafts"
+        ],
+        "properties": {
+          "filter": {
+            "$ref": "#/components/schemas/Filter"
+          },
+          "graphResolveDepths": {
+            "$ref": "#/components/schemas/GraphResolveDepths"
+          },
+          "includeDrafts": {
+            "type": "boolean"
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          }
+        }
+      },
       "EntityTemporalMetadata": {
         "type": "object",
         "required": [
@@ -4198,6 +4224,29 @@
           "propertyName": "kind"
         }
       },
+      "EntityTypeStructuralQuery": {
+        "type": "object",
+        "required": [
+          "filter",
+          "graphResolveDepths",
+          "temporalAxes",
+          "includeDrafts"
+        ],
+        "properties": {
+          "filter": {
+            "$ref": "#/components/schemas/Filter"
+          },
+          "graphResolveDepths": {
+            "$ref": "#/components/schemas/GraphResolveDepths"
+          },
+          "includeDrafts": {
+            "type": "boolean"
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          }
+        }
+      },
       "EntityTypeVertexId": {
         "type": "object",
         "required": [
@@ -4537,48 +4586,10 @@
           }
         ]
       },
-      "GetDataTypeSubgraphRequest": {
+      "GetEntityByQueryRequest": {
         "type": "object",
         "required": [
-          "filter",
-          "graphResolveDepths",
-          "temporalAxes",
-          "includeDrafts"
-        ],
-        "properties": {
-          "filter": {
-            "$ref": "#/components/schemas/Filter"
-          },
-          "graphResolveDepths": {
-            "$ref": "#/components/schemas/GraphResolveDepths"
-          },
-          "includeDrafts": {
-            "type": "boolean"
-          },
-          "temporalAxes": {
-            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
-          }
-        },
-        "additionalProperties": false
-      },
-      "GetDataTypeSubgraphResponse": {
-        "type": "object",
-        "required": [
-          "subgraph"
-        ],
-        "properties": {
-          "subgraph": {
-            "$ref": "#/components/schemas/Subgraph"
-          }
-        }
-      },
-      "GetEntitySubgraphRequest": {
-        "type": "object",
-        "required": [
-          "filter",
-          "graphResolveDepths",
-          "temporalAxes",
-          "includeDrafts"
+          "query"
         ],
         "properties": {
           "cursor": {
@@ -4589,16 +4600,7 @@
             ],
             "nullable": true
           },
-          "filter": {
-            "$ref": "#/components/schemas/Filter"
-          },
-          "graphResolveDepths": {
-            "$ref": "#/components/schemas/GraphResolveDepths"
-          },
           "includeCount": {
-            "type": "boolean"
-          },
-          "includeDrafts": {
             "type": "boolean"
           },
           "limit": {
@@ -4606,20 +4608,20 @@
             "nullable": true,
             "minimum": 0
           },
+          "query": {
+            "$ref": "#/components/schemas/EntityStructuralQuery"
+          },
           "sortingPaths": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/EntityQuerySortingRecord"
             },
             "nullable": true
-          },
-          "temporalAxes": {
-            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
           }
         },
         "additionalProperties": false
       },
-      "GetEntitySubgraphResponse": {
+      "GetEntityByQueryResponse": {
         "type": "object",
         "required": [
           "subgraph"
@@ -4638,76 +4640,6 @@
             ],
             "nullable": true
           },
-          "subgraph": {
-            "$ref": "#/components/schemas/Subgraph"
-          }
-        }
-      },
-      "GetEntityTypeSubgraphRequest": {
-        "type": "object",
-        "required": [
-          "filter",
-          "graphResolveDepths",
-          "temporalAxes",
-          "includeDrafts"
-        ],
-        "properties": {
-          "filter": {
-            "$ref": "#/components/schemas/Filter"
-          },
-          "graphResolveDepths": {
-            "$ref": "#/components/schemas/GraphResolveDepths"
-          },
-          "includeDrafts": {
-            "type": "boolean"
-          },
-          "temporalAxes": {
-            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
-          }
-        },
-        "additionalProperties": false
-      },
-      "GetEntityTypeSubgraphResponse": {
-        "type": "object",
-        "required": [
-          "subgraph"
-        ],
-        "properties": {
-          "subgraph": {
-            "$ref": "#/components/schemas/Subgraph"
-          }
-        }
-      },
-      "GetPropertyTypeSubgraphRequest": {
-        "type": "object",
-        "required": [
-          "filter",
-          "graphResolveDepths",
-          "temporalAxes",
-          "includeDrafts"
-        ],
-        "properties": {
-          "filter": {
-            "$ref": "#/components/schemas/Filter"
-          },
-          "graphResolveDepths": {
-            "$ref": "#/components/schemas/GraphResolveDepths"
-          },
-          "includeDrafts": {
-            "type": "boolean"
-          },
-          "temporalAxes": {
-            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
-          }
-        },
-        "additionalProperties": false
-      },
-      "GetPropertyTypeSubgraphResponse": {
-        "type": "object",
-        "required": [
-          "subgraph"
-        ],
-        "properties": {
           "subgraph": {
             "$ref": "#/components/schemas/Subgraph"
           }
@@ -6492,6 +6424,29 @@
         ],
         "discriminator": {
           "propertyName": "kind"
+        }
+      },
+      "PropertyTypeStructuralQuery": {
+        "type": "object",
+        "required": [
+          "filter",
+          "graphResolveDepths",
+          "temporalAxes",
+          "includeDrafts"
+        ],
+        "properties": {
+          "filter": {
+            "$ref": "#/components/schemas/Filter"
+          },
+          "graphResolveDepths": {
+            "$ref": "#/components/schemas/GraphResolveDepths"
+          },
+          "includeDrafts": {
+            "type": "boolean"
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          }
         }
       },
       "PropertyTypeVertexId": {

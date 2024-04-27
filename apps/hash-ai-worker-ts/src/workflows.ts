@@ -126,9 +126,9 @@ export const updateDataTypeEmbeddings = async (
   if ("dataTypes" in params) {
     dataTypes = params.dataTypes;
   } else {
-    const response = await graphActivities.getEntitySubgraph({
+    const subgraph = await graphActivities.getDataTypesByQuery({
       authentication: params.authentication,
-      request: {
+      query: {
         filter: params.filter,
         graphResolveDepths: {
           inheritsFrom: { outgoing: 0 },
@@ -145,7 +145,7 @@ export const updateDataTypeEmbeddings = async (
       },
     });
     dataTypes = await graphActivities.getSubgraphDataTypes({
-      subgraph: response.subgraph,
+      subgraph,
     });
   }
 
@@ -211,9 +211,9 @@ export const updatePropertyTypeEmbeddings = async (
   if ("propertyTypes" in params) {
     propertyTypes = params.propertyTypes;
   } else {
-    const response = await graphActivities.getEntitySubgraph({
+    const subgraph = await graphActivities.getPropertyTypesByQuery({
       authentication: params.authentication,
-      request: {
+      query: {
         filter: params.filter,
         graphResolveDepths: {
           inheritsFrom: { outgoing: 0 },
@@ -230,7 +230,7 @@ export const updatePropertyTypeEmbeddings = async (
       },
     });
     propertyTypes = await graphActivities.getSubgraphPropertyTypes({
-      subgraph: response.subgraph,
+      subgraph,
     });
   }
 
@@ -296,9 +296,9 @@ export const updateEntityTypeEmbeddings = async (
   if ("entityTypes" in params) {
     entityTypes = params.entityTypes;
   } else {
-    const response = await graphActivities.getEntitySubgraph({
+    const subgraph = await graphActivities.getEntityTypesByQuery({
       authentication: params.authentication,
-      request: {
+      query: {
         filter: params.filter,
         graphResolveDepths: {
           inheritsFrom: { outgoing: 0 },
@@ -315,7 +315,7 @@ export const updateEntityTypeEmbeddings = async (
       },
     });
     entityTypes = await graphActivities.getSubgraphEntityTypes({
-      subgraph: response.subgraph,
+      subgraph,
     });
   }
 
@@ -401,9 +401,9 @@ export const updateEntityEmbeddings = async (
         } as Entity;
       });
     } else {
-      const queryResponse = await graphActivities.getEntitySubgraph({
+      const queryResponse = await graphActivities.getEntitiesByQuery({
         authentication: params.authentication,
-        request: {
+        query: {
           filter: params.filter,
           graphResolveDepths: {
             inheritsFrom: { outgoing: 0 },
@@ -417,9 +417,9 @@ export const updateEntityEmbeddings = async (
           },
           temporalAxes,
           includeDrafts: true,
-          cursor,
-          limit: 100,
         },
+        cursor,
+        limit: 100,
       });
       cursor = queryResponse.cursor;
       entities = await graphActivities.getSubgraphEntities({
@@ -448,9 +448,9 @@ export const updateEntityEmbeddings = async (
       // TODO: The subgraph library does not have the required methods to do this client side so for simplicity we're
       //       just making another request here. We should add the required methods to the library and do this client
       //       side.
-      const response = await graphActivities.getEntitySubgraph({
+      const subgraph = await graphActivities.getEntityTypesByQuery({
         authentication: params.authentication,
-        request: {
+        query: {
           filter: {
             equal: [
               { path: ["versionedUrl"] },
@@ -473,7 +473,7 @@ export const updateEntityEmbeddings = async (
       });
 
       const propertyTypes = await graphActivities.getSubgraphPropertyTypes({
-        subgraph: response.subgraph,
+        subgraph,
       });
 
       const generatedEmbeddings =

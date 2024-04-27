@@ -11,7 +11,7 @@ import type {
   SetParentPageMutationVariables,
 } from "../../graphql/api-types.gen";
 import { PageType } from "../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { createPage, setParentPage } from "../../graphql/queries/page.queries";
 import { constructPageRelativeUrl } from "../../lib/routes";
 import { getAccountPagesVariables } from "../../shared/account-pages-variables";
@@ -37,7 +37,7 @@ export const useCreateSubPage = ({
     awaitRefetchQueries: false,
     refetchQueries: [
       {
-        query: getEntitySubgraphQuery,
+        query: structuralQueryEntitiesQuery,
         variables: getAccountPagesVariables({ ownedById }),
       },
     ],

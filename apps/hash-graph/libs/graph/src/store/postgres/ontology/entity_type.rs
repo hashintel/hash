@@ -38,8 +38,7 @@ use crate::{
         crud::{QueryResult, ReadPaginated, VertexIdSorting},
         error::DeletionError,
         ontology::{
-            ArchiveEntityTypeParams, CreateEntityTypeParams, GetEntityTypeSubgraphParams,
-            GetEntityTypeSubgraphResponse, GetEntityTypesParams, GetEntityTypesResponse,
+            ArchiveEntityTypeParams, CreateEntityTypeParams, GetEntityTypesParams,
             UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
         },
         postgres::{
@@ -57,10 +56,11 @@ use crate::{
     },
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
-        identifier::{EntityTypeVertexId, GraphElementVertexId, PropertyTypeVertexId},
+        identifier::{EntityTypeVertexId, PropertyTypeVertexId},
+        query::StructuralQuery,
         temporal_axes::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
-            VariableAxis, VariableTemporalAxisUnresolved,
+            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableAxis,
+            VariableTemporalAxisUnresolved,
         },
         Subgraph,
     },
@@ -109,67 +109,6 @@ where
                     .unwrap_or(false)
                     .then_some(entity_type)
             }))
-    }
-
-    async fn get_entity_types_impl(
-        &self,
-        actor_id: AccountId,
-        params: GetEntityTypesParams<'_>,
-        temporal_axes: &QueryTemporalAxes,
-    ) -> Result<(GetEntityTypesResponse, Zookie<'static>), QueryError> {
-        // TODO: Remove again when subgraph logic was revisited
-        //   see https://linear.app/hash/issue/H-297
-        let mut visited_ontology_ids = HashSet::new();
-
-        let (data, artifacts) = ReadPaginated::<EntityTypeWithMetadata>::read_paginated_vec(
-            self,
-            &params.filter,
-            Some(temporal_axes),
-            &VertexIdSorting {
-                cursor: params.after,
-            },
-            params.limit,
-            params.include_drafts,
-        )
-        .await?;
-        let entity_types = data
-            .into_iter()
-            .filter_map(|row| {
-                let entity_type = row.decode_record(&artifacts);
-                let id = EntityTypeId::from_url(entity_type.schema.id());
-                // The records are already sorted by time, so we can just take the first one
-                visited_ontology_ids.insert(id).then_some((id, entity_type))
-            })
-            .collect::<Vec<_>>();
-
-        let filtered_ids = entity_types
-            .iter()
-            .map(|(entity_type_id, _)| *entity_type_id)
-            .collect::<Vec<_>>();
-
-        let (permissions, zookie) = self
-            .authorization_api
-            .check_entity_types_permission(
-                actor_id,
-                EntityTypePermission::View,
-                filtered_ids,
-                Consistency::FullyConsistent,
-            )
-            .await
-            .change_context(QueryError)?;
-
-        let entity_types = entity_types
-            .into_iter()
-            .filter_map(|(id, entity_type)| {
-                permissions
-                    .get(&id)
-                    .copied()
-                    .unwrap_or(false)
-                    .then_some(entity_type)
-            })
-            .collect();
-
-        Ok((GetEntityTypesResponse { entity_types }, zookie))
     }
 
     /// Internal method to read a [`EntityTypeWithMetadata`] into four [`TraversalContext`]s.
@@ -673,60 +612,83 @@ where
         }
     }
 
-    async fn get_entity_types(
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn get_entity_type(
         &self,
         actor_id: AccountId,
         params: GetEntityTypesParams<'_>,
-    ) -> Result<GetEntityTypesResponse, QueryError> {
-        let temporal_axes = params.temporal_axes.clone().resolve();
-        self.get_entity_types_impl(actor_id, params, &temporal_axes)
-            .await
-            .map(|(response, _)| response)
-    }
+    ) -> Result<Subgraph, QueryError> {
+        let StructuralQuery {
+            ref filter,
+            graph_resolve_depths,
+            temporal_axes: ref unresolved_temporal_axes,
+            include_drafts,
+        } = params.query;
 
-    #[tracing::instrument(level = "info", skip(self))]
-    async fn get_entity_type_subgraph(
-        &self,
-        actor_id: AccountId,
-        params: GetEntityTypeSubgraphParams<'_>,
-    ) -> Result<GetEntityTypeSubgraphResponse, QueryError> {
-        let temporal_axes = params.temporal_axes.clone().resolve();
+        let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let (GetEntityTypesResponse { entity_types }, zookie) = self
-            .get_entity_types_impl(
+        // TODO: Remove again when subgraph logic was revisited
+        //   see https://linear.app/hash/issue/H-297
+        let mut visited_ontology_ids = HashSet::new();
+
+        let (data, artifacts) = ReadPaginated::<EntityTypeWithMetadata>::read_paginated_vec(
+            self,
+            filter,
+            Some(&temporal_axes),
+            &VertexIdSorting {
+                cursor: params.after,
+            },
+            params.limit,
+            include_drafts,
+        )
+        .await?;
+        let entity_types = data
+            .into_iter()
+            .filter_map(|row| {
+                let entity_type = row.decode_record(&artifacts);
+                let id = EntityTypeId::from_url(entity_type.schema.id());
+                let vertex_id = entity_type.vertex_id(time_axis);
+                // The records are already sorted by time, so we can just take the first one
+                visited_ontology_ids
+                    .insert(id)
+                    .then_some((id, (vertex_id, entity_type)))
+            })
+            .collect::<Vec<_>>();
+
+        let filtered_ids = entity_types
+            .iter()
+            .map(|(entity_type_id, _)| *entity_type_id)
+            .collect::<Vec<_>>();
+
+        let (permissions, zookie) = self
+            .authorization_api
+            .check_entity_types_permission(
                 actor_id,
-                GetEntityTypesParams {
-                    filter: params.filter,
-                    temporal_axes: params.temporal_axes.clone(),
-                    after: params.after,
-                    limit: params.limit,
-                    include_drafts: params.include_drafts,
-                },
-                &temporal_axes,
+                EntityTypePermission::View,
+                filtered_ids,
+                Consistency::FullyConsistent,
             )
-            .await?;
+            .await
+            .change_context(QueryError)?;
 
         let mut subgraph = Subgraph::new(
-            params.graph_resolve_depths,
-            params.temporal_axes,
+            graph_resolve_depths,
+            unresolved_temporal_axes.clone(),
             temporal_axes.clone(),
         );
 
-        let (entity_type_ids, entity_type_vertex_ids): (Vec<_>, Vec<_>) = entity_types
-            .iter()
-            .map(|entity_type| {
-                (
-                    EntityTypeId::from_url(entity_type.schema.id()),
-                    GraphElementVertexId::from(entity_type.vertex_id(time_axis)),
-                )
-            })
-            .unzip();
-        subgraph.roots.extend(entity_type_vertex_ids);
-        subgraph.vertices.entity_types = entity_types
+        let (entity_type_ids, entity_type_vertices): (Vec<_>, Vec<_>) = entity_types
             .into_iter()
-            .map(|entity_type| (entity_type.vertex_id(time_axis), entity_type))
-            .collect();
+            .filter(|(id, _)| permissions.get(id).copied().unwrap_or(false))
+            .unzip();
+
+        subgraph.roots.extend(
+            entity_type_vertices
+                .iter()
+                .map(|(vertex_id, _)| vertex_id.clone().into()),
+        );
+        subgraph.vertices.entity_types = entity_type_vertices.into_iter().collect();
 
         let mut traversal_context = TraversalContext::default();
 
@@ -751,10 +713,10 @@ where
         .await?;
 
         traversal_context
-            .read_traversed_vertices(self, &mut subgraph, params.include_drafts)
+            .read_traversed_vertices(self, &mut subgraph, include_drafts)
             .await?;
 
-        Ok(GetEntityTypeSubgraphResponse { subgraph })
+        Ok(subgraph)
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]

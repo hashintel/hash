@@ -4,12 +4,11 @@ import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type {
   AllFilter,
-  CountEntitiesParams,
   DiffEntityResult,
   EntityMetadata,
   EntityPermission,
+  EntityStructuralQuery,
   Filter,
-  GetEntitySubgraphRequest,
   GraphResolveDepths,
   ModifyRelationshipOperation,
   PropertyMetadataMap,
@@ -168,13 +167,14 @@ export const createEntity: ImpureGraphFunction<
  *
  * @param params.query the structural query to filter entities by.
  */
-export const getEntitySubgraph: ImpureGraphFunction<
-  GetEntitySubgraphRequest & {
+export const getEntities: ImpureGraphFunction<
+  {
+    query: EntityStructuralQuery;
     temporalClient?: TemporalClient;
   },
   Promise<Subgraph<EntityRootType>>
-> = async ({ graphApi }, { actorId }, { temporalClient, ...params }) => {
-  await rewriteSemanticFilter(params.filter, temporalClient);
+> = async ({ graphApi }, { actorId }, { query, temporalClient }) => {
+  await rewriteSemanticFilter(query.filter, temporalClient);
 
   const isRequesterAdmin = isTestEnv
     ? false
@@ -184,37 +184,41 @@ export const getEntitySubgraph: ImpureGraphFunction<
         { userAccountId: actorId },
       );
 
-  return await graphApi.getEntitySubgraph(actorId, params).then(({ data }) => {
-    const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-      data.subgraph,
-      actorId,
-      isRequesterAdmin,
-    );
-    // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
-    for (const [entityId, editionMap] of typedEntries(subgraph.vertices)) {
-      const latestEditionTimestamp = typedKeys(editionMap).sort().pop()!;
+  return await graphApi
+    .getEntitiesByQuery(actorId, { query })
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
+        data.subgraph,
+        actorId,
+        isRequesterAdmin,
+      );
+      // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
+      for (const [entityId, editionMap] of typedEntries(subgraph.vertices)) {
+        const latestEditionTimestamp = typedKeys(editionMap).sort().pop()!;
 
-      if (
-        // @ts-expect-error - The subgraph vertices are entity vertices so `Timestamp` is the correct type to get
-        //                    the latest revision
-        (editionMap[latestEditionTimestamp]!.inner.metadata as EntityMetadata)
-          .archived &&
-        // if the vertex is in the roots of the query, then it is intentionally included
-        !subgraph.roots.find((root) => root.baseId === entityId)
-      ) {
-        delete subgraph.vertices[entityId];
+        if (
+          // @ts-expect-error - The subgraph vertices are entity vertices so `Timestamp` is the correct type to get
+          //                    the latest revision
+          (editionMap[latestEditionTimestamp]!.inner.metadata as EntityMetadata)
+            .archived &&
+          // if the vertex is in the roots of the query, then it is intentionally included
+          !subgraph.roots.find((root) => root.baseId === entityId)
+        ) {
+          delete subgraph.vertices[entityId];
+        }
       }
-    }
 
-    return subgraph;
-  });
+      return subgraph;
+    });
 };
 
 export const countEntities: ImpureGraphFunction<
-  CountEntitiesParams,
+  {
+    query: EntityStructuralQuery;
+  },
   Promise<number>
 > = async ({ graphApi }, { actorId }, params) =>
-  graphApi.countEntities(actorId, params).then(({ data }) => data);
+  graphApi.countEntities(actorId, params.query).then(({ data }) => data);
 
 /**
  * Get the latest edition of an entity by its entityId. See notes on params.
@@ -222,7 +226,7 @@ export const countEntities: ImpureGraphFunction<
  * This function does NOT implement:
  * 1. The ability to get the latest draft version without knowing its id.
  * 2. The ability to get ALL versions of an entity at a given timestamp, i.e. if there is a live and one or more drafts
- *    – use {@link getEntitySubgraph} instead, includeDrafts, and match on its ownedById and uuid
+ *    – use {@link getEntities} instead, includeDrafts, and match on its ownedById and uuid
  *
  * @param params.entityId the id of the entity, in one of the following formats:
  *    - `[webUuid]~[entityUuid]` for the 'live', non-draft version of the entity
@@ -283,16 +287,18 @@ export const getLatestEntityById: ImpureGraphFunction<
     });
   }
 
-  const [entity, ...unexpectedEntities] = await getEntitySubgraph(
+  const [entity, ...unexpectedEntities] = await getEntities(
     context,
     authentication,
     {
-      filter: {
-        all: allFilter,
+      query: {
+        filter: {
+          all: allFilter,
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: !!draftId,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: !!draftId,
     },
   ).then(getRoots);
 
@@ -362,15 +368,18 @@ export const canUserReadEntity: ImpureGraphFunction<
     });
   }
 
-  const count = await countEntities(context, authentication, {
-    filter: {
-      all: allFilter,
+  const entities = await getEntities(context, authentication, {
+    query: {
+      filter: {
+        all: allFilter,
+      },
+      graphResolveDepths: zeroedGraphResolveDepths,
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: !!draftId || includeDrafts,
     },
-    temporalAxes: currentTimeInstantTemporalAxes,
-    includeDrafts: !!draftId || includeDrafts,
-  });
+  }).then(getRoots);
 
-  if (count === 0) {
+  if (entities.length === 0) {
     throw new Error(
       `Entity with entityId ${entityId} doesn't exist or cannot be accessed by requesting user.`,
     );
@@ -725,14 +734,16 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
     });
   }
 
-  const incomingLinkEntitiesSubgraph = await getEntitySubgraph(
+  const incomingLinkEntitiesSubgraph = await getEntities(
     context,
     authentication,
     {
-      filter,
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
+      query: {
+        filter,
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts,
+      },
     },
   );
 
@@ -829,14 +840,16 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
     );
   }
 
-  const outgoingLinkEntitiesSubgraph = await getEntitySubgraph(
+  const outgoingLinkEntitiesSubgraph = await getEntities(
     context,
     authentication,
     {
-      filter,
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
+      query: {
+        filter,
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts,
+      },
     },
   );
 
@@ -871,38 +884,40 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
 > = async (context, authentication, params) => {
   const { entity, graphResolveDepths } = params;
 
-  return await getEntitySubgraph(context, authentication, {
-    filter: {
-      all: [
-        {
-          equal: [
-            { path: ["uuid"] },
-            {
-              parameter: extractEntityUuidFromEntityId(
-                entity.metadata.recordId.entityId,
-              ),
-            },
-          ],
-        },
-        {
-          equal: [
-            { path: ["ownedById"] },
-            {
-              parameter: extractOwnedByIdFromEntityId(
-                entity.metadata.recordId.entityId,
-              ),
-            },
-          ],
-        },
-        { equal: [{ path: ["archived"] }, { parameter: false }] },
-      ],
+  return await getEntities(context, authentication, {
+    query: {
+      filter: {
+        all: [
+          {
+            equal: [
+              { path: ["uuid"] },
+              {
+                parameter: extractEntityUuidFromEntityId(
+                  entity.metadata.recordId.entityId,
+                ),
+              },
+            ],
+          },
+          {
+            equal: [
+              { path: ["ownedById"] },
+              {
+                parameter: extractOwnedByIdFromEntityId(
+                  entity.metadata.recordId.entityId,
+                ),
+              },
+            ],
+          },
+          { equal: [{ path: ["archived"] }, { parameter: false }] },
+        ],
+      },
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        ...graphResolveDepths,
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
     },
-    graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
-      ...graphResolveDepths,
-    },
-    temporalAxes: currentTimeInstantTemporalAxes,
-    includeDrafts: false,
   });
 };
 

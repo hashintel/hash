@@ -77,50 +77,52 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
   const { userAccountId, linearOrgId, includeDrafts = false } = params;
 
   const entities = await graphApi
-    .getEntitySubgraph(actorId, {
-      filter: {
-        all: [
-          {
-            equal: [
-              { path: ["ownedById"] },
-              { parameter: userAccountId as OwnedById },
-            ],
-          },
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.userSecret.entityTypeId,
-            { ignoreParents: true },
-          ),
-          generateVersionedUrlMatchingFilter(
-            systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
-            { ignoreParents: true, pathPrefix: ["incomingLinks"] },
-          ),
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.linearIntegration.entityTypeId,
+    .getEntitiesByQuery(actorId, {
+      query: {
+        filter: {
+          all: [
             {
-              ignoreParents: true,
-              pathPrefix: ["incomingLinks", "leftEntity"],
+              equal: [
+                { path: ["ownedById"] },
+                { parameter: userAccountId as OwnedById },
+              ],
             },
-          ),
-          {
-            equal: [
+            generateVersionedUrlMatchingFilter(
+              systemEntityTypes.userSecret.entityTypeId,
+              { ignoreParents: true },
+            ),
+            generateVersionedUrlMatchingFilter(
+              systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
+              { ignoreParents: true, pathPrefix: ["incomingLinks"] },
+            ),
+            generateVersionedUrlMatchingFilter(
+              systemEntityTypes.linearIntegration.entityTypeId,
               {
-                path: [
-                  "incomingLinks",
-                  "leftEntity",
-                  "properties",
-                  extractBaseUrl(
-                    systemPropertyTypes.linearOrgId.propertyTypeId,
-                  ),
-                ],
+                ignoreParents: true,
+                pathPrefix: ["incomingLinks", "leftEntity"],
               },
-              { parameter: linearOrgId },
-            ],
-          },
-        ],
+            ),
+            {
+              equal: [
+                {
+                  path: [
+                    "incomingLinks",
+                    "leftEntity",
+                    "properties",
+                    extractBaseUrl(
+                      systemPropertyTypes.linearOrgId.propertyTypeId,
+                    ),
+                  ],
+                },
+                { parameter: linearOrgId },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
@@ -170,37 +172,39 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
   );
 
   const linearIntegrationEntities = await context.graphApi
-    .getEntitySubgraph(authentication.actorId, {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
+    .getEntitiesByQuery(authentication.actorId, {
+      query: {
+        filter: {
+          all: [
+            generateVersionedUrlMatchingFilter(
+              systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
+              {
+                ignoreParents: true,
+                pathPrefix: ["outgoingLinks"],
+              },
+            ),
             {
-              ignoreParents: true,
-              pathPrefix: ["outgoingLinks"],
+              equal: [
+                { path: ["outgoingLinks", "rightEntity", "uuid"] },
+                {
+                  parameter: workspaceUuid,
+                },
+              ],
             },
-          ),
-          {
-            equal: [
-              { path: ["outgoingLinks", "rightEntity", "uuid"] },
-              {
-                parameter: workspaceUuid,
-              },
-            ],
-          },
-          {
-            equal: [
-              { path: ["outgoingLinks", "rightEntity", "ownedById"] },
-              {
-                parameter: workspaceOwnedById,
-              },
-            ],
-          },
-        ],
+            {
+              equal: [
+                { path: ["outgoingLinks", "rightEntity", "ownedById"] },
+                {
+                  parameter: workspaceOwnedById,
+                },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(

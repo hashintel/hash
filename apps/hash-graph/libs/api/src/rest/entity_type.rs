@@ -30,15 +30,14 @@ use graph::{
     store::{
         error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
         ontology::{
-            ArchiveEntityTypeParams, CreateEntityTypeParams, GetEntityTypeSubgraphParams,
+            ArchiveEntityTypeParams, CreateEntityTypeParams, GetEntityTypesParams,
             UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
         },
-        query::Filter,
         ConflictBehavior, EntityTypeStore, StorePool,
     },
     subgraph::{
-        edges::GraphResolveDepths, identifier::EntityTypeVertexId,
-        temporal_axes::QueryTemporalAxesUnresolved,
+        identifier::EntityTypeVertexId,
+        query::{EntityTypeStructuralQuery, StructuralQuery},
     },
 };
 use graph_types::{
@@ -79,7 +78,7 @@ use crate::{
 
         create_entity_type,
         load_external_entity_type,
-        get_entity_type_subgraph,
+        get_entity_types_by_query,
         update_entity_type,
         update_entity_type_embeddings,
         archive_entity_type,
@@ -105,8 +104,7 @@ use crate::{
             UpdateEntityTypeRequest,
             UpdateEntityTypeEmbeddingParams,
             EntityTypeQueryToken,
-            GetEntityTypeSubgraphRequest,
-            GetEntityTypeSubgraphResponse,
+            EntityTypeStructuralQuery,
             ArchiveEntityTypeParams,
             UnarchiveEntityTypeParams,
         )
@@ -149,7 +147,7 @@ impl RoutedResource for EntityTypeResource {
                             get(check_entity_type_permission::<A>),
                         ),
                 )
-                .route("/query", post(get_entity_type_subgraph::<S, A>))
+                .route("/query", post(get_entity_types_by_query::<S, A>))
                 .route("/load", post(load_external_entity_type::<S, A>))
                 .route("/archive", put(archive_entity_type::<S, A>))
                 .route("/unarchive", put(unarchive_entity_type::<S, A>))
@@ -678,26 +676,10 @@ where
     }
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct GetEntityTypeSubgraphRequest<'q> {
-    #[serde(borrow)]
-    filter: Filter<'q, EntityTypeWithMetadata>,
-    graph_resolve_depths: GraphResolveDepths,
-    temporal_axes: QueryTemporalAxesUnresolved,
-    include_drafts: bool,
-}
-
-#[derive(Serialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-struct GetEntityTypeSubgraphResponse {
-    subgraph: Subgraph,
-}
-
 #[utoipa::path(
     post,
     path = "/entity-types/query",
-    request_body = GetEntityTypeSubgraphRequest,
+    request_body = EntityTypeStructuralQuery,
     tag = "EntityType",
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -706,7 +688,7 @@ struct GetEntityTypeSubgraphResponse {
         (
             status = 200,
             content_type = "application/json",
-            body = GetEntityTypeSubgraphResponse,
+            body = Subgraph,
             description = "A subgraph rooted at entity types that satisfy the given query, each resolved to the requested depth.",
             headers(
                 ("Link" = String, description = "The link to be used to query the next page of entity types"),
@@ -716,16 +698,16 @@ struct GetEntityTypeSubgraphResponse {
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, request))]
-async fn get_entity_type_subgraph<S, A>(
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, query))]
+async fn get_entity_types_by_query<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Query(pagination): Query<Pagination<EntityTypeVertexId>>,
     OriginalUri(uri): OriginalUri,
-    Json(request): Json<serde_json::Value>,
-) -> Result<(HeaderMap, Json<GetEntityTypeSubgraphResponse>), Response>
+    Json(query): Json<serde_json::Value>,
+) -> Result<(HeaderMap, Json<Subgraph>), Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -740,39 +722,30 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let mut request =
-        GetEntityTypeSubgraphRequest::deserialize(&request).map_err(report_to_response)?;
-    request
+    let mut query = StructuralQuery::deserialize(&query).map_err(report_to_response)?;
+    query
         .filter
         .convert_parameters()
         .map_err(report_to_response)?;
 
-    let response = store
-        .get_entity_type_subgraph(
+    let subgraph = store
+        .get_entity_type(
             actor_id,
-            GetEntityTypeSubgraphParams {
-                filter: request.filter,
-                graph_resolve_depths: request.graph_resolve_depths,
+            GetEntityTypesParams {
+                query,
                 after: pagination.after.map(|cursor| cursor.0),
                 limit: pagination.limit,
-                temporal_axes: request.temporal_axes,
-                include_drafts: request.include_drafts,
             },
         )
         .await
         .map_err(report_to_response)?;
 
-    let cursor = response.subgraph.roots.iter().last().map(Cursor);
+    let cursor = subgraph.roots.iter().last().map(Cursor);
     let mut headers = HeaderMap::new();
     if let (Some(cursor), Some(limit)) = (cursor, pagination.limit) {
         headers.insert(LINK, cursor.link_header("next", uri, limit)?);
     }
-    Ok((
-        headers,
-        Json(GetEntityTypeSubgraphResponse {
-            subgraph: Subgraph::from(response.subgraph),
-        }),
-    ))
+    Ok((headers, Json(Subgraph::from(subgraph))))
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]

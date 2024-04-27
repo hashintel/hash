@@ -18,10 +18,10 @@ import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  StructuralQueryEntitiesQuery,
+  StructuralQueryEntitiesQueryVariables,
 } from "../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
+import { structuralQueryEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
 import {
   constructOrg,
   constructUser,
@@ -123,12 +123,12 @@ const ProfilePage: NextPageWithLayout = () => {
   );
 
   const { data: pinnedEntityTypesData } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    StructuralQueryEntitiesQuery,
+    StructuralQueryEntitiesQueryVariables
+  >(structuralQueryEntitiesQuery, {
     variables: {
       includePermissions: false,
-      request: {
+      query: {
         filter: {
           all: [
             {
@@ -171,7 +171,7 @@ const ProfilePage: NextPageWithLayout = () => {
 
   const entitiesSubgraph = pinnedEntityTypesData
     ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-        pinnedEntityTypesData.getEntitySubgraph.subgraph,
+        pinnedEntityTypesData.structuralQueryEntities.subgraph,
       )
     : undefined;
 

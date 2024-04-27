@@ -28,10 +28,10 @@ import { PageIcon } from "../../components/page-icon";
 import { PageLoadingState } from "../../components/page-loading-state";
 import { CollabPositionProvider } from "../../contexts/collab-position-context";
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  StructuralQueryEntitiesQuery,
+  StructuralQueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { constructPageRelativeUrl } from "../../lib/routes";
 import type { MinimalOrg, MinimalUser } from "../../lib/user-and-org";
 import { iconVariantSizes } from "../../shared/edit-emoji-icon-button";
@@ -195,9 +195,9 @@ const Page: NextPageWithLayout<PageProps> = () => {
   const { workspaceShortname, pageEntityUuid } = parsePageUrlQueryParams(query);
 
   const { data, error, loading } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    StructuralQueryEntitiesQuery,
+    StructuralQueryEntitiesQueryVariables
+  >(structuralQueryEntitiesQuery, {
     variables:
       getBlockCollectionContentsStructuralQueryVariables(pageEntityUuid),
     fetchPolicy: "cache-and-network",
@@ -231,7 +231,8 @@ const Page: NextPageWithLayout<PageProps> = () => {
     pageHeaderRef.current.scrollIntoView({ behavior: "smooth" });
   };
 
-  const { subgraph, userPermissionsOnEntities } = data?.getEntitySubgraph ?? {};
+  const { subgraph, userPermissionsOnEntities } =
+    data?.structuralQueryEntities ?? {};
 
   const pageSubgraph = subgraph
     ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(subgraph)

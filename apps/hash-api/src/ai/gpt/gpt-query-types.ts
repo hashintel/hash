@@ -73,7 +73,7 @@ export const gptQueryTypes: RequestHandler<
     : null;
 
   const queryResponse: GptQueryTypesResponseBody = await req.context.graphApi
-    .getEntityTypeSubgraph(user.accountId, {
+    .getEntityTypesByQuery(user.accountId, {
       filter: {
         all: [
           ...(webUuids?.length
@@ -111,11 +111,11 @@ export const gptQueryTypes: RequestHandler<
         hasRightEntity: { incoming: 0, outgoing: 0 },
       },
     })
-    .then(async ({ data: response }) => {
+    .then(async (response) => {
       const entityTypes: SimpleEntityType[] = [];
 
       const subgraph = mapGraphApiSubgraphToSubgraph(
-        response.subgraph,
+        response.data,
         user.accountId,
       );
 
