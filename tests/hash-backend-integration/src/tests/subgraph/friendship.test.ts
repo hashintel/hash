@@ -1,10 +1,7 @@
 import path from "node:path";
 
 import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
-import {
-  getEntities,
-  getEntitySubgraph,
-} from "@apps/hash-api/src/graph/knowledge/primitive/entity";
+import { getEntitySubgraph } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import {
   archiveDataType,
   getDataTypes,
@@ -161,41 +158,50 @@ beforeAll(async () => {
     entityTypeId: `${friendshipTypeBaseId}v/1`,
   });
 
-  aliceEntities = await getEntities(graphContext, authentication, {
+  aliceEntities = await getEntitySubgraph(graphContext, authentication, {
     filter: aliceFilter,
     temporalAxes: fullDecisionTimeAxis,
+    graphResolveDepths: zeroedGraphResolveDepths,
     includeDrafts: false,
-  }).then((entities) =>
-    entities.sort((a, b) =>
-      a.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
-        b.metadata.temporalVersioning.decisionTime.start.limit,
+  })
+    .then(getRoots)
+    .then((entities) =>
+      entities.sort((a, b) =>
+        a.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
+          b.metadata.temporalVersioning.decisionTime.start.limit,
+        ),
       ),
-    ),
-  );
+    );
 
-  bobEntities = await getEntities(graphContext, authentication, {
+  bobEntities = await getEntitySubgraph(graphContext, authentication, {
     filter: bobFilter,
     temporalAxes: fullDecisionTimeAxis,
+    graphResolveDepths: zeroedGraphResolveDepths,
     includeDrafts: false,
-  }).then((entities) =>
-    entities.sort((a, b) =>
-      a.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
-        b.metadata.temporalVersioning.decisionTime.start.limit,
+  })
+    .then(getRoots)
+    .then((entities) =>
+      entities.sort((a, b) =>
+        a.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
+          b.metadata.temporalVersioning.decisionTime.start.limit,
+        ),
       ),
-    ),
-  );
+    );
 
-  linkEntities = await getEntities(graphContext, authentication, {
+  linkEntities = await getEntitySubgraph(graphContext, authentication, {
     filter: linkFilter,
     temporalAxes: fullDecisionTimeAxis,
+    graphResolveDepths: zeroedGraphResolveDepths,
     includeDrafts: false,
-  }).then((entities) =>
-    entities.sort((a, b) =>
-      a.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
-        b.metadata.temporalVersioning.decisionTime.start.limit,
+  })
+    .then(getRoots)
+    .then((entities) =>
+      entities.sort((a, b) =>
+        a.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
+          b.metadata.temporalVersioning.decisionTime.start.limit,
+        ),
       ),
-    ),
-  );
+    );
 });
 
 afterAll(async () => {

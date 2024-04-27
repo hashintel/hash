@@ -1,10 +1,7 @@
 import path from "node:path";
 
 import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
-import {
-  getEntities,
-  getEntitySubgraph,
-} from "@apps/hash-api/src/graph/knowledge/primitive/entity";
+import { getEntitySubgraph } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import type { GetEntitySubgraphRequest } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -93,13 +90,14 @@ beforeAll(async () => {
 
   graphContext = createTestImpureGraphContext();
 
-  const entities = await getEntities(graphContext, authentication, {
+  const entities = await getEntitySubgraph(graphContext, authentication, {
     filter: {
       all: [],
     },
+    graphResolveDepths: zeroedGraphResolveDepths,
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts: false,
-  });
+  }).then(getRoots);
 
   expect(entities.length).toBe(12);
 
