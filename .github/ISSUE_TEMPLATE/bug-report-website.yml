@@ -1,8 +1,8 @@
 name: Bug Report (website)
 description: Create a report to help us improve our websites
 labels:
-  - "lang/javascript"
   - "category/bug"
+  - "lang/javascript"
 body:
   - type: markdown
     attributes:
