@@ -86,34 +86,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "filter": {
     "all": []
   },
-  "graphResolveDepths": {
-    "inheritsFrom": {
-      "outgoing": 0
-    },
-    "constrainsValuesOn": {
-      "outgoing": 0
-    },
-    "constrainsPropertiesOn": {
-      "outgoing": 0
-    },
-    "constrainsLinksOn": {
-      "outgoing": 0
-    },
-    "constrainsLinkDestinationsOn": {
-      "outgoing": 0
-    },
-    "isOfType": {
-      "outgoing": 0
-    },
-    "hasLeftEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    },
-    "hasRightEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    }
-  },
   "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
@@ -135,7 +107,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.subgraph.roots.length === 0, "Unexpected number of data types"); // The number of primitive data types
+        client.assert(response.body.dataTypes.length === 0, "Unexpected number of data types"); // The number of primitive data types
     });
 %}
 
@@ -261,34 +233,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       }
     ]
   },
-  "graphResolveDepths": {
-    "inheritsFrom": {
-      "outgoing": 0
-    },
-    "constrainsValuesOn": {
-      "outgoing": 0
-    },
-    "constrainsPropertiesOn": {
-      "outgoing": 0
-    },
-    "constrainsLinksOn": {
-      "outgoing": 0
-    },
-    "constrainsLinkDestinationsOn": {
-      "outgoing": 0
-    },
-    "isOfType": {
-      "outgoing": 0
-    },
-    "hasLeftEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    },
-    "hasRightEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    }
-  },
   "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
@@ -310,7 +254,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.subgraph.roots.length === 1, "Unexpected number of data types");
+        client.assert(response.body.dataTypes.length === 1, "Unexpected number of data types");
     });
 %}
 
@@ -489,34 +433,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       { "parameter": "{{name_property_type_id}}" }
     ]
   },
-  "graphResolveDepths": {
-    "inheritsFrom": {
-      "outgoing": 0
-    },
-    "constrainsValuesOn": {
-      "outgoing": 0
-    },
-    "constrainsPropertiesOn": {
-      "outgoing": 0
-    },
-    "constrainsLinksOn": {
-      "outgoing": 0
-    },
-    "constrainsLinkDestinationsOn": {
-      "outgoing": 0
-    },
-    "isOfType": {
-      "outgoing": 0
-    },
-    "hasLeftEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    },
-    "hasRightEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    }
-  },
   "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
@@ -538,7 +454,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.subgraph.roots.length === 1, "Unexpected number of property types");
+        client.assert(response.body.propertyTypes.length === 1, "Unexpected number of property types");
     });
 %}
 
@@ -615,34 +531,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       }
     ]
   },
-  "graphResolveDepths": {
-    "inheritsFrom": {
-      "outgoing": 0
-    },
-    "constrainsValuesOn": {
-      "outgoing": 0
-    },
-    "constrainsPropertiesOn": {
-      "outgoing": 0
-    },
-    "constrainsLinksOn": {
-      "outgoing": 0
-    },
-    "constrainsLinkDestinationsOn": {
-      "outgoing": 0
-    },
-    "isOfType": {
-      "outgoing": 0
-    },
-    "hasLeftEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    },
-    "hasRightEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    }
-  },
   "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
@@ -664,7 +552,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.subgraph.roots.length === 2, "Unexpected number of property types");
+        client.assert(response.body.propertyTypes.length === 2, "Unexpected number of property types");
     });
 %}
 
@@ -814,34 +702,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       }
     ]
   },
-  "graphResolveDepths": {
-    "inheritsFrom": {
-      "outgoing": 0
-    },
-    "constrainsValuesOn": {
-      "outgoing": 0
-    },
-    "constrainsPropertiesOn": {
-      "outgoing": 0
-    },
-    "constrainsLinksOn": {
-      "outgoing": 0
-    },
-    "constrainsLinkDestinationsOn": {
-      "outgoing": 0
-    },
-    "isOfType": {
-      "outgoing": 0
-    },
-    "hasLeftEntity": {
-      "incoming": 2,
-      "outgoing": 2
-    },
-    "hasRightEntity": {
-      "incoming": 2,
-      "outgoing": 2
-    }
-  },
   "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
@@ -863,7 +723,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.subgraph.roots.length === 1, "Unexpected number of entities");
+        client.assert(response.body.entityTypes.length === 1, "Unexpected number of entities");
     });
 %}
 
@@ -956,34 +816,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       { "parameter": "{{person_entity_type_id}}" }
     ]
   },
-  "graphResolveDepths": {
-    "inheritsFrom": {
-      "outgoing": 0
-    },
-    "constrainsValuesOn": {
-      "outgoing": 0
-    },
-    "constrainsPropertiesOn": {
-      "outgoing": 0
-    },
-    "constrainsLinksOn": {
-      "outgoing": 0
-    },
-    "constrainsLinkDestinationsOn": {
-      "outgoing": 0
-    },
-    "isOfType": {
-      "outgoing": 0
-    },
-    "hasLeftEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    },
-    "hasRightEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    }
-  },
   "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
@@ -1005,7 +837,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.subgraph.roots.length === 1, "Unexpected number of entity types");
+        client.assert(response.body.entityTypes.length === 1, "Unexpected number of entity types");
     });
 %}
 
@@ -1120,34 +952,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       }
     ]
   },
-  "graphResolveDepths": {
-    "inheritsFrom": {
-      "outgoing": 0
-    },
-    "constrainsValuesOn": {
-      "outgoing": 0
-    },
-    "constrainsPropertiesOn": {
-      "outgoing": 0
-    },
-    "constrainsLinksOn": {
-      "outgoing": 0
-    },
-    "constrainsLinkDestinationsOn": {
-      "outgoing": 0
-    },
-    "isOfType": {
-      "outgoing": 0
-    },
-    "hasLeftEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    },
-    "hasRightEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    }
-  },
   "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
@@ -1169,7 +973,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
   client.test("status", function() {
     client.assert(response.status === 200, "Response status is not 200");
-    client.assert(response.body.subgraph.roots.length === 3, "Unexpected number of entity types");
+    client.assert(response.body.entityTypes.length === 3, "Unexpected number of entity types");
   });
 %}
 
@@ -1191,34 +995,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       }
     ]
   },
-  "graphResolveDepths": {
-    "inheritsFrom": {
-      "outgoing": 0
-    },
-    "constrainsValuesOn": {
-      "outgoing": 0
-    },
-    "constrainsPropertiesOn": {
-      "outgoing": 0
-    },
-    "constrainsLinksOn": {
-      "outgoing": 0
-    },
-    "constrainsLinkDestinationsOn": {
-      "outgoing": 0
-    },
-    "isOfType": {
-      "outgoing": 0
-    },
-    "hasLeftEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    },
-    "hasRightEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    }
-  },
   "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
@@ -1240,7 +1016,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
   client.test("status", function() {
     client.assert(response.status === 200, "Response status is not 200");
-    client.assert(response.body.subgraph.roots.length === 1, "Unexpected number of entity types");
+    client.assert(response.body.entityTypes.length === 1, "Unexpected number of entity types");
   });
 %}
 
@@ -1264,34 +1040,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       }
     ]
   },
-  "graphResolveDepths": {
-    "inheritsFrom": {
-      "outgoing": 0
-    },
-    "constrainsValuesOn": {
-      "outgoing": 0
-    },
-    "constrainsPropertiesOn": {
-      "outgoing": 0
-    },
-    "constrainsLinksOn": {
-      "outgoing": 0
-    },
-    "constrainsLinkDestinationsOn": {
-      "outgoing": 0
-    },
-    "isOfType": {
-      "outgoing": 0
-    },
-    "hasLeftEntity": {
-      "incoming": 2,
-      "outgoing": 2
-    },
-    "hasRightEntity": {
-      "incoming": 2,
-      "outgoing": 2
-    }
-  },
   "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
@@ -1313,7 +1061,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.subgraph.roots.length === 1, "Unexpected number of entity types");
+        client.assert(response.body.entityTypes.length === 1, "Unexpected number of entity types");
     });
 %}
 
@@ -1337,34 +1085,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       }
     ]
   },
-  "graphResolveDepths": {
-    "inheritsFrom": {
-      "outgoing": 0
-    },
-    "constrainsValuesOn": {
-      "outgoing": 0
-    },
-    "constrainsPropertiesOn": {
-      "outgoing": 0
-    },
-    "constrainsLinksOn": {
-      "outgoing": 0
-    },
-    "constrainsLinkDestinationsOn": {
-      "outgoing": 0
-    },
-    "isOfType": {
-      "outgoing": 0
-    },
-    "hasLeftEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    },
-    "hasRightEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    }
-  },
   "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
@@ -1384,8 +1104,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
   client.test("status", function() {
     client.assert(response.status === 200, "Response status is not 200");
-    client.assert(response.body.subgraph.roots.length === 1, "Unexpected number of entity types");
-    client.assert(response.body.subgraph.roots[0].baseId === "https://blockprotocol.org/@blockprotocol/types/entity-type/link/", "Unexpected parent type");
+    client.assert(response.body.entityTypes.length === 1, "Unexpected number of entity types");
+    client.assert(response.body.entityTypes[0].metadata.recordId.baseUrl === "https://blockprotocol.org/@blockprotocol/types/entity-type/link/", "Unexpected parent type");
   });
 %}
 
@@ -1413,34 +1133,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       }
     ]
   },
-  "graphResolveDepths": {
-    "inheritsFrom": {
-      "outgoing": 0
-    },
-    "constrainsValuesOn": {
-      "outgoing": 0
-    },
-    "constrainsPropertiesOn": {
-      "outgoing": 0
-    },
-    "constrainsLinksOn": {
-      "outgoing": 0
-    },
-    "constrainsLinkDestinationsOn": {
-      "outgoing": 0
-    },
-    "isOfType": {
-      "outgoing": 0
-    },
-    "hasLeftEntity": {
-      "incoming": 2,
-      "outgoing": 2
-    },
-    "hasRightEntity": {
-      "incoming": 2,
-      "outgoing": 2
-    }
-  },
   "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
@@ -1462,7 +1154,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.subgraph.roots.length === 0, "Unexpected number of entity types");
+        client.assert(response.body.entityTypes.length === 0, "Unexpected number of entity types");
     });
 %}
 
@@ -1478,34 +1170,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       { "parameter": "http://localhost:3000/@alice" }
     ]
   },
-  "graphResolveDepths": {
-    "inheritsFrom": {
-      "outgoing": 0
-    },
-    "constrainsValuesOn": {
-      "outgoing": 0
-    },
-    "constrainsPropertiesOn": {
-      "outgoing": 0
-    },
-    "constrainsLinksOn": {
-      "outgoing": 0
-    },
-    "constrainsLinkDestinationsOn": {
-      "outgoing": 0
-    },
-    "isOfType": {
-      "outgoing": 0
-    },
-    "hasLeftEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    },
-    "hasRightEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    }
-  },
   "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
@@ -1527,7 +1191,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.subgraph.roots.length === 3, "Unexpected number of entity types");
+        client.assert(response.body.entityTypes.length === 3, "Unexpected number of entity types");
     });
 %}
 
@@ -1543,34 +1207,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       { "parameter": "ship" }
     ]
   },
-  "graphResolveDepths": {
-    "inheritsFrom": {
-      "outgoing": 0
-    },
-    "constrainsValuesOn": {
-      "outgoing": 0
-    },
-    "constrainsPropertiesOn": {
-      "outgoing": 0
-    },
-    "constrainsLinksOn": {
-      "outgoing": 0
-    },
-    "constrainsLinkDestinationsOn": {
-      "outgoing": 0
-    },
-    "isOfType": {
-      "outgoing": 0
-    },
-    "hasLeftEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    },
-    "hasRightEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    }
-  },
   "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
@@ -1592,8 +1228,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.subgraph.roots.length === 1, "Unexpected number of entity types");
-        client.assert(response.body.subgraph.roots[0].baseId === "http://localhost:3000/@alice/types/entity-type/friendship/", "Unexpected number of entity types");
+        client.assert(response.body.entityTypes.length === 1, "Unexpected number of entity types");
+        client.assert(response.body.entityTypes[0].metadata.recordId.baseUrl === "http://localhost:3000/@alice/types/entity-type/friendship/", "Unexpected number of entity types");
     });
 %}
 
@@ -1687,34 +1323,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       }
     ]
   },
-  "graphResolveDepths": {
-    "inheritsFrom": {
-      "outgoing": 0
-    },
-    "constrainsValuesOn": {
-      "outgoing": 0
-    },
-    "constrainsPropertiesOn": {
-      "outgoing": 0
-    },
-    "constrainsLinksOn": {
-      "outgoing": 0
-    },
-    "constrainsLinkDestinationsOn": {
-      "outgoing": 0
-    },
-    "isOfType": {
-      "outgoing": 0
-    },
-    "hasLeftEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    },
-    "hasRightEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    }
-  },
   "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
@@ -1734,7 +1342,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.subgraph.roots.length === 1, "Unexpected number of entities");
+        client.assert(response.body.entities.length === 1, "Unexpected number of entities");
     });
 %}
 
@@ -1887,34 +1495,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "filter": {
     "all": []
   },
-  "graphResolveDepths": {
-    "inheritsFrom": {
-      "outgoing": 0
-    },
-    "constrainsValuesOn": {
-      "outgoing": 0
-    },
-    "constrainsPropertiesOn": {
-      "outgoing": 0
-    },
-    "constrainsLinksOn": {
-      "outgoing": 0
-    },
-    "constrainsLinkDestinationsOn": {
-      "outgoing": 0
-    },
-    "isOfType": {
-      "outgoing": 0
-    },
-    "hasLeftEntity": {
-      "incoming": 2,
-      "outgoing": 2
-    },
-    "hasRightEntity": {
-      "incoming": 2,
-      "outgoing": 2
-    }
-  },
   "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
@@ -1934,7 +1514,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.subgraph.roots.length === 2, "Unexpected number of entities");
+        client.assert(response.body.entities.length === 2, "Unexpected number of entities");
     });
 %}
 
@@ -1946,34 +1526,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 {
     "filter": {
     "all": []
-  },
-  "graphResolveDepths": {
-    "inheritsFrom": {
-      "outgoing": 0
-    },
-    "constrainsValuesOn": {
-      "outgoing": 0
-    },
-    "constrainsPropertiesOn": {
-      "outgoing": 0
-    },
-    "constrainsLinksOn": {
-      "outgoing": 0
-    },
-    "constrainsLinkDestinationsOn": {
-      "outgoing": 0
-    },
-    "isOfType": {
-      "outgoing": 0
-    },
-    "hasLeftEntity": {
-      "incoming": 2,
-      "outgoing": 2
-    },
-    "hasRightEntity": {
-      "incoming": 2,
-      "outgoing": 2
-    }
   },
   "temporalAxes": {
     "pinned": {
@@ -1994,7 +1546,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.subgraph.roots.length === 1, "Unexpected number of entities");
+        client.assert(response.body.entities.length === 1, "Unexpected number of entities");
     });
 %}
 
@@ -2105,34 +1657,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       }
     ]
   },
-  "graphResolveDepths": {
-    "inheritsFrom": {
-      "outgoing": 0
-    },
-    "constrainsValuesOn": {
-      "outgoing": 0
-    },
-    "constrainsPropertiesOn": {
-      "outgoing": 0
-    },
-    "constrainsLinksOn": {
-      "outgoing": 0
-    },
-    "constrainsLinkDestinationsOn": {
-      "outgoing": 0
-    },
-    "isOfType": {
-      "outgoing": 0
-    },
-    "hasLeftEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    },
-    "hasRightEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    }
-  },
   "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
@@ -2152,7 +1676,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
   client.test("status", function() {
     client.assert(response.status === 200, "Response status is not 200");
-    client.assert(response.body.subgraph.roots.length === 1, "Unexpected number of entities");
+    client.assert(response.body.entities.length === 1, "Unexpected number of entities");
   });
 %}
 
@@ -2194,34 +1718,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       }
     ]
   },
-  "graphResolveDepths": {
-    "inheritsFrom": {
-      "outgoing": 0
-    },
-    "constrainsValuesOn": {
-      "outgoing": 0
-    },
-    "constrainsPropertiesOn": {
-      "outgoing": 0
-    },
-    "constrainsLinksOn": {
-      "outgoing": 0
-    },
-    "constrainsLinkDestinationsOn": {
-      "outgoing": 0
-    },
-    "isOfType": {
-      "outgoing": 0
-    },
-    "hasLeftEntity": {
-      "incoming": 2,
-      "outgoing": 2
-    },
-    "hasRightEntity": {
-      "incoming": 2,
-      "outgoing": 2
-    }
-  },
   "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
@@ -2241,7 +1737,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.subgraph.roots.length === 1, "Unexpected number of entities");
+        client.assert(response.body.entities.length === 1, "Unexpected number of entities");
     });
 %}
 
@@ -2281,34 +1777,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       }
     ]
   },
-  "graphResolveDepths": {
-    "inheritsFrom": {
-      "outgoing": 0
-    },
-    "constrainsValuesOn": {
-      "outgoing": 0
-    },
-    "constrainsPropertiesOn": {
-      "outgoing": 0
-    },
-    "constrainsLinksOn": {
-      "outgoing": 0
-    },
-    "constrainsLinkDestinationsOn": {
-      "outgoing": 0
-    },
-    "isOfType": {
-      "outgoing": 0
-    },
-    "hasLeftEntity": {
-      "incoming": 2,
-      "outgoing": 2
-    },
-    "hasRightEntity": {
-      "incoming": 2,
-      "outgoing": 2
-    }
-  },
   "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
@@ -2328,7 +1796,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.subgraph.roots.length === 2, "Unexpected number of entities");
+        client.assert(response.body.entities.length === 2, "Unexpected number of entities");
     });
 %}
 
@@ -2351,34 +1819,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       }
     ]
   },
-  "graphResolveDepths": {
-    "inheritsFrom": {
-      "outgoing": 0
-    },
-    "constrainsValuesOn": {
-      "outgoing": 0
-    },
-    "constrainsPropertiesOn": {
-      "outgoing": 0
-    },
-    "constrainsLinksOn": {
-      "outgoing": 0
-    },
-    "constrainsLinkDestinationsOn": {
-      "outgoing": 0
-    },
-    "isOfType": {
-      "outgoing": 0
-    },
-    "hasLeftEntity": {
-      "incoming": 2,
-      "outgoing": 2
-    },
-    "hasRightEntity": {
-      "incoming": 2,
-      "outgoing": 2
-    }
-  },
   "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
@@ -2399,7 +1839,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.subgraph.roots.length === 1, "Unexpected number of entities");
+        client.assert(response.body.entities.length === 1, "Unexpected number of entities");
     });
 %}
 
@@ -2415,34 +1855,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       { "path": ["properties", "http://localhost:3000/@alice/types/property-type/name/"] },
       { "parameter": "Alice" }
     ]
-  },
-  "graphResolveDepths": {
-    "inheritsFrom": {
-      "outgoing": 0
-    },
-    "constrainsValuesOn": {
-      "outgoing": 0
-    },
-    "constrainsPropertiesOn": {
-      "outgoing": 0
-    },
-    "constrainsLinksOn": {
-      "outgoing": 0
-    },
-    "constrainsLinkDestinationsOn": {
-      "outgoing": 0
-    },
-    "isOfType": {
-      "outgoing": 0
-    },
-    "hasLeftEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    },
-    "hasRightEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    }
   },
   "temporalAxes": {
     "pinned": {
@@ -2465,7 +1877,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
   client.test("status", function() {
     client.assert(response.status === 200, "Response status is not 200");
-    client.assert(response.body.subgraph.roots.length === 2, "Unexpected number of entities");
+    client.assert(response.body.entities.length === 2, "Unexpected number of entities");
   });
 %}
 
@@ -2482,34 +1894,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       { "parameter": 1.0 }
     ]
   },
-  "graphResolveDepths": {
-    "inheritsFrom": {
-      "outgoing": 0
-    },
-    "constrainsValuesOn": {
-      "outgoing": 0
-    },
-    "constrainsPropertiesOn": {
-      "outgoing": 0
-    },
-    "constrainsLinksOn": {
-      "outgoing": 0
-    },
-    "constrainsLinkDestinationsOn": {
-      "outgoing": 0
-    },
-    "isOfType": {
-      "outgoing": 0
-    },
-    "hasLeftEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    },
-    "hasRightEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    }
-  },
   "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
@@ -2529,8 +1913,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.subgraph.roots.length === 2, "Unexpected number of data types");
-        client.assert(response.body.subgraph.roots[0].baseId === "https://blockprotocol.org/@blockprotocol/types/data-type/text/", `Invalid order, expected text data type but got ${response.body.subgraph.roots[0].baseId}`);
+        client.assert(response.body.dataTypes.length === 2, "Unexpected number of data types");
+        client.assert(response.body.dataTypes[0].metadata.recordId.baseUrl === "https://blockprotocol.org/@blockprotocol/types/data-type/text/", `Invalid order, expected text data type but got ${response.body.dataTypes[0].metadata.recordId.baseUrl}`);
     });
 %}
 
@@ -2547,34 +1931,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       { "parameter": 1.0 }
     ]
   },
-  "graphResolveDepths": {
-    "inheritsFrom": {
-      "outgoing": 0
-    },
-    "constrainsValuesOn": {
-      "outgoing": 0
-    },
-    "constrainsPropertiesOn": {
-      "outgoing": 0
-    },
-    "constrainsLinksOn": {
-      "outgoing": 0
-    },
-    "constrainsLinkDestinationsOn": {
-      "outgoing": 0
-    },
-    "isOfType": {
-      "outgoing": 0
-    },
-    "hasLeftEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    },
-    "hasRightEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    }
-  },
   "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
@@ -2594,8 +1950,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.subgraph.roots.length === 2, "Unexpected number of property types");
-        client.assert(response.body.subgraph.roots[0].baseId === "http://localhost:3000/@alice/types/property-type/name/", `Invalid order, expected name property type but got ${response.body.subgraph.roots[0].baseId}`);
+        client.assert(response.body.propertyTypes.length === 2, "Unexpected number of property types");
+        client.assert(response.body.propertyTypes[0].metadata.recordId.baseUrl === "http://localhost:3000/@alice/types/property-type/name/", `Invalid order, expected name property type but got ${response.body.propertyTypes[0].metadata.recordId.baseUrl}`);
     });
 %}
 
@@ -2612,34 +1968,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       { "parameter": 1.0 }
     ]
   },
-  "graphResolveDepths": {
-    "inheritsFrom": {
-      "outgoing": 0
-    },
-    "constrainsValuesOn": {
-      "outgoing": 0
-    },
-    "constrainsPropertiesOn": {
-      "outgoing": 0
-    },
-    "constrainsLinksOn": {
-      "outgoing": 0
-    },
-    "constrainsLinkDestinationsOn": {
-      "outgoing": 0
-    },
-    "isOfType": {
-      "outgoing": 0
-    },
-    "hasLeftEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    },
-    "hasRightEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    }
-  },
   "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
@@ -2659,8 +1987,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.subgraph.roots.length === 3, "Unexpected number of entity types");
-        client.assert(response.body.subgraph.roots[0].baseId === "http://localhost:3000/@alice/types/entity-type/person/", `Invalid order, expected name entity type but got ${response.body.subgraph.roots[0].baseId}`);
+        client.assert(response.body.entityTypes.length === 3, "Unexpected number of entity types");
+        client.assert(response.body.entityTypes[0].metadata.recordId.baseUrl === "http://localhost:3000/@alice/types/entity-type/person/", `Invalid order, expected name entity type but got ${response.body.entityTypes[0].metadata.recordId.baseUrl}`);
     });
 %}
 
@@ -2679,34 +2007,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       { "parameter": 1.0 }
     ]
   },
-  "graphResolveDepths": {
-    "inheritsFrom": {
-      "outgoing": 0
-    },
-    "constrainsValuesOn": {
-      "outgoing": 0
-    },
-    "constrainsPropertiesOn": {
-      "outgoing": 0
-    },
-    "constrainsLinksOn": {
-      "outgoing": 0
-    },
-    "constrainsLinkDestinationsOn": {
-      "outgoing": 0
-    },
-    "isOfType": {
-      "outgoing": 0
-    },
-    "hasLeftEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    },
-    "hasRightEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    }
-  },
   "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
@@ -2726,9 +2026,9 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.subgraph.roots.length === 2, "Unexpected number of entities");
-        client.assert(response.body.subgraph.roots[0].baseId === client.global.get("person_a_entity_id"), `Invalid order, expected ${client.global.get("person_a_entity_id")} but got ${response.body.subgraph.roots[0].baseId}`);
-        client.assert(response.body.subgraph.roots[1].baseId === client.global.get("person_b_entity_id"), `Invalid order, expected ${client.global.get("person_b_entity_id")} but got ${response.body.subgraph.roots[1].baseId}`);
+        client.assert(response.body.entities.length === 2, "Unexpected number of entities");
+        client.assert(response.body.entities[0].metadata.recordId.entityId === client.global.get("person_a_entity_id"), `Invalid order, expected ${client.global.get("person_a_entity_id")} but got ${response.body.entities[0].metadata.recordId.entityId}`);
+        client.assert(response.body.entities[1].metadata.recordId.entityId === client.global.get("person_b_entity_id"), `Invalid order, expected ${client.global.get("person_b_entity_id")} but got ${response.body.entities[1].metadata.recordId.entityId}`);
     });
 %}
 
@@ -2745,34 +2045,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       { "parameter": 1.0 }
     ]
   },
-  "graphResolveDepths": {
-    "inheritsFrom": {
-      "outgoing": 0
-    },
-    "constrainsValuesOn": {
-      "outgoing": 0
-    },
-    "constrainsPropertiesOn": {
-      "outgoing": 0
-    },
-    "constrainsLinksOn": {
-      "outgoing": 0
-    },
-    "constrainsLinkDestinationsOn": {
-      "outgoing": 0
-    },
-    "isOfType": {
-      "outgoing": 0
-    },
-    "hasLeftEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    },
-    "hasRightEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    }
-  },
   "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
@@ -2792,9 +2064,9 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.subgraph.roots.length === 2, "Unexpected number of entities");
-        client.assert(response.body.subgraph.roots[0].baseId === client.global.get("person_b_entity_id"), `Invalid order, expected ${client.global.get("person_b_entity_id")} but got ${response.body.subgraph.roots[0].baseId}`);
-        client.assert(response.body.subgraph.roots[1].baseId === client.global.get("person_a_entity_id"), `Invalid order, expected ${client.global.get("person_a_entity_id")} but got ${response.body.subgraph.roots[1].baseId}`);
+        client.assert(response.body.entities.length === 2, "Unexpected number of entities");
+        client.assert(response.body.entities[0].metadata.recordId.entityId === client.global.get("person_b_entity_id"), `Invalid order, expected ${client.global.get("person_b_entity_id")} but got ${response.body.entities[0].metadata.recordId.entityId}`);
+        client.assert(response.body.entities[1].metadata.recordId.entityId === client.global.get("person_a_entity_id"), `Invalid order, expected ${client.global.get("person_a_entity_id")} but got ${response.body.entities[1].metadata.recordId.entityId}`);
     });
 %}
 
