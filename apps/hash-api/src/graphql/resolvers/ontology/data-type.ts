@@ -27,25 +27,22 @@ export const queryDataTypes: ResolverFn<
 ) => {
   const { graphApi } = dataSources;
 
-  const { data: response } = await graphApi.getDataTypeSubgraph(
-    authentication.actorId,
-    {
-      filter: {
-        equal: [{ path: ["version"] }, { parameter: "latest" }],
-      },
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        constrainsValuesOn,
-      },
-      temporalAxes: includeArchived
-        ? fullTransactionTimeAxis
-        : currentTimeInstantTemporalAxes,
-      includeDrafts: false,
+  const { data } = await graphApi.getDataTypesByQuery(authentication.actorId, {
+    filter: {
+      equal: [{ path: ["version"] }, { parameter: "latest" }],
     },
-  );
+    graphResolveDepths: {
+      ...zeroedGraphResolveDepths,
+      constrainsValuesOn,
+    },
+    temporalAxes: includeArchived
+      ? fullTransactionTimeAxis
+      : currentTimeInstantTemporalAxes,
+    includeDrafts: false,
+  });
 
   const subgraph = mapGraphApiSubgraphToSubgraph<DataTypeRootType>(
-    response.subgraph,
+    data,
     authentication.actorId,
   );
 

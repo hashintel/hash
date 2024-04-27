@@ -125,38 +125,40 @@ export const getGoogleSheetsIntegrationEntities = async ({
 }): Promise<GoogleSheetsIntegrationEntities> => {
   const [ownedById, uuid] = splitEntityId(integrationEntityId);
   const existingIntegrationEntitySubgraph = await graphApi
-    .getEntitySubgraph(authentication.actorId, {
-      filter: {
-        all: [
-          {
-            equal: [
-              {
-                path: ["uuid"],
-              },
-              {
-                parameter: uuid,
-              },
-            ],
-          },
-          {
-            equal: [
-              {
-                path: ["ownedById"],
-              },
-              {
-                parameter: ownedById,
-              },
-            ],
-          },
-        ],
+    .getEntitiesByQuery(authentication.actorId, {
+      query: {
+        filter: {
+          all: [
+            {
+              equal: [
+                {
+                  path: ["uuid"],
+                },
+                {
+                  parameter: uuid,
+                },
+              ],
+            },
+            {
+              equal: [
+                {
+                  path: ["ownedById"],
+                },
+                {
+                  parameter: ownedById,
+                },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          hasLeftEntity: { incoming: 1, outgoing: 0 },
+          hasRightEntity: { outgoing: 1, incoming: 0 },
+        },
+        includeDrafts: false,
+        temporalAxes: currentTimeInstantTemporalAxes,
       },
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        hasLeftEntity: { incoming: 1, outgoing: 0 },
-        hasRightEntity: { outgoing: 1, incoming: 0 },
-      },
-      includeDrafts: false,
-      temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data }) =>
       mapGraphApiSubgraphToSubgraph<EntityRootType>(

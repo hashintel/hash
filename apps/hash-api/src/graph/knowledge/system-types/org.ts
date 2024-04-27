@@ -197,35 +197,39 @@ export const getOrgByShortname: ImpureGraphFunction<
   Promise<Org | null>
 > = async ({ graphApi }, { actorId }, params) => {
   const [orgEntity, ...unexpectedEntities] = await graphApi
-    .getEntitySubgraph(actorId, {
-      filter: {
-        all: [
-          {
-            equal: [
-              { path: ["type(inheritanceDepth = 0)", "baseUrl"] },
-              { parameter: systemEntityTypes.organization.entityTypeBaseUrl },
-            ],
-          },
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  extractBaseUrl(systemPropertyTypes.shortname.propertyTypeId),
-                ],
-              },
-              { parameter: params.shortname },
-            ],
-          },
-        ],
+    .getEntitiesByQuery(actorId, {
+      query: {
+        filter: {
+          all: [
+            {
+              equal: [
+                { path: ["type(inheritanceDepth = 0)", "baseUrl"] },
+                { parameter: systemEntityTypes.organization.entityTypeBaseUrl },
+              ],
+            },
+            {
+              equal: [
+                {
+                  path: [
+                    "properties",
+                    extractBaseUrl(
+                      systemPropertyTypes.shortname.propertyTypeId,
+                    ),
+                  ],
+                },
+                { parameter: params.shortname },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        // TODO: Should this be an all-time query? What happens if the org is
+        //       archived/deleted, do we want to allow orgs to replace their
+        //       shortname?
+        //   see https://linear.app/hash/issue/H-757
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      // TODO: Should this be an all-time query? What happens if the org is
-      //       archived/deleted, do we want to allow orgs to replace their
-      //       shortname?
-      //   see https://linear.app/hash/issue/H-757
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
     })
     .then(({ data }) => {
       const userEntitiesSubgraph =

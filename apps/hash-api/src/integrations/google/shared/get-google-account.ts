@@ -9,7 +9,7 @@ import type { AccountId, Entity } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import type { ImpureGraphFunction } from "../../../graph/context-types";
-import { getEntitySubgraph } from "../../../graph/knowledge/primitive/entity";
+import { getEntities } from "../../../graph/knowledge/primitive/entity";
 
 /**
  * Get a Google Account entity by the account id in Google
@@ -19,33 +19,35 @@ export const getGoogleAccountById: ImpureGraphFunction<
   Promise<Entity<GoogleAccountProperties> | undefined>
 > = async (context, authentication, params) => {
   const { userAccountId, googleAccountId } = params;
-  const entities = await getEntitySubgraph(context, authentication, {
-    filter: {
-      all: [
-        {
-          equal: [{ path: ["ownedById"] }, { parameter: userAccountId }],
-        },
-        { equal: [{ path: ["archived"] }, { parameter: false }] },
-        generateVersionedUrlMatchingFilter(
-          googleEntityTypes.account.entityTypeId,
-          { ignoreParents: true },
-        ),
-        {
-          equal: [
-            {
-              path: [
-                "properties",
-                "https://hash.ai/@google/types/property-type/account-id/",
-              ],
-            },
-            { parameter: googleAccountId },
-          ],
-        },
-      ],
+  const entities = await getEntities(context, authentication, {
+    query: {
+      filter: {
+        all: [
+          {
+            equal: [{ path: ["ownedById"] }, { parameter: userAccountId }],
+          },
+          { equal: [{ path: ["archived"] }, { parameter: false }] },
+          generateVersionedUrlMatchingFilter(
+            googleEntityTypes.account.entityTypeId,
+            { ignoreParents: true },
+          ),
+          {
+            equal: [
+              {
+                path: [
+                  "properties",
+                  "https://hash.ai/@google/types/property-type/account-id/",
+                ],
+              },
+              { parameter: googleAccountId },
+            ],
+          },
+        ],
+      },
+      graphResolveDepths: zeroedGraphResolveDepths,
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
     },
-    graphResolveDepths: zeroedGraphResolveDepths,
-    temporalAxes: currentTimeInstantTemporalAxes,
-    includeDrafts: false,
   }).then((subgraph) => {
     return getRoots(subgraph);
   });

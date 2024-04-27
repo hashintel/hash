@@ -19,10 +19,10 @@ import type { MutableRefObject } from "react";
 import { useCallback } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  StructuralQueryEntitiesQuery,
+  StructuralQueryEntitiesQueryVariables,
 } from "../../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
+import { structuralQueryEntitiesQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import type { GetAdditionalCsvDataFunction } from "../../../shared/table-header";
 import type { TypeEntitiesRow } from "./use-entities-table";
 
@@ -34,10 +34,10 @@ export const useGetEntitiesTableAdditionalCsvData = (props: {
   const { currentlyDisplayedRowsRef, propertyTypes, addPropertiesColumns } =
     props;
 
-  const [getEntitySubgraph] = useLazyQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery);
+  const [structuralQueryEntities] = useLazyQuery<
+    StructuralQueryEntitiesQuery,
+    StructuralQueryEntitiesQueryVariables
+  >(structuralQueryEntitiesQuery);
 
   const fetchOutgoingLinksOfEntities = useCallback(
     async (params: {
@@ -50,9 +50,9 @@ export const useGetEntitiesTableAdditionalCsvData = (props: {
     > => {
       const { leftEntities } = params;
 
-      const { data } = await getEntitySubgraph({
+      const { data } = await structuralQueryEntities({
         variables: {
-          request: {
+          query: {
             filter: {
               any: leftEntities.map((entity) => ({
                 equal: [
@@ -78,7 +78,7 @@ export const useGetEntitiesTableAdditionalCsvData = (props: {
 
       const outgoingLinksSubgraph = data
         ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-            data.getEntitySubgraph.subgraph,
+            data.structuralQueryEntities.subgraph,
           )
         : undefined;
 
@@ -104,7 +104,7 @@ export const useGetEntitiesTableAdditionalCsvData = (props: {
         })
         .flat();
     },
-    [getEntitySubgraph],
+    [structuralQueryEntities],
   );
 
   const getEntitiesTableAdditionalCsvData =

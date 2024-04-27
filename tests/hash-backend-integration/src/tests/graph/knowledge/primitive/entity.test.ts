@@ -263,28 +263,30 @@ describe("Entity CRU", () => {
 
   it("can read all latest person entities", async () => {
     const allEntities = await graphApi
-      .getEntitySubgraph(testUser.accountId, {
-        filter: {
-          all: [
-            {
-              equal: [
-                { path: ["ownedById"] },
-                { parameter: testOrg.accountGroupId },
-              ],
-            },
-            {
-              endsWith: [
-                { path: ["type(inheritanceDepth=0)", "baseUrl"] },
-                {
-                  parameter: `/types/entity-type/person/`,
-                },
-              ],
-            },
-          ],
+      .getEntitiesByQuery(testUser.accountId, {
+        query: {
+          filter: {
+            all: [
+              {
+                equal: [
+                  { path: ["ownedById"] },
+                  { parameter: testOrg.accountGroupId },
+                ],
+              },
+              {
+                endsWith: [
+                  { path: ["type(inheritanceDepth=0)", "baseUrl"] },
+                  {
+                    parameter: `/types/entity-type/person/`,
+                  },
+                ],
+              },
+            ],
+          },
+          graphResolveDepths: zeroedGraphResolveDepths,
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts: false,
         },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
       })
       .then(({ data }) =>
         getRoots(

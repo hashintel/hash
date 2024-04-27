@@ -3,12 +3,17 @@ use std::{collections::HashSet, iter::once, str::FromStr};
 use authorization::AuthorizationApi;
 use graph::{
     store::{
-        knowledge::{CreateEntityParams, GetEntitiesParams, PatchEntityParams},
+        knowledge::{CreateEntityParams, GetEntityParams, PatchEntityParams},
         query::Filter,
         EntityQuerySorting, EntityStore,
     },
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
+    subgraph::{
+        edges::GraphResolveDepths,
+        query::StructuralQuery,
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
+            VariableTemporalAxisUnresolved,
+        },
     },
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
@@ -130,13 +135,17 @@ async fn properties_add() {
     .expect("could not patch entity");
 
     let entities = api
-        .get_entities(
+        .get_entity(
             api.account_id,
-            GetEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
+            GetEntityParams {
+                query: StructuralQuery {
+                    filter: Filter::for_entity_by_entity_id(entity_id),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
                 },
                 sorting: EntityQuerySorting {
                     paths: Vec::new(),
@@ -144,12 +153,15 @@ async fn properties_add() {
                 },
                 limit: None,
                 include_count: false,
-                include_drafts: false,
             },
         )
         .await
         .expect("could not get entity")
-        .entities;
+        .subgraph
+        .vertices
+        .entities
+        .into_values()
+        .collect::<Vec<_>>();
     assert_eq!(entities.len(), 1, "unexpected number of entities found");
     let entity = entities.into_iter().next().unwrap();
 
@@ -204,13 +216,17 @@ async fn properties_remove() {
     .expect("could not patch entity");
 
     let entities = api
-        .get_entities(
+        .get_entity(
             api.account_id,
-            GetEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
+            GetEntityParams {
+                query: StructuralQuery {
+                    filter: Filter::for_entity_by_entity_id(entity_id),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
                 },
                 sorting: EntityQuerySorting {
                     paths: Vec::new(),
@@ -218,12 +234,15 @@ async fn properties_remove() {
                 },
                 limit: None,
                 include_count: false,
-                include_drafts: false,
             },
         )
         .await
         .expect("could not get entity")
-        .entities;
+        .subgraph
+        .vertices
+        .entities
+        .into_values()
+        .collect::<Vec<_>>();
     assert_eq!(entities.len(), 1, "unexpected number of entities found");
     let entity = entities.into_iter().next().unwrap();
 
@@ -279,13 +298,17 @@ async fn properties_replace() {
     .expect("could not patch entity");
 
     let entities = api
-        .get_entities(
+        .get_entity(
             api.account_id,
-            GetEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
+            GetEntityParams {
+                query: StructuralQuery {
+                    filter: Filter::for_entity_by_entity_id(entity_id),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
                 },
                 sorting: EntityQuerySorting {
                     paths: Vec::new(),
@@ -293,12 +316,15 @@ async fn properties_replace() {
                 },
                 limit: None,
                 include_count: false,
-                include_drafts: false,
             },
         )
         .await
         .expect("could not get entity")
-        .entities;
+        .subgraph
+        .vertices
+        .entities
+        .into_values()
+        .collect::<Vec<_>>();
     assert_eq!(entities.len(), 1, "unexpected number of entities found");
     let entity = entities.into_iter().next().unwrap();
 
@@ -396,13 +422,17 @@ async fn properties_move() {
     .expect("could not patch entity");
 
     let entities = api
-        .get_entities(
+        .get_entity(
             api.account_id,
-            GetEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
+            GetEntityParams {
+                query: StructuralQuery {
+                    filter: Filter::for_entity_by_entity_id(entity_id),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
                 },
                 sorting: EntityQuerySorting {
                     paths: Vec::new(),
@@ -410,12 +440,15 @@ async fn properties_move() {
                 },
                 limit: None,
                 include_count: false,
-                include_drafts: false,
             },
         )
         .await
         .expect("could not get entity")
-        .entities;
+        .subgraph
+        .vertices
+        .entities
+        .into_values()
+        .collect::<Vec<_>>();
     assert_eq!(entities.len(), 1, "unexpected number of entities found");
     let entity = entities.into_iter().next().unwrap();
 
@@ -492,13 +525,17 @@ async fn properties_copy() {
     .expect("could not patch entity");
 
     let entities = api
-        .get_entities(
+        .get_entity(
             api.account_id,
-            GetEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
+            GetEntityParams {
+                query: StructuralQuery {
+                    filter: Filter::for_entity_by_entity_id(entity_id),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
                 },
                 sorting: EntityQuerySorting {
                     paths: Vec::new(),
@@ -506,12 +543,15 @@ async fn properties_copy() {
                 },
                 limit: None,
                 include_count: false,
-                include_drafts: false,
             },
         )
         .await
         .expect("could not get entity")
-        .entities;
+        .subgraph
+        .vertices
+        .entities
+        .into_values()
+        .collect::<Vec<_>>();
     assert_eq!(entities.len(), 1, "unexpected number of entities found");
     let entity = entities.into_iter().next().unwrap();
 
@@ -568,13 +608,17 @@ async fn type_ids() {
     .expect("could not patch entity");
 
     let entities = api
-        .get_entities(
+        .get_entity(
             api.account_id,
-            GetEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
+            GetEntityParams {
+                query: StructuralQuery {
+                    filter: Filter::for_entity_by_entity_id(entity_id),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
                 },
                 sorting: EntityQuerySorting {
                     paths: Vec::new(),
@@ -582,12 +626,15 @@ async fn type_ids() {
                 },
                 limit: None,
                 include_count: false,
-                include_drafts: false,
             },
         )
         .await
         .expect("could not get entity")
-        .entities;
+        .subgraph
+        .vertices
+        .entities
+        .into_values()
+        .collect::<Vec<_>>();
     assert_eq!(entities.len(), 1, "unexpected number of entities found");
     let entity = entities.into_iter().next().unwrap();
     assert_eq!(
@@ -613,13 +660,17 @@ async fn type_ids() {
     .expect("could not patch entity");
 
     let entities = api
-        .get_entities(
+        .get_entity(
             api.account_id,
-            GetEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
+            GetEntityParams {
+                query: StructuralQuery {
+                    filter: Filter::for_entity_by_entity_id(entity_id),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
                 },
                 sorting: EntityQuerySorting {
                     paths: Vec::new(),
@@ -627,12 +678,15 @@ async fn type_ids() {
                 },
                 limit: None,
                 include_count: false,
-                include_drafts: false,
             },
         )
         .await
         .expect("could not get entity")
-        .entities;
+        .subgraph
+        .vertices
+        .entities
+        .into_values()
+        .collect::<Vec<_>>();
     assert_eq!(entities.len(), 1, "unexpected number of entities found");
     let entity = entities.into_iter().next().unwrap();
     assert_eq!(
@@ -662,13 +716,17 @@ async fn type_ids() {
     .expect("could not patch entity");
 
     let entities = api
-        .get_entities(
+        .get_entity(
             api.account_id,
-            GetEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
+            GetEntityParams {
+                query: StructuralQuery {
+                    filter: Filter::for_entity_by_entity_id(entity_id),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
                 },
                 sorting: EntityQuerySorting {
                     paths: Vec::new(),
@@ -676,12 +734,15 @@ async fn type_ids() {
                 },
                 limit: None,
                 include_count: false,
-                include_drafts: false,
             },
         )
         .await
         .expect("could not get entity")
-        .entities;
+        .subgraph
+        .vertices
+        .entities
+        .into_values()
+        .collect::<Vec<_>>();
     assert_eq!(entities.len(), 1, "unexpected number of entities found");
     let entity = entities.into_iter().next().unwrap();
 

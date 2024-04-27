@@ -47,37 +47,39 @@ export const getMachineActorId = async (
   { identifier }: { identifier: MachineActorIdentifier },
 ): Promise<AccountId> => {
   const [machineEntity, ...unexpectedEntities] = await context.graphApi
-    .getEntitySubgraph(authentication.actorId, {
-      filter: {
-        all: [
-          {
-            equal: [
-              {
-                path: ["type(inheritanceDepth = 0)", "baseUrl"],
-              },
-              {
-                parameter: systemEntityTypes.machine.entityTypeBaseUrl,
-              },
-            ],
-          },
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  extractBaseUrl(
-                    systemPropertyTypes.machineIdentifier.propertyTypeId,
-                  ),
-                ],
-              },
-              { parameter: identifier },
-            ],
-          },
-        ],
+    .getEntitiesByQuery(authentication.actorId, {
+      query: {
+        filter: {
+          all: [
+            {
+              equal: [
+                {
+                  path: ["type(inheritanceDepth = 0)", "baseUrl"],
+                },
+                {
+                  parameter: systemEntityTypes.machine.entityTypeBaseUrl,
+                },
+              ],
+            },
+            {
+              equal: [
+                {
+                  path: [
+                    "properties",
+                    extractBaseUrl(
+                      systemPropertyTypes.machineIdentifier.propertyTypeId,
+                    ),
+                  ],
+                },
+                { parameter: identifier },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(

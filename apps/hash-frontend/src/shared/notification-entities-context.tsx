@@ -16,13 +16,13 @@ import { createContext, useCallback, useContext, useMemo } from "react";
 
 import { useBlockProtocolUpdateEntity } from "../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  StructuralQueryEntitiesQuery,
+  StructuralQueryEntitiesQueryVariables,
   UpdateEntitiesMutation,
   UpdateEntitiesMutationVariables,
 } from "../graphql/api-types.gen";
 import {
-  getEntitySubgraphQuery,
+  structuralQueryEntitiesQuery,
   updateEntitiesMutation,
 } from "../graphql/queries/knowledge/entity.queries";
 import { useAuthInfo } from "../pages/shared/auth-info-context";
@@ -69,43 +69,43 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
     data: notificationEntitiesData,
     loading: loadingNotificationEntities,
     refetch: refetchNotificationEntities,
-  } = useQuery<GetEntitySubgraphQuery, GetEntitySubgraphQueryVariables>(
-    getEntitySubgraphQuery,
-    {
-      pollInterval,
-      variables: {
-        includePermissions: false,
-        request: {
-          filter: {
-            all: [
-              {
-                equal: [
-                  { path: ["ownedById"] },
-                  { parameter: authenticatedUser?.accountId },
-                ],
-              },
-              generateVersionedUrlMatchingFilter(
-                systemEntityTypes.notification.entityTypeId,
-                { ignoreParents: false },
-              ),
-              notArchivedFilter,
-            ],
-          },
-          graphResolveDepths: zeroedGraphResolveDepths,
-          temporalAxes: currentTimeInstantTemporalAxes,
-          includeDrafts: false,
+  } = useQuery<
+    StructuralQueryEntitiesQuery,
+    StructuralQueryEntitiesQueryVariables
+  >(structuralQueryEntitiesQuery, {
+    pollInterval,
+    variables: {
+      includePermissions: false,
+      query: {
+        filter: {
+          all: [
+            {
+              equal: [
+                { path: ["ownedById"] },
+                { parameter: authenticatedUser?.accountId },
+              ],
+            },
+            generateVersionedUrlMatchingFilter(
+              systemEntityTypes.notification.entityTypeId,
+              { ignoreParents: false },
+            ),
+            notArchivedFilter,
+          ],
         },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
       },
-      skip: !authenticatedUser,
-      fetchPolicy: "network-only",
     },
-  );
+    skip: !authenticatedUser,
+    fetchPolicy: "network-only",
+  });
 
   const notificationEntitiesSubgraph = useMemo(
     () =>
       notificationEntitiesData
         ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-            notificationEntitiesData.getEntitySubgraph.subgraph,
+            notificationEntitiesData.structuralQueryEntities.subgraph,
           )
         : undefined,
     [notificationEntitiesData],

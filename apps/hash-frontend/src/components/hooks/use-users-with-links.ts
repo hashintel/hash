@@ -11,10 +11,10 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  StructuralQueryEntitiesQuery,
+  StructuralQueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import type { User } from "../../lib/user-and-org";
 import { constructUser, isEntityUserEntity } from "../../lib/user-and-org";
 
@@ -28,15 +28,15 @@ export const useUsersWithLinks = ({
 }): {
   loading: boolean;
   users?: User[];
-  refetch: () => Promise<ApolloQueryResult<GetEntitySubgraphQuery>>;
+  refetch: () => Promise<ApolloQueryResult<StructuralQueryEntitiesQuery>>;
 } => {
   const { data, loading, refetch } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    StructuralQueryEntitiesQuery,
+    StructuralQueryEntitiesQueryVariables
+  >(structuralQueryEntitiesQuery, {
     variables: {
       includePermissions: false,
-      request: {
+      query: {
         filter: {
           all: [
             ...(userAccountIds
@@ -81,7 +81,7 @@ export const useUsersWithLinks = ({
 
   const subgraph = data
     ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-        data.getEntitySubgraph.subgraph,
+        data.structuralQueryEntities.subgraph,
       )
     : undefined;
 

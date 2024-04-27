@@ -10,10 +10,10 @@ import type { FunctionComponent, PropsWithChildren } from "react";
 import { createContext, useContext, useMemo, useState } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  StructuralQueryEntitiesQuery,
+  StructuralQueryEntitiesQueryVariables,
 } from "../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
+import { structuralQueryEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
 import { useAuthInfo } from "../pages/shared/auth-info-context";
 import { pollInterval } from "./poll-interval";
 
@@ -43,7 +43,7 @@ export const DraftEntitiesContextProvider: FunctionComponent<
   const [
     previouslyFetchedDraftEntitiesData,
     setPreviouslyFetchedDraftEntitiesData,
-  ] = useState<GetEntitySubgraphQuery>();
+  ] = useState<StructuralQueryEntitiesQuery>();
 
   const { authenticatedUser } = useAuthInfo();
 
@@ -51,42 +51,42 @@ export const DraftEntitiesContextProvider: FunctionComponent<
     data: draftEntitiesData,
     refetch,
     loading,
-  } = useQuery<GetEntitySubgraphQuery, GetEntitySubgraphQueryVariables>(
-    getEntitySubgraphQuery,
-    {
-      variables: {
-        request: {
-          filter: {
-            all: [
-              {
-                // @ts-expect-error -- Support null in Path parameter in structural queries in Node
-                //                     @see https://linear.app/hash/issue/H-1207
-                notEqual: [{ path: ["draftId"] }, null],
-              },
-              {
-                equal: [{ path: ["archived"] }, { parameter: false }],
-              },
-            ],
-          },
-          temporalAxes: currentTimeInstantTemporalAxes,
-          graphResolveDepths: zeroedGraphResolveDepths,
-          includeDrafts: true,
+  } = useQuery<
+    StructuralQueryEntitiesQuery,
+    StructuralQueryEntitiesQueryVariables
+  >(structuralQueryEntitiesQuery, {
+    variables: {
+      query: {
+        filter: {
+          all: [
+            {
+              // @ts-expect-error -- Support null in Path parameter in structural queries in Node
+              //                     @see https://linear.app/hash/issue/H-1207
+              notEqual: [{ path: ["draftId"] }, null],
+            },
+            {
+              equal: [{ path: ["archived"] }, { parameter: false }],
+            },
+          ],
         },
-        includePermissions: false,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        graphResolveDepths: zeroedGraphResolveDepths,
+        includeDrafts: true,
       },
-      onCompleted: (data) => setPreviouslyFetchedDraftEntitiesData(data),
-      pollInterval,
-      fetchPolicy: "network-only",
-      skip: !authenticatedUser,
+      includePermissions: false,
     },
-  );
+    onCompleted: (data) => setPreviouslyFetchedDraftEntitiesData(data),
+    pollInterval,
+    fetchPolicy: "network-only",
+    skip: !authenticatedUser,
+  });
 
   const draftEntitiesSubgraph = useMemo(
     () =>
       draftEntitiesData ?? previouslyFetchedDraftEntitiesData
         ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
             (draftEntitiesData ?? previouslyFetchedDraftEntitiesData)!
-              .getEntitySubgraph.subgraph,
+              .structuralQueryEntities.subgraph,
           )
         : undefined,
     [draftEntitiesData, previouslyFetchedDraftEntitiesData],

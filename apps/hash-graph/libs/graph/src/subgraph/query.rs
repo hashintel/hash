@@ -207,6 +207,7 @@ where
 pub type DataTypeStructuralQuery = StructuralQuery<'static, DataTypeWithMetadata>;
 pub type PropertyTypeStructuralQuery = StructuralQuery<'static, PropertyTypeWithMetadata>;
 pub type EntityTypeStructuralQuery = StructuralQuery<'static, EntityTypeWithMetadata>;
+pub type EntityStructuralQuery<'q> = StructuralQuery<'q, Entity>;
 
 #[cfg(feature = "utoipa")]
 impl<'p> ToSchema<'_> for StructuralQuery<'p, DataTypeWithMetadata> {

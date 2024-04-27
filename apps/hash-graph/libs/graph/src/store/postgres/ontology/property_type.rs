@@ -36,8 +36,7 @@ use crate::{
         crud::{QueryResult, ReadPaginated, VertexIdSorting},
         error::DeletionError,
         ontology::{
-            ArchivePropertyTypeParams, CreatePropertyTypeParams, GetPropertyTypeSubgraphParams,
-            GetPropertyTypeSubgraphResponse, GetPropertyTypesParams, GetPropertyTypesResponse,
+            ArchivePropertyTypeParams, CreatePropertyTypeParams, GetPropertyTypesParams,
             UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams,
             UpdatePropertyTypesParams,
         },
@@ -55,8 +54,9 @@ use crate::{
     },
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
-        identifier::{DataTypeVertexId, GraphElementVertexId, PropertyTypeVertexId},
-        temporal_axes::{QueryTemporalAxes, VariableAxis},
+        identifier::{DataTypeVertexId, PropertyTypeVertexId},
+        query::StructuralQuery,
+        temporal_axes::VariableAxis,
         Subgraph,
     },
 };
@@ -103,69 +103,6 @@ where
                     .unwrap_or(false)
                     .then_some(property_type)
             }))
-    }
-
-    async fn get_property_types_impl(
-        &self,
-        actor_id: AccountId,
-        params: GetPropertyTypesParams<'_>,
-        temporal_axes: &QueryTemporalAxes,
-    ) -> Result<(GetPropertyTypesResponse, Zookie<'static>), QueryError> {
-        // TODO: Remove again when subgraph logic was revisited
-        //   see https://linear.app/hash/issue/H-297
-        let mut visited_ontology_ids = HashSet::new();
-
-        let (data, artifacts) = ReadPaginated::<PropertyTypeWithMetadata>::read_paginated_vec(
-            self,
-            &params.filter,
-            Some(temporal_axes),
-            &VertexIdSorting {
-                cursor: params.after,
-            },
-            params.limit,
-            params.include_drafts,
-        )
-        .await?;
-        let property_types = data
-            .into_iter()
-            .filter_map(|row| {
-                let property_type = row.decode_record(&artifacts);
-                let id = PropertyTypeId::from_url(property_type.schema.id());
-                // The records are already sorted by time, so we can just take the first one
-                visited_ontology_ids
-                    .insert(id)
-                    .then_some((id, property_type))
-            })
-            .collect::<Vec<_>>();
-
-        let filtered_ids = property_types
-            .iter()
-            .map(|(property_type_id, _)| *property_type_id)
-            .collect::<Vec<_>>();
-
-        let (permissions, zookie) = self
-            .authorization_api
-            .check_property_types_permission(
-                actor_id,
-                PropertyTypePermission::View,
-                filtered_ids,
-                Consistency::FullyConsistent,
-            )
-            .await
-            .change_context(QueryError)?;
-
-        let property_types = property_types
-            .into_iter()
-            .filter_map(|(id, property_type)| {
-                permissions
-                    .get(&id)
-                    .copied()
-                    .unwrap_or(false)
-                    .then_some(property_type)
-            })
-            .collect();
-
-        Ok((GetPropertyTypesResponse { property_types }, zookie))
     }
 
     /// Internal method to read a [`PropertyTypeWithMetadata`] into two [`TraversalContext`]s.
@@ -487,60 +424,83 @@ where
         }
     }
 
-    async fn get_property_types(
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn get_property_type(
         &self,
         actor_id: AccountId,
         params: GetPropertyTypesParams<'_>,
-    ) -> Result<GetPropertyTypesResponse, QueryError> {
-        let temporal_axes = params.temporal_axes.clone().resolve();
-        self.get_property_types_impl(actor_id, params, &temporal_axes)
-            .await
-            .map(|(response, _)| response)
-    }
+    ) -> Result<Subgraph, QueryError> {
+        let StructuralQuery {
+            ref filter,
+            graph_resolve_depths,
+            temporal_axes: ref unresolved_temporal_axes,
+            include_drafts,
+        } = params.query;
 
-    #[tracing::instrument(level = "info", skip(self))]
-    async fn get_property_type_subgraph(
-        &self,
-        actor_id: AccountId,
-        params: GetPropertyTypeSubgraphParams<'_>,
-    ) -> Result<GetPropertyTypeSubgraphResponse, QueryError> {
-        let temporal_axes = params.temporal_axes.clone().resolve();
+        let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let (GetPropertyTypesResponse { property_types }, zookie) = self
-            .get_property_types_impl(
+        // TODO: Remove again when subgraph logic was revisited
+        //   see https://linear.app/hash/issue/H-297
+        let mut visited_ontology_ids = HashSet::new();
+
+        let (data, artifacts) = ReadPaginated::<PropertyTypeWithMetadata>::read_paginated_vec(
+            self,
+            filter,
+            Some(&temporal_axes),
+            &VertexIdSorting {
+                cursor: params.after,
+            },
+            params.limit,
+            include_drafts,
+        )
+        .await?;
+        let property_types = data
+            .into_iter()
+            .filter_map(|row| {
+                let property_type = row.decode_record(&artifacts);
+                let id = PropertyTypeId::from_url(property_type.schema.id());
+                let vertex_id = property_type.vertex_id(time_axis);
+                // The records are already sorted by time, so we can just take the first one
+                visited_ontology_ids
+                    .insert(id)
+                    .then_some((id, (vertex_id, property_type)))
+            })
+            .collect::<Vec<_>>();
+
+        let filtered_ids = property_types
+            .iter()
+            .map(|(property_type_id, _)| *property_type_id)
+            .collect::<Vec<_>>();
+
+        let (permissions, zookie) = self
+            .authorization_api
+            .check_property_types_permission(
                 actor_id,
-                GetPropertyTypesParams {
-                    filter: params.filter,
-                    temporal_axes: params.temporal_axes.clone(),
-                    after: params.after,
-                    limit: params.limit,
-                    include_drafts: params.include_drafts,
-                },
-                &temporal_axes,
+                PropertyTypePermission::View,
+                filtered_ids,
+                Consistency::FullyConsistent,
             )
-            .await?;
+            .await
+            .change_context(QueryError)?;
 
         let mut subgraph = Subgraph::new(
-            params.graph_resolve_depths,
-            params.temporal_axes,
+            graph_resolve_depths,
+            unresolved_temporal_axes.clone(),
             temporal_axes.clone(),
         );
 
-        let (property_type_ids, property_type_vertex_ids): (Vec<_>, Vec<_>) = property_types
-            .iter()
-            .map(|property_type| {
-                (
-                    PropertyTypeId::from_url(property_type.schema.id()),
-                    GraphElementVertexId::from(property_type.vertex_id(time_axis)),
-                )
-            })
-            .unzip();
-        subgraph.roots.extend(property_type_vertex_ids);
-        subgraph.vertices.property_types = property_types
+        let (property_type_ids, property_type_vertices): (Vec<_>, Vec<_>) = property_types
             .into_iter()
-            .map(|property_type| (property_type.vertex_id(time_axis), property_type))
-            .collect();
+            .filter(|(id, _)| permissions.get(id).copied().unwrap_or(false))
+            .unzip();
+
+        subgraph.roots.extend(
+            property_type_vertices
+                .iter()
+                .map(|(vertex_id, _)| vertex_id.clone().into()),
+        );
+        subgraph.vertices.property_types = property_type_vertices.into_iter().collect();
 
         let mut traversal_context = TraversalContext::default();
 
@@ -565,10 +525,10 @@ where
         .await?;
 
         traversal_context
-            .read_traversed_vertices(self, &mut subgraph, params.include_drafts)
+            .read_traversed_vertices(self, &mut subgraph, include_drafts)
             .await?;
 
-        Ok(GetPropertyTypeSubgraphResponse { subgraph })
+        Ok(subgraph)
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]

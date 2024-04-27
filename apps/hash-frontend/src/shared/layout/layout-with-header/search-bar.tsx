@@ -30,12 +30,12 @@ import { useDebounce, useKey, useOutsideClickRef } from "rooks";
 
 import { useUserOrOrgShortnameByOwnedById } from "../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
   QueryEntityTypesQuery,
   QueryEntityTypesQueryVariables,
+  StructuralQueryEntitiesQuery,
+  StructuralQueryEntitiesQueryVariables,
 } from "../../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
+import { structuralQueryEntitiesQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import { queryEntityTypesQuery } from "../../../graphql/queries/ontology/entity-type.queries";
 import { generateLinkParameters } from "../../generate-link-parameters";
 import { SearchIcon } from "../../icons";
@@ -237,11 +237,11 @@ export const SearchBar: FunctionComponent = () => {
   );
 
   const { data: entityResultData, loading: entitiesLoading } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    StructuralQueryEntitiesQuery,
+    StructuralQueryEntitiesQueryVariables
+  >(structuralQueryEntitiesQuery, {
     variables: {
-      request: {
+      query: {
         filter: queryFilter,
         temporalAxes: currentTimeInstantTemporalAxes,
         graphResolveDepths: {
@@ -270,8 +270,8 @@ export const SearchBar: FunctionComponent = () => {
 
   const entitySubgraph =
     entityResultData &&
-    isEntityRootedSubgraph(entityResultData.getEntitySubgraph.subgraph)
-      ? entityResultData.getEntitySubgraph.subgraph
+    isEntityRootedSubgraph(entityResultData.structuralQueryEntities.subgraph)
+      ? entityResultData.structuralQueryEntities.subgraph
       : undefined;
 
   const entityResults = entitySubgraph ? getRoots(entitySubgraph) : [];

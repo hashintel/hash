@@ -7,7 +7,7 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import {
-  getEntitySubgraph,
+  getEntities,
   modifyEntityAuthorizationRelationships,
 } from "../../../knowledge/primitive/entity";
 import type { MigrationFunction } from "../types";
@@ -24,20 +24,22 @@ const migrate: MigrationFunction = async ({
   const hashInstanceAdminsAccountGroupId =
     await getHashInstanceAdminAccountGroupId(context, authentication);
 
-  const userEntities = await getEntitySubgraph(context, authentication, {
-    filter: {
-      all: [
-        {
-          equal: [
-            { path: ["type(inheritanceDepth = 0)", "baseUrl"] },
-            { parameter: systemEntityTypes.user.entityTypeBaseUrl },
-          ],
-        },
-      ],
+  const userEntities = await getEntities(context, authentication, {
+    query: {
+      filter: {
+        all: [
+          {
+            equal: [
+              { path: ["type(inheritanceDepth = 0)", "baseUrl"] },
+              { parameter: systemEntityTypes.user.entityTypeBaseUrl },
+            ],
+          },
+        ],
+      },
+      graphResolveDepths: zeroedGraphResolveDepths,
+      includeDrafts: true,
+      temporalAxes: currentTimeInstantTemporalAxes,
     },
-    graphResolveDepths: zeroedGraphResolveDepths,
-    includeDrafts: true,
-    temporalAxes: currentTimeInstantTemporalAxes,
   }).then((subgraph) => getRoots(subgraph));
 
   for (const userEntity of userEntities) {

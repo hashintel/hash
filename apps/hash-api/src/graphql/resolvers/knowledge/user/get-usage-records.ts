@@ -13,7 +13,7 @@ import { extractAccountId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { ForbiddenError } from "apollo-server-express";
 
-import { getEntitySubgraph } from "../../../../graph/knowledge/primitive/entity";
+import { getEntities } from "../../../../graph/knowledge/primitive/entity";
 import type {
   Query,
   ResolverFn,
@@ -39,21 +39,23 @@ export const getUsageRecordsResolver: ResolverFn<
     throw new ForbiddenError("User is not a HASH instance admin");
   }
 
-  const users = await getEntitySubgraph(
+  const users = await getEntities(
     graphQLContextToImpureGraphContext(graphQLContext),
     authentication,
     {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.user.entityTypeId,
-            { ignoreParents: true },
-          ),
-        ],
+      query: {
+        filter: {
+          all: [
+            generateVersionedUrlMatchingFilter(
+              systemEntityTypes.user.entityTypeId,
+              { ignoreParents: true },
+            ),
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
     },
   ).then((subgraph) => getRoots(subgraph));
 

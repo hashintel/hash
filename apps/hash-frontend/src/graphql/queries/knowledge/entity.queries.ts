@@ -55,12 +55,12 @@ export const queryEntitiesQuery = gql`
   ${subgraphFieldsFragment}
 `;
 
-export const getEntitySubgraphQuery = gql`
-  query getEntitySubgraph(
-    $request: GetEntitySubgraphRequest!
+export const structuralQueryEntitiesQuery = gql`
+  query structuralQueryEntities(
+    $query: EntityStructuralQuery!
     $includePermissions: Boolean!
   ) {
-    getEntitySubgraph(request: $request) {
+    structuralQueryEntities(query: $query) {
       userPermissionsOnEntities @include(if: $includePermissions)
       subgraph {
         ...SubgraphFields

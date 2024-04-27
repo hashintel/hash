@@ -256,18 +256,20 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
   const { graphApi } = ctx;
   const { ownedById, includeArchived = false, includeDrafts = false } = params;
   const pageEntities = await graphApi
-    .getEntitySubgraph(authentication.actorId, {
-      filter: {
-        all: [
-          pageEntityTypeFilter,
-          {
-            equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
-          },
-        ],
+    .getEntitiesByQuery(authentication.actorId, {
+      query: {
+        filter: {
+          all: [
+            pageEntityTypeFilter,
+            {
+              equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(

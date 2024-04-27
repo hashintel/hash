@@ -38,12 +38,12 @@ import {
   createEntityResolver,
   getEntityAuthorizationRelationshipsResolver,
   getEntityResolver,
-  getEntitySubgraphResolver,
   isEntityPublicResolver,
   queryEntitiesResolver,
   removeEntityEditorResolver,
   removeEntityOwnerResolver,
   removeEntityViewerResolver,
+  structuralQueryEntitiesResolver,
   updateEntitiesResolver,
   updateEntityResolver,
 } from "./knowledge/entity/entity";
@@ -118,7 +118,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     getEntityAuthorizationRelationships: loggedInAndSignedUpMiddleware(
       getEntityAuthorizationRelationshipsResolver,
     ),
-    getEntitySubgraph: getEntitySubgraphResolver,
+    structuralQueryEntities: structuralQueryEntitiesResolver,
     hashInstanceEntity: hashInstanceEntityResolver,
     // Integration
     getLinearOrganization: loggedInAndSignedUpMiddleware(

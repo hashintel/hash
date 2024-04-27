@@ -81,7 +81,7 @@ export const queryPropertyTypesResolver: ResolverFn<
    *   authorized to see.
    *   https://app.asana.com/0/1202805690238892/1202890446280569/f
    */
-  const { data: response } = await graphApi.getPropertyTypeSubgraph(
+  const { data } = await graphApi.getPropertyTypesByQuery(
     authentication.actorId,
     {
       filter: latestOnly
@@ -102,7 +102,7 @@ export const queryPropertyTypesResolver: ResolverFn<
   );
 
   const subgraph = mapGraphApiSubgraphToSubgraph<PropertyTypeRootType>(
-    response.subgraph,
+    data,
     authentication.actorId,
   );
 

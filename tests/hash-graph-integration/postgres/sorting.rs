@@ -4,12 +4,18 @@ use authorization::AuthorizationApi;
 use graph::{
     knowledge::EntityQueryPath,
     store::{
-        knowledge::{CreateEntityParams, GetEntitiesParams, GetEntitiesResponse},
+        knowledge::{CreateEntityParams, GetEntityParams},
         query::{Filter, JsonPath, PathToken},
         EntityQuerySorting, EntityQuerySortingRecord, EntityStore, NullOrdering, Ordering,
     },
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
+    subgraph::{
+        edges::GraphResolveDepths,
+        identifier::GraphElementVertexId,
+        query::StructuralQuery,
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
+            VariableTemporalAxisUnresolved,
+        },
     },
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
@@ -51,39 +57,47 @@ async fn test_root_sorting<A: AuthorizationApi>(
         })
         .collect::<Vec<_>>();
     let mut cursor = None;
-    let expected_order = expected_order.into_iter().collect::<Vec<_>>();
 
     let mut found_entities = HashSet::new();
     let mut entities = Vec::new();
 
     loop {
-        let GetEntitiesResponse {
-            entities: new_entities,
-            count,
-            cursor: new_cursor,
-        } = api
-            .get_entities(
+        let mut response = api
+            .get_entity(
                 api.account_id,
-                GetEntitiesParams {
-                    filter: Filter::All(Vec::new()),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                GetEntityParams {
+                    query: StructuralQuery {
+                        filter: Filter::All(Vec::new()),
+                        graph_resolve_depths: GraphResolveDepths::default(),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
+                        },
+                        include_drafts: false,
                     },
                     sorting: EntityQuerySorting {
                         paths: sorting_paths.clone(),
                         cursor: cursor.take(),
                     },
                     limit: Some(chunk_size),
-                    include_count: true,
-                    include_drafts: false,
+                    include_count: false,
                 },
             )
             .await
             .expect("could not get entity");
-        assert_eq!(count, Some(expected_order.len()));
-        let num_entities = new_entities.len();
 
+        let new_entities = response
+            .subgraph
+            .roots
+            .into_iter()
+            .filter_map(|vertex_id| {
+                let GraphElementVertexId::KnowledgeGraph(vertex_id) = vertex_id else {
+                    panic!("unexpected vertex id found: {vertex_id:?}");
+                };
+                response.subgraph.vertices.entities.remove(&vertex_id)
+            })
+            .collect::<Vec<_>>();
+        let num_entities = new_entities.len();
         for entity in new_entities {
             assert!(
                 found_entities.insert(entity.metadata.record_id.entity_id),
@@ -95,7 +109,7 @@ async fn test_root_sorting<A: AuthorizationApi>(
         if num_entities < chunk_size {
             break;
         }
-        if let Some(new_cursor) = new_cursor {
+        if let Some(new_cursor) = response.cursor {
             cursor.replace(new_cursor);
         }
     }
