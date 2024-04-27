@@ -1,25 +1,23 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
-use authorization::{
-    backend::ZanzibarBackend,
-    schema::{DataTypeId, DataTypeRelationAndSubject},
-};
+use authorization::{backend::ZanzibarBackend, schema::DataTypeRelationAndSubject};
 use error_stack::{Result, ResultExt};
+use graph_types::ontology::DataTypeId;
 use tokio_postgres::GenericClient;
 
 use crate::{
-    snapshot::{
-        ontology::{table::DataTypeRow, DataTypeEmbeddingRow},
-        WriteBatch,
+    snapshot::WriteBatch,
+    store::{
+        postgres::query::rows::{DataTypeEmbeddingRow, DataTypeRow},
+        AsClient, InsertionError, PostgresStore,
     },
-    store::{AsClient, InsertionError, PostgresStore},
 };
 
 pub enum DataTypeRowBatch {
     Schema(Vec<DataTypeRow>),
     Relations(HashMap<DataTypeId, Vec<DataTypeRelationAndSubject>>),
-    Embeddings(Vec<DataTypeEmbeddingRow>),
+    Embeddings(Vec<DataTypeEmbeddingRow<'static>>),
 }
 
 #[async_trait]

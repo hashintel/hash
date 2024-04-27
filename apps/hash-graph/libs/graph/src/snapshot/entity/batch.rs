@@ -1,32 +1,28 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
-use authorization::{
-    backend::ZanzibarBackend,
-    schema::{EntityRelationAndSubject, EntityTypeId},
-    AuthorizationApi,
-};
+use authorization::{backend::ZanzibarBackend, schema::EntityRelationAndSubject, AuthorizationApi};
 use error_stack::{Report, ResultExt};
 use futures::TryStreamExt;
-use graph_types::knowledge::entity::{Entity, EntityUuid};
+use graph_types::{
+    knowledge::entity::{Entity, EntityUuid},
+    ontology::EntityTypeId,
+};
 use tokio_postgres::GenericClient;
 use type_system::ClosedEntityType;
 use validation::{Validate, ValidateEntityComponents};
 
 use crate::{
-    snapshot::{
-        entity::{
-            table::{
-                EntityDraftRow, EntityEmbeddingRow, EntityHasRightEntityRow, EntityIsOfTypeRow,
-                EntityPropertyRow,
-            },
-            EntityEditionRow, EntityHasLeftEntityRow, EntityIdRow, EntityTemporalMetadataRow,
-        },
-        WriteBatch,
-    },
+    snapshot::WriteBatch,
     store::{
-        crud::Read, query::Filter, AsClient, InsertionError, PostgresStore, StoreCache,
-        StoreProvider,
+        crud::Read,
+        postgres::query::rows::{
+            EntityDraftRow, EntityEditionRow, EntityEmbeddingRow, EntityHasLeftEntityRow,
+            EntityHasRightEntityRow, EntityIdRow, EntityIsOfTypeRow, EntityPropertyRow,
+            EntityTemporalMetadataRow,
+        },
+        query::Filter,
+        AsClient, InsertionError, PostgresStore, StoreCache, StoreProvider,
     },
 };
 
@@ -38,9 +34,9 @@ pub enum EntityRowBatch {
     TemporalMetadata(Vec<EntityTemporalMetadataRow>),
     LeftLinks(Vec<EntityHasLeftEntityRow>),
     RightLinks(Vec<EntityHasRightEntityRow>),
-    Property(Vec<EntityPropertyRow>),
-    Relations(Vec<(EntityUuid, EntityRelationAndSubject)>),
+    Property(Vec<EntityPropertyRow<'static>>),
     Embeddings(Vec<EntityEmbeddingRow>),
+    Relations(Vec<(EntityUuid, EntityRelationAndSubject)>),
 }
 
 #[async_trait]

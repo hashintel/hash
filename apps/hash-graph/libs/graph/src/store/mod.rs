@@ -12,7 +12,7 @@ mod record;
 mod validation;
 
 mod fetcher;
-mod postgres;
+pub(crate) mod postgres;
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};

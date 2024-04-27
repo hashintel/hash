@@ -1,25 +1,20 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
-use authorization::{
-    backend::ZanzibarBackend,
-    schema::{PropertyTypeId, PropertyTypeRelationAndSubject},
-};
+use authorization::{backend::ZanzibarBackend, schema::PropertyTypeRelationAndSubject};
 use error_stack::{Result, ResultExt};
+use graph_types::ontology::PropertyTypeId;
 use tokio_postgres::GenericClient;
 
 use crate::{
-    snapshot::{
-        ontology::{
-            table::{
-                PropertyTypeConstrainsPropertiesOnRow, PropertyTypeConstrainsValuesOnRow,
-                PropertyTypeRow,
-            },
-            PropertyTypeEmbeddingRow,
+    snapshot::WriteBatch,
+    store::{
+        postgres::query::rows::{
+            PropertyTypeConstrainsPropertiesOnRow, PropertyTypeConstrainsValuesOnRow,
+            PropertyTypeEmbeddingRow, PropertyTypeRow,
         },
-        WriteBatch,
+        AsClient, InsertionError, PostgresStore,
     },
-    store::{AsClient, InsertionError, PostgresStore},
 };
 
 pub enum PropertyTypeRowBatch {
@@ -27,7 +22,7 @@ pub enum PropertyTypeRowBatch {
     ConstrainsValues(Vec<PropertyTypeConstrainsValuesOnRow>),
     ConstrainsProperties(Vec<PropertyTypeConstrainsPropertiesOnRow>),
     Relations(HashMap<PropertyTypeId, Vec<PropertyTypeRelationAndSubject>>),
-    Embeddings(Vec<PropertyTypeEmbeddingRow>),
+    Embeddings(Vec<PropertyTypeEmbeddingRow<'static>>),
 }
 
 #[async_trait]

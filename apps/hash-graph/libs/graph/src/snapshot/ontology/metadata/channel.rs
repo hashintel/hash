@@ -13,14 +13,16 @@ use graph_types::ontology::{
     OntologyProvenance, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
     OntologyTypeRecordId,
 };
-use uuid::Uuid;
 
-use crate::snapshot::{
-    ontology::{
-        table::OntologyTemporalMetadataRow, OntologyExternalMetadataRow, OntologyIdRow,
-        OntologyOwnedMetadataRow, OntologyTypeMetadataRowBatch,
+use crate::{
+    snapshot::{ontology::OntologyTypeMetadataRowBatch, SnapshotRestoreError},
+    store::postgres::{
+        query::rows::{
+            OntologyExternalMetadataRow, OntologyIdRow, OntologyOwnedMetadataRow,
+            OntologyTemporalMetadataRow,
+        },
+        OntologyId,
     },
-    SnapshotRestoreError,
 };
 
 #[derive(Debug, Clone)]
@@ -33,7 +35,7 @@ pub struct OntologyTypeMetadataSender {
 
 impl
     Sink<(
-        Uuid,
+        OntologyId,
         OntologyTypeRecordId,
         OntologyTypeClassificationMetadata,
         OntologyTemporalMetadata,
@@ -62,7 +64,7 @@ impl
     fn start_send(
         mut self: Pin<&mut Self>,
         (ontology_id, record_id, classification, temporal_versioning, provenance): (
-            Uuid,
+            OntologyId,
             OntologyTypeRecordId,
             OntologyTypeClassificationMetadata,
             OntologyTemporalMetadata,

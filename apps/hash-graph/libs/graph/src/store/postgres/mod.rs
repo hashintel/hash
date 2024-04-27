@@ -4,7 +4,7 @@ mod ontology;
 
 mod migration;
 mod pool;
-mod query;
+pub(crate) mod query;
 mod traversal_context;
 
 use std::{fmt::Debug, sync::Arc};
@@ -47,6 +47,7 @@ use type_system::{
 };
 
 pub use self::{
+    ontology::OntologyId,
     pool::{AsClient, PostgresStorePool},
     query::CursorField,
     traversal_context::TraversalContext,
@@ -57,7 +58,7 @@ use crate::store::{
         DeletionError, OntologyTypeIsNotOwned, OntologyVersionDoesNotExist,
         VersionedUrlAlreadyExists,
     },
-    postgres::ontology::{OntologyDatabaseType, OntologyId},
+    postgres::ontology::OntologyDatabaseType,
     AccountStore, BaseUrlAlreadyExists, ConflictBehavior, InsertionError, QueryError, StoreError,
     UpdateError,
 };

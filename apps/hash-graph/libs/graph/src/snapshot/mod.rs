@@ -24,9 +24,9 @@ use async_trait::async_trait;
 use authorization::{
     backend::ZanzibarBackend,
     schema::{
-        AccountGroupRelationAndSubject, DataTypeId, DataTypeRelationAndSubject, EntityNamespace,
-        EntityRelationAndSubject, EntityTypeId, EntityTypeRelationAndSubject, PropertyTypeId,
-        PropertyTypeRelationAndSubject, WebRelationAndSubject,
+        AccountGroupRelationAndSubject, DataTypeRelationAndSubject, EntityNamespace,
+        EntityRelationAndSubject, EntityTypeRelationAndSubject, PropertyTypeRelationAndSubject,
+        WebRelationAndSubject,
     },
     zanzibar::{
         types::{RelationshipFilter, ResourceFilter},
@@ -41,7 +41,10 @@ use futures::{
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{Entity, EntityId, EntityUuid},
-    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
+    ontology::{
+        DataTypeId, DataTypeWithMetadata, EntityTypeId, EntityTypeWithMetadata, PropertyTypeId,
+        PropertyTypeWithMetadata,
+    },
     owned_by_id::OwnedById,
 };
 use hash_status::StatusCode;

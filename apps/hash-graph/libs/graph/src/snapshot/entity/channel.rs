@@ -3,25 +3,22 @@ use std::{
     task::{ready, Context, Poll},
 };
 
-use authorization::schema::{EntityRelationAndSubject, EntityTypeId};
+use authorization::schema::EntityRelationAndSubject;
 use error_stack::{Report, ResultExt};
 use futures::{
     channel::mpsc::{self, Receiver, Sender},
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
-use graph_types::knowledge::entity::EntityUuid;
+use graph_types::{knowledge::entity::EntityUuid, ontology::EntityTypeId};
 
-use crate::snapshot::{
-    entity::{
-        table::{
-            EntityDraftRow, EntityEmbeddingRow, EntityHasRightEntityRow, EntityIsOfTypeRow,
-            EntityPropertyRow,
-        },
-        EntityEditionRow, EntityHasLeftEntityRow, EntityIdRow, EntityRowBatch,
+use crate::{
+    snapshot::{entity::EntityRowBatch, EntitySnapshotRecord, SnapshotRestoreError},
+    store::postgres::query::rows::{
+        EntityDraftRow, EntityEditionRow, EntityEmbeddingRow, EntityHasLeftEntityRow,
+        EntityHasRightEntityRow, EntityIdRow, EntityIsOfTypeRow, EntityPropertyRow,
         EntityTemporalMetadataRow,
     },
-    EntitySnapshotRecord, SnapshotRestoreError,
 };
 
 /// A sink to insert [`EntitySnapshotRecord`]s.
@@ -35,7 +32,7 @@ pub struct EntitySender {
     edition: Sender<EntityEditionRow>,
     is_of_type: Sender<EntityIsOfTypeRow>,
     temporal_metadata: Sender<EntityTemporalMetadataRow>,
-    property: Sender<EntityPropertyRow>,
+    property: Sender<EntityPropertyRow<'static>>,
     left_links: Sender<EntityHasLeftEntityRow>,
     right_links: Sender<EntityHasRightEntityRow>,
 }
@@ -126,7 +123,7 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
             self.is_of_type
                 .start_send_unpin(EntityIsOfTypeRow {
                     entity_edition_id: entity.metadata.record_id.edition_id,
-                    entity_type_ontology_id: EntityTypeId::from_url(is_of_type).into_uuid(),
+                    entity_type_ontology_id: EntityTypeId::from_url(is_of_type),
                 })
                 .change_context(SnapshotRestoreError::Read)
                 .attach_printable("could not send entity type")?;

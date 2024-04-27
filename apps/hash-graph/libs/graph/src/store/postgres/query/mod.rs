@@ -9,6 +9,7 @@ mod entity;
 mod entity_type;
 mod expression;
 mod property_type;
+pub(crate) mod rows;
 mod statement;
 mod table;
 

@@ -2,28 +2,25 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 use authorization::{
-    backend::ZanzibarBackend,
-    schema::{EntityTypeId, EntityTypeRelationAndSubject},
-    AuthorizationApi,
+    backend::ZanzibarBackend, schema::EntityTypeRelationAndSubject, AuthorizationApi,
 };
 use error_stack::{Result, ResultExt};
 use futures::TryStreamExt;
+use graph_types::ontology::EntityTypeId;
 use postgres_types::{Json, ToSql};
 use tokio_postgres::GenericClient;
 use type_system::EntityType;
 
 use crate::{
-    snapshot::{
-        ontology::{
-            table::{
-                EntityTypeConstrainsLinkDestinationsOnRow, EntityTypeConstrainsLinksOnRow,
-                EntityTypeConstrainsPropertiesOnRow, EntityTypeInheritsFromRow, EntityTypeRow,
-            },
-            EntityTypeEmbeddingRow,
+    snapshot::WriteBatch,
+    store::{
+        postgres::query::rows::{
+            EntityTypeConstrainsLinkDestinationsOnRow, EntityTypeConstrainsLinksOnRow,
+            EntityTypeConstrainsPropertiesOnRow, EntityTypeEmbeddingRow, EntityTypeInheritsFromRow,
+            EntityTypeRow,
         },
-        WriteBatch,
+        AsClient, InsertionError, PostgresStore,
     },
-    store::{AsClient, InsertionError, PostgresStore},
 };
 
 pub enum EntityTypeRowBatch {
@@ -33,7 +30,7 @@ pub enum EntityTypeRowBatch {
     ConstrainsLinks(Vec<EntityTypeConstrainsLinksOnRow>),
     ConstrainsLinkDestinations(Vec<EntityTypeConstrainsLinkDestinationsOnRow>),
     Relations(HashMap<EntityTypeId, Vec<EntityTypeRelationAndSubject>>),
-    Embeddings(Vec<EntityTypeEmbeddingRow>),
+    Embeddings(Vec<EntityTypeEmbeddingRow<'static>>),
 }
 
 #[async_trait]

@@ -3,27 +3,29 @@ use std::{
     task::{ready, Context, Poll},
 };
 
-use authorization::schema::{EntityTypeId, EntityTypeRelationAndSubject};
+use authorization::schema::EntityTypeRelationAndSubject;
 use error_stack::{Report, ResultExt};
 use futures::{
     channel::mpsc::{self, Receiver, Sender},
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
-use postgres_types::Json;
+use graph_types::ontology::EntityTypeId;
 use type_system::ClosedEntityType;
-use uuid::Uuid;
 
-use crate::snapshot::{
-    ontology::{
-        entity_type::batch::EntityTypeRowBatch,
-        table::{
-            EntityTypeConstrainsLinkDestinationsOnRow, EntityTypeConstrainsLinksOnRow,
-            EntityTypeConstrainsPropertiesOnRow, EntityTypeInheritsFromRow, EntityTypeRow,
+use crate::{
+    snapshot::{
+        ontology::{
+            entity_type::batch::EntityTypeRowBatch, EntityTypeSnapshotRecord,
+            OntologyTypeMetadataSender,
         },
-        EntityTypeEmbeddingRow, EntityTypeSnapshotRecord, OntologyTypeMetadataSender,
+        SnapshotRestoreError,
     },
-    SnapshotRestoreError,
+    store::postgres::query::rows::{
+        EntityTypeConstrainsLinkDestinationsOnRow, EntityTypeConstrainsLinksOnRow,
+        EntityTypeConstrainsPropertiesOnRow, EntityTypeEmbeddingRow, EntityTypeInheritsFromRow,
+        EntityTypeRow,
+    },
 };
 
 /// A sink to insert [`EntityTypeSnapshotRecord`]s.
@@ -77,12 +79,11 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
         mut self: Pin<&mut Self>,
         entity_type: EntityTypeSnapshotRecord,
     ) -> Result<(), Self::Error> {
-        let record_id = entity_type.metadata.record_id.to_string();
-        let ontology_id = Uuid::new_v5(&Uuid::NAMESPACE_URL, record_id.as_bytes());
+        let ontology_id = EntityTypeId::from_record_id(&entity_type.metadata.record_id);
 
         self.metadata
             .start_send_unpin((
-                ontology_id,
+                ontology_id.into(),
                 entity_type.metadata.record_id,
                 entity_type.metadata.classification,
                 entity_type.metadata.temporal_versioning,
@@ -174,10 +175,10 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
         self.schema
             .start_send_unpin(EntityTypeRow {
                 ontology_id,
-                schema: Json(entity_type.schema.clone()),
+                schema: entity_type.schema.clone(),
                 // The unclosed schema is inserted initially. This will be replaced later by the
                 // closed schema.
-                closed_schema: Json(ClosedEntityType::from(entity_type.schema)),
+                closed_schema: ClosedEntityType::from(entity_type.schema),
                 label_property: entity_type
                     .metadata
                     .label_property
@@ -188,7 +189,7 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
             .attach_printable("could not send schema")?;
 
         self.relations
-            .start_send_unpin((EntityTypeId::new(ontology_id), entity_type.relations))
+            .start_send_unpin((ontology_id, entity_type.relations))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send entity relations")?;
 
@@ -270,7 +271,7 @@ impl Stream for EntityTypeReceiver {
 pub fn entity_type_channel(
     chunk_size: usize,
     metadata_sender: OntologyTypeMetadataSender,
-    embedding_rx: Receiver<EntityTypeEmbeddingRow>,
+    embedding_rx: Receiver<EntityTypeEmbeddingRow<'static>>,
 ) -> (EntityTypeSender, EntityTypeReceiver) {
     let (schema_tx, schema_rx) = mpsc::channel(chunk_size);
     let (inherits_from_tx, inherits_from_rx) = mpsc::channel(chunk_size);

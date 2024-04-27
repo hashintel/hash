@@ -13,9 +13,9 @@ use std::collections::HashMap;
 
 pub use self::api::{AuthorizationApi, AuthorizationApiPool};
 use crate::schema::{
-    AccountGroupRelationAndSubject, DataTypeId, DataTypePermission, DataTypeRelationAndSubject,
-    EntityRelationAndSubject, EntityTypeId, EntityTypePermission, EntityTypeRelationAndSubject,
-    PropertyTypeId, PropertyTypePermission, PropertyTypeRelationAndSubject, WebRelationAndSubject,
+    AccountGroupRelationAndSubject, DataTypePermission, DataTypeRelationAndSubject,
+    EntityRelationAndSubject, EntityTypePermission, EntityTypeRelationAndSubject,
+    PropertyTypePermission, PropertyTypeRelationAndSubject, WebRelationAndSubject,
 };
 
 mod api;
@@ -24,6 +24,7 @@ use error_stack::Result;
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{EntityId, EntityUuid},
+    ontology::{DataTypeId, EntityTypeId, PropertyTypeId},
     owned_by_id::OwnedById,
 };
 

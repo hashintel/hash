@@ -1,9 +1,8 @@
 use std::borrow::Cow;
 
-use authorization::schema::EntityTypeId;
 use error_stack::{Result, ResultExt};
 use futures::{Stream, StreamExt};
-use graph_types::ontology::EntityTypeWithMetadata;
+use graph_types::ontology::{EntityTypeId, EntityTypeWithMetadata};
 use postgres_types::Json;
 use temporal_versioning::RightBoundedTemporalInterval;
 use tokio_postgres::GenericClient;

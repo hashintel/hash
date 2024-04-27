@@ -3,14 +3,14 @@ use error_stack::{Result, ResultExt};
 use tokio_postgres::GenericClient;
 
 use crate::{
-    snapshot::{
-        ontology::{
-            table::OntologyTemporalMetadataRow, OntologyExternalMetadataRow, OntologyIdRow,
-            OntologyOwnedMetadataRow,
+    snapshot::WriteBatch,
+    store::{
+        postgres::query::rows::{
+            OntologyExternalMetadataRow, OntologyIdRow, OntologyOwnedMetadataRow,
+            OntologyTemporalMetadataRow,
         },
-        WriteBatch,
+        AsClient, InsertionError, PostgresStore,
     },
-    store::{AsClient, InsertionError, PostgresStore},
 };
 
 pub enum OntologyTypeMetadataRowBatch {

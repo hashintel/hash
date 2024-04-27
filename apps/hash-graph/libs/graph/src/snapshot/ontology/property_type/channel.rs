@@ -3,26 +3,27 @@ use std::{
     task::{ready, Context, Poll},
 };
 
-use authorization::schema::{PropertyTypeId, PropertyTypeRelationAndSubject};
+use authorization::schema::PropertyTypeRelationAndSubject;
 use error_stack::{Report, ResultExt};
 use futures::{
     channel::mpsc::{self, Receiver, Sender},
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
-use postgres_types::Json;
-use uuid::Uuid;
+use graph_types::ontology::PropertyTypeId;
 
-use crate::snapshot::{
-    ontology::{
-        property_type::batch::PropertyTypeRowBatch,
-        table::{
-            PropertyTypeConstrainsPropertiesOnRow, PropertyTypeConstrainsValuesOnRow,
-            PropertyTypeRow,
+use crate::{
+    snapshot::{
+        ontology::{
+            property_type::batch::PropertyTypeRowBatch, OntologyTypeMetadataSender,
+            PropertyTypeSnapshotRecord,
         },
-        OntologyTypeMetadataSender, PropertyTypeEmbeddingRow, PropertyTypeSnapshotRecord,
+        SnapshotRestoreError,
     },
-    SnapshotRestoreError,
+    store::postgres::query::rows::{
+        PropertyTypeConstrainsPropertiesOnRow, PropertyTypeConstrainsValuesOnRow,
+        PropertyTypeEmbeddingRow, PropertyTypeRow,
+    },
 };
 
 /// A sink to insert [`PropertyTypeSnapshotRecord`]s.
@@ -67,12 +68,11 @@ impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
         mut self: Pin<&mut Self>,
         property_type: PropertyTypeSnapshotRecord,
     ) -> Result<(), Self::Error> {
-        let record_id = property_type.metadata.record_id.to_string();
-        let ontology_id = Uuid::new_v5(&Uuid::NAMESPACE_URL, record_id.as_bytes());
+        let ontology_id = PropertyTypeId::from_record_id(&property_type.metadata.record_id);
 
         self.metadata
             .start_send_unpin((
-                ontology_id,
+                ontology_id.into(),
                 property_type.metadata.record_id,
                 property_type.metadata.classification,
                 property_type.metadata.temporal_versioning,
@@ -123,13 +123,13 @@ impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
         self.schema
             .start_send_unpin(PropertyTypeRow {
                 ontology_id,
-                schema: Json(property_type.schema),
+                schema: property_type.schema,
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;
 
         self.relations
-            .start_send_unpin((PropertyTypeId::new(ontology_id), property_type.relations))
+            .start_send_unpin((ontology_id, property_type.relations))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send property relations")?;
 
@@ -199,7 +199,7 @@ impl Stream for PropertyTypeReceiver {
 pub fn property_type_channel(
     chunk_size: usize,
     metadata_sender: OntologyTypeMetadataSender,
-    embedding_rx: Receiver<PropertyTypeEmbeddingRow>,
+    embedding_rx: Receiver<PropertyTypeEmbeddingRow<'static>>,
 ) -> (PropertyTypeSender, PropertyTypeReceiver) {
     let (schema_tx, schema_rx) = mpsc::channel(chunk_size);
     let (constrains_values_tx, constrains_values_rx) = mpsc::channel(chunk_size);

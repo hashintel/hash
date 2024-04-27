@@ -5,6 +5,7 @@ use futures::{Stream, TryStreamExt};
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{EntityId, EntityUuid},
+    ontology::{DataTypeId, EntityTypeId, PropertyTypeId},
     owned_by_id::OwnedById,
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -18,11 +19,11 @@ use crate::{
         ZanzibarBackend,
     },
     schema::{
-        AccountGroupPermission, AccountGroupRelationAndSubject, DataTypeId, DataTypePermission,
+        AccountGroupPermission, AccountGroupRelationAndSubject, DataTypePermission,
         DataTypeRelationAndSubject, EntityPermission, EntityRelationAndSubject, EntitySetting,
-        EntityTypeId, EntityTypePermission, EntityTypeRelationAndSubject, PropertyTypeId,
-        PropertyTypePermission, PropertyTypeRelationAndSubject, SettingName,
-        SettingRelationAndSubject, SettingSubject, WebPermission, WebRelationAndSubject,
+        EntityTypePermission, EntityTypeRelationAndSubject, PropertyTypePermission,
+        PropertyTypeRelationAndSubject, SettingName, SettingRelationAndSubject, SettingSubject,
+        WebPermission, WebRelationAndSubject,
     },
     zanzibar::{
         types::{Relationship, RelationshipFilter, Resource, Subject},

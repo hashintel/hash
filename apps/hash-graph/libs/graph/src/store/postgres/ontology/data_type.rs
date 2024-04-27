@@ -2,10 +2,7 @@ use std::{collections::HashSet, iter::once};
 
 use authorization::{
     backend::ModifyRelationshipOperation,
-    schema::{
-        DataTypeId, DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject,
-        WebPermission,
-    },
+    schema::{DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject, WebPermission},
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
 };
@@ -13,8 +10,9 @@ use error_stack::{Result, ResultExt};
 use graph_types::{
     account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
-        DataTypeMetadata, DataTypeWithMetadata, OntologyEditionProvenance, OntologyProvenance,
-        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeRecordId,
+        DataTypeId, DataTypeMetadata, DataTypeWithMetadata, OntologyEditionProvenance,
+        OntologyProvenance, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
+        OntologyTypeRecordId,
     },
     Embedding,
 };
