@@ -3,6 +3,8 @@ description: Create a report to help us improve `error-stack`
 labels:
   - "area/libs > error-stack"
   - "category/bug"
+  - "area/libs"
+  - "lang/rust"
 assignees:
   - TimDiekmann
   - indietyp
