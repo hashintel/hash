@@ -78,55 +78,46 @@ impl Decode for RequestFlags {
 
 #[cfg(test)]
 mod test {
+    use expect_test::expect;
+
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode},
+        flags::BitFlagsOp,
         request::flags::{RequestFlag, RequestFlags},
     };
 
     #[tokio::test]
     async fn encode() {
-        let flags = RequestFlag::BeginOfRequest | RequestFlag::EndOfRequest;
-        let flags = RequestFlags::from(flags);
+        assert_encode(&RequestFlags::EMPTY, expect![[""]]).await;
 
-        assert_encode(&flags, &[0b1100_0001]).await;
+        assert_encode(
+            &RequestFlags::from(RequestFlag::BeginOfRequest),
+            expect![[""]],
+        )
+        .await;
 
-        let flags = RequestFlag::BeginOfRequest;
-        let flags = RequestFlags::from(flags);
+        assert_encode(
+            &RequestFlags::from(RequestFlag::BeginOfRequest | RequestFlag::EndOfRequest),
+            expect![[""]],
+        )
+        .await;
 
-        assert_encode(&flags, &[0b1100_0000]).await;
-
-        let flags = RequestFlag::BeginOfRequest | RequestFlag::EndOfRequest;
-        let flags = RequestFlags::from(flags);
-
-        assert_encode(&flags, &[0b1000_0001]).await;
-
-        let flags = RequestFlag::EndOfRequest;
-        let flags = RequestFlags::from(flags);
-
-        assert_encode(&flags, &[0b0100_0001]).await;
+        assert_encode(
+            &RequestFlags::from(RequestFlag::EndOfRequest),
+            expect![[""]],
+        )
+        .await;
     }
 
     #[tokio::test]
     async fn decode() {
-        let flags = RequestFlag::BeginOfRequest | RequestFlag::EndOfRequest;
-        let flags = RequestFlags::from(flags);
+        assert_decode::<RequestFlags>(&[0b0000_0000], expect![[""]], ()).await;
 
-        assert_decode(&[0b1100_0001], &flags, ()).await;
+        assert_decode::<RequestFlags>(&[0b1100_0001], expect![[""]], ()).await;
 
-        let flags = RequestFlag::BeginOfRequest;
-        let flags = RequestFlags::from(flags);
+        assert_decode::<RequestFlags>(&[0b1000_0001], expect![[""]], ()).await;
 
-        assert_decode(&[0b1100_0000], &flags, ()).await;
-
-        let flags = RequestFlag::BeginOfRequest | RequestFlag::EndOfRequest;
-        let flags = RequestFlags::from(flags);
-
-        assert_decode(&[0b1000_0001], &flags, ()).await;
-
-        let flags = RequestFlag::EndOfRequest;
-        let flags = RequestFlags::from(flags);
-
-        assert_decode(&[0b0100_0001], &flags, ()).await;
+        assert_decode::<RequestFlags>(&[0b0100_0001], expect![[""]], ()).await;
     }
 
     #[test_strategy::proptest(async = "tokio")]

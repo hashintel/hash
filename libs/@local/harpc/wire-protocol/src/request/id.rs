@@ -71,13 +71,15 @@ impl Default for RequestIdProducer {
 
 #[cfg(test)]
 pub(crate) mod test {
+    use expect_test::expect;
+
     use super::RequestIdProducer;
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode},
         request::id::RequestId,
     };
 
-    pub(crate) const fn mock_request_id(id: u16) -> RequestId {
+    pub(crate) const fn mock_request_id(id: u32) -> RequestId {
         RequestId(id)
     }
 
@@ -94,30 +96,24 @@ pub(crate) mod test {
     #[test]
     fn overflow() {
         let mut producer = RequestIdProducer::new();
-        producer.current = RequestId(u16::MAX);
+        producer.current = RequestId(u32::MAX);
 
-        assert_eq!(producer.next().expect("infallible").0, u16::MAX);
+        assert_eq!(producer.next().expect("infallible").0, u32::MAX);
         assert_eq!(producer.next().expect("infallible").0, 0);
     }
 
     #[tokio::test]
     async fn encode_id() {
-        let id = RequestId(0x1234);
-
-        // encoding should be BE
-        assert_encode(&id, &[0x12, 0x34]).await;
+        assert_encode(&RequestId(0x1234), expect![[""]]).await;
     }
 
     #[tokio::test]
     async fn decode_id() {
-        let id = RequestId(0x1234);
-
-        // decoding should be BE
-        assert_decode(&[0x12, 0x34], &id, ()).await;
+        assert_decode::<RequestId>(&[0x12, 0x34], expect![[""]], ()).await;
     }
 
     #[test_strategy::proptest(async = "tokio")]
-    async fn encode_decode_id(id: RequestId) {
+    async fn codec_id(id: RequestId) {
         assert_codec(&id, ()).await;
     }
 }

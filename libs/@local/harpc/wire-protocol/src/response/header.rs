@@ -34,7 +34,7 @@ impl ResponseHeader {
 impl Encode for ResponseHeader {
     type Error = io::Error;
 
-    async fn encode(&self, mut write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
         pin!(write);
 
         self.protocol.encode(&mut write).await?;
@@ -47,7 +47,7 @@ impl Decode for ResponseHeader {
     type Context = ();
     type Error = DecodeError;
 
-    async fn decode(mut read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
+    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
         pin!(read);
 
         let protocol = Protocol::decode(&mut read, ())
@@ -70,15 +70,14 @@ impl Decode for ResponseHeader {
 
 #[cfg(test)]
 mod test {
+    use expect_test::expect;
+
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode},
         flags::BitFlagsOp,
         protocol::{Protocol, ProtocolVersion},
         request::id::test::mock_request_id,
-        response::{
-            flags::{ResponseFlag, ResponseFlags},
-            header::ResponseHeader,
-        },
+        response::{flags::ResponseFlags, header::ResponseHeader},
     };
 
     #[tokio::test]
@@ -91,15 +90,7 @@ mod test {
             flags: ResponseFlags::EMPTY,
         };
 
-        assert_encode(
-            &header,
-            &[
-                b'h', b'a', b'r', b'p', b'c', 0x01, // protocol
-                0x12, 0x34, // request_id
-                0x00, // flags
-            ],
-        )
-        .await;
+        assert_encode(&header, expect![[""]]).await;
     }
 
     #[tokio::test]
@@ -111,18 +102,7 @@ mod test {
             0b1000_0000, // flags
         ];
 
-        assert_decode(
-            buffer,
-            &ResponseHeader {
-                protocol: Protocol {
-                    version: ProtocolVersion::V1,
-                },
-                request_id: mock_request_id(0x2345),
-                flags: ResponseFlags::from(ResponseFlag::BeginOfResponse),
-            },
-            (),
-        )
-        .await;
+        assert_decode::<ResponseHeader>(buffer, expect![[""]], ()).await;
     }
 
     #[test_strategy::proptest(async = "tokio")]

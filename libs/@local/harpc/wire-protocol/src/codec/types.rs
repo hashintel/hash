@@ -71,56 +71,49 @@ impl Decode for ServiceId {
 #[cfg(test)]
 mod test {
 
-    use harpc_types::{
-        service::{ServiceId, ServiceVersion},
-        version::Version,
-    };
+    use expect_test::expect;
+    use harpc_types::{service::ServiceId, version::Version};
 
     use crate::codec::test::{assert_codec, assert_decode, assert_encode};
 
     #[tokio::test]
     async fn encode_version() {
         let version = Version { major: 1, minor: 2 };
-        assert_encode(&version, &[1, 2]).await;
+        assert_encode(&version, expect!["0102"]).await;
     }
 
     #[tokio::test]
     async fn decode_version() {
-        assert_decode(&[0x01, 0x02], &Version { major: 1, minor: 2 }, ()).await;
+        assert_decode::<Version>(&[0x01, 0x02], expect![[r#"
+            Version {
+                major: 1,
+                minor: 2,
+            }
+        "#]], ()).await;
     }
 
     #[tokio::test]
     async fn encode_service_id() {
-        let id = ServiceId::new(0x1234);
-        // value should be encoded in big-endian
-        assert_encode(&id, &[0x12, 0x34]).await;
+        assert_encode(&ServiceId::new(0x1234), expect!["1234"]).await;
     }
 
     #[tokio::test]
     async fn decode_service_id() {
-        // value should be decoded in big-endian
-        assert_decode(&[0x12, 0x34], &ServiceId::new(0x1234), ()).await;
-    }
-
-    #[tokio::test]
-    async fn encode_service_version() {
-        let version = ServiceVersion::new(0x56, 0x78);
-        assert_encode(&version, &[0x56, 0x78]).await;
-    }
-
-    #[tokio::test]
-    async fn decode_service_version() {
-        assert_decode(&[0x56, 0x78], &ServiceVersion::new(0x56, 0x78), ()).await;
+        assert_decode::<ServiceId>(
+            &[0x12, 0x34],
+            expect![[r#"
+            ServiceId(
+                4660,
+            )
+        "#]],
+            (),
+        )
+        .await;
     }
 
     #[test_strategy::proptest(async = "tokio")]
     async fn codec_service_id(id: ServiceId) {
         assert_codec(&id, ()).await;
-    }
-
-    #[test_strategy::proptest(async = "tokio")]
-    async fn codec_service_version(version: ServiceVersion) {
-        assert_codec(&version, ()).await;
     }
 
     #[test_strategy::proptest(async = "tokio")]

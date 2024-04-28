@@ -83,9 +83,7 @@ pub(crate) mod test {
     use core::fmt::Debug;
 
     use bytes::Bytes;
-    use expect_test::Expect;
-    use graph_types::account::AccountId;
-    use uuid::Uuid;
+    use expect_test::{expect, Expect};
 
     use super::Decode;
     use crate::codec::{encode::test::encode_value, Encode};
@@ -120,7 +118,7 @@ pub(crate) mod test {
     #[track_caller]
     pub(crate) async fn assert_codec<T>(value: &T, context: T::Context)
     where
-        T: Debug + PartialEq + Decode + Encode,
+        T: Debug + PartialEq + Decode + Encode + Sync,
     {
         let buffer = encode_value(value).await;
         let decoded = decode_value(&buffer, context).await;
@@ -130,30 +128,18 @@ pub(crate) mod test {
 
     #[tokio::test]
     async fn decode_u16() {
-        assert_decode(&[0x12, 0x23], &0x1223_u16, ()).await;
-        assert_decode(&[0x00, 0x00], &u16::MIN, ()).await;
-        assert_decode(&[0xFF, 0xFF], &u16::MAX, ()).await;
-    }
-
-    #[tokio::test]
-    async fn decode_uuid() {
-        let expected = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").expect("valid uuid");
-
-        assert_decode(expected.as_bytes(), &expected, ()).await;
-    }
-
-    #[tokio::test]
-    async fn decode_account_id() {
-        let expected = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").expect("valid uuid");
-
-        assert_decode(expected.as_bytes(), &AccountId::new(expected), ()).await;
+        assert_decode::<u16>(&[0x12, 0x23], expect![["4643"]], ()).await;
+        assert_decode::<u16>(&[0x00, 0x00], expect![["0"]], ()).await;
+        assert_decode::<u16>(&[0xFF, 0xFF], expect![["65535"]], ()).await;
     }
 
     #[tokio::test]
     async fn decode_bytes() {
-        assert_decode(
+        assert_decode::<Bytes>(
             &[0x00, 0x05, 0x01, 0x02, 0x03, 0x04, 0x05],
-            &Bytes::from(vec![1, 2, 3, 4, 5]),
+            expect![[r#"
+                b"\x01\x02\x03\x04\x05"
+            "#]],
             (),
         )
         .await;

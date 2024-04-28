@@ -36,6 +36,8 @@ impl Decode for ResponseFrame {
 
 #[cfg(test)]
 mod test {
+    use expect_test::expect;
+
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode},
         payload::Payload,
@@ -48,26 +50,16 @@ mod test {
             payload: Payload::new(b"hello world" as &[_]),
         };
 
-        assert_encode(
-            &frame,
-            &[
-                0x00, 0x0B, b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd',
-            ],
-        )
-        .await;
+        assert_encode(&frame, expect![[""]]).await;
     }
 
     #[tokio::test]
     async fn decode() {
-        let frame = ResponseFrame {
-            payload: Payload::new(b"hello world" as &[_]),
-        };
-
-        assert_decode(
+        assert_decode::<ResponseFrame>(
             &[
                 0x00, 0x0B, b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd',
             ],
-            &frame,
+            expect![[""]],
             (),
         )
         .await;

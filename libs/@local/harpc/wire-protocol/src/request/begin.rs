@@ -44,10 +44,7 @@ impl Decode for RequestBegin {
     type Context = ();
     type Error = DecodeError;
 
-    async fn decode(
-        mut read: impl tokio::io::AsyncRead + Send,
-        context: Self::Context,
-    ) -> Result<Self, Self::Error> {
+    async fn decode(read: impl tokio::io::AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
         pin!(read);
 
         let service = ServiceDescriptor::decode(&mut read, ())
@@ -71,41 +68,22 @@ impl Decode for RequestBegin {
 
 #[cfg(test)]
 mod test {
-    use std::io::{self, Cursor};
 
-    use enumflags2::BitFlags;
-    use graph_types::account::AccountId;
-    use harpc_types::{
-        procedure::ProcedureId,
-        service::{ServiceId, ServiceVersion},
-    };
-    use uuid::Uuid;
+    use expect_test::expect;
+    use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
 
     use crate::{
-        codec::{
-            test::{assert_codec, assert_decode, assert_encode, decode_value},
-            Decode,
-        },
-        encoding::{AcceptEncoding, Encoding},
+        codec::test::{assert_codec, assert_decode, assert_encode},
         payload::Payload,
         request::{
-            authorization::Authorization,
-            begin::{RequestBegin, RequestBeginContext},
-            encoding::EncodingHeader,
-            procedure::ProcedureDescriptor,
-            service::ServiceDescriptor,
+            begin::RequestBegin, procedure::ProcedureDescriptor, service::ServiceDescriptor,
         },
     };
-
-    const EXAMPLE_UUID: [u8; 16] = [
-        0x90, 0xAB, 0xCD, 0xEF, 0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF, 0x12, 0x34, 0x56,
-        0x78,
-    ];
 
     static EXAMPLE_REQUEST: RequestBegin = RequestBegin {
         service: ServiceDescriptor {
             id: ServiceId::new(0x12),
-            version: ServiceVersion::new(0x34, 0x56),
+            version: Version::new(0x34, 0x56),
         },
         procedure: ProcedureDescriptor {
             id: ProcedureId::new(0x78),
@@ -115,17 +93,7 @@ mod test {
 
     #[tokio::test]
     async fn encode() {
-        assert_encode(
-            &EXAMPLE_REQUEST,
-            &[
-                0x00, 0x12, // service id
-                0x34, 0x56, // service version
-                0x00, 0x78, // procedure id
-                0x00, 0x01, 0x00, 0x01, // encoding
-                0x00, 0x03, 0x90, 0xAB, 0xCD, // payload
-            ],
-        )
-        .await;
+        assert_encode(&EXAMPLE_REQUEST, expect!["001234560078000390abcd"]).await;
     }
 
     #[tokio::test]
@@ -138,7 +106,7 @@ mod test {
             0x00, 0x03, 0x90, 0xAB, 0xCD, // payload
         ];
 
-        assert_decode(bytes, &EXAMPLE_REQUEST, ()).await;
+        assert_decode::<RequestBegin>(bytes, expect![[""]], ()).await;
     }
 
     #[test_strategy::proptest(async = "tokio")]

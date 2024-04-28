@@ -41,28 +41,27 @@ pub mod service;
 /// 0                   1                   2                   3
 /// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 /// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-/// |  Magic  |P|R. |F|S. |S. |P. |E. |A. |      Authorization      |
+/// |  Magic  |P|Reque. |F|S. |S. |P. |        Reserved         |P. |
 /// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-/// |     |P. |                       Payload                       |
+/// |                              ...                              |
+/// +                            Payload                            +
+/// |                              ...                              |
 /// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ///
 /// * Magic (5 bytes)
 /// * Protocol Version (1 byte)
-/// * Request Id (2 bytes)
+/// * Request Id (4 bytes)
 /// * Flags (1 byte)
 /// * Service Id (2 bytes)
 /// * Service Version (2 bytes)
 /// * Procedure Id (2 bytes)
-/// * Encoding (2 bytes)
-/// * Accept (2 bytes)
-/// * Authorization (16 bytes)
+/// * Reserved (13 bytes)
 /// * Payload Length (2 bytes)
-/// * Payload (27 bytes)
-/// total 64 bytes
+/// * Payload (up to 65504 bytes)
+/// total 32 bytes to 64 KiB
 /// ```
 ///
-/// The payload is of variable size and specified by the `Payload Length` field. `Authorization` is
-/// optional and only present if the `ContainsAuthorization` bit in `Flags` is set.
+/// The payload is of variable size and specified by the `Payload Length` field.
 /// Packets need to set the `BeginOfRequest` bit in the `Flags` field.
 ///
 /// # `Frame` Packet
@@ -70,21 +69,24 @@ pub mod service;
 /// The layout of a `Frame` packet is as follows:
 ///
 /// ```text
-///  0                   1                   2                   3
+/// 0                   1                   2                   3
 /// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 /// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-/// |  Magic  |P|R. |F|P. |                                         |
-/// +-+-+-+-+-+-+-+-+-+-+-+                                         +
-/// |                            Payload                            |
+/// |  Magic  |P|Reque. |F|              Reserved               |P. |
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// |                              ...                              |
+/// +                            Payload                            +
+/// |                              ...                              |
 /// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ///
 /// * Magic (5 bytes)
 /// * Protocol Version (1 byte)
-/// * Request Id (2 bytes)
+/// * Request Id (4 bytes)
 /// * Flags (1 byte)
+/// * Reserved (19 bytes)
 /// * Payload Length (2 bytes)
-/// * Payload (53 bytes)
-/// total 64 bytes
+/// * Payload (up to 65504 bytes)
+/// total 32 bytes to 64 KiB
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -96,7 +98,7 @@ pub struct Request {
 impl Encode for Request {
     type Error = EncodeError;
 
-    async fn encode(&self, mut write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
         pin!(write);
 
         self.header
@@ -113,7 +115,7 @@ impl Decode for Request {
     type Context = ();
     type Error = DecodeError;
 
-    async fn decode(mut read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
+    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
         pin!(read);
 
         let header = RequestHeader::decode(&mut read, ())
@@ -129,22 +131,18 @@ impl Decode for Request {
 
 #[cfg(test)]
 mod test {
-    use harpc_types::{
-        procedure::ProcedureId,
-        service::{ServiceId, ServiceVersion},
-    };
+    use expect_test::expect;
+    use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
 
     use super::id::test::mock_request_id;
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode},
-        encoding::{AcceptEncoding, Encoding},
         flags::BitFlagsOp,
         payload::Payload,
         protocol::{Protocol, ProtocolVersion},
         request::{
             begin::RequestBegin,
             body::RequestBody,
-            encoding::EncodingHeader,
             flags::{RequestFlag, RequestFlags},
             frame::RequestFrame,
             header::RequestHeader,
@@ -195,21 +193,17 @@ mod test {
                 body: RequestBody::Begin(RequestBegin {
                     service: ServiceDescriptor {
                         id: ServiceId::new(0x1234),
-                        version: ServiceVersion::new(0x56, 0x78),
+                        version: Version::new(0x56, 0x78),
                     },
 
                     procedure: ProcedureDescriptor {
                         id: ProcedureId::new(0x9ABC),
                     },
-                    encoding: EncodingHeader {
-                        encoding: Encoding::Raw,
-                        accept: AcceptEncoding::new(Encoding::Raw),
-                    },
-                    authorization: None,
+
                     payload: Payload::from_static(b"hello world"),
                 }),
             },
-            EXAMPLE_BEGIN_BUFFER,
+            expect![[""]],
         )
         .await;
     }
@@ -222,20 +216,16 @@ mod test {
                 body: RequestBody::Begin(RequestBegin {
                     service: ServiceDescriptor {
                         id: ServiceId::new(0x1234),
-                        version: ServiceVersion::new(0x56, 0x78),
+                        version: Version::new(0x56, 0x78),
                     },
                     procedure: ProcedureDescriptor {
                         id: ProcedureId::new(0x9ABC),
                     },
-                    encoding: EncodingHeader {
-                        encoding: Encoding::Raw,
-                        accept: AcceptEncoding::new(Encoding::Raw),
-                    },
-                    authorization: None,
+
                     payload: Payload::from_static(b"hello world"),
                 }),
             },
-            EXAMPLE_BEGIN_BUFFER,
+            expect![[""]],
         )
         .await;
     }
@@ -249,7 +239,7 @@ mod test {
                     payload: Payload::from_static(b"hello world"),
                 }),
             },
-            EXAMPLE_FRAME_BUFFER,
+            expect![[""]],
         )
         .await;
     }
@@ -266,7 +256,7 @@ mod test {
                     payload: Payload::from_static(b"hello world"),
                 }),
             },
-            EXAMPLE_FRAME_BUFFER,
+            expect![[""]],
         )
         .await;
     }
@@ -275,47 +265,12 @@ mod test {
 
     #[tokio::test]
     async fn decode_begin() {
-        assert_decode(
-            EXAMPLE_BEGIN_BUFFER,
-            &Request {
-                header: RequestHeader {
-                    flags: RequestFlags::from(RequestFlag::BeginOfRequest),
-                    ..EXAMPLE_HEADER
-                },
-                body: RequestBody::Begin(RequestBegin {
-                    service: ServiceDescriptor {
-                        id: ServiceId::new(0x1234),
-                        version: ServiceVersion::new(0x56, 0x78),
-                    },
-                    procedure: ProcedureDescriptor {
-                        id: ProcedureId::new(0x9ABC),
-                    },
-                    encoding: EncodingHeader {
-                        encoding: Encoding::Raw,
-                        accept: AcceptEncoding::new(Encoding::Raw),
-                    },
-                    authorization: None,
-                    payload: Payload::from_static(b"hello world"),
-                }),
-            },
-            (),
-        )
-        .await;
+        assert_decode::<Request>(EXAMPLE_BEGIN_BUFFER, expect![[""]], ()).await;
     }
 
     #[tokio::test]
     async fn decode_frame() {
-        assert_decode(
-            EXAMPLE_FRAME_BUFFER,
-            &Request {
-                header: EXAMPLE_HEADER,
-                body: RequestBody::Frame(RequestFrame {
-                    payload: Payload::from_static(b"hello world"),
-                }),
-            },
-            (),
-        )
-        .await;
+        assert_decode::<Request>(EXAMPLE_FRAME_BUFFER, expect![[""]], ()).await;
     }
 
     #[test_strategy::proptest(async = "tokio")]

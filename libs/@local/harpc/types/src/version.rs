@@ -7,9 +7,16 @@ pub struct Version {
     pub minor: u8,
 }
 
+impl Version {
+    #[must_use]
+    pub const fn new(major: u8, minor: u8) -> Self {
+        Self { major, minor }
+    }
+}
+
 impl Display for Version {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let Version { major, minor } = self;
+        let Self { major, minor } = self;
 
         write!(f, "v{major}.{minor}")
     }

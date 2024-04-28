@@ -1,10 +1,7 @@
 use std::io;
 
 use error_stack::Result;
-use harpc_types::{
-    service::{ServiceId, ServiceVersion},
-    version::Version,
-};
+use harpc_types::{service::ServiceId, version::Version};
 use tokio::{
     io::{AsyncRead, AsyncWrite},
     pin,
@@ -38,7 +35,7 @@ impl Decode for ServiceDescriptor {
         pin!(read);
 
         let id = ServiceId::decode(&mut read, ()).await?;
-        let version = ServiceVersion::decode(read, ()).await?;
+        let version = Version::decode(read, ()).await?;
 
         Ok(Self { id, version })
     }
@@ -46,7 +43,8 @@ impl Decode for ServiceDescriptor {
 
 #[cfg(test)]
 mod test {
-    use harpc_types::service::{ServiceId, ServiceVersion};
+    use expect_test::expect;
+    use harpc_types::{service::ServiceId, version::Version};
 
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode},
@@ -57,20 +55,15 @@ mod test {
     async fn encode() {
         let service = ServiceDescriptor {
             id: ServiceId::new(0x1234),
-            version: ServiceVersion::new(0x56, 0x78),
+            version: Version::new(0x56, 0x78),
         };
 
-        assert_encode(&service, &[0x12, 0x34, 0x56, 0x78]).await;
+        assert_encode(&service, expect![[""]]).await;
     }
 
     #[tokio::test]
     async fn decode() {
-        let service = ServiceDescriptor {
-            id: ServiceId::new(0x1234),
-            version: ServiceVersion::new(0x56, 0x78),
-        };
-
-        assert_decode(&[0x12, 0x34, 0x56, 0x78], &service, ()).await;
+        assert_decode::<ServiceDescriptor>(&[0x12, 0x34, 0x56, 0x78], expect![[""]], ()).await;
     }
 
     #[test_strategy::proptest(async = "tokio")]

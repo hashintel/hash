@@ -8,35 +8,15 @@ pub use encode::{BytesEncodeError, Encode};
 #[cfg(test)]
 pub(crate) mod test {
     use bytes::Bytes;
-    use graph_types::account::AccountId;
-    use proptest::{arbitrary::Arbitrary, collection::size_range, strategy::Strategy};
-    use uuid::Builder;
+    use proptest::collection::size_range;
 
     pub(crate) use super::{
-        decode::test::{assert_codec, assert_decode, decode_value},
+        decode::test::{assert_codec, assert_decode},
         encode::test::{assert_encode, encode_value},
     };
 
     #[test_strategy::proptest(async = "tokio")]
     async fn codec_u16(value: u16) {
-        assert_codec(&value, ()).await;
-    }
-
-    fn uuid_strategy() -> impl Strategy<Value = uuid::Uuid> {
-        <[u8; 16]>::arbitrary().prop_map(|bytes| Builder::from_random_bytes(bytes).into_uuid())
-    }
-
-    #[test_strategy::proptest(async = "tokio")]
-    async fn codec_uuid(#[strategy(uuid_strategy())] value: uuid::Uuid) {
-        assert_codec(&value, ()).await;
-    }
-
-    pub(crate) fn account_id_strategy() -> impl Strategy<Value = graph_types::account::AccountId> {
-        uuid_strategy().prop_map(AccountId::new)
-    }
-
-    #[test_strategy::proptest(async = "tokio")]
-    async fn codec_account_id(#[strategy(account_id_strategy())] value: AccountId) {
         assert_codec(&value, ()).await;
     }
 

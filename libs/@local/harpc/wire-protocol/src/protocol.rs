@@ -93,6 +93,9 @@ impl Decode for Protocol {
 
 #[cfg(test)]
 mod test {
+    use expect_test::expect;
+
+    use super::Protocol;
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode},
         protocol::ProtocolVersion,
@@ -100,12 +103,16 @@ mod test {
 
     #[tokio::test]
     async fn encode_version() {
-        assert_encode(&ProtocolVersion::V1, &[0x01_u8]).await;
+        assert_encode(&ProtocolVersion::V1, expect!["01"]).await;
     }
 
     #[tokio::test]
     async fn decode_version() {
-        assert_decode(&[0x01], &ProtocolVersion::V1, ()).await;
+        assert_decode::<ProtocolVersion>(&[0x01], expect![[r#"
+            ProtocolVersion(
+                1,
+            )
+        "#]], ()).await;
     }
 
     #[tokio::test]
@@ -114,21 +121,20 @@ mod test {
             &crate::protocol::Protocol {
                 version: ProtocolVersion::V1,
             },
-            &[b'h', b'a', b'r', b'p', b'c', 0x01],
+            expect!["686172706301"],
         )
         .await;
     }
 
     #[tokio::test]
     async fn decode_protocol() {
-        assert_decode(
-            &[b'h', b'a', b'r', b'p', b'c', 0x01],
-            &crate::protocol::Protocol {
-                version: ProtocolVersion::V1,
-            },
-            (),
-        )
-        .await;
+        assert_decode::<Protocol>(&[b'h', b'a', b'r', b'p', b'c', 0x01], expect![[r#"
+            Protocol {
+                version: ProtocolVersion(
+                    1,
+                ),
+            }
+        "#]], ()).await;
     }
 
     #[test_strategy::proptest(async = "tokio")]

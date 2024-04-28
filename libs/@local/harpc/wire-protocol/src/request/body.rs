@@ -1,5 +1,8 @@
 use error_stack::{Result, ResultExt};
-use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::{
+    io::{AsyncRead, AsyncWrite, AsyncWriteExt},
+    pin,
+};
 
 use super::{
     begin::RequestBegin,
@@ -30,9 +33,27 @@ impl Encode for RequestBody {
     type Error = EncodeError;
 
     async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
+        pin!(write);
+
         match self {
-            Self::Begin(body) => body.encode(write).await,
-            Self::Frame(body) => body.encode(write).await,
+            Self::Begin(body) => {
+                // write 13 empty bytes (reserved for future use)
+                write
+                    .write_all(&[0; 13])
+                    .await
+                    .change_context(EncodeError)?;
+
+                body.encode(write).await
+            }
+            Self::Frame(body) => {
+                // write 19 empty bytes (reserved for future use)
+                write
+                    .write_all(&[0; 19])
+                    .await
+                    .change_context(EncodeError)?;
+
+                body.encode(write).await
+            }
         }
     }
 }
@@ -89,40 +110,27 @@ impl Decode for RequestBody {
 
 #[cfg(test)]
 mod test {
-    use enumflags2::BitFlags;
-    use graph_types::account::AccountId;
-    use harpc_types::{
-        procedure::ProcedureId,
-        service::{ServiceId, ServiceVersion},
-    };
-    use uuid::Uuid;
+
+    use expect_test::expect;
+    use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
 
     use super::{RequestBody, RequestBodyContext};
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode, encode_value},
-        encoding::{AcceptEncoding, Encoding},
         payload::Payload,
         request::{
-            authorization::Authorization, begin::RequestBegin, body::RequestVariant,
-            encoding::EncodingHeader, frame::RequestFrame, procedure::ProcedureDescriptor,
-            service::ServiceDescriptor,
+            begin::RequestBegin, body::RequestVariant, frame::RequestFrame,
+            procedure::ProcedureDescriptor, service::ServiceDescriptor,
         },
     };
 
     static EXAMPLE_BEGIN: RequestBegin = RequestBegin {
         service: ServiceDescriptor {
             id: ServiceId::new(0x01),
-            version: ServiceVersion::new(0x00, 0x01),
+            version: Version::new(0x00, 0x01),
         },
         procedure: ProcedureDescriptor {
             id: ProcedureId::new(0x01),
-        },
-        encoding: EncodingHeader {
-            encoding: Encoding::Raw,
-            accept: AcceptEncoding::from_flags(BitFlags::<Encoding, u16>::from_bits_truncate_c(
-                Encoding::Raw as u16,
-                BitFlags::CONST_TOKEN,
-            )),
         },
         payload: Payload::from_static(&[]),
     };
@@ -133,16 +141,12 @@ mod test {
 
     #[tokio::test]
     async fn encode_begin() {
-        let expected = encode_value(&EXAMPLE_BEGIN).await;
-
-        assert_encode(&RequestBody::Begin(EXAMPLE_BEGIN.clone()), &expected).await;
+        assert_encode(&RequestBody::Begin(EXAMPLE_BEGIN.clone()), expect![[""]]).await;
     }
 
     #[tokio::test]
     async fn encode_frame() {
-        let expected = encode_value(&EXAMPLE_FRAME).await;
-
-        assert_encode(&RequestBody::Frame(EXAMPLE_FRAME.clone()), &expected).await;
+        assert_encode(&RequestBody::Frame(EXAMPLE_FRAME.clone()), expect![[""]]).await;
     }
 
     #[tokio::test]
@@ -153,7 +157,29 @@ mod test {
             variant: RequestVariant::Begin,
         };
 
-        assert_decode(&bytes, &RequestBody::Begin(EXAMPLE_BEGIN.clone()), context).await;
+        assert_decode::<RequestBody>(&bytes, expect![[r#"
+            Begin(
+                RequestBegin {
+                    service: ServiceDescriptor {
+                        id: ServiceId(
+                            1,
+                        ),
+                        version: Version {
+                            major: 0,
+                            minor: 1,
+                        },
+                    },
+                    procedure: ProcedureDescriptor {
+                        id: ProcedureId(
+                            1,
+                        ),
+                    },
+                    payload: Payload(
+                        b"",
+                    ),
+                },
+            )
+        "#]], context).await;
     }
 
     #[tokio::test]
@@ -164,7 +190,7 @@ mod test {
             variant: RequestVariant::Frame,
         };
 
-        assert_decode(&bytes, &RequestBody::Frame(EXAMPLE_FRAME.clone()), context).await;
+        assert_decode::<RequestBody>(&bytes, expect![[""]], context).await;
     }
 
     #[test_strategy::proptest(async = "tokio")]

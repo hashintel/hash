@@ -70,29 +70,31 @@ impl Decode for ResponseKind {
 mod test {
     use std::io::Cursor;
 
+    use expect_test::expect;
+
     use crate::{
         codec::{
             test::{assert_codec, assert_decode, assert_encode},
-            DecodePure,
+            Decode,
         },
         response::kind::{ResponseKind, ResponseKindDecodeError},
     };
 
     #[tokio::test]
     async fn encode() {
-        assert_encode(&ResponseKind::Ok, &[0x00]).await;
+        assert_encode::<ResponseKind>(&ResponseKind::Ok, expect![[""]]).await;
     }
 
     #[tokio::test]
     async fn decode() {
-        assert_decode(&[0x00], &ResponseKind::Ok, ()).await;
+        assert_decode::<ResponseKind>(&[0x00], expect![[""]], ()).await;
     }
 
     #[tokio::test]
     async fn decode_unknown() {
         let mut cursor = Cursor::new([0x02_u8]);
 
-        let report = ResponseKind::decode_pure(&mut cursor)
+        let report = ResponseKind::decode(&mut cursor, ())
             .await
             .expect_err("unknown response kind");
 

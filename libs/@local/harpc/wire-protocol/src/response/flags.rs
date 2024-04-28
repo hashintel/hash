@@ -78,6 +78,8 @@ impl Decode for ResponseFlags {
 
 #[cfg(test)]
 mod test {
+    use expect_test::expect;
+
     use super::ResponseFlags;
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode},
@@ -88,14 +90,12 @@ mod test {
     async fn encode() {
         let flags = RequestFlags::from(RequestFlag::BeginOfRequest);
 
-        assert_encode(&flags, &[0b1000_0000]).await;
+        assert_encode(&flags, expect![[""]]).await;
     }
 
     #[tokio::test]
     async fn decode() {
-        let flags = RequestFlags::from(RequestFlag::EndOfRequest);
-
-        assert_decode(&[0b0000_0001], &flags, ()).await;
+        assert_decode::<RequestFlags>(&[0b0000_0001], expect![[""]], ()).await;
     }
 
     #[test_strategy::proptest(async = "tokio")]

@@ -38,20 +38,22 @@ pub mod kind;
 /// 0                   1                   2                   3
 /// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 /// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-/// |  Magic  |P|R. |F|R|E. |P. |                                   |
-/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+                                   +
-/// |                            Payload                            |
+/// |  Magic  |P|Reque. |F|            Reserved             |R. |P. |
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// |                              ...                              |
+/// +                            Payload                            +
+/// |                              ...                              |
 /// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ///
 /// * Magic (5 bytes)
 /// * Protocol Version (1 byte)
-/// * Request Id (2 bytes)
+/// * Request Id (4 bytes)
 /// * Flags (1 byte)
-/// * Response Kind (1 byte)
-/// * Encoding (2 bytes)
+/// * Reserved (17 bytes)
+/// * Response Kind (2 bytes)
 /// * Payload Length (2 bytes)
-/// * Payload (50 bytes)
-/// total 64 bytes
+/// * Payload (up to 65504 bytes)
+/// total 32 bytes to 64 KiB
 /// ```
 ///
 /// # `Frame` Packet
@@ -62,18 +64,21 @@ pub mod kind;
 /// 0                   1                   2                   3
 /// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 /// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-/// |  Magic  |P|R. |F|P. |                                         |
-/// +-+-+-+-+-+-+-+-+-+-+-+                                         +
-/// |                            Payload                            |
+/// |  Magic  |P|Reque. |F|              Reserved               |P. |
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// |                              ...                              |
+/// +                            Payload                            +
+/// |                              ...                              |
 /// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ///
 /// * Magic (5 bytes)
 /// * Protocol Version (1 byte)
-/// * Request Id (2 bytes)
+/// * Request Id (4 bytes)
 /// * Flags (1 byte)
+/// * Reserved (19 bytes)
 /// * Payload Length (2 bytes)
-/// * Payload (53 bytes)
-/// total 64 bytes
+/// * Payload (up to 65504 bytes)
+/// total 32 bytes to 64 KiB
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -85,7 +90,7 @@ pub struct Response {
 impl Encode for Response {
     type Error = EncodeError;
 
-    async fn encode(&self, mut write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
         pin!(write);
 
         let header = self.header.apply_body(&self.body);
@@ -102,7 +107,7 @@ impl Decode for Response {
     type Context = ();
     type Error = DecodeError;
 
-    async fn decode(mut read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
+    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
         pin!(read);
 
         let header = ResponseHeader::decode(&mut read, ())
@@ -121,10 +126,11 @@ impl Decode for Response {
 
 #[cfg(test)]
 mod test {
+    use expect_test::expect;
+
     use super::{flags::ResponseFlags, header::ResponseHeader};
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode},
-        encoding::Encoding,
         flags::BitFlagsOp,
         payload::Payload,
         protocol::{Protocol, ProtocolVersion},
@@ -173,11 +179,11 @@ mod test {
                 },
                 body: ResponseBody::Begin(ResponseBegin {
                     kind: ResponseKind::Ok,
-                    encoding: Encoding::Raw,
+
                     payload: Payload::from_static(b"hello world"),
                 }),
             },
-            EXAMPLE_BEGIN_BUFFER,
+            expect![[""]],
         )
         .await;
     }
@@ -189,11 +195,11 @@ mod test {
                 header: EXAMPLE_HEADER,
                 body: ResponseBody::Begin(ResponseBegin {
                     kind: ResponseKind::Ok,
-                    encoding: Encoding::Raw,
+
                     payload: Payload::from_static(b"hello world"),
                 }),
             },
-            EXAMPLE_BEGIN_BUFFER,
+            expect![[""]],
         )
         .await;
     }
@@ -207,7 +213,7 @@ mod test {
                     payload: Payload::from_static(b"hello world"),
                 }),
             },
-            EXAMPLE_FRAME_BUFFER,
+            expect![[""]],
         )
         .await;
     }
@@ -224,44 +230,19 @@ mod test {
                     payload: Payload::from_static(b"hello world"),
                 }),
             },
-            EXAMPLE_FRAME_BUFFER,
+            expect![[""]],
         )
         .await;
     }
 
     #[tokio::test]
     async fn decode_begin() {
-        assert_decode(
-            EXAMPLE_BEGIN_BUFFER,
-            &Response {
-                header: ResponseHeader {
-                    flags: ResponseFlags::from(ResponseFlag::BeginOfResponse),
-                    ..EXAMPLE_HEADER
-                },
-                body: ResponseBody::Begin(ResponseBegin {
-                    kind: ResponseKind::Ok,
-                    encoding: Encoding::Raw,
-                    payload: Payload::from_static(b"hello world"),
-                }),
-            },
-            (),
-        )
-        .await;
+        assert_decode::<Response>(EXAMPLE_BEGIN_BUFFER, expect![[""]], ()).await;
     }
 
     #[tokio::test]
     async fn decode_frame() {
-        assert_decode(
-            EXAMPLE_FRAME_BUFFER,
-            &Response {
-                header: EXAMPLE_HEADER,
-                body: ResponseBody::Frame(ResponseFrame {
-                    payload: Payload::from_static(b"hello world"),
-                }),
-            },
-            (),
-        )
-        .await;
+        assert_decode::<Response>(EXAMPLE_FRAME_BUFFER, expect![[""]], ()).await;
     }
 
     #[test_strategy::proptest(async = "tokio")]

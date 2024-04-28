@@ -87,9 +87,10 @@ impl Decode for ResponseBody {
 
 #[cfg(test)]
 mod test {
+    use expect_test::expect;
+
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode},
-        encoding::Encoding,
         payload::Payload,
         response::{
             begin::ResponseBegin,
@@ -102,19 +103,11 @@ mod test {
     async fn encode_begin() {
         let body = ResponseBody::Begin(ResponseBegin {
             kind: ResponseKind::Ok,
-            encoding: Encoding::Raw,
+
             payload: Payload::new(&[0x01_u8, 0x02, 0x03, 0x04] as &[_]),
         });
 
-        assert_encode(
-            &body,
-            &[
-                0x00, // ResponseKind::Ok
-                0x00, 0x01, // Encoding::Raw
-                0x00, 0x04, 0x01, 0x02, 0x03, 0x04,
-            ],
-        )
-        .await;
+        assert_encode(&body, expect![[""]]).await;
     }
 
     #[tokio::test]
@@ -123,24 +116,18 @@ mod test {
             payload: Payload::new(&[0x01_u8, 0x02, 0x03, 0x04] as &[_]),
         });
 
-        assert_encode(&body, &[0x00, 0x04, 0x01, 0x02, 0x03, 0x04]).await;
+        assert_encode(&body, expect![[""]]).await;
     }
 
     #[tokio::test]
     async fn decode_begin() {
-        let body = ResponseBody::Begin(ResponseBegin {
-            kind: ResponseKind::Ok,
-            encoding: Encoding::Raw,
-            payload: Payload::new(&[0x01_u8, 0x02, 0x03, 0x04] as &[_]),
-        });
-
-        assert_decode(
+        assert_decode::<ResponseBody>(
             &[
                 0x00, // ResponseKind::Ok
                 0x00, 0x01, // Encoding::Raw
                 0x00, 0x04, 0x01, 0x02, 0x03, 0x04,
             ],
-            &body,
+            expect![[""]],
             ResponseBodyContext {
                 variant: ResponseVariant::Begin,
             },
@@ -150,13 +137,9 @@ mod test {
 
     #[tokio::test]
     async fn decode_frame() {
-        let body = ResponseBody::Frame(crate::response::frame::ResponseFrame {
-            payload: Payload::new(&[0x01_u8, 0x02, 0x03, 0x04] as &[_]),
-        });
-
-        assert_decode(
+        assert_decode::<ResponseBody>(
             &[0x00, 0x04, 0x01, 0x02, 0x03, 0x04],
-            &body,
+            expect![[""]],
             ResponseBodyContext {
                 variant: ResponseVariant::Frame,
             },

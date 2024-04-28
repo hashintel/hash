@@ -80,16 +80,14 @@ pub(crate) mod test {
     use core::fmt::Debug;
 
     use bytes::Bytes;
-    use expect_test::Expect;
-    use graph_types::account::AccountId;
-    use uuid::Uuid;
+    use expect_test::{expect, Expect};
 
     use super::{BytesEncodeError, Encode};
 
     #[track_caller]
     pub(crate) async fn encode_value<T>(value: &T) -> Vec<u8>
     where
-        T: Encode,
+        T: Encode + Sync,
     {
         let mut buffer = Vec::new();
         value
@@ -102,9 +100,10 @@ pub(crate) mod test {
     #[track_caller]
     pub(crate) async fn assert_encode<T>(value: &T, expected: Expect)
     where
-        T: Encode,
+        T: Encode + Sync,
     {
-        let buffer = encode_value(value).await;
+        let buffer = Bytes::from(encode_value(value).await);
+
         let actual = format!("{buffer:#04x}");
 
         expected.assert_eq(&actual);
@@ -113,7 +112,7 @@ pub(crate) mod test {
     #[track_caller]
     pub(crate) async fn assert_encode_error<T>(value: &T, expected: T::Error)
     where
-        T: Encode,
+        T: Encode + Sync,
         T::Error: Debug + PartialEq,
     {
         let result = value
@@ -128,30 +127,15 @@ pub(crate) mod test {
 
     #[tokio::test]
     async fn encode_u16() {
-        // BE encoding, u16 are small enough to not require varint encoding.
-        assert_encode(&42_u16, &[0x00, 0x2A]).await;
-        assert_encode(&0_u16, &[0x00, 0x00]).await;
-        assert_encode(&u16::MAX, &[0xFF, 0xFF]).await;
-    }
-
-    #[tokio::test]
-    async fn encode_uuid() {
-        let uuid = Uuid::new_v4();
-        assert_encode(&uuid, uuid.as_bytes()).await;
-    }
-
-    #[tokio::test]
-    async fn encode_account_id() {
-        let uuid = Uuid::new_v4();
-        let id = AccountId::new(uuid);
-
-        assert_encode(&id, uuid.as_bytes()).await;
+        assert_encode(&42_u16, expect!["002a"]).await;
+        assert_encode(&0_u16, expect!["0000"]).await;
+        assert_encode(&u16::MAX, expect!["ffff"]).await;
     }
 
     #[tokio::test]
     async fn encode_bytes() {
         let bytes: Bytes = b"hello".to_vec().into();
-        assert_encode(&bytes, &[0, 5, b'h', b'e', b'l', b'l', b'o']).await;
+        assert_encode(&bytes, expect!["000568656c6c6f"]).await;
     }
 
     #[tokio::test]

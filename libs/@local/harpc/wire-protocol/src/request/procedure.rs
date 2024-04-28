@@ -33,45 +33,44 @@ impl Decode for ProcedureDescriptor {
 
 #[cfg(test)]
 mod test {
+    use expect_test::expect;
+
     use super::{ProcedureDescriptor, ProcedureId};
     use crate::codec::test::{assert_codec, assert_decode, assert_encode};
 
     #[tokio::test]
     async fn encode_id() {
-        let id = ProcedureId::new(0x1234);
-
-        // encoding should be BE
-        assert_encode(&id, &[0x12, 0x34]).await;
+        assert_encode(&ProcedureId::new(0x1234), expect![[""]]).await;
     }
 
     #[tokio::test]
     async fn decode_id() {
-        let id = ProcedureId::new(0x1234);
+        assert_decode::<ProcedureId>(&[0x12, 0x34], expect![[""]], ()).await;
+    }
 
-        // decoding should be BE
-        assert_decode(&[0x12, 0x34], &id, ()).await;
+    #[test_strategy::proptest(async = "tokio")]
+    async fn codec_id(id: ProcedureId) {
+        assert_codec(&id, ()).await;
     }
 
     #[tokio::test]
     async fn encode() {
-        let id = ProcedureId::new(0x1234);
-        let procedure = super::ProcedureDescriptor { id };
-
-        // encoding should be BE
-        assert_encode(&procedure, &[0x12, 0x34]).await;
+        assert_encode(
+            &ProcedureDescriptor {
+                id: ProcedureId::new(0x1234),
+            },
+            expect![[""]],
+        )
+        .await;
     }
 
     #[tokio::test]
     async fn decode() {
-        let id = ProcedureId::new(0x1234);
-        let procedure = super::ProcedureDescriptor { id };
-
-        // decoding should be BE
-        assert_decode(&[0x12, 0x34], &procedure, ()).await;
+        assert_decode::<ProcedureDescriptor>(&[0x12, 0x34], expect![[""]], ()).await;
     }
 
     #[test_strategy::proptest(async = "tokio")]
-    async fn encode_decode(id: ProcedureDescriptor) {
+    async fn codec(id: ProcedureDescriptor) {
         assert_codec(&id, ()).await;
     }
 }

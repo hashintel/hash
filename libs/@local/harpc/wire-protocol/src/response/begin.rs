@@ -22,7 +22,7 @@ pub struct ResponseBegin {
 impl Encode for ResponseBegin {
     type Error = EncodeError;
 
-    async fn encode(&self, mut write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
+    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
         pin!(write);
 
         self.kind
@@ -55,9 +55,10 @@ impl Decode for ResponseBegin {
 
 #[cfg(test)]
 mod test {
+    use expect_test::expect;
+
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode},
-        encoding::Encoding,
         payload::Payload,
         response::{begin::ResponseBegin, kind::ResponseKind},
     };
@@ -69,32 +70,18 @@ mod test {
             payload: Payload::new(b"hello world" as &[_]),
         };
 
-        assert_encode(
-            &frame,
-            &[
-                0x00, // ResponseKind::Ok
-                0x00, 0x01, // Encoding::Raw
-                0x00, 0x0B, b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd',
-            ],
-        )
-        .await;
+        assert_encode(&frame, expect![[""]]).await;
     }
 
     #[tokio::test]
     async fn decode() {
-        let frame = ResponseBegin {
-            kind: ResponseKind::Ok,
-
-            payload: Payload::new(b"hello world" as &[_]),
-        };
-
-        assert_decode(
+        assert_decode::<ResponseBegin>(
             &[
                 0x00, // ResponseKind::Ok
                 0x00, 0x01, // Encoding::Raw
                 0x00, 0x0B, b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd',
             ],
-            &frame,
+            expect![[""]],
             (),
         )
         .await;

@@ -57,6 +57,7 @@ impl Decode for Payload {
 #[cfg(test)]
 mod test {
     use bytes::Bytes;
+    use expect_test::expect;
 
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode},
@@ -65,26 +66,20 @@ mod test {
 
     #[tokio::test]
     async fn encode() {
-        let payload = Payload(Bytes::from_static(b"hello world"));
-
-        assert_encode(
-            &payload,
-            &[
-                0x00, 0x0B, b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd',
-            ],
-        )
-        .await;
+        assert_encode(&Payload(Bytes::from_static(b"hello world")), expect!["000b68656c6c6f20776f726c64"]).await;
     }
 
     #[tokio::test]
     async fn decode() {
-        let payload = Payload(Bytes::from_static(b"hello world"));
-
-        assert_decode(
+        assert_decode::<Payload>(
             &[
                 0x00, 0x0B, b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd',
             ],
-            &payload,
+            expect![[r#"
+                Payload(
+                    b"hello world",
+                )
+            "#]],
             (),
         )
         .await;

@@ -46,7 +46,7 @@ impl Decode for RequestHeader {
     type Context = ();
     type Error = DecodeError;
 
-    async fn decode(mut read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
+    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
         pin!(read);
 
         let protocol = Protocol::decode(&mut read, ())
@@ -69,6 +69,8 @@ impl Decode for RequestHeader {
 
 #[cfg(test)]
 mod test {
+    use expect_test::expect;
+
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode},
         protocol::{Protocol, ProtocolVersion},
@@ -88,47 +90,17 @@ mod test {
                 version: ProtocolVersion::V1,
             },
             request_id: producer.produce(),
-
-            flags: RequestFlags::from(
-                RequestFlag::ContainsAuthorization | RequestFlag::BeginOfRequest,
-            ),
+            flags: RequestFlags::from(RequestFlag::BeginOfRequest),
         };
 
-        assert_encode(
-            &header,
-            &[
-                b'h',
-                b'a',
-                b'r',
-                b'p',
-                b'c', // identifier
-                0x01, // protocol version,
-                0x00,
-                0x00,        // request id
-                0b1100_0000, // flags
-            ],
-        )
-        .await;
+        assert_encode(&header, expect![[""]]).await;
     }
 
     #[tokio::test]
     async fn decode() {
-        let mut producer = RequestIdProducer::new();
-
-        let header = RequestHeader {
-            protocol: Protocol {
-                version: ProtocolVersion::V1,
-            },
-            request_id: producer.produce(),
-
-            flags: RequestFlags::from(
-                RequestFlag::ContainsAuthorization | RequestFlag::BeginOfRequest,
-            ),
-        };
-
-        assert_decode(
+        assert_decode::<RequestHeader>(
             &[b'h', b'a', b'r', b'p', b'c', 0x01, 0x00, 0x00, 0b1100_0000],
-            &header,
+            expect![[""]],
             (),
         )
         .await;
