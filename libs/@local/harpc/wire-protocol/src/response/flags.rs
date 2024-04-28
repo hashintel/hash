@@ -83,7 +83,9 @@ mod test {
     use super::ResponseFlags;
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode},
+        flags::BitFlagsOp,
         request::flags::{RequestFlag, RequestFlags},
+        response::flags::ResponseFlag,
     };
 
     #[tokio::test]
@@ -95,7 +97,14 @@ mod test {
 
     #[tokio::test]
     async fn decode() {
-        assert_decode::<RequestFlags>(&[0b0000_0001], expect![[""]], ()).await;
+        assert_decode(&[0x00], &RequestFlags::EMPTY, ()).await;
+
+        assert_decode(
+            &[0x00, 0x01],
+            &ResponseFlags::from(ResponseFlag::EndOfResponse),
+            (),
+        )
+        .await;
     }
 
     #[test_strategy::proptest(async = "tokio")]

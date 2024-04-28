@@ -83,7 +83,6 @@ pub(crate) mod test {
     use core::fmt::Debug;
 
     use bytes::Bytes;
-    use expect_test::{expect, Expect};
 
     use super::Decode;
     use crate::codec::{encode::test::encode_value, Encode};
@@ -106,13 +105,13 @@ pub(crate) mod test {
     }
 
     #[track_caller]
-    pub(crate) async fn assert_decode<T>(buffer: &[u8], expected: Expect, context: T::Context)
+    pub(crate) async fn assert_decode<T>(buffer: &[u8], expected: &T, context: T::Context)
     where
-        T: Debug + Decode,
+        T: Debug + PartialEq + Sync + Decode,
     {
         let value: T = decode_value(buffer, context).await;
 
-        expected.assert_debug_eq(&value);
+        similar_asserts::assert_eq!(&value, expected);
     }
 
     #[track_caller]
@@ -128,24 +127,16 @@ pub(crate) mod test {
 
     #[tokio::test]
     async fn decode_u16() {
-        assert_decode::<u16>(&[0x12, 0x23], expect![[r#"
-            4643
-        "#]], ()).await;
-        assert_decode::<u16>(&[0x00, 0x00], expect![[r#"
-            0
-        "#]], ()).await;
-        assert_decode::<u16>(&[0xFF, 0xFF], expect![[r#"
-            65535
-        "#]], ()).await;
+        assert_decode(&[0x12, 0x23], &0x1223_u16, ()).await;
+        assert_decode(&[0x00, 0x00], &0x0000_u16, ()).await;
+        assert_decode(&[0xFF, 0xFF], &0xFFFF_u16, ()).await;
     }
 
     #[tokio::test]
     async fn decode_bytes() {
         assert_decode::<Bytes>(
             &[0x00, 0x05, 0x01, 0x02, 0x03, 0x04, 0x05],
-            expect![[r#"
-                b"\x01\x02\x03\x04\x05"
-            "#]],
+            &Bytes::from_static(&[0x01, 0x02, 0x03, 0x04, 0x05]),
             (),
         )
         .await;

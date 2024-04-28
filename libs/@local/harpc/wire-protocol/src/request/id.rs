@@ -109,11 +109,7 @@ pub(crate) mod test {
 
     #[tokio::test]
     async fn decode_id() {
-        assert_decode::<RequestId>(&[0x12, 0x34, 0x56, 0x78], expect![[r#"
-            RequestId(
-                305419896,
-            )
-        "#]], ()).await;
+        assert_decode(&[0x12, 0x34, 0x56, 0x78], &RequestId(0x12_34_56_78), ()).await;
     }
 
     #[test_strategy::proptest(async = "tokio")]

@@ -237,12 +237,36 @@ mod test {
 
     #[tokio::test]
     async fn decode_begin() {
-        assert_decode::<Response>(EXAMPLE_BEGIN_BUFFER, expect![[""]], ()).await;
+        assert_decode(
+            EXAMPLE_BEGIN_BUFFER,
+            &Response {
+                header: ResponseHeader {
+                    flags: ResponseFlags::from(ResponseFlag::BeginOfResponse),
+                    ..EXAMPLE_HEADER
+                },
+                body: ResponseBody::Begin(ResponseBegin {
+                    kind: ResponseKind::Ok,
+                    payload: Payload::from_static(b"hello world"),
+                }),
+            },
+            (),
+        )
+        .await;
     }
 
     #[tokio::test]
     async fn decode_frame() {
-        assert_decode::<Response>(EXAMPLE_FRAME_BUFFER, expect![[""]], ()).await;
+        assert_decode(
+            EXAMPLE_FRAME_BUFFER,
+            &Response {
+                header: EXAMPLE_HEADER,
+                body: ResponseBody::Frame(ResponseFrame {
+                    payload: Payload::from_static(b"hello world"),
+                }),
+            },
+            (),
+        )
+        .await;
     }
 
     #[test_strategy::proptest(async = "tokio")]

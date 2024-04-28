@@ -157,34 +157,7 @@ mod test {
             variant: RequestVariant::Begin,
         };
 
-        assert_decode::<RequestBody>(
-            &bytes,
-            expect![[r#"
-                Begin(
-                    RequestBegin {
-                        service: ServiceDescriptor {
-                            id: ServiceId(
-                                258,
-                            ),
-                            version: Version {
-                                major: 3,
-                                minor: 4,
-                            },
-                        },
-                        procedure: ProcedureDescriptor {
-                            id: ProcedureId(
-                                1286,
-                            ),
-                        },
-                        payload: Payload(
-                            b"\x07\x08",
-                        ),
-                    },
-                )
-            "#]],
-            context,
-        )
-        .await;
+        assert_decode(&bytes, &RequestBody::Begin(EXAMPLE_BEGIN.clone()), context).await;
     }
 
     #[tokio::test]
@@ -195,20 +168,7 @@ mod test {
             variant: RequestVariant::Frame,
         };
 
-        assert_decode::<RequestBody>(
-            &bytes,
-            expect![[r#"
-                Frame(
-                    RequestFrame {
-                        payload: Payload(
-                            b"\x07\x08",
-                        ),
-                    },
-                )
-            "#]],
-            context,
-        )
-        .await;
+        assert_decode(&bytes, &RequestBody::Frame(EXAMPLE_FRAME.clone()), context).await;
     }
 
     #[test_strategy::proptest(async = "tokio")]

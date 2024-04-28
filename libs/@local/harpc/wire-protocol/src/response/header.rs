@@ -77,7 +77,10 @@ mod test {
         flags::BitFlagsOp,
         protocol::{Protocol, ProtocolVersion},
         request::id::test::mock_request_id,
-        response::{flags::ResponseFlags, header::ResponseHeader},
+        response::{
+            flags::{ResponseFlag, ResponseFlags},
+            header::ResponseHeader,
+        },
     };
 
     #[tokio::test]
@@ -98,11 +101,22 @@ mod test {
         #[rustfmt::skip]
         let buffer = &[
             b'h', b'a', b'r', b'p', b'c', 0x01, // protocol
-            0x23, 0x45, // request_id
-            0b1000_0000, // flags
+            0x12, 0x34, 0x56, 0x78, // request_id
+            0x80, // flags
         ];
 
-        assert_decode::<ResponseHeader>(buffer, expect![[""]], ()).await;
+        assert_decode::<ResponseHeader>(
+            buffer,
+            &ResponseHeader {
+                protocol: Protocol {
+                    version: ProtocolVersion::V1,
+                },
+                request_id: mock_request_id(0x12_34_56_78),
+                flags: ResponseFlags::from(ResponseFlag::BeginOfResponse),
+            },
+            (),
+        )
+        .await;
     }
 
     #[test_strategy::proptest(async = "tokio")]

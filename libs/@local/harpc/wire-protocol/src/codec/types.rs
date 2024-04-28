@@ -79,36 +79,34 @@ mod test {
     #[tokio::test]
     async fn encode_version() {
         let version = Version { major: 1, minor: 2 };
-        assert_encode(&version, expect!["0x01 0x02"]).await;
+        assert_encode(&version, expect![[r#"
+            b"\x01\x02"
+        "#]]).await;
     }
 
     #[tokio::test]
     async fn decode_version() {
-        assert_decode::<Version>(&[0x01, 0x02], expect![[r#"
-            Version {
-                major: 1,
-                minor: 2,
-            }
-        "#]], ()).await;
+        assert_decode(
+            &[0x01, 0x02],
+            &Version {
+                major: 0x01,
+                minor: 0x02,
+            },
+            (),
+        )
+        .await;
     }
 
     #[tokio::test]
     async fn encode_service_id() {
-        assert_encode(&ServiceId::new(0x1234), expect!["0x12 0x34"]).await;
+        assert_encode(&ServiceId::new(0x1234), expect![[r#"
+            b"\x124"
+        "#]]).await;
     }
 
     #[tokio::test]
     async fn decode_service_id() {
-        assert_decode::<ServiceId>(
-            &[0x12, 0x34],
-            expect![[r#"
-            ServiceId(
-                4660,
-            )
-        "#]],
-            (),
-        )
-        .await;
+        assert_decode(&[0x12, 0x34], &ServiceId::new(0x1234), ()).await;
     }
 
     #[test_strategy::proptest(async = "tokio")]

@@ -111,40 +111,28 @@ mod test {
 
     #[tokio::test]
     async fn decode() {
-        assert_decode::<RequestFlags>(&[0b0000_0000], expect![[r#"
-            RequestFlags(
-                BitFlags<RequestFlag> {
-                    bits: 0b0,
-                },
-            )
-        "#]], ()).await;
+        assert_decode(&[0b0000_0000], &RequestFlags::EMPTY, ()).await;
 
-        assert_decode::<RequestFlags>(&[0b1100_0001], expect![[r#"
-            RequestFlags(
-                BitFlags<RequestFlag> {
-                    bits: 0b10000001,
-                    flags: EndOfRequest | BeginOfRequest,
-                },
-            )
-        "#]], ()).await;
+        assert_decode::<RequestFlags>(
+            &[0b1100_0001],
+            &RequestFlags::from(RequestFlag::EndOfRequest | RequestFlag::BeginOfRequest),
+            (),
+        )
+        .await;
 
-        assert_decode::<RequestFlags>(&[0b1000_0001], expect![[r#"
-            RequestFlags(
-                BitFlags<RequestFlag> {
-                    bits: 0b10000001,
-                    flags: EndOfRequest | BeginOfRequest,
-                },
-            )
-        "#]], ()).await;
+        assert_decode::<RequestFlags>(
+            &[0b1000_0001],
+            &RequestFlags::from(RequestFlag::EndOfRequest | RequestFlag::BeginOfRequest),
+            (),
+        )
+        .await;
 
-        assert_decode::<RequestFlags>(&[0b0100_0001], expect![[r#"
-            RequestFlags(
-                BitFlags<RequestFlag> {
-                    bits: 0b1,
-                    flags: EndOfRequest,
-                },
-            )
-        "#]], ()).await;
+        assert_decode(
+            &[0b0100_0001],
+            &RequestFlags::from(RequestFlag::EndOfRequest),
+            (),
+        )
+        .await;
     }
 
     #[test_strategy::proptest(async = "tokio")]

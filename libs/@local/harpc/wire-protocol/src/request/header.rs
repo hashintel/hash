@@ -77,7 +77,7 @@ mod test {
         request::{
             flags::{RequestFlag, RequestFlags},
             header::RequestHeader,
-            id::RequestIdProducer,
+            id::{test::mock_request_id, RequestIdProducer},
         },
     };
 
@@ -106,24 +106,13 @@ mod test {
             &[
                 b'h', b'a', b'r', b'p', b'c', 0x01, 0x00, 0x00, 0x00, 0x00, 0x80,
             ],
-            expect![[r#"
-                RequestHeader {
-                    protocol: Protocol {
-                        version: ProtocolVersion(
-                            1,
-                        ),
-                    },
-                    request_id: RequestId(
-                        0,
-                    ),
-                    flags: RequestFlags(
-                        BitFlags<RequestFlag> {
-                            bits: 0b10000000,
-                            flags: BeginOfRequest,
-                        },
-                    ),
-                }
-            "#]],
+            &RequestHeader {
+                protocol: Protocol {
+                    version: ProtocolVersion::V1,
+                },
+                request_id: mock_request_id(0x00),
+                flags: RequestFlags::from(RequestFlag::BeginOfRequest),
+            },
             (),
         )
         .await;

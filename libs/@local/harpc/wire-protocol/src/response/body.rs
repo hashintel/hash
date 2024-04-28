@@ -95,6 +95,7 @@ mod test {
         response::{
             begin::ResponseBegin,
             body::{ResponseBody, ResponseBodyContext, ResponseVariant},
+            frame::ResponseFrame,
             kind::ResponseKind,
         },
     };
@@ -127,7 +128,10 @@ mod test {
                 0x00, 0x01, // Encoding::Raw
                 0x00, 0x04, 0x01, 0x02, 0x03, 0x04,
             ],
-            expect![[""]],
+            &ResponseBody::Begin(ResponseBegin {
+                kind: ResponseKind::Ok,
+                payload: Payload::new(&[0x01_u8, 0x02, 0x03, 0x04] as &[_]),
+            }),
             ResponseBodyContext {
                 variant: ResponseVariant::Begin,
             },
@@ -137,9 +141,11 @@ mod test {
 
     #[tokio::test]
     async fn decode_frame() {
-        assert_decode::<ResponseBody>(
+        assert_decode(
             &[0x00, 0x04, 0x01, 0x02, 0x03, 0x04],
-            expect![[""]],
+            &ResponseBody::Frame(ResponseFrame {
+                payload: Payload::new(&[0x01_u8, 0x02, 0x03, 0x04] as &[_]),
+            }),
             ResponseBodyContext {
                 variant: ResponseVariant::Frame,
             },

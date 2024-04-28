@@ -55,11 +55,13 @@ mod test {
 
     #[tokio::test]
     async fn decode() {
-        assert_decode::<ResponseFrame>(
+        assert_decode(
             &[
                 0x00, 0x0B, b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd',
             ],
-            expect![[""]],
+            &ResponseFrame {
+                payload: Payload::from_static(b"hello world" as &[_]),
+            },
             (),
         )
         .await;

@@ -156,7 +156,7 @@ mod test {
         protocol: Protocol {
             version: ProtocolVersion::V1,
         },
-        request_id: mock_request_id(0xCD_EF),
+        request_id: mock_request_id(0x89_AB_CD_EF),
         flags: RequestFlags::EMPTY,
     };
 
@@ -234,11 +234,11 @@ mod test {
                     payload: Payload::from_static(b"hello world"),
                 }),
             },
-            expect![
+            expect![[
                 "0x68 0x61 0x72 0x70 0x63 0x01 0x00 0x00 0xCD 0xEF 0x80 0x12 0x34 0x56 0x78 0x9A \
                  0xBC 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B \
                  0x68 0x65 0x6C 0x6C 0x6F 0x20 0x77 0x6F 0x72 0x6C 0x64"
-            ],
+            ]],
         )
         .await;
     }
@@ -284,49 +284,24 @@ mod test {
 
     #[tokio::test]
     async fn decode_begin() {
-        assert_decode::<Request>(
+        assert_decode(
             EXAMPLE_BEGIN_BUFFER,
-            expect![[r#"
-            Request {
+            &Request {
                 header: RequestHeader {
-                    protocol: Protocol {
-                        version: ProtocolVersion(
-                            1,
-                        ),
-                    },
-                    request_id: RequestId(
-                        2309737967,
-                    ),
-                    flags: RequestFlags(
-                        BitFlags<RequestFlag> {
-                            bits: 0b10000000,
-                            flags: BeginOfRequest,
-                        },
-                    ),
+                    flags: RequestFlags::from(RequestFlag::BeginOfRequest),
+                    ..EXAMPLE_HEADER
                 },
-                body: Begin(
-                    RequestBegin {
-                        service: ServiceDescriptor {
-                            id: ServiceId(
-                                4660,
-                            ),
-                            version: Version {
-                                major: 86,
-                                minor: 120,
-                            },
-                        },
-                        procedure: ProcedureDescriptor {
-                            id: ProcedureId(
-                                39612,
-                            ),
-                        },
-                        payload: Payload(
-                            b"hello world",
-                        ),
+                body: RequestBody::Begin(RequestBegin {
+                    service: ServiceDescriptor {
+                        id: ServiceId::new(0x1234),
+                        version: Version::new(0x56, 0x78),
                     },
-                ),
-            }
-        "#]],
+                    procedure: ProcedureDescriptor {
+                        id: ProcedureId::new(0x9ABC),
+                    },
+                    payload: Payload::from_static(b"hello world"),
+                }),
+            },
             (),
         )
         .await;
@@ -334,7 +309,17 @@ mod test {
 
     #[tokio::test]
     async fn decode_frame() {
-        assert_decode::<Request>(EXAMPLE_FRAME_BUFFER, expect![[""]], ()).await;
+        assert_decode(
+            EXAMPLE_FRAME_BUFFER,
+            &Request {
+                header: EXAMPLE_HEADER,
+                body: RequestBody::Frame(RequestFrame {
+                    payload: Payload::from_static(b"hello world"),
+                }),
+            },
+            (),
+        )
+        .await;
     }
 
     #[test_strategy::proptest(async = "tokio")]

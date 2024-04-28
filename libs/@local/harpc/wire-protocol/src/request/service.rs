@@ -63,17 +63,18 @@ mod test {
 
     #[tokio::test]
     async fn decode() {
-        assert_decode::<ServiceDescriptor>(&[0x12, 0x34, 0x56, 0x78], expect![[r#"
-            ServiceDescriptor {
-                id: ServiceId(
-                    4660,
-                ),
+        assert_decode(
+            &[0x12, 0x34, 0x56, 0x78],
+            &ServiceDescriptor {
+                id: ServiceId::new(0x12_34),
                 version: Version {
-                    major: 86,
-                    minor: 120,
+                    major: 0x56,
+                    minor: 0x78,
                 },
-            }
-        "#]], ()).await;
+            },
+            (),
+        )
+        .await;
     }
 
     #[test_strategy::proptest(async = "tokio")]

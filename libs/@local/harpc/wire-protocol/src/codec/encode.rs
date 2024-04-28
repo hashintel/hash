@@ -104,16 +104,7 @@ pub(crate) mod test {
     {
         let buffer = Bytes::from(encode_value(value).await);
 
-        let mut actual = String::with_capacity((buffer.len() * 5) - 1);
-        for (index, byte) in buffer.into_iter().enumerate() {
-            if index > 0 {
-                actual.push(' ');
-            }
-
-            write!(actual, "{byte:#04X}").expect("infallible");
-        }
-
-        expected.assert_eq(&actual);
+        expected.assert_debug_eq(&buffer);
     }
 
     #[track_caller]
@@ -134,16 +125,24 @@ pub(crate) mod test {
 
     #[tokio::test]
     async fn encode_u16() {
-        assert_encode(&42_u16, expect!["0x00 0x2A"]).await;
-        assert_encode(&0_u16, expect!["0x00 0x00"]).await;
-        assert_encode(&u16::MAX, expect!["0xFF 0xFF"]).await;
+        assert_encode(&42_u16, expect![[r#"
+            b"\0*"
+        "#]]).await;
+        assert_encode(&0_u16, expect![[r#"
+            b"\0\0"
+        "#]]).await;
+        assert_encode(&u16::MAX, expect![[r#"
+            b"\xff\xff"
+        "#]]).await;
     }
 
     #[tokio::test]
     async fn encode_bytes() {
         assert_encode(
             &Bytes::from_static(&[0x68, 0x65, 0x6C, 0x6C, 0x6F]),
-            expect!["0x00 0x05 0x68 0x65 0x6C 0x6C 0x6F"],
+            expect![[r#"
+                b"\0\x05hello"
+            "#]],
         )
         .await;
     }

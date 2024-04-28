@@ -66,20 +66,22 @@ mod test {
 
     #[tokio::test]
     async fn encode() {
-        assert_encode(&Payload(Bytes::from_static(b"hello world")), expect!["0x00 0x0B 0x68 0x65 0x6C 0x6C 0x6F 0x20 0x77 0x6F 0x72 0x6C 0x64"]).await;
+        assert_encode(
+            &Payload(Bytes::from_static(b"hello world")),
+            expect![[r#"
+                b"\0\x0bhello world"
+            "#]],
+        )
+        .await;
     }
 
     #[tokio::test]
     async fn decode() {
-        assert_decode::<Payload>(
+        assert_decode(
             &[
                 0x00, 0x0B, b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd',
             ],
-            expect![[r#"
-                Payload(
-                    b"hello world",
-                )
-            "#]],
+            &Payload::from_static(b"hello world"),
             (),
         )
         .await;

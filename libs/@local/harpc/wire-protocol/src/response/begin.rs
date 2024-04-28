@@ -75,13 +75,16 @@ mod test {
 
     #[tokio::test]
     async fn decode() {
-        assert_decode::<ResponseBegin>(
+        assert_decode(
             &[
                 0x00, // ResponseKind::Ok
                 0x00, 0x01, // Encoding::Raw
                 0x00, 0x0B, b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd',
             ],
-            expect![[""]],
+            &ResponseBegin {
+                kind: ResponseKind::Ok,
+                payload: Payload::new(b"hello world" as &[_]),
+            },
             (),
         )
         .await;

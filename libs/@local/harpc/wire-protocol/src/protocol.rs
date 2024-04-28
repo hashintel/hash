@@ -1,3 +1,4 @@
+use core::fmt::Display;
 use std::io;
 
 use error_stack::{Report, Result, ResultExt};
@@ -11,12 +12,31 @@ use crate::codec::{Decode, Encode};
 const MAGIC_LEN: usize = 5;
 const MAGIC: &[u8; MAGIC_LEN] = b"harpc";
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
+pub enum ProtocolVersionDecodeError {
+    #[error("unsupported version {actual}, expected {expected}")]
+    Unsupported {
+        actual: ProtocolVersion,
+        expected: ProtocolVersion,
+    },
+    #[error("io error")]
+    Io,
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
-pub struct ProtocolVersion(u8);
+pub struct ProtocolVersion(#[cfg_attr(test, strategy(1..=1_u8))] u8);
 
 impl ProtocolVersion {
     pub const V1: Self = Self(1);
+}
+
+impl Display for ProtocolVersion {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let Self(version) = self;
+
+        write!(f, "v{version}")
+    }
 }
 
 impl Encode for ProtocolVersion {
@@ -29,11 +49,36 @@ impl Encode for ProtocolVersion {
 
 impl Decode for ProtocolVersion {
     type Context = ();
-    type Error = io::Error;
+    type Error = ProtocolVersionDecodeError;
 
     async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        u8::decode(read, ()).await.map(Self)
+        let version = u8::decode(read, ())
+            .await
+            .map(Self)
+            .change_context(ProtocolVersionDecodeError::Io)?;
+
+        if version != Self::V1 {
+            return Err(Report::new(ProtocolVersionDecodeError::Unsupported {
+                actual: version,
+                expected: Self::V1,
+            }));
+        }
+
+        Ok(version)
     }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
+pub enum ProtocolDecodeError {
+    #[error("invalid packet identifier: expected {expected:?}, actual {actual:?}")]
+    InvalidIdentifier {
+        expected: &'static [u8],
+        actual: [u8; MAGIC_LEN],
+    },
+    #[error("indalid protocol version")]
+    InvalidVersion,
+    #[error("io error")]
+    Io,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -51,17 +96,6 @@ impl Encode for Protocol {
         write.write_all(MAGIC).await?;
         self.version.encode(write).await
     }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
-pub enum ProtocolDecodeError {
-    #[error("invalid packet identifier: expected {expected:?}, actual {actual:?}")]
-    InvalidIdentifier {
-        expected: &'static [u8],
-        actual: [u8; MAGIC_LEN],
-    },
-    #[error("io error")]
-    Io,
 }
 
 impl Decode for Protocol {
@@ -85,7 +119,7 @@ impl Decode for Protocol {
 
         let version = ProtocolVersion::decode(read, ())
             .await
-            .change_context(ProtocolDecodeError::Io)?;
+            .change_context(ProtocolDecodeError::InvalidVersion)?;
 
         Ok(Self { version })
     }
@@ -97,22 +131,40 @@ mod test {
 
     use super::Protocol;
     use crate::{
-        codec::test::{assert_codec, assert_decode, assert_encode},
-        protocol::ProtocolVersion,
+        codec::{
+            test::{assert_codec, assert_decode, assert_encode},
+            Decode,
+        },
+        protocol::{ProtocolVersion, ProtocolVersionDecodeError},
     };
 
     #[tokio::test]
     async fn encode_version() {
-        assert_encode(&ProtocolVersion::V1, expect!["0x01"]).await;
+        assert_encode(&ProtocolVersion::V1, expect![[r#"
+            b"\x01"
+        "#]]).await;
     }
 
     #[tokio::test]
     async fn decode_version() {
-        assert_decode::<ProtocolVersion>(&[0x01], expect![[r#"
-            ProtocolVersion(
-                1,
-            )
-        "#]], ()).await;
+        assert_decode(&[0x01], &ProtocolVersion::V1, ()).await;
+    }
+
+    #[tokio::test]
+    async fn decode_version_invalid() {
+        let report = ProtocolVersion::decode(&[0x02_u8] as &[_], ())
+            .await
+            .expect_err("should fail to decode");
+
+        let context = *report.current_context();
+
+        assert_eq!(
+            context,
+            ProtocolVersionDecodeError::Unsupported {
+                actual: ProtocolVersion(2),
+                expected: ProtocolVersion::V1
+            }
+        );
     }
 
     #[tokio::test]
@@ -121,20 +173,23 @@ mod test {
             &crate::protocol::Protocol {
                 version: ProtocolVersion::V1,
             },
-            expect!["0x68 0x61 0x72 0x70 0x63 0x01"],
+            expect![[r#"
+                b"harpc\x01"
+            "#]],
         )
         .await;
     }
 
     #[tokio::test]
     async fn decode_protocol() {
-        assert_decode::<Protocol>(&[b'h', b'a', b'r', b'p', b'c', 0x01], expect![[r#"
-            Protocol {
-                version: ProtocolVersion(
-                    1,
-                ),
-            }
-        "#]], ()).await;
+        assert_decode(
+            &[b'h', b'a', b'r', b'p', b'c', 0x01],
+            &Protocol {
+                version: ProtocolVersion::V1,
+            },
+            (),
+        )
+        .await;
     }
 
     #[test_strategy::proptest(async = "tokio")]

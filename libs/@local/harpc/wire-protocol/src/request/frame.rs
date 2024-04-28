@@ -76,19 +76,15 @@ mod test {
 
     #[tokio::test]
     async fn decode() {
-        assert_decode::<RequestFrame>(
+        assert_decode(
             &[
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0B, b'h', b'e', b'l', b'l', b'o', b' ', b'w',
                 b'o', b'r', b'l', b'd',
             ],
-            expect![[r#"
-                RequestFrame {
-                    payload: Payload(
-                        b"hello world",
-                    ),
-                }
-            "#]],
+            &RequestFrame {
+                payload: Payload::from_static(b"hello world" as &[_]),
+            },
             (),
         )
         .await;

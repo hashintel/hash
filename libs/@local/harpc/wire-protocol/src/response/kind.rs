@@ -87,7 +87,7 @@ mod test {
 
     #[tokio::test]
     async fn decode() {
-        assert_decode::<ResponseKind>(&[0x00], expect![[""]], ()).await;
+        assert_decode(&[0x00], &ResponseKind::Ok, ()).await;
     }
 
     #[tokio::test]

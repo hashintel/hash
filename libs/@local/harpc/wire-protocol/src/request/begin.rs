@@ -107,7 +107,14 @@ mod test {
 
     #[tokio::test]
     async fn encode() {
-        assert_encode(&EXAMPLE_REQUEST, expect!["0x00 0x12 0x34 0x56 0x00 0x78 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x03 0x90 0xAB 0xCD"]).await;
+        assert_encode(
+            &EXAMPLE_REQUEST,
+            expect![
+                "0x00 0x12 0x34 0x56 0x00 0x78 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 \
+                 0x00 0x00 0x00 0x00 0x03 0x90 0xAB 0xCD"
+            ],
+        )
+        .await;
     }
 
     #[tokio::test]
@@ -121,27 +128,24 @@ mod test {
             0x00, 0x03, 0x90, 0xAB, 0xCD, // payload
         ];
 
-        assert_decode::<RequestBegin>(bytes, expect![[r#"
-            RequestBegin {
+        assert_decode::<RequestBegin>(
+            bytes,
+            &RequestBegin {
                 service: ServiceDescriptor {
-                    id: ServiceId(
-                        18,
-                    ),
+                    id: ServiceId::new(0x00_12),
                     version: Version {
-                        major: 52,
-                        minor: 86,
+                        major: 0x34,
+                        minor: 0x56,
                     },
                 },
                 procedure: ProcedureDescriptor {
-                    id: ProcedureId(
-                        120,
-                    ),
+                    id: ProcedureId::new(0x00_78),
                 },
-                payload: Payload(
-                    b"\x90\xab\xcd",
-                ),
-            }
-        "#]], ()).await;
+                payload: Payload::from_static(&[0x90, 0xAB, 0xCD]),
+            },
+            (),
+        )
+        .await;
     }
 
     #[test_strategy::proptest(async = "tokio")]
