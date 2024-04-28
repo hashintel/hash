@@ -104,7 +104,9 @@ pub(crate) mod test {
 
     #[tokio::test]
     async fn encode_id() {
-        assert_encode(&RequestId(0x1234), expect!["0x00 0x00 0x12 0x34"]).await;
+        assert_encode(&RequestId(0x1234), expect![[r#"
+            0x00 0x00 0x12  '4'
+        "#]]).await;
     }
 
     #[tokio::test]

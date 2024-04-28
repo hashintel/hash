@@ -70,7 +70,13 @@ mod test {
             payload: Payload::new(b"hello world" as &[_]),
         };
 
-        assert_encode(&frame, expect![[""]]).await;
+        assert_encode(
+            &frame,
+            expect![[r#"
+            0x00 0x00 0x0B  'h'  'e'  'l'  'l'  'o'  ' '  'w'  'o'  'r'  'l'  'd'
+        "#]],
+        )
+        .await;
     }
 
     #[tokio::test]
@@ -78,7 +84,6 @@ mod test {
         assert_decode(
             &[
                 0x00, // ResponseKind::Ok
-                0x00, 0x01, // Encoding::Raw
                 0x00, 0x0B, b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd',
             ],
             &ResponseBegin {

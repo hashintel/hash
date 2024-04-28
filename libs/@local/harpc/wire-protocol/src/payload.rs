@@ -69,7 +69,7 @@ mod test {
         assert_encode(
             &Payload(Bytes::from_static(b"hello world")),
             expect![[r#"
-                b"\0\x0bhello world"
+                0x00 0x0B  'h'  'e'  'l'  'l'  'o'  ' '  'w'  'o'  'r'  'l'  'd'
             "#]],
         )
         .await;

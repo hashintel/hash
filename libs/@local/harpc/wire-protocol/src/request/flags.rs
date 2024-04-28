@@ -88,23 +88,31 @@ mod test {
 
     #[tokio::test]
     async fn encode() {
-        assert_encode(&RequestFlags::EMPTY, expect!["0x00"]).await;
+        assert_encode(&RequestFlags::EMPTY, expect![[r#"
+            0x00
+        "#]]).await;
 
         assert_encode(
             &RequestFlags::from(RequestFlag::BeginOfRequest),
-            expect!["0x80"],
+            expect![[r#"
+                0x80
+            "#]],
         )
         .await;
 
         assert_encode(
             &RequestFlags::from(RequestFlag::BeginOfRequest | RequestFlag::EndOfRequest),
-            expect!["0x81"],
+            expect![[r#"
+                0x81
+            "#]],
         )
         .await;
 
         assert_encode(
             &RequestFlags::from(RequestFlag::EndOfRequest),
-            expect!["0x01"],
+            expect![[r#"
+                0x01
+            "#]],
         )
         .await;
     }

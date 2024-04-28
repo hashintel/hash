@@ -141,7 +141,7 @@ mod test {
     #[tokio::test]
     async fn encode_version() {
         assert_encode(&ProtocolVersion::V1, expect![[r#"
-            b"\x01"
+            0x01
         "#]]).await;
     }
 
@@ -174,7 +174,7 @@ mod test {
                 version: ProtocolVersion::V1,
             },
             expect![[r#"
-                b"harpc\x01"
+                 'h'  'a'  'r'  'p'  'c' 0x01
             "#]],
         )
         .await;

@@ -104,7 +104,48 @@ pub(crate) mod test {
     {
         let buffer = Bytes::from(encode_value(value).await);
 
-        expected.assert_debug_eq(&buffer);
+        // every line has 16 bytes, each byte at most is represented by 5 characters. With an
+        // additional newline.
+        let lines = buffer.len().div_ceil(16);
+        let capacity = (lines * (16 * 5)) + lines;
+
+        let mut output = String::with_capacity(capacity);
+
+        // first section into lines (of size 16)
+        let chunks = buffer.chunks(16);
+
+        for chunk in chunks {
+            for (index, &byte) in chunk.iter().enumerate() {
+                if index > 0 {
+                    output.push(' ');
+                }
+
+                if byte.is_ascii_graphic() || byte.is_ascii_whitespace() {
+                    // at most is 4 characters, align to the right
+                    let escaped = byte.escape_ascii();
+                    // we never generate \xNN.
+                    assert!(escaped.len() <= 2);
+
+                    let padding = 2 - escaped.len();
+
+                    for _ in 0..padding {
+                        output.push(' ');
+                    }
+
+                    output.push('\'');
+                    for char in escaped {
+                        output.push(char as char);
+                    }
+                    output.push('\'');
+                } else {
+                    write!(output, "{byte:#04X}").expect("infallible");
+                }
+            }
+
+            output.push('\n');
+        }
+
+        expected.assert_eq(&output);
     }
 
     #[track_caller]
@@ -126,13 +167,13 @@ pub(crate) mod test {
     #[tokio::test]
     async fn encode_u16() {
         assert_encode(&42_u16, expect![[r#"
-            b"\0*"
+            0x00  '*'
         "#]]).await;
         assert_encode(&0_u16, expect![[r#"
-            b"\0\0"
+            0x00 0x00
         "#]]).await;
         assert_encode(&u16::MAX, expect![[r#"
-            b"\xff\xff"
+            0xFF 0xFF
         "#]]).await;
     }
 
@@ -141,7 +182,7 @@ pub(crate) mod test {
         assert_encode(
             &Bytes::from_static(&[0x68, 0x65, 0x6C, 0x6C, 0x6F]),
             expect![[r#"
-                b"\0\x05hello"
+                0x00 0x05  'h'  'e'  'l'  'l'  'o'
             "#]],
         )
         .await;

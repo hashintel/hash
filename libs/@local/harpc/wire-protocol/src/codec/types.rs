@@ -80,7 +80,7 @@ mod test {
     async fn encode_version() {
         let version = Version { major: 1, minor: 2 };
         assert_encode(&version, expect![[r#"
-            b"\x01\x02"
+            0x01 0x02
         "#]]).await;
     }
 
@@ -100,7 +100,7 @@ mod test {
     #[tokio::test]
     async fn encode_service_id() {
         assert_encode(&ServiceId::new(0x1234), expect![[r#"
-            b"\x124"
+            0x12  '4'
         "#]]).await;
     }
 

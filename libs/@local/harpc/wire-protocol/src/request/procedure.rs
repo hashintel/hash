@@ -40,7 +40,9 @@ mod test {
 
     #[tokio::test]
     async fn encode_id() {
-        assert_encode(&ProcedureId::new(0x1234), expect!["0x12 0x34"]).await;
+        assert_encode(&ProcedureId::new(0x1234), expect![[r#"
+            0x12  '4'
+        "#]]).await;
     }
 
     #[tokio::test]
@@ -59,7 +61,9 @@ mod test {
             &ProcedureDescriptor {
                 id: ProcedureId::new(0x1234),
             },
-            expect!["0x12 0x34"],
+            expect![[r#"
+                0x12  '4'
+            "#]],
         )
         .await;
     }
