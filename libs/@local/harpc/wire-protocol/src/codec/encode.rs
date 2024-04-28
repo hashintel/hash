@@ -77,7 +77,7 @@ impl Encode for Bytes {
 
 #[cfg(test)]
 pub(crate) mod test {
-    use core::fmt::Debug;
+    use core::fmt::{Debug, Write};
 
     use bytes::Bytes;
     use expect_test::{expect, Expect};
@@ -93,7 +93,7 @@ pub(crate) mod test {
         value
             .encode(&mut buffer)
             .await
-            .expect("able to encode value");
+            .expect("should be able to encode value");
         buffer
     }
 
@@ -104,7 +104,14 @@ pub(crate) mod test {
     {
         let buffer = Bytes::from(encode_value(value).await);
 
-        let actual = format!("{buffer:#04x}");
+        let mut actual = String::with_capacity((buffer.len() * 5) - 1);
+        for (index, byte) in buffer.into_iter().enumerate() {
+            if index > 0 {
+                actual.push(' ');
+            }
+
+            write!(actual, "{byte:#04X}").expect("infallible");
+        }
 
         expected.assert_eq(&actual);
     }
@@ -127,15 +134,18 @@ pub(crate) mod test {
 
     #[tokio::test]
     async fn encode_u16() {
-        assert_encode(&42_u16, expect!["002a"]).await;
-        assert_encode(&0_u16, expect!["0000"]).await;
-        assert_encode(&u16::MAX, expect!["ffff"]).await;
+        assert_encode(&42_u16, expect!["0x00 0x2A"]).await;
+        assert_encode(&0_u16, expect!["0x00 0x00"]).await;
+        assert_encode(&u16::MAX, expect!["0xFF 0xFF"]).await;
     }
 
     #[tokio::test]
     async fn encode_bytes() {
-        let bytes: Bytes = b"hello".to_vec().into();
-        assert_encode(&bytes, expect!["000568656c6c6f"]).await;
+        assert_encode(
+            &Bytes::from_static(&[0x68, 0x65, 0x6C, 0x6C, 0x6F]),
+            expect!["0x00 0x05 0x68 0x65 0x6C 0x6C 0x6F"],
+        )
+        .await;
     }
 
     #[tokio::test]

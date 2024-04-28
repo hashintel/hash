@@ -93,14 +93,37 @@ mod test {
             flags: RequestFlags::from(RequestFlag::BeginOfRequest),
         };
 
-        assert_encode(&header, expect![[""]]).await;
+        assert_encode(
+            &header,
+            expect!["0x68 0x61 0x72 0x70 0x63 0x01 0x00 0x00 0x00 0x00 0x80"],
+        )
+        .await;
     }
 
     #[tokio::test]
     async fn decode() {
         assert_decode::<RequestHeader>(
-            &[b'h', b'a', b'r', b'p', b'c', 0x01, 0x00, 0x00, 0b1100_0000],
-            expect![[""]],
+            &[
+                b'h', b'a', b'r', b'p', b'c', 0x01, 0x00, 0x00, 0x00, 0x00, 0x80,
+            ],
+            expect![[r#"
+                RequestHeader {
+                    protocol: Protocol {
+                        version: ProtocolVersion(
+                            1,
+                        ),
+                    },
+                    request_id: RequestId(
+                        0,
+                    ),
+                    flags: RequestFlags(
+                        BitFlags<RequestFlag> {
+                            bits: 0b10000000,
+                            flags: BeginOfRequest,
+                        },
+                    ),
+                }
+            "#]],
             (),
         )
         .await;

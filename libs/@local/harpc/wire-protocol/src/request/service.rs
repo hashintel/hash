@@ -58,12 +58,22 @@ mod test {
             version: Version::new(0x56, 0x78),
         };
 
-        assert_encode(&service, expect![[""]]).await;
+        assert_encode(&service, expect!["0x12 0x34 0x56 0x78"]).await;
     }
 
     #[tokio::test]
     async fn decode() {
-        assert_decode::<ServiceDescriptor>(&[0x12, 0x34, 0x56, 0x78], expect![[""]], ()).await;
+        assert_decode::<ServiceDescriptor>(&[0x12, 0x34, 0x56, 0x78], expect![[r#"
+            ServiceDescriptor {
+                id: ServiceId(
+                    4660,
+                ),
+                version: Version {
+                    major: 86,
+                    minor: 120,
+                },
+            }
+        "#]], ()).await;
     }
 
     #[test_strategy::proptest(async = "tokio")]

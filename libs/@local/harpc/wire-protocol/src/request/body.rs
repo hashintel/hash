@@ -1,6 +1,6 @@
 use error_stack::{Result, ResultExt};
 use tokio::{
-    io::{AsyncRead, AsyncWrite, AsyncWriteExt},
+    io::{AsyncRead, AsyncWrite},
     pin,
 };
 
@@ -36,24 +36,8 @@ impl Encode for RequestBody {
         pin!(write);
 
         match self {
-            Self::Begin(body) => {
-                // write 13 empty bytes (reserved for future use)
-                write
-                    .write_all(&[0; 13])
-                    .await
-                    .change_context(EncodeError)?;
-
-                body.encode(write).await
-            }
-            Self::Frame(body) => {
-                // write 19 empty bytes (reserved for future use)
-                write
-                    .write_all(&[0; 19])
-                    .await
-                    .change_context(EncodeError)?;
-
-                body.encode(write).await
-            }
+            Self::Begin(body) => body.encode(write).await,
+            Self::Frame(body) => body.encode(write).await,
         }
     }
 }
@@ -98,6 +82,8 @@ impl Decode for RequestBody {
         read: impl AsyncRead + Send,
         context: Self::Context,
     ) -> Result<Self, Self::Error> {
+        pin!(read);
+
         match context.variant {
             RequestVariant::Begin => RequestBegin::decode(read, ()).await.map(RequestBody::Begin),
             RequestVariant::Frame => RequestFrame::decode(read, ())
@@ -126,27 +112,41 @@ mod test {
 
     static EXAMPLE_BEGIN: RequestBegin = RequestBegin {
         service: ServiceDescriptor {
-            id: ServiceId::new(0x01),
-            version: Version::new(0x00, 0x01),
+            id: ServiceId::new(0x0102),
+            version: Version::new(0x03, 0x04),
         },
         procedure: ProcedureDescriptor {
-            id: ProcedureId::new(0x01),
+            id: ProcedureId::new(0x0506),
         },
-        payload: Payload::from_static(&[]),
+        payload: Payload::from_static(&[0x07, 0x08]),
     };
 
     static EXAMPLE_FRAME: RequestFrame = RequestFrame {
-        payload: Payload::from_static(&[]),
+        payload: Payload::from_static(&[0x07, 0x08]),
     };
 
     #[tokio::test]
     async fn encode_begin() {
-        assert_encode(&RequestBody::Begin(EXAMPLE_BEGIN.clone()), expect![[""]]).await;
+        assert_encode(
+            &RequestBody::Begin(EXAMPLE_BEGIN.clone()),
+            expect![
+                "0x01 0x02 0x03 0x04 0x05 0x06 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 \
+                 0x00 0x00 0x00 0x00 0x02 0x07 0x08"
+            ],
+        )
+        .await;
     }
 
     #[tokio::test]
     async fn encode_frame() {
-        assert_encode(&RequestBody::Frame(EXAMPLE_FRAME.clone()), expect![[""]]).await;
+        assert_encode(
+            &RequestBody::Frame(EXAMPLE_FRAME.clone()),
+            expect![
+                "0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 \
+                 0x00 0x00 0x00 0x00 0x02 0x07 0x08"
+            ],
+        )
+        .await;
     }
 
     #[tokio::test]
@@ -157,29 +157,34 @@ mod test {
             variant: RequestVariant::Begin,
         };
 
-        assert_decode::<RequestBody>(&bytes, expect![[r#"
-            Begin(
-                RequestBegin {
-                    service: ServiceDescriptor {
-                        id: ServiceId(
-                            1,
-                        ),
-                        version: Version {
-                            major: 0,
-                            minor: 1,
+        assert_decode::<RequestBody>(
+            &bytes,
+            expect![[r#"
+                Begin(
+                    RequestBegin {
+                        service: ServiceDescriptor {
+                            id: ServiceId(
+                                258,
+                            ),
+                            version: Version {
+                                major: 3,
+                                minor: 4,
+                            },
                         },
-                    },
-                    procedure: ProcedureDescriptor {
-                        id: ProcedureId(
-                            1,
+                        procedure: ProcedureDescriptor {
+                            id: ProcedureId(
+                                1286,
+                            ),
+                        },
+                        payload: Payload(
+                            b"\x07\x08",
                         ),
                     },
-                    payload: Payload(
-                        b"",
-                    ),
-                },
-            )
-        "#]], context).await;
+                )
+            "#]],
+            context,
+        )
+        .await;
     }
 
     #[tokio::test]
@@ -190,7 +195,20 @@ mod test {
             variant: RequestVariant::Frame,
         };
 
-        assert_decode::<RequestBody>(&bytes, expect![[""]], context).await;
+        assert_decode::<RequestBody>(
+            &bytes,
+            expect![[r#"
+                Frame(
+                    RequestFrame {
+                        payload: Payload(
+                            b"\x07\x08",
+                        ),
+                    },
+                )
+            "#]],
+            context,
+        )
+        .await;
     }
 
     #[test_strategy::proptest(async = "tokio")]

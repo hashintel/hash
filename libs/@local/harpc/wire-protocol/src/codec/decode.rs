@@ -128,9 +128,15 @@ pub(crate) mod test {
 
     #[tokio::test]
     async fn decode_u16() {
-        assert_decode::<u16>(&[0x12, 0x23], expect![["4643"]], ()).await;
-        assert_decode::<u16>(&[0x00, 0x00], expect![["0"]], ()).await;
-        assert_decode::<u16>(&[0xFF, 0xFF], expect![["65535"]], ()).await;
+        assert_decode::<u16>(&[0x12, 0x23], expect![[r#"
+            4643
+        "#]], ()).await;
+        assert_decode::<u16>(&[0x00, 0x00], expect![[r#"
+            0
+        "#]], ()).await;
+        assert_decode::<u16>(&[0xFF, 0xFF], expect![[r#"
+            65535
+        "#]], ()).await;
     }
 
     #[tokio::test]

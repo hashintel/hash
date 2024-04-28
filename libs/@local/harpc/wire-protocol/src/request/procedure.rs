@@ -40,12 +40,16 @@ mod test {
 
     #[tokio::test]
     async fn encode_id() {
-        assert_encode(&ProcedureId::new(0x1234), expect![[""]]).await;
+        assert_encode(&ProcedureId::new(0x1234), expect!["0x12 0x34"]).await;
     }
 
     #[tokio::test]
     async fn decode_id() {
-        assert_decode::<ProcedureId>(&[0x12, 0x34], expect![[""]], ()).await;
+        assert_decode::<ProcedureId>(&[0x12, 0x34], expect![[r#"
+            ProcedureId(
+                4660,
+            )
+        "#]], ()).await;
     }
 
     #[test_strategy::proptest(async = "tokio")]
@@ -59,14 +63,20 @@ mod test {
             &ProcedureDescriptor {
                 id: ProcedureId::new(0x1234),
             },
-            expect![[""]],
+            expect!["0x12 0x34"],
         )
         .await;
     }
 
     #[tokio::test]
     async fn decode() {
-        assert_decode::<ProcedureDescriptor>(&[0x12, 0x34], expect![[""]], ()).await;
+        assert_decode::<ProcedureDescriptor>(&[0x12, 0x34], expect![[r#"
+            ProcedureDescriptor {
+                id: ProcedureId(
+                    4660,
+                ),
+            }
+        "#]], ()).await;
     }
 
     #[test_strategy::proptest(async = "tokio")]

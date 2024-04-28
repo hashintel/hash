@@ -1,7 +1,10 @@
 use std::io;
 
 use error_stack::{Result, ResultExt};
-use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::{
+    io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
+    pin,
+};
 
 use super::codec::EncodeError;
 use crate::{
@@ -19,6 +22,14 @@ impl Encode for RequestFrame {
     type Error = EncodeError;
 
     async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
+        pin!(write);
+
+        // write 19 empty bytes (reserved for future use)
+        write
+            .write_all(&[0; 19])
+            .await
+            .change_context(EncodeError)?;
+
         self.payload.encode(write).await.change_context(EncodeError)
     }
 }
@@ -28,6 +39,11 @@ impl Decode for RequestFrame {
     type Error = io::Error;
 
     async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
+        pin!(read);
+
+        // skip 19 bytes (reserved for future use)
+        read.read_exact(&mut [0; 19]).await?;
+
         Ok(Self {
             payload: Payload::decode(read, ()).await?,
         })
@@ -50,7 +66,10 @@ mod test {
             &RequestFrame {
                 payload: Payload::new(b"hello world" as &[_]),
             },
-            expect![[""]],
+            expect![
+                "0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 \
+                 0x00 0x00 0x00 0x00 0x0B 0x68 0x65 0x6C 0x6C 0x6F 0x20 0x77 0x6F 0x72 0x6C 0x64"
+            ],
         )
         .await;
     }
@@ -59,9 +78,17 @@ mod test {
     async fn decode() {
         assert_decode::<RequestFrame>(
             &[
-                0x00, 0x0B, b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd',
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0B, b'h', b'e', b'l', b'l', b'o', b' ', b'w',
+                b'o', b'r', b'l', b'd',
             ],
-            expect![[""]],
+            expect![[r#"
+                RequestFrame {
+                    payload: Payload(
+                        b"hello world",
+                    ),
+                }
+            "#]],
             (),
         )
         .await;

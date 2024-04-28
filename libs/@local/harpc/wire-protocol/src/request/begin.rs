@@ -1,5 +1,8 @@
 use error_stack::{Result, ResultExt};
-use tokio::{io::AsyncWrite, pin};
+use tokio::{
+    io::{AsyncReadExt, AsyncWrite, AsyncWriteExt},
+    pin,
+};
 
 use super::{
     codec::{DecodeError, EncodeError},
@@ -36,6 +39,12 @@ impl Encode for RequestBegin {
             .await
             .change_context(EncodeError)?;
 
+        // write 13 empty bytes (reserved for future use)
+        write
+            .write_all(&[0; 13])
+            .await
+            .change_context(EncodeError)?;
+
         self.payload.encode(write).await.change_context(EncodeError)
     }
 }
@@ -51,6 +60,11 @@ impl Decode for RequestBegin {
             .await
             .change_context(DecodeError)?;
         let procedure = ProcedureDescriptor::decode(&mut read, ())
+            .await
+            .change_context(DecodeError)?;
+
+        // skip 13 bytes (reserved for future use)
+        read.read_exact(&mut [0; 13])
             .await
             .change_context(DecodeError)?;
 
@@ -93,7 +107,7 @@ mod test {
 
     #[tokio::test]
     async fn encode() {
-        assert_encode(&EXAMPLE_REQUEST, expect!["001234560078000390abcd"]).await;
+        assert_encode(&EXAMPLE_REQUEST, expect!["0x00 0x12 0x34 0x56 0x00 0x78 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x03 0x90 0xAB 0xCD"]).await;
     }
 
     #[tokio::test]
@@ -102,11 +116,32 @@ mod test {
             0x00, 0x12, // service id
             0x34, 0x56, // service version
             0x00, 0x78, // procedure id
-            0x00, 0x01, 0x00, 0x01, // encoding
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, // reserved
             0x00, 0x03, 0x90, 0xAB, 0xCD, // payload
         ];
 
-        assert_decode::<RequestBegin>(bytes, expect![[""]], ()).await;
+        assert_decode::<RequestBegin>(bytes, expect![[r#"
+            RequestBegin {
+                service: ServiceDescriptor {
+                    id: ServiceId(
+                        18,
+                    ),
+                    version: Version {
+                        major: 52,
+                        minor: 86,
+                    },
+                },
+                procedure: ProcedureDescriptor {
+                    id: ProcedureId(
+                        120,
+                    ),
+                },
+                payload: Payload(
+                    b"\x90\xab\xcd",
+                ),
+            }
+        "#]], ()).await;
     }
 
     #[test_strategy::proptest(async = "tokio")]

@@ -163,12 +163,14 @@ mod test {
     #[rustfmt::skip]
     const EXAMPLE_BEGIN_BUFFER: &[u8] = &[
         b'h', b'a', b'r', b'p', b'c', 0x01, // protocol
-        0xCD, 0xEF,                         // request_id
-        0b1000_0000,                        // flags
+        0x89, 0xAB, 0xCD, 0xEF,             // request_id
+        0x80,                               // flags
         0x12, 0x34,                         // service_id
         0x56, 0x78,                         // service_version
         0x9A, 0xBC,                         // procedure_id
-        0x00, 0x01, 0x00, 0x01,             // encoding
+        // 13 bytes reserved
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00,       // reserved
         0x00, 0x0B,                         // payload_length
         b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd',
     ];
@@ -176,8 +178,11 @@ mod test {
     #[rustfmt::skip]
     const EXAMPLE_FRAME_BUFFER: &[u8] = &[
         b'h', b'a', b'r', b'p', b'c', 0x01, // protocol
-        0xCD, 0xEF,                         // request_id
-        0b0000_0000,                        // flags
+        0x89, 0xAB, 0xCD, 0xEF,             // request_id
+        0x00,                               // flags
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00,                   // reserved
         0x00, 0x0B,                         // payload_length
         b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd',
     ];
@@ -203,7 +208,11 @@ mod test {
                     payload: Payload::from_static(b"hello world"),
                 }),
             },
-            expect![[""]],
+            expect![
+                "0x68 0x61 0x72 0x70 0x63 0x01 0x00 0x00 0xCD 0xEF 0x80 0x12 0x34 0x56 0x78 0x9A \
+                 0xBC 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B \
+                 0x68 0x65 0x6C 0x6C 0x6F 0x20 0x77 0x6F 0x72 0x6C 0x64"
+            ],
         )
         .await;
     }
@@ -225,7 +234,11 @@ mod test {
                     payload: Payload::from_static(b"hello world"),
                 }),
             },
-            expect![[""]],
+            expect![
+                "0x68 0x61 0x72 0x70 0x63 0x01 0x00 0x00 0xCD 0xEF 0x80 0x12 0x34 0x56 0x78 0x9A \
+                 0xBC 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B \
+                 0x68 0x65 0x6C 0x6C 0x6F 0x20 0x77 0x6F 0x72 0x6C 0x64"
+            ],
         )
         .await;
     }
@@ -239,7 +252,11 @@ mod test {
                     payload: Payload::from_static(b"hello world"),
                 }),
             },
-            expect![[""]],
+            expect![
+                "0x68 0x61 0x72 0x70 0x63 0x01 0x00 0x00 0xCD 0xEF 0x00 0x00 0x00 0x00 0x00 0x00 \
+                 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B \
+                 0x68 0x65 0x6C 0x6C 0x6F 0x20 0x77 0x6F 0x72 0x6C 0x64"
+            ],
         )
         .await;
     }
@@ -256,16 +273,63 @@ mod test {
                     payload: Payload::from_static(b"hello world"),
                 }),
             },
-            expect![[""]],
+            expect![
+                "0x68 0x61 0x72 0x70 0x63 0x01 0x00 0x00 0xCD 0xEF 0x00 0x00 0x00 0x00 0x00 0x00 \
+                 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B \
+                 0x68 0x65 0x6C 0x6C 0x6F 0x20 0x77 0x6F 0x72 0x6C 0x64"
+            ],
         )
         .await;
     }
 
-    // we don't need to test for malformed decoding, because we already do in `RequestBody`
-
     #[tokio::test]
     async fn decode_begin() {
-        assert_decode::<Request>(EXAMPLE_BEGIN_BUFFER, expect![[""]], ()).await;
+        assert_decode::<Request>(
+            EXAMPLE_BEGIN_BUFFER,
+            expect![[r#"
+            Request {
+                header: RequestHeader {
+                    protocol: Protocol {
+                        version: ProtocolVersion(
+                            1,
+                        ),
+                    },
+                    request_id: RequestId(
+                        2309737967,
+                    ),
+                    flags: RequestFlags(
+                        BitFlags<RequestFlag> {
+                            bits: 0b10000000,
+                            flags: BeginOfRequest,
+                        },
+                    ),
+                },
+                body: Begin(
+                    RequestBegin {
+                        service: ServiceDescriptor {
+                            id: ServiceId(
+                                4660,
+                            ),
+                            version: Version {
+                                major: 86,
+                                minor: 120,
+                            },
+                        },
+                        procedure: ProcedureDescriptor {
+                            id: ProcedureId(
+                                39612,
+                            ),
+                        },
+                        payload: Payload(
+                            b"hello world",
+                        ),
+                    },
+                ),
+            }
+        "#]],
+            (),
+        )
+        .await;
     }
 
     #[tokio::test]

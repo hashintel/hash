@@ -103,7 +103,7 @@ mod test {
 
     #[tokio::test]
     async fn encode_version() {
-        assert_encode(&ProtocolVersion::V1, expect!["01"]).await;
+        assert_encode(&ProtocolVersion::V1, expect!["0x01"]).await;
     }
 
     #[tokio::test]
@@ -121,7 +121,7 @@ mod test {
             &crate::protocol::Protocol {
                 version: ProtocolVersion::V1,
             },
-            expect!["686172706301"],
+            expect!["0x68 0x61 0x72 0x70 0x63 0x01"],
         )
         .await;
     }

@@ -104,12 +104,16 @@ pub(crate) mod test {
 
     #[tokio::test]
     async fn encode_id() {
-        assert_encode(&RequestId(0x1234), expect![[""]]).await;
+        assert_encode(&RequestId(0x1234), expect!["0x00 0x00 0x12 0x34"]).await;
     }
 
     #[tokio::test]
     async fn decode_id() {
-        assert_decode::<RequestId>(&[0x12, 0x34], expect![[""]], ()).await;
+        assert_decode::<RequestId>(&[0x12, 0x34, 0x56, 0x78], expect![[r#"
+            RequestId(
+                305419896,
+            )
+        "#]], ()).await;
     }
 
     #[test_strategy::proptest(async = "tokio")]

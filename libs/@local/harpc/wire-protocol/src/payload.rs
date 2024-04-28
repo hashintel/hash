@@ -66,7 +66,7 @@ mod test {
 
     #[tokio::test]
     async fn encode() {
-        assert_encode(&Payload(Bytes::from_static(b"hello world")), expect!["000b68656c6c6f20776f726c64"]).await;
+        assert_encode(&Payload(Bytes::from_static(b"hello world")), expect!["0x00 0x0B 0x68 0x65 0x6C 0x6C 0x6F 0x20 0x77 0x6F 0x72 0x6C 0x64"]).await;
     }
 
     #[tokio::test]

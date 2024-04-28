@@ -79,7 +79,7 @@ mod test {
     #[tokio::test]
     async fn encode_version() {
         let version = Version { major: 1, minor: 2 };
-        assert_encode(&version, expect!["0102"]).await;
+        assert_encode(&version, expect!["0x01 0x02"]).await;
     }
 
     #[tokio::test]
@@ -94,7 +94,7 @@ mod test {
 
     #[tokio::test]
     async fn encode_service_id() {
-        assert_encode(&ServiceId::new(0x1234), expect!["1234"]).await;
+        assert_encode(&ServiceId::new(0x1234), expect!["0x12 0x34"]).await;
     }
 
     #[tokio::test]
