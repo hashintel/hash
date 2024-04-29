@@ -1,7 +1,8 @@
 locals {
-  prefix            = "${var.prefix}-app"
-  log_group_name    = "${local.prefix}log"
-  param_prefix      = "${var.param_prefix}/app"
+  prefix                   = "${var.prefix}-app"
+  log_group_name           = "${local.prefix}log"
+  param_prefix             = "${var.param_prefix}/app"
+  app_grace_period_seconds = 180
   spicedb_task_defs = [
     {
       task_def = local.spicedb_migration_container_def
@@ -377,6 +378,7 @@ resource "aws_ecs_service" "svc" {
   enable_execute_command = true
   desired_count          = 1
   launch_type            = "FARGATE"
+  health_check_grace_period_seconds = local.app_grace_period_seconds
   network_configuration {
     subnets          = var.subnets
     assign_public_ip = true
