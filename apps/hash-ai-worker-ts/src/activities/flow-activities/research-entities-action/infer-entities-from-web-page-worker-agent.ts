@@ -26,9 +26,11 @@ import {
   getTextContentFromLlmMessage,
   getToolCallsFromLlmAssistantMessage,
 } from "../../shared/get-llm-response/llm-message";
-import type { ParsedLlmToolCall } from "../../shared/get-llm-response/types";
+import type {
+  LlmParams,
+  ParsedLlmToolCall,
+} from "../../shared/get-llm-response/types";
 import { graphApiClient } from "../../shared/graph-api-client";
-import type { PermittedOpenAiModel } from "../../shared/openai-client";
 import { stringify } from "../../shared/stringify";
 import { inferEntitiesFromContentAction } from "../infer-entities-from-content-action";
 import { handleQueryPdfToolCall } from "./infer-entities-from-web-page-worker-agent/handle-query-pdf-tool-call";
@@ -42,7 +44,7 @@ import type {
 import type { CompletedToolCall } from "./types";
 import { mapPreviousCallsToLlmMessages } from "./util";
 
-const model: PermittedOpenAiModel = "gpt-4-0125-preview";
+const model: LlmParams["model"] = "gpt-4-0125-preview";
 
 type SummarizedEntity = {
   id: string;
@@ -414,6 +416,30 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
           } else if (toolCall.name === "getWebPageInnerHtml") {
             const { url: toolCallUrl } =
               toolCall.input as ToolCallArguments["getWebPageInnerHtml"];
+
+            const urlHeadFetch = await fetch(toolCallUrl, { method: "HEAD" });
+
+            if (!urlHeadFetch.ok) {
+              return {
+                ...toolCall,
+                output: `Failed to fetch the page at the provided URL: ${toolCallUrl}`,
+                isError: true,
+              };
+            }
+
+            const contentType = urlHeadFetch.headers.get("Content-Type");
+
+            if (contentType && contentType.includes("application/pdf")) {
+              return {
+                ...toolCall,
+                output: dedent(`
+                  The URL provided is a PDF file.
+                  You must use the "queryPdf" tool to extract the text content from the PDF.
+                  Detected Content-Type: ${contentType}
+                `),
+                isError: true,
+              };
+            }
 
             const { htmlContent } = await getWebPageActivity({
               url: toolCallUrl,
