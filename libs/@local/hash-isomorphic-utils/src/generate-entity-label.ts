@@ -111,9 +111,7 @@ export const generateEntityLabel = (
   const options = [
     "name",
     "preferredName",
-    "preferred-name", // @todo H-2561 account for proposed entities having non-standard property keys now
     "displayName",
-    "display-name", // @todo H-2561 account for proposed entities having non-standard property keys now
     "title",
     "organizationName",
     "shortname",
