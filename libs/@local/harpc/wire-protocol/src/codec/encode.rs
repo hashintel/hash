@@ -1,7 +1,7 @@
 use std::io;
 
 use bytes::Bytes;
-use error_stack::{Context, Result, ResultExt};
+use error_stack::{Context, Report, Result, ResultExt};
 use tokio::{
     io::{AsyncWrite, AsyncWriteExt},
     pin,
@@ -62,6 +62,11 @@ impl Encode for Bytes {
 
         // write the length in u16 (this is ok because we never send more than 64KiB).
         let length = u16::try_from(self.len()).change_context(BytesEncodeError::TooLarge)?;
+
+        // 32 bytes are always used for the request/response header
+        if length > (u16::MAX - 32) {
+            return Err(Report::new(BytesEncodeError::TooLarge));
+        }
 
         length
             .encode(&mut write)
@@ -205,8 +210,24 @@ pub(crate) mod test {
 
     #[tokio::test]
     async fn encode_bytes_too_large() {
-        let bytes: Bytes = vec![0; 64 * 1024 + 1].into();
+        let bytes: Bytes = vec![0; u16::MAX as usize + 1].into();
 
         assert_encode_error(&bytes, BytesEncodeError::TooLarge).await;
+    }
+
+    #[tokio::test]
+    async fn encode_bytes_too_large_u16() {
+        // 32 bytes are header, so this is still to large
+        let bytes: Bytes = vec![0; u16::MAX as usize + 16].into();
+
+        assert_encode_error(&bytes, BytesEncodeError::TooLarge).await;
+    }
+
+    #[tokio::test]
+    async fn encode_bytes_full() {
+        let bytes: Bytes = vec![0; u16::MAX as usize - 32].into();
+
+        let value = encode_value(&bytes).await;
+        assert_eq!(value.len(), (u16::MAX as usize) - 32 + 2);
     }
 }
