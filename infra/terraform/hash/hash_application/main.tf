@@ -161,10 +161,10 @@ resource "aws_lb_target_group" "app_tg" {
   vpc_id      = var.vpc.id
   health_check {
     healthy_threshold   = 3
-    interval            = 30
+    interval            = 300
     matcher             = "200"
     path                = "/health-check"
-    timeout             = 10
+    timeout             = 120
     unhealthy_threshold = 3
   }
   slow_start           = 30
