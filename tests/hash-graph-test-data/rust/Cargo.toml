@@ -1,6 +1,8 @@
+cargo-features = ["edition2024"]
+
 [package]
 name = "graph-test-data"
 version = "0.0.0"
-edition = "2021"
+edition = "2024"
 authors = ["HASH"]
 publish = false

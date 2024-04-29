@@ -28,7 +28,7 @@ exclude = [
 default-members = [
     "apps/hash-graph/bins/*",
 ]
-resolver = "2"
+resolver = "3"
 
 [workspace.package]
 authors = ["HASH"]
