@@ -113,19 +113,21 @@ export const validateProposedEntitiesByType = <
   return true;
 };
 
-export const generatePersistEntitiesTools = (
+export const generatePersistEntitiesTools = (params: {
   entityTypes: {
     schema: DereferencedEntityType;
     isLink: boolean;
-  }[],
-): {
+  }[];
+  canLinkToExistingEntities: boolean;
+}): {
   tools: LlmToolDefinition<PersistEntitiesToolName>[];
   simplifiedEntityTypeIdMappings: Record<string, VersionedUrl>;
 } => {
+  const { entityTypes, canLinkToExistingEntities } = params;
   const {
     tools: proposeEntitiesTools,
     simplifiedEntityTypeIdMappings: existingSimplifiedTypeIdMappings,
-  } = generateProposeEntitiesTools(entityTypes);
+  } = generateProposeEntitiesTools({ entityTypes, canLinkToExistingEntities });
 
   let simplifiedEntityTypeIdMappings = existingSimplifiedTypeIdMappings;
 

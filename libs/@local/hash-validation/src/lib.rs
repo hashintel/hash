@@ -149,7 +149,6 @@ pub trait EntityProvider {
     fn provide_entity(
         &self,
         entity_id: EntityId,
-        include_drafts: bool,
     ) -> impl Future<Output = Result<impl Borrow<Entity> + Send + Sync, Report<impl Context>>> + Send;
 }
 
@@ -224,7 +223,6 @@ mod tests {
         async fn provide_entity(
             &self,
             entity_id: EntityId,
-            _: bool,
         ) -> Result<&Entity, Report<InvalidEntity>> {
             self.entities
                 .get(&entity_id)

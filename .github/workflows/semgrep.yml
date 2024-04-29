@@ -22,13 +22,13 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: returntocorp/semgrep:1.69.0@sha256:496c1bca4fcb99365b5cb2fd4202e500d2472a268d98773c80a62173f3dcec71
+      image: returntocorp/semgrep:1.70.0@sha256:7843a979bf88d9d16c476e9f7f547b573187f395532b1f74825fd58c6463c5b0
 
     # Skip any PR created by Dependabot to avoid permission issues:
     if: (github.actor != 'dependabot[bot]')
 
     steps:
-      - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         name: Check-out Git project source
 
       - name: Run Semgrep

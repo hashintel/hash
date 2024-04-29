@@ -135,7 +135,10 @@ export const persistEntities = async (params: {
   const entityTypeIds = Object.keys(entityTypes);
 
   const { tools, simplifiedEntityTypeIdMappings } =
-    generatePersistEntitiesTools(Object.values(entityTypes));
+    generatePersistEntitiesTools({
+      entityTypes: Object.values(entityTypes),
+      canLinkToExistingEntities: false,
+    });
 
   const entitiesToUpdate = inProgressEntityIds.filter(
     (inProgressEntityId) =>

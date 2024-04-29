@@ -37,12 +37,14 @@ export const findExistingEntity = async ({
   graphApiClient,
   ownedById,
   proposedEntity,
+  includeDrafts,
 }: {
   actorId: AccountId;
   dereferencedEntityType?: DereferencedEntityType;
   graphApiClient: GraphApi;
   ownedById: OwnedById;
   proposedEntity: Pick<ProposedEntity, "entityTypeId" | "properties">;
+  includeDrafts: boolean;
 }): Promise<Entity | undefined> => {
   const entityTypeId = proposedEntity.entityTypeId;
 
@@ -195,6 +197,7 @@ export const findExistingEntity = async ({
           },
         ],
       },
+      includeDrafts,
     });
   }
 
@@ -225,6 +228,7 @@ export const findExistingEntity = async ({
             },
           ],
         },
+        includeDrafts,
       });
     }
   }
@@ -237,11 +241,13 @@ export const findExistingLinkEntity = async ({
   graphApiClient,
   linkData,
   ownedById,
+  includeDrafts,
 }: {
   actorId: AccountId;
   graphApiClient: GraphApi;
   linkData: LinkData;
   ownedById: OwnedById;
+  includeDrafts: boolean;
 }) => {
   return await getEntityByFilter({
     actorId,
@@ -299,5 +305,6 @@ export const findExistingLinkEntity = async ({
         },
       ],
     },
+    includeDrafts,
   });
 };

@@ -1,3 +1,4 @@
+import type { Subtype } from "@local/advanced-types/subtype";
 import dedent from "dedent";
 
 import type { LlmToolDefinition } from "../../shared/get-llm-response/types";
@@ -8,6 +9,7 @@ const coordinatorToolNames = [
   "getWebPageSummary",
   "submitProposedEntities",
   // "discardProposedEntities",
+  "proposeAndSubmitLink",
   "complete",
   "terminate",
   "updatePlan",
@@ -19,6 +21,15 @@ export const isCoordinatorToolName = (
   value: string,
 ): value is CoordinatorToolName =>
   coordinatorToolNames.includes(value as CoordinatorToolName);
+
+const explanationDefinition = {
+  type: "string",
+  description: dedent(`
+    An explanation of why this tool call is required to satisfy the task,
+    and how it aligns with the current plan. If the plan needs to be modified,
+    make a call to the "updatePlan" tool.
+  `),
+} as const;
 
 export const coordinatorToolDefinitions: Record<
   CoordinatorToolName,
@@ -46,6 +57,7 @@ export const coordinatorToolDefinitions: Record<
     inputSchema: {
       type: "object",
       properties: {
+        explanation: explanationDefinition,
         url: {
           type: "string",
           description: "The URL of the web page",
@@ -61,8 +73,26 @@ export const coordinatorToolDefinitions: Record<
             research task.
           `),
         },
+        entityTypeIds: {
+          type: "array",
+          items: {
+            type: "string",
+            description: dedent(`
+              The entity type IDs of the kind of entities to infer from the web page.
+              You must specify at least one.
+            `),
+          },
+        },
+        linkEntityTypeIds: {
+          type: "array",
+          items: {
+            type: "string",
+            description:
+              "The link entity type IDs of the kind of link entities to infer from the web page",
+          },
+        },
       },
-      required: ["url", "prompt"],
+      required: ["url", "prompt", "explanation", "entityTypeIds"],
     },
   },
   getWebPageSummary: {
@@ -72,12 +102,13 @@ export const coordinatorToolDefinitions: Record<
     inputSchema: {
       type: "object",
       properties: {
+        explanation: explanationDefinition,
         url: {
           type: "string",
           description: "The URL of the web page to summarize",
         },
       },
-      required: ["url"],
+      required: ["url", "explanation"],
     },
   },
   submitProposedEntities: {
@@ -87,6 +118,7 @@ export const coordinatorToolDefinitions: Record<
     inputSchema: {
       type: "object",
       properties: {
+        explanation: explanationDefinition,
         entityIds: {
           type: "array",
           items: {
@@ -95,7 +127,7 @@ export const coordinatorToolDefinitions: Record<
           description: "An array of entity IDs of the entities to submit.",
         },
       },
-      required: ["entityIds"],
+      required: ["entityIds", "explanation"],
     },
   },
   complete: {
@@ -103,8 +135,10 @@ export const coordinatorToolDefinitions: Record<
     description: "Complete the research task.",
     inputSchema: {
       type: "object",
-      properties: {},
-      required: [],
+      properties: {
+        explanation: explanationDefinition,
+      },
+      required: ["explanation"],
     },
   },
   terminate: {
@@ -113,23 +147,71 @@ export const coordinatorToolDefinitions: Record<
       "Terminate the research task, because it cannot be completed with the provided tools.",
     inputSchema: {
       type: "object",
-      properties: {},
-      required: [],
+      properties: {
+        explanation: explanationDefinition,
+      },
+      required: ["explanation"],
     },
   },
   updatePlan: {
     name: "updatePlan",
-    description:
-      "Update the plan for the research task. You should call this alongside other tool calls to progress towards completing the task.",
+    description: dedent(`
+      Update the plan for the research task.
+      You can call this alongside other tool calls to progress towards completing the task.
+    `),
     inputSchema: {
       type: "object",
       properties: {
+        explanation: {
+          type: "string",
+          description: dedent(`
+            An explanation of why the plan needs to be updated, and
+            how the updated plan aligns with the task.
+          `),
+        },
         plan: {
           type: "string",
           description: "The updated plan for the research task.",
         },
       },
-      required: ["plan"],
+      required: ["plan", "explanation"],
+    },
+  },
+  proposeAndSubmitLink: {
+    name: "proposeAndSubmitLink",
+    description: dedent(`
+      Propose and submit a link entity, which creates a link between two entities.
+
+      The source or target entity can be:
+        - a proposed entity
+        - an existing entity
+
+      If the source or target are a proposed entity that has not yet been submitted,
+        they will be submitted in this tool call.
+    `),
+    inputSchema: {
+      type: "object",
+      properties: {
+        explanation: explanationDefinition,
+        sourceEntityId: {
+          type: "string",
+          description: "The ID of the source proposed or existing entity.",
+        },
+        targetEntityId: {
+          type: "string",
+          description: "The ID of the target proposed or existing entity.",
+        },
+        linkEntityTypeId: {
+          type: "string",
+          description: "The link entity type ID of the proposed link.",
+        },
+      },
+      required: [
+        "sourceEntityId",
+        "targetEntityId",
+        "linkEntityTypeId",
+        "explanation",
+      ],
     },
   },
   // discardProposedEntities: {
@@ -152,23 +234,33 @@ export const coordinatorToolDefinitions: Record<
   // },
 };
 
-export type CoordinatorToolCallArguments = {
-  webSearch: {
-    query: string;
-  };
-  inferEntitiesFromWebPage: {
-    url: string;
-    prompt: string;
-  };
-  getWebPageSummary: {
-    url: string;
-  };
-  submitProposedEntities: {
-    entityIds: string[];
-  };
-  updatePlan: {
-    plan: string;
-  };
-  complete: object;
-  terminate: object;
-};
+export type CoordinatorToolCallArguments = Subtype<
+  Record<CoordinatorToolName, unknown>,
+  {
+    webSearch: {
+      query: string;
+    };
+    inferEntitiesFromWebPage: {
+      url: string;
+      prompt: string;
+      entityTypeIds: string[];
+      linkEntityTypeIds?: string[];
+    };
+    getWebPageSummary: {
+      url: string;
+    };
+    submitProposedEntities: {
+      entityIds: string[];
+    };
+    updatePlan: {
+      plan: string;
+    };
+    proposeAndSubmitLink: {
+      sourceEntityId: string;
+      targetEntityId: string;
+      linkEntityTypeId: string;
+    };
+    complete: never;
+    terminate: never;
+  }
+>;
