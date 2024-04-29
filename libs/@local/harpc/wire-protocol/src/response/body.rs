@@ -9,6 +9,7 @@ use super::{
 use crate::{
     codec::{Decode, Encode},
     flags::BitFlagsOp,
+    payload::Payload,
     request::codec::{DecodeError, EncodeError},
 };
 
@@ -20,8 +21,11 @@ pub enum ResponseBody {
 }
 
 impl ResponseBody {
-    pub(super) const fn begin_of_response(&self) -> bool {
-        matches!(self, Self::Begin(_))
+    pub const fn payload(&self) -> &Payload {
+        match self {
+            Self::Begin(body) => &body.payload,
+            Self::Frame(body) => &body.payload,
+        }
     }
 }
 

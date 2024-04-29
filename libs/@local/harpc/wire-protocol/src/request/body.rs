@@ -13,6 +13,7 @@ use super::{
 use crate::{
     codec::{Decode, Encode},
     flags::BitFlagsOp,
+    payload::Payload,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -23,9 +24,11 @@ pub enum RequestBody {
 }
 
 impl RequestBody {
-    #[must_use]
-    pub(super) const fn begin_of_request(&self) -> bool {
-        matches!(self, Self::Begin(_))
+    pub const fn payload(&self) -> &Payload {
+        match self {
+            Self::Begin(begin) => &begin.payload,
+            Self::Frame(frame) => &frame.payload,
+        }
     }
 }
 

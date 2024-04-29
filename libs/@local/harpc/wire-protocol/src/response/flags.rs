@@ -30,7 +30,10 @@ pub struct ResponseFlags(
 
 impl ResponseFlags {
     pub(crate) fn apply_body(self, body: &ResponseBody) -> Self {
-        self.set(ResponseFlag::BeginOfResponse, body.begin_of_response())
+        self.set(
+            ResponseFlag::BeginOfResponse,
+            matches!(body, ResponseBody::Begin(_)),
+        )
     }
 }
 

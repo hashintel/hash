@@ -131,7 +131,7 @@ mod test {
 
     use super::{flags::ResponseFlags, header::ResponseHeader};
     use crate::{
-        codec::test::{assert_codec, assert_decode, assert_encode},
+        codec::test::{assert_codec, assert_decode, assert_encode, encode_value},
         flags::BitFlagsOp,
         payload::Payload,
         protocol::{Protocol, ProtocolVersion},
@@ -302,5 +302,16 @@ mod test {
         };
 
         assert_codec(&response, ()).await;
+    }
+
+    #[test_strategy::proptest(async = "tokio")]
+    async fn header_size(response: Response) {
+        // ensure that for every response the header size is *always* 32 bytes
+
+        let value = encode_value(&response).await;
+        // remove the last n bytes (payload size)
+        let header_length = value.len() - response.body.payload().as_bytes().len();
+
+        proptest::prop_assert_eq!(header_length, 32);
     }
 }

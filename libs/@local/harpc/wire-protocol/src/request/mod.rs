@@ -137,7 +137,7 @@ mod test {
 
     use super::id::test::mock_request_id;
     use crate::{
-        codec::test::{assert_codec, assert_decode, assert_encode},
+        codec::test::{assert_codec, assert_decode, assert_encode, encode_value},
         flags::BitFlagsOp,
         payload::Payload,
         protocol::{Protocol, ProtocolVersion},
@@ -335,5 +335,16 @@ mod test {
         };
 
         assert_codec(&request, ()).await;
+    }
+
+    #[test_strategy::proptest(async = "tokio")]
+    async fn header_size(request: Request) {
+        // ensure that for every request the header size is *always* 32 bytes
+
+        let value = encode_value(&request).await;
+        // remove the last n bytes (payload size)
+        let header_length = value.len() - request.body.payload().as_bytes().len();
+
+        proptest::prop_assert_eq!(header_length, 32);
     }
 }

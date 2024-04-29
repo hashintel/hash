@@ -30,7 +30,10 @@ pub struct RequestFlags(
 
 impl RequestFlags {
     pub(super) fn apply_body(self, body: &RequestBody) -> Self {
-        self.set(RequestFlag::BeginOfRequest, body.begin_of_request())
+        self.set(
+            RequestFlag::BeginOfRequest,
+            matches!(body, RequestBody::Begin(_)),
+        )
     }
 }
 
