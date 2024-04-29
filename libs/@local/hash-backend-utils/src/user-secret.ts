@@ -9,10 +9,8 @@ import {
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type {
-  UserSecretProperties,
-  UsesUserSecretProperties,
-} from "@local/hash-isomorphic-utils/system-types/shared";
+import type { UsesUserSecretProperties } from "@local/hash-isomorphic-utils/system-types/google/shared";
+import type { UserSecretProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type {
   AccountId,
   Entity,

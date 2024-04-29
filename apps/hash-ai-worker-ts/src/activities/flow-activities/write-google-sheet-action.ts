@@ -314,6 +314,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
 
   const existingEntity = await getEntityByFilter({
     actorId: webBotActorId,
+    includeDrafts: false,
     filter: {
       all: [
         {
