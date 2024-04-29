@@ -9,10 +9,8 @@ import {
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type {
-  UserSecretProperties,
-  UsesUserSecretProperties,
-} from "@local/hash-isomorphic-utils/system-types/shared";
+import type { UsesUserSecretProperties } from "@local/hash-isomorphic-utils/system-types/google/shared";
+import type { UserSecretProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type {
   AccountId,
   Entity,
@@ -24,13 +22,13 @@ import { getEntityRevision, getRoots } from "@local/hash-subgraph/stdlib";
 
 export const getSecretEntitiesForIntegration = async ({
   authentication,
-  graphApi,
+  graphApiClient,
   integrationEntityId,
 }: {
   authentication: {
     actorId: AccountId;
   };
-  graphApi: GraphApi;
+  graphApiClient: GraphApi;
   integrationEntityId: EntityId;
 }): Promise<
   {
@@ -38,41 +36,43 @@ export const getSecretEntitiesForIntegration = async ({
     userSecret: Entity<UserSecretProperties>;
   }[]
 > => {
-  return await graphApi
+  return await graphApiClient
     .getEntitySubgraph(authentication.actorId, {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
+      query: {
+        filter: {
+          all: [
+            generateVersionedUrlMatchingFilter(
+              systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
+              {
+                ignoreParents: true,
+              },
+            ),
             {
-              ignoreParents: true,
+              equal: [
+                { path: ["leftEntity", "uuid"] },
+                {
+                  parameter: extractEntityUuidFromEntityId(integrationEntityId),
+                },
+              ],
             },
-          ),
-          {
-            equal: [
-              { path: ["leftEntity", "uuid"] },
-              {
-                parameter: extractEntityUuidFromEntityId(integrationEntityId),
-              },
-            ],
-          },
-          {
-            equal: [
-              { path: ["rightEntity", "type", "versionedUrl"] },
-              {
-                parameter: systemEntityTypes.userSecret.entityTypeId,
-              },
-            ],
-          },
-          { equal: [{ path: ["archived"] }, { parameter: false }] },
-        ],
+            {
+              equal: [
+                { path: ["rightEntity", "type", "versionedUrl"] },
+                {
+                  parameter: systemEntityTypes.userSecret.entityTypeId,
+                },
+              ],
+            },
+            { equal: [{ path: ["archived"] }, { parameter: false }] },
+          ],
+        },
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          hasRightEntity: { incoming: 0, outgoing: 1 },
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
       },
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        hasRightEntity: { incoming: 0, outgoing: 1 },
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(

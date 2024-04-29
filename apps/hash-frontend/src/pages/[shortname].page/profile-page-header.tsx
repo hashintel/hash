@@ -6,7 +6,7 @@ import { useState } from "react";
 import type { Org, User } from "../../lib/user-and-org";
 import { CogRegularIcon } from "../../shared/icons/cog-regular-icon";
 import { Button } from "../../shared/ui";
-import { getImageUrlFromEntityProperties } from "../shared/get-image-url-from-properties";
+import { getImageUrlFromEntityProperties } from "../shared/get-file-properties";
 import { EditPinnedEntityTypesModal } from "./edit-pinned-entity-types-modal";
 import { ProfilePageTabs } from "./profile-page-tabs";
 import type { ProfilePageTab } from "./util";

@@ -169,7 +169,7 @@ export const EntityResultTable = ({
                 metadata: {
                   recordId: {
                     editionId: "irrelevant-here",
-                    entityId: entityId as EntityId,
+                    entityId: `ownedBy~${entityId}` as EntityId,
                   } satisfies EntityRecordId,
                   entityTypeId: entityTypeId satisfies VersionedUrl,
                 } as EntityMetadata,

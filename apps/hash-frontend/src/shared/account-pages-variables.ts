@@ -1,6 +1,6 @@
 import {
   currentTimeInstantTemporalAxes,
-  notArchivedFilter,
+  pageOrNotificationNotArchivedFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { pageEntityTypeFilter } from "@local/hash-isomorphic-utils/page-entity-type-ids";
@@ -20,7 +20,7 @@ export const getAccountPagesVariables = ({
         {
           equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
         },
-        ...(includeArchived ? [] : [notArchivedFilter]),
+        ...(includeArchived ? [] : [pageOrNotificationNotArchivedFilter]),
       ],
     },
     graphResolveDepths: {

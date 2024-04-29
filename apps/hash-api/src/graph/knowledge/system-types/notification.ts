@@ -5,7 +5,7 @@ import { createNotificationEntityPermissions } from "@local/hash-backend-utils/n
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  notArchivedFilter,
+  pageOrNotificationNotArchivedFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -210,25 +210,30 @@ export const getMentionNotification: ImpureGraphFunction<
   } = params;
 
   const entitiesSubgraph = await getEntitySubgraph(context, authentication, {
-    filter: {
-      all: [
-        generateVersionedUrlMatchingFilter(
-          systemEntityTypes.mentionNotification.entityTypeId,
-          { ignoreParents: true },
-        ),
-        {
-          equal: [{ path: ["ownedById"] }, { parameter: recipient.accountId }],
-        },
-        notArchivedFilter,
-      ],
+    query: {
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(
+            systemEntityTypes.mentionNotification.entityTypeId,
+            { ignoreParents: true },
+          ),
+          {
+            equal: [
+              { path: ["ownedById"] },
+              { parameter: recipient.accountId },
+            ],
+          },
+          pageOrNotificationNotArchivedFilter,
+        ],
+      },
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        // Get the outgoing links of the entities
+        hasLeftEntity: { outgoing: 0, incoming: 1 },
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts,
     },
-    graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
-      // Get the outgoing links of the entities
-      hasLeftEntity: { outgoing: 0, incoming: 1 },
-    },
-    temporalAxes: currentTimeInstantTemporalAxes,
-    includeDrafts,
   });
 
   /**

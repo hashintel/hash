@@ -1,7 +1,6 @@
 import type {
   CreateHashEntityFromLinearData,
   ReadLinearTeamsWorkflow,
-  SyncQueryToGoogleSheetWorkflow,
   SyncWorkspaceWorkflow,
   UpdateHashEntityFromLinearData,
   UpdateLinearDataWorkflow,
@@ -9,8 +8,6 @@ import type {
 import type { ActivityOptions } from "@temporalio/workflow";
 import { proxyActivities } from "@temporalio/workflow";
 
-import type { createGoogleActivities } from "./google-activities";
-import type { createGraphActivities } from "./graph-activities";
 import type { createLinearIntegrationActivities } from "./linear-activities";
 
 const commonConfig: ActivityOptions = {
@@ -20,16 +17,10 @@ const commonConfig: ActivityOptions = {
   },
 };
 
-const graphActivities =
-  proxyActivities<ReturnType<typeof createGraphActivities>>(commonConfig);
-
 const linearActivities =
   proxyActivities<ReturnType<typeof createLinearIntegrationActivities>>(
     commonConfig,
   );
-
-const googleActivities =
-  proxyActivities<ReturnType<typeof createGoogleActivities>>(commonConfig);
 
 export const syncWorkspace: SyncWorkspaceWorkflow = async (params) => {
   const { apiKey, workspaceOwnedById, authentication, teamIds } = params;
@@ -84,39 +75,3 @@ export const readLinearTeams: ReadLinearTeamsWorkflow = async ({ apiKey }) =>
 
 export const updateLinearData: UpdateLinearDataWorkflow = async (params) =>
   linearActivities.updateLinearData(params);
-
-export const syncQueryToGoogleSheet: SyncQueryToGoogleSheetWorkflow = async ({
-  integrationEntityId,
-  userAccountId,
-}) => {
-  const { googleAccountEntity, integrationEntity, queryEntity } =
-    await googleActivities.getGoogleSheetsIntegrationEntities({
-      authentication: { actorId: userAccountId },
-      integrationEntityId,
-    });
-
-  if (!googleAccountEntity || !integrationEntity || !queryEntity) {
-    throw new Error(
-      `Missing Google entities for integration with id ${integrationEntityId}`,
-    );
-  }
-
-  const entitySubgraph =
-    await graphActivities.getSubgraphFromBlockProtocolQueryEntity({
-      authentication: { actorId: userAccountId },
-      queryEntityId: queryEntity.metadata.recordId.entityId,
-    });
-
-  await googleActivities.writeSubgraphToGoogleSheet({
-    audience: integrationEntity.properties[
-      "https://hash.ai/@hash/types/property-type/data-audience/"
-    ] as "human" | "machine",
-    entitySubgraph,
-    googleAccountEntityId: googleAccountEntity.metadata.recordId.entityId,
-    spreadsheetId:
-      integrationEntity.properties[
-        "https://hash.ai/@hash/types/property-type/file-id/"
-      ],
-    userAccountId,
-  });
-};

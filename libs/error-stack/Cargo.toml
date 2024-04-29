@@ -18,7 +18,7 @@ keywords = ["error", "errorstack", "error-handling", "report", "no_std"]
 categories = ["rust-patterns", "no-std"]
 
 [dependencies]
-tracing-error = { version = "0.2", optional = true, default_features = false }
+tracing-error = { version = "0.2", optional = true, default-features = false }
 anyhow = { version = ">=1.0.73", default-features = false, optional = true }
 eyre = { version = "0.6", default-features = false, optional = true }
 serde = { version = "1", default-features = false, optional = true }

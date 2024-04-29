@@ -1,8 +1,4 @@
-import {
-  blockProtocolEntityTypes,
-  blockProtocolLinkEntityTypes,
-  blockProtocolPropertyTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 
 import { enabledIntegrations } from "../../../../integrations/enabled-integrations";
@@ -93,8 +89,9 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  /** Create Google Sheets Integration entity type */
-
+  /**
+   * Create a Google Sheets File entity type.
+   */
   const associatedWithAccountLinkEntityType =
     await createSystemEntityTypeIfNotExists(context, authentication, {
       entityTypeDefinition: {
@@ -152,11 +149,34 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const _googleSheetsIntegrationEntityType =
-    await createSystemEntityTypeIfNotExists(context, authentication, {
+  const currentFileEntityTypeId = getCurrentHashSystemEntityTypeId({
+    entityTypeKey: "file",
+    migrationState,
+  });
+
+  const spreadsheetFileEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
       entityTypeDefinition: {
-        title: "Google Sheets Integration",
-        description: "An integration with Google Sheets.",
+        allOf: [currentFileEntityTypeId],
+        title: "Spreadsheet File",
+        description: "A spreadsheet file.",
+      },
+      webShortname: "hash",
+      migrationState,
+      instantiator: anyUserInstantiator,
+    },
+  );
+
+  const _googleSheetsFileEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        allOf: [spreadsheetFileEntityType.schema.$id],
+        title: "Google Sheets File",
+        description: "A Google Sheets file.",
         properties: [
           {
             propertyType: fileIdPropertyType,
@@ -174,21 +194,13 @@ const migrate: MigrationFunction = async ({
             minItems: 1,
             maxItems: 1,
           },
-          {
-            linkEntityType:
-              blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId,
-            destinationEntityTypes: [
-              blockProtocolEntityTypes.query.entityTypeId,
-            ],
-            minItems: 1,
-            maxItems: 1,
-          },
         ],
       },
-      webShortname: "hash",
+      webShortname: "google",
       migrationState,
       instantiator: anyUserInstantiator,
-    });
+    },
+  );
 
   return migrationState;
 };

@@ -1,11 +1,14 @@
-import { createGoogleOAuth2Client } from "@local/hash-backend-utils/google";
+import {
+  createGoogleOAuth2Client,
+  getGoogleAccountById,
+} from "@local/hash-backend-utils/google";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type {
   GoogleOAuth2CallbackRequest,
   GoogleOAuth2CallbackResponse,
 } from "@local/hash-isomorphic-utils/google-integration";
 import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { AccountProperties as GoogleAccountProperties } from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
+import type { AccountProperties as GoogleAccountProperties } from "@local/hash-isomorphic-utils/system-types/google/account";
 import type { OwnedById } from "@local/hash-subgraph";
 import type { RequestHandler } from "express";
 import { google } from "googleapis";
@@ -13,7 +16,6 @@ import { google } from "googleapis";
 import { createEntity } from "../../graph/knowledge/primitive/entity";
 import { createUserSecret } from "../../graph/knowledge/system-types/user-secret";
 import { enabledIntegrations } from "../enabled-integrations";
-import { getGoogleAccountById } from "./shared/get-google-account";
 
 export const googleOAuthCallback: RequestHandler<
   Record<string, never>,
@@ -82,14 +84,11 @@ export const googleOAuthCallback: RequestHandler<
     /**
      * Create the Google Account entity if it doesn't exist
      */
-    const existingGoogleAccountEntity = await getGoogleAccountById(
-      req.context,
-      authentication,
-      {
-        userAccountId: req.user.accountId,
-        googleAccountId: googleUser.data.id,
-      },
-    );
+    const existingGoogleAccountEntity = await getGoogleAccountById({
+      graphApiClient: req.context.graphApi,
+      userAccountId: req.user.accountId,
+      googleAccountId: googleUser.data.id,
+    });
 
     let newGoogleAccountEntity;
     if (!existingGoogleAccountEntity) {

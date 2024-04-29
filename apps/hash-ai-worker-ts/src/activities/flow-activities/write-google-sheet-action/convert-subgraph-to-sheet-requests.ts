@@ -7,7 +7,6 @@ import {
 import { isDraftEntity } from "@local/hash-isomorphic-utils/entity-store";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type {
   BaseUrl,
   EntityId,
@@ -24,9 +23,12 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import type { sheets_v4 } from "googleapis";
 
-type SheetOutputFormat = {
-  audience: "human" | "machine";
-};
+import type { SheetOutputFormat } from "./shared/config";
+import {
+  createCellFromValue,
+  createHyperlinkCell,
+} from "./shared/create-sheet-data";
+import { cellHeaderFormat } from "./shared/format";
 
 type ColumnsForEntity = {
   columns: Record<
@@ -170,62 +172,6 @@ const createColumnsForEntity = (
   };
 };
 
-const cellPadding = {
-  top: 8,
-  bottom: 8,
-  right: 8,
-  left: 8,
-};
-
-const createHyperlinkCell = ({
-  label,
-  sheetId,
-  startCellInclusive,
-  endCellInclusive,
-}: {
-  label: string;
-  sheetId: number;
-  startCellInclusive: string;
-  endCellInclusive: string;
-}) => ({
-  userEnteredValue: {
-    formulaValue: `=HYPERLINK("#gid=${sheetId}&range=${startCellInclusive}:${endCellInclusive}", "${label}")`,
-  },
-  userEnteredFormat: {
-    padding: cellPadding,
-  },
-});
-
-const createCellFromValue = (value: unknown): sheets_v4.Schema$CellData => {
-  const userEnteredFormat = { padding: cellPadding };
-  switch (typeof value) {
-    case "number": {
-      return {
-        userEnteredValue: {
-          numberValue: value,
-        },
-        userEnteredFormat,
-      };
-    }
-    case "boolean": {
-      return {
-        userEnteredValue: {
-          boolValue: value,
-        },
-        userEnteredFormat,
-      };
-    }
-    default: {
-      return {
-        userEnteredValue: {
-          stringValue: stringifyPropertyValue(value),
-        },
-        userEnteredFormat,
-      };
-    }
-  }
-};
-
 const createEmptyCells = (count: number): Array<object> =>
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   Array(count).fill({});
@@ -247,13 +193,16 @@ type EntitySheetRequests = {
  * This function could later return an abstraction of sheet requests (e.g. Create Sheet, Insert Rows)
  * to be converted into calls to different spreadsheet APIs.
  */
-export const createSheetRequestsFromEntitySubgraph = (
-  entitySubgraph: Subgraph<EntityRootType>,
-  format: SheetOutputFormat,
-): sheets_v4.Schema$Request[] => {
+export const convertSubgraphToSheetRequests = ({
+  subgraph,
+  format,
+}: {
+  subgraph: Subgraph<EntityRootType>;
+  format: SheetOutputFormat;
+}): sheets_v4.Schema$Request[] => {
   const entitySheetRequests: EntitySheetRequests = {};
 
-  const sortedEntities = typedValues(entitySubgraph.vertices)
+  const sortedEntities = typedValues(subgraph.vertices)
     .flatMap((editionMap) => typedValues(editionMap))
     .filter((vertex): vertex is EntityVertex => isEntityVertex(vertex))
     .map((vertex) => vertex.inner)
@@ -325,7 +274,7 @@ export const createSheetRequestsFromEntitySubgraph = (
 
   for (const entity of sortedEntities) {
     const entityType = getEntityTypeById(
-      entitySubgraph,
+      subgraph,
       entity.metadata.entityTypeId,
     );
     if (!entityType) {
@@ -344,7 +293,7 @@ export const createSheetRequestsFromEntitySubgraph = (
       isLinkType,
       linkColumnCount,
       propertyColumnCount,
-    } = createColumnsForEntity(entityType.schema, entitySubgraph, format);
+    } = createColumnsForEntity(entityType.schema, subgraph, format);
 
     /**
      * If we haven't yet created a sheet for this entity type, add it to the map and add its header row(s)
@@ -359,16 +308,6 @@ export const createSheetRequestsFromEntitySubgraph = (
             red: 0,
             green: 0,
             blue: 0,
-          },
-        },
-      };
-
-      const backgroundStyle: sheets_v4.Schema$CellFormat = {
-        backgroundColorStyle: {
-          rgbColor: {
-            red: 0.92,
-            green: 0.94,
-            blue: 1,
           },
         },
       };
@@ -392,14 +331,10 @@ export const createSheetRequestsFromEntitySubgraph = (
           ...(humanReadable
             ? {
                 userEnteredFormat: {
-                  textFormat: {
-                    bold: true,
-                  },
+                  ...cellHeaderFormat,
                   borders: {
                     ...(endOfGroup ? { right: borderStyle } : {}),
                   },
-                  padding: cellPadding,
-                  ...backgroundStyle,
                 },
               }
             : {}),
@@ -411,15 +346,11 @@ export const createSheetRequestsFromEntitySubgraph = (
       const headerRows: sheets_v4.Schema$RowData[] = [{ values: headerRow }];
 
       const groupHeaderFormat: sheets_v4.Schema$CellFormat = {
-        textFormat: {
-          bold: true,
-        },
+        ...cellHeaderFormat,
         borders: {
           right: borderStyle,
         },
         horizontalAlignment: "CENTER",
-        padding: cellPadding,
-        ...backgroundStyle,
       };
 
       if (humanReadable) {
@@ -566,28 +497,32 @@ export const createSheetRequestsFromEntitySubgraph = (
     for (const key of Object.keys(columns)) {
       if (key === "entityId") {
         entityCells.push(
-          createCellFromValue(entity.metadata.recordId.entityId),
+          createCellFromValue({ value: entity.metadata.recordId.entityId }),
         );
       } else if (key === "label") {
         entityCells.push(
-          createCellFromValue(generateEntityLabel(entitySubgraph, entity)),
+          createCellFromValue({
+            value: generateEntityLabel(subgraph, entity),
+          }),
         );
       } else if (key === "editionCreatedAt") {
         entityCells.push(
-          createCellFromValue(
-            entity.metadata.temporalVersioning.decisionTime.start.limit,
-          ),
+          createCellFromValue({
+            value: entity.metadata.temporalVersioning.decisionTime.start.limit,
+          }),
         );
       } else if (key === "entityCreatedAt") {
         entityCells.push(
-          createCellFromValue(entity.metadata.provenance.createdAtDecisionTime),
+          createCellFromValue({
+            value: entity.metadata.provenance.createdAtDecisionTime,
+          }),
         );
       } else if (key === "draft") {
-        entityCells.push(createCellFromValue(isDraftEntity(entity)));
+        entityCells.push(createCellFromValue({ value: isDraftEntity(entity) }));
       } else if (key.startsWith("properties.")) {
         const propertyKey = columns[key]!.baseOrVersionedUrl;
         const value = entity.properties[propertyKey as BaseUrl];
-        entityCells.push(createCellFromValue(value));
+        entityCells.push(createCellFromValue({ value }));
       } else if (key === "leftEntityId") {
         const leftEntityId = entity.linkData?.leftEntityId;
         if (leftEntityId) {
@@ -602,15 +537,12 @@ export const createSheetRequestsFromEntitySubgraph = (
              * list the id. It might be excluded from the query due to permissions, archive or draft status.
              */
             const { sheetId, rowIndex } = entityPosition;
-            const linkedEntity = getEntityRevision(
-              entitySubgraph,
-              leftEntityId,
-            );
+            const linkedEntity = getEntityRevision(subgraph, leftEntityId);
 
             /** Create the link from this sheet to the source entity */
             entityCells.push(
               createHyperlinkCell({
-                label: generateEntityLabel(entitySubgraph, linkedEntity),
+                label: generateEntityLabel(subgraph, linkedEntity),
                 sheetId,
                 startCellInclusive: `A${rowIndex + 1}`,
                 endCellInclusive: `${entityPosition.lastColumnLetter}${
@@ -647,7 +579,9 @@ export const createSheetRequestsFromEntitySubgraph = (
              * We're not in human-readable format or we can't find the source entity, just show its id.
              */
             entityCells.push(
-              createCellFromValue(entity.linkData?.leftEntityId ?? ""),
+              createCellFromValue({
+                value: entity.linkData?.leftEntityId ?? "",
+              }),
             );
           }
         }
@@ -660,14 +594,11 @@ export const createSheetRequestsFromEntitySubgraph = (
           if (humanReadable && entityPosition) {
             const { sheetId, rowIndex } = entityPosition;
 
-            const linkedEntity = getEntityRevision(
-              entitySubgraph,
-              rightEntityId,
-            );
+            const linkedEntity = getEntityRevision(subgraph, rightEntityId);
 
             entityCells.push(
               createHyperlinkCell({
-                label: generateEntityLabel(entitySubgraph, linkedEntity),
+                label: generateEntityLabel(subgraph, linkedEntity),
                 sheetId,
                 startCellInclusive: `A${rowIndex + 1}`,
                 endCellInclusive: `${entityPosition.lastColumnLetter}${
@@ -677,7 +608,9 @@ export const createSheetRequestsFromEntitySubgraph = (
             );
           } else {
             entityCells.push(
-              createCellFromValue(entity.linkData?.rightEntityId ?? ""),
+              createCellFromValue({
+                value: entity.linkData?.rightEntityId ?? "",
+              }),
             );
           }
         }

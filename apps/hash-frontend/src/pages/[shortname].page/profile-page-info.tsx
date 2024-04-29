@@ -25,7 +25,7 @@ import { CalendarDayRegularIcon } from "../../shared/icons/calendar-day-regular-
 import { CustomLinkIcon } from "../../shared/icons/custom-link-icon";
 import { Link } from "../../shared/ui/link";
 import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-heading";
-import { getImageUrlFromEntityProperties } from "../shared/get-image-url-from-properties";
+import { getImageUrlFromEntityProperties } from "../shared/get-file-properties";
 import type { ProfilePageTab } from "./util";
 
 const InfoItem: FunctionComponent<{

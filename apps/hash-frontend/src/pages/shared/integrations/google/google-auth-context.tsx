@@ -1,5 +1,5 @@
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
-import type { AccountProperties as GoogleAccountProperties } from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
+import type { AccountProperties as GoogleAccountProperties } from "@local/hash-isomorphic-utils/system-types/google/account";
 import type { Entity } from "@local/hash-subgraph";
 import Script from "next/script";
 import type { PropsWithChildren } from "react";
@@ -155,7 +155,7 @@ export const GoogleAuthProvider = ({ children }: PropsWithChildren) => {
     <GoogleAuthContext.Provider value={value}>
       <Script
         src="https://accounts.google.com/gsi/client"
-        onLoad={loadOAuthClient}
+        onReady={loadOAuthClient}
       />
       {children}
     </GoogleAuthContext.Provider>

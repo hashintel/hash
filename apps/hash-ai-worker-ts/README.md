@@ -13,6 +13,9 @@ The service uses the following environment variables:
 - `HASH_GRAPH_API_HOST`: The host address that the HASH Graph API is running on, e.g. `graph`, `127.0.0.1`
 - `HASH_GRAPH_API_PORT`: The port that the HASH Graph API is running on, e.g. `4000`
 - `INTERNAL_API_KEY`: The API key used to authenticate with the internal API, required for workflows making use of the `getWebSearchResultsActivity` activity
+- `HASH_VAULT_HOST`: The host address (including protocol) that the Vault server is running on, e.g. `http://127.0.0.1`
+- `HASH_VAULT_PORT`: The port that the Vault server is running on, e.g. `8200`
+- `HASH_VAULT_ROOT_TOKEN`: The token to authenticate with the Vault server.
 
 ### Run the worker
 

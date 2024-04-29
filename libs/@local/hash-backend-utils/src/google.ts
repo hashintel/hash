@@ -2,33 +2,19 @@ import { getSecretEntitiesForIntegration } from "@local/hash-backend-utils/user-
 import type { GraphApi } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import {
-  blockProtocolEntityTypes,
-  blockProtocolLinkEntityTypes,
-  googleEntityTypes,
-  systemLinkEntityTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
-import type {
-  AccountProperties as GoogleAccountProperties,
-  AssociatedWithAccountProperties,
-  GoogleSheetsIntegrationProperties,
-  HasQueryProperties,
-} from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
+import type { AccountProperties as GoogleAccountProperties } from "@local/hash-isomorphic-utils/system-types/google/account";
 import type {
   AccountId,
   Entity,
   EntityId,
   EntityRootType,
 } from "@local/hash-subgraph";
-import { splitEntityId } from "@local/hash-subgraph";
-import {
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { Auth } from "googleapis";
 import { google } from "googleapis";
 
@@ -56,21 +42,84 @@ export const createGoogleOAuth2Client = () => {
   );
 };
 
+/**
+ * Get a Google Account entity by the account id in Google
+ */
+export const getGoogleAccountById = async ({
+  graphApiClient,
+  googleAccountId,
+  userAccountId,
+}: {
+  userAccountId: AccountId;
+  googleAccountId: string;
+  graphApiClient: GraphApi;
+}): Promise<Entity<GoogleAccountProperties> | undefined> => {
+  const entities = await graphApiClient
+    .getEntitiesByQuery(userAccountId, {
+      query: {
+        filter: {
+          all: [
+            {
+              equal: [{ path: ["ownedById"] }, { parameter: userAccountId }],
+            },
+            { equal: [{ path: ["archived"] }, { parameter: false }] },
+            generateVersionedUrlMatchingFilter(
+              googleEntityTypes.account.entityTypeId,
+              { ignoreParents: true },
+            ),
+            {
+              equal: [
+                {
+                  path: [
+                    "properties",
+                    "https://hash.ai/@google/types/property-type/account-id/",
+                  ],
+                },
+                { parameter: googleAccountId },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
+      },
+    })
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
+        data.subgraph,
+        userAccountId,
+      );
+
+      return getRoots(subgraph);
+    });
+
+  if (entities.length > 1) {
+    throw new Error(
+      `More than one Google Account with id ${googleAccountId} found for user ${userAccountId}`,
+    );
+  }
+
+  const entity = entities[0];
+
+  return entity as Entity<GoogleAccountProperties> | undefined;
+};
+
 export const getTokensForGoogleAccount = async ({
   googleAccountEntityId,
-  graphApi,
+  graphApiClient,
   userAccountId,
   vaultClient,
 }: {
   googleAccountEntityId: EntityId;
-  graphApi: GraphApi;
+  graphApiClient: GraphApi;
   userAccountId: AccountId;
   vaultClient: VaultClient;
 }): Promise<Auth.Credentials | null> => {
   const secretAndLinkPairs = await getSecretEntitiesForIntegration({
     authentication: { actorId: userAccountId },
     integrationEntityId: googleAccountEntityId,
-    graphApi,
+    graphApiClient,
   });
 
   if (!secretAndLinkPairs[0]) {
@@ -94,112 +143,4 @@ export const getTokensForGoogleAccount = async ({
   } catch (err) {
     return null;
   }
-};
-
-type QueryLinkAndRightEntity = {
-  linkEntity: Entity<HasQueryProperties>[];
-  rightEntity: Entity<QueryProperties>[];
-};
-
-type GoogleAccountLinkAndRightEntity = {
-  linkEntity: Entity<AssociatedWithAccountProperties>[];
-  rightEntity: Entity<GoogleAccountProperties>[];
-};
-
-type GoogleSheetsIntegrationEntities = {
-  integrationEntity?: Entity<GoogleSheetsIntegrationProperties>;
-  hasQueryLinkEntity?: Entity<HasQueryProperties>;
-  queryEntity?: Entity<QueryProperties>;
-  associatedWithAccountLinkEntity?: Entity<AssociatedWithAccountProperties>;
-  googleAccountEntity?: Entity<GoogleAccountProperties>;
-};
-
-export const getGoogleSheetsIntegrationEntities = async ({
-  authentication,
-  graphApi,
-  integrationEntityId,
-}: {
-  authentication: { actorId: AccountId };
-  graphApi: GraphApi;
-  integrationEntityId: EntityId;
-}): Promise<GoogleSheetsIntegrationEntities> => {
-  const [ownedById, uuid] = splitEntityId(integrationEntityId);
-  const existingIntegrationEntitySubgraph = await graphApi
-    .getEntitySubgraph(authentication.actorId, {
-      filter: {
-        all: [
-          {
-            equal: [
-              {
-                path: ["uuid"],
-              },
-              {
-                parameter: uuid,
-              },
-            ],
-          },
-          {
-            equal: [
-              {
-                path: ["ownedById"],
-              },
-              {
-                parameter: ownedById,
-              },
-            ],
-          },
-        ],
-      },
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        hasLeftEntity: { incoming: 1, outgoing: 0 },
-        hasRightEntity: { outgoing: 1, incoming: 0 },
-      },
-      includeDrafts: false,
-      temporalAxes: currentTimeInstantTemporalAxes,
-    })
-    .then(({ data }) =>
-      mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-        authentication.actorId,
-      ),
-    );
-
-  const integrationEntity = getRoots(existingIntegrationEntitySubgraph)[0] as
-    | Entity<GoogleSheetsIntegrationProperties>
-    | undefined;
-
-  if (!integrationEntity) {
-    return {};
-  }
-
-  const outgoingLinks = getOutgoingLinkAndTargetEntities<
-    (QueryLinkAndRightEntity | GoogleAccountLinkAndRightEntity)[]
-  >(existingIntegrationEntitySubgraph, integrationEntityId);
-
-  const existingGoogleAccountLink = outgoingLinks.find(
-    (
-      linkAndRightEntity,
-    ): linkAndRightEntity is GoogleAccountLinkAndRightEntity =>
-      linkAndRightEntity.linkEntity[0]?.metadata.entityTypeId ===
-        systemLinkEntityTypes.associatedWithAccount.linkEntityTypeId &&
-      linkAndRightEntity.rightEntity[0]?.metadata.entityTypeId ===
-        googleEntityTypes.account.entityTypeId,
-  );
-
-  const existingQueryLink = outgoingLinks.find(
-    (linkAndRightEntity): linkAndRightEntity is QueryLinkAndRightEntity =>
-      linkAndRightEntity.linkEntity[0]?.metadata.entityTypeId ===
-        blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId &&
-      linkAndRightEntity.rightEntity[0]?.metadata.entityTypeId ===
-        blockProtocolEntityTypes.query.entityTypeId,
-  );
-
-  return {
-    integrationEntity,
-    hasQueryLinkEntity: existingQueryLink?.linkEntity[0],
-    queryEntity: existingQueryLink?.rightEntity[0],
-    associatedWithAccountLinkEntity: existingGoogleAccountLink?.linkEntity[0],
-    googleAccountEntity: existingGoogleAccountLink?.rightEntity[0],
-  };
 };

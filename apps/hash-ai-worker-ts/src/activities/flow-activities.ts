@@ -1,3 +1,4 @@
+import type { VaultClient } from "@local/hash-backend-utils/vault";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { ActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
 
@@ -13,11 +14,14 @@ import { createPersistFlowActivity } from "./flow-activities/persist-flow-activi
 import { researchEntitiesAction } from "./flow-activities/research-entities-action";
 import type { FlowActionActivity } from "./flow-activities/types";
 import { webSearchAction } from "./flow-activities/web-search-action";
+import { writeGoogleSheetAction } from "./flow-activities/write-google-sheet-action";
 
 export const createFlowActionActivities = ({
   graphApiClient,
+  vaultClient,
 }: {
   graphApiClient: GraphApi;
+  vaultClient: VaultClient;
 }): Record<`${ActionDefinitionId}Action`, FlowActionActivity> => ({
   generateWebQueriesAction,
   webSearchAction,
@@ -59,13 +63,23 @@ export const createFlowActionActivities = ({
   ) {
     return answerQuestionAction({ ...params, graphApiClient });
   },
+  writeGoogleSheetAction(
+    params: Omit<
+      Parameters<typeof writeGoogleSheetAction>[0],
+      "graphApiClient" | "vaultClient"
+    >,
+  ) {
+    return writeGoogleSheetAction({ ...params, graphApiClient, vaultClient });
+  },
 });
 
 export const createFlowActivities = ({
   graphApiClient,
+  vaultClient,
 }: {
   graphApiClient: GraphApi;
+  vaultClient: VaultClient;
 }) => ({
-  ...createFlowActionActivities({ graphApiClient }),
+  ...createFlowActionActivities({ graphApiClient, vaultClient }),
   persistFlowActivity: createPersistFlowActivity({ graphApiClient }),
 });
