@@ -116,7 +116,10 @@ mod test {
     static EXAMPLE_BEGIN: RequestBegin = RequestBegin {
         service: ServiceDescriptor {
             id: ServiceId::new(0x0102),
-            version: Version::new(0x03, 0x04),
+            version: Version {
+                major: 0x03,
+                minor: 0x04,
+            },
         },
         procedure: ProcedureDescriptor {
             id: ProcedureId::new(0x0506),

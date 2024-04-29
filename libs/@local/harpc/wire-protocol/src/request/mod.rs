@@ -199,7 +199,10 @@ mod test {
                 body: RequestBody::Begin(RequestBegin {
                     service: ServiceDescriptor {
                         id: ServiceId::new(0x01_02),
-                        version: Version::new(0x03, 0x04),
+                        version: Version {
+                            major: 0x03,
+                            minor: 0x04,
+                        },
                     },
 
                     procedure: ProcedureDescriptor {
@@ -226,7 +229,10 @@ mod test {
                 body: RequestBody::Begin(RequestBegin {
                     service: ServiceDescriptor {
                         id: ServiceId::new(0x01_02),
-                        version: Version::new(0x03, 0x04),
+                        version: Version {
+                            major: 0x03,
+                            minor: 0x04,
+                        },
                     },
                     procedure: ProcedureDescriptor {
                         id: ProcedureId::new(0x05_06),
@@ -295,7 +301,10 @@ mod test {
                 body: RequestBody::Begin(RequestBegin {
                     service: ServiceDescriptor {
                         id: ServiceId::new(0x01_02),
-                        version: Version::new(0x03, 0x04),
+                        version: Version {
+                            major: 0x03,
+                            minor: 0x04,
+                        },
                     },
                     procedure: ProcedureDescriptor {
                         id: ProcedureId::new(0x05_06),
