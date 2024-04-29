@@ -257,27 +257,40 @@ const parseCoordinatorInputs = async (params: {
 
   const { userAuthentication } = await getFlowContext();
 
-  const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
-    graphApiClient,
-    entityTypeIds: entityTypeIds!,
-    actorId: userAuthentication.actorId,
-    simplifyPropertyKeys: true,
-  });
-
-  const entityTypes = Object.values(dereferencedEntityTypes)
-    .filter(({ isLink }) => !isLink)
-    .map(({ schema }) => schema);
-
-  const linkEntityTypes = Object.values(dereferencedEntityTypes)
-    .filter(({ isLink }) => isLink)
-    .map(({ schema }) => schema);
-
   /**
    * @todo: simplify the properties in the existing entities
    */
   const existingEntities = inputExistingEntities
     ? mapActionInputEntitiesToEntities({ inputEntities: inputExistingEntities })
     : undefined;
+
+  const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
+    graphApiClient,
+    entityTypeIds: [
+      ...entityTypeIds!,
+      /**
+       * We need to include the types of the existing entities, to correctly
+       * determine whether the links are satisfiable.
+       *
+       * @todo: address this in the `getDereferencedEntityTypesActivity` function
+       */
+      ...(existingEntities?.map(({ metadata }) => metadata.entityTypeId) ?? []),
+    ].filter((entityTypeId, index, all) => all.indexOf(entityTypeId) === index),
+    actorId: userAuthentication.actorId,
+    simplifyPropertyKeys: true,
+  });
+
+  const entityTypes = Object.values(dereferencedEntityTypes)
+    .filter(
+      ({ isLink, schema }) => entityTypeIds!.includes(schema.$id) && !isLink,
+    )
+    .map(({ schema }) => schema);
+
+  const linkEntityTypes = Object.values(dereferencedEntityTypes)
+    .filter(
+      ({ isLink, schema }) => entityTypeIds!.includes(schema.$id) && isLink,
+    )
+    .map(({ schema }) => schema);
 
   return {
     prompt,
