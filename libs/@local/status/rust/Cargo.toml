@@ -5,8 +5,12 @@ name = "hash-status"
 description = "The HASH Status and Error Model."
 authors.workspace = true
 edition.workspace = true
+license = "MIT OR Apache-2.0"
 version = "0.0.0"
 publish = false
+
+[package.metadata.sync.turborepo]
+extra-dependencies = [{ name = "@local/status", version = "0.0.0-private" }]
 
 [dependencies]
 error-stack.workspace = true

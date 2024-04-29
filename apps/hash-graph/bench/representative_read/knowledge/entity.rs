@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use authorization::NoAuthorization;
+use authorization::AuthorizationApi;
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
     knowledge::EntityQueryPath,
@@ -25,10 +25,10 @@ use tokio::runtime::Runtime;
 
 use crate::util::Store;
 
-pub fn bench_get_entity_by_id(
+pub fn bench_get_entity_by_id<A: AuthorizationApi>(
     b: &mut Bencher,
     runtime: &Runtime,
-    store: &Store,
+    store: &Store<A>,
     actor_id: AccountId,
     entity_uuids: &[EntityUuid],
 ) {
@@ -41,10 +41,9 @@ pub fn bench_get_entity_by_id(
                 .expect("could not choose random entity")
         },
         |entity_uuid| async move {
-            let subgraph = store
+            let response = store
                 .get_entity(
                     actor_id,
-                    &NoAuthorization,
                     GetEntityParams {
                         query: StructuralQuery {
                             filter: Filter::Equal(
@@ -65,20 +64,21 @@ pub fn bench_get_entity_by_id(
                             cursor: None,
                         },
                         limit: None,
+                        include_count: false,
                     },
                 )
                 .await
                 .expect("failed to read entity from store");
-            assert_eq!(subgraph.0.roots.len(), 1);
+            assert_eq!(response.subgraph.roots.len(), 1);
         },
         SmallInput,
     );
 }
 
-pub fn bench_get_entities_by_property(
+pub fn bench_get_entities_by_property<A: AuthorizationApi>(
     b: &mut Bencher,
     runtime: &Runtime,
-    store: &Store,
+    store: &Store<A>,
     actor_id: AccountId,
     graph_resolve_depths: GraphResolveDepths,
 ) {
@@ -96,10 +96,9 @@ pub fn bench_get_entities_by_property(
         filter
             .convert_parameters()
             .expect("failed to convert parameters");
-        let subgraph = store
+        let response = store
             .get_entity(
                 actor_id,
-                &NoAuthorization,
                 GetEntityParams {
                     query: StructuralQuery {
                         filter,
@@ -118,18 +117,19 @@ pub fn bench_get_entities_by_property(
                         cursor: None,
                     },
                     limit: None,
+                    include_count: false,
                 },
             )
             .await
             .expect("failed to read entity from store");
-        assert_eq!(subgraph.0.roots.len(), 100);
+        assert_eq!(response.subgraph.roots.len(), 100);
     });
 }
 
-pub fn bench_get_link_by_target_by_property(
+pub fn bench_get_link_by_target_by_property<A: AuthorizationApi>(
     b: &mut Bencher,
     runtime: &Runtime,
-    store: &Store,
+    store: &Store<A>,
     actor_id: AccountId,
     graph_resolve_depths: GraphResolveDepths,
 ) {
@@ -151,10 +151,9 @@ pub fn bench_get_link_by_target_by_property(
         filter
             .convert_parameters()
             .expect("failed to convert parameters");
-        let subgraph = store
+        let response = store
             .get_entity(
                 actor_id,
-                &NoAuthorization,
                 GetEntityParams {
                     query: StructuralQuery {
                         filter,
@@ -173,10 +172,11 @@ pub fn bench_get_link_by_target_by_property(
                         cursor: None,
                     },
                     limit: None,
+                    include_count: false,
                 },
             )
             .await
             .expect("failed to read entity from store");
-        assert_eq!(subgraph.0.roots.len(), 100);
+        assert_eq!(response.subgraph.roots.len(), 100);
     });
 }

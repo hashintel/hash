@@ -1,13 +1,20 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { typedKeys } from "@local/advanced-types/typed-entries";
+import type { Entity } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 import type OpenAI from "openai";
 
-import { logger } from "../../shared/logger";
-import { getOpenAiResponse } from "../shared/openai";
+import { logger } from "../shared/activity-logger";
+import { getLlmResponse } from "../shared/get-llm-response";
+import {
+  getTextContentFromLlmMessage,
+  getToolCallsFromLlmAssistantMessage,
+  mapLlmMessageToOpenAiMessages,
+  mapOpenAiMessagesToLlmMessages,
+} from "../shared/get-llm-response/llm-message";
 import { stringify } from "../shared/stringify";
+import { inferEntitiesSystemPrompt } from "./infer-entities-system-prompt";
 import type {
   CouldNotInferEntitiesReturn,
   ProposedEntitySummariesByType,
@@ -28,12 +35,14 @@ export const inferEntitySummaries = async (params: {
   entityTypes: DereferencedEntityTypesByTypeId;
   inferenceState: InferenceState;
   providedOrRerequestedEntityTypes: Set<VersionedUrl>;
+  existingEntities?: Entity[];
 }): Promise<Status<InferenceState>> => {
   const {
     completionPayload,
     entityTypes,
     inferenceState,
     providedOrRerequestedEntityTypes,
+    existingEntities,
   } = params;
 
   const { iterationCount, usage: usageFromPreviousIterations } = inferenceState;
@@ -54,27 +63,29 @@ export const inferEntitySummaries = async (params: {
 
   logger.info(`Iteration ${iterationCount} begun.`);
 
-  const tools = generateSummaryTools(Object.values(entityTypes));
+  const tools = generateSummaryTools({
+    entityTypes: Object.values(entityTypes),
+    canLinkToExistingEntities:
+      !!existingEntities && existingEntities.length > 0,
+  });
 
-  const openApiPayload: OpenAI.ChatCompletionCreateParams = {
+  const llmResponse = await getLlmResponse({
     ...completionPayload,
+    systemPrompt: inferEntitiesSystemPrompt,
+    messages: mapOpenAiMessagesToLlmMessages({
+      messages: completionPayload.messages,
+    }),
     tools,
-  };
+  });
 
-  const openAiResponse = await getOpenAiResponse(openApiPayload);
-
-  if (openAiResponse.code !== StatusCode.Ok) {
+  if (llmResponse.status !== "ok") {
     return {
-      ...openAiResponse,
+      code: StatusCode.Internal,
       contents: [],
     };
   }
 
-  const { response, usage } = openAiResponse.contents[0]!;
-
-  const { finish_reason, message } = response;
-
-  const toolCalls = message.tool_calls;
+  const { stopReason, usage, message } = llmResponse;
 
   inferenceState.usage = [...usageFromPreviousIterations, usage];
 
@@ -91,7 +102,7 @@ export const inferEntitySummaries = async (params: {
 
     const newMessages = [
       ...completionPayload.messages,
-      message,
+      ...mapLlmMessageToOpenAiMessages({ message }),
       ...retryMessages,
     ];
 
@@ -109,10 +120,13 @@ export const inferEntitySummaries = async (params: {
     });
   };
 
-  switch (finish_reason) {
+  const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
+
+  switch (stopReason) {
     case "stop": {
+      const textContent = getTextContentFromLlmMessage({ message });
       const errorMessage = `AI Model returned 'stop' finish reason, with message: ${
-        message.content ?? "no message"
+        textContent ?? "no message"
       }`;
 
       logger.error(errorMessage);
@@ -120,8 +134,7 @@ export const inferEntitySummaries = async (params: {
       return {
         code: StatusCode.Unknown,
         contents: [inferenceState],
-        message:
-          message.content ?? "No entities could be inferred from the page.",
+        message: textContent ?? "No entities could be inferred from the page.",
       };
     }
 
@@ -130,7 +143,8 @@ export const inferEntitySummaries = async (params: {
         `AI Model returned 'length' finish reason on attempt ${iterationCount}.`,
       );
 
-      const toolCallId = toolCalls?.[0]?.id;
+      const toolCallId = toolCalls[0]?.id;
+
       if (!toolCallId) {
         return {
           code: StatusCode.ResourceExhausted,
@@ -167,52 +181,14 @@ export const inferEntitySummaries = async (params: {
         message: "The content filter was triggered",
       };
 
-    case "tool_calls": {
-      if (!toolCalls) {
-        const errorMessage =
-          "AI Model returned 'tool_calls' finish reason with no tool calls";
-
-        logger.error(`${errorMessage}. Message: ${stringify(message)}`);
-
-        return {
-          code: StatusCode.Internal,
-          contents: [inferenceState],
-          message: errorMessage,
-        };
-      }
-
+    case "tool_use": {
       const retryMessages: (
         | OpenAI.ChatCompletionToolMessageParam
         | OpenAI.ChatCompletionUserMessageParam
       )[] = [];
 
       for (const toolCall of toolCalls) {
-        const toolCallId = toolCall.id;
-
-        const functionCall = toolCall.function;
-
-        const { arguments: modelProvidedArgument, name: functionName } =
-          functionCall;
-
-        try {
-          JSON.parse(modelProvidedArgument);
-        } catch {
-          logger.error(
-            `Could not parse AI Model response on attempt ${iterationCount}: ${stringify(
-              modelProvidedArgument,
-            )}`,
-          );
-
-          retryMessages.push({
-            role: "tool",
-            content:
-              "Your previous response contained invalid JSON. Please try again.",
-            tool_call_id: toolCallId,
-          });
-          continue;
-        }
-
-        if (functionName === "could_not_infer_entities") {
+        if (toolCall.name === "could_not_infer_entities") {
           if (Object.keys(inferenceState.proposedEntitySummaries).length > 0) {
             return {
               code: StatusCode.Ok,
@@ -220,9 +196,7 @@ export const inferEntitySummaries = async (params: {
             };
           }
 
-          const parsedResponse = JSON.parse(
-            modelProvidedArgument,
-          ) as CouldNotInferEntitiesReturn;
+          const parsedResponse = toolCall.input as CouldNotInferEntitiesReturn;
 
           return {
             code: StatusCode.Aborted,
@@ -231,16 +205,15 @@ export const inferEntitySummaries = async (params: {
           };
         }
 
-        if (functionName === "register_entity_summaries") {
+        if (toolCall.name === "register_entity_summaries") {
           let proposedEntitySummariesByType: ProposedEntitySummariesByType;
           try {
-            proposedEntitySummariesByType = JSON.parse(
-              modelProvidedArgument,
-            ) as ProposedEntitySummariesByType;
+            proposedEntitySummariesByType =
+              toolCall.input as ProposedEntitySummariesByType;
           } catch (err) {
             logger.error(
               `Model provided invalid argument to register_entity_summaries function. Argument provided: ${stringify(
-                modelProvidedArgument,
+                toolCall.input,
               )}`,
             );
 
@@ -249,17 +222,18 @@ export const inferEntitySummaries = async (params: {
                 (err as Error).message
               }`,
               role: "tool",
-              tool_call_id: toolCallId,
+              tool_call_id: toolCall.id,
             });
             continue;
           }
 
           const { validSummaries, errorMessage } =
-            validateEntitySummariesByType(
-              proposedEntitySummariesByType,
-              entityTypes,
-              inferenceState.proposedEntitySummaries,
-            );
+            validateEntitySummariesByType({
+              parsedJson: proposedEntitySummariesByType,
+              entityTypesById: entityTypes,
+              existingSummaries: inferenceState.proposedEntitySummaries,
+              existingEntities,
+            });
 
           for (const validSummary of validSummaries) {
             if (
@@ -278,16 +252,18 @@ export const inferEntitySummaries = async (params: {
               Remember, if you have specified a sourceEntityId and targetEntityId for an entity, you must provide entities with an entityId for each of the source and target!
               `,
               role: "tool",
-              tool_call_id: toolCallId,
+              tool_call_id: toolCall.id,
             });
           }
         }
       }
 
-      const typesWithNoSuggestionsToRerequest = typedKeys(entityTypes).filter(
-        (entityTypeId) =>
+      const typesWithNoSuggestionsToRerequest = Object.values(
+        entityTypes,
+      ).filter(
+        ({ schema }) =>
           // We track which types we've already requested the model try again for – we won't ask again
-          !providedOrRerequestedEntityTypes.has(entityTypeId),
+          !providedOrRerequestedEntityTypes.has(schema.$id),
       );
 
       /**
@@ -301,16 +277,28 @@ export const inferEntitySummaries = async (params: {
           )}`,
         );
 
-        for (const entityTypeId of typesWithNoSuggestionsToRerequest) {
-          providedOrRerequestedEntityTypes.add(entityTypeId);
+        for (const { schema } of typesWithNoSuggestionsToRerequest) {
+          providedOrRerequestedEntityTypes.add(schema.$id);
         }
+
+        const isMissingEntities = typesWithNoSuggestionsToRerequest.some(
+          ({ isLink }) => !isLink,
+        );
+
+        const isMissingLinks = typesWithNoSuggestionsToRerequest.some(
+          ({ isLink }) => isLink,
+        );
+
+        const missingContentKinds = `${isMissingEntities ? "entities" : ""}${isMissingEntities && isMissingLinks ? " or " : ""}${isMissingLinks ? "links" : ""}`;
 
         retryMessages.push({
           content: dedent(`
-                   You did not suggest any entities of the following entity types: ${typesWithNoSuggestionsToRerequest.join(
-                     ", ",
-                   )}. Please reconsider the input text to see if you can identify any entities of those types.
-                `),
+            You did not suggest any ${missingContentKinds} of the following types: ${typesWithNoSuggestionsToRerequest.join(
+              ", ",
+            )}.
+            
+            Please reconsider the input text to see if you can identify any ${missingContentKinds} of those types${existingEntities && existingEntities.length > 0 && isMissingLinks ? ", including whether any links can be created to the existing entities provided." : "."}
+          `),
           role: "user",
         });
       }
@@ -348,7 +336,7 @@ export const inferEntitySummaries = async (params: {
     }
   }
 
-  const errorMessage = `AI Model returned unhandled finish reason: ${finish_reason}`;
+  const errorMessage = `AI Model returned unhandled finish reason: ${stopReason}`;
   logger.error(errorMessage);
 
   return {

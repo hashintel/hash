@@ -1,3 +1,4 @@
+import type { ProgressLogSignalData } from "@local/hash-isomorphic-utils/flows/types";
 import type {
   Client as TemporalClient,
   WorkflowExecutionInfo,
@@ -20,7 +21,7 @@ const parseHistoryItemPayload = (
 ) =>
   inputOrResults?.payloads
     ?.map(({ data }) => {
-      if (!data) {
+      if (!data || !data.toString()) {
         return data;
       }
 
@@ -165,6 +166,13 @@ const mapTemporalWorkflowToFlowStatus = async (
 
   const stepMap: { [activityId: string]: StepRun } = {};
 
+  /**
+   * Collect all progress signal events when building the step map,
+   * and assign them to the appropriate step afterwards.
+   */
+  const progressSignalEvents: proto.temporal.api.history.v1.IHistoryEvent[] =
+    [];
+
   if (events?.length) {
     /*
      * Walk backwards from the most recent event until we have populated the latest state data for each step
@@ -173,6 +181,14 @@ const mapTemporalWorkflowToFlowStatus = async (
       const event = events[i];
       if (!event) {
         throw new Error("Somehow out of bounds for events array");
+      }
+
+      if (
+        event.workflowExecutionSignaledEventAttributes?.signalName ===
+        "logProgress"
+      ) {
+        progressSignalEvents.push(event);
+        continue;
       }
 
       const nonScheduledAttributes =
@@ -187,7 +203,7 @@ const mapTemporalWorkflowToFlowStatus = async (
         !nonScheduledAttributes &&
         !event.activityTaskScheduledEventAttributes
       ) {
-        // This is not an activity-related event
+        // This is not an activity-related event. It may be a signal, which we handle in bulk below
         continue;
       }
 
@@ -202,6 +218,10 @@ const mapTemporalWorkflowToFlowStatus = async (
         ? getActivityScheduledDetails(event)
         : getActivityStartedDetails(events, nonScheduledAttributes!);
 
+      if (activityType === "persistFlowActivity") {
+        continue;
+      }
+
       if (stepMap[activityId]) {
         // We've already encountered and therefore populated all the details for this step
         continue;
@@ -213,6 +233,7 @@ const mapTemporalWorkflowToFlowStatus = async (
         startedAt,
         scheduledAt,
         inputs,
+        logs: [],
         status: FlowStepStatus.Scheduled,
         attempt,
       };
@@ -286,10 +307,61 @@ const mapTemporalWorkflowToFlowStatus = async (
     }
   }
 
-  const { type, runId, status, startTime, executionTime, closeTime } = workflow;
+  /**
+   * Assign logs to the appropriate step. The earliest logs will be at the end of the array,
+   * as we walked the events from latest to earliest. We want the logs in ascending order, so go backwards again.
+   */
+  for (let i = progressSignalEvents.length - 1; i >= 0; i--) {
+    const progressSignalEvent = progressSignalEvents[i];
+    if (!progressSignalEvent) {
+      throw new Error("Somehow out of bounds for progressSignalEvents array");
+    }
+
+    if (!progressSignalEvent.workflowExecutionSignaledEventAttributes) {
+      throw new Error(
+        `No signal attributes on progress signal event with id ${progressSignalEvent.eventId}`,
+      );
+    }
+
+    const signalData = parseHistoryItemPayload(
+      progressSignalEvent.workflowExecutionSignaledEventAttributes.input,
+    )?.[0] as ProgressLogSignalData | undefined;
+
+    if (!signalData) {
+      throw new Error(
+        `No signal data on progress signal event with id ${progressSignalEvent.eventId}`,
+      );
+    }
+
+    const { attempt, logs } = signalData;
+    for (const log of logs) {
+      const { stepId } = log;
+
+      const activityRecord = stepMap[stepId];
+      if (!activityRecord) {
+        throw new Error(`No activity record found for step with id ${stepId}`);
+      }
+
+      if (log.type === "ProposedEntity" && attempt < activityRecord.attempt) {
+        /**
+         * If we have a proposed entity logged from a retried attempt, don't record it as nothing will happen with it.
+         * By contrast, a PersistedEntity has already been committed to the database and is therefore relevant.
+         *
+         * @todo H-2545: heartbeat details of persisted entities from an activity so that if it's retried, the activity
+         *    can pick up where it left off.
+         */
+        continue;
+      }
+
+      activityRecord.logs.push(log);
+    }
+  }
+
+  const { runId, status, startTime, executionTime, closeTime, memo } = workflow;
 
   return {
-    flowDefinitionId: type,
+    flowDefinitionId:
+      (memo?.flowDefinitionId as string | undefined) ?? "unknown",
     runId,
     status: status.name as FlowRunStatus,
     startedAt: startTime.toISOString(),
@@ -326,7 +398,7 @@ export const getFlowRuns: ResolverFn<
             .map((type) => `'${type}'`)
             .join(", ")})`,
         }
-      : {},
+      : { query: "WorkflowType = 'runFlow'" },
   );
 
   for await (const workflow of workflowIterable) {

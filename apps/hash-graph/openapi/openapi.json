@@ -872,6 +872,57 @@
         }
       }
     },
+    "/entities/diff": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
+        "operationId": "diff_entity",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiffEntityParams"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The difference between the two entities",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiffEntityResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Entity ID was not found"
+          },
+          "422": {
+            "description": "Provided request body is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/entities/embeddings": {
       "post": {
         "tags": [
@@ -969,6 +1020,55 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetEntityByQueryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Provided query is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/entities/query/count": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
+        "operationId": "count_entities",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntityStructuralQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
                 }
               }
             }
@@ -3117,6 +3217,73 @@
           "decisionTime"
         ]
       },
+      "DiffEntityParams": {
+        "type": "object",
+        "required": [
+          "firstEntityId",
+          "firstDecisionTime",
+          "firstTransactionTime",
+          "secondEntityId",
+          "secondDecisionTime",
+          "secondTransactionTime"
+        ],
+        "properties": {
+          "firstDecisionTime": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            ],
+            "nullable": true
+          },
+          "firstEntityId": {
+            "$ref": "#/components/schemas/EntityId"
+          },
+          "firstTransactionTime": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            ],
+            "nullable": true
+          },
+          "secondDecisionTime": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            ],
+            "nullable": true
+          },
+          "secondEntityId": {
+            "$ref": "#/components/schemas/EntityId"
+          },
+          "secondTransactionTime": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DiffEntityResult": {
+        "type": "object",
+        "required": [
+          "properties"
+        ],
+        "properties": {
+          "properties": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PropertyDiff"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
       "EdgeResolveDepths": {
         "type": "object",
         "required": [
@@ -4433,6 +4600,9 @@
             ],
             "nullable": true
           },
+          "includeCount": {
+            "type": "boolean"
+          },
           "limit": {
             "type": "integer",
             "nullable": true,
@@ -4457,6 +4627,11 @@
           "subgraph"
         ],
         "properties": {
+          "count": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          },
           "cursor": {
             "allOf": [
               {
@@ -5648,6 +5823,83 @@
           {}
         ]
       },
+      "PropertyDiff": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "path",
+              "added",
+              "op"
+            ],
+            "properties": {
+              "added": {
+                "$ref": "#/components/schemas/Property"
+              },
+              "op": {
+                "type": "string",
+                "enum": [
+                  "added"
+                ]
+              },
+              "path": {
+                "$ref": "#/components/schemas/PropertyPath"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "path",
+              "removed",
+              "op"
+            ],
+            "properties": {
+              "op": {
+                "type": "string",
+                "enum": [
+                  "removed"
+                ]
+              },
+              "path": {
+                "$ref": "#/components/schemas/PropertyPath"
+              },
+              "removed": {
+                "$ref": "#/components/schemas/Property"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "path",
+              "old",
+              "new",
+              "op"
+            ],
+            "properties": {
+              "new": {
+                "$ref": "#/components/schemas/Property"
+              },
+              "old": {
+                "$ref": "#/components/schemas/Property"
+              },
+              "op": {
+                "type": "string",
+                "enum": [
+                  "changed"
+                ]
+              },
+              "path": {
+                "$ref": "#/components/schemas/PropertyPath"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "op"
+        }
+      },
       "PropertyMetadata": {
         "type": "object",
         "properties": {
@@ -5664,9 +5916,21 @@
         }
       },
       "PropertyMetadataMap": {
-        "type": "object",
-        "additionalProperties": {
-          "$ref": "#/components/schemas/PropertyMetadata"
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "path",
+            "metadata"
+          ],
+          "properties": {
+            "metadata": {
+              "$ref": "#/components/schemas/PropertyMetadata"
+            },
+            "path": {
+              "$ref": "#/components/schemas/PropertyPath"
+            }
+          }
         }
       },
       "PropertyObject": {
@@ -5867,7 +6131,21 @@
         }
       },
       "PropertyPath": {
-        "type": "string"
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/PropertyPathElement"
+        }
+      },
+      "PropertyPathElement": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/BaseUrl"
+          },
+          {
+            "type": "integer",
+            "minimum": 0
+          }
+        ]
       },
       "PropertyProvenance": {
         "type": "object",

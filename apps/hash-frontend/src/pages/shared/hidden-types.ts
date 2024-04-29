@@ -12,7 +12,6 @@ export const hiddenEntityTypeIds: VersionedUrl[] = [
   systemEntityTypes.browserPluginSettings.entityTypeId,
   systemEntityTypes.comment.entityTypeId,
   systemEntityTypes.commentNotification.entityTypeId,
-  systemEntityTypes.googleSheetsIntegration.entityTypeId,
   systemEntityTypes.graphChangeNotification.entityTypeId,
   systemEntityTypes.linearIntegration.entityTypeId,
   systemEntityTypes.mentionNotification.entityTypeId,

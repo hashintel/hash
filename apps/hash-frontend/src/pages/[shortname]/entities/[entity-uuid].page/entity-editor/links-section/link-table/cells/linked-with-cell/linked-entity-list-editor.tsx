@@ -18,16 +18,16 @@ import { Box } from "@mui/material";
 import produce from "immer";
 import { useMemo, useState } from "react";
 
-import { getImageUrlFromEntityProperties } from "../../../../../../../../shared/get-image-url-from-properties";
+import { getImageUrlFromEntityProperties } from "../../../../../../../../shared/get-file-properties";
 import { useMarkLinkEntityToArchive } from "../../../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../../../entity-editor-context";
 import { AddAnotherButton } from "../../../../properties-section/property-table/cells/value-cell/array-editor/add-another-button";
 import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
 import type { LinkedWithCell } from "../linked-with-cell";
 import { sortLinkAndTargetEntities } from "../sort-link-and-target-entities";
-import { EntitySelector } from "./entity-selector";
 import { LinkedEntityListRow } from "./linked-entity-list-editor/linked-entity-list-row";
 import { MaxItemsReached } from "./linked-entity-list-editor/max-items-reached";
+import { LinkedEntitySelector } from "./linked-entity-selector";
 
 /**
  * @todo - This is unsafe, and should be refactored to return a new type `DraftEntity`, so that we aren't
@@ -194,7 +194,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
       {!canAddMore && <MaxItemsReached limit={maxItems} />}
       {canAddMore &&
         (addingLink ? (
-          <EntitySelector
+          <LinkedEntitySelector
             includeDrafts={
               !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId)
             }

@@ -30,13 +30,23 @@ import { TextField } from "./text-field";
 export const TYPE_SELECTOR_HEIGHT = 57;
 
 export type TypeListSelectorDropdownProps = {
+  creationProps?: {
+    createButtonProps: Omit<
+      ButtonProps,
+      "children" | "variant" | "size"
+    > | null;
+    variant: "entity type" | "property type" | "entity" | "file" | "link type";
+  };
   query: string;
-  createButtonProps: Omit<ButtonProps, "children" | "variant" | "size"> | null;
-  variant: "entity type" | "property type" | "entity" | "file" | "link type";
 };
 
-const DropdownPropsContext =
-  createContext<TypeListSelectorDropdownProps | null>(null);
+const DropdownPropsContext = createContext<
+  | (TypeListSelectorDropdownProps & {
+      inputHeight: number | string;
+      multiple?: boolean;
+    })
+  | null
+>(null);
 
 const useDropdownProps = () => {
   const value = useContext(DropdownPropsContext);
@@ -48,13 +58,19 @@ const useDropdownProps = () => {
   return value;
 };
 
-const TypeListSelectorDropdown = ({ children, ...props }: PaperProps) => {
-  const { query, createButtonProps, variant } = useDropdownProps();
+const TypeListSelectorDropdown = ({
+  children,
+  ...props
+}: PaperProps & { inputHeight?: number; multiple?: boolean }) => {
+  const { query, creationProps, inputHeight, multiple } = useDropdownProps();
 
   return (
-    <AutocompleteDropdown {...props} inputHeight={TYPE_SELECTOR_HEIGHT}>
+    <AutocompleteDropdown
+      {...props}
+      inputHeight={multiple ? "auto" : inputHeight}
+    >
       {children}
-      {createButtonProps ? (
+      {creationProps ? (
         <Button
           variant="tertiary"
           startIcon={<StyledPlusCircleIcon />}
@@ -64,7 +80,7 @@ const TypeListSelectorDropdown = ({ children, ...props }: PaperProps) => {
             alignItems: "center",
             mt: 1,
           }}
-          {...createButtonProps}
+          {...creationProps.createButtonProps}
         >
           <Typography
             variant="smallTextLabels"
@@ -89,16 +105,28 @@ const TypeListSelectorDropdown = ({ children, ...props }: PaperProps) => {
               </Typography>
             </>
           ) : null}
-          {variant === "entity type" ? (
-            <Chip color="teal" label={variant.toUpperCase()} sx={{ ml: 1.5 }} />
-          ) : variant === "entity" ? (
-            <Chip color="teal" label={variant.toUpperCase()} sx={{ ml: 1.5 }} />
-          ) : variant === "link type" ? (
-            <Chip color="aqua" label={variant.toUpperCase()} sx={{ ml: 1.5 }} />
+          {creationProps.variant === "entity type" ? (
+            <Chip
+              color="teal"
+              label={creationProps.variant.toUpperCase()}
+              sx={{ ml: 1.5 }}
+            />
+          ) : creationProps.variant === "entity" ? (
+            <Chip
+              color="teal"
+              label={creationProps.variant.toUpperCase()}
+              sx={{ ml: 1.5 }}
+            />
+          ) : creationProps.variant === "link type" ? (
+            <Chip
+              color="aqua"
+              label={creationProps.variant.toUpperCase()}
+              sx={{ ml: 1.5 }}
+            />
           ) : (
             <Chip
               color="purple"
-              label={variant.toUpperCase()}
+              label={creationProps.variant.toUpperCase()}
               sx={{ ml: 1.5 }}
             />
           )}
@@ -113,13 +141,14 @@ type OptionRenderData = Omit<SelectorAutocompleteOptionProps, "liProps"> & {
   uniqueId: string;
 };
 
-type SelectorAutocompleteProps<
+export type SelectorAutocompleteProps<
   T,
   Multiple extends boolean | undefined = undefined,
 > = Omit<
   AutocompleteProps<T, Multiple, true, false>,
   "renderInput" | "renderOption" | "getOptionLabel" | "componentsProps"
 > & {
+  inputHeight?: number | string;
   inputRef?: Ref<Element>;
   inputPlaceholder?: string;
   /** Determines if a given option matches a selected value (defaults to strict equality) */
@@ -145,6 +174,7 @@ export const SelectorAutocomplete = <
   isOptionEqualToValue,
   optionToRenderData,
   sx,
+  inputHeight,
   inputRef,
   inputPlaceholder,
   dropdownProps,
@@ -153,6 +183,7 @@ export const SelectorAutocomplete = <
   joined,
   onClickAway,
   PaperComponent,
+  multiple,
   ...rest
 }: SelectorAutocompleteProps<
   Multiple extends true ? (T extends unknown[] ? T[number] : T) : T,
@@ -170,10 +201,22 @@ export const SelectorAutocomplete = <
 
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
 
+  const height = inputHeight ?? TYPE_SELECTOR_HEIGHT;
+
+  const dropdownContextValue = useMemo(
+    () => ({
+      inputHeight: height,
+      multiple,
+      ...dropdownProps,
+    }),
+    [dropdownProps, height, multiple],
+  );
+
   return (
-    <DropdownPropsContext.Provider value={dropdownProps}>
+    <DropdownPropsContext.Provider value={dropdownContextValue}>
       <ClickAwayListener onClickAway={() => onClickAway?.()}>
         <Autocomplete
+          multiple={multiple}
           open={open}
           sx={[{ width: "100%" }, ...(Array.isArray(sx) ? sx : [sx])]}
           /**
@@ -218,7 +261,9 @@ export const SelectorAutocomplete = <
                   (theme) => ({
                     // The popover needs to know how tall this is to draw
                     // a shadow around it
-                    height: TYPE_SELECTOR_HEIGHT,
+                    height: multiple ? "auto" : height,
+                    minHeight: height,
+                    py: "0 !important",
 
                     // Focus is handled by the options popover
                     "&.Mui-focused": {

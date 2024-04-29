@@ -2,38 +2,34 @@ import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
-import type OpenAI from "openai";
 
-import { getOpenAiResponse, modelAliasToSpecificModel } from "../shared/openai";
+import { getLlmResponse } from "../shared/get-llm-response";
+import { getToolCallsFromLlmAssistantMessage } from "../shared/get-llm-response/llm-message";
+import type { LlmToolDefinition } from "../shared/get-llm-response/types";
+import { modelAliasToSpecificModel } from "../shared/openai-client";
 import type { FlowActionActivity } from "./types";
 
-const webQueriesSystemMessage: OpenAI.ChatCompletionSystemMessageParam = {
-  role: "system",
-  content: dedent(`
+const webQueriesSystemPrompt = dedent(`
     You are a Web Search Assistant.
     The user provides you with a text prompt, from which you create one or more queries
       for a web search engine (such as Google, Bing, Duck Duck Go, etc) which lead
       to search results that can satisfy the prompt.
-   `),
-};
+   `);
 
-const tools: OpenAI.ChatCompletionTool[] = [
+const tools: LlmToolDefinition[] = [
   {
-    function: {
-      name: "propose_query",
-      description: "Propose a web search query",
-      parameters: {
-        type: "object",
-        properties: {
-          query: {
-            type: "string",
-            description: "The web search query",
-          },
+    name: "propose_query",
+    description: "Propose a web search query",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "The web search query",
         },
-        required: ["query"],
       },
+      required: ["query"],
     },
-    type: "function",
   },
 ];
 
@@ -57,55 +53,36 @@ export const generateWebQueriesAction: FlowActionActivity = async ({
     };
   }
 
-  const openApiPayload: OpenAI.ChatCompletionCreateParams = {
+  const llmResponse = await getLlmResponse({
+    systemPrompt: webQueriesSystemPrompt,
     messages: [
-      webQueriesSystemMessage,
       {
         role: "user",
-        content: prompt,
+        content: [{ type: "text", text: prompt }],
       },
     ],
     model: modelAliasToSpecificModel[model],
     tools,
-  };
+  });
 
-  const openAiResponse = await getOpenAiResponse(openApiPayload);
-
-  if (openAiResponse.code !== StatusCode.Ok) {
-    return {
-      ...openAiResponse,
-      contents: [],
-    };
-  }
-
-  const { response, usage: _usage } = openAiResponse.contents[0]!;
-
-  /** @todo: capture usage */
-
-  const toolCalls = response.message.tool_calls;
-
-  if (!toolCalls) {
-    /** @todo: retry if there are no tool calls with retry message */
-
+  if (llmResponse.status !== "ok") {
     return {
       code: StatusCode.Internal,
-      message: "No tool calls found in Open AI response",
       contents: [],
     };
   }
+
+  const { usage: _usage, message } = llmResponse;
+
+  const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
+
+  /** @todo: capture usage */
 
   const queries: string[] = [];
 
   for (const toolCall of toolCalls) {
-    const functionCall = toolCall.function;
-
-    const { arguments: modelProvidedArguments, name: functionName } =
-      functionCall;
-
-    if (functionName === "propose_query") {
-      const { query } = JSON.parse(
-        modelProvidedArguments,
-      ) as ProposeQueryFunctionCallArguments;
+    if (toolCall.name === "propose_query") {
+      const { query } = toolCall.input as ProposeQueryFunctionCallArguments;
 
       /** @todo: handle invalid JSON object and retry with retry message */
 

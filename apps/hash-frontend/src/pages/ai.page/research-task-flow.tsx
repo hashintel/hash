@@ -38,8 +38,10 @@ const constructFlowDefinition = (params: {
   return {
     name: "Research Task",
     flowDefinitionId: "research-task" as EntityUuid,
+    description: "Research task",
     trigger: {
       triggerDefinitionId: "userTrigger",
+      description: "User provides research prompt and entity types of interest",
       kind: "trigger",
       outputs: [
         {
@@ -71,6 +73,8 @@ const constructFlowDefinition = (params: {
         stepId: "1",
         kind: "action",
         actionDefinitionId: "researchEntities",
+        description:
+          "Discover entities according to research specification, using public web sources",
         inputSources: [
           {
             inputName:
@@ -91,6 +95,7 @@ const constructFlowDefinition = (params: {
       {
         stepId: "2",
         kind: "action",
+        description: "Save discovered entities and relationships to HASH graph",
         actionDefinitionId: "persistEntities",
         inputSources: [
           {
@@ -101,6 +106,14 @@ const constructFlowDefinition = (params: {
             sourceStepOutputName:
               "proposedEntities" satisfies OutputNameForAction<"researchEntities">,
           },
+          {
+            inputName: "draft" satisfies InputNameForAction<"persistEntities">,
+            kind: "hardcoded",
+            payload: {
+              kind: "Boolean",
+              value: true,
+            },
+          },
         ],
       },
       ...(includeQuestionAnswerAction
@@ -109,6 +122,7 @@ const constructFlowDefinition = (params: {
               stepId: "3",
               kind: "action" as const,
               actionDefinitionId: "answerQuestion" as const,
+              description: "Answer user's question using discovered entities",
               inputSources: [
                 {
                   inputName:
@@ -131,28 +145,25 @@ const constructFlowDefinition = (params: {
         : []),
     ],
     outputs: [
-      {
-        stepId: "2",
-        stepOutputName:
-          "persistedEntities" satisfies OutputNameForAction<"persistEntities">,
-        name: "persistedEntities" as const,
-        payloadKind: "PersistedEntities",
-        array: false,
-        required: true,
-      },
-      ...(includeQuestionAnswerAction
-        ? [
-            {
-              stepId: "3",
-              stepOutputName:
-                "answer" satisfies OutputNameForAction<"answerQuestion">,
-              payloadKind: "Text",
-              name: "answer" as const,
-              array: false,
-              required: true,
-            } as const,
-          ]
-        : []),
+      includeQuestionAnswerAction
+        ? ({
+            stepId: "3",
+            stepOutputName:
+              "answer" satisfies OutputNameForAction<"answerQuestion">,
+            payloadKind: "Text",
+            name: "answer" as const,
+            array: false,
+            required: true,
+          } as const)
+        : {
+            stepId: "2",
+            stepOutputName:
+              "persistedEntities" satisfies OutputNameForAction<"persistEntities">,
+            name: "persistedEntities" as const,
+            payloadKind: "PersistedEntities",
+            array: false,
+            required: true,
+          },
     ],
   };
 };
@@ -204,7 +215,7 @@ export const ResearchTaskFlow: FunctionComponent = () => {
     StartFlowMutationVariables
   >(startFlowMutation);
 
-  const [entityType, setEntityType] = useState<EntityTypeWithMetadata>();
+  const [entityTypes, setEntityTypes] = useState<EntityTypeWithMetadata[]>([]);
   const [prompt, setPrompt] = useState<string>("");
   const [question, setQuestion] = useState<string>("");
 
@@ -216,7 +227,7 @@ export const ResearchTaskFlow: FunctionComponent = () => {
     async (event: FormEvent) => {
       event.preventDefault();
 
-      if (entityType && prompt) {
+      if (entityTypes.length && prompt) {
         setPersistedEntities(undefined);
         setAnswer(undefined);
 
@@ -243,7 +254,7 @@ export const ResearchTaskFlow: FunctionComponent = () => {
                   outputName: "entityTypeIds",
                   payload: {
                     kind: "VersionedUrl",
-                    value: [entityType.schema.$id],
+                    value: entityTypes.map(({ schema }) => schema.$id),
                   },
                 },
                 ...(question
@@ -266,10 +277,9 @@ export const ResearchTaskFlow: FunctionComponent = () => {
           const status = data.startFlow as RunFlowWorkflowResponse;
 
           if (status.code === StatusCode.Ok) {
-            const persistedEntitiesOutput =
-              status.contents[0]?.flowOutputs?.find(
-                (output) => output.outputName === "persistedEntities",
-              );
+            const persistedEntitiesOutput = status.contents[0]?.outputs?.find(
+              (output) => output.outputName === "persistedEntities",
+            );
 
             if (!persistedEntitiesOutput) {
               throw new Error(
@@ -282,7 +292,7 @@ export const ResearchTaskFlow: FunctionComponent = () => {
             );
 
             if (includeQuestionAnswerAction) {
-              const answerOutput = status.contents[0]?.flowOutputs?.find(
+              const answerOutput = status.contents[0]?.outputs?.find(
                 (output) => output.outputName === "answer",
               );
 
@@ -296,10 +306,10 @@ export const ResearchTaskFlow: FunctionComponent = () => {
         }
       }
     },
-    [entityType, prompt, question, startFlow],
+    [entityTypes, prompt, question, startFlow],
   );
 
-  const isDisabled = !entityType || !prompt;
+  const isDisabled = !entityTypes.length || !prompt;
 
   return (
     <SectionContainer>
@@ -325,10 +335,17 @@ export const ResearchTaskFlow: FunctionComponent = () => {
             </Box>
           </InputLabel>
           <EntityTypeSelector
-            onSelect={(selectedEntityType) => setEntityType(selectedEntityType)}
+            onSelect={(selectedEntityType) => {
+              setEntityTypes((prev) => [...prev, selectedEntityType]);
+            }}
             disableCreateNewEmpty
             autoFocus={false}
           />
+          {entityTypes.map((entityType) => (
+            <Typography key={entityType.schema.$id}>
+              {entityType.schema.$id}
+            </Typography>
+          ))}
         </Box>
         <Box>
           <InputLabel>

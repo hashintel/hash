@@ -17,7 +17,7 @@ import { FilePowerpointLightIcon } from "../../../../shared/icons/file-powerpoin
 import { FileVideoLightIcon } from "../../../../shared/icons/file-video-light-icon";
 import { FileWordLightIcon } from "../../../../shared/icons/file-word-light-icon";
 import { Link } from "../../../../shared/ui";
-import { getFileUrlFromFileProperties } from "../../get-image-url-from-properties";
+import { getImageUrlFromEntityProperties } from "../../get-file-properties";
 import { useEntityHref } from "../../use-entity-href";
 import { GridViewItemWrapper } from "./grid-view-item-wrapper";
 
@@ -127,11 +127,7 @@ export const GridViewItem: FunctionComponent<{
   const href = useEntityHref(entity, false);
 
   const imageUrl = useMemo(() => {
-    const { isImage, url } = getFileUrlFromFileProperties(entity.properties);
-
-    if (isImage) {
-      return url;
-    }
+    return getImageUrlFromEntityProperties(entity.properties);
   }, [entity]);
 
   return (

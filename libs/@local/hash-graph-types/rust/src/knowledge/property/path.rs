@@ -6,12 +6,13 @@ use std::{borrow::Cow, iter::once};
 use bytes::BytesMut;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, ToSql, Type};
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 use type_system::url::{BaseUrl, ParseBaseUrlError};
 #[cfg(feature = "utoipa")]
 use utoipa::{openapi, ToSchema};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(untagged)]
 pub enum PropertyPathElement<'k> {
     Property(Cow<'k, BaseUrl>),
@@ -48,7 +49,8 @@ impl PropertyPathElement<'_> {
     }
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
 pub struct PropertyPath<'k> {
     elements: Vec<PropertyPathElement<'k>>,
 }
@@ -154,33 +156,14 @@ impl<'k> IntoIterator for &'k PropertyPath<'k> {
     }
 }
 
-impl Serialize for PropertyPath<'_> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.to_json_pointer().serialize(serializer)
-    }
-}
-
-impl<'de, 'a: 'de> Deserialize<'de> for PropertyPath<'a> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        Self::from_json_pointer(&String::deserialize(deserializer)?).map_err(de::Error::custom)
-    }
-}
-
 #[cfg(feature = "utoipa")]
 impl ToSchema<'_> for PropertyPath<'_> {
     fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
         (
             "PropertyPath",
-            openapi::Schema::Object(openapi::schema::Object::with_type(
-                openapi::SchemaType::String,
-            ))
-            .into(),
+            openapi::Ref::from_schema_name("PropertyPathElement")
+                .to_array_builder()
+                .into(),
         )
     }
 }

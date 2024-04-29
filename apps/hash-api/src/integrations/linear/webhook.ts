@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 
 import { tupleIncludes } from "@local/advanced-types/includes";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import type { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import { supportedLinearTypes } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -17,7 +18,6 @@ import {
 import { getLinearSecretValueByHashWorkspaceId } from "../../graph/knowledge/system-types/linear-user-secret";
 import { systemAccountId } from "../../graph/system-account";
 import { logger } from "../../logger";
-import { createTemporalClient } from "../../temporal";
 
 type LinearWebhookPayload = {
   action: "create" | "update" | "delete";

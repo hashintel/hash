@@ -19,7 +19,7 @@ import { useMemo } from "react";
 
 import { useLogoutFlow } from "../../../components/hooks/use-logout-flow";
 import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
-import { getImageUrlFromEntityProperties } from "../../../pages/shared/get-image-url-from-properties";
+import { getImageUrlFromEntityProperties } from "../../../pages/shared/get-file-properties";
 import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
 import { Button, MenuItem } from "../../ui";
 

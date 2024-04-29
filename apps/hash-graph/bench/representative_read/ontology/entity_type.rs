@@ -1,4 +1,4 @@
-use authorization::NoAuthorization;
+use authorization::AuthorizationApi;
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
     store::{ontology::GetEntityTypesParams, query::Filter, EntityTypeStore},
@@ -19,10 +19,10 @@ use type_system::url::VersionedUrl;
 
 use crate::util::Store;
 
-pub fn bench_get_entity_type_by_id(
+pub fn bench_get_entity_type_by_id<A: AuthorizationApi>(
     b: &mut Bencher,
     runtime: &Runtime,
-    store: &Store,
+    store: &Store<A>,
     actor_id: AccountId,
     entity_type_ids: &[VersionedUrl],
 ) {
@@ -38,7 +38,6 @@ pub fn bench_get_entity_type_by_id(
             store
                 .get_entity_type(
                     actor_id,
-                    &NoAuthorization,
                     GetEntityTypesParams {
                         query: StructuralQuery {
                             filter: Filter::for_versioned_url(entity_type_id),

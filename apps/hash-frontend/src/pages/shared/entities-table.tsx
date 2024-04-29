@@ -609,6 +609,7 @@ export const EntitiesTable: FunctionComponent<{
       />
       {view === "Graph" ? (
         <EntitiesGraphChart
+          entities={entities}
           isPrimaryEntity={(entity) =>
             entityTypeBaseUrl
               ? extractBaseUrl(entity.metadata.entityTypeId) ===

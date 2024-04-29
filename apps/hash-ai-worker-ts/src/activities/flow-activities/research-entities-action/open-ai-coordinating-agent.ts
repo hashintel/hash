@@ -1,190 +1,273 @@
-import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
-import { StatusCode } from "@local/status";
-import dedent from "dedent";
+import type { GraphApi } from "@local/hash-graph-client";
+import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
-  ChatCompletionCreateParams,
-  ChatCompletionMessageParam,
-  ChatCompletionSystemMessageParam,
-} from "openai/resources";
+  ProposedEntity,
+  StepInput,
+} from "@local/hash-isomorphic-utils/flows/types";
+import type { AccountId, Entity } from "@local/hash-subgraph";
+import dedent from "dedent";
 
-import type { PermittedOpenAiModel } from "../../shared/openai";
-import { getOpenAiResponse } from "../../shared/openai";
-import type { CoordinatorToolId } from "./coordinator-tools";
+import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity";
+import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
+import { getLlmResponse } from "../../shared/get-llm-response";
+import type {
+  LlmMessage,
+  LlmUserMessage,
+} from "../../shared/get-llm-response/llm-message";
 import {
-  coordinatorToolDefinitions,
-  isCoordinatorToolId,
-} from "./coordinator-tools";
-import type { CompletedToolCall, ToolCall } from "./types";
-import {
-  mapPreviousCallsToChatCompletionMessages,
-  mapToolDefinitionToOpenAiTool,
-  parseOpenAiFunctionArguments,
-} from "./util";
+  getTextContentFromLlmMessage,
+  getToolCallsFromLlmAssistantMessage,
+} from "../../shared/get-llm-response/llm-message";
+import type { ParsedLlmToolCall } from "../../shared/get-llm-response/types";
+import { mapActionInputEntitiesToEntities } from "../../shared/map-action-input-entities-to-entities";
+import type { PermittedOpenAiModel } from "../../shared/openai-client";
+import type { CoordinatorToolName } from "./coordinator-tools";
+import { coordinatorToolDefinitions } from "./coordinator-tools";
+import type { CompletedToolCall } from "./types";
+import { mapPreviousCallsToLlmMessages } from "./util";
 
 const model: PermittedOpenAiModel = "gpt-4-0125-preview";
 
-const getNextToolCalls = async (params: {
-  submittedProposedEntities: ProposedEntity[];
-  previousPlan: string;
-  previousCalls?: {
-    completedToolCalls: CompletedToolCall<CoordinatorToolId>[];
-  }[];
+export type CoordinatingAgentInput = {
   prompt: string;
-}): Promise<{
-  toolCalls: ToolCall<CoordinatorToolId>[];
-}> => {
-  const { prompt, previousCalls, submittedProposedEntities, previousPlan } =
-    params;
+  entityTypes: DereferencedEntityType<string>[];
+  linkEntityTypes?: DereferencedEntityType<string>[];
+  existingEntities?: Entity[];
+};
 
-  const systemMessage: ChatCompletionSystemMessageParam = {
-    role: "system",
-    content: dedent(`
-      You are a coordinating agent for a research task.
-      The user will provides you with a text prompt, from which you will be
-        able to make the relevant function calls to progress towards 
-        completing the task.
+const generateSystemPromptPrefix = (params: {
+  input: CoordinatingAgentInput;
+}) => {
+  const { linkEntityTypes, existingEntities } = params.input;
+
+  return dedent(`
+    You are a coordinating agent for a research task.
+
+    The user will provide you with:
+      - Prompt: the text prompt you need to satisfy to complete the research task
+      - Entity Types: the types of entities you can propose to satisfy the research prompt
+      ${
+        linkEntityTypes
+          ? dedent(`
+      - Link Types: the types of links you can propose between entities
+      `)
+          : ""
+      }
+      ${
+        existingEntities
+          ? dedent(`
+      - Existing Entities: a list of existing entities, that may contain relevant information
+        and you may want to link to from the proposed entities.
+      `)
+          : ""
+      }
+
+    You must completely satisfy the research prompt, without any missing information.
+  `);
+};
+
+const generateInitialUserMessage = (params: {
+  input: CoordinatingAgentInput;
+}): LlmUserMessage => {
+  const { prompt, entityTypes, linkEntityTypes, existingEntities } =
+    params.input;
+  return {
+    role: "user",
+    content: [
+      {
+        type: "text",
+        text: dedent(`
+        Prompt: ${prompt}
+        Entity Types: ${JSON.stringify(entityTypes)}
+        ${linkEntityTypes ? `Link Types: ${JSON.stringify(linkEntityTypes)}` : ""}
+        ${existingEntities ? `Existing Entities: ${JSON.stringify(existingEntities)}` : ""}
+      `),
+      },
+    ],
+  };
+};
+
+export type CoordinatingAgentState = {
+  plan: string;
+  proposedEntities: ProposedEntity[];
+  submittedEntityIds: string[];
+  previousCalls: {
+    completedToolCalls: CompletedToolCall<CoordinatorToolName>[];
+  }[];
+  hasConductedCheckStep: boolean;
+};
+
+const getNextToolCalls = async (params: {
+  input: CoordinatingAgentInput;
+  state: CoordinatingAgentState;
+}): Promise<{
+  toolCalls: ParsedLlmToolCall<CoordinatorToolName>[];
+}> => {
+  const { input, state } = params;
+
+  const submittedProposedEntities = state.proposedEntities.filter(
+    (proposedEntity) =>
+      !("sourceEntityId" in proposedEntity) &&
+      state.submittedEntityIds.includes(proposedEntity.localEntityId),
+  );
+
+  const submittedProposedLinks = state.proposedEntities.filter(
+    (proposedEntity) =>
+      "sourceEntityId" in proposedEntity &&
+      state.submittedEntityIds.includes(proposedEntity.localEntityId),
+  );
+
+  const systemPrompt = dedent(`
+      ${generateSystemPromptPrefix({ input })}
+      
       Make as many tool calls as are required to progress towards completing the task.
-      You must completely satisfy the research prompt, without any missing information.
 
       ${
         submittedProposedEntities.length > 0
           ? dedent(`
             You have previously submitted the following proposed entities:
             ${JSON.stringify(submittedProposedEntities, null, 2)}
-
-            If the submitted entities satisfy the research prompt, call the "complete" tool.
           `)
           : "You have not previously submitted any proposed entities."
       }
 
-      You have previously proposed the following plan:
-      ${previousPlan}
-      If you want to deviate from this plan, update it using the "updatePlan" tool.
-      You must call the "updatePlan" tool alongside other tool calls to progress towards completing the task.
-    `),
-  };
-
-  const messages: ChatCompletionMessageParam[] = [
-    systemMessage,
-    {
-      role: "user",
-      content: prompt,
-    },
-    ...(previousCalls
-      ? mapPreviousCallsToChatCompletionMessages({ previousCalls })
-      : []),
-  ];
-
-  const openApiPayload: ChatCompletionCreateParams = {
-    messages,
-    model,
-    tools: Object.values(coordinatorToolDefinitions).map(
-      mapToolDefinitionToOpenAiTool,
-    ),
-  };
-
-  const openAiResponse = await getOpenAiResponse(openApiPayload);
-
-  if (openAiResponse.code !== StatusCode.Ok) {
-    throw new Error(
-      `Failed to get OpenAI response: ${JSON.stringify(openAiResponse)}`,
-    );
-  }
-
-  const { response, usage: _usage } = openAiResponse.contents[0]!;
-
-  /** @todo: capture usage */
-
-  const openAiToolCalls = response.message.tool_calls;
-
-  if (!openAiToolCalls) {
-    /** @todo: retry this instead */
-    throw new Error(
-      `Expected tool calls in response: ${JSON.stringify(response)}`,
-    );
-  }
-
-  const coordinatorToolCalls = openAiToolCalls.map<ToolCall<CoordinatorToolId>>(
-    (openAiToolCall) => {
-      if (isCoordinatorToolId(openAiToolCall.function.name)) {
-        return {
-          toolId: openAiToolCall.function.name,
-          openAiToolCall,
-          parsedArguments: parseOpenAiFunctionArguments({
-            stringifiedArguments: openAiToolCall.function.arguments,
-          }),
-        };
+      ${
+        submittedProposedLinks.length > 0
+          ? dedent(`
+            You have previously submitted the following proposed links:
+            ${JSON.stringify(submittedProposedLinks, null, 2)}
+          `)
+          : "You have not previously submitted any proposed links."
       }
 
-      throw new Error(`Unexpected tool call: ${openAiToolCall.function.name}`);
-    },
-  );
+      ${submittedProposedEntities.length > 0 || submittedProposedLinks.length > 0 ? 'If the submitted entities and links satisfy the research prompt, call the "complete" tool.' : ""}
 
-  return {
-    toolCalls: coordinatorToolCalls,
-  };
-};
+      You have previously proposed the following plan:
+      ${state.plan}
+      If you want to deviate from this plan, update it using the "updatePlan" tool.
+      You must call the "updatePlan" tool alongside other tool calls to progress towards completing the task.
+    `);
 
-const createInitialPlan = async (params: {
-  prompt: string;
-}): Promise<{ plan: string }> => {
-  const { prompt } = params;
-
-  const messages: ChatCompletionMessageParam[] = [
-    {
-      role: "system",
-      content: dedent(`
-        You are a coordinating agent for a research task.
-        The user will provides you with a text prompt, from which you will be
-          able to make the relevant function calls to progress towards 
-          completing the task.
-        You must completely satisfy the research prompt, without any missing information.
-
-        Do not make *any* tool calls. You must first provide a plan of how you will use
-          the tools to progress towards completing the task.
-        This should be a list of steps in plain English.
-      `),
-    },
-    {
-      role: "user",
-      content: prompt,
-    },
+  const messages: LlmMessage[] = [
+    generateInitialUserMessage({ input }),
+    ...mapPreviousCallsToLlmMessages({ previousCalls: state.previousCalls }),
   ];
 
-  const openApiPayload: ChatCompletionCreateParams = {
+  const tools = Object.values(coordinatorToolDefinitions);
+
+  const llmResponse = await getLlmResponse({
+    systemPrompt,
     messages,
     model,
-    tools: Object.values(coordinatorToolDefinitions)
-      .filter(({ toolId }) => toolId !== "updatePlan")
-      .map(mapToolDefinitionToOpenAiTool),
-  };
+    tools,
+  });
 
-  const openAiResponse = await getOpenAiResponse(openApiPayload);
-
-  if (openAiResponse.code !== StatusCode.Ok) {
+  if (llmResponse.status !== "ok") {
     throw new Error(
-      `Failed to get OpenAI response: ${JSON.stringify(openAiResponse)}`,
+      `Failed to get LLM response: ${JSON.stringify(llmResponse)}`,
     );
   }
 
-  const { response, usage: _usage } = openAiResponse.contents[0]!;
+  const { message, usage: _usage } = llmResponse;
+
+  const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
 
   /** @todo: capture usage */
 
-  const openAiAssistantMessageContent = response.message.content;
+  return { toolCalls };
+};
+const createInitialPlan = async (params: {
+  input: CoordinatingAgentInput;
+}): Promise<{ plan: string }> => {
+  const { input } = params;
 
-  if (!openAiAssistantMessageContent) {
+  const systemPrompt = dedent(`
+    ${generateSystemPromptPrefix({ input })}
+
+    Do not make *any* tool calls. You must first provide a plan of how you will use
+      the tools to progress towards completing the task.
+
+    This should be a list of steps in plain English.
+  `);
+
+  const llmResponse = await getLlmResponse({
+    systemPrompt,
+    messages: [generateInitialUserMessage({ input })],
+    model,
+    tools: Object.values(coordinatorToolDefinitions).filter(
+      ({ name }) => name !== "updatePlan",
+    ),
+  });
+
+  if (llmResponse.status !== "ok") {
     throw new Error(
-      `Expected message content in response: ${JSON.stringify(response, null, 2)}`,
+      `Failed to get LLM response: ${JSON.stringify(llmResponse)}`,
     );
   }
 
+  const { usage: _usage, message } = llmResponse;
+
+  const messageTextContent = getTextContentFromLlmMessage({ message });
+
+  /** @todo: capture usage */
+
+  if (!messageTextContent) {
+    throw new Error(
+      `Expected message content in message: ${JSON.stringify(message, null, 2)}`,
+    );
+  }
+
+  return { plan: messageTextContent };
+};
+
+const parseCoordinatorInputs = async (params: {
+  graphApiClient: GraphApi;
+  userAuthentication: { actorId: AccountId };
+  stepInputs: StepInput[];
+}): Promise<CoordinatingAgentInput> => {
+  const { stepInputs, graphApiClient, userAuthentication } = params;
+
+  const {
+    prompt,
+    entityTypeIds,
+    existingEntities: inputExistingEntities,
+  } = getSimplifiedActionInputs({
+    inputs: stepInputs,
+    actionType: "researchEntities",
+  });
+
+  const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
+    graphApiClient,
+    entityTypeIds: entityTypeIds!,
+    actorId: userAuthentication.actorId,
+    simplifyPropertyKeys: true,
+  });
+
+  const entityTypes = Object.values(dereferencedEntityTypes)
+    .filter(({ isLink }) => !isLink)
+    .map(({ schema }) => schema);
+
+  const linkEntityTypes = Object.values(dereferencedEntityTypes)
+    .filter(({ isLink }) => isLink)
+    .map(({ schema }) => schema);
+
+  /**
+   * @todo: simplify the properties in the existing entities
+   */
+  const existingEntities = inputExistingEntities
+    ? mapActionInputEntitiesToEntities({ inputEntities: inputExistingEntities })
+    : undefined;
+
   return {
-    plan: openAiAssistantMessageContent,
+    prompt,
+    entityTypes,
+    linkEntityTypes: linkEntityTypes.length > 0 ? linkEntityTypes : undefined,
+    existingEntities,
   };
 };
 
 export const coordinatingAgent = {
   createInitialPlan,
   getNextToolCalls,
+  parseCoordinatorInputs,
 };

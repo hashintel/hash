@@ -14,18 +14,20 @@ use uuid::Uuid;
 
 use crate::{
     knowledge::EntityQueryPath,
+    ontology::EntityTypeQueryPath,
     store::{
         query::{OntologyQueryPath, ParameterType, QueryPath},
         QueryRecord, SubgraphRecord,
     },
-    subgraph::identifier::VertexId,
+    subgraph::{edges::SharedEdgeKind, identifier::VertexId},
 };
 
 /// A set of conditions used for queries.
 #[derive(Derivative, Deserialize)]
 #[derivative(
     Debug(bound = "R::QueryPath<'p>: fmt::Debug"),
-    PartialEq(bound = "R::QueryPath<'p>: PartialEq")
+    PartialEq(bound = "R::QueryPath<'p>: PartialEq"),
+    Clone(bound = "R::QueryPath<'p>: Clone")
 )]
 #[serde(
     rename_all = "camelCase",
@@ -113,6 +115,32 @@ impl<'p> Filter<'p, Entity> {
             Self::All(vec![owned_by_id_filter, entity_uuid_filter])
         }
     }
+
+    #[must_use]
+    pub fn for_entity_by_type_id(entity_type_id: &'p VersionedUrl) -> Self {
+        Filter::All(vec![
+            Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::EntityTypeEdge {
+                    edge_kind: SharedEdgeKind::IsOfType,
+                    path: EntityTypeQueryPath::BaseUrl,
+                    inheritance_depth: Some(0),
+                })),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                    entity_type_id.base_url.as_str(),
+                )))),
+            ),
+            Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::EntityTypeEdge {
+                    edge_kind: SharedEdgeKind::IsOfType,
+                    path: EntityTypeQueryPath::Version,
+                    inheritance_depth: Some(0),
+                })),
+                Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
+                    entity_type_id.version,
+                ))),
+            ),
+        ])
+    }
 }
 
 impl<'p, R: QueryRecord> Filter<'p, R>
@@ -183,7 +211,8 @@ where
 #[derive(Derivative, Deserialize)]
 #[derivative(
     Debug(bound = "R::QueryPath<'p>: fmt::Debug"),
-    PartialEq(bound = "R::QueryPath<'p>: PartialEq")
+    PartialEq(bound = "R::QueryPath<'p>: PartialEq"),
+    Clone(bound = "R::QueryPath<'p>: Clone")
 )]
 #[serde(
     rename_all = "camelCase",
@@ -194,7 +223,7 @@ pub enum FilterExpression<'p, R: QueryRecord + ?Sized> {
     Parameter(Parameter<'p>),
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(untagged)]
 pub enum Parameter<'p> {
     Boolean(bool),

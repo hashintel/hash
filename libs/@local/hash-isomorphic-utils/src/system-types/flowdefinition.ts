@@ -5,12 +5,18 @@
 import type { Entity } from "@local/hash-subgraph";
 
 import type {
+  DescriptionPropertyValue,
   ObjectDataType,
   TextDataType,
   TriggerDefinitionIDPropertyValue,
 } from "./shared";
 
-export type { ObjectDataType, TextDataType, TriggerDefinitionIDPropertyValue };
+export type {
+  DescriptionPropertyValue,
+  ObjectDataType,
+  TextDataType,
+  TriggerDefinitionIDPropertyValue,
+};
 
 export type FlowDefinition = Entity<FlowDefinitionProperties>;
 
@@ -22,6 +28,7 @@ export type FlowDefinitionOutgoingLinksByLinkEntityTypeId = {};
  * The definition of  a HASH flow.
  */
 export type FlowDefinitionProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/": DescriptionPropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
   "https://hash.ai/@hash/types/property-type/output-definitions/": OutputDefinitionsPropertyValue;
   "https://hash.ai/@hash/types/property-type/step-definitions/": StepDefinitionsPropertyValue;

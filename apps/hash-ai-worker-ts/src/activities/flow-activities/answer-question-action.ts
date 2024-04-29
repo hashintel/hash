@@ -1,7 +1,11 @@
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
 import type { GraphApi } from "@local/hash-graph-client";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type { StepOutput } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  FormattedText,
+  StepOutput,
+} from "@local/hash-isomorphic-utils/flows/types";
+import { textFormats } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -16,64 +20,76 @@ import dedent from "dedent";
 import { CodeInterpreter, Sandbox } from "e2b";
 import OpenAI from "openai/index";
 
-import { logger } from "../../shared/logger";
-import type { PermittedOpenAiModel } from "../shared/openai";
-import { getOpenAiResponse } from "../shared/openai";
+import { logger } from "../shared/activity-logger";
+import type { PermittedOpenAiModel } from "../shared/openai-client";
 import { stringify } from "../shared/stringify";
 import type { FlowActionActivity } from "./types";
 import ChatCompletionUserMessageParam = OpenAI.ChatCompletionUserMessageParam;
 import ChatCompletionToolMessageParam = OpenAI.ChatCompletionToolMessageParam;
+import { getLlmResponse } from "../shared/get-llm-response";
+import {
+  getToolCallsFromLlmAssistantMessage,
+  mapLlmMessageToOpenAiMessages,
+  mapOpenAiMessagesToLlmMessages,
+} from "../shared/get-llm-response/llm-message";
+import type { LlmToolDefinition } from "../shared/get-llm-response/types";
 
-const answerTools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
+const answerTools: LlmToolDefinition[] = [
   {
-    type: "function",
-    function: {
-      name: "answer",
-      description:
-        "Submit the answer, or an explanation of why the question cannot be answered using the available data",
-      parameters: {
-        type: "object",
-        properties: {
-          answer: {
-            type: "string",
-            description: "The answer to the question, if one can be provided.",
-          },
-          explanation: {
-            type: "string",
-            description:
-              "A brief explanation of how the answer was reached, including any methodology, assumptions, or supporting context relied on, and why the confidence value was chosen. OR if no answer could be provided, an explanation as to why not, and what further data may help answer the question.",
-          },
-          confidence: {
-            type: "number",
-            description:
-              "Confidence score of the answer, expressed as a number between 0 and 1.",
+    name: "answer",
+    description:
+      "Submit the answer, or an explanation of why the question cannot be answered using the available data",
+    inputSchema: {
+      type: "object",
+      properties: {
+        answer: {
+          type: "object",
+          description: "The answer to the question, if one can be provided.",
+          properties: {
+            format: {
+              type: "string",
+              enum: [...textFormats],
+              description:
+                "The format of the answer 'content'. Use 'Plain' if no particular formatting is applied. Ensure all values in CSV are \"double quoted\", in case they contain the delimiter.",
+            },
+            content: {
+              type: "string",
+              description: "The content of the answer",
+            },
           },
         },
-        required: ["explanation"],
+        explanation: {
+          type: "string",
+          description:
+            "A brief explanation of how the answer was reached, including any methodology, assumptions, or supporting context relied on, and why the confidence value was chosen. OR if no answer could be provided, an explanation as to why not, and what further data may help answer the question.",
+        },
+        confidence: {
+          type: "number",
+          description:
+            "Confidence score of the answer, expressed as a number between 0 and 1.",
+        },
       },
+      required: ["explanation"],
     },
   },
   {
-    type: "function",
-    function: {
-      name: "run_python_code",
-      description:
-        "Run Python code to help analyze the data. Your code should output the values you need to stdout. You should explain your reasoning for the approach taken in the 'explanation' field.",
-      parameters: {
-        type: "object",
-        properties: {
-          code: {
-            type: "string",
-            description:
-              "Python code to run, logging the output you need to stdout. Add comments to explain your reasoning behind function use and data access. Make sure any JSON key or table column access are copied from the context data, and are not guessed at.",
-          },
-          explanation: {
-            type: "string",
-            description: "An explanation of what the code is doing and why.",
-          },
+    name: "run_python_code",
+    description:
+      "Run Python code to help analyze the data. Your code should output the values you need to stdout. You should explain your reasoning for the approach taken in the 'explanation' field.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        code: {
+          type: "string",
+          description:
+            "Python code to run, logging the output you need to stdout. Add comments to explain your reasoning behind function use and data access. Make sure any JSON key or table column access are copied from the context data, and are not guessed at.",
         },
-        required: ["code", "explanation"],
+        explanation: {
+          type: "string",
+          description: "An explanation of what the code is doing and why.",
+        },
       },
+      required: ["code", "explanation"],
     },
   },
 ];
@@ -109,7 +125,7 @@ const systemPrompt = dedent(`
   a graph of structured entities with links between them, a spreadsheet, or some combination of these.
   
   Your boss will ask you to answer a question based on the data provided to you. They might have asked for a specific output format,
-  e.g. 'Markdown', 'JSON', or 'CSV'. If it isn't specified, you use your best judgment.
+  e.g. 'Markdown', 'JSON', or 'CSV'. If it isn't specified, you use your best judgment. Either way your response specifies the format used.
   
   Your boss plans to use your answer to make a decision, so you make sure that it is accurate, concise, and clear.
   If you can't provide an answer based on the available data, you explain why, and request more data if it would help.
@@ -123,7 +139,7 @@ const systemPrompt = dedent(`
 `);
 
 type ModelResponseArgs = {
-  answer?: string;
+  answer?: FormattedText;
   explanation: string;
   confidence?: number;
   code?: string;
@@ -143,37 +159,27 @@ const callModel = async (
     outputs: StepOutput[];
   }>
 > => {
-  const openApiPayload: OpenAI.ChatCompletionCreateParams = {
+  const llmResponse = await getLlmResponse({
     model,
-    messages,
-    stream: false,
+    systemPrompt,
+    messages: mapOpenAiMessagesToLlmMessages({ messages }),
     temperature: 0,
     tools: answerTools,
-  };
+  });
 
-  const openAiResponse = await getOpenAiResponse(openApiPayload);
+  logger.debug(`Open AI Response received: ${stringify(llmResponse)}`);
 
-  logger.debug(`Open AI Response received: ${stringify(openAiResponse)}`);
-
-  const { response } = openAiResponse.contents[0]!;
-
-  const { message: modelResponseMessage } = response;
-
-  const toolCalls = modelResponseMessage.tool_calls;
-
-  if (!toolCalls?.length) {
-    const responseMessage: ChatCompletionUserMessageParam = {
-      role: "user",
-      content:
-        "You didn't make any tool calls as part of your response. Please review the tools available to you and use the appropriate one.",
+  if (llmResponse.status !== "ok") {
+    return {
+      code: StatusCode.Internal,
+      message: "An error occurred while calling the model.",
+      contents: [],
     };
-    return callModel(
-      [...messages, modelResponseMessage, responseMessage],
-      context,
-      codeUsed,
-      iteration + 1,
-    );
   }
+
+  const { message } = llmResponse;
+
+  const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
 
   const responseMessages: ChatCompletionToolMessageParam[] = [];
 
@@ -185,31 +191,9 @@ const callModel = async (
   let code: string | undefined;
 
   for (const toolCall of toolCalls) {
-    let parsedArguments: ModelResponseArgs;
-    try {
-      parsedArguments = JSON.parse(
-        toolCall.function.arguments,
-      ) as ModelResponseArgs;
-    } catch (err) {
-      return callModel(
-        [
-          ...messages,
-          modelResponseMessage,
-          {
-            role: "tool",
-            content: `Your JSON arguments could not be parsed – the parsing function errored: ${
-              (err as Error).message
-            }. Please try again.`,
-            tool_call_id: toolCall.id,
-          },
-        ],
-        context,
-        null,
-        iteration + 1,
-      );
-    }
+    const parsedArguments = toolCall.input as ModelResponseArgs;
 
-    switch (toolCall.function.name) {
+    switch (toolCall.name) {
       case "answer": {
         if (toolCalls.length > 1) {
           responseMessages.push({
@@ -229,7 +213,7 @@ const callModel = async (
           outputs.push({
             outputName: "answer",
             payload: {
-              kind: "Text",
+              kind: "FormattedText",
               value: answer,
             },
           });
@@ -261,7 +245,10 @@ const callModel = async (
         });
 
         return {
-          code: StatusCode.Ok,
+          code: answer ? StatusCode.Ok : StatusCode.Unknown,
+          message: answer
+            ? "Model successfully answered the question"
+            : "Model could not answer the question",
           contents: [
             {
               outputs,
@@ -276,7 +263,7 @@ const callModel = async (
           return callModel(
             [
               ...messages,
-              modelResponseMessage,
+              ...mapLlmMessageToOpenAiMessages({ message }),
               {
                 role: "tool",
                 content: "You didn't provide any 'code' to run.",
@@ -361,7 +348,11 @@ const callModel = async (
 
   if (responseMessages.length) {
     return callModel(
-      [...messages, modelResponseMessage, ...responseMessages],
+      [
+        ...messages,
+        ...mapLlmMessageToOpenAiMessages({ message }),
+        ...responseMessages,
+      ],
       context,
       codeUsed,
       iteration + 1,
@@ -375,7 +366,11 @@ const callModel = async (
   };
 
   return callModel(
-    [...messages, modelResponseMessage, responseMessage],
+    [
+      ...messages,
+      ...mapLlmMessageToOpenAiMessages({ message }),
+      responseMessage,
+    ],
     context,
     codeUsed,
     iteration + 1,
@@ -478,10 +473,6 @@ export const answerQuestionAction: FlowActionActivity<{
   }
 
   const messages: OpenAI.ChatCompletionCreateParams["messages"] = [
-    {
-      role: "system",
-      content: systemPrompt,
-    },
     {
       role: "user",
       content: dedent(

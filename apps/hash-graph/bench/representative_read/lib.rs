@@ -10,6 +10,10 @@
     reason = "This is a benchmark but as we want to document this crate as well this should be a \
               warning instead"
 )]
+#![expect(
+    clippy::significant_drop_in_scrutinee,
+    reason = "This should be enabled but it's currently too noisy"
+)]
 
 //! Benchmarks to check the performance of operations across a "representative" graph.
 //!
@@ -40,6 +44,7 @@ mod seed;
 
 use std::str::FromStr;
 
+use authorization::NoAuthorization;
 use criterion::{BenchmarkId, Criterion, SamplingMode};
 use criterion_macro::criterion;
 use graph::subgraph::edges::{EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth};
@@ -60,7 +65,7 @@ fn bench_representative_read_entity(c: &mut Criterion) {
     );
 
     let mut group = c.benchmark_group("representative_read_entity");
-    let (runtime, mut store_wrapper) = setup(DB_NAME, false, false, account_id);
+    let (runtime, mut store_wrapper) = setup(DB_NAME, false, false, account_id, NoAuthorization);
 
     let samples = runtime.block_on(setup_and_extract_samples(&mut store_wrapper));
     let store = &store_wrapper.store;
@@ -97,7 +102,7 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
     );
 
     let mut group = c.benchmark_group("representative_read_multiple_entities");
-    let (runtime, store_wrapper) = setup(DB_NAME, false, false, account_id);
+    let (runtime, store_wrapper) = setup(DB_NAME, false, false, account_id, NoAuthorization);
     group.sample_size(10);
     group.sampling_mode(SamplingMode::Flat);
 
@@ -391,7 +396,7 @@ fn bench_representative_read_entity_type(c: &mut Criterion) {
     );
 
     let mut group = c.benchmark_group("representative_read_entity_type");
-    let (runtime, mut store_wrapper) = setup(DB_NAME, false, false, account_id);
+    let (runtime, mut store_wrapper) = setup(DB_NAME, false, false, account_id, NoAuthorization);
 
     let samples = runtime.block_on(setup_and_extract_samples(&mut store_wrapper));
     let store = &store_wrapper.store;

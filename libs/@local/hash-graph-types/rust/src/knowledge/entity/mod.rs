@@ -374,8 +374,8 @@ mod tests {
                 &new,
                 [PropertyDiff::Changed {
                     path: PropertyPath::default(),
-                    old: &old,
-                    new: &new,
+                    old: Cow::Borrowed(&old),
+                    new: Cow::Borrowed(&new),
                 }],
             );
         }
@@ -395,13 +395,13 @@ mod tests {
                 [
                     PropertyDiff::Changed {
                         path: once(PropertyPathElement::Index(1)).collect(),
-                        old: &property!("bar"),
-                        new: &property!("baz"),
+                        old: Cow::Borrowed(&property!("bar")),
+                        new: Cow::Borrowed(&property!("baz")),
                     },
                     PropertyDiff::Changed {
                         path: PropertyPath::default(),
-                        old: &old,
-                        new: &new,
+                        old: Cow::Borrowed(&old),
+                        new: Cow::Borrowed(&new),
                     },
                 ],
             );
@@ -417,12 +417,12 @@ mod tests {
                 [
                     PropertyDiff::Added {
                         path: once(PropertyPathElement::Index(1)).collect(),
-                        added: &property!("bar"),
+                        added: Cow::Borrowed(&property!("bar")),
                     },
                     PropertyDiff::Changed {
                         path: PropertyPath::default(),
-                        old: &old,
-                        new: &new,
+                        old: Cow::Borrowed(&old),
+                        new: Cow::Borrowed(&new),
                     },
                 ],
             );
@@ -438,12 +438,12 @@ mod tests {
                 [
                     PropertyDiff::Removed {
                         path: once(PropertyPathElement::Index(1)).collect(),
-                        removed: &property!("bar"),
+                        removed: Cow::Borrowed(&property!("bar")),
                     },
                     PropertyDiff::Changed {
                         path: PropertyPath::default(),
-                        old: &old,
-                        new: &new,
+                        old: Cow::Borrowed(&old),
+                        new: Cow::Borrowed(&new),
                     },
                 ],
             );
@@ -459,17 +459,17 @@ mod tests {
                 [
                     PropertyDiff::Changed {
                         path: once(PropertyPathElement::Index(1)).collect(),
-                        old: &property!("bar"),
-                        new: &property!("baz"),
+                        old: Cow::Borrowed(&property!("bar")),
+                        new: Cow::Borrowed(&property!("baz")),
                     },
                     PropertyDiff::Added {
                         path: once(PropertyPathElement::Index(2)).collect(),
-                        added: &property!("bar"),
+                        added: Cow::Borrowed(&property!("bar")),
                     },
                     PropertyDiff::Changed {
                         path: PropertyPath::default(),
-                        old: &old,
-                        new: &new,
+                        old: Cow::Borrowed(&old),
+                        new: Cow::Borrowed(&new),
                     },
                 ],
             );
@@ -485,17 +485,17 @@ mod tests {
                 [
                     PropertyDiff::Changed {
                         path: once(PropertyPathElement::Index(1)).collect(),
-                        old: &property!("bar"),
-                        new: &property!("baz"),
+                        old: Cow::Borrowed(&property!("bar")),
+                        new: Cow::Borrowed(&property!("baz")),
                     },
                     PropertyDiff::Removed {
                         path: once(PropertyPathElement::Index(2)).collect(),
-                        removed: &property!("baz"),
+                        removed: Cow::Borrowed(&property!("baz")),
                     },
                     PropertyDiff::Changed {
                         path: PropertyPath::default(),
-                        old: &old,
-                        new: &new,
+                        old: Cow::Borrowed(&old),
+                        new: Cow::Borrowed(&new),
                     },
                 ],
             );
@@ -516,18 +516,18 @@ mod tests {
                         ]
                         .into_iter()
                         .collect(),
-                        old: &property!("bar"),
-                        new: &property!("baz"),
+                        old: Cow::Borrowed(&property!("bar")),
+                        new: Cow::Borrowed(&property!("baz")),
                     },
                     PropertyDiff::Changed {
                         path: once(PropertyPathElement::Index(0)).collect(),
-                        old: &property!({create_base_url(0): "bar"}),
-                        new: &property!({create_base_url(0): "baz"}),
+                        old: Cow::Borrowed(&property!({create_base_url(0): "bar"})),
+                        new: Cow::Borrowed(&property!({create_base_url(0): "baz"})),
                     },
                     PropertyDiff::Changed {
                         path: PropertyPath::default(),
-                        old: &old,
-                        new: &new,
+                        old: Cow::Borrowed(&old),
+                        new: Cow::Borrowed(&new),
                     },
                 ],
             );
@@ -548,7 +548,7 @@ mod tests {
                         ]
                         .into_iter()
                         .collect(),
-                        removed: &property!("bar"),
+                        removed: Cow::Borrowed(&property!("bar")),
                     },
                     PropertyDiff::Added {
                         path: [
@@ -557,17 +557,17 @@ mod tests {
                         ]
                         .into_iter()
                         .collect(),
-                        added: &property!("baz"),
+                        added: Cow::Borrowed(&property!("baz")),
                     },
                     PropertyDiff::Changed {
                         path: once(PropertyPathElement::Index(0)).collect(),
-                        old: &property!({ create_base_url(0): "bar" }),
-                        new: &property!({ create_base_url(1): "baz" }),
+                        old: Cow::Borrowed(&property!({ create_base_url(0): "bar" })),
+                        new: Cow::Borrowed(&property!({ create_base_url(1): "baz" })),
                     },
                     PropertyDiff::Changed {
                         path: PropertyPath::default(),
-                        old: &old,
-                        new: &new,
+                        old: Cow::Borrowed(&old),
+                        new: Cow::Borrowed(&new),
                     },
                 ],
             );
@@ -595,12 +595,12 @@ mod tests {
                             &create_base_url(1),
                         )))
                         .collect(),
-                        added: &property!("foo"),
+                        added: Cow::Borrowed(&property!("foo")),
                     },
                     PropertyDiff::Changed {
                         path: PropertyPath::default(),
-                        old: &old,
-                        new: &new,
+                        old: Cow::Borrowed(&old),
+                        new: Cow::Borrowed(&new),
                     },
                 ],
             );
@@ -621,21 +621,21 @@ mod tests {
                         ]
                         .into_iter()
                         .collect(),
-                        old: &property!("foo"),
-                        new: &property!("bar"),
+                        old: Cow::Borrowed(&property!("foo")),
+                        new: Cow::Borrowed(&property!("bar")),
                     },
                     PropertyDiff::Changed {
                         path: once(PropertyPathElement::Property(Cow::Borrowed(
                             &create_base_url(1),
                         )))
                         .collect(),
-                        old: &property!({ create_base_url(2): "foo" }),
-                        new: &property!({ create_base_url(2): "bar" }),
+                        old: Cow::Borrowed(&property!({ create_base_url(2): "foo" })),
+                        new: Cow::Borrowed(&property!({ create_base_url(2): "bar" })),
                     },
                     PropertyDiff::Changed {
                         path: PropertyPath::default(),
-                        old: &old,
-                        new: &new,
+                        old: Cow::Borrowed(&old),
+                        new: Cow::Borrowed(&new),
                     },
                 ],
             );
@@ -654,19 +654,19 @@ mod tests {
                             &create_base_url(1),
                         )))
                         .collect(),
-                        removed: &property!({ create_base_url(3): "foo" }),
+                        removed: Cow::Borrowed(&property!({ create_base_url(3): "foo" })),
                     },
                     PropertyDiff::Added {
                         path: once(PropertyPathElement::Property(Cow::Borrowed(
                             &create_base_url(2),
                         )))
                         .collect(),
-                        added: &property!({ create_base_url(3): "foo" }),
+                        added: Cow::Borrowed(&property!({ create_base_url(3): "foo" })),
                     },
                     PropertyDiff::Changed {
                         path: PropertyPath::default(),
-                        old: &old,
-                        new: &new,
+                        old: Cow::Borrowed(&old),
+                        new: Cow::Borrowed(&new),
                     },
                 ],
             );
@@ -687,7 +687,7 @@ mod tests {
                         ]
                         .into_iter()
                         .collect(),
-                        added: &property!("foo"),
+                        added: Cow::Borrowed(&property!("foo")),
                     },
                     PropertyDiff::Removed {
                         path: [
@@ -696,28 +696,28 @@ mod tests {
                         ]
                         .into_iter()
                         .collect(),
-                        removed: &property!("foo"),
+                        removed: Cow::Borrowed(&property!("foo")),
                     },
                     PropertyDiff::Changed {
                         path: once(PropertyPathElement::Property(Cow::Borrowed(
                             &create_base_url(1),
                         )))
                         .collect(),
-                        old: &property!({ create_base_url(3): "foo" }),
-                        new: &property!({}),
+                        old: Cow::Borrowed(&property!({ create_base_url(3): "foo" })),
+                        new: Cow::Borrowed(&property!({})),
                     },
                     PropertyDiff::Changed {
                         path: once(PropertyPathElement::Property(Cow::Borrowed(
                             &create_base_url(2),
                         )))
                         .collect(),
-                        old: &property!({}),
-                        new: &property!({ create_base_url(3): "foo" }),
+                        old: Cow::Borrowed(&property!({})),
+                        new: Cow::Borrowed(&property!({ create_base_url(3): "foo" })),
                     },
                     PropertyDiff::Changed {
                         path: PropertyPath::default(),
-                        old: &old,
-                        new: &new,
+                        old: Cow::Borrowed(&old),
+                        new: Cow::Borrowed(&new),
                     },
                 ],
             );
@@ -736,13 +736,13 @@ mod tests {
                             &create_base_url(1),
                         )))
                         .collect(),
-                        old: &property!("foo"),
-                        new: &property!("bar"),
+                        old: Cow::Borrowed(&property!("foo")),
+                        new: Cow::Borrowed(&property!("bar")),
                     },
                     PropertyDiff::Changed {
                         path: PropertyPath::default(),
-                        old: &old,
-                        new: &new,
+                        old: Cow::Borrowed(&old),
+                        new: Cow::Borrowed(&new),
                     },
                 ],
             );
@@ -761,12 +761,12 @@ mod tests {
                             &create_base_url(1),
                         )))
                         .collect(),
-                        removed: &property!("foo"),
+                        removed: Cow::Borrowed(&property!("foo")),
                     },
                     PropertyDiff::Changed {
                         path: PropertyPath::default(),
-                        old: &old,
-                        new: &new,
+                        old: Cow::Borrowed(&old),
+                        new: Cow::Borrowed(&new),
                     },
                 ],
             );

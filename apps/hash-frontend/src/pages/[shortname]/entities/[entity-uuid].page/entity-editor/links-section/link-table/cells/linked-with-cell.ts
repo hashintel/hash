@@ -12,7 +12,7 @@ import { drawCellFadeOutGradient } from "../../../../../../../../components/grid
 import { drawChipWithIcon } from "../../../../../../../../components/grid/utils/draw-chip-with-icon";
 import { InteractableManager } from "../../../../../../../../components/grid/utils/interactable-manager";
 import type { Interactable } from "../../../../../../../../components/grid/utils/interactable-manager/types";
-import { getImageUrlFromEntityProperties } from "../../../../../../../shared/get-image-url-from-properties";
+import { getImageUrlFromEntityProperties } from "../../../../../../../shared/get-file-properties";
 import type { LinkRow } from "../types";
 import { LinkedWithCellEditor } from "./linked-with-cell/linked-with-cell-editor";
 import { sortLinkAndTargetEntities } from "./sort-link-and-target-entities";

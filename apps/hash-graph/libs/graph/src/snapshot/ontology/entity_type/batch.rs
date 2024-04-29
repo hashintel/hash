@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use authorization::{
     backend::ZanzibarBackend,
     schema::{EntityTypeId, EntityTypeRelationAndSubject},
+    AuthorizationApi,
 };
 use error_stack::{Result, ResultExt};
 use futures::TryStreamExt;
@@ -36,8 +37,12 @@ pub enum EntityTypeRowBatch {
 }
 
 #[async_trait]
-impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
-    async fn begin(postgres_client: &PostgresStore<C>) -> Result<(), InsertionError> {
+impl<C, A> WriteBatch<C, A> for EntityTypeRowBatch
+where
+    C: AsClient,
+    A: ZanzibarBackend + AuthorizationApi,
+{
+    async fn begin(postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError> {
         postgres_client
             .as_client()
             .client()
@@ -83,11 +88,7 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
     }
 
     #[expect(clippy::too_many_lines)]
-    async fn write(
-        self,
-        postgres_client: &PostgresStore<C>,
-        authorization_api: &mut (impl ZanzibarBackend + Send),
-    ) -> Result<(), InsertionError> {
+    async fn write(self, postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError> {
         let client = postgres_client.as_client().client();
         match self {
             Self::Schema(entity_types) => {
@@ -181,7 +182,8 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
                 reason = "Lifetime error, probably the signatures are wrong"
             )]
             Self::Relations(relations) => {
-                authorization_api
+                postgres_client
+                    .authorization_api
                     .touch_relationships(
                         relations
                             .into_iter()
@@ -215,7 +217,7 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
 
     #[expect(clippy::too_many_lines, reason = "TODO: Move out common parts")]
     async fn commit(
-        postgres_client: &PostgresStore<C>,
+        postgres_client: &mut PostgresStore<C, A>,
         _validation: bool,
     ) -> Result<(), InsertionError> {
         // Insert types which don't need updating so they are available in the graph for the resolve

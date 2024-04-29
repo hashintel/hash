@@ -69,6 +69,4 @@ export type WorkflowTypeMap = {
 
   updateLinearData: UpdateLinearDataWorkflow;
   /** @todo: add `createLinearData` */
-
-  syncQueryToGoogleSheet: SyncQueryToGoogleSheetWorkflow;
 };

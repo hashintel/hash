@@ -1,5 +1,9 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
+use authorization::AuthorizationApi;
 use error_stack::{Context, Result};
+use temporal_client::TemporalClient;
 
 use crate::store::Store;
 
@@ -10,10 +14,14 @@ pub trait StorePool {
     type Error: Context;
 
     /// The store returned when acquiring.
-    type Store<'pool>: Store + Send + Sync;
+    type Store<'pool, A: AuthorizationApi>: Store + Send + Sync;
 
     /// Retrieves a [`Store`] from the pool.
-    async fn acquire(&self) -> Result<Self::Store<'_>, Self::Error>;
+    async fn acquire<A: AuthorizationApi>(
+        &self,
+        authorization_api: A,
+        temporal_client: Option<Arc<TemporalClient>>,
+    ) -> Result<Self::Store<'_, A>, Self::Error>;
 
     /// Retrieves an owned [`Store`] from the pool.
     ///
@@ -22,5 +30,9 @@ pub trait StorePool {
     /// the `StorePool`) should be preferred whenever possible.
     ///
     /// [`acquire`]: Self::acquire
-    async fn acquire_owned(&self) -> Result<Self::Store<'static>, Self::Error>;
+    async fn acquire_owned<A: AuthorizationApi>(
+        &self,
+        authorization_api: A,
+        temporal_client: Option<Arc<TemporalClient>>,
+    ) -> Result<Self::Store<'static, A>, Self::Error>;
 }

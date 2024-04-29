@@ -1771,7 +1771,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": [
     {
       "op": "replace",
-      "path": "/http:~1~1localhost:3000~1@alice~1types~1property-type~1name~1",
+      "path": ["http://localhost:3000/@alice/types/property-type/name/"],
       "value": "Alice Allison 3"
     }
   ]
@@ -2064,13 +2064,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 {
   "entityId": "{{person_b_entity_id}}",
   "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/person/v/2"],
-  "properties": [
-    {
-      "op": "replace",
-      "path": "/http:~1~1localhost:3000~1@alice~1types~1property-type~1name~1",
-      "value": "Bob"
-    }
-  ]
+  "draft": false
 }
 
 > {%
@@ -2868,7 +2862,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": [
     {
       "op": "replace",
-      "path": "/http:~1~1localhost:3000~1@alice~1types~1property-type~1name~1",
+      "path": ["http://localhost:3000/@alice/types/property-type/name/"],
       "value": "Charles 2 draft"
     }
   ]
@@ -2893,7 +2887,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": [
     {
       "op": "replace",
-      "path": "/http:~1~1localhost:3000~1@alice~1types~1property-type~1name~1",
+      "path": ["http://localhost:3000/@alice/types/property-type/name/"],
       "value": "Charles 2"
     }
   ],

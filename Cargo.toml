@@ -16,6 +16,8 @@ members = [
     "libs/@local/temporal-versioning",
     "tests/hash-graph-integration",
     "tests/hash-graph-test-data/rust",
+    "libs/@local/harpc/wire-protocol",
+    "libs/@local/harpc/types"
 ]
 exclude = [
     "libs/antsi",
@@ -26,7 +28,7 @@ exclude = [
 default-members = [
     "apps/hash-graph/bins/*",
 ]
-resolver = "2"
+resolver = "3"
 
 [workspace.package]
 authors = ["HASH"]
@@ -48,6 +50,8 @@ graph-api.path = "apps/hash-graph/libs/api"
 validation.path = "libs/@local/hash-validation"
 hash-tracing.path = "libs/@local/tracing"
 type-system.path = "libs/@blockprotocol/type-system/rust"
+harpc-types.path = "libs/@local/harpc/types"
+harpc-wire.path = "libs/@local/harpc/wire-protocol"
 
 # External dependencies owned by HASH
 error-stack = { version = "0.4.1", default-features = false }
@@ -59,7 +63,7 @@ derive-where = { version = "1.2.7", default-features = false, features = ["night
 email_address = { version = "0.2.4", default-features = false }
 futures = { version = "0.3.30", default-features = false }
 postgres-types = { version = "0.2.6", default-features = false }
-serde = { version = "1.0.198", default-features = false }
+serde = { version = "1.0.199", default-features = false }
 serde_json = "1.0.116"
 time = { version = "0.3.36", default-features = false }
 tokio = { version = "1.37.0", default-features = false }

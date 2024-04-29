@@ -1,3 +1,4 @@
+import { sleep } from "@local/hash-backend-utils/utils";
 import {
   type ActionDefinitionId,
   actionDefinitions,
@@ -10,6 +11,7 @@ import type {
   FlowDefinition,
   FlowStep,
   Payload,
+  StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { validateFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
 import type { EntityUuid } from "@local/hash-subgraph";
@@ -25,6 +27,7 @@ import type {
   createFlowActionActivities,
   createFlowActivities,
 } from "../activities/flow-activities";
+import { stringify } from "../activities/shared/stringify";
 import { getAllStepsInFlow } from "./run-flow-workflow/get-all-steps-in-flow";
 import { getStepDefinitionFromFlowDefinition } from "./run-flow-workflow/get-step-definition-from-flow";
 import {
@@ -219,10 +222,28 @@ export const runFlowWorkflow = async (
         }" action with ${(currentStep.inputs ?? []).length} inputs`,
       );
 
-      const actionResponse = await actionActivity({
-        inputs: currentStep.inputs ?? [],
-        userAuthentication,
-      });
+      let actionResponse: Status<{
+        outputs: StepOutput[];
+      }>;
+
+      try {
+        actionResponse = await actionActivity({
+          inputs: currentStep.inputs ?? [],
+          userAuthentication,
+        });
+      } catch (error) {
+        log(
+          `Step ${currentStepId}: encountered runtime error executing "${currentStep.actionDefinitionId}" action: ${stringify(error)}`,
+        );
+
+        actionResponse = {
+          contents: [],
+          code: StatusCode.Internal,
+          message: `Error executing action ${currentStep.actionDefinitionId}: ${stringify(error)}`,
+        };
+
+        processStepErrors[currentStepId] = actionResponse;
+      }
 
       /**
        * Consider the step processed, even if the action failed to prevent
@@ -378,22 +399,14 @@ export const runFlowWorkflow = async (
 
   log("All processable steps have completed processing");
 
-  if (Object.entries(processStepErrors).length > 0) {
-    return {
-      code: StatusCode.Internal,
-      message:
-        "One or more errors occurred while processing the steps in the flow.",
-      contents: [
-        {
-          flow,
-          stepErrors: Object.entries(processStepErrors).map(
-            ([stepId, status]) => ({ ...status, contents: [{ stepId }] }),
-          ),
-        },
-      ],
-    };
-  }
+  /**
+   * Wait to flush logs
+   * @todo flush logs by calling the debounced function's flush, flushLogs – need to deal with it importing code that
+   *   the workflow can't
+   */
+  await sleep(3_000);
 
+  /** @todo this is not necessarily an error once there are branches */
   if (processedStepIds.length !== getAllStepsInFlow(flow).length) {
     return {
       code: StatusCode.Unknown,
@@ -466,12 +479,20 @@ export const runFlowWorkflow = async (
     }
   }
 
+  const stepErrors = Object.entries(processStepErrors).map(
+    ([stepId, status]) => ({ ...status, contents: [{ stepId }] }),
+  );
+
   await flowActivities.persistFlowActivity({ flow, userAuthentication });
 
-  const flowOutputs = flow.outputs ?? [];
+  const outputs = flow.outputs ?? [];
 
   return {
-    code: StatusCode.Ok,
-    contents: [{ flowOutputs }],
+    /**
+     * Steps may error and be retried, or the whole workflow retried, while still producing the required outputs
+     * – start with an initial status of OK if the outputs are present, to be adjusted if necessary.
+     */
+    code: outputs.length ? StatusCode.Ok : StatusCode.Internal,
+    contents: [{ outputs, stepErrors }],
   };
 };

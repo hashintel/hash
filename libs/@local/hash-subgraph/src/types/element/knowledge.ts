@@ -7,6 +7,7 @@ import type {
   EntityRevisionId as EntityRevisionIdBp,
   EntityTemporalVersioningMetadata as EntityTemporalVersioningMetadataBp,
   isEntityRecordId as isEntityRecordIdBp,
+  JsonValue as JsonValueBp,
   LinkData as LinkDataBp,
   LinkEntityAndRightEntity as LinkEntityAndRightEntityBp,
 } from "@blockprotocol/graph/temporal";
@@ -65,7 +66,7 @@ export const isEntityRecordId: typeof isEntityRecordIdBp = (
     "editionId" in recordId
   );
 };
-
+export type JsonValue = JsonValueBp;
 export type EntityPropertyValue = EntityPropertyValueBp;
 export type EntityPropertiesObject = Subtype<
   EntityPropertiesObjectBp,

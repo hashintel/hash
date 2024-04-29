@@ -7,24 +7,34 @@ import {
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import type { OwnedById } from "@local/hash-subgraph";
+import type { EntityId, OwnedById } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 
 import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity";
 import { getDereferencedEntityTypesActivity } from "../get-dereferenced-entity-types-activity";
 import type { InferenceState } from "../infer-entities/inference-types";
 import { inferEntitiesFromWebPageActivity } from "../infer-entities-from-web-page-activity";
-import { modelAliasToSpecificModel } from "../shared/openai";
+import { mapActionInputEntitiesToEntities } from "../shared/map-action-input-entities-to-entities";
+import { modelAliasToSpecificModel } from "../shared/openai-client";
 import type { FlowActionActivity } from "./types";
 
 export const inferEntitiesFromContentAction: FlowActionActivity<{
   graphApiClient: GraphApi;
 }> = async ({ inputs, graphApiClient, userAuthentication }) => {
-  const { content, entityTypeIds, model, relevantEntitiesPrompt } =
-    getSimplifiedActionInputs({
-      inputs,
-      actionType: "inferEntitiesFromContent",
-    });
+  const {
+    content,
+    entityTypeIds,
+    model,
+    relevantEntitiesPrompt,
+    existingEntities: inputExistingEntities,
+  } = getSimplifiedActionInputs({
+    inputs,
+    actionType: "inferEntitiesFromContent",
+  });
+
+  const existingEntities = inputExistingEntities
+    ? mapActionInputEntitiesToEntities({ inputEntities: inputExistingEntities })
+    : [];
 
   const aiAssistantAccountId = await getAiAssistantAccountIdActivity({
     authentication: userAuthentication,
@@ -48,6 +58,7 @@ export const inferEntitiesFromContentAction: FlowActionActivity<{
     entityTypeIds,
     graphApiClient,
     actorId: aiAssistantAccountId,
+    simplifyPropertyKeys: true,
   });
 
   let webPageInferenceState: InferenceState = {
@@ -75,6 +86,7 @@ export const inferEntitiesFromContentAction: FlowActionActivity<{
     model: modelAliasToSpecificModel[model],
     entityTypes,
     inferenceState: webPageInferenceState,
+    existingEntities,
   });
 
   if (status.code !== StatusCode.Ok) {
@@ -103,13 +115,29 @@ export const inferEntitiesFromContentAction: FlowActionActivity<{
         entityTypeId: entityTypeId as VersionedUrl,
         summary,
         properties: proposal.properties ?? {},
-        sourceEntityLocalId:
+        sourceEntityId:
           "sourceEntityId" in proposal
-            ? `${actionIdPrefix}-${proposal.sourceEntityId}`
+            ? typeof proposal.sourceEntityId === "number"
+              ? {
+                  kind: "proposed-entity",
+                  localId: `${actionIdPrefix}-${proposal.sourceEntityId}`,
+                }
+              : {
+                  kind: "existing-entity",
+                  entityId: proposal.sourceEntityId as EntityId,
+                }
             : undefined,
-        targetEntityLocalId:
+        targetEntityId:
           "targetEntityId" in proposal
-            ? `${actionIdPrefix}-${proposal.targetEntityId}`
+            ? typeof proposal.targetEntityId === "number"
+              ? {
+                  kind: "proposed-entity",
+                  localId: `${actionIdPrefix}-${proposal.targetEntityId}`,
+                }
+              : {
+                  kind: "existing-entity",
+                  entityId: proposal.targetEntityId as EntityId,
+                }
             : undefined,
       };
     }),

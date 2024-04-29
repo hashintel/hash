@@ -11,19 +11,18 @@ import { StatusCode } from "@local/status";
 import { CancelledFailure, Context } from "@temporalio/activity";
 import dedent from "dedent";
 
-import { logger } from "../shared/logger";
 import { createInferenceUsageRecordActivity } from "./create-inference-usage-record-activity";
 import { getAiAssistantAccountIdActivity } from "./get-ai-assistant-account-id-activity";
 import { getDereferencedEntityTypesActivity } from "./get-dereferenced-entity-types-activity";
 import { getResultsFromInferenceState } from "./infer-entities/get-results-from-inference-state";
-import { inferEntitiesSystemMessage } from "./infer-entities/infer-entities-system-message";
 import { inferEntitySummariesFromWebPage } from "./infer-entities/infer-entity-summaries-from-web-page";
 import type {
   DereferencedEntityTypesByTypeId,
   InferenceState,
 } from "./infer-entities/inference-types";
 import { persistEntities } from "./infer-entities/persist-entities";
-import { modelAliasToSpecificModel } from "./shared/openai";
+import { logger } from "./shared/activity-logger";
+import { modelAliasToSpecificModel } from "./shared/openai-client";
 import { stringify } from "./shared/stringify";
 import { userExceededServiceUsageLimitActivity } from "./user-exceeded-service-usage-limit-activity";
 
@@ -127,6 +126,7 @@ const inferEntities = async ({
       entityTypeIds,
       graphApiClient,
       actorId: aiAssistantAccountId,
+      simplifyPropertyKeys: true,
     });
   } catch (err) {
     return {
@@ -176,7 +176,18 @@ const inferEntities = async ({
     );
     return {
       code,
-      contents: [{ results: [], usage: inferenceState.usage }],
+      contents: [
+        {
+          results: [],
+          usage: inferenceState.usage.map(
+            ({ inputTokens, outputTokens, totalTokens }) => ({
+              prompt_tokens: inputTokens,
+              completion_tokens: outputTokens,
+              total_tokens: totalTokens,
+            }),
+          ),
+        },
+      ],
       message,
     };
   }
@@ -214,7 +225,6 @@ const inferEntities = async ({
   `);
 
   const promptMessages = [
-    inferEntitiesSystemMessage,
     {
       role: "user",
       content: persistEntitiesPrompt,
@@ -226,7 +236,6 @@ const inferEntities = async ({
     completionPayload: {
       max_tokens: maxTokens,
       messages: [
-        inferEntitiesSystemMessage,
         {
           role: "user",
           content: persistEntitiesPrompt,
@@ -400,7 +409,16 @@ export const inferEntitiesActivity = async ({
      */
     return {
       ...resultOrCancelledError,
-      contents: [{ results, usage }],
+      contents: [
+        {
+          results,
+          usage: usage.map(({ inputTokens, outputTokens, totalTokens }) => ({
+            prompt_tokens: inputTokens,
+            completion_tokens: outputTokens,
+            total_tokens: totalTokens,
+          })),
+        },
+      ],
     };
   }
 

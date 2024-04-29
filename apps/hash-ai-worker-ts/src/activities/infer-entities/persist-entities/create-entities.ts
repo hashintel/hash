@@ -1,8 +1,10 @@
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type {
   InferredEntityCreationFailure,
   InferredEntityCreationSuccess,
   InferredEntityMatchesExisting,
+  ProposedEntity,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
@@ -13,7 +15,7 @@ import type {
 } from "@local/hash-subgraph";
 import isMatch from "lodash.ismatch";
 
-import { logger } from "../../../shared/logger";
+import { logger } from "../../shared/activity-logger";
 import {
   findExistingEntity,
   findExistingLinkEntity,
@@ -26,7 +28,6 @@ import type {
 } from "../inference-types";
 import { extractErrorMessage } from "../shared/extract-validation-failure-details";
 import { ensureTrailingSlash } from "./ensure-trailing-slash";
-import type { ProposedEntityCreationsByType } from "./generate-persist-entities-tools";
 
 type StatusByTemporaryId<T> = Record<number, T>;
 
@@ -50,7 +51,7 @@ export const createEntities = async ({
   createAsDraft: boolean;
   graphApiClient: GraphApi;
   inferenceState: InferenceState;
-  proposedEntitiesByType: ProposedEntityCreationsByType;
+  proposedEntitiesByType: Record<VersionedUrl, ProposedEntity[]>;
   requestedEntityTypes: DereferencedEntityTypesByTypeId;
   ownedById: OwnedById;
 }): Promise<EntityStatusMap> => {
@@ -121,6 +122,7 @@ export const createEntities = async ({
               entityTypeId,
               properties,
             },
+            includeDrafts: createAsDraft,
           });
 
           if (existingEntity) {
@@ -275,6 +277,12 @@ export const createEntities = async ({
 
           const { sourceEntityId, targetEntityId } = proposedEntity;
 
+          if (typeof sourceEntityId === "string") {
+            throw new Error(
+              `Expected source entity ID to be a number instead of "${sourceEntityId}", as existing entities are not supported in the legacy "inferEntities" activity.`,
+            );
+          }
+
           const sourceEntity = findPersistedEntity(sourceEntityId);
 
           if (!sourceEntity) {
@@ -312,6 +320,12 @@ export const createEntities = async ({
               };
 
             return;
+          }
+
+          if (typeof targetEntityId === "string") {
+            throw new Error(
+              `Expected target entity ID to be a number instead of "${targetEntityId}", as existing entities are not supported in the legacy "inferEntities" activity.`,
+            );
           }
 
           const targetEntity = findPersistedEntity(targetEntityId);
@@ -373,6 +387,7 @@ export const createEntities = async ({
               graphApiClient,
               linkData,
               ownedById,
+              includeDrafts: createAsDraft,
             });
 
             if (existingLinkEntity) {

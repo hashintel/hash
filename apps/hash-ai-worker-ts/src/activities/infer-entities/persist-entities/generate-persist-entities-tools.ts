@@ -1,33 +1,30 @@
 import type { JsonObject } from "@blockprotocol/core";
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import { validateVersionedUrl } from "@blockprotocol/type-system";
-import type {
-  ProposedEntity,
-  ProposedEntitySchemaOrData,
-} from "@local/hash-isomorphic-utils/ai-inference-types";
-import type { Entity } from "@local/hash-subgraph";
+import type { ProposedEntitySchemaOrData } from "@local/hash-isomorphic-utils/ai-inference-types";
 import dedent from "dedent";
-import type OpenAI from "openai";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
+import type { LlmToolDefinition } from "../../shared/get-llm-response/types";
+import type {
+  ProposedEntityToolCreationsByType,
+  ProposeEntitiesToolName,
+} from "../shared/generate-propose-entities-tools";
+import { generateProposeEntitiesTools } from "../shared/generate-propose-entities-tools";
+import { generateSimplifiedTypeId } from "../shared/generate-simplified-type-id";
+import type { EntityPropertyValueWithSimplifiedProperties } from "../shared/map-simplified-properties-to-properties";
+import { stripIdsFromDereferencedProperties } from "../shared/strip-ids-from-dereferenced-properties";
 
-export type FunctionName =
-  | "abandon_entities"
-  | "create_entities"
-  | "update_entities";
+export type PersistEntitiesToolName =
+  | "update_entities"
+  | ProposeEntitiesToolName;
 
-export type ProposedEntityCreationsByType = Record<
-  VersionedUrl,
-  ProposedEntity[]
->;
-
-export type ProposedEntityUpdatesByType = Record<
-  VersionedUrl,
+export type ProposedEntityToolUpdatesByType = Record<
+  string,
   {
     entityId: number;
     updateEntityId: string;
-    properties: Entity["properties"];
+    properties: Record<string, EntityPropertyValueWithSimplifiedProperties>;
   }[]
 >;
 
@@ -44,24 +41,25 @@ export const validateProposedEntitiesByType = <
   parsedJson: JsonObject,
   update: EntityUpdate,
 ): parsedJson is EntityUpdate extends true
-  ? ProposedEntityUpdatesByType
-  : ProposedEntityCreationsByType => {
-  const maybeVersionedUrls = Object.keys(parsedJson);
+  ? ProposedEntityToolUpdatesByType
+  : ProposedEntityToolCreationsByType => {
+  /** @todo: replace this with logic that validates simplified entity type Ids */
+  // const maybeVersionedUrls = Object.keys(parsedJson);
 
-  const invalidVersionedUrls = maybeVersionedUrls.filter(
-    (maybeVersionedUrl) => {
-      const result = validateVersionedUrl(maybeVersionedUrl);
+  // const invalidVersionedUrls = maybeVersionedUrls.filter(
+  //   (maybeVersionedUrl) => {
+  //     const result = validateVersionedUrl(maybeVersionedUrl);
 
-      return result.type !== "Ok";
-    },
-  );
-  if (invalidVersionedUrls.length > 0) {
-    throw new Error(
-      `Invalid versionedUrls in AI-provided response: ${invalidVersionedUrls.join(
-        ", ",
-      )}`,
-    );
-  }
+  //     return result.type !== "Ok";
+  //   },
+  // );
+  // if (invalidVersionedUrls.length > 0) {
+  //   throw new Error(
+  //     `Invalid versionedUrls in AI-provided response: ${invalidVersionedUrls.join(
+  //       ", ",
+  //     )}`,
+  //   );
+  // }
 
   const maybeEntitiesArrays = Object.values(parsedJson);
 
@@ -115,105 +113,65 @@ export const validateProposedEntitiesByType = <
   return true;
 };
 
-export const generatePersistEntitiesTools = (
+export const generatePersistEntitiesTools = (params: {
   entityTypes: {
     schema: DereferencedEntityType;
     isLink: boolean;
-  }[],
-): OpenAI.Chat.Completions.ChatCompletionTool[] => [
-  {
-    type: "function",
-    function: {
-      name: "create_entities" satisfies FunctionName,
-      description: "Create entities inferred from the provided text",
-      parameters: {
-        type: "object",
-        properties: entityTypes.reduce<Record<VersionedUrl, JSONSchema>>(
-          (acc, { schema, isLink }) => {
-            acc[schema.$id] = {
-              type: "array",
-              title: `${schema.title} entities to create`,
-              items: {
-                $id: schema.$id,
-                type: "object",
-                title: schema.title,
-                description: schema.description,
-                properties: {
-                  entityId: {
-                    description:
-                      "Your numerical identifier for the entity, unique among the inferred entities in this conversation",
-                    type: "number",
-                  },
-                  ...(isLink
-                    ? {
-                        sourceEntityId: {
-                          description:
-                            "The entityId of the source entity of the link",
-                          type: "number",
-                        },
-                        targetEntityId: {
-                          description:
-                            "The entityId of the target entity of the link",
-                          type: "number",
-                        },
-                      }
-                    : {}),
-                  properties: {
-                    description: "The properties to set on the entity",
-                    default: {},
-                    type: "object",
-                    properties: schema.properties,
-                  },
-                } satisfies ProposedEntitySchemaOrData,
-                required: [
-                  "entityId",
-                  "properties",
-                  ...(isLink ? ["sourceEntityId", "targetEntityId"] : []),
-                ],
-              },
-            };
-            return acc;
-          },
-          {},
-        ),
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "abandon_entities" satisfies FunctionName,
-      description:
-        "Give up trying to create or update entity, following failures which you cannot correct",
-      parameters: {
-        type: "object",
-        properties: {
-          entityIds: {
-            type: "array",
-            title: "The entityIds of the entities to abandon",
-            items: {
-              type: "number",
-            },
-          },
-        },
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "update_entities" satisfies FunctionName,
+  }[];
+  canLinkToExistingEntities: boolean;
+}): {
+  tools: LlmToolDefinition<PersistEntitiesToolName>[];
+  simplifiedEntityTypeIdMappings: Record<string, VersionedUrl>;
+} => {
+  const { entityTypes, canLinkToExistingEntities } = params;
+  const {
+    tools: proposeEntitiesTools,
+    simplifiedEntityTypeIdMappings: existingSimplifiedTypeIdMappings,
+  } = generateProposeEntitiesTools({ entityTypes, canLinkToExistingEntities });
+
+  let simplifiedEntityTypeIdMappings = existingSimplifiedTypeIdMappings;
+
+  const tools = [
+    ...proposeEntitiesTools,
+    {
+      name: "update_entities" as const,
       description: dedent(`
             Update entities inferred from the provided text where you have been advised the entity already exists, 
             using the entityId provided. If you have additional information about properties that already exist,
             you should provide an updated property value that appropriately merges the existing and new information,
             e.g. by updating an entity's 'description' property to incorporate new information.
         `),
-      parameters: {
+      inputSchema: {
         type: "object",
-        properties: entityTypes.reduce<Record<VersionedUrl, JSONSchema>>(
+        properties: entityTypes.reduce<Record<string, JSONSchema>>(
           (acc, { schema }) => {
-            acc[schema.$id] = {
+            const entityTypeId = schema.$id;
+
+            const existingSimplifiedEntityTypeId = Object.entries(
+              simplifiedEntityTypeIdMappings,
+            ).find(
+              ([_, existingMappedEntityTypeId]) =>
+                existingMappedEntityTypeId === entityTypeId,
+            )?.[0];
+
+            let simplifiedEntityTypeId = existingSimplifiedEntityTypeId;
+
+            if (!simplifiedEntityTypeId) {
+              const {
+                simplifiedTypeId: newSimplifiedTypeId,
+                updatedTypeMappings,
+              } = generateSimplifiedTypeId({
+                title: schema.title,
+                typeIdOrBaseUrl: entityTypeId,
+                existingTypeMappings: simplifiedEntityTypeIdMappings,
+              });
+
+              simplifiedEntityTypeId = newSimplifiedTypeId;
+
+              simplifiedEntityTypeIdMappings = updatedTypeMappings;
+            }
+
+            acc[simplifiedEntityTypeId] = {
               type: "array",
               title: `${schema.title} entities to update`,
               items: {
@@ -236,7 +194,9 @@ export const generatePersistEntitiesTools = (
                     description: "The properties to update on the entity",
                     default: {},
                     type: "object",
-                    properties: schema.properties,
+                    properties: stripIdsFromDereferencedProperties({
+                      properties: schema.properties,
+                    }),
                   },
                 } satisfies ProposedEntitySchemaOrData,
                 required: ["entityId", "properties"],
@@ -248,5 +208,7 @@ export const generatePersistEntitiesTools = (
         ),
       },
     },
-  },
-];
+  ];
+
+  return { tools, simplifiedEntityTypeIdMappings };
+};

@@ -134,10 +134,6 @@ import type {
   UserSecretOutgoingLinkAndTarget,
   UserSecretOutgoingLinksByLinkEntityTypeId,
   UserSecretProperties,
-  UsesUserSecret,
-  UsesUserSecretOutgoingLinkAndTarget,
-  UsesUserSecretOutgoingLinksByLinkEntityTypeId,
-  UsesUserSecretProperties,
   VaultPathPropertyValue,
   WebsiteURLPropertyValue,
 } from "./shared";
@@ -272,10 +268,6 @@ export type {
   UserSecretOutgoingLinkAndTarget,
   UserSecretOutgoingLinksByLinkEntityTypeId,
   UserSecretProperties,
-  UsesUserSecret,
-  UsesUserSecretOutgoingLinkAndTarget,
-  UsesUserSecretOutgoingLinksByLinkEntityTypeId,
-  UsesUserSecretProperties,
   VaultPathPropertyValue,
   WebsiteURLPropertyValue,
 };
@@ -336,3 +328,20 @@ export type SyncLinearDataWithProperties1 = LinkProperties;
 export type SyncLinearDataWithProperties2 = {
   "https://hash.ai/@hash/types/property-type/linear-team-id/"?: LinearTeamIdPropertyValue[];
 };
+
+export type UsesUserSecret = Entity<UsesUserSecretProperties> & {
+  linkData: LinkData;
+};
+
+export type UsesUserSecretOutgoingLinkAndTarget = never;
+
+export type UsesUserSecretOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * The user secret something uses.
+ */
+export type UsesUserSecretProperties = UsesUserSecretProperties1 &
+  UsesUserSecretProperties2;
+export type UsesUserSecretProperties1 = LinkProperties;
+
+export type UsesUserSecretProperties2 = {};

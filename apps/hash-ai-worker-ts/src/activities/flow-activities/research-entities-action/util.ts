@@ -1,33 +1,19 @@
-import dedent from "dedent";
 import type {
-  ChatCompletionMessage,
-  ChatCompletionMessageParam,
-  ChatCompletionTool,
-  ChatCompletionToolMessageParam,
-  FunctionDefinition,
-} from "openai/resources";
+  LlmAssistantMessage,
+  LlmMessage,
+  LlmUserMessage,
+} from "../../shared/get-llm-response/llm-message";
+import type { CompletedToolCall } from "./types";
 
-import type { CompletedToolCall, ToolDefinition } from "./types";
-
-export const parseOpenAiFunctionArguments = <
-  T extends Record<string, object>,
->(params: {
-  stringifiedArguments: string;
-}) => {
-  const { stringifiedArguments } = params;
-
-  return JSON.parse(stringifiedArguments) as T;
-};
-
-export const mapPreviousCallsToChatCompletionMessages = (params: {
+export const mapPreviousCallsToLlmMessages = (params: {
   previousCalls: {
     completedToolCalls: CompletedToolCall<string>[];
   }[];
   omitToolCallOutputsPriorReverseIndex?: number;
-}): ChatCompletionMessageParam[] => {
+}): LlmMessage[] => {
   const { previousCalls, omitToolCallOutputsPriorReverseIndex } = params;
 
-  return previousCalls.flatMap<ChatCompletionMessageParam>(
+  return previousCalls.flatMap<LlmMessage>(
     ({ completedToolCalls }, index, all) => {
       const isAfterOmitIndex =
         typeof omitToolCallOutputsPriorReverseIndex !== "undefined"
@@ -38,41 +24,30 @@ export const mapPreviousCallsToChatCompletionMessages = (params: {
         ? [
             {
               role: "assistant",
-              content: null,
-              tool_calls: completedToolCalls.map(
+              content: completedToolCalls.map(
                 /** @todo: consider also omitting large arguments from prior tool calls */
-                ({ openAiToolCall }) => openAiToolCall,
+                ({ id, name, input }) => ({
+                  type: "tool_use",
+                  id,
+                  name,
+                  input,
+                }),
               ),
-            } satisfies ChatCompletionMessage,
-            ...completedToolCalls.map<ChatCompletionToolMessageParam>(
-              (completedToolCall) => ({
-                role: "tool",
-                tool_call_id: completedToolCall.openAiToolCall.id,
+            } satisfies LlmAssistantMessage,
+            {
+              role: "user",
+              content: completedToolCalls.map((completedToolCall) => ({
+                type: "tool_result",
+                tool_use_id: completedToolCall.id,
                 content: isAfterOmitIndex
                   ? completedToolCall.redactedOutputMessage ??
-                    dedent(`
-                      The output fo the tool call is:
-                      ${completedToolCall.output}
-                    `)
+                    completedToolCall.output
                   : "This output has been omitted to reduce the length of the chat.",
-              }),
-            ),
+                is_error: completedToolCall.isError,
+              })),
+            } satisfies LlmUserMessage,
           ]
         : [];
     },
   );
 };
-
-export const mapToolDefinitionToOpenAiTool = ({
-  toolId,
-  description,
-  inputSchema,
-}: ToolDefinition<string>): ChatCompletionTool =>
-  ({
-    function: {
-      name: toolId,
-      description,
-      parameters: inputSchema as FunctionDefinition["parameters"],
-    },
-    type: "function",
-  }) as const;

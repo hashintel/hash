@@ -4,6 +4,10 @@
     clippy::missing_errors_doc,
     clippy::unwrap_used
 )]
+#![expect(
+    clippy::significant_drop_tightening,
+    reason = "This should be enabled but it's currently too noisy"
+)]
 
 mod data_type;
 mod drafts;
@@ -16,75 +20,71 @@ mod property_metadata;
 mod property_type;
 mod sorting;
 
-use std::{borrow::Cow, str::FromStr};
+use std::str::FromStr;
 
 use authorization::{
     schema::{
-        DataTypeRelationAndSubject, DataTypeViewerSubject, EntityTypeInstantiatorSubject,
-        EntityTypeRelationAndSubject, EntityTypeSetting, EntityTypeSettingSubject,
-        EntityTypeViewerSubject, PropertyTypeRelationAndSubject, PropertyTypeSetting,
-        PropertyTypeSettingSubject, PropertyTypeViewerSubject, WebOwnerSubject,
+        DataTypeRelationAndSubject, DataTypeViewerSubject, EntityRelationAndSubject,
+        EntityTypeInstantiatorSubject, EntityTypeRelationAndSubject, EntityTypeSetting,
+        EntityTypeSettingSubject, EntityTypeViewerSubject, PropertyTypeRelationAndSubject,
+        PropertyTypeSetting, PropertyTypeSettingSubject, PropertyTypeViewerSubject,
+        WebOwnerSubject,
     },
-    NoAuthorization,
+    zanzibar::Consistency,
+    AuthorizationApi, NoAuthorization,
 };
-use error_stack::{Report, Result};
+use error_stack::Result;
 use graph::{
-    knowledge::EntityQueryPath,
     load_env,
-    ontology::EntityTypeQueryPath,
     store::{
         account::{InsertAccountIdParams, InsertWebIdParams},
-        knowledge::{CreateEntityParams, GetEntityParams, PatchEntityParams},
+        knowledge::{
+            CreateEntityParams, GetEntityParams, GetEntityResponse, PatchEntityParams,
+            UpdateEntityEmbeddingsParams, ValidateEntityError, ValidateEntityParams,
+        },
         ontology::{
+            ArchiveDataTypeParams, ArchiveEntityTypeParams, ArchivePropertyTypeParams,
             CreateDataTypeParams, CreateEntityTypeParams, CreatePropertyTypeParams,
             GetDataTypesParams, GetEntityTypesParams, GetPropertyTypesParams,
-            UpdateDataTypesParams, UpdateEntityTypesParams, UpdatePropertyTypesParams,
+            UnarchiveDataTypeParams, UnarchiveEntityTypeParams, UnarchivePropertyTypeParams,
+            UpdateDataTypeEmbeddingParams, UpdateDataTypesParams, UpdateEntityTypeEmbeddingParams,
+            UpdateEntityTypesParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
         },
-        query::{Filter, FilterExpression, Parameter},
         AccountStore, ConflictBehavior, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
-        EntityQueryCursor, EntityQuerySorting, EntityStore, EntityTypeStore, InsertionError,
-        PostgresStore, PostgresStorePool, PropertyTypeStore, QueryError, StorePool, UpdateError,
+        EntityStore, EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool,
+        PropertyTypeStore, QueryError, StorePool, UpdateError,
     },
-    subgraph::{
-        edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
-        identifier::{
-            DataTypeVertexId, EntityTypeVertexId, GraphElementVertexId, PropertyTypeVertexId,
-        },
-        query::StructuralQuery,
-        temporal_axes::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
-            VariableTemporalAxisUnresolved,
-        },
-    },
+    subgraph::{query::EntityStructuralQuery, Subgraph},
     Environment,
 };
 use graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{Entity, EntityId, EntityMetadata, EntityUuid, ProvidedEntityEditionProvenance},
+        entity::{Entity, EntityId, EntityMetadata, EntityUuid},
         link::LinkData,
-        Confidence, PropertyMetadataMap, PropertyObject, PropertyProvenance,
+        PropertyObject,
     },
     ontology::{
-        DataTypeMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
-        OntologyTypeClassificationMetadata, PropertyTypeMetadata, PropertyTypeWithMetadata,
+        DataTypeMetadata, EntityTypeMetadata, OntologyTemporalMetadata,
+        OntologyTypeClassificationMetadata, PropertyTypeMetadata,
         ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
 };
-use temporal_versioning::{DecisionTime, LimitedTemporalBound, TemporalBound, Timestamp};
+use hash_tracing::logging::env_filter;
+use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use time::{format_description::well_known::Iso8601, Duration, OffsetDateTime};
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{url::VersionedUrl, DataType, EntityType, PropertyType};
 use uuid::Uuid;
 
-pub struct DatabaseTestWrapper {
+pub struct DatabaseTestWrapper<A: AuthorizationApi> {
     _pool: PostgresStorePool<NoTls>,
-    connection: <PostgresStorePool<NoTls> as StorePool>::Store<'static>,
+    connection: <PostgresStorePool<NoTls> as StorePool>::Store<'static, A>,
 }
 
-pub struct DatabaseApi<'pool> {
-    store: PostgresStore<Transaction<'pool>>,
+pub struct DatabaseApi<'pool, A: AuthorizationApi> {
+    store: PostgresStore<Transaction<'pool>, A>,
     account_id: AccountId,
 }
 
@@ -129,9 +129,20 @@ const fn entity_type_relationships() -> [EntityTypeRelationAndSubject; 3] {
     ]
 }
 
-impl DatabaseTestWrapper {
+pub fn init_logging() {
+    let _ = tracing_subscriber::fmt()
+        .with_ansi(true)
+        .with_env_filter(env_filter(None))
+        .with_file(true)
+        .with_line_number(true)
+        .with_test_writer()
+        .try_init();
+}
+
+impl DatabaseTestWrapper<NoAuthorization> {
     pub async fn new() -> Self {
         load_env(Environment::Test);
+        init_logging();
 
         let user = std::env::var("HASH_GRAPH_PG_USER").unwrap_or_else(|_| "graph".to_owned());
         let password =
@@ -157,7 +168,7 @@ impl DatabaseTestWrapper {
             .expect("could not connect to database");
 
         let connection = pool
-            .acquire_owned()
+            .acquire_owned(NoAuthorization, None)
             .await
             .expect("could not acquire a database connection");
 
@@ -166,13 +177,15 @@ impl DatabaseTestWrapper {
             connection,
         }
     }
+}
 
+impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
     pub async fn seed<D, P, E>(
         &mut self,
         data_types: D,
         property_types: P,
         entity_types: E,
-    ) -> Result<DatabaseApi<'_>, InsertionError>
+    ) -> Result<DatabaseApi<'_, &mut A>, InsertionError>
     where
         D: IntoIterator<Item = &'static str, IntoIter: Send> + Send,
         P: IntoIterator<Item = &'static str, IntoIter: Send> + Send,
@@ -186,17 +199,12 @@ impl DatabaseTestWrapper {
 
         let account_id = AccountId::new(Uuid::new_v4());
         store
-            .insert_account_id(
-                account_id,
-                &mut NoAuthorization,
-                InsertAccountIdParams { account_id },
-            )
+            .insert_account_id(account_id, InsertAccountIdParams { account_id })
             .await
             .expect("could not insert account id");
         store
             .insert_web_id(
                 account_id,
-                &mut NoAuthorization,
                 InsertWebIdParams {
                     owned_by_id: OwnedById::new(account_id.into_uuid()),
                     owner: WebOwnerSubject::Account { id: account_id },
@@ -208,8 +216,6 @@ impl DatabaseTestWrapper {
         store
             .create_data_types(
                 account_id,
-                &mut NoAuthorization,
-                None,
                 data_types.into_iter().map(|data_type_str| {
                     let schema: DataType = serde_json::from_str(data_type_str)
                         .expect("could not parse data type representation");
@@ -229,8 +235,6 @@ impl DatabaseTestWrapper {
         store
             .create_property_types(
                 account_id,
-                &mut NoAuthorization,
-                None,
                 property_types.into_iter().map(|property_type_str| {
                     let schema: PropertyType = serde_json::from_str(property_type_str)
                         .expect("could not property data type representation");
@@ -250,8 +254,6 @@ impl DatabaseTestWrapper {
         store
             .create_entity_types(
                 account_id,
-                &mut NoAuthorization,
-                None,
                 entity_types.into_iter().map(|entity_type_str| {
                     let schema: EntityType = serde_json::from_str(entity_type_str)
                         .expect("could not entity data type representation");
@@ -287,723 +289,296 @@ fn generate_decision_time() -> Timestamp<DecisionTime> {
     .expect("could not parse timestamp")
 }
 
-// TODO: Add get_all_* methods
-impl DatabaseApi<'_> {
-    pub async fn create_owned_data_type(
+impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
+    async fn create_data_types<P, R>(
         &mut self,
-        data_type: DataType,
-    ) -> Result<DataTypeMetadata, InsertionError> {
-        self.store
-            .create_data_type(
-                self.account_id,
-                &mut NoAuthorization,
-                None,
-                CreateDataTypeParams {
-                    schema: data_type,
-                    classification: OntologyTypeClassificationMetadata::Owned {
-                        owned_by_id: OwnedById::new(self.account_id.into_uuid()),
-                    },
-                    relationships: data_type_relationships(),
-                    conflict_behavior: ConflictBehavior::Fail,
-                    provenance: ProvidedOntologyEditionProvenance::default(),
-                },
-            )
-            .await
+        actor_id: AccountId,
+        params: P,
+    ) -> Result<Vec<DataTypeMetadata>, InsertionError>
+    where
+        P: IntoIterator<Item = CreateDataTypeParams<R>, IntoIter: Send> + Send,
+        R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync,
+    {
+        self.store.create_data_types(actor_id, params).await
     }
 
-    pub async fn create_external_data_type(
-        &mut self,
-        data_type: DataType,
-    ) -> Result<DataTypeMetadata, InsertionError> {
-        self.store
-            .create_data_type(
-                self.account_id,
-                &mut NoAuthorization,
-                None,
-                CreateDataTypeParams {
-                    schema: data_type,
-                    classification: OntologyTypeClassificationMetadata::External {
-                        fetched_at: OffsetDateTime::now_utc(),
-                    },
-                    relationships: data_type_relationships(),
-                    conflict_behavior: ConflictBehavior::Fail,
-                    provenance: ProvidedOntologyEditionProvenance::default(),
-                },
-            )
-            .await
-    }
-
-    pub async fn get_data_type(
-        &mut self,
-        url: &VersionedUrl,
-    ) -> Result<DataTypeWithMetadata, QueryError> {
-        Ok(self
-            .store
-            .get_data_type(
-                self.account_id,
-                &NoAuthorization,
-                GetDataTypesParams {
-                    query: StructuralQuery {
-                        filter: Filter::for_versioned_url(url),
-                        graph_resolve_depths: GraphResolveDepths::default(),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(
-                                Some(TemporalBound::Unbounded),
-                                None,
-                            ),
-                        },
-                        include_drafts: false,
-                    },
-                    limit: None,
-                    after: None,
-                },
-            )
-            .await?
-            .vertices
-            .data_types
-            .remove(&DataTypeVertexId::from(url.clone()))
-            .expect("no data type found"))
-    }
-
-    pub async fn update_data_type(
-        &mut self,
-        schema: DataType,
-    ) -> Result<DataTypeMetadata, UpdateError> {
-        self.store
-            .update_data_type(
-                self.account_id,
-                &mut NoAuthorization,
-                None,
-                UpdateDataTypesParams {
-                    schema,
-                    relationships: data_type_relationships(),
-                    provenance: ProvidedOntologyEditionProvenance::default(),
-                },
-            )
-            .await
-    }
-
-    pub async fn create_property_type(
-        &mut self,
-        property_type: PropertyType,
-    ) -> Result<PropertyTypeMetadata, InsertionError> {
-        self.store
-            .create_property_type(
-                self.account_id,
-                &mut NoAuthorization,
-                None,
-                CreatePropertyTypeParams {
-                    schema: property_type,
-                    classification: OntologyTypeClassificationMetadata::Owned {
-                        owned_by_id: OwnedById::new(self.account_id.into_uuid()),
-                    },
-                    relationships: property_type_relationships(),
-                    conflict_behavior: ConflictBehavior::Fail,
-                    provenance: ProvidedOntologyEditionProvenance::default(),
-                },
-            )
-            .await
-    }
-
-    pub async fn get_property_type(
-        &mut self,
-        url: &VersionedUrl,
-    ) -> Result<PropertyTypeWithMetadata, QueryError> {
-        Ok(self
-            .store
-            .get_property_type(
-                self.account_id,
-                &NoAuthorization,
-                GetPropertyTypesParams {
-                    query: StructuralQuery {
-                        filter: Filter::for_versioned_url(url),
-                        graph_resolve_depths: GraphResolveDepths::default(),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(
-                                Some(TemporalBound::Unbounded),
-                                None,
-                            ),
-                        },
-                        include_drafts: false,
-                    },
-                    after: None,
-                    limit: None,
-                },
-            )
-            .await?
-            .vertices
-            .property_types
-            .remove(&PropertyTypeVertexId::from(url.clone()))
-            .expect("no property type found"))
-    }
-
-    pub async fn update_property_type(
-        &mut self,
-        property_type: PropertyType,
-    ) -> Result<PropertyTypeMetadata, UpdateError> {
-        self.store
-            .update_property_type(
-                self.account_id,
-                &mut NoAuthorization,
-                None,
-                UpdatePropertyTypesParams {
-                    schema: property_type,
-                    relationships: property_type_relationships(),
-                    provenance: ProvidedOntologyEditionProvenance::default(),
-                },
-            )
-            .await
-    }
-
-    pub async fn create_entity_type(
-        &mut self,
-        entity_type: EntityType,
-    ) -> Result<EntityTypeMetadata, InsertionError> {
-        self.store
-            .create_entity_type(
-                self.account_id,
-                &mut NoAuthorization,
-                None,
-                CreateEntityTypeParams {
-                    schema: entity_type,
-                    classification: OntologyTypeClassificationMetadata::Owned {
-                        owned_by_id: OwnedById::new(self.account_id.into_uuid()),
-                    },
-                    label_property: None,
-                    icon: None,
-                    relationships: entity_type_relationships(),
-                    conflict_behavior: ConflictBehavior::Fail,
-                    provenance: ProvidedOntologyEditionProvenance::default(),
-                },
-            )
-            .await
-    }
-
-    pub async fn get_entity_type(
-        &mut self,
-        url: &VersionedUrl,
-    ) -> Result<EntityTypeWithMetadata, QueryError> {
-        Ok(self
-            .store
-            .get_entity_type(
-                self.account_id,
-                &NoAuthorization,
-                GetEntityTypesParams {
-                    query: StructuralQuery {
-                        filter: Filter::for_versioned_url(url),
-                        graph_resolve_depths: GraphResolveDepths::default(),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(
-                                Some(TemporalBound::Unbounded),
-                                None,
-                            ),
-                        },
-                        include_drafts: false,
-                    },
-                    after: None,
-                    limit: None,
-                },
-            )
-            .await?
-            .vertices
-            .entity_types
-            .remove(&EntityTypeVertexId::from(url.clone()))
-            .expect("no entity type found"))
-    }
-
-    pub async fn update_entity_type(
-        &mut self,
-        entity_type: EntityType,
-    ) -> Result<EntityTypeMetadata, UpdateError> {
-        self.store
-            .update_entity_type(
-                self.account_id,
-                &mut NoAuthorization,
-                None,
-                UpdateEntityTypesParams {
-                    schema: entity_type,
-                    icon: None,
-                    label_property: None,
-                    relationships: entity_type_relationships(),
-                    provenance: ProvidedOntologyEditionProvenance::default(),
-                },
-            )
-            .await
-    }
-
-    pub async fn create_entity(
-        &mut self,
-        properties: PropertyObject,
-        entity_type_ids: Vec<VersionedUrl>,
-        entity_uuid: Option<EntityUuid>,
-        draft: bool,
-        confidence: Option<Confidence>,
-        property_metadata: PropertyMetadataMap<'static>,
-    ) -> Result<EntityMetadata, InsertionError> {
-        self.store
-            .create_entity(
-                self.account_id,
-                &mut NoAuthorization,
-                None,
-                CreateEntityParams {
-                    owned_by_id: OwnedById::new(self.account_id.into_uuid()),
-                    entity_uuid,
-                    decision_time: Some(generate_decision_time()),
-                    entity_type_ids,
-                    properties,
-                    property_metadata,
-                    link_data: None,
-                    draft,
-                    relationships: [],
-                    confidence,
-                    provenance: ProvidedEntityEditionProvenance::default(),
-                },
-            )
-            .await
-    }
-
-    pub async fn get_entities(&self, entity_id: EntityId) -> Result<Vec<Entity>, QueryError> {
-        Ok(self
-            .store
-            .get_entity(
-                self.account_id,
-                &NoAuthorization,
-                GetEntityParams {
-                    query: StructuralQuery {
-                        filter: Filter::for_entity_by_entity_id(entity_id),
-                        graph_resolve_depths: GraphResolveDepths::default(),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(
-                                Some(TemporalBound::Unbounded),
-                                None,
-                            ),
-                        },
-                        include_drafts: false,
-                    },
-                    sorting: EntityQuerySorting {
-                        paths: Vec::new(),
-                        cursor: None,
-                    },
-                    limit: None,
-                },
-            )
-            .await?
-            .0
-            .vertices
-            .entities
-            .into_values()
-            .collect())
-    }
-
-    pub async fn get_all_entities(
+    async fn get_data_type(
         &self,
-        limit: usize,
-        sorting: EntityQuerySorting<'static>,
-    ) -> Result<(Vec<Entity>, Option<EntityQueryCursor<'static>>), QueryError> {
-        let (mut subgraph, cursor) = self
-            .store
-            .get_entity(
-                self.account_id,
-                &NoAuthorization,
-                GetEntityParams {
-                    query: StructuralQuery {
-                        filter: Filter::All(Vec::new()),
-                        graph_resolve_depths: GraphResolveDepths::default(),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
-                        },
-                        include_drafts: false,
-                    },
-                    sorting,
-                    limit: Some(limit),
-                },
-            )
-            .await?;
-        let entities = subgraph
-            .roots
-            .into_iter()
-            .filter_map(|vertex_id| {
-                let GraphElementVertexId::KnowledgeGraph(vertex_id) = vertex_id else {
-                    panic!("unexpected vertex id found: {vertex_id:?}");
-                };
-                subgraph.vertices.entities.remove(&vertex_id)
-            })
-            .collect();
-        Ok((entities, cursor))
+        actor_id: AccountId,
+        params: GetDataTypesParams<'_>,
+    ) -> Result<Subgraph, QueryError> {
+        self.store.get_data_type(actor_id, params).await
     }
 
-    pub async fn get_entities_by_type(
+    async fn update_data_type<R>(
+        &mut self,
+        actor_id: AccountId,
+        params: UpdateDataTypesParams<R>,
+    ) -> Result<DataTypeMetadata, UpdateError>
+    where
+        R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync,
+    {
+        self.store.update_data_type(actor_id, params).await
+    }
+
+    async fn archive_data_type(
+        &mut self,
+        actor_id: AccountId,
+        params: ArchiveDataTypeParams<'_>,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.store.archive_data_type(actor_id, params).await
+    }
+
+    async fn unarchive_data_type(
+        &mut self,
+        actor_id: AccountId,
+        params: UnarchiveDataTypeParams,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.store.unarchive_data_type(actor_id, params).await
+    }
+
+    async fn update_data_type_embeddings(
+        &mut self,
+        actor_id: AccountId,
+        params: UpdateDataTypeEmbeddingParams<'_>,
+    ) -> Result<(), UpdateError> {
+        self.store
+            .update_data_type_embeddings(actor_id, params)
+            .await
+    }
+}
+
+impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
+    async fn create_property_types<P, R>(
+        &mut self,
+        actor_id: AccountId,
+        params: P,
+    ) -> Result<Vec<PropertyTypeMetadata>, InsertionError>
+    where
+        P: IntoIterator<Item = CreatePropertyTypeParams<R>, IntoIter: Send> + Send,
+        R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync,
+    {
+        self.store.create_property_types(actor_id, params).await
+    }
+
+    async fn get_property_type(
         &self,
-        entity_type_id: &VersionedUrl,
-    ) -> Result<Vec<Entity>, QueryError> {
-        let (mut subgraph, _) = self
-            .store
-            .get_entity(
-                self.account_id,
-                &NoAuthorization,
-                GetEntityParams {
-                    query: StructuralQuery {
-                        filter: Filter::All(vec![
-                            Filter::Equal(
-                                Some(FilterExpression::Path(EntityQueryPath::EntityTypeEdge {
-                                    edge_kind: SharedEdgeKind::IsOfType,
-                                    path: EntityTypeQueryPath::BaseUrl,
-                                    inheritance_depth: Some(0),
-                                })),
-                                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                                    entity_type_id.base_url.as_str(),
-                                )))),
-                            ),
-                            Filter::Equal(
-                                Some(FilterExpression::Path(EntityQueryPath::EntityTypeEdge {
-                                    edge_kind: SharedEdgeKind::IsOfType,
-                                    path: EntityTypeQueryPath::Version,
-                                    inheritance_depth: Some(0),
-                                })),
-                                Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
-                                    entity_type_id.version,
-                                ))),
-                            ),
-                        ]),
-                        graph_resolve_depths: GraphResolveDepths::default(),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
-                        },
-                        include_drafts: false,
-                    },
-                    sorting: EntityQuerySorting {
-                        paths: Vec::new(),
-                        cursor: None,
-                    },
-                    limit: None,
-                },
-            )
-            .await?;
-        Ok(subgraph
-            .roots
-            .into_iter()
-            .filter_map(|vertex_id| {
-                let GraphElementVertexId::KnowledgeGraph(vertex_id) = vertex_id else {
-                    panic!("unexpected vertex id found: {vertex_id:?}");
-                };
-                subgraph.vertices.entities.remove(&vertex_id)
-            })
-            .collect())
+        actor_id: AccountId,
+        params: GetPropertyTypesParams<'_>,
+    ) -> Result<Subgraph, QueryError> {
+        self.store.get_property_type(actor_id, params).await
     }
 
-    pub async fn get_entity_by_timestamp(
+    async fn update_property_type<R>(
+        &mut self,
+        actor_id: AccountId,
+        params: UpdatePropertyTypesParams<R>,
+    ) -> Result<PropertyTypeMetadata, UpdateError>
+    where
+        R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync,
+    {
+        self.store.update_property_type(actor_id, params).await
+    }
+
+    async fn archive_property_type(
+        &mut self,
+        actor_id: AccountId,
+        params: ArchivePropertyTypeParams<'_>,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.store.archive_property_type(actor_id, params).await
+    }
+
+    async fn unarchive_property_type(
+        &mut self,
+        actor_id: AccountId,
+        params: UnarchivePropertyTypeParams<'_>,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.store.unarchive_property_type(actor_id, params).await
+    }
+
+    async fn update_property_type_embeddings(
+        &mut self,
+        actor_id: AccountId,
+        params: UpdatePropertyTypeEmbeddingParams<'_>,
+    ) -> Result<(), UpdateError> {
+        self.store
+            .update_property_type_embeddings(actor_id, params)
+            .await
+    }
+}
+
+impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
+    async fn create_entity_types<P, R>(
+        &mut self,
+        actor_id: AccountId,
+        params: P,
+    ) -> Result<Vec<EntityTypeMetadata>, InsertionError>
+    where
+        P: IntoIterator<Item = CreateEntityTypeParams<R>, IntoIter: Send> + Send,
+        R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
+    {
+        self.store.create_entity_types(actor_id, params).await
+    }
+
+    async fn get_entity_type(
         &self,
-        entity_id: EntityId,
-        timestamp: Timestamp<DecisionTime>,
-    ) -> Result<Entity, QueryError> {
-        let entities = self
-            .store
-            .get_entity(
-                self.account_id,
-                &NoAuthorization,
-                GetEntityParams {
-                    query: StructuralQuery {
-                        filter: Filter::for_entity_by_entity_id(entity_id),
-                        graph_resolve_depths: GraphResolveDepths::default(),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(
-                                Some(TemporalBound::Inclusive(timestamp)),
-                                Some(LimitedTemporalBound::Inclusive(timestamp)),
-                            ),
-                        },
-                        include_drafts: false,
-                    },
-                    sorting: EntityQuerySorting {
-                        paths: Vec::new(),
-                        cursor: None,
-                    },
-                    limit: None,
-                },
-            )
-            .await?
-            .0
-            .vertices
-            .entities
-            .into_values()
-            .collect::<Vec<_>>();
-        assert_eq!(entities.len(), 1);
-        Ok(entities.into_iter().next().unwrap())
+        actor_id: AccountId,
+        params: GetEntityTypesParams<'_>,
+    ) -> Result<Subgraph, QueryError> {
+        self.store.get_entity_type(actor_id, params).await
     }
 
-    pub async fn get_latest_entity(&self, entity_id: EntityId) -> Result<Entity, QueryError> {
-        let entities = self
-            .store
-            .get_entity(
-                self.account_id,
-                &NoAuthorization,
-                GetEntityParams {
-                    query: StructuralQuery {
-                        filter: Filter::for_entity_by_entity_id(entity_id),
-                        graph_resolve_depths: GraphResolveDepths::default(),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
-                        },
-                        include_drafts: entity_id.draft_id.is_some(),
-                    },
-                    sorting: EntityQuerySorting {
-                        paths: Vec::new(),
-                        cursor: None,
-                    },
-                    limit: None,
-                },
-            )
-            .await?
-            .0
-            .vertices
-            .entities
-            .into_values()
-            .collect::<Vec<_>>();
-        if entities.len() == 1 {
-            Ok(entities.into_iter().next().unwrap())
-        } else {
-            Err(Report::new(QueryError).attach_printable(format!(
-                "unexpected number of entities found, expected 1 but received {}",
-                entities.len()
-            )))
+    async fn update_entity_type<R>(
+        &mut self,
+        actor_id: AccountId,
+        params: UpdateEntityTypesParams<R>,
+    ) -> Result<EntityTypeMetadata, UpdateError>
+    where
+        R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
+    {
+        self.store.update_entity_type(actor_id, params).await
+    }
+
+    async fn archive_entity_type(
+        &mut self,
+        actor_id: AccountId,
+        params: ArchiveEntityTypeParams<'_>,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.store.archive_entity_type(actor_id, params).await
+    }
+
+    async fn unarchive_entity_type(
+        &mut self,
+        actor_id: AccountId,
+        params: UnarchiveEntityTypeParams<'_>,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.store.unarchive_entity_type(actor_id, params).await
+    }
+
+    async fn update_entity_type_embeddings(
+        &mut self,
+        actor_id: AccountId,
+        params: UpdateEntityTypeEmbeddingParams<'_>,
+    ) -> Result<(), UpdateError> {
+        self.store
+            .update_entity_type_embeddings(actor_id, params)
+            .await
+    }
+}
+
+impl<A> EntityStore for DatabaseApi<'_, A>
+where
+    A: AuthorizationApi,
+{
+    async fn create_entity<R>(
+        &mut self,
+        actor_id: AccountId,
+        mut params: CreateEntityParams<R>,
+    ) -> Result<EntityMetadata, InsertionError>
+    where
+        R: IntoIterator<Item = EntityRelationAndSubject> + Send,
+    {
+        if params.decision_time.is_none() {
+            params.decision_time = Some(generate_decision_time());
         }
+
+        self.store.create_entity(actor_id, params).await
     }
 
-    pub async fn patch_entity(
+    async fn validate_entity(
+        &self,
+        actor_id: AccountId,
+        consistency: Consistency<'_>,
+        params: ValidateEntityParams<'_>,
+    ) -> Result<(), ValidateEntityError> {
+        self.store
+            .validate_entity(actor_id, consistency, params)
+            .await
+    }
+
+    async fn insert_entities_batched_by_type(
         &mut self,
+        actor_id: AccountId,
+        entities: impl IntoIterator<
+            Item = (
+                OwnedById,
+                Option<EntityUuid>,
+                PropertyObject,
+                Option<LinkData>,
+                Option<Timestamp<DecisionTime>>,
+            ),
+            IntoIter: Send,
+        > + Send,
+        entity_type_id: &VersionedUrl,
+    ) -> Result<Vec<EntityMetadata>, InsertionError> {
+        self.store
+            .insert_entities_batched_by_type(actor_id, entities, entity_type_id)
+            .await
+    }
+
+    async fn get_entity(
+        &self,
+        actor_id: AccountId,
+        mut params: GetEntityParams<'_>,
+    ) -> Result<GetEntityResponse<'static>, QueryError> {
+        let include_count = params.include_count;
+        let has_limit = params.limit.is_some();
+        params.include_count = true;
+
+        let count = self.count_entities(actor_id, params.query.clone()).await?;
+        let mut response = self.store.get_entity(actor_id, params).await?;
+
+        // We can ensure that `count_entities` and `get_entity` return the same count;
+        assert_eq!(response.count, Some(count));
+        // if the limit is not set, the count should be equal to the number of entities returned
+        if !has_limit {
+            assert_eq!(count, response.subgraph.roots.len());
+        }
+
+        if !include_count {
+            response.count = None;
+        }
+        Ok(response)
+    }
+
+    async fn count_entities(
+        &self,
+        actor_id: AccountId,
+        query: EntityStructuralQuery<'_>,
+    ) -> Result<usize, QueryError> {
+        self.store.count_entities(actor_id, query).await
+    }
+
+    async fn get_entity_by_id(
+        &self,
+        actor_id: AccountId,
+        entity_id: EntityId,
+        transaction_time: Option<Timestamp<TransactionTime>>,
+        decision_time: Option<Timestamp<DecisionTime>>,
+    ) -> Result<Entity, QueryError> {
+        self.store
+            .get_entity_by_id(actor_id, entity_id, transaction_time, decision_time)
+            .await
+    }
+
+    async fn patch_entity(
+        &mut self,
+        actor_id: AccountId,
         mut params: PatchEntityParams,
     ) -> Result<EntityMetadata, UpdateError> {
         if params.decision_time.is_none() {
             params.decision_time = Some(generate_decision_time());
         }
-        self.store
-            .patch_entity(self.account_id, &mut NoAuthorization, None, params)
-            .await
+
+        self.store.patch_entity(actor_id, params).await
     }
 
-    async fn create_link_entity(
+    async fn update_entity_embeddings(
         &mut self,
-        properties: PropertyObject,
-        entity_type_ids: Vec<VersionedUrl>,
-        entity_uuid: Option<EntityUuid>,
-        left_entity_id: EntityId,
-        right_entity_id: EntityId,
-    ) -> Result<EntityMetadata, InsertionError> {
-        self.store
-            .create_entity(
-                self.account_id,
-                &mut NoAuthorization,
-                None,
-                CreateEntityParams {
-                    owned_by_id: OwnedById::new(self.account_id.into_uuid()),
-                    entity_uuid,
-                    decision_time: Some(generate_decision_time()),
-                    entity_type_ids,
-                    properties,
-                    property_metadata: PropertyMetadataMap::default(),
-                    link_data: Some(LinkData {
-                        left_entity_id,
-                        right_entity_id,
-                        left_entity_confidence: None,
-                        left_entity_provenance: PropertyProvenance::default(),
-                        right_entity_confidence: None,
-                        right_entity_provenance: PropertyProvenance::default(),
-                    }),
-                    draft: false,
-                    relationships: [],
-                    confidence: None,
-                    provenance: ProvidedEntityEditionProvenance::default(),
-                },
-            )
-            .await
-    }
-
-    pub async fn get_link_entity_target(
-        &self,
-        source_entity_id: EntityId,
-        link_type_id: VersionedUrl,
-    ) -> Result<Entity, QueryError> {
-        let filter = Filter::All(vec![
-            Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                    path: Box::new(EntityQueryPath::Uuid),
-                    direction: EdgeDirection::Outgoing,
-                })),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    source_entity_id.entity_uuid.into_uuid(),
-                ))),
-            ),
-            Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                    path: Box::new(EntityQueryPath::OwnedById),
-                    direction: EdgeDirection::Outgoing,
-                })),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    source_entity_id.owned_by_id.into_uuid(),
-                ))),
-            ),
-            Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::EntityTypeEdge {
-                    edge_kind: SharedEdgeKind::IsOfType,
-                    path: EntityTypeQueryPath::BaseUrl,
-                    inheritance_depth: Some(0),
-                })),
-                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                    link_type_id.base_url.as_str(),
-                )))),
-            ),
-            Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::EntityTypeEdge {
-                    edge_kind: SharedEdgeKind::IsOfType,
-                    path: EntityTypeQueryPath::Version,
-                    inheritance_depth: Some(0),
-                })),
-                Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
-                    link_type_id.version,
-                ))),
-            ),
-        ]);
-
-        let mut subgraph = self
-            .store
-            .get_entity(
-                self.account_id,
-                &NoAuthorization,
-                GetEntityParams {
-                    query: StructuralQuery {
-                        filter,
-                        graph_resolve_depths: GraphResolveDepths::default(),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(
-                                Some(TemporalBound::Unbounded),
-                                None,
-                            ),
-                        },
-                        include_drafts: false,
-                    },
-                    sorting: EntityQuerySorting {
-                        paths: Vec::new(),
-                        cursor: None,
-                    },
-                    limit: None,
-                },
-            )
-            .await?;
-
-        let roots = subgraph
-            .0
-            .roots
-            .into_iter()
-            .filter_map(|vertex_id| match vertex_id {
-                GraphElementVertexId::KnowledgeGraph(vertex_id) => {
-                    subgraph.0.vertices.entities.remove(&vertex_id)
-                }
-                _ => None,
-            })
-            .collect::<Vec<_>>();
-
-        match roots.len() {
-            1 => Ok(roots.into_iter().next().unwrap()),
-            len => panic!("unexpected number of entities found, expected 1 but received {len}"),
-        }
-    }
-
-    pub async fn get_latest_entity_links(
-        &self,
-        source_entity_id: EntityId,
-    ) -> Result<Vec<Entity>, QueryError> {
-        let filter = Filter::All(vec![
-            Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                    path: Box::new(EntityQueryPath::Uuid),
-                    direction: EdgeDirection::Outgoing,
-                })),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    source_entity_id.entity_uuid.into_uuid(),
-                ))),
-            ),
-            Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                    path: Box::new(EntityQueryPath::OwnedById),
-                    direction: EdgeDirection::Outgoing,
-                })),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    source_entity_id.owned_by_id.into_uuid(),
-                ))),
-            ),
-            Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::Archived)),
-                Some(FilterExpression::Parameter(Parameter::Boolean(false))),
-            ),
-        ]);
-
-        let mut subgraph = self
-            .store
-            .get_entity(
-                self.account_id,
-                &NoAuthorization,
-                GetEntityParams {
-                    query: StructuralQuery {
-                        filter,
-                        graph_resolve_depths: GraphResolveDepths::default(),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
-                        },
-                        include_drafts: false,
-                    },
-                    sorting: EntityQuerySorting {
-                        paths: Vec::new(),
-                        cursor: None,
-                    },
-                    limit: None,
-                },
-            )
-            .await?;
-
-        Ok(subgraph
-            .0
-            .roots
-            .into_iter()
-            .filter_map(|vertex_id| match vertex_id {
-                GraphElementVertexId::KnowledgeGraph(edition_id) => {
-                    subgraph.0.vertices.entities.remove(&edition_id)
-                }
-                _ => None,
-            })
-            .collect())
-    }
-
-    async fn archive_entity(&mut self, entity_id: EntityId) -> Result<EntityMetadata, UpdateError> {
-        self.store
-            .patch_entity(
-                self.account_id,
-                &mut NoAuthorization,
-                None,
-                PatchEntityParams {
-                    entity_id,
-                    decision_time: Some(generate_decision_time()),
-                    archived: Some(true),
-                    draft: None,
-                    entity_type_ids: vec![],
-                    properties: vec![],
-                    confidence: None,
-                    provenance: ProvidedEntityEditionProvenance::default(),
-                },
-            )
-            .await
+        actor_id: AccountId,
+        params: UpdateEntityEmbeddingsParams<'_>,
+    ) -> Result<(), UpdateError> {
+        self.store.update_entity_embeddings(actor_id, params).await
     }
 }
 

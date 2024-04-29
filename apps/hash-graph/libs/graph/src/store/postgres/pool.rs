@@ -1,9 +1,13 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
+use authorization::AuthorizationApi;
 use bb8_postgres::{
     bb8::{ErrorSink, ManageConnection, Pool, PooledConnection, RunError},
     PostgresConnectionManager,
 };
 use error_stack::{Result, ResultExt};
+use temporal_client::TemporalClient;
 use tokio_postgres::{
     tls::{MakeTlsConnect, TlsConnect},
     Client, Config, Error, GenericClient, Socket, Transaction,
@@ -76,14 +80,31 @@ where
         >,
 {
     type Error = RunError<Error>;
-    type Store<'pool> = PostgresStore<PooledConnection<'pool, PostgresConnectionManager<Tls>>>;
+    type Store<'pool, A: AuthorizationApi> =
+        PostgresStore<PooledConnection<'pool, PostgresConnectionManager<Tls>>, A>;
 
-    async fn acquire(&self) -> Result<Self::Store<'_>, Self::Error> {
-        Ok(PostgresStore::new(self.pool.get().await?))
+    async fn acquire<A: AuthorizationApi>(
+        &self,
+        authorization_api: A,
+        temporal_client: Option<Arc<TemporalClient>>,
+    ) -> Result<Self::Store<'_, A>, Self::Error> {
+        Ok(PostgresStore::new(
+            self.pool.get().await?,
+            authorization_api,
+            temporal_client,
+        ))
     }
 
-    async fn acquire_owned(&self) -> Result<Self::Store<'static>, Self::Error> {
-        Ok(PostgresStore::new(self.pool.get_owned().await?))
+    async fn acquire_owned<A: AuthorizationApi>(
+        &self,
+        authorization_api: A,
+        temporal_client: Option<Arc<TemporalClient>>,
+    ) -> Result<Self::Store<'static, A>, Self::Error> {
+        Ok(PostgresStore::new(
+            self.pool.get_owned().await?,
+            authorization_api,
+            temporal_client,
+        ))
     }
 }
 
@@ -138,8 +159,12 @@ impl AsClient for Transaction<'_> {
     }
 }
 
-impl<T: AsClient> AsClient for PostgresStore<T> {
-    type Client = T::Client;
+impl<C, A> AsClient for PostgresStore<C, A>
+where
+    C: AsClient,
+    A: Send + Sync,
+{
+    type Client = C::Client;
 
     fn as_client(&self) -> &Self::Client {
         self.client.as_client()

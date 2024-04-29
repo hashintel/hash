@@ -28,6 +28,7 @@ locals {
     dependsOn   = [{ condition = "HEALTHY", containerName = local.kratos_service_container_def.name }]
     healthCheck = {
       command  = ["CMD", "/bin/sh", "-c", "curl -f http://localhost:${local.api_container_port}/health-check || exit 1"]
+      startPeriod = local.app_grace_period_seconds
       retries  = 5
       interval = 20
       timeout  = 5

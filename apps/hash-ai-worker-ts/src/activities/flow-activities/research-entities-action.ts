@@ -1,71 +1,72 @@
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type {
   InputNameForAction,
   OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import {
-  actionDefinitions,
-  getSimplifiedActionInputs,
-} from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type {
-  ProposedEntity,
-  StepInput,
-} from "@local/hash-isomorphic-utils/flows/types";
+import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type { StepInput } from "@local/hash-isomorphic-utils/flows/types";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
+import { logger } from "../shared/activity-logger";
+import type { ParsedLlmToolCall } from "../shared/get-llm-response/types";
+import { stringify } from "../shared/stringify";
 import { getWebPageSummaryAction } from "./get-web-page-summary-action";
 import type {
   CoordinatorToolCallArguments,
-  CoordinatorToolId,
+  CoordinatorToolName,
 } from "./research-entities-action/coordinator-tools";
 import { inferEntitiesFromWebPageWorkerAgent } from "./research-entities-action/infer-entities-from-web-page-worker-agent";
+import type { CoordinatingAgentState } from "./research-entities-action/open-ai-coordinating-agent";
 import { coordinatingAgent } from "./research-entities-action/open-ai-coordinating-agent";
-import type {
-  CompletedToolCall,
-  ToolCall,
-} from "./research-entities-action/types";
+import type { CompletedToolCall } from "./research-entities-action/types";
 import type { FlowActionActivity } from "./types";
 import { webSearchAction } from "./web-search-action";
 
 export const researchEntitiesAction: FlowActionActivity<{
   graphApiClient: GraphApi;
-}> = async ({ inputs, userAuthentication, graphApiClient }) => {
-  const { prompt, entityTypeIds } = getSimplifiedActionInputs({
-    inputs,
-    actionType: "researchEntities",
+}> = async ({ inputs: stepInputs, userAuthentication, graphApiClient }) => {
+  const input = await coordinatingAgent.parseCoordinatorInputs({
+    stepInputs,
+    userAuthentication,
+    graphApiClient,
   });
-
-  const proposedEntities: ProposedEntity[] = [];
-
-  const submittedEntityIds: string[] = [];
 
   /**
    * We start by asking the coordinator agent to create an initial plan
    * for the research task.
    */
   const { plan: initialPlan } = await coordinatingAgent.createInitialPlan({
-    prompt,
+    input,
   });
+
+  const state: CoordinatingAgentState = {
+    plan: initialPlan,
+    proposedEntities: [],
+    submittedEntityIds: [],
+    previousCalls: [],
+    hasConductedCheckStep: false,
+  };
 
   const { toolCalls: initialToolCalls } =
     await coordinatingAgent.getNextToolCalls({
-      previousPlan: initialPlan,
-      submittedProposedEntities: [],
-      prompt,
+      input,
+      state,
     });
 
+  const getSubmittedProposedEntities = () =>
+    state.proposedEntities.filter(({ localEntityId }) =>
+      state.submittedEntityIds.includes(localEntityId),
+    );
+
   const processToolCalls = async (params: {
-    previousCalls?: {
-      completedToolCalls: CompletedToolCall<CoordinatorToolId>[];
-    }[];
-    previousPlan: string;
-    toolCalls: ToolCall<CoordinatorToolId>[];
+    toolCalls: ParsedLlmToolCall<CoordinatorToolName>[];
   }) => {
-    const { toolCalls, previousCalls } = params;
+    const { toolCalls } = params;
 
     const isTerminated = toolCalls.some(
-      (toolCall) => toolCall.toolId === "terminate",
+      (toolCall) => toolCall.name === "terminate",
     );
 
     if (isTerminated) {
@@ -73,41 +74,35 @@ export const researchEntitiesAction: FlowActionActivity<{
     }
 
     const toolCallsWithRelevantResults = toolCalls.filter(
-      ({ toolId }) => toolId !== "complete" && toolId !== "terminate",
+      ({ name }) => name !== "terminate",
     );
-
-    /**
-     * This plan may be updated by the tool calls that are about to be
-     * evaluated.
-     */
-    let latestPlan = params.previousPlan;
 
     const completedToolCalls = await Promise.all(
       toolCallsWithRelevantResults.map(
-        async (toolCall): Promise<CompletedToolCall<CoordinatorToolId>> => {
-          if (toolCall.toolId === "updatePlan") {
+        async (toolCall): Promise<CompletedToolCall<CoordinatorToolName>> => {
+          if (toolCall.name === "updatePlan") {
             const { plan } =
-              toolCall.parsedArguments as CoordinatorToolCallArguments["updatePlan"];
+              toolCall.input as CoordinatorToolCallArguments["updatePlan"];
 
-            latestPlan = plan;
+            state.plan = plan;
 
             return {
               ...toolCall,
               output: `The plan has been successfully updated.`,
             };
-          } else if (toolCall.toolId === "submitProposedEntities") {
+          } else if (toolCall.name === "submitProposedEntities") {
             const { entityIds } =
-              toolCall.parsedArguments as CoordinatorToolCallArguments["submitProposedEntities"];
+              toolCall.input as CoordinatorToolCallArguments["submitProposedEntities"];
 
-            submittedEntityIds.push(...entityIds);
+            state.submittedEntityIds.push(...entityIds);
 
             return {
               ...toolCall,
               output: `The entities with IDs ${JSON.stringify(entityIds)} where successfully submitted.`,
             };
-          } else if (toolCall.toolId === "getWebPageSummary") {
+          } else if (toolCall.name === "getWebPageSummary") {
             const { url } =
-              toolCall.parsedArguments as CoordinatorToolCallArguments["getWebPageSummary"];
+              toolCall.input as CoordinatorToolCallArguments["getWebPageSummary"];
 
             const response = await getWebPageSummaryAction({
               inputs: [
@@ -130,6 +125,7 @@ export const researchEntitiesAction: FlowActionActivity<{
               return {
                 ...toolCall,
                 output: `An unexpected error occurred trying to summarize the web page at url ${url}, try a different web page.`,
+                isError: true,
               };
             }
 
@@ -139,9 +135,9 @@ export const researchEntitiesAction: FlowActionActivity<{
               ...toolCall,
               output: JSON.stringify(outputs),
             };
-          } else if (toolCall.toolId === "webSearch") {
+          } else if (toolCall.name === "webSearch") {
             const { query } =
-              toolCall.parsedArguments as CoordinatorToolCallArguments["webSearch"];
+              toolCall.input as CoordinatorToolCallArguments["webSearch"];
 
             const response = await webSearchAction({
               inputs: [
@@ -170,13 +166,75 @@ export const researchEntitiesAction: FlowActionActivity<{
               ...toolCall,
               output: JSON.stringify(outputs),
             };
-          } else if (toolCall.toolId === "inferEntitiesFromWebPage") {
-            const { url, prompt: inferencePrompt } =
-              toolCall.parsedArguments as CoordinatorToolCallArguments["inferEntitiesFromWebPage"];
+          } else if (toolCall.name === "inferEntitiesFromWebPage") {
+            const {
+              url,
+              prompt: inferencePrompt,
+              entityTypeIds,
+              linkEntityTypeIds,
+            } = toolCall.input as CoordinatorToolCallArguments["inferEntitiesFromWebPage"];
+
+            const validEntityTypeIds = input.entityTypes.map(({ $id }) => $id);
+
+            const invalidEntityTypeIds = entityTypeIds.filter(
+              (entityTypeId) =>
+                !validEntityTypeIds.includes(entityTypeId as VersionedUrl),
+            );
+
+            const validLinkEntityTypeIds =
+              input.linkEntityTypes?.map(({ $id }) => $id) ?? [];
+
+            const invalidLinkEntityTypeIds =
+              linkEntityTypeIds?.filter(
+                (entityTypeId) =>
+                  !validLinkEntityTypeIds.includes(
+                    entityTypeId as VersionedUrl,
+                  ),
+              ) ?? [];
+
+            if (
+              invalidEntityTypeIds.length > 0 ||
+              invalidLinkEntityTypeIds.length > 0
+            ) {
+              return {
+                ...toolCall,
+                output: dedent(`
+                  ${
+                    invalidEntityTypeIds.length > 0
+                      ? dedent(`
+                        The following entity type IDs are invalid: ${JSON.stringify(
+                          invalidEntityTypeIds,
+                        )}
+                        
+                        Valid entity type IDs are: ${JSON.stringify(validEntityTypeIds)}
+                      `)
+                      : ""
+                  }
+                  ${
+                    invalidLinkEntityTypeIds.length > 0
+                      ? dedent(`
+                        The following link entity type IDs are invalid: ${JSON.stringify(
+                          invalidLinkEntityTypeIds,
+                        )}
+                        
+                        The valid link entity types type IDs are: ${JSON.stringify(linkEntityTypeIds)}
+                      `)
+                      : ""
+                  }
+                 
+                `),
+                isError: true,
+              };
+            }
 
             const status = await inferEntitiesFromWebPageWorkerAgent({
               prompt: inferencePrompt,
-              entityTypeIds: entityTypeIds!,
+              entityTypes: input.entityTypes.filter(({ $id }) =>
+                entityTypeIds.includes($id),
+              ),
+              linkEntityTypes: input.linkEntityTypes?.filter(
+                ({ $id }) => linkEntityTypeIds?.includes($id) ?? false,
+              ),
               url,
               userAuthentication,
               graphApiClient,
@@ -191,26 +249,209 @@ export const researchEntitiesAction: FlowActionActivity<{
                   
                   Try another website.
                 `),
+                isError: true,
               };
             }
 
             const { inferredEntities } = status.contents[0]!;
 
-            proposedEntities.push(...inferredEntities);
+            state.proposedEntities.push(...inferredEntities);
 
             return {
               ...toolCall,
               output: JSON.stringify(inferredEntities),
             };
+          } else if (toolCall.name === "proposeAndSubmitLink") {
+            const { sourceEntityId, targetEntityId, linkEntityTypeId } =
+              toolCall.input as CoordinatorToolCallArguments["proposeAndSubmitLink"];
+
+            const sourceEntity =
+              input.existingEntities?.find(
+                ({ metadata }) => metadata.recordId.entityId === sourceEntityId,
+              ) ??
+              state.proposedEntities.find(
+                ({ localEntityId }) => localEntityId === sourceEntityId,
+              );
+
+            const targetEntity =
+              input.existingEntities?.find(
+                ({ metadata }) => metadata.recordId.entityId === targetEntityId,
+              ) ??
+              state.proposedEntities.find(
+                ({ localEntityId }) => localEntityId === targetEntityId,
+              );
+
+            if (!sourceEntity || !targetEntity) {
+              return {
+                ...toolCall,
+                output: dedent(`
+                  There is no ${input.existingEntities ? "existing or " : ""} proposed entity with ID "${sourceEntityId}".
+                  
+                  ${input.existingEntities ? `Possible existing entity IDs are: ${JSON.stringify(input.existingEntities.map(({ metadata }) => metadata.recordId.entityId))}.` : ""}
+                  Possible proposed entity IDs are: ${JSON.stringify(state.proposedEntities.map(({ localEntityId }) => localEntityId))}.
+                `),
+                isError: true,
+              };
+            }
+
+            const validLinkEntityTypeIds =
+              input.linkEntityTypes?.map(({ $id }) => $id) ?? [];
+
+            if (
+              !validLinkEntityTypeIds.includes(linkEntityTypeId as VersionedUrl)
+            ) {
+              return {
+                ...toolCall,
+                output: dedent(`
+                  The link entity type ID "${linkEntityTypeId}" is invalid.
+                  
+                  Valid link entity type IDs are: ${JSON.stringify(validLinkEntityTypeIds)}.
+                `),
+                isError: true,
+              };
+            }
+
+            /** @todo: improve generation of local entity id */
+            const localEntityId = `${linkEntityTypeId}-${state.proposedEntities.length}`;
+
+            state.proposedEntities.push({
+              localEntityId,
+              entityTypeId: linkEntityTypeId as VersionedUrl,
+              sourceEntityId:
+                "metadata" in sourceEntity
+                  ? {
+                      kind: "existing-entity",
+                      entityId: sourceEntity.metadata.recordId.entityId,
+                    }
+                  : {
+                      kind: "proposed-entity",
+                      localId: sourceEntity.localEntityId,
+                    },
+              targetEntityId:
+                "metadata" in targetEntity
+                  ? {
+                      kind: "existing-entity",
+                      entityId: targetEntity.metadata.recordId.entityId,
+                    }
+                  : {
+                      kind: "proposed-entity",
+                      localId: targetEntity.localEntityId,
+                    },
+              /**
+               * @todo: allow the agent to specify link properties.
+               */
+              properties: {},
+            });
+
+            state.submittedEntityIds.push(localEntityId);
+
+            let submittedSourceProposedEntityId: string | undefined;
+
+            if (
+              "localEntityId" in sourceEntity &&
+              !state.submittedEntityIds.includes(sourceEntity.localEntityId)
+            ) {
+              state.submittedEntityIds.push(sourceEntity.localEntityId);
+              submittedSourceProposedEntityId = sourceEntity.localEntityId;
+            }
+
+            let submittedTargetProposedEntityId: string | undefined;
+            if (
+              "localEntityId" in targetEntity &&
+              !state.submittedEntityIds.includes(targetEntity.localEntityId)
+            ) {
+              state.submittedEntityIds.push(targetEntity.localEntityId);
+              submittedTargetProposedEntityId = targetEntity.localEntityId;
+            }
+
+            return {
+              ...toolCall,
+              output: dedent(`
+                The link between the entities with IDs ${sourceEntityId} and ${targetEntityId} has been successfully proposed and submitted.
+                ${submittedSourceProposedEntityId ? `The source proposed entity with ID ${sourceEntityId} has also been submitted.` : ""}
+                ${submittedTargetProposedEntityId ? `The target proposed entity with ID ${targetEntityId} has also been submitted.` : ""}
+              `),
+            };
+          } else if (toolCall.name === "complete") {
+            if (!state.hasConductedCheckStep) {
+              const warnings: string[] = [];
+
+              if (state.proposedEntities.length === 0) {
+                warnings.push("No entities have been proposed.");
+              }
+
+              const submittedProposedEntities = getSubmittedProposedEntities();
+
+              const missingEntityTypes = input.entityTypes.filter(
+                ({ $id }) =>
+                  !submittedProposedEntities.some(
+                    ({ entityTypeId }) => entityTypeId === $id,
+                  ),
+              );
+
+              if (missingEntityTypes.length > 0) {
+                warnings.push(
+                  `You have not proposed any entities for the following types: ${JSON.stringify(
+                    missingEntityTypes.map(({ $id }) => $id),
+                  )}`,
+                );
+              }
+
+              const missingLinkEntityTypes = input.linkEntityTypes?.filter(
+                ({ $id }) =>
+                  !submittedProposedEntities.some(
+                    ({ entityTypeId }) => entityTypeId === $id,
+                  ),
+              );
+
+              if (missingLinkEntityTypes && missingLinkEntityTypes.length > 0) {
+                warnings.push(
+                  dedent(`
+                    You have not proposed any links for the following link types: ${JSON.stringify(
+                      missingLinkEntityTypes.map(({ $id }) => $id),
+                    )}
+
+                    You can propose links using the "proposeAndSubmitLink" tool, or infer links
+                      from the text of a web page with the "inferEntitiesFromWebPage" tool.
+                `),
+                );
+              }
+
+              if (warnings.length > 0) {
+                logger.debug(
+                  `Conducting check step with warnings: ${stringify(warnings)}`,
+                );
+                return {
+                  ...toolCall,
+                  output: dedent(`
+                    Are you sure the research task is complete considering the following warnings?
+
+                    Warnings:
+                    ${warnings.join("\n")}
+
+                    If you are sure the task is complete, call the "complete" tool again.
+                    Otherwise, either continue to make tool calls or call the "terminate" tool to end the task if it cannot be completed.
+                  `),
+                  isError: true,
+                };
+              } else {
+                state.hasConductedCheckStep = true;
+              }
+            }
+
+            return {
+              ...toolCall,
+              output: `The research task has been completed.`,
+            };
           }
 
-          throw new Error(`Unimplemented tool call: ${toolCall.toolId}`);
+          throw new Error(`Unimplemented tool call: ${toolCall.name}`);
         },
       ),
     );
 
     const isCompleted = toolCalls.some(
-      (toolCall) => toolCall.toolId === "complete",
+      (toolCall) => toolCall.name === "complete",
     );
 
     /**
@@ -218,40 +459,31 @@ export const researchEntitiesAction: FlowActionActivity<{
      * incase the agent has made other tool calls at the same time as the "complete" tool call.
      */
     if (isCompleted) {
-      return;
+      if (state.hasConductedCheckStep) {
+        return;
+      } else {
+        state.hasConductedCheckStep = true;
+      }
     }
 
-    const updatedPreviousCalls = [
-      ...(previousCalls ?? []),
-      { completedToolCalls },
-    ];
+    state.previousCalls = [...state.previousCalls, { completedToolCalls }];
 
-    const submittedProposedEntities = proposedEntities.filter(
-      ({ localEntityId }) => submittedEntityIds.includes(localEntityId),
-    );
-
-    const openAiResponse = await coordinatingAgent.getNextToolCalls({
-      previousPlan: latestPlan,
-      submittedProposedEntities,
-      previousCalls: updatedPreviousCalls,
-      prompt,
-    });
+    const { toolCalls: nextToolCalls } =
+      await coordinatingAgent.getNextToolCalls({
+        input,
+        state,
+      });
 
     await processToolCalls({
-      previousPlan: latestPlan,
-      previousCalls: updatedPreviousCalls,
-      toolCalls: openAiResponse.toolCalls,
+      toolCalls: nextToolCalls,
     });
   };
 
   await processToolCalls({
-    previousPlan: initialPlan,
     toolCalls: initialToolCalls,
   });
 
-  const submittedProposedEntities = proposedEntities.filter(
-    ({ localEntityId }) => submittedEntityIds.includes(localEntityId),
-  );
+  const submittedProposedEntities = getSubmittedProposedEntities();
 
   return {
     code: StatusCode.Ok,

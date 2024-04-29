@@ -22,7 +22,6 @@ import {
   PROPERTY_TYPE_META_SCHEMA,
 } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
-import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type {
   DataTypeRelationAndSubject,
   UpdatePropertyType,
@@ -34,7 +33,6 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolDataTypes,
-  googleEntityTypes,
   systemDataTypes,
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -78,7 +76,7 @@ import {
   CACHED_PROPERTY_TYPE_SCHEMAS,
 } from "../../../seed-data";
 import type { ImpureGraphFunction } from "../../context-types";
-import { getEntities, updateEntity } from "../../knowledge/primitive/entity";
+import { getEntities } from "../../knowledge/primitive/entity";
 import {
   createDataType,
   getDataTypeById,
@@ -91,13 +89,13 @@ import {
   createPropertyType,
   getPropertyTypeById,
 } from "../../ontology/primitive/property-type";
-import { systemAccountId } from "../../system-account";
 import type { PrimitiveDataTypeKey } from "../system-webs-and-entities";
 import {
   getOrCreateOwningAccountGroupId,
   isSelfHostedInstance,
 } from "../system-webs-and-entities";
 import type { MigrationState } from "./types";
+import { upgradeWebEntities } from "./util/upgrade-entities";
 import { upgradeEntityTypeDependencies } from "./util/upgrade-entity-type-dependencies";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -1244,179 +1242,20 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
     {},
   );
 
-  for (const web of [...users, ...orgs]) {
-    const webOwnedById = extractOwnedByIdFromEntityId(
-      web.metadata.recordId.entityId,
-    );
+  await Promise.all(
+    [...users, ...orgs].map((webEntity) => {
+      const webOwnedById = extractOwnedByIdFromEntityId(
+        webEntity.metadata.recordId.entityId,
+      );
 
-    const webBotAccountId = await getWebMachineActorId(
-      context,
-      authentication,
-      {
-        ownedById: webOwnedById,
-      },
-    );
-
-    const webBotAuthentication = { actorId: webBotAccountId };
-
-    const existingEntities = await getEntities(context, webBotAuthentication, {
-      query: {
-        filter: {
-          all: [
-            {
-              any: entityTypeBaseUrls.map((baseUrl) => ({
-                equal: [
-                  { path: ["type(inheritanceDepth = 0)", "baseUrl"] },
-                  { parameter: baseUrl },
-                ],
-              })),
-            },
-            {
-              equal: [
-                { path: ["ownedById"] },
-                {
-                  parameter: webOwnedById,
-                },
-              ],
-            },
-          ],
-        },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        includeDrafts: true,
-        temporalAxes: currentTimeInstantTemporalAxes,
-      },
-    }).then((subgraph) => getRoots(subgraph));
-
-    for (const entity of existingEntities) {
-      const baseUrl = extractBaseUrl(entity.metadata.entityTypeId);
-
-      const currentVersion = extractVersion(entity.metadata.entityTypeId);
-
-      const newVersion = migrationState.entityTypeVersions[baseUrl];
-
-      if (typeof newVersion === "undefined") {
-        throw new Error(
-          `Could not find the version for base URL ${baseUrl} in the migration state`,
-        );
-      }
-
-      if (currentVersion < newVersion) {
-        const newEntityTypeId = versionedUrlFromComponents(baseUrl, newVersion);
-
-        const migratePropertiesFunction = migrateProperties?.[baseUrl];
-
-        let updateAuthentication = webBotAuthentication;
-
-        let shouldRemoveTemporaryMachineActorPermission = false;
-
-        if (
-          baseUrl === systemEntityTypes.userSecret.entityTypeBaseUrl ||
-          baseUrl ===
-            systemLinkEntityTypes.usesUserSecret.linkEntityTypeBaseUrl ||
-          baseUrl === googleEntityTypes.account.entityTypeBaseUrl
-        ) {
-          /**
-           *These entities are only editable by the bot that created them
-           */
-          updateAuthentication = {
-            actorId: entity.metadata.provenance.createdById,
-          };
-        }
-        if (baseUrl === systemEntityTypes.machine.entityTypeBaseUrl) {
-          /**
-           * If we are updating machine entities, we use the account ID
-           * of the machine user as the actor for the update.
-           */
-          updateAuthentication = {
-            /**
-             * The account ID of the machine entity is the creator of its
-             * first edition.
-             */
-            actorId: entity.metadata.provenance.createdById,
-          };
-
-          /**
-           * We may need to temporarily grant the machine account ID the ability
-           * to instantiate new entities of the new machine entity type,
-           * because an actor cannot update an entity without being able
-           * to instantiate it.
-           */
-
-          try {
-            await context.graphApi.modifyEntityTypeAuthorizationRelationships(
-              systemAccountId,
-              [
-                {
-                  operation: "create",
-                  resource: newEntityTypeId,
-                  relationAndSubject: {
-                    subject: {
-                      kind: "account",
-                      subjectId: entity.metadata.provenance.createdById,
-                    },
-                    relation: "instantiator",
-                  },
-                },
-              ],
-            );
-          } catch {
-            shouldRemoveTemporaryMachineActorPermission = true;
-
-            await context.graphApi.modifyEntityTypeAuthorizationRelationships(
-              systemAccountId,
-              [
-                {
-                  operation: "touch",
-                  resource: newEntityTypeId,
-                  relationAndSubject: {
-                    subject: {
-                      kind: "account",
-                      subjectId: entity.metadata.provenance.createdById,
-                    },
-                    relation: "instantiator",
-                  },
-                },
-              ],
-            );
-          }
-        }
-
-        try {
-          await updateEntity(context, updateAuthentication, {
-            entity,
-            entityTypeId: newEntityTypeId,
-            properties: migratePropertiesFunction
-              ? migratePropertiesFunction(entity.properties)
-              : entity.properties,
-          });
-        } finally {
-          if (
-            baseUrl === systemEntityTypes.machine.entityTypeBaseUrl &&
-            shouldRemoveTemporaryMachineActorPermission
-          ) {
-            /**
-             * If we updated a machine entity and granted its actor ID a
-             * new permission, we need to remove the temporary permission.
-             */
-            await context.graphApi.modifyEntityTypeAuthorizationRelationships(
-              systemAccountId,
-              [
-                {
-                  operation: "delete",
-                  resource: newEntityTypeId,
-                  relationAndSubject: {
-                    subject: {
-                      kind: "account",
-                      subjectId: entity.metadata.provenance.createdById,
-                    },
-                    relation: "instantiator",
-                  },
-                },
-              ],
-            );
-          }
-        }
-      }
-    }
-  }
+      return upgradeWebEntities({
+        authentication,
+        context,
+        entityTypeBaseUrls,
+        migrationState,
+        migrateProperties,
+        webOwnedById,
+      });
+    }),
+  );
 };

@@ -41,11 +41,12 @@ where
     }
 }
 
-impl<Cl, R, S> ReadPaginated<R, S> for PostgresStore<Cl>
+impl<Cl, A, R, S> ReadPaginated<R, S> for PostgresStore<Cl, A>
 where
     Cl: AsClient,
     for<'c> R: PostgresRecord<QueryPath<'c>: PostgresQueryPath>,
     for<'s> S: PostgresSorting<'s, R> + Sync,
+    A: Send + Sync,
 {
     type QueryResult = Row;
 
@@ -101,10 +102,11 @@ where
 }
 
 #[async_trait]
-impl<Cl, R> Read<R> for PostgresStore<Cl>
+impl<Cl, A, R> Read<R> for PostgresStore<Cl, A>
 where
     Cl: AsClient,
     for<'c> R: PostgresRecord<QueryPath<'c>: PostgresQueryPath>,
+    A: Send + Sync,
 {
     type ReadStream = impl Stream<Item = Result<R, Report<QueryError>>> + Send + Sync;
 
@@ -146,12 +148,18 @@ where
         compiler.add_filter(filter);
         let (statement, parameters) = compiler.compile();
 
-        let row = self
+        let rows = self
             .as_client()
-            .query_one(&statement, parameters)
+            .query(&statement, parameters)
             .await
             .change_context(QueryError)?;
 
-        Ok(R::decode(&row, &record_indices))
+        match rows.len() {
+            1 => Ok(R::decode(&rows[0], &record_indices)),
+            len => {
+                Err(Report::new(QueryError)
+                    .attach_printable(format!("Expected 1 result, got {len}")))
+            }
+        }
     }
 }

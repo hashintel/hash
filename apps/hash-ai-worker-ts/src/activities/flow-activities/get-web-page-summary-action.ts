@@ -5,26 +5,22 @@ import {
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
-import type {
-  ChatCompletionCreateParams,
-  ChatCompletionSystemMessageParam,
-} from "openai/resources";
 
 import { getWebPageActivity } from "../get-web-page-activity";
-import { getOpenAiResponse, modelAliasToSpecificModel } from "../shared/openai";
+import { getLlmResponse } from "../shared/get-llm-response";
+import { getTextContentFromLlmMessage } from "../shared/get-llm-response/llm-message";
+import { modelAliasToSpecificModel } from "../shared/openai-client";
 import type { FlowActionActivity } from "./types";
 
-const generateSummarizeWebPageSystemMessage = (params: {
+const generateSummarizeWebPageSystemPrompt = (params: {
   numberOfSentences: number;
-}): ChatCompletionSystemMessageParam => ({
-  role: "system",
-  content: dedent(`
+}): string =>
+  dedent(`
     You are a Web Page Summarizer.
     The user provides you with the URL, the title, and the text content of a web page,
     and you must respond with a ${params.numberOfSentences} sentence summary of 
     the web page.
-  `),
-});
+  `);
 
 export const getWebPageSummaryAction: FlowActionActivity = async ({
   inputs,
@@ -44,35 +40,40 @@ export const getWebPageSummaryAction: FlowActionActivity = async ({
 
   const webPage = await getWebPageActivity({ url });
 
-  const systemPrompt = generateSummarizeWebPageSystemMessage({
+  const systemPrompt = generateSummarizeWebPageSystemPrompt({
     numberOfSentences: numberOfSentences!,
   });
 
-  const openApiPayload: ChatCompletionCreateParams = {
+  const llmResponse = await getLlmResponse({
+    systemPrompt,
     messages: [
-      systemPrompt,
       {
         role: "user",
-        content: dedent(`
-          URL: ${url}
-          Title: ${webPage.title}
-          Text: ${webPage.textContent} 
-        `),
+        content: [
+          {
+            type: "text",
+            text: dedent(`
+              URL: ${url}
+              Title: ${webPage.title}
+              Text: ${webPage.textContent} 
+            `),
+          },
+        ],
       },
     ],
     model: modelAliasToSpecificModel[model],
-  };
+  });
 
-  const openAiResponse = await getOpenAiResponse(openApiPayload);
-
-  if (openAiResponse.code !== StatusCode.Ok) {
+  if (llmResponse.status !== "ok") {
     return {
-      ...openAiResponse,
+      code: StatusCode.Internal,
       contents: [],
     };
   }
 
-  const summary = openAiResponse.contents[0]?.response.message.content;
+  const { message } = llmResponse;
+
+  const summary = getTextContentFromLlmMessage({ message });
 
   if (!summary) {
     return {

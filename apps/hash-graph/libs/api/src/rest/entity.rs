@@ -27,8 +27,8 @@ use graph::{
     store::{
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
         knowledge::{
-            CreateEntityRequest, GetEntityParams, PatchEntityParams, UpdateEntityEmbeddingsParams,
-            ValidateEntityParams,
+            CreateEntityRequest, DiffEntityParams, DiffEntityResult, GetEntityParams,
+            PatchEntityParams, UpdateEntityEmbeddingsParams, ValidateEntityParams,
         },
         AccountStore, EntityQueryCursor, EntityQuerySorting, EntityQuerySortingRecord, EntityStore,
         EntityValidationType, NullOrdering, Ordering, StorePool,
@@ -44,8 +44,8 @@ use graph_types::{
             SourceProvenance, SourceType,
         },
         link::LinkData,
-        Confidence, Property, PropertyMetadata, PropertyMetadataMap, PropertyObject,
-        PropertyPatchOperation, PropertyPath, PropertyProvenance,
+        Confidence, Property, PropertyDiff, PropertyMetadata, PropertyMetadataMap, PropertyObject,
+        PropertyPatchOperation, PropertyPath, PropertyPathElement, PropertyProvenance,
     },
     owned_by_id::OwnedById,
     Embedding,
@@ -67,8 +67,10 @@ use crate::rest::{
         validate_entity,
         check_entity_permission,
         get_entities_by_query,
+        count_entities,
         patch_entity,
         update_entity_embeddings,
+        diff_entity,
 
         get_entity_authorization_relationships,
         modify_entity_authorization_relationships,
@@ -136,7 +138,11 @@ use crate::rest::{
             EntityQueryToken,
             LinkData,
 
+            DiffEntityParams,
+            DiffEntityResult,
+            PropertyDiff,
             PropertyPath,
+            PropertyPathElement,
             Confidence,
         )
     ),
@@ -162,6 +168,7 @@ impl RoutedResource for EntityResource {
                     "/relationships",
                     post(modify_entity_authorization_relationships::<A>),
                 )
+                .route("/diff", post(diff_entity::<S, A>))
                 .route("/validate", post(validate_entity::<S, A>))
                 .route("/embeddings", post(update_entity_embeddings::<S, A>))
                 .nest(
@@ -185,7 +192,12 @@ impl RoutedResource for EntityResource {
                             get(check_entity_permission::<A>),
                         ),
                 )
-                .route("/query", post(get_entities_by_query::<S, A>)),
+                .nest(
+                    "/query",
+                    Router::new()
+                        .route("/", post(get_entities_by_query::<S, A>))
+                        .route("/count", post(count_entities::<S, A>)),
+                ),
         )
     }
 }
@@ -223,19 +235,18 @@ where
 {
     let params = CreateEntityRequest::deserialize(&body).map_err(report_to_response)?;
 
-    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
-    let mut authorization_api = authorization_api_pool
+    let authorization_api = authorization_api_pool
         .acquire()
         .await
         .map_err(report_to_response)?;
 
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
     store
-        .create_entity(
-            actor_id,
-            &mut authorization_api,
-            temporal_client.as_deref(),
-            params,
-        )
+        .create_entity(actor_id, params)
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -262,6 +273,7 @@ async fn validate_entity<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<StatusCode, Response>
 where
@@ -270,19 +282,18 @@ where
 {
     let params = ValidateEntityParams::deserialize(&body).map_err(report_to_response)?;
 
-    let store = store_pool.acquire().await.map_err(report_to_response)?;
     let authorization_api = authorization_api_pool
         .acquire()
         .await
         .map_err(report_to_response)?;
 
+    let store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
     store
-        .validate_entity(
-            actor_id,
-            &authorization_api,
-            Consistency::FullyConsistent,
-            params,
-        )
+        .validate_entity(actor_id, Consistency::FullyConsistent, params)
         .await
         .attach(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
@@ -342,6 +353,8 @@ struct GetEntityByQueryRequest<'q, 's, 'p> {
     sorting_paths: Option<Vec<EntityQuerySortingRecord<'p>>>,
     #[serde(borrow)]
     cursor: Option<EntityQueryCursor<'s>>,
+    #[serde(default)]
+    include_count: bool,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -350,6 +363,7 @@ struct GetEntityByQueryResponse<'r> {
     subgraph: Subgraph,
     #[serde(borrow)]
     cursor: Option<EntityQueryCursor<'r>>,
+    count: Option<usize>,
 }
 
 #[utoipa::path(
@@ -378,16 +392,20 @@ async fn get_entities_by_query<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(request): Json<serde_json::Value>,
 ) -> Result<Json<GetEntityByQueryResponse<'static>>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let store = store_pool.acquire().await.map_err(report_to_response)?;
-
     let authorization_api = authorization_api_pool
         .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    let store = store_pool
+        .acquire(authorization_api, temporal_client.0)
         .await
         .map_err(report_to_response)?;
 
@@ -447,10 +465,9 @@ where
         },
     );
 
-    let (subgraph, cursor) = store
+    store
         .get_entity(
             actor_id,
-            &authorization_api,
             GetEntityParams {
                 query: request.query,
                 sorting: EntityQuerySorting {
@@ -461,15 +478,72 @@ where
                     cursor: request.cursor.map(EntityQueryCursor::into_owned),
                 },
                 limit: request.limit,
+                include_count: request.include_count,
             },
         )
         .await
+        .map(|response| {
+            Json(GetEntityByQueryResponse {
+                subgraph: response.subgraph.into(),
+                cursor: response.cursor.map(EntityQueryCursor::into_owned),
+                count: response.count,
+            })
+        })
+        .map_err(report_to_response)
+}
+
+#[utoipa::path(
+    post,
+    path = "/entities/query/count",
+    request_body = EntityStructuralQuery,
+    tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+
+    ),
+    responses(
+        (
+            status = 200,
+            content_type = "application/json",
+            body = usize,
+        ),
+        (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, request))]
+async fn count_entities<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Json(request): Json<serde_json::Value>,
+) -> Result<Json<usize>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
         .map_err(report_to_response)?;
 
-    Ok(Json(GetEntityByQueryResponse {
-        subgraph: subgraph.into(),
-        cursor: cursor.map(EntityQueryCursor::into_owned),
-    }))
+    let store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    let mut query = EntityStructuralQuery::deserialize(&request).map_err(report_to_response)?;
+    query
+        .filter
+        .convert_parameters()
+        .map_err(report_to_response)?;
+
+    store
+        .count_entities(actor_id, query)
+        .await
+        .map(Json)
+        .map_err(report_to_response)
 }
 
 #[utoipa::path(
@@ -504,19 +578,18 @@ where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
-    let mut authorization_api = authorization_api_pool
+    let authorization_api = authorization_api_pool
         .acquire()
         .await
         .map_err(report_to_response)?;
 
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
     store
-        .patch_entity(
-            actor_id,
-            &mut authorization_api,
-            temporal_client.as_deref(),
-            params,
-        )
+        .patch_entity(actor_id, params)
         .await
         .map_err(|report| {
             if report.contains::<EntityDoesNotExist>() {
@@ -551,6 +624,7 @@ async fn update_entity_embeddings<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<(), Response>
 where
@@ -563,16 +637,72 @@ where
         .attach(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
-    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
-    let mut authorization_api = authorization_api_pool
+    let authorization_api = authorization_api_pool
         .acquire()
         .await
         .map_err(report_to_response)?;
 
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
     store
-        .update_entity_embeddings(actor_id, &mut authorization_api, params)
+        .update_entity_embeddings(actor_id, params)
         .await
         .map_err(report_to_response)
+}
+
+#[utoipa::path(
+    post,
+    path = "/entities/diff",
+    tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (status = 200, content_type = "application/json", description = "The difference between the two entities", body = DiffEntityResult),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+
+        (status = 404, description = "Entity ID was not found"),
+        (status = 500, description = "Store error occurred"),
+    ),
+    request_body = DiffEntityParams,
+)]
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+async fn diff_entity<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Json(params): Json<DiffEntityParams>,
+) -> Result<Json<DiffEntityResult<'static>>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    let store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    store
+        .diff_entity(actor_id, params)
+        .await
+        .map_err(|report| {
+            if report.contains::<EntityDoesNotExist>() {
+                report.attach(hash_status::StatusCode::NotFound)
+            } else {
+                report
+            }
+        })
+        .map_err(report_to_response)
+        .map(Json)
 }
 
 #[utoipa::path(
@@ -719,6 +849,7 @@ async fn add_entity_administrator<A, S>(
     Path((entity_id, owned_by_id)): Path<(EntityId, OwnedById)>,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
 ) -> Result<StatusCode, StatusCode>
 where
     S: StorePool + Send + Sync,
@@ -750,11 +881,13 @@ where
         return Err(StatusCode::FORBIDDEN);
     }
 
-    let store = store_pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-    let administrator_id = store
+    let administrator_id = store_pool
+        .acquire(&mut authorization_api, temporal_client.0)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not acquire store");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
         .identify_owned_by_id(owned_by_id)
         .await
         .map_err(|report| {
@@ -809,6 +942,7 @@ async fn remove_entity_administrator<A, S>(
     Path((entity_id, owned_by_id)): Path<(EntityId, OwnedById)>,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
 ) -> Result<StatusCode, StatusCode>
 where
     S: StorePool + Send + Sync,
@@ -840,11 +974,13 @@ where
         return Err(StatusCode::FORBIDDEN);
     }
 
-    let store = store_pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-    let administrator_id = store
+    let administrator_id = store_pool
+        .acquire(&mut authorization_api, temporal_client.0)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not acquire store");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
         .identify_owned_by_id(owned_by_id)
         .await
         .map_err(|report| {
@@ -899,6 +1035,7 @@ async fn add_entity_editor<A, S>(
     Path((entity_id, editor)): Path<(EntityId, OwnedById)>,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
 ) -> Result<StatusCode, StatusCode>
 where
     S: StorePool + Send + Sync,
@@ -927,14 +1064,19 @@ where
         return Err(StatusCode::FORBIDDEN);
     }
 
-    let store = store_pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-    let editor_id = store.identify_owned_by_id(editor).await.map_err(|report| {
-        tracing::error!(error=?report, "Could not identify account or account group");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    let editor_id = store_pool
+        .acquire(&mut authorization_api, temporal_client.0)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not acquire store");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
+        .identify_owned_by_id(editor)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not identify account or account group");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     let subject = match editor_id {
         WebOwnerSubject::Account { id } => EntityEditorSubject::Account { id },
@@ -980,6 +1122,7 @@ async fn remove_entity_editor<A, S>(
     Path((entity_id, editor)): Path<(EntityId, OwnedById)>,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
 ) -> Result<StatusCode, StatusCode>
 where
     S: StorePool + Send + Sync,
@@ -1011,14 +1154,19 @@ where
         return Err(StatusCode::FORBIDDEN);
     }
 
-    let store = store_pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-    let editor_id = store.identify_owned_by_id(editor).await.map_err(|report| {
-        tracing::error!(error=?report, "Could not identify account or account group");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    let editor_id = store_pool
+        .acquire(&mut authorization_api, temporal_client.0)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not acquire store");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
+        .identify_owned_by_id(editor)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not identify account or account group");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     let subject = match editor_id {
         WebOwnerSubject::Account { id } => EntityEditorSubject::Account { id },

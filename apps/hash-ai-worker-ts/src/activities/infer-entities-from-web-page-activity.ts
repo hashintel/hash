@@ -1,10 +1,8 @@
 import type { GraphApi } from "@local/hash-graph-client";
-import type { AccountId } from "@local/hash-subgraph";
+import type { AccountId, Entity } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
-import { logger } from "../shared/logger";
-import { inferEntitiesSystemMessage } from "./infer-entities/infer-entities-system-message";
 import { inferEntitySummariesFromWebPage } from "./infer-entities/infer-entity-summaries-from-web-page";
 import type {
   DereferencedEntityTypesByTypeId,
@@ -12,7 +10,9 @@ import type {
   WebPage,
 } from "./infer-entities/inference-types";
 import { proposeEntities } from "./infer-entities/propose-entities";
-import type { PermittedOpenAiModel } from "./shared/openai";
+import { logger } from "./shared/activity-logger";
+import type { PermittedOpenAiModel } from "./shared/openai-client";
+import { simplifyEntity } from "./shared/simplify-entity";
 import { stringify } from "./shared/stringify";
 
 export const inferEntitiesFromWebPageActivity = async (params: {
@@ -25,6 +25,7 @@ export const inferEntitiesFromWebPageActivity = async (params: {
   graphApiClient: GraphApi;
   maxTokens?: number | null;
   temperature?: number;
+  existingEntities?: Entity[];
 }) => {
   const {
     webPage,
@@ -36,6 +37,7 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     inferenceState,
     maxTokens,
     temperature,
+    existingEntities,
   } = params;
 
   /**
@@ -59,6 +61,7 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     model,
     maxTokens,
     temperature,
+    existingEntities,
   });
 
   logger.debug(
@@ -92,31 +95,23 @@ export const inferEntitiesFromWebPageActivity = async (params: {
       ensure that the values is stored in the correct unit. Do not
       change units, you must use the units specified in the data.
 
+    ${
+      existingEntities && existingEntities.length > 0
+        ? dedent(`
+          The user has provided these existing entities, which do not need to be inferred again: ${JSON.stringify(existingEntities.map(simplifyEntity))}
+  
+          You are encouraged to link to existing entities from the new entities you propose, where it may be relevant.
+        `)
+        : ""
+    }
+
     You already provided a summary of the ${relevantEntitiesPrompt ? "relevant entities you inferred" : "entities you can infer"} from the website. Here it is:
     ${JSON.stringify(Object.values(inferenceState.proposedEntitySummaries))}
   `);
 
-  const promptMessages = [
-    inferEntitiesSystemMessage,
-    {
-      role: "user",
-      content: proposeEntitiesPrompt,
-    } as const,
-  ];
-
   return await proposeEntities({
-    completionPayload: {
-      max_tokens: maxTokens,
-      messages: [
-        inferEntitiesSystemMessage,
-        {
-          role: "user",
-          content: proposeEntitiesPrompt,
-        },
-      ],
-      model,
-      temperature,
-    },
+    maxTokens: maxTokens ?? undefined,
+    firstUserMessage: proposeEntitiesPrompt,
     validationActorId,
     graphApiClient,
     entityTypes,
@@ -124,6 +119,6 @@ export const inferEntitiesFromWebPageActivity = async (params: {
       ...inferenceState,
       iterationCount: inferenceState.iterationCount + 1,
     },
-    originalPromptMessages: promptMessages,
+    existingEntities,
   });
 };

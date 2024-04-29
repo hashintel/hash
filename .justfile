@@ -111,10 +111,6 @@ install-cargo-nextest:
   @just install-cargo-tool 'cargo nextest' cargo-nextest 0.9.37
 
 [private]
-install-rust-script:
-  @just install-cargo-tool 'rust-script' rust-script 0.23.0
-
-[private]
 install-llvm-cov:
   @just install-cargo-tool 'cargo llvm-cov' cargo-llvm-cov 0.5.9
 
@@ -131,7 +127,7 @@ install-cargo-insta:
 [private]
 [no-cd]
 lint-toml mode:
-  @rust-script "{{repo}}/.github/scripts/rust/lint.rs" {{mode}} `cargo metadata --no-deps --format-version 1 | jq '.workspace_root' -r`
+  @cargo -Zscript run --manifest-path "{{repo}}/.github/scripts/rust/lint.rs" {{mode}} `cargo metadata --no-deps --format-version 1 | jq '.workspace_root' -r`
 
 # Runs all linting commands and fails if the CI would fail
 [no-cd]
@@ -141,6 +137,12 @@ lint:
   @RUSTDOCFLAGS='-Z unstable-options --check' just doc
   @RUSTDOCFLAGS='-Z unstable-options --check' just doc --document-private-items
 
+
+# Sync the package.json files to the `Cargo.toml` file
+[no-cd]
+sync-turborepo:
+  @cargo -Zscript run --manifest-path "{{repo}}/.github/scripts/rust/sync-turborepo.rs" "{{repo}}" | xargs just yarn prettier --write
+
 # Format the code using `rustfmt`
 [no-cd]
 format *arguments:
@@ -148,7 +150,7 @@ format *arguments:
 
 # Lint the code using `clippy`
 [no-cd]
-clippy *arguments: install-cargo-hack install-rust-script
+clippy *arguments: install-cargo-hack
   @just lint-toml "generate"
   @just in-pr cargo clippy --profile {{profile}} --all-features --all-targets --no-deps {{arguments}}
   @just not-in-pr cargo hack --optional-deps --feature-powerset clippy --profile {{profile}} --all-targets --no-deps {{arguments}}

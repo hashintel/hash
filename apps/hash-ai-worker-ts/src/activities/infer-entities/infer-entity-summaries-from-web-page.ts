@@ -1,7 +1,8 @@
+import type { Entity } from "@local/hash-subgraph";
 import dedent from "dedent";
 
-import type { PermittedOpenAiModel } from "../shared/openai";
-import { inferEntitiesSystemMessage } from "./infer-entities-system-message";
+import type { PermittedOpenAiModel } from "../shared/openai-client";
+import { simplifyEntity } from "../shared/simplify-entity";
 import { inferEntitySummaries } from "./infer-entity-summaries";
 import type {
   DereferencedEntityTypesByTypeId,
@@ -17,6 +18,7 @@ export const inferEntitySummariesFromWebPage = async (params: {
   temperature?: number;
   inferenceState: InferenceState;
   entityTypes: DereferencedEntityTypesByTypeId;
+  existingEntities?: Entity[];
 }) => {
   const {
     webPage,
@@ -26,6 +28,7 @@ export const inferEntitySummariesFromWebPage = async (params: {
     temperature,
     entityTypes,
     inferenceState,
+    existingEntities,
   } = params;
 
   const summariseEntitiesPrompt = dedent(`
@@ -50,6 +53,15 @@ export const inferEntitySummariesFromWebPage = async (params: {
         Pay particular attention to providing responses for entities which are most prominent in the page,
         and any which are mentioned in the title or URL – but include as many other entities as you can find also.`)
   }
+  ${
+    existingEntities && existingEntities.length > 0
+      ? dedent(`
+        The user has provided these existing entities, which do not need to be inferred again: ${JSON.stringify(existingEntities.map(simplifyEntity))}
+
+        Do not provide summaries for entities which are already in this list.
+      `)
+      : ""
+  }
   Here is the website content:
   ${typeof webPage === "string" ? webPage : webPage.textContent}
   ---WEBSITE CONTENT ENDS---
@@ -61,7 +73,6 @@ export const inferEntitySummariesFromWebPage = async (params: {
     completionPayload: {
       max_tokens: maxTokens,
       messages: [
-        inferEntitiesSystemMessage,
         {
           role: "user",
           content: summariseEntitiesPrompt,
@@ -73,5 +84,6 @@ export const inferEntitySummariesFromWebPage = async (params: {
     entityTypes,
     inferenceState,
     providedOrRerequestedEntityTypes: new Set(),
+    existingEntities,
   });
 };

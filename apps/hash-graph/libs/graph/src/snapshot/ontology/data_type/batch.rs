@@ -23,8 +23,12 @@ pub enum DataTypeRowBatch {
 }
 
 #[async_trait]
-impl<C: AsClient> WriteBatch<C> for DataTypeRowBatch {
-    async fn begin(postgres_client: &PostgresStore<C>) -> Result<(), InsertionError> {
+impl<C, A> WriteBatch<C, A> for DataTypeRowBatch
+where
+    C: AsClient,
+    A: ZanzibarBackend + Send + Sync,
+{
+    async fn begin(postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError> {
         postgres_client
             .as_client()
             .client()
@@ -45,11 +49,7 @@ impl<C: AsClient> WriteBatch<C> for DataTypeRowBatch {
         Ok(())
     }
 
-    async fn write(
-        self,
-        postgres_client: &PostgresStore<C>,
-        authorization_api: &mut (impl ZanzibarBackend + Send),
-    ) -> Result<(), InsertionError> {
+    async fn write(self, postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError> {
         let client = postgres_client.as_client().client();
         match self {
             Self::Schema(data_types) => {
@@ -73,7 +73,8 @@ impl<C: AsClient> WriteBatch<C> for DataTypeRowBatch {
                 reason = "Lifetime error, probably the signatures are wrong"
             )]
             Self::Relations(relations) => {
-                authorization_api
+                postgres_client
+                    .authorization_api
                     .touch_relationships(
                         relations
                             .into_iter()
@@ -106,7 +107,7 @@ impl<C: AsClient> WriteBatch<C> for DataTypeRowBatch {
     }
 
     async fn commit(
-        postgres_client: &PostgresStore<C>,
+        postgres_client: &mut PostgresStore<C, A>,
         _validation: bool,
     ) -> Result<(), InsertionError> {
         postgres_client

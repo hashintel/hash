@@ -1,31 +1,42 @@
+import type { Subtype } from "@local/advanced-types/subtype";
 import dedent from "dedent";
 
-import type { ToolDefinition } from "./types";
+import type { LlmToolDefinition } from "../../shared/get-llm-response/types";
 
-const coordinatorToolIds = [
+const coordinatorToolNames = [
   "webSearch",
   "inferEntitiesFromWebPage",
   "getWebPageSummary",
   "submitProposedEntities",
   // "discardProposedEntities",
+  "proposeAndSubmitLink",
   "complete",
   "terminate",
   "updatePlan",
 ] as const;
 
-export type CoordinatorToolId = (typeof coordinatorToolIds)[number];
+export type CoordinatorToolName = (typeof coordinatorToolNames)[number];
 
-export const isCoordinatorToolId = (
+export const isCoordinatorToolName = (
   value: string,
-): value is CoordinatorToolId =>
-  coordinatorToolIds.includes(value as CoordinatorToolId);
+): value is CoordinatorToolName =>
+  coordinatorToolNames.includes(value as CoordinatorToolName);
+
+const explanationDefinition = {
+  type: "string",
+  description: dedent(`
+    An explanation of why this tool call is required to satisfy the task,
+    and how it aligns with the current plan. If the plan needs to be modified,
+    make a call to the "updatePlan" tool.
+  `),
+} as const;
 
 export const coordinatorToolDefinitions: Record<
-  CoordinatorToolId,
-  ToolDefinition<CoordinatorToolId>
+  CoordinatorToolName,
+  LlmToolDefinition<CoordinatorToolName>
 > = {
   webSearch: {
-    toolId: "webSearch",
+    name: "webSearch",
     description:
       "Perform a web search via a web search engine, returning a list of URLs. For best results, the query should be specific and concise.",
     inputSchema: {
@@ -40,12 +51,13 @@ export const coordinatorToolDefinitions: Record<
     },
   },
   inferEntitiesFromWebPage: {
-    toolId: "inferEntitiesFromWebPage",
+    name: "inferEntitiesFromWebPage",
     description:
       "Infer entities from the content of a web page. This tool is useful for extracting structured data from a web page. This is an expensive operation, so use it conservatively.",
     inputSchema: {
       type: "object",
       properties: {
+        explanation: explanationDefinition,
         url: {
           type: "string",
           description: "The URL of the web page",
@@ -61,32 +73,52 @@ export const coordinatorToolDefinitions: Record<
             research task.
           `),
         },
+        entityTypeIds: {
+          type: "array",
+          items: {
+            type: "string",
+            description: dedent(`
+              The entity type IDs of the kind of entities to infer from the web page.
+              You must specify at least one.
+            `),
+          },
+        },
+        linkEntityTypeIds: {
+          type: "array",
+          items: {
+            type: "string",
+            description:
+              "The link entity type IDs of the kind of link entities to infer from the web page",
+          },
+        },
       },
-      required: ["url", "prompt"],
+      required: ["url", "prompt", "explanation", "entityTypeIds"],
     },
   },
   getWebPageSummary: {
-    toolId: "getWebPageSummary",
+    name: "getWebPageSummary",
     description:
       "Get the summary of a web page. This may be useful to decide whether to read the full page, or choose between a set of web pages which may be relevant to complete a task.",
     inputSchema: {
       type: "object",
       properties: {
+        explanation: explanationDefinition,
         url: {
           type: "string",
           description: "The URL of the web page to summarize",
         },
       },
-      required: ["url"],
+      required: ["url", "explanation"],
     },
   },
   submitProposedEntities: {
-    toolId: "submitProposedEntities",
+    name: "submitProposedEntities",
     description:
       "Submit one or more proposed entities as the `result` of the research task.",
     inputSchema: {
       type: "object",
       properties: {
+        explanation: explanationDefinition,
         entityIds: {
           type: "array",
           items: {
@@ -95,45 +127,95 @@ export const coordinatorToolDefinitions: Record<
           description: "An array of entity IDs of the entities to submit.",
         },
       },
-      required: ["entityIds"],
+      required: ["entityIds", "explanation"],
     },
   },
   complete: {
-    toolId: "complete",
+    name: "complete",
     description: "Complete the research task.",
     inputSchema: {
       type: "object",
-      properties: {},
-      required: [],
+      properties: {
+        explanation: explanationDefinition,
+      },
+      required: ["explanation"],
     },
   },
   terminate: {
-    toolId: "terminate",
+    name: "terminate",
     description:
       "Terminate the research task, because it cannot be completed with the provided tools.",
     inputSchema: {
       type: "object",
-      properties: {},
-      required: [],
+      properties: {
+        explanation: explanationDefinition,
+      },
+      required: ["explanation"],
     },
   },
   updatePlan: {
-    toolId: "updatePlan",
-    description:
-      "Update the plan for the research task. You should call this alongside other tool calls to progress towards completing the task.",
+    name: "updatePlan",
+    description: dedent(`
+      Update the plan for the research task.
+      You can call this alongside other tool calls to progress towards completing the task.
+    `),
     inputSchema: {
       type: "object",
       properties: {
+        explanation: {
+          type: "string",
+          description: dedent(`
+            An explanation of why the plan needs to be updated, and
+            how the updated plan aligns with the task.
+          `),
+        },
         plan: {
           type: "string",
           description: "The updated plan for the research task.",
         },
       },
-      required: ["plan"],
+      required: ["plan", "explanation"],
+    },
+  },
+  proposeAndSubmitLink: {
+    name: "proposeAndSubmitLink",
+    description: dedent(`
+      Propose and submit a link entity, which creates a link between two entities.
+
+      The source or target entity can be:
+        - a proposed entity
+        - an existing entity
+
+      If the source or target are a proposed entity that has not yet been submitted,
+        they will be submitted in this tool call.
+    `),
+    inputSchema: {
+      type: "object",
+      properties: {
+        explanation: explanationDefinition,
+        sourceEntityId: {
+          type: "string",
+          description: "The ID of the source proposed or existing entity.",
+        },
+        targetEntityId: {
+          type: "string",
+          description: "The ID of the target proposed or existing entity.",
+        },
+        linkEntityTypeId: {
+          type: "string",
+          description: "The link entity type ID of the proposed link.",
+        },
+      },
+      required: [
+        "sourceEntityId",
+        "targetEntityId",
+        "linkEntityTypeId",
+        "explanation",
+      ],
     },
   },
   // discardProposedEntities: {
-  //   toolId: "discardProposedEntities",
+  //   name: "discardProposedEntities",
   //   description: "Discard previously submitted proposed entities.",
   //   inputSchema: {
   //     type: "object",
@@ -152,23 +234,33 @@ export const coordinatorToolDefinitions: Record<
   // },
 };
 
-export type CoordinatorToolCallArguments = {
-  webSearch: {
-    query: string;
-  };
-  inferEntitiesFromWebPage: {
-    url: string;
-    prompt: string;
-  };
-  getWebPageSummary: {
-    url: string;
-  };
-  submitProposedEntities: {
-    entityIds: string[];
-  };
-  updatePlan: {
-    plan: string;
-  };
-  complete: object;
-  terminate: object;
-};
+export type CoordinatorToolCallArguments = Subtype<
+  Record<CoordinatorToolName, unknown>,
+  {
+    webSearch: {
+      query: string;
+    };
+    inferEntitiesFromWebPage: {
+      url: string;
+      prompt: string;
+      entityTypeIds: string[];
+      linkEntityTypeIds?: string[];
+    };
+    getWebPageSummary: {
+      url: string;
+    };
+    submitProposedEntities: {
+      entityIds: string[];
+    };
+    updatePlan: {
+      plan: string;
+    };
+    proposeAndSubmitLink: {
+      sourceEntityId: string;
+      targetEntityId: string;
+      linkEntityTypeId: string;
+    };
+    complete: never;
+    terminate: never;
+  }
+>;

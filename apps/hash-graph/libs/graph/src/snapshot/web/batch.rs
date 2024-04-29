@@ -15,8 +15,12 @@ pub enum WebBatch {
 }
 
 #[async_trait]
-impl<C: AsClient> WriteBatch<C> for WebBatch {
-    async fn begin(postgres_client: &PostgresStore<C>) -> Result<(), InsertionError> {
+impl<C, A> WriteBatch<C, A> for WebBatch
+where
+    C: AsClient,
+    A: ZanzibarBackend + Send + Sync,
+{
+    async fn begin(postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError> {
         postgres_client
             .as_client()
             .client()
@@ -33,11 +37,7 @@ impl<C: AsClient> WriteBatch<C> for WebBatch {
         Ok(())
     }
 
-    async fn write(
-        self,
-        postgres_client: &PostgresStore<C>,
-        authorization_api: &mut (impl ZanzibarBackend + Send),
-    ) -> Result<(), InsertionError> {
+    async fn write(self, postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError> {
         let client = postgres_client.as_client().client();
         match self {
             Self::Webs(webs) => {
@@ -58,7 +58,8 @@ impl<C: AsClient> WriteBatch<C> for WebBatch {
                 }
             }
             Self::Relations(relations) => {
-                authorization_api
+                postgres_client
+                    .authorization_api
                     .touch_relationships(relations)
                     .await
                     .change_context(InsertionError)?;
@@ -68,7 +69,7 @@ impl<C: AsClient> WriteBatch<C> for WebBatch {
     }
 
     async fn commit(
-        postgres_client: &PostgresStore<C>,
+        postgres_client: &mut PostgresStore<C, A>,
         _validation: bool,
     ) -> Result<(), InsertionError> {
         postgres_client

@@ -16,13 +16,12 @@ import {
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
 
-import { logger } from "../../../shared/logger";
+import { logger } from "../../shared/activity-logger";
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
 import { getEntityByFilter } from "../../shared/get-entity-by-filter";
 import { stringify } from "../../shared/stringify";
 import { extractErrorMessage } from "../shared/extract-validation-failure-details";
 import { ensureTrailingSlash } from "./ensure-trailing-slash";
-import type { ProposedEntityUpdatesByType } from "./generate-persist-entities-tools";
 
 type StatusByTemporaryId<T> = Record<string, T>;
 
@@ -41,7 +40,14 @@ export const updateEntities = async ({
   actorId: AccountId;
   createAsDraft: boolean;
   graphApiClient: GraphApi;
-  proposedEntityUpdatesByType: ProposedEntityUpdatesByType;
+  proposedEntityUpdatesByType: Record<
+    VersionedUrl,
+    {
+      entityId: number;
+      updateEntityId: string;
+      properties: Entity["properties"];
+    }[]
+  >;
   requestedEntityTypes: Record<
     VersionedUrl,
     { isLink: boolean; schema: DereferencedEntityType }
@@ -99,6 +105,7 @@ export const updateEntities = async ({
                   },
                 ],
               },
+              includeDrafts: createAsDraft,
             });
 
             if (!existingEntity) {
@@ -129,7 +136,7 @@ export const updateEntities = async ({
                 properties: [
                   {
                     op: "replace",
-                    path: "",
+                    path: [],
                     value: newProperties,
                   },
                 ],

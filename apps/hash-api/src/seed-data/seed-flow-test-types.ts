@@ -212,6 +212,20 @@ const seedFlowTestTypes = async () => {
     },
   );
 
+  const multiplierPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Multiplier",
+        description:
+          'The multiplier of something (e.g. "millions", "thousands", etc.)',
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      ownedById,
+    },
+  );
+
   const measuredOnPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
@@ -241,6 +255,9 @@ const seedFlowTestTypes = async () => {
               },
               [unitPropertyType.metadata.recordId.baseUrl]: {
                 $ref: unitPropertyType.schema.$id,
+              },
+              [multiplierPropertyType.metadata.recordId.baseUrl]: {
+                $ref: multiplierPropertyType.schema.$id,
               },
             },
             propertyTypeObjectRequiredProperties: [
@@ -356,6 +373,38 @@ const seedFlowTestTypes = async () => {
       entityTypeDefinition: {
         title: "Investment Fund",
         description: "An investment fund.",
+        properties: [
+          {
+            propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
+            required: true,
+          },
+          {
+            propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
+            required: true,
+          },
+        ],
+        outgoingLinks: [
+          {
+            linkEntityType: investedInLinkEntityType,
+            destinationEntityTypes: [stockMarketConstituentEntityType],
+          },
+        ],
+      },
+      ownedById,
+    },
+  );
+
+  /**
+   * This is a generic company entity type to allow for identifying companies that are invested in an index
+   * but are not constituents of an index (in the example use case we are developing Flows against initially)
+   */
+  const _investingCompanyEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        title: "Company",
+        description: "A company",
         properties: [
           {
             propertyType: blockProtocolPropertyTypes.name.propertyTypeId,

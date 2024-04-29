@@ -1,11 +1,11 @@
 import type { Organization, Team } from "@linear/sdk";
 import { LinearClient } from "@linear/sdk";
+import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type { SyncWorkspaceWorkflow } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import type { OwnedById } from "@local/hash-subgraph";
 
 import type { AuthenticationContext } from "../graphql/authentication-context";
-import type { TemporalClient } from "../temporal";
 
 export const listTeams = async (params: {
   apiKey: string;
