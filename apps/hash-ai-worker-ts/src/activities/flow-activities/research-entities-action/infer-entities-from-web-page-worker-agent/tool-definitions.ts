@@ -36,7 +36,7 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
   },
   inferEntitiesFromWebPage: {
     name: "inferEntitiesFromWebPage",
-    description: "Infer entities from some text content.",
+    description: "Infer entities from some a web page.",
     inputSchema: {
       type: "object",
       properties: {
@@ -165,8 +165,7 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
     description: dedent(`
       Query a PDF document at a URL.
       Use this tool to ask questions about the content of a PDF document, hosted at a URL.
-      You will be provided with a response to the query, as well as the relevant text from the document
-        used to answer the query.
+      You will be provided with a list of relevant sections from the document based on your query.
     `),
     inputSchema: {
       type: "object",
@@ -174,19 +173,23 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
         explanation: explanationDefinition,
         fileUrl: {
           type: "string",
-          description: "The URL of the PDF document.",
+          description: "The absolute URL of the PDF document.",
         },
-        query: {
+        /**
+         * Note: using the argument name `query` here lead to the LLM agent
+         * providing very short queries, leading to worse results. Using
+         * `description` instead seems to lead to more verbose descriptions
+         * of the information being sought, hence better query results.
+         */
+        description: {
           type: "string",
           description: dedent(`
-            The query to search for in the PDF document.
-            Be as verbose and specific as possible about the information you are looking for.
-            If you are looking for a list of something, specify the list and what data it should contain.
-            Include keywords that are likely to surround the information you are looking for.
+            A detailed description of the relevant information you are seeking from the PDF document.
+            Include keywords, phrases, or the name specific sections you are looking for.
           `),
         },
       },
-      required: ["fileUrl", "query", "explanation"],
+      required: ["fileUrl", "description", "explanation"],
     },
   },
   complete: {
@@ -265,7 +268,7 @@ export type ToolCallArguments = Subtype<
     terminate: never;
     queryPdf: {
       fileUrl: string;
-      query: string;
+      description: string;
     };
   }
 >;
