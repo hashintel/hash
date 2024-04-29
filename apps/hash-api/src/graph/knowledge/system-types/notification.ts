@@ -5,7 +5,7 @@ import { createNotificationEntityPermissions } from "@local/hash-backend-utils/n
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  notArchivedFilter,
+  pageOrNotificationNotArchivedFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -223,7 +223,7 @@ export const getMentionNotification: ImpureGraphFunction<
               { parameter: recipient.accountId },
             ],
           },
-          notArchivedFilter,
+          pageOrNotificationNotArchivedFilter,
         ],
       },
       graphResolveDepths: {

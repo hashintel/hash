@@ -17,7 +17,7 @@ import type { FunctionComponent } from "react";
 import { useMemo } from "react";
 
 import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
-import { getImageUrlFromEntityProperties } from "../../../pages/shared/get-image-url-from-properties";
+import { getImageUrlFromEntityProperties } from "../../../pages/shared/get-file-properties";
 import { Link, MenuItem } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";
 

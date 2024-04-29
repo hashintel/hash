@@ -23,7 +23,7 @@ import type {
 import { startFlowMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { isNonNullable } from "../../lib/typeguards";
 import { Button } from "../../shared/ui/button";
-import { Deliverable } from "./flow-definition/deliverable";
+import { Deliverables } from "./flow-definition/deliverables";
 import { EntityResultTable } from "./flow-definition/entity-result-table";
 import { PersistedEntityGraph } from "./flow-definition/persisted-entity-graph";
 import { RunFlowModal } from "./flow-definition/run-flow-modal";
@@ -517,7 +517,7 @@ export const FlowDefinition = () => {
         <Box sx={{ width: "40%", pl: 3, pt: 2.5 }}>
           <SectionLabel text="Deliverable" />
 
-          <Deliverable
+          <Deliverables
             key={`${flowRunStateKey}-deliverable`}
             outputs={selectedFlowRun?.outputs ?? []}
           />

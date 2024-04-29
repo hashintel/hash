@@ -4,9 +4,11 @@ import { Switch } from "@mui/material";
 
 import { EntitySelector } from "../../../shared/entity-selector";
 import { EntityTypeSelector } from "../../../shared/entity-type-selector";
+import { GoogleAccountSelect } from "../../../shared/integrations/google/google-account-select";
+import { SelectOrNameGoogleSheet } from "../../../shared/integrations/google/select-or-name-google-sheet";
 import { WebSelector } from "./manual-trigger-input/web-selector";
 import { inputHeight } from "./shared/dimensions";
-import type { LocalPayload } from "./types";
+import type { FormState, LocalPayload } from "./types";
 
 const textFieldSx: SxProps<Theme> = {
   width: "100%",
@@ -19,15 +21,17 @@ const textFieldSx: SxProps<Theme> = {
 
 export const ManualTriggerInput = <Payload extends LocalPayload>({
   array,
+  formState,
   payload,
   required,
   setValue,
 }: {
   array: boolean;
+  formState: FormState;
   payload: Payload;
   required: boolean;
   setValue: (value: Payload["value"]) => void;
-}) => {
+}): JSX.Element => {
   switch (payload.kind) {
     case "Text":
       if (array || Array.isArray(payload.value)) {
@@ -104,6 +108,37 @@ export const ManualTriggerInput = <Payload extends LocalPayload>({
           multiple={array}
           onSelect={setValue}
           value={payload.value}
+        />
+      );
+    }
+    case "GoogleAccountId": {
+      if (array || Array.isArray(payload.value)) {
+        throw new Error("Selecting multiple Google accounts is not supported");
+      }
+      return (
+        <GoogleAccountSelect
+          googleAccountId={payload.value}
+          setGoogleAccountId={setValue}
+        />
+      );
+    }
+    case "GoogleSheet": {
+      if (array || Array.isArray(payload.value)) {
+        throw new Error("Selecting multiple Google sheets is not supported");
+      }
+
+      const googleAccountInput = Object.values(formState).find(
+        (entry) => entry.payload.kind === "GoogleAccountId",
+      );
+      const googleAccountId = googleAccountInput?.payload.value;
+
+      return (
+        <SelectOrNameGoogleSheet
+          setGoogleSheet={setValue}
+          googleAccountId={
+            typeof googleAccountId === "string" ? googleAccountId : undefined
+          }
+          googleSheet={payload.value}
         />
       );
     }

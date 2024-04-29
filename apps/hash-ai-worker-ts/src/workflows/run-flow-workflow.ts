@@ -236,12 +236,13 @@ export const runFlowWorkflow = async (
           `Step ${currentStepId}: encountered runtime error executing "${currentStep.actionDefinitionId}" action: ${stringify(error)}`,
         );
 
-        processStepErrors[currentStepId] = {
+        actionResponse = {
+          contents: [],
           code: StatusCode.Internal,
           message: `Error executing action ${currentStep.actionDefinitionId}: ${stringify(error)}`,
         };
 
-        return;
+        processStepErrors[currentStepId] = actionResponse;
       }
 
       /**

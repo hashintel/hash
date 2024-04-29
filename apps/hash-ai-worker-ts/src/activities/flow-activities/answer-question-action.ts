@@ -1,7 +1,11 @@
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
 import type { GraphApi } from "@local/hash-graph-client";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type { StepOutput } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  FormattedText,
+  StepOutput,
+} from "@local/hash-isomorphic-utils/flows/types";
+import { textFormats } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -39,8 +43,20 @@ const answerTools: LlmToolDefinition[] = [
       type: "object",
       properties: {
         answer: {
-          type: "string",
+          type: "object",
           description: "The answer to the question, if one can be provided.",
+          properties: {
+            format: {
+              type: "string",
+              enum: [...textFormats],
+              description:
+                "The format of the answer 'content'. Use 'Plain' if no particular formatting is applied. Ensure all values in CSV are \"double quoted\", in case they contain the delimiter.",
+            },
+            content: {
+              type: "string",
+              description: "The content of the answer",
+            },
+          },
         },
         explanation: {
           type: "string",
@@ -109,7 +125,7 @@ const systemPrompt = dedent(`
   a graph of structured entities with links between them, a spreadsheet, or some combination of these.
   
   Your boss will ask you to answer a question based on the data provided to you. They might have asked for a specific output format,
-  e.g. 'Markdown', 'JSON', or 'CSV'. If it isn't specified, you use your best judgment.
+  e.g. 'Markdown', 'JSON', or 'CSV'. If it isn't specified, you use your best judgment. Either way your response specifies the format used.
   
   Your boss plans to use your answer to make a decision, so you make sure that it is accurate, concise, and clear.
   If you can't provide an answer based on the available data, you explain why, and request more data if it would help.
@@ -123,7 +139,7 @@ const systemPrompt = dedent(`
 `);
 
 type ModelResponseArgs = {
-  answer?: string;
+  answer?: FormattedText;
   explanation: string;
   confidence?: number;
   code?: string;
@@ -197,7 +213,7 @@ const callModel = async (
           outputs.push({
             outputName: "answer",
             payload: {
-              kind: "Text",
+              kind: "FormattedText",
               value: answer,
             },
           });
@@ -229,7 +245,10 @@ const callModel = async (
         });
 
         return {
-          code: StatusCode.Ok,
+          code: answer ? StatusCode.Ok : StatusCode.Unknown,
+          message: answer
+            ? "Model successfully answered the question"
+            : "Model could not answer the question",
           contents: [
             {
               outputs,

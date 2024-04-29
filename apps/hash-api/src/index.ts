@@ -66,7 +66,6 @@ import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-i
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
 import { checkGoogleAccessToken } from "./integrations/google/check-access-token";
-import { createOrUpdateSheetsIntegration } from "./integrations/google/create-or-update-sheets-integration";
 import { getGoogleAccessToken } from "./integrations/google/get-access-token";
 import { googleOAuthCallback } from "./integrations/google/oauth-callback";
 import { oAuthLinear, oAuthLinearCallback } from "./integrations/linear/oauth";
@@ -523,11 +522,6 @@ const main = async () => {
     "/oauth/google/check-token",
     authRouteRateLimiter,
     checkGoogleAccessToken,
-  );
-  app.post(
-    "/integrations/google/sheets",
-    authRouteRateLimiter,
-    createOrUpdateSheetsIntegration,
   );
 
   // Endpoints used by HashGPT or in support of it

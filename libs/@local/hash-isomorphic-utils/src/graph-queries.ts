@@ -10,6 +10,7 @@ import type {
 } from "@local/hash-graph-client";
 import type {
   AccountId,
+  EntityId,
   EntityRelationAndSubject,
   EntityTypeRelationAndSubject,
   PropertyTypeRelationAndSubject,
@@ -18,6 +19,7 @@ import type {
   SubgraphRootType,
   Timestamp,
 } from "@local/hash-subgraph";
+import { splitEntityId } from "@local/hash-subgraph";
 import {
   componentsFromVersionedUrl,
   extractBaseUrl,
@@ -180,11 +182,73 @@ export const generateVersionedUrlMatchingFilter = (
   };
 };
 
+/**
+ * Generate a filter to match an entity by its ID.
+ *
+ * If the entityId includes a draftId, only that draft will be queried.
+ * Pass includeArchived: true to include archived entities in the query.
+ *
+ * N.B. Some entities (notifications, pages, quick notes) handle archived via a property type instead of a boolean.
+ * You must additionally use {@link pageOrNotificationNotArchivedFilter} to exclude entities of those types where the property is falsy:
+ * {
+ *   all: [generateEntityIdFilter({ entityId }), notArchivedFilter]
+ * }
+ */
+export const generateEntityIdFilter = ({
+  entityId,
+  includeArchived = false,
+}: {
+  entityId: EntityId;
+  includeArchived: boolean;
+}): Filter => {
+  const [ownedById, entityUuid, draftId] = splitEntityId(entityId);
+
+  const conditions: Filter[] = [
+    {
+      equal: [
+        { path: ["uuid"] },
+        {
+          parameter: entityUuid,
+        },
+      ],
+    },
+    {
+      equal: [
+        { path: ["ownedById"] },
+        {
+          parameter: ownedById,
+        },
+      ],
+    },
+  ];
+
+  if (draftId) {
+    conditions.push({
+      equal: [
+        { path: ["draftId"] },
+        {
+          parameter: draftId,
+        },
+      ],
+    });
+  }
+
+  if (!includeArchived) {
+    conditions.push({ equal: [{ path: ["archived"] }, { parameter: false }] });
+  }
+
+  return { all: conditions };
+};
+
 const archivedBaseUrl = extractBaseUrl(
   systemPropertyTypes.archived.propertyTypeId,
 );
 
-export const notArchivedFilter: Filter = {
+/**
+ * A filter for entities which record 'archived' state as a property rather than via an 'archived' boolean
+ * @todo H-611 implement entity archival properly via temporal versioning, and migrate these other approaches
+ */
+export const pageOrNotificationNotArchivedFilter: Filter = {
   any: [
     {
       equal: [
