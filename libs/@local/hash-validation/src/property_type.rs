@@ -1,5 +1,5 @@
-use core::borrow::Borrow;
-use std::{collections::HashMap, num::NonZeroUsize};
+use core::{borrow::Borrow, num::NonZero};
+use std::collections::HashMap;
 
 use error_stack::{bail, Report, ResultExt};
 use graph_types::knowledge::Property;
@@ -170,7 +170,7 @@ where
                 }
             }
 
-            if let Some(max) = self.max_items().map(NonZeroUsize::get) {
+            if let Some(max) = self.max_items().map(NonZero::get) {
                 if values.len() > max {
                     extend_report!(
                         status,
