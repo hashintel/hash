@@ -1,8 +1,13 @@
 import {
+  CaretDownSolidIcon,
+  CircleCheckRegularIcon,
+  CircleEllipsisRegularIcon,
+  CloseIcon,
+} from "@hashintel/design-system";
+import type {
   FlowDefinition,
   StepDefinition,
 } from "@local/hash-isomorphic-utils/flows/types";
-import { GroupsByGroupId, GroupWithEdgesAndNodes } from "./shared/types";
 import {
   Box,
   CircularProgress,
@@ -10,29 +15,25 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { SectionLabel } from "./section-label";
+import { differenceInMilliseconds, intervalToDuration } from "date-fns";
 import type { PropsWithChildren } from "react";
 import { useEffect, useMemo, useState } from "react";
+
+import { isNonNullable } from "../../../lib/typeguards";
+import { ArrowRightIcon } from "../../../shared/icons/arrow-right";
+import { EllipsisRegularIcon } from "../../../shared/icons/ellipsis-regular-icon";
+import { SectionLabel } from "./section-label";
 import {
   statusToSimpleStatus,
   useStatusForStep,
   useStatusForSteps,
 } from "./shared/flow-runs-context";
-import {
-  CaretDownSolidIcon,
-  CircleCheckRegularIcon,
-} from "@hashintel/design-system";
-import { CircleEllipsisRegularIcon } from "@hashintel/design-system";
-import { EllipsisRegularIcon } from "../../../shared/icons/ellipsis-regular-icon";
-import { ArrowRightIcon } from "../../../shared/icons/arrow-right";
-import { differenceInMilliseconds, intervalToDuration } from "date-fns";
-import { isNonNullable } from "../../../lib/typeguards";
 import { flowSectionBorderRadius } from "./shared/styles";
-
-type FlowRunSidebarProps = {
-  flowDefinition: FlowDefinition;
-  groups: GroupsByGroupId;
-};
+import type {
+  FlowMaybeGrouped,
+  GroupWithEdgesAndNodes,
+  UngroupedEdgesAndNodes,
+} from "./shared/types";
 
 type StatusFor = "group" | "step";
 
@@ -63,6 +64,15 @@ const WaitingIcon = ({ statusFor }: IconProps) =>
       sx={{ fill: ({ palette }) => palette.gray[50], ...iconSx[statusFor] }}
     />
   );
+
+const ErrorIcon = ({ statusFor }: IconProps) => (
+  <CloseIcon
+    sx={{
+      fill: ({ palette }) => palette.error.main,
+      ...iconSx[statusFor],
+    }}
+  />
+);
 
 const InProgressIcon = ({ statusFor }: IconProps) =>
   statusFor === "group" ? (
@@ -118,6 +128,8 @@ const GroupStepStatus = ({
           <WaitingIcon statusFor="step" />
         ) : simpleStatus === "In Progress" ? (
           <InProgressIcon statusFor="step" />
+        ) : simpleStatus === "Error" ? (
+          <ErrorIcon statusFor="step" />
         ) : (
           <SuccessIcon statusFor="step" />
         )}
@@ -145,7 +157,11 @@ const formatTimeTaken = (scheduledAt: string, closedAt?: string) => {
     .join(":");
 };
 
-const GroupStatus = ({ groupData }: { groupData: GroupWithEdgesAndNodes }) => {
+const GroupStatus = ({
+  groupData,
+}: {
+  groupData: UngroupedEdgesAndNodes | GroupWithEdgesAndNodes;
+}) => {
   const groupStepsWithIds = useMemo(
     () => groupData.nodes.map((node) => ({ ...node, stepId: node.id })),
     [groupData],
@@ -198,6 +214,8 @@ const GroupStatus = ({ groupData }: { groupData: GroupWithEdgesAndNodes }) => {
             <WaitingIcon statusFor="group" />
           ) : groupStatus === "In Progress" ? (
             <InProgressIcon statusFor="group" />
+          ) : groupStatus === "Error" ? (
+            <ErrorIcon statusFor="group" />
           ) : (
             <SuccessIcon statusFor="group" />
           )}
@@ -206,7 +224,7 @@ const GroupStatus = ({ groupData }: { groupData: GroupWithEdgesAndNodes }) => {
           variant="smallTextParagraphs"
           sx={{ lineHeight: 1, ml: 0.5 }}
         >
-          {groupData.group.description}
+          {groupData.group?.description ?? "Flow"}
         </Typography>
         <Stack direction="row" gap={1}>
           <Typography
@@ -217,7 +235,9 @@ const GroupStatus = ({ groupData }: { groupData: GroupWithEdgesAndNodes }) => {
               color: ({ palette }) =>
                 groupStatus === "In Progress"
                   ? palette.blue[70]
-                  : palette.common.black,
+                  : groupStatus === "Error"
+                    ? palette.error.main
+                    : palette.common.black,
             }}
           >
             {timeTaken}
@@ -255,6 +275,11 @@ const GroupStatus = ({ groupData }: { groupData: GroupWithEdgesAndNodes }) => {
   );
 };
 
+type FlowRunSidebarProps = {
+  flowDefinition: FlowDefinition;
+  groups: FlowMaybeGrouped["groups"];
+};
+
 export const FlowRunSidebar = ({
   flowDefinition,
   groups,
@@ -284,9 +309,9 @@ export const FlowRunSidebar = ({
         <SectionLabel text="Flow" />
         <SidebarSection>
           <Box>
-            {Object.values(groups).map((groupData) => (
+            {groups.map((groupData) => (
               <GroupStatus
-                key={groupData.group.groupId}
+                key={groupData.group?.groupId || "ungrouped"}
                 groupData={groupData}
               />
             ))}

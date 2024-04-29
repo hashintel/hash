@@ -8,10 +8,10 @@ import type {
   FlowDefinition as FlowDefinitionType,
   FlowTrigger,
   ProposedEntity,
-  StepGroup,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { Entity } from "@local/hash-subgraph";
 import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
+import { format } from "date-fns";
 import { useMemo, useState } from "react";
 import type { Edge } from "reactflow";
 import { MarkerType, ReactFlowProvider } from "reactflow";
@@ -26,8 +26,10 @@ import { Button } from "../../shared/ui/button";
 import { MenuItem } from "../../shared/ui/menu-item";
 import { Deliverables } from "./flow-definition/deliverables";
 import { EntityResultTable } from "./flow-definition/entity-result-table";
+import { FlowRunSidebar } from "./flow-definition/flow-run-sidebar";
 import { PersistedEntityGraph } from "./flow-definition/persisted-entity-graph";
 import { RunFlowModal } from "./flow-definition/run-flow-modal";
+import { SectionLabel } from "./flow-definition/section-label";
 import { nodeDimensions } from "./flow-definition/shared/dimensions";
 import { useFlowDefinitionsContext } from "./flow-definition/shared/flow-definitions-context";
 import { useFlowRunsContext } from "./flow-definition/shared/flow-runs-context";
@@ -35,18 +37,15 @@ import {
   flowSectionBorderRadius,
   transitionOptions,
 } from "./flow-definition/shared/styles";
-import {
+import type {
   CustomNodeType,
-  GroupsByGroupId,
+  FlowMaybeGrouped,
 } from "./flow-definition/shared/types";
 import {
   getFlattenedSteps,
   groupStepsByDependencyLayer,
 } from "./flow-definition/sort-graph";
 import { Swimlane } from "./flow-definition/swimlane";
-import { format } from "date-fns";
-import { SectionLabel } from "./flow-definition/section-label";
-import { FlowRunSidebar } from "./flow-definition/flow-run-sidebar";
 
 const getGraphFromFlowDefinition = (
   flowDefinition: FlowDefinitionType,
@@ -198,15 +197,8 @@ export const FlowDefinition = () => {
 
   const [showRunModal, setShowRunModal] = useState(false);
 
-  const nodesAndEdgesByGroup = useMemo<GroupsByGroupId>(() => {
-    const graphsByGroup: Record<
-      number,
-      {
-        group: StepGroup;
-        edges: Edge[];
-        nodes: CustomNodeType[];
-      }
-    > = {};
+  const flowMaybeGrouped = useMemo<FlowMaybeGrouped>(() => {
+    const graphsByGroup: FlowMaybeGrouped = { type: "grouped", groups: [] };
 
     for (const node of derivedNodes) {
       if (!node.data.groupId) {
@@ -214,28 +206,49 @@ export const FlowDefinition = () => {
          * We validate that either all or no steps have a groupId, so this must be an ungrouped Flow
          */
         return {
-          0: { edges: derivedEdges, group: null, nodes: derivedNodes },
+          type: "ungrouped",
+          groups: [
+            {
+              group: null,
+              edges: derivedEdges,
+              nodes: derivedNodes,
+            },
+          ],
         };
       }
 
-      const group = selectedFlow.groups?.find(
+      const groupDefinition = selectedFlow.groups?.find(
         (grp) => grp.groupId === node.data.groupId,
       );
 
-      if (!group) {
+      if (!groupDefinition) {
         throw new Error(
           `No group with id ${node.data.groupId} found in flow definition`,
         );
       }
 
-      graphsByGroup[node.data.groupId] ??= { edges: [], group, nodes: [] };
+      let group = graphsByGroup.groups.find(
+        (grp) => grp.group.groupId === groupDefinition.groupId,
+      );
 
-      graphsByGroup[node.data.groupId]!.nodes.push(node);
+      if (!group) {
+        group = {
+          edges: [],
+          group: groupDefinition,
+          nodes: [],
+        };
 
-      graphsByGroup[node.data.groupId]!.edges.push(
+        graphsByGroup.groups.push(group);
+      }
+
+      group.nodes.push(node);
+
+      group.edges.push(
         ...derivedEdges.filter((edge) => edge.source === node.id),
       );
     }
+
+    console.log({ graphsByGroup });
 
     return graphsByGroup;
   }, [derivedNodes, derivedEdges, selectedFlow.groups]);
@@ -446,7 +459,7 @@ export const FlowDefinition = () => {
           {selectedFlowRun ? (
             <FlowRunSidebar
               flowDefinition={selectedFlow}
-              groups={Object.values(nodesAndEdgesByGroup)}
+              groups={flowMaybeGrouped.groups}
             />
           ) : null}
           <Box flex={1}>
@@ -507,15 +520,14 @@ export const FlowDefinition = () => {
                     </>
                   )}
                 </Stack>
-                {Object.entries(nodesAndEdgesByGroup).map(
-                  ([groupId, { group, nodes, edges }]) => (
-                    <ReactFlowProvider
-                      key={`${flowDefinitionStateKey}-${groupId}`}
-                    >
-                      <Swimlane group={group} nodes={nodes} edges={edges} />
-                    </ReactFlowProvider>
-                  ),
-                )}
+
+                {flowMaybeGrouped.groups.map(({ group, nodes, edges }) => (
+                  <ReactFlowProvider
+                    key={`${flowDefinitionStateKey}-${group?.groupId ?? "ungrouped"}`}
+                  >
+                    <Swimlane group={group} nodes={nodes} edges={edges} />
+                  </ReactFlowProvider>
+                ))}
               </Box>
             </Box>
           </Box>

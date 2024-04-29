@@ -21,12 +21,27 @@ export type NodeData = {
 
 export type CustomNodeType = Node<NodeData>;
 
-export type GroupWithEdgesAndNodes = {
-  group: StepGroup;
+export type EdgesAndNodes = {
   edges: Edge[];
   nodes: CustomNodeType[];
 };
 
-export type GroupsByGroupId =
-  | Record<number, GroupWithEdgesAndNodes>
-  | { 0: { edges: Edge[]; group: null; nodes: CustomNodeType[] } };
+export type GroupWithEdgesAndNodes = {
+  group: StepGroup;
+} & EdgesAndNodes;
+
+export type MultiGroupFlow = {
+  type: "grouped";
+  groups: GroupWithEdgesAndNodes[];
+};
+
+export type UngroupedEdgesAndNodes = {
+  group: null;
+} & EdgesAndNodes;
+
+export type SingleGroupFlow = {
+  type: "ungrouped";
+  groups: [UngroupedEdgesAndNodes];
+};
+
+export type FlowMaybeGrouped = SingleGroupFlow | MultiGroupFlow;

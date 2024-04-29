@@ -22,7 +22,11 @@ import {
   useStatusForSteps,
 } from "./shared/flow-runs-context";
 import { transitionOptions } from "./shared/styles";
-import type { CustomNodeType } from "./shared/types";
+import type {
+  CustomNodeType,
+  GroupWithEdgesAndNodes,
+  UngroupedEdgesAndNodes,
+} from "./shared/types";
 import { CustomEdge } from "./swimlane/custom-edge";
 import { CustomNode } from "./swimlane/custom-node";
 
@@ -59,12 +63,6 @@ const parentGroupLayoutOptions: ElkNode["layoutOptions"] = {
   "elk.padding": `[left=${parentGroupPadding.base}, top=${parentGroupPadding.top}, bottom=${parentGroupPadding.base}, right=${parentGroupPadding.base}]`,
 };
 
-type DagProps = {
-  group?: StepGroup;
-  nodes: CustomNodeType[];
-  edges: Edge[];
-};
-
 type NodeWithChildren = CustomNodeType & { children: NodeWithChildren[] };
 
 const flattedNodesToElkNodes = (
@@ -90,6 +88,8 @@ const elkGraphToFlattenedPositionedNodes = (nodes: ElkNode[]): ElkNode[] => {
     ...elkGraphToFlattenedPositionedNodes(children ?? []),
   ]);
 };
+
+type DagProps = UngroupedEdgesAndNodes | GroupWithEdgesAndNodes;
 
 export const Swimlane = ({
   group,
