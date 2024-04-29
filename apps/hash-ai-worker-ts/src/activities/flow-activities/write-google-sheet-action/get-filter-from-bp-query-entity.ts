@@ -5,6 +5,7 @@ import type { QueryProperties } from "@local/hash-isomorphic-utils/system-types/
 import type { AccountId, Entity, EntityId } from "@local/hash-subgraph";
 
 import { getLatestEntityById } from "../shared/graph-requests";
+import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 export const getFilterFromBlockProtocolQueryEntity = async ({
   authentication,
@@ -28,8 +29,14 @@ export const getFilterFromBlockProtocolQueryEntity = async ({
 
   const multiFilter =
     queryEntity.properties[
-      "https://blockprotocol.org/@hash/types/property-type/query/"
+      blockProtocolPropertyTypes.query.propertyTypeBaseUrl
     ];
+
+  if (!multiFilter) {
+    throw new Error(
+      `No ${blockProtocolPropertyTypes.query.propertyTypeBaseUrl} property found on query entity with id ${queryEntityId}`,
+    );
+  }
 
   const filter = convertBpFilterToGraphFilter(multiFilter as MultiFilter);
 
