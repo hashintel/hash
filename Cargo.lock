@@ -1267,7 +1267,6 @@ dependencies = [
  "enumflags2",
  "error-stack",
  "expect-test",
- "graph-types",
  "harpc-types",
  "proptest",
  "similar-asserts",
