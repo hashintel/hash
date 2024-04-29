@@ -12,10 +12,16 @@ export const handleQueryPdfToolCall = async (params: {
   toolCall: ParsedLlmToolCall<"queryPdf">;
 }): Promise<CompletedToolCall<"queryPdf">> => {
   const { toolCall } = params;
-  const { description, fileUrl } =
+  const { description, fileUrl, exampleText } =
     toolCall.input as ToolCallArguments["queryPdf"];
 
-  const query = description;
+  /**
+   * @todo: are the prefixes necessary?
+   */
+  const query = dedent(`
+    Description: ${description}
+    Example text: ${exampleText}
+  `);
 
   /**
    * Step 1: Ensure the file at the provided URL is a PDF file
@@ -90,7 +96,16 @@ export const handleQueryPdfToolCall = async (params: {
     ...toolCall,
     output: dedent(`
     Here is a list of the most relevant sections of the PDF file, based on your query:
-    ${JSON.stringify(nodeContents)}
+    ${nodeContents.map((nodeContent, index) => `Relevant section ${index + 1}: ${nodeContent}`).join("\n")}
+    
+    --- END OF RELEVANT SECTIONS ---
+
+    If the relevant sections include the information needed for the relevant entities,
+      use the "inferEntitiesFromText" tool with the relevant text as input.
+
+    If the relevant sections do not include the information needed for the relevant entities,
+      that does not mean the information is not in the PDF file. You can try calling the
+      "queryPdf" tool again with a different "description" of the information you need.
   `),
   };
 };

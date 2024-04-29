@@ -36,7 +36,7 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
   },
   inferEntitiesFromWebPage: {
     name: "inferEntitiesFromWebPage",
-    description: "Infer entities from some a web page.",
+    description: "Infer entities from a web page.",
     inputSchema: {
       type: "object",
       properties: {
@@ -163,9 +163,8 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
   queryPdf: {
     name: "queryPdf",
     description: dedent(`
-      Query a PDF document at a URL.
-      Use this tool to ask questions about the content of a PDF document, hosted at a URL.
-      You will be provided with a list of relevant sections from the document based on your query.
+      Query a PDF document hosted at a URL.
+      Use this tool to get relevant text out of a PDF document.
     `),
     inputSchema: {
       type: "object",
@@ -186,10 +185,18 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
           description: dedent(`
             A detailed description of the relevant information you are seeking from the PDF document.
             Include keywords, phrases, or the name specific sections you are looking for.
+            Use language and terminology that is similar to the content in the PDF document you are seeking.
+          `),
+        },
+        exampleText: {
+          type: "string",
+          description: dedent(`
+            An example of the data you are looking for in the PDF document.
+            This can be a table, a paragraph, or any other relevant content.
           `),
         },
       },
-      required: ["fileUrl", "description", "explanation"],
+      required: ["fileUrl", "description", "explanation", "exampleText"],
     },
   },
   complete: {
@@ -269,6 +276,7 @@ export type ToolCallArguments = Subtype<
     queryPdf: {
       fileUrl: string;
       description: string;
+      exampleText: string;
     };
   }
 >;
