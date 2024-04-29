@@ -54,12 +54,14 @@ export const persistEntityAction: FlowActionActivity<{
         graphApiClient,
         ownedById,
         linkData,
+        includeDrafts: createEditionAsDraft,
       })
     : findExistingEntity({
         actorId,
         graphApiClient,
         ownedById,
         proposedEntity: proposedEntityWithResolvedLinks,
+        includeDrafts: createEditionAsDraft,
       }));
 
   const operation = existingEntity ? "update" : "create";

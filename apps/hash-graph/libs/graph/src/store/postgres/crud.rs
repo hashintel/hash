@@ -148,12 +148,18 @@ where
         compiler.add_filter(filter);
         let (statement, parameters) = compiler.compile();
 
-        let row = self
+        let rows = self
             .as_client()
-            .query_one(&statement, parameters)
+            .query(&statement, parameters)
             .await
             .change_context(QueryError)?;
 
-        Ok(R::decode(&row, &record_indices))
+        match rows.len() {
+            1 => Ok(R::decode(&rows[0], &record_indices)),
+            len => {
+                Err(Report::new(QueryError)
+                    .attach_printable(format!("Expected 1 result, got {len}")))
+            }
+        }
     }
 }

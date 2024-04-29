@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { Subtype } from "@local/advanced-types/subtype";
 import type { GraphApi } from "@local/hash-graph-client";
 import type {
   InputNameForAction,
@@ -9,20 +10,21 @@ import type {
   ProposedEntity,
   StepInput,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type { AccountId } from "@local/hash-subgraph/.";
+import type { AccountId, Entity } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
-import type { ChatCompletionMessageParam } from "openai/resources";
 
-import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity";
-import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types";
 import { logger } from "../../shared/activity-logger";
+import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
 import { getLlmResponse } from "../../shared/get-llm-response";
+import type {
+  LlmMessage,
+  LlmUserMessage,
+} from "../../shared/get-llm-response/llm-message";
 import {
   getTextContentFromLlmMessage,
   getToolCallsFromLlmAssistantMessage,
-  mapOpenAiMessagesToLlmMessages,
 } from "../../shared/get-llm-response/llm-message";
 import type {
   LlmToolDefinition,
@@ -38,7 +40,7 @@ import type {
 } from "./infer-entities-from-web-page-worker-agent/types";
 // import { retrievePreviousState, writeStateToFile } from "./testing-utils";
 import type { CompletedToolCall } from "./types";
-import { mapPreviousCallsToChatCompletionMessages } from "./util";
+import { mapPreviousCallsToLlmMessages } from "./util";
 
 const model: PermittedOpenAiModel = "gpt-4-0125-preview";
 
@@ -63,8 +65,11 @@ const mapProposedEntityToSummarizedEntity = (
 
 const explanationDefinition = {
   type: "string",
-  description:
-    "An explanation of why this tool call is required to satisfy the task, and how it aligns with the current plan. If the plan needs to be modified",
+  description: dedent(`
+    An explanation of why this tool call is required to satisfy the task,
+    and how it aligns with the current plan. If the plan needs to be modified,
+    make a call to the "updatePlan" tool.
+  `),
 } as const;
 
 const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
@@ -166,6 +171,15 @@ const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
             An array of entity type IDs which should be inferred from the provided HTML content.
           `),
         },
+        linkEntityTypeIds: {
+          type: "array",
+          items: {
+            type: "string",
+          },
+          description: dedent(`
+            An array of link entity type IDs which should be inferred from provided HTML content.
+          `),
+        },
       },
       required: [
         "url",
@@ -234,7 +248,13 @@ const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
     inputSchema: {
       type: "object",
       properties: {
-        explanation: explanationDefinition,
+        explanation: {
+          type: "string",
+          description: dedent(`
+            An explanation of why the plan needs to be updated, and
+            how it aligns with the current plan.
+          `),
+        },
         plan: {
           type: "string",
           description: "The updated plan for the research task.",
@@ -245,83 +265,122 @@ const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
   },
 };
 
-type ToolCallArguments = {
-  getWebPageInnerHtml: {
-    url: string;
-  };
-  inferEntitiesFromWebPage: {
-    url: string;
-    hmtlContent: string;
-    expectedNumberOfEntities: number;
-    validAt: string;
-    prompt: string;
-    entityTypeIds: VersionedUrl[];
-  };
-  submitProposedEntities: {
-    entityIds: string[];
-  };
-  updatePlan: {
-    plan: string;
-  };
+type ToolCallArguments = Subtype<
+  Record<ToolName, unknown>,
+  {
+    getWebPageInnerHtml: {
+      url: string;
+    };
+    inferEntitiesFromWebPage: {
+      url: string;
+      hmtlContent: string;
+      expectedNumberOfEntities: number;
+      validAt: string;
+      prompt: string;
+      entityTypeIds: VersionedUrl[];
+      linkEntityTypeIds?: VersionedUrl[];
+    };
+    submitProposedEntities: {
+      entityIds: string[];
+    };
+    updatePlan: {
+      plan: string;
+    };
+    complete: never;
+    terminate: never;
+  }
+>;
+
+type WorkerAgentInput = {
+  prompt: string;
+  entityTypes: DereferencedEntityType[];
+  linkEntityTypes?: DereferencedEntityType[];
+  existingEntities?: Entity[];
+  url: string;
+  innerHtml: string;
 };
 
-const systemMessagePrefix = dedent(`
-  You are an infer entities from web page worker agent, with the goal
-    of inferring specific entities from a web page or pages linked to by
-    the web page.
+const generateSystemMessagePrefix = (params: { input: WorkerAgentInput }) => {
+  const { linkEntityTypes, existingEntities } = params.input;
 
-  You are provided by the user with:
-    - Prompt: the prompt you need to satisfy to complete the research task
-    - Initial web page url: the url of the initial web page you should use to infer entities
-    - Entity Types: a list of entity types which define the structure of the entities
-      that can be inferred by the "inferEntitiesFromWebPage" tool.
+  return dedent(`
+    You are an infer entities from web page worker agent, with the goal
+      of inferring specific entities from a web page or pages linked to by
+      the web page.
+
+    You are provided by the user with:
+      - Prompt: the prompt you need to satisfy to complete the research task
+      - Initial web page url: the url of the initial web page you should use to infer entities
+      - Entity Types: the types of entities you can propose to satisfy the research prompt
+      ${
+        linkEntityTypes
+          ? dedent(`
+      - Link Types: the types of links you can propose between entities
+      `)
+          : ""
+      }
+      ${
+        existingEntities
+          ? dedent(`
+      - Existing Entities: a list of existing entities, that may contain relevant information
+        and you may want to link to from the proposed entities.
+      `)
+          : ""
+      }
 
     You will be provided with a variety of tools to complete the task.
 
-  To fully satisfy the prompt, you may need to use the tools to navigate
-    to linked pages, and evaluate them as well as the initial page that
-    is provided.
+    To fully satisfy the prompt, you may need to use the tools to navigate
+      to linked pages, and evaluate them as well as the initial page that
+      is provided.
 
-  This is particularly important if the contents of a page are paginated
-    over multiple web pages (for example web pages containing a table).
+    This is particularly important if the contents of a page are paginated
+      over multiple web pages (for example web pages containing a table).
 
-  Make as many different tool calls in parallel as possible. For example, call "inferEntitiesFromWebPage"
-    alongside "getWebPageInnerHtml" to get the content of another web page which may contain
-    more entities. Do not make more than one "getWebPageInnerHtml" tool call at a time.
+    Make as many different tool calls in parallel as possible. For example, call "inferEntitiesFromWebPage"
+      alongside "getWebPageInnerHtml" to get the content of another web page which may contain
+      more entities. Do not make more than one "getWebPageInnerHtml" tool call at a time.
 
-  Do not under any circumstances make a tool call to a tool which you haven't
-    been provided with.
-`);
+    Do not under any circumstances make a tool call to a tool which you haven't
+      been provided with.
+  `);
+};
 
 const generateUserMessage = (params: {
-  prompt: string;
-  url: string;
-  dereferencedEntityTypes: DereferencedEntityTypesByTypeId;
-  innerHtml?: string;
-}): ChatCompletionMessageParam => {
-  const { prompt, url, innerHtml, dereferencedEntityTypes } = params;
+  input: WorkerAgentInput;
+  includeInnerHtml?: boolean;
+}): LlmUserMessage => {
+  const { includeInnerHtml = false, input } = params;
+  const { prompt, url, innerHtml, entityTypes, linkEntityTypes } = input;
 
   return {
     role: "user",
-    content: dedent(`
-      Prompt: ${prompt}
-      Initial web page url: ${url}
-      ${innerHtml ? `Initial web page inner HTML: ${innerHtml}` : ""}
-      Entity Types: ${JSON.stringify(dereferencedEntityTypes)}
-    `),
+    content: [
+      {
+        type: "text",
+        text: dedent(`
+          Prompt: ${prompt}
+          Initial web page url: ${url}
+          Entity Types: ${JSON.stringify(entityTypes)}
+          ${linkEntityTypes ? `Link Types: ${JSON.stringify(linkEntityTypes)}` : ""}
+          ${includeInnerHtml ? `Initial web page inner HTML: ${innerHtml}` : ""}
+        `),
+      },
+    ],
   };
 };
 
+const maxRetryCount = 3;
+
 const createInitialPlan = async (params: {
-  prompt: string;
-  url: string;
-  dereferencedEntityTypes: DereferencedEntityTypesByTypeId;
-  innerHtml: string;
+  input: WorkerAgentInput;
+  retryMessages?: LlmMessage[];
+  retryCount?: number;
 }): Promise<{ plan: string }> => {
-  const { prompt, url, dereferencedEntityTypes } = params;
+  const { input, retryMessages } = params;
 
   const systemPrompt = dedent(`
-      ${systemMessagePrefix}
+      ${generateSystemMessagePrefix({ input })}
 
       Do not make *any* tool calls. You must first provide a plan of how you will use
         the tools to progress towards completing the task.
@@ -332,9 +391,10 @@ const createInitialPlan = async (params: {
       initial web page, to find all the entities required to satisfy the prompt.
     `);
 
-  const messages = mapOpenAiMessagesToLlmMessages({
-    messages: [generateUserMessage({ prompt, url, dereferencedEntityTypes })],
-  });
+  const messages = [
+    generateUserMessage({ input, includeInnerHtml: true }),
+    ...(retryMessages ?? []),
+  ];
 
   const llmResponse = await getLlmResponse({
     systemPrompt,
@@ -345,25 +405,61 @@ const createInitialPlan = async (params: {
 
   if (llmResponse.status !== "ok") {
     throw new Error(
-      `Failed to get OpenAI response: ${JSON.stringify(llmResponse)}`,
+      `Failed to get LLM response: ${JSON.stringify(llmResponse)}`,
     );
   }
 
-  const { message, usage: _usage } = llmResponse;
+  const { message, stopReason, usage: _usage } = llmResponse;
 
   /** @todo: capture usage */
+
+  const retry = (retryParams: {
+    retryMessageContent: LlmUserMessage["content"];
+  }) => {
+    if ((params.retryCount ?? 0) >= maxRetryCount) {
+      throw new Error(
+        `Exceeded retry count when generating initial plan, with retry reasons: ${JSON.stringify(retryParams.retryMessageContent)}`,
+      );
+    }
+
+    return createInitialPlan({
+      input,
+      retryMessages: [
+        message,
+        {
+          role: "user",
+          content: retryParams.retryMessageContent,
+        },
+      ],
+      retryCount: (params.retryCount ?? 0) + 1,
+    });
+  };
+
+  if (stopReason === "tool_use") {
+    return retry({
+      retryMessageContent: [
+        {
+          type: "text",
+          text: "You must not make any tool calls yet. Provide your initial plan instead.",
+        },
+      ],
+    });
+  }
 
   const messageText = getTextContentFromLlmMessage({ message });
 
   if (!messageText) {
-    throw new Error(
-      `Expected message text content in response: ${JSON.stringify(llmResponse, null, 2)}`,
-    );
+    return retry({
+      retryMessageContent: [
+        {
+          type: "text",
+          text: "You did not provide a plan in your response.",
+        },
+      ],
+    });
   }
 
-  return {
-    plan: messageText,
-  };
+  return { plan: messageText };
 };
 
 const getSubmittedProposedEntitiesFromState = (
@@ -374,19 +470,16 @@ const getSubmittedProposedEntitiesFromState = (
   );
 
 const getNextToolCalls = async (params: {
+  input: WorkerAgentInput;
   state: InferEntitiesFromWebPageWorkerAgentState;
-  prompt: string;
-  url: string;
-  dereferencedEntityTypes: DereferencedEntityTypesByTypeId;
-  retryMessages?: ChatCompletionMessageParam[];
 }): Promise<{ toolCalls: ParsedLlmToolCall<ToolName>[] }> => {
-  const { prompt, url, state, retryMessages, dereferencedEntityTypes } = params;
+  const { state, input } = params;
 
   const submittedProposedEntities =
     getSubmittedProposedEntitiesFromState(state);
 
   const systemPrompt = dedent(`
-      ${systemMessagePrefix}
+      ${generateSystemMessagePrefix({ input })}
 
       You have previously proposed the following plan:
       ${state.currentPlan}
@@ -408,15 +501,12 @@ const getNextToolCalls = async (params: {
       }
     `);
 
-  const messages = mapOpenAiMessagesToLlmMessages({
-    messages: [
-      generateUserMessage({ prompt, url, dereferencedEntityTypes }),
-      ...mapPreviousCallsToChatCompletionMessages({
-        previousCalls: state.previousCalls,
-      }),
-      ...(retryMessages ?? []),
-    ],
-  });
+  const messages: LlmMessage[] = [
+    generateUserMessage({ input }),
+    ...mapPreviousCallsToLlmMessages({
+      previousCalls: state.previousCalls,
+    }),
+  ];
 
   const llmResponse = await getLlmResponse({
     systemPrompt,
@@ -427,7 +517,7 @@ const getNextToolCalls = async (params: {
 
   if (llmResponse.status !== "ok") {
     throw new Error(
-      `Failed to get OpenAI response: ${JSON.stringify(llmResponse)}`,
+      `Failed to get LLM response: ${JSON.stringify(llmResponse)}`,
     );
   }
 
@@ -442,8 +532,10 @@ const getNextToolCalls = async (params: {
 
 export const inferEntitiesFromWebPageWorkerAgent = async (params: {
   prompt: string;
-  entityTypeIds: VersionedUrl[];
+  entityTypes: DereferencedEntityType[];
+  linkEntityTypes?: DereferencedEntityType[];
   url: string;
+  existingEntities?: Entity[];
   userAuthentication: { actorId: AccountId };
   graphApiClient: GraphApi;
 }): Promise<
@@ -451,8 +543,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     inferredEntities: ProposedEntity[];
   }>
 > => {
-  const { prompt, url, entityTypeIds, userAuthentication, graphApiClient } =
-    params;
+  const { userAuthentication, graphApiClient, url, existingEntities } = params;
 
   /**
    * We start by making a asking the coordinator agent to create an initial plan
@@ -464,18 +555,17 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     sanitizeForLlm: true,
   });
 
-  const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
-    entityTypeIds,
-    graphApiClient,
-    actorId: userAuthentication.actorId,
-    simplifyPropertyKeys: true,
-  });
-
-  const { plan: initialPlan } = await createInitialPlan({
-    prompt,
+  const input: WorkerAgentInput = {
+    prompt: params.prompt,
+    entityTypes: params.entityTypes,
+    linkEntityTypes: params.linkEntityTypes,
+    existingEntities,
     url,
     innerHtml: initialWebPageInnerHtml,
-    dereferencedEntityTypes,
+  };
+
+  const { plan: initialPlan } = await createInitialPlan({
+    input,
   });
 
   logger.debug(`Worker agent initial plan: ${initialPlan}`);
@@ -493,9 +583,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
 
   const { toolCalls: initialToolCalls } = await getNextToolCalls({
     state,
-    prompt,
-    url,
-    dereferencedEntityTypes,
+    input,
   });
 
   const processToolCalls = async (processToolCallsParams: {
@@ -585,15 +673,8 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               expectedNumberOfEntities,
               validAt,
               entityTypeIds: inferringEntitiesOfTypeIds,
+              linkEntityTypeIds: inferringLinkEntitiesOfTypeIds,
             } = toolCall.input as ToolCallArguments["inferEntitiesFromWebPage"];
-
-            const invalidEntityTypeIds = inferringEntitiesOfTypeIds.filter(
-              (entityTypeId) =>
-                !entityTypeIds.some(
-                  (expectedEntityTypeId) =>
-                    expectedEntityTypeId === entityTypeId,
-                ),
-            );
 
             if (expectedNumberOfEntities < 1) {
               return {
@@ -602,20 +683,59 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                   You provided an expected number of entities which is less than 1. You must provide
                   a positive integer as the expected number of entities to infer.
                 `),
+                isError: true,
               };
             }
 
-            if (invalidEntityTypeIds.length > 0) {
+            const validEntityTypeIds = input.entityTypes.map(({ $id }) => $id);
+
+            const invalidEntityTypeIds = inferringEntitiesOfTypeIds.filter(
+              (entityTypeId) => !validEntityTypeIds.includes(entityTypeId),
+            );
+
+            const validLinkEntityTypeIds = input.linkEntityTypes?.map(
+              ({ $id }) => $id,
+            );
+
+            const invalidLinkEntityTypeIds =
+              inferringLinkEntitiesOfTypeIds?.filter(
+                (entityTypeId) =>
+                  !validLinkEntityTypeIds?.includes(entityTypeId),
+              ) ?? [];
+
+            if (
+              invalidEntityTypeIds.length > 0 ||
+              invalidLinkEntityTypeIds.length > 0
+            ) {
               return {
                 ...toolCall,
                 output: dedent(`
-                  You provided invalid entity type IDs which don't correspond to the entity types
-                  which were initially provided: ${JSON.stringify(invalidEntityTypeIds)}
+                  ${
+                    invalidEntityTypeIds.length > 0
+                      ? dedent(`
+                        You provided invalid entityTypeIds which don't correspond to the entity types
+                        which were initially provided: ${JSON.stringify(invalidEntityTypeIds)}
 
-                  The possible entity types you can submit are: ${JSON.stringify(
-                    entityTypeIds,
-                  )}
+                        The possible entity types you can submit are: ${JSON.stringify(
+                          validEntityTypeIds,
+                        )}
+                      `)
+                      : ""
+                  }
+                  ${
+                    invalidLinkEntityTypeIds.length > 0
+                      ? dedent(`
+                        You provided invalid linkEntityTypeIds which don't correspond to the link entity types
+                        which were initially provided: ${JSON.stringify(invalidLinkEntityTypeIds)}
+
+                        The possible link entity types you can submit are: ${JSON.stringify(
+                          validLinkEntityTypeIds,
+                        )}
+                      `)
+                      : ""
+                  }
                 `),
+                isError: true,
               };
             }
 
@@ -626,19 +746,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                   You provided an empty string as the HTML content from the web page. You must provide
                   the relevant HTML content from the web page to infer entities.
                 `),
-              };
-            }
-
-            if (hmtlContent.endsWith("...")) {
-              return {
-                ...toolCall,
-                output: dedent(`
-                  You provided a truncated HTML content from the web page. You must provide the entire
-                  HTML content necessary to accurately infer properties of the relevant entities.
-
-                  You must make the "inferEntitiesFromWebPage" tool call again with the full HTML content
-                  required to infer the expected number of entities.
-                `),
+                isError: true,
               };
             }
 
@@ -671,6 +779,22 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                     "relevantEntitiesPrompt" satisfies InputNameForAction<"inferEntitiesFromContent">,
                   payload: { kind: "Text", value: toolCallPrompt },
                 },
+                /**
+                 * Consider allowing the worker agent to decide which existing entities
+                 * are provided to the inference agent.
+                 */
+                ...(existingEntities && existingEntities.length > 0
+                  ? [
+                      {
+                        inputName:
+                          "existingEntities" satisfies InputNameForAction<"inferEntitiesFromContent">,
+                        payload: {
+                          kind: "Entity" as const,
+                          value: existingEntities,
+                        },
+                      },
+                    ]
+                  : []),
                 ...actionDefinitions.inferEntitiesFromContent.inputs.flatMap<StepInput>(
                   ({ name, default: defaultValue }) =>
                     defaultValue
@@ -775,15 +899,13 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
 
     // writeStateToFile(state);
 
-    const openAiResponse = await getNextToolCalls({
+    const { toolCalls: nextToolCalls } = await getNextToolCalls({
       state,
-      prompt,
-      url,
-      dereferencedEntityTypes,
+      input,
     });
 
     return await processToolCalls({
-      toolCalls: openAiResponse.toolCalls,
+      toolCalls: nextToolCalls,
     });
   };
 

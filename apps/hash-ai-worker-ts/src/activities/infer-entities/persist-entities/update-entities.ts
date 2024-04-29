@@ -105,6 +105,7 @@ export const updateEntities = async ({
                   },
                 ],
               },
+              includeDrafts: createAsDraft,
             });
 
             if (!existingEntity) {

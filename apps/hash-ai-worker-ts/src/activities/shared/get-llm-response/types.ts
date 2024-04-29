@@ -1,3 +1,4 @@
+import type { AxiosError } from "axios";
 import type { JSONSchema } from "openai/lib/jsonschema";
 import type {
   ChatCompletion as OpenAiChatCompletion,
@@ -114,4 +115,5 @@ export type LlmResponse<T extends LlmParams> =
     }
   | {
       status: "api-error";
+      axiosError?: AxiosError;
     };

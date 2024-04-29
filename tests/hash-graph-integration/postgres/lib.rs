@@ -71,6 +71,7 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
+use hash_tracing::logging::env_filter;
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use time::{format_description::well_known::Iso8601, Duration, OffsetDateTime};
 use tokio_postgres::{NoTls, Transaction};
@@ -128,9 +129,20 @@ const fn entity_type_relationships() -> [EntityTypeRelationAndSubject; 3] {
     ]
 }
 
+pub fn init_logging() {
+    let _ = tracing_subscriber::fmt()
+        .with_ansi(true)
+        .with_env_filter(env_filter(None))
+        .with_file(true)
+        .with_line_number(true)
+        .with_test_writer()
+        .try_init();
+}
+
 impl DatabaseTestWrapper<NoAuthorization> {
     pub async fn new() -> Self {
         load_env(Environment::Test);
+        init_logging();
 
         let user = std::env::var("HASH_GRAPH_PG_USER").unwrap_or_else(|_| "graph".to_owned());
         let password =
