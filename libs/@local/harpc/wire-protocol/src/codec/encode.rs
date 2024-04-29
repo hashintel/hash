@@ -77,6 +77,7 @@ impl Encode for Bytes {
 
 #[cfg(test)]
 pub(crate) mod test {
+    #![allow(clippy::needless_raw_strings, clippy::needless_raw_string_hashes)]
     use core::fmt::{Debug, Write};
 
     use bytes::Bytes;
@@ -123,13 +124,15 @@ pub(crate) mod test {
                 if byte.is_ascii_graphic() || byte.is_ascii_whitespace() {
                     // at most is 4 characters, align to the right
                     let escaped = byte.escape_ascii();
-                    // we never generate \xNN.
-                    assert!(escaped.len() <= 2);
+                    // we never generate \xNN and never an empty string
+                    assert!(escaped.len() <= 2 && escaped.len() > 0);
 
                     let padding = 2 - escaped.len();
 
-                    for _ in 0..padding {
-                        output.push(' ');
+                    match padding {
+                        0 => {}
+                        1 => output.push('b'),
+                        _ => unreachable!(),
                     }
 
                     output.push('\'');
@@ -166,15 +169,27 @@ pub(crate) mod test {
 
     #[tokio::test]
     async fn encode_u16() {
-        assert_encode(&42_u16, expect![[r#"
-            0x00  '*'
-        "#]]).await;
-        assert_encode(&0_u16, expect![[r#"
+        assert_encode(
+            &42_u16,
+            expect![[r#"
+                0x00 b'*'
+            "#]],
+        )
+        .await;
+        assert_encode(
+            &0_u16,
+            expect![[r#"
             0x00 0x00
-        "#]]).await;
-        assert_encode(&u16::MAX, expect![[r#"
+        "#]],
+        )
+        .await;
+        assert_encode(
+            &u16::MAX,
+            expect![[r#"
             0xFF 0xFF
-        "#]]).await;
+        "#]],
+        )
+        .await;
     }
 
     #[tokio::test]
@@ -182,7 +197,7 @@ pub(crate) mod test {
         assert_encode(
             &Bytes::from_static(&[0x68, 0x65, 0x6C, 0x6C, 0x6F]),
             expect![[r#"
-                0x00 0x05  'h'  'e'  'l'  'l'  'o'
+                0x00 0x05 b'h' b'e' b'l' b'l' b'o'
             "#]],
         )
         .await;

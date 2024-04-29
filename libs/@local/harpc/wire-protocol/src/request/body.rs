@@ -96,7 +96,7 @@ impl Decode for RequestBody {
 
 #[cfg(test)]
 mod test {
-
+    #![allow(clippy::needless_raw_strings, clippy::needless_raw_string_hashes)]
     use expect_test::expect;
     use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
 
@@ -127,22 +127,26 @@ mod test {
 
     #[tokio::test]
     async fn encode_begin() {
-        let expect = expect![[r#"
+        assert_encode(
+            &RequestBody::Begin(EXAMPLE_BEGIN.clone()),
+            expect![[r#"
             0x01 0x02 0x03 0x04 0x05 0x06 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
             0x00 0x00 0x00 0x00 0x02 0x07 0x08
-        "#]];
-
-        assert_encode(&RequestBody::Begin(EXAMPLE_BEGIN.clone()), expect).await;
+        "#]],
+        )
+        .await;
     }
 
     #[tokio::test]
     async fn encode_frame() {
-        let expect = expect![[r#"
+        assert_encode(
+            &RequestBody::Frame(EXAMPLE_FRAME.clone()),
+            expect![[r#"
             0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
             0x00 0x00 0x00 0x00 0x02 0x07 0x08
-        "#]];
-
-        assert_encode(&RequestBody::Frame(EXAMPLE_FRAME.clone()), expect).await;
+        "#]],
+        )
+        .await;
     }
 
     #[tokio::test]

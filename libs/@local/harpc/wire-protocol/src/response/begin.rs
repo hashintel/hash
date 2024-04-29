@@ -1,6 +1,6 @@
 use error_stack::{Result, ResultExt};
 use tokio::{
-    io::{AsyncRead, AsyncWrite},
+    io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
     pin,
 };
 
@@ -25,6 +25,12 @@ impl Encode for ResponseBegin {
     async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
         pin!(write);
 
+        // 17 bytes of reserved space
+        write
+            .write_all(&[0; 17])
+            .await
+            .change_context(EncodeError)?;
+
         self.kind
             .encode(&mut write)
             .await
@@ -41,6 +47,11 @@ impl Decode for ResponseBegin {
     async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
         pin!(read);
 
+        // skip 17 bytes of reserved space
+        read.read_exact(&mut [0; 17])
+            .await
+            .change_context(DecodeError)?;
+
         let kind = ResponseKind::decode(&mut read, ())
             .await
             .change_context(DecodeError)?;
@@ -55,6 +66,7 @@ impl Decode for ResponseBegin {
 
 #[cfg(test)]
 mod test {
+    #![allow(clippy::needless_raw_strings, clippy::needless_raw_string_hashes)]
     use expect_test::expect;
 
     use crate::{
@@ -73,8 +85,9 @@ mod test {
         assert_encode(
             &frame,
             expect![[r#"
-            0x00 0x00 0x0B  'h'  'e'  'l'  'l'  'o'  ' '  'w'  'o'  'r'  'l'  'd'
-        "#]],
+                0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
+                0x00 0x00 0x00 0x00 0x0B b'h' b'e' b'l' b'l' b'o' b' ' b'w' b'o' b'r' b'l' b'd'
+            "#]],
         )
         .await;
     }
@@ -83,7 +96,9 @@ mod test {
     async fn decode() {
         assert_decode(
             &[
-                0x00, // ResponseKind::Ok
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, // Reserved
+                0x00, 0x00, // ResponseKind::Ok
                 0x00, 0x0B, b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd',
             ],
             &ResponseBegin {

@@ -33,6 +33,7 @@ impl Decode for ProcedureDescriptor {
 
 #[cfg(test)]
 mod test {
+    #![allow(clippy::needless_raw_strings, clippy::needless_raw_string_hashes)]
     use expect_test::expect;
 
     use super::{ProcedureDescriptor, ProcedureId};
@@ -40,9 +41,13 @@ mod test {
 
     #[tokio::test]
     async fn encode_id() {
-        assert_encode(&ProcedureId::new(0x1234), expect![[r#"
-            0x12  '4'
-        "#]]).await;
+        assert_encode(
+            &ProcedureId::new(0x01_02),
+            expect![[r#"
+                0x01 0x02
+            "#]],
+        )
+        .await;
     }
 
     #[tokio::test]
@@ -59,10 +64,10 @@ mod test {
     async fn encode() {
         assert_encode(
             &ProcedureDescriptor {
-                id: ProcedureId::new(0x1234),
+                id: ProcedureId::new(0x01_02),
             },
             expect![[r#"
-                0x12  '4'
+                0x01 0x02
             "#]],
         )
         .await;

@@ -69,6 +69,7 @@ impl Decode for RequestHeader {
 
 #[cfg(test)]
 mod test {
+    #![allow(clippy::needless_raw_strings, clippy::needless_raw_string_hashes)]
     use expect_test::expect;
 
     use crate::{
@@ -96,7 +97,7 @@ mod test {
         assert_encode(
             &header,
             expect![[r#"
-                 'h'  'a'  'r'  'p'  'c' 0x01 0x00 0x00 0x00 0x00 0x80
+                b'h' b'a' b'r' b'p' b'c' 0x01 0x00 0x00 0x00 0x00 0x80
             "#]],
         )
         .await;

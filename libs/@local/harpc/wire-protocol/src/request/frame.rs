@@ -52,6 +52,7 @@ impl Decode for RequestFrame {
 
 #[cfg(test)]
 mod test {
+    #![allow(clippy::needless_raw_strings, clippy::needless_raw_string_hashes)]
     use expect_test::expect;
 
     use crate::{
@@ -68,7 +69,7 @@ mod test {
             },
             expect![[r#"
                 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
-                0x00 0x00 0x00 0x00 0x0B  'h'  'e'  'l'  'l'  'o'  ' '  'w'  'o'  'r'  'l'  'd'
+                0x00 0x00 0x00 0x00 0x0B b'h' b'e' b'l' b'l' b'o' b' ' b'w' b'o' b'r' b'l' b'd'
             "#]],
         )
         .await;

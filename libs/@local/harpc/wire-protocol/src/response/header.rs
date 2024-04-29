@@ -70,6 +70,7 @@ impl Decode for ResponseHeader {
 
 #[cfg(test)]
 mod test {
+    #![allow(clippy::needless_raw_strings, clippy::needless_raw_string_hashes)]
     use expect_test::expect;
 
     use crate::{
@@ -89,11 +90,17 @@ mod test {
             protocol: Protocol {
                 version: ProtocolVersion::V1,
             },
-            request_id: mock_request_id(0x1234),
+            request_id: mock_request_id(0x02_03_04_05),
             flags: ResponseFlags::EMPTY,
         };
 
-        assert_encode(&header, expect![[""]]).await;
+        assert_encode(
+            &header,
+            expect![[r#"
+                b'h' b'a' b'r' b'p' b'c' 0x01 0x02 0x03 0x04 0x05 0x00
+            "#]],
+        )
+        .await;
     }
 
     #[tokio::test]

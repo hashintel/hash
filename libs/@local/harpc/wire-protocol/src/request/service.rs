@@ -43,6 +43,7 @@ impl Decode for ServiceDescriptor {
 
 #[cfg(test)]
 mod test {
+    #![allow(clippy::needless_raw_strings, clippy::needless_raw_string_hashes)]
     use expect_test::expect;
     use harpc_types::{service::ServiceId, version::Version};
 
@@ -54,13 +55,17 @@ mod test {
     #[tokio::test]
     async fn encode() {
         let service = ServiceDescriptor {
-            id: ServiceId::new(0x1234),
-            version: Version::new(0x56, 0x78),
+            id: ServiceId::new(0x01_02),
+            version: Version::new(0x03, 0x04),
         };
 
-        assert_encode(&service, expect![[r#"
-            0x12  '4'  'V'  'x'
-        "#]]).await;
+        assert_encode(
+            &service,
+            expect![[r#"
+                0x01 0x02 0x03 0x04
+            "#]],
+        )
+        .await;
     }
 
     #[tokio::test]

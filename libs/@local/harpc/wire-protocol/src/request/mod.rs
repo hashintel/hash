@@ -131,6 +131,7 @@ impl Decode for Request {
 
 #[cfg(test)]
 mod test {
+    #![allow(clippy::needless_raw_strings, clippy::needless_raw_string_hashes)]
     use expect_test::expect;
     use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
 
@@ -165,9 +166,9 @@ mod test {
         b'h', b'a', b'r', b'p', b'c', 0x01, // protocol
         0x89, 0xAB, 0xCD, 0xEF,             // request_id
         0x80,                               // flags
-        0x12, 0x34,                         // service_id
-        0x56, 0x78,                         // service_version
-        0x9A, 0xBC,                         // procedure_id
+        0x01, 0x02,                         // service_id
+        0x03, 0x04,                         // service_version
+        0x05, 0x06,                         // procedure_id
         // 13 bytes reserved
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00,       // reserved
@@ -189,12 +190,6 @@ mod test {
 
     #[tokio::test]
     async fn encode_begin() {
-        let expect = expect![[r#"
-             'h'  'a'  'r'  'p'  'c' 0x01 0x89 0xAB 0xCD 0xEF 0x80 0x12  '4'  'V'  'x' 0x9A
-            0xBC 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B
-             'h'  'e'  'l'  'l'  'o'  ' '  'w'  'o'  'r'  'l'  'd'
-        "#]];
-
         assert_encode(
             &Request {
                 header: RequestHeader {
@@ -203,58 +198,54 @@ mod test {
                 },
                 body: RequestBody::Begin(RequestBegin {
                     service: ServiceDescriptor {
-                        id: ServiceId::new(0x1234),
-                        version: Version::new(0x56, 0x78),
+                        id: ServiceId::new(0x01_02),
+                        version: Version::new(0x03, 0x04),
                     },
 
                     procedure: ProcedureDescriptor {
-                        id: ProcedureId::new(0x9ABC),
+                        id: ProcedureId::new(0x05_06),
                     },
 
                     payload: Payload::from_static(b"hello world"),
                 }),
             },
-            expect,
+            expect![[r#"
+                b'h' b'a' b'r' b'p' b'c' 0x01 0x89 0xAB 0xCD 0xEF 0x80 0x01 0x02 0x03 0x04 0x05
+                0x06 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B
+                b'h' b'e' b'l' b'l' b'o' b' ' b'w' b'o' b'r' b'l' b'd'
+            "#]],
         )
         .await;
     }
 
     #[tokio::test]
     async fn encode_begin_begin_of_request_unset() {
-        let expect = expect![[r#"
-             'h'  'a'  'r'  'p'  'c' 0x01 0x89 0xAB 0xCD 0xEF 0x80 0x12  '4'  'V'  'x' 0x9A
-            0xBC 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B
-             'h'  'e'  'l'  'l'  'o'  ' '  'w'  'o'  'r'  'l'  'd'
-        "#]];
-
         assert_encode(
             &Request {
                 header: EXAMPLE_HEADER,
                 body: RequestBody::Begin(RequestBegin {
                     service: ServiceDescriptor {
-                        id: ServiceId::new(0x1234),
-                        version: Version::new(0x56, 0x78),
+                        id: ServiceId::new(0x01_02),
+                        version: Version::new(0x03, 0x04),
                     },
                     procedure: ProcedureDescriptor {
-                        id: ProcedureId::new(0x9ABC),
+                        id: ProcedureId::new(0x05_06),
                     },
 
                     payload: Payload::from_static(b"hello world"),
                 }),
             },
-            expect,
+            expect![[r#"
+                b'h' b'a' b'r' b'p' b'c' 0x01 0x89 0xAB 0xCD 0xEF 0x80 0x01 0x02 0x03 0x04 0x05
+                0x06 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B
+                b'h' b'e' b'l' b'l' b'o' b' ' b'w' b'o' b'r' b'l' b'd'
+            "#]],
         )
         .await;
     }
 
     #[tokio::test]
     async fn encode_frame() {
-        let expect = expect![[r#"
-             'h'  'a'  'r'  'p'  'c' 0x01 0x89 0xAB 0xCD 0xEF 0x00 0x00 0x00 0x00 0x00 0x00
-            0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B
-             'h'  'e'  'l'  'l'  'o'  ' '  'w'  'o'  'r'  'l'  'd'
-        "#]];
-
         assert_encode(
             &Request {
                 header: EXAMPLE_HEADER,
@@ -262,19 +253,17 @@ mod test {
                     payload: Payload::from_static(b"hello world"),
                 }),
             },
-            expect,
+            expect![[r#"
+                b'h' b'a' b'r' b'p' b'c' 0x01 0x89 0xAB 0xCD 0xEF 0x00 0x00 0x00 0x00 0x00 0x00
+                0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B
+                b'h' b'e' b'l' b'l' b'o' b' ' b'w' b'o' b'r' b'l' b'd'
+            "#]],
         )
         .await;
     }
 
     #[tokio::test]
     async fn encode_frame_begin_of_request_set() {
-        let expect = expect![[r#"
-             'h'  'a'  'r'  'p'  'c' 0x01 0x89 0xAB 0xCD 0xEF 0x00 0x00 0x00 0x00 0x00 0x00
-            0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B
-             'h'  'e'  'l'  'l'  'o'  ' '  'w'  'o'  'r'  'l'  'd'
-        "#]];
-
         assert_encode(
             &Request {
                 header: RequestHeader {
@@ -285,7 +274,11 @@ mod test {
                     payload: Payload::from_static(b"hello world"),
                 }),
             },
-            expect,
+            expect![[r#"
+                b'h' b'a' b'r' b'p' b'c' 0x01 0x89 0xAB 0xCD 0xEF 0x00 0x00 0x00 0x00 0x00 0x00
+                0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B
+                b'h' b'e' b'l' b'l' b'o' b' ' b'w' b'o' b'r' b'l' b'd'
+            "#]],
         )
         .await;
     }
@@ -301,12 +294,13 @@ mod test {
                 },
                 body: RequestBody::Begin(RequestBegin {
                     service: ServiceDescriptor {
-                        id: ServiceId::new(0x1234),
-                        version: Version::new(0x56, 0x78),
+                        id: ServiceId::new(0x01_02),
+                        version: Version::new(0x03, 0x04),
                     },
                     procedure: ProcedureDescriptor {
-                        id: ProcedureId::new(0x9ABC),
+                        id: ProcedureId::new(0x05_06),
                     },
+
                     payload: Payload::from_static(b"hello world"),
                 }),
             },

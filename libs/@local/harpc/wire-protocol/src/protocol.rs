@@ -127,6 +127,7 @@ impl Decode for Protocol {
 
 #[cfg(test)]
 mod test {
+    #![allow(clippy::needless_raw_strings, clippy::needless_raw_string_hashes)]
     use expect_test::expect;
 
     use super::Protocol;
@@ -140,9 +141,13 @@ mod test {
 
     #[tokio::test]
     async fn encode_version() {
-        assert_encode(&ProtocolVersion::V1, expect![[r#"
+        assert_encode(
+            &ProtocolVersion::V1,
+            expect![[r#"
             0x01
-        "#]]).await;
+        "#]],
+        )
+        .await;
     }
 
     #[tokio::test]
@@ -174,7 +179,7 @@ mod test {
                 version: ProtocolVersion::V1,
             },
             expect![[r#"
-                 'h'  'a'  'r'  'p'  'c' 0x01
+                b'h' b'a' b'r' b'p' b'c' 0x01
             "#]],
         )
         .await;

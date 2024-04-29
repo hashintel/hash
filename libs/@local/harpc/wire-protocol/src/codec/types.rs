@@ -70,7 +70,7 @@ impl Decode for ServiceId {
 
 #[cfg(test)]
 mod test {
-
+    #![allow(clippy::needless_raw_strings, clippy::needless_raw_string_hashes)]
     use expect_test::expect;
     use harpc_types::{service::ServiceId, version::Version};
 
@@ -79,9 +79,13 @@ mod test {
     #[tokio::test]
     async fn encode_version() {
         let version = Version { major: 1, minor: 2 };
-        assert_encode(&version, expect![[r#"
+        assert_encode(
+            &version,
+            expect![[r#"
             0x01 0x02
-        "#]]).await;
+        "#]],
+        )
+        .await;
     }
 
     #[tokio::test]
@@ -99,9 +103,13 @@ mod test {
 
     #[tokio::test]
     async fn encode_service_id() {
-        assert_encode(&ServiceId::new(0x1234), expect![[r#"
-            0x12  '4'
-        "#]]).await;
+        assert_encode(
+            &ServiceId::new(0x01_02),
+            expect![[r#"
+                0x01 0x02
+            "#]],
+        )
+        .await;
     }
 
     #[tokio::test]

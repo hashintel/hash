@@ -78,6 +78,7 @@ impl Decode for RequestFlags {
 
 #[cfg(test)]
 mod test {
+    #![allow(clippy::needless_raw_strings, clippy::needless_raw_string_hashes)]
     use expect_test::expect;
 
     use crate::{
@@ -88,9 +89,13 @@ mod test {
 
     #[tokio::test]
     async fn encode() {
-        assert_encode(&RequestFlags::EMPTY, expect![[r#"
+        assert_encode(
+            &RequestFlags::EMPTY,
+            expect![[r#"
             0x00
-        "#]]).await;
+        "#]],
+        )
+        .await;
 
         assert_encode(
             &RequestFlags::from(RequestFlag::BeginOfRequest),

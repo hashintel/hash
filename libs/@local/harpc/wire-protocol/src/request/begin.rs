@@ -82,7 +82,7 @@ impl Decode for RequestBegin {
 
 #[cfg(test)]
 mod test {
-
+    #![allow(clippy::needless_raw_strings, clippy::needless_raw_string_hashes)]
     use expect_test::expect;
     use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
 
@@ -96,22 +96,32 @@ mod test {
 
     static EXAMPLE_REQUEST: RequestBegin = RequestBegin {
         service: ServiceDescriptor {
-            id: ServiceId::new(0x12),
-            version: Version::new(0x34, 0x56),
+            id: ServiceId::new(0x01_02),
+            version: Version::new(0x03, 0x04),
         },
         procedure: ProcedureDescriptor {
-            id: ProcedureId::new(0x78),
+            id: ProcedureId::new(0x05_06),
         },
-        payload: Payload::from_static(&[0x90, 0xAB, 0xCD]),
+        payload: Payload::from_static(b"Hello, world!"),
     };
+
+    const EXAMPLE_REQUEST_BYTES: &[u8] = &[
+        0x01, 0x02, // service id
+        0x03, 0x04, // service version
+        0x05, 0x06, // procedure id
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, // reserved
+        0x00, 0x0D, b'H', b'e', b'l', b'l', b'o', b',', b' ', b'w', b'o', b'r', b'l', b'd', b'!',
+    ];
 
     #[tokio::test]
     async fn encode() {
         assert_encode(
             &EXAMPLE_REQUEST,
             expect![[r#"
-                0x00 0x12  '4'  'V' 0x00  'x' 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
-                0x00 0x00 0x00 0x00 0x03 0x90 0xAB 0xCD
+                0x01 0x02 0x03 0x04 0x05 0x06 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
+                0x00 0x00 0x00 0x00 '\r' b'H' b'e' b'l' b'l' b'o' b',' b' ' b'w' b'o' b'r' b'l'
+                b'd' b'!'
             "#]],
         )
         .await;
@@ -119,29 +129,20 @@ mod test {
 
     #[tokio::test]
     async fn decode() {
-        let bytes: &[u8] = &[
-            0x00, 0x12, // service id
-            0x34, 0x56, // service version
-            0x00, 0x78, // procedure id
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, // reserved
-            0x00, 0x03, 0x90, 0xAB, 0xCD, // payload
-        ];
-
         assert_decode(
-            bytes,
+            EXAMPLE_REQUEST_BYTES,
             &RequestBegin {
                 service: ServiceDescriptor {
-                    id: ServiceId::new(0x00_12),
+                    id: ServiceId::new(0x01_02),
                     version: Version {
-                        major: 0x34,
-                        minor: 0x56,
+                        major: 0x03,
+                        minor: 0x04,
                     },
                 },
                 procedure: ProcedureDescriptor {
-                    id: ProcedureId::new(0x00_78),
+                    id: ProcedureId::new(0x05_06),
                 },
-                payload: Payload::from_static(&[0x90, 0xAB, 0xCD]),
+                payload: Payload::from_static(b"Hello, world!"),
             },
             (),
         )

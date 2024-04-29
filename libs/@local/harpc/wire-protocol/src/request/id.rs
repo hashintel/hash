@@ -71,6 +71,7 @@ impl Default for RequestIdProducer {
 
 #[cfg(test)]
 pub(crate) mod test {
+    #![allow(clippy::needless_raw_strings, clippy::needless_raw_string_hashes)]
     use expect_test::expect;
 
     use super::RequestIdProducer;
@@ -104,9 +105,13 @@ pub(crate) mod test {
 
     #[tokio::test]
     async fn encode_id() {
-        assert_encode(&RequestId(0x1234), expect![[r#"
-            0x00 0x00 0x12  '4'
-        "#]]).await;
+        assert_encode(
+            &RequestId(0x01_02_03_04),
+            expect![[r#"
+                0x01 0x02 0x03 0x04
+            "#]],
+        )
+        .await;
     }
 
     #[tokio::test]

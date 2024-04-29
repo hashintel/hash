@@ -126,6 +126,7 @@ impl Decode for Response {
 
 #[cfg(test)]
 mod test {
+    #![allow(clippy::needless_raw_strings, clippy::needless_raw_string_hashes)]
     use expect_test::expect;
 
     use super::{flags::ResponseFlags, header::ResponseHeader};
@@ -145,17 +146,19 @@ mod test {
         protocol: Protocol {
             version: ProtocolVersion::V1,
         },
-        request_id: mock_request_id(0xCD_EF),
+        request_id: mock_request_id(0xEF_CD_CD_EF),
         flags: ResponseFlags::EMPTY,
     };
 
     #[rustfmt::skip]
     const EXAMPLE_BEGIN_BUFFER: &[u8] = &[
         b'h', b'a', b'r', b'p', b'c', 0x01, // protocol
-        0xCD, 0xEF,                         // request_id
-        0b1000_0000,                        // flags
-        0x00,                               // request kind
-        0x00, 0x01,                         // encoding
+        0xEF, 0xCD, 0xCD, 0xEF,             // request_id
+        0x80,                               // flags
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00,                               // reserved
+        0x00, 0x00,                         // request kind
         0x00, 0x0B,                         // payload length
         b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd',
     ];
@@ -163,8 +166,11 @@ mod test {
     #[rustfmt::skip]
     const EXAMPLE_FRAME_BUFFER: &[u8] = &[
         b'h', b'a', b'r', b'p', b'c', 0x01, // protocol
-        0xCD, 0xEF,                         // request_id
-        0b0000_0000,                        // flags
+        0xEF, 0xCD, 0xCD, 0xEF,             // request_id
+        0x00,                               // flags
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00,                   // reserved
         0x00, 0x0B,                         // payload length
         b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd',
     ];
@@ -183,7 +189,11 @@ mod test {
                     payload: Payload::from_static(b"hello world"),
                 }),
             },
-            expect![[""]],
+            expect![[r#"
+                b'h' b'a' b'r' b'p' b'c' 0x01 0xEF 0xCD 0xCD 0xEF 0x80 0x00 0x00 0x00 0x00 0x00
+                0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B
+                b'h' b'e' b'l' b'l' b'o' b' ' b'w' b'o' b'r' b'l' b'd'
+            "#]],
         )
         .await;
     }
@@ -199,7 +209,11 @@ mod test {
                     payload: Payload::from_static(b"hello world"),
                 }),
             },
-            expect![[""]],
+            expect![[r#"
+                b'h' b'a' b'r' b'p' b'c' 0x01 0xEF 0xCD 0xCD 0xEF 0x80 0x00 0x00 0x00 0x00 0x00
+                0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B
+                b'h' b'e' b'l' b'l' b'o' b' ' b'w' b'o' b'r' b'l' b'd'
+            "#]],
         )
         .await;
     }
@@ -213,7 +227,11 @@ mod test {
                     payload: Payload::from_static(b"hello world"),
                 }),
             },
-            expect![[""]],
+            expect![[r#"
+                b'h' b'a' b'r' b'p' b'c' 0x01 0xEF 0xCD 0xCD 0xEF 0x00 0x00 0x00 0x00 0x00 0x00
+                0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B
+                b'h' b'e' b'l' b'l' b'o' b' ' b'w' b'o' b'r' b'l' b'd'
+            "#]],
         )
         .await;
     }
@@ -230,7 +248,11 @@ mod test {
                     payload: Payload::from_static(b"hello world"),
                 }),
             },
-            expect![[""]],
+            expect![[r#"
+                b'h' b'a' b'r' b'p' b'c' 0x01 0xEF 0xCD 0xCD 0xEF 0x00 0x00 0x00 0x00 0x00 0x00
+                0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B
+                b'h' b'e' b'l' b'l' b'o' b' ' b'w' b'o' b'r' b'l' b'd'
+            "#]],
         )
         .await;
     }
