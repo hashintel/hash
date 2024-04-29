@@ -107,18 +107,18 @@ const runPythonCode = async (code: string, contextToUpload: string | null) => {
 const systemPrompt = dedent(`
   You are an expert data analyst. You will be provided with data to analyze, which may be in the form of text,
   a graph of structured entities with links between them, a spreadsheet, or some combination of these.
-  
+
   Your boss will ask you to answer a question based on the data provided to you. They might have asked for a specific output format,
   e.g. 'Markdown', 'JSON', or 'CSV'. If it isn't specified, you use your best judgment.
-  
+
   Your boss plans to use your answer to make a decision, so you make sure that it is accurate, concise, and clear.
   If you can't provide an answer based on the available data, you explain why, and request more data if it would help.
-  
+
   You write Python to analyze any context provided, if you need it. In your code, you access the context from a file using the provided path.
   Your Python code contains detailed comments about why each function is used, and how the data is accessed, including references to the shape of the context data.
   You code complete the entire task in one file.
-  
-  You provide a confidence score with your answer, which is a number between 0 and 1. 
+
+  You provide a confidence score with your answer, which is a number between 0 and 1.
   1 represents absolute certainty, and 0 a complete guess – you never provide answers with confidence 0, but instead explain why you can't answer.
 `);
 
@@ -277,13 +277,13 @@ const callModel = async (
         The Python code ran successfully.
         The stdout from your code was: ${stdout}
         The following artifacts were generated:\n${artifacts.join("\n")}
-        
+
         Please now review the code used and whether it correctly operates on the context data.
         If you spot errors in how the code attempts to access the code data, submit another code file with the corrections.
         If you cannot provide any answer, make sure you've tried at least two different approaches to analyzing the data, checking that the column or property keys
         you've used match those in the dataset.
-        
-        Otherwise, submit your answer. 
+
+        Otherwise, submit your answer.
         `);
 
         responseMessages.push({
@@ -394,34 +394,32 @@ export const answerQuestionAction: FlowActionActivity<{
      * This will also always pull the latest version of the entities, which may differ to those passed in.
      */
     const subgraph = await graphApiClient
-      .getEntitiesByQuery(userAuthentication.actorId, {
-        query: {
-          filter: {
-            any: entities.map((entity) => ({
-              equal: [
-                { path: ["uuid"] },
-                {
-                  parameter: extractEntityUuidFromEntityId(
-                    entity.metadata.recordId.entityId,
-                  ),
-                },
-              ],
-            })),
-          },
-          graphResolveDepths: {
-            ...zeroedGraphResolveDepths,
-            constrainsValuesOn: { outgoing: 255 },
-            constrainsPropertiesOn: { outgoing: 255 },
-            constrainsLinksOn: { outgoing: 1 },
-            constrainsLinkDestinationsOn: { outgoing: 1 },
-            inheritsFrom: { outgoing: 255 },
-            isOfType: { outgoing: 1 },
-            hasLeftEntity: { outgoing: 1, incoming: 1 },
-            hasRightEntity: { outgoing: 1, incoming: 1 },
-          },
-          includeDrafts: true,
-          temporalAxes: currentTimeInstantTemporalAxes,
+      .getEntitySubgraph(userAuthentication.actorId, {
+        filter: {
+          any: entities.map((entity) => ({
+            equal: [
+              { path: ["uuid"] },
+              {
+                parameter: extractEntityUuidFromEntityId(
+                  entity.metadata.recordId.entityId,
+                ),
+              },
+            ],
+          })),
         },
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          constrainsValuesOn: { outgoing: 255 },
+          constrainsPropertiesOn: { outgoing: 255 },
+          constrainsLinksOn: { outgoing: 1 },
+          constrainsLinkDestinationsOn: { outgoing: 1 },
+          inheritsFrom: { outgoing: 255 },
+          isOfType: { outgoing: 1 },
+          hasLeftEntity: { outgoing: 1, incoming: 1 },
+          hasRightEntity: { outgoing: 1, incoming: 1 },
+        },
+        includeDrafts: true,
+        temporalAxes: currentTimeInstantTemporalAxes,
       })
       .then(({ data }) =>
         mapGraphApiSubgraphToSubgraph<EntityRootType>(
@@ -466,7 +464,7 @@ export const answerQuestionAction: FlowActionActivity<{
     let message = dedent(
       `Your boss provides this context data:
       ---CONTEXT BEGINS---
-      ${contextToUpload}. 
+      ${contextToUpload}.
       ---CONTEXT ENDS---
       This file is available at file system path ${contextFilePath} in any code you write.`,
     );
@@ -475,16 +473,16 @@ export const answerQuestionAction: FlowActionActivity<{
       message += `
       The context is an array containing entities, and entityTypes which describe the structure of the entities.
       Each entity has:
-       * entityId: The unique id for the entity, to identify it as the target of links from other entities 
-       * entityType: the title of the type the entity belongs to, which are described under 'entityTypes' 
-       * properties: the properties of the entity 
-       * links: outgoing links from the entity 
+       * entityId: The unique id for the entity, to identify it as the target of links from other entities
+       * entityType: the title of the type the entity belongs to, which are described under 'entityTypes'
+       * properties: the properties of the entity
+       * links: outgoing links from the entity
        * draft: whether or not this entity is in draft
        * webUuid: the uuid of the web that the entity belongs to (a namespace belonging to a user or organization)
-       
+
       Bear in mind that data relating to a link between two entities may be stored as a property on the link, not the entities themselves.
       You may need to iterate through entities and its links, and the entities those links point to, to discover the data you need.
-      When asked for tables or graphs, you should prefer human-readable descriptors of the entities over entityIds, 
+      When asked for tables or graphs, you should prefer human-readable descriptors of the entities over entityIds,
       but include entityIds as an additional column or label where possible.
       `;
     }

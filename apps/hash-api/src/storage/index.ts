@@ -105,35 +105,33 @@ const getFileEntity = async (
   const [ownedById, entityUuid] = splitEntityId(entityId);
 
   const fileEntityRevisions = await graphApi
-    .getEntitiesByQuery(actorId, {
-      query: {
-        filter: {
-          all: [
-            {
-              equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
-            },
-            {
-              equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
-            },
-            {
-              equal: [
-                {
-                  path: [
-                    "properties",
-                    extractBaseUrl(
-                      systemPropertyTypes.fileStorageKey.propertyTypeId,
-                    ),
-                  ],
-                },
-                { parameter: key },
-              ],
-            },
-          ],
-        },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: fullDecisionTimeAxis,
-        includeDrafts,
+    .getEntitySubgraph(actorId, {
+      filter: {
+        all: [
+          {
+            equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+          },
+          {
+            equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+          },
+          {
+            equal: [
+              {
+                path: [
+                  "properties",
+                  extractBaseUrl(
+                    systemPropertyTypes.fileStorageKey.propertyTypeId,
+                  ),
+                ],
+              },
+              { parameter: key },
+            ],
+          },
+        ],
       },
+      graphResolveDepths: zeroedGraphResolveDepths,
+      temporalAxes: fullDecisionTimeAxis,
+      includeDrafts,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(

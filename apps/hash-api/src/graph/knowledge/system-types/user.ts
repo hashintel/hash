@@ -127,37 +127,33 @@ export const getUserByShortname: ImpureGraphFunction<
   Promise<User | null>
 > = async ({ graphApi }, { actorId }, params) => {
   const [userEntity, ...unexpectedEntities] = await graphApi
-    .getEntitiesByQuery(actorId, {
-      query: {
-        filter: {
-          all: [
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.user.entityTypeId,
-              { ignoreParents: true },
-            ),
-            {
-              equal: [
-                {
-                  path: [
-                    "properties",
-                    extractBaseUrl(
-                      systemPropertyTypes.shortname.propertyTypeId,
-                    ),
-                  ],
-                },
-                { parameter: params.shortname },
-              ],
-            },
-          ],
-        },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        // TODO: Should this be an all-time query? What happens if the user is
-        //       archived/deleted, do we want to allow users to replace their
-        //       shortname?
-        //   see https://linear.app/hash/issue/H-757
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: params.includeDrafts ?? false,
+    .getEntitySubgraph(actorId, {
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(
+            systemEntityTypes.user.entityTypeId,
+            { ignoreParents: true },
+          ),
+          {
+            equal: [
+              {
+                path: [
+                  "properties",
+                  extractBaseUrl(systemPropertyTypes.shortname.propertyTypeId),
+                ],
+              },
+              { parameter: params.shortname },
+            ],
+          },
+        ],
       },
+      graphResolveDepths: zeroedGraphResolveDepths,
+      // TODO: Should this be an all-time query? What happens if the user is
+      //       archived/deleted, do we want to allow users to replace their
+      //       shortname?
+      //   see https://linear.app/hash/issue/H-757
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: params.includeDrafts ?? false,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
@@ -187,33 +183,31 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
   Promise<User | null>
 > = async ({ graphApi }, { actorId }, params) => {
   const [userEntity, ...unexpectedEntities] = await graphApi
-    .getEntitiesByQuery(actorId, {
-      query: {
-        filter: {
-          all: [
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.user.entityTypeId,
-              { ignoreParents: true },
-            ),
-            {
-              equal: [
-                {
-                  path: [
-                    "properties",
-                    extractBaseUrl(
-                      systemPropertyTypes.kratosIdentityId.propertyTypeId,
-                    ),
-                  ],
-                },
-                { parameter: params.kratosIdentityId },
-              ],
-            },
-          ],
-        },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: params.includeDrafts ?? false,
+    .getEntitySubgraph(actorId, {
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(
+            systemEntityTypes.user.entityTypeId,
+            { ignoreParents: true },
+          ),
+          {
+            equal: [
+              {
+                path: [
+                  "properties",
+                  extractBaseUrl(
+                    systemPropertyTypes.kratosIdentityId.propertyTypeId,
+                  ),
+                ],
+              },
+              { parameter: params.kratosIdentityId },
+            ],
+          },
+        ],
       },
+      graphResolveDepths: zeroedGraphResolveDepths,
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: params.includeDrafts ?? false,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(

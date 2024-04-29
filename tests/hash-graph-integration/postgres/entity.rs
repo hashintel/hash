@@ -1,16 +1,13 @@
 use graph::{
     store::{
-        knowledge::{CreateEntityParams, GetEntityParams, PatchEntityParams},
+        knowledge::{
+            CountEntitiesParams, CreateEntityParams, GetEntitiesParams, PatchEntityParams,
+        },
         query::Filter,
         EntityQuerySorting, EntityStore,
     },
-    subgraph::{
-        edges::GraphResolveDepths,
-        query::StructuralQuery,
-        temporal_axes::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
-            VariableTemporalAxisUnresolved,
-        },
+    subgraph::temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
@@ -80,20 +77,16 @@ async fn insert() {
         .expect("could not create entity");
 
     let entities = api
-        .get_entity(
+        .get_entities(
             api.account_id,
-            GetEntityParams {
-                query: StructuralQuery {
-                    filter: Filter::for_entity_by_entity_id(metadata.record_id.entity_id),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
-                    },
-                    include_drafts: false,
+            GetEntitiesParams {
+                filter: Filter::for_entity_by_entity_id(metadata.record_id.entity_id),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Unbounded),
+                        None,
+                    ),
                 },
                 sorting: EntityQuerySorting {
                     paths: Vec::new(),
@@ -101,15 +94,12 @@ async fn insert() {
                 },
                 limit: None,
                 include_count: true,
+                include_drafts: false,
             },
         )
         .await
         .expect("could not get entity")
-        .subgraph
-        .vertices
-        .entities
-        .into_values()
-        .collect::<Vec<_>>();
+        .entities;
 
     assert_eq!(entities.len(), 1);
     assert_eq!(entities[0].properties, person);
@@ -158,20 +148,16 @@ async fn query() {
         .expect("could not create entity");
 
     let queried_organizations = api
-        .get_entity(
+        .get_entities(
             api.account_id,
-            GetEntityParams {
-                query: StructuralQuery {
-                    filter: Filter::for_entity_by_entity_id(metadata.record_id.entity_id),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
-                    },
-                    include_drafts: false,
+            GetEntitiesParams {
+                filter: Filter::for_entity_by_entity_id(metadata.record_id.entity_id),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Unbounded),
+                        None,
+                    ),
                 },
                 sorting: EntityQuerySorting {
                     paths: Vec::new(),
@@ -179,15 +165,12 @@ async fn query() {
                 },
                 limit: None,
                 include_count: true,
+                include_drafts: false,
             },
         )
         .await
         .expect("could not get entity")
-        .subgraph
-        .vertices
-        .entities
-        .into_values()
-        .collect::<Vec<_>>();
+        .entities;
 
     assert_eq!(queried_organizations.len(), 1);
     assert_eq!(queried_organizations[0].properties, organization);
@@ -262,9 +245,8 @@ async fn update() {
     let num_entities = api
         .count_entities(
             api.account_id,
-            StructuralQuery {
+            CountEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(v2_metadata.record_id.entity_id),
-                graph_resolve_depths: GraphResolveDepths::default(),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -280,17 +262,13 @@ async fn update() {
     assert_eq!(num_entities, 2);
 
     let entities = api
-        .get_entity(
+        .get_entities(
             api.account_id,
-            GetEntityParams {
-                query: StructuralQuery {
-                    filter: Filter::for_entity_by_entity_id(v2_metadata.record_id.entity_id),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
-                    },
-                    include_drafts: false,
+            GetEntitiesParams {
+                filter: Filter::for_entity_by_entity_id(v2_metadata.record_id.entity_id),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
                 },
                 sorting: EntityQuerySorting {
                     paths: Vec::new(),
@@ -298,15 +276,12 @@ async fn update() {
                 },
                 limit: None,
                 include_count: false,
+                include_drafts: false,
             },
         )
         .await
         .expect("could not get entity")
-        .subgraph
-        .vertices
-        .entities
-        .into_values()
-        .collect::<Vec<_>>();
+        .entities;
     assert_eq!(entities.len(), 1, "unexpected number of entities found");
     let entity_v2 = entities.into_iter().next().unwrap();
 
@@ -315,21 +290,17 @@ async fn update() {
     let ClosedTemporalBound::Inclusive(entity_v1_timestamp) =
         *v1_metadata.temporal_versioning.decision_time.start();
 
-    let response_v1 = api
-        .get_entity(
+    let mut response_v1 = api
+        .get_entities(
             api.account_id,
-            GetEntityParams {
-                query: StructuralQuery {
-                    filter: Filter::for_entity_by_entity_id(v1_metadata.record_id.entity_id),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Inclusive(entity_v1_timestamp)),
-                            Some(LimitedTemporalBound::Inclusive(entity_v1_timestamp)),
-                        ),
-                    },
-                    include_drafts: false,
+            GetEntitiesParams {
+                filter: Filter::for_entity_by_entity_id(v1_metadata.record_id.entity_id),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Inclusive(entity_v1_timestamp)),
+                        Some(LimitedTemporalBound::Inclusive(entity_v1_timestamp)),
+                    ),
                 },
                 sorting: EntityQuerySorting {
                     paths: Vec::new(),
@@ -337,37 +308,28 @@ async fn update() {
                 },
                 limit: None,
                 include_count: true,
+                include_drafts: false,
             },
         )
         .await
-        .expect("could not get entity");
+        .expect("could not get entities");
     assert_eq!(response_v1.count, Some(1));
-    let entity_v1 = response_v1
-        .subgraph
-        .vertices
-        .entities
-        .into_values()
-        .next()
-        .expect("no entity found");
+    let entity_v1 = response_v1.entities.pop().expect("no entity found");
     assert_eq!(entity_v1.properties.properties(), page_v1.properties());
 
     let ClosedTemporalBound::Inclusive(entity_v2_timestamp) =
         *v2_metadata.temporal_versioning.decision_time.start();
-    let response_v2 = api
-        .get_entity(
+    let mut response_v2 = api
+        .get_entities(
             api.account_id,
-            GetEntityParams {
-                query: StructuralQuery {
-                    filter: Filter::for_entity_by_entity_id(v2_metadata.record_id.entity_id),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Inclusive(entity_v2_timestamp)),
-                            Some(LimitedTemporalBound::Inclusive(entity_v2_timestamp)),
-                        ),
-                    },
-                    include_drafts: false,
+            GetEntitiesParams {
+                filter: Filter::for_entity_by_entity_id(v2_metadata.record_id.entity_id),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Inclusive(entity_v2_timestamp)),
+                        Some(LimitedTemporalBound::Inclusive(entity_v2_timestamp)),
+                    ),
                 },
                 sorting: EntityQuerySorting {
                     paths: Vec::new(),
@@ -375,17 +337,12 @@ async fn update() {
                 },
                 limit: None,
                 include_count: true,
+                include_drafts: false,
             },
         )
         .await
-        .expect("could not get entity");
+        .expect("could not get entities");
     assert_eq!(response_v2.count, Some(1));
-    let entity_v2 = response_v2
-        .subgraph
-        .vertices
-        .entities
-        .into_values()
-        .next()
-        .expect("no entity found");
+    let entity_v2 = response_v2.entities.pop().expect("no entity found");
     assert_eq!(entity_v2.properties.properties(), page_v2.properties());
 }

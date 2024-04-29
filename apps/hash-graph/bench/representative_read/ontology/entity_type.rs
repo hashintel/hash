@@ -2,13 +2,8 @@ use authorization::AuthorizationApi;
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
     store::{ontology::GetEntityTypesParams, query::Filter, EntityTypeStore},
-    subgraph::{
-        edges::GraphResolveDepths,
-        query::StructuralQuery,
-        temporal_axes::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
-            VariableTemporalAxisUnresolved,
-        },
+    subgraph::temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },
 };
 use graph_types::account::AccountId;
@@ -36,23 +31,20 @@ pub fn bench_get_entity_type_by_id<A: AuthorizationApi>(
         },
         |entity_type_id| async move {
             store
-                .get_entity_type(
+                .get_entity_types(
                     actor_id,
                     GetEntityTypesParams {
-                        query: StructuralQuery {
-                            filter: Filter::for_versioned_url(entity_type_id),
-                            graph_resolve_depths: GraphResolveDepths::default(),
-                            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                                pinned: PinnedTemporalAxisUnresolved::new(None),
-                                variable: VariableTemporalAxisUnresolved::new(
-                                    Some(TemporalBound::Unbounded),
-                                    None,
-                                ),
-                            },
-                            include_drafts: false,
+                        filter: Filter::for_versioned_url(entity_type_id),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(
+                                Some(TemporalBound::Unbounded),
+                                None,
+                            ),
                         },
                         after: None,
                         limit: None,
+                        include_drafts: false,
                     },
                 )
                 .await

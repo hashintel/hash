@@ -15,13 +15,13 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import type {
+  GetEntitySubgraphQuery,
+  GetEntitySubgraphQueryVariables,
   QueryEntitiesQueryVariables,
-  StructuralQueryEntitiesQuery,
-  StructuralQueryEntitiesQueryVariables,
 } from "../graphql/api-types.gen";
 import {
+  getEntitySubgraphQuery,
   queryEntitiesQuery,
-  structuralQueryEntitiesQuery,
 } from "../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../lib/apollo-client";
 import type { EntityTypeEntitiesContextValue } from "./entity-type-entities-context";
@@ -79,9 +79,9 @@ export const useEntityTypeEntities = (params: {
   const { entityTypeBaseUrl, entityTypeId, ownedById, graphResolveDepths } =
     params;
 
-  const variables = useMemo<StructuralQueryEntitiesQueryVariables>(
+  const variables = useMemo<GetEntitySubgraphQueryVariables>(
     () => ({
-      query: {
+      request: {
         filter: {
           all: [
             ...(ownedById
@@ -125,9 +125,9 @@ export const useEntityTypeEntities = (params: {
   );
 
   const { data, loading, refetch } = useQuery<
-    StructuralQueryEntitiesQuery,
-    StructuralQueryEntitiesQueryVariables
-  >(structuralQueryEntitiesQuery, {
+    GetEntitySubgraphQuery,
+    GetEntitySubgraphQueryVariables
+  >(getEntitySubgraphQuery, {
     fetchPolicy: "cache-and-network",
     variables,
   });
@@ -137,9 +137,9 @@ export const useEntityTypeEntities = (params: {
     [variables],
   );
 
-  const subgraph = data?.structuralQueryEntities.subgraph
+  const subgraph = data?.getEntitySubgraph.subgraph
     ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-        data.structuralQueryEntities.subgraph,
+        data.getEntitySubgraph.subgraph,
       )
     : undefined;
 

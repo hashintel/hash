@@ -4,14 +4,8 @@ use graph::{
         query::Filter,
         ConflictBehavior, PropertyTypeStore,
     },
-    subgraph::{
-        edges::GraphResolveDepths,
-        identifier::PropertyTypeVertexId,
-        query::StructuralQuery,
-        temporal_axes::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
-            VariableTemporalAxisUnresolved,
-        },
+    subgraph::temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },
 };
 use graph_test_data::{data_type, property_type};
@@ -78,30 +72,26 @@ async fn query() {
     .expect("could not create property type");
 
     let property_type = api
-        .get_property_type(
+        .get_property_types(
             api.account_id,
             GetPropertyTypesParams {
-                query: StructuralQuery {
-                    filter: Filter::for_versioned_url(favorite_quote_pt.id()),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
-                    },
-                    include_drafts: false,
+                filter: Filter::for_versioned_url(favorite_quote_pt.id()),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Unbounded),
+                        None,
+                    ),
                 },
                 after: None,
                 limit: None,
+                include_drafts: false,
             },
         )
         .await
         .expect("could not get property type")
-        .vertices
         .property_types
-        .remove(&PropertyTypeVertexId::from(favorite_quote_pt.id().clone()))
+        .pop()
         .expect("no property type found");
 
     assert_eq!(property_type.schema, favorite_quote_pt);
@@ -148,57 +138,49 @@ async fn update() {
     .expect("could not update property type");
 
     let returned_user_id_pt_v1 = api
-        .get_property_type(
+        .get_property_types(
             api.account_id,
             GetPropertyTypesParams {
-                query: StructuralQuery {
-                    filter: Filter::for_versioned_url(user_id_pt_v1.id()),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
-                    },
-                    include_drafts: false,
+                filter: Filter::for_versioned_url(user_id_pt_v1.id()),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Unbounded),
+                        None,
+                    ),
                 },
                 after: None,
                 limit: None,
+                include_drafts: false,
             },
         )
         .await
         .expect("could not get property type")
-        .vertices
         .property_types
-        .remove(&PropertyTypeVertexId::from(user_id_pt_v1.id().clone()))
+        .pop()
         .expect("no property type found");
 
     let returned_user_id_pt_v2 = api
-        .get_property_type(
+        .get_property_types(
             api.account_id,
             GetPropertyTypesParams {
-                query: StructuralQuery {
-                    filter: Filter::for_versioned_url(user_id_pt_v2.id()),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
-                    },
-                    include_drafts: false,
+                filter: Filter::for_versioned_url(user_id_pt_v2.id()),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Unbounded),
+                        None,
+                    ),
                 },
                 after: None,
                 limit: None,
+                include_drafts: false,
             },
         )
         .await
         .expect("could not get property type")
-        .vertices
         .property_types
-        .remove(&PropertyTypeVertexId::from(user_id_pt_v2.id().clone()))
+        .pop()
         .expect("no property type found");
 
     assert_eq!(user_id_pt_v1, returned_user_id_pt_v1.schema);

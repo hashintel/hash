@@ -51,7 +51,7 @@ export const findExistingEntity = async ({
   const entityType: DereferencedEntityType | undefined =
     dereferencedEntityType ??
     (await graphApiClient
-      .getEntityTypesByQuery(actorId, {
+      .getEntityTypeSubgraph(actorId, {
         includeDrafts: false,
 
         filter: {
@@ -65,7 +65,7 @@ export const findExistingEntity = async ({
       })
       .then(({ data }) => {
         const subgraph = mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(
-          data,
+          data.subgraph,
           actorId,
         );
 

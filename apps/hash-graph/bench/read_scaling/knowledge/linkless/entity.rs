@@ -6,17 +6,12 @@ use criterion_macro::criterion;
 use graph::{
     store::{
         account::{InsertAccountIdParams, InsertWebIdParams},
-        knowledge::GetEntityParams,
+        knowledge::GetEntitiesParams,
         query::Filter,
         AccountStore, EntityQuerySorting, EntityStore,
     },
-    subgraph::{
-        edges::GraphResolveDepths,
-        query::StructuralQuery,
-        temporal_axes::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
-            VariableTemporalAxisUnresolved,
-        },
+    subgraph::temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
@@ -149,20 +144,16 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
         },
         |entity_record_id| async move {
             store
-                .get_entity(
+                .get_entities(
                     actor_id,
-                    GetEntityParams {
-                        query: StructuralQuery {
-                            filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
-                            graph_resolve_depths: GraphResolveDepths::default(),
-                            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                                pinned: PinnedTemporalAxisUnresolved::new(None),
-                                variable: VariableTemporalAxisUnresolved::new(
-                                    Some(TemporalBound::Unbounded),
-                                    None,
-                                ),
-                            },
-                            include_drafts: false,
+                    GetEntitiesParams {
+                        filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(
+                                Some(TemporalBound::Unbounded),
+                                None,
+                            ),
                         },
                         sorting: EntityQuerySorting {
                             paths: Vec::new(),
@@ -170,6 +161,7 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
                         },
                         limit: None,
                         include_count: false,
+                        include_drafts: false,
                     },
                 )
                 .await

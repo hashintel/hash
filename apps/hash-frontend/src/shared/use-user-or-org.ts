@@ -23,10 +23,10 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import type {
-  StructuralQueryEntitiesQuery,
-  StructuralQueryEntitiesQueryVariables,
+  GetEntitySubgraphQuery,
+  GetEntitySubgraphQueryVariables,
 } from "../graphql/api-types.gen";
-import { structuralQueryEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
+import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import { isEntityOrgEntity, isEntityUserEntity } from "../lib/user-and-org";
 
 export const useUserOrOrg = (
@@ -40,12 +40,12 @@ export const useUserOrOrg = (
   ),
 ) => {
   const { data, loading, refetch } = useQuery<
-    StructuralQueryEntitiesQuery,
-    StructuralQueryEntitiesQueryVariables
-  >(structuralQueryEntitiesQuery, {
+    GetEntitySubgraphQuery,
+    GetEntitySubgraphQueryVariables
+  >(getEntitySubgraphQuery, {
     variables: {
       includePermissions: params.includePermissions ?? false,
-      query: {
+      request: {
         filter: {
           all: [
             ...("shortname" in params
@@ -103,7 +103,7 @@ export const useUserOrOrg = (
   return useMemo(() => {
     const subgraph = data
       ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-          data.structuralQueryEntities.subgraph,
+          data.getEntitySubgraph.subgraph,
         )
       : undefined;
 
@@ -136,14 +136,14 @@ export const useUserOrOrg = (
 
     const userOrOrgSubgraph = data
       ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-          data.structuralQueryEntities.subgraph,
+          data.getEntitySubgraph.subgraph,
         )
       : undefined;
 
     return {
       canUserEdit: !!(
         rootEntity &&
-        data?.structuralQueryEntities.userPermissionsOnEntities?.[
+        data?.getEntitySubgraph.userPermissionsOnEntities?.[
           rootEntity.metadata.recordId.entityId
         ]?.edit
       ),

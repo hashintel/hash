@@ -13,10 +13,10 @@ import { useMemo } from "react";
 
 import { useUsers } from "../components/hooks/use-users";
 import type {
-  StructuralQueryEntitiesQuery,
-  StructuralQueryEntitiesQueryVariables,
+  GetEntitySubgraphQuery,
+  GetEntitySubgraphQueryVariables,
 } from "../graphql/api-types.gen";
-import { structuralQueryEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
+import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import type { MinimalUser } from "../lib/user-and-org";
 
 type MachineActor = {
@@ -43,12 +43,12 @@ export const useActors = (params: {
   );
 
   const { data: machineActorsData, loading: machinesLoading } = useQuery<
-    StructuralQueryEntitiesQuery,
-    StructuralQueryEntitiesQueryVariables
-  >(structuralQueryEntitiesQuery, {
+    GetEntitySubgraphQuery,
+    GetEntitySubgraphQueryVariables
+  >(getEntitySubgraphQuery, {
     variables: {
       includePermissions: false,
-      query: {
+      request: {
         filter: {
           any: (params.accountIds ?? []).map((accountId) => ({
             all: [
@@ -83,7 +83,7 @@ export const useActors = (params: {
     }
 
     const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-      machineActorsData.structuralQueryEntities.subgraph,
+      machineActorsData.getEntitySubgraph.subgraph,
     );
 
     const machineActors = getRoots(subgraph).map((entity) => {

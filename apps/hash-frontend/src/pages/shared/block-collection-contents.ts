@@ -31,7 +31,7 @@ import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type {
   BlockCollectionContentItem,
-  StructuralQueryEntitiesQueryVariables,
+  GetEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
 
 /**
@@ -65,9 +65,9 @@ export const blockCollectionContentsGetEntityVariables = {
 
 export const getBlockCollectionContentsStructuralQueryVariables = (
   pageEntityUuid: EntityUuid,
-): StructuralQueryEntitiesQueryVariables => ({
+): GetEntitySubgraphQueryVariables => ({
   includePermissions: true,
-  query: {
+  request: {
     filter: {
       all: [
         {
