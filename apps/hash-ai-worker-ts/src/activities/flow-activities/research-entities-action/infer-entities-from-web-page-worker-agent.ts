@@ -240,8 +240,9 @@ const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
           type: "string",
           description: dedent(`
             The query to search for in the PDF document.
-            Be as specific as possible about the information you are looking for.
+            Be as verbose and specific as possible about the information you are looking for.
             If you are looking for a list of something, specify the list and what data it should contain.
+            Include keywords that are likely to surround the information you are looking for.
           `),
         },
       },
@@ -933,6 +934,38 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
           } else if (toolCall.name === "queryPdf") {
             const { query, fileUrl } =
               toolCall.input as ToolCallArguments["queryPdf"];
+
+            /**
+             * Step 1: Ensure the file at the provided URL is a PDF file
+             * before fetching it, via a HEAD request.
+             */
+            const fileUrlHeadFetch = await fetch(fileUrl, { method: "HEAD" });
+
+            if (!fileUrlHeadFetch.ok) {
+              return {
+                ...toolCall,
+                output: `Failed to fetch the file at the provided URL: ${fileUrl}`,
+                isError: true,
+              };
+            }
+
+            const contentType = fileUrlHeadFetch.headers.get("Content-Type");
+
+            if (contentType && !contentType.includes("application/pdf")) {
+              return {
+                ...toolCall,
+                output: dedent(`
+                  The file at the provided URL is not a PDF file.
+                  Detected Content-Type: ${contentType}
+                `),
+                isError: true,
+              };
+            }
+
+            /**
+             * Step 2: Index the PDF file at the provided URL, and query it
+             * with the provided query.
+             */
 
             const { vectorStoreIndex } = await indexPdfFile({ fileUrl });
 
