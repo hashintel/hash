@@ -38,41 +38,39 @@ export const getSecretEntitiesForIntegration = async ({
 > => {
   return await graphApiClient
     .getEntitySubgraph(authentication.actorId, {
-      query: {
-        filter: {
-          all: [
-            generateVersionedUrlMatchingFilter(
-              systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(
+            systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
+            {
+              ignoreParents: true,
+            },
+          ),
+          {
+            equal: [
+              { path: ["leftEntity", "uuid"] },
               {
-                ignoreParents: true,
+                parameter: extractEntityUuidFromEntityId(integrationEntityId),
               },
-            ),
-            {
-              equal: [
-                { path: ["leftEntity", "uuid"] },
-                {
-                  parameter: extractEntityUuidFromEntityId(integrationEntityId),
-                },
-              ],
-            },
-            {
-              equal: [
-                { path: ["rightEntity", "type", "versionedUrl"] },
-                {
-                  parameter: systemEntityTypes.userSecret.entityTypeId,
-                },
-              ],
-            },
-            { equal: [{ path: ["archived"] }, { parameter: false }] },
-          ],
-        },
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          hasRightEntity: { incoming: 0, outgoing: 1 },
-        },
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
+            ],
+          },
+          {
+            equal: [
+              { path: ["rightEntity", "type", "versionedUrl"] },
+              {
+                parameter: systemEntityTypes.userSecret.entityTypeId,
+              },
+            ],
+          },
+          { equal: [{ path: ["archived"] }, { parameter: false }] },
+        ],
       },
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        hasRightEntity: { incoming: 0, outgoing: 1 },
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(

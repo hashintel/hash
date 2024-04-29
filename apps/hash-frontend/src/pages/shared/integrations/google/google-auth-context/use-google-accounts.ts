@@ -16,7 +16,7 @@ import type {
   GetEntitySubgraphQueryVariables,
 } from "../../../../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
-import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
+import { useAuthenticatedUser } from "../../../auth-info-context";
 
 type UseGoogleAccountsResult = {
   accounts: Entity<GoogleAccountProperties>[];

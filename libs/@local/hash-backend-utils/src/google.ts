@@ -55,35 +55,33 @@ export const getGoogleAccountById = async ({
   graphApiClient: GraphApi;
 }): Promise<Entity<GoogleAccountProperties> | undefined> => {
   const entities = await graphApiClient
-    .getEntitiesByQuery(userAccountId, {
-      query: {
-        filter: {
-          all: [
-            {
-              equal: [{ path: ["ownedById"] }, { parameter: userAccountId }],
-            },
-            { equal: [{ path: ["archived"] }, { parameter: false }] },
-            generateVersionedUrlMatchingFilter(
-              googleEntityTypes.account.entityTypeId,
-              { ignoreParents: true },
-            ),
-            {
-              equal: [
-                {
-                  path: [
-                    "properties",
-                    "https://hash.ai/@google/types/property-type/account-id/",
-                  ],
-                },
-                { parameter: googleAccountId },
-              ],
-            },
-          ],
-        },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
+    .getEntitySubgraph(userAccountId, {
+      filter: {
+        all: [
+          {
+            equal: [{ path: ["ownedById"] }, { parameter: userAccountId }],
+          },
+          { equal: [{ path: ["archived"] }, { parameter: false }] },
+          generateVersionedUrlMatchingFilter(
+            googleEntityTypes.account.entityTypeId,
+            { ignoreParents: true },
+          ),
+          {
+            equal: [
+              {
+                path: [
+                  "properties",
+                  "https://hash.ai/@google/types/property-type/account-id/",
+                ],
+              },
+              { parameter: googleAccountId },
+            ],
+          },
+        ],
       },
+      graphResolveDepths: zeroedGraphResolveDepths,
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
