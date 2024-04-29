@@ -46,6 +46,7 @@ export const migrateOntologyTypes = async (params: {
        * should only be seeded in non-production environments.
        */
       if (isProdEnv && migrationFileName.endsWith(".dev.migration.ts")) {
+        params.logger.debug(`Skipping dev migration ${migrationFileName}`);
         continue;
       }
 
@@ -63,6 +64,8 @@ export const migrateOntologyTypes = async (params: {
         authentication,
         migrationState,
       });
+
+      params.logger.debug(`Processed migration ${migrationFileName}`);
     }
   }
 };
