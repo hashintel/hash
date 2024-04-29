@@ -26,7 +26,7 @@ pub mod kind;
 /// from the server back to the client over the wire, agnostic over the transport layer.
 ///
 /// This is a binary protocol with minimal overhead with framing support. Messages can be up to
-/// 64KiB in size, larger messages are split into multiple frames.
+/// 64 KiB in size, larger messages are split into multiple frames.
 ///
 /// The transport layer is responsible for ensuring that the message is sent and received in order.
 ///

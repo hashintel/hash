@@ -50,7 +50,7 @@ impl Encode for u32 {
 pub enum BytesEncodeError {
     #[error("io error")]
     Io,
-    #[error("buffer exceeds 64KiB")]
+    #[error("buffer exceeds 64 KiB")]
     TooLarge,
 }
 
@@ -60,7 +60,7 @@ impl Encode for Bytes {
     async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
         pin!(write);
 
-        // write the length in u16 (this is ok because we never send more than 64KiB).
+        // write the length in u16 (this is ok because we never send more than 64 KiB).
         let length = u16::try_from(self.len()).change_context(BytesEncodeError::TooLarge)?;
 
         // 32 bytes are always used for the request/response header
