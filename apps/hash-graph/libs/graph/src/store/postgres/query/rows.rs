@@ -18,7 +18,11 @@ use type_system::{
     ClosedEntityType, DataType, EntityType, PropertyType,
 };
 
-use crate::store::postgres::ontology::OntologyId;
+use crate::store::postgres::{ontology::OntologyId, query::Table};
+
+pub trait PostgresRow: Sized {
+    fn table() -> Table;
+}
 
 #[derive(Debug, ToSql)]
 #[postgres(name = "account_groups")]
@@ -94,6 +98,12 @@ pub struct EntityHasLeftEntityRow {
     pub provenance: PropertyProvenance,
 }
 
+impl PostgresRow for EntityHasLeftEntityRow {
+    fn table() -> Table {
+        Table::EntityHasLeftEntity
+    }
+}
+
 #[derive(Debug, ToSql)]
 #[postgres(name = "entity_has_right_entity")]
 pub struct EntityHasRightEntityRow {
@@ -103,6 +113,12 @@ pub struct EntityHasRightEntityRow {
     pub right_entity_uuid: EntityUuid,
     pub confidence: Option<Confidence>,
     pub provenance: PropertyProvenance,
+}
+
+impl PostgresRow for EntityHasRightEntityRow {
+    fn table() -> Table {
+        Table::EntityHasRightEntity
+    }
 }
 
 #[derive(Debug, ToSql)]

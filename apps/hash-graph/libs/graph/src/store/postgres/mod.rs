@@ -2,6 +2,7 @@ mod crud;
 mod knowledge;
 mod ontology;
 
+// mod database;
 mod migration;
 mod pool;
 pub(crate) mod query;

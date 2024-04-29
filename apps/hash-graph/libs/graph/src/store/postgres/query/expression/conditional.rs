@@ -1,16 +1,23 @@
 use std::fmt::{self, Display, Formatter, Write};
 
-use crate::store::postgres::query::{AliasedColumn, Transpile, WindowStatement};
+use crate::store::{
+    postgres::query::{
+        table::DatabaseColumn, Alias, AliasedTable, Column, Table, Transpile, WindowStatement,
+    },
+    query::PathToken,
+};
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Function {
     Min(Box<Expression>),
     Max(Box<Expression>),
     JsonExtractText(Box<Expression>),
+    JsonExtractAsText(Box<Expression>, PathToken<'static>),
     JsonExtractPath(Vec<Expression>),
     JsonContains(Box<Expression>, Box<Expression>),
     JsonBuildArray(Vec<Expression>),
     JsonBuildObject(Vec<(Expression, Expression)>),
+    JsonPathQueryFirst(Box<Expression>, Box<Expression>),
     Lower(Box<Expression>),
     Upper(Box<Expression>),
     Now,
@@ -43,6 +50,13 @@ impl Transpile for Function {
                 fmt.write_str("((")?;
                 expression.transpile(fmt)?;
                 fmt.write_str(") #>> '{}'::text[])")
+            }
+            Self::JsonExtractAsText(expression, key) => {
+                expression.transpile(fmt)?;
+                match key {
+                    PathToken::Field(field) => write!(fmt, "->>'{field}'"),
+                    PathToken::Index(index) => write!(fmt, "->>{index}"),
+                }
             }
             Self::JsonContains(json, value) => {
                 fmt.write_str("jsonb_contains(")?;
@@ -84,11 +98,18 @@ impl Transpile for Function {
                 expression.transpile(fmt)?;
                 fmt.write_char(')')
             }
+            Self::JsonPathQueryFirst(target, path) => {
+                fmt.write_str("jsonb_path_query_first(")?;
+                target.transpile(fmt)?;
+                fmt.write_str(", ")?;
+                path.transpile(fmt)?;
+                fmt.write_char(')')
+            }
         }
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Constant {
     Boolean(bool),
     String(&'static str),
@@ -105,11 +126,22 @@ impl Transpile for Constant {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum PostgresType {
+    Row(Table),
+    Text,
+    JsonPath,
+}
+
 /// A compiled expression in Postgres.
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Expression {
     Asterisk,
-    Column(AliasedColumn),
+    Column(Column),
+    ColumnReference {
+        column: Column,
+        table_alias: Option<Alias>,
+    },
     /// A parameter are transpiled as a placeholder, e.g. `$1`, in order to prevent SQL injection.
     Parameter(usize),
     /// [`Constant`]s are directly transpiled into the SQL query. Caution has to be taken to
@@ -118,6 +150,7 @@ pub enum Expression {
     Function(Function),
     CosineDistance(Box<Self>, Box<Self>),
     Window(Box<Self>, WindowStatement),
+    Cast(Box<Self>, PostgresType),
 }
 
 impl Transpile for Expression {
@@ -125,6 +158,18 @@ impl Transpile for Expression {
         match self {
             Self::Asterisk => fmt.write_char('*'),
             Self::Column(column) => column.transpile(fmt),
+            Self::ColumnReference {
+                column,
+                table_alias,
+            } => {
+                let table = column.table();
+                if let Some(alias) = *table_alias {
+                    AliasedTable { table, alias }.transpile(fmt)?;
+                } else {
+                    table.transpile(fmt)?;
+                }
+                write!(fmt, r#"."{}""#, column.as_str())
+            }
             Self::Parameter(index) => write!(fmt, "${index}"),
             Self::Constant(constant) => constant.transpile(fmt),
             Self::Function(function) => function.transpile(fmt),
@@ -138,6 +183,15 @@ impl Transpile for Expression {
                 fmt.write_str(" OVER (")?;
                 window.transpile(fmt)?;
                 fmt.write_char(')')
+            }
+            Self::Cast(expression, cast_type) => {
+                expression.transpile(fmt)?;
+                fmt.write_str("::")?;
+                match cast_type {
+                    PostgresType::Row(table) => table.transpile(fmt),
+                    PostgresType::Text => fmt.write_str("text"),
+                    PostgresType::JsonPath => fmt.write_str("jsonpath"),
+                }
             }
         }
     }
@@ -181,15 +235,14 @@ mod tests {
     #[test]
     fn transpile_function_expression() {
         assert_eq!(
-            Expression::Function(Function::Min(Box::new(Expression::Column(
-                DataTypeQueryPath::Version
-                    .terminating_column()
-                    .aliased(Alias {
-                        condition_index: 1,
-                        chain_depth: 2,
-                        number: 3
-                    })
-            ))))
+            Expression::Function(Function::Min(Box::new(Expression::ColumnReference {
+                column: DataTypeQueryPath::Version.terminating_column().0,
+                table_alias: Some(Alias {
+                    condition_index: 1,
+                    chain_depth: 2,
+                    number: 3
+                })
+            })))
             .transpile_to_string(),
             r#"MIN("ontology_ids_1_2_3"."version")"#
         );

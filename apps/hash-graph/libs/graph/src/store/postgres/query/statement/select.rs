@@ -2,14 +2,14 @@ use std::fmt::{self, Write};
 
 use crate::store::postgres::query::{
     expression::{GroupByExpression, OrderByExpression},
-    AliasedColumn, AliasedTable, JoinExpression, SelectExpression, Transpile, WhereExpression,
+    AliasedTable, Expression, JoinExpression, SelectExpression, Transpile, WhereExpression,
     WithExpression,
 };
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct SelectStatement {
     pub with: WithExpression,
-    pub distinct: Vec<AliasedColumn>,
+    pub distinct: Vec<Expression>,
     pub selects: Vec<SelectExpression>,
     pub from: AliasedTable,
     pub joins: Vec<JoinExpression>,
@@ -72,7 +72,7 @@ impl Transpile for SelectStatement {
             self.order_by_expression.transpile(fmt)?;
         }
 
-        if !self.group_by_expression.columns.is_empty() {
+        if !self.group_by_expression.expressions.is_empty() {
             fmt.write_char('\n')?;
             self.group_by_expression.transpile(fmt)?;
         }
