@@ -16,7 +16,7 @@ impl Encode for Version {
     async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
         pin!(write);
 
-        write.write_u8(self.major).await.map_err(Report::from)?;
+        write.write_u8(self.major).await?;
         write.write_u8(self.minor).await.map_err(Report::from)
     }
 }
