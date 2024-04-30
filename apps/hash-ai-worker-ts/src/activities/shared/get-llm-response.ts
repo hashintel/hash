@@ -1,8 +1,9 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
-import type { EntityMetadata } from "@local/hash-graph-client";
-import type { AccountId } from "@local/hash-subgraph";
+import type { EntityMetadata, GraphApi } from "@local/hash-graph-client";
+import type { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type { AccountId, EntityId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import Ajv from "ajv";
 import addFormats from "ajv-formats";
@@ -688,9 +689,31 @@ const getOpenAiResponse = async (
  * `model` provided in the parameters.
  */
 export const getLlmResponse = async <T extends LlmParams>(
-  params: T,
+  params: T & {
+    /**
+     * Required for tracking usage on a per-user basis.
+     *
+     * @todo: consider abstracting this in a wrapper method, or via
+     * generic params (via a `logUsage` method).
+     */
+    userAccountId: AccountId;
+    graphApiClient: GraphApi;
+    linkUsageRecordToEntities: {
+      linkEntityTypeId: [
+        typeof systemLinkEntityTypes.incurredIn.linkEntityTypeId,
+        typeof systemLinkEntityTypes.created.linkEntityTypeId,
+        typeof systemLinkEntityTypes.updated.linkEntityTypeId,
+      ][number];
+      entityId: EntityId;
+    }[];
+  },
 ): Promise<LlmResponse<T>> => {
-  const { userAccountId, graphApiClient } = params;
+  const {
+    userAccountId,
+    graphApiClient,
+    linkUsageRecordToEntities,
+    ...remainingLlmParams
+  } = params;
 
   /**
    * Check whether the user has exceeded their usage limit, before
@@ -725,9 +748,15 @@ export const getLlmResponse = async <T extends LlmParams>(
     };
   }
 
-  const llmResponse = isLlmParamsAnthropicLlmParams(params)
-    ? await getAnthropicResponse(params)
-    : await getOpenAiResponse(params);
+  /**
+   * @todo: figure out why TS is not inferring the type of `remainingLlmParams`
+   * correctly (may not be relevant once usage tracking related params are removed)
+   */
+  const llmParams = remainingLlmParams as unknown as T;
+
+  const llmResponse = isLlmParamsAnthropicLlmParams(llmParams)
+    ? await getAnthropicResponse(llmParams)
+    : await getOpenAiResponse(llmParams);
 
   /**
    * Capture incurred usage in a usage record.
@@ -760,8 +789,6 @@ export const getLlmResponse = async <T extends LlmParams>(
         message: `Failed to create usage record for AI assistant: ${stringify(error)}`,
       };
     }
-
-    const { linkUsageRecordToEntities } = params;
 
     if (linkUsageRecordToEntities.length > 0) {
       const hashInstanceAdminGroupId = await getHashInstanceAdminAccountGroupId(
