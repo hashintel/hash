@@ -1,0 +1,26 @@
+cargo-features = ["edition2024"]
+
+[package]
+name = "harpc-service"
+version = "0.0.0"
+license = "AGPL-3.0"
+publish = false
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+codec = { workspace = true, features = ["harpc"] }
+error-stack.workspace = true
+futures.workspace = true
+libp2p = { version = "0.53.2", features = [
+    "metrics",
+    "macros",
+    "tcp",
+    "noise",
+    "yamux",
+    "ping",
+    "tokio",
+    "identify",
+] }
+libp2p-stream = "0.1.0-alpha"
+thiserror = "1.0.59"

@@ -1,5 +1,5 @@
 {
-  "name": "@rust/transport",
+  "name": "@rust/harpc-service",
   "version": "0.0.0-private",
   "private": true,
   "license": "AGPL-3.0",
