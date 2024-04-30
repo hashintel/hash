@@ -1,10 +1,20 @@
-import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type { EntityType } from "@blockprotocol/type-system";
+import {
+  blockProtocolPropertyTypes,
+  systemEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type { BaseUrl } from "@local/hash-subgraph";
+import { linkEntityTypeUrl } from "@local/hash-subgraph";
 
+import { getEntityTypeById } from "../../../ontology/primitive/entity-type";
 import type { MigrationFunction } from "../types";
 import {
   anyUserInstantiator,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
+  getCurrentHashSystemEntityTypeId,
+  updateSystemEntityType,
+  upgradeEntitiesToNewTypeVersion,
 } from "../util";
 
 const migrate: MigrationFunction = async ({
@@ -208,7 +218,7 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const _flowEntityType = await createSystemEntityTypeIfNotExists(
+  const flowEntityType = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
     {
@@ -238,6 +248,72 @@ const migrate: MigrationFunction = async ({
       instantiator: anyUserInstantiator,
     },
   );
+
+  /**
+   * Step 3: create a `Incurred In` link entity type, and update
+   * the `Usage Record` entity type to have it as an outgoing link to a `Flow`.
+   */
+
+  const incurredInLinkEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        allOf: [linkEntityTypeUrl],
+        title: "Incurred In",
+        description: "Something that was incurred by something else.",
+        properties: [],
+      },
+      webShortname: "hash",
+      migrationState,
+      instantiator: anyUserInstantiator,
+    },
+  );
+
+  const currentUsageRecordEntityTypeId = getCurrentHashSystemEntityTypeId({
+    entityTypeKey: "usageRecord",
+    migrationState,
+  });
+
+  const { schema: usageRecordEntityTypeSchema } = await getEntityTypeById(
+    context,
+    authentication,
+    {
+      entityTypeId: currentUsageRecordEntityTypeId,
+    },
+  );
+
+  const newUsageRecordEntityTypeSchema: EntityType = {
+    ...usageRecordEntityTypeSchema,
+    links: {
+      ...usageRecordEntityTypeSchema.links,
+      [incurredInLinkEntityType.schema.$id]: {
+        ordered: false,
+        type: "array",
+        items: {
+          oneOf: [{ $ref: flowEntityType.schema.$id }],
+        },
+      },
+    },
+  };
+
+  const { updatedEntityTypeId: _updatedUsageRecordEntityTypeId } =
+    await updateSystemEntityType(context, authentication, {
+      currentEntityTypeId: currentUsageRecordEntityTypeId,
+      migrationState,
+      newSchema: newUsageRecordEntityTypeSchema,
+    });
+
+  /**
+   * Step 4: Upgrade existing usage record entities to the latest version
+   */
+
+  await upgradeEntitiesToNewTypeVersion(context, authentication, {
+    entityTypeBaseUrls: [
+      systemEntityTypes.usageRecord.entityTypeBaseUrl as BaseUrl,
+    ],
+    migrationState,
+  });
 
   return migrationState;
 };

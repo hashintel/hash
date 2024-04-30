@@ -69,6 +69,12 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/github-account/",
   },
+  googleSheetsIntegration: {
+    entityTypeId:
+      "https://hash.ai/@hash/types/entity-type/google-sheets-integration/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/google-sheets-integration/",
+  },
   graphChangeNotification: {
     entityTypeId:
       "https://hash.ai/@hash/types/entity-type/graph-change-notification/v/1",
@@ -178,7 +184,7 @@ export const systemEntityTypes = {
       "https://hash.ai/@hash/types/entity-type/twitter-account/",
   },
   usageRecord: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/usage-record/v/1",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/usage-record/v/2",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/usage-record/",
   },
   user: {
@@ -256,6 +262,11 @@ export const systemLinkEntityTypes = {
   hasText: {
     linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/has-text/v/1",
     linkEntityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/has-text/",
+  },
+  incurredIn: {
+    linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/incurred-in/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/incurred-in/",
   },
   isMemberOf: {
     linkEntityTypeId:

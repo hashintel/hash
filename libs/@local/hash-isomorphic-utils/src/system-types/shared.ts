@@ -295,6 +295,27 @@ export type FileStorageRegionPropertyValue = TextDataType;
  */
 export type FileURLPropertyValue = TextDataType;
 
+export type Flow = Entity<FlowProperties>;
+
+/**
+ * The ID of the flow definition (the `entityId` of the flow definition entity).
+ */
+export type FlowDefinitionIDPropertyValue = TextDataType;
+
+export type FlowOutgoingLinkAndTarget = never;
+
+export type FlowOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A HASH flow run.
+ */
+export type FlowProperties = {
+  "https://hash.ai/@hash/types/property-type/flow-definition-id/": FlowDefinitionIDPropertyValue;
+  "https://hash.ai/@hash/types/property-type/outputs/"?: OutputsPropertyValue;
+  "https://hash.ai/@hash/types/property-type/step/": StepPropertyValue;
+  "https://hash.ai/@hash/types/property-type/trigger/": TriggerPropertyValue;
+};
+
 /**
  * The fractional index indicating the current position of something.
  */
@@ -658,6 +679,11 @@ export type OriginalURLPropertyValue = TextDataType;
  */
 export type OutputUnitCostPropertyValue = NumberDataType;
 
+/**
+ * The outputs of something.
+ */
+export type OutputsPropertyValue = ObjectDataType[];
+
 export type Page = Entity<PageProperties>;
 
 export type PageHasParentLink = { linkEntity: HasParent; rightEntity: Page };
@@ -795,6 +821,11 @@ export type ServiceUnitCostPropertyValue = {
 export type ShortnamePropertyValue = TextDataType;
 
 /**
+ * A step in a flow run.
+ */
+export type StepPropertyValue = ObjectDataType[];
+
+/**
  * The summary of the something.
  */
 export type SummaryPropertyValue = TextDataType;
@@ -831,6 +862,14 @@ export type TitlePropertyValue = TextDataType;
  * The ID of the trigger definition.
  */
 export type TriggerDefinitionIDPropertyValue = TextDataType;
+
+/**
+ * The trigger of a flow.
+ */
+export type TriggerPropertyValue = {
+  "https://hash.ai/@hash/types/property-type/outputs/"?: OutputsPropertyValue;
+  "https://hash.ai/@hash/types/property-type/trigger-definition-id/": TriggerDefinitionIDPropertyValue;
+};
 
 export type TriggeredByUser = Entity<TriggeredByUserProperties> & {
   linkData: LinkData;
@@ -954,6 +993,23 @@ export type UserSecretProperties = {
   "https://hash.ai/@hash/types/property-type/expired-at/": ExpiredAtPropertyValue;
   "https://hash.ai/@hash/types/property-type/vault-path/": VaultPathPropertyValue;
 };
+
+export type UsesUserSecret = Entity<UsesUserSecretProperties> & {
+  linkData: LinkData;
+};
+
+export type UsesUserSecretOutgoingLinkAndTarget = never;
+
+export type UsesUserSecretOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * The user secret something uses.
+ */
+export type UsesUserSecretProperties = UsesUserSecretProperties1 &
+  UsesUserSecretProperties2;
+export type UsesUserSecretProperties1 = LinkProperties;
+
+export type UsesUserSecretProperties2 = {};
 
 /**
  * The path to a secret in Hashicorp Vault.
