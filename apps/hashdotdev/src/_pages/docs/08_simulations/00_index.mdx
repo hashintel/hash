@@ -1,8 +1,6 @@
 ---
-title: Simulations
-slug: simulation
-objectId: d9e39386-bfd1-4bfb-a647-4d07e93b6150
-description: Getting started with simulations in HASH
+title: "Simulations"
+description: "Getting started with simulations in HASH"
 ---
 
 <Hint style="warning">
@@ -35,17 +33,17 @@ With Generative AI, we're able to deliver a much-improved agent-based modeling e
 - **More easily define simulation behaviors:** domain experts will be able to define agents' behaviors using natural language, convertible to Python/JavaScript/Rust code executable in HASH.
 - **Ready-to-go simulation agents:** simulation variables, agents and their attributes can be be instantiated at the point of need, based on semantic [entities](https://hash.ai/guide/entities) already in your [web](https://hash.ai/guide/webs), without the need for any data pre-processing.
 - **Runtime dynamism:** unhandled scenarios that occur within simulations can be automatically handeld by allowing generative AI to program an agents' next steps.
-- **Generative 3D assets:** unique 3D-generated representations of entities can be generated based on its attributes, bringing visualizations to life (custom meshes, textures, and in the future animations)
+- **Generative 3D assets:** unique 3D-generated representations of entities can be generated based on its attributes, bringing visualizations to life (custom meshes, textures, and in the future realistic physics and character animations with [ActionGPT](https://actiongpt.github.io/)-like or [dual DRL-generative](https://www.latent-technology.com/technology) approaches).
 
 ### More powerful simulations
 
-- **Human-in-the-loop simulation:** unhandled scenarios that occur within simulations can be identified, and execution paused for domain expert input.
+- **Human-in-the-loop simulation:** unhandled scenarios that occur within simulations can be identified, and execution [paused](https://hash.ai/guide/flows/waits) for domain expert input.
 - **Automatic continuous calibration:** models' initial states are automatically inferred based on the latest live data in a HASH web.
-- **Cloud execution platform:** simulation runs and experiments will be executable as part of [flows](https://hash.ai/guide/flows). _Previously available as [hCloud](https://hash.dev/docs/simulations/run/cloud)._
+- **Cloud execution platform:** simulation runs and experiments will be executable as part of [flows](https://hash.ai/guide/flows). _Previously available as [hCloud](/docs/simulations/run/cloud)._
 
 ### More useful outputs
 
-- **Better views:** existing, seprated views (Geospatial/3D and the Step Explorer/Charts) will be integrated into more powerful, combined views -- allowing 3D assets to be overlaid on maps, and providing access to more featureful charts and graphs.
+- **Better views:** [existing, separated views](/docs/simulations/run/simulation/outputs) (Geospatial/3D and the Step Explorer/Charts) will be integrated into more powerful, combined views -- allowing 3D assets to be overlaid on maps, and providing access to more featureful charts and graphs.
 - **API-accessible outputs:** entities in webs can be easily accessed via the HASH API.
 
 ## Getting Started
@@ -56,13 +54,13 @@ If you've used other simulation modeling software before, you might find that mo
 
 HASH leverages composable [agents](/docs/simulations/create/agents/), [behaviors](/docs/simulations/create/behaviors/) and types to make it fast and easy to create realistic, well-calibrated simulations.
 
-## Simulation Engine
-
-**hEngine** is HASH's simulation engine. In the future we plan to integrate this directly into the main HASH application. For now, an experimental version of it is available to use independently.
-
 ## Simulation IDE
 
 [**hCore**](/docs/simulations/ide) is a browser-based integrated development environment (IDE) for building agent-based models and running simulations. It provides a temporary graphical user interface for working with simulations until such time as they are natively supported within HASH itself. hCore will ultimately be deprecated, and is no longer officially supported by HASH.
+
+## Simulation Engine
+
+[**hEngine**](/docs/simulations/engine) is HASH's simulation engine. In the future we plan to integrate this directly into the main HASH application. For now, an experimental version of it is available to use independently. Interested parties with experience developing distributed systems in Rust, and an interest in simulation modeling, are invited to [get involved](/docs/contributing).
 
 ## Getting Help
 

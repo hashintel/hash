@@ -1,8 +1,10 @@
 name: Suggestion or request (error-stack)
 description: Suggest an idea, feature or enhancement to help us improve `error-stack`
 labels:
-  - "area:/libs > error-stack"
+  - "area/libs"
+  - "area/libs > error-stack"
   - "category/enhancement"
+  - "lang/rust"
 assignees:
   - TimDiekmann
 body:
