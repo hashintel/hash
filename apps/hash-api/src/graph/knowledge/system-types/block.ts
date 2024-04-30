@@ -27,9 +27,9 @@ import type { CreateEntityParams } from "../primitive/entity";
 import {
   archiveEntity,
   createEntity,
-  getEntities,
   getEntityIncomingLinks,
   getEntityOutgoingLinks,
+  getEntitySubgraph,
   getLatestEntityById,
 } from "../primitive/entity";
 import {
@@ -257,8 +257,10 @@ export const getBlockCollectionByBlock: ImpureGraphFunction<
     block.entity.metadata.recordId.entityId,
   );
 
-  const matchingContainsLinks = await getEntities(context, authentication, {
-    query: {
+  const matchingContainsLinks = await getEntitySubgraph(
+    context,
+    authentication,
+    {
       filter: {
         all: [
           contentLinkTypeFilter,
@@ -278,7 +280,7 @@ export const getBlockCollectionByBlock: ImpureGraphFunction<
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
     },
-  }).then((subgraph) => getRoots(subgraph).filter(isEntityLinkEntity));
+  ).then((subgraph) => getRoots(subgraph).filter(isEntityLinkEntity));
 
   /** @todo: account for blocks that are in multiple pages */
 

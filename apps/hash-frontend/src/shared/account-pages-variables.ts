@@ -13,7 +13,7 @@ export const getAccountPagesVariables = ({
   ownedById?: OwnedById;
   includeArchived?: boolean;
 }) => ({
-  query: {
+  request: {
     filter: {
       all: [
         pageEntityTypeFilter,

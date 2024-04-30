@@ -21,10 +21,11 @@ use type_system::{
 };
 
 use crate::{
-    store::{ConflictBehavior, InsertionError, QueryError, UpdateError},
+    store::{query::Filter, ConflictBehavior, InsertionError, QueryError, UpdateError},
     subgraph::{
+        edges::GraphResolveDepths,
         identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId},
-        query::StructuralQuery,
+        temporal_axes::QueryTemporalAxesUnresolved,
         Subgraph,
     },
 };
@@ -48,11 +49,38 @@ pub struct CreateDataTypeParams<R> {
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct GetDataTypesParams<'p> {
+pub struct GetDataTypeSubgraphParams<'p> {
     #[serde(borrow)]
-    pub query: StructuralQuery<'p, DataTypeWithMetadata>,
+    pub filter: Filter<'p, DataTypeWithMetadata>,
+    pub graph_resolve_depths: GraphResolveDepths,
+    pub temporal_axes: QueryTemporalAxesUnresolved,
     pub after: Option<DataTypeVertexId>,
     pub limit: Option<usize>,
+    pub include_drafts: bool,
+}
+
+#[derive(Debug)]
+pub struct GetDataTypeSubgraphResponse {
+    pub subgraph: Subgraph,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct GetDataTypesParams<'p> {
+    #[serde(borrow)]
+    pub filter: Filter<'p, DataTypeWithMetadata>,
+    pub temporal_axes: QueryTemporalAxesUnresolved,
+    pub after: Option<DataTypeVertexId>,
+    pub limit: Option<usize>,
+    pub include_drafts: bool,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct GetDataTypesResponse {
+    pub data_types: Vec<DataTypeWithMetadata>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -139,16 +167,29 @@ pub trait DataTypeStore {
         P: IntoIterator<Item = CreateDataTypeParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync;
 
-    /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
+    /// Get the [`DataTypes`] specified by the [`GetDataTypesParams`].
     ///
     /// # Errors
     ///
     /// - if the requested [`DataType`] doesn't exist.
-    fn get_data_type(
+    ///
+    /// [`DataTypes`]: DataType
+    fn get_data_types(
         &self,
         actor_id: AccountId,
         params: GetDataTypesParams<'_>,
-    ) -> impl Future<Output = Result<Subgraph, QueryError>> + Send;
+    ) -> impl Future<Output = Result<GetDataTypesResponse, QueryError>> + Send;
+
+    /// Get the [`Subgraph`] specified by the [`GetDataTypeSubgraphParams`].
+    ///
+    /// # Errors
+    ///
+    /// - if the requested [`DataType`] doesn't exist.
+    fn get_data_type_subgraph(
+        &self,
+        actor_id: AccountId,
+        params: GetDataTypeSubgraphParams<'_>,
+    ) -> impl Future<Output = Result<GetDataTypeSubgraphResponse, QueryError>> + Send;
 
     /// Update the definition of an existing [`DataType`].
     ///
@@ -213,11 +254,38 @@ pub struct CreatePropertyTypeParams<R> {
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct GetPropertyTypesParams<'p> {
+pub struct GetPropertyTypeSubgraphParams<'p> {
     #[serde(borrow)]
-    pub query: StructuralQuery<'p, PropertyTypeWithMetadata>,
+    pub filter: Filter<'p, PropertyTypeWithMetadata>,
+    pub graph_resolve_depths: GraphResolveDepths,
+    pub temporal_axes: QueryTemporalAxesUnresolved,
     pub after: Option<PropertyTypeVertexId>,
     pub limit: Option<usize>,
+    pub include_drafts: bool,
+}
+
+#[derive(Debug)]
+pub struct GetPropertyTypeSubgraphResponse {
+    pub subgraph: Subgraph,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct GetPropertyTypesParams<'p> {
+    #[serde(borrow)]
+    pub filter: Filter<'p, PropertyTypeWithMetadata>,
+    pub temporal_axes: QueryTemporalAxesUnresolved,
+    pub after: Option<PropertyTypeVertexId>,
+    pub limit: Option<usize>,
+    pub include_drafts: bool,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct GetPropertyTypesResponse {
+    pub property_types: Vec<PropertyTypeWithMetadata>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -304,16 +372,29 @@ pub trait PropertyTypeStore {
         P: IntoIterator<Item = CreatePropertyTypeParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync;
 
-    /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
+    /// Get the [`Subgraph`] specified by the [`GetPropertyTypeSubgraphParams`].
     ///
     /// # Errors
     ///
     /// - if the requested [`PropertyType`] doesn't exist.
-    fn get_property_type(
+    fn get_property_type_subgraph(
+        &self,
+        actor_id: AccountId,
+        params: GetPropertyTypeSubgraphParams<'_>,
+    ) -> impl Future<Output = Result<GetPropertyTypeSubgraphResponse, QueryError>> + Send;
+
+    /// Get the [`PropertyTypes`] specified by the [`GetPropertyTypesParams`].
+    ///
+    /// # Errors
+    ///
+    /// - if the requested [`PropertyType`] doesn't exist.
+    ///
+    /// [`PropertyTypes`]: PropertyType
+    fn get_property_types(
         &self,
         actor_id: AccountId,
         params: GetPropertyTypesParams<'_>,
-    ) -> impl Future<Output = Result<Subgraph, QueryError>> + Send;
+    ) -> impl Future<Output = Result<GetPropertyTypesResponse, QueryError>> + Send;
 
     /// Update the definition of an existing [`PropertyType`].
     ///
@@ -381,11 +462,38 @@ pub struct CreateEntityTypeParams<R> {
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct GetEntityTypesParams<'p> {
+pub struct GetEntityTypeSubgraphParams<'p> {
     #[serde(borrow)]
-    pub query: StructuralQuery<'p, EntityTypeWithMetadata>,
+    pub filter: Filter<'p, EntityTypeWithMetadata>,
+    pub graph_resolve_depths: GraphResolveDepths,
+    pub temporal_axes: QueryTemporalAxesUnresolved,
     pub after: Option<EntityTypeVertexId>,
     pub limit: Option<usize>,
+    pub include_drafts: bool,
+}
+
+#[derive(Debug)]
+pub struct GetEntityTypeSubgraphResponse {
+    pub subgraph: Subgraph,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct GetEntityTypesParams<'p> {
+    #[serde(borrow)]
+    pub filter: Filter<'p, EntityTypeWithMetadata>,
+    pub temporal_axes: QueryTemporalAxesUnresolved,
+    pub after: Option<EntityTypeVertexId>,
+    pub limit: Option<usize>,
+    pub include_drafts: bool,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct GetEntityTypesResponse {
+    pub entity_types: Vec<EntityTypeWithMetadata>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -474,16 +582,29 @@ pub trait EntityTypeStore {
         P: IntoIterator<Item = CreateEntityTypeParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync;
 
-    /// Get the [`Subgraph`]s specified by the [`StructuralQuery`].
+    /// Get the [`Subgraph`]s specified by the [`GetEntityTypeSubgraphParams`].
     ///
     /// # Errors
     ///
     /// - if the requested [`EntityType`] doesn't exist.
-    fn get_entity_type(
+    fn get_entity_type_subgraph(
+        &self,
+        actor_id: AccountId,
+        params: GetEntityTypeSubgraphParams<'_>,
+    ) -> impl Future<Output = Result<GetEntityTypeSubgraphResponse, QueryError>> + Send;
+
+    /// Get the [`EntityTypes`] specified by the [`GetEntityTypesParams`].
+    ///
+    /// # Errors
+    ///
+    /// - if the requested [`EntityType`] doesn't exist.
+    ///
+    /// [`EntityTypes`]: EntityType
+    fn get_entity_types(
         &self,
         actor_id: AccountId,
         params: GetEntityTypesParams<'_>,
-    ) -> impl Future<Output = Result<Subgraph, QueryError>> + Send;
+    ) -> impl Future<Output = Result<GetEntityTypesResponse, QueryError>> + Send;
 
     /// Update the definition of an existing [`EntityType`].
     ///

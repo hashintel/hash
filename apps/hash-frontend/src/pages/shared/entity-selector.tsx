@@ -27,10 +27,10 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo, useState } from "react";
 
 import type {
-  StructuralQueryEntitiesQuery,
-  StructuralQueryEntitiesQueryVariables,
+  GetEntitySubgraphQuery,
+  GetEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 
 type EntitySelectorProps<Multiple extends boolean = false> = Omit<
   SelectorAutocompleteProps<Entity, Multiple>,
@@ -64,11 +64,11 @@ export const EntitySelector = <Multiple extends boolean>({
   const [query, setQuery] = useState("");
 
   const { data: entitiesData, loading } = useQuery<
-    StructuralQueryEntitiesQuery,
-    StructuralQueryEntitiesQueryVariables
-  >(structuralQueryEntitiesQuery, {
+    GetEntitySubgraphQuery,
+    GetEntitySubgraphQueryVariables
+  >(getEntitySubgraphQuery, {
     variables: {
-      query: {
+      request: {
         filter:
           !expectedEntityTypes || expectedEntityTypes.length === 0
             ? { all: [] }
@@ -93,7 +93,7 @@ export const EntitySelector = <Multiple extends boolean>({
 
   const entitiesSubgraph = entitiesData
     ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-        entitiesData.structuralQueryEntities.subgraph,
+        entitiesData.getEntitySubgraph.subgraph,
       )
     : undefined;
 
