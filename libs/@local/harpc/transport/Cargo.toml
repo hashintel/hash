@@ -1,0 +1,11 @@
+cargo-features = ["edition2024"]
+
+[package]
+name = "transport"
+version = "0.0.0"
+license = "AGPL-3.0"
+publish = false
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
