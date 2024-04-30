@@ -55,16 +55,14 @@ export const getHashInstance = async (
   { actorId }: { actorId: AccountId },
 ): Promise<HashInstance> => {
   const entities = await graphApi
-    .getEntitiesByQuery(actorId, {
-      query: {
-        filter: generateVersionedUrlMatchingFilter(
-          systemEntityTypes.hashInstance.entityTypeId,
-          { ignoreParents: true },
-        ),
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
-      },
+    .getEntitySubgraph(actorId, {
+      filter: generateVersionedUrlMatchingFilter(
+        systemEntityTypes.hashInstance.entityTypeId,
+        { ignoreParents: true },
+      ),
+      graphResolveDepths: zeroedGraphResolveDepths,
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(

@@ -76,7 +76,7 @@ import {
   CACHED_PROPERTY_TYPE_SCHEMAS,
 } from "../../../seed-data";
 import type { ImpureGraphFunction } from "../../context-types";
-import { getEntities } from "../../knowledge/primitive/entity";
+import { getEntitySubgraph } from "../../knowledge/primitive/entity";
 import {
   createDataType,
   getDataTypeById,
@@ -1141,19 +1141,17 @@ export const getEntitiesByType: ImpureGraphFunction<
   Promise<Entity[]>
 > = async (context, authentication, { entityTypeId }) => {
   return await context.graphApi
-    .getEntitiesByQuery(authentication.actorId, {
-      query: {
-        filter: {
-          all: [
-            generateVersionedUrlMatchingFilter(entityTypeId, {
-              ignoreParents: true,
-            }),
-          ],
-        },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        includeDrafts: false,
-        temporalAxes: currentTimeInstantTemporalAxes,
+    .getEntitySubgraph(authentication.actorId, {
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(entityTypeId, {
+            ignoreParents: true,
+          }),
+        ],
       },
+      graphResolveDepths: zeroedGraphResolveDepths,
+      includeDrafts: false,
+      temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then((resp) =>
       getRoots(
@@ -1175,39 +1173,35 @@ export const getExistingUsersAndOrgs: ImpureGraphFunction<
   Promise<{ users: Entity[]; orgs: Entity[] }>
 > = async (context, authentication) => {
   const [users, orgs] = await Promise.all([
-    getEntities(context, authentication, {
-      query: {
-        filter: {
-          all: [
-            {
-              equal: [
-                { path: ["type", "baseUrl"] },
-                { parameter: systemEntityTypes.user.entityTypeBaseUrl },
-              ],
-            },
-          ],
-        },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        includeDrafts: false,
-        temporalAxes: currentTimeInstantTemporalAxes,
+    getEntitySubgraph(context, authentication, {
+      filter: {
+        all: [
+          {
+            equal: [
+              { path: ["type", "baseUrl"] },
+              { parameter: systemEntityTypes.user.entityTypeBaseUrl },
+            ],
+          },
+        ],
       },
+      graphResolveDepths: zeroedGraphResolveDepths,
+      includeDrafts: false,
+      temporalAxes: currentTimeInstantTemporalAxes,
     }).then((subgraph) => getRoots(subgraph)),
-    getEntities(context, authentication, {
-      query: {
-        filter: {
-          all: [
-            {
-              equal: [
-                { path: ["type", "baseUrl"] },
-                { parameter: systemEntityTypes.organization.entityTypeBaseUrl },
-              ],
-            },
-          ],
-        },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        includeDrafts: false,
-        temporalAxes: currentTimeInstantTemporalAxes,
+    getEntitySubgraph(context, authentication, {
+      filter: {
+        all: [
+          {
+            equal: [
+              { path: ["type", "baseUrl"] },
+              { parameter: systemEntityTypes.organization.entityTypeBaseUrl },
+            ],
+          },
+        ],
       },
+      graphResolveDepths: zeroedGraphResolveDepths,
+      includeDrafts: false,
+      temporalAxes: currentTimeInstantTemporalAxes,
     }).then((subgraph) => getRoots(subgraph)),
   ]);
 

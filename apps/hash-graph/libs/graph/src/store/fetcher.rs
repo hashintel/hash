@@ -32,10 +32,7 @@ use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use tokio::net::ToSocketAddrs;
 use tokio_serde::formats::Json;
 use type_fetcher::fetcher::{FetchedOntologyType, FetcherClient};
-use type_system::{
-    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
-    DataType, EntityType, EntityTypeReference, PropertyType,
-};
+use type_system::{url::VersionedUrl, DataType, EntityType, EntityTypeReference, PropertyType};
 
 use crate::{
     ontology::domain_validator::DomainValidator,
@@ -43,31 +40,29 @@ use crate::{
         account::{InsertAccountGroupIdParams, InsertAccountIdParams, InsertWebIdParams},
         crud::{QueryResult, Read, ReadPaginated, Sorting},
         knowledge::{
-            CreateEntityParams, GetEntityParams, GetEntityResponse, PatchEntityParams,
+            CountEntitiesParams, CreateEntityParams, GetEntitiesParams, GetEntitiesResponse,
+            GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams,
             UpdateEntityEmbeddingsParams, ValidateEntityError, ValidateEntityParams,
         },
         ontology::{
             ArchiveDataTypeParams, ArchiveEntityTypeParams, ArchivePropertyTypeParams,
             CreateDataTypeParams, CreateEntityTypeParams, CreatePropertyTypeParams,
-            GetDataTypesParams, GetEntityTypesParams, GetPropertyTypesParams,
+            GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
+            GetDataTypesResponse, GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse,
+            GetEntityTypesParams, GetEntityTypesResponse, GetPropertyTypeSubgraphParams,
+            GetPropertyTypeSubgraphResponse, GetPropertyTypesParams, GetPropertyTypesResponse,
             UnarchiveDataTypeParams, UnarchiveEntityTypeParams, UnarchivePropertyTypeParams,
             UpdateDataTypeEmbeddingParams, UpdateDataTypesParams, UpdateEntityTypeEmbeddingParams,
             UpdateEntityTypesParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
         },
-        query::{Filter, OntologyQueryPath},
+        query::Filter,
         AccountStore, ConflictBehavior, DataTypeStore, EntityStore, EntityTypeStore,
         InsertionError, PropertyTypeStore, QueryError, QueryRecord, StoreError, StorePool,
-        SubgraphRecord, UpdateError,
+        UpdateError,
     },
-    subgraph::{
-        edges::GraphResolveDepths,
-        identifier::VertexId,
-        query::{EntityStructuralQuery, StructuralQuery},
-        temporal_axes::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
-            VariableTemporalAxisUnresolved,
-        },
-        Subgraph,
+    subgraph::temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
+        VariableTemporalAxisUnresolved,
     },
 };
 
@@ -242,22 +237,6 @@ where
         actor_id: AccountId,
         ontology_type_reference: OntologyTypeReference<'_>,
     ) -> Result<bool, StoreError> {
-        fn create_query<'u, T>(versioned_url: &'u VersionedUrl) -> StructuralQuery<'u, T>
-        where
-            T: SubgraphRecord<QueryPath<'u>: OntologyQueryPath>,
-            T::VertexId: VertexId<BaseId = BaseUrl, RevisionId = OntologyTypeVersion>,
-        {
-            StructuralQuery {
-                filter: Filter::for_versioned_url(versioned_url),
-                graph_resolve_depths: GraphResolveDepths::default(),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
-                },
-                include_drafts: true,
-            }
-        }
-
         let url = match ontology_type_reference {
             OntologyTypeReference::DataTypeReference(reference) => reference.url(),
             OntologyTypeReference::PropertyTypeReference(reference) => reference.url(),
@@ -276,46 +255,60 @@ where
         }
 
         match ontology_type_reference {
-            OntologyTypeReference::DataTypeReference(_) => {
-                self.store
-                    .get_data_type(
-                        actor_id,
-                        GetDataTypesParams {
-                            query: create_query(url),
-                            after: None,
-                            limit: None,
+            OntologyTypeReference::DataTypeReference(_) => self
+                .store
+                .get_data_types(
+                    actor_id,
+                    GetDataTypesParams {
+                        filter: Filter::for_versioned_url(url),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
                         },
-                    )
-                    .await
-            }
-            OntologyTypeReference::PropertyTypeReference(_) => {
-                self.store
-                    .get_property_type(
-                        actor_id,
-                        GetPropertyTypesParams {
-                            query: create_query(url),
-                            after: None,
-                            limit: None,
+                        after: None,
+                        limit: None,
+                        include_drafts: true,
+                    },
+                )
+                .await
+                .map(|response| !response.data_types.is_empty()),
+            OntologyTypeReference::PropertyTypeReference(_) => self
+                .store
+                .get_property_types(
+                    actor_id,
+                    GetPropertyTypesParams {
+                        filter: Filter::for_versioned_url(url),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
                         },
-                    )
-                    .await
-            }
-            OntologyTypeReference::EntityTypeReference(_) => {
-                self.store
-                    .get_entity_type(
-                        actor_id,
-                        GetEntityTypesParams {
-                            query: create_query(url),
-                            after: None,
-                            limit: None,
+                        after: None,
+                        limit: None,
+                        include_drafts: true,
+                    },
+                )
+                .await
+                .map(|response| !response.property_types.is_empty()),
+            OntologyTypeReference::EntityTypeReference(_) => self
+                .store
+                .get_entity_types(
+                    actor_id,
+                    GetEntityTypesParams {
+                        filter: Filter::for_versioned_url(url),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
                         },
-                    )
-                    .await
-            }
+                        after: None,
+                        limit: None,
+                        include_drafts: true,
+                    },
+                )
+                .await
+                .map(|response| !response.entity_types.is_empty()),
         }
         .change_context(StoreError)
         .attach_printable("Could not check if ontology type exists")
-        .map(|subgraph| !subgraph.roots.is_empty())
     }
 
     #[tracing::instrument(level = "trace", skip(self, ontology_type))]
@@ -850,12 +843,20 @@ where
             .await
     }
 
-    async fn get_data_type(
+    async fn get_data_types(
         &self,
         actor_id: AccountId,
         params: GetDataTypesParams<'_>,
-    ) -> Result<Subgraph, QueryError> {
-        self.store.get_data_type(actor_id, params).await
+    ) -> Result<GetDataTypesResponse, QueryError> {
+        self.store.get_data_types(actor_id, params).await
+    }
+
+    async fn get_data_type_subgraph(
+        &self,
+        actor_id: AccountId,
+        params: GetDataTypeSubgraphParams<'_>,
+    ) -> Result<GetDataTypeSubgraphResponse, QueryError> {
+        self.store.get_data_type_subgraph(actor_id, params).await
     }
 
     async fn update_data_type<R>(
@@ -949,12 +950,22 @@ where
             .await
     }
 
-    async fn get_property_type(
+    async fn get_property_types(
         &self,
         actor_id: AccountId,
         params: GetPropertyTypesParams<'_>,
-    ) -> Result<Subgraph, QueryError> {
-        self.store.get_property_type(actor_id, params).await
+    ) -> Result<GetPropertyTypesResponse, QueryError> {
+        self.store.get_property_types(actor_id, params).await
+    }
+
+    async fn get_property_type_subgraph(
+        &self,
+        actor_id: AccountId,
+        params: GetPropertyTypeSubgraphParams<'_>,
+    ) -> Result<GetPropertyTypeSubgraphResponse, QueryError> {
+        self.store
+            .get_property_type_subgraph(actor_id, params)
+            .await
     }
 
     async fn update_property_type<R>(
@@ -1048,12 +1059,20 @@ where
             .await
     }
 
-    async fn get_entity_type(
+    async fn get_entity_types(
         &self,
         actor_id: AccountId,
         params: GetEntityTypesParams<'_>,
-    ) -> Result<Subgraph, QueryError> {
-        self.store.get_entity_type(actor_id, params).await
+    ) -> Result<GetEntityTypesResponse, QueryError> {
+        self.store.get_entity_types(actor_id, params).await
+    }
+
+    async fn get_entity_type_subgraph(
+        &self,
+        actor_id: AccountId,
+        params: GetEntityTypeSubgraphParams<'_>,
+    ) -> Result<GetEntityTypeSubgraphResponse, QueryError> {
+        self.store.get_entity_type_subgraph(actor_id, params).await
     }
 
     async fn update_entity_type<R>(
@@ -1175,12 +1194,20 @@ where
             .await
     }
 
-    async fn get_entity(
+    async fn get_entities(
         &self,
         actor_id: AccountId,
-        params: GetEntityParams<'_>,
-    ) -> Result<GetEntityResponse<'static>, QueryError> {
-        self.store.get_entity(actor_id, params).await
+        params: GetEntitiesParams<'_>,
+    ) -> Result<GetEntitiesResponse<'static>, QueryError> {
+        self.store.get_entities(actor_id, params).await
+    }
+
+    async fn get_entity_subgraph(
+        &self,
+        actor_id: AccountId,
+        params: GetEntitySubgraphParams<'_>,
+    ) -> Result<GetEntitySubgraphResponse<'static>, QueryError> {
+        self.store.get_entity_subgraph(actor_id, params).await
     }
 
     async fn get_entity_by_id(
@@ -1198,9 +1225,9 @@ where
     async fn count_entities(
         &self,
         actor_id: AccountId,
-        query: EntityStructuralQuery<'_>,
+        params: CountEntitiesParams<'_>,
     ) -> Result<usize, QueryError> {
-        self.store.count_entities(actor_id, query).await
+        self.store.count_entities(actor_id, params).await
     }
 
     async fn patch_entity(

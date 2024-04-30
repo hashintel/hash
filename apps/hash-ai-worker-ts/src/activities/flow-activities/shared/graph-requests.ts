@@ -40,25 +40,23 @@ export const getLatestEntityById = async (params: {
 
   const [ownedById, entityUuid] = splitEntityId(entityId);
 
-  const response = await graphApiClient.getEntitiesByQuery(
+  const response = await graphApiClient.getEntitySubgraph(
     authentication.actorId,
     {
-      query: {
-        filter: {
-          all: [
-            {
-              equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
-            },
-            {
-              equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
-            },
-            { equal: [{ path: ["archived"] }, { parameter: false }] },
-          ],
-        },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: params.includeDrafts ?? false,
+      filter: {
+        all: [
+          {
+            equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+          },
+          {
+            equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+          },
+          { equal: [{ path: ["archived"] }, { parameter: false }] },
+        ],
       },
+      graphResolveDepths: zeroedGraphResolveDepths,
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: params.includeDrafts ?? false,
     },
   );
 

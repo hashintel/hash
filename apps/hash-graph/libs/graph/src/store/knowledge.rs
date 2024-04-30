@@ -29,10 +29,10 @@ use validation::ValidateEntityComponents;
 use crate::{
     knowledge::EntityQueryPath,
     store::{
-        crud::Sorting, postgres::CursorField, InsertionError, NullOrdering, Ordering, QueryError,
-        UpdateError,
+        crud::Sorting, postgres::CursorField, query::Filter, InsertionError, NullOrdering,
+        Ordering, QueryError, UpdateError,
     },
-    subgraph::{query::EntityStructuralQuery, Subgraph},
+    subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved, Subgraph},
 };
 
 #[derive(Debug, Clone, Deserialize)]
@@ -221,21 +221,56 @@ pub struct ValidateEntityParams<'a> {
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct GetEntityParams<'a> {
+pub struct GetEntitiesParams<'a> {
     #[serde(borrow)]
-    pub query: EntityStructuralQuery<'a>,
+    pub filter: Filter<'a, Entity>,
+    pub temporal_axes: QueryTemporalAxesUnresolved,
     #[serde(borrow)]
     pub sorting: EntityQuerySorting<'static>,
     pub limit: Option<usize>,
+    pub include_drafts: bool,
     #[serde(default)]
     pub include_count: bool,
 }
 
 #[derive(Debug)]
-pub struct GetEntityResponse<'r> {
+pub struct GetEntitiesResponse<'r> {
+    pub entities: Vec<Entity>,
+    pub cursor: Option<EntityQueryCursor<'r>>,
+    pub count: Option<usize>,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct GetEntitySubgraphParams<'a> {
+    #[serde(borrow)]
+    pub filter: Filter<'a, Entity>,
+    pub temporal_axes: QueryTemporalAxesUnresolved,
+    pub graph_resolve_depths: GraphResolveDepths,
+    #[serde(borrow)]
+    pub sorting: EntityQuerySorting<'static>,
+    pub limit: Option<usize>,
+    pub include_drafts: bool,
+    #[serde(default)]
+    pub include_count: bool,
+}
+
+#[derive(Debug)]
+pub struct GetEntitySubgraphResponse<'r> {
     pub subgraph: Subgraph,
     pub cursor: Option<EntityQueryCursor<'r>>,
     pub count: Option<usize>,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CountEntitiesParams<'a> {
+    #[serde(borrow)]
+    pub filter: Filter<'a, Entity>,
+    pub temporal_axes: QueryTemporalAxesUnresolved,
+    pub include_drafts: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -366,18 +401,27 @@ pub trait EntityStore {
         entity_type_id: &VersionedUrl,
     ) -> impl Future<Output = Result<Vec<EntityMetadata>, Report<InsertionError>>> + Send;
 
-    /// Get the [`Subgraph`]s specified by the [`StructuralQuery`].
+    /// Get a list of entities specified by the [`GetEntitiesParams`].
     ///
     /// # Errors
     ///
-    /// - if the requested [`Entity`] doesn't exist
-    ///
-    /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
-    fn get_entity(
+    /// - if the requested [`Entities`][Entity] cannot be retrieved
+    fn get_entities(
         &self,
         actor_id: AccountId,
-        params: GetEntityParams<'_>,
-    ) -> impl Future<Output = Result<GetEntityResponse<'static>, Report<QueryError>>> + Send;
+        params: GetEntitiesParams<'_>,
+    ) -> impl Future<Output = Result<GetEntitiesResponse<'static>, Report<QueryError>>> + Send;
+
+    /// Get the [`Subgraph`]s specified by the [`GetEntitySubgraphParams`].
+    ///
+    /// # Errors
+    ///
+    /// - if the requested [`Entities`][Entity] cannot be retrieved
+    fn get_entity_subgraph(
+        &self,
+        actor_id: AccountId,
+        params: GetEntitySubgraphParams<'_>,
+    ) -> impl Future<Output = Result<GetEntitySubgraphResponse<'static>, Report<QueryError>>> + Send;
 
     /// Count the number of entities that would be returned in [`get_entity`].
     ///
@@ -385,11 +429,11 @@ pub trait EntityStore {
     ///
     /// - if the request to the database fails
     ///
-    /// [`get_entity`]: Self::get_entity
+    /// [`get_entity`]: Self::get_entity_subgraph
     fn count_entities(
         &self,
         actor_id: AccountId,
-        query: EntityStructuralQuery<'_>,
+        params: CountEntitiesParams<'_>,
     ) -> impl Future<Output = Result<usize, Report<QueryError>>> + Send;
 
     fn get_entity_by_id(

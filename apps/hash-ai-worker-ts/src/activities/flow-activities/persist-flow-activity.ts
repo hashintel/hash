@@ -31,23 +31,21 @@ const getExistingFlowEntity = async (params: {
   const { flowId, userAuthentication, graphApiClient } = params;
 
   const [existingFlowEntity] = await graphApiClient
-    .getEntitiesByQuery(userAuthentication.actorId, {
-      query: {
-        filter: {
-          all: [
-            {
-              equal: [{ path: ["uuid"] }, { parameter: flowId }],
-            },
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.flow.entityTypeId,
-              { ignoreParents: true },
-            ),
-          ],
-        },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
+    .getEntitySubgraph(userAuthentication.actorId, {
+      filter: {
+        all: [
+          {
+            equal: [{ path: ["uuid"] }, { parameter: flowId }],
+          },
+          generateVersionedUrlMatchingFilter(
+            systemEntityTypes.flow.entityTypeId,
+            { ignoreParents: true },
+          ),
+        ],
       },
+      graphResolveDepths: zeroedGraphResolveDepths,
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(

@@ -29,15 +29,16 @@ use graph::{
     store::{
         error::VersionedUrlAlreadyExists,
         ontology::{
-            ArchiveDataTypeParams, CreateDataTypeParams, GetDataTypesParams,
+            ArchiveDataTypeParams, CreateDataTypeParams, GetDataTypeSubgraphParams,
             UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
         },
+        query::Filter,
         BaseUrlAlreadyExists, ConflictBehavior, DataTypeStore, OntologyVersionDoesNotExist,
         StorePool,
     },
     subgraph::{
-        identifier::DataTypeVertexId,
-        query::{DataTypeStructuralQuery, StructuralQuery},
+        edges::GraphResolveDepths, identifier::DataTypeVertexId,
+        temporal_axes::QueryTemporalAxesUnresolved,
     },
 };
 use graph_types::{
@@ -75,7 +76,7 @@ use crate::rest::{
 
         create_data_type,
         load_external_data_type,
-        get_data_types_by_query,
+        get_data_type_subgraph,
         update_data_type,
         update_data_type_embeddings,
         archive_data_type,
@@ -96,7 +97,8 @@ use crate::rest::{
             UpdateDataTypeRequest,
             UpdateDataTypeEmbeddingParams,
             DataTypeQueryToken,
-            DataTypeStructuralQuery,
+            GetDataTypeSubgraphRequest,
+            GetDataTypeSubgraphResponse,
             ArchiveDataTypeParams,
             UnarchiveDataTypeParams,
         )
@@ -139,7 +141,7 @@ impl RoutedResource for DataTypeResource {
                             get(check_data_type_permission::<A>),
                         ),
                 )
-                .route("/query", post(get_data_types_by_query::<S, A>))
+                .route("/query", post(get_data_type_subgraph::<S, A>))
                 .route("/load", post(load_external_data_type::<S, A>))
                 .route("/archive", put(archive_data_type::<S, A>))
                 .route("/unarchive", put(unarchive_data_type::<S, A>))
@@ -371,10 +373,26 @@ where
     }
 }
 
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct GetDataTypeSubgraphRequest<'q> {
+    #[serde(borrow)]
+    filter: Filter<'q, DataTypeWithMetadata>,
+    graph_resolve_depths: GraphResolveDepths,
+    temporal_axes: QueryTemporalAxesUnresolved,
+    include_drafts: bool,
+}
+
+#[derive(Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct GetDataTypeSubgraphResponse {
+    subgraph: Subgraph,
+}
+
 #[utoipa::path(
     post,
     path = "/data-types/query",
-    request_body = DataTypeStructuralQuery,
+    request_body = GetDataTypeSubgraphRequest,
     tag = "DataType",
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -383,7 +401,7 @@ where
         (
             status = 200,
             content_type = "application/json",
-            body = Subgraph,
+            body = GetDataTypeSubgraphResponse,
             description = "Gets a subgraph rooted at all data types that satisfy the given query, each resolved to the requested depth.",
             headers(
                 ("Link" = String, description = "The link to be used to query the next page of data types"),
@@ -394,16 +412,16 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, query))]
-async fn get_data_types_by_query<S, A>(
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, request))]
+async fn get_data_type_subgraph<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Query(pagination): Query<Pagination<DataTypeVertexId>>,
     OriginalUri(uri): OriginalUri,
-    Json(query): Json<serde_json::Value>,
-) -> Result<(HeaderMap, Json<Subgraph>), Response>
+    Json(request): Json<serde_json::Value>,
+) -> Result<(HeaderMap, Json<GetDataTypeSubgraphResponse>), Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -420,29 +438,38 @@ where
 
     // Manually deserialize the query from a JSON value to allow borrowed deserialization and better
     // error reporting.
-    let mut query = StructuralQuery::deserialize(&query).map_err(report_to_response)?;
-    query
+    let mut request =
+        GetDataTypeSubgraphRequest::deserialize(&request).map_err(report_to_response)?;
+    request
         .filter
         .convert_parameters()
         .map_err(report_to_response)?;
-    let subgraph = store
-        .get_data_type(
+    let response = store
+        .get_data_type_subgraph(
             actor_id,
-            GetDataTypesParams {
-                query,
+            GetDataTypeSubgraphParams {
+                filter: request.filter,
+                graph_resolve_depths: request.graph_resolve_depths,
                 after: pagination.after.map(|cursor| cursor.0),
                 limit: pagination.limit,
+                temporal_axes: request.temporal_axes,
+                include_drafts: request.include_drafts,
             },
         )
         .await
         .map_err(report_to_response)?;
 
-    let cursor = subgraph.roots.iter().last().map(Cursor);
+    let cursor = response.subgraph.roots.iter().last().map(Cursor);
     let mut headers = HeaderMap::new();
     if let (Some(cursor), Some(limit)) = (cursor, pagination.limit) {
         headers.insert(LINK, cursor.link_header("next", uri, limit)?);
     }
-    Ok((headers, Json(Subgraph::from(subgraph))))
+    Ok((
+        headers,
+        Json(GetDataTypeSubgraphResponse {
+            subgraph: Subgraph::from(response.subgraph),
+        }),
+    ))
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]

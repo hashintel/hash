@@ -1,11 +1,11 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import type {
-  DataTypeStructuralQuery,
   EntityQueryCursor,
-  EntityStructuralQuery,
-  EntityTypeStructuralQuery,
+  GetDataTypeSubgraphRequest,
+  GetEntitySubgraphRequest,
+  GetEntityTypeSubgraphRequest,
+  GetPropertyTypeSubgraphRequest,
   GraphApi,
-  PropertyTypeStructuralQuery,
   UpdateDataTypeEmbeddingParams,
   UpdateEntityEmbeddingsParams,
   UpdateEntityTypeEmbeddingParams,
@@ -50,22 +50,20 @@ export const createGraphActivities = ({
 }) => ({
   async getUserAccountIds(): Promise<AccountId[]> {
     return graphApiClient
-      .getEntitiesByQuery("00000000-0000-0000-0000-000000000000", {
-        query: {
-          filter: {
-            all: [
-              {
-                equal: [
-                  { path: ["type", "baseUrl"] },
-                  { parameter: systemEntityTypes.user.entityTypeBaseUrl },
-                ],
-              },
-            ],
-          },
-          graphResolveDepths: zeroedGraphResolveDepths,
-          includeDrafts: false,
-          temporalAxes: currentTimeInstantTemporalAxes,
+      .getEntitySubgraph("00000000-0000-0000-0000-000000000000", {
+        filter: {
+          all: [
+            {
+              equal: [
+                { path: ["type", "baseUrl"] },
+                { parameter: systemEntityTypes.user.entityTypeBaseUrl },
+              ],
+            },
+          ],
         },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        includeDrafts: false,
+        temporalAxes: currentTimeInstantTemporalAxes,
       })
       .then((response) => {
         const subgraph: Subgraph<EntityRootType> =
@@ -77,74 +75,68 @@ export const createGraphActivities = ({
       });
   },
 
-  async getDataTypesByQuery(params: {
+  async getDataTypesSubgraph(params: {
     authentication: {
       actorId: AccountId;
     };
-    query: DataTypeStructuralQuery;
+    request: GetDataTypeSubgraphRequest;
   }): Promise<Subgraph<DataTypeRootType>> {
     return graphApiClient
-      .getDataTypesByQuery(params.authentication.actorId, params.query)
-      .then((response) =>
+      .getDataTypeSubgraph(params.authentication.actorId, params.request)
+      .then(({ data: response }) =>
         mapGraphApiSubgraphToSubgraph(
-          response.data,
+          response.subgraph,
           params.authentication.actorId,
         ),
       );
   },
 
-  async getPropertyTypesByQuery(params: {
+  async getPropertyTypesSubgraph(params: {
     authentication: {
       actorId: AccountId;
     };
-    query: PropertyTypeStructuralQuery;
+    request: GetPropertyTypeSubgraphRequest;
   }): Promise<Subgraph<PropertyTypeRootType>> {
     return graphApiClient
-      .getPropertyTypesByQuery(params.authentication.actorId, params.query)
-      .then((response) =>
+      .getPropertyTypeSubgraph(params.authentication.actorId, params.request)
+      .then(({ data: response }) =>
         mapGraphApiSubgraphToSubgraph(
-          response.data,
+          response.subgraph,
           params.authentication.actorId,
         ),
       );
   },
 
-  async getEntityTypesByQuery(params: {
+  async getEntityTypesSubgraph(params: {
     authentication: {
       actorId: AccountId;
     };
-    query: EntityTypeStructuralQuery;
+    request: GetEntityTypeSubgraphRequest;
   }): Promise<Subgraph<EntityTypeRootType>> {
     return graphApiClient
-      .getEntityTypesByQuery(params.authentication.actorId, params.query)
-      .then((response) =>
+      .getEntityTypeSubgraph(params.authentication.actorId, params.request)
+      .then(({ data: response }) =>
         mapGraphApiSubgraphToSubgraph(
-          response.data,
+          response.subgraph,
           params.authentication.actorId,
         ),
       );
   },
 
-  async getEntitiesByQuery(params: {
+  async getEntitySubgraph(params: {
     authentication: {
       actorId: AccountId;
     };
-    query: EntityStructuralQuery;
-    limit?: number;
-    cursor?: EntityQueryCursor;
+    request: GetEntitySubgraphRequest;
   }): Promise<EntityQueryResponse> {
     return graphApiClient
-      .getEntitiesByQuery(params.authentication.actorId, {
-        query: params.query,
-        limit: params.limit,
-        cursor: params.cursor,
-      })
-      .then((response) => ({
+      .getEntitySubgraph(params.authentication.actorId, params.request)
+      .then(({ data: response }) => ({
         subgraph: mapGraphApiSubgraphToSubgraph(
-          response.data.subgraph,
+          response.subgraph,
           params.authentication.actorId,
         ),
-        cursor: response.data.cursor,
+        cursor: response.cursor,
       }));
   },
 

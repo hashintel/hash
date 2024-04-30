@@ -6,10 +6,10 @@ import {
 import { useMemo } from "react";
 
 import type {
-  StructuralQueryEntitiesQuery,
-  StructuralQueryEntitiesQueryVariables,
+  GetEntitySubgraphQuery,
+  GetEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { structuralQueryEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 
 export type UseSheetsFlows = {
   flows: [];
@@ -21,12 +21,12 @@ export const useSheetsFlows = (): UseSheetsFlows => {
   // const { authenticatedUser } = useAuthenticatedUser();
 
   const { loading, refetch } = useQuery<
-    StructuralQueryEntitiesQuery,
-    StructuralQueryEntitiesQueryVariables
-  >(structuralQueryEntitiesQuery, {
+    GetEntitySubgraphQuery,
+    GetEntitySubgraphQueryVariables
+  >(getEntitySubgraphQuery, {
     variables: {
       includePermissions: false,
-      query: {
+      request: {
         filter: {
           all: [
             // @todo query for Sheets-related Flow definitions / runs instead (depending on what this UI becomes)

@@ -6,7 +6,7 @@ import type {
   ArchiveEntityTypeParams,
   EntityType,
   EntityTypePermission,
-  EntityTypeStructuralQuery,
+  GetEntityTypeSubgraphRequest,
   ModifyRelationshipOperation,
   OntologyTemporalMetadata,
   ProvidedOntologyEditionProvenance,
@@ -183,19 +183,18 @@ export const createEntityType: ImpureGraphFunction<
  * @param params.query the structural query to filter entity types by.
  */
 export const getEntityTypes: ImpureGraphFunction<
-  {
-    query: Omit<EntityTypeStructuralQuery, "includeDrafts">;
+  Omit<GetEntityTypeSubgraphRequest, "includeDrafts"> & {
     temporalClient?: TemporalClient;
   },
   Promise<Subgraph<EntityTypeRootType>>
-> = async ({ graphApi }, { actorId }, { query, temporalClient }) => {
-  await rewriteSemanticFilter(query.filter, temporalClient);
+> = async ({ graphApi }, { actorId }, { temporalClient, ...request }) => {
+  await rewriteSemanticFilter(request.filter, temporalClient);
 
   return await graphApi
-    .getEntityTypesByQuery(actorId, { includeDrafts: false, ...query })
-    .then(({ data }) => {
+    .getEntityTypeSubgraph(actorId, { includeDrafts: false, ...request })
+    .then(({ data: response }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(
-        data,
+        response.subgraph,
         actorId,
       );
 
@@ -217,13 +216,11 @@ export const getEntityTypeById: ImpureGraphFunction<
   const { entityTypeId } = params;
 
   const [entityType] = await getEntityTypes(context, authentication, {
-    query: {
-      filter: {
-        equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
-      },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
+    filter: {
+      equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
     },
+    graphResolveDepths: zeroedGraphResolveDepths,
+    temporalAxes: currentTimeInstantTemporalAxes,
   }).then(getRoots);
 
   if (!entityType) {
@@ -241,14 +238,14 @@ export const getEntityTypeById: ImpureGraphFunction<
  * If the type does not already exist within the Graph, and is an externally-hosted type, this will also load the type into the Graph.
  */
 export const getEntityTypeSubgraphById: ImpureGraphFunction<
-  Omit<EntityTypeStructuralQuery, "filter" | "includeDrafts"> & {
+  Omit<GetEntityTypeSubgraphRequest, "filter" | "includeDrafts"> & {
     entityTypeId: VersionedUrl;
   },
   Promise<Subgraph<EntityTypeRootType>>
 > = async (context, authentication, params) => {
   const { graphResolveDepths, temporalAxes, entityTypeId } = params;
 
-  const query: EntityTypeStructuralQuery = {
+  const request: GetEntityTypeSubgraphRequest = {
     filter: {
       equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
     },
@@ -257,18 +254,14 @@ export const getEntityTypeSubgraphById: ImpureGraphFunction<
     includeDrafts: false,
   };
 
-  let subgraph = await getEntityTypes(context, authentication, {
-    query,
-  });
+  let subgraph = await getEntityTypes(context, authentication, request);
 
   if (subgraph.roots.length === 0 && isExternalTypeId(entityTypeId)) {
     await context.graphApi.loadExternalEntityType(authentication.actorId, {
       entityTypeId,
     });
 
-    subgraph = await getEntityTypes(context, authentication, {
-      query,
-    });
+    subgraph = await getEntityTypes(context, authentication, request);
   }
 
   return subgraph;

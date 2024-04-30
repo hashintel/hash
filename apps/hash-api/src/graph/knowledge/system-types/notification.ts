@@ -32,7 +32,7 @@ import type {
 import type { CreateEntityParams } from "../primitive/entity";
 import {
   createEntity,
-  getEntities,
+  getEntitySubgraph,
   updateEntityProperties,
 } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";
@@ -209,31 +209,26 @@ export const getMentionNotification: ImpureGraphFunction<
     includeDrafts = false,
   } = params;
 
-  const entitiesSubgraph = await getEntities(context, authentication, {
-    query: {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.mentionNotification.entityTypeId,
-            { ignoreParents: true },
-          ),
-          {
-            equal: [
-              { path: ["ownedById"] },
-              { parameter: recipient.accountId },
-            ],
-          },
-          pageOrNotificationNotArchivedFilter,
-        ],
-      },
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        // Get the outgoing links of the entities
-        hasLeftEntity: { outgoing: 0, incoming: 1 },
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
+  const entitiesSubgraph = await getEntitySubgraph(context, authentication, {
+    filter: {
+      all: [
+        generateVersionedUrlMatchingFilter(
+          systemEntityTypes.mentionNotification.entityTypeId,
+          { ignoreParents: true },
+        ),
+        {
+          equal: [{ path: ["ownedById"] }, { parameter: recipient.accountId }],
+        },
+        pageOrNotificationNotArchivedFilter,
+      ],
     },
+    graphResolveDepths: {
+      ...zeroedGraphResolveDepths,
+      // Get the outgoing links of the entities
+      hasLeftEntity: { outgoing: 0, incoming: 1 },
+    },
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts,
   });
 
   /**
@@ -457,63 +452,54 @@ export const getCommentNotification: ImpureGraphFunction<
     includeDrafts = false,
   } = params;
 
-  const entitiesSubgraph = await getEntities(context, authentication, {
-    query: {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.commentNotification.entityTypeId,
-            { ignoreParents: true },
-          ),
-          {
-            equal: [
-              { path: ["ownedById"] },
-              { parameter: recipient.accountId },
-            ],
-          },
-          /** @todo: enforce the type of these links somehow */
-          {
-            any: [
-              {
-                equal: [
-                  {
-                    path: [
-                      "properties",
-                      extractBaseUrl(
-                        systemPropertyTypes.archived.propertyTypeId,
-                      ),
-                    ],
-                  },
-                  // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
-                  //   @see https://linear.app/hash/issue/H-1207
-                  null,
-                ],
-              },
-              {
-                equal: [
-                  {
-                    path: [
-                      "properties",
-                      extractBaseUrl(
-                        systemPropertyTypes.archived.propertyTypeId,
-                      ),
-                    ],
-                  },
-                  { parameter: false },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        // Get the outgoing links of the entities
-        hasLeftEntity: { outgoing: 0, incoming: 1 },
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
+  const entitiesSubgraph = await getEntitySubgraph(context, authentication, {
+    filter: {
+      all: [
+        generateVersionedUrlMatchingFilter(
+          systemEntityTypes.commentNotification.entityTypeId,
+          { ignoreParents: true },
+        ),
+        {
+          equal: [{ path: ["ownedById"] }, { parameter: recipient.accountId }],
+        },
+        /** @todo: enforce the type of these links somehow */
+        {
+          any: [
+            {
+              equal: [
+                {
+                  path: [
+                    "properties",
+                    extractBaseUrl(systemPropertyTypes.archived.propertyTypeId),
+                  ],
+                },
+                // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
+                //   @see https://linear.app/hash/issue/H-1207
+                null,
+              ],
+            },
+            {
+              equal: [
+                {
+                  path: [
+                    "properties",
+                    extractBaseUrl(systemPropertyTypes.archived.propertyTypeId),
+                  ],
+                },
+                { parameter: false },
+              ],
+            },
+          ],
+        },
+      ],
     },
+    graphResolveDepths: {
+      ...zeroedGraphResolveDepths,
+      // Get the outgoing links of the entities
+      hasLeftEntity: { outgoing: 0, incoming: 1 },
+    },
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts,
   });
 
   /**

@@ -156,85 +156,83 @@ export const gptQueryEntities: RequestHandler<
     : null;
 
   const queryResponse: GptQueryEntitiesResponseBody = await req.context.graphApi
-    .getEntitiesByQuery(user.accountId, {
-      query: {
-        filter: {
-          all: [
-            ...(types
-              ? [
-                  {
-                    any: types.map((type) => ({
-                      equal: [
-                        {
-                          path: [
-                            "type",
-                            // Sometimes the GPT sends the type's id instead of a title
-                            type.startsWith("http://") ||
-                            type.startsWith("https://")
-                              ? "versionedUrl"
-                              : "title",
-                          ],
-                        },
-                        { parameter: type },
-                      ],
-                    })),
-                  },
-                ]
-              : []),
-            ...(entityIds
-              ? [
-                  {
-                    any: entityIds.map((entityId) => ({
-                      equal: [
-                        { path: ["uuid"] },
-                        {
-                          parameter: extractEntityUuidFromEntityId(
-                            entityId as EntityId,
-                          ),
-                        },
-                      ],
-                    })),
-                  },
-                ]
-              : []),
-            ...(webUuids?.length
-              ? [
-                  {
-                    any: webUuids.map((webUuid) => ({
-                      equal: [{ path: ["ownedById"] }, { parameter: webUuid }],
-                    })),
-                  },
-                ]
-              : []),
-            ...(semanticSearchString
-              ? [
-                  {
-                    cosineDistance: [
-                      { path: ["embedding"] },
-                      { parameter: semanticSearchString },
-                      { parameter: 0.8 },
+    .getEntitySubgraph(user.accountId, {
+      filter: {
+        all: [
+          ...(types
+            ? [
+                {
+                  any: types.map((type) => ({
+                    equal: [
+                      {
+                        path: [
+                          "type",
+                          // Sometimes the GPT sends the type's id instead of a title
+                          type.startsWith("http://") ||
+                          type.startsWith("https://")
+                            ? "versionedUrl"
+                            : "title",
+                        ],
+                      },
+                      { parameter: type },
                     ],
-                  },
-                ]
-              : []),
-            { equal: [{ path: ["archived"] }, { parameter: false }] },
-          ],
-        },
-        includeDrafts: includeDrafts ?? false,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        graphResolveDepths: {
-          inheritsFrom: { outgoing: 255 },
-          constrainsValuesOn: { outgoing: 255 },
-          constrainsPropertiesOn: { outgoing: 255 },
-          constrainsLinksOn: { outgoing: 255 },
-          constrainsLinkDestinationsOn: { outgoing: 255 },
-          isOfType: { outgoing: 1 },
-          hasLeftEntity: { incoming: depth, outgoing: depth },
-          hasRightEntity: { incoming: depth, outgoing: depth },
-        },
+                  })),
+                },
+              ]
+            : []),
+          ...(entityIds
+            ? [
+                {
+                  any: entityIds.map((entityId) => ({
+                    equal: [
+                      { path: ["uuid"] },
+                      {
+                        parameter: extractEntityUuidFromEntityId(
+                          entityId as EntityId,
+                        ),
+                      },
+                    ],
+                  })),
+                },
+              ]
+            : []),
+          ...(webUuids?.length
+            ? [
+                {
+                  any: webUuids.map((webUuid) => ({
+                    equal: [{ path: ["ownedById"] }, { parameter: webUuid }],
+                  })),
+                },
+              ]
+            : []),
+          ...(semanticSearchString
+            ? [
+                {
+                  cosineDistance: [
+                    { path: ["embedding"] },
+                    { parameter: semanticSearchString },
+                    { parameter: 0.8 },
+                  ],
+                },
+              ]
+            : []),
+          { equal: [{ path: ["archived"] }, { parameter: false }] },
+        ],
+      },
+      includeDrafts: includeDrafts ?? false,
+      temporalAxes: currentTimeInstantTemporalAxes,
+      graphResolveDepths: {
+        inheritsFrom: { outgoing: 255 },
+        constrainsValuesOn: { outgoing: 255 },
+        constrainsPropertiesOn: { outgoing: 255 },
+        constrainsLinksOn: { outgoing: 255 },
+        constrainsLinkDestinationsOn: { outgoing: 255 },
+        isOfType: { outgoing: 1 },
+        hasLeftEntity: { incoming: depth, outgoing: depth },
+        hasRightEntity: { incoming: depth, outgoing: depth },
       },
     })
-    .then(async (response) => {
+    .then(async ({ data: response }) => {
       const webs: SimpleWeb[] = await getUserSimpleWebs(
         req.context,
         {
@@ -244,7 +242,7 @@ export const gptQueryEntities: RequestHandler<
       );
 
       const subgraph = mapGraphApiSubgraphToSubgraph(
-        response.data.subgraph,
+        response.subgraph,
         user.accountId,
       );
 

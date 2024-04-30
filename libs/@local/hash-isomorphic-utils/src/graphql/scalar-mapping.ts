@@ -30,7 +30,7 @@ export const scalars = {
   EntityRecordId: "@local/hash-subgraph#EntityRecordId",
   EntityMetadata: "@local/hash-subgraph#EntityMetadata",
   EntityRelationAndSubject: "@local/hash-subgraph#EntityRelationAndSubject",
-  EntityStructuralQuery: "@local/hash-graph-client#EntityStructuralQuery",
+  GetEntitySubgraphRequest: "@local/hash-graph-client#GetEntitySubgraphRequest",
   EntityTemporalVersioningMetadata:
     "@local/hash-subgraph#EntityTemporalVersioningMetadata",
   EntityPropertiesObject: "@local/hash-subgraph#EntityPropertiesObject",

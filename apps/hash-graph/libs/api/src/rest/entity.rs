@@ -27,13 +27,15 @@ use graph::{
     store::{
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
         knowledge::{
-            CreateEntityRequest, DiffEntityParams, DiffEntityResult, GetEntityParams,
-            PatchEntityParams, UpdateEntityEmbeddingsParams, ValidateEntityParams,
+            CountEntitiesParams, CreateEntityRequest, DiffEntityParams, DiffEntityResult,
+            GetEntitySubgraphParams, PatchEntityParams, UpdateEntityEmbeddingsParams,
+            ValidateEntityParams,
         },
+        query::Filter,
         AccountStore, EntityQueryCursor, EntityQuerySorting, EntityQuerySortingRecord, EntityStore,
         EntityValidationType, NullOrdering, Ordering, StorePool,
     },
-    subgraph::{query::EntityStructuralQuery, temporal_axes::QueryTemporalAxesUnresolved},
+    subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
 };
 use graph_types::{
     knowledge::{
@@ -66,7 +68,7 @@ use crate::rest::{
         create_entity,
         validate_entity,
         check_entity_permission,
-        get_entities_by_query,
+        get_entity_subgraph,
         count_entities,
         patch_entity,
         update_entity_embeddings,
@@ -84,13 +86,13 @@ use crate::rest::{
         schemas(
             CreateEntityRequest,
             ValidateEntityParams,
+            CountEntitiesParams,
             EntityValidationType,
             ValidateEntityComponents,
             Embedding,
             UpdateEntityEmbeddingsParams,
             EntityEmbedding,
             EntityQueryToken,
-            EntityStructuralQuery,
 
             PatchEntityParams,
             PropertyPatchOperation,
@@ -106,13 +108,13 @@ use crate::rest::{
             ModifyRelationshipOperation,
             EntitySetting,
 
-            GetEntityByQueryRequest,
+            GetEntitySubgraphRequest,
             EntityQueryCursor,
             Ordering,
             NullOrdering,
             EntityQuerySortingRecord,
             EntityQuerySortingToken,
-            GetEntityByQueryResponse,
+            GetEntitySubgraphResponse,
 
             Entity,
             Property,
@@ -195,7 +197,7 @@ impl RoutedResource for EntityResource {
                 .nest(
                     "/query",
                     Router::new()
-                        .route("/", post(get_entities_by_query::<S, A>))
+                        .route("/", post(get_entity_subgraph::<S, A>))
                         .route("/count", post(count_entities::<S, A>)),
                 ),
         )
@@ -344,10 +346,12 @@ where
 
 #[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct GetEntityByQueryRequest<'q, 's, 'p> {
+struct GetEntitySubgraphRequest<'q, 's, 'p> {
     #[serde(borrow)]
-    #[schema(format = "EntityStructuralQuery")]
-    query: EntityStructuralQuery<'q>,
+    filter: Filter<'q, Entity>,
+    graph_resolve_depths: GraphResolveDepths,
+    temporal_axes: QueryTemporalAxesUnresolved,
+    include_drafts: bool,
     limit: Option<usize>,
     #[serde(borrow)]
     sorting_paths: Option<Vec<EntityQuerySortingRecord<'p>>>,
@@ -359,7 +363,7 @@ struct GetEntityByQueryRequest<'q, 's, 'p> {
 
 #[derive(Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-struct GetEntityByQueryResponse<'r> {
+struct GetEntitySubgraphResponse<'r> {
     subgraph: Subgraph,
     #[serde(borrow)]
     cursor: Option<EntityQueryCursor<'r>>,
@@ -369,7 +373,7 @@ struct GetEntityByQueryResponse<'r> {
 #[utoipa::path(
     post,
     path = "/entities/query",
-    request_body = GetEntityByQueryRequest,
+    request_body = GetEntitySubgraphRequest,
     tag = "Entity",
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -380,7 +384,7 @@ struct GetEntityByQueryResponse<'r> {
         (
             status = 200,
             content_type = "application/json",
-            body = GetEntityByQueryResponse,
+            body = GetEntitySubgraphResponse,
             description = "A subgraph rooted at entities that satisfy the given query, each resolved to the requested depth.",
         ),
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
@@ -388,13 +392,13 @@ struct GetEntityByQueryResponse<'r> {
     )
 )]
 #[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, request))]
-async fn get_entities_by_query<S, A>(
+async fn get_entity_subgraph<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<GetEntityByQueryResponse<'static>>, Response>
+) -> Result<Json<GetEntitySubgraphResponse<'static>>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -409,14 +413,14 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let mut request = GetEntityByQueryRequest::deserialize(&request).map_err(report_to_response)?;
+    let mut request =
+        GetEntitySubgraphRequest::deserialize(&request).map_err(report_to_response)?;
     request
-        .query
         .filter
         .convert_parameters()
         .map_err(report_to_response)?;
 
-    let temporal_axes_sorting_path = match request.query.temporal_axes {
+    let temporal_axes_sorting_path = match request.temporal_axes {
         QueryTemporalAxesUnresolved::TransactionTime { .. } => &EntityQueryPath::TransactionTime,
         QueryTemporalAxesUnresolved::DecisionTime { .. } => &EntityQueryPath::DecisionTime,
     };
@@ -466,10 +470,10 @@ where
     );
 
     store
-        .get_entity(
+        .get_entity_subgraph(
             actor_id,
-            GetEntityParams {
-                query: request.query,
+            GetEntitySubgraphParams {
+                filter: request.filter,
                 sorting: EntityQuerySorting {
                     paths: sorting
                         .into_iter()
@@ -478,12 +482,15 @@ where
                     cursor: request.cursor.map(EntityQueryCursor::into_owned),
                 },
                 limit: request.limit,
+                graph_resolve_depths: request.graph_resolve_depths,
+                include_drafts: request.include_drafts,
                 include_count: request.include_count,
+                temporal_axes: request.temporal_axes,
             },
         )
         .await
         .map(|response| {
-            Json(GetEntityByQueryResponse {
+            Json(GetEntitySubgraphResponse {
                 subgraph: response.subgraph.into(),
                 cursor: response.cursor.map(EntityQueryCursor::into_owned),
                 count: response.count,
@@ -495,7 +502,7 @@ where
 #[utoipa::path(
     post,
     path = "/entities/query/count",
-    request_body = EntityStructuralQuery,
+    request_body = CountEntitiesParams,
     tag = "Entity",
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -533,7 +540,7 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let mut query = EntityStructuralQuery::deserialize(&request).map_err(report_to_response)?;
+    let mut query = CountEntitiesParams::deserialize(&request).map_err(report_to_response)?;
     query
         .filter
         .convert_parameters()
