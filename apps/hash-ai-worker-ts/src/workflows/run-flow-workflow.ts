@@ -414,12 +414,16 @@ export const runFlowWorkflow = async (
    */
   await sleep(3_000);
 
+  const stepErrors = Object.entries(processStepErrors).map(
+    ([stepId, status]) => ({ ...status, contents: [{ stepId }] }),
+  );
+
   /** @todo this is not necessarily an error once there are branches */
   if (processedStepIds.length !== getAllStepsInFlow(flow).length) {
     return {
       code: StatusCode.Unknown,
       message: "Not all steps in the flows were processed.",
-      contents: [{ flow }],
+      contents: [{ flow, stepErrors }],
     };
   }
 
@@ -438,7 +442,7 @@ export const runFlowWorkflow = async (
       return {
         code: StatusCode.NotFound,
         message: `${errorPrefix}required step with id '${outputDefinition.stepId}' not found in outputs.`,
-        contents: [{ flow }],
+        contents: [{ flow, stepErrors }],
       };
     }
 
@@ -455,7 +459,7 @@ export const runFlowWorkflow = async (
         return {
           code: StatusCode.NotFound,
           message: `${errorPrefix}there is no output with name '${outputDefinition.stepOutputName}' in step ${step.stepId}`,
-          contents: [],
+          contents: [{ stepErrors }],
         };
       }
 
@@ -473,7 +477,7 @@ export const runFlowWorkflow = async (
         return {
           code: StatusCode.NotFound,
           message: `${errorPrefix}no aggregate output found in step ${step.stepId}`,
-          contents: [],
+          contents: [{ stepErrors }],
         };
       }
 
@@ -486,10 +490,6 @@ export const runFlowWorkflow = async (
       ];
     }
   }
-
-  const stepErrors = Object.entries(processStepErrors).map(
-    ([stepId, status]) => ({ ...status, contents: [{ stepId }] }),
-  );
 
   await flowActivities.persistFlowActivity({ flow, userAuthentication });
 
