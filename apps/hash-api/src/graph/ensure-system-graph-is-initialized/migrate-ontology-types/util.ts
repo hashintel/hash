@@ -76,10 +76,7 @@ import {
   CACHED_PROPERTY_TYPE_SCHEMAS,
 } from "../../../seed-data";
 import type { ImpureGraphFunction } from "../../context-types";
-import {
-  getEntitySubgraph,
-  updateEntity,
-} from "../../knowledge/primitive/entity";
+import { getEntitySubgraph } from "../../knowledge/primitive/entity";
 import {
   createDataType,
   getDataTypeById,
