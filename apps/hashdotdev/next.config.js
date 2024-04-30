@@ -37,8 +37,7 @@ const nextConfig = {
         permanent: true,
       },
       {
-        source:
-          "/docs/simulations/run/simulation/outputs/api-1",
+        source: "/docs/simulations/run/simulation/outputs/api-1",
         destination: "/docs/simulations/api/access#hcloud-api",
         permanent: true,
       },
