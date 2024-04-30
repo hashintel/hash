@@ -11,7 +11,7 @@ import type {
 import type { Entity } from "@local/hash-subgraph";
 import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
 import { format } from "date-fns";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ReactFlowProvider } from "reactflow";
 
 import type {
@@ -46,6 +46,7 @@ import {
   groupStepsByDependencyLayer,
 } from "./flow-definition/sort-graph";
 import { Swimlane } from "./flow-definition/swimlane";
+import { Topbar } from "./flow-definition/topbar";
 
 const getGraphFromFlowDefinition = (
   flowDefinition: FlowDefinitionType,
@@ -175,16 +176,10 @@ const getGraphFromFlowDefinition = (
   };
 };
 
-const selectSx = {
-  [`& .${outlinedInputClasses.input}`]: { fontSize: 14 },
-};
-
 export const FlowDefinition = () => {
-  const { flowDefinitions, selectedFlow, setSelectedFlow } =
-    useFlowDefinitionsContext();
+  const { selectedFlow } = useFlowDefinitionsContext();
 
-  const { flowRuns, selectedFlowRun, setSelectedFlowRun } =
-    useFlowRunsContext();
+  const { selectedFlowRun } = useFlowRunsContext();
 
   const { nodes: derivedNodes, edges: derivedEdges } = useMemo(() => {
     return getGraphFromFlowDefinition(selectedFlow);
@@ -317,20 +312,12 @@ export const FlowDefinition = () => {
     return { proposedEntities: proposed, persistedEntities: persisted };
   }, [selectedFlowRun]);
 
-  const runOptions = useMemo(
-    () =>
-      flowRuns.filter(
-        (run) => run.inputs[0].flowDefinition.name === selectedFlow.name,
-      ),
-    [flowRuns, selectedFlow.name],
-  );
-
   const [startFlow] = useMutation<
     StartFlowMutation,
     StartFlowMutationVariables
   >(startFlowMutation);
 
-  const handleRunFlowClicked = () => {
+  const handleRunFlowClicked = useCallback(() => {
     if (selectedFlow.trigger.outputs?.length) {
       setShowRunModal(true);
     } else {
@@ -343,7 +330,7 @@ export const FlowDefinition = () => {
         },
       });
     }
-  };
+  }, [selectedFlow, startFlow]);
 
   const flowDefinitionStateKey = `${selectedFlow.name}`;
   const flowRunStateKey = `${flowDefinitionStateKey}-${selectedFlowRun?.runId ?? "definition"}`;
@@ -368,86 +355,17 @@ export const FlowDefinition = () => {
           setShowRunModal(false);
         }}
       />
+      <Topbar handleRunFlowClicked={handleRunFlowClicked} />
       <Box
         sx={{
           width: "100%",
-          pb: 8,
           background: ({ palette }) =>
             selectedFlowRun ? palette.gray[10] : "rgb(241, 246, 251)",
           transition: ({ transitions }) =>
             transitions.create("background", transitionOptions),
+          pt: 1.5,
         }}
       >
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          sx={{ p: 3, pb: 2 }}
-        >
-          <Stack direction="row" gap={2}>
-            <Select
-              selectSx={selectSx}
-              value={selectedFlow.name}
-              onChange={(event) => {
-                setSelectedFlow(
-                  flowDefinitions.find(
-                    (def) => def.name === event.target.value,
-                  )!,
-                );
-                setSelectedFlowRun(null);
-              }}
-            >
-              {flowDefinitions.map((flow) => (
-                <MenuItem key={flow.name} value={flow.name}>
-                  {flow.name}
-                </MenuItem>
-              ))}
-            </Select>
-            {runOptions.length > 0 && (
-              <Select
-                selectSx={selectSx}
-                value={selectedFlowRun?.runId ?? "none"}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  if (!value) {
-                    setSelectedFlowRun(null);
-                  }
-                  setSelectedFlowRun(
-                    flowRuns.find((run) => run.runId === event.target.value) ??
-                      null,
-                  );
-                }}
-              >
-                <MenuItem selected value="none">
-                  Definition
-                </MenuItem>
-                {runOptions.map((run) => (
-                  <MenuItem
-                    key={run.runId}
-                    value={run.runId}
-                    sx={{ fontFamily: "monospace" }}
-                  >
-                    Run
-                    {run.closedAt
-                      ? ` – ${format(new Date(run.closedAt), "yyyy-MM-dd h:mm a")}`
-                      : " – in progress"}
-                  </MenuItem>
-                ))}
-              </Select>
-            )}
-          </Stack>
-          {!selectedFlowRun && (
-            <Button onClick={handleRunFlowClicked} size="xs">
-              <PlayIconSolid
-                sx={{
-                  fill: ({ palette }) => palette.blue[40],
-                  fontSize: 14,
-                  mr: 1,
-                }}
-              />
-              Run
-            </Button>
-          )}
-        </Stack>
         <Stack direction="row">
           {selectedFlowRun ? (
             <FlowRunSidebar
@@ -456,7 +374,7 @@ export const FlowDefinition = () => {
             />
           ) : null}
           <Box flex={1}>
-            <Box sx={{ px: 3 }}>
+            <Box sx={{ minHeight: 300, px: 3 }}>
               <SectionLabel text={selectedFlowRun ? "status" : "definition"} />
               <Box
                 sx={({ palette, transitions }) => ({
@@ -535,6 +453,7 @@ export const FlowDefinition = () => {
             height: 400,
             px: 3,
             mt: 3,
+            pb: 7,
           })}
         >
           <Box

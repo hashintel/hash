@@ -1,0 +1,166 @@
+import {
+  Box,
+  outlinedInputClasses,
+  Stack,
+  SxProps,
+  Theme,
+  Typography,
+} from "@mui/material";
+import {
+  InfinityLightIcon,
+  PlayIconSolid,
+  Select,
+} from "@hashintel/design-system";
+import { MenuItem } from "../../../shared/ui/menu-item";
+import { format } from "date-fns";
+import { useMemo } from "react";
+import { useFlowDefinitionsContext } from "./shared/flow-definitions-context";
+import { useFlowRunsContext } from "./shared/flow-runs-context";
+import { Button } from "../../../shared/ui/button";
+import { AngleRightRegularIcon } from "@hashintel/design-system";
+
+const typographySx: SxProps<Theme> = {
+  color: ({ palette }) => palette.gray[70],
+  fontWeight: 500,
+  lineHeight: 1,
+};
+
+const selectSx: SxProps<Theme> = {
+  background: "transparent",
+  boxShadow: "none",
+  [`& .${outlinedInputClasses.input}`]: {
+    fontSize: 14,
+    padding: "6px 12px",
+    ...typographySx,
+  },
+  "& svg": {
+    fontSize: 14,
+  },
+};
+
+const Divider = () => (
+  <AngleRightRegularIcon
+    sx={{
+      fill: ({ palette }) => palette.gray[50],
+      fontSize: 18,
+      mr: 0.5,
+      ml: 1,
+    }}
+  />
+);
+
+export const Topbar = ({
+  handleRunFlowClicked,
+}: {
+  handleRunFlowClicked: () => void;
+}) => {
+  const { flowDefinitions, selectedFlow, setSelectedFlow } =
+    useFlowDefinitionsContext();
+
+  const { flowRuns, selectedFlowRun, setSelectedFlowRun } =
+    useFlowRunsContext();
+
+  const runOptions = useMemo(
+    () =>
+      flowRuns.filter(
+        (run) => run.inputs[0].flowDefinition.name === selectedFlow.name,
+      ),
+    [flowRuns, selectedFlow.name],
+  );
+
+  return (
+    <Stack
+      alignItems="center"
+      direction="row"
+      justifyContent="space-between"
+      sx={({ palette }) => ({
+        background: palette.gray[5],
+        borderBottom: `1px solid ${palette.gray[20]}`,
+        px: 2,
+        py: 1,
+        width: "100%",
+      })}
+    >
+      <Stack direction="row" alignItems="center">
+        <InfinityLightIcon
+          sx={{ fill: ({ palette }) => palette.gray[60], fontSize: 20, mr: 1 }}
+        />
+        <Typography sx={typographySx} variant="smallTextParagraphs">
+          Flows
+        </Typography>
+        <Divider />
+        <Box mr={1}>
+          <Select
+            selectSx={selectSx}
+            value={selectedFlow.name}
+            onChange={(event) => {
+              setSelectedFlow(
+                flowDefinitions.find((def) => def.name === event.target.value)!,
+              );
+              setSelectedFlowRun(null);
+            }}
+          >
+            {flowDefinitions.map((flow) => (
+              <MenuItem key={flow.name} value={flow.name}>
+                {flow.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </Box>
+        {runOptions.length > 0 && (
+          <>
+            <Divider />
+            <Select
+              selectSx={{ ...selectSx, minWidth: 100 }}
+              value={selectedFlowRun?.runId ?? "none"}
+              onChange={(event) => {
+                const value = event.target.value;
+                if (!value) {
+                  setSelectedFlowRun(null);
+                }
+                setSelectedFlowRun(
+                  flowRuns.find((run) => run.runId === event.target.value) ??
+                    null,
+                );
+              }}
+            >
+              <MenuItem selected value="none">
+                Definition
+              </MenuItem>
+              {runOptions.map((run) => (
+                <MenuItem
+                  key={run.runId}
+                  value={run.runId}
+                  sx={{ fontFamily: "monospace" }}
+                >
+                  Run
+                  {run.closedAt
+                    ? ` – ${format(new Date(run.closedAt), "yyyy-MM-dd h:mm a")}`
+                    : " – in progress"}
+                </MenuItem>
+              ))}
+            </Select>
+          </>
+        )}
+      </Stack>
+      <Button onClick={handleRunFlowClicked} size="xs" sx={{ px: "14px" }}>
+        <PlayIconSolid
+          sx={{
+            fill: ({ palette }) => palette.blue[40],
+            fontSize: 14,
+            mr: 1,
+          }}
+        />
+        <Typography
+          sx={{
+            color: ({ palette }) => palette.common.white,
+            fontSize: 13,
+            fontWeight: 500,
+          }}
+        >
+          Run
+        </Typography>
+      </Button>
+    </Stack>
+  );
+};

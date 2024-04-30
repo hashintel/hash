@@ -158,7 +158,7 @@ export const Swimlane = ({
    * because only markers which are referenced by edges passed to it will be included in its EdgeRenderer.
    */
   const edgesWithLatestStatus = useMemo(() => {
-    return initialEdges.map((edge) => {
+    return edges.map((edge) => {
       const sourceStatus = statusByStep?.[edge.source] ?? "Waiting";
       return {
         ...edge,
@@ -166,7 +166,7 @@ export const Swimlane = ({
         data: { sourceStatus },
       };
     });
-  }, [initialEdges, statusByStep]);
+  }, [edges, statusByStep]);
 
   return (
     <Stack

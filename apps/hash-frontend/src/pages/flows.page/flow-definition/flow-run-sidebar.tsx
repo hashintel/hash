@@ -210,7 +210,7 @@ const GroupStatus = ({
         onClick={() => setShowSteps(!showSteps)}
       >
         <Stack direction="row">
-          <Box sx={{ width: 20 }}>
+          <Box sx={{ width: 20, display: "flex", alignItems: "flex-start" }}>
             {!groupStatus || groupStatus === "Waiting" ? (
               <WaitingIcon statusFor="group" />
             ) : groupStatus === "In Progress" ? (

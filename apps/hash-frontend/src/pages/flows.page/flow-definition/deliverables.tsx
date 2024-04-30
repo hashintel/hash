@@ -33,9 +33,9 @@ const Deliverable = ({ output }: { output: StepOutput }) => {
 
     if (fileUrl) {
       return (
-        <Box>
+        <Box mt={3}>
           <Link href={fileUrl}>
-            <Typography>
+            <Typography variant="smallTextParagraphs">
               Download file:{" "}
               <strong>{displayName ?? fileName ?? "Untitled"}</strong>
             </Typography>
@@ -64,7 +64,7 @@ export const Deliverables = ({ outputs }: { outputs?: FlowRun["outputs"] }) => {
         textAlign: "center",
         justifyContent: "center",
         alignItems: "center",
-        p: 4,
+        p: flowOutputs ? 0 : 4,
       }}
     >
       {flowOutputs ? (
