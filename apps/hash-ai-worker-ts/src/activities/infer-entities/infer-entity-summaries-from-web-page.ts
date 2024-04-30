@@ -1,5 +1,5 @@
 import type { GraphApi } from "@local/hash-graph-client";
-import type { AccountId, Entity } from "@local/hash-subgraph";
+import type { AccountId, Entity, EntityId } from "@local/hash-subgraph";
 import dedent from "dedent";
 
 import type { PermittedOpenAiModel } from "../shared/openai-client";
@@ -22,6 +22,7 @@ export const inferEntitySummariesFromWebPage = async (params: {
   existingEntities?: Entity[];
   userAccountId: AccountId;
   graphApiClient: GraphApi;
+  flowEntityId?: EntityId;
 }) => {
   const {
     webPage,
@@ -34,6 +35,7 @@ export const inferEntitySummariesFromWebPage = async (params: {
     existingEntities,
     userAccountId,
     graphApiClient,
+    flowEntityId,
   } = params;
 
   const summariseEntitiesPrompt = dedent(`
@@ -92,5 +94,6 @@ export const inferEntitySummariesFromWebPage = async (params: {
     existingEntities,
     userAccountId,
     graphApiClient,
+    flowEntityId,
   });
 };

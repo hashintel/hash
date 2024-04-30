@@ -1,5 +1,6 @@
 import type { GraphApi } from "@local/hash-graph-client";
-import type { AccountId } from "@local/hash-subgraph";
+import type { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type { AccountId, EntityId } from "@local/hash-subgraph";
 import type { AxiosError } from "axios";
 import type { JSONSchema } from "openai/lib/jsonschema";
 import type {
@@ -37,6 +38,14 @@ export type CommonLlmParams<ToolName extends string = string> = {
   userAccountId: AccountId;
   graphApiClient: GraphApi;
   previousUsage?: LlmUsage;
+  linkUsageRecordToEntities: {
+    linkEntityTypeId: [
+      typeof systemLinkEntityTypes.incurredIn.linkEntityTypeId,
+      typeof systemLinkEntityTypes.created.linkEntityTypeId,
+      typeof systemLinkEntityTypes.updated.linkEntityTypeId,
+    ][number];
+    entityId: EntityId;
+  }[];
 };
 
 export type AnthropicLlmParams<ToolName extends string = string> =

@@ -4,7 +4,7 @@ import type {
   ProposedEntity,
   StepInput,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type { AccountId, Entity } from "@local/hash-subgraph";
+import type { AccountId, Entity, EntityId } from "@local/hash-subgraph";
 import dedent from "dedent";
 
 import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity";
@@ -102,10 +102,11 @@ const getNextToolCalls = async (params: {
   state: CoordinatingAgentState;
   userAccountId: AccountId;
   graphApiClient: GraphApi;
+  flowEntityId: EntityId;
 }): Promise<{
   toolCalls: ParsedLlmToolCall<CoordinatorToolName>[];
 }> => {
-  const { input, state, userAccountId, graphApiClient } = params;
+  const { input, state, userAccountId, graphApiClient, flowEntityId } = params;
 
   const submittedProposedEntities = state.proposedEntities.filter(
     (proposedEntity) =>
@@ -164,6 +165,13 @@ const getNextToolCalls = async (params: {
     tools,
     userAccountId,
     graphApiClient,
+    linkUsageRecordToEntities: [
+      {
+        linkEntityTypeId:
+          "https://hash.ai/@hash/types/entity-type/incurred-in/v/1",
+        entityId: flowEntityId,
+      },
+    ],
   });
 
   if (llmResponse.status !== "ok") {
@@ -184,8 +192,9 @@ const createInitialPlan = async (params: {
   input: CoordinatingAgentInput;
   userAccountId: AccountId;
   graphApiClient: GraphApi;
+  flowEntityId: EntityId;
 }): Promise<{ plan: string }> => {
-  const { input, userAccountId, graphApiClient } = params;
+  const { input, userAccountId, graphApiClient, flowEntityId } = params;
 
   const systemPrompt = dedent(`
     ${generateSystemPromptPrefix({ input })}
@@ -205,6 +214,13 @@ const createInitialPlan = async (params: {
     ),
     userAccountId,
     graphApiClient,
+    linkUsageRecordToEntities: [
+      {
+        linkEntityTypeId:
+          "https://hash.ai/@hash/types/entity-type/incurred-in/v/1",
+        entityId: flowEntityId,
+      },
+    ],
   });
 
   if (llmResponse.status !== "ok") {

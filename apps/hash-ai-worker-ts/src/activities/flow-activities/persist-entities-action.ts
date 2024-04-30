@@ -14,7 +14,7 @@ import type { FlowActionActivity } from "./types";
 
 export const persistEntitiesAction: FlowActionActivity<{
   graphApiClient: GraphApi;
-}> = async ({ inputs, graphApiClient, userAuthentication }) => {
+}> = async ({ inputs, graphApiClient, userAuthentication, flowEntityId }) => {
   const { draft, proposedEntities, webId } = getSimplifiedActionInputs({
     inputs,
     actionType: "persistEntities",
@@ -121,6 +121,7 @@ export const persistEntitiesAction: FlowActionActivity<{
       ],
       graphApiClient,
       userAuthentication,
+      flowEntityId,
     });
 
     const output = persistedEntityOutputs.contents[0]?.outputs?.[0]?.payload;

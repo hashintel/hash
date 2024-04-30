@@ -20,7 +20,7 @@ import type { FlowActionActivity } from "./types";
 
 export const inferEntitiesFromContentAction: FlowActionActivity<{
   graphApiClient: GraphApi;
-}> = async ({ inputs, graphApiClient, userAuthentication }) => {
+}> = async ({ inputs, graphApiClient, userAuthentication, flowEntityId }) => {
   const {
     content,
     entityTypeIds,
@@ -87,6 +87,7 @@ export const inferEntitiesFromContentAction: FlowActionActivity<{
     entityTypes,
     inferenceState: webPageInferenceState,
     existingEntities,
+    flowEntityId,
   });
 
   if (status.code !== StatusCode.Ok) {

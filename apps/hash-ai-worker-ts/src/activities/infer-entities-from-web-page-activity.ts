@@ -1,5 +1,5 @@
 import type { GraphApi } from "@local/hash-graph-client";
-import type { AccountId, Entity } from "@local/hash-subgraph";
+import type { AccountId, Entity, EntityId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
@@ -26,6 +26,7 @@ export const inferEntitiesFromWebPageActivity = async (params: {
   maxTokens?: number | null;
   temperature?: number;
   existingEntities?: Entity[];
+  flowEntityId: EntityId;
 }) => {
   const {
     webPage,
@@ -38,6 +39,7 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     maxTokens,
     temperature,
     existingEntities,
+    flowEntityId,
   } = params;
 
   /**
@@ -64,6 +66,7 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     existingEntities,
     userAccountId,
     graphApiClient,
+    flowEntityId,
   });
 
   logger.debug(
@@ -122,5 +125,6 @@ export const inferEntitiesFromWebPageActivity = async (params: {
       iterationCount: inferenceState.iterationCount + 1,
     },
     existingEntities,
+    flowEntityId,
   });
 };

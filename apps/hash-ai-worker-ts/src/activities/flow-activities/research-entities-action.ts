@@ -26,7 +26,12 @@ import { webSearchAction } from "./web-search-action";
 
 export const researchEntitiesAction: FlowActionActivity<{
   graphApiClient: GraphApi;
-}> = async ({ inputs: stepInputs, userAuthentication, graphApiClient }) => {
+}> = async ({
+  inputs: stepInputs,
+  userAuthentication,
+  graphApiClient,
+  flowEntityId,
+}) => {
   const input = await coordinatingAgent.parseCoordinatorInputs({
     stepInputs,
     userAuthentication,
@@ -41,6 +46,7 @@ export const researchEntitiesAction: FlowActionActivity<{
     input,
     userAccountId: userAuthentication.actorId,
     graphApiClient,
+    flowEntityId,
   });
 
   const state: CoordinatingAgentState = {
@@ -57,6 +63,7 @@ export const researchEntitiesAction: FlowActionActivity<{
       state,
       userAccountId: userAuthentication.actorId,
       graphApiClient,
+      flowEntityId,
     });
 
   const getSubmittedProposedEntities = () =>
@@ -124,6 +131,7 @@ export const researchEntitiesAction: FlowActionActivity<{
               ],
               userAuthentication,
               graphApiClient,
+              flowEntityId,
             });
 
             if (response.code !== StatusCode.Ok) {
@@ -157,6 +165,7 @@ export const researchEntitiesAction: FlowActionActivity<{
                 },
               ],
               userAuthentication,
+              flowEntityId,
             });
 
             if (response.code !== StatusCode.Ok) {
@@ -243,6 +252,7 @@ export const researchEntitiesAction: FlowActionActivity<{
               url,
               userAuthentication,
               graphApiClient,
+              flowEntityId,
             });
 
             if (status.code !== StatusCode.Ok) {
@@ -479,6 +489,7 @@ export const researchEntitiesAction: FlowActionActivity<{
         state,
         userAccountId: userAuthentication.actorId,
         graphApiClient,
+        flowEntityId,
       });
 
     await processToolCalls({

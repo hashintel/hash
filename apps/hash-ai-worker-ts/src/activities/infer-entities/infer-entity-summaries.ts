@@ -1,6 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { AccountId, Entity } from "@local/hash-subgraph";
+import type { AccountId, Entity, EntityId } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
@@ -39,6 +39,7 @@ export const inferEntitySummaries = async (params: {
   existingEntities?: Entity[];
   userAccountId: AccountId;
   graphApiClient: GraphApi;
+  flowEntityId?: EntityId;
 }): Promise<Status<InferenceState>> => {
   const {
     completionPayload,
@@ -48,6 +49,7 @@ export const inferEntitySummaries = async (params: {
     existingEntities,
     userAccountId,
     graphApiClient,
+    flowEntityId,
   } = params;
 
   const { iterationCount, usage: usageFromPreviousIterations } = inferenceState;
@@ -83,6 +85,15 @@ export const inferEntitySummaries = async (params: {
     tools,
     userAccountId,
     graphApiClient,
+    linkUsageRecordToEntities: flowEntityId
+      ? [
+          {
+            linkEntityTypeId:
+              "https://hash.ai/@hash/types/entity-type/incurred-in/v/1",
+            entityId: flowEntityId,
+          },
+        ]
+      : [],
   });
 
   if (llmResponse.status !== "ok") {

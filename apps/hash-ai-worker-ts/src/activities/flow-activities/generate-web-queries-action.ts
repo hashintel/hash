@@ -40,7 +40,7 @@ type ProposeQueryFunctionCallArguments = {
 
 export const generateWebQueriesAction: FlowActionActivity<{
   graphApiClient: GraphApi;
-}> = async ({ inputs, userAuthentication, graphApiClient }) => {
+}> = async ({ inputs, userAuthentication, graphApiClient, flowEntityId }) => {
   const { prompt, model } = getSimplifiedActionInputs({
     inputs,
     actionType: "generateWebQueries",
@@ -66,6 +66,13 @@ export const generateWebQueriesAction: FlowActionActivity<{
     tools,
     userAccountId: userAuthentication.actorId,
     graphApiClient,
+    linkUsageRecordToEntities: [
+      {
+        linkEntityTypeId:
+          "https://hash.ai/@hash/types/entity-type/incurred-in/v/1",
+        entityId: flowEntityId,
+      },
+    ],
   });
 
   if (llmResponse.status !== "ok") {

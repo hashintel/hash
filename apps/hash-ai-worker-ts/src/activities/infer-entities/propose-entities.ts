@@ -43,6 +43,7 @@ export const proposeEntities = async (params: {
   userAccountId: AccountId;
   graphApiClient: GraphApi;
   existingEntities?: Entity[];
+  flowEntityId: EntityId;
 }): Promise<Status<InferenceState>> => {
   const {
     maxTokens,
@@ -53,6 +54,7 @@ export const proposeEntities = async (params: {
     inferenceState,
     firstUserMessage,
     existingEntities,
+    flowEntityId,
   } = params;
 
   const {
@@ -196,6 +198,13 @@ export const proposeEntities = async (params: {
     temperature: 0,
     userAccountId,
     graphApiClient,
+    linkUsageRecordToEntities: [
+      {
+        linkEntityTypeId:
+          "https://hash.ai/@hash/types/entity-type/incurred-in/v/1",
+        entityId: flowEntityId,
+      },
+    ],
   });
 
   if (llmResponse.status !== "ok") {

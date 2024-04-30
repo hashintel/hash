@@ -1,3 +1,8 @@
+import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
+import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
+import type { EntityMetadata } from "@local/hash-graph-client";
+import type { AccountId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import Ajv from "ajv";
 import addFormats from "ajv-formats";
@@ -706,9 +711,121 @@ export const getLlmResponse = async <T extends LlmParams>(
     };
   }
 
+  let aiAssistantAccountId: AccountId;
+  try {
+    aiAssistantAccountId = await getMachineActorId(
+      { graphApi: graphApiClient },
+      { actorId: userAccountId },
+      { identifier: "hash-ai" },
+    );
+  } catch {
+    return {
+      status: "internal-error",
+      message: `Failed to retrieve AI assistant account ID ${userAccountId}`,
+    };
+  }
+
   const llmResponse = isLlmParamsAnthropicLlmParams(params)
     ? await getAnthropicResponse(params)
     : await getOpenAiResponse(params);
+
+  /**
+   * Capture incurred usage in a usage record.
+   */
+  if (
+    llmResponse.status === "ok" ||
+    llmResponse.status === "exceeded-maximum-retries"
+  ) {
+    const { usage } = llmResponse;
+
+    let usageRecordEntityMetadata: EntityMetadata;
+
+    try {
+      usageRecordEntityMetadata = await createUsageRecord(
+        { graphApi: graphApiClient },
+        { actorId: aiAssistantAccountId },
+        {
+          serviceName: isLlmParamsAnthropicLlmParams(params)
+            ? "Anthropic"
+            : "OpenAI",
+          featureName: params.model,
+          userAccountId,
+          inputUnitCount: usage.inputTokens,
+          outputUnitCount: usage.outputTokens,
+        },
+      );
+    } catch (error) {
+      return {
+        status: "internal-error",
+        message: `Failed to create usage record for AI assistant: ${stringify(error)}`,
+      };
+    }
+
+    const { linkUsageRecordToEntities } = params;
+
+    if (linkUsageRecordToEntities.length > 0) {
+      const hashInstanceAdminGroupId = await getHashInstanceAdminAccountGroupId(
+        { graphApi: graphApiClient },
+        { actorId: aiAssistantAccountId },
+      );
+
+      const errors = await Promise.all(
+        linkUsageRecordToEntities.map(
+          async ({ linkEntityTypeId, entityId }) => {
+            try {
+              await graphApiClient.createEntity(aiAssistantAccountId, {
+                draft: false,
+                properties: {},
+                ownedById: userAccountId,
+                entityTypeIds: [linkEntityTypeId],
+                linkData: {
+                  leftEntityId: usageRecordEntityMetadata.recordId.entityId,
+                  rightEntityId: entityId,
+                },
+                relationships: [
+                  {
+                    relation: "administrator",
+                    subject: {
+                      kind: "account",
+                      subjectId: aiAssistantAccountId,
+                    },
+                  },
+                  {
+                    relation: "viewer",
+                    subject: {
+                      kind: "account",
+                      subjectId: userAccountId,
+                    },
+                  },
+                  {
+                    relation: "viewer",
+                    subject: {
+                      kind: "accountGroup",
+                      subjectId: hashInstanceAdminGroupId,
+                    },
+                  },
+                ],
+              });
+
+              return [];
+            } catch (error) {
+              return {
+                status: "internal-error",
+                message: `Failed to link usage record to entity with ID ${entityId}: ${stringify(error)}`,
+              };
+            }
+          },
+        ),
+      ).then((unflattenedErrors) => unflattenedErrors.flat());
+
+      if (errors.length > 0) {
+        return {
+          status: "internal-error",
+          message: `Failed to link usage record to entities: ${stringify(errors)}`,
+        };
+      }
+    }
+  }
 
   return llmResponse as LlmResponse<T>;
 };

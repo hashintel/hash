@@ -10,7 +10,7 @@ import type {
   ProposedEntity,
   StepInput,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type { AccountId, Entity } from "@local/hash-subgraph";
+import type { AccountId, Entity, EntityId } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
@@ -378,8 +378,10 @@ const createInitialPlan = async (params: {
   retryCount?: number;
   userAccountId: AccountId;
   graphApiClient: GraphApi;
+  flowEntityId: EntityId;
 }): Promise<{ plan: string }> => {
-  const { input, retryMessages, userAccountId, graphApiClient } = params;
+  const { input, retryMessages, userAccountId, graphApiClient, flowEntityId } =
+    params;
 
   const systemPrompt = dedent(`
       ${generateSystemMessagePrefix({ input })}
@@ -405,6 +407,13 @@ const createInitialPlan = async (params: {
     tools: Object.values(toolDefinitions),
     userAccountId,
     graphApiClient,
+    linkUsageRecordToEntities: [
+      {
+        linkEntityTypeId:
+          "https://hash.ai/@hash/types/entity-type/incurred-in/v/1",
+        entityId: flowEntityId,
+      },
+    ],
   });
 
   if (llmResponse.status !== "ok") {
@@ -438,6 +447,7 @@ const createInitialPlan = async (params: {
       retryCount: (params.retryCount ?? 0) + 1,
       userAccountId,
       graphApiClient,
+      flowEntityId,
     });
   };
 
@@ -480,8 +490,9 @@ const getNextToolCalls = async (params: {
   state: InferEntitiesFromWebPageWorkerAgentState;
   userAccountId: AccountId;
   graphApiClient: GraphApi;
+  flowEntityId: EntityId;
 }): Promise<{ toolCalls: ParsedLlmToolCall<ToolName>[] }> => {
-  const { state, input, userAccountId, graphApiClient } = params;
+  const { state, input, userAccountId, graphApiClient, flowEntityId } = params;
 
   const submittedProposedEntities =
     getSubmittedProposedEntitiesFromState(state);
@@ -523,6 +534,13 @@ const getNextToolCalls = async (params: {
     tools: Object.values(toolDefinitions),
     userAccountId,
     graphApiClient,
+    linkUsageRecordToEntities: [
+      {
+        linkEntityTypeId:
+          "https://hash.ai/@hash/types/entity-type/incurred-in/v/1",
+        entityId: flowEntityId,
+      },
+    ],
   });
 
   if (llmResponse.status !== "ok") {
@@ -548,12 +566,19 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
   existingEntities?: Entity[];
   userAuthentication: { actorId: AccountId };
   graphApiClient: GraphApi;
+  flowEntityId: EntityId;
 }): Promise<
   Status<{
     inferredEntities: ProposedEntity[];
   }>
 > => {
-  const { userAuthentication, graphApiClient, url, existingEntities } = params;
+  const {
+    userAuthentication,
+    graphApiClient,
+    url,
+    existingEntities,
+    flowEntityId,
+  } = params;
 
   /**
    * We start by making a asking the coordinator agent to create an initial plan
@@ -578,6 +603,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     input,
     userAccountId: userAuthentication.actorId,
     graphApiClient,
+    flowEntityId,
   });
 
   logger.debug(`Worker agent initial plan: ${initialPlan}`);
@@ -598,6 +624,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     input,
     userAccountId: userAuthentication.actorId,
     graphApiClient,
+    flowEntityId,
   });
 
   const processToolCalls = async (processToolCallsParams: {
@@ -818,6 +845,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               ],
               userAuthentication,
               graphApiClient,
+              flowEntityId,
             });
 
             if (response.code !== StatusCode.Ok) {
@@ -918,6 +946,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
       input,
       userAccountId: userAuthentication.actorId,
       graphApiClient,
+      flowEntityId,
     });
 
     return await processToolCalls({

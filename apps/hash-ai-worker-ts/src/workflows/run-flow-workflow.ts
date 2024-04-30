@@ -14,7 +14,8 @@ import type {
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { validateFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
-import type { EntityUuid } from "@local/hash-subgraph";
+import type { EntityUuid, OwnedById } from "@local/hash-subgraph";
+import { entityIdFromComponents } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import {
@@ -230,6 +231,10 @@ export const runFlowWorkflow = async (
         actionResponse = await actionActivity({
           inputs: currentStep.inputs ?? [],
           userAuthentication,
+          flowEntityId: entityIdFromComponents(
+            userAuthentication.actorId as OwnedById,
+            flow.flowId,
+          ),
         });
       } catch (error) {
         log(

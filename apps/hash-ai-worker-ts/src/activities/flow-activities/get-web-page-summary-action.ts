@@ -25,7 +25,7 @@ const generateSummarizeWebPageSystemPrompt = (params: {
 
 export const getWebPageSummaryAction: FlowActionActivity<{
   graphApiClient: GraphApi;
-}> = async ({ inputs, userAuthentication, graphApiClient }) => {
+}> = async ({ inputs, userAuthentication, graphApiClient, flowEntityId }) => {
   const { url, model, numberOfSentences } = getSimplifiedActionInputs({
     inputs,
     actionType: "getWebPageSummary",
@@ -65,6 +65,13 @@ export const getWebPageSummaryAction: FlowActionActivity<{
     model: modelAliasToSpecificModel[model],
     userAccountId: userAuthentication.actorId,
     graphApiClient,
+    linkUsageRecordToEntities: [
+      {
+        linkEntityTypeId:
+          "https://hash.ai/@hash/types/entity-type/incurred-in/v/1",
+        entityId: flowEntityId,
+      },
+    ],
   });
 
   if (llmResponse.status !== "ok") {

@@ -11,7 +11,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { AccountId, EntityRootType } from "@local/hash-subgraph";
+import type { AccountId, EntityId, EntityRootType } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
@@ -156,6 +156,7 @@ const callModel = async (
   iteration: number,
   userAccountId: AccountId,
   graphApiClient: GraphApi,
+  flowEntityId: EntityId,
 ): Promise<
   Status<{
     outputs: StepOutput[];
@@ -169,6 +170,13 @@ const callModel = async (
     tools: answerTools,
     userAccountId,
     graphApiClient,
+    linkUsageRecordToEntities: [
+      {
+        linkEntityTypeId:
+          "https://hash.ai/@hash/types/entity-type/incurred-in/v/1",
+        entityId: flowEntityId,
+      },
+    ],
   });
 
   logger.debug(`Open AI Response received: ${stringify(llmResponse)}`);
@@ -279,6 +287,7 @@ const callModel = async (
             iteration + 1,
             userAccountId,
             graphApiClient,
+            flowEntityId,
           );
         }
 
@@ -364,6 +373,7 @@ const callModel = async (
       iteration + 1,
       userAccountId,
       graphApiClient,
+      flowEntityId,
     );
   }
 
@@ -384,12 +394,13 @@ const callModel = async (
     iteration + 1,
     userAccountId,
     graphApiClient,
+    flowEntityId,
   );
 };
 
 export const answerQuestionAction: FlowActionActivity<{
   graphApiClient: GraphApi;
-}> = async ({ graphApiClient, inputs, userAuthentication }) => {
+}> = async ({ graphApiClient, inputs, userAuthentication, flowEntityId }) => {
   const {
     context,
     entities: inputEntities,
@@ -529,5 +540,6 @@ export const answerQuestionAction: FlowActionActivity<{
     1,
     userAuthentication.actorId,
     graphApiClient,
+    flowEntityId,
   );
 };
