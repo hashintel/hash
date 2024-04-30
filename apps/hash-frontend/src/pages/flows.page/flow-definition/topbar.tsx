@@ -1,23 +1,18 @@
 import {
-  Box,
-  outlinedInputClasses,
-  Stack,
-  SxProps,
-  Theme,
-  Typography,
-} from "@mui/material";
-import {
+  AngleRightRegularIcon,
   InfinityLightIcon,
   PlayIconSolid,
   Select,
 } from "@hashintel/design-system";
-import { MenuItem } from "../../../shared/ui/menu-item";
+import type { SxProps, Theme } from "@mui/material";
+import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
 import { format } from "date-fns";
 import { useMemo } from "react";
+
+import { Button } from "../../../shared/ui/button";
+import { MenuItem } from "../../../shared/ui/menu-item";
 import { useFlowDefinitionsContext } from "./shared/flow-definitions-context";
 import { useFlowRunsContext } from "./shared/flow-runs-context";
-import { Button } from "../../../shared/ui/button";
-import { AngleRightRegularIcon } from "@hashintel/design-system";
 
 const typographySx: SxProps<Theme> = {
   color: ({ palette }) => palette.gray[70],

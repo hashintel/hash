@@ -1,12 +1,10 @@
 import "reactflow/dist/style.css";
 
 import { customColors } from "@hashintel/design-system/theme";
-import type { StepGroup } from "@local/hash-isomorphic-utils/flows/types";
 import { Box, Fade, Stack, Typography } from "@mui/material";
 import type { ElkNode } from "elkjs/lib/elk.bundled.js";
 import ELK from "elkjs/lib/elk.bundled.js";
 import { useEffect, useMemo } from "react";
-import type { Edge } from "reactflow";
 import ReactFlow, {
   Background,
   BackgroundVariant,

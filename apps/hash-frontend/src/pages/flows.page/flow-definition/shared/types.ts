@@ -7,7 +7,8 @@ import type {
   StepGroup,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { Edge, Node } from "reactflow";
-import { SimpleStatus } from "./flow-runs-context";
+
+import type { SimpleStatus } from "./flow-runs-context";
 
 export type NodeData = {
   kind: StepDefinition["kind"];

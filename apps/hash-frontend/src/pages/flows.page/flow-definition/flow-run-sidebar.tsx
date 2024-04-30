@@ -69,7 +69,7 @@ const ErrorIcon = ({ statusFor }: IconProps) => (
   <CloseIcon
     sx={{
       fill: ({ palette }) => palette.error.main,
-      ...iconSx[statusFor],
+      fontSize: iconSx[statusFor].fontSize - 1,
     }}
   />
 );
@@ -210,7 +210,15 @@ const GroupStatus = ({
         onClick={() => setShowSteps(!showSteps)}
       >
         <Stack direction="row">
-          <Box sx={{ width: 20, display: "flex", alignItems: "flex-start" }}>
+          <Box
+            sx={{
+              width: 18,
+              minWidth: 18,
+              mt: 0.1,
+              display: "flex",
+              alignItems: "flex-start",
+            }}
+          >
             {!groupStatus || groupStatus === "Waiting" ? (
               <WaitingIcon statusFor="group" />
             ) : groupStatus === "In Progress" ? (
@@ -223,7 +231,7 @@ const GroupStatus = ({
           </Box>
           <Typography
             variant="smallTextParagraphs"
-            sx={{ lineHeight: 1, ml: 1 }}
+            sx={{ lineHeight: 1.2, ml: 1.5 }}
           >
             {groupData.group?.description ?? "Flow"}
           </Typography>
@@ -234,6 +242,7 @@ const GroupStatus = ({
               fontSize: 12,
               fontWeight: 600,
               lineHeight: 1.3,
+              mt: 0.1,
               color: ({ palette }) =>
                 groupStatus === "In Progress"
                   ? palette.blue[70]

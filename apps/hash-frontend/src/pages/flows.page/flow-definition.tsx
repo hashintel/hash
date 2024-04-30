@@ -1,7 +1,6 @@
 import "reactflow/dist/style.css";
 
 import { useMutation } from "@apollo/client";
-import { PlayIconSolid, Select } from "@hashintel/design-system";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   FlowDefinition as FlowDefinitionType,
@@ -9,7 +8,7 @@ import type {
   ProposedEntity,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { Entity } from "@local/hash-subgraph";
-import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import { format } from "date-fns";
 import { useCallback, useMemo, useState } from "react";
 import { ReactFlowProvider } from "reactflow";
@@ -20,8 +19,6 @@ import type {
 } from "../../graphql/api-types.gen";
 import { startFlowMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { isNonNullable } from "../../lib/typeguards";
-import { Button } from "../../shared/ui/button";
-import { MenuItem } from "../../shared/ui/menu-item";
 import { Deliverables } from "./flow-definition/deliverables";
 import { EntityResultTable } from "./flow-definition/entity-result-table";
 import { FlowRunSidebar } from "./flow-definition/flow-run-sidebar";
