@@ -162,6 +162,8 @@ const inferEntities = async ({
     temperature,
     entityTypes,
     inferenceState,
+    userAccountId: userAuthenticationInfo.actorId,
+    graphApiClient,
   });
 
   logger.debug(

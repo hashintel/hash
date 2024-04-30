@@ -376,8 +376,10 @@ const createInitialPlan = async (params: {
   input: WorkerAgentInput;
   retryMessages?: LlmMessage[];
   retryCount?: number;
+  userAccountId: AccountId;
+  graphApiClient: GraphApi;
 }): Promise<{ plan: string }> => {
-  const { input, retryMessages } = params;
+  const { input, retryMessages, userAccountId, graphApiClient } = params;
 
   const systemPrompt = dedent(`
       ${generateSystemMessagePrefix({ input })}
@@ -401,6 +403,8 @@ const createInitialPlan = async (params: {
     messages,
     model,
     tools: Object.values(toolDefinitions),
+    userAccountId,
+    graphApiClient,
   });
 
   if (llmResponse.status !== "ok") {
@@ -432,6 +436,8 @@ const createInitialPlan = async (params: {
         },
       ],
       retryCount: (params.retryCount ?? 0) + 1,
+      userAccountId,
+      graphApiClient,
     });
   };
 
@@ -472,8 +478,10 @@ const getSubmittedProposedEntitiesFromState = (
 const getNextToolCalls = async (params: {
   input: WorkerAgentInput;
   state: InferEntitiesFromWebPageWorkerAgentState;
+  userAccountId: AccountId;
+  graphApiClient: GraphApi;
 }): Promise<{ toolCalls: ParsedLlmToolCall<ToolName>[] }> => {
-  const { state, input } = params;
+  const { state, input, userAccountId, graphApiClient } = params;
 
   const submittedProposedEntities =
     getSubmittedProposedEntitiesFromState(state);
@@ -513,6 +521,8 @@ const getNextToolCalls = async (params: {
     messages,
     model,
     tools: Object.values(toolDefinitions),
+    userAccountId,
+    graphApiClient,
   });
 
   if (llmResponse.status !== "ok") {
@@ -566,6 +576,8 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
 
   const { plan: initialPlan } = await createInitialPlan({
     input,
+    userAccountId: userAuthentication.actorId,
+    graphApiClient,
   });
 
   logger.debug(`Worker agent initial plan: ${initialPlan}`);
@@ -584,6 +596,8 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
   const { toolCalls: initialToolCalls } = await getNextToolCalls({
     state,
     input,
+    userAccountId: userAuthentication.actorId,
+    graphApiClient,
   });
 
   const processToolCalls = async (processToolCallsParams: {
@@ -902,6 +916,8 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     const { toolCalls: nextToolCalls } = await getNextToolCalls({
       state,
       input,
+      userAccountId: userAuthentication.actorId,
+      graphApiClient,
     });
 
     return await processToolCalls({

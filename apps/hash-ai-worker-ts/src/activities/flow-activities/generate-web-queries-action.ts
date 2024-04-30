@@ -1,3 +1,4 @@
+import type { GraphApi } from "@local/hash-graph-client";
 import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
@@ -37,9 +38,9 @@ type ProposeQueryFunctionCallArguments = {
   query: string;
 };
 
-export const generateWebQueriesAction: FlowActionActivity = async ({
-  inputs,
-}) => {
+export const generateWebQueriesAction: FlowActionActivity<{
+  graphApiClient: GraphApi;
+}> = async ({ inputs, userAuthentication, graphApiClient }) => {
   const { prompt, model } = getSimplifiedActionInputs({
     inputs,
     actionType: "generateWebQueries",
@@ -63,6 +64,8 @@ export const generateWebQueriesAction: FlowActionActivity = async ({
     ],
     model: modelAliasToSpecificModel[model],
     tools,
+    userAccountId: userAuthentication.actorId,
+    graphApiClient,
   });
 
   if (llmResponse.status !== "ok") {

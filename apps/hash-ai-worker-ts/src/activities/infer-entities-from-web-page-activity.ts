@@ -20,7 +20,7 @@ export const inferEntitiesFromWebPageActivity = async (params: {
   relevantEntitiesPrompt?: string;
   entityTypes: DereferencedEntityTypesByTypeId;
   inferenceState: InferenceState;
-  validationActorId: AccountId;
+  userAccountId: AccountId;
   model: PermittedOpenAiModel;
   graphApiClient: GraphApi;
   maxTokens?: number | null;
@@ -31,7 +31,7 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     webPage,
     relevantEntitiesPrompt,
     entityTypes,
-    validationActorId,
+    userAccountId,
     model,
     graphApiClient,
     inferenceState,
@@ -62,6 +62,8 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     maxTokens,
     temperature,
     existingEntities,
+    userAccountId,
+    graphApiClient,
   });
 
   logger.debug(
@@ -112,7 +114,7 @@ export const inferEntitiesFromWebPageActivity = async (params: {
   return await proposeEntities({
     maxTokens: maxTokens ?? undefined,
     firstUserMessage: proposeEntitiesPrompt,
-    validationActorId,
+    userAccountId,
     graphApiClient,
     entityTypes,
     inferenceState: {

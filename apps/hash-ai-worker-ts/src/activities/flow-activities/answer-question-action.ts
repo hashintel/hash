@@ -11,7 +11,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { EntityRootType } from "@local/hash-subgraph";
+import type { AccountId, EntityRootType } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
@@ -154,6 +154,8 @@ const callModel = async (
   context: string | null,
   codeUsed: string | null,
   iteration: number,
+  userAccountId: AccountId,
+  graphApiClient: GraphApi,
 ): Promise<
   Status<{
     outputs: StepOutput[];
@@ -165,6 +167,8 @@ const callModel = async (
     messages: mapOpenAiMessagesToLlmMessages({ messages }),
     temperature: 0,
     tools: answerTools,
+    userAccountId,
+    graphApiClient,
   });
 
   logger.debug(`Open AI Response received: ${stringify(llmResponse)}`);
@@ -273,6 +277,8 @@ const callModel = async (
             context,
             null,
             iteration + 1,
+            userAccountId,
+            graphApiClient,
           );
         }
 
@@ -356,6 +362,8 @@ const callModel = async (
       context,
       codeUsed,
       iteration + 1,
+      userAccountId,
+      graphApiClient,
     );
   }
 
@@ -374,6 +382,8 @@ const callModel = async (
     context,
     codeUsed,
     iteration + 1,
+    userAccountId,
+    graphApiClient,
   );
 };
 
@@ -512,5 +522,12 @@ export const answerQuestionAction: FlowActionActivity<{
     });
   }
 
-  return await callModel(messages, contextToUpload ?? null, null, 1);
+  return await callModel(
+    messages,
+    contextToUpload ?? null,
+    null,
+    1,
+    userAuthentication.actorId,
+    graphApiClient,
+  );
 };

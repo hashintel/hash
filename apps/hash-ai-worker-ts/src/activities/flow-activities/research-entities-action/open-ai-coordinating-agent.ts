@@ -100,10 +100,12 @@ export type CoordinatingAgentState = {
 const getNextToolCalls = async (params: {
   input: CoordinatingAgentInput;
   state: CoordinatingAgentState;
+  userAccountId: AccountId;
+  graphApiClient: GraphApi;
 }): Promise<{
   toolCalls: ParsedLlmToolCall<CoordinatorToolName>[];
 }> => {
-  const { input, state } = params;
+  const { input, state, userAccountId, graphApiClient } = params;
 
   const submittedProposedEntities = state.proposedEntities.filter(
     (proposedEntity) =>
@@ -160,6 +162,8 @@ const getNextToolCalls = async (params: {
     messages,
     model,
     tools,
+    userAccountId,
+    graphApiClient,
   });
 
   if (llmResponse.status !== "ok") {
@@ -178,8 +182,10 @@ const getNextToolCalls = async (params: {
 };
 const createInitialPlan = async (params: {
   input: CoordinatingAgentInput;
+  userAccountId: AccountId;
+  graphApiClient: GraphApi;
 }): Promise<{ plan: string }> => {
-  const { input } = params;
+  const { input, userAccountId, graphApiClient } = params;
 
   const systemPrompt = dedent(`
     ${generateSystemPromptPrefix({ input })}
@@ -197,6 +203,8 @@ const createInitialPlan = async (params: {
     tools: Object.values(coordinatorToolDefinitions).filter(
       ({ name }) => name !== "updatePlan",
     ),
+    userAccountId,
+    graphApiClient,
   });
 
   if (llmResponse.status !== "ok") {

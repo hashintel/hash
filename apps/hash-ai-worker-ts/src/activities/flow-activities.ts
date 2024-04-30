@@ -23,7 +23,14 @@ export const createFlowActionActivities = ({
   graphApiClient: GraphApi;
   vaultClient: VaultClient;
 }): Record<`${ActionDefinitionId}Action`, FlowActionActivity> => ({
-  generateWebQueriesAction,
+  async generateWebQueriesAction(
+    params: Omit<
+      Parameters<typeof generateWebQueriesAction>[0],
+      "graphApiClient"
+    >,
+  ) {
+    return generateWebQueriesAction({ ...params, graphApiClient });
+  },
   webSearchAction,
   getWebPageByUrlAction,
   async inferEntitiesFromContentAction(
@@ -57,7 +64,14 @@ export const createFlowActionActivities = ({
   ) {
     return researchEntitiesAction({ ...params, graphApiClient });
   },
-  getWebPageSummaryAction,
+  async getWebPageSummaryAction(
+    params: Omit<
+      Parameters<typeof getWebPageSummaryAction>[0],
+      "graphApiClient"
+    >,
+  ) {
+    return getWebPageSummaryAction({ ...params, graphApiClient });
+  },
   answerQuestionAction(
     params: Omit<Parameters<typeof answerQuestionAction>[0], "graphApiClient">,
   ) {

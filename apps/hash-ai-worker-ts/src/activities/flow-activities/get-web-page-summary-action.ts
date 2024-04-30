@@ -1,3 +1,4 @@
+import type { GraphApi } from "@local/hash-graph-client";
 import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 import {
   getSimplifiedActionInputs,
@@ -22,9 +23,9 @@ const generateSummarizeWebPageSystemPrompt = (params: {
     the web page.
   `);
 
-export const getWebPageSummaryAction: FlowActionActivity = async ({
-  inputs,
-}) => {
+export const getWebPageSummaryAction: FlowActionActivity<{
+  graphApiClient: GraphApi;
+}> = async ({ inputs, userAuthentication, graphApiClient }) => {
   const { url, model, numberOfSentences } = getSimplifiedActionInputs({
     inputs,
     actionType: "getWebPageSummary",
@@ -62,6 +63,8 @@ export const getWebPageSummaryAction: FlowActionActivity = async ({
       },
     ],
     model: modelAliasToSpecificModel[model],
+    userAccountId: userAuthentication.actorId,
+    graphApiClient,
   });
 
   if (llmResponse.status !== "ok") {

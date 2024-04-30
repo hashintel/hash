@@ -1,3 +1,4 @@
+import { StatusCode } from "@local/status";
 import Ajv from "ajv";
 import addFormats from "ajv-formats";
 import { isAxiosError } from "axios";
@@ -13,6 +14,7 @@ import type {
 } from "openai/resources";
 import { promptTokensEstimate } from "openai-chat-tokens";
 
+import { userExceededServiceUsageLimitActivity } from "../user-exceeded-service-usage-limit-activity";
 import { logger } from "./activity-logger";
 import type {
   AnthropicMessagesCreateResponse,
@@ -668,13 +670,30 @@ const getOpenAiResponse = async (
 export const getLlmResponse = async <T extends LlmParams>(
   params: T,
 ): Promise<LlmResponse<T>> => {
-  if (isLlmParamsAnthropicLlmParams(params)) {
-    const response = await getAnthropicResponse(params);
+  const { userAccountId, graphApiClient } = params;
 
-    return response as unknown as LlmResponse<T>;
-  } else {
-    const response = await getOpenAiResponse(params);
+  /**
+   * Check whether the user has exceeded their usage limit, before
+   * proceeding with the LLM request.
+   */
+  const userHasExceededUsageStatus =
+    await userExceededServiceUsageLimitActivity({
+      graphApiClient,
+      userAccountId,
+    });
 
-    return response as unknown as LlmResponse<T>;
+  if (userHasExceededUsageStatus.code !== StatusCode.Ok) {
+    return {
+      status: "exceeded-usage-limit",
+      message:
+        userHasExceededUsageStatus.message ??
+        "You have exceeded your usage limit.",
+    };
   }
+
+  const llmResponse = isLlmParamsAnthropicLlmParams(params)
+    ? await getAnthropicResponse(params)
+    : await getOpenAiResponse(params);
+
+  return llmResponse as LlmResponse<T>;
 };

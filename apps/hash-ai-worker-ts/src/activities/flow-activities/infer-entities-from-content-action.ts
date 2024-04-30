@@ -82,7 +82,7 @@ export const inferEntitiesFromContentAction: FlowActionActivity<{
     graphApiClient,
     webPage: content,
     relevantEntitiesPrompt,
-    validationActorId: userAuthentication.actorId,
+    userAccountId: userAuthentication.actorId,
     model: modelAliasToSpecificModel[model],
     entityTypes,
     inferenceState: webPageInferenceState,

@@ -1,5 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import type { Entity } from "@local/hash-subgraph";
+import type { GraphApi } from "@local/hash-graph-client";
+import type { AccountId, Entity } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
@@ -36,6 +37,8 @@ export const inferEntitySummaries = async (params: {
   inferenceState: InferenceState;
   providedOrRerequestedEntityTypes: Set<VersionedUrl>;
   existingEntities?: Entity[];
+  userAccountId: AccountId;
+  graphApiClient: GraphApi;
 }): Promise<Status<InferenceState>> => {
   const {
     completionPayload,
@@ -43,6 +46,8 @@ export const inferEntitySummaries = async (params: {
     inferenceState,
     providedOrRerequestedEntityTypes,
     existingEntities,
+    userAccountId,
+    graphApiClient,
   } = params;
 
   const { iterationCount, usage: usageFromPreviousIterations } = inferenceState;
@@ -76,6 +81,8 @@ export const inferEntitySummaries = async (params: {
       messages: completionPayload.messages,
     }),
     tools,
+    userAccountId,
+    graphApiClient,
   });
 
   if (llmResponse.status !== "ok") {

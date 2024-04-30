@@ -180,6 +180,8 @@ export const persistEntities = async (params: {
     }),
     tools,
     firstUserMessageIndex,
+    userAccountId: requestingUserAccountId,
+    graphApiClient,
   });
 
   if (llmResponse.status !== "ok") {

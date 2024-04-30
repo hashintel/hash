@@ -39,6 +39,8 @@ export const researchEntitiesAction: FlowActionActivity<{
    */
   const { plan: initialPlan } = await coordinatingAgent.createInitialPlan({
     input,
+    userAccountId: userAuthentication.actorId,
+    graphApiClient,
   });
 
   const state: CoordinatingAgentState = {
@@ -53,6 +55,8 @@ export const researchEntitiesAction: FlowActionActivity<{
     await coordinatingAgent.getNextToolCalls({
       input,
       state,
+      userAccountId: userAuthentication.actorId,
+      graphApiClient,
     });
 
   const getSubmittedProposedEntities = () =>
@@ -119,6 +123,7 @@ export const researchEntitiesAction: FlowActionActivity<{
                 ),
               ],
               userAuthentication,
+              graphApiClient,
             });
 
             if (response.code !== StatusCode.Ok) {
@@ -472,6 +477,8 @@ export const researchEntitiesAction: FlowActionActivity<{
       await coordinatingAgent.getNextToolCalls({
         input,
         state,
+        userAccountId: userAuthentication.actorId,
+        graphApiClient,
       });
 
     await processToolCalls({

@@ -40,7 +40,7 @@ export const proposeEntities = async (params: {
   previousMessages?: LlmMessage[];
   entityTypes: DereferencedEntityTypesByTypeId;
   inferenceState: InferenceState;
-  validationActorId: AccountId;
+  userAccountId: AccountId;
   graphApiClient: GraphApi;
   existingEntities?: Entity[];
 }): Promise<Status<InferenceState>> => {
@@ -48,7 +48,7 @@ export const proposeEntities = async (params: {
     maxTokens,
     previousMessages,
     entityTypes,
-    validationActorId,
+    userAccountId,
     graphApiClient,
     inferenceState,
     firstUserMessage,
@@ -194,6 +194,8 @@ export const proposeEntities = async (params: {
      * so set the `temperature` to `0`.
      */
     temperature: 0,
+    userAccountId,
+    graphApiClient,
   });
 
   if (llmResponse.status !== "ok") {
@@ -422,7 +424,7 @@ export const proposeEntities = async (params: {
                           })
                         : {};
 
-                      await graphApiClient.validateEntity(validationActorId, {
+                      await graphApiClient.validateEntity(userAccountId, {
                         entityTypes: [entityTypeId],
                         components: {
                           linkData: false,

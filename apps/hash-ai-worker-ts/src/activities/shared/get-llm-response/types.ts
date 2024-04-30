@@ -1,3 +1,5 @@
+import type { GraphApi } from "@local/hash-graph-client";
+import type { AccountId } from "@local/hash-subgraph";
 import type { AxiosError } from "axios";
 import type { JSONSchema } from "openai/lib/jsonschema";
 import type {
@@ -27,6 +29,13 @@ export type CommonLlmParams<ToolName extends string = string> = {
   retryCount?: number;
   systemPrompt?: string;
   messages: LlmMessage[];
+  /**
+   * Required for tracking usage on a per-user level.
+   *
+   * @todo: consider abstracting this as a `logUsage` method
+   */
+  userAccountId: AccountId;
+  graphApiClient: GraphApi;
 };
 
 export type AnthropicLlmParams<ToolName extends string = string> =
@@ -116,4 +125,8 @@ export type LlmResponse<T extends LlmParams> =
   | {
       status: "api-error";
       axiosError?: AxiosError;
+    }
+  | {
+      status: "exceeded-usage-limit";
+      message: string;
     };
