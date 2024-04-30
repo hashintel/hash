@@ -100,6 +100,7 @@ export const inferEntitySummaries = async (params: {
     return {
       code: StatusCode.Internal,
       contents: [],
+      message: `Error getting LLM response: ${"message" in llmResponse ? llmResponse.message : llmResponse.status}`,
     };
   }
 
