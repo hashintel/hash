@@ -2,7 +2,7 @@ locals {
   prefix                   = "${var.prefix}-app"
   log_group_name           = "${local.prefix}log"
   param_prefix             = "${var.param_prefix}/app"
-  app_grace_period_seconds = 500
+  app_grace_period_seconds = 300
   spicedb_task_defs        = [
     {
       task_def = local.spicedb_migration_container_def
