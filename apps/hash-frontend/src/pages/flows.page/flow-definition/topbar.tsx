@@ -138,12 +138,23 @@ export const Topbar = ({
           </>
         )}
       </Stack>
-      <Button onClick={handleRunFlowClicked} size="xs" sx={{ px: "14px" }}>
+      <Button
+        onClick={handleRunFlowClicked}
+        size="xs"
+        sx={{
+          px: "14px",
+          "&:before": { background: "transparent" },
+          "&:hover svg": {
+            fill: ({ palette }) => palette.common.white,
+          },
+        }}
+      >
         <PlayIconSolid
           sx={{
             fill: ({ palette }) => palette.blue[40],
             fontSize: 14,
             mr: 1,
+            transition: ({ transitions }) => transitions.create("fill"),
           }}
         />
         <Typography
