@@ -3,7 +3,7 @@ locals {
   log_group_name           = "${local.prefix}log"
   param_prefix             = "${var.param_prefix}/app"
   app_grace_period_seconds = 500
-  spicedb_task_defs = [
+  spicedb_task_defs        = [
     {
       task_def = local.spicedb_migration_container_def
       env_vars = aws_ssm_parameter.spicedb_migration_env_vars
@@ -149,7 +149,7 @@ resource "aws_lb" "app_alb" {
 
   security_groups = [aws_security_group.alb_sg.id]
   # Timeout is set to allow collab to use long polling and not closing after default 60 seconds.
-  idle_timeout = 4000
+  idle_timeout    = 4000
 }
 
 resource "aws_lb_target_group" "app_tg" {
@@ -167,7 +167,7 @@ resource "aws_lb_target_group" "app_tg" {
     timeout             = 10
     unhealthy_threshold = 3
   }
-  slow_start = 30
+  slow_start           = 30
   # Time between demoting state from 'draining' to 'unused'.
   # The default, 300s, makes it so we have multiple services running for 5 whole minutes.
   deregistration_delay = 30
@@ -216,13 +216,13 @@ resource "aws_lb_listener" "app_https" {
 
 # IAM role which allows ECS to pull the API Docker image from ECR
 resource "aws_iam_role" "execution_role" {
-  name = "${local.prefix}exerole"
+  name               = "${local.prefix}exerole"
   assume_role_policy = jsonencode({
-    Version = "2012-10-17"
+    Version   = "2012-10-17"
     Statement = [
       {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
+        Action    = "sts:AssumeRole"
+        Effect    = "Allow"
         Principal = {
           Service = "ecs-tasks.amazonaws.com"
         }
@@ -230,10 +230,10 @@ resource "aws_iam_role" "execution_role" {
     ]
   })
   inline_policy {
-    name = "policy"
+    name   = "policy"
     # Allow fetching images from ECR, publishing logs and getting secrets
     policy = jsonencode({
-      Version = "2012-10-17"
+      Version   = "2012-10-17"
       Statement = flatten([
         [
           {
@@ -244,8 +244,8 @@ resource "aws_iam_role" "execution_role" {
         ],
         [
           {
-            Effect = "Allow"
-            Action = ["ssm:GetParameters"]
+            Effect   = "Allow"
+            Action   = ["ssm:GetParameters"]
             Resource = concat(
               flatten([for def in local.task_defs : [for _, env_var in def.env_vars : env_var.arn]])
             )
@@ -253,8 +253,8 @@ resource "aws_iam_role" "execution_role" {
         ],
         [
           {
-            Effect = "Allow"
-            Action = ["ssm:GetParameters"]
+            Effect   = "Allow"
+            Action   = ["ssm:GetParameters"]
             Resource = concat(
               flatten([
                 for def in local.spicedb_task_defs : [for _, env_var in def.env_vars : env_var.arn]
@@ -264,8 +264,8 @@ resource "aws_iam_role" "execution_role" {
         ],
         [
           {
-            Effect = "Allow"
-            Action = ["ssm:GetParameters"]
+            Effect   = "Allow"
+            Action   = ["ssm:GetParameters"]
             Resource = concat(
               flatten([
                 for def in local.graph_task_defs : [for _, env_var in def.env_vars : env_var.arn]
@@ -275,8 +275,8 @@ resource "aws_iam_role" "execution_role" {
         ],
         [
           {
-            Effect = "Allow"
-            Action = ["ssm:GetParameters"]
+            Effect   = "Allow"
+            Action   = ["ssm:GetParameters"]
             Resource = concat(
               flatten([
                 for def in local.worker_task_defs : [for _, env_var in def.env_vars : env_var.arn]
@@ -306,13 +306,13 @@ resource "aws_iam_role_policy_attachment" "execution_role_exe" {
 
 # IAM role for the running task
 resource "aws_iam_role" "task_role" {
-  name = "${local.prefix}taskrole"
+  name               = "${local.prefix}taskrole"
   assume_role_policy = jsonencode({
-    Version = "2012-10-17"
+    Version   = "2012-10-17"
     Statement = [
       {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
+        Action    = "sts:AssumeRole"
+        Effect    = "Allow"
         Principal = {
           Service = "ecs-tasks.amazonaws.com"
         }
@@ -320,9 +320,9 @@ resource "aws_iam_role" "task_role" {
     ]
   })
   inline_policy {
-    name = "policy"
+    name   = "policy"
     policy = jsonencode({
-      Version = "2012-10-17"
+      Version   = "2012-10-17"
       Statement = [
         {
           # @todo: we can restrict the FROM address and more
@@ -372,7 +372,7 @@ resource "aws_ecs_task_definition" "worker_task" {
   network_mode             = "awsvpc"
   execution_role_arn       = aws_iam_role.execution_role.arn
   task_role_arn            = aws_iam_role.task_role.arn
-  container_definitions = jsonencode([
+  container_definitions    = jsonencode([
     for task_def in local.worker_task_defs : task_def.task_def
   ])
   tags = {}
@@ -390,7 +390,7 @@ resource "aws_ecs_service" "svc" {
   network_configuration {
     subnets          = var.subnets
     assign_public_ip = true
-    security_groups = [
+    security_groups  = [
       aws_security_group.app_sg.id,
     ]
   }
@@ -421,7 +421,7 @@ resource "aws_ecs_service" "worker" {
   network_configuration {
     subnets          = var.subnets
     assign_public_ip = true
-    security_groups = [
+    security_groups  = [
       aws_security_group.app_sg.id,
     ]
   }
