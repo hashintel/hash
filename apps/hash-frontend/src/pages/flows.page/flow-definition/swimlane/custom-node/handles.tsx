@@ -1,11 +1,14 @@
 import { Box, Typography } from "@mui/material";
 import { useState } from "react";
-import type { HandleProps } from "reactflow";
+import { HandleProps, useEdgesState } from "reactflow";
 import { Handle as BaseHandle, Handle, Position } from "reactflow";
 
 import { Modal } from "../../../../../shared/ui/modal";
 import { nodeDimensions, nodeTabHeight } from "../../shared/dimensions";
-import type { SimpleStatus } from "../../shared/flow-runs-context";
+import {
+  SimpleStatus,
+  useFlowRunsContext,
+} from "../../shared/flow-runs-context";
 import type { NodeData } from "../../shared/types";
 import { edgeColor } from "../shared/edge-styles";
 
@@ -86,12 +89,17 @@ export const Handles = ({
   kind,
   inputSources,
   actionDefinition,
+  stepId,
   stepStatusName,
 }: Pick<NodeData, "kind" | "inputSources" | "actionDefinition"> & {
+  stepId: string;
   stepStatusName: SimpleStatus;
 }) => {
   const [selectedProperty, setSelectedProperty] =
     useState<InputOrOutput | null>(null);
+
+  const [edges] = useEdgesState([]);
+  const { selectedFlowRun } = useFlowRunsContext();
 
   if (!actionDefinition && inputSources.length === 0) {
     return null;
@@ -107,6 +115,12 @@ export const Handles = ({
       required,
     }),
   );
+
+  const hideOutputHandle =
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- toggling to be added in follow up
+    !showAllDependencies &&
+    !!selectedFlowRun &&
+    !edges.find((edge) => edge.source === stepId);
 
   const inputs: Input[] = [];
 
@@ -161,7 +175,7 @@ export const Handles = ({
             }}
           />
         )}
-        {!!outputs.length && (
+        {!hideOutputHandle && !!outputs.length && (
           <Handle
             type="source"
             position={Position.Right}
