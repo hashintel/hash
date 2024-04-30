@@ -36,6 +36,7 @@ export type CommonLlmParams<ToolName extends string = string> = {
    */
   userAccountId: AccountId;
   graphApiClient: GraphApi;
+  previousUsage?: LlmUsage;
 };
 
 export type AnthropicLlmParams<ToolName extends string = string> =
@@ -121,6 +122,7 @@ export type LlmResponse<T extends LlmParams> =
     } & (T extends AnthropicLlmParams ? AnthropicResponse : OpenAiResponse))
   | {
       status: "exceeded-maximum-retries";
+      usage: LlmUsage;
     }
   | {
       status: "api-error";
@@ -128,5 +130,9 @@ export type LlmResponse<T extends LlmParams> =
     }
   | {
       status: "exceeded-usage-limit";
+      message: string;
+    }
+  | {
+      status: "internal-error";
       message: string;
     };

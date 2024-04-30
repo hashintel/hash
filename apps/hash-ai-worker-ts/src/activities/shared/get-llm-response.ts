@@ -231,6 +231,7 @@ const getAnthropicResponse = async (
     retryCount = 0,
     messages,
     systemPrompt,
+    previousUsage,
     ...remainingParams
   } = params;
 
@@ -268,12 +269,25 @@ const getAnthropicResponse = async (
     };
   }
 
+  const usage: LlmUsage = {
+    inputTokens:
+      (previousUsage?.inputTokens ?? 0) + anthropicResponse.usage.input_tokens,
+    outputTokens:
+      (previousUsage?.outputTokens ?? 0) +
+      anthropicResponse.usage.output_tokens,
+    totalTokens:
+      (previousUsage?.totalTokens ?? 0) +
+      anthropicResponse.usage.input_tokens +
+      anthropicResponse.usage.output_tokens,
+  };
+
   const retry = async (retryParams: {
     retryMessageContent: LlmUserMessage["content"];
   }): Promise<LlmResponse<AnthropicLlmParams>> => {
     if (retryCount > maxRetryCount) {
       return {
         status: "exceeded-maximum-retries",
+        usage,
       };
     }
 
@@ -357,14 +371,6 @@ const getAnthropicResponse = async (
     throw new Error("Unexpected user message in response");
   }
 
-  const usage: LlmUsage = {
-    inputTokens: anthropicResponse.usage.input_tokens,
-    outputTokens: anthropicResponse.usage.output_tokens,
-    totalTokens:
-      anthropicResponse.usage.input_tokens +
-      anthropicResponse.usage.output_tokens,
-  };
-
   const response: LlmResponse<AnthropicLlmParams> = {
     ...anthropicResponse,
     status: "ok",
@@ -385,6 +391,7 @@ const getOpenAiResponse = async (
     retryCount = 0,
     messages,
     systemPrompt,
+    previousUsage,
     ...remainingParams
   } = params;
 
@@ -472,12 +479,25 @@ const getOpenAiResponse = async (
     };
   }
 
+  const usage: LlmUsage = {
+    inputTokens:
+      (previousUsage?.inputTokens ?? 0) +
+      (openAiResponse.usage?.prompt_tokens ?? 0),
+    outputTokens:
+      (previousUsage?.outputTokens ?? 0) +
+      (openAiResponse.usage?.completion_tokens ?? 0),
+    totalTokens:
+      (previousUsage?.totalTokens ?? 0) +
+      (openAiResponse.usage?.total_tokens ?? 0),
+  };
+
   const retry = async (retryParams: {
     retryMessageContent: LlmUserMessage["content"];
   }): Promise<LlmResponse<OpenAiLlmParams>> => {
     if (retryCount > maxRetryCount) {
       return {
         status: "exceeded-maximum-retries",
+        usage,
       };
     }
 
@@ -504,6 +524,7 @@ const getOpenAiResponse = async (
           content: retryParams.retryMessageContent,
         },
       ],
+      previousUsage: usage,
     });
   };
 
@@ -645,12 +666,6 @@ const getOpenAiResponse = async (
   if (responseMessage.role === "user") {
     throw new Error("Unexpected user message in response");
   }
-
-  const usage: LlmUsage = {
-    inputTokens: openAiResponse.usage?.prompt_tokens ?? 0,
-    outputTokens: openAiResponse.usage?.completion_tokens ?? 0,
-    totalTokens: openAiResponse.usage?.total_tokens ?? 0,
-  };
 
   const response: LlmResponse<OpenAiLlmParams> = {
     ...openAiResponse,
