@@ -12,7 +12,7 @@ bytes = "1.6.0"
 enumflags2 = { version = "0.7.9", features = ["std"] }
 error-stack.workspace = true
 harpc-types.workspace = true
-thiserror = "1.0.58"
+thiserror = "1.0.59"
 tokio = { workspace = true, features = ["io-util"] }
 
 [dev-dependencies]
