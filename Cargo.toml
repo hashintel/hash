@@ -16,6 +16,8 @@ members = [
     "libs/@local/temporal-versioning",
     "tests/hash-graph-integration",
     "tests/hash-graph-test-data/rust",
+    "libs/@local/harpc/wire-protocol",
+    "libs/@local/harpc/types"
 ]
 exclude = [
     "libs/antsi",
@@ -48,6 +50,8 @@ graph-api.path = "apps/hash-graph/libs/api"
 validation.path = "libs/@local/hash-validation"
 hash-tracing.path = "libs/@local/tracing"
 type-system.path = "libs/@blockprotocol/type-system/rust"
+harpc-types.path = "libs/@local/harpc/types"
+harpc-wire.path = "libs/@local/harpc/wire-protocol"
 
 # External dependencies owned by HASH
 error-stack = { version = "0.4.1", default-features = false }
