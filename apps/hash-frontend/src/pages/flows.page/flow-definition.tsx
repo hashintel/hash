@@ -2,7 +2,6 @@ import "reactflow/dist/style.css";
 
 import { useMutation } from "@apollo/client";
 import { PlayIconSolid, Select } from "@hashintel/design-system";
-import { customColors } from "@hashintel/design-system/theme";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   FlowDefinition as FlowDefinitionType,
@@ -13,8 +12,7 @@ import type { Entity } from "@local/hash-subgraph";
 import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
 import { format } from "date-fns";
 import { useMemo, useState } from "react";
-import type { Edge } from "reactflow";
-import { MarkerType, ReactFlowProvider } from "reactflow";
+import { ReactFlowProvider } from "reactflow";
 
 import type {
   StartFlowMutation,
@@ -38,7 +36,9 @@ import {
   transitionOptions,
 } from "./flow-definition/shared/styles";
 import type {
+  CustomEdgeType,
   CustomNodeType,
+  EdgeData,
   FlowMaybeGrouped,
 } from "./flow-definition/shared/types";
 import {
@@ -120,18 +120,13 @@ const getGraphFromFlowDefinition = (
     return node;
   });
 
-  const derivedEdges: Edge[] = [];
+  const derivedEdges: CustomEdgeType[] = [];
   for (let i = 0; i < derivedNodes.length; i++) {
     const node = derivedNodes[i]!;
 
     const baseEdgeOptions = {
+      data: { sourceStatus: "Waiting" } satisfies EdgeData,
       type: "custom-edge",
-      markerEnd: {
-        type: MarkerType.Arrow,
-        width: 18,
-        height: 18,
-        color: customColors.gray[50],
-      },
       /**
        * If this isn't set, the edge container will have a zIndex of 0 and appear below a parent node,
        * meaning that edges between nodes in a sub-flow are not visible.
@@ -247,8 +242,6 @@ export const FlowDefinition = () => {
         ...derivedEdges.filter((edge) => edge.source === node.id),
       );
     }
-
-    console.log({ graphsByGroup });
 
     return graphsByGroup;
   }, [derivedNodes, derivedEdges, selectedFlow.groups]);

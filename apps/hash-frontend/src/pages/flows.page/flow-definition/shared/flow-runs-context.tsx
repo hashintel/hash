@@ -136,11 +136,14 @@ export const useStatusForSteps = (
 ): {
   closedAt?: string;
   scheduledAt?: string;
-  simpleStatus: SimpleStatus;
+  overallStatus: SimpleStatus;
+  statusByStep: Record<string, SimpleStatus>;
 } | null => {
   const { selectedFlowRun } = useFlowRunsContext();
 
   return useMemo(() => {
+    const statusByStep: Record<string, SimpleStatus> = {};
+
     if (!selectedFlowRun) {
       return null;
     }
@@ -151,7 +154,8 @@ export const useStatusForSteps = (
 
     if (stepRuns.length === 0) {
       return {
-        simpleStatus: "Waiting",
+        overallStatus: "Waiting",
+        statusByStep,
       };
     }
 
@@ -173,6 +177,8 @@ export const useStatusForSteps = (
 
       const simpleStatus = statusToSimpleStatus(stepRun.status);
 
+      statusByStep[stepRun.stepId] = simpleStatus;
+
       if (simpleStatus === "Error") {
         hasError = true;
       } else if (simpleStatus === "In Progress") {
@@ -193,7 +199,8 @@ export const useStatusForSteps = (
     return {
       closedAt,
       scheduledAt,
-      simpleStatus: status,
+      overallStatus: status,
+      statusByStep,
     };
   }, [selectedFlowRun, steps]);
 };

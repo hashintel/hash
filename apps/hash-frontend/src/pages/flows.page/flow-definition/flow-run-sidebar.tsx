@@ -170,7 +170,7 @@ const GroupStatus = ({
   const {
     closedAt,
     scheduledAt,
-    simpleStatus: groupStatus,
+    overallStatus: groupStatus,
   } = useStatusForSteps(groupStepsWithIds) ?? {};
 
   const [showSteps, setShowSteps] = useState(groupStatus === "In Progress");
@@ -209,23 +209,25 @@ const GroupStatus = ({
         sx={{ cursor: "pointer" }}
         onClick={() => setShowSteps(!showSteps)}
       >
-        <Box sx={{ width: 20 }}>
-          {!groupStatus || groupStatus === "Waiting" ? (
-            <WaitingIcon statusFor="group" />
-          ) : groupStatus === "In Progress" ? (
-            <InProgressIcon statusFor="group" />
-          ) : groupStatus === "Error" ? (
-            <ErrorIcon statusFor="group" />
-          ) : (
-            <SuccessIcon statusFor="group" />
-          )}
-        </Box>
-        <Typography
-          variant="smallTextParagraphs"
-          sx={{ lineHeight: 1, ml: 0.5 }}
-        >
-          {groupData.group?.description ?? "Flow"}
-        </Typography>
+        <Stack direction="row">
+          <Box sx={{ width: 20 }}>
+            {!groupStatus || groupStatus === "Waiting" ? (
+              <WaitingIcon statusFor="group" />
+            ) : groupStatus === "In Progress" ? (
+              <InProgressIcon statusFor="group" />
+            ) : groupStatus === "Error" ? (
+              <ErrorIcon statusFor="group" />
+            ) : (
+              <SuccessIcon statusFor="group" />
+            )}
+          </Box>
+          <Typography
+            variant="smallTextParagraphs"
+            sx={{ lineHeight: 1, ml: 1 }}
+          >
+            {groupData.group?.description ?? "Flow"}
+          </Typography>
+        </Stack>
         <Stack direction="row" gap={1}>
           <Typography
             sx={{
@@ -311,7 +313,7 @@ export const FlowRunSidebar = ({
           <Box>
             {groups.map((groupData) => (
               <GroupStatus
-                key={groupData.group?.groupId || "ungrouped"}
+                key={groupData.group?.groupId ?? "ungrouped"}
                 groupData={groupData}
               />
             ))}
