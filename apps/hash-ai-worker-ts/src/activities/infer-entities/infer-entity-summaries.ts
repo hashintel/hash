@@ -311,9 +311,9 @@ export const inferEntitySummaries = async (params: {
 
         retryMessages.push({
           content: dedent(`
-            You did not suggest any ${missingContentKinds} of the following types: ${typesWithNoSuggestionsToRerequest.join(
-              ", ",
-            )}.
+            You did not suggest any ${missingContentKinds} of the following types: ${typesWithNoSuggestionsToRerequest
+              .map(({ schema }) => schema.$id)
+              .join(", ")}.
             
             Please reconsider the input text to see if you can identify any ${missingContentKinds} of those types${existingEntities && existingEntities.length > 0 && isMissingLinks ? ", including whether any links can be created to the existing entities provided." : "."}
           `),
