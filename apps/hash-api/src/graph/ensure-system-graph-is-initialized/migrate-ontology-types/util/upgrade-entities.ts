@@ -22,7 +22,10 @@ import {
 } from "@local/hash-subgraph/type-system-patch";
 
 import type { ImpureGraphContext } from "../../../context-types";
-import { getEntities, updateEntity } from "../../../knowledge/primitive/entity";
+import {
+  getEntitySubgraph,
+  updateEntity,
+} from "../../../knowledge/primitive/entity";
 import { systemAccountId } from "../../../system-account";
 import type { MigrationState } from "../types";
 
@@ -50,8 +53,10 @@ export const upgradeWebEntities = async ({
 
   const webBotAuthentication = { actorId: webBotAccountId };
 
-  const existingEntities = await getEntities(context, webBotAuthentication, {
-    query: {
+  const existingEntities = await getEntitySubgraph(
+    context,
+    webBotAuthentication,
+    {
       filter: {
         all: [
           {
@@ -76,7 +81,7 @@ export const upgradeWebEntities = async ({
       includeDrafts: true,
       temporalAxes: currentTimeInstantTemporalAxes,
     },
-  }).then((subgraph) => getRoots(subgraph));
+  ).then((subgraph) => getRoots(subgraph));
 
   await Promise.all(
     existingEntities.map(async (entity) => {
