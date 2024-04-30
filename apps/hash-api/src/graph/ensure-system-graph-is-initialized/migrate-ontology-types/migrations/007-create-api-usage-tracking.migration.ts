@@ -1,4 +1,6 @@
-import type { OwnedById } from "@local/hash-subgraph";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import type { ServiceFeatureProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { Entity, OwnedById } from "@local/hash-subgraph";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 
 import { logger } from "../../../../logger";
@@ -281,6 +283,7 @@ const migrate: MigrationFunction = async ({
    * Step 3: Create the initial Service Feature entities
    */
   const initialServices = [
+    /** @see https://openai.com/pricing */
     {
       serviceName: "OpenAI",
       featureName: "gpt-4-1106-preview",
@@ -299,6 +302,55 @@ const migrate: MigrationFunction = async ({
       inputUnitCost: 0.000001,
       outputUnitCost: 0.000002,
     },
+    {
+      serviceName: "OpenAI",
+      featureName: "gpt-4-0125-preview",
+      inputUnitCost: 0.00001,
+      outputUnitCost: 0.00003,
+    },
+    {
+      serviceName: "OpenAI",
+      featureName: "gpt-4-turbo",
+      inputUnitCost: 0.00001,
+      outputUnitCost: 0.00003,
+    },
+    /** @see https://www.anthropic.com/api */
+    {
+      serviceName: "Anthropic",
+      featureName: "claude-3-opus-20240229",
+      inputUnitCost: 0.000015,
+      outputUnitCost: 0.000075,
+    },
+    {
+      serviceName: "Anthropic",
+      featureName: "claude-3-sonnet-20240229",
+      inputUnitCost: 0.000003,
+      outputUnitCost: 0.000015,
+    },
+    {
+      serviceName: "Anthropic",
+      featureName: "claude-3-haiku-20240307",
+      inputUnitCost: 0.00000025,
+      outputUnitCost: 0.00000125,
+    },
+    {
+      serviceName: "Anthropic",
+      featureName: "claude-2.1",
+      inputUnitCost: 0.000008,
+      outputUnitCost: 0.000024,
+    },
+    {
+      serviceName: "Anthropic",
+      featureName: "claude-2.0",
+      inputUnitCost: 0.000008,
+      outputUnitCost: 0.000024,
+    },
+    {
+      serviceName: "Anthropic",
+      featureName: "claude-instant-1.2",
+      inputUnitCost: 0.0000008,
+      outputUnitCost: 0.0000024,
+    },
   ];
 
   const hashOrg = await getOrgByShortname(context, authentication, {
@@ -311,13 +363,13 @@ const migrate: MigrationFunction = async ({
   }
   const hashOwnedById = hashOrg.accountGroupId;
 
-  const existingServiceFeatureEntities = await getEntitiesByType(
+  const existingServiceFeatureEntities = (await getEntitiesByType(
     context,
     authentication,
     {
       entityTypeId: serviceFeatureEntityType.schema.$id,
     },
-  );
+  )) as Entity<ServiceFeatureProperties>[];
 
   for (const {
     serviceName,
@@ -325,18 +377,21 @@ const migrate: MigrationFunction = async ({
     inputUnitCost,
     outputUnitCost,
   } of initialServices) {
-    if (
-      existingServiceFeatureEntities.some((entity) => {
-        const serviceNameProperty =
-          entity.properties[serviceNamePropertyType.metadata.recordId.baseUrl];
-        const featureNameProperty =
-          entity.properties[featureNamePropertyType.metadata.recordId.baseUrl];
+    const existingServiceFeatureEntity = existingServiceFeatureEntities.find(
+      (entity) => {
+        const {
+          serviceName: serviceNameProperty,
+          featureName: featureNameProperty,
+        } = simplifyProperties(entity.properties);
+
         return (
           serviceNameProperty === serviceName &&
           featureNameProperty === featureName
         );
-      })
-    ) {
+      },
+    );
+
+    if (existingServiceFeatureEntity) {
       logger.debug(
         `Skipping creation of service feature entity for ${serviceName}:${featureName} as it already exists`,
       );
