@@ -1,6 +1,9 @@
-use std::{collections::HashSet, error::Error, ptr};
+#[cfg(feature = "postgres")]
+use std::error::Error;
+use std::{collections::HashSet, ptr};
 
 pub use error::ParsePropertyTypeError;
+#[cfg(feature = "postgres")]
 use postgres_types::{private::BytesMut, FromSql, IsNull, Json, ToSql, Type};
 use serde::{Deserialize, Serialize};
 

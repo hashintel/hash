@@ -1,7 +1,10 @@
 use core::fmt;
-use std::{collections::HashMap, error::Error, ptr};
+#[cfg(feature = "postgres")]
+use std::error::Error;
+use std::{collections::HashMap, ptr};
 
 pub use error::ParseDataTypeError;
+#[cfg(feature = "postgres")]
 use postgres_types::{private::BytesMut, FromSql, IsNull, Json, ToSql, Type};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;

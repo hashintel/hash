@@ -5,13 +5,15 @@ pub(in crate::ontology) mod raw;
 #[cfg(target_arch = "wasm32")]
 mod wasm;
 
+#[cfg(feature = "postgres")]
+use std::error::Error;
 use std::{
     borrow::Borrow,
     collections::{HashMap, HashSet},
-    error::Error,
     ptr,
 };
 
+#[cfg(feature = "postgres")]
 use postgres_types::{private::BytesMut, FromSql, IsNull, Json, ToSql, Type};
 use serde::{Deserialize, Serialize};
 
