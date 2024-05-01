@@ -1361,6 +1361,13 @@ impl Column {
             _ => None,
         }
     }
+
+    pub const fn to_expression(self, table_alias: Option<Alias>) -> Expression {
+        Expression::ColumnReference {
+            column: self,
+            table_alias,
+        }
+    }
 }
 
 impl DatabaseColumn for Column {
