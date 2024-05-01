@@ -12,6 +12,7 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import type {
   AccountEntityId,
@@ -122,11 +123,9 @@ export const getUserById: ImpureGraphFunction<
 export const getUserByShortname: ImpureGraphFunction<
   { shortname: string; includeDrafts?: boolean },
   Promise<User | null>
-> = async (context, authentication, params) => {
-  const [userEntity, ...unexpectedEntities] = await getEntities(
-    context,
-    authentication,
-    {
+> = async ({ graphApi }, { actorId }, params) => {
+  const [userEntity, ...unexpectedEntities] = await graphApi
+    .getEntities(actorId, {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
@@ -152,8 +151,12 @@ export const getUserByShortname: ImpureGraphFunction<
       //   see https://linear.app/hash/issue/H-757
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: params.includeDrafts ?? false,
-    },
-  );
+    })
+    .then(({ data: response }) =>
+      response.entities.map((entity) =>
+        mapGraphApiEntityToEntity(entity, actorId),
+      ),
+    );
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
