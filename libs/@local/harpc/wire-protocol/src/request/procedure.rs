@@ -56,6 +56,7 @@ mod test {
     }
 
     #[test_strategy::proptest(async = "tokio")]
+    #[cfg_attr(miri, ignore)]
     async fn codec_id(id: ProcedureId) {
         assert_codec(&id, ()).await;
     }
@@ -86,6 +87,7 @@ mod test {
     }
 
     #[test_strategy::proptest(async = "tokio")]
+    #[cfg_attr(miri, ignore)]
     async fn codec(id: ProcedureDescriptor) {
         assert_codec(&id, ()).await;
     }

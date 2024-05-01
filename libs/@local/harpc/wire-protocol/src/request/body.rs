@@ -178,6 +178,7 @@ mod test {
     }
 
     #[test_strategy::proptest(async = "tokio")]
+    #[cfg_attr(miri, ignore)]
     async fn codec(body: RequestBody) {
         let context = RequestBodyContext {
             variant: (&body).into(),

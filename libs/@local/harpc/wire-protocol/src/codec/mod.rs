@@ -16,6 +16,7 @@ pub(crate) mod test {
     };
 
     #[test_strategy::proptest(async = "tokio")]
+    #[cfg_attr(miri, ignore)]
     async fn codec_u16(value: u16) {
         assert_codec(&value, ()).await;
     }
@@ -23,6 +24,7 @@ pub(crate) mod test {
     // 1024 ensures that we spill over into the second length byte while still having a good
     // runtime performance.
     #[test_strategy::proptest(async = "tokio")]
+    #[cfg_attr(miri, ignore)]
     async fn codec_bytes(#[any(size_range(0..1024).lift())] payload: Vec<u8>) {
         let buffer = Bytes::from(payload);
 
