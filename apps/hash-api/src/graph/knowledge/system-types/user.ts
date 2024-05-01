@@ -41,7 +41,6 @@ import type {
 import { systemAccountId } from "../../system-account";
 import {
   createEntity,
-  getEntities,
   getEntityOutgoingLinks,
   getLatestEntityById,
 } from "../primitive/entity";
@@ -168,7 +167,8 @@ export const getUserByShortname: ImpureGraphFunction<
 };
 
 /**
- * Get a system user entity by their kratos identity id.
+ * Get a system user entity by their kratos identity id – only to be used for resolving the requesting user,
+ * or checking for conflicts with an existing kratosIdentityId.
  *
  * @param params.kratosIdentityId - the kratos identity id
  */
@@ -176,10 +176,8 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
   { kratosIdentityId: string; includeDrafts?: boolean },
   Promise<User | null>
 > = async (context, authentication, params) => {
-  const [userEntity, ...unexpectedEntities] = await getEntities(
-    context,
-    authentication,
-    {
+  const [userEntity, ...unexpectedEntities] = await context.graphApi
+    .getEntities(authentication.actorId, {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
@@ -203,8 +201,17 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: params.includeDrafts ?? false,
-    },
-  );
+    })
+    .then(({ data: response }) =>
+      response.entities.map((entity) =>
+        /**
+         * We don't have the user's actorId yet, so the mapping function can't match the requesting user
+         * to the entity being sought – we pass 'true' to preserve their properties so that private properties aren't omitted.
+         * This function should only be used to return the user entity to a user who is authenticated with the correct kratosIdentityId.
+         */
+        mapGraphApiEntityToEntity(entity, null, true),
+      ),
+    );
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
