@@ -69,12 +69,6 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/github-account/",
   },
-  googleSheetsIntegration: {
-    entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/google-sheets-integration/v/1",
-    entityTypeBaseUrl:
-      "https://hash.ai/@hash/types/entity-type/google-sheets-integration/",
-  },
   graphChangeNotification: {
     entityTypeId:
       "https://hash.ai/@hash/types/entity-type/graph-change-notification/v/1",
@@ -162,6 +156,12 @@ export const systemEntityTypes = {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/service-feature/v/1",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/service-feature/",
+  },
+  spreadsheetFile: {
+    entityTypeId:
+      "https://hash.ai/@hash/types/entity-type/spreadsheet-file/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/spreadsheet-file/",
   },
   text: {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/text/v/1",
@@ -795,6 +795,12 @@ export const googleEntityTypes = {
   account: {
     entityTypeId: "https://hash.ai/@google/types/entity-type/account/v/1",
     entityTypeBaseUrl: "https://hash.ai/@google/types/entity-type/account/",
+  },
+  googleSheetsFile: {
+    entityTypeId:
+      "https://hash.ai/@google/types/entity-type/google-sheets-file/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@google/types/entity-type/google-sheets-file/",
   },
 } as const;
 

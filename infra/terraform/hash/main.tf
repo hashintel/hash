@@ -385,6 +385,18 @@ module "application" {
       value = sensitive(data.vault_kv_secret_v2.secrets.data["internal_api_key"])
     },
     {
+      name  = "HASH_VAULT_HOST", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_host"])
+    },
+    {
+      name  = "HASH_VAULT_PORT", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_port"])
+    },
+    {
+      name  = "HASH_VAULT_ROOT_TOKEN", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_root_token"])
+    },
+    {
       name  = "HASH_TEMPORAL_WORKER_AI_SENTRY_DSN", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_temporal_worker_ai_sentry_dsn"])
     },

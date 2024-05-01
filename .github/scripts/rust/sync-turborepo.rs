@@ -81,6 +81,8 @@ impl<'a> WorkspaceMember<'a> {
             }
         }
 
+        let dev_dependencies = &dev_dependencies - &dependencies;
+
         Self {
             package,
 

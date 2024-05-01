@@ -20,7 +20,7 @@ import type {
   User,
 } from "../../../../lib/user-and-org";
 import { Button } from "../../../../shared/ui";
-import { getImageUrlFromEntityProperties } from "../../get-image-url-from-properties";
+import { getImageUrlFromEntityProperties } from "../../get-file-properties";
 
 export const InviteAccountForm: FunctionComponent<{
   excludeAccountIds?: (AccountId | AccountGroupId)[];

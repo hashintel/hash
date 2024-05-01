@@ -1,8 +1,9 @@
 locals {
-  prefix            = "${var.prefix}-app"
-  log_group_name    = "${local.prefix}log"
-  param_prefix      = "${var.param_prefix}/app"
-  spicedb_task_defs = [
+  prefix                   = "${var.prefix}-app"
+  log_group_name           = "${local.prefix}log"
+  param_prefix             = "${var.param_prefix}/app"
+  app_grace_period_seconds = 300
+  spicedb_task_defs        = [
     {
       task_def = local.spicedb_migration_container_def
       env_vars = aws_ssm_parameter.spicedb_migration_env_vars
@@ -255,7 +256,9 @@ resource "aws_iam_role" "execution_role" {
             Effect   = "Allow"
             Action   = ["ssm:GetParameters"]
             Resource = concat(
-              flatten([for def in local.spicedb_task_defs : [for _, env_var in def.env_vars : env_var.arn]])
+              flatten([
+                for def in local.spicedb_task_defs : [for _, env_var in def.env_vars : env_var.arn]
+              ])
             )
           }
         ],
@@ -264,7 +267,9 @@ resource "aws_iam_role" "execution_role" {
             Effect   = "Allow"
             Action   = ["ssm:GetParameters"]
             Resource = concat(
-              flatten([for def in local.graph_task_defs : [for _, env_var in def.env_vars : env_var.arn]])
+              flatten([
+                for def in local.graph_task_defs : [for _, env_var in def.env_vars : env_var.arn]
+              ])
             )
           }
         ],
@@ -273,7 +278,9 @@ resource "aws_iam_role" "execution_role" {
             Effect   = "Allow"
             Action   = ["ssm:GetParameters"]
             Resource = concat(
-              flatten([for def in local.worker_task_defs : [for _, env_var in def.env_vars : env_var.arn]])
+              flatten([
+                for def in local.worker_task_defs : [for _, env_var in def.env_vars : env_var.arn]
+              ])
             )
           }
         ],
@@ -365,18 +372,21 @@ resource "aws_ecs_task_definition" "worker_task" {
   network_mode             = "awsvpc"
   execution_role_arn       = aws_iam_role.execution_role.arn
   task_role_arn            = aws_iam_role.task_role.arn
-  container_definitions    = jsonencode([for task_def in local.worker_task_defs : task_def.task_def])
-  tags                     = {}
+  container_definitions    = jsonencode([
+    for task_def in local.worker_task_defs : task_def.task_def
+  ])
+  tags = {}
 }
 
 resource "aws_ecs_service" "svc" {
-  depends_on             = [aws_iam_role.task_role, aws_ecs_service.spicedb]
-  name                   = "${local.prefix}svc"
-  cluster                = data.aws_ecs_cluster.ecs.arn
-  task_definition        = aws_ecs_task_definition.task.arn
-  enable_execute_command = true
-  desired_count          = 1
-  launch_type            = "FARGATE"
+  depends_on                        = [aws_iam_role.task_role, aws_ecs_service.spicedb]
+  name                              = "${local.prefix}svc"
+  cluster                           = data.aws_ecs_cluster.ecs.arn
+  task_definition                   = aws_ecs_task_definition.task.arn
+  enable_execute_command            = true
+  desired_count                     = 1
+  launch_type                       = "FARGATE"
+  health_check_grace_period_seconds = local.app_grace_period_seconds
   network_configuration {
     subnets          = var.subnets
     assign_public_ip = true

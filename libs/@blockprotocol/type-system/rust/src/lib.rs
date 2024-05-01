@@ -1,5 +1,4 @@
 #![feature(lint_reasons)]
-#![feature(generic_nonzero)]
 #![feature(extend_one)]
 #![allow(unsafe_code)]
 #![cfg_attr(

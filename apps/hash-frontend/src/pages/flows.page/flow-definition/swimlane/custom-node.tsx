@@ -5,6 +5,7 @@ import type { NodeProps } from "reactflow";
 
 import {
   statusToSimpleStatus,
+  useFlowRunsContext,
   useStatusForCurrentStep,
 } from "../shared/flow-runs-context";
 import type { NodeData } from "../shared/types";
@@ -19,6 +20,8 @@ const getTimeAgo = (isoString: string) =>
 
 export const CustomNode = ({ data, selected }: NodeProps<NodeData>) => {
   const statusData = useStatusForCurrentStep();
+
+  const { selectedFlowRun } = useFlowRunsContext();
 
   const { closedAt, scheduledAt } = statusData ?? {};
 
@@ -89,7 +92,7 @@ export const CustomNode = ({ data, selected }: NodeProps<NodeData>) => {
           </Typography>
         </Stack>
 
-        {!isParallelizedGroup && statusData && (
+        {!isParallelizedGroup && selectedFlowRun && (
           <Box
             sx={{
               background: styles.lightestBackground,

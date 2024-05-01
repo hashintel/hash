@@ -36,6 +36,18 @@ export const researchTaskFlowDefinition: FlowDefinition = {
         required: true,
       },
       {
+        payloadKind: "GoogleAccountId",
+        name: "Google Account",
+        array: false,
+        required: true,
+      },
+      {
+        payloadKind: "GoogleSheet",
+        name: "Google Sheet",
+        array: false,
+        required: true,
+      },
+      {
         payloadKind: "WebId",
         name: "Create in",
         array: false,
@@ -49,10 +61,21 @@ export const researchTaskFlowDefinition: FlowDefinition = {
       },
     ],
   },
+  groups: [
+    {
+      groupId: 1,
+      description: "Research and persist entities",
+    },
+    {
+      groupId: 2,
+      description: "Perform analysis and write to Google Sheet",
+    },
+  ],
   steps: [
     {
       stepId: "1",
       kind: "action",
+      groupId: 1,
       actionDefinitionId: "researchEntities",
       description:
         "Discover entities according to research specification, using public web sources",
@@ -75,6 +98,7 @@ export const researchTaskFlowDefinition: FlowDefinition = {
     {
       stepId: "2",
       kind: "action",
+      groupId: 1,
       description: "Save discovered entities and relationships to HASH graph",
       actionDefinitionId: "persistEntities",
       inputSources: [
@@ -102,6 +126,7 @@ export const researchTaskFlowDefinition: FlowDefinition = {
     },
     {
       stepId: "3",
+      groupId: 2,
       kind: "action",
       actionDefinitionId: "answerQuestion",
       description: "Answer user's question using discovered entities",
@@ -121,22 +146,68 @@ export const researchTaskFlowDefinition: FlowDefinition = {
         },
       ],
     },
+    {
+      stepId: "4",
+      groupId: 2,
+      kind: "action",
+      actionDefinitionId: "writeGoogleSheet",
+      description: "Save CSV to Google Sheet",
+      inputSources: [
+        {
+          inputName:
+            "audience" satisfies InputNameForAction<"writeGoogleSheet">,
+          kind: "hardcoded",
+          payload: {
+            kind: "ActorType",
+            value: "human",
+          },
+        },
+        {
+          inputName:
+            "googleAccountId" satisfies InputNameForAction<"writeGoogleSheet">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "Google Account",
+        },
+        {
+          inputName:
+            "googleSheet" satisfies InputNameForAction<"writeGoogleSheet">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "Google Sheet",
+        },
+        {
+          inputName: "webId" satisfies InputNameForAction<"writeGoogleSheet">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "Create in",
+        },
+        {
+          inputName:
+            "dataToWrite" satisfies InputNameForAction<"writeGoogleSheet">,
+          kind: "step-output",
+          sourceStepId: "3",
+          sourceStepOutputName:
+            "answer" satisfies OutputNameForAction<"answerQuestion">,
+        },
+      ],
+    },
   ],
   outputs: [
-    {
-      stepId: "2",
-      stepOutputName:
-        "persistedEntities" satisfies OutputNameForAction<"persistEntities">,
-      name: "persistedEntities" as const,
-      payloadKind: "PersistedEntities",
-      array: false,
-      required: true,
-    },
     {
       stepId: "3",
       stepOutputName: "answer" satisfies OutputNameForAction<"answerQuestion">,
       payloadKind: "Text",
       name: "answer" as const,
+      array: false,
+      required: true,
+    },
+    {
+      stepId: "4",
+      stepOutputName:
+        "googleSheetEntity" satisfies OutputNameForAction<"writeGoogleSheet">,
+      payloadKind: "Entity",
+      name: "googleSheetEntity" as const,
       array: false,
       required: true,
     },
@@ -336,7 +407,7 @@ export const ftseInvestorsFlowDefinition: FlowDefinition = {
       },
     },
     {
-      stepId: "5",
+      stepId: "4",
       groupId: 3,
       kind: "action",
       actionDefinitionId: "answerQuestion",
@@ -370,7 +441,7 @@ export const ftseInvestorsFlowDefinition: FlowDefinition = {
       required: true,
     },
     {
-      stepId: "5",
+      stepId: "4",
       stepOutputName: "answer" satisfies OutputNameForAction<"answerQuestion">,
       payloadKind: "Text",
       name: "answer" as const,
@@ -516,11 +587,35 @@ export const answerQuestionFlow: FlowDefinition = {
         array: false,
         required: true,
       },
+      {
+        payloadKind: "GoogleAccountId",
+        name: "Google Account",
+        array: false,
+        required: true,
+      },
+      {
+        payloadKind: "GoogleSheet",
+        name: "Google Sheet",
+        array: false,
+        required: true,
+      },
+      {
+        payloadKind: "WebId",
+        name: "Create in",
+        array: false,
+        required: true,
+      },
+      {
+        payloadKind: "Boolean",
+        name: "Create as draft",
+        array: false,
+        required: true,
+      },
     ],
   },
   steps: [
     {
-      stepId: "0",
+      stepId: "1",
       kind: "action",
       actionDefinitionId: "answerQuestion",
       description: "Answer question on the provided context",
@@ -539,18 +634,63 @@ export const answerQuestionFlow: FlowDefinition = {
         },
       ],
     },
+    {
+      stepId: "2",
+      kind: "action",
+      actionDefinitionId: "writeGoogleSheet",
+      description: "Save CSV to Google Sheet",
+      inputSources: [
+        {
+          inputName:
+            "audience" satisfies InputNameForAction<"writeGoogleSheet">,
+          kind: "hardcoded",
+          payload: {
+            kind: "ActorType",
+            value: "human",
+          },
+        },
+        {
+          inputName:
+            "googleAccountId" satisfies InputNameForAction<"writeGoogleSheet">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "Google Account",
+        },
+        {
+          inputName:
+            "googleSheet" satisfies InputNameForAction<"writeGoogleSheet">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "Google Sheet",
+        },
+        {
+          inputName: "webId" satisfies InputNameForAction<"writeGoogleSheet">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "Create in",
+        },
+        {
+          inputName:
+            "dataToWrite" satisfies InputNameForAction<"writeGoogleSheet">,
+          kind: "step-output",
+          sourceStepId: "1",
+          sourceStepOutputName:
+            "answer" satisfies OutputNameForAction<"answerQuestion">,
+        },
+      ],
+    },
   ],
   outputs: [
     {
-      stepId: "0",
+      stepId: "1",
       stepOutputName: "answer",
       name: "answer",
-      payloadKind: "Text",
+      payloadKind: "FormattedText",
       required: false,
       array: false,
     },
     {
-      stepId: "0",
+      stepId: "1",
       stepOutputName: "explanation",
       name: "explanation",
       payloadKind: "Text",
@@ -558,7 +698,7 @@ export const answerQuestionFlow: FlowDefinition = {
       array: false,
     },
     {
-      stepId: "0",
+      stepId: "1",
       stepOutputName: "code",
       name: "code",
       payloadKind: "Text",
@@ -566,12 +706,21 @@ export const answerQuestionFlow: FlowDefinition = {
       array: false,
     },
     {
-      stepId: "0",
+      stepId: "1",
       stepOutputName: "confidence",
       name: "confidence",
       payloadKind: "Number",
       required: false,
       array: false,
+    },
+    {
+      stepId: "2",
+      stepOutputName:
+        "googleSheetEntity" satisfies OutputNameForAction<"writeGoogleSheet">,
+      payloadKind: "Entity",
+      name: "googleSheetEntity" as const,
+      array: false,
+      required: true,
     },
   ],
 };

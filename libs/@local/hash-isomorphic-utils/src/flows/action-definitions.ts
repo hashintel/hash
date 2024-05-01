@@ -7,16 +7,17 @@ import type {
 } from "./types";
 
 const actionDefinitionIds = [
-  "generateWebQueries",
-  "webSearch",
-  "getWebPageByUrl",
-  "inferEntitiesFromContent",
-  "persistEntity",
-  "persistEntities",
-  "getFileFromUrl",
-  "researchEntities",
-  "getWebPageSummary",
   "answerQuestion",
+  "generateWebQueries",
+  "getFileFromUrl",
+  "getWebPageByUrl",
+  "getWebPageSummary",
+  "inferEntitiesFromContent",
+  "persistEntities",
+  "persistEntity",
+  "researchEntities",
+  "webSearch",
+  "writeGoogleSheet",
 ] as const;
 
 export type ActionDefinitionId = (typeof actionDefinitionIds)[number];
@@ -382,7 +383,7 @@ const actionDefinitionsAsConst = {
     ],
     outputs: [
       {
-        payloadKind: "Text",
+        payloadKind: "FormattedText",
         description: "The answer to the question, if one can be provided.",
         name: "answer",
         array: false,
@@ -408,6 +409,61 @@ const actionDefinitionsAsConst = {
         description: "Any source code used to generate the answer .",
         payloadKind: "Text",
         name: "sourceCode",
+        array: false,
+        required: false,
+      },
+    ],
+  },
+  writeGoogleSheet: {
+    actionDefinitionId: "writeGoogleSheet",
+    name: "Write Google Sheet Action",
+    description: "Writes the requested data to the specified Google Sheet",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: ["GoogleAccountId"],
+        description: "The Google account to write data to.",
+        name: "googleAccountId",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["GoogleSheet"],
+        description:
+          "An existing spreadsheet to write to, or the name of a new spreadsheet to create.",
+        name: "googleSheet",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["FormattedText", "PersistedEntities", "EntityId"],
+        description:
+          "The data to write to the Google Sheet, as one of: CSV-formatted text; entities; or the id of a query to retrieve the data via.",
+        name: "dataToWrite",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["ActorType"],
+        description:
+          "The type of audience for the Google Sheet, which affects formatting.",
+        name: "audience",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["WebId"],
+        description: "The web to save the file entity to.",
+        name: "webId",
+        required: true,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        payloadKind: "Entity",
+        description: "The entity representing the Google Sheet synced to.",
+        name: "googleSheetEntity",
         array: false,
         required: false,
       },
