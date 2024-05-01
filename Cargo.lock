@@ -1274,8 +1274,6 @@ dependencies = [
  "similar-asserts",
  "test-strategy",
  "thiserror",
- "tokio",
- "uuid",
 ]
 
 [[package]]
