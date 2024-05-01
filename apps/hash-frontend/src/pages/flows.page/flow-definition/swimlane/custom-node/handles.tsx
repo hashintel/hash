@@ -1,7 +1,7 @@
 import { Box, Typography } from "@mui/material";
 import { useState } from "react";
 import type { HandleProps } from "reactflow";
-import { Handle as BaseHandle, Handle, Position } from "reactflow";
+import { Handle as BaseHandle, Handle, Position, useEdges } from "reactflow";
 
 import { Modal } from "../../../../../shared/ui/modal";
 import { nodeDimensions, nodeTabHeight } from "../../shared/dimensions";
@@ -86,12 +86,16 @@ export const Handles = ({
   kind,
   inputSources,
   actionDefinition,
+  stepId,
   stepStatusName,
 }: Pick<NodeData, "kind" | "inputSources" | "actionDefinition"> & {
+  stepId: string;
   stepStatusName: SimpleStatus;
 }) => {
   const [selectedProperty, setSelectedProperty] =
     useState<InputOrOutput | null>(null);
+
+  const edges = useEdges();
 
   if (!actionDefinition && inputSources.length === 0) {
     return null;
@@ -107,6 +111,10 @@ export const Handles = ({
       required,
     }),
   );
+
+  const hideOutputHandle =
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- toggling to be added in follow up
+    !showAllDependencies && !edges.find((edge) => edge.source === stepId);
 
   const inputs: Input[] = [];
 
@@ -161,7 +169,7 @@ export const Handles = ({
             }}
           />
         )}
-        {!!outputs.length && (
+        {!hideOutputHandle && !!outputs.length && (
           <Handle
             type="source"
             position={Position.Right}

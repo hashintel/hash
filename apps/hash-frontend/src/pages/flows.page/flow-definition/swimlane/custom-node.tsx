@@ -18,7 +18,7 @@ const getTimeAgo = (isoString: string) =>
     addSuffix: true,
   });
 
-export const CustomNode = ({ data, selected }: NodeProps<NodeData>) => {
+export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
   const statusData = useStatusForCurrentStep();
 
   const { selectedFlowRun } = useFlowRunsContext();
@@ -124,6 +124,7 @@ export const CustomNode = ({ data, selected }: NodeProps<NodeData>) => {
           kind={data.kind}
           inputSources={data.inputSources}
           actionDefinition={data.actionDefinition}
+          stepId={id}
           stepStatusName={stepStatusName}
         />
       </Stack>

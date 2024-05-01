@@ -27,6 +27,7 @@ import {
 // import { Grid } from "../../../components/grid/grid";
 import { Cell } from "../../settings/organizations/shared/cell";
 import { OrgTable } from "../../settings/organizations/shared/org-table";
+import { flowSectionBorderRadius } from "./shared/styles";
 // import { renderChipCell } from "../../shared/chip-cell";
 
 const columns: SizedGridColumn[] = [
@@ -127,7 +128,7 @@ export const EntityResultTable = ({
       sx={{
         background: ({ palette }) => palette.common.white,
         border: ({ palette }) => `1px solid ${palette.gray[20]}`,
-        borderRadius: 2,
+        borderRadius: flowSectionBorderRadius,
         height: "100%",
         textAlign: "center",
         width: "50%",

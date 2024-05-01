@@ -1,12 +1,10 @@
 import "reactflow/dist/style.css";
 
 import { customColors } from "@hashintel/design-system/theme";
-import type { StepGroup } from "@local/hash-isomorphic-utils/flows/types";
 import { Box, Fade, Stack, Typography } from "@mui/material";
 import type { ElkNode } from "elkjs/lib/elk.bundled.js";
 import ELK from "elkjs/lib/elk.bundled.js";
 import { useEffect, useMemo } from "react";
-import type { Edge } from "reactflow";
 import ReactFlow, {
   Background,
   BackgroundVariant,
@@ -16,15 +14,21 @@ import ReactFlow, {
   useReactFlow,
 } from "reactflow";
 
+import { MarkerEnd } from "./marker-end";
 import { nodeTabHeight, parentGroupPadding } from "./shared/dimensions";
 import {
   useFlowRunsContext,
   useStatusForSteps,
 } from "./shared/flow-runs-context";
 import { transitionOptions } from "./shared/styles";
-import type { CustomNodeType } from "./shared/types";
+import type {
+  CustomNodeType,
+  GroupWithEdgesAndNodes,
+  UngroupedEdgesAndNodes,
+} from "./shared/types";
 import { CustomEdge } from "./swimlane/custom-edge";
 import { CustomNode } from "./swimlane/custom-node";
+import { edgeColor } from "./swimlane/shared/edge-styles";
 
 const nodeTypes = {
   action: CustomNode,
@@ -59,12 +63,6 @@ const parentGroupLayoutOptions: ElkNode["layoutOptions"] = {
   "elk.padding": `[left=${parentGroupPadding.base}, top=${parentGroupPadding.top}, bottom=${parentGroupPadding.base}, right=${parentGroupPadding.base}]`,
 };
 
-type DagProps = {
-  group?: StepGroup;
-  nodes: CustomNodeType[];
-  edges: Edge[];
-};
-
 type NodeWithChildren = CustomNodeType & { children: NodeWithChildren[] };
 
 const flattedNodesToElkNodes = (
@@ -90,6 +88,8 @@ const elkGraphToFlattenedPositionedNodes = (nodes: ElkNode[]): ElkNode[] => {
     ...elkGraphToFlattenedPositionedNodes(children ?? []),
   ]);
 };
+
+type DagProps = UngroupedEdgesAndNodes | GroupWithEdgesAndNodes;
 
 export const Swimlane = ({
   group,
@@ -148,7 +148,23 @@ export const Swimlane = ({
     [nodes],
   );
 
-  const groupStatus = useStatusForSteps(stepsWithIds);
+  const { overallStatus: groupStatus, statusByStep } =
+    useStatusForSteps(stepsWithIds) ?? {};
+
+  /**
+   * We need to specify the markerEnd for each edge when they are passed into ReactFlow,
+   * because only markers which are referenced by edges passed to it will be included in its EdgeRenderer.
+   */
+  const edgesWithLatestStatus = useMemo(() => {
+    return edges.map((edge) => {
+      const sourceStatus = statusByStep?.[edge.source] ?? "Waiting";
+      return {
+        ...edge,
+        markerEnd: edgeColor[sourceStatus],
+        data: { sourceStatus },
+      };
+    });
+  }, [edges, statusByStep]);
 
   return (
     <Stack
@@ -205,7 +221,7 @@ export const Swimlane = ({
           key={group?.groupId ?? "root"}
           nodes={nodes}
           nodeTypes={nodeTypes}
-          edges={edges}
+          edges={edgesWithLatestStatus}
           edgeTypes={edgeTypes}
           proOptions={{ hideAttribution: true }}
           preventScrolling={false}
@@ -214,6 +230,10 @@ export const Swimlane = ({
           // onNodesChange={onNodesChange}
           // onEdgesChange={onEdgesChange}
         >
+          {Object.values(edgeColor).map((color) => (
+            <MarkerEnd key={color} id={color} color={color} />
+          ))}
+
           <Fade in={!selectedFlowRun} timeout={transitionOptions.duration}>
             <div>
               <Background
