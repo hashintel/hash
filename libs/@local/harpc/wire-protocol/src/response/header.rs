@@ -1,10 +1,9 @@
-
 use bytes::{Buf, BufMut};
-use error_stack::{Report, ResultExt};
+use error_stack::{Result, ResultExt};
 
 use super::{flags::ResponseFlags, ResponseBody};
 use crate::{
-    codec::{Buffer, Decode, Encode},
+    codec::{Buffer, BufferError, Decode, Encode},
     protocol::Protocol,
     request::id::RequestId,
 };
@@ -36,15 +35,15 @@ impl ResponseHeader {
 }
 
 impl Encode for ResponseHeader {
-    type Error = !;
+    type Error = BufferError;
 
     fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
     where
         B: BufMut,
     {
-        let Ok(()) = self.protocol.encode(buffer);
-        let Ok(()) = self.request_id.encode(buffer);
-        let Ok(()) = self.flags.encode(buffer);
+        self.protocol.encode(buffer)?;
+        self.request_id.encode(buffer)?;
+        self.flags.encode(buffer)?;
 
         Ok(())
     }
@@ -52,7 +51,7 @@ impl Encode for ResponseHeader {
 
 impl Decode for ResponseHeader {
     type Context = ();
-    type Error = Report<ResponseHeaderDecodeError>;
+    type Error = ResponseHeaderDecodeError;
 
     fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
     where
@@ -91,8 +90,8 @@ mod test {
         },
     };
 
-    #[tokio::test]
-    async fn encode() {
+    #[test]
+    fn encode() {
         let header = ResponseHeader {
             protocol: Protocol {
                 version: ProtocolVersion::V1,
@@ -106,12 +105,11 @@ mod test {
             expect![[r#"
                 b'h' b'a' b'r' b'p' b'c' 0x01 0x02 0x03 0x04 0x05 0x00
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode() {
+    #[test]
+    fn decode() {
         #[rustfmt::skip]
         let buffer = &[
             b'h', b'a', b'r', b'p', b'c', 0x01, // protocol
@@ -120,7 +118,7 @@ mod test {
         ];
 
         assert_decode::<ResponseHeader>(
-            buffer,
+            buffer as &[_],
             &ResponseHeader {
                 protocol: Protocol {
                     version: ProtocolVersion::V1,
@@ -129,12 +127,11 @@ mod test {
                 flags: ResponseFlags::from(ResponseFlag::BeginOfResponse),
             },
             (),
-        )
-        .await;
+        );
     }
 
-    #[test_strategy::proptest(async = "tokio")]
-    async fn codec(header: ResponseHeader) {
-        assert_codec(&header, ()).await;
+    #[test_strategy::proptest]
+    fn codec(header: ResponseHeader) {
+        assert_codec(&header, ());
     }
 }

@@ -1,10 +1,9 @@
-
 use bytes::{Buf, BufMut};
-use error_stack::{Report, ResultExt};
+use error_stack::{Result, ResultExt};
 
 use super::{body::RequestBody, flags::RequestFlags, id::RequestId};
 use crate::{
-    codec::{Buffer, Decode, Encode},
+    codec::{Buffer, BufferError, Decode, Encode},
     protocol::Protocol,
 };
 
@@ -35,15 +34,15 @@ impl RequestHeader {
 }
 
 impl Encode for RequestHeader {
-    type Error = !;
+    type Error = BufferError;
 
     fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
     where
         B: BufMut,
     {
-        let Ok(()) = self.protocol.encode(buffer);
-        let Ok(()) = self.request_id.encode(buffer);
-        let Ok(()) = self.flags.encode(buffer);
+        self.protocol.encode(buffer)?;
+        self.request_id.encode(buffer)?;
+        self.flags.encode(buffer)?;
 
         Ok(())
     }
@@ -51,7 +50,7 @@ impl Encode for RequestHeader {
 
 impl Decode for RequestHeader {
     type Context = ();
-    type Error = Report<RequestHeaderDecodeError>;
+    type Error = RequestHeaderDecodeError;
 
     fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
     where
@@ -89,8 +88,8 @@ mod test {
         },
     };
 
-    #[tokio::test]
-    async fn encode() {
+    #[test]
+    fn encode() {
         let mut producer = RequestIdProducer::new();
 
         let header = RequestHeader {
@@ -106,16 +105,15 @@ mod test {
             expect![[r#"
                 b'h' b'a' b'r' b'p' b'c' 0x01 0x00 0x00 0x00 0x00 0x80
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode() {
+    #[test]
+    fn decode() {
         assert_decode::<RequestHeader>(
             &[
                 b'h', b'a', b'r', b'p', b'c', 0x01, 0x00, 0x00, 0x00, 0x00, 0x80,
-            ],
+            ] as &[_],
             &RequestHeader {
                 protocol: Protocol {
                     version: ProtocolVersion::V1,
@@ -124,12 +122,11 @@ mod test {
                 flags: RequestFlags::from(RequestFlag::BeginOfRequest),
             },
             (),
-        )
-        .await;
+        );
     }
 
-    #[test_strategy::proptest(async = "tokio")]
-    async fn encode_decode(header: RequestHeader) {
-        assert_codec(&header, ()).await;
+    #[test_strategy::proptest]
+    fn encode_decode(header: RequestHeader) {
+        assert_codec(&header, ());
     }
 }

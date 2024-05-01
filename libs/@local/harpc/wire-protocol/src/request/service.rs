@@ -1,6 +1,5 @@
-
 use bytes::{Buf, BufMut};
-use error_stack::Report;
+use error_stack::Result;
 use harpc_types::{service::ServiceId, version::Version};
 
 use crate::codec::{Buffer, BufferError, Decode, Encode};
@@ -13,14 +12,14 @@ pub struct ServiceDescriptor {
 }
 
 impl Encode for ServiceDescriptor {
-    type Error = !;
+    type Error = BufferError;
 
     fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
     where
         B: BufMut,
     {
-        let Ok(()) = self.id.encode(buffer);
-        let Ok(()) = self.version.encode(buffer);
+        self.id.encode(buffer)?;
+        self.version.encode(buffer)?;
 
         Ok(())
     }
@@ -28,7 +27,7 @@ impl Encode for ServiceDescriptor {
 
 impl Decode for ServiceDescriptor {
     type Context = ();
-    type Error = Report<BufferError>;
+    type Error = BufferError;
 
     fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
     where
@@ -52,8 +51,8 @@ mod test {
         request::service::ServiceDescriptor,
     };
 
-    #[tokio::test]
-    async fn encode() {
+    #[test]
+    fn encode() {
         let service = ServiceDescriptor {
             id: ServiceId::new(0x01_02),
             version: Version {
@@ -67,14 +66,13 @@ mod test {
             expect![[r#"
                 0x01 0x02 0x03 0x04
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode() {
+    #[test]
+    fn decode() {
         assert_decode(
-            &[0x12, 0x34, 0x56, 0x78],
+            &[0x12_u8, 0x34, 0x56, 0x78] as &[_],
             &ServiceDescriptor {
                 id: ServiceId::new(0x12_34),
                 version: Version {
@@ -83,12 +81,11 @@ mod test {
                 },
             },
             (),
-        )
-        .await;
+        );
     }
 
-    #[test_strategy::proptest(async = "tokio")]
-    async fn encode_decode(service: ServiceDescriptor) {
-        assert_codec(&service, ()).await;
+    #[test_strategy::proptest]
+    fn encode_decode(service: ServiceDescriptor) {
+        assert_codec(&service, ());
     }
 }

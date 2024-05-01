@@ -1,20 +1,19 @@
-
 use bytes::{Buf, BufMut};
-use error_stack::Report;
+use error_stack::Result;
 use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
 
 use super::{Buffer, BufferError, Decode};
 use crate::codec::Encode;
 
 impl Encode for Version {
-    type Error = !;
+    type Error = BufferError;
 
     fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
     where
         B: BufMut,
     {
-        buffer.push_number(self.major);
-        buffer.push_number(self.minor);
+        buffer.push_number(self.major)?;
+        buffer.push_number(self.minor)?;
 
         Ok(())
     }
@@ -22,7 +21,7 @@ impl Encode for Version {
 
 impl Decode for Version {
     type Context = ();
-    type Error = Report<BufferError>;
+    type Error = BufferError;
 
     fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
     where
@@ -36,7 +35,7 @@ impl Decode for Version {
 }
 
 impl Encode for ProcedureId {
-    type Error = !;
+    type Error = BufferError;
 
     fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
     where
@@ -48,7 +47,7 @@ impl Encode for ProcedureId {
 
 impl Decode for ProcedureId {
     type Context = ();
-    type Error = Report<BufferError>;
+    type Error = BufferError;
 
     fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
     where
@@ -59,7 +58,7 @@ impl Decode for ProcedureId {
 }
 
 impl Encode for ServiceId {
-    type Error = !;
+    type Error = BufferError;
 
     fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
     where
@@ -71,7 +70,7 @@ impl Encode for ServiceId {
 
 impl Decode for ServiceId {
     type Context = ();
-    type Error = Report<BufferError>;
+    type Error = BufferError;
 
     fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
     where
@@ -89,54 +88,51 @@ mod test {
 
     use crate::codec::test::{assert_codec, assert_decode, assert_encode};
 
-    #[tokio::test]
-    async fn encode_version() {
+    #[test]
+    fn encode_version() {
         let version = Version { major: 1, minor: 2 };
         assert_encode(
             &version,
             expect![[r#"
             0x01 0x02
         "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode_version() {
+    #[test]
+    fn decode_version() {
         assert_decode(
-            &[0x01, 0x02],
+            &[0x01_u8, 0x02] as &[_],
             &Version {
                 major: 0x01,
                 minor: 0x02,
             },
             (),
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn encode_service_id() {
+    #[test]
+    fn encode_service_id() {
         assert_encode(
             &ServiceId::new(0x01_02),
             expect![[r#"
                 0x01 0x02
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode_service_id() {
-        assert_decode(&[0x12, 0x34], &ServiceId::new(0x1234), ()).await;
+    #[test]
+    fn decode_service_id() {
+        assert_decode(&[0x12_u8, 0x34] as &[_], &ServiceId::new(0x1234), ());
     }
 
-    #[test_strategy::proptest(async = "tokio")]
-    async fn codec_service_id(id: ServiceId) {
-        assert_codec(&id, ()).await;
+    #[test_strategy::proptest]
+    fn codec_service_id(id: ServiceId) {
+        assert_codec(&id, ());
     }
 
-    #[test_strategy::proptest(async = "tokio")]
-    async fn codec_version(version: Version) {
-        assert_codec(&version, ()).await;
+    #[test_strategy::proptest]
+    fn codec_version(version: Version) {
+        assert_codec(&version, ());
     }
 }

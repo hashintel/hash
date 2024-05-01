@@ -1,6 +1,5 @@
-
 use bytes::{Buf, BufMut};
-use error_stack::Report;
+use error_stack::Result;
 
 use crate::codec::{Buffer, BufferError, Decode, Encode};
 
@@ -21,7 +20,7 @@ impl RequestId {
 }
 
 impl Encode for RequestId {
-    type Error = !;
+    type Error = BufferError;
 
     fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
     where
@@ -33,7 +32,7 @@ impl Encode for RequestId {
 
 impl Decode for RequestId {
     type Context = ();
-    type Error = Report<BufferError>;
+    type Error = BufferError;
 
     fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
     where
@@ -108,24 +107,27 @@ pub(crate) mod test {
         assert_eq!(producer.next().expect("infallible").0, 0);
     }
 
-    #[tokio::test]
-    async fn encode_id() {
+    #[test]
+    fn encode_id() {
         assert_encode(
             &RequestId(0x01_02_03_04),
             expect![[r#"
                 0x01 0x02 0x03 0x04
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode_id() {
-        assert_decode(&[0x12, 0x34, 0x56, 0x78], &RequestId(0x12_34_56_78), ()).await;
+    #[test]
+    fn decode_id() {
+        assert_decode(
+            &[0x12_u8, 0x34, 0x56, 0x78] as &[_],
+            &RequestId(0x12_34_56_78),
+            (),
+        );
     }
 
-    #[test_strategy::proptest(async = "tokio")]
-    async fn codec_id(id: RequestId) {
-        assert_codec(&id, ()).await;
+    #[test_strategy::proptest]
+    fn codec_id(id: RequestId) {
+        assert_codec(&id, ());
     }
 }

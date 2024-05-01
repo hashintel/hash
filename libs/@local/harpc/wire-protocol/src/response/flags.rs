@@ -1,7 +1,6 @@
-
 use bytes::{Buf, BufMut};
 use enumflags2::BitFlags;
-use error_stack::Report;
+use error_stack::Result;
 
 use super::body::ResponseBody;
 use crate::{
@@ -59,7 +58,7 @@ impl From<ResponseFlag> for ResponseFlags {
 }
 
 impl Encode for ResponseFlags {
-    type Error = !;
+    type Error = BufferError;
 
     fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
     where
@@ -73,7 +72,7 @@ impl Encode for ResponseFlags {
 
 impl Decode for ResponseFlags {
     type Context = ();
-    type Error = Report<BufferError>;
+    type Error = BufferError;
 
     fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
     where
@@ -98,8 +97,8 @@ mod test {
         response::flags::ResponseFlag,
     };
 
-    #[tokio::test]
-    async fn encode() {
+    #[test]
+    fn encode() {
         let flags = RequestFlags::from(RequestFlag::BeginOfRequest);
 
         assert_encode(
@@ -107,24 +106,22 @@ mod test {
             expect![[r#"
             0x80
         "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode() {
-        assert_decode(&[0x00], &RequestFlags::EMPTY, ()).await;
+    #[test]
+    fn decode() {
+        assert_decode(&[0x00_u8] as &[_], &RequestFlags::EMPTY, ());
 
         assert_decode(
-            &[0x01],
+            &[0x01_u8] as &[_],
             &ResponseFlags::from(ResponseFlag::EndOfResponse),
             (),
-        )
-        .await;
+        );
     }
 
-    #[test_strategy::proptest(async = "tokio")]
-    async fn codec(flags: ResponseFlags) {
-        assert_codec(&flags, ()).await;
+    #[test_strategy::proptest]
+    fn codec(flags: ResponseFlags) {
+        assert_codec(&flags, ());
     }
 }

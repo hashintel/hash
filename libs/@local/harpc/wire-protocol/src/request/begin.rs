@@ -1,11 +1,15 @@
 use bytes::{Buf, BufMut};
-use error_stack::{Report};
+use error_stack::{Result, ResultExt};
 
 use super::{procedure::ProcedureDescriptor, service::ServiceDescriptor};
 use crate::{
-    codec::{Buffer, BufferError, BytesEncodeError, Decode, Encode},
+    codec::{Buffer, BufferError, Decode, Encode},
     payload::Payload,
 };
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
+#[error("unable to encode request begin frame")]
+pub struct RequestBeginEncodeError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -17,26 +21,34 @@ pub struct RequestBegin {
 }
 
 impl Encode for RequestBegin {
-    type Error = Report<BytesEncodeError>;
+    type Error = RequestBeginEncodeError;
 
     fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
     where
         B: BufMut,
     {
-        let Ok(()) = self.service.encode(buffer);
+        self.service
+            .encode(buffer)
+            .change_context(RequestBeginEncodeError)?;
 
-        let Ok(()) = self.procedure.encode(buffer);
+        self.procedure
+            .encode(buffer)
+            .change_context(RequestBeginEncodeError)?;
 
         // write 13 empty bytes (reserved for future use)
-        buffer.push_repeat(0, 13);
+        buffer
+            .push_repeat(0, 13)
+            .change_context(RequestBeginEncodeError)?;
 
-        self.payload.encode(buffer)
+        self.payload
+            .encode(buffer)
+            .change_context(RequestBeginEncodeError)
     }
 }
 
 impl Decode for RequestBegin {
     type Context = ();
-    type Error = Report<BufferError>;
+    type Error = BufferError;
 
     fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
     where
@@ -95,8 +107,8 @@ mod test {
         0x00, 0x0D, b'H', b'e', b'l', b'l', b'o', b',', b' ', b'w', b'o', b'r', b'l', b'd', b'!',
     ];
 
-    #[tokio::test]
-    async fn encode() {
+    #[test]
+    fn encode() {
         assert_encode(
             &EXAMPLE_REQUEST,
             expect![[r#"
@@ -104,12 +116,11 @@ mod test {
                 0x00 0x00 0x00 0x00 '\r' b'H' b'e' b'l' b'l' b'o' b',' b' ' b'w' b'o' b'r' b'l'
                 b'd' b'!'
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode() {
+    #[test]
+    fn decode() {
         assert_decode(
             EXAMPLE_REQUEST_BYTES,
             &RequestBegin {
@@ -126,12 +137,11 @@ mod test {
                 payload: Payload::from_static(b"Hello, world!"),
             },
             (),
-        )
-        .await;
+        );
     }
 
-    #[test_strategy::proptest(async = "tokio")]
-    async fn codec(request: RequestBegin) {
-        assert_codec(&request, ()).await;
+    #[test_strategy::proptest]
+    fn codec(request: RequestBegin) {
+        assert_codec(&request, ());
     }
 }

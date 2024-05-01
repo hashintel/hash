@@ -29,7 +29,7 @@ impl Number for u8 {
     where
         B: BufMut,
     {
-        buf.put_u8(self)
+        buf.put_u8(self);
     }
 }
 
@@ -47,7 +47,7 @@ impl Number for u16 {
     where
         B: BufMut,
     {
-        buf.put_u16(self)
+        buf.put_u16(self);
     }
 }
 
@@ -65,14 +65,16 @@ impl Number for u32 {
     where
         B: BufMut,
     {
-        buf.put_u32(self)
+        buf.put_u32(self);
     }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, thiserror::Error)]
 pub enum BufferError {
-    #[error("buffer underflow; early end of stream")]
+    #[error("early end of stream")]
     EarlyEndOfStream,
+    #[error("not enough capacity to write to buffer")]
+    NotEnoughCapacity,
 }
 
 pub struct Buffer<'a, B>(&'a mut B);
@@ -129,21 +131,45 @@ impl<'a, B> Buffer<'a, B>
 where
     B: BufMut,
 {
-    pub(crate) fn push_number<N: Number>(&mut self, number: N) {
+    pub(crate) fn push_number<N: Number>(&mut self, number: N) -> Result<(), BufferError> {
+        if self.0.remaining_mut() < N::WIDTH {
+            return Err(Report::new(BufferError::NotEnoughCapacity));
+        }
+
         number.unchecked_write_to_buf(&mut self.0);
+
+        Ok(())
     }
 
-    pub(crate) fn push_bytes(&mut self, bytes: &Bytes) {
+    pub(crate) fn push_bytes(&mut self, bytes: &Bytes) -> Result<(), BufferError> {
+        if self.0.remaining_mut() < bytes.len() {
+            return Err(Report::new(BufferError::NotEnoughCapacity));
+        }
+
         let cursor = Cursor::new(bytes);
 
         self.0.put(cursor);
+
+        Ok(())
     }
 
-    pub(crate) fn push_slice(&mut self, slice: &[u8]) {
+    pub(crate) fn push_slice(&mut self, slice: &[u8]) -> Result<(), BufferError> {
+        if self.0.remaining_mut() < slice.len() {
+            return Err(Report::new(BufferError::NotEnoughCapacity));
+        }
+
         self.0.put_slice(slice);
+
+        Ok(())
     }
 
-    pub(crate) fn push_repeat(&mut self, byte: u8, count: usize) {
+    pub(crate) fn push_repeat(&mut self, byte: u8, count: usize) -> Result<(), BufferError> {
+        if self.0.remaining_mut() < count {
+            return Err(Report::new(BufferError::NotEnoughCapacity));
+        }
+
         self.0.put_bytes(byte, count);
+
+        Ok(())
     }
 }

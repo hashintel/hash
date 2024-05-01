@@ -1,11 +1,14 @@
-
 use bytes::{Buf, BufMut};
-use error_stack::Report;
+use error_stack::{Result, ResultExt};
 
 use crate::{
-    codec::{Buffer, BufferError, BytesEncodeError, Decode, Encode},
+    codec::{Buffer, BufferError, Decode, Encode},
     payload::Payload,
 };
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
+#[error("unable to encode response frame")]
+pub struct ResponseFrameEncodeError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -14,22 +17,26 @@ pub struct ResponseFrame {
 }
 
 impl Encode for ResponseFrame {
-    type Error = Report<BytesEncodeError>;
+    type Error = ResponseFrameEncodeError;
 
     fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
     where
         B: BufMut,
     {
         // 19 bytes of reserved space
-        buffer.push_repeat(0, 19);
+        buffer
+            .push_repeat(0, 19)
+            .change_context(ResponseFrameEncodeError)?;
 
-        self.payload.encode(buffer)
+        self.payload
+            .encode(buffer)
+            .change_context(ResponseFrameEncodeError)
     }
 }
 
 impl Decode for ResponseFrame {
     type Context = ();
-    type Error = Report<BufferError>;
+    type Error = BufferError;
 
     fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
     where
@@ -55,8 +62,8 @@ mod test {
         response::frame::ResponseFrame,
     };
 
-    #[tokio::test]
-    async fn encode() {
+    #[test]
+    fn encode() {
         let frame = ResponseFrame {
             payload: Payload::new(b"hello world" as &[_]),
         };
@@ -67,28 +74,26 @@ mod test {
                 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
                 0x00 0x00 0x00 0x00 0x0B b'h' b'e' b'l' b'l' b'o' b' ' b'w' b'o' b'r' b'l' b'd'
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode() {
+    #[test]
+    fn decode() {
         assert_decode(
             &[
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0B, b'h', b'e', b'l', b'l', b'o', b' ', b'w',
                 b'o', b'r', b'l', b'd',
-            ],
+            ] as &[_],
             &ResponseFrame {
                 payload: Payload::from_static(b"hello world" as &[_]),
             },
             (),
-        )
-        .await;
+        );
     }
 
-    #[test_strategy::proptest(async = "tokio")]
-    async fn codec(frame: ResponseFrame) {
-        assert_codec(&frame, ()).await;
+    #[test_strategy::proptest]
+    fn codec(frame: ResponseFrame) {
+        assert_codec(&frame, ());
     }
 }

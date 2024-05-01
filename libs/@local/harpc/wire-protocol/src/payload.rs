@@ -1,6 +1,5 @@
-
 use bytes::{Buf, BufMut, Bytes};
-use error_stack::Report;
+use error_stack::Result;
 
 use crate::codec::{Buffer, BufferError, BytesEncodeError, Decode, Encode};
 
@@ -33,7 +32,7 @@ impl Payload {
 }
 
 impl Encode for Payload {
-    type Error = Report<BytesEncodeError>;
+    type Error = BytesEncodeError;
 
     fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
     where
@@ -45,7 +44,7 @@ impl Encode for Payload {
 
 impl Decode for Payload {
     type Context = ();
-    type Error = Report<BufferError>;
+    type Error = BufferError;
 
     fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
     where
@@ -66,31 +65,29 @@ mod test {
         payload::Payload,
     };
 
-    #[tokio::test]
-    async fn encode() {
+    #[test]
+    fn encode() {
         assert_encode(
             &Payload(Bytes::from_static(b"hello world")),
             expect![[r#"
                 0x00 0x0B b'h' b'e' b'l' b'l' b'o' b' ' b'w' b'o' b'r' b'l' b'd'
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode() {
+    #[test]
+    fn decode() {
         assert_decode(
             &[
                 0x00, 0x0B, b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd',
-            ],
+            ] as &[_],
             &Payload::from_static(b"hello world"),
             (),
-        )
-        .await;
+        );
     }
 
-    #[test_strategy::proptest(async = "tokio")]
-    async fn encode_decode(payload: Payload) {
-        assert_codec(&payload, ()).await;
+    #[test_strategy::proptest]
+    fn encode_decode(payload: Payload) {
+        assert_codec(&payload, ());
     }
 }

@@ -1,9 +1,9 @@
 use core::fmt::Display;
 
 use bytes::{Buf, BufMut};
-use error_stack::{Report, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 
-use crate::codec::{Buffer, Decode, Encode};
+use crate::codec::{Buffer, BufferError, Decode, Encode};
 
 const MAGIC_LEN: usize = 5;
 const MAGIC: &[u8; MAGIC_LEN] = b"harpc";
@@ -36,7 +36,7 @@ impl Display for ProtocolVersion {
 }
 
 impl Encode for ProtocolVersion {
-    type Error = !;
+    type Error = BufferError;
 
     fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
     where
@@ -48,7 +48,7 @@ impl Encode for ProtocolVersion {
 
 impl Decode for ProtocolVersion {
     type Context = ();
-    type Error = Report<ProtocolVersionDecodeError>;
+    type Error = ProtocolVersionDecodeError;
 
     fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
     where
@@ -89,13 +89,13 @@ pub struct Protocol {
 }
 
 impl Encode for Protocol {
-    type Error = !;
+    type Error = BufferError;
 
     fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
     where
         B: BufMut,
     {
-        buffer.push_slice(MAGIC);
+        buffer.push_slice(MAGIC)?;
 
         self.version.encode(buffer)
     }
@@ -103,7 +103,7 @@ impl Encode for Protocol {
 
 impl Decode for Protocol {
     type Context = ();
-    type Error = Report<ProtocolDecodeError>;
+    type Error = ProtocolDecodeError;
 
     fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
     where
@@ -134,48 +134,39 @@ mod test {
 
     use super::Protocol;
     use crate::{
-        codec::{
-            test::{assert_codec, assert_decode, assert_encode},
-            Decode,
-        },
+        codec::test::{assert_codec, assert_decode, assert_decode_error, assert_encode},
         protocol::{ProtocolVersion, ProtocolVersionDecodeError},
     };
 
-    #[tokio::test]
-    async fn encode_version() {
+    #[test]
+    fn encode_version() {
         assert_encode(
             &ProtocolVersion::V1,
             expect![[r#"
             0x01
         "#]],
-        )
-        .await;
-    }
-
-    #[tokio::test]
-    async fn decode_version() {
-        assert_decode(&[0x01], &ProtocolVersion::V1, ()).await;
-    }
-
-    #[tokio::test]
-    async fn decode_version_invalid() {
-        let report = ProtocolVersion::decode(&[0x02_u8] as &[_], ())
-            .await
-            .expect_err("should fail to decode");
-
-        let context = *report.current_context();
-
-        assert_eq!(
-            context,
-            ProtocolVersionDecodeError::Unsupported {
-                actual: ProtocolVersion(2),
-                expected: ProtocolVersion::V1
-            }
         );
     }
 
-    #[tokio::test]
-    async fn encode_protocol() {
+    #[test]
+    fn decode_version() {
+        assert_decode(&[0x01_u8] as &[_], &ProtocolVersion::V1, ());
+    }
+
+    #[test]
+    fn decode_version_invalid() {
+        assert_decode_error::<ProtocolVersion>(
+            &[0x02_u8] as &[_],
+            &ProtocolVersionDecodeError::Unsupported {
+                actual: ProtocolVersion(2),
+                expected: ProtocolVersion::V1,
+            },
+            (),
+        );
+    }
+
+    #[test]
+    fn encode_protocol() {
         assert_encode(
             &crate::protocol::Protocol {
                 version: ProtocolVersion::V1,
@@ -183,29 +174,27 @@ mod test {
             expect![[r#"
                 b'h' b'a' b'r' b'p' b'c' 0x01
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode_protocol() {
+    #[test]
+    fn decode_protocol() {
         assert_decode(
-            &[b'h', b'a', b'r', b'p', b'c', 0x01],
+            &[b'h', b'a', b'r', b'p', b'c', 0x01] as &[_],
             &Protocol {
                 version: ProtocolVersion::V1,
             },
             (),
-        )
-        .await;
+        );
     }
 
-    #[test_strategy::proptest(async = "tokio")]
-    async fn codec_version(version: ProtocolVersion) {
-        assert_codec(&version, ()).await;
+    #[test_strategy::proptest]
+    fn codec_version(version: ProtocolVersion) {
+        assert_codec(&version, ());
     }
 
-    #[test_strategy::proptest(async = "tokio")]
-    async fn codec_protocol(protocol: crate::protocol::Protocol) {
-        assert_codec(&protocol, ()).await;
+    #[test_strategy::proptest]
+    fn codec_protocol(protocol: Protocol) {
+        assert_codec(&protocol, ());
     }
 }

@@ -1,11 +1,15 @@
 use bytes::{Buf, BufMut};
-use error_stack::{Report};
+use error_stack::{Result, ResultExt};
 
 use super::kind::ResponseKind;
 use crate::{
-    codec::{Buffer, BufferError, BytesEncodeError, Decode, Encode},
+    codec::{Buffer, BufferError, Decode, Encode},
     payload::Payload,
 };
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
+#[error("unable to encode response begin frame")]
+pub struct ResponseBeginEncodeError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -16,24 +20,30 @@ pub struct ResponseBegin {
 }
 
 impl Encode for ResponseBegin {
-    type Error = Report<BytesEncodeError>;
+    type Error = ResponseBeginEncodeError;
 
     fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
     where
         B: BufMut,
     {
         // 17 bytes of reserved space
-        buffer.push_repeat(0, 17);
+        buffer
+            .push_repeat(0, 17)
+            .change_context(ResponseBeginEncodeError)?;
 
-        let Ok(()) = self.kind.encode(buffer);
+        self.kind
+            .encode(buffer)
+            .change_context(ResponseBeginEncodeError)?;
 
-        self.payload.encode(buffer)
+        self.payload
+            .encode(buffer)
+            .change_context(ResponseBeginEncodeError)
     }
 }
 
 impl Decode for ResponseBegin {
     type Context = ();
-    type Error = Report<BufferError>;
+    type Error = BufferError;
 
     fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
     where
@@ -61,8 +71,8 @@ mod test {
         response::{begin::ResponseBegin, kind::ResponseKind},
     };
 
-    #[tokio::test]
-    async fn encode() {
+    #[test]
+    fn encode() {
         let frame = ResponseBegin {
             kind: ResponseKind::Ok,
             payload: Payload::new(b"hello world" as &[_]),
@@ -74,30 +84,28 @@ mod test {
                 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
                 0x00 0x00 0x00 0x00 0x0B b'h' b'e' b'l' b'l' b'o' b' ' b'w' b'o' b'r' b'l' b'd'
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode() {
+    #[test]
+    fn decode() {
         assert_decode(
             &[
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, // Reserved
                 0x00, 0x00, // ResponseKind::Ok
                 0x00, 0x0B, b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd',
-            ],
+            ] as &[_],
             &ResponseBegin {
                 kind: ResponseKind::Ok,
                 payload: Payload::new(b"hello world" as &[_]),
             },
             (),
-        )
-        .await;
+        );
     }
 
-    #[test_strategy::proptest(async = "tokio")]
-    async fn codec(frame: ResponseBegin) {
-        assert_codec(&frame, ()).await;
+    #[test_strategy::proptest]
+    fn codec(frame: ResponseBegin) {
+        assert_codec(&frame, ());
     }
 }

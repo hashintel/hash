@@ -1,7 +1,6 @@
-
 use bytes::{Buf, BufMut};
 use enumflags2::BitFlags;
-use error_stack::Report;
+use error_stack::Result;
 
 use super::body::RequestBody;
 use crate::{
@@ -59,7 +58,7 @@ impl From<RequestFlag> for RequestFlags {
 }
 
 impl Encode for RequestFlags {
-    type Error = !;
+    type Error = BufferError;
 
     fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
     where
@@ -73,7 +72,7 @@ impl Encode for RequestFlags {
 
 impl Decode for RequestFlags {
     type Context = ();
-    type Error = Report<BufferError>;
+    type Error = BufferError;
 
     fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
     where
@@ -96,69 +95,62 @@ mod test {
         request::flags::{RequestFlag, RequestFlags},
     };
 
-    #[tokio::test]
-    async fn encode() {
+    #[test]
+    fn encode() {
         assert_encode(
             &RequestFlags::EMPTY,
             expect![[r#"
             0x00
         "#]],
-        )
-        .await;
+        );
 
         assert_encode(
             &RequestFlags::from(RequestFlag::BeginOfRequest),
             expect![[r#"
                 0x80
             "#]],
-        )
-        .await;
+        );
 
         assert_encode(
             &RequestFlags::from(RequestFlag::BeginOfRequest | RequestFlag::EndOfRequest),
             expect![[r#"
                 0x81
             "#]],
-        )
-        .await;
+        );
 
         assert_encode(
             &RequestFlags::from(RequestFlag::EndOfRequest),
             expect![[r#"
                 0x01
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode() {
-        assert_decode(&[0b0000_0000], &RequestFlags::EMPTY, ()).await;
+    #[test]
+    fn decode() {
+        assert_decode(&[0b0000_0000_u8] as &[_], &RequestFlags::EMPTY, ());
 
         assert_decode::<RequestFlags>(
-            &[0b1100_0001],
+            &[0b1100_0001_u8] as &[_],
             &RequestFlags::from(RequestFlag::EndOfRequest | RequestFlag::BeginOfRequest),
             (),
-        )
-        .await;
+        );
 
         assert_decode::<RequestFlags>(
-            &[0b1000_0001],
+            &[0b1000_0001_u8] as &[_],
             &RequestFlags::from(RequestFlag::EndOfRequest | RequestFlag::BeginOfRequest),
             (),
-        )
-        .await;
+        );
 
         assert_decode(
-            &[0b0100_0001],
+            &[0b0100_0001_u8] as &[_],
             &RequestFlags::from(RequestFlag::EndOfRequest),
             (),
-        )
-        .await;
+        );
     }
 
-    #[test_strategy::proptest(async = "tokio")]
-    async fn codec(flags: RequestFlags) {
-        assert_codec(&flags, ()).await;
+    #[test_strategy::proptest]
+    fn codec(flags: RequestFlags) {
+        assert_codec(&flags, ());
     }
 }

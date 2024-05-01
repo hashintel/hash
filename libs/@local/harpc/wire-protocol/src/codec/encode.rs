@@ -1,53 +1,53 @@
+use core::fmt::Debug;
 
 use bytes::{BufMut, Bytes};
-use error_stack::{Report, ResultExt};
+use error_stack::{Context, Report, Result, ResultExt};
 
-use super::buffer::{Buffer};
+use super::{buffer::Buffer, BufferError};
 
 pub trait Encode {
-    type Error;
+    type Error: Context;
 
+    /// Encode the value into the buffer.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the buffer is not large enough or if the to be encoded value is invalid.
     fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
     where
         B: BufMut;
 }
 
 impl Encode for u8 {
-    type Error = !;
+    type Error = BufferError;
 
     fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
     where
         B: BufMut,
     {
-        buffer.push_number(*self);
-
-        Ok(())
+        buffer.push_number(*self)
     }
 }
 
 impl Encode for u16 {
-    type Error = !;
+    type Error = BufferError;
 
     fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
     where
         B: BufMut,
     {
-        buffer.push_number(*self);
-
-        Ok(())
+        buffer.push_number(*self)
     }
 }
 
 impl Encode for u32 {
-    type Error = !;
+    type Error = BufferError;
 
     fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
     where
         B: BufMut,
     {
-        buffer.push_number(*self);
-
-        Ok(())
+        buffer.push_number(*self)
     }
 }
 
@@ -55,10 +55,12 @@ impl Encode for u32 {
 pub enum BytesEncodeError {
     #[error("buffer exceeds 64 KiB")]
     TooLarge,
+    #[error("buffer error")]
+    Buffer,
 }
 
 impl Encode for Bytes {
-    type Error = Report<BytesEncodeError>;
+    type Error = BytesEncodeError;
 
     fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
     where
@@ -72,8 +74,12 @@ impl Encode for Bytes {
             return Err(Report::new(BytesEncodeError::TooLarge));
         }
 
-        buffer.push_number(length);
-        buffer.push_bytes(self);
+        buffer
+            .push_number(length)
+            .change_context(BytesEncodeError::Buffer)?;
+        buffer
+            .push_bytes(self)
+            .change_context(BytesEncodeError::Buffer)?;
 
         Ok(())
     }
@@ -82,32 +88,36 @@ impl Encode for Bytes {
 #[cfg(test)]
 pub(crate) mod test {
     #![allow(clippy::needless_raw_strings, clippy::needless_raw_string_hashes)]
-    use core::fmt::{Debug, Write};
+    use core::fmt::Write;
 
-    use bytes::Bytes;
+    use bytes::{Bytes, BytesMut};
     use expect_test::{expect, Expect};
 
     use super::{BytesEncodeError, Encode};
+    use crate::codec::Buffer;
 
     #[track_caller]
-    pub(crate) async fn encode_value<T>(value: &T) -> Vec<u8>
+    pub(crate) fn encode_value<T>(value: &T) -> Bytes
     where
-        T: Encode + Sync,
+        T: Encode,
     {
-        let mut buffer = Vec::new();
+        let mut bytes = BytesMut::new();
+        let mut buffer = Buffer::new(&mut bytes);
+
         value
             .encode(&mut buffer)
-            .await
             .expect("should be able to encode value");
-        buffer
+
+        bytes.freeze()
     }
 
     #[track_caller]
-    pub(crate) async fn assert_encode<T>(value: &T, expected: Expect)
+    #[allow(clippy::needless_pass_by_value)]
+    pub(crate) fn assert_encode<T>(value: &T, expected: Expect)
     where
         T: Encode + Sync,
     {
-        let buffer = Bytes::from(encode_value(value).await);
+        let buffer = encode_value(value);
 
         // every line has 16 bytes, each byte at most is represented by 5 characters. With an
         // additional newline.
@@ -156,77 +166,77 @@ pub(crate) mod test {
     }
 
     #[track_caller]
-    pub(crate) async fn assert_encode_error<T>(value: &T, expected: T::Error)
+    pub(crate) fn assert_encode_error<T>(value: &T, expected: &T::Error)
     where
-        T: Encode + Sync,
-        T::Error: Debug + PartialEq,
+        T: Encode,
+        T::Error: PartialEq,
     {
+        let mut bytes = BytesMut::new();
+        let mut buffer = Buffer::new(&mut bytes);
+
         let result = value
-            .encode(Vec::new())
-            .await
+            .encode(&mut buffer)
             .expect_err("should fail to encode");
 
         let context = result.current_context();
 
-        assert_eq!(*context, expected);
+        assert_eq!(*context, *expected);
     }
 
-    #[tokio::test]
-    async fn encode_u16() {
+    #[test]
+    fn encode_u16() {
         assert_encode(
             &42_u16,
             expect![[r#"
                 0x00 b'*'
             "#]],
-        )
-        .await;
+        );
+
         assert_encode(
             &0_u16,
             expect![[r#"
             0x00 0x00
         "#]],
-        )
-        .await;
+        );
+
         assert_encode(
             &u16::MAX,
             expect![[r#"
             0xFF 0xFF
         "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn encode_bytes() {
+    #[test]
+    fn encode_bytes() {
         assert_encode(
             &Bytes::from_static(&[0x68, 0x65, 0x6C, 0x6C, 0x6F]),
             expect![[r#"
                 0x00 0x05 b'h' b'e' b'l' b'l' b'o'
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn encode_bytes_too_large() {
+    #[test]
+    fn encode_bytes_too_large() {
         let bytes: Bytes = vec![0; u16::MAX as usize + 1].into();
 
-        assert_encode_error(&bytes, BytesEncodeError::TooLarge).await;
+        assert_encode_error(&bytes, &BytesEncodeError::TooLarge);
     }
 
-    #[tokio::test]
-    async fn encode_bytes_too_large_u16() {
+    #[test]
+    fn encode_bytes_too_large_u16() {
         // 32 bytes are header, so this is still to large
         let bytes: Bytes = vec![0; u16::MAX as usize + 16].into();
 
-        assert_encode_error(&bytes, BytesEncodeError::TooLarge).await;
+        assert_encode_error(&bytes, &BytesEncodeError::TooLarge);
     }
 
-    #[tokio::test]
-    async fn encode_bytes_full() {
+    #[test]
+    fn encode_bytes_full() {
         let bytes: Bytes = vec![0; u16::MAX as usize - 32].into();
 
-        let value = encode_value(&bytes).await;
+        let value = encode_value(&bytes);
         assert_eq!(value.len(), (u16::MAX as usize) - 32 + 2);
     }
 }

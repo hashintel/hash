@@ -1,5 +1,5 @@
 use bytes::{Buf, BufMut};
-use error_stack::{Report};
+use error_stack::{Result, ResultExt};
 
 use super::{
     begin::ResponseBegin,
@@ -7,10 +7,14 @@ use super::{
     frame::ResponseFrame,
 };
 use crate::{
-    codec::{Buffer, BufferError, BytesEncodeError, Decode, Encode},
+    codec::{Buffer, BufferError, Decode, Encode},
     flags::BitFlagsOp,
     payload::Payload,
 };
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
+#[error("unable to encode response body")]
+pub struct ResponseBodyEncodeError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -29,15 +33,15 @@ impl ResponseBody {
 }
 
 impl Encode for ResponseBody {
-    type Error = Report<BytesEncodeError>;
+    type Error = ResponseBodyEncodeError;
 
     fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
     where
         B: BufMut,
     {
         match self {
-            Self::Begin(body) => body.encode(buffer),
-            Self::Frame(body) => body.encode(buffer),
+            Self::Begin(body) => body.encode(buffer).change_context(ResponseBodyEncodeError),
+            Self::Frame(body) => body.encode(buffer).change_context(ResponseBodyEncodeError),
         }
     }
 }
@@ -75,7 +79,7 @@ impl ResponseBodyContext {
 
 impl Decode for ResponseBody {
     type Context = ResponseBodyContext;
-    type Error = Report<BufferError>;
+    type Error = BufferError;
 
     fn decode<B>(buffer: &mut Buffer<B>, context: Self::Context) -> Result<Self, Self::Error>
     where
@@ -104,8 +108,8 @@ mod test {
         },
     };
 
-    #[tokio::test]
-    async fn encode_begin() {
+    #[test]
+    fn encode_begin() {
         let body = ResponseBody::Begin(ResponseBegin {
             kind: ResponseKind::Ok,
 
@@ -118,12 +122,11 @@ mod test {
                 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
                 0x00 0x00 0x00 0x00 0x04 0x01 0x02 0x03 0x04
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn encode_frame() {
+    #[test]
+    fn encode_frame() {
         let body = ResponseBody::Frame(crate::response::frame::ResponseFrame {
             payload: Payload::new(&[0x01_u8, 0x02, 0x03, 0x04] as &[_]),
         });
@@ -134,19 +137,18 @@ mod test {
                 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
                 0x00 0x00 0x00 0x00 0x04 0x01 0x02 0x03 0x04
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode_begin() {
+    #[test]
+    fn decode_begin() {
         assert_decode::<ResponseBody>(
             &[
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, // Reserved
                 0x00, 0x00, // ResponseKind::Ok
-                0x00, 0x04, 0x01, 0x02, 0x03, 0x04,
-            ],
+                0x00, 0x04, 0x01, 0x02, 0x03, 0x04_u8,
+            ] as &[_],
             &ResponseBody::Begin(ResponseBegin {
                 kind: ResponseKind::Ok,
                 payload: Payload::new(&[0x01_u8, 0x02, 0x03, 0x04] as &[_]),
@@ -154,34 +156,32 @@ mod test {
             ResponseBodyContext {
                 variant: ResponseVariant::Begin,
             },
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode_frame() {
+    #[test]
+    fn decode_frame() {
         assert_decode(
             &[
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, // Reserved
-                0x00, 0x04, 0x01, 0x02, 0x03, 0x04,
-            ],
+                0x00, 0x04, 0x01, 0x02, 0x03, 0x04_u8,
+            ] as &[_],
             &ResponseBody::Frame(ResponseFrame {
                 payload: Payload::new(&[0x01_u8, 0x02, 0x03, 0x04] as &[_]),
             }),
             ResponseBodyContext {
                 variant: ResponseVariant::Frame,
             },
-        )
-        .await;
+        );
     }
 
-    #[test_strategy::proptest(async = "tokio")]
-    async fn codec(body: ResponseBody) {
+    #[test_strategy::proptest]
+    fn codec(body: ResponseBody) {
         let context = ResponseBodyContext {
             variant: ResponseVariant::from(&body),
         };
 
-        assert_codec(&body, context).await;
+        assert_codec(&body, context);
     }
 }
