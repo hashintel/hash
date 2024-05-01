@@ -1,8 +1,6 @@
-use std::io;
 
 use bytes::{Buf, BufMut, Bytes};
 use error_stack::Report;
-use tokio::io::{AsyncRead, AsyncWrite};
 
 use crate::codec::{Buffer, BufferError, BytesEncodeError, Decode, Encode};
 

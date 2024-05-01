@@ -1,6 +1,5 @@
 use bytes::{Buf, BufMut};
-use error_stack::{Report, ResultExt};
-use tokio::io::{AsyncRead, AsyncWrite};
+use error_stack::{Report};
 
 use super::{
     begin::ResponseBegin,

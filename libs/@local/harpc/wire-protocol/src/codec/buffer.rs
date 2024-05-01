@@ -1,6 +1,6 @@
 use std::io::Cursor;
 
-use bytes::{Buf, BufMut, Bytes, BytesMut};
+use bytes::{Buf, BufMut, Bytes};
 use error_stack::{Report, Result};
 
 pub(crate) trait Number {

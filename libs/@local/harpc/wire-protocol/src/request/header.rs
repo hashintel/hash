@@ -1,11 +1,6 @@
-use std::io;
 
 use bytes::{Buf, BufMut};
 use error_stack::{Report, ResultExt};
-use tokio::{
-    io::{AsyncRead, AsyncWrite},
-    pin,
-};
 
 use super::{body::RequestBody, flags::RequestFlags, id::RequestId};
 use crate::{

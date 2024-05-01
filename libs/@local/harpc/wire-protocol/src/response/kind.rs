@@ -1,9 +1,7 @@
 use core::num::NonZero;
-use std::io;
 
 use bytes::{Buf, BufMut};
 use error_stack::Report;
-use tokio::io::{AsyncRead, AsyncWrite};
 
 use crate::codec::{Buffer, BufferError, Decode, Encode};
 

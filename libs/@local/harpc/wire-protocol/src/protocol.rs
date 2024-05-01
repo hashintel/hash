@@ -1,12 +1,7 @@
 use core::fmt::Display;
-use std::io;
 
 use bytes::{Buf, BufMut};
 use error_stack::{Report, ResultExt};
-use tokio::{
-    io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
-    pin,
-};
 
 use crate::codec::{Buffer, Decode, Encode};
 

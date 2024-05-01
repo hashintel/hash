@@ -1,9 +1,7 @@
-use std::io;
 
 use bytes::{Buf, BufMut};
 use enumflags2::BitFlags;
 use error_stack::Report;
-use tokio::io::AsyncWrite;
 
 use super::body::ResponseBody;
 use crate::{

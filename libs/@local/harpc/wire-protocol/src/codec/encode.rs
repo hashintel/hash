@@ -1,13 +1,8 @@
-use std::io;
 
 use bytes::{BufMut, Bytes};
-use error_stack::{Context, Report, ResultExt};
-use tokio::{
-    io::{AsyncWrite, AsyncWriteExt},
-    pin,
-};
+use error_stack::{Report, ResultExt};
 
-use super::buffer::{Buffer, BufferError};
+use super::buffer::{Buffer};
 
 pub trait Encode {
     type Error;

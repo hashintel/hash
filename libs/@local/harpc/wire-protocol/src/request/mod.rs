@@ -1,10 +1,6 @@
 pub use bytes::Bytes;
 use bytes::{Buf, BufMut};
 use error_stack::{Report, ResultExt};
-use tokio::{
-    io::{AsyncRead, AsyncWrite},
-    pin,
-};
 
 use self::{
     body::{RequestBody, RequestBodyContext},

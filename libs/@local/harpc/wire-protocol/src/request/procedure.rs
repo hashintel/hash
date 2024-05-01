@@ -1,9 +1,7 @@
-use std::io;
 
 use bytes::{Buf, BufMut};
 use error_stack::Report;
 use harpc_types::procedure::ProcedureId;
-use tokio::io::{AsyncRead, AsyncWrite};
 
 use crate::codec::{Buffer, BufferError, Decode, Encode};
 
