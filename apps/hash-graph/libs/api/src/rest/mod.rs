@@ -290,7 +290,11 @@ where
     // All api resources are merged together into a super-router.
     let merged_routes = api_resources::<S, A>()
         .into_iter()
-        .fold(Router::new(), Router::merge);
+        .fold(Router::new(), Router::merge)
+        .fallback(|| {
+            tracing::error!("404: Not found");
+            async { StatusCode::NOT_FOUND }
+        });
 
     // super-router can then be used as any other router.
     // Make sure extensions are added at the end so they are made available to merged routers.
