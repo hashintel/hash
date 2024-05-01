@@ -119,3 +119,13 @@ Challenges in automatically converting data types:
 - Some data types may only be perfectly convertible one-way (e.g. a hash function)
 - Some data types may be imperfectly convertible, which may be good enough sometimes but not other times (e.g. approximated vector embedding reversal)
 - Where explicit conversion functions are provided to map between data types, resolution between two data types may be achieved via conversion chains, but not directly
+
+## Crosswalking outside of HASH
+
+In the short term, you'll only be able to crosswalk between entities and types that live within a [HASH web](/guide/webs).
+
+If you want to crosswalk your own representation of an entity (e.g. a person like **Alan Turing**) with another representation of the same person on the world wide web (outside of HASH), for example the [Wikidata entry for Alan Turing](https://www.wikidata.org/wiki/Q7251), you'll first need to sync it with HASH, so the information is represented as an entity in a web.
+
+We plan on syncing several major linked open data repositories (including Wikidata) with HASH. If you're involved with one of these, or if there's an open data project you'd like to crosswalk with, or if you're simply interested in helping out with this effort, please [get in touch](/contact).
+
+In addition to crosswalking your representation of an entity with another, you can also set up [AI workers](/guide/workers) in HASH to monitor an external webpage for changes, and suggest or make updates to your own entity in response. Full details of these updates, including their provenance (e.g. source/origin and datetime) are captured as part of the [history](/guide/webs/history) available on every entity in HASH.
