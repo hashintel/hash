@@ -19,7 +19,7 @@ time = { workspace = true, features = [
     "parsing",
     "formatting",
 ], optional = true }
-harpc-wire-protocol = { version = "0.0.0", path = "../harpc/wire-protocol", optional = true }
+harpc-wire-protocol = { workspace = true, optional = true }
 
 [features]
 bytes = [
