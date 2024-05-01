@@ -452,6 +452,7 @@ version = "0.0.0"
 dependencies = [
  "derive-where",
  "error-stack",
+ "harpc-wire-protocol",
  "serde",
  "serde_json",
  "time",
