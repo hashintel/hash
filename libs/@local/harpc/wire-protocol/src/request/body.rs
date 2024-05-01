@@ -1,4 +1,5 @@
-use error_stack::{Result, ResultExt};
+use bytes::{Buf, BufMut};
+use error_stack::{Report, ResultExt};
 use tokio::{
     io::{AsyncRead, AsyncWrite},
     pin,
@@ -6,12 +7,11 @@ use tokio::{
 
 use super::{
     begin::RequestBegin,
-    codec::{DecodeError, EncodeError},
     flags::{RequestFlag, RequestFlags},
     frame::RequestFrame,
 };
 use crate::{
-    codec::{Decode, Encode},
+    codec::{Buffer, BufferError, BytesEncodeError, Decode, Encode},
     flags::BitFlagsOp,
     payload::Payload,
 };
@@ -33,14 +33,15 @@ impl RequestBody {
 }
 
 impl Encode for RequestBody {
-    type Error = EncodeError;
+    type Error = Report<BytesEncodeError>;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        pin!(write);
-
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
         match self {
-            Self::Begin(body) => body.encode(write).await,
-            Self::Frame(body) => body.encode(write).await,
+            Self::Begin(body) => body.encode(buffer),
+            Self::Frame(body) => body.encode(buffer),
         }
     }
 }
@@ -79,20 +80,15 @@ impl RequestBodyContext {
 
 impl Decode for RequestBody {
     type Context = RequestBodyContext;
-    type Error = DecodeError;
+    type Error = Report<BufferError>;
 
-    async fn decode(
-        read: impl AsyncRead + Send,
-        context: Self::Context,
-    ) -> Result<Self, Self::Error> {
-        pin!(read);
-
+    fn decode<B>(buffer: &mut Buffer<B>, context: Self::Context) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
         match context.variant {
-            RequestVariant::Begin => RequestBegin::decode(read, ()).await.map(RequestBody::Begin),
-            RequestVariant::Frame => RequestFrame::decode(read, ())
-                .await
-                .map(RequestBody::Frame)
-                .change_context(DecodeError),
+            RequestVariant::Begin => RequestBegin::decode(buffer, ()).map(RequestBody::Begin),
+            RequestVariant::Frame => RequestFrame::decode(buffer, ()).map(RequestBody::Frame),
         }
     }
 }

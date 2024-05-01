@@ -1,12 +1,13 @@
 use std::io;
 
+use bytes::{Buf, BufMut};
 use enumflags2::BitFlags;
-use error_stack::Result;
+use error_stack::Report;
 use tokio::io::AsyncWrite;
 
 use super::body::ResponseBody;
 use crate::{
-    codec::{Decode, Encode},
+    codec::{Buffer, BufferError, Decode, Encode},
     flags::BitFlagsOp,
 };
 
@@ -60,20 +61,27 @@ impl From<ResponseFlag> for ResponseFlags {
 }
 
 impl Encode for ResponseFlags {
-    type Error = io::Error;
+    type Error = !;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        self.0.bits().encode(write).await
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
+        let bits = self.0.bits();
+
+        bits.encode(buffer)
     }
 }
 
 impl Decode for ResponseFlags {
     type Context = ();
-    type Error = io::Error;
+    type Error = Report<BufferError>;
 
-    async fn decode(read: impl tokio::io::AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        u8::decode(read, ())
-            .await
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        u8::decode(buffer, ())
             .map(BitFlags::from_bits_truncate)
             .map(Self)
     }

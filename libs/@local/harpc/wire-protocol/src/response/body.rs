@@ -1,4 +1,5 @@
-use error_stack::{Result, ResultExt};
+use bytes::{Buf, BufMut};
+use error_stack::{Report, ResultExt};
 use tokio::io::{AsyncRead, AsyncWrite};
 
 use super::{
@@ -7,10 +8,9 @@ use super::{
     frame::ResponseFrame,
 };
 use crate::{
-    codec::{Decode, Encode},
+    codec::{Buffer, BufferError, BytesEncodeError, Decode, Encode},
     flags::BitFlagsOp,
     payload::Payload,
-    request::codec::{DecodeError, EncodeError},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -30,12 +30,15 @@ impl ResponseBody {
 }
 
 impl Encode for ResponseBody {
-    type Error = EncodeError;
+    type Error = Report<BytesEncodeError>;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
         match self {
-            Self::Begin(body) => body.encode(write).await,
-            Self::Frame(body) => body.encode(write).await,
+            Self::Begin(body) => body.encode(buffer),
+            Self::Frame(body) => body.encode(buffer),
         }
     }
 }
@@ -73,18 +76,15 @@ impl ResponseBodyContext {
 
 impl Decode for ResponseBody {
     type Context = ResponseBodyContext;
-    type Error = DecodeError;
+    type Error = Report<BufferError>;
 
-    async fn decode(
-        read: impl AsyncRead + Send,
-        context: Self::Context,
-    ) -> Result<Self, Self::Error> {
+    fn decode<B>(buffer: &mut Buffer<B>, context: Self::Context) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
         match context.variant {
-            ResponseVariant::Begin => ResponseBegin::decode(read, ()).await.map(Self::Begin),
-            ResponseVariant::Frame => ResponseFrame::decode(read, ())
-                .await
-                .map(Self::Frame)
-                .change_context(DecodeError),
+            ResponseVariant::Begin => ResponseBegin::decode(buffer, ()).map(Self::Begin),
+            ResponseVariant::Frame => ResponseFrame::decode(buffer, ()).map(Self::Frame),
         }
     }
 }

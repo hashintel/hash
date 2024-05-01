@@ -1,65 +1,74 @@
 use std::io;
 
-use bytes::Bytes;
-use error_stack::{Context, Report, Result, ResultExt};
+use bytes::{BufMut, Bytes};
+use error_stack::{Context, Report, ResultExt};
 use tokio::{
     io::{AsyncWrite, AsyncWriteExt},
     pin,
 };
 
-pub trait Encode {
-    type Error: Context;
+use super::buffer::{Buffer, BufferError};
 
-    fn encode(
-        &self,
-        write: impl AsyncWrite + Send,
-    ) -> impl Future<Output = Result<(), Self::Error>> + Send;
+pub trait Encode {
+    type Error;
+
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut;
 }
 
 impl Encode for u8 {
-    type Error = io::Error;
+    type Error = !;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        pin!(write);
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
+        buffer.push_number(*self);
 
-        write.write_u8(*self).await.map_err(From::from)
+        Ok(())
     }
 }
 
 impl Encode for u16 {
-    type Error = io::Error;
+    type Error = !;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        pin!(write);
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
+        buffer.push_number(*self);
 
-        write.write_u16(*self).await.map_err(From::from)
+        Ok(())
     }
 }
 
 impl Encode for u32 {
-    type Error = io::Error;
+    type Error = !;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        pin!(write);
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
+        buffer.push_number(*self);
 
-        write.write_u32(*self).await.map_err(From::from)
+        Ok(())
     }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
 pub enum BytesEncodeError {
-    #[error("io error")]
-    Io,
     #[error("buffer exceeds 64 KiB")]
     TooLarge,
 }
 
 impl Encode for Bytes {
-    type Error = BytesEncodeError;
+    type Error = Report<BytesEncodeError>;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        pin!(write);
-
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
         // write the length in u16 (this is ok because we never send more than 64 KiB).
         let length = u16::try_from(self.len()).change_context(BytesEncodeError::TooLarge)?;
 
@@ -68,15 +77,10 @@ impl Encode for Bytes {
             return Err(Report::new(BytesEncodeError::TooLarge));
         }
 
-        length
-            .encode(&mut write)
-            .await
-            .change_context(BytesEncodeError::Io)?;
+        buffer.push_number(length);
+        buffer.push_bytes(self);
 
-        write
-            .write_all(self)
-            .await
-            .change_context(BytesEncodeError::Io)
+        Ok(())
     }
 }
 

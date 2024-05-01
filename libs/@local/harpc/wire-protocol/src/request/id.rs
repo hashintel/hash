@@ -1,9 +1,10 @@
 use std::io;
 
-use error_stack::Result;
+use bytes::{Buf, BufMut};
+use error_stack::Report;
 use tokio::io::{AsyncRead, AsyncWrite};
 
-use crate::codec::{Decode, Encode};
+use crate::codec::{Buffer, BufferError, Decode, Encode};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -22,19 +23,25 @@ impl RequestId {
 }
 
 impl Encode for RequestId {
-    type Error = io::Error;
+    type Error = !;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        self.0.encode(write).await
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
+        self.0.encode(buffer)
     }
 }
 
 impl Decode for RequestId {
     type Context = ();
-    type Error = io::Error;
+    type Error = Report<BufferError>;
 
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        u32::decode(read, ()).await.map(Self)
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        u32::decode(buffer, ()).map(Self)
     }
 }
 

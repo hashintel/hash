@@ -1,16 +1,13 @@
-use error_stack::{Result, ResultExt};
+use bytes::{Buf, BufMut};
+use error_stack::{Report, ResultExt};
 use tokio::{
     io::{AsyncReadExt, AsyncWrite, AsyncWriteExt},
     pin,
 };
 
-use super::{
-    codec::{DecodeError, EncodeError},
-    procedure::ProcedureDescriptor,
-    service::ServiceDescriptor,
-};
+use super::{procedure::ProcedureDescriptor, service::ServiceDescriptor};
 use crate::{
-    codec::{Decode, Encode},
+    codec::{Buffer, BufferError, BytesEncodeError, Decode, Encode},
     payload::Payload,
 };
 
@@ -24,53 +21,38 @@ pub struct RequestBegin {
 }
 
 impl Encode for RequestBegin {
-    type Error = EncodeError;
+    type Error = Report<BytesEncodeError>;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        pin!(write);
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
+        let Ok(()) = self.service.encode(buffer);
 
-        self.service
-            .encode(&mut write)
-            .await
-            .change_context(EncodeError)?;
-
-        self.procedure
-            .encode(&mut write)
-            .await
-            .change_context(EncodeError)?;
+        let Ok(()) = self.procedure.encode(buffer);
 
         // write 13 empty bytes (reserved for future use)
-        write
-            .write_all(&[0; 13])
-            .await
-            .change_context(EncodeError)?;
+        buffer.push_repeat(0, 13);
 
-        self.payload.encode(write).await.change_context(EncodeError)
+        self.payload.encode(buffer)
     }
 }
 
 impl Decode for RequestBegin {
     type Context = ();
-    type Error = DecodeError;
+    type Error = Report<BufferError>;
 
-    async fn decode(read: impl tokio::io::AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        pin!(read);
-
-        let service = ServiceDescriptor::decode(&mut read, ())
-            .await
-            .change_context(DecodeError)?;
-        let procedure = ProcedureDescriptor::decode(&mut read, ())
-            .await
-            .change_context(DecodeError)?;
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        let service = ServiceDescriptor::decode(buffer, ())?;
+        let procedure = ProcedureDescriptor::decode(buffer, ())?;
 
         // skip 13 bytes (reserved for future use)
-        read.read_exact(&mut [0; 13])
-            .await
-            .change_context(DecodeError)?;
+        buffer.next_discard(13)?;
 
-        let payload = Payload::decode(read, ())
-            .await
-            .change_context(DecodeError)?;
+        let payload = Payload::decode(buffer, ())?;
 
         Ok(Self {
             service,

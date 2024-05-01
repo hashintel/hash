@@ -1,4 +1,5 @@
-use error_stack::{Result, ResultExt};
+use bytes::{Buf, BufMut};
+use error_stack::{Report, ResultExt};
 use tokio::{
     io::{AsyncRead, AsyncWrite},
     pin,
@@ -6,12 +7,9 @@ use tokio::{
 
 use self::{
     body::{ResponseBody, ResponseBodyContext},
-    header::ResponseHeader,
+    header::{ResponseHeader, ResponseHeaderDecodeError},
 };
-use crate::{
-    codec::{Decode, Encode},
-    request::codec::{DecodeError, EncodeError},
-};
+use crate::codec::{Buffer, BytesEncodeError, Decode, Encode};
 
 pub mod begin;
 pub mod body;
@@ -19,6 +17,14 @@ pub mod flags;
 pub mod frame;
 pub mod header;
 pub mod kind;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
+pub enum ResponseDecodeError {
+    #[error("invalid request header")]
+    Header,
+    #[error("invalid request body")]
+    Body,
+}
 
 /// A response to a request.
 ///
@@ -88,37 +94,34 @@ pub struct Response {
 }
 
 impl Encode for Response {
-    type Error = EncodeError;
+    type Error = Report<BytesEncodeError>;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        pin!(write);
-
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
         let header = self.header.apply_body(&self.body);
-        header
-            .encode(&mut write)
-            .await
-            .change_context(EncodeError)?;
+        let Ok(()) = header.encode(buffer);
 
-        self.body.encode(write).await
+        self.body.encode(buffer)
     }
 }
 
 impl Decode for Response {
     type Context = ();
-    type Error = DecodeError;
+    type Error = Report<ResponseDecodeError>;
 
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        pin!(read);
-
-        let header = ResponseHeader::decode(&mut read, ())
-            .await
-            .change_context(DecodeError)?;
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        let header =
+            ResponseHeader::decode(buffer, ()).change_context(ResponseDecodeError::Header)?;
 
         let context = ResponseBodyContext::from_flags(header.flags);
 
-        let body = ResponseBody::decode(read, context)
-            .await
-            .change_context(DecodeError)?;
+        let body =
+            ResponseBody::decode(buffer, context).change_context(ResponseDecodeError::Body)?;
 
         Ok(Self { header, body })
     }

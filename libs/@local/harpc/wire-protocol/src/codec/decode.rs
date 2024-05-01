@@ -1,80 +1,70 @@
 use std::io;
 
-use bytes::Bytes;
-use error_stack::{Context, Result};
+use bytes::{Buf, Bytes, BytesMut};
+use error_stack::{Context, Report};
 use tokio::{
     io::{AsyncRead, AsyncReadExt},
     pin,
 };
 
-pub trait Decode: Sized {
-    type Context: Send + Sync = ();
-    type Error: Context;
+use super::buffer::{Buffer, BufferError};
 
-    fn decode(
-        read: impl AsyncRead + Send,
-        context: Self::Context,
-    ) -> impl Future<Output = Result<Self, Self::Error>> + Send;
+pub trait Decode: Sized {
+    type Context: Send + Sync;
+    type Error;
+
+    fn decode<B>(buffer: &mut Buffer<B>, context: Self::Context) -> Result<Self, Self::Error>
+    where
+        B: Buf;
 }
 
 impl Decode for u8 {
     type Context = ();
-    type Error = io::Error;
+    type Error = Report<BufferError>;
 
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        pin!(read);
-
-        read.read_u8().await.map_err(From::from)
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        buffer.next_number()
     }
 }
 
 impl Decode for u16 {
     type Context = ();
-    type Error = io::Error;
+    type Error = Report<BufferError>;
 
-    #[expect(
-        clippy::big_endian_bytes,
-        reason = "u16 is encoded in big-endian format"
-    )]
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        pin!(read);
-
-        let mut buffer = [0; 2];
-        read.read_exact(&mut buffer).await?;
-        Ok(Self::from_be_bytes(buffer))
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        buffer.next_number()
     }
 }
 
 impl Decode for u32 {
     type Context = ();
-    type Error = io::Error;
+    type Error = Report<BufferError>;
 
-    #[expect(
-        clippy::big_endian_bytes,
-        reason = "u32 is encoded in big-endian format"
-    )]
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        pin!(read);
-
-        let mut buffer = [0; 4];
-        read.read_exact(&mut buffer).await?;
-        Ok(Self::from_be_bytes(buffer))
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        buffer.next_number()
     }
 }
 
 impl Decode for Bytes {
     type Context = ();
-    type Error = io::Error;
+    type Error = Report<BufferError>;
 
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        pin!(read);
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        let length = buffer.next_number::<u16>()?;
 
-        let length = u16::decode(&mut read, ()).await?;
-
-        let mut buffer = vec![0; usize::from(length)];
-        read.read_exact(&mut buffer).await?;
-
-        Ok(Self::from(buffer))
+        buffer.next_bytes(length as usize)
     }
 }
 

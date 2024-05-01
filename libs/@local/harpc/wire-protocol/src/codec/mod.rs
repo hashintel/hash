@@ -1,7 +1,9 @@
+mod buffer;
 mod decode;
 mod encode;
 mod types;
 
+pub use buffer::{Buffer, BufferError};
 pub use decode::Decode;
 pub use encode::{BytesEncodeError, Encode};
 

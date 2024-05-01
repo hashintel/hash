@@ -1,14 +1,14 @@
 use std::io;
 
-use error_stack::{Result, ResultExt};
+use bytes::{Buf, BufMut};
+use error_stack::{Report, ResultExt};
 use tokio::{
     io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
     pin,
 };
 
-use super::codec::EncodeError;
 use crate::{
-    codec::{Decode, Encode},
+    codec::{Buffer, BufferError, BytesEncodeError, Decode, Encode},
     payload::Payload,
 };
 
@@ -19,34 +19,33 @@ pub struct RequestFrame {
 }
 
 impl Encode for RequestFrame {
-    type Error = EncodeError;
+    type Error = Report<BytesEncodeError>;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        pin!(write);
-
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
         // write 19 empty bytes (reserved for future use)
-        write
-            .write_all(&[0; 19])
-            .await
-            .change_context(EncodeError)?;
+        buffer.push_repeat(0, 19);
 
-        self.payload.encode(write).await.change_context(EncodeError)
+        self.payload.encode(buffer)
     }
 }
 
 impl Decode for RequestFrame {
     type Context = ();
-    type Error = io::Error;
+    type Error = Report<BufferError>;
 
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        pin!(read);
-
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
         // skip 19 bytes (reserved for future use)
-        read.read_exact(&mut [0; 19]).await?;
+        buffer.next_discard(19)?;
 
-        Ok(Self {
-            payload: Payload::decode(read, ()).await?,
-        })
+        let payload = Payload::decode(buffer, ())?;
+
+        Ok(Self { payload })
     }
 }
 

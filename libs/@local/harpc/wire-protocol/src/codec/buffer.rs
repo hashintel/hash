@@ -1,0 +1,149 @@
+use std::io::Cursor;
+
+use bytes::{Buf, BufMut, Bytes, BytesMut};
+use error_stack::{Report, Result};
+
+pub(crate) trait Number {
+    const WIDTH: usize;
+
+    fn unchecked_read_from_buf<B>(buf: B) -> Self
+    where
+        B: Buf;
+
+    fn unchecked_write_to_buf<B>(self, buf: B)
+    where
+        B: BufMut;
+}
+
+impl Number for u8 {
+    const WIDTH: usize = 1;
+
+    fn unchecked_read_from_buf<B>(mut buf: B) -> Self
+    where
+        B: Buf,
+    {
+        buf.get_u8()
+    }
+
+    fn unchecked_write_to_buf<B>(self, mut buf: B)
+    where
+        B: BufMut,
+    {
+        buf.put_u8(self)
+    }
+}
+
+impl Number for u16 {
+    const WIDTH: usize = 2;
+
+    fn unchecked_read_from_buf<B>(mut buf: B) -> Self
+    where
+        B: Buf,
+    {
+        buf.get_u16()
+    }
+
+    fn unchecked_write_to_buf<B>(self, mut buf: B)
+    where
+        B: BufMut,
+    {
+        buf.put_u16(self)
+    }
+}
+
+impl Number for u32 {
+    const WIDTH: usize = 4;
+
+    fn unchecked_read_from_buf<B>(mut buf: B) -> Self
+    where
+        B: Buf,
+    {
+        buf.get_u32()
+    }
+
+    fn unchecked_write_to_buf<B>(self, mut buf: B)
+    where
+        B: BufMut,
+    {
+        buf.put_u32(self)
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, thiserror::Error)]
+pub enum BufferError {
+    #[error("buffer underflow; early end of stream")]
+    EarlyEndOfStream,
+}
+
+pub struct Buffer<'a, B>(&'a mut B);
+
+impl<'a, B> Buffer<'a, B> {
+    pub fn new(buffer: &'a mut B) -> Self {
+        Self(buffer)
+    }
+}
+
+impl<'a, B> Buffer<'a, B>
+where
+    B: Buf,
+{
+    pub(crate) fn next_number<N: Number>(&mut self) -> Result<N, BufferError> {
+        if self.0.remaining() < N::WIDTH {
+            return Err(Report::new(BufferError::EarlyEndOfStream));
+        }
+
+        Ok(N::unchecked_read_from_buf(&mut self.0))
+    }
+
+    pub(crate) fn next_bytes(&mut self, at: usize) -> Result<Bytes, BufferError> {
+        if self.0.remaining() < at {
+            return Err(Report::new(BufferError::EarlyEndOfStream));
+        }
+
+        Ok(self.0.copy_to_bytes(at))
+    }
+
+    pub(crate) fn next_array<const N: usize>(&mut self) -> Result<[u8; N], BufferError> {
+        if self.0.remaining() < N {
+            return Err(Report::new(BufferError::EarlyEndOfStream));
+        }
+
+        let mut bytes = [0; N];
+        self.0.copy_to_slice(&mut bytes);
+
+        Ok(bytes)
+    }
+
+    pub(crate) fn next_discard(&mut self, count: usize) -> Result<(), BufferError> {
+        if self.0.remaining() < count {
+            return Err(Report::new(BufferError::EarlyEndOfStream));
+        }
+
+        self.0.advance(count);
+
+        Ok(())
+    }
+}
+
+impl<'a, B> Buffer<'a, B>
+where
+    B: BufMut,
+{
+    pub(crate) fn push_number<N: Number>(&mut self, number: N) {
+        number.unchecked_write_to_buf(&mut self.0);
+    }
+
+    pub(crate) fn push_bytes(&mut self, bytes: &Bytes) {
+        let cursor = Cursor::new(bytes);
+
+        self.0.put(cursor);
+    }
+
+    pub(crate) fn push_slice(&mut self, slice: &[u8]) {
+        self.0.put_slice(slice);
+    }
+
+    pub(crate) fn push_repeat(&mut self, byte: u8, count: usize) {
+        self.0.put_bytes(byte, count);
+    }
+}

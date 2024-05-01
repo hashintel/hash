@@ -1,10 +1,10 @@
 use std::io;
 
-use bytes::Bytes;
-use error_stack::Result;
+use bytes::{Buf, BufMut, Bytes};
+use error_stack::Report;
 use tokio::io::{AsyncRead, AsyncWrite};
 
-use crate::codec::{BytesEncodeError, Decode, Encode};
+use crate::codec::{Buffer, BufferError, BytesEncodeError, Decode, Encode};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -35,22 +35,25 @@ impl Payload {
 }
 
 impl Encode for Payload {
-    type Error = BytesEncodeError;
+    type Error = Report<BytesEncodeError>;
 
-    fn encode(
-        &self,
-        write: impl AsyncWrite + Send,
-    ) -> impl Future<Output = Result<(), Self::Error>> + Send {
-        Bytes::encode(&self.0, write)
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
+        Bytes::encode(&self.0, buffer)
     }
 }
 
 impl Decode for Payload {
     type Context = ();
-    type Error = io::Error;
+    type Error = Report<BufferError>;
 
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        Bytes::decode(read, ()).await.map(Self)
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        Bytes::decode(buffer, ()).map(Self)
     }
 }
 

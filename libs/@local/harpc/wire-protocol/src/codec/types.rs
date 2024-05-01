@@ -1,70 +1,88 @@
 use std::io;
 
-use error_stack::{Report, Result};
+use bytes::{Buf, BufMut};
+use error_stack::Report;
 use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
 use tokio::{
     io::{AsyncRead, AsyncWrite, AsyncWriteExt},
     pin,
 };
 
-use super::Decode;
+use super::{Buffer, BufferError, Decode};
 use crate::codec::Encode;
 
 impl Encode for Version {
-    type Error = io::Error;
+    type Error = !;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        pin!(write);
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
+        buffer.push_number(self.major);
+        buffer.push_number(self.minor);
 
-        write.write_u8(self.major).await?;
-        write.write_u8(self.minor).await.map_err(Report::from)
+        Ok(())
     }
 }
 
 impl Decode for Version {
     type Context = ();
-    type Error = io::Error;
+    type Error = Report<BufferError>;
 
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        pin!(read);
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        let major = u8::decode(buffer, ())?;
+        let minor = u8::decode(buffer, ())?;
 
-        let major = u8::decode(&mut read, ()).await?;
-        let minor = u8::decode(read, ()).await?;
         Ok(Self { major, minor })
     }
 }
 
 impl Encode for ProcedureId {
-    type Error = io::Error;
+    type Error = !;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        self.value().encode(write).await
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
+        self.value().encode(buffer)
     }
 }
 
 impl Decode for ProcedureId {
     type Context = ();
-    type Error = io::Error;
+    type Error = Report<BufferError>;
 
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        u16::decode(read, ()).await.map(Self::new)
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        u16::decode(buffer, ()).map(Self::new)
     }
 }
 
 impl Encode for ServiceId {
-    type Error = io::Error;
+    type Error = !;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        self.value().encode(write).await
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
+        self.value().encode(buffer)
     }
 }
 
 impl Decode for ServiceId {
     type Context = ();
-    type Error = io::Error;
+    type Error = Report<BufferError>;
 
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        u16::decode(read, ()).await.map(Self::new)
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        u16::decode(buffer, ()).map(Self::new)
     }
 }
 

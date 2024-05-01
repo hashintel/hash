@@ -1,13 +1,14 @@
 use core::fmt::Display;
 use std::io;
 
-use error_stack::{Report, Result, ResultExt};
+use bytes::{Buf, BufMut};
+use error_stack::{Report, ResultExt};
 use tokio::{
     io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
     pin,
 };
 
-use crate::codec::{Decode, Encode};
+use crate::codec::{Buffer, Decode, Encode};
 
 const MAGIC_LEN: usize = 5;
 const MAGIC: &[u8; MAGIC_LEN] = b"harpc";
@@ -19,8 +20,8 @@ pub enum ProtocolVersionDecodeError {
         actual: ProtocolVersion,
         expected: ProtocolVersion,
     },
-    #[error("io error")]
-    Io,
+    #[error("buffer error")]
+    Buffer,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -40,22 +41,27 @@ impl Display for ProtocolVersion {
 }
 
 impl Encode for ProtocolVersion {
-    type Error = io::Error;
+    type Error = !;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        self.0.encode(write).await
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
+        self.0.encode(buffer)
     }
 }
 
 impl Decode for ProtocolVersion {
     type Context = ();
-    type Error = ProtocolVersionDecodeError;
+    type Error = Report<ProtocolVersionDecodeError>;
 
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        let version = u8::decode(read, ())
-            .await
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        let version = u8::decode(buffer, ())
             .map(Self)
-            .change_context(ProtocolVersionDecodeError::Io)?;
+            .change_context(ProtocolVersionDecodeError::Buffer)?;
 
         if version != Self::V1 {
             return Err(Report::new(ProtocolVersionDecodeError::Unsupported {
@@ -77,8 +83,8 @@ pub enum ProtocolDecodeError {
     },
     #[error("indalid protocol version")]
     InvalidVersion,
-    #[error("io error")]
-    Io,
+    #[error("buffer error")]
+    Buffer,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -88,37 +94,38 @@ pub struct Protocol {
 }
 
 impl Encode for Protocol {
-    type Error = io::Error;
+    type Error = !;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        pin!(write);
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
+        buffer.push_slice(MAGIC);
 
-        write.write_all(MAGIC).await?;
-        self.version.encode(write).await
+        self.version.encode(buffer)
     }
 }
 
 impl Decode for Protocol {
     type Context = ();
-    type Error = ProtocolDecodeError;
+    type Error = Report<ProtocolDecodeError>;
 
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        pin!(read);
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        let magic: [_; MAGIC_LEN] = buffer
+            .next_array()
+            .change_context(ProtocolDecodeError::Buffer)?;
 
-        let mut buffer = [0_u8; MAGIC_LEN];
-        read.read_exact(&mut buffer)
-            .await
-            .change_context(ProtocolDecodeError::Io)?;
-
-        if buffer != *MAGIC {
+        if magic != *MAGIC {
             return Err(Report::new(ProtocolDecodeError::InvalidIdentifier {
                 expected: MAGIC,
-                actual: buffer,
+                actual: magic,
             }));
         }
 
-        let version = ProtocolVersion::decode(read, ())
-            .await
+        let version = ProtocolVersion::decode(buffer, ())
             .change_context(ProtocolDecodeError::InvalidVersion)?;
 
         Ok(Self { version })

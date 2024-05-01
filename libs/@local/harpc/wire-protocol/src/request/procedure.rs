@@ -1,10 +1,11 @@
 use std::io;
 
-use error_stack::Result;
+use bytes::{Buf, BufMut};
+use error_stack::Report;
 use harpc_types::procedure::ProcedureId;
 use tokio::io::{AsyncRead, AsyncWrite};
 
-use crate::codec::{Decode, Encode};
+use crate::codec::{Buffer, BufferError, Decode, Encode};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -13,21 +14,27 @@ pub struct ProcedureDescriptor {
 }
 
 impl Encode for ProcedureDescriptor {
-    type Error = io::Error;
+    type Error = !;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        self.id.encode(write).await
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
+        self.id.encode(buffer)
     }
 }
 
 impl Decode for ProcedureDescriptor {
     type Context = ();
-    type Error = io::Error;
+    type Error = Report<BufferError>;
 
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        Ok(Self {
-            id: ProcedureId::decode(read, ()).await?,
-        })
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        let id = ProcedureId::decode(buffer, ())?;
+
+        Ok(Self { id })
     }
 }
 

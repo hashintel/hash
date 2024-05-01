@@ -1,16 +1,25 @@
 use std::io;
 
-use error_stack::{Result, ResultExt};
+use bytes::{Buf, BufMut};
+use error_stack::{Report, ResultExt};
 use tokio::{
     io::{AsyncRead, AsyncWrite},
     pin,
 };
 
-use super::{body::RequestBody, codec::DecodeError, flags::RequestFlags, id::RequestId};
+use super::{body::RequestBody, flags::RequestFlags, id::RequestId};
 use crate::{
-    codec::{Decode, Encode},
+    codec::{Buffer, Decode, Encode},
     protocol::Protocol,
 };
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
+pub enum RequestHeaderDecodeError {
+    #[error("invalid protocol")]
+    Protocol,
+    #[error("buffer error")]
+    Buffer,
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -31,33 +40,36 @@ impl RequestHeader {
 }
 
 impl Encode for RequestHeader {
-    type Error = io::Error;
+    type Error = !;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        pin!(write);
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
+        let Ok(()) = self.protocol.encode(buffer);
+        let Ok(()) = self.request_id.encode(buffer);
+        let Ok(()) = self.flags.encode(buffer);
 
-        self.protocol.encode(&mut write).await?;
-        self.request_id.encode(&mut write).await?;
-        self.flags.encode(write).await
+        Ok(())
     }
 }
 
 impl Decode for RequestHeader {
     type Context = ();
-    type Error = DecodeError;
+    type Error = Report<RequestHeaderDecodeError>;
 
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        pin!(read);
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        let protocol =
+            Protocol::decode(buffer, ()).change_context(RequestHeaderDecodeError::Protocol)?;
 
-        let protocol = Protocol::decode(&mut read, ())
-            .await
-            .change_context(DecodeError)?;
-        let request_id = RequestId::decode(&mut read, ())
-            .await
-            .change_context(DecodeError)?;
-        let flags = RequestFlags::decode(read, ())
-            .await
-            .change_context(DecodeError)?;
+        let request_id =
+            RequestId::decode(buffer, ()).change_context(RequestHeaderDecodeError::Buffer)?;
+
+        let flags =
+            RequestFlags::decode(buffer, ()).change_context(RequestHeaderDecodeError::Buffer)?;
 
         Ok(Self {
             protocol,

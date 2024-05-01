@@ -1,10 +1,11 @@
 use core::num::NonZero;
 use std::io;
 
-use error_stack::Result;
+use bytes::{Buf, BufMut};
+use error_stack::Report;
 use tokio::io::{AsyncRead, AsyncWrite};
 
-use crate::codec::{Decode, Encode};
+use crate::codec::{Buffer, BufferError, Decode, Encode};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -45,19 +46,25 @@ impl From<ResponseKind> for u16 {
 }
 
 impl Encode for ResponseKind {
-    type Error = io::Error;
+    type Error = !;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        u16::from(*self).encode(write).await
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
+        u16::from(*self).encode(buffer)
     }
 }
 
 impl Decode for ResponseKind {
     type Context = ();
-    type Error = io::Error;
+    type Error = Report<BufferError>;
 
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        u16::decode(read, ()).await.map(Self::from)
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        u16::decode(buffer, ()).map(Self::from)
     }
 }
 
