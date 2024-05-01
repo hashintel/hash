@@ -173,3 +173,175 @@ where
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod test {
+    use bytes::Bytes;
+
+    use super::Buffer;
+    use crate::codec::BufferError;
+
+    #[test]
+    fn next() {
+        let bytes = [1_u8, 2, 3, 4];
+
+        let mut pointer = &bytes[..];
+        let number = Buffer::new(&mut pointer)
+            .next_number::<u8>()
+            .expect("should have enough remaining capacity");
+        assert_eq!(number, 1);
+
+        let mut pointer = &bytes[..];
+        let number = Buffer::new(&mut pointer)
+            .next_number::<u16>()
+            .expect("should have enough remaining capacity");
+        assert_eq!(number, 0x01_02);
+
+        let mut pointer = &bytes[..];
+        let number = Buffer::new(&mut pointer)
+            .next_number::<u32>()
+            .expect("should have enough remaining capacity");
+        assert_eq!(number, 0x01_02_03_04);
+
+        let mut pointer = &bytes[..];
+        let output = Buffer::new(&mut pointer)
+            .next_bytes(4)
+            .expect("should have enough remaining capacity");
+        assert_eq!(output, Bytes::from_static(&[1, 2, 3, 4]));
+
+        let mut pointer = &bytes[..];
+        let output = Buffer::new(&mut pointer)
+            .next_array::<4>()
+            .expect("should have enough remaining capacity");
+        assert_eq!(output, [1, 2, 3, 4]);
+
+        let mut pointer = &bytes[..];
+        Buffer::new(&mut pointer)
+            .next_discard(4)
+            .expect("should have enough remaining capacity");
+        assert_eq!(pointer.len(), 0);
+    }
+
+    #[test]
+    fn next_eof() {
+        let bytes = [1_u8, 2, 3, 4];
+
+        let mut pointer = &bytes[..0];
+        let report = Buffer::new(&mut pointer)
+            .next_number::<u8>()
+            .expect_err("should not have enough remaining capacity");
+        assert_eq!(report.current_context(), &BufferError::EarlyEndOfStream);
+
+        let mut pointer = &bytes[..1];
+        let report = Buffer::new(&mut pointer)
+            .next_number::<u16>()
+            .expect_err("should not have enough remaining capacity");
+        assert_eq!(report.current_context(), &BufferError::EarlyEndOfStream);
+
+        let mut pointer = &bytes[..3];
+        let report = Buffer::new(&mut pointer)
+            .next_number::<u32>()
+            .expect_err("should not have enough remaining capacity");
+        assert_eq!(report.current_context(), &BufferError::EarlyEndOfStream);
+
+        let mut pointer = &bytes[..3];
+        let report = Buffer::new(&mut pointer)
+            .next_bytes(4)
+            .expect_err("should not have enough remaining capacity");
+        assert_eq!(report.current_context(), &BufferError::EarlyEndOfStream);
+
+        let mut pointer = &bytes[..3];
+        let report = Buffer::new(&mut pointer)
+            .next_array::<4>()
+            .expect_err("should not have enough remaining capacity");
+        assert_eq!(report.current_context(), &BufferError::EarlyEndOfStream);
+
+        let mut pointer = &bytes[..3];
+        let report = Buffer::new(&mut pointer)
+            .next_discard(4)
+            .expect_err("should not have enough remaining capacity");
+        assert_eq!(report.current_context(), &BufferError::EarlyEndOfStream);
+    }
+
+    #[test]
+    fn push() {
+        let mut bytes = [0_u8; 4];
+
+        let mut pointer = &mut bytes[..];
+        Buffer::new(&mut pointer)
+            .push_number(1_u8)
+            .expect("should have enough remaining capacity");
+        assert_eq!(bytes, [1, 0, 0, 0]);
+
+        let mut pointer = &mut bytes[..];
+        Buffer::new(&mut pointer)
+            .push_number(1_u16)
+            .expect("should have enough remaining capacity");
+        assert_eq!(bytes, [0, 1, 0, 0]);
+
+        let mut pointer = &mut bytes[..];
+        Buffer::new(&mut pointer)
+            .push_number(1_u32)
+            .expect("should have enough remaining capacity");
+        assert_eq!(bytes, [0, 0, 0, 1]);
+
+        let mut pointer = &mut bytes[..];
+        Buffer::new(&mut pointer)
+            .push_bytes(&Bytes::from_static(&[1, 2, 3, 4]))
+            .expect("should have enough remaining capacity");
+        assert_eq!(bytes, [1, 2, 3, 4]);
+
+        let mut pointer = &mut bytes[..];
+        Buffer::new(&mut pointer)
+            .push_slice(&[5, 6, 7, 8])
+            .expect("should have enough remaining capacity");
+        assert_eq!(bytes, [5, 6, 7, 8]);
+
+        let mut pointer = &mut bytes[..];
+        Buffer::new(&mut pointer)
+            .push_repeat(9, 4)
+            .expect("should have enough remaining capacity");
+        assert_eq!(bytes, [9, 9, 9, 9]);
+    }
+
+    #[test]
+    fn push_eof() {
+        let mut bytes = [0_u8; 4];
+
+        let mut pointer = &mut bytes[..0];
+        let report = Buffer::new(&mut pointer)
+            .push_number(1_u8)
+            .expect_err("should not have enough remaining capacity");
+        assert_eq!(report.current_context(), &BufferError::NotEnoughCapacity);
+
+        let mut pointer = &mut bytes[..1];
+        let report = Buffer::new(&mut pointer)
+            .push_number(1_u16)
+            .expect_err("should have enough remaining capacity");
+        assert_eq!(report.current_context(), &BufferError::NotEnoughCapacity);
+
+        let mut pointer = &mut bytes[..3];
+        let report = Buffer::new(&mut pointer)
+            .push_number(1_u32)
+            .expect_err("should have enough remaining capacity");
+        assert_eq!(report.current_context(), &BufferError::NotEnoughCapacity);
+
+        let mut pointer = &mut bytes[..2];
+        let report = Buffer::new(&mut pointer)
+            .push_bytes(&Bytes::from_static(&[1, 2, 3]))
+            .expect_err("should have enough remaining capacity");
+        assert_eq!(report.current_context(), &BufferError::NotEnoughCapacity);
+
+        let mut pointer = &mut bytes[..2];
+        let report = Buffer::new(&mut pointer)
+            .push_slice(&[1, 2, 3])
+            .expect_err("should have enough remaining capacity");
+        assert_eq!(report.current_context(), &BufferError::NotEnoughCapacity);
+
+        let mut pointer = &mut bytes[..2];
+        let report = Buffer::new(&mut pointer)
+            .push_repeat(1, 3)
+            .expect_err("should have enough remaining capacity");
+        assert_eq!(report.current_context(), &BufferError::NotEnoughCapacity);
+    }
+}
