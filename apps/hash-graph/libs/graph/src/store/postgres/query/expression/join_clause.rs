@@ -5,7 +5,7 @@ use crate::store::postgres::query::{
     Alias, AliasedTable, Expression, SelectStatement, Transpile,
 };
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct JoinCondition {
     pub join: Column,
     pub on: Column,
@@ -42,13 +42,13 @@ impl JoinType {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct JoinOn {
     pub join: Column,
     pub on: Column,
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct JoinExpression {
     pub join: JoinType,
     pub statement: Option<SelectStatement>,

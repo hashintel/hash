@@ -20,7 +20,7 @@ use type_system::{
 
 use crate::store::postgres::{ontology::OntologyId, query::Table};
 
-pub trait PostgresRow: Sized {
+pub trait PostgresRow: ToSql + Sized {
     fn table() -> Table;
 }
 

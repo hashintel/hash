@@ -2,10 +2,10 @@ use std::fmt;
 
 use crate::store::postgres::query::{Expression, Transpile};
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SelectExpression {
-    expression: Expression,
-    alias: Option<&'static str>,
+    pub expression: Expression,
+    pub alias: Option<&'static str>,
 }
 
 impl SelectExpression {
