@@ -12,7 +12,10 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { AggregatedUsageRecord } from "@local/hash-isomorphic-utils/service-usage";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import {
+  mapGraphApiEntityToEntity,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { ServiceFeatureProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { UsageRecordProperties } from "@local/hash-isomorphic-utils/system-types/usagerecord";
 import type {
@@ -222,7 +225,7 @@ export const createUsageRecord = async (
   );
 
   const serviceFeatureEntities = await context.graphApi
-    .getEntitySubgraph(authentication.actorId, {
+    .getEntities(authentication.actorId, {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
@@ -253,18 +256,14 @@ export const createUsageRecord = async (
           },
         ],
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
     })
-    .then((data) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.data.subgraph,
-        authentication.actorId,
-      );
-
-      return getRoots(subgraph);
-    });
+    .then(({ data: response }) =>
+      response.entities.map((entity) =>
+        mapGraphApiEntityToEntity(entity, authentication.actorId),
+      ),
+    );
 
   if (serviceFeatureEntities.length !== 1) {
     throw new Error(

@@ -3,15 +3,13 @@ import type { GraphApi } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   AccountId,
   Entity,
   EntityId,
-  EntityRootType,
   OwnedById,
 } from "@local/hash-subgraph";
 import {
@@ -19,7 +17,6 @@ import {
   extractOwnedByIdFromEntityId,
   splitEntityId,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
 export const getEntitiesByLinearId = async (params: {
@@ -29,9 +26,9 @@ export const getEntitiesByLinearId = async (params: {
   entityTypeId?: VersionedUrl;
   webOwnedById?: OwnedById;
   includeDrafts?: boolean;
-}): Promise<Entity[]> => {
-  const entities = await params.graphApiClient
-    .getEntitySubgraph(params.authentication.actorId, {
+}): Promise<Entity[]> =>
+  params.graphApiClient
+    .getEntities(params.authentication.actorId, {
       filter: {
         all: [
           params.entityTypeId
@@ -62,20 +59,14 @@ export const getEntitiesByLinearId = async (params: {
             : [],
         ].flat(),
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: params.includeDrafts ?? false,
     })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-        params.authentication.actorId,
-      );
-      return getRoots(subgraph);
-    });
-
-  return entities;
-};
+    .then(({ data: response }) =>
+      response.entities.map((entity) =>
+        mapGraphApiEntityToEntity(entity, params.authentication.actorId),
+      ),
+    );
 
 export const getEntityOutgoingLinks = async (params: {
   graphApiClient: GraphApi;
@@ -85,7 +76,7 @@ export const getEntityOutgoingLinks = async (params: {
 }) => {
   const { graphApiClient, authentication, entityId } = params;
 
-  const { data: response } = await graphApiClient.getEntitySubgraph(
+  const { data: response } = await graphApiClient.getEntities(
     authentication.actorId,
     {
       filter: {
@@ -111,20 +102,13 @@ export const getEntityOutgoingLinks = async (params: {
           },
         ],
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: params.includeDrafts ?? false,
     },
   );
 
-  const outgoingLinkEntitiesSubgraph =
-    mapGraphApiSubgraphToSubgraph<EntityRootType>(
-      response.subgraph,
-      authentication.actorId,
-    );
-
-  const outgoingLinkEntities = getRoots(
-    outgoingLinkEntitiesSubgraph,
+  const outgoingLinkEntities = response.entities.map((entity) =>
+    mapGraphApiEntityToEntity(entity, authentication.actorId),
   ) as LinkEntity[];
 
   return outgoingLinkEntities;
@@ -147,7 +131,7 @@ export const getLatestEntityById = async (params: {
 
   const [ownedById, entityUuid] = splitEntityId(entityId);
 
-  const { data: response } = await graphApiClient.getEntitySubgraph(
+  const { data: response } = await graphApiClient.getEntities(
     authentication.actorId,
     {
       filter: {
@@ -161,18 +145,14 @@ export const getLatestEntityById = async (params: {
           { equal: [{ path: ["archived"] }, { parameter: false }] },
         ],
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: params.includeDrafts ?? false,
     },
   );
 
-  const entitiesSubgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-    response.subgraph,
-    authentication.actorId,
+  const [entity, ...unexpectedEntities] = response.entities.map((graphEntity) =>
+    mapGraphApiEntityToEntity(graphEntity, authentication.actorId),
   );
-
-  const [entity, ...unexpectedEntities] = getRoots(entitiesSubgraph);
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
