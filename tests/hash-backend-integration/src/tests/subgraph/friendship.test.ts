@@ -5,25 +5,28 @@ import { getEntitySubgraph } from "@apps/hash-api/src/graph/knowledge/primitive/
 import {
   archiveDataType,
   getDataTypes,
+  getDataTypeSubgraph,
   unarchiveDataType,
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import {
   archiveEntityType,
   getEntityTypeById,
   getEntityTypes,
+  getEntityTypeSubgraph,
   unarchiveEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import {
   archivePropertyType,
   getPropertyTypes,
+  getPropertyTypeSubgraph,
   unarchivePropertyType,
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
-  GetDataTypeSubgraphRequest,
+  GetDataTypesRequest,
   GetEntitySubgraphRequest,
-  GetEntityTypeSubgraphRequest,
-  GetPropertyTypeSubgraphRequest,
+  GetEntityTypesRequest,
+  GetPropertyTypesRequest,
 } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -157,8 +160,8 @@ beforeAll(async () => {
 
   aliceEntities = await getEntitySubgraph(graphContext, authentication, {
     filter: aliceFilter,
-    graphResolveDepths: zeroedGraphResolveDepths,
     temporalAxes: fullDecisionTimeAxis,
+    graphResolveDepths: zeroedGraphResolveDepths,
     includeDrafts: false,
   })
     .then(getRoots)
@@ -172,8 +175,8 @@ beforeAll(async () => {
 
   bobEntities = await getEntitySubgraph(graphContext, authentication, {
     filter: bobFilter,
-    graphResolveDepths: zeroedGraphResolveDepths,
     temporalAxes: fullDecisionTimeAxis,
+    graphResolveDepths: zeroedGraphResolveDepths,
     includeDrafts: false,
   })
     .then(getRoots)
@@ -187,8 +190,8 @@ beforeAll(async () => {
 
   linkEntities = await getEntitySubgraph(graphContext, authentication, {
     filter: linkFilter,
-    graphResolveDepths: zeroedGraphResolveDepths,
     temporalAxes: fullDecisionTimeAxis,
+    graphResolveDepths: zeroedGraphResolveDepths,
     includeDrafts: false,
   })
     .then(getRoots)
@@ -217,7 +220,7 @@ describe("Ontology queries", () => {
       inheritsFrom: { outgoing: 255 },
     },
   ])("read data types %#", async (resolve_depths) => {
-    const subgraph = await getDataTypes(graphContext, authentication, {
+    const subgraph = await getDataTypeSubgraph(graphContext, authentication, {
       filter: {
         all: [],
       },
@@ -242,7 +245,7 @@ describe("Ontology queries", () => {
     const dataTypeId: VersionedUrl =
       "http://localhost:3000/@alice/types/data-type/number/v/1";
 
-    const request: GetDataTypeSubgraphRequest = {
+    const request: GetDataTypesRequest = {
       filter: {
         equal: [
           {
@@ -253,20 +256,19 @@ describe("Ontology queries", () => {
           },
         ],
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
     };
 
-    const initialSubgraph = await getDataTypes(
+    const initialDataTypes = await getDataTypes(
       graphContext,
       authentication,
       request,
     );
-    expect(initialSubgraph.roots.length).toEqual(1);
+    expect(initialDataTypes.length).toEqual(1);
 
     const actorId =
-      getRoots(initialSubgraph)[0]!.metadata.provenance.edition.createdById;
+      initialDataTypes[0]!.metadata.provenance.edition.createdById;
 
     await archiveDataType(
       graphContext,
@@ -276,12 +278,12 @@ describe("Ontology queries", () => {
       },
     );
 
-    const emptySubgraph = await getDataTypes(
+    const emptyDataTypes = await getDataTypes(
       graphContext,
       authentication,
       request,
     );
-    expect(emptySubgraph.roots.length).toEqual(0);
+    expect(emptyDataTypes.length).toEqual(0);
 
     await unarchiveDataType(
       graphContext,
@@ -291,12 +293,12 @@ describe("Ontology queries", () => {
       },
     );
 
-    const nonEmptySubgraph = await getDataTypes(
+    const nonEmptyDataTypes = await getDataTypes(
       graphContext,
       authentication,
       request,
     );
-    expect(nonEmptySubgraph.roots.length).toEqual(1);
+    expect(nonEmptyDataTypes.length).toEqual(1);
   });
 
   it.each([
@@ -315,13 +317,17 @@ describe("Ontology queries", () => {
       constrainsPropertiesOn: { outgoing: 255 },
     },
   ])("read property types %#", async (resolve_depths) => {
-    const subgraph = await getPropertyTypes(graphContext, authentication, {
-      filter: {
-        all: [],
+    const subgraph = await getPropertyTypeSubgraph(
+      graphContext,
+      authentication,
+      {
+        filter: {
+          all: [],
+        },
+        graphResolveDepths: resolve_depths,
+        temporalAxes: fullDecisionTimeAxis,
       },
-      graphResolveDepths: resolve_depths,
-      temporalAxes: fullDecisionTimeAxis,
-    });
+    );
     expect(subgraph.roots.length).toEqual(2);
 
     expect(
@@ -338,7 +344,7 @@ describe("Ontology queries", () => {
     const propertyTypeId: VersionedUrl =
       "http://localhost:3000/@alice/types/property-type/name/v/1";
 
-    const request: GetPropertyTypeSubgraphRequest = {
+    const request: GetPropertyTypesRequest = {
       filter: {
         equal: [
           {
@@ -349,20 +355,19 @@ describe("Ontology queries", () => {
           },
         ],
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
     };
 
-    const initialSubgraph = await getPropertyTypes(
+    const initialPropertyTypes = await getPropertyTypes(
       graphContext,
       authentication,
       request,
     );
-    expect(initialSubgraph.roots.length).toEqual(1);
+    expect(initialPropertyTypes.length).toEqual(1);
 
     const actorId =
-      getRoots(initialSubgraph)[0]!.metadata.provenance.edition.createdById;
+      initialPropertyTypes[0]!.metadata.provenance.edition.createdById;
 
     await archivePropertyType(
       graphContext,
@@ -372,12 +377,12 @@ describe("Ontology queries", () => {
       },
     );
 
-    const emptySubgraph = await getPropertyTypes(
+    const emptyPropertyTypes = await getPropertyTypes(
       graphContext,
       authentication,
       request,
     );
-    expect(emptySubgraph.roots.length).toEqual(0);
+    expect(emptyPropertyTypes.length).toEqual(0);
 
     await unarchivePropertyType(
       graphContext,
@@ -387,12 +392,12 @@ describe("Ontology queries", () => {
       },
     );
 
-    const nonEmptySubgraph = await getPropertyTypes(
+    const nonEmptyPropertyTypes = await getPropertyTypes(
       graphContext,
       authentication,
       request,
     );
-    expect(nonEmptySubgraph.roots.length).toEqual(1);
+    expect(nonEmptyPropertyTypes.length).toEqual(1);
   });
 
   it.each([
@@ -421,7 +426,7 @@ describe("Ontology queries", () => {
       constrainsLinkDestinationsOn: { outgoing: 255 },
     },
   ])("read entity types %#", async (resolve_depths) => {
-    const subgraph = await getEntityTypes(graphContext, authentication, {
+    const subgraph = await getEntityTypeSubgraph(graphContext, authentication, {
       filter: {
         all: [],
       },
@@ -460,7 +465,7 @@ it("archives/unarchives entity types", async () => {
   const entityTypeId: VersionedUrl =
     "http://localhost:3000/@alice/types/entity-type/person/v/1";
 
-  const request: GetEntityTypeSubgraphRequest = {
+  const request: GetEntityTypesRequest = {
     filter: {
       equal: [
         {
@@ -471,20 +476,19 @@ it("archives/unarchives entity types", async () => {
         },
       ],
     },
-    graphResolveDepths: zeroedGraphResolveDepths,
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts: false,
   };
 
-  const initialSubgraph = await getEntityTypes(
+  const initialEntityTypes = await getEntityTypes(
     graphContext,
     authentication,
     request,
   );
-  expect(initialSubgraph.roots.length).toEqual(1);
+  expect(initialEntityTypes.length).toEqual(1);
 
   const actorId =
-    getRoots(initialSubgraph)[0]!.metadata.provenance.edition.createdById;
+    initialEntityTypes[0]!.metadata.provenance.edition.createdById;
 
   await archiveEntityType(
     graphContext,
@@ -494,12 +498,12 @@ it("archives/unarchives entity types", async () => {
     },
   );
 
-  const emptySubgraph = await getEntityTypes(
+  const emptyEntityTypes = await getEntityTypes(
     graphContext,
     authentication,
     request,
   );
-  expect(emptySubgraph.roots.length).toEqual(0);
+  expect(emptyEntityTypes.length).toEqual(0);
 
   await unarchiveEntityType(
     graphContext,
@@ -509,12 +513,12 @@ it("archives/unarchives entity types", async () => {
     },
   );
 
-  const nonEmptySubgraph = await getEntityTypes(
+  const nonEmptyEntityTypes = await getEntityTypes(
     graphContext,
     authentication,
     request,
   );
-  expect(nonEmptySubgraph.roots.length).toEqual(1);
+  expect(nonEmptyEntityTypes.length).toEqual(1);
 });
 
 describe("Simple queries", () => {

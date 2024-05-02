@@ -298,6 +298,7 @@ mod test {
     }
 
     #[test_strategy::proptest]
+    #[cfg_attr(miri, ignore)]
     fn codec(response: Response) {
         // encoding partially overrides flags if they are not set correctly, to ensure that
         // encode/decode is actually lossless we need to apply the body to the header
@@ -311,6 +312,7 @@ mod test {
     }
 
     #[test_strategy::proptest]
+    #[cfg_attr(miri, ignore)]
     fn header_size(response: Response) {
         // ensure that for every response the header size is *always* 32 bytes
 

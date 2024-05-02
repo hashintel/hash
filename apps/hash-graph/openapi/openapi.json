@@ -524,6 +524,62 @@
           "Graph",
           "DataType"
         ],
+        "operationId": "get_data_types",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetDataTypesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Gets a a list of data types that satisfy the given query.",
+            "headers": {
+              "Link": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "The link to be used to query the next page of data types"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetDataTypesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Provided query is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/data-types/query/subgraph": {
+      "post": {
+        "tags": [
+          "Graph",
+          "DataType"
+        ],
         "operationId": "get_data_type_subgraph",
         "parameters": [
           {
@@ -970,6 +1026,124 @@
           "Graph",
           "Entity"
         ],
+        "operationId": "get_entities",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "The cursor to start reading from",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "The maximum number of entities to read",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "nullable": true,
+              "minimum": 0
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetEntitiesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "A list of entities that satisfy the given query.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetEntitiesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Provided query is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/entities/query/count": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
+        "operationId": "count_entities",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CountEntitiesParams"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Provided query is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/entities/query/subgraph": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
         "operationId": "get_entity_subgraph",
         "parameters": [
           {
@@ -1020,55 +1194,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetEntitySubgraphResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Provided query is invalid"
-          },
-          "500": {
-            "description": "Store error occurred"
-          }
-        }
-      }
-    },
-    "/entities/query/count": {
-      "post": {
-        "tags": [
-          "Graph",
-          "Entity"
-        ],
-        "operationId": "count_entities",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/AccountId"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CountEntitiesParams"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "integer",
-                  "minimum": 0
                 }
               }
             }
@@ -1762,6 +1887,62 @@
           "Graph",
           "EntityType"
         ],
+        "operationId": "get_entity_types",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetEntityTypesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Gets a a list of entity types that satisfy the given query.",
+            "headers": {
+              "Link": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "The link to be used to query the next page of entity types"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetEntityTypesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Provided query is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/entity-types/query/subgraph": {
+      "post": {
+        "tags": [
+          "Graph",
+          "EntityType"
+        ],
         "operationId": "get_entity_type_subgraph",
         "parameters": [
           {
@@ -2275,6 +2456,62 @@
       }
     },
     "/property-types/query": {
+      "post": {
+        "tags": [
+          "Graph",
+          "PropertyType"
+        ],
+        "operationId": "get_property_types",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetPropertyTypesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Gets a a list of property types that satisfy the given query.",
+            "headers": {
+              "Link": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "The link to be used to query the next page of property types"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetPropertyTypesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Provided query is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/property-types/query/subgraph": {
       "post": {
         "tags": [
           "Graph",
@@ -4572,6 +4809,110 @@
           }
         }
       },
+      "GetDataTypesRequest": {
+        "type": "object",
+        "required": [
+          "filter",
+          "temporalAxes",
+          "includeDrafts"
+        ],
+        "properties": {
+          "filter": {
+            "$ref": "#/components/schemas/Filter"
+          },
+          "includeDrafts": {
+            "type": "boolean"
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GetDataTypesResponse": {
+        "type": "object",
+        "required": [
+          "dataTypes"
+        ],
+        "properties": {
+          "dataTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataTypeWithMetadata"
+            }
+          }
+        }
+      },
+      "GetEntitiesRequest": {
+        "type": "object",
+        "required": [
+          "filter",
+          "temporalAxes",
+          "includeDrafts"
+        ],
+        "properties": {
+          "cursor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityQueryCursor"
+              }
+            ],
+            "nullable": true
+          },
+          "filter": {
+            "$ref": "#/components/schemas/Filter"
+          },
+          "includeCount": {
+            "type": "boolean"
+          },
+          "includeDrafts": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          },
+          "sortingPaths": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityQuerySortingRecord"
+            },
+            "nullable": true
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GetEntitiesResponse": {
+        "type": "object",
+        "required": [
+          "entities"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          },
+          "cursor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityQueryCursor"
+              }
+            ],
+            "nullable": true
+          },
+          "entities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Entity"
+            }
+          }
+        }
+      },
       "GetEntitySubgraphRequest": {
         "type": "object",
         "required": [
@@ -4678,6 +5019,40 @@
           }
         }
       },
+      "GetEntityTypesRequest": {
+        "type": "object",
+        "required": [
+          "filter",
+          "temporalAxes",
+          "includeDrafts"
+        ],
+        "properties": {
+          "filter": {
+            "$ref": "#/components/schemas/Filter"
+          },
+          "includeDrafts": {
+            "type": "boolean"
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GetEntityTypesResponse": {
+        "type": "object",
+        "required": [
+          "entityTypes"
+        ],
+        "properties": {
+          "entityTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityTypeWithMetadata"
+            }
+          }
+        }
+      },
       "GetPropertyTypeSubgraphRequest": {
         "type": "object",
         "required": [
@@ -4710,6 +5085,40 @@
         "properties": {
           "subgraph": {
             "$ref": "#/components/schemas/Subgraph"
+          }
+        }
+      },
+      "GetPropertyTypesRequest": {
+        "type": "object",
+        "required": [
+          "filter",
+          "temporalAxes",
+          "includeDrafts"
+        ],
+        "properties": {
+          "filter": {
+            "$ref": "#/components/schemas/Filter"
+          },
+          "includeDrafts": {
+            "type": "boolean"
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GetPropertyTypesResponse": {
+        "type": "object",
+        "required": [
+          "propertyTypes"
+        ],
+        "properties": {
+          "propertyTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PropertyTypeWithMetadata"
+            }
           }
         }
       },

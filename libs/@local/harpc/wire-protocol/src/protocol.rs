@@ -189,11 +189,13 @@ mod test {
     }
 
     #[test_strategy::proptest]
+    #[cfg_attr(miri, ignore)]
     fn codec_version(version: ProtocolVersion) {
         assert_codec(&version, ());
     }
 
     #[test_strategy::proptest]
+    #[cfg_attr(miri, ignore)]
     fn codec_protocol(protocol: Protocol) {
         assert_codec(&protocol, ());
     }

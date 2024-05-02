@@ -127,6 +127,7 @@ pub(crate) mod test {
     }
 
     #[test_strategy::proptest]
+    #[cfg_attr(miri, ignore)]
     fn codec_id(id: RequestId) {
         assert_codec(&id, ());
     }

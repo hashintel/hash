@@ -1,13 +1,9 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import {
-  getEntitySubgraph,
+  getEntities,
   modifyEntityAuthorizationRelationships,
 } from "../../../knowledge/primitive/entity";
 import type { MigrationFunction } from "../types";
@@ -24,7 +20,7 @@ const migrate: MigrationFunction = async ({
   const hashInstanceAdminsAccountGroupId =
     await getHashInstanceAdminAccountGroupId(context, authentication);
 
-  const userEntities = await getEntitySubgraph(context, authentication, {
+  const userEntities = await getEntities(context, authentication, {
     filter: {
       all: [
         {
@@ -35,10 +31,9 @@ const migrate: MigrationFunction = async ({
         },
       ],
     },
-    graphResolveDepths: zeroedGraphResolveDepths,
     includeDrafts: true,
     temporalAxes: currentTimeInstantTemporalAxes,
-  }).then((subgraph) => getRoots(subgraph));
+  });
 
   for (const userEntity of userEntities) {
     await modifyEntityAuthorizationRelationships(context, authentication, [

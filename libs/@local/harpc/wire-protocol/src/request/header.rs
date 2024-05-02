@@ -126,6 +126,7 @@ mod test {
     }
 
     #[test_strategy::proptest]
+    #[cfg_attr(miri, ignore)]
     fn encode_decode(header: RequestHeader) {
         assert_codec(&header, ());
     }

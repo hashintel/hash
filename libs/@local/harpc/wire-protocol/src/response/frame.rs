@@ -93,6 +93,7 @@ mod test {
     }
 
     #[test_strategy::proptest]
+    #[cfg_attr(miri, ignore)]
     fn codec(frame: ResponseFrame) {
         assert_codec(&frame, ());
     }

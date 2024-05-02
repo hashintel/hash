@@ -31,8 +31,8 @@ use graph::{
         error::VersionedUrlAlreadyExists,
         ontology::{
             ArchivePropertyTypeParams, CreatePropertyTypeParams, GetPropertyTypeSubgraphParams,
-            UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams,
-            UpdatePropertyTypesParams,
+            GetPropertyTypesParams, GetPropertyTypesResponse, UnarchivePropertyTypeParams,
+            UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
         },
         query::Filter,
         BaseUrlAlreadyExists, ConflictBehavior, OntologyVersionDoesNotExist, PropertyTypeStore,
@@ -78,6 +78,7 @@ use crate::rest::{
 
         create_property_type,
         load_external_property_type,
+        get_property_types,
         get_property_type_subgraph,
         update_property_type,
         update_property_type_embeddings,
@@ -103,6 +104,8 @@ use crate::rest::{
             UpdatePropertyTypeRequest,
             UpdatePropertyTypeEmbeddingParams,
             PropertyTypeQueryToken,
+            GetPropertyTypesRequest,
+            GetPropertyTypesResponse,
             GetPropertyTypeSubgraphRequest,
             GetPropertyTypeSubgraphResponse,
             ArchivePropertyTypeParams,
@@ -147,7 +150,12 @@ impl RoutedResource for PropertyTypeResource {
                             get(check_property_type_permission::<A>),
                         ),
                 )
-                .route("/query", post(get_property_type_subgraph::<S, A>))
+                .nest(
+                    "/query",
+                    Router::new()
+                        .route("/", post(get_property_types::<S, A>))
+                        .route("/subgraph", post(get_property_type_subgraph::<S, A>)),
+                )
                 .route("/load", post(load_external_property_type::<S, A>))
                 .route("/archive", put(archive_property_type::<S, A>))
                 .route("/unarchive", put(unarchive_property_type::<S, A>))
@@ -381,6 +389,90 @@ where
 
 #[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct GetPropertyTypesRequest<'q> {
+    #[serde(borrow)]
+    filter: Filter<'q, PropertyTypeWithMetadata>,
+    temporal_axes: QueryTemporalAxesUnresolved,
+    include_drafts: bool,
+}
+
+#[utoipa::path(
+    post,
+    path = "/property-types/query",
+    request_body = GetPropertyTypesRequest,
+    tag = "PropertyType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (
+            status = 200,
+            content_type = "application/json",
+            body = GetPropertyTypesResponse,
+            description = "Gets a a list of property types that satisfy the given query.",
+            headers(
+                ("Link" = String, description = "The link to be used to query the next page of property types"),
+            ),
+        ),
+        (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, request))]
+async fn get_property_types<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Query(pagination): Query<Pagination<PropertyTypeVertexId>>,
+    OriginalUri(uri): OriginalUri,
+    Json(request): Json<serde_json::Value>,
+) -> Result<(HeaderMap, Json<GetPropertyTypesResponse>), Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    let store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    // Manually deserialize the query from a JSON value to allow borrowed deserialization and better
+    // error reporting.
+    let mut request = GetPropertyTypesRequest::deserialize(&request).map_err(report_to_response)?;
+    request
+        .filter
+        .convert_parameters()
+        .map_err(report_to_response)?;
+    let response = store
+        .get_property_types(
+            actor_id,
+            GetPropertyTypesParams {
+                filter: request.filter,
+                after: pagination.after.map(|cursor| cursor.0),
+                limit: pagination.limit,
+                temporal_axes: request.temporal_axes,
+                include_drafts: request.include_drafts,
+            },
+        )
+        .await
+        .map_err(report_to_response)?;
+
+    let cursor = response.property_types.last().map(Cursor);
+    let mut headers = HeaderMap::new();
+    if let (Some(cursor), Some(limit)) = (cursor, pagination.limit) {
+        headers.insert(LINK, cursor.link_header("next", uri, limit)?);
+    }
+    Ok((headers, Json(response)))
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct GetPropertyTypeSubgraphRequest<'q> {
     #[serde(borrow)]
     filter: Filter<'q, PropertyTypeWithMetadata>,
@@ -397,7 +489,7 @@ struct GetPropertyTypeSubgraphResponse {
 
 #[utoipa::path(
     post,
-    path = "/property-types/query",
+    path = "/property-types/query/subgraph",
     request_body = GetPropertyTypeSubgraphRequest,
     tag = "PropertyType",
     params(

@@ -106,6 +106,7 @@ mod test {
     }
 
     #[test_strategy::proptest]
+    #[cfg_attr(miri, ignore)]
     fn codec(kind: ResponseKind) {
         assert_codec(&kind, ());
     }

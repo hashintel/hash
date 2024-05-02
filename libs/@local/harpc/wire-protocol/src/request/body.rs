@@ -172,6 +172,7 @@ mod test {
     }
 
     #[test_strategy::proptest]
+    #[cfg_attr(miri, ignore)]
     fn codec(body: RequestBody) {
         let context = RequestBodyContext {
             variant: (&body).into(),

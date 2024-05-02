@@ -131,6 +131,7 @@ mod test {
     }
 
     #[test_strategy::proptest]
+    #[cfg_attr(miri, ignore)]
     fn codec(header: ResponseHeader) {
         assert_codec(&header, ());
     }

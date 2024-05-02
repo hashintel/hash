@@ -177,6 +177,7 @@ mod test {
     }
 
     #[test_strategy::proptest]
+    #[cfg_attr(miri, ignore)]
     fn codec(body: ResponseBody) {
         let context = ResponseBodyContext {
             variant: ResponseVariant::from(&body),

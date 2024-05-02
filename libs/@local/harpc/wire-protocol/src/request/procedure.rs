@@ -59,6 +59,7 @@ mod test {
     }
 
     #[test_strategy::proptest]
+    #[cfg_attr(miri, ignore)]
     fn codec_id(id: ProcedureId) {
         assert_codec(&id, ());
     }
@@ -87,6 +88,7 @@ mod test {
     }
 
     #[test_strategy::proptest]
+    #[cfg_attr(miri, ignore)]
     fn codec(id: ProcedureDescriptor) {
         assert_codec(&id, ());
     }

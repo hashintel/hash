@@ -85,6 +85,7 @@ mod test {
     }
 
     #[test_strategy::proptest]
+    #[cfg_attr(miri, ignore)]
     fn encode_decode(service: ServiceDescriptor) {
         assert_codec(&service, ());
     }

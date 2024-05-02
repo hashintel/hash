@@ -2,7 +2,6 @@ import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -17,13 +16,12 @@ import type { TextProperties } from "@local/hash-isomorphic-utils/system-types/s
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type { Entity, EntityId } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
 } from "../../context-types";
-import { getEntitySubgraph, getLatestEntityById } from "../primitive/entity";
+import { getEntities, getLatestEntityById } from "../primitive/entity";
 import { isEntityLinkEntity } from "../primitive/link-entity";
 import type { Block } from "./block";
 import { getBlockById } from "./block";
@@ -95,7 +93,7 @@ export const getPageAndBlockByText: ImpureGraphFunction<
     matchingBlockDataLinksWithTextAtDepthOne,
     matchingBlockDataLinksWithTextAtDepthTwo,
   ] = await Promise.all([
-    getEntitySubgraph(context, authentication, {
+    getEntities(context, authentication, {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
@@ -110,11 +108,10 @@ export const getPageAndBlockByText: ImpureGraphFunction<
           },
         ],
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
-    }).then((subgraph) => getRoots(subgraph).filter(isEntityLinkEntity)),
-    getEntitySubgraph(context, authentication, {
+    }).then((entities) => entities.filter(isEntityLinkEntity)),
+    getEntities(context, authentication, {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
@@ -131,10 +128,9 @@ export const getPageAndBlockByText: ImpureGraphFunction<
           },
         ],
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
-    }).then((subgraph) => getRoots(subgraph).filter(isEntityLinkEntity)),
+    }).then((entities) => entities.filter(isEntityLinkEntity)),
   ]);
 
   /** @todo: unify these in a single structural query when it becomes possible */
@@ -143,34 +139,27 @@ export const getPageAndBlockByText: ImpureGraphFunction<
     ...matchingBlockDataLinksWithTextAtDepthTwo,
   ];
 
-  const matchingContainsLinks = await getEntitySubgraph(
-    context,
-    authentication,
-    {
-      filter: {
-        all: [
-          contentLinkTypeFilter,
-          {
-            any: matchingBlockDataLinks.map(({ linkData }) => ({
-              equal: [
-                { path: ["rightEntity", "uuid"] },
-                {
-                  parameter: extractEntityUuidFromEntityId(
-                    linkData.leftEntityId,
-                  ),
-                },
-              ],
-            })),
-          },
-        ],
-      },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
+  const matchingContainsLinks = await getEntities(context, authentication, {
+    filter: {
+      all: [
+        contentLinkTypeFilter,
+        {
+          any: matchingBlockDataLinks.map(({ linkData }) => ({
+            equal: [
+              { path: ["rightEntity", "uuid"] },
+              {
+                parameter: extractEntityUuidFromEntityId(linkData.leftEntityId),
+              },
+            ],
+          })),
+        },
+      ],
     },
-  ).then((subgraph) => getRoots(subgraph).filter(isEntityLinkEntity));
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts,
+  }).then((entities) => entities.filter(isEntityLinkEntity));
 
-  const pageEntities = await getEntitySubgraph(context, authentication, {
+  const pageEntities = await getEntities(context, authentication, {
     filter: {
       all: [
         pageEntityTypeFilter,
@@ -188,11 +177,10 @@ export const getPageAndBlockByText: ImpureGraphFunction<
         },
       ],
     },
-    graphResolveDepths: zeroedGraphResolveDepths,
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts,
-  }).then((subgraph) =>
-    getRoots(subgraph).map((entity) => getPageFromEntity({ entity })),
+  }).then((entities) =>
+    entities.map((entity) => getPageFromEntity({ entity })),
   );
 
   const page = pageEntities[0];
@@ -226,33 +214,28 @@ export const getCommentByText: ImpureGraphFunction<
     text.entity.metadata.recordId.entityId,
   );
 
-  const matchingHasTextLinks = await getEntitySubgraph(
-    context,
-    authentication,
-    {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemLinkEntityTypes.hasText.linkEntityTypeId,
-            { ignoreParents: true },
-          ),
-          {
-            equal: [
-              { path: ["rightEntity", "uuid"] },
-              { parameter: textEntityUuid },
-            ],
-          },
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.comment.entityTypeId,
-            { ignoreParents: true, pathPrefix: ["leftEntity"] },
-          ),
-        ],
-      },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
+  const matchingHasTextLinks = await getEntities(context, authentication, {
+    filter: {
+      all: [
+        generateVersionedUrlMatchingFilter(
+          systemLinkEntityTypes.hasText.linkEntityTypeId,
+          { ignoreParents: true },
+        ),
+        {
+          equal: [
+            { path: ["rightEntity", "uuid"] },
+            { parameter: textEntityUuid },
+          ],
+        },
+        generateVersionedUrlMatchingFilter(
+          systemEntityTypes.comment.entityTypeId,
+          { ignoreParents: true, pathPrefix: ["leftEntity"] },
+        ),
+      ],
     },
-  ).then((subgraph) => getRoots(subgraph).filter(isEntityLinkEntity));
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts,
+  }).then((entities) => entities.filter(isEntityLinkEntity));
 
   if (matchingHasTextLinks.length > 1) {
     throw new Error("Text entity is in more than one comment");

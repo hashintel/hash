@@ -150,6 +150,7 @@ mod test {
     }
 
     #[test_strategy::proptest]
+    #[cfg_attr(miri, ignore)]
     fn codec(flags: RequestFlags) {
         assert_codec(&flags, ());
     }

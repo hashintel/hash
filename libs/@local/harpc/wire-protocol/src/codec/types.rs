@@ -127,11 +127,13 @@ mod test {
     }
 
     #[test_strategy::proptest]
+    #[cfg_attr(miri, ignore)]
     fn codec_service_id(id: ServiceId) {
         assert_codec(&id, ());
     }
 
     #[test_strategy::proptest]
+    #[cfg_attr(miri, ignore)]
     fn codec_version(version: Version) {
         assert_codec(&version, ());
     }

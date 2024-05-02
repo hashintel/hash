@@ -121,6 +121,7 @@ mod test {
     }
 
     #[test_strategy::proptest]
+    #[cfg_attr(miri, ignore)]
     fn codec(flags: ResponseFlags) {
         assert_codec(&flags, ());
     }

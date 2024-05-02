@@ -87,6 +87,7 @@ mod test {
     }
 
     #[test_strategy::proptest]
+    #[cfg_attr(miri, ignore)]
     fn encode_decode(payload: Payload) {
         assert_codec(&payload, ());
     }
