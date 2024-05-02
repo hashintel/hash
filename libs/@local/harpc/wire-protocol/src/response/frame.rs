@@ -43,7 +43,7 @@ impl Decode for ResponseFrame {
         B: Buf,
     {
         // skip 19 bytes of reserved space
-        buffer.next_discard(19)?;
+        buffer.discard(19)?;
 
         let payload = Payload::decode(buffer, ())?;
 

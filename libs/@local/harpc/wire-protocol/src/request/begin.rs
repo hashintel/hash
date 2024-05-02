@@ -58,7 +58,7 @@ impl Decode for RequestBegin {
         let procedure = ProcedureDescriptor::decode(buffer, ())?;
 
         // skip 13 bytes (reserved for future use)
-        buffer.next_discard(13)?;
+        buffer.discard(13)?;
 
         let payload = Payload::decode(buffer, ())?;
 

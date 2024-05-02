@@ -12,9 +12,9 @@ use tokio_util::{
     codec::{Decoder, Encoder},
 };
 
-pub struct ProtocolEncoder<T>(PhantomData<fn() -> *const T>);
+pub struct ProtocolCodec<T>(PhantomData<fn() -> *const T>);
 
-impl<T> Encoder<T> for ProtocolEncoder<T>
+impl<T> Encoder<T> for ProtocolCodec<T>
 where
     T: Encode,
 {
@@ -29,16 +29,13 @@ where
     }
 }
 
-pub struct ProtocolDecoder<T>(PhantomData<fn() -> *const T>);
-
-impl<T> Decoder for ProtocolDecoder<T>
+impl<T> Decoder for ProtocolCodec<T>
 where
     T: Decode<Context = ()>,
 {
     type Error = Report<io::Error>;
     type Item = T;
 
-    #[expect(clippy::big_endian_bytes, reason = "This is a protocol requirement")]
     #[expect(clippy::missing_asserts_for_indexing, reason = "false positive")]
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         if src.len() < 32 {
@@ -69,8 +66,5 @@ where
     }
 }
 
-pub type RequestEncoder = ProtocolEncoder<Request>;
-pub type RequestDecoder = ProtocolDecoder<Request>;
-
-pub type ResponseEncoder = ProtocolEncoder<Response>;
-pub type ResponseDecoder = ProtocolDecoder<Response>;
+pub type RequestCodec = ProtocolCodec<Request>;
+pub type ResponseCodec = ProtocolCodec<Response>;

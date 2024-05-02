@@ -50,7 +50,7 @@ impl Decode for ResponseBegin {
         B: Buf,
     {
         // skip 17 bytes of reserved space
-        buffer.next_discard(17)?;
+        buffer.discard(17)?;
 
         let kind = ResponseKind::decode(buffer, ())?;
 

@@ -43,7 +43,7 @@ impl Decode for RequestFrame {
         B: Buf,
     {
         // skip 19 bytes (reserved for future use)
-        buffer.next_discard(19)?;
+        buffer.discard(19)?;
 
         let payload = Payload::decode(buffer, ())?;
 

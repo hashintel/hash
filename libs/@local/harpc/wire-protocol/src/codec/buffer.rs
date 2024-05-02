@@ -116,7 +116,7 @@ where
         Ok(bytes)
     }
 
-    pub(crate) fn next_discard(&mut self, count: usize) -> Result<(), BufferError> {
+    pub(crate) fn discard(&mut self, count: usize) -> Result<(), BufferError> {
         if self.0.remaining() < count {
             return Err(Report::new(BufferError::EarlyEndOfStream));
         }
@@ -217,7 +217,7 @@ mod test {
 
         let mut pointer = &bytes[..];
         Buffer::new(&mut pointer)
-            .next_discard(4)
+            .discard(4)
             .expect("should have enough remaining capacity");
         assert_eq!(pointer.len(), 0);
     }
@@ -258,7 +258,7 @@ mod test {
 
         let mut pointer = &bytes[..3];
         let report = Buffer::new(&mut pointer)
-            .next_discard(4)
+            .discard(4)
             .expect_err("should not have enough remaining capacity");
         assert_eq!(report.current_context(), &BufferError::EarlyEndOfStream);
     }
