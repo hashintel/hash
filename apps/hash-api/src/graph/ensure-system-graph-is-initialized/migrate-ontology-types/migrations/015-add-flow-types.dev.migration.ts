@@ -261,7 +261,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Incurred In",
-        description: "Something that was incurred by something else.",
+        description: "Something that was incurred in something else.",
         properties: [],
       },
       webShortname: "hash",
