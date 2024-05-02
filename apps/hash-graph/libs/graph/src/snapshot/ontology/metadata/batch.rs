@@ -141,15 +141,15 @@ where
             .client()
             .simple_query(
                 "
-                    INSERT INTO base_urls                  
+                    INSERT INTO base_urls
                         SELECT DISTINCT base_url FROM ontology_ids_tmp;
-                    INSERT INTO ontology_ids               
+                    INSERT INTO ontology_ids
                         SELECT * FROM ontology_ids_tmp;
-                    INSERT INTO ontology_temporal_metadata 
+                    INSERT INTO ontology_temporal_metadata
                         SELECT * FROM ontology_temporal_metadata_tmp;
-                    INSERT INTO ontology_owned_metadata    
+                    INSERT INTO ontology_owned_metadata
                         SELECT * FROM ontology_owned_metadata_tmp;
-                    INSERT INTO ontology_external_metadata 
+                    INSERT INTO ontology_external_metadata
                         SELECT * FROM ontology_external_metadata_tmp;
                 ",
             )

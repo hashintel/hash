@@ -113,7 +113,7 @@ where
             .client()
             .simple_query(
                 "
-                    INSERT INTO data_types 
+                    INSERT INTO data_types
                         SELECT * FROM data_types_tmp;
 
                     INSERT INTO data_type_embeddings
