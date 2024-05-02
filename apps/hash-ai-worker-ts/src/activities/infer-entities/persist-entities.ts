@@ -186,6 +186,7 @@ export const persistEntities = async (params: {
       userAccountId: requestingUserAccountId,
       graphApiClient,
       incurredInEntities: [],
+      webId: ownedById,
     },
   );
 

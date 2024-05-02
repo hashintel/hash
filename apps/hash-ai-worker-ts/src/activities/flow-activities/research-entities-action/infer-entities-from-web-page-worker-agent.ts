@@ -396,7 +396,7 @@ const createInitialPlan = async (params: {
     ...(retryMessages ?? []),
   ];
 
-  const { userAuthentication, graphApiClient, flowEntityId } =
+  const { userAuthentication, graphApiClient, flowEntityId, webId } =
     await getFlowContext();
 
   const llmResponse = await getLlmResponse(
@@ -410,6 +410,7 @@ const createInitialPlan = async (params: {
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],
+      webId,
     },
   );
 
@@ -518,7 +519,7 @@ const getNextToolCalls = async (params: {
     }),
   ];
 
-  const { userAuthentication, graphApiClient, flowEntityId } =
+  const { userAuthentication, graphApiClient, flowEntityId, webId } =
     await getFlowContext();
 
   const llmResponse = await getLlmResponse(
@@ -532,6 +533,7 @@ const getNextToolCalls = async (params: {
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],
+      webId,
     },
   );
 

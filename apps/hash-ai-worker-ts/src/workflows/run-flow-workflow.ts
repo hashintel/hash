@@ -160,7 +160,7 @@ const proxyActionActivity = (params: {
 export const runFlowWorkflow = async (
   params: RunFlowWorkflowParams,
 ): Promise<RunFlowWorkflowResponse> => {
-  const { flowDefinition, flowTrigger, userAuthentication } = params;
+  const { flowDefinition, flowTrigger, userAuthentication, webId } = params;
 
   try {
     validateFlowDefinition(flowDefinition);
@@ -168,6 +168,18 @@ export const runFlowWorkflow = async (
     return {
       code: StatusCode.InvalidArgument,
       message: (error as Error).message,
+      contents: [],
+    };
+  }
+
+  // Ensure the user has permission to create entities in specified web
+  const userHasPermissionToRunFlowInWeb =
+    await flowActivities.userHasPermissionToRunFlowInWebActivity();
+
+  if (userHasPermissionToRunFlowInWeb.status !== "ok") {
+    return {
+      code: StatusCode.PermissionDenied,
+      message: `User does not have permission to run flow in web ${webId}, because they are permissions: ${userHasPermissionToRunFlowInWeb.missingPermissions.join(`,`)}`,
       contents: [],
     };
   }

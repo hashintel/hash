@@ -1,6 +1,11 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { AccountId, Entity, EntityId } from "@local/hash-subgraph";
+import type {
+  AccountId,
+  Entity,
+  EntityId,
+  OwnedById,
+} from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
@@ -37,9 +42,16 @@ export const inferEntitySummaries = async (params: {
   inferenceState: InferenceState;
   providedOrRerequestedEntityTypes: Set<VersionedUrl>;
   existingEntities?: Entity[];
+  /**
+   * @todo: remove these parameters when the `inferEntities` activity has
+   * been deprecated, and access them via `getFlowContext` instead.
+   *
+   * @see https://linear.app/hash/issue/H-2621/remove-superfluous-parameters-in-flow-activity-methods-and-use
+   */
   userAccountId: AccountId;
   graphApiClient: GraphApi;
   flowEntityId?: EntityId;
+  webId: OwnedById;
 }): Promise<Status<InferenceState>> => {
   const {
     completionPayload,
@@ -50,6 +62,7 @@ export const inferEntitySummaries = async (params: {
     userAccountId,
     graphApiClient,
     flowEntityId,
+    webId,
   } = params;
 
   const { iterationCount, usage: usageFromPreviousIterations } = inferenceState;
@@ -89,6 +102,7 @@ export const inferEntitySummaries = async (params: {
       userAccountId,
       graphApiClient,
       incurredInEntities: flowEntityId ? [{ entityId: flowEntityId }] : [],
+      webId,
     },
   );
 

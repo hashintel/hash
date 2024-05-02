@@ -54,7 +54,7 @@ export const generateWebQueriesAction: FlowActionActivity = async ({
     };
   }
 
-  const { userAuthentication, graphApiClient, flowEntityId } =
+  const { userAuthentication, graphApiClient, flowEntityId, webId } =
     await getFlowContext();
 
   const llmResponse = await getLlmResponse(
@@ -73,6 +73,7 @@ export const generateWebQueriesAction: FlowActionActivity = async ({
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],
+      webId,
     },
   );
 

@@ -45,7 +45,7 @@ export const getWebPageSummaryAction: FlowActionActivity = async ({
     numberOfSentences: numberOfSentences!,
   });
 
-  const { userAuthentication, graphApiClient, flowEntityId } =
+  const { userAuthentication, graphApiClient, flowEntityId, webId } =
     await getFlowContext();
 
   const llmResponse = await getLlmResponse(
@@ -72,6 +72,7 @@ export const getWebPageSummaryAction: FlowActionActivity = async ({
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],
+      webId,
     },
   );
 

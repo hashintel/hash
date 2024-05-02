@@ -41,6 +41,7 @@ type FlowContext = {
   flowEntityId: EntityId;
   graphApiClient: GraphApi;
   userAuthentication: { actorId: AccountId };
+  webId: OwnedById;
 };
 
 const graphApiClient = createGraphClient(logToConsole, {
@@ -94,14 +95,14 @@ export const getFlowContext = async (): Promise<FlowContext> => {
     );
   }
 
-  const { userAuthentication } = runFlowWorkflowParams;
+  const { userAuthentication, webId } = runFlowWorkflowParams;
 
   const flowEntityId = entityIdFromComponents(
     /** @todo: replace this with the `webId` input parameter */
-    userAuthentication.actorId as OwnedById,
+    webId,
     // Assumes the flow entity UUID is the same as the workflow ID
     workflowId as EntityUuid,
   );
 
-  return { userAuthentication, graphApiClient, flowEntityId };
+  return { userAuthentication, graphApiClient, flowEntityId, webId };
 };

@@ -10,7 +10,7 @@ import type {
   ProposedEntity,
   StepGroup,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type { Entity } from "@local/hash-subgraph";
+import type { Entity, OwnedById } from "@local/hash-subgraph";
 import { Box, Stack, Typography } from "@mui/material";
 import { useMemo, useState } from "react";
 import type { Edge } from "reactflow";
@@ -23,6 +23,7 @@ import type {
 import { startFlowMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { isNonNullable } from "../../lib/typeguards";
 import { Button } from "../../shared/ui/button";
+import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { Deliverables } from "./flow-definition/deliverables";
 import { EntityResultTable } from "./flow-definition/entity-result-table";
 import { PersistedEntityGraph } from "./flow-definition/persisted-entity-graph";
@@ -185,6 +186,8 @@ const SectionLabel = ({ text }: { text: string }) => (
 );
 
 export const FlowDefinition = () => {
+  const { authenticatedUser } = useAuthenticatedUser();
+
   const { flowDefinitions, selectedFlow, setSelectedFlow } =
     useFlowDefinitionsContext();
 
@@ -333,6 +336,10 @@ export const FlowDefinition = () => {
           flowTrigger: {
             triggerDefinitionId: "userTrigger",
           },
+          /**
+           * @todo: allow specifying the web to run the flow in
+           */
+          webId: authenticatedUser.accountId as OwnedById,
         },
       });
     }
@@ -366,6 +373,10 @@ export const FlowDefinition = () => {
                 outputs,
                 triggerDefinitionId: "userTrigger",
               },
+              /**
+               * @todo: allow specifying the web to run the flow in
+               */
+              webId: authenticatedUser.accountId as OwnedById,
             },
           });
           setShowRunModal(false);

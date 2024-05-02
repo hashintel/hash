@@ -141,6 +141,7 @@ const inferEntities = async ({
     inferenceState,
     userAccountId: userAuthenticationInfo.actorId,
     graphApiClient,
+    webId: ownedById,
   });
 
   logger.debug(

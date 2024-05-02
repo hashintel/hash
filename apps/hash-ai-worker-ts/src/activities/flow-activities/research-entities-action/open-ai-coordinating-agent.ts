@@ -155,7 +155,7 @@ const getNextToolCalls = async (params: {
 
   const tools = Object.values(coordinatorToolDefinitions);
 
-  const { graphApiClient, userAuthentication, flowEntityId } =
+  const { graphApiClient, userAuthentication, flowEntityId, webId } =
     await getFlowContext();
 
   const llmResponse = await getLlmResponse(
@@ -169,6 +169,7 @@ const getNextToolCalls = async (params: {
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],
+      webId,
     },
   );
 
@@ -200,7 +201,7 @@ const createInitialPlan = async (params: {
     This should be a list of steps in plain English.
   `);
 
-  const { graphApiClient, userAuthentication, flowEntityId } =
+  const { graphApiClient, userAuthentication, flowEntityId, webId } =
     await getFlowContext();
 
   const llmResponse = await getLlmResponse(
@@ -216,6 +217,7 @@ const createInitialPlan = async (params: {
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],
+      webId,
     },
   );
 

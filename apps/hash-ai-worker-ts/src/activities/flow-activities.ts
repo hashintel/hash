@@ -12,6 +12,7 @@ import { persistEntityAction } from "./flow-activities/persist-entity-action";
 import { persistFlowActivity } from "./flow-activities/persist-flow-activity";
 import { researchEntitiesAction } from "./flow-activities/research-entities-action";
 import type { FlowActionActivity } from "./flow-activities/types";
+import { userHasPermissionToRunFlowInWebActivity } from "./flow-activities/user-has-permission-to-run-flow-in-web-activity";
 import { webSearchAction } from "./flow-activities/web-search-action";
 import { writeGoogleSheetAction } from "./flow-activities/write-google-sheet-action";
 
@@ -44,4 +45,5 @@ export const createFlowActivities = ({
 }) => ({
   ...createFlowActionActivities({ vaultClient }),
   persistFlowActivity,
+  userHasPermissionToRunFlowInWebActivity,
 });

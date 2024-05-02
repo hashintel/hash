@@ -1,4 +1,4 @@
-import type { AccountId, Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
@@ -20,7 +20,6 @@ export const inferEntitiesFromWebPageActivity = async (params: {
   relevantEntitiesPrompt?: string;
   entityTypes: DereferencedEntityTypesByTypeId;
   inferenceState: InferenceState;
-  userAccountId: AccountId;
   model: PermittedOpenAiModel;
   maxTokens?: number | null;
   temperature?: number;
@@ -30,7 +29,6 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     webPage,
     relevantEntitiesPrompt,
     entityTypes,
-    userAccountId,
     model,
     inferenceState,
     maxTokens,
@@ -38,7 +36,7 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     existingEntities,
   } = params;
 
-  const { graphApiClient } = await getFlowContext();
+  const { graphApiClient, webId, userAuthentication } = await getFlowContext();
 
   /**
    * Inference step 1: get a list of entities that can be inferred from the input text, without property details
@@ -62,8 +60,9 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     maxTokens,
     temperature,
     existingEntities,
-    userAccountId,
+    userAccountId: userAuthentication.actorId,
     graphApiClient,
+    webId,
   });
 
   logger.debug(

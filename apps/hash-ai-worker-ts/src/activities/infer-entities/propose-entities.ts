@@ -179,7 +179,7 @@ export const proposeEntities = async (params: {
 
   logger.debug(`Next messages to model: ${stringify(messages)}`);
 
-  const { userAuthentication, graphApiClient, flowEntityId } =
+  const { userAuthentication, graphApiClient, flowEntityId, webId } =
     await getFlowContext();
 
   const llmResponse = await getLlmResponse(
@@ -199,6 +199,7 @@ export const proposeEntities = async (params: {
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],
+      webId,
     },
   );
 

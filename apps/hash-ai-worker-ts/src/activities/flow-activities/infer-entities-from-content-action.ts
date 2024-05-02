@@ -83,7 +83,6 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
   const status = await inferEntitiesFromWebPageActivity({
     webPage: content,
     relevantEntitiesPrompt,
-    userAccountId: userAuthentication.actorId,
     model: modelAliasToSpecificModel[model],
     entityTypes,
     inferenceState: webPageInferenceState,

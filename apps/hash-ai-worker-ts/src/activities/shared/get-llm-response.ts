@@ -698,11 +698,12 @@ export const getLlmResponse = async <T extends LlmParams>(
      * generic params (via a `logUsage` method).
      */
     userAccountId: AccountId;
+    webId: OwnedById;
     graphApiClient: GraphApi;
     incurredInEntities: { entityId: EntityId }[];
   },
 ): Promise<LlmResponse<T>> => {
-  const { graphApiClient, userAccountId } = usageTrackingParams;
+  const { graphApiClient, userAccountId, webId } = usageTrackingParams;
 
   /**
    * Check whether the user has exceeded their usage limit, before
@@ -730,7 +731,7 @@ export const getLlmResponse = async <T extends LlmParams>(
    */
   const aiAssistantAccountId = await getAiAssistantAccountIdActivity({
     authentication: { actorId: userAccountId },
-    grantCreatePermissionForWeb: userAccountId as OwnedById,
+    grantCreatePermissionForWeb: webId,
     graphApiClient,
   });
 
@@ -791,7 +792,7 @@ export const getLlmResponse = async <T extends LlmParams>(
             await graphApiClient.createEntity(aiAssistantAccountId, {
               draft: false,
               properties: {},
-              ownedById: userAccountId,
+              ownedById: webId,
               entityTypeIds: [
                 systemLinkEntityTypes.incurredIn.linkEntityTypeId,
               ],
