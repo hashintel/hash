@@ -12,8 +12,7 @@ import { browserName } from "../shared/which-browser";
 /**
  * This can be used for onboarding instructions, and for user preferences.
  *
- * Preferences should be persisted using browser.storage.sync
- * @see https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/storage/sync
+ * Preferences should be loaded and persisted using {@link useStorageSync}
  */
 export const OptionsContents = () => {
   const { user, loading } = useUser();

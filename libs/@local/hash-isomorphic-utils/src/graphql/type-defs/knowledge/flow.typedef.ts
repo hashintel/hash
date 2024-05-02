@@ -47,6 +47,7 @@ export const flowTypedef = gql`
   }
 
   scalar ArbitraryJsonData
+  scalar ExternalInputRequest
   scalar StepInput
   scalar StepRunOutput
   scalar StepProgressLog
@@ -143,6 +144,10 @@ export const flowTypedef = gql`
     Outputs of the flow run
     """
     outputs: [StepRunOutput!]
+    """
+    Any requests for external input made by steps within the Flow
+    """
+    inputRequests: [ExternalInputRequest!]!
     """
     The steps in the flow
     """

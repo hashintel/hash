@@ -3,16 +3,20 @@ import type http from "node:http";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type {
-  InferenceWebsocketRequestMessage,
+  ExternalInputRequestMessage,
+  InferenceWebsocketClientMessage,
   InferEntitiesRequestMessage,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
+import { externalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/signals";
 import type { Client } from "@temporalio/client";
+import type { GraphQLResolveInfo } from "graphql";
 import type { WebSocket } from "ws";
 import { WebSocketServer } from "ws";
 
 import { getUserAndSession } from "../auth/create-auth-handlers";
 import type { ImpureGraphContext } from "../graph/context-types";
 import type { User } from "../graph/knowledge/system-types/user";
+import { getFlowRuns } from "../graphql/resolvers/flows/runs";
 import { handleCancelInferEntitiesRequest } from "./infer-entities-websocket/handle-cancel-infer-entities-request";
 import { handleInferEntitiesRequest } from "./infer-entities-websocket/handle-infer-entities-request";
 
@@ -24,7 +28,7 @@ const inferEntitiesMessageHandler = async ({
 }: {
   socket: WebSocket;
   temporalClient: Client;
-  message: DistributiveOmit<InferenceWebsocketRequestMessage, "cookie">;
+  message: DistributiveOmit<InferenceWebsocketClientMessage, "cookie">;
   user: User;
 }) => {
   switch (message.type) {
@@ -44,6 +48,11 @@ const inferEntitiesMessageHandler = async ({
         user,
       });
       return;
+    case "external-input-response": {
+      const { flowUuid, payload } = message;
+      const handle = temporalClient.workflow.getHandle(flowUuid);
+      await handle.signal(externalInputResponseSignal, payload);
+    }
   }
   socket.send(`Unrecognized message '${JSON.stringify(message)}'`);
 };
@@ -64,6 +73,35 @@ export const openInferEntitiesWebSocket = ({
   });
 
   wss.on("connection", (socket) => {
+    const checkForInputRequests = async () => {
+      const flowRuns = await getFlowRuns(
+        {},
+        {},
+        { temporal: temporalClient },
+        {} as GraphQLResolveInfo,
+      );
+      for (const flowRun of flowRuns) {
+        for (const inputRequest of flowRun.inputRequests) {
+          if (!inputRequest.resolved) {
+            const requestMessage: ExternalInputRequestMessage = {
+              flowUuid: flowRun.runId,
+              payload: inputRequest,
+              type: "external-input-request",
+            };
+            socket.send(JSON.stringify(requestMessage));
+          }
+        }
+      }
+    };
+
+    const flowStatusInterval = setInterval(() => {
+      void checkForInputRequests();
+    }, 10_00);
+
+    socket.on("close", () => {
+      clearInterval(flowStatusInterval);
+    });
+
     socket.on(
       "message",
       // eslint-disable-next-line @typescript-eslint/no-misused-promises

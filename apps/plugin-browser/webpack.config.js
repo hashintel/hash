@@ -66,6 +66,7 @@ const options = {
     content: path.join(__dirname, "src", "scripts", "content.ts"),
     options: path.join(__dirname, "src", "pages", "options.tsx"),
     popup: path.join(__dirname, "src", "pages", "popup.tsx"),
+    working: path.join(__dirname, "src", "pages", "working.tsx"),
   },
   output: {
     filename: "[name].bundle.js",
@@ -229,6 +230,12 @@ const options = {
       template: path.join(__dirname, "src", "pages", "popup.html"),
       filename: "popup.html",
       chunks: ["popup"],
+      cache: false,
+    }),
+    new HtmlWebpackPlugin({
+      template: path.join(__dirname, "src", "pages", "working.html"),
+      filename: "working.html",
+      chunks: ["working"],
       cache: false,
     }),
     env.SENTRY_AUTH_TOKEN && env.SENTRY_DSN && isProduction

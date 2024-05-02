@@ -1,3 +1,4 @@
+import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
 import type { Entity } from "@local/hash-subgraph";
 import dedent from "dedent";
 
@@ -7,7 +8,6 @@ import { inferEntitySummaries } from "./infer-entity-summaries";
 import type {
   DereferencedEntityTypesByTypeId,
   InferenceState,
-  WebPage,
 } from "./inference-types";
 
 export const inferEntitySummariesFromWebPage = async (params: {
@@ -63,7 +63,7 @@ export const inferEntitySummariesFromWebPage = async (params: {
       : ""
   }
   Here is the website content:
-  ${typeof webPage === "string" ? webPage : webPage.textContent}
+  ${typeof webPage === "string" ? webPage : webPage.htmlContent}
   ---WEBSITE CONTENT ENDS---
 
   Your comprehensive list entities of the requested types you are able to infer from the website:

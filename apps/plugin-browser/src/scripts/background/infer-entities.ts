@@ -1,6 +1,6 @@
 import type {
+  InferenceWebsocketServerMessage,
   InferEntitiesRequestMessage,
-  InferEntitiesResponseMessage,
   InferEntitiesReturn,
   InferEntitiesUserArguments,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
@@ -14,6 +14,7 @@ import {
   getFromLocalStorage,
   getSetFromLocalStorageValue,
 } from "../../shared/storage";
+import { getWebsiteContent } from "./infer-entities/get-website-content";
 
 const setInferenceRequestValue =
   getSetFromLocalStorageValue("inferenceRequests");
@@ -57,7 +58,25 @@ const getWebSocket = async () => {
 
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
     async (event: MessageEvent<string>) => {
-      const message = JSON.parse(event.data) as InferEntitiesResponseMessage;
+      const message = JSON.parse(event.data) as InferenceWebsocketServerMessage;
+
+      if (message.type === "external-input-request") {
+        const { flowUuid, payload } = message;
+        if (payload.type === "get-urls-html-content") {
+          const webPages = await getWebsiteContent(payload.data.urls);
+          ws?.send(
+            JSON.stringify({
+              flowUuid,
+              payload: {
+                type: "urls-html-content",
+                data: webPages,
+              },
+              type: "external-input-response",
+            }),
+          );
+        }
+        return;
+      }
 
       const { payload: inferredEntitiesReturn, requestUuid, status } = message;
 
@@ -240,3 +259,16 @@ export const inferEntities = async (
     );
   }
 };
+
+/**
+ * Keep a persist websocket connection because we use it to get sent input requests from the API
+ */
+const init = () => {
+  setInterval(() => {
+    void getWebSocket();
+  }, 10_000);
+
+  void getWebSocket();
+};
+
+init();

@@ -9,6 +9,7 @@ export const getFlowRunsQuery = gql`
       startedAt
       executedAt
       closedAt
+      inputRequests
       inputs
       outputs
       steps {

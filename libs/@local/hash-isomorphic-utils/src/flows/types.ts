@@ -16,14 +16,10 @@ export type DeepReadOnly<T> = {
   readonly [key in keyof T]: DeepReadOnly<T[key]>;
 };
 
-/**
- * Payload
- */
-
 export type WebPage = {
   url: string;
   title: string;
-  textContent: string;
+  htmlContent: string;
 };
 
 type LocalOrExistingEntityId =
@@ -357,7 +353,55 @@ export type PersistedEntityLog = {
 
 export type StepProgressLog = PersistedEntityLog | ProposedEntityLog;
 
-export type ProgressLogSignalData = {
+export type ProgressLogSignal = {
   attempt: number;
   logs: StepProgressLog[];
+};
+
+type ExternalInputRequestType = "human-input" | "get-urls-html-content";
+
+type ExternalInputRequestDataByType = {
+  "human-input": {
+    question: string;
+  };
+  "get-urls-html-content": {
+    urls: string[];
+  };
+};
+
+export type ExternalInputRequestSignal<
+  RequestType extends ExternalInputRequestType = ExternalInputRequestType,
+> = {
+  [Type in RequestType]: {
+    requestId: string;
+    stepId: string;
+    type: Type;
+    data: ExternalInputRequestDataByType[Type];
+  };
+}[RequestType];
+
+export type ExternalInputResponseByType = {
+  "human-input": {
+    answer: string;
+  };
+  "get-urls-html-content": {
+    webPages: WebPage[];
+  };
+};
+
+export type ExternalInputResponseSignal<
+  RequestType extends ExternalInputRequestType = ExternalInputRequestType,
+> = {
+  [Type in RequestType]: {
+    requestId: string;
+    type: Type;
+    data: ExternalInputResponseByType[Type];
+  };
+}[RequestType];
+
+export type ExternalInputRequest = ExternalInputRequestSignal & {
+  /** The answer given by the human, if it was a request for human input */
+  answer?: string;
+  /** Whether or not the request has been resolved */
+  resolved: boolean;
 };

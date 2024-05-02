@@ -1,4 +1,9 @@
-import type { ProgressLogSignalData } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  ExternalInputRequest,
+  ExternalInputRequestSignal,
+  ExternalInputResponseSignal,
+  ProgressLogSignal,
+} from "@local/hash-isomorphic-utils/flows/types";
 import type {
   Client as TemporalClient,
   WorkflowExecutionInfo,
@@ -173,6 +178,8 @@ const mapTemporalWorkflowToFlowStatus = async (
   const progressSignalEvents: proto.temporal.api.history.v1.IHistoryEvent[] =
     [];
 
+  const inputRequestsById: Record<string, ExternalInputRequest> = {};
+
   if (events?.length) {
     /*
      * Walk backwards from the most recent event until we have populated the latest state data for each step
@@ -189,6 +196,55 @@ const mapTemporalWorkflowToFlowStatus = async (
       ) {
         progressSignalEvents.push(event);
         continue;
+      }
+
+      if (
+        event.workflowExecutionSignaledEventAttributes?.signalName ===
+        "requestExternalInput"
+      ) {
+        const signalData = parseHistoryItemPayload(
+          event.workflowExecutionSignaledEventAttributes.input,
+        )?.[0] as
+          | ExternalInputRequestSignal
+          | ExternalInputResponseSignal
+          | undefined;
+
+        if (!signalData) {
+          throw new Error(
+            `No signal data on requestExternalInput signal event with id ${event.eventId}`,
+          );
+        }
+
+        if ("stepId" in signalData) {
+          /**
+           * This is a request for external input
+           */
+          const existingRequest = inputRequestsById[signalData.requestId];
+          if (existingRequest) {
+            existingRequest.data = signalData.data;
+          } else {
+            /**
+             * If we haven't already populated the request record, it must not have been resolved yet,
+             * because we are going backwards through the event history from most recent.
+             * We would already have encountered the response signal if one had been provided.
+             */
+            inputRequestsById[signalData.requestId] = {
+              ...signalData,
+              resolved: false,
+            };
+          }
+        } else {
+          const { requestId, data, type } = signalData;
+
+          inputRequestsById[signalData.requestId] = {
+            data: {} as never, // we will populate this when we hit the original request
+            answer: "answer" in data ? data.answer : undefined,
+            requestId,
+            stepId: "unresolved",
+            type,
+            resolved: true,
+          };
+        }
       }
 
       const nonScheduledAttributes =
@@ -325,7 +381,7 @@ const mapTemporalWorkflowToFlowStatus = async (
 
     const signalData = parseHistoryItemPayload(
       progressSignalEvent.workflowExecutionSignaledEventAttributes.input,
-    )?.[0] as ProgressLogSignalData | undefined;
+    )?.[0] as ProgressLogSignal | undefined;
 
     if (!signalData) {
       throw new Error(
@@ -369,6 +425,7 @@ const mapTemporalWorkflowToFlowStatus = async (
     closedAt: closeTime?.toISOString(),
     inputs: workflowInputs,
     outputs: workflowOutputs,
+    inputRequests: Object.values(inputRequestsById),
     steps: Object.values(stepMap),
   };
 };
@@ -376,7 +433,7 @@ const mapTemporalWorkflowToFlowStatus = async (
 export const getFlowRuns: ResolverFn<
   FlowRun[],
   Record<string, never>,
-  GraphQLContext,
+  Pick<GraphQLContext, "temporal">,
   QueryGetFlowRunsArgs
 > = async (_parent, args, context) => {
   if (isProdEnv) {
