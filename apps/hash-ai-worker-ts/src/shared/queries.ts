@@ -11,7 +11,7 @@ export type ExternalInputQueryRequest = {
   requestId: string;
 };
 
-/** Record progress logs from an activity to allow for inspection of work before the activity completes */
+/** Check if a request for external input mid-Flow has been fulfilled */
 export type GetExternalInputResponseQuery = QueryDefinition<
   ExternalInputResponseSignal | null,
   [ExternalInputQueryRequest],
