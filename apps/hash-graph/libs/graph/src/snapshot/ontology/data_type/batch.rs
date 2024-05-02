@@ -89,7 +89,7 @@ where
                     .query(
                         "
                             INSERT INTO data_type_embeddings_tmp
-                            SELECT * FROM UNNEST($1::data_type_embeddings_tmp[])
+                            SELECT * FROM UNNEST($1::data_type_embeddings[])
                             RETURNING 1;
                         ",
                         &[&embeddings],
@@ -113,7 +113,8 @@ where
             .client()
             .simple_query(
                 "
-                    INSERT INTO data_types SELECT * FROM data_types_tmp;
+                    INSERT INTO data_types 
+                        SELECT * FROM data_types_tmp;
 
                     INSERT INTO data_type_embeddings
                         SELECT * FROM data_type_embeddings_tmp;

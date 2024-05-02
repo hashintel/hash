@@ -218,7 +218,7 @@ where
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
-                    tracing::info!("Read {} left entity links", rows.len());
+                    tracing::info!("Read {} right entity links", rows.len());
                 }
             }
             Self::Property(proeperties) => {

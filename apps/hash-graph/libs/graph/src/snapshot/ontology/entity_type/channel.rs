@@ -10,7 +10,7 @@ use futures::{
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
-use graph_types::ontology::EntityTypeId;
+use graph_types::ontology::{EntityTypeId, PropertyTypeId};
 use type_system::ClosedEntityType;
 
 use crate::{
@@ -96,13 +96,9 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
             .inherits_from()
             .all_of()
             .iter()
-            .map(|entity_type_ref| {
-                let url = entity_type_ref.url();
-                EntityTypeInheritsFromRow {
-                    source_entity_type_ontology_id: ontology_id,
-                    target_entity_type_base_url: url.base_url.clone(),
-                    target_entity_type_version: url.version,
-                }
+            .map(|entity_type_ref| EntityTypeInheritsFromRow {
+                source_entity_type_ontology_id: ontology_id,
+                target_entity_type_ontology_id: EntityTypeId::from_url(entity_type_ref.url()),
             })
             .collect();
         if !inherits_from.is_empty() {
@@ -116,13 +112,9 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
             .schema
             .property_type_references()
             .into_iter()
-            .map(|entity_type_ref| {
-                let url = entity_type_ref.url();
-                EntityTypeConstrainsPropertiesOnRow {
-                    source_entity_type_ontology_id: ontology_id,
-                    target_property_type_base_url: url.base_url.clone(),
-                    target_property_type_version: url.version,
-                }
+            .map(|entity_type_ref| EntityTypeConstrainsPropertiesOnRow {
+                source_entity_type_ontology_id: ontology_id,
+                target_property_type_ontology_id: PropertyTypeId::from_url(entity_type_ref.url()),
             })
             .collect();
         if !properties.is_empty() {
@@ -137,13 +129,9 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
 
         let links: Vec<_> = link_mappings
             .keys()
-            .map(|entity_type_ref| {
-                let url = entity_type_ref.url();
-                EntityTypeConstrainsLinksOnRow {
-                    source_entity_type_ontology_id: ontology_id,
-                    target_entity_type_base_url: url.base_url.clone(),
-                    target_entity_type_version: url.version,
-                }
+            .map(|entity_type_ref| EntityTypeConstrainsLinksOnRow {
+                source_entity_type_ontology_id: ontology_id,
+                target_entity_type_ontology_id: EntityTypeId::from_url(entity_type_ref.url()),
             })
             .collect();
         if !links.is_empty() {
@@ -156,14 +144,12 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
         let link_destinations: Vec<_> = link_mappings
             .into_values()
             .flat_map(Option::unwrap_or_default)
-            .map(|entity_type_ref| {
-                let url = entity_type_ref.url();
-                EntityTypeConstrainsLinkDestinationsOnRow {
+            .map(
+                |entity_type_ref| EntityTypeConstrainsLinkDestinationsOnRow {
                     source_entity_type_ontology_id: ontology_id,
-                    target_entity_type_base_url: url.base_url.clone(),
-                    target_entity_type_version: url.version,
-                }
-            })
+                    target_entity_type_ontology_id: EntityTypeId::from_url(entity_type_ref.url()),
+                },
+            )
             .collect();
         if !link_destinations.is_empty() {
             self.constrains_link_destinations

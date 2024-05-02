@@ -160,24 +160,21 @@ pub struct EntityTemporalMetadataRow {
 #[postgres(name = "entity_type_constrains_link_destinations_on")]
 pub struct EntityTypeConstrainsLinkDestinationsOnRow {
     pub source_entity_type_ontology_id: EntityTypeId,
-    pub target_entity_type_base_url: BaseUrl,
-    pub target_entity_type_version: OntologyTypeVersion,
+    pub target_entity_type_ontology_id: EntityTypeId,
 }
 
 #[derive(Debug, ToSql)]
 #[postgres(name = "entity_type_constrains_links_on")]
 pub struct EntityTypeConstrainsLinksOnRow {
     pub source_entity_type_ontology_id: EntityTypeId,
-    pub target_entity_type_base_url: BaseUrl,
-    pub target_entity_type_version: OntologyTypeVersion,
+    pub target_entity_type_ontology_id: EntityTypeId,
 }
 
 #[derive(Debug, ToSql)]
 #[postgres(name = "entity_type_constrains_properties_on")]
 pub struct EntityTypeConstrainsPropertiesOnRow {
     pub source_entity_type_ontology_id: EntityTypeId,
-    pub target_property_type_base_url: BaseUrl,
-    pub target_property_type_version: OntologyTypeVersion,
+    pub target_property_type_ontology_id: PropertyTypeId,
 }
 
 #[derive(Debug, ToSql)]
@@ -192,8 +189,7 @@ pub struct EntityTypeEmbeddingRow<'e> {
 #[postgres(name = "entity_type_inherits_from")]
 pub struct EntityTypeInheritsFromRow {
     pub source_entity_type_ontology_id: EntityTypeId,
-    pub target_entity_type_base_url: BaseUrl,
-    pub target_entity_type_version: OntologyTypeVersion,
+    pub target_entity_type_ontology_id: EntityTypeId,
 }
 
 #[derive(Debug, ToSql)]
@@ -244,15 +240,14 @@ pub struct PropertyTypeRow {
 }
 
 #[derive(Debug, ToSql)]
-#[postgres(name = "property_type_constrains_values_on_tmp")]
+#[postgres(name = "property_type_constrains_values_on")]
 pub struct PropertyTypeConstrainsValuesOnRow {
     pub source_property_type_ontology_id: PropertyTypeId,
-    pub target_data_type_base_url: BaseUrl,
-    pub target_data_type_version: OntologyTypeVersion,
+    pub target_data_type_ontology_id: DataTypeId,
 }
 
 #[derive(Debug, ToSql)]
-#[postgres(name = "property_type_embeddings_tmp")]
+#[postgres(name = "property_type_embeddings")]
 pub struct PropertyTypeEmbeddingRow<'e> {
     pub ontology_id: PropertyTypeId,
     pub embedding: Embedding<'e>,
@@ -260,11 +255,10 @@ pub struct PropertyTypeEmbeddingRow<'e> {
 }
 
 #[derive(Debug, ToSql)]
-#[postgres(name = "property_type_constrains_properties_on_tmp")]
+#[postgres(name = "property_type_constrains_properties_on")]
 pub struct PropertyTypeConstrainsPropertiesOnRow {
     pub source_property_type_ontology_id: PropertyTypeId,
-    pub target_property_type_base_url: BaseUrl,
-    pub target_property_type_version: OntologyTypeVersion,
+    pub target_property_type_ontology_id: PropertyTypeId,
 }
 
 #[derive(Debug, ToSql)]
