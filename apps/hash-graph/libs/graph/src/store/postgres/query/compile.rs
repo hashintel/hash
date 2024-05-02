@@ -845,10 +845,15 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         R::QueryPath<'q>: PostgresQueryPath,
     {
         match expression {
-            FilterExpression::Path(path) => (
-                self.compile_path_column(path),
-                path.terminating_column().0.parameter_type(),
-            ),
+            FilterExpression::Path(path) => {
+                let (column, json_field) = path.terminating_column();
+                let parameter_type = if let Some(JsonField::StaticText(_)) = json_field {
+                    ParameterType::Text
+                } else {
+                    column.parameter_type()
+                };
+                (self.compile_path_column(path), parameter_type)
+            }
             FilterExpression::Parameter(parameter) => self.compile_parameter(parameter),
         }
     }
