@@ -1,9 +1,8 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
-import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
 import type { EntityMetadata, GraphApi } from "@local/hash-graph-client";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { AccountId, EntityId } from "@local/hash-subgraph";
+import type { AccountId, EntityId, OwnedById } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import Ajv from "ajv";
 import addFormats from "ajv-formats";
@@ -20,6 +19,7 @@ import type {
 } from "openai/resources";
 import { promptTokensEstimate } from "openai-chat-tokens";
 
+import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity";
 import { userExceededServiceUsageLimitActivity } from "../user-exceeded-service-usage-limit-activity";
 import { logger } from "./activity-logger";
 import type {
@@ -723,14 +723,18 @@ export const getLlmResponse = async <T extends LlmParams>(
     };
   }
 
-  let aiAssistantAccountId: AccountId;
-  try {
-    aiAssistantAccountId = await getMachineActorId(
-      { graphApi: graphApiClient },
-      { actorId: userAccountId },
-      { identifier: "hash-ai" },
-    );
-  } catch {
+  /**
+   * @todo: use the machine actor here directly instead, if the the AI machine
+   * actor is not longer needed to identify which actions were done by an AI
+   * as this will be available in provenance metadata.
+   */
+  const aiAssistantAccountId = await getAiAssistantAccountIdActivity({
+    authentication: { actorId: userAccountId },
+    grantCreatePermissionForWeb: userAccountId as OwnedById,
+    graphApiClient,
+  });
+
+  if (!aiAssistantAccountId) {
     return {
       status: "internal-error",
       message: `Failed to retrieve AI assistant account ID ${userAccountId}`,
