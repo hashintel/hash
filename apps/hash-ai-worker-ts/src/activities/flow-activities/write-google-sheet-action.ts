@@ -70,9 +70,9 @@ type ActivityHeartbeatDetails = {
 export const writeGoogleSheetAction: FlowActionActivity<{
   vaultClient: VaultClient;
 }> = async ({ inputs, vaultClient }) => {
-  const { graphApiClient, userAuthentication } = await getFlowContext();
+  const { graphApiClient, userAuthentication, webId } = await getFlowContext();
 
-  const { audience, dataToWrite, googleAccountId, googleSheet, webId } =
+  const { audience, dataToWrite, googleAccountId, googleSheet } =
     getSimplifiedActionInputs({
       inputs,
       actionType: "writeGoogleSheet",

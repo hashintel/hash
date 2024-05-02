@@ -6,7 +6,7 @@ import {
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { Entity, OwnedById } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 
@@ -25,17 +25,17 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
   const {
     graphApiClient,
     userAuthentication: { actorId },
+    webId,
   } = await getFlowContext();
 
-  const { draft, proposedEntityWithResolvedLinks, webId } =
-    getSimplifiedActionInputs({
-      inputs,
-      actionType: "persistEntity",
-    });
+  const { draft, proposedEntityWithResolvedLinks } = getSimplifiedActionInputs({
+    inputs,
+    actionType: "persistEntity",
+  });
 
   const createEditionAsDraft = draft ?? false;
 
-  const ownedById = webId ?? (actorId as OwnedById);
+  const ownedById = webId;
 
   const webBotActorId = await getWebMachineActorId(
     { graphApi: graphApiClient },

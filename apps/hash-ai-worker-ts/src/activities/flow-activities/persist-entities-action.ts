@@ -5,22 +5,16 @@ import type {
   PersistedEntity,
   ProposedEntityWithResolvedLinks,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type { OwnedById } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 
-import { getFlowContext } from "../shared/get-flow-context";
 import { persistEntityAction } from "./persist-entity-action";
 import type { FlowActionActivity } from "./types";
 
 export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
-  const { draft, proposedEntities, webId } = getSimplifiedActionInputs({
+  const { draft, proposedEntities } = getSimplifiedActionInputs({
     inputs,
     actionType: "persistEntities",
   });
-
-  const { userAuthentication } = await getFlowContext();
-
-  const ownedById = webId ?? (userAuthentication.actorId as OwnedById);
 
   /**
    * This assumes that there are no link entities which link to other link entities, which require being able to
@@ -113,10 +107,6 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
             kind: "ProposedEntityWithResolvedLinks",
             value: entityWithResolvedLinks,
           },
-        },
-        {
-          inputName: "webId",
-          payload: { kind: "WebId", value: ownedById },
         },
       ],
     });
