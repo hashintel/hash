@@ -39,14 +39,12 @@ where
     type Item = T;
 
     #[expect(clippy::big_endian_bytes, reason = "This is a protocol requirement")]
+    #[expect(clippy::missing_asserts_for_indexing, reason = "false positive")]
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         if src.len() < 32 {
             // Not enough data to decode a request
             return Ok(None);
         }
-
-        // this will always be true, but will eliminate the need for a bounds check (clippy)
-        assert!(src.len() > 31);
 
         // The length marker is always at bytes 30 and 31
         let length = u16::from_be_bytes([src[30], src[31]]) as usize;
