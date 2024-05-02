@@ -185,21 +185,25 @@ export const proposeEntities = async (params: {
 
   logger.debug(`Next messages to model: ${stringify(messages)}`);
 
-  const llmResponse = await getLlmResponse({
-    model: "claude-3-opus-20240229",
-    maxTokens,
-    systemPrompt: inferEntitiesSystemPrompt,
-    messages,
-    tools,
-    /**
-     * We prefer consistency over creativity for the inference agent,
-     * so set the `temperature` to `0`.
-     */
-    temperature: 0,
-    userAccountId,
-    graphApiClient,
-    incurredInEntities: [{ entityId: flowEntityId }],
-  });
+  const llmResponse = await getLlmResponse(
+    {
+      model: "claude-3-opus-20240229",
+      maxTokens,
+      systemPrompt: inferEntitiesSystemPrompt,
+      messages,
+      tools,
+      /**
+       * We prefer consistency over creativity for the inference agent,
+       * so set the `temperature` to `0`.
+       */
+      temperature: 0,
+    },
+    {
+      userAccountId,
+      graphApiClient,
+      incurredInEntities: [{ entityId: flowEntityId }],
+    },
+  );
 
   if (llmResponse.status !== "ok") {
     return {

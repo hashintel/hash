@@ -54,20 +54,24 @@ export const generateWebQueriesAction: FlowActionActivity<{
     };
   }
 
-  const llmResponse = await getLlmResponse({
-    systemPrompt: webQueriesSystemPrompt,
-    messages: [
-      {
-        role: "user",
-        content: [{ type: "text", text: prompt }],
-      },
-    ],
-    model: modelAliasToSpecificModel[model],
-    tools,
-    userAccountId: userAuthentication.actorId,
-    graphApiClient,
-    incurredInEntities: [{ entityId: flowEntityId }],
-  });
+  const llmResponse = await getLlmResponse(
+    {
+      systemPrompt: webQueriesSystemPrompt,
+      messages: [
+        {
+          role: "user",
+          content: [{ type: "text", text: prompt }],
+        },
+      ],
+      model: modelAliasToSpecificModel[model],
+      tools,
+    },
+    {
+      userAccountId: userAuthentication.actorId,
+      graphApiClient,
+      incurredInEntities: [{ entityId: flowEntityId }],
+    },
+  );
 
   if (llmResponse.status !== "ok") {
     return {

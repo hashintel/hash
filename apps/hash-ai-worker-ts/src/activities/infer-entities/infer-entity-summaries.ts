@@ -76,17 +76,21 @@ export const inferEntitySummaries = async (params: {
       !!existingEntities && existingEntities.length > 0,
   });
 
-  const llmResponse = await getLlmResponse({
-    ...completionPayload,
-    systemPrompt: inferEntitiesSystemPrompt,
-    messages: mapOpenAiMessagesToLlmMessages({
-      messages: completionPayload.messages,
-    }),
-    tools,
-    userAccountId,
-    graphApiClient,
-    incurredInEntities: flowEntityId ? [{ entityId: flowEntityId }] : [],
-  });
+  const llmResponse = await getLlmResponse(
+    {
+      ...completionPayload,
+      systemPrompt: inferEntitiesSystemPrompt,
+      messages: mapOpenAiMessagesToLlmMessages({
+        messages: completionPayload.messages,
+      }),
+      tools,
+    },
+    {
+      userAccountId,
+      graphApiClient,
+      incurredInEntities: flowEntityId ? [{ entityId: flowEntityId }] : [],
+    },
+  );
 
   if (llmResponse.status !== "ok") {
     return {

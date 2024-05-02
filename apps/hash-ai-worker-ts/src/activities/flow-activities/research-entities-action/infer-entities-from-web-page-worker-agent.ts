@@ -400,15 +400,19 @@ const createInitialPlan = async (params: {
     ...(retryMessages ?? []),
   ];
 
-  const llmResponse = await getLlmResponse({
-    systemPrompt,
-    messages,
-    model,
-    tools: Object.values(toolDefinitions),
-    userAccountId,
-    graphApiClient,
-    incurredInEntities: [{ entityId: flowEntityId }],
-  });
+  const llmResponse = await getLlmResponse(
+    {
+      systemPrompt,
+      messages,
+      model,
+      tools: Object.values(toolDefinitions),
+    },
+    {
+      userAccountId,
+      graphApiClient,
+      incurredInEntities: [{ entityId: flowEntityId }],
+    },
+  );
 
   if (llmResponse.status !== "ok") {
     throw new Error(
@@ -521,15 +525,19 @@ const getNextToolCalls = async (params: {
     }),
   ];
 
-  const llmResponse = await getLlmResponse({
-    systemPrompt,
-    messages,
-    model,
-    tools: Object.values(toolDefinitions),
-    userAccountId,
-    graphApiClient,
-    incurredInEntities: [{ entityId: flowEntityId }],
-  });
+  const llmResponse = await getLlmResponse(
+    {
+      systemPrompt,
+      messages,
+      model,
+      tools: Object.values(toolDefinitions),
+    },
+    {
+      userAccountId,
+      graphApiClient,
+      incurredInEntities: [{ entityId: flowEntityId }],
+    },
+  );
 
   if (llmResponse.status !== "ok") {
     throw new Error(

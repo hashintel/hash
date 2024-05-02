@@ -162,16 +162,20 @@ const callModel = async (
     outputs: StepOutput[];
   }>
 > => {
-  const llmResponse = await getLlmResponse({
-    model,
-    systemPrompt,
-    messages: mapOpenAiMessagesToLlmMessages({ messages }),
-    temperature: 0,
-    tools: answerTools,
-    userAccountId,
-    graphApiClient,
-    incurredInEntities: [{ entityId: flowEntityId }],
-  });
+  const llmResponse = await getLlmResponse(
+    {
+      model,
+      systemPrompt,
+      messages: mapOpenAiMessagesToLlmMessages({ messages }),
+      temperature: 0,
+      tools: answerTools,
+    },
+    {
+      userAccountId,
+      graphApiClient,
+      incurredInEntities: [{ entityId: flowEntityId }],
+    },
+  );
 
   logger.debug(`Open AI Response received: ${stringify(llmResponse)}`);
 

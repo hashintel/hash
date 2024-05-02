@@ -45,28 +45,32 @@ export const getWebPageSummaryAction: FlowActionActivity<{
     numberOfSentences: numberOfSentences!,
   });
 
-  const llmResponse = await getLlmResponse({
-    systemPrompt,
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: dedent(`
+  const llmResponse = await getLlmResponse(
+    {
+      systemPrompt,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: dedent(`
               URL: ${url}
               Title: ${webPage.title}
               Text: ${webPage.textContent} 
             `),
-          },
-        ],
-      },
-    ],
-    model: modelAliasToSpecificModel[model],
-    userAccountId: userAuthentication.actorId,
-    graphApiClient,
-    incurredInEntities: [{ entityId: flowEntityId }],
-  });
+            },
+          ],
+        },
+      ],
+      model: modelAliasToSpecificModel[model],
+    },
+    {
+      userAccountId: userAuthentication.actorId,
+      graphApiClient,
+      incurredInEntities: [{ entityId: flowEntityId }],
+    },
+  );
 
   if (llmResponse.status !== "ok") {
     return {

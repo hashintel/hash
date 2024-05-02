@@ -158,15 +158,19 @@ const getNextToolCalls = async (params: {
 
   const tools = Object.values(coordinatorToolDefinitions);
 
-  const llmResponse = await getLlmResponse({
-    systemPrompt,
-    messages,
-    model,
-    tools,
-    userAccountId,
-    graphApiClient,
-    incurredInEntities: [{ entityId: flowEntityId }],
-  });
+  const llmResponse = await getLlmResponse(
+    {
+      systemPrompt,
+      messages,
+      model,
+      tools,
+    },
+    {
+      userAccountId,
+      graphApiClient,
+      incurredInEntities: [{ entityId: flowEntityId }],
+    },
+  );
 
   if (llmResponse.status !== "ok") {
     throw new Error(
@@ -199,17 +203,21 @@ const createInitialPlan = async (params: {
     This should be a list of steps in plain English.
   `);
 
-  const llmResponse = await getLlmResponse({
-    systemPrompt,
-    messages: [generateInitialUserMessage({ input })],
-    model,
-    tools: Object.values(coordinatorToolDefinitions).filter(
-      ({ name }) => name !== "updatePlan",
-    ),
-    userAccountId,
-    graphApiClient,
-    incurredInEntities: [{ entityId: flowEntityId }],
-  });
+  const llmResponse = await getLlmResponse(
+    {
+      systemPrompt,
+      messages: [generateInitialUserMessage({ input })],
+      model,
+      tools: Object.values(coordinatorToolDefinitions).filter(
+        ({ name }) => name !== "updatePlan",
+      ),
+    },
+    {
+      userAccountId,
+      graphApiClient,
+      incurredInEntities: [{ entityId: flowEntityId }],
+    },
+  );
 
   if (llmResponse.status !== "ok") {
     throw new Error(

@@ -172,18 +172,22 @@ export const persistEntities = async (params: {
 
   logger.debug(`Next message to model: ${stringify(nextMessage)}`);
 
-  const llmResponse = await getLlmResponse({
-    ...completionPayload,
-    systemPrompt: inferEntitiesSystemPrompt,
-    messages: mapOpenAiMessagesToLlmMessages({
-      messages: [...completionPayload.messages, nextMessage],
-    }),
-    tools,
-    firstUserMessageIndex,
-    userAccountId: requestingUserAccountId,
-    graphApiClient,
-    incurredInEntities: [],
-  });
+  const llmResponse = await getLlmResponse(
+    {
+      ...completionPayload,
+      systemPrompt: inferEntitiesSystemPrompt,
+      messages: mapOpenAiMessagesToLlmMessages({
+        messages: [...completionPayload.messages, nextMessage],
+      }),
+      tools,
+      firstUserMessageIndex,
+    },
+    {
+      userAccountId: requestingUserAccountId,
+      graphApiClient,
+      incurredInEntities: [],
+    },
+  );
 
   if (llmResponse.status !== "ok") {
     return {

@@ -689,7 +689,8 @@ const getOpenAiResponse = async (
  * `model` provided in the parameters.
  */
 export const getLlmResponse = async <T extends LlmParams>(
-  params: T & {
+  llmParams: T,
+  usageTrackingParams: {
     /**
      * Required for tracking usage on a per-user basis.
      *
@@ -701,12 +702,7 @@ export const getLlmResponse = async <T extends LlmParams>(
     incurredInEntities: { entityId: EntityId }[];
   },
 ): Promise<LlmResponse<T>> => {
-  const {
-    userAccountId,
-    graphApiClient,
-    incurredInEntities,
-    ...remainingLlmParams
-  } = params;
+  const { graphApiClient, userAccountId } = usageTrackingParams;
 
   /**
    * Check whether the user has exceeded their usage limit, before
@@ -741,12 +737,6 @@ export const getLlmResponse = async <T extends LlmParams>(
     };
   }
 
-  /**
-   * @todo: figure out why TS is not inferring the type of `remainingLlmParams`
-   * correctly (may not be relevant once usage tracking related params are removed)
-   */
-  const llmParams = remainingLlmParams as unknown as T;
-
   const llmResponse = isLlmParamsAnthropicLlmParams(llmParams)
     ? await getAnthropicResponse(llmParams)
     : await getOpenAiResponse(llmParams);
@@ -767,10 +757,10 @@ export const getLlmResponse = async <T extends LlmParams>(
         { graphApi: graphApiClient },
         { actorId: aiAssistantAccountId },
         {
-          serviceName: isLlmParamsAnthropicLlmParams(params)
+          serviceName: isLlmParamsAnthropicLlmParams(llmParams)
             ? "Anthropic"
             : "OpenAI",
-          featureName: params.model,
+          featureName: llmParams.model,
           userAccountId,
           inputUnitCount: usage.inputTokens,
           outputUnitCount: usage.outputTokens,
@@ -782,6 +772,8 @@ export const getLlmResponse = async <T extends LlmParams>(
         message: `Failed to create usage record for AI assistant: ${stringify(error)}`,
       };
     }
+
+    const { incurredInEntities } = usageTrackingParams;
 
     if (incurredInEntities.length > 0) {
       const hashInstanceAdminGroupId = await getHashInstanceAdminAccountGroupId(
