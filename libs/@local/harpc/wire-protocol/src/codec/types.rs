@@ -118,11 +118,13 @@ mod test {
     }
 
     #[test_strategy::proptest(async = "tokio")]
+    #[cfg_attr(miri, ignore)]
     async fn codec_service_id(id: ServiceId) {
         assert_codec(&id, ()).await;
     }
 
     #[test_strategy::proptest(async = "tokio")]
+    #[cfg_attr(miri, ignore)]
     async fn codec_version(version: Version) {
         assert_codec(&version, ()).await;
     }

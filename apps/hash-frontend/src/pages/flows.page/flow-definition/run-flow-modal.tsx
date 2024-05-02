@@ -146,7 +146,6 @@ export const RunFlowModal = ({
 
   return (
     <Modal
-      hideBackdrop
       contentStyle={{ p: { xs: 0, md: 0 } }}
       open={open}
       onClose={onClose}

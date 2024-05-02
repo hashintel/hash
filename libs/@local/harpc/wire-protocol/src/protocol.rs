@@ -198,11 +198,13 @@ mod test {
     }
 
     #[test_strategy::proptest(async = "tokio")]
+    #[cfg_attr(miri, ignore)]
     async fn codec_version(version: ProtocolVersion) {
         assert_codec(&version, ()).await;
     }
 
     #[test_strategy::proptest(async = "tokio")]
+    #[cfg_attr(miri, ignore)]
     async fn codec_protocol(protocol: crate::protocol::Protocol) {
         assert_codec(&protocol, ()).await;
     }

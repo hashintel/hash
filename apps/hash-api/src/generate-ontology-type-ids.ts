@@ -8,16 +8,12 @@ import { fileURLToPath } from "node:url";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { getRequiredEnv } from "@local/hash-isomorphic-utils/environment";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { publicUserAccountId } from "./auth/public-user-account-id";
@@ -100,7 +96,6 @@ const getLatestTypesInOrganizationQuery = (params: { organization: Org }) => ({
       },
     ],
   },
-  graphResolveDepths: zeroedGraphResolveDepths,
   temporalAxes: currentTimeInstantTemporalAxes,
 });
 
@@ -118,7 +113,6 @@ const getLatestBlockprotocolTypesQuery = {
       },
     ],
   },
-  graphResolveDepths: zeroedGraphResolveDepths,
   temporalAxes: currentTimeInstantTemporalAxes,
 };
 
@@ -241,55 +235,55 @@ const generateOntologyIds = async () => {
       graphContext,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: hashOrg }),
-    ).then((subgraph) => getRoots(subgraph)),
+    ),
     getPropertyTypes(
       graphContext,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: hashOrg }),
-    ).then((subgraph) => getRoots(subgraph)),
+    ),
     getDataTypes(
       graphContext,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: hashOrg }),
-    ).then((subgraph) => getRoots(subgraph)),
+    ),
     // Google types
     getEntityTypes(
       graphContext,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: googleOrg }),
-    ).then((subgraph) => getRoots(subgraph)),
+    ),
     getPropertyTypes(
       graphContext,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: googleOrg }),
-    ).then((subgraph) => getRoots(subgraph)),
+    ),
     // Linear types
     getEntityTypes(
       graphContext,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: linearOrg }),
-    ).then((subgraph) => getRoots(subgraph)),
+    ),
     getPropertyTypes(
       graphContext,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: linearOrg }),
-    ).then((subgraph) => getRoots(subgraph)),
+    ),
     // BlockProtocol types
     getEntityTypes(
       graphContext,
       authentication,
       getLatestBlockprotocolTypesQuery,
-    ).then((subgraph) => getRoots(subgraph)),
+    ),
     getPropertyTypes(
       graphContext,
       authentication,
       getLatestBlockprotocolTypesQuery,
-    ).then((subgraph) => getRoots(subgraph)),
+    ),
     getDataTypes(
       graphContext,
       authentication,
       getLatestBlockprotocolTypesQuery,
-    ).then((subgraph) => getRoots(subgraph)),
+    ),
   ]);
 
   const outputPath = path.join(

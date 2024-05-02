@@ -98,23 +98,6 @@ const parseNameFromFileName = (fileName: string): string => {
   return matches[1]!;
 };
 
-// Gets all hrefs corresponding to the MDX files in a directory
-export const getAllDocsPageHrefs = (params: {
-  folderName: string;
-}): string[] => {
-  const { folderName } = params;
-
-  const fileNames = fs.readdirSync(
-    path.join(process.cwd(), `src/_pages/${folderName}`),
-  );
-
-  return fileNames.map((fileName) => {
-    const name = parseNameFromFileName(fileName);
-
-    return `/${folderName}${name === "index" ? "" : `/${name}`}`;
-  });
-};
-
 export type DocsPageData = {
   title: string;
   subtitle?: string;

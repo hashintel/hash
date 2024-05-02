@@ -89,6 +89,7 @@ mod test {
     }
 
     #[test_strategy::proptest(async = "tokio")]
+    #[cfg_attr(miri, ignore)]
     async fn encode_decode(payload: Payload) {
         assert_codec(&payload, ()).await;
     }

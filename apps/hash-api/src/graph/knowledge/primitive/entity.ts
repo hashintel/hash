@@ -9,6 +9,7 @@ import type {
   EntityMetadata,
   EntityPermission,
   Filter,
+  GetEntitiesRequest,
   GetEntitySubgraphRequest,
   GraphResolveDepths,
   ModifyRelationshipOperation,
@@ -22,6 +23,7 @@ import {
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   mapGraphApiEntityMetadataToMetadata,
+  mapGraphApiEntityToEntity,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
@@ -50,7 +52,6 @@ import {
   isEntityVertex,
   splitEntityId,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { ApolloError } from "apollo-server-errors";
 
@@ -161,6 +162,31 @@ export const createEntity: ImpureGraphFunction<
   }
 
   return entity;
+};
+
+export const getEntities: ImpureGraphFunction<
+  GetEntitiesRequest & {
+    temporalClient?: TemporalClient;
+  },
+  Promise<Entity[]>
+> = async ({ graphApi }, { actorId }, { temporalClient, ...params }) => {
+  await rewriteSemanticFilter(params.filter, temporalClient);
+
+  const isRequesterAdmin = isTestEnv
+    ? false
+    : await isUserHashInstanceAdmin(
+        { graphApi },
+        { actorId },
+        { userAccountId: actorId },
+      );
+
+  return await graphApi
+    .getEntities(actorId, params)
+    .then(({ data: response }) =>
+      response.entities.map((entity) =>
+        mapGraphApiEntityToEntity(entity, actorId, isRequesterAdmin),
+      ),
+    );
 };
 
 /**
@@ -283,18 +309,17 @@ export const getLatestEntityById: ImpureGraphFunction<
     });
   }
 
-  const [entity, ...unexpectedEntities] = await getEntitySubgraph(
+  const [entity, ...unexpectedEntities] = await getEntities(
     context,
     authentication,
     {
       filter: {
         all: allFilter,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: !!draftId,
     },
-  ).then(getRoots);
+  );
 
   if (unexpectedEntities.length > 0) {
     const errorMessage = `Latest entity with entityId ${entityId} returned more than one result with ids: ${unexpectedEntities
@@ -725,29 +750,20 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
     });
   }
 
-  const incomingLinkEntitiesSubgraph = await getEntitySubgraph(
-    context,
-    authentication,
-    {
-      filter,
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
-    },
-  );
-
-  const incomingLinkEntities = getRoots(incomingLinkEntitiesSubgraph).map(
-    (linkEntity) => {
+  return await getEntities(context, authentication, {
+    filter,
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts,
+  }).then((entities) =>
+    entities.map((linkEntity) => {
       if (!isEntityLinkEntity(linkEntity)) {
         throw new Error(
           `Entity with ID ${linkEntity.metadata.recordId.entityId} is not a link entity.`,
         );
       }
       return linkEntity;
-    },
+    }),
   );
-
-  return incomingLinkEntities;
 };
 
 /**
@@ -829,29 +845,20 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
     );
   }
 
-  const outgoingLinkEntitiesSubgraph = await getEntitySubgraph(
-    context,
-    authentication,
-    {
-      filter,
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
-    },
-  );
-
-  const outgoingLinkEntities = getRoots(outgoingLinkEntitiesSubgraph).map(
-    (linkEntity) => {
+  return await getEntities(context, authentication, {
+    filter,
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts,
+  }).then((entities) =>
+    entities.map((linkEntity) => {
       if (!isEntityLinkEntity(linkEntity)) {
         throw new Error(
           `Entity with ID ${linkEntity.metadata.recordId.entityId} is not a link entity.`,
         );
       }
       return linkEntity;
-    },
+    }),
   );
-
-  return outgoingLinkEntities;
 };
 
 /**

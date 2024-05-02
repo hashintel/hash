@@ -7,20 +7,13 @@ import type { GraphApi } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
-import type {
-  AccountGroupId,
-  AccountId,
-  Entity,
-  EntityRootType,
-} from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import type { AccountGroupId, AccountId, Entity } from "@local/hash-subgraph";
 
 export type HashInstance = {
   entity: Entity;
@@ -55,23 +48,19 @@ export const getHashInstance = async (
   { actorId }: { actorId: AccountId },
 ): Promise<HashInstance> => {
   const entities = await graphApi
-    .getEntitySubgraph(actorId, {
+    .getEntities(actorId, {
       filter: generateVersionedUrlMatchingFilter(
         systemEntityTypes.hashInstance.entityTypeId,
         { ignoreParents: true },
       ),
-      graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
     })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-        actorId,
-      );
-
-      return getRoots(subgraph);
-    });
+    .then(({ data: response }) =>
+      response.entities.map((entity) =>
+        mapGraphApiEntityToEntity(entity, actorId),
+      ),
+    );
 
   if (entities.length > 1) {
     throw new Error("More than one hash instance entity found in the graph.");

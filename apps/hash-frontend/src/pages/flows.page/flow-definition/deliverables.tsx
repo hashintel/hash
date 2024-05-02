@@ -7,6 +7,7 @@ import type { FlowRun } from "../../../graphql/api-types.gen";
 import { Link } from "../../../shared/ui/link";
 import { getFileProperties } from "../../shared/get-file-properties";
 import { Csv } from "./deliverable/csv";
+import { flowSectionBorderRadius } from "./shared/styles";
 
 const Deliverable = ({ output }: { output: StepOutput }) => {
   const { payload } = output;
@@ -32,9 +33,9 @@ const Deliverable = ({ output }: { output: StepOutput }) => {
 
     if (fileUrl) {
       return (
-        <Box>
+        <Box mt={3}>
           <Link href={fileUrl}>
-            <Typography>
+            <Typography variant="smallTextParagraphs">
               Download file:{" "}
               <strong>{displayName ?? fileName ?? "Untitled"}</strong>
             </Typography>
@@ -58,12 +59,12 @@ export const Deliverables = ({ outputs }: { outputs?: FlowRun["outputs"] }) => {
       sx={{
         background: ({ palette }) => palette.common.white,
         border: ({ palette }) => `1px solid ${palette.gray[20]}`,
-        borderRadius: 2,
+        borderRadius: flowSectionBorderRadius,
         height: "100%",
         textAlign: "center",
         justifyContent: "center",
         alignItems: "center",
-        p: 4,
+        p: flowOutputs ? 0 : 4,
       }}
     >
       {flowOutputs ? (

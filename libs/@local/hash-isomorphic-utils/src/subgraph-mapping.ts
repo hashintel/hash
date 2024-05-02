@@ -1,8 +1,11 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
+  DataTypeWithMetadata as GraphApiDataTypeWithMetadata,
   Entity as GraphApiEntity,
   EntityMetadata as GraphApiEntityMetadata,
+  EntityTypeWithMetadata as GraphApiEntityTypeWithMetadata,
   KnowledgeGraphVertex as KnowledgeGraphVertexGraphApi,
+  PropertyTypeWithMetadata as GraphApiPropertyTypeWithMetadata,
   Subgraph as GraphApiSubgraph,
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
@@ -13,11 +16,14 @@ import {
 import type {
   AccountId,
   BaseUrl,
+  DataTypeWithMetadata,
   Entity,
   EntityId,
   EntityMetadata,
   EntityPropertiesObject,
+  EntityTypeWithMetadata,
   KnowledgeGraphVertex,
+  PropertyTypeWithMetadata,
   Subgraph,
   SubgraphRootType,
   Vertices,
@@ -150,3 +156,15 @@ export const mapGraphApiSubgraphToSubgraph = <
     ),
   } as Subgraph<RootType>;
 };
+
+export const mapGraphApiEntityTypeToEntityType = (
+  entityTypes: GraphApiEntityTypeWithMetadata[],
+) => entityTypes as EntityTypeWithMetadata[];
+
+export const mapGraphApiPropertyTypeToPropertyType = (
+  entityTypes: GraphApiPropertyTypeWithMetadata[],
+) => entityTypes as PropertyTypeWithMetadata[];
+
+export const mapGraphApiDataTypeToDataType = (
+  entityTypes: GraphApiDataTypeWithMetadata[],
+) => entityTypes as DataTypeWithMetadata[];

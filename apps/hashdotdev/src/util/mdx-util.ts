@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import { readdir, readdirSync, readFile } from "fs-extra";
+import { readdirSync, readFile } from "fs-extra";
 import matter from "gray-matter";
 import type { MDXRemoteSerializeResult } from "next-mdx-remote";
 import { serialize } from "next-mdx-remote/serialize";
@@ -83,13 +83,16 @@ const getImagesFromParent = (parent: Parent): Image[] => [
     .flatMap((child) => getImagesFromParent(child)),
 ];
 
+const getFileNames = (folderName: string) =>
+  readdirSync(path.join(process.cwd(), `src/_pages/${folderName}`)).filter(
+    (filename) => !filename.toLowerCase().startsWith("wip_"),
+  );
+
 // Gets all hrefs corresponding to the MDX files in a directory
 export const getAllPageHrefs = (params: { folderName: string }): string[] => {
   const { folderName } = params;
 
-  const fileNames = readdirSync(
-    path.join(process.cwd(), `src/_pages/${folderName}`),
-  );
+  const fileNames = getFileNames(folderName);
 
   return fileNames.map((fileName) => {
     const name = parseNameFromFileName(fileName);
@@ -112,9 +115,7 @@ export const getSerializedPage = async (params: {
 > => {
   const { pathToDirectory, fileNameWithoutIndex } = params;
 
-  const fileNames = await readdir(
-    path.join(process.cwd(), `src/_pages/${pathToDirectory}`),
-  );
+  const fileNames = getFileNames(pathToDirectory);
 
   const fileName = fileNames.find((fullFileName) =>
     fullFileName.endsWith(`${fileNameWithoutIndex}.mdx`),
@@ -166,9 +167,7 @@ export const getPage = <DataType extends Record<string, unknown>>(params: {
 export const getAllPages = <DataType extends Record<string, unknown>>(
   pathToDirectory: string,
 ): Page<DataType>[] => {
-  const fileNames = readdirSync(
-    path.join(process.cwd(), `src/_pages/${pathToDirectory}`),
-  );
+  const fileNames = getFileNames(pathToDirectory);
 
   return fileNames.map((fileName) =>
     getPage({

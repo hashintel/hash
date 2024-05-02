@@ -5,18 +5,11 @@ import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { FlowProperties } from "@local/hash-isomorphic-utils/system-types/flow";
-import type {
-  AccountId,
-  Entity,
-  EntityRootType,
-  EntityUuid,
-} from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import type { AccountId, Entity, EntityUuid } from "@local/hash-subgraph";
 
 import { getFlowContext } from "../shared/get-flow-context";
 
@@ -33,7 +26,7 @@ const getExistingFlowEntity = async (params: {
   const { flowId, userAuthentication, graphApiClient } = params;
 
   const [existingFlowEntity] = await graphApiClient
-    .getEntitySubgraph(userAuthentication.actorId, {
+    .getEntities(userAuthentication.actorId, {
       filter: {
         all: [
           {
@@ -45,18 +38,18 @@ const getExistingFlowEntity = async (params: {
           ),
         ],
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
     })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-        userAuthentication.actorId,
-      );
-
-      return getRoots(subgraph) as Entity<FlowProperties>[];
-    });
+    .then(({ data: response }) =>
+      response.entities.map(
+        (entity) =>
+          mapGraphApiEntityToEntity(
+            entity,
+            userAuthentication.actorId,
+          ) as Entity<FlowProperties>,
+      ),
+    );
 
   return existingFlowEntity ?? null;
 };

@@ -1,15 +1,12 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { OrganizationProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type {
   AccountGroupEntityId,
@@ -17,12 +14,10 @@ import type {
   BaseUrl,
   Entity,
   EntityId,
-  EntityRootType,
   EntityUuid,
   OwnedById,
 } from "@local/hash-subgraph";
 import { extractAccountGroupId } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import {
   extractBaseUrl,
   versionedUrlFromComponents,
@@ -197,7 +192,7 @@ export const getOrgByShortname: ImpureGraphFunction<
   Promise<Org | null>
 > = async ({ graphApi }, { actorId }, params) => {
   const [orgEntity, ...unexpectedEntities] = await graphApi
-    .getEntitySubgraph(actorId, {
+    .getEntities(actorId, {
       filter: {
         all: [
           {
@@ -219,7 +214,6 @@ export const getOrgByShortname: ImpureGraphFunction<
           },
         ],
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
       // TODO: Should this be an all-time query? What happens if the org is
       //       archived/deleted, do we want to allow orgs to replace their
       //       shortname?
@@ -227,12 +221,11 @@ export const getOrgByShortname: ImpureGraphFunction<
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
     })
-    .then(({ data }) => {
-      const userEntitiesSubgraph =
-        mapGraphApiSubgraphToSubgraph<EntityRootType>(data.subgraph, actorId);
-
-      return getRoots(userEntitiesSubgraph);
-    });
+    .then(({ data: response }) =>
+      response.entities.map((entity) =>
+        mapGraphApiEntityToEntity(entity, actorId),
+      ),
+    );
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
