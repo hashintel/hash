@@ -152,6 +152,7 @@ mod test {
     }
 
     #[test_strategy::proptest(async = "tokio")]
+    #[cfg_attr(miri, ignore)]
     async fn codec(flags: RequestFlags) {
         assert_codec(&flags, ()).await;
     }

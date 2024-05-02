@@ -120,6 +120,7 @@ pub(crate) mod test {
     }
 
     #[test_strategy::proptest(async = "tokio")]
+    #[cfg_attr(miri, ignore)]
     async fn codec_id(id: RequestId) {
         assert_codec(&id, ()).await;
     }

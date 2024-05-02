@@ -92,6 +92,7 @@ mod test {
     }
 
     #[test_strategy::proptest(async = "tokio")]
+    #[cfg_attr(miri, ignore)]
     async fn codec(frame: RequestFrame) {
         assert_codec(&frame, ()).await;
     }
