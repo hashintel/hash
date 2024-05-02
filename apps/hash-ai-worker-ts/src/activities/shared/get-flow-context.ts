@@ -17,7 +17,7 @@ import { logToConsole } from "../../shared/logger";
 
 const temporalClient = await createTemporalClient();
 
-const getFirstActivityTaskScheduledEventAttributesOfWorkflow = async (params: {
+const getWorkflowExecutionStartedEventAttributesOfWorkflow = async (params: {
   workflowId: string;
 }) => {
   const { workflowId } = params;
@@ -30,11 +30,11 @@ const getFirstActivityTaskScheduledEventAttributesOfWorkflow = async (params: {
     throw new Error(`No events found for workflowId ${workflowId}`);
   }
 
-  const activityTaskScheduledEventAttributes =
-    events.find((event) => event.activityTaskScheduledEventAttributes)
-      ?.activityTaskScheduledEventAttributes ?? undefined;
+  const workflowExecutionStartedEventAttributes =
+    events.find((event) => event.workflowExecutionStartedEventAttributes)
+      ?.workflowExecutionStartedEventAttributes ?? undefined;
 
-  return { activityTaskScheduledEventAttributes };
+  return { workflowExecutionStartedEventAttributes };
 };
 
 type FlowContext = {
@@ -66,24 +66,24 @@ export const getFlowContext = async (): Promise<FlowContext> => {
    * to `getFlowContext` within the same flow do not result in individual
    * calls to the Temporal API.
    */
-  const { activityTaskScheduledEventAttributes } =
-    await getFirstActivityTaskScheduledEventAttributesOfWorkflow({
+  const { workflowExecutionStartedEventAttributes } =
+    await getWorkflowExecutionStartedEventAttributesOfWorkflow({
       workflowId,
     });
 
-  if (!activityTaskScheduledEventAttributes) {
+  if (!workflowExecutionStartedEventAttributes) {
     throw new Error(
-      `No activity task scheduled event attributes found for workflowId ${workflowId}`,
+      `No workflow execution started event attributes found for workflowId ${workflowId}`,
     );
   }
 
   const inputs = parseHistoryItemPayload(
-    activityTaskScheduledEventAttributes.input,
+    workflowExecutionStartedEventAttributes.input,
   );
 
   if (!inputs) {
     throw new Error(
-      `No inputs found for workflowId ${workflowId} in the activity task scheduled event`,
+      `No inputs found for workflowId ${workflowId} in the workflow execution started event`,
     );
   }
 
