@@ -7,7 +7,7 @@ import type {
   FlowTrigger,
   ProposedEntity,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type { Entity, OwnedById } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import { Box, Stack, Typography } from "@mui/material";
 import { format } from "date-fns";
 import { useCallback, useMemo, useState } from "react";
@@ -19,7 +19,6 @@ import type {
 } from "../../graphql/api-types.gen";
 import { startFlowMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { isNonNullable } from "../../lib/typeguards";
-import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { Deliverables } from "./flow-definition/deliverables";
 import { EntityResultTable } from "./flow-definition/entity-result-table";
 import { FlowRunSidebar } from "./flow-definition/flow-run-sidebar";
@@ -175,8 +174,6 @@ const getGraphFromFlowDefinition = (
 };
 
 export const FlowDefinition = () => {
-  const { authenticatedUser } = useAuthenticatedUser();
-
   const { selectedFlow } = useFlowDefinitionsContext();
 
   const { selectedFlowRun } = useFlowRunsContext();
@@ -318,23 +315,8 @@ export const FlowDefinition = () => {
   >(startFlowMutation);
 
   const handleRunFlowClicked = useCallback(() => {
-    if (selectedFlow.trigger.outputs?.length) {
-      setShowRunModal(true);
-    } else {
-      void startFlow({
-        variables: {
-          flowDefinition: selectedFlow,
-          flowTrigger: {
-            triggerDefinitionId: "userTrigger",
-          },
-          /**
-           * @todo: allow specifying the web to run the flow in
-           */
-          webId: authenticatedUser.accountId as OwnedById,
-        },
-      });
-    }
-  }, [selectedFlow, startFlow]);
+    setShowRunModal(true);
+  }, []);
 
   const flowDefinitionStateKey = `${selectedFlow.name}`;
   const flowRunStateKey = `${flowDefinitionStateKey}-${selectedFlowRun?.runId ?? "definition"}`;
@@ -346,7 +328,7 @@ export const FlowDefinition = () => {
         flowDefinition={selectedFlow}
         open={showRunModal}
         onClose={() => setShowRunModal(false)}
-        runFlow={(outputs: FlowTrigger["outputs"]) => {
+        runFlow={(outputs: FlowTrigger["outputs"], webId) => {
           void startFlow({
             variables: {
               flowDefinition: selectedFlow,
@@ -354,10 +336,7 @@ export const FlowDefinition = () => {
                 outputs,
                 triggerDefinitionId: "userTrigger",
               },
-              /**
-               * @todo: allow specifying the web to run the flow in
-               */
-              webId: authenticatedUser.accountId as OwnedById,
+              webId,
             },
           });
           setShowRunModal(false);
