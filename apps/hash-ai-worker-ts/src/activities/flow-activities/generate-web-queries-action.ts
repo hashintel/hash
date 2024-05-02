@@ -1,9 +1,9 @@
-import type { GraphApi } from "@local/hash-graph-client";
 import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
+import { getFlowContext } from "../shared/get-flow-context";
 import { getLlmResponse } from "../shared/get-llm-response";
 import { getToolCallsFromLlmAssistantMessage } from "../shared/get-llm-response/llm-message";
 import type { LlmToolDefinition } from "../shared/get-llm-response/types";
@@ -38,9 +38,9 @@ type ProposeQueryFunctionCallArguments = {
   query: string;
 };
 
-export const generateWebQueriesAction: FlowActionActivity<{
-  graphApiClient: GraphApi;
-}> = async ({ inputs, userAuthentication, graphApiClient, flowEntityId }) => {
+export const generateWebQueriesAction: FlowActionActivity = async ({
+  inputs,
+}) => {
   const { prompt, model } = getSimplifiedActionInputs({
     inputs,
     actionType: "generateWebQueries",
@@ -53,6 +53,9 @@ export const generateWebQueriesAction: FlowActionActivity<{
       contents: [],
     };
   }
+
+  const { userAuthentication, graphApiClient, flowEntityId } =
+    await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {

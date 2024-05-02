@@ -1,5 +1,5 @@
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
-import type { EntityMetadata, GraphApi } from "@local/hash-graph-client";
+import type { EntityMetadata } from "@local/hash-graph-client";
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
@@ -16,13 +16,17 @@ import {
   findExistingEntity,
   findExistingLinkEntity,
 } from "../shared/find-existing-entity";
+import { getFlowContext } from "../shared/get-flow-context";
 import { logProgress } from "../shared/log-progress";
 import { getEntityUpdate } from "./shared/graph-requests";
 import type { FlowActionActivity } from "./types";
 
-export const persistEntityAction: FlowActionActivity<{
-  graphApiClient: GraphApi;
-}> = async ({ inputs, graphApiClient, userAuthentication: { actorId } }) => {
+export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
+  const {
+    graphApiClient,
+    userAuthentication: { actorId },
+  } = await getFlowContext();
+
   const { draft, proposedEntityWithResolvedLinks, webId } =
     getSimplifiedActionInputs({
       inputs,

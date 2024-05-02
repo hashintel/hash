@@ -1,14 +1,14 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { GraphApi } from "@local/hash-graph-client";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/ai-inference-types";
-import type { AccountId, Entity, EntityId } from "@local/hash-subgraph";
+import type { Entity, EntityId } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 
 import { logger } from "../shared/activity-logger";
+import { getFlowContext } from "../shared/get-flow-context";
 import { getLlmResponse } from "../shared/get-llm-response";
 import type {
   LlmMessage,
@@ -40,21 +40,15 @@ export const proposeEntities = async (params: {
   previousMessages?: LlmMessage[];
   entityTypes: DereferencedEntityTypesByTypeId;
   inferenceState: InferenceState;
-  userAccountId: AccountId;
-  graphApiClient: GraphApi;
   existingEntities?: Entity[];
-  flowEntityId: EntityId;
 }): Promise<Status<InferenceState>> => {
   const {
     maxTokens,
     previousMessages,
     entityTypes,
-    userAccountId,
-    graphApiClient,
     inferenceState,
     firstUserMessage,
     existingEntities,
-    flowEntityId,
   } = params;
 
   const {
@@ -185,6 +179,9 @@ export const proposeEntities = async (params: {
 
   logger.debug(`Next messages to model: ${stringify(messages)}`);
 
+  const { userAuthentication, graphApiClient, flowEntityId } =
+    await getFlowContext();
+
   const llmResponse = await getLlmResponse(
     {
       model: "claude-3-opus-20240229",
@@ -199,7 +196,7 @@ export const proposeEntities = async (params: {
       temperature: 0,
     },
     {
-      userAccountId,
+      userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],
     },
@@ -431,15 +428,18 @@ export const proposeEntities = async (params: {
                           })
                         : {};
 
-                      await graphApiClient.validateEntity(userAccountId, {
-                        entityTypes: [entityTypeId],
-                        components: {
-                          linkData: false,
-                          numItems: false,
-                          requiredProperties: false,
+                      await graphApiClient.validateEntity(
+                        userAuthentication.actorId,
+                        {
+                          entityTypes: [entityTypeId],
+                          components: {
+                            linkData: false,
+                            numItems: false,
+                            requiredProperties: false,
+                          },
+                          properties,
                         },
-                        properties,
-                      });
+                      );
 
                       return [];
                     } catch (error) {

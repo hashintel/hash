@@ -14,7 +14,7 @@ import type {
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { validateFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
-import type { EntityId, EntityUuid } from "@local/hash-subgraph";
+import type { EntityUuid } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import {
@@ -229,15 +229,6 @@ export const runFlowWorkflow = async (
       try {
         actionResponse = await actionActivity({
           inputs: currentStep.inputs ?? [],
-          userAuthentication,
-          /**
-           * Note: we can't use `entityIdFromComponents` here, because the `@local/hash-subgraph` package
-           * cannot be imported in a workflow outside of an activity.
-           *
-           * @todo: figure out how to import the `@local/hash-subgraph` package in a workflow
-           */
-          flowEntityId:
-            `${userAuthentication.actorId}~${flow.flowId}` as EntityId,
         });
       } catch (error) {
         log(

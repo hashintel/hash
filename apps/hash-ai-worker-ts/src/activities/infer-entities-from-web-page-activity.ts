@@ -1,5 +1,4 @@
-import type { GraphApi } from "@local/hash-graph-client";
-import type { AccountId, Entity, EntityId } from "@local/hash-subgraph";
+import type { AccountId, Entity } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
@@ -11,6 +10,7 @@ import type {
 } from "./infer-entities/inference-types";
 import { proposeEntities } from "./infer-entities/propose-entities";
 import { logger } from "./shared/activity-logger";
+import { getFlowContext } from "./shared/get-flow-context";
 import type { PermittedOpenAiModel } from "./shared/openai-client";
 import { simplifyEntity } from "./shared/simplify-entity";
 import { stringify } from "./shared/stringify";
@@ -22,11 +22,9 @@ export const inferEntitiesFromWebPageActivity = async (params: {
   inferenceState: InferenceState;
   userAccountId: AccountId;
   model: PermittedOpenAiModel;
-  graphApiClient: GraphApi;
   maxTokens?: number | null;
   temperature?: number;
   existingEntities?: Entity[];
-  flowEntityId: EntityId;
 }) => {
   const {
     webPage,
@@ -34,13 +32,13 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     entityTypes,
     userAccountId,
     model,
-    graphApiClient,
     inferenceState,
     maxTokens,
     temperature,
     existingEntities,
-    flowEntityId,
   } = params;
+
+  const { graphApiClient } = await getFlowContext();
 
   /**
    * Inference step 1: get a list of entities that can be inferred from the input text, without property details
@@ -66,7 +64,6 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     existingEntities,
     userAccountId,
     graphApiClient,
-    flowEntityId,
   });
 
   logger.debug(
@@ -117,14 +114,11 @@ export const inferEntitiesFromWebPageActivity = async (params: {
   return await proposeEntities({
     maxTokens: maxTokens ?? undefined,
     firstUserMessage: proposeEntitiesPrompt,
-    userAccountId,
-    graphApiClient,
     entityTypes,
     inferenceState: {
       ...inferenceState,
       iterationCount: inferenceState.iterationCount + 1,
     },
     existingEntities,
-    flowEntityId,
   });
 };

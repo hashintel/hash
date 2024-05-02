@@ -1,5 +1,4 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { GraphApi } from "@local/hash-graph-client";
 import type {
   InputNameForAction,
   OutputNameForAction,
@@ -24,18 +23,11 @@ import type { CompletedToolCall } from "./research-entities-action/types";
 import type { FlowActionActivity } from "./types";
 import { webSearchAction } from "./web-search-action";
 
-export const researchEntitiesAction: FlowActionActivity<{
-  graphApiClient: GraphApi;
-}> = async ({
+export const researchEntitiesAction: FlowActionActivity = async ({
   inputs: stepInputs,
-  userAuthentication,
-  graphApiClient,
-  flowEntityId,
 }) => {
   const input = await coordinatingAgent.parseCoordinatorInputs({
     stepInputs,
-    userAuthentication,
-    graphApiClient,
   });
 
   /**
@@ -44,9 +36,6 @@ export const researchEntitiesAction: FlowActionActivity<{
    */
   const { plan: initialPlan } = await coordinatingAgent.createInitialPlan({
     input,
-    userAccountId: userAuthentication.actorId,
-    graphApiClient,
-    flowEntityId,
   });
 
   const state: CoordinatingAgentState = {
@@ -61,9 +50,6 @@ export const researchEntitiesAction: FlowActionActivity<{
     await coordinatingAgent.getNextToolCalls({
       input,
       state,
-      userAccountId: userAuthentication.actorId,
-      graphApiClient,
-      flowEntityId,
     });
 
   const getSubmittedProposedEntities = () =>
@@ -129,9 +115,6 @@ export const researchEntitiesAction: FlowActionActivity<{
                       : [{ inputName: name, payload: defaultValue }],
                 ),
               ],
-              userAuthentication,
-              graphApiClient,
-              flowEntityId,
             });
 
             if (response.code !== StatusCode.Ok) {
@@ -164,8 +147,6 @@ export const researchEntitiesAction: FlowActionActivity<{
                   payload: { kind: "Number", value: 3 },
                 },
               ],
-              userAuthentication,
-              flowEntityId,
             });
 
             if (response.code !== StatusCode.Ok) {
@@ -250,9 +231,6 @@ export const researchEntitiesAction: FlowActionActivity<{
                 ({ $id }) => linkEntityTypeIds?.includes($id) ?? false,
               ),
               url,
-              userAuthentication,
-              graphApiClient,
-              flowEntityId,
             });
 
             if (status.code !== StatusCode.Ok) {
@@ -487,9 +465,6 @@ export const researchEntitiesAction: FlowActionActivity<{
       await coordinatingAgent.getNextToolCalls({
         input,
         state,
-        userAccountId: userAuthentication.actorId,
-        graphApiClient,
-        flowEntityId,
       });
 
     await processToolCalls({

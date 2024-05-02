@@ -1,5 +1,4 @@
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
-import type { GraphApi } from "@local/hash-graph-client";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   FormattedText,
@@ -11,7 +10,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { AccountId, EntityId, EntityRootType } from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
@@ -26,6 +25,7 @@ import { stringify } from "../shared/stringify";
 import type { FlowActionActivity } from "./types";
 import ChatCompletionUserMessageParam = OpenAI.ChatCompletionUserMessageParam;
 import ChatCompletionToolMessageParam = OpenAI.ChatCompletionToolMessageParam;
+import { getFlowContext } from "../shared/get-flow-context";
 import { getLlmResponse } from "../shared/get-llm-response";
 import {
   getToolCallsFromLlmAssistantMessage,
@@ -154,14 +154,14 @@ const callModel = async (
   context: string | null,
   codeUsed: string | null,
   iteration: number,
-  userAccountId: AccountId,
-  graphApiClient: GraphApi,
-  flowEntityId: EntityId,
 ): Promise<
   Status<{
     outputs: StepOutput[];
   }>
 > => {
+  const { flowEntityId, graphApiClient, userAuthentication } =
+    await getFlowContext();
+
   const llmResponse = await getLlmResponse(
     {
       model,
@@ -171,7 +171,7 @@ const callModel = async (
       tools: answerTools,
     },
     {
-      userAccountId,
+      userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],
     },
@@ -283,9 +283,6 @@ const callModel = async (
             context,
             null,
             iteration + 1,
-            userAccountId,
-            graphApiClient,
-            flowEntityId,
           );
         }
 
@@ -369,9 +366,6 @@ const callModel = async (
       context,
       codeUsed,
       iteration + 1,
-      userAccountId,
-      graphApiClient,
-      flowEntityId,
     );
   }
 
@@ -390,15 +384,10 @@ const callModel = async (
     context,
     codeUsed,
     iteration + 1,
-    userAccountId,
-    graphApiClient,
-    flowEntityId,
   );
 };
 
-export const answerQuestionAction: FlowActionActivity<{
-  graphApiClient: GraphApi;
-}> = async ({ graphApiClient, inputs, userAuthentication, flowEntityId }) => {
+export const answerQuestionAction: FlowActionActivity = async ({ inputs }) => {
   const {
     context,
     entities: inputEntities,
@@ -420,6 +409,8 @@ export const answerQuestionAction: FlowActionActivity<{
 
   let contextFilePath;
   let contextToUpload;
+
+  const { graphApiClient, userAuthentication } = await getFlowContext();
 
   if (entities) {
     /**
@@ -531,13 +522,5 @@ export const answerQuestionAction: FlowActionActivity<{
     });
   }
 
-  return await callModel(
-    messages,
-    contextToUpload ?? null,
-    null,
-    1,
-    userAuthentication.actorId,
-    graphApiClient,
-    flowEntityId,
-  );
+  return await callModel(messages, contextToUpload ?? null, null, 1);
 };

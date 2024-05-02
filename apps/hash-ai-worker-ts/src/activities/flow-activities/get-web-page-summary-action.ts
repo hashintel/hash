@@ -1,4 +1,3 @@
-import type { GraphApi } from "@local/hash-graph-client";
 import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 import {
   getSimplifiedActionInputs,
@@ -8,6 +7,7 @@ import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
 import { getWebPageActivity } from "../get-web-page-activity";
+import { getFlowContext } from "../shared/get-flow-context";
 import { getLlmResponse } from "../shared/get-llm-response";
 import { getTextContentFromLlmMessage } from "../shared/get-llm-response/llm-message";
 import { modelAliasToSpecificModel } from "../shared/openai-client";
@@ -23,9 +23,9 @@ const generateSummarizeWebPageSystemPrompt = (params: {
     the web page.
   `);
 
-export const getWebPageSummaryAction: FlowActionActivity<{
-  graphApiClient: GraphApi;
-}> = async ({ inputs, userAuthentication, graphApiClient, flowEntityId }) => {
+export const getWebPageSummaryAction: FlowActionActivity = async ({
+  inputs,
+}) => {
   const { url, model, numberOfSentences } = getSimplifiedActionInputs({
     inputs,
     actionType: "getWebPageSummary",
@@ -44,6 +44,9 @@ export const getWebPageSummaryAction: FlowActionActivity<{
   const systemPrompt = generateSummarizeWebPageSystemPrompt({
     numberOfSentences: numberOfSentences!,
   });
+
+  const { userAuthentication, graphApiClient, flowEntityId } =
+    await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {

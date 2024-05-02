@@ -1,14 +1,14 @@
-import type { GraphApi } from "@local/hash-graph-client";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   ProposedEntity,
   StepInput,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type { AccountId, Entity, EntityId } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import dedent from "dedent";
 
 import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity";
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
+import { getFlowContext } from "../../shared/get-flow-context";
 import { getLlmResponse } from "../../shared/get-llm-response";
 import type {
   LlmMessage,
@@ -100,13 +100,10 @@ export type CoordinatingAgentState = {
 const getNextToolCalls = async (params: {
   input: CoordinatingAgentInput;
   state: CoordinatingAgentState;
-  userAccountId: AccountId;
-  graphApiClient: GraphApi;
-  flowEntityId: EntityId;
 }): Promise<{
   toolCalls: ParsedLlmToolCall<CoordinatorToolName>[];
 }> => {
-  const { input, state, userAccountId, graphApiClient, flowEntityId } = params;
+  const { input, state } = params;
 
   const submittedProposedEntities = state.proposedEntities.filter(
     (proposedEntity) =>
@@ -158,6 +155,9 @@ const getNextToolCalls = async (params: {
 
   const tools = Object.values(coordinatorToolDefinitions);
 
+  const { graphApiClient, userAuthentication, flowEntityId } =
+    await getFlowContext();
+
   const llmResponse = await getLlmResponse(
     {
       systemPrompt,
@@ -166,7 +166,7 @@ const getNextToolCalls = async (params: {
       tools,
     },
     {
-      userAccountId,
+      userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],
     },
@@ -188,11 +188,8 @@ const getNextToolCalls = async (params: {
 };
 const createInitialPlan = async (params: {
   input: CoordinatingAgentInput;
-  userAccountId: AccountId;
-  graphApiClient: GraphApi;
-  flowEntityId: EntityId;
 }): Promise<{ plan: string }> => {
-  const { input, userAccountId, graphApiClient, flowEntityId } = params;
+  const { input } = params;
 
   const systemPrompt = dedent(`
     ${generateSystemPromptPrefix({ input })}
@@ -202,6 +199,9 @@ const createInitialPlan = async (params: {
 
     This should be a list of steps in plain English.
   `);
+
+  const { graphApiClient, userAuthentication, flowEntityId } =
+    await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -213,7 +213,7 @@ const createInitialPlan = async (params: {
       ),
     },
     {
-      userAccountId,
+      userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],
     },
@@ -241,11 +241,9 @@ const createInitialPlan = async (params: {
 };
 
 const parseCoordinatorInputs = async (params: {
-  graphApiClient: GraphApi;
-  userAuthentication: { actorId: AccountId };
   stepInputs: StepInput[];
 }): Promise<CoordinatingAgentInput> => {
-  const { stepInputs, graphApiClient, userAuthentication } = params;
+  const { stepInputs } = params;
 
   const {
     prompt,
@@ -255,6 +253,8 @@ const parseCoordinatorInputs = async (params: {
     inputs: stepInputs,
     actionType: "researchEntities",
   });
+
+  const { graphApiClient, userAuthentication } = await getFlowContext();
 
   const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
     graphApiClient,

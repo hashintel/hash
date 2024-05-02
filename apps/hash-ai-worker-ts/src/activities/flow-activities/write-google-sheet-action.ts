@@ -5,7 +5,6 @@ import {
 } from "@local/hash-backend-utils/google";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
-import type { GraphApi } from "@local/hash-graph-client";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import {
   createDefaultAuthorizationRelationships,
@@ -26,6 +25,7 @@ import type { sheets_v4 } from "googleapis";
 import { google } from "googleapis";
 
 import { getEntityByFilter } from "../shared/get-entity-by-filter";
+import { getFlowContext } from "../shared/get-flow-context";
 import { getEntityUpdate } from "./shared/graph-requests";
 import type { FlowActionActivity } from "./types";
 import { convertCsvToSheetRequests } from "./write-google-sheet-action/convert-csv-to-sheet-requests";
@@ -68,9 +68,10 @@ type ActivityHeartbeatDetails = {
 };
 
 export const writeGoogleSheetAction: FlowActionActivity<{
-  graphApiClient: GraphApi;
   vaultClient: VaultClient;
-}> = async ({ graphApiClient, inputs, userAuthentication, vaultClient }) => {
+}> = async ({ inputs, vaultClient }) => {
+  const { graphApiClient, userAuthentication } = await getFlowContext();
+
   const { audience, dataToWrite, googleAccountId, googleSheet, webId } =
     getSimplifiedActionInputs({
       inputs,

@@ -19,7 +19,6 @@ import {
   getEntityTypeIdForMimeType,
 } from "@local/hash-backend-utils/file-storage";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
-import type { GraphApi } from "@local/hash-graph-client";
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
@@ -34,6 +33,7 @@ import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 import mime from "mime-types";
 
+import { getFlowContext } from "../shared/get-flow-context";
 import { logProgress } from "../shared/log-progress";
 import type { FlowActionActivity } from "./types";
 
@@ -118,9 +118,9 @@ const writeFileToS3URL = async ({
   });
 };
 
-export const getFileFromUrlAction: FlowActionActivity<{
-  graphApiClient: GraphApi;
-}> = async ({ graphApiClient, inputs, userAuthentication }) => {
+export const getFileFromUrlAction: FlowActionActivity = async ({ inputs }) => {
+  const { userAuthentication, graphApiClient } = await getFlowContext();
+
   const {
     description,
     displayName,

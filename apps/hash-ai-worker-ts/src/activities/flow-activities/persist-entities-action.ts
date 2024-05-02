@@ -1,4 +1,3 @@
-import type { GraphApi } from "@local/hash-graph-client";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   FailedEntityProposal,
@@ -9,16 +8,17 @@ import type {
 import type { OwnedById } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 
+import { getFlowContext } from "../shared/get-flow-context";
 import { persistEntityAction } from "./persist-entity-action";
 import type { FlowActionActivity } from "./types";
 
-export const persistEntitiesAction: FlowActionActivity<{
-  graphApiClient: GraphApi;
-}> = async ({ inputs, graphApiClient, userAuthentication, flowEntityId }) => {
+export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
   const { draft, proposedEntities, webId } = getSimplifiedActionInputs({
     inputs,
     actionType: "persistEntities",
   });
+
+  const { userAuthentication } = await getFlowContext();
 
   const ownedById = webId ?? (userAuthentication.actorId as OwnedById);
 
@@ -119,9 +119,6 @@ export const persistEntitiesAction: FlowActionActivity<{
           payload: { kind: "WebId", value: ownedById },
         },
       ],
-      graphApiClient,
-      userAuthentication,
-      flowEntityId,
     });
 
     const output = persistedEntityOutputs.contents[0]?.outputs?.[0]?.payload;
