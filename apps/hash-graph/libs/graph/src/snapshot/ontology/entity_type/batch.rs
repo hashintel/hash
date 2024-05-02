@@ -203,7 +203,6 @@ where
         Ok(())
     }
 
-    #[expect(clippy::too_many_lines, reason = "TODO: Move out common parts")]
     async fn commit(
         postgres_client: &mut PostgresStore<C, A>,
         _validation: bool,

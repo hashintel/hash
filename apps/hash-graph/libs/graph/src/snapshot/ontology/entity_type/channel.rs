@@ -74,7 +74,6 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
         Poll::Ready(Ok(()))
     }
 
-    #[expect(clippy::too_many_lines)]
     fn start_send(
         mut self: Pin<&mut Self>,
         entity_type: EntityTypeSnapshotRecord,
