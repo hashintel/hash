@@ -66,13 +66,7 @@ export const generateWebQueriesAction: FlowActionActivity<{
     tools,
     userAccountId: userAuthentication.actorId,
     graphApiClient,
-    linkUsageRecordToEntities: [
-      {
-        linkEntityTypeId:
-          "https://hash.ai/@hash/types/entity-type/incurred-in/v/1",
-        entityId: flowEntityId,
-      },
-    ],
+    incurredInEntities: [{ entityId: flowEntityId }],
   });
 
   if (llmResponse.status !== "ok") {

@@ -182,7 +182,7 @@ export const persistEntities = async (params: {
     firstUserMessageIndex,
     userAccountId: requestingUserAccountId,
     graphApiClient,
-    linkUsageRecordToEntities: [],
+    incurredInEntities: [],
   });
 
   if (llmResponse.status !== "ok") {

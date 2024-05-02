@@ -85,15 +85,7 @@ export const inferEntitySummaries = async (params: {
     tools,
     userAccountId,
     graphApiClient,
-    linkUsageRecordToEntities: flowEntityId
-      ? [
-          {
-            linkEntityTypeId:
-              "https://hash.ai/@hash/types/entity-type/incurred-in/v/1",
-            entityId: flowEntityId,
-          },
-        ]
-      : [],
+    incurredInEntities: flowEntityId ? [{ entityId: flowEntityId }] : [],
   });
 
   if (llmResponse.status !== "ok") {

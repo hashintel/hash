@@ -2,7 +2,7 @@ import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/ha
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
 import type { EntityMetadata, GraphApi } from "@local/hash-graph-client";
-import type { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { AccountId, EntityId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import Ajv from "ajv";
@@ -698,20 +698,13 @@ export const getLlmResponse = async <T extends LlmParams>(
      */
     userAccountId: AccountId;
     graphApiClient: GraphApi;
-    linkUsageRecordToEntities: {
-      linkEntityTypeId: [
-        typeof systemLinkEntityTypes.incurredIn.linkEntityTypeId,
-        typeof systemLinkEntityTypes.created.linkEntityTypeId,
-        typeof systemLinkEntityTypes.updated.linkEntityTypeId,
-      ][number];
-      entityId: EntityId;
-    }[];
+    incurredInEntities: { entityId: EntityId }[];
   },
 ): Promise<LlmResponse<T>> => {
   const {
     userAccountId,
     graphApiClient,
-    linkUsageRecordToEntities,
+    incurredInEntities,
     ...remainingLlmParams
   } = params;
 
@@ -790,59 +783,59 @@ export const getLlmResponse = async <T extends LlmParams>(
       };
     }
 
-    if (linkUsageRecordToEntities.length > 0) {
+    if (incurredInEntities.length > 0) {
       const hashInstanceAdminGroupId = await getHashInstanceAdminAccountGroupId(
         { graphApi: graphApiClient },
         { actorId: aiAssistantAccountId },
       );
 
       const errors = await Promise.all(
-        linkUsageRecordToEntities.map(
-          async ({ linkEntityTypeId, entityId }) => {
-            try {
-              await graphApiClient.createEntity(aiAssistantAccountId, {
-                draft: false,
-                properties: {},
-                ownedById: userAccountId,
-                entityTypeIds: [linkEntityTypeId],
-                linkData: {
-                  leftEntityId: usageRecordEntityMetadata.recordId.entityId,
-                  rightEntityId: entityId,
+        incurredInEntities.map(async ({ entityId }) => {
+          try {
+            await graphApiClient.createEntity(aiAssistantAccountId, {
+              draft: false,
+              properties: {},
+              ownedById: userAccountId,
+              entityTypeIds: [
+                systemLinkEntityTypes.incurredIn.linkEntityTypeId,
+              ],
+              linkData: {
+                leftEntityId: usageRecordEntityMetadata.recordId.entityId,
+                rightEntityId: entityId,
+              },
+              relationships: [
+                {
+                  relation: "administrator",
+                  subject: {
+                    kind: "account",
+                    subjectId: aiAssistantAccountId,
+                  },
                 },
-                relationships: [
-                  {
-                    relation: "administrator",
-                    subject: {
-                      kind: "account",
-                      subjectId: aiAssistantAccountId,
-                    },
+                {
+                  relation: "viewer",
+                  subject: {
+                    kind: "account",
+                    subjectId: userAccountId,
                   },
-                  {
-                    relation: "viewer",
-                    subject: {
-                      kind: "account",
-                      subjectId: userAccountId,
-                    },
+                },
+                {
+                  relation: "viewer",
+                  subject: {
+                    kind: "accountGroup",
+                    subjectId: hashInstanceAdminGroupId,
                   },
-                  {
-                    relation: "viewer",
-                    subject: {
-                      kind: "accountGroup",
-                      subjectId: hashInstanceAdminGroupId,
-                    },
-                  },
-                ],
-              });
+                },
+              ],
+            });
 
-              return [];
-            } catch (error) {
-              return {
-                status: "internal-error",
-                message: `Failed to link usage record to entity with ID ${entityId}: ${stringify(error)}`,
-              };
-            }
-          },
-        ),
+            return [];
+          } catch (error) {
+            return {
+              status: "internal-error",
+              message: `Failed to link usage record to entity with ID ${entityId}: ${stringify(error)}`,
+            };
+          }
+        }),
       ).then((unflattenedErrors) => unflattenedErrors.flat());
 
       if (errors.length > 0) {
