@@ -112,6 +112,10 @@ export const handleQueryPdfToolCall = async (params: {
 
   const { orderedRelevantTextChunks } = filteredAndRankedTextChunksResponse;
 
+  logger.debug(
+    `Ordered relevant text chunks: ${stringify(orderedRelevantTextChunks)}`,
+  );
+
   return {
     ...toolCall,
     output: dedent(`
