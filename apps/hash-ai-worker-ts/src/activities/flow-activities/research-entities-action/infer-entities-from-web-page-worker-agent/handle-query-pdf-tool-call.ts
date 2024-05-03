@@ -3,8 +3,8 @@ import { MetadataMode } from "llamaindex";
 
 import { logger } from "../../../shared/activity-logger";
 import type { ParsedLlmToolCall } from "../../../shared/get-llm-response/types";
-import { stringify } from "../../../shared/stringify";
 import type { CompletedToolCall } from "../types";
+import { filterAndRankTextChunksAgent } from "./filter-and-rank-text-chunks-agent";
 import { indexPdfFile } from "./llama-index/index-pdf-file";
 import type { ToolCallArguments } from "./tool-definitions";
 
@@ -67,8 +67,8 @@ export const handleQueryPdfToolCall = async (params: {
 
   const queryEngine = vectorStoreIndex.asQueryEngine({
     retriever: vectorStoreIndex.asRetriever({
-      // Get the 10 most similar nodes
-      similarityTopK: 10,
+      // Get the 15 most similar nodes
+      similarityTopK: 20,
     }),
   });
 
@@ -78,11 +78,11 @@ export const handleQueryPdfToolCall = async (params: {
     query,
   });
 
-  const nodeContents = sourceNodes?.map(({ node }) =>
+  const textChunks = sourceNodes?.map(({ node }) =>
     node.getContent(MetadataMode.NONE),
   );
 
-  if (!nodeContents || nodeContents.length === 0) {
+  if (!textChunks || textChunks.length === 0) {
     /** @todo: is this even possible? */
     return {
       ...toolCall,
@@ -90,14 +90,28 @@ export const handleQueryPdfToolCall = async (params: {
     };
   }
 
-  logger.debug(`Query response: ${stringify(nodeContents)}`);
+  const filteredAndRankedTextChunksResponse =
+    await filterAndRankTextChunksAgent({
+      description,
+      exampleText,
+      textChunks,
+    });
+
+  if (filteredAndRankedTextChunksResponse.status !== "ok") {
+    /** @todo: consider improving the error reporting of this */
+    return {
+      ...toolCall,
+      output: "No relevant sections found in the PDF file based on your query.",
+    };
+  }
+
+  const { orderedRelevantTextChunks } = filteredAndRankedTextChunksResponse;
 
   return {
     ...toolCall,
     output: dedent(`
     Here is a list of the most relevant sections of the PDF file, based on your query:
-    ${nodeContents.map((nodeContent, index) => `Relevant section ${index + 1}: ${nodeContent}`).join("\n")}
-    
+    ${orderedRelevantTextChunks.map((text, index) => `Relevant section ${index + 1}: ${text}`).join("\n")}
     --- END OF RELEVANT SECTIONS ---
 
     If the relevant sections include the information needed for the relevant entities,
