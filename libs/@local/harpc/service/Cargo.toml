@@ -28,3 +28,4 @@ libp2p-stream = "0.1.0-alpha"
 thiserror = "1.0.59"
 tokio = { workspace = true, features = ["io-util"] }
 tokio-util = { workspace = true, features = ["codec", "compat"] }
+tracing.workspace = true

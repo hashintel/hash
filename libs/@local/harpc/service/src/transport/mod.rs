@@ -2,93 +2,70 @@ mod behaviour;
 mod client;
 mod error;
 mod server;
+mod task;
 
 use std::io;
 
 use error_stack::{Result, ResultExt};
-use futures::{Sink, Stream, StreamExt};
+use futures::{prelude::stream::StreamExt, Sink, Stream};
 use harpc_wire_protocol::{request::Request, response::Response};
-use libp2p::{
-    core::upgrade,
-    identify,
-    metrics::{self, Metrics, Registry},
-    noise, ping, yamux, PeerId, StreamProtocol, SwarmBuilder, Transport,
+use libp2p::{PeerId, StreamProtocol};
+use libp2p_stream::Control;
+use tokio::{
+    io::BufStream,
+    sync::{mpsc, oneshot},
 };
-use libp2p_stream as stream;
-use tokio::io::BufStream;
-use tokio_util::{codec::Framed, compat::FuturesAsyncReadCompatExt};
+use tokio_util::{codec::Framed, compat::FuturesAsyncReadCompatExt, sync::CancellationToken};
 
 use self::{
-    behaviour::{TransportBehaviour, TransportSwarm},
     client::ClientCodec,
     error::{OpenStreamError, TransportError},
     server::ServerCodec,
+    task::Task,
 };
 use crate::config::Config;
 
 const STREAM_PROTOCOL: StreamProtocol = StreamProtocol::new("/harpc");
 
-pub(crate) struct TransportLayer {
-    swarm: TransportSwarm,
+pub struct TransportLayer {
+    tx: mpsc::Sender<self::task::Command>,
 
-    registry: Registry,
-    metrics: Metrics,
+    cancel: CancellationToken,
 }
 
 impl TransportLayer {
-    pub(crate) fn new(
+    fn start(
         config: Config,
-        transport: impl Transport<
-            Output: futures::AsyncWrite + futures::AsyncRead + Send + Unpin,
-            ListenerUpgrade: Send,
-            Dial: Send,
-            Error: Send + Sync,
-        > + Send
-        + Unpin
-        + 'static,
+        transport: impl self::task::Transport,
     ) -> Result<Self, TransportError> {
-        let mut registry = metrics::Registry::default();
+        let task = Task::new(config, transport)?;
+        let cancel = CancellationToken::new();
+        let tx = task.sender();
 
-        let swarm = SwarmBuilder::with_new_identity()
-            .with_tokio()
-            .with_other_transport(|keypair| {
-                let noise = noise::Config::new(keypair)?;
-                let yamux = yamux::Config::default();
+        tokio::spawn(task.run(cancel.clone()));
 
-                let transport = transport
-                    .upgrade(upgrade::Version::V1Lazy)
-                    .authenticate(noise)
-                    .multiplex(yamux);
-
-                Ok(transport)
-            })
-            .change_context(TransportError)?
-            .with_bandwidth_metrics(&mut registry)
-            .with_behaviour(|keys| TransportBehaviour {
-                stream: stream::Behaviour::new(),
-                identify: identify::Behaviour::new(identify::Config::new(
-                    "harpc/1.0.0".to_owned(),
-                    keys.public(),
-                )),
-                ping: ping::Behaviour::new(config.ping),
-            })
-            .change_context(TransportError)?
-            .with_swarm_config(|existing| config.swarm.apply(existing))
-            .build();
-
-        let metrics = Metrics::new(&mut registry);
-
-        Ok(Self {
-            swarm,
-            registry,
-            metrics,
-        })
+        Ok(Self { tx, cancel })
     }
 
-    pub(crate) fn listen(
+    async fn cancellation_token(&self) -> CancellationToken {
+        self.cancel.clone()
+    }
+
+    async fn control(&self) -> Result<Control, TransportError> {
+        let (tx, rx) = oneshot::channel();
+
+        self.tx
+            .send(self::task::Command::IssueControl { tx })
+            .await
+            .change_context(TransportError);
+
+        rx.await.change_context(TransportError)
+    }
+
+    pub(crate) async fn listen(
         &self,
     ) -> Result<
-        impl Stream<
+        impl futures::Stream<
             Item = (
                 PeerId,
                 impl Sink<Response>,
@@ -97,7 +74,8 @@ impl TransportLayer {
         >,
         TransportError,
     > {
-        let mut control = self.swarm.behaviour().stream.new_control();
+        let mut control = self.control().await?;
+
         let incoming = control
             .accept(STREAM_PROTOCOL)
             .change_context(TransportError)?;
@@ -113,8 +91,17 @@ impl TransportLayer {
         }))
     }
 
-    pub(crate) async fn dial(&self, peer: PeerId) -> Result<(), TransportError> {
-        let mut control = self.swarm.behaviour().stream.new_control();
+    pub(crate) async fn dial(
+        &self,
+        peer: PeerId,
+    ) -> Result<
+        (
+            impl Sink<Request>,
+            impl Stream<Item = Result<Response, io::Error>>,
+        ),
+        TransportError,
+    > {
+        let mut control = self.control().await?;
 
         let stream = control
             .open_stream(peer, STREAM_PROTOCOL)
@@ -128,8 +115,6 @@ impl TransportLayer {
 
         let (sink, stream) = stream.split();
 
-        todo!("send a request to the sink")
+        Ok((sink, stream))
     }
-
-    // TODO: recv, send, dial (?), where recv splits out a stream of wire-protocol messages.
 }

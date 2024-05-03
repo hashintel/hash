@@ -56,4 +56,6 @@ impl SwarmConfig {
 pub struct Config {
     pub ping: ping::Config,
     pub swarm: SwarmConfig,
+
+    pub command_buffer_size: NonZero<usize>,
 }
