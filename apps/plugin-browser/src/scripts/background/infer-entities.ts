@@ -19,6 +19,10 @@ import { getWebsiteContent } from "./infer-entities/get-website-content";
 const setInferenceRequestValue =
   getSetFromLocalStorageValue("inferenceRequests");
 
+const setExternalInputRequestsValue = getSetFromLocalStorageValue(
+  "externalInputRequests",
+);
+
 const waitForConnection = async (ws: WebSocket) => {
   while (ws.readyState !== ws.OPEN) {
     await new Promise((resolve) => {
@@ -63,7 +67,29 @@ const getWebSocket = async () => {
       if (message.type === "external-input-request") {
         const { flowUuid, payload } = message;
         if (payload.type === "get-urls-html-content") {
+          const inputRequests =
+            (await getFromLocalStorage("externalInputRequests")) ?? {};
+
+          const request = inputRequests[payload.requestId];
+
+          if (request) {
+            /**
+             * This request is already being or has already been processed, so we don't need to do anything.
+             */
+            return;
+          } else {
+            await setExternalInputRequestsValue((requestsById) => ({
+              ...requestsById,
+              [payload.requestId]: {
+                message,
+                receivedAt: new Date().toISOString(),
+              },
+            }));
+          }
+
           const webPages = await getWebsiteContent(payload.data.urls);
+          console.log({ webPages });
+          console.log("SEnding", ws);
           ws?.send(
             JSON.stringify({
               flowUuid,
@@ -74,6 +100,17 @@ const getWebSocket = async () => {
               type: "external-input-response",
             }),
           );
+
+          /**
+           * Clear the request from local storage after 30 seconds – if the message didn't get through to Temporal
+           * for some reason, the API will request the content again.
+           */
+          setTimeout(() => {
+            void setExternalInputRequestsValue((requestsById) => ({
+              ...requestsById,
+              [payload.requestId]: null,
+            }));
+          }, 30_000);
         }
         return;
       }

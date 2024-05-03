@@ -31,6 +31,20 @@ export const getWebsiteContent = async (urls: string[]) => {
       continue;
     }
 
+    await new Promise<void>((resolve) => {
+      const tabChangeListener = (
+        tabId: number,
+        changeInfo: browser.Tabs.OnUpdatedChangeInfoType,
+      ) => {
+        if (changeInfo.status === "complete" && tabId === tab.id) {
+          browser.tabs.onUpdated.removeListener(tabChangeListener);
+          resolve();
+        }
+      };
+
+      browser.tabs.onUpdated.addListener(tabChangeListener);
+    });
+
     const pageDetails = await (browser.tabs.sendMessage(tab.id, {
       html: true,
       type: "get-tab-content",
@@ -44,10 +58,6 @@ export const getWebsiteContent = async (urls: string[]) => {
 
     await browser.tabs.remove(tab.id);
   }
-
-  await new Promise((resolve) => {
-    setTimeout(resolve, 10_000);
-  });
 
   if (window.id) {
     void browser.windows.remove(window.id);

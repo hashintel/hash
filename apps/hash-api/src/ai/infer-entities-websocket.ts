@@ -5,7 +5,6 @@ import type { Logger } from "@local/hash-backend-utils/logger";
 import type {
   ExternalInputRequestMessage,
   InferenceWebsocketClientMessage,
-  InferEntitiesRequestMessage,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { externalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/signals";
 import type { Client } from "@temporalio/client";
@@ -16,6 +15,7 @@ import { WebSocketServer } from "ws";
 import { getUserAndSession } from "../auth/create-auth-handlers";
 import type { ImpureGraphContext } from "../graph/context-types";
 import type { User } from "../graph/knowledge/system-types/user";
+import { FlowRunStatus } from "../graphql/api-types.gen";
 import { getFlowRuns } from "../graphql/resolvers/flows/runs";
 import { handleCancelInferEntitiesRequest } from "./infer-entities-websocket/handle-cancel-infer-entities-request";
 import { handleInferEntitiesRequest } from "./infer-entities-websocket/handle-infer-entities-request";
@@ -74,13 +74,13 @@ export const openInferEntitiesWebSocket = ({
 
   wss.on("connection", (socket) => {
     const checkForInputRequests = async () => {
-      const flowRuns = await getFlowRuns(
+      const openFlowRuns = await getFlowRuns(
         {},
-        {},
+        { executionStatus: FlowRunStatus.Running },
         { temporal: temporalClient },
         {} as GraphQLResolveInfo,
       );
-      for (const flowRun of flowRuns) {
+      for (const flowRun of openFlowRuns) {
         for (const inputRequest of flowRun.inputRequests) {
           if (!inputRequest.resolved) {
             const requestMessage: ExternalInputRequestMessage = {
@@ -96,7 +96,7 @@ export const openInferEntitiesWebSocket = ({
 
     const flowStatusInterval = setInterval(() => {
       void checkForInputRequests();
-    }, 10_00);
+    }, 10_000);
 
     socket.on("close", () => {
       clearInterval(flowStatusInterval);
@@ -114,7 +114,7 @@ export const openInferEntitiesWebSocket = ({
         const parsedMessage = JSON.parse(
           // eslint-disable-next-line @typescript-eslint/no-base-to-string -- doesn't matter for comparison
           rawMessage.toString(),
-        ) as InferEntitiesRequestMessage; // @todo validate this
+        ) as InferenceWebsocketClientMessage; // @todo validate this
 
         const { cookie, ...message } = parsedMessage;
 

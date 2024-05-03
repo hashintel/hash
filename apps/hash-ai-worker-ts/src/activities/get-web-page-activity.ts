@@ -6,6 +6,7 @@ import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import sanitizeHtml from "sanitize-html";
 
 import { logger } from "./shared/activity-logger";
+import { logProgress } from "./shared/log-progress";
 import { requestExternalInput } from "./shared/request-external-input";
 
 puppeteer.use(StealthPlugin());
@@ -93,7 +94,7 @@ const getWebPageFromBrowser = async (url: string): Promise<WebPage> => {
  *
  * @todo vary these based on knowledge about which sites users can help us with
  */
-const domainsToRequestFromBrowser = ["www.crunchbase.com", "www.linkedin.com"];
+const domainsToRequestFromBrowser = ["crunchbase.com", "linkedin.com"];
 
 export const getWebPageActivity = async (params: {
   url: string;
@@ -102,7 +103,12 @@ export const getWebPageActivity = async (params: {
   const { sanitizeForLlm, url } = params;
 
   const urlObject = new URL(url);
-  const shouldAskBrowser = domainsToRequestFromBrowser.includes(urlObject.host);
+
+  const shouldAskBrowser =
+    domainsToRequestFromBrowser.includes(urlObject.host) ||
+    domainsToRequestFromBrowser.some((domain) =>
+      urlObject.host.endsWith(`.${domain}`),
+    );
 
   const { htmlContent, title } = shouldAskBrowser
     ? await getWebPageFromBrowser(url)
