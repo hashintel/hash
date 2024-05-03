@@ -6,7 +6,7 @@ use criterion_macro::criterion;
 use graph::{
     store::{
         account::{InsertAccountIdParams, InsertWebIdParams},
-        knowledge::GetEntitiesParams,
+        knowledge::{CreateEntityParams, GetEntitiesParams},
         query::Filter,
         AccountStore, EntityQuerySorting, EntityStore,
     },
@@ -17,7 +17,10 @@ use graph::{
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     account::AccountId,
-    knowledge::{entity::EntityMetadata, PropertyObject},
+    knowledge::{
+        entity::{EntityMetadata, ProvidedEntityEditionProvenance},
+        PropertyMetadataMap, PropertyObject,
+    },
     owned_by_id::OwnedById,
 };
 use rand::{prelude::IteratorRandom, thread_rng};
@@ -95,17 +98,23 @@ async fn seed_db<A: AuthorizationApi>(
     let entity_type_id = entity_type.id().clone();
 
     let entity_metadata_list = transaction
-        .insert_entities_batched_by_type(
+        .create_entities(
             account_id,
-            repeat((
-                OwnedById::new(account_id.into_uuid()),
-                None,
+            repeat(CreateEntityParams {
+                owned_by_id: OwnedById::new(account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: vec![entity_type_id],
                 properties,
-                None,
-                None,
-            ))
-            .take(total),
-            &entity_type_id,
+                confidence: None,
+                property_metadata: PropertyMetadataMap::default(),
+                link_data: None,
+                draft: false,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            })
+            .take(total)
+            .collect(),
         )
         .await
         .expect("failed to create entities");

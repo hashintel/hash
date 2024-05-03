@@ -39,9 +39,6 @@ where
                     CREATE TEMPORARY TABLE ontology_temporal_metadata_tmp
                         (LIKE ontology_temporal_metadata INCLUDING ALL)
                         ON COMMIT DROP;
-                    ALTER TABLE ontology_temporal_metadata_tmp
-                        ALTER COLUMN transaction_time
-                        SET DEFAULT TSTZRANGE(now(), NULL, '[)');
 
                     CREATE TEMPORARY TABLE ontology_owned_metadata_tmp
                         (LIKE ontology_owned_metadata INCLUDING ALL)

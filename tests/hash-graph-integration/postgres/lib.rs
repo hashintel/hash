@@ -60,11 +60,7 @@ use graph::{
 };
 use graph_types::{
     account::AccountId,
-    knowledge::{
-        entity::{Entity, EntityId, EntityMetadata, EntityUuid},
-        link::LinkData,
-        PropertyObject,
-    },
+    knowledge::entity::{Entity, EntityId, EntityMetadata},
     ontology::{
         DataTypeMetadata, EntityTypeMetadata, OntologyTemporalMetadata,
         OntologyTypeClassificationMetadata, PropertyTypeMetadata,
@@ -75,7 +71,7 @@ use graph_types::{
 use hash_tracing::logging::env_filter;
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use tokio_postgres::{NoTls, Transaction};
-use type_system::{url::VersionedUrl, DataType, EntityType, PropertyType};
+use type_system::{DataType, EntityType, PropertyType};
 use uuid::Uuid;
 
 pub struct DatabaseTestWrapper<A: AuthorizationApi> {
@@ -502,26 +498,6 @@ where
     ) -> Result<(), ValidateEntityError> {
         self.store
             .validate_entity(actor_id, consistency, params)
-            .await
-    }
-
-    async fn insert_entities_batched_by_type(
-        &mut self,
-        actor_id: AccountId,
-        entities: impl IntoIterator<
-            Item = (
-                OwnedById,
-                Option<EntityUuid>,
-                PropertyObject,
-                Option<LinkData>,
-                Option<Timestamp<DecisionTime>>,
-            ),
-            IntoIter: Send,
-        > + Send,
-        entity_type_id: &VersionedUrl,
-    ) -> Result<Vec<EntityMetadata>, InsertionError> {
-        self.store
-            .insert_entities_batched_by_type(actor_id, entities, entity_type_id)
             .await
     }
 

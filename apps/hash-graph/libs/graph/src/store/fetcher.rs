@@ -13,11 +13,7 @@ use authorization::{
 use error_stack::{Report, Result, ResultExt};
 use graph_types::{
     account::AccountId,
-    knowledge::{
-        entity::{Entity, EntityId, EntityMetadata, EntityUuid},
-        link::LinkData,
-        PropertyObject,
-    },
+    knowledge::entity::{Entity, EntityId, EntityMetadata},
     ontology::{
         DataTypeMetadata, EntityTypeMetadata, OntologyTemporalMetadata, OntologyType,
         OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
@@ -1166,36 +1162,6 @@ where
     ) -> Result<(), ValidateEntityError> {
         self.store
             .validate_entity(actor_id, consistency, params)
-            .await
-    }
-
-    async fn insert_entities_batched_by_type(
-        &mut self,
-        actor_id: AccountId,
-        entities: impl IntoIterator<
-            Item = (
-                OwnedById,
-                Option<EntityUuid>,
-                PropertyObject,
-                Option<LinkData>,
-                Option<Timestamp<DecisionTime>>,
-            ),
-            IntoIter: Send,
-        > + Send,
-        entity_type_id: &VersionedUrl,
-    ) -> Result<Vec<EntityMetadata>, InsertionError> {
-        let entity_type_reference = EntityTypeReference::new(entity_type_id.clone());
-        self.insert_external_types_by_reference(
-            actor_id,
-            OntologyTypeReference::EntityTypeReference(&entity_type_reference),
-            ConflictBehavior::Skip,
-            FetchBehavior::ExcludeProvidedReferences,
-            &HashSet::new(),
-        )
-        .await?;
-
-        self.store
-            .insert_entities_batched_by_type(actor_id, entities, entity_type_id)
             .await
     }
 

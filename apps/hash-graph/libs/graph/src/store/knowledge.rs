@@ -164,7 +164,7 @@ impl<'s> Sorting for EntityQuerySorting<'s> {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[cfg_attr(
 feature = "utoipa",
 derive(utoipa::ToSchema),
@@ -389,37 +389,6 @@ pub trait EntityStore {
         consistency: Consistency<'_>,
         params: ValidateEntityParams<'_>,
     ) -> impl Future<Output = Result<(), Report<ValidateEntityError>>> + Send;
-
-    /// Inserts the entities with the specified [`EntityType`] into the `Store`.
-    ///
-    /// This is only supporting a single [`EntityType`], not one [`EntityType`] per entity.
-    /// [`EntityType`]s is stored in a different table and would need to be queried for each,
-    /// this would be a lot less efficient.
-    ///
-    /// This is not supposed to be used outside of benchmarking as in the long term we need to
-    /// figure out how to deal with batch inserting.
-    ///
-    /// # Errors
-    ///
-    /// - if the [`EntityType`] doesn't exist
-    /// - if on of the [`Entity`] is not valid with respect to the specified [`EntityType`]
-    /// - if the account referred to by `owned_by_id` does not exist
-    /// - if an [`EntityUuid`] was supplied and already exists in the store
-    fn insert_entities_batched_by_type(
-        &mut self,
-        actor_id: AccountId,
-        entities: impl IntoIterator<
-            Item = (
-                OwnedById,
-                Option<EntityUuid>,
-                PropertyObject,
-                Option<LinkData>,
-                Option<Timestamp<DecisionTime>>,
-            ),
-            IntoIter: Send,
-        > + Send,
-        entity_type_id: &VersionedUrl,
-    ) -> impl Future<Output = Result<Vec<EntityMetadata>, Report<InsertionError>>> + Send;
 
     /// Get a list of entities specified by the [`GetEntitiesParams`].
     ///
