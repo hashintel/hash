@@ -18,7 +18,7 @@ pub(crate) enum OpenStreamError {
 
 impl OpenStreamError {
     #[track_caller]
-    fn convert(error: stream::OpenStreamError) -> Report<Self> {
+    pub(super) fn new(error: stream::OpenStreamError) -> Report<Self> {
         match error {
             stream::OpenStreamError::UnsupportedProtocol(protocol) => {
                 Report::new(Self::UnsupportedProtocol(protocol))

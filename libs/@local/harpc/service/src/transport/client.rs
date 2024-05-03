@@ -12,7 +12,7 @@ pub(super) struct ClientCodec {
 }
 
 impl ClientCodec {
-    pub fn new() -> Self {
+    pub(super) const fn new() -> Self {
         Self {
             request: RequestCodec::new(),
             response: ResponseCodec::new(),

@@ -1,12 +1,11 @@
+mod behaviour;
 mod client;
 mod error;
 mod server;
 
 use std::io;
 
-use bytes::BytesMut;
-use codec::harpc::wire::{RequestCodec, ResponseCodec};
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Result, ResultExt};
 use futures::{Sink, Stream, StreamExt};
 use harpc_wire_protocol::{request::Request, response::Response};
 use libp2p::{
@@ -17,16 +16,15 @@ use libp2p::{
 };
 use libp2p_stream as stream;
 use tokio::io::BufStream;
-use tokio_util::{
-    codec::{Decoder, Encoder, Framed},
-    compat::FuturesAsyncReadCompatExt,
-};
+use tokio_util::{codec::Framed, compat::FuturesAsyncReadCompatExt};
 
-use self::error::TransportError;
-use crate::{
+use self::{
     behaviour::{TransportBehaviour, TransportSwarm},
-    config::Config,
+    client::ClientCodec,
+    error::{OpenStreamError, TransportError},
+    server::ServerCodec,
 };
+use crate::config::Config;
 
 const STREAM_PROTOCOL: StreamProtocol = StreamProtocol::new("/harpc");
 
@@ -115,23 +113,22 @@ impl TransportLayer {
         }))
     }
 
-    pub(crate) async fn dial(
-        &self,
-        peer: PeerId,
-    ) -> Result<
-        (
-            impl Sink<Request>,
-            impl Stream<Item = Result<Response, io::Error>>,
-        ),
-        TransportError,
-    > {
+    pub(crate) async fn dial(&self, peer: PeerId) -> Result<(), TransportError> {
         let mut control = self.swarm.behaviour().stream.new_control();
 
         let stream = control
             .open_stream(peer, STREAM_PROTOCOL)
             .await
-            .map_err(OpenStreamError::convert)
+            .map_err(OpenStreamError::new)
             .change_context(TransportError)?;
+
+        let stream = stream.compat();
+        let stream = BufStream::new(stream);
+        let stream = Framed::new(stream, ClientCodec::new());
+
+        let (sink, stream) = stream.split();
+
+        todo!("send a request to the sink")
     }
 
     // TODO: recv, send, dial (?), where recv splits out a stream of wire-protocol messages.

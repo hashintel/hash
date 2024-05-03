@@ -1,4 +1,3 @@
-mod behaviour;
 mod config;
 mod transport;
 
