@@ -16,6 +16,7 @@ import md5 from "md5";
 import { logger } from "../../../../shared/activity-logger";
 import type { SimpleStorageContext } from "./simple-storage-context";
 import {
+  generateSimpleStorageContextFilePaths,
   persistSimpleStorageContext,
   retrieveSimpleStorageContext,
 } from "./simple-storage-context";
@@ -40,11 +41,13 @@ export const indexPdfFile = async (params: {
       throw new Error(`Failed to fetch ${fileUrl}: ${response.statusText}`);
     }
 
-    const fileDirectory = `./storage/${hashedUrl}`;
+    const { directoryPath } = generateSimpleStorageContextFilePaths({
+      hash: hashedUrl,
+    });
 
-    await mkdir(fileDirectory, { recursive: true });
+    await mkdir(directoryPath, { recursive: true });
 
-    const filePath = `${fileDirectory}/file.pdf`;
+    const filePath = `${directoryPath}/file.pdf`;
 
     try {
       const fileStream = createWriteStream(filePath);

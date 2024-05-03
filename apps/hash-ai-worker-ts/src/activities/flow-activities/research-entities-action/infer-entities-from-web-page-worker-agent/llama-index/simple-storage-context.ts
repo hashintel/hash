@@ -24,7 +24,9 @@ const __dirname = dirname(__filename);
 
 const baseFilePath = join(__dirname, "/var/tmp_files");
 
-const generateSimpleStorageContextFilePaths = (params: { hash: string }) => {
+export const generateSimpleStorageContextFilePaths = (params: {
+  hash: string;
+}) => {
   const { hash } = params;
 
   const directoryPath = `${baseFilePath}/storage/${hash}`;
