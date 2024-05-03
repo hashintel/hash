@@ -12,15 +12,35 @@ import type {
 } from "@local/hash-subgraph";
 import { entityIdFromComponents } from "@local/hash-subgraph";
 import { Context } from "@temporalio/activity";
+import { caching } from "cache-manager";
 
 import { logToConsole } from "../../shared/logger";
 
 const temporalClient = await createTemporalClient();
 
-const getWorkflowExecutionStartedEventAttributesOfWorkflow = async (params: {
+const runFlowWorkflowParamsCache = await caching("memory", {
+  max: 100, // 100 items
+  ttl: 10 * 60 * 1000, // 10 minutes
+});
+
+type PartialRunFlowWorkflowParams = Pick<
+  RunFlowWorkflowParams,
+  "webId" | "userAuthentication"
+>;
+
+const getPartialRunFlowWorkflowParams = async (params: {
   workflowId: string;
-}) => {
+}): Promise<PartialRunFlowWorkflowParams> => {
   const { workflowId } = params;
+
+  const cachedPartialRunFlowWorkflowParams =
+    await runFlowWorkflowParamsCache.get<PartialRunFlowWorkflowParams>(
+      workflowId,
+    );
+
+  if (cachedPartialRunFlowWorkflowParams) {
+    return cachedPartialRunFlowWorkflowParams;
+  }
 
   const handle = temporalClient.workflow.getHandle(workflowId);
 
@@ -34,7 +54,45 @@ const getWorkflowExecutionStartedEventAttributesOfWorkflow = async (params: {
     events.find((event) => event.workflowExecutionStartedEventAttributes)
       ?.workflowExecutionStartedEventAttributes ?? undefined;
 
-  return { workflowExecutionStartedEventAttributes };
+  if (!workflowExecutionStartedEventAttributes) {
+    throw new Error(
+      `No workflow execution started event attributes found for workflowId ${workflowId}`,
+    );
+  }
+
+  const inputs = parseHistoryItemPayload(
+    workflowExecutionStartedEventAttributes.input,
+  );
+
+  if (!inputs) {
+    throw new Error(
+      `No inputs found for workflowId ${workflowId} in the workflow execution started event`,
+    );
+  }
+
+  const [runFlowWorkflowParams] = inputs as RunFlowWorkflowParams[];
+
+  if (!runFlowWorkflowParams) {
+    throw new Error(
+      `No parameters of the "runFlow" workflow found for workflowId ${workflowId}`,
+    );
+  }
+
+  /**
+   * Avoid caching the entire `RunFlowWorkflowParams` object to reduce memory usage
+   * of the cache.
+   */
+  const partialRunFlowWorkflowParams: PartialRunFlowWorkflowParams = {
+    userAuthentication: runFlowWorkflowParams.userAuthentication,
+    webId: runFlowWorkflowParams.webId,
+  };
+
+  await runFlowWorkflowParamsCache.set(
+    workflowId,
+    partialRunFlowWorkflowParams,
+  );
+
+  return partialRunFlowWorkflowParams;
 };
 
 type FlowContext = {
@@ -61,41 +119,9 @@ export const getFlowContext = async (): Promise<FlowContext> => {
 
   const { workflowId } = activityContext.info.workflowExecution;
 
-  /**
-   * @todo: consider caching the result of this, so that multiple calls
-   * to `getFlowContext` within the same flow do not result in individual
-   * calls to the Temporal API.
-   */
-  const { workflowExecutionStartedEventAttributes } =
-    await getWorkflowExecutionStartedEventAttributesOfWorkflow({
-      workflowId,
-    });
-
-  if (!workflowExecutionStartedEventAttributes) {
-    throw new Error(
-      `No workflow execution started event attributes found for workflowId ${workflowId}`,
-    );
-  }
-
-  const inputs = parseHistoryItemPayload(
-    workflowExecutionStartedEventAttributes.input,
-  );
-
-  if (!inputs) {
-    throw new Error(
-      `No inputs found for workflowId ${workflowId} in the workflow execution started event`,
-    );
-  }
-
-  const [runFlowWorkflowParams] = inputs as RunFlowWorkflowParams[];
-
-  if (!runFlowWorkflowParams) {
-    throw new Error(
-      `No parameters of the "runFlow" workflow found for workflowId ${workflowId}`,
-    );
-  }
-
-  const { userAuthentication, webId } = runFlowWorkflowParams;
+  const { userAuthentication, webId } = await getPartialRunFlowWorkflowParams({
+    workflowId,
+  });
 
   const flowEntityId = entityIdFromComponents(
     /** @todo: replace this with the `webId` input parameter */
