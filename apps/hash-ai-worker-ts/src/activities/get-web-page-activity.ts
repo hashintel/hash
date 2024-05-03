@@ -114,6 +114,18 @@ export const getWebPageActivity = async (params: {
     ? await getWebPageFromBrowser(url)
     : await getWebPageFromPuppeteer(url);
 
+  logProgress([
+    {
+      recordedAt: new Date().toISOString(),
+      stepId: Context.current().info.activityId,
+      type: "VisitedWebPage",
+      webPage: {
+        url,
+        title,
+      },
+    },
+  ]);
+
   if (sanitizeForLlm) {
     const sanitizedHtml = sanitizeHtml(htmlContent, {
       allowedTags: sanitizeHtml.defaults.allowedTags.filter(

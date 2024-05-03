@@ -337,6 +337,13 @@ export type Flow = {
   outputs?: StepOutput[];
 };
 
+export type VisitedWebPageLog = {
+  webPage: Pick<WebPage, "url" | "title">;
+  recordedAt: string;
+  stepId: string;
+  type: "VisitedWebPage";
+};
+
 export type ProposedEntityLog = {
   proposedEntity: ProposedEntity;
   recordedAt: string;
@@ -351,7 +358,10 @@ export type PersistedEntityLog = {
   type: "PersistedEntity";
 };
 
-export type StepProgressLog = PersistedEntityLog | ProposedEntityLog;
+export type StepProgressLog =
+  | PersistedEntityLog
+  | ProposedEntityLog
+  | VisitedWebPageLog;
 
 export type ProgressLogSignal = {
   attempt: number;
