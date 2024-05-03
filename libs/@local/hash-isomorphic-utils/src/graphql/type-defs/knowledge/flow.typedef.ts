@@ -113,7 +113,11 @@ export const flowTypedef = gql`
 
   type FlowRun {
     """
-    The identifier for this specific run of a Flow definition
+    The uuid of the Temporal workflow
+    """
+    workflowId: String!
+    """
+    The uuid of the Temporal run
     """
     runId: String!
     """

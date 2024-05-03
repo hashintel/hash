@@ -232,7 +232,7 @@ export const Swimlane = ({
           // onNodesChange={onNodesChange}
           // onEdgesChange={onEdgesChange}
         >
-          {Object.values(edgeColor).map((color) => (
+          {[...new Set(Object.values(edgeColor))].map((color) => (
             <MarkerEnd key={color} id={color} color={color} />
           ))}
 

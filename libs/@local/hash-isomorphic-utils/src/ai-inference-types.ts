@@ -168,7 +168,7 @@ export type CancelInferEntitiesRequestMessage = {
 
 export type ExternalInputResponseMessage = {
   cookie: string;
-  flowUuid: string;
+  workflowId: string;
   type: "external-input-response";
   payload: ExternalInputResponseSignal;
 };
@@ -179,7 +179,7 @@ export type InferenceWebsocketClientMessage =
   | ExternalInputResponseMessage;
 
 export type ExternalInputRequestMessage = {
-  flowUuid: string;
+  workflowId: string;
   payload: ExternalInputRequestSignal;
   type: "external-input-request";
 };

@@ -427,12 +427,21 @@ const mapTemporalWorkflowToFlowStatus = async (
     }
   }
 
-  const { runId, status, startTime, executionTime, closeTime, memo } = workflow;
+  const {
+    runId,
+    workflowId,
+    status,
+    startTime,
+    executionTime,
+    closeTime,
+    memo,
+  } = workflow;
 
   return {
     flowDefinitionId:
       (memo?.flowDefinitionId as string | undefined) ?? "unknown",
     runId,
+    workflowId,
     status: status.name as FlowRunStatus,
     startedAt: startTime.toISOString(),
     executedAt: executionTime?.toISOString(),

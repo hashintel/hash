@@ -49,8 +49,8 @@ const inferEntitiesMessageHandler = async ({
       });
       return;
     case "external-input-response": {
-      const { flowUuid, payload } = message;
-      const handle = temporalClient.workflow.getHandle(flowUuid);
+      const { workflowId, payload } = message;
+      const handle = temporalClient.workflow.getHandle(workflowId);
       await handle.signal(externalInputResponseSignal, payload);
     }
   }
@@ -84,7 +84,7 @@ export const openInferEntitiesWebSocket = ({
         for (const inputRequest of flowRun.inputRequests) {
           if (!inputRequest.resolved) {
             const requestMessage: ExternalInputRequestMessage = {
-              flowUuid: flowRun.runId,
+              workflowId: flowRun.workflowId,
               payload: inputRequest,
               type: "external-input-request",
             };

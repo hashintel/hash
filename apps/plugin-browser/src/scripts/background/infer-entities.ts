@@ -1,4 +1,6 @@
 import type {
+  CancelInferEntitiesRequestMessage,
+  ExternalInputResponseMessage,
   InferenceWebsocketServerMessage,
   InferEntitiesRequestMessage,
   InferEntitiesReturn,
@@ -22,6 +24,26 @@ const setInferenceRequestValue =
 const setExternalInputRequestsValue = getSetFromLocalStorageValue(
   "externalInputRequests",
 );
+
+const getCookieString = async () => {
+  const cookies = await browser.cookies
+    .getAll({
+      url: API_ORIGIN,
+    })
+    .then((options) =>
+      options.filter(
+        (option) =>
+          option.name.startsWith("csrf_token_") ||
+          option.name === "ory_kratos_session",
+      ),
+    );
+
+  if (cookies.length < 2) {
+    throw new Error("No session cookies available to use in websocket request");
+  }
+
+  return cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join(";");
+};
 
 const waitForConnection = async (ws: WebSocket) => {
   while (ws.readyState !== ws.OPEN) {
@@ -65,7 +87,7 @@ const getWebSocket = async () => {
       const message = JSON.parse(event.data) as InferenceWebsocketServerMessage;
 
       if (message.type === "external-input-request") {
-        const { flowUuid, payload } = message;
+        const { workflowId, payload } = message;
         if (payload.type === "get-urls-html-content") {
           const inputRequests =
             (await getFromLocalStorage("externalInputRequests")) ?? {};
@@ -88,17 +110,19 @@ const getWebSocket = async () => {
           }
 
           const webPages = await getWebsiteContent(payload.data.urls);
-          console.log({ webPages });
-          console.log("SEnding", ws);
+
+          const cookie = await getCookieString();
+
           ws?.send(
             JSON.stringify({
-              flowUuid,
+              cookie,
+              workflowId,
               payload: {
-                type: "urls-html-content",
-                data: webPages,
+                ...payload,
+                data: { webPages: webPages ?? [] },
               },
               type: "external-input-response",
-            }),
+            } satisfies ExternalInputResponseMessage),
           );
 
           /**
@@ -160,26 +184,6 @@ const getWebSocket = async () => {
   return ws;
 };
 
-const getCookieString = async () => {
-  const cookies = await browser.cookies
-    .getAll({
-      url: API_ORIGIN,
-    })
-    .then((options) =>
-      options.filter(
-        (option) =>
-          option.name.startsWith("csrf_token_") ||
-          option.name === "ory_kratos_session",
-      ),
-    );
-
-  if (cookies.length < 2) {
-    throw new Error("No session cookies available to use in websocket request");
-  }
-
-  return cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join(";");
-};
-
 const sendInferEntitiesMessage = async (params: {
   requestUuid: string;
   payload: Omit<
@@ -205,7 +209,7 @@ const sendInferEntitiesMessage = async (params: {
       payload: inferMessagePayload,
       requestUuid,
       type: "inference-request",
-    }),
+    } satisfies InferEntitiesRequestMessage),
   );
 };
 
@@ -223,7 +227,7 @@ export const cancelInferEntities = async ({
       cookie,
       requestUuid,
       type: "cancel-inference-request",
-    }),
+    } satisfies CancelInferEntitiesRequestMessage),
   );
 };
 
