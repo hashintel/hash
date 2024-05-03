@@ -1,80 +1,69 @@
-use std::io;
-
-use bytes::Bytes;
+use bytes::{Buf, Bytes};
 use error_stack::{Context, Result};
-use tokio::{
-    io::{AsyncRead, AsyncReadExt},
-    pin,
-};
+
+use super::buffer::{Buffer, BufferError};
 
 pub trait Decode: Sized {
-    type Context: Send + Sync = ();
+    type Context: Send + Sync;
     type Error: Context;
 
-    fn decode(
-        read: impl AsyncRead + Send,
-        context: Self::Context,
-    ) -> impl Future<Output = Result<Self, Self::Error>> + Send;
+    /// Decode a value from the buffer.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the contained value is invalid, or the buffer is too short.
+    fn decode<B>(buffer: &mut Buffer<B>, context: Self::Context) -> Result<Self, Self::Error>
+    where
+        B: Buf;
 }
 
 impl Decode for u8 {
     type Context = ();
-    type Error = io::Error;
+    type Error = BufferError;
 
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        pin!(read);
-
-        read.read_u8().await.map_err(From::from)
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        buffer.next_number()
     }
 }
 
 impl Decode for u16 {
     type Context = ();
-    type Error = io::Error;
+    type Error = BufferError;
 
-    #[expect(
-        clippy::big_endian_bytes,
-        reason = "u16 is encoded in big-endian format"
-    )]
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        pin!(read);
-
-        let mut buffer = [0; 2];
-        read.read_exact(&mut buffer).await?;
-        Ok(Self::from_be_bytes(buffer))
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        buffer.next_number()
     }
 }
 
 impl Decode for u32 {
     type Context = ();
-    type Error = io::Error;
+    type Error = BufferError;
 
-    #[expect(
-        clippy::big_endian_bytes,
-        reason = "u32 is encoded in big-endian format"
-    )]
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        pin!(read);
-
-        let mut buffer = [0; 4];
-        read.read_exact(&mut buffer).await?;
-        Ok(Self::from_be_bytes(buffer))
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        buffer.next_number()
     }
 }
 
 impl Decode for Bytes {
     type Context = ();
-    type Error = io::Error;
+    type Error = BufferError;
 
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        pin!(read);
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        let length = buffer.next_number::<u16>()?;
 
-        let length = u16::decode(&mut read, ()).await?;
-
-        let mut buffer = vec![0; usize::from(length)];
-        read.read_exact(&mut buffer).await?;
-
-        Ok(Self::from(buffer))
+        buffer.next_bytes(length as usize)
     }
 }
 
@@ -85,60 +74,76 @@ pub(crate) mod test {
     use bytes::Bytes;
 
     use super::Decode;
-    use crate::codec::{encode::test::encode_value, Encode};
+    use crate::codec::{encode::test::encode_value, Buffer, Encode};
 
     #[track_caller]
-    pub(crate) async fn decode_value<T>(buffer: &[u8], context: T::Context) -> T
+    pub(crate) fn decode_value<T>(bytes: impl Into<Bytes>, context: T::Context) -> T
     where
         T: Decode,
     {
-        let mut reader = std::io::Cursor::new(buffer);
+        let mut bytes = bytes.into();
+        let mut buffer = Buffer::new(&mut bytes);
 
-        let value = T::decode(&mut reader, context)
-            .await
-            .expect("able to decode value");
+        let value = T::decode(&mut buffer, context).expect("able to decode value");
 
-        // ensure that the entire buffer was consumed
-        assert_eq!(reader.position(), buffer.len() as u64);
+        assert!(bytes.is_ascii());
 
         value
     }
 
     #[track_caller]
-    pub(crate) async fn assert_decode<T>(buffer: &[u8], expected: &T, context: T::Context)
+    pub(crate) fn assert_decode<T>(bytes: impl Into<Bytes>, expected: &T, context: T::Context)
     where
-        T: Debug + PartialEq + Sync + Decode,
+        T: Debug + PartialEq + Decode,
     {
-        let value: T = decode_value(buffer, context).await;
+        let value: T = decode_value(bytes, context);
 
         similar_asserts::assert_eq!(&value, expected);
     }
 
     #[track_caller]
-    pub(crate) async fn assert_codec<T>(value: &T, context: T::Context)
-    where
-        T: Debug + PartialEq + Decode + Encode + Sync,
+    pub(crate) fn assert_decode_error<T>(
+        bytes: impl Into<Bytes>,
+        expected: &T::Error,
+        context: T::Context,
+    ) where
+        T: Decode + Debug,
+        T::Error: PartialEq,
     {
-        let buffer = encode_value(value).await;
-        let decoded = decode_value(&buffer, context).await;
+        let mut bytes = bytes.into();
+        let mut buffer = Buffer::new(&mut bytes);
+
+        let result = T::decode(&mut buffer, context).expect_err("should fail to encode");
+
+        let context = result.current_context();
+
+        assert_eq!(*context, *expected);
+    }
+
+    #[track_caller]
+    pub(crate) fn assert_codec<T>(value: &T, context: T::Context)
+    where
+        T: Debug + PartialEq + Decode + Encode,
+    {
+        let bytes = encode_value(value);
+        let decoded = decode_value(bytes, context);
 
         assert_eq!(*value, decoded);
     }
 
-    #[tokio::test]
-    async fn decode_u16() {
-        assert_decode(&[0x12, 0x23], &0x1223_u16, ()).await;
-        assert_decode(&[0x00, 0x00], &0x0000_u16, ()).await;
-        assert_decode(&[0xFF, 0xFF], &0xFFFF_u16, ()).await;
+    #[test]
+    fn decode_u16() {
+        assert_decode(&[0x12_u8, 0x23] as &[_], &0x1223_u16, ());
+        assert_decode(&[0x00_u8, 0x00] as &[_], &0x0000_u16, ());
+        assert_decode(&[0xFF_u8, 0xFF] as &[_], &0xFFFF_u16, ());
     }
 
-    #[tokio::test]
-    async fn decode_bytes() {
-        assert_decode::<Bytes>(
-            &[0x00, 0x05, 0x01, 0x02, 0x03, 0x04, 0x05],
+    #[test]
+    fn decode_bytes() {
+        assert_decode(
+            &[0x00_u8, 0x05, 0x01, 0x02, 0x03, 0x04, 0x05] as &[_],
             &Bytes::from_static(&[0x01, 0x02, 0x03, 0x04, 0x05]),
             (),
-        )
-        .await;
+        );
     }
 }

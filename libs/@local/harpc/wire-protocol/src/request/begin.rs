@@ -1,18 +1,15 @@
+use bytes::{Buf, BufMut};
 use error_stack::{Result, ResultExt};
-use tokio::{
-    io::{AsyncReadExt, AsyncWrite, AsyncWriteExt},
-    pin,
-};
 
-use super::{
-    codec::{DecodeError, EncodeError},
-    procedure::ProcedureDescriptor,
-    service::ServiceDescriptor,
-};
+use super::{procedure::ProcedureDescriptor, service::ServiceDescriptor};
 use crate::{
-    codec::{Decode, Encode},
+    codec::{Buffer, BufferError, Decode, Encode},
     payload::Payload,
 };
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
+#[error("unable to encode request begin frame")]
+pub struct RequestBeginEncodeError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -24,53 +21,46 @@ pub struct RequestBegin {
 }
 
 impl Encode for RequestBegin {
-    type Error = EncodeError;
+    type Error = RequestBeginEncodeError;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        pin!(write);
-
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
         self.service
-            .encode(&mut write)
-            .await
-            .change_context(EncodeError)?;
+            .encode(buffer)
+            .change_context(RequestBeginEncodeError)?;
 
         self.procedure
-            .encode(&mut write)
-            .await
-            .change_context(EncodeError)?;
+            .encode(buffer)
+            .change_context(RequestBeginEncodeError)?;
 
         // write 13 empty bytes (reserved for future use)
-        write
-            .write_all(&[0; 13])
-            .await
-            .change_context(EncodeError)?;
+        buffer
+            .push_repeat(0, 13)
+            .change_context(RequestBeginEncodeError)?;
 
-        self.payload.encode(write).await.change_context(EncodeError)
+        self.payload
+            .encode(buffer)
+            .change_context(RequestBeginEncodeError)
     }
 }
 
 impl Decode for RequestBegin {
     type Context = ();
-    type Error = DecodeError;
+    type Error = BufferError;
 
-    async fn decode(read: impl tokio::io::AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        pin!(read);
-
-        let service = ServiceDescriptor::decode(&mut read, ())
-            .await
-            .change_context(DecodeError)?;
-        let procedure = ProcedureDescriptor::decode(&mut read, ())
-            .await
-            .change_context(DecodeError)?;
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        let service = ServiceDescriptor::decode(buffer, ())?;
+        let procedure = ProcedureDescriptor::decode(buffer, ())?;
 
         // skip 13 bytes (reserved for future use)
-        read.read_exact(&mut [0; 13])
-            .await
-            .change_context(DecodeError)?;
+        buffer.discard(13)?;
 
-        let payload = Payload::decode(read, ())
-            .await
-            .change_context(DecodeError)?;
+        let payload = Payload::decode(buffer, ())?;
 
         Ok(Self {
             service,
@@ -117,8 +107,8 @@ mod test {
         0x00, 0x0D, b'H', b'e', b'l', b'l', b'o', b',', b' ', b'w', b'o', b'r', b'l', b'd', b'!',
     ];
 
-    #[tokio::test]
-    async fn encode() {
+    #[test]
+    fn encode() {
         assert_encode(
             &EXAMPLE_REQUEST,
             expect![[r#"
@@ -126,12 +116,11 @@ mod test {
                 0x00 0x00 0x00 0x00 '\r' b'H' b'e' b'l' b'l' b'o' b',' b' ' b'w' b'o' b'r' b'l'
                 b'd' b'!'
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode() {
+    #[test]
+    fn decode() {
         assert_decode(
             EXAMPLE_REQUEST_BYTES,
             &RequestBegin {
@@ -148,13 +137,12 @@ mod test {
                 payload: Payload::from_static(b"Hello, world!"),
             },
             (),
-        )
-        .await;
+        );
     }
 
-    #[test_strategy::proptest(async = "tokio")]
+    #[test_strategy::proptest]
     #[cfg_attr(miri, ignore)]
-    async fn codec(request: RequestBegin) {
-        assert_codec(&request, ()).await;
+    fn codec(request: RequestBegin) {
+        assert_codec(&request, ());
     }
 }

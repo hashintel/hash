@@ -1,70 +1,82 @@
-use std::io;
-
-use error_stack::{Report, Result};
+use bytes::{Buf, BufMut};
+use error_stack::Result;
 use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
-use tokio::{
-    io::{AsyncRead, AsyncWrite, AsyncWriteExt},
-    pin,
-};
 
-use super::Decode;
+use super::{Buffer, BufferError, Decode};
 use crate::codec::Encode;
 
 impl Encode for Version {
-    type Error = io::Error;
+    type Error = BufferError;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        pin!(write);
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
+        buffer.push_number(self.major)?;
+        buffer.push_number(self.minor)?;
 
-        write.write_u8(self.major).await?;
-        write.write_u8(self.minor).await.map_err(Report::from)
+        Ok(())
     }
 }
 
 impl Decode for Version {
     type Context = ();
-    type Error = io::Error;
+    type Error = BufferError;
 
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        pin!(read);
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        let major = u8::decode(buffer, ())?;
+        let minor = u8::decode(buffer, ())?;
 
-        let major = u8::decode(&mut read, ()).await?;
-        let minor = u8::decode(read, ()).await?;
         Ok(Self { major, minor })
     }
 }
 
 impl Encode for ProcedureId {
-    type Error = io::Error;
+    type Error = BufferError;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        self.value().encode(write).await
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
+        self.value().encode(buffer)
     }
 }
 
 impl Decode for ProcedureId {
     type Context = ();
-    type Error = io::Error;
+    type Error = BufferError;
 
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        u16::decode(read, ()).await.map(Self::new)
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        u16::decode(buffer, ()).map(Self::new)
     }
 }
 
 impl Encode for ServiceId {
-    type Error = io::Error;
+    type Error = BufferError;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        self.value().encode(write).await
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
+        self.value().encode(buffer)
     }
 }
 
 impl Decode for ServiceId {
     type Context = ();
-    type Error = io::Error;
+    type Error = BufferError;
 
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        u16::decode(read, ()).await.map(Self::new)
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        u16::decode(buffer, ()).map(Self::new)
     }
 }
 
@@ -76,56 +88,53 @@ mod test {
 
     use crate::codec::test::{assert_codec, assert_decode, assert_encode};
 
-    #[tokio::test]
-    async fn encode_version() {
+    #[test]
+    fn encode_version() {
         let version = Version { major: 1, minor: 2 };
         assert_encode(
             &version,
             expect![[r#"
             0x01 0x02
         "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode_version() {
+    #[test]
+    fn decode_version() {
         assert_decode(
-            &[0x01, 0x02],
+            &[0x01_u8, 0x02] as &[_],
             &Version {
                 major: 0x01,
                 minor: 0x02,
             },
             (),
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn encode_service_id() {
+    #[test]
+    fn encode_service_id() {
         assert_encode(
             &ServiceId::new(0x01_02),
             expect![[r#"
                 0x01 0x02
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode_service_id() {
-        assert_decode(&[0x12, 0x34], &ServiceId::new(0x1234), ()).await;
+    #[test]
+    fn decode_service_id() {
+        assert_decode(&[0x12_u8, 0x34] as &[_], &ServiceId::new(0x1234), ());
     }
 
-    #[test_strategy::proptest(async = "tokio")]
+    #[test_strategy::proptest]
     #[cfg_attr(miri, ignore)]
-    async fn codec_service_id(id: ServiceId) {
-        assert_codec(&id, ()).await;
+    fn codec_service_id(id: ServiceId) {
+        assert_codec(&id, ());
     }
 
-    #[test_strategy::proptest(async = "tokio")]
+    #[test_strategy::proptest]
     #[cfg_attr(miri, ignore)]
-    async fn codec_version(version: Version) {
-        assert_codec(&version, ()).await;
+    fn codec_version(version: Version) {
+        assert_codec(&version, ());
     }
 }

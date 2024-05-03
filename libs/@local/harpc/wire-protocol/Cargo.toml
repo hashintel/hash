@@ -13,11 +13,8 @@ enumflags2 = { version = "0.7.9", features = ["std"] }
 error-stack.workspace = true
 harpc-types.workspace = true
 thiserror = "1.0.59"
-tokio = { workspace = true, features = ["io-util"] }
 
 [dev-dependencies]
-tokio = { workspace = true, features = ["rt", "macros", "rt-multi-thread"] }
-uuid = { version = "1.8.0", features = ["v4"] }
 proptest = "1.4.0"
 test-strategy = "0.3.1"
 harpc-types = { workspace = true, features = ["proptest"] }

@@ -1,13 +1,8 @@
-use std::io;
-
+use bytes::{Buf, BufMut};
 use error_stack::Result;
 use harpc_types::{service::ServiceId, version::Version};
-use tokio::{
-    io::{AsyncRead, AsyncWrite},
-    pin,
-};
 
-use crate::codec::{Decode, Encode};
+use crate::codec::{Buffer, BufferError, Decode, Encode};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -17,25 +12,29 @@ pub struct ServiceDescriptor {
 }
 
 impl Encode for ServiceDescriptor {
-    type Error = io::Error;
+    type Error = BufferError;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        pin!(write);
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
+        self.id.encode(buffer)?;
+        self.version.encode(buffer)?;
 
-        self.id.encode(&mut write).await?;
-        self.version.encode(write).await
+        Ok(())
     }
 }
 
 impl Decode for ServiceDescriptor {
     type Context = ();
-    type Error = io::Error;
+    type Error = BufferError;
 
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        pin!(read);
-
-        let id = ServiceId::decode(&mut read, ()).await?;
-        let version = Version::decode(read, ()).await?;
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        let id = ServiceId::decode(buffer, ())?;
+        let version = Version::decode(buffer, ())?;
 
         Ok(Self { id, version })
     }
@@ -52,8 +51,8 @@ mod test {
         request::service::ServiceDescriptor,
     };
 
-    #[tokio::test]
-    async fn encode() {
+    #[test]
+    fn encode() {
         let service = ServiceDescriptor {
             id: ServiceId::new(0x01_02),
             version: Version {
@@ -67,14 +66,13 @@ mod test {
             expect![[r#"
                 0x01 0x02 0x03 0x04
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode() {
+    #[test]
+    fn decode() {
         assert_decode(
-            &[0x12, 0x34, 0x56, 0x78],
+            &[0x12_u8, 0x34, 0x56, 0x78] as &[_],
             &ServiceDescriptor {
                 id: ServiceId::new(0x12_34),
                 version: Version {
@@ -83,13 +81,12 @@ mod test {
                 },
             },
             (),
-        )
-        .await;
+        );
     }
 
-    #[test_strategy::proptest(async = "tokio")]
+    #[test_strategy::proptest]
     #[cfg_attr(miri, ignore)]
-    async fn encode_decode(service: ServiceDescriptor) {
-        assert_codec(&service, ()).await;
+    fn encode_decode(service: ServiceDescriptor) {
+        assert_codec(&service, ());
     }
 }

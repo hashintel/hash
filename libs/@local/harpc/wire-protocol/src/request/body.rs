@@ -1,20 +1,20 @@
+use bytes::{Buf, BufMut};
 use error_stack::{Result, ResultExt};
-use tokio::{
-    io::{AsyncRead, AsyncWrite},
-    pin,
-};
 
 use super::{
     begin::RequestBegin,
-    codec::{DecodeError, EncodeError},
     flags::{RequestFlag, RequestFlags},
     frame::RequestFrame,
 };
 use crate::{
-    codec::{Decode, Encode},
+    codec::{Buffer, BufferError, Decode, Encode},
     flags::BitFlagsOp,
     payload::Payload,
 };
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
+#[error("unable to encode request body")]
+pub struct RequestBodyEncodeError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -33,14 +33,15 @@ impl RequestBody {
 }
 
 impl Encode for RequestBody {
-    type Error = EncodeError;
+    type Error = RequestBodyEncodeError;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        pin!(write);
-
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
         match self {
-            Self::Begin(body) => body.encode(write).await,
-            Self::Frame(body) => body.encode(write).await,
+            Self::Begin(body) => body.encode(buffer).change_context(RequestBodyEncodeError),
+            Self::Frame(body) => body.encode(buffer).change_context(RequestBodyEncodeError),
         }
     }
 }
@@ -79,20 +80,15 @@ impl RequestBodyContext {
 
 impl Decode for RequestBody {
     type Context = RequestBodyContext;
-    type Error = DecodeError;
+    type Error = BufferError;
 
-    async fn decode(
-        read: impl AsyncRead + Send,
-        context: Self::Context,
-    ) -> Result<Self, Self::Error> {
-        pin!(read);
-
+    fn decode<B>(buffer: &mut Buffer<B>, context: Self::Context) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
         match context.variant {
-            RequestVariant::Begin => RequestBegin::decode(read, ()).await.map(RequestBody::Begin),
-            RequestVariant::Frame => RequestFrame::decode(read, ())
-                .await
-                .map(RequestBody::Frame)
-                .change_context(DecodeError),
+            RequestVariant::Begin => RequestBegin::decode(buffer, ()).map(RequestBody::Begin),
+            RequestVariant::Frame => RequestFrame::decode(buffer, ()).map(RequestBody::Frame),
         }
     }
 }
@@ -131,59 +127,57 @@ mod test {
         payload: Payload::from_static(&[0x07, 0x08]),
     };
 
-    #[tokio::test]
-    async fn encode_begin() {
+    #[test]
+    fn encode_begin() {
         assert_encode(
             &RequestBody::Begin(EXAMPLE_BEGIN.clone()),
             expect![[r#"
             0x01 0x02 0x03 0x04 0x05 0x06 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
             0x00 0x00 0x00 0x00 0x02 0x07 0x08
         "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn encode_frame() {
+    #[test]
+    fn encode_frame() {
         assert_encode(
             &RequestBody::Frame(EXAMPLE_FRAME.clone()),
             expect![[r#"
             0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
             0x00 0x00 0x00 0x00 0x02 0x07 0x08
         "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode_begin() {
-        let bytes = encode_value(&EXAMPLE_BEGIN).await;
+    #[test]
+    fn decode_begin() {
+        let bytes = encode_value(&EXAMPLE_BEGIN);
 
         let context = RequestBodyContext {
             variant: RequestVariant::Begin,
         };
 
-        assert_decode(&bytes, &RequestBody::Begin(EXAMPLE_BEGIN.clone()), context).await;
+        assert_decode(bytes, &RequestBody::Begin(EXAMPLE_BEGIN.clone()), context);
     }
 
-    #[tokio::test]
-    async fn decode_frame() {
-        let bytes = encode_value(&EXAMPLE_FRAME).await;
+    #[test]
+    fn decode_frame() {
+        let bytes = encode_value(&EXAMPLE_FRAME);
 
         let context = RequestBodyContext {
             variant: RequestVariant::Frame,
         };
 
-        assert_decode(&bytes, &RequestBody::Frame(EXAMPLE_FRAME.clone()), context).await;
+        assert_decode(bytes, &RequestBody::Frame(EXAMPLE_FRAME.clone()), context);
     }
 
-    #[test_strategy::proptest(async = "tokio")]
+    #[test_strategy::proptest]
     #[cfg_attr(miri, ignore)]
-    async fn codec(body: RequestBody) {
+    fn codec(body: RequestBody) {
         let context = RequestBodyContext {
             variant: (&body).into(),
         };
 
-        assert_codec(&body, context).await;
+        assert_codec(&body, context);
     }
 }
