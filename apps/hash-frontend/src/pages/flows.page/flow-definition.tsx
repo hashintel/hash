@@ -6,6 +6,7 @@ import type {
   FlowDefinition as FlowDefinitionType,
   FlowTrigger,
   ProposedEntity,
+  StepProgressLog,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { Entity } from "@local/hash-subgraph";
 import { Box, Stack, Typography } from "@mui/material";
@@ -44,6 +45,7 @@ import {
 } from "./flow-definition/sort-graph";
 import { Swimlane } from "./flow-definition/swimlane";
 import { Topbar } from "./flow-definition/topbar";
+import { ActivityLog } from "./flow-definition/activity-log";
 
 const getGraphFromFlowDefinition = (
   flowDefinition: FlowDefinitionType,
@@ -238,18 +240,26 @@ export const FlowDefinition = () => {
     return graphsByGroup;
   }, [derivedNodes, derivedEdges, selectedFlow.groups]);
 
-  const { persistedEntities, proposedEntities } = useMemo(() => {
+  const { logs, persistedEntities, proposedEntities } = useMemo<{
+    logs: StepProgressLog[];
+    persistedEntities: Entity[];
+    proposedEntities: ProposedEntity[];
+  }>(() => {
     if (!selectedFlowRun) {
-      return { persistedEntities: [], proposedEntities: [] };
+      return { logs: [], persistedEntities: [], proposedEntities: [] };
     }
+
+    const logs: StepProgressLog[] = [];
     const persisted: Entity[] = [];
     const proposed: ProposedEntity[] = [];
 
     for (const step of selectedFlowRun.steps) {
       const outputs = step.outputs?.[0]?.contents?.[0]?.outputs ?? [];
 
-      if (outputs.length === 0) {
-        for (const log of step.logs) {
+      for (const log of step.logs) {
+        logs.push(log);
+
+        if (outputs.length === 0) {
           if (log.type === "ProposedEntity") {
             proposed.push(log.proposedEntity);
           }
@@ -257,7 +267,6 @@ export const FlowDefinition = () => {
             persisted.push(log.persistedEntity.entity);
           }
         }
-        continue;
       }
 
       for (const output of outputs) {
@@ -306,7 +315,7 @@ export const FlowDefinition = () => {
         }
       }
     }
-    return { proposedEntities: proposed, persistedEntities: persisted };
+    return { logs, proposedEntities: proposed, persistedEntities: persisted };
   }, [selectedFlowRun]);
 
   const [startFlow] = useMutation<
@@ -319,7 +328,9 @@ export const FlowDefinition = () => {
   }, []);
 
   const flowDefinitionStateKey = `${selectedFlow.name}`;
-  const flowRunStateKey = `${flowDefinitionStateKey}-${selectedFlowRun?.runId ?? "definition"}`;
+  const flowRunStateKey = `${flowDefinitionStateKey}-${
+    selectedFlowRun?.runId ?? "definition"
+  }`;
 
   return (
     <>
@@ -366,7 +377,9 @@ export const FlowDefinition = () => {
               <Box
                 sx={({ palette, transitions }) => ({
                   background: palette.common.white,
-                  border: `1px solid ${palette.gray[selectedFlowRun ? 20 : 30]}`,
+                  border: `1px solid ${
+                    palette.gray[selectedFlowRun ? 20 : 30]
+                  }`,
                   borderRadius: flowSectionBorderRadius,
                   "& > :first-of-type": {
                     borderTopRightRadius: flowSectionBorderRadius,
@@ -421,7 +434,9 @@ export const FlowDefinition = () => {
 
                 {flowMaybeGrouped.groups.map(({ group, nodes, edges }) => (
                   <ReactFlowProvider
-                    key={`${flowDefinitionStateKey}-${group?.groupId ?? "ungrouped"}`}
+                    key={`${flowDefinitionStateKey}-${
+                      group?.groupId ?? "ungrouped"
+                    }`}
                   >
                     <Swimlane group={group} nodes={nodes} edges={edges} />
                   </ReactFlowProvider>
@@ -443,10 +458,14 @@ export const FlowDefinition = () => {
             pb: 7,
           })}
         >
+          <Box sx={{ pt: 2.5, pr: 2 }}>
+            <SectionLabel text="Activity log" />
+            <ActivityLog key={`${flowRunStateKey}-activity-log`} logs={logs} />
+          </Box>
           <Box
             sx={{
               height: "100%",
-              width: "100%",
+              width: "60%",
               borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
               pr: 3,
               pt: 2.5,
@@ -458,11 +477,11 @@ export const FlowDefinition = () => {
               gap={1}
               sx={{ height: "100%", width: "100%" }}
             >
-              <EntityResultTable
-                key={`${flowRunStateKey}-entity-result-table`}
-                persistedEntities={persistedEntities}
-                proposedEntities={proposedEntities}
-              />
+              {/*<EntityResultTable*/}
+              {/*  key={`${flowRunStateKey}-entity-result-table`}*/}
+              {/*  persistedEntities={persistedEntities}*/}
+              {/*  proposedEntities={proposedEntities}*/}
+              {/*/>*/}
               <PersistedEntityGraph
                 key={`${flowRunStateKey}-persisted-entity-graph`}
                 persistedEntities={persistedEntities}
