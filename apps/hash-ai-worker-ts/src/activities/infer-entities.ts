@@ -155,7 +155,7 @@ const inferEntities = async ({
     webPage: {
       title: sourceTitle,
       url: sourceUrl,
-      textContent: textInput,
+      htmlContent: textInput,
     },
     maxTokens,
     model,
