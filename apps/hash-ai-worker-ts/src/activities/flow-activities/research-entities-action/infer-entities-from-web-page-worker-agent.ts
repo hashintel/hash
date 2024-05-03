@@ -37,6 +37,7 @@ import { handleQueryPdfToolCall } from "./infer-entities-from-web-page-worker-ag
 import type { ToolCallArguments } from "./infer-entities-from-web-page-worker-agent/tool-definitions";
 import { toolDefinitions } from "./infer-entities-from-web-page-worker-agent/tool-definitions";
 import type {
+  InferEntitiesFromWebPageWorkerAgentInput,
   InferEntitiesFromWebPageWorkerAgentState,
   ToolName,
 } from "./infer-entities-from-web-page-worker-agent/types";
@@ -65,16 +66,9 @@ const mapProposedEntityToSummarizedEntity = (
   };
 };
 
-type WorkerAgentInput = {
-  prompt: string;
-  entityTypes: DereferencedEntityType[];
-  linkEntityTypes?: DereferencedEntityType[];
-  existingEntities?: Entity[];
-  url: string;
-  innerHtml: string;
-};
-
-const generateSystemMessagePrefix = (params: { input: WorkerAgentInput }) => {
+const generateSystemMessagePrefix = (params: {
+  input: InferEntitiesFromWebPageWorkerAgentInput;
+}) => {
   const { linkEntityTypes, existingEntities } = params.input;
 
   return dedent(`
@@ -121,11 +115,18 @@ const generateSystemMessagePrefix = (params: { input: WorkerAgentInput }) => {
 };
 
 const generateUserMessage = (params: {
-  input: WorkerAgentInput;
+  input: InferEntitiesFromWebPageWorkerAgentInput;
   includeInnerHtml?: boolean;
 }): LlmUserMessage => {
   const { includeInnerHtml = false, input } = params;
-  const { prompt, url, innerHtml, entityTypes, linkEntityTypes } = input;
+  const {
+    prompt,
+    url,
+    innerHtml,
+    entityTypes,
+    linkEntityTypes,
+    existingEntities,
+  } = input;
 
   return {
     role: "user",
@@ -136,6 +137,7 @@ const generateUserMessage = (params: {
           Prompt: ${prompt}
           Initial web page url: ${url}
           Entity Types: ${JSON.stringify(entityTypes)}
+          Existing Entities: ${existingEntities ? JSON.stringify(existingEntities) : ""}
           ${linkEntityTypes ? `Link Types: ${JSON.stringify(linkEntityTypes)}` : ""}
           ${includeInnerHtml ? `Initial web page inner HTML: ${innerHtml}` : ""}
         `),
@@ -147,7 +149,7 @@ const generateUserMessage = (params: {
 const maxRetryCount = 3;
 
 const createInitialPlan = async (params: {
-  input: WorkerAgentInput;
+  input: InferEntitiesFromWebPageWorkerAgentInput;
   retryMessages?: LlmMessage[];
   retryCount?: number;
 }): Promise<{ plan: string }> => {
@@ -254,7 +256,7 @@ const getSubmittedProposedEntitiesFromState = (
   );
 
 const getNextToolCalls = async (params: {
-  input: WorkerAgentInput;
+  input: InferEntitiesFromWebPageWorkerAgentInput;
   state: InferEntitiesFromWebPageWorkerAgentState;
 }): Promise<{ toolCalls: ParsedLlmToolCall<ToolName>[] }> => {
   const { state, input } = params;
@@ -315,11 +317,9 @@ const getNextToolCalls = async (params: {
     );
   }
 
-  const { message, usage: _usage } = llmResponse;
+  const { message } = llmResponse;
 
   const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
-
-  /** @todo: capture usage */
 
   return { toolCalls };
 };
@@ -347,7 +347,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     sanitizeForLlm: true,
   });
 
-  const input: WorkerAgentInput = {
+  const input: InferEntitiesFromWebPageWorkerAgentInput = {
     prompt: params.prompt,
     entityTypes: params.entityTypes,
     linkEntityTypes: params.linkEntityTypes,
@@ -481,18 +481,25 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                 tool call unless there are no entities to infer from this page.
               `),
             };
-          } else if (toolCall.name === "inferEntitiesFromWebPage") {
+          } else if (
+            toolCall.name === "inferEntitiesFromWebPage" ||
+            toolCall.name === "inferEntitiesFromText"
+          ) {
+            const toolCallInput = toolCall.input as ToolCallArguments[
+              | "inferEntitiesFromWebPage"
+              | "inferEntitiesFromText"];
+
             const {
-              hmtlContent,
               prompt: toolCallPrompt,
-              url: inferringEntitiesFromWebPageUrl,
-              expectedNumberOfEntities,
               validAt,
               entityTypeIds: inferringEntitiesOfTypeIds,
               linkEntityTypeIds: inferringLinkEntitiesOfTypeIds,
-            } = toolCall.input as ToolCallArguments["inferEntitiesFromWebPage"];
+            } = toolCallInput;
 
-            if (expectedNumberOfEntities < 1) {
+            if (
+              "expectedNumberOfEntities" in toolCallInput &&
+              toolCallInput.expectedNumberOfEntities < 1
+            ) {
               return {
                 ...toolCall,
                 output: dedent(`
@@ -555,23 +562,27 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               };
             }
 
-            if (hmtlContent.length === 0) {
+            if (
+              "htmlContent" in toolCallInput
+                ? toolCallInput.htmlContent.length === 0
+                : toolCallInput.text.length === 0
+            ) {
               return {
                 ...toolCall,
                 output: dedent(`
-                  You provided an empty string as the HTML content from the web page. You must provide
-                  the relevant HTML content from the web page to infer entities.
+                  You provided an empty string as the ${"htmlContent" in toolCallInput ? "htmlContent from the web page" : "text"}.
+                  You must provide ${"htmlContent" in toolCallInput ? "the relevant HTML content from the web page" : "text content"} to infer entities from.
                 `),
                 isError: true,
               };
             }
 
-            state.inferredEntitiesFromWebPageUrls.push(
-              inferringEntitiesFromWebPageUrl,
-            );
+            if ("url" in toolCallInput) {
+              state.inferredEntitiesFromWebPageUrls.push(toolCallInput.url);
+            }
 
             const content = dedent(`
-              ${hmtlContent}
+              ${"htmlContent" in toolCallInput ? toolCallInput.htmlContent : toolCallInput.text}
               The above data is valid at ${validAt}.
             `);
 
@@ -641,14 +652,18 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               mapProposedEntityToSummarizedEntity,
             );
 
-            if (newProposedEntities.length !== expectedNumberOfEntities) {
+            if (
+              "expectedNumberOfEntities" in toolCallInput &&
+              newProposedEntities.length !==
+                toolCallInput.expectedNumberOfEntities
+            ) {
               return {
                 ...toolCall,
                 output: dedent(`
                   The following entities were inferred from the provided HTML content: ${JSON.stringify(summarizedNewProposedEntities)}
 
                   The number of entities inferred from the HTML content doesn't match the expected number of entities.
-                  Expected: ${expectedNumberOfEntities}
+                  Expected: ${toolCallInput.expectedNumberOfEntities}
                   Actual: ${newProposedEntities.length}
 
                   If there are missing entities which you require, you must make another "inferEntitiesFromWebPage" tool call

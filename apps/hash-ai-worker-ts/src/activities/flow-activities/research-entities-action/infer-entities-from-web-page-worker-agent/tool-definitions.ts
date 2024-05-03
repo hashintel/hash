@@ -45,7 +45,7 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
           type: "string",
           description: "The URL of the web page.",
         },
-        hmtlContent: {
+        htmlContent: {
           type: "string",
           description: dedent(`
             The HTML content with the relevant sections, paragraphs, tables
@@ -186,6 +186,7 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
             A detailed description of the relevant information you are seeking from the PDF document.
             Include keywords, phrases, or the name specific sections you are looking for.
             Use language and terminology that is similar to the content in the PDF document you are seeking.
+            If you are looking for specific properties of an entity, name them.
           `),
         },
         exampleText: {
@@ -197,6 +198,102 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
         },
       },
       required: ["fileUrl", "description", "explanation", "exampleText"],
+    },
+  },
+  /**
+   * @todo: consider unifying this with the `inferEntitiesFromWebPage` tool call,
+   * ensuring there are no regressions in the agent's ability to infer entities
+   * from paginated tables.
+   */
+  inferEntitiesFromText: {
+    name: "inferEntitiesFromText",
+    description: "Infer entities and links from text.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        explanation: {
+          type: "string",
+          description: dedent(`
+            An explanation of why this tool call is required to satisfy the task,
+            and how it aligns with the current plan.
+
+            Provide your step by step thinking for why the provided text is sufficient
+              to infer the required entities and links to satisfy the research task.
+          `),
+          // Potentially also ask why other text is unsuitable
+        },
+        text: {
+          type: "string",
+          description: dedent(`
+            The text to infer entities and links from.
+
+            Include any relevant sections, paragraphs, tables, or other content that describe entities of the requested type(s).
+
+            When including a table, you must include table headers and any other relevant information to help the inference agent understand the data.
+
+            Do not under any circumstance truncate or provide partial text which may lead to missed entities
+              or properties.
+
+            You must provide as much text as necessary to infer all
+              the required entities and their properties from the web page in a single tool call.
+            `),
+        },
+        validAt: {
+          type: "string",
+          format: "date-time",
+          description: dedent(`
+            A date-time string in ISO 8601 format, representing when the provided text content is valid at.
+            If you don't know, assume it is the current date and time.
+            The current time is "${new Date().toISOString()}".
+          `),
+        },
+        prompt: {
+          type: "string",
+          description: dedent(`
+            A prompt instructing the inference agent which entities should be inferred from the HTML content.
+            Do not specify any information of the structure of the entities, as this is predefined by
+              the entity type.
+          `),
+        },
+        entityTypeIds: {
+          type: "array",
+          items: {
+            type: "string",
+          },
+          description: dedent(`
+            An array of entity type IDs which should be inferred from the provided HTML content.
+          `),
+        },
+        includeExistingEntityIds: {
+          type: "array",
+          items: {
+            type: "string",
+          },
+          description: dedent(`
+            An array of IDs of existing entities that have been provided.
+            This is required for the inference agent to infer links between
+              the entities it proposed in the text, and existing entities which
+              have been provided by the user.
+          `),
+        },
+        linkEntityTypeIds: {
+          type: "array",
+          items: {
+            type: "string",
+          },
+          description: dedent(`
+            An array of link entity type IDs which should be inferred from provided HTML content.
+          `),
+        },
+      },
+      required: [
+        "explanation",
+        "text",
+        "validAt",
+        "prompt",
+        "entityTypeIds",
+        "linkEntityTypeIds",
+      ],
     },
   },
   complete: {
@@ -258,7 +355,7 @@ export type ToolCallArguments = Subtype<
     };
     inferEntitiesFromWebPage: {
       url: string;
-      hmtlContent: string;
+      htmlContent: string;
       expectedNumberOfEntities: number;
       validAt: string;
       prompt: string;
@@ -277,6 +374,14 @@ export type ToolCallArguments = Subtype<
       fileUrl: string;
       description: string;
       exampleText: string;
+    };
+    inferEntitiesFromText: {
+      text: string;
+      validAt: string;
+      prompt: string;
+      entityTypeIds: VersionedUrl[];
+      linkEntityTypeIds?: VersionedUrl[];
+      includeExistingEntityIds?: string[];
     };
   }
 >;

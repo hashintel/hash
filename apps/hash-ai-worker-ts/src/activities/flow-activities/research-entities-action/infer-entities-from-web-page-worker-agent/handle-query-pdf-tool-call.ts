@@ -3,6 +3,7 @@ import { MetadataMode } from "llamaindex";
 
 import { logger } from "../../../shared/activity-logger";
 import type { ParsedLlmToolCall } from "../../../shared/get-llm-response/types";
+import { stringify } from "../../../shared/stringify";
 import type { CompletedToolCall } from "../types";
 import { filterAndRankTextChunksAgent } from "./filter-and-rank-text-chunks-agent";
 import { indexPdfFile } from "./llama-index/index-pdf-file";
@@ -68,7 +69,7 @@ export const handleQueryPdfToolCall = async (params: {
   const queryEngine = vectorStoreIndex.asQueryEngine({
     retriever: vectorStoreIndex.asRetriever({
       // Get the 15 most similar nodes
-      similarityTopK: 20,
+      similarityTopK: 15,
     }),
   });
 
@@ -89,6 +90,10 @@ export const handleQueryPdfToolCall = async (params: {
       output: "No relevant sections found in the PDF file based on your query.",
     };
   }
+
+  logger.debug(
+    `Vector DB query returned ${textChunks.length} chunks: ${stringify(textChunks)}`,
+  );
 
   const filteredAndRankedTextChunksResponse =
     await filterAndRankTextChunksAgent({
