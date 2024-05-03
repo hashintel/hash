@@ -128,10 +128,10 @@ const GroupStepStatus = ({
           <WaitingIcon statusFor="step" />
         ) : simpleStatus === "In Progress" ? (
           <InProgressIcon statusFor="step" />
-        ) : simpleStatus === "Error" ? (
-          <ErrorIcon statusFor="step" />
-        ) : (
+        ) : simpleStatus === "Complete" ? (
           <SuccessIcon statusFor="step" />
+        ) : (
+          <ErrorIcon statusFor="step" />
         )}
       </Box>
       <Typography sx={{ fontSize: 14, ml: 1, mt: 0.2 }}>{label}</Typography>
@@ -223,10 +223,10 @@ const GroupStatus = ({
               <WaitingIcon statusFor="group" />
             ) : groupStatus === "In Progress" ? (
               <InProgressIcon statusFor="group" />
-            ) : groupStatus === "Error" ? (
-              <ErrorIcon statusFor="group" />
-            ) : (
+            ) : groupStatus === "Complete" ? (
               <SuccessIcon statusFor="group" />
+            ) : (
+              <ErrorIcon statusFor="group" />
             )}
           </Box>
           <Typography
@@ -247,8 +247,8 @@ const GroupStatus = ({
                 groupStatus === "In Progress"
                   ? palette.blue[70]
                   : groupStatus === "Error"
-                    ? palette.error.main
-                    : palette.common.black,
+                  ? palette.error.main
+                  : palette.common.black,
             }}
           >
             {timeTaken}

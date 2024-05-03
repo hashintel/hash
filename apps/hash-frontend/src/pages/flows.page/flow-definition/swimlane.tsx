@@ -55,7 +55,9 @@ const elkLayoutOptions: ElkNode["layoutOptions"] = {
   "elk.algorithm": "layered",
   "org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers": "100",
   "elk.direction": "RIGHT",
-  "elk.padding": `[left=${graphPadding},top=${graphPadding - nodeTabHeight.offset},right=${graphPadding},bottom=${graphPadding}]`,
+  "elk.padding": `[left=${graphPadding},top=${
+    graphPadding - nodeTabHeight.offset
+  },right=${graphPadding},bottom=${graphPadding}]`,
 };
 
 const parentGroupLayoutOptions: ElkNode["layoutOptions"] = {
@@ -174,12 +176,12 @@ export const Swimlane = ({
           !selectedFlowRun
             ? palette.gray[10]
             : groupStatus === "Complete"
-              ? "rgba(239, 254, 250, 1)"
-              : groupStatus === "In Progress"
-                ? palette.blue[10]
-                : groupStatus === "Error"
-                  ? palette.red[10]
-                  : palette.common.white,
+            ? "rgba(239, 254, 250, 1)"
+            : groupStatus === "In Progress"
+            ? palette.blue[10]
+            : groupStatus === "Error" || groupStatus === "Cancelled"
+            ? palette.red[10]
+            : palette.common.white,
         "&:not(:last-of-type)": {
           borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
         },

@@ -43,7 +43,7 @@ export const flowTypedef = gql`
     FAILED
     TIMED_OUT
     CANCEL_REQUESTED
-    CANCELED
+    CANCELLED
   }
 
   scalar ArbitraryJsonData
@@ -155,7 +155,10 @@ export const flowTypedef = gql`
   }
 
   extend type Query {
-    getFlowRuns(flowTypes: [String!]): [FlowRun!]!
+    getFlowRuns(
+      flowTypes: [String!]
+      executionStatus: FlowRunStatus
+    ): [FlowRun!]!
   }
 
   scalar FlowDefinition

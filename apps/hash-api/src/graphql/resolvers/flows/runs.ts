@@ -180,6 +180,13 @@ const mapTemporalWorkflowToFlowStatus = async (
 
   const inputRequestsById: Record<string, ExternalInputRequest> = {};
 
+  const workflowStoppedEarly = [
+    "TERMINATED",
+    "CANCELED",
+    "TIMED_OUT",
+    "FAILED",
+  ].includes(workflow.status.name);
+
   if (events?.length) {
     /*
      * Walk backwards from the most recent event until we have populated the latest state data for each step
@@ -200,7 +207,7 @@ const mapTemporalWorkflowToFlowStatus = async (
 
       if (
         event.workflowExecutionSignaledEventAttributes?.signalName ===
-        "requestExternalInput"
+        "externalInputRequest"
       ) {
         const signalData = parseHistoryItemPayload(
           event.workflowExecutionSignaledEventAttributes.input,
@@ -288,9 +295,12 @@ const mapTemporalWorkflowToFlowStatus = async (
         stepType: activityType ?? "UNKNOWN",
         startedAt,
         scheduledAt,
+        closedAt: workflowStoppedEarly ? workflow.closeTime?.toISOString() : "",
         inputs,
         logs: [],
-        status: FlowStepStatus.Scheduled,
+        status: workflowStoppedEarly
+          ? FlowStepStatus.Cancelled
+          : FlowStepStatus.Scheduled,
         attempt,
       };
 
@@ -299,15 +309,19 @@ const mapTemporalWorkflowToFlowStatus = async (
       switch (event.eventType) {
         case proto.temporal.api.enums.v1.EventType
           .EVENT_TYPE_ACTIVITY_TASK_SCHEDULED: {
-          activityRecord.status = FlowStepStatus.Scheduled;
+          if (!workflowStoppedEarly) {
+            activityRecord.status = FlowStepStatus.Scheduled;
+          }
           break;
         }
 
         case proto.temporal.api.enums.v1.EventType
           .EVENT_TYPE_ACTIVITY_TASK_STARTED: {
-          activityRecord.status = FlowStepStatus.Started;
-          activityRecord.lastFailure =
-            event.activityTaskStartedEventAttributes?.lastFailure;
+          if (!workflowStoppedEarly) {
+            activityRecord.status = FlowStepStatus.Started;
+            activityRecord.lastFailure =
+              event.activityTaskStartedEventAttributes?.lastFailure;
+          }
           break;
         }
 
@@ -346,7 +360,7 @@ const mapTemporalWorkflowToFlowStatus = async (
 
         case proto.temporal.api.enums.v1.EventType
           .EVENT_TYPE_ACTIVITY_TASK_CANCELED: {
-          activityRecord.status = FlowStepStatus.Canceled;
+          activityRecord.status = FlowStepStatus.Cancelled;
           activityRecord.closedAt = eventTimeIsoStringFromEvent(event);
           break;
         }
@@ -430,6 +444,14 @@ const mapTemporalWorkflowToFlowStatus = async (
   };
 };
 
+const convertScreamingSnakeToPascalCase = (str: string) =>
+  str
+    .split("_")
+    .map((word) =>
+      word[0] ? word[0].toUpperCase() + word.slice(1).toLowerCase() : "",
+    )
+    .join("");
+
 export const getFlowRuns: ResolverFn<
   FlowRun[],
   Record<string, never>,
@@ -442,21 +464,20 @@ export const getFlowRuns: ResolverFn<
 
   const workflows: FlowRun[] = [];
 
-  const { flowTypes } = args;
+  const { flowTypes, executionStatus } = args;
 
-  const workflowIterable = context.temporal.workflow.list(
-    flowTypes?.length
-      ? {
-          /**
-           * Can also filter by runId, useful for e.g. getting all Temporal runIds for a given user
-           * and then retrieving a list of details from Temporal
-           */
-          query: `WorkflowType IN (${flowTypes
-            .map((type) => `'${type}'`)
-            .join(", ")})`,
-        }
-      : { query: "WorkflowType = 'runFlow'" },
-  );
+  /** @see https://docs.temporal.io/dev-guide/typescript/observability#search-attributes */
+  let query = flowTypes?.length
+    ? `WorkflowType IN (${flowTypes.map((type) => `'${type}'`).join(", ")})`
+    : "WorkflowType = 'runFlow'";
+
+  if (executionStatus) {
+    query += ` AND ExecutionStatus = "${convertScreamingSnakeToPascalCase(
+      executionStatus,
+    )}"`;
+  }
+
+  const workflowIterable = context.temporal.workflow.list({ query });
 
   for await (const workflow of workflowIterable) {
     const runInfo = await mapTemporalWorkflowToFlowStatus(
