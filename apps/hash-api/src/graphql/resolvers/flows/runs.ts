@@ -225,6 +225,9 @@ const mapTemporalWorkflowToFlowStatus = async (
             };
           }
         } else {
+          /**
+           * This is the signal containing a response to a request for external input
+           */
           const { requestId, data, type } = signalData;
 
           inputRequestsById[signalData.requestId] = {

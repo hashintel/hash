@@ -173,7 +173,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
       filter: queryFilter,
       graphApiClient,
       /**
-       * If we've been given a Block Protocol query, also provide linked entities to depth 1, since the query can't specify if.
+       * If we've been given a Block Protocol query, also provide linked entities to depth 1, since the query can't specify it.
        * If not, just use the exact entities we've been given from the previous step.
        *
        * @todo once we start using a Structural Query instead, it can specify the traversal depth itself (1 becomes variable)
