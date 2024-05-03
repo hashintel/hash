@@ -30,12 +30,12 @@ where
             .client()
             .simple_query(
                 "
-                    CREATE TEMPORARY TABLE accounts_tmp
-                        (LIKE accounts INCLUDING ALL)
-                        ON COMMIT DROP;
-                    CREATE TEMPORARY TABLE account_groups_tmp
-                        (LIKE account_groups INCLUDING ALL)
-                        ON COMMIT DROP;
+                    CREATE TEMPORARY TABLE accounts_tmp (
+                        LIKE accounts INCLUDING ALL
+                    ) ON COMMIT DROP;
+                    CREATE TEMPORARY TABLE account_groups_tmp (
+                        LIKE account_groups INCLUDING ALL
+                    ) ON COMMIT DROP;
                 ",
             )
             .await

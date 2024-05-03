@@ -1,20 +1,20 @@
 use std::fmt;
 
-use crate::store::postgres::query::{AliasedColumn, Transpile};
+use crate::store::postgres::query::{Expression, Transpile};
 
 #[derive(Debug, Default, PartialEq, Eq, Hash)]
 pub struct GroupByExpression {
-    pub columns: Vec<AliasedColumn>,
+    pub expressions: Vec<Expression>,
 }
 
 impl Transpile for GroupByExpression {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        if self.columns.is_empty() {
+        if self.expressions.is_empty() {
             return Ok(());
         }
 
         fmt.write_str("GROUP BY ")?;
-        for (idx, column) in self.columns.iter().enumerate() {
+        for (idx, column) in self.expressions.iter().enumerate() {
             if idx > 0 {
                 fmt.write_str(", ")?;
             }
@@ -36,19 +36,23 @@ mod tests {
     #[test]
     fn order_one() {
         let order_by_expression = GroupByExpression {
-            columns: vec![
-                EntityQueryPath::OwnedById
-                    .terminating_column()
-                    .aliased(Alias {
+            expressions: vec![
+                Expression::ColumnReference {
+                    column: EntityQueryPath::OwnedById.terminating_column().0,
+                    table_alias: Some(Alias {
                         condition_index: 1,
                         chain_depth: 2,
                         number: 3,
                     }),
-                EntityQueryPath::Uuid.terminating_column().aliased(Alias {
-                    condition_index: 4,
-                    chain_depth: 5,
-                    number: 6,
-                }),
+                },
+                Expression::ColumnReference {
+                    column: EntityQueryPath::Uuid.terminating_column().0,
+                    table_alias: Some(Alias {
+                        condition_index: 4,
+                        chain_depth: 5,
+                        number: 6,
+                    }),
+                },
             ],
         };
         assert_eq!(

@@ -14,12 +14,13 @@ use type_system::{
 };
 
 pub use self::{
-    data_type::{DataTypeMetadata, DataTypeWithMetadata, PartialDataTypeMetadata},
+    data_type::{DataTypeId, DataTypeMetadata, DataTypeWithMetadata, PartialDataTypeMetadata},
     entity_type::{
-        EntityTypeEmbedding, EntityTypeMetadata, EntityTypeWithMetadata, PartialEntityTypeMetadata,
+        EntityTypeEmbedding, EntityTypeId, EntityTypeMetadata, EntityTypeWithMetadata,
+        PartialEntityTypeMetadata,
     },
     property_type::{
-        PartialPropertyTypeMetadata, PropertyTypeEmbedding, PropertyTypeMetadata,
+        PartialPropertyTypeMetadata, PropertyTypeEmbedding, PropertyTypeId, PropertyTypeMetadata,
         PropertyTypeWithMetadata,
     },
     provenance::{

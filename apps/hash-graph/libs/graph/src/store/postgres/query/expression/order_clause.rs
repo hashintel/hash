@@ -1,27 +1,32 @@
 use std::fmt;
 
 use crate::store::{
-    postgres::query::{AliasedColumn, Transpile},
+    postgres::query::{Expression, Transpile},
     NullOrdering, Ordering,
 };
 
 #[derive(Debug, Default, PartialEq, Eq, Hash)]
 pub struct OrderByExpression {
-    columns: Vec<(AliasedColumn, Ordering, Option<NullOrdering>)>,
+    columns: Vec<(Expression, Ordering, Option<NullOrdering>)>,
 }
 
 impl OrderByExpression {
-    pub fn push(&mut self, column: AliasedColumn, ordering: Ordering, nulls: Option<NullOrdering>) {
-        self.columns.push((column, ordering, nulls));
+    pub fn push(
+        &mut self,
+        expression: Expression,
+        ordering: Ordering,
+        nulls: Option<NullOrdering>,
+    ) {
+        self.columns.push((expression, ordering, nulls));
     }
 
     pub fn insert_front(
         &mut self,
-        column: AliasedColumn,
+        expression: Expression,
         ordering: Ordering,
         nulls: Option<NullOrdering>,
     ) {
-        self.columns.insert(0, (column, ordering, nulls));
+        self.columns.insert(0, (expression, ordering, nulls));
     }
 
     pub fn is_empty(&self) -> bool {
@@ -69,13 +74,14 @@ mod tests {
     fn order_one() {
         let mut order_by_expression = OrderByExpression::default();
         order_by_expression.push(
-            DataTypeQueryPath::Version
-                .terminating_column()
-                .aliased(Alias {
+            Expression::ColumnReference {
+                column: DataTypeQueryPath::Version.terminating_column().0,
+                table_alias: Some(Alias {
                     condition_index: 1,
                     chain_depth: 2,
                     number: 3,
                 }),
+            },
             Ordering::Ascending,
             None,
         );
@@ -89,22 +95,26 @@ mod tests {
     fn order_multiple() {
         let mut order_by_expression = OrderByExpression::default();
         order_by_expression.push(
-            DataTypeQueryPath::BaseUrl
-                .terminating_column()
-                .aliased(Alias {
+            Expression::ColumnReference {
+                column: DataTypeQueryPath::BaseUrl.terminating_column().0,
+                table_alias: Some(Alias {
                     condition_index: 1,
                     chain_depth: 2,
                     number: 3,
                 }),
+            },
             Ordering::Ascending,
             Some(NullOrdering::First),
         );
         order_by_expression.push(
-            DataTypeQueryPath::Type.terminating_column().aliased(Alias {
-                condition_index: 4,
-                chain_depth: 5,
-                number: 6,
-            }),
+            Expression::ColumnReference {
+                column: DataTypeQueryPath::Version.terminating_column().0,
+                table_alias: Some(Alias {
+                    condition_index: 4,
+                    chain_depth: 5,
+                    number: 6,
+                }),
+            },
             Ordering::Descending,
             Some(NullOrdering::Last),
         );
@@ -113,7 +123,7 @@ mod tests {
             trim_whitespace(order_by_expression.transpile_to_string()),
             trim_whitespace(
                 r#"ORDER BY "ontology_ids_1_2_3"."base_url" ASC NULLS FIRST,
-                "data_types_4_5_6"."schema"->>'type' DESC NULLS LAST"#
+                "ontology_ids_4_5_6"."version" DESC NULLS LAST"#
             )
         );
     }

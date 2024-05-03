@@ -1,9 +1,8 @@
 use std::borrow::Cow;
 
-use authorization::schema::EntityTypeId;
 use error_stack::{Result, ResultExt};
 use futures::{Stream, StreamExt};
-use graph_types::ontology::EntityTypeWithMetadata;
+use graph_types::ontology::{EntityTypeId, EntityTypeWithMetadata};
 use postgres_types::Json;
 use temporal_versioning::RightBoundedTemporalInterval;
 use tokio_postgres::GenericClient;
@@ -102,13 +101,13 @@ impl<C: AsClient, A: Send + Sync> PostgresStore<C, A> {
         let table = Table::Reference(reference_table).transpile_to_string();
         let source =
             if let ForeignKeyReference::Single { join, .. } = reference_table.source_relation() {
-                join.transpile_to_string()
+                join.to_expression(None).transpile_to_string()
             } else {
                 unreachable!("Ontology reference tables don't have multiple conditions")
             };
         let target =
             if let ForeignKeyReference::Single { on, .. } = reference_table.target_relation() {
-                on.transpile_to_string()
+                on.to_expression(None).transpile_to_string()
             } else {
                 unreachable!("Ontology reference tables don't have multiple conditions")
             };

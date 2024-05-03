@@ -13,7 +13,7 @@ name = "type_system"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-postgres-types = { workspace = true, features = ["derive"], optional = true }
+postgres-types = { workspace = true, features = ["derive", "with-serde_json-1"], optional = true }
 serde = { version = "1.0.199", features = ["derive"] }
 serde_json = "1.0.116"
 thiserror = "1.0.59"

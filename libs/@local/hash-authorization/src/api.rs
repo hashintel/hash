@@ -4,6 +4,7 @@ use error_stack::{Context, Result};
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{EntityId, EntityUuid},
+    ontology::{DataTypeId, EntityTypeId, PropertyTypeId},
     owned_by_id::OwnedById,
 };
 
@@ -12,9 +13,9 @@ use crate::{
         CheckError, CheckResponse, ModifyRelationError, ModifyRelationshipOperation, ReadError,
     },
     schema::{
-        AccountGroupPermission, AccountGroupRelationAndSubject, DataTypeId, DataTypePermission,
-        DataTypeRelationAndSubject, EntityPermission, EntityRelationAndSubject, EntityTypeId,
-        EntityTypePermission, EntityTypeRelationAndSubject, PropertyTypeId, PropertyTypePermission,
+        AccountGroupPermission, AccountGroupRelationAndSubject, DataTypePermission,
+        DataTypeRelationAndSubject, EntityPermission, EntityRelationAndSubject,
+        EntityTypePermission, EntityTypeRelationAndSubject, PropertyTypePermission,
         PropertyTypeRelationAndSubject, WebPermission, WebRelationAndSubject,
     },
     zanzibar::{Consistency, Zookie},

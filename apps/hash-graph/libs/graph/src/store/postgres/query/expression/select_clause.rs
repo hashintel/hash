@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::store::postgres::query::{AliasedColumn, Expression, Transpile};
+use crate::store::postgres::query::{Expression, Transpile};
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct SelectExpression {
@@ -13,11 +13,6 @@ impl SelectExpression {
     #[inline]
     pub const fn new(expression: Expression, alias: Option<&'static str>) -> Self {
         Self { expression, alias }
-    }
-
-    #[must_use]
-    pub const fn from_column(column: AliasedColumn, alias: Option<&'static str>) -> Self {
-        Self::new(Expression::Column(column), alias)
     }
 }
 
@@ -42,14 +37,15 @@ mod tests {
     #[test]
     fn transpile_select_expression() {
         assert_eq!(
-            SelectExpression::from_column(
-                DataTypeQueryPath::BaseUrl
-                    .terminating_column()
-                    .aliased(Alias {
+            SelectExpression::new(
+                Expression::ColumnReference {
+                    column: DataTypeQueryPath::BaseUrl.terminating_column().0,
+                    table_alias: Some(Alias {
                         condition_index: 1,
                         chain_depth: 2,
                         number: 3,
-                    }),
+                    })
+                },
                 None
             )
             .transpile_to_string(),
@@ -57,43 +53,26 @@ mod tests {
         );
 
         assert_eq!(
-            SelectExpression::from_column(
-                DataTypeQueryPath::VersionedUrl
-                    .terminating_column()
-                    .aliased(Alias {
-                        condition_index: 1,
-                        chain_depth: 2,
-                        number: 3,
-                    }),
-                Some("versionedUrl")
-            )
-            .transpile_to_string(),
-            r#""data_types_1_2_3"."schema"->>'$id' AS "versionedUrl""#
-        );
-
-        assert_eq!(
             SelectExpression::new(
                 Expression::Window(
                     Box::new(Expression::Function(Function::Max(Box::new(
-                        Expression::Column(
-                            DataTypeQueryPath::Version
-                                .terminating_column()
-                                .aliased(Alias {
-                                    condition_index: 1,
-                                    chain_depth: 2,
-                                    number: 3,
-                                })
-                        )
-                    )))),
-                    WindowStatement::partition_by(
-                        DataTypeQueryPath::BaseUrl
-                            .terminating_column()
-                            .aliased(Alias {
+                        Expression::ColumnReference {
+                            column: DataTypeQueryPath::Version.terminating_column().0,
+                            table_alias: Some(Alias {
                                 condition_index: 1,
                                 chain_depth: 2,
                                 number: 3,
                             })
-                    )
+                        }
+                    )))),
+                    WindowStatement::partition_by(Expression::ColumnReference {
+                        column: DataTypeQueryPath::BaseUrl.terminating_column().0,
+                        table_alias: Some(Alias {
+                            condition_index: 1,
+                            chain_depth: 2,
+                            number: 3,
+                        })
+                    })
                 ),
                 Some("latest_version")
             )
