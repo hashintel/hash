@@ -13,17 +13,12 @@ import {
 } from "llamaindex";
 import md5 from "md5";
 
+import { logger } from "../../../../shared/activity-logger";
 import type { SimpleStorageContext } from "./simple-storage-context";
 import {
   persistSimpleStorageContext,
   retrieveSimpleStorageContext,
 } from "./simple-storage-context";
-
-/** @todo: replace with logger */
-const log = (message: string) => {
-  // eslint-disable-next-line no-console
-  console.log(message);
-};
 
 export const indexPdfFile = async (params: {
   fileUrl: string;
@@ -37,7 +32,7 @@ export const indexPdfFile = async (params: {
   });
 
   if (!simpleStorageContext) {
-    log("No existing storage context found. Creating new one...");
+    logger.info("No existing storage context found. Creating new one...");
 
     const response = await fetch(fileUrl);
 
@@ -65,11 +60,11 @@ export const indexPdfFile = async (params: {
       );
     }
 
-    log("PDF File downloaded successfully");
+    logger.info("PDF File downloaded successfully");
 
     const documents = await new PDFReader().loadData(filePath);
 
-    log(`Loaded PDF File as ${documents.length} documents`);
+    logger.info(`Loaded PDF File as ${documents.length} documents`);
 
     const storageContext: SimpleStorageContext = {
       vectorStore: new SimpleVectorStore(),
@@ -81,7 +76,9 @@ export const indexPdfFile = async (params: {
       storageContext,
     });
 
-    log(`Indexed PDF File successfully as ${documents.length} documents`);
+    logger.info(
+      `Indexed PDF File successfully as ${documents.length} documents`,
+    );
 
     await persistSimpleStorageContext({
       hash: hashedUrl,
@@ -91,7 +88,7 @@ export const indexPdfFile = async (params: {
     return { vectorStoreIndex };
   }
 
-  log("Retrieved existing storage context");
+  logger.info("Retrieved existing storage context");
 
   const vectorStoreIndex = await VectorStoreIndex.init({
     storageContext: simpleStorageContext,
