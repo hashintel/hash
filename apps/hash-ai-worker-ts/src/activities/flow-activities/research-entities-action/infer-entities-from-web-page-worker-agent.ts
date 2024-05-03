@@ -598,7 +598,10 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                     "entityTypeIds" satisfies InputNameForAction<"inferEntitiesFromContent">,
                   payload: {
                     kind: "VersionedUrl",
-                    value: inferringEntitiesOfTypeIds,
+                    value: [
+                      ...inferringEntitiesOfTypeIds,
+                      ...(inferringLinkEntitiesOfTypeIds ?? []),
+                    ],
                   },
                 },
                 {

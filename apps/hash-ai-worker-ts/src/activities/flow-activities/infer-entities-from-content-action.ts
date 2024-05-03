@@ -11,7 +11,10 @@ import { StatusCode } from "@local/status";
 
 import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity";
 import { getDereferencedEntityTypesActivity } from "../get-dereferenced-entity-types-activity";
-import type { InferenceState } from "../infer-entities/inference-types";
+import type {
+  DereferencedEntityTypesByTypeId,
+  InferenceState,
+} from "../infer-entities/inference-types";
 import { inferEntitiesFromWebPageActivity } from "../infer-entities-from-web-page-activity";
 import { getFlowContext } from "../shared/get-flow-context";
 import { graphApiClient } from "../shared/graph-api-client";
@@ -57,12 +60,34 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
     };
   }
 
-  const entityTypes = await getDereferencedEntityTypesActivity({
-    entityTypeIds,
-    graphApiClient,
-    actorId: aiAssistantAccountId,
-    simplifyPropertyKeys: true,
-  });
+  const dereferencedEntityTypesWithExistingEntitiesTypes =
+    await getDereferencedEntityTypesActivity({
+      graphApiClient,
+      entityTypeIds: [
+        ...entityTypeIds,
+        /**
+         * We need to include the types of the existing entities, to correctly
+         * determine whether the links are satisfiable.
+         *
+         * @todo: address this in the `getDereferencedEntityTypesActivity` function
+         */
+        ...existingEntities.map(({ metadata }) => metadata.entityTypeId),
+      ].filter(
+        (entityTypeId, index, all) => all.indexOf(entityTypeId) === index,
+      ),
+      actorId: userAuthentication.actorId,
+      simplifyPropertyKeys: true,
+    });
+
+  const entityTypes = Object.entries(
+    dereferencedEntityTypesWithExistingEntitiesTypes,
+  ).reduce((acc, [entityTypeId, entityType]) => {
+    if (entityTypeIds.includes(entityTypeId as VersionedUrl)) {
+      acc[entityTypeId as VersionedUrl] = entityType;
+    }
+
+    return acc;
+  }, {} as DereferencedEntityTypesByTypeId);
 
   let webPageInferenceState: InferenceState = {
     iterationCount: 1,
