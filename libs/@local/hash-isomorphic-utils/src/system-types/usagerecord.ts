@@ -9,12 +9,19 @@ import type {
   AppliesUntilPropertyValue,
   DateTimeDataType,
   FeatureNamePropertyValue,
+  Flow,
+  FlowDefinitionIDPropertyValue,
+  FlowOutgoingLinkAndTarget,
+  FlowOutgoingLinksByLinkEntityTypeId,
+  FlowProperties,
   InputUnitCostPropertyValue,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
   NumberDataType,
+  ObjectDataType,
+  OutputsPropertyValue,
   OutputUnitCostPropertyValue,
   ServiceFeature,
   ServiceFeatureOutgoingLinkAndTarget,
@@ -22,7 +29,10 @@ import type {
   ServiceFeatureProperties,
   ServiceNamePropertyValue,
   ServiceUnitCostPropertyValue,
+  StepPropertyValue,
   TextDataType,
+  TriggerDefinitionIDPropertyValue,
+  TriggerPropertyValue,
 } from "./shared";
 
 export type {
@@ -30,12 +40,19 @@ export type {
   AppliesUntilPropertyValue,
   DateTimeDataType,
   FeatureNamePropertyValue,
+  Flow,
+  FlowDefinitionIDPropertyValue,
+  FlowOutgoingLinkAndTarget,
+  FlowOutgoingLinksByLinkEntityTypeId,
+  FlowProperties,
   InputUnitCostPropertyValue,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
   NumberDataType,
+  ObjectDataType,
+  OutputsPropertyValue,
   OutputUnitCostPropertyValue,
   ServiceFeature,
   ServiceFeatureOutgoingLinkAndTarget,
@@ -43,7 +60,10 @@ export type {
   ServiceFeatureProperties,
   ServiceNamePropertyValue,
   ServiceUnitCostPropertyValue,
+  StepPropertyValue,
   TextDataType,
+  TriggerDefinitionIDPropertyValue,
+  TriggerPropertyValue,
 };
 
 export type Created = Entity<CreatedProperties> & { linkData: LinkData };
@@ -59,6 +79,21 @@ export type CreatedProperties = CreatedProperties1 & CreatedProperties2;
 export type CreatedProperties1 = LinkProperties;
 
 export type CreatedProperties2 = {};
+
+export type IncurredIn = Entity<IncurredInProperties> & { linkData: LinkData };
+
+export type IncurredInOutgoingLinkAndTarget = never;
+
+export type IncurredInOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * Something that was incurred by something else.
+ */
+export type IncurredInProperties = IncurredInProperties1 &
+  IncurredInProperties2;
+export type IncurredInProperties1 = LinkProperties;
+
+export type IncurredInProperties2 = {};
 
 /**
  * How many input units were or will be used
@@ -108,13 +143,20 @@ export type UsageRecordCreatedLink = {
   rightEntity: Entity;
 };
 
+export type UsageRecordIncurredInLink = {
+  linkEntity: IncurredIn;
+  rightEntity: Flow;
+};
+
 export type UsageRecordOutgoingLinkAndTarget =
   | UsageRecordCreatedLink
+  | UsageRecordIncurredInLink
   | UsageRecordRecordsUsageOfLink
   | UsageRecordUpdatedLink;
 
 export type UsageRecordOutgoingLinksByLinkEntityTypeId = {
   "https://hash.ai/@hash/types/entity-type/created/v/1": UsageRecordCreatedLink;
+  "https://hash.ai/@hash/types/entity-type/incurred-in/v/1": UsageRecordIncurredInLink;
   "https://hash.ai/@hash/types/entity-type/records-usage-of/v/1": UsageRecordRecordsUsageOfLink;
   "https://hash.ai/@hash/types/entity-type/updated/v/1": UsageRecordUpdatedLink;
 };

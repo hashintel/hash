@@ -315,19 +315,8 @@ export const FlowDefinition = () => {
   >(startFlowMutation);
 
   const handleRunFlowClicked = useCallback(() => {
-    if (selectedFlow.trigger.outputs?.length) {
-      setShowRunModal(true);
-    } else {
-      void startFlow({
-        variables: {
-          flowDefinition: selectedFlow,
-          flowTrigger: {
-            triggerDefinitionId: "userTrigger",
-          },
-        },
-      });
-    }
-  }, [selectedFlow, startFlow]);
+    setShowRunModal(true);
+  }, []);
 
   const flowDefinitionStateKey = `${selectedFlow.name}`;
   const flowRunStateKey = `${flowDefinitionStateKey}-${selectedFlowRun?.runId ?? "definition"}`;
@@ -339,7 +328,7 @@ export const FlowDefinition = () => {
         flowDefinition={selectedFlow}
         open={showRunModal}
         onClose={() => setShowRunModal(false)}
-        runFlow={(outputs: FlowTrigger["outputs"]) => {
+        runFlow={(outputs: FlowTrigger["outputs"], webId) => {
           void startFlow({
             variables: {
               flowDefinition: selectedFlow,
@@ -347,6 +336,7 @@ export const FlowDefinition = () => {
                 outputs,
                 triggerDefinitionId: "userTrigger",
               },
+              webId,
             },
           });
           setShowRunModal(false);

@@ -1,5 +1,11 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import type { Entity } from "@local/hash-subgraph";
+import type { GraphApi } from "@local/hash-graph-client";
+import type {
+  AccountId,
+  Entity,
+  EntityId,
+  OwnedById,
+} from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
@@ -36,6 +42,16 @@ export const inferEntitySummaries = async (params: {
   inferenceState: InferenceState;
   providedOrRerequestedEntityTypes: Set<VersionedUrl>;
   existingEntities?: Entity[];
+  /**
+   * @todo: remove these parameters when the `inferEntities` activity has
+   * been deprecated, and access them via `getFlowContext` instead.
+   *
+   * @see https://linear.app/hash/issue/H-2621/remove-superfluous-parameters-in-flow-activity-methods-and-use
+   */
+  userAccountId: AccountId;
+  graphApiClient: GraphApi;
+  flowEntityId?: EntityId;
+  webId: OwnedById;
 }): Promise<Status<InferenceState>> => {
   const {
     completionPayload,
@@ -43,6 +59,10 @@ export const inferEntitySummaries = async (params: {
     inferenceState,
     providedOrRerequestedEntityTypes,
     existingEntities,
+    userAccountId,
+    graphApiClient,
+    flowEntityId,
+    webId,
   } = params;
 
   const { iterationCount, usage: usageFromPreviousIterations } = inferenceState;
@@ -69,19 +89,28 @@ export const inferEntitySummaries = async (params: {
       !!existingEntities && existingEntities.length > 0,
   });
 
-  const llmResponse = await getLlmResponse({
-    ...completionPayload,
-    systemPrompt: inferEntitiesSystemPrompt,
-    messages: mapOpenAiMessagesToLlmMessages({
-      messages: completionPayload.messages,
-    }),
-    tools,
-  });
+  const llmResponse = await getLlmResponse(
+    {
+      ...completionPayload,
+      systemPrompt: inferEntitiesSystemPrompt,
+      messages: mapOpenAiMessagesToLlmMessages({
+        messages: completionPayload.messages,
+      }),
+      tools,
+    },
+    {
+      userAccountId,
+      graphApiClient,
+      incurredInEntities: flowEntityId ? [{ entityId: flowEntityId }] : [],
+      webId,
+    },
+  );
 
   if (llmResponse.status !== "ok") {
     return {
       code: StatusCode.Internal,
       contents: [],
+      message: `Error getting LLM response: ${"message" in llmResponse ? llmResponse.message : llmResponse.status}`,
     };
   }
 
@@ -293,9 +322,9 @@ export const inferEntitySummaries = async (params: {
 
         retryMessages.push({
           content: dedent(`
-            You did not suggest any ${missingContentKinds} of the following types: ${typesWithNoSuggestionsToRerequest.join(
-              ", ",
-            )}.
+            You did not suggest any ${missingContentKinds} of the following types: ${typesWithNoSuggestionsToRerequest
+              .map(({ schema }) => schema.$id)
+              .join(", ")}.
             
             Please reconsider the input text to see if you can identify any ${missingContentKinds} of those types${existingEntities && existingEntities.length > 0 && isMissingLinks ? ", including whether any links can be created to the existing entities provided." : "."}
           `),

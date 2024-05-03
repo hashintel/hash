@@ -182,7 +182,12 @@ export const startFlowMutation = gql`
   mutation startFlow(
     $flowTrigger: FlowTrigger!
     $flowDefinition: FlowDefinition!
+    $webId: OwnedById!
   ) {
-    startFlow(flowTrigger: $flowTrigger, flowDefinition: $flowDefinition)
+    startFlow(
+      flowTrigger: $flowTrigger
+      flowDefinition: $flowDefinition
+      webId: $webId
+    )
   }
 `;

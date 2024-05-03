@@ -1,5 +1,4 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { GraphApi } from "@local/hash-graph-client";
 import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 import {
   getSimplifiedActionInputs,
@@ -14,13 +13,15 @@ import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-
 import { getDereferencedEntityTypesActivity } from "../get-dereferenced-entity-types-activity";
 import type { InferenceState } from "../infer-entities/inference-types";
 import { inferEntitiesFromWebPageActivity } from "../infer-entities-from-web-page-activity";
+import { getFlowContext } from "../shared/get-flow-context";
+import { graphApiClient } from "../shared/graph-api-client";
 import { mapActionInputEntitiesToEntities } from "../shared/map-action-input-entities-to-entities";
 import { modelAliasToSpecificModel } from "../shared/openai-client";
 import type { FlowActionActivity } from "./types";
 
-export const inferEntitiesFromContentAction: FlowActionActivity<{
-  graphApiClient: GraphApi;
-}> = async ({ inputs, graphApiClient, userAuthentication }) => {
+export const inferEntitiesFromContentAction: FlowActionActivity = async ({
+  inputs,
+}) => {
   const {
     content,
     entityTypeIds,
@@ -35,6 +36,8 @@ export const inferEntitiesFromContentAction: FlowActionActivity<{
   const existingEntities = inputExistingEntities
     ? mapActionInputEntitiesToEntities({ inputEntities: inputExistingEntities })
     : [];
+
+  const { userAuthentication } = await getFlowContext();
 
   const aiAssistantAccountId = await getAiAssistantAccountIdActivity({
     authentication: userAuthentication,
@@ -79,10 +82,8 @@ export const inferEntitiesFromContentAction: FlowActionActivity<{
   }
 
   const status = await inferEntitiesFromWebPageActivity({
-    graphApiClient,
     webPage: content,
     relevantEntitiesPrompt,
-    validationActorId: userAuthentication.actorId,
     model: modelAliasToSpecificModel[model],
     entityTypes,
     inferenceState: webPageInferenceState,

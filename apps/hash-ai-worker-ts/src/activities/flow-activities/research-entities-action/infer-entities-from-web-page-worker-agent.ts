@@ -1,6 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
-import type { GraphApi } from "@local/hash-graph-client";
 import type {
   InputNameForAction,
   OutputNameForAction,
@@ -10,13 +9,14 @@ import type {
   ProposedEntity,
   StepInput,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type { AccountId, Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
 import { logger } from "../../shared/activity-logger";
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
+import { getFlowContext } from "../../shared/get-flow-context";
 import { getLlmResponse } from "../../shared/get-llm-response";
 import type {
   LlmMessage,
@@ -30,6 +30,7 @@ import type {
   LlmToolDefinition,
   ParsedLlmToolCall,
 } from "../../shared/get-llm-response/types";
+import { graphApiClient } from "../../shared/graph-api-client";
 import type { PermittedOpenAiModel } from "../../shared/openai-client";
 import { stringify } from "../../shared/stringify";
 import { inferEntitiesFromContentAction } from "../infer-entities-from-content-action";
@@ -396,12 +397,22 @@ const createInitialPlan = async (params: {
     ...(retryMessages ?? []),
   ];
 
-  const llmResponse = await getLlmResponse({
-    systemPrompt,
-    messages,
-    model,
-    tools: Object.values(toolDefinitions),
-  });
+  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
+
+  const llmResponse = await getLlmResponse(
+    {
+      systemPrompt,
+      messages,
+      model,
+      tools: Object.values(toolDefinitions),
+    },
+    {
+      userAccountId: userAuthentication.actorId,
+      graphApiClient,
+      incurredInEntities: [{ entityId: flowEntityId }],
+      webId,
+    },
+  );
 
   if (llmResponse.status !== "ok") {
     throw new Error(
@@ -508,12 +519,22 @@ const getNextToolCalls = async (params: {
     }),
   ];
 
-  const llmResponse = await getLlmResponse({
-    systemPrompt,
-    messages,
-    model,
-    tools: Object.values(toolDefinitions),
-  });
+  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
+
+  const llmResponse = await getLlmResponse(
+    {
+      systemPrompt,
+      messages,
+      model,
+      tools: Object.values(toolDefinitions),
+    },
+    {
+      userAccountId: userAuthentication.actorId,
+      graphApiClient,
+      incurredInEntities: [{ entityId: flowEntityId }],
+      webId,
+    },
+  );
 
   if (llmResponse.status !== "ok") {
     throw new Error(
@@ -536,14 +557,12 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
   linkEntityTypes?: DereferencedEntityType[];
   url: string;
   existingEntities?: Entity[];
-  userAuthentication: { actorId: AccountId };
-  graphApiClient: GraphApi;
 }): Promise<
   Status<{
     inferredEntities: ProposedEntity[];
   }>
 > => {
-  const { userAuthentication, graphApiClient, url, existingEntities } = params;
+  const { url, existingEntities } = params;
 
   /**
    * We start by making a asking the coordinator agent to create an initial plan
@@ -802,8 +821,6 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                       : [],
                 ),
               ],
-              userAuthentication,
-              graphApiClient,
             });
 
             if (response.code !== StatusCode.Ok) {
