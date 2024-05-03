@@ -14,7 +14,7 @@ serde = { version = "1.0.199", features = ["derive"] }
 time = { workspace = true, features = ["serde", "std"] }
 tracing = { workspace = true }
 
-futures = "0.3"
+futures = "0.3.30"
 tarpc = { version = "0.33", features = ["tokio1"] }
 tokio = { workspace = true, features = ["macros"] }
 
