@@ -26,6 +26,7 @@ import { google } from "googleapis";
 
 import { getEntityByFilter } from "../shared/get-entity-by-filter";
 import { getFlowContext } from "../shared/get-flow-context";
+import { graphApiClient } from "../shared/graph-api-client";
 import { getEntityUpdate } from "./shared/graph-requests";
 import type { FlowActionActivity } from "./types";
 import { convertCsvToSheetRequests } from "./write-google-sheet-action/convert-csv-to-sheet-requests";
@@ -70,7 +71,7 @@ type ActivityHeartbeatDetails = {
 export const writeGoogleSheetAction: FlowActionActivity<{
   vaultClient: VaultClient;
 }> = async ({ inputs, vaultClient }) => {
-  const { graphApiClient, userAuthentication, webId } = await getFlowContext();
+  const { userAuthentication, webId } = await getFlowContext();
 
   const { audience, dataToWrite, googleAccountId, googleSheet } =
     getSimplifiedActionInputs({

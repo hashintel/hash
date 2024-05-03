@@ -1,4 +1,3 @@
-import type { GraphApi } from "@local/hash-graph-client";
 import { mapFlowToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
 import type { Flow } from "@local/hash-isomorphic-utils/flows/types";
 import {
@@ -11,7 +10,7 @@ import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph
 import type { FlowProperties } from "@local/hash-isomorphic-utils/system-types/flow";
 import type { AccountId, Entity, EntityUuid } from "@local/hash-subgraph";
 
-import { getFlowContext } from "../shared/get-flow-context";
+import { graphApiClient } from "../shared/graph-api-client";
 
 type PersistFlowActivityParams = {
   flow: Flow;
@@ -19,11 +18,10 @@ type PersistFlowActivityParams = {
 };
 
 const getExistingFlowEntity = async (params: {
-  graphApiClient: GraphApi;
   flowId: EntityUuid;
   userAuthentication: { actorId: AccountId };
 }): Promise<Entity<FlowProperties> | null> => {
-  const { flowId, userAuthentication, graphApiClient } = params;
+  const { flowId, userAuthentication } = params;
 
   const [existingFlowEntity] = await graphApiClient
     .getEntities(userAuthentication.actorId, {
@@ -59,14 +57,11 @@ export const persistFlowActivity = async (
 ) => {
   const { flow, userAuthentication } = params;
 
-  const { graphApiClient } = await getFlowContext();
-
   const { flowId } = flow;
 
   const flowProperties = mapFlowToEntityProperties(flow);
 
   const existingFlowEntity = await getExistingFlowEntity({
-    graphApiClient,
     flowId,
     userAuthentication,
   });

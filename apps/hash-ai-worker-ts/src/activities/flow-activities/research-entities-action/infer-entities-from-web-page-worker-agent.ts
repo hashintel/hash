@@ -30,6 +30,7 @@ import type {
   LlmToolDefinition,
   ParsedLlmToolCall,
 } from "../../shared/get-llm-response/types";
+import { graphApiClient } from "../../shared/graph-api-client";
 import type { PermittedOpenAiModel } from "../../shared/openai-client";
 import { stringify } from "../../shared/stringify";
 import { inferEntitiesFromContentAction } from "../infer-entities-from-content-action";
@@ -396,8 +397,7 @@ const createInitialPlan = async (params: {
     ...(retryMessages ?? []),
   ];
 
-  const { userAuthentication, graphApiClient, flowEntityId, webId } =
-    await getFlowContext();
+  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -519,8 +519,7 @@ const getNextToolCalls = async (params: {
     }),
   ];
 
-  const { userAuthentication, graphApiClient, flowEntityId, webId } =
-    await getFlowContext();
+  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {

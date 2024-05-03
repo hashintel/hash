@@ -1,4 +1,5 @@
 import { getFlowContext } from "../shared/get-flow-context";
+import { graphApiClient } from "../shared/graph-api-client";
 
 /**
  * Check whether a user has permission to run a flow in a web, which
@@ -14,7 +15,7 @@ export const userHasPermissionToRunFlowInWebActivity = async (): Promise<
       missingPermissions: "create_entity"[];
     }
 > => {
-  const { graphApiClient, userAuthentication, webId } = await getFlowContext();
+  const { userAuthentication, webId } = await getFlowContext();
 
   const {
     data: { has_permission: canCreateEntities },

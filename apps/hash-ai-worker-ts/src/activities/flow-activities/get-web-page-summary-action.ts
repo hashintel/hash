@@ -10,6 +10,7 @@ import { getWebPageActivity } from "../get-web-page-activity";
 import { getFlowContext } from "../shared/get-flow-context";
 import { getLlmResponse } from "../shared/get-llm-response";
 import { getTextContentFromLlmMessage } from "../shared/get-llm-response/llm-message";
+import { graphApiClient } from "../shared/graph-api-client";
 import { modelAliasToSpecificModel } from "../shared/openai-client";
 import type { FlowActionActivity } from "./types";
 
@@ -45,8 +46,7 @@ export const getWebPageSummaryAction: FlowActionActivity = async ({
     numberOfSentences: numberOfSentences!,
   });
 
-  const { userAuthentication, graphApiClient, flowEntityId, webId } =
-    await getFlowContext();
+  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {

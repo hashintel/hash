@@ -1,8 +1,5 @@
-import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { parseHistoryItemPayload } from "@local/hash-backend-utils/temporal/parse-history-item-payload";
-import type { GraphApi } from "@local/hash-graph-client";
-import { getRequiredEnv } from "@local/hash-isomorphic-utils/environment";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type {
   AccountId,
@@ -13,8 +10,6 @@ import type {
 import { entityIdFromComponents } from "@local/hash-subgraph";
 import { Context } from "@temporalio/activity";
 import { caching } from "cache-manager";
-
-import { logToConsole } from "../../shared/logger";
 
 const temporalClient = await createTemporalClient();
 
@@ -97,15 +92,9 @@ const getPartialRunFlowWorkflowParams = async (params: {
 
 type FlowContext = {
   flowEntityId: EntityId;
-  graphApiClient: GraphApi;
   userAuthentication: { actorId: AccountId };
   webId: OwnedById;
 };
-
-const graphApiClient = createGraphClient(logToConsole, {
-  host: getRequiredEnv("HASH_GRAPH_API_HOST"),
-  port: parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10),
-});
 
 /**
  * Get the context of the flow that is currently being executed
@@ -130,5 +119,5 @@ export const getFlowContext = async (): Promise<FlowContext> => {
     workflowId as EntityUuid,
   );
 
-  return { userAuthentication, graphApiClient, flowEntityId, webId };
+  return { userAuthentication, flowEntityId, webId };
 };

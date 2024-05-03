@@ -34,6 +34,7 @@ import { Context } from "@temporalio/activity";
 import mime from "mime-types";
 
 import { getFlowContext } from "../shared/get-flow-context";
+import { graphApiClient } from "../shared/graph-api-client";
 import { logProgress } from "../shared/log-progress";
 import type { FlowActionActivity } from "./types";
 
@@ -119,7 +120,7 @@ const writeFileToS3URL = async ({
 };
 
 export const getFileFromUrlAction: FlowActionActivity = async ({ inputs }) => {
-  const { userAuthentication, graphApiClient } = await getFlowContext();
+  const { userAuthentication } = await getFlowContext();
 
   const {
     description,

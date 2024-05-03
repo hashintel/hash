@@ -14,6 +14,7 @@ import { getDereferencedEntityTypesActivity } from "../get-dereferenced-entity-t
 import type { InferenceState } from "../infer-entities/inference-types";
 import { inferEntitiesFromWebPageActivity } from "../infer-entities-from-web-page-activity";
 import { getFlowContext } from "../shared/get-flow-context";
+import { graphApiClient } from "../shared/graph-api-client";
 import { mapActionInputEntitiesToEntities } from "../shared/map-action-input-entities-to-entities";
 import { modelAliasToSpecificModel } from "../shared/openai-client";
 import type { FlowActionActivity } from "./types";
@@ -36,7 +37,7 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
     ? mapActionInputEntitiesToEntities({ inputEntities: inputExistingEntities })
     : [];
 
-  const { graphApiClient, userAuthentication } = await getFlowContext();
+  const { userAuthentication } = await getFlowContext();
 
   const aiAssistantAccountId = await getAiAssistantAccountIdActivity({
     authentication: userAuthentication,

@@ -17,13 +17,13 @@ import {
   findExistingLinkEntity,
 } from "../shared/find-existing-entity";
 import { getFlowContext } from "../shared/get-flow-context";
+import { graphApiClient } from "../shared/graph-api-client";
 import { logProgress } from "../shared/log-progress";
 import { getEntityUpdate } from "./shared/graph-requests";
 import type { FlowActionActivity } from "./types";
 
 export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
   const {
-    graphApiClient,
     userAuthentication: { actorId },
     webId,
   } = await getFlowContext();

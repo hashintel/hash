@@ -15,6 +15,7 @@ import type {
   LlmUserMessage,
 } from "../shared/get-llm-response/llm-message";
 import { getToolCallsFromLlmAssistantMessage } from "../shared/get-llm-response/llm-message";
+import { graphApiClient } from "../shared/graph-api-client";
 import { logProgress } from "../shared/log-progress";
 import { stringify } from "../shared/stringify";
 import { inferEntitiesSystemPrompt } from "./infer-entities-system-prompt";
@@ -179,8 +180,7 @@ export const proposeEntities = async (params: {
 
   logger.debug(`Next messages to model: ${stringify(messages)}`);
 
-  const { userAuthentication, graphApiClient, flowEntityId, webId } =
-    await getFlowContext();
+  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {

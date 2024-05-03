@@ -7,6 +7,7 @@ import { getFlowContext } from "../shared/get-flow-context";
 import { getLlmResponse } from "../shared/get-llm-response";
 import { getToolCallsFromLlmAssistantMessage } from "../shared/get-llm-response/llm-message";
 import type { LlmToolDefinition } from "../shared/get-llm-response/types";
+import { graphApiClient } from "../shared/graph-api-client";
 import { modelAliasToSpecificModel } from "../shared/openai-client";
 import type { FlowActionActivity } from "./types";
 
@@ -54,8 +55,7 @@ export const generateWebQueriesAction: FlowActionActivity = async ({
     };
   }
 
-  const { userAuthentication, graphApiClient, flowEntityId, webId } =
-    await getFlowContext();
+  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {

@@ -19,6 +19,7 @@ import {
   getToolCallsFromLlmAssistantMessage,
 } from "../../shared/get-llm-response/llm-message";
 import type { ParsedLlmToolCall } from "../../shared/get-llm-response/types";
+import { graphApiClient } from "../../shared/graph-api-client";
 import { mapActionInputEntitiesToEntities } from "../../shared/map-action-input-entities-to-entities";
 import type { PermittedOpenAiModel } from "../../shared/openai-client";
 import type { CoordinatorToolName } from "./coordinator-tools";
@@ -155,8 +156,7 @@ const getNextToolCalls = async (params: {
 
   const tools = Object.values(coordinatorToolDefinitions);
 
-  const { graphApiClient, userAuthentication, flowEntityId, webId } =
-    await getFlowContext();
+  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -201,8 +201,7 @@ const createInitialPlan = async (params: {
     This should be a list of steps in plain English.
   `);
 
-  const { graphApiClient, userAuthentication, flowEntityId, webId } =
-    await getFlowContext();
+  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -256,7 +255,7 @@ const parseCoordinatorInputs = async (params: {
     actionType: "researchEntities",
   });
 
-  const { graphApiClient, userAuthentication } = await getFlowContext();
+  const { userAuthentication } = await getFlowContext();
 
   const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
     graphApiClient,

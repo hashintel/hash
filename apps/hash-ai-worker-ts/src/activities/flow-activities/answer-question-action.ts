@@ -33,6 +33,7 @@ import {
   mapOpenAiMessagesToLlmMessages,
 } from "../shared/get-llm-response/llm-message";
 import type { LlmToolDefinition } from "../shared/get-llm-response/types";
+import { graphApiClient } from "../shared/graph-api-client";
 
 const answerTools: LlmToolDefinition[] = [
   {
@@ -159,8 +160,7 @@ const callModel = async (
     outputs: StepOutput[];
   }>
 > => {
-  const { flowEntityId, graphApiClient, userAuthentication, webId } =
-    await getFlowContext();
+  const { flowEntityId, userAuthentication, webId } = await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -411,7 +411,7 @@ export const answerQuestionAction: FlowActionActivity = async ({ inputs }) => {
   let contextFilePath;
   let contextToUpload;
 
-  const { graphApiClient, userAuthentication } = await getFlowContext();
+  const { userAuthentication } = await getFlowContext();
 
   if (entities) {
     /**

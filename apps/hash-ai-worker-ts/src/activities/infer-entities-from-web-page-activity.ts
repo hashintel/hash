@@ -11,6 +11,7 @@ import type {
 import { proposeEntities } from "./infer-entities/propose-entities";
 import { logger } from "./shared/activity-logger";
 import { getFlowContext } from "./shared/get-flow-context";
+import { graphApiClient } from "./shared/graph-api-client";
 import type { PermittedOpenAiModel } from "./shared/openai-client";
 import { simplifyEntity } from "./shared/simplify-entity";
 import { stringify } from "./shared/stringify";
@@ -36,7 +37,7 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     existingEntities,
   } = params;
 
-  const { graphApiClient, webId, userAuthentication } = await getFlowContext();
+  const { webId, userAuthentication } = await getFlowContext();
 
   /**
    * Inference step 1: get a list of entities that can be inferred from the input text, without property details
