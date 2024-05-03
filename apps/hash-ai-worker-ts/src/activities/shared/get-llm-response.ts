@@ -724,11 +724,6 @@ export const getLlmResponse = async <T extends LlmParams>(
     };
   }
 
-  /**
-   * @todo: use the machine actor here directly instead, if the the AI machine
-   * actor is not longer needed to identify which actions were done by an AI
-   * as this will be available in provenance metadata.
-   */
   const aiAssistantAccountId = await getAiAssistantAccountIdActivity({
     authentication: { actorId: userAccountId },
     grantCreatePermissionForWeb: webId,
