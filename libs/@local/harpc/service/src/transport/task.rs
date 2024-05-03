@@ -14,6 +14,7 @@ use tokio_util::sync::CancellationToken;
 use super::{
     behaviour::{TransportBehaviour, TransportBehaviourEvent, TransportSwarm},
     error::TransportError,
+    PROTOCOL_NAME,
 };
 use crate::config::Config;
 
@@ -64,7 +65,7 @@ impl Task {
             .with_behaviour(|keys| TransportBehaviour {
                 stream: stream::Behaviour::new(),
                 identify: identify::Behaviour::new(identify::Config::new(
-                    "harpc/1.0.0".to_owned(),
+                    PROTOCOL_NAME.to_string(),
                     keys.public(),
                 )),
                 ping: ping::Behaviour::new(config.ping),
@@ -89,25 +90,32 @@ impl Task {
         self.tx.clone()
     }
 
-    async fn handle_command(&mut self, command: Command) {
-        // TODO
+    fn handle_command(&mut self, command: Command) {
+        match command {
+            Command::IssueControl { tx } => {
+                let control = self.swarm.behaviour().stream.new_control();
+
+                if tx.send(control).is_err() {
+                    tracing::error!("failed to send issued control to the caller");
+                }
+            }
+        }
     }
 
-    async fn handle_event(&mut self, event: SwarmEvent<TransportBehaviourEvent>) {
+    fn handle_event(&mut self, event: SwarmEvent<TransportBehaviourEvent>) {
         tracing::debug!(?event, "received swarm event");
     }
 
+    #[allow(clippy::integer_division_remainder_used)]
     pub(crate) async fn run(mut self, cancel: CancellationToken) -> Result<(), TransportError> {
         loop {
             select! {
-                Some(command) = self.rx.recv() => self.handle_command(command).await,
-                Some(event) = self.swarm.next() => self.handle_event(event).await,
+                Some(command) = self.rx.recv() => self.handle_command(command),
+                Some(event) = self.swarm.next() => self.handle_event(event),
                 _ = cancel.cancelled() => break,
             }
         }
 
         Ok(())
     }
-
-    // TODO: recv, send, dial (?), where recv splits out a stream of wire-protocol messages.
 }

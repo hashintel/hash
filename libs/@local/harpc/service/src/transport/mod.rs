@@ -25,7 +25,7 @@ use self::{
 };
 use crate::config::Config;
 
-const STREAM_PROTOCOL: StreamProtocol = StreamProtocol::new("/harpc");
+const PROTOCOL_NAME: StreamProtocol = StreamProtocol::new("/harpc/1.0.0");
 
 pub struct TransportLayer {
     tx: mpsc::Sender<self::task::Command>,
@@ -77,7 +77,7 @@ impl TransportLayer {
         let mut control = self.control().await?;
 
         let incoming = control
-            .accept(STREAM_PROTOCOL)
+            .accept(PROTOCOL_NAME)
             .change_context(TransportError)?;
 
         Ok(incoming.map(|(peer, stream)| {
@@ -104,7 +104,7 @@ impl TransportLayer {
         let mut control = self.control().await?;
 
         let stream = control
-            .open_stream(peer, STREAM_PROTOCOL)
+            .open_stream(peer, PROTOCOL_NAME)
             .await
             .map_err(OpenStreamError::new)
             .change_context(TransportError)?;

@@ -52,10 +52,20 @@ impl SwarmConfig {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Config {
     pub ping: ping::Config,
     pub swarm: SwarmConfig,
 
     pub command_buffer_size: NonZero<usize>,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            ping: ping::Config::new(),
+            swarm: SwarmConfig::default(),
+            command_buffer_size: NonZero::new(16).expect("infallible"),
+        }
+    }
 }
