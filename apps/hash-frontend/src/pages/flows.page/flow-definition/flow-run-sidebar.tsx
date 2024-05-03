@@ -247,8 +247,8 @@ const GroupStatus = ({
                 groupStatus === "In Progress"
                   ? palette.blue[70]
                   : groupStatus === "Error"
-                  ? palette.error.main
-                  : palette.common.black,
+                    ? palette.error.main
+                    : palette.common.black,
             }}
           >
             {timeTaken}

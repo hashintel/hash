@@ -107,12 +107,12 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
               {stepStatusName === "Complete"
                 ? "Successfully completed"
                 : stepStatusName === "In Progress"
-                ? "Currently processing step..."
-                : stepStatusName === "Error"
-                ? "Step failed to complete"
-                : stepStatusName === "Cancelled"
-                ? "Cancelled"
-                : "Waiting for earlier stages to finish"}
+                  ? "Currently processing step..."
+                  : stepStatusName === "Error"
+                    ? "Step failed to complete"
+                    : stepStatusName === "Cancelled"
+                      ? "Cancelled"
+                      : "Waiting for earlier stages to finish"}
             </Typography>
           </Box>
         )}
