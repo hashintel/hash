@@ -5,7 +5,7 @@ use crate::store::{
     NullOrdering, Ordering,
 };
 
-#[derive(Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct WhereExpression {
     conditions: Vec<Condition>,
     cursor: Vec<(

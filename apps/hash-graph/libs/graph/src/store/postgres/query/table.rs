@@ -302,7 +302,7 @@ impl Table {
         AliasedTable { table: self, alias }
     }
 
-    const fn as_str(self) -> &'static str {
+    pub const fn as_str(self) -> &'static str {
         match self {
             Self::OntologyIds => "ontology_ids",
             Self::OntologyTemporalMetadata => "ontology_temporal_metadata",
@@ -1299,6 +1299,162 @@ pub enum Column {
     EntityProperties(EntityProperties),
     EntityHasLeftEntity(EntityHasLeftEntity),
     EntityHasRightEntity(EntityHasRightEntity),
+}
+
+impl From<OntologyIds> for Column {
+    fn from(column: OntologyIds) -> Self {
+        Self::OntologyIds(column)
+    }
+}
+
+impl From<OntologyTemporalMetadata> for Column {
+    fn from(column: OntologyTemporalMetadata) -> Self {
+        Self::OntologyTemporalMetadata(column)
+    }
+}
+
+impl From<OntologyOwnedMetadata> for Column {
+    fn from(column: OntologyOwnedMetadata) -> Self {
+        Self::OntologyOwnedMetadata(column)
+    }
+}
+
+impl From<OntologyExternalMetadata> for Column {
+    fn from(column: OntologyExternalMetadata) -> Self {
+        Self::OntologyExternalMetadata(column)
+    }
+}
+
+impl From<OntologyAdditionalMetadata> for Column {
+    fn from(column: OntologyAdditionalMetadata) -> Self {
+        Self::OntologyAdditionalMetadata(column)
+    }
+}
+
+impl From<DataTypes> for Column {
+    fn from(column: DataTypes) -> Self {
+        Self::DataTypes(column)
+    }
+}
+
+impl From<DataTypeEmbeddings> for Column {
+    fn from(column: DataTypeEmbeddings) -> Self {
+        Self::DataTypeEmbeddings(column)
+    }
+}
+
+impl From<PropertyTypes> for Column {
+    fn from(column: PropertyTypes) -> Self {
+        Self::PropertyTypes(column)
+    }
+}
+
+impl From<PropertyTypeEmbeddings> for Column {
+    fn from(column: PropertyTypeEmbeddings) -> Self {
+        Self::PropertyTypeEmbeddings(column)
+    }
+}
+
+impl From<EntityTypes> for Column {
+    fn from(column: EntityTypes) -> Self {
+        Self::EntityTypes(column)
+    }
+}
+
+impl From<EntityTypeEmbeddings> for Column {
+    fn from(column: EntityTypeEmbeddings) -> Self {
+        Self::EntityTypeEmbeddings(column)
+    }
+}
+
+impl From<EntityIds> for Column {
+    fn from(column: EntityIds) -> Self {
+        Self::EntityIds(column)
+    }
+}
+
+impl From<EntityTemporalMetadata> for Column {
+    fn from(column: EntityTemporalMetadata) -> Self {
+        Self::EntityTemporalMetadata(column)
+    }
+}
+
+impl From<EntityEditions> for Column {
+    fn from(column: EntityEditions) -> Self {
+        Self::EntityEditions(column)
+    }
+}
+
+impl From<EntityEmbeddings> for Column {
+    fn from(column: EntityEmbeddings) -> Self {
+        Self::EntityEmbeddings(column)
+    }
+}
+
+impl From<PropertyTypeConstrainsValuesOn> for Column {
+    fn from(column: PropertyTypeConstrainsValuesOn) -> Self {
+        Self::PropertyTypeConstrainsValuesOn(column)
+    }
+}
+
+impl From<PropertyTypeConstrainsPropertiesOn> for Column {
+    fn from(column: PropertyTypeConstrainsPropertiesOn) -> Self {
+        Self::PropertyTypeConstrainsPropertiesOn(column)
+    }
+}
+
+impl From<EntityTypeConstrainsPropertiesOn> for Column {
+    fn from(column: EntityTypeConstrainsPropertiesOn) -> Self {
+        Self::EntityTypeConstrainsPropertiesOn(column, None)
+    }
+}
+
+impl From<EntityTypeInheritsFrom> for Column {
+    fn from(column: EntityTypeInheritsFrom) -> Self {
+        Self::EntityTypeInheritsFrom(column, None)
+    }
+}
+
+impl From<EntityTypeConstrainsLinksOn> for Column {
+    fn from(column: EntityTypeConstrainsLinksOn) -> Self {
+        Self::EntityTypeConstrainsLinksOn(column, None)
+    }
+}
+
+impl From<EntityTypeConstrainsLinkDestinationsOn> for Column {
+    fn from(column: EntityTypeConstrainsLinkDestinationsOn) -> Self {
+        Self::EntityTypeConstrainsLinkDestinationsOn(column, None)
+    }
+}
+
+impl From<EntityIsOfType> for Column {
+    fn from(column: EntityIsOfType) -> Self {
+        Self::EntityIsOfType(column, None)
+    }
+}
+
+impl From<EntityIsOfTypeIds> for Column {
+    fn from(column: EntityIsOfTypeIds) -> Self {
+        Self::EntityIsOfTypeIds(column)
+    }
+}
+
+impl From<EntityProperties> for Column {
+    fn from(column: EntityProperties) -> Self {
+        Self::EntityProperties(column)
+    }
+}
+
+impl From<EntityHasLeftEntity> for Column {
+    fn from(column: EntityHasLeftEntity) -> Self {
+        Self::EntityHasLeftEntity(column)
+    }
+}
+
+impl From<EntityHasRightEntity> for Column {
+    fn from(column: EntityHasRightEntity) -> Self {
+        Self::EntityHasRightEntity(column)
+    }
 }
 
 impl Column {

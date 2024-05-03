@@ -2,13 +2,13 @@ use std::fmt::{self, Write};
 
 use crate::store::postgres::query::{Statement, Table, Transpile};
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CommonTableExpression {
     table: Table,
     statement: Statement,
 }
 
-#[derive(Default, Debug, PartialEq, Eq, Hash)]
+#[derive(Default, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct WithExpression {
     common_table_expressions: Vec<CommonTableExpression>,
 }
@@ -56,6 +56,7 @@ mod tests {
     use super::*;
     use crate::store::postgres::query::{
         expression::{GroupByExpression, OrderByExpression},
+        statement::FromItem,
         test_helper::{max_version_expression, trim_whitespace},
         Alias, Expression, SelectExpression, SelectStatement, WhereExpression,
     };
@@ -74,11 +75,14 @@ mod tests {
                     SelectExpression::new(Expression::Asterisk, None),
                     SelectExpression::new(max_version_expression(), Some("latest_version")),
                 ],
-                from: Table::OntologyIds.aliased(Alias {
-                    condition_index: 0,
-                    chain_depth: 0,
-                    number: 0,
-                }),
+                from: FromItem::Table {
+                    table: Table::OntologyIds,
+                    alias: Some(Alias {
+                        condition_index: 0,
+                        chain_depth: 0,
+                        number: 0,
+                    }),
+                },
                 joins: vec![],
                 where_expression: WhereExpression::default(),
                 order_by_expression: OrderByExpression::default(),
@@ -101,11 +105,14 @@ mod tests {
                 with: WithExpression::default(),
                 distinct: Vec::new(),
                 selects: vec![SelectExpression::new(Expression::Asterisk, None)],
-                from: Table::DataTypes.aliased(Alias {
-                    condition_index: 3,
-                    chain_depth: 4,
-                    number: 5,
-                }),
+                from: FromItem::Table {
+                    table: Table::DataTypes,
+                    alias: Some(Alias {
+                        condition_index: 3,
+                        chain_depth: 4,
+                        number: 5,
+                    }),
+                },
                 joins: vec![],
                 where_expression: WhereExpression::default(),
                 order_by_expression: OrderByExpression::default(),

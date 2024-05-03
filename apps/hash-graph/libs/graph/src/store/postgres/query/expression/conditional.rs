@@ -2,7 +2,8 @@ use std::fmt::{self, Display, Formatter, Write};
 
 use crate::store::{
     postgres::query::{
-        table::DatabaseColumn, Alias, AliasedTable, Column, Table, Transpile, WindowStatement,
+        table::DatabaseColumn, Alias, AliasedTable, Column, SelectStatement, Table, Transpile,
+        WindowStatement,
     },
     query::PathToken,
 };
@@ -20,6 +21,7 @@ pub enum Function {
     JsonPathQueryFirst(Box<Expression>, Box<Expression>),
     Lower(Box<Expression>),
     Upper(Box<Expression>),
+    Unnest(Box<Expression>),
     Now,
 }
 
@@ -98,6 +100,11 @@ impl Transpile for Function {
                 expression.transpile(fmt)?;
                 fmt.write_char(')')
             }
+            Self::Unnest(expression) => {
+                fmt.write_str("UNNEST(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
             Self::JsonPathQueryFirst(target, path) => {
                 fmt.write_str("jsonb_path_query_first(")?;
                 target.transpile(fmt)?;
@@ -128,9 +135,24 @@ impl Transpile for Constant {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PostgresType {
+    Array(Box<Self>),
     Row(Table),
     Text,
     JsonPath,
+}
+
+impl Transpile for PostgresType {
+    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Array(inner) => {
+                inner.transpile(fmt)?;
+                fmt.write_str("[]")
+            }
+            Self::Row(table) => table.transpile(fmt),
+            Self::Text => fmt.write_str("text"),
+            Self::JsonPath => fmt.write_str("jsonpath"),
+        }
+    }
 }
 
 /// A compiled expression in Postgres.
@@ -142,6 +164,10 @@ pub enum Expression {
         column: Column,
         table_alias: Option<Alias>,
     },
+    TableReference {
+        table: Table,
+        alias: Option<Alias>,
+    },
     /// A parameter are transpiled as a placeholder, e.g. `$1`, in order to prevent SQL injection.
     Parameter(usize),
     /// [`Constant`]s are directly transpiled into the SQL query. Caution has to be taken to
@@ -151,6 +177,8 @@ pub enum Expression {
     CosineDistance(Box<Self>, Box<Self>),
     Window(Box<Self>, WindowStatement),
     Cast(Box<Self>, PostgresType),
+    FieldAccess(Box<Self>, Box<Self>),
+    Select(Box<SelectStatement>),
 }
 
 impl Transpile for Expression {
@@ -170,6 +198,17 @@ impl Transpile for Expression {
                 }
                 write!(fmt, r#"."{}""#, column.as_str())
             }
+            Self::TableReference { table, alias } => {
+                if let Some(alias) = *alias {
+                    AliasedTable {
+                        table: *table,
+                        alias,
+                    }
+                    .transpile(fmt)
+                } else {
+                    table.transpile(fmt)
+                }
+            }
             Self::Parameter(index) => write!(fmt, "${index}"),
             Self::Constant(constant) => constant.transpile(fmt),
             Self::Function(function) => function.transpile(fmt),
@@ -185,14 +224,18 @@ impl Transpile for Expression {
                 fmt.write_char(')')
             }
             Self::Cast(expression, cast_type) => {
+                fmt.write_char('(')?;
                 expression.transpile(fmt)?;
                 fmt.write_str("::")?;
-                match cast_type {
-                    PostgresType::Row(table) => table.transpile(fmt),
-                    PostgresType::Text => fmt.write_str("text"),
-                    PostgresType::JsonPath => fmt.write_str("jsonpath"),
-                }
+                cast_type.transpile(fmt)?;
+                fmt.write_char(')')
             }
+            Self::FieldAccess(expression, subscript) => {
+                expression.transpile(fmt)?;
+                fmt.write_str(".")?;
+                subscript.transpile(fmt)
+            }
+            Self::Select(select) => select.transpile(fmt),
         }
     }
 }

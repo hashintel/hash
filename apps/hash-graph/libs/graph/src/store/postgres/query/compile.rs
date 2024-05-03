@@ -11,6 +11,7 @@ use crate::{
     store::{
         postgres::query::{
             expression::{GroupByExpression, PostgresType},
+            statement::FromItem,
             table::{
                 DataTypeEmbeddings, DatabaseColumn, EntityEmbeddings, EntityTemporalMetadata,
                 EntityTypeEmbeddings, JsonField, OntologyIds, OntologyTemporalMetadata,
@@ -87,11 +88,14 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 with: WithExpression::default(),
                 distinct: Vec::new(),
                 selects: Vec::new(),
-                from: R::base_table().aliased(Alias {
-                    condition_index: 0,
-                    chain_depth: 0,
-                    number: 0,
-                }),
+                from: FromItem::Table {
+                    table: R::base_table(),
+                    alias: Some(Alias {
+                        condition_index: 0,
+                        chain_depth: 0,
+                        number: 0,
+                    }),
+                },
                 joins: Vec::new(),
                 where_expression: WhereExpression::default(),
                 order_by_expression: OrderByExpression::default(),
@@ -514,9 +518,9 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                     Some("distance"),
                                 )))
                                 .collect(),
-                            from: AliasedTable {
+                            from: FromItem::Table {
                                 table: embeddings_table,
-                                alias: embeddings_alias,
+                                alias: Some(embeddings_alias),
                             },
                             joins: vec![],
                             where_expression: WhereExpression::default(),
@@ -662,7 +666,10 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         Some("latest_version"),
                     ),
                 ],
-                from: version_column.table().aliased(alias),
+                from: FromItem::Table {
+                    table: version_column.table(),
+                    alias: Some(alias),
+                },
                 joins: vec![],
                 where_expression: WhereExpression::default(),
                 order_by_expression: OrderByExpression::default(),
@@ -884,7 +891,14 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     where
         R::QueryPath<'q>: PostgresQueryPath,
     {
-        let mut current_table = self.statement.from;
+        let mut current_table = AliasedTable {
+            table: R::base_table(),
+            alias: Alias {
+                condition_index: 0,
+                chain_depth: 0,
+                number: 0,
+            },
+        };
 
         if let Some(hook) = self.table_hooks.get(&current_table.table) {
             hook(self, current_table.alias);
