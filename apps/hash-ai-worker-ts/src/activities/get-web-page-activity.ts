@@ -1,10 +1,14 @@
 import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { Context } from "@temporalio/activity";
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-extra";
+import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import sanitizeHtml from "sanitize-html";
 
+import { logger } from "./shared/activity-logger";
 import { requestExternalInput } from "./shared/request-external-input";
+
+puppeteer.use(StealthPlugin());
 
 const getWebPageFromPuppeteer = async (url: string): Promise<WebPage> => {
   /** @todo: consider re-using the same `browser` instance across requests  */
@@ -12,28 +16,52 @@ const getWebPageFromPuppeteer = async (url: string): Promise<WebPage> => {
 
   const page = await browser.newPage();
 
-  await page.goto(url, {
-    // waits until the network is idle (no more than 2 network connections for at least 500 ms)
-    waitUntil: "networkidle2",
-  });
+  try {
+    const response = await page.goto(url, {
+      // waits until the network is idle (no more than 2 network connections for at least 500 ms)
+      waitUntil: "networkidle2",
+    });
 
-  /**
-   * We use puppeteer because we want to obtain the `innerText` of the HTML body.
-   *
-   * Ideally we'd use a lighter weight approach via a package such as `jsdom`,
-   * but `innerText` remains unavailable in this package (@see https://github.com/jsdom/jsdom/issues/1245)
-   */
-  const htmlContent = await page.evaluate(() => document.body.innerHTML);
+    if (!response?.ok()) {
+      const status = response?.status()
+        ? `${response.status()} ${response.statusText()}`
+        : "Unknown Error";
+      const message = await response?.text();
 
-  const title = await page.title();
+      throw new Error(`${status}: ${message}`);
+    }
 
-  await browser.close();
+    /**
+     * We use puppeteer because we want to obtain the `innerText` of the HTML body.
+     *
+     * Ideally we'd use a lighter weight approach via a package such as `jsdom`,
+     * but `innerText` remains unavailable in this package (@see https://github.com/jsdom/jsdom/issues/1245)
+     */
+    const htmlContent = await page.evaluate(() => document.body.innerHTML);
 
-  return {
-    htmlContent,
-    title,
-    url,
-  };
+    const title = await page.title();
+
+    await browser.close();
+
+    return {
+      htmlContent,
+      title,
+      url,
+    };
+  } catch (error) {
+    await browser.close();
+
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const errMessage = (error as Error).message ?? "Unknown error";
+
+    logger.error(`Failed to load URL ${url} in Puppeteer: ${errMessage}`);
+
+    return {
+      htmlContent: `Could not load page: ${errMessage}`,
+      title: `Error loading page: ${errMessage}`,
+      url,
+    };
+  }
 };
 
 const getWebPageFromBrowser = async (url: string): Promise<WebPage> => {
