@@ -5,7 +5,6 @@ import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -13,14 +12,13 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import type {
   AccountEntityId,
   AccountId,
   Entity,
   EntityId,
-  EntityRootType,
   EntityUuid,
   OwnedById,
 } from "@local/hash-subgraph";
@@ -28,7 +26,6 @@ import {
   extractAccountId,
   extractEntityUuidFromEntityId,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type {
@@ -127,7 +124,7 @@ export const getUserByShortname: ImpureGraphFunction<
   Promise<User | null>
 > = async ({ graphApi }, { actorId }, params) => {
   const [userEntity, ...unexpectedEntities] = await graphApi
-    .getEntitySubgraph(actorId, {
+    .getEntities(actorId, {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
@@ -147,7 +144,6 @@ export const getUserByShortname: ImpureGraphFunction<
           },
         ],
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
       // TODO: Should this be an all-time query? What happens if the user is
       //       archived/deleted, do we want to allow users to replace their
       //       shortname?
@@ -155,14 +151,11 @@ export const getUserByShortname: ImpureGraphFunction<
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: params.includeDrafts ?? false,
     })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-        actorId,
-      );
-
-      return getRoots(subgraph);
-    });
+    .then(({ data: response }) =>
+      response.entities.map((entity) =>
+        mapGraphApiEntityToEntity(entity, actorId),
+      ),
+    );
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
@@ -174,16 +167,17 @@ export const getUserByShortname: ImpureGraphFunction<
 };
 
 /**
- * Get a system user entity by their kratos identity id.
+ * Get a system user entity by their kratos identity id – only to be used for resolving the requesting user,
+ * or checking for conflicts with an existing kratosIdentityId.
  *
  * @param params.kratosIdentityId - the kratos identity id
  */
 export const getUserByKratosIdentityId: ImpureGraphFunction<
   { kratosIdentityId: string; includeDrafts?: boolean },
   Promise<User | null>
-> = async ({ graphApi }, { actorId }, params) => {
-  const [userEntity, ...unexpectedEntities] = await graphApi
-    .getEntitySubgraph(actorId, {
+> = async (context, authentication, params) => {
+  const [userEntity, ...unexpectedEntities] = await context.graphApi
+    .getEntities(authentication.actorId, {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
@@ -205,19 +199,19 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
           },
         ],
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: params.includeDrafts ?? false,
     })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-        null,
-        true,
-      );
-
-      return getRoots(subgraph);
-    });
+    .then(({ data: response }) =>
+      response.entities.map((entity) =>
+        /**
+         * We don't have the user's actorId yet, so the mapping function can't match the requesting user
+         * to the entity being sought – we pass 'true' to preserve their properties so that private properties aren't omitted.
+         * This function should only be used to return the user entity to a user who is authenticated with the correct kratosIdentityId.
+         */
+        mapGraphApiEntityToEntity(entity, null, true),
+      ),
+    );
 
   if (unexpectedEntities.length > 0) {
     throw new Error(

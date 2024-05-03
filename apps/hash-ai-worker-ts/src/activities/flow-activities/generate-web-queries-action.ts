@@ -3,9 +3,11 @@ import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/ac
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
+import { getFlowContext } from "../shared/get-flow-context";
 import { getLlmResponse } from "../shared/get-llm-response";
 import { getToolCallsFromLlmAssistantMessage } from "../shared/get-llm-response/llm-message";
 import type { LlmToolDefinition } from "../shared/get-llm-response/types";
+import { graphApiClient } from "../shared/graph-api-client";
 import { modelAliasToSpecificModel } from "../shared/openai-client";
 import type { FlowActionActivity } from "./types";
 
@@ -53,17 +55,27 @@ export const generateWebQueriesAction: FlowActionActivity = async ({
     };
   }
 
-  const llmResponse = await getLlmResponse({
-    systemPrompt: webQueriesSystemPrompt,
-    messages: [
-      {
-        role: "user",
-        content: [{ type: "text", text: prompt }],
-      },
-    ],
-    model: modelAliasToSpecificModel[model],
-    tools,
-  });
+  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
+
+  const llmResponse = await getLlmResponse(
+    {
+      systemPrompt: webQueriesSystemPrompt,
+      messages: [
+        {
+          role: "user",
+          content: [{ type: "text", text: prompt }],
+        },
+      ],
+      model: modelAliasToSpecificModel[model],
+      tools,
+    },
+    {
+      userAccountId: userAuthentication.actorId,
+      graphApiClient,
+      incurredInEntities: [{ entityId: flowEntityId }],
+      webId,
+    },
+  );
 
   if (llmResponse.status !== "ok") {
     return {

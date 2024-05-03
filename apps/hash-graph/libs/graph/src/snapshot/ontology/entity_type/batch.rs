@@ -2,28 +2,25 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 use authorization::{
-    backend::ZanzibarBackend,
-    schema::{EntityTypeId, EntityTypeRelationAndSubject},
-    AuthorizationApi,
+    backend::ZanzibarBackend, schema::EntityTypeRelationAndSubject, AuthorizationApi,
 };
 use error_stack::{Result, ResultExt};
 use futures::TryStreamExt;
+use graph_types::ontology::EntityTypeId;
 use postgres_types::{Json, ToSql};
 use tokio_postgres::GenericClient;
 use type_system::EntityType;
 
 use crate::{
-    snapshot::{
-        ontology::{
-            table::{
-                EntityTypeConstrainsLinkDestinationsOnRow, EntityTypeConstrainsLinksOnRow,
-                EntityTypeConstrainsPropertiesOnRow, EntityTypeInheritsFromRow, EntityTypeRow,
-            },
-            EntityTypeEmbeddingRow,
+    snapshot::WriteBatch,
+    store::{
+        postgres::query::rows::{
+            EntityTypeConstrainsLinkDestinationsOnRow, EntityTypeConstrainsLinksOnRow,
+            EntityTypeConstrainsPropertiesOnRow, EntityTypeEmbeddingRow, EntityTypeInheritsFromRow,
+            EntityTypeRow,
         },
-        WriteBatch,
+        AsClient, InsertionError, PostgresStore,
     },
-    store::{AsClient, InsertionError, PostgresStore},
 };
 
 pub enum EntityTypeRowBatch {
@@ -33,7 +30,7 @@ pub enum EntityTypeRowBatch {
     ConstrainsLinks(Vec<EntityTypeConstrainsLinksOnRow>),
     ConstrainsLinkDestinations(Vec<EntityTypeConstrainsLinkDestinationsOnRow>),
     Relations(HashMap<EntityTypeId, Vec<EntityTypeRelationAndSubject>>),
-    Embeddings(Vec<EntityTypeEmbeddingRow>),
+    Embeddings(Vec<EntityTypeEmbeddingRow<'static>>),
 }
 
 #[async_trait]
@@ -48,37 +45,29 @@ where
             .client()
             .simple_query(
                 "
-                    CREATE TEMPORARY TABLE entity_types_tmp
-                        (LIKE entity_types INCLUDING ALL)
-                        ON COMMIT DROP;
+                    CREATE TEMPORARY TABLE entity_types_tmp (
+                        LIKE entity_types INCLUDING ALL
+                    ) ON COMMIT DROP;
 
                     CREATE TEMPORARY TABLE entity_type_constrains_properties_on_tmp (
-                        source_entity_type_ontology_id UUID NOT NULL,
-                        target_property_type_base_url TEXT NOT NULL,
-                        target_property_type_version INT8 NOT NULL
+                        LIKE entity_type_constrains_properties_on INCLUDING ALL
                     ) ON COMMIT DROP;
 
                     CREATE TEMPORARY TABLE entity_type_inherits_from_tmp (
-                        source_entity_type_ontology_id UUID NOT NULL,
-                        target_entity_type_base_url TEXT NOT NULL,
-                        target_entity_type_version INT8 NOT NULL
+                        LIKE entity_type_inherits_from INCLUDING ALL
                     ) ON COMMIT DROP;
 
                     CREATE TEMPORARY TABLE entity_type_constrains_links_on_tmp (
-                        source_entity_type_ontology_id UUID NOT NULL,
-                        target_entity_type_base_url TEXT NOT NULL,
-                        target_entity_type_version INT8 NOT NULL
+                        LIKE entity_type_constrains_links_on INCLUDING ALL
                     ) ON COMMIT DROP;
 
                     CREATE TEMPORARY TABLE entity_type_constrains_link_destinations_on_tmp (
-                        source_entity_type_ontology_id UUID NOT NULL,
-                        target_entity_type_base_url TEXT NOT NULL,
-                        target_entity_type_version INT8 NOT NULL
+                        LIKE entity_type_constrains_link_destinations_on INCLUDING ALL
                     ) ON COMMIT DROP;
 
-                    CREATE TEMPORARY TABLE entity_type_embeddings_tmp
-                        (LIKE entity_type_embeddings INCLUDING ALL)
-                        ON COMMIT DROP;
+                    CREATE TEMPORARY TABLE entity_type_embeddings_tmp (
+                        LIKE entity_type_embeddings INCLUDING ALL
+                    ) ON COMMIT DROP;
                 ",
             )
             .await
@@ -112,7 +101,7 @@ where
                     .query(
                         "
                             INSERT INTO entity_type_inherits_from_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::entity_type_inherits_from_tmp[])
+                            SELECT DISTINCT * FROM UNNEST($1::entity_type_inherits_from[])
                             RETURNING 1;
                         ",
                         &[&entity_types],
@@ -129,7 +118,7 @@ where
                         "
                             INSERT INTO entity_type_constrains_properties_on_tmp
                             SELECT DISTINCT * FROM \
-                         UNNEST($1::entity_type_constrains_properties_on_tmp[])
+                         UNNEST($1::entity_type_constrains_properties_on[])
                             RETURNING 1;
                         ",
                         &[&properties],
@@ -145,8 +134,7 @@ where
                     .query(
                         "
                             INSERT INTO entity_type_constrains_links_on_tmp
-                            SELECT DISTINCT * FROM \
-                         UNNEST($1::entity_type_constrains_links_on_tmp[])
+                            SELECT DISTINCT * FROM UNNEST($1::entity_type_constrains_links_on[])
                             RETURNING 1;
                         ",
                         &[&links],
@@ -163,7 +151,7 @@ where
                         "
                             INSERT INTO entity_type_constrains_link_destinations_on_tmp
                             SELECT DISTINCT * FROM \
-                         UNNEST($1::entity_type_constrains_link_destinations_on_tmp[])
+                         UNNEST($1::entity_type_constrains_link_destinations_on[])
                             RETURNING 1;
                         ",
                         &[&links],
@@ -200,7 +188,7 @@ where
                     .query(
                         "
                             INSERT INTO entity_type_embeddings_tmp
-                            SELECT * FROM UNNEST($1::entity_type_embeddings_tmp[])
+                            SELECT * FROM UNNEST($1::entity_type_embeddings[])
                             RETURNING 1;
                         ",
                         &[&embeddings],
@@ -215,7 +203,6 @@ where
         Ok(())
     }
 
-    #[expect(clippy::too_many_lines, reason = "TODO: Move out common parts")]
     async fn commit(
         postgres_client: &mut PostgresStore<C, A>,
         _validation: bool,
@@ -295,51 +282,20 @@ where
             .client()
             .simple_query(
                 "
-                    INSERT INTO entity_types SELECT * FROM entity_types_tmp;
+                    INSERT INTO entity_types
+                        SELECT * FROM entity_types_tmp;
 
                     INSERT INTO entity_type_inherits_from
-                        SELECT
-                            source_entity_type_ontology_id,
-                            ontology_ids_tmp.ontology_id AS target_entity_type_ontology_id
-                        FROM entity_type_inherits_from_tmp
-                        INNER JOIN ontology_ids_tmp ON
-                            ontology_ids_tmp.base_url = \
-                 entity_type_inherits_from_tmp.target_entity_type_base_url
-                            AND ontology_ids_tmp.version = \
-                 entity_type_inherits_from_tmp.target_entity_type_version;
+                        SELECT * FROM entity_type_inherits_from_tmp;
 
                     INSERT INTO entity_type_constrains_properties_on
-                        SELECT
-                            source_entity_type_ontology_id,
-                            ontology_ids_tmp.ontology_id AS target_entity_type_ontology_id
-                        FROM entity_type_constrains_properties_on_tmp
-                        INNER JOIN ontology_ids_tmp ON
-                            ontology_ids_tmp.base_url = \
-                 entity_type_constrains_properties_on_tmp.target_property_type_base_url
-                            AND ontology_ids_tmp.version = \
-                 entity_type_constrains_properties_on_tmp.target_property_type_version;
+                        SELECT * FROM entity_type_constrains_properties_on_tmp;
 
                     INSERT INTO entity_type_constrains_links_on
-                        SELECT
-                            source_entity_type_ontology_id,
-                            ontology_ids_tmp.ontology_id AS target_entity_type_ontology_id
-                        FROM entity_type_constrains_links_on_tmp
-                        INNER JOIN ontology_ids_tmp ON
-                            ontology_ids_tmp.base_url = \
-                 entity_type_constrains_links_on_tmp.target_entity_type_base_url
-                            AND ontology_ids_tmp.version = \
-                 entity_type_constrains_links_on_tmp.target_entity_type_version;
+                        SELECT * FROM entity_type_constrains_links_on_tmp;
 
                     INSERT INTO entity_type_constrains_link_destinations_on
-                        SELECT
-                            source_entity_type_ontology_id,
-                            ontology_ids_tmp.ontology_id AS target_entity_type_ontology_id
-                        FROM entity_type_constrains_link_destinations_on_tmp
-                        INNER JOIN ontology_ids_tmp ON
-                            ontology_ids_tmp.base_url = \
-                 entity_type_constrains_link_destinations_on_tmp.target_entity_type_base_url
-                            AND ontology_ids_tmp.version = \
-                 entity_type_constrains_link_destinations_on_tmp.target_entity_type_version;
+                        SELECT * FROM entity_type_constrains_link_destinations_on_tmp;
 
                     INSERT INTO entity_type_embeddings
                         SELECT * FROM entity_type_embeddings_tmp;

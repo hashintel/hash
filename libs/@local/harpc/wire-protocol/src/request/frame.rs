@@ -1,16 +1,14 @@
-use std::io;
-
+use bytes::{Buf, BufMut};
 use error_stack::{Result, ResultExt};
-use tokio::{
-    io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
-    pin,
-};
 
-use super::codec::EncodeError;
 use crate::{
-    codec::{Decode, Encode},
+    codec::{Buffer, BufferError, Decode, Encode},
     payload::Payload,
 };
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
+#[error("unable to encode request frame")]
+pub struct RequestFrameEncodeError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -19,34 +17,37 @@ pub struct RequestFrame {
 }
 
 impl Encode for RequestFrame {
-    type Error = EncodeError;
+    type Error = RequestFrameEncodeError;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        pin!(write);
-
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
         // write 19 empty bytes (reserved for future use)
-        write
-            .write_all(&[0; 19])
-            .await
-            .change_context(EncodeError)?;
+        buffer
+            .push_repeat(0, 19)
+            .change_context(RequestFrameEncodeError)?;
 
-        self.payload.encode(write).await.change_context(EncodeError)
+        self.payload
+            .encode(buffer)
+            .change_context(RequestFrameEncodeError)
     }
 }
 
 impl Decode for RequestFrame {
     type Context = ();
-    type Error = io::Error;
+    type Error = BufferError;
 
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        pin!(read);
-
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
         // skip 19 bytes (reserved for future use)
-        read.read_exact(&mut [0; 19]).await?;
+        buffer.discard(19)?;
 
-        Ok(Self {
-            payload: Payload::decode(read, ()).await?,
-        })
+        let payload = Payload::decode(buffer, ())?;
+
+        Ok(Self { payload })
     }
 }
 
@@ -61,8 +62,8 @@ mod test {
         request::frame::RequestFrame,
     };
 
-    #[tokio::test]
-    async fn encode() {
+    #[test]
+    fn encode() {
         assert_encode(
             &RequestFrame {
                 payload: Payload::new(b"hello world" as &[_]),
@@ -71,28 +72,27 @@ mod test {
                 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
                 0x00 0x00 0x00 0x00 0x0B b'h' b'e' b'l' b'l' b'o' b' ' b'w' b'o' b'r' b'l' b'd'
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode() {
+    #[test]
+    fn decode() {
         assert_decode(
             &[
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0B, b'h', b'e', b'l', b'l', b'o', b' ', b'w',
                 b'o', b'r', b'l', b'd',
-            ],
+            ] as &[_],
             &RequestFrame {
                 payload: Payload::from_static(b"hello world" as &[_]),
             },
             (),
-        )
-        .await;
+        );
     }
 
-    #[test_strategy::proptest(async = "tokio")]
-    async fn codec(frame: RequestFrame) {
-        assert_codec(&frame, ()).await;
+    #[test_strategy::proptest]
+    #[cfg_attr(miri, ignore)]
+    fn codec(frame: RequestFrame) {
+        assert_codec(&frame, ());
     }
 }

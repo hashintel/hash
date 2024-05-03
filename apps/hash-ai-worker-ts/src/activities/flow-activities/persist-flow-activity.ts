@@ -1,22 +1,16 @@
-import type { GraphApi } from "@local/hash-graph-client";
 import { mapFlowToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
 import type { Flow } from "@local/hash-isomorphic-utils/flows/types";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { FlowProperties } from "@local/hash-isomorphic-utils/system-types/flow";
-import type {
-  AccountId,
-  Entity,
-  EntityRootType,
-  EntityUuid,
-} from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import type { AccountId, Entity, EntityUuid } from "@local/hash-subgraph";
+
+import { graphApiClient } from "../shared/graph-api-client";
 
 type PersistFlowActivityParams = {
   flow: Flow;
@@ -24,14 +18,13 @@ type PersistFlowActivityParams = {
 };
 
 const getExistingFlowEntity = async (params: {
-  graphApiClient: GraphApi;
   flowId: EntityUuid;
   userAuthentication: { actorId: AccountId };
 }): Promise<Entity<FlowProperties> | null> => {
-  const { flowId, userAuthentication, graphApiClient } = params;
+  const { flowId, userAuthentication } = params;
 
   const [existingFlowEntity] = await graphApiClient
-    .getEntitySubgraph(userAuthentication.actorId, {
+    .getEntities(userAuthentication.actorId, {
       filter: {
         all: [
           {
@@ -43,57 +36,56 @@ const getExistingFlowEntity = async (params: {
           ),
         ],
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
     })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-        userAuthentication.actorId,
-      );
-
-      return getRoots(subgraph) as Entity<FlowProperties>[];
-    });
+    .then(({ data: response }) =>
+      response.entities.map(
+        (entity) =>
+          mapGraphApiEntityToEntity(
+            entity,
+            userAuthentication.actorId,
+          ) as Entity<FlowProperties>,
+      ),
+    );
 
   return existingFlowEntity ?? null;
 };
 
-export const createPersistFlowActivity =
-  ({ graphApiClient }: { graphApiClient: GraphApi }) =>
-  async (params: PersistFlowActivityParams) => {
-    const { flow, userAuthentication } = params;
+export const persistFlowActivity = async (
+  params: PersistFlowActivityParams,
+) => {
+  const { flow, userAuthentication } = params;
 
-    const { flowId } = flow;
+  const { flowId } = flow;
 
-    const flowProperties = mapFlowToEntityProperties(flow);
+  const flowProperties = mapFlowToEntityProperties(flow);
 
-    const existingFlowEntity = await getExistingFlowEntity({
-      graphApiClient,
-      flowId,
-      userAuthentication,
+  const existingFlowEntity = await getExistingFlowEntity({
+    flowId,
+    userAuthentication,
+  });
+
+  if (existingFlowEntity) {
+    await graphApiClient.patchEntity(userAuthentication.actorId, {
+      entityId: existingFlowEntity.metadata.recordId.entityId,
+      properties: [
+        {
+          op: "replace",
+          path: [],
+          value: flowProperties,
+        },
+      ],
     });
-
-    if (existingFlowEntity) {
-      await graphApiClient.patchEntity(userAuthentication.actorId, {
-        entityId: existingFlowEntity.metadata.recordId.entityId,
-        properties: [
-          {
-            op: "replace",
-            path: [],
-            value: flowProperties,
-          },
-        ],
-      });
-    } else {
-      await graphApiClient.createEntity(userAuthentication.actorId, {
-        ownedById: userAuthentication.actorId,
-        entityUuid: flowId,
-        entityTypeIds: [systemEntityTypes.flow.entityTypeId],
-        properties: flowProperties,
-        draft: false,
-        relationships:
-          createDefaultAuthorizationRelationships(userAuthentication),
-      });
-    }
-  };
+  } else {
+    await graphApiClient.createEntity(userAuthentication.actorId, {
+      ownedById: userAuthentication.actorId,
+      entityUuid: flowId,
+      entityTypeIds: [systemEntityTypes.flow.entityTypeId],
+      properties: flowProperties,
+      draft: false,
+      relationships:
+        createDefaultAuthorizationRelationships(userAuthentication),
+    });
+  }
+};

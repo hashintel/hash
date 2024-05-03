@@ -55,7 +55,6 @@ export type LocalInputValues = Subtype<
     Number: number;
     Boolean: boolean;
     VersionedUrl: EntityTypeWithMetadata;
-    WebId: OwnedById;
   }
 >;
 

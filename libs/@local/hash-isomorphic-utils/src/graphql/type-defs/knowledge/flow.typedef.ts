@@ -160,6 +160,7 @@ export const flowTypedef = gql`
     startFlow(
       flowDefinition: FlowDefinition!
       flowTrigger: FlowTrigger!
+      webId: OwnedById!
     ): JSONObject!
   }
 `;

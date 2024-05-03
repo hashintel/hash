@@ -3,14 +3,14 @@ use error_stack::{Result, ResultExt};
 use tokio_postgres::GenericClient;
 
 use crate::{
-    snapshot::{
-        ontology::{
-            table::OntologyTemporalMetadataRow, OntologyExternalMetadataRow, OntologyIdRow,
-            OntologyOwnedMetadataRow,
+    snapshot::WriteBatch,
+    store::{
+        postgres::query::rows::{
+            OntologyExternalMetadataRow, OntologyIdRow, OntologyOwnedMetadataRow,
+            OntologyTemporalMetadataRow,
         },
-        WriteBatch,
+        AsClient, InsertionError, PostgresStore,
     },
-    store::{AsClient, InsertionError, PostgresStore},
 };
 
 pub enum OntologyTypeMetadataRowBatch {
@@ -141,15 +141,16 @@ where
             .client()
             .simple_query(
                 "
-                    INSERT INTO base_urls                  SELECT DISTINCT base_url FROM \
-                 ontology_ids_tmp;
-                    INSERT INTO ontology_ids               SELECT * FROM ontology_ids_tmp;
-                    INSERT INTO ontology_temporal_metadata SELECT * FROM \
-                 ontology_temporal_metadata_tmp;
-                    INSERT INTO ontology_owned_metadata    SELECT * FROM \
-                 ontology_owned_metadata_tmp;
-                    INSERT INTO ontology_external_metadata SELECT * FROM \
-                 ontology_external_metadata_tmp;
+                    INSERT INTO base_urls
+                        SELECT DISTINCT base_url FROM ontology_ids_tmp;
+                    INSERT INTO ontology_ids
+                        SELECT * FROM ontology_ids_tmp;
+                    INSERT INTO ontology_temporal_metadata
+                        SELECT * FROM ontology_temporal_metadata_tmp;
+                    INSERT INTO ontology_owned_metadata
+                        SELECT * FROM ontology_owned_metadata_tmp;
+                    INSERT INTO ontology_external_metadata
+                        SELECT * FROM ontology_external_metadata_tmp;
                 ",
             )
             .await

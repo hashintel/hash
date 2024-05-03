@@ -3,27 +3,29 @@ use std::{
     task::{ready, Context, Poll},
 };
 
-use authorization::schema::{EntityTypeId, EntityTypeRelationAndSubject};
+use authorization::schema::EntityTypeRelationAndSubject;
 use error_stack::{Report, ResultExt};
 use futures::{
     channel::mpsc::{self, Receiver, Sender},
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
-use postgres_types::Json;
+use graph_types::ontology::{EntityTypeId, PropertyTypeId};
 use type_system::ClosedEntityType;
-use uuid::Uuid;
 
-use crate::snapshot::{
-    ontology::{
-        entity_type::batch::EntityTypeRowBatch,
-        table::{
-            EntityTypeConstrainsLinkDestinationsOnRow, EntityTypeConstrainsLinksOnRow,
-            EntityTypeConstrainsPropertiesOnRow, EntityTypeInheritsFromRow, EntityTypeRow,
+use crate::{
+    snapshot::{
+        ontology::{
+            entity_type::batch::EntityTypeRowBatch, metadata::OntologyTypeMetadata,
+            EntityTypeSnapshotRecord, OntologyTypeMetadataSender,
         },
-        EntityTypeEmbeddingRow, EntityTypeSnapshotRecord, OntologyTypeMetadataSender,
+        SnapshotRestoreError,
     },
-    SnapshotRestoreError,
+    store::postgres::query::rows::{
+        EntityTypeConstrainsLinkDestinationsOnRow, EntityTypeConstrainsLinksOnRow,
+        EntityTypeConstrainsPropertiesOnRow, EntityTypeEmbeddingRow, EntityTypeInheritsFromRow,
+        EntityTypeRow,
+    },
 };
 
 /// A sink to insert [`EntityTypeSnapshotRecord`]s.
@@ -72,22 +74,20 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
         Poll::Ready(Ok(()))
     }
 
-    #[expect(clippy::too_many_lines)]
     fn start_send(
         mut self: Pin<&mut Self>,
         entity_type: EntityTypeSnapshotRecord,
     ) -> Result<(), Self::Error> {
-        let record_id = entity_type.metadata.record_id.to_string();
-        let ontology_id = Uuid::new_v5(&Uuid::NAMESPACE_URL, record_id.as_bytes());
+        let ontology_id = EntityTypeId::from_record_id(&entity_type.metadata.record_id);
 
         self.metadata
-            .start_send_unpin((
-                ontology_id,
-                entity_type.metadata.record_id,
-                entity_type.metadata.classification,
-                entity_type.metadata.temporal_versioning,
-                entity_type.metadata.provenance,
-            ))
+            .start_send_unpin(OntologyTypeMetadata {
+                ontology_id: ontology_id.into(),
+                record_id: entity_type.metadata.record_id,
+                classification: entity_type.metadata.classification,
+                temporal_versioning: entity_type.metadata.temporal_versioning,
+                provenance: entity_type.metadata.provenance,
+            })
             .attach_printable("could not send metadata")?;
 
         let inherits_from: Vec<_> = entity_type
@@ -95,13 +95,9 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
             .inherits_from()
             .all_of()
             .iter()
-            .map(|entity_type_ref| {
-                let url = entity_type_ref.url();
-                EntityTypeInheritsFromRow {
-                    source_entity_type_ontology_id: ontology_id,
-                    target_entity_type_base_url: url.base_url.clone(),
-                    target_entity_type_version: url.version,
-                }
+            .map(|entity_type_ref| EntityTypeInheritsFromRow {
+                source_entity_type_ontology_id: ontology_id,
+                target_entity_type_ontology_id: EntityTypeId::from_url(entity_type_ref.url()),
             })
             .collect();
         if !inherits_from.is_empty() {
@@ -115,13 +111,9 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
             .schema
             .property_type_references()
             .into_iter()
-            .map(|entity_type_ref| {
-                let url = entity_type_ref.url();
-                EntityTypeConstrainsPropertiesOnRow {
-                    source_entity_type_ontology_id: ontology_id,
-                    target_property_type_base_url: url.base_url.clone(),
-                    target_property_type_version: url.version,
-                }
+            .map(|entity_type_ref| EntityTypeConstrainsPropertiesOnRow {
+                source_entity_type_ontology_id: ontology_id,
+                target_property_type_ontology_id: PropertyTypeId::from_url(entity_type_ref.url()),
             })
             .collect();
         if !properties.is_empty() {
@@ -136,13 +128,9 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
 
         let links: Vec<_> = link_mappings
             .keys()
-            .map(|entity_type_ref| {
-                let url = entity_type_ref.url();
-                EntityTypeConstrainsLinksOnRow {
-                    source_entity_type_ontology_id: ontology_id,
-                    target_entity_type_base_url: url.base_url.clone(),
-                    target_entity_type_version: url.version,
-                }
+            .map(|entity_type_ref| EntityTypeConstrainsLinksOnRow {
+                source_entity_type_ontology_id: ontology_id,
+                target_entity_type_ontology_id: EntityTypeId::from_url(entity_type_ref.url()),
             })
             .collect();
         if !links.is_empty() {
@@ -155,14 +143,12 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
         let link_destinations: Vec<_> = link_mappings
             .into_values()
             .flat_map(Option::unwrap_or_default)
-            .map(|entity_type_ref| {
-                let url = entity_type_ref.url();
-                EntityTypeConstrainsLinkDestinationsOnRow {
+            .map(
+                |entity_type_ref| EntityTypeConstrainsLinkDestinationsOnRow {
                     source_entity_type_ontology_id: ontology_id,
-                    target_entity_type_base_url: url.base_url.clone(),
-                    target_entity_type_version: url.version,
-                }
-            })
+                    target_entity_type_ontology_id: EntityTypeId::from_url(entity_type_ref.url()),
+                },
+            )
             .collect();
         if !link_destinations.is_empty() {
             self.constrains_link_destinations
@@ -174,10 +160,10 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
         self.schema
             .start_send_unpin(EntityTypeRow {
                 ontology_id,
-                schema: Json(entity_type.schema.clone()),
+                schema: entity_type.schema.clone(),
                 // The unclosed schema is inserted initially. This will be replaced later by the
                 // closed schema.
-                closed_schema: Json(ClosedEntityType::from(entity_type.schema)),
+                closed_schema: ClosedEntityType::from(entity_type.schema),
                 label_property: entity_type
                     .metadata
                     .label_property
@@ -188,7 +174,7 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
             .attach_printable("could not send schema")?;
 
         self.relations
-            .start_send_unpin((EntityTypeId::new(ontology_id), entity_type.relations))
+            .start_send_unpin((ontology_id, entity_type.relations))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send entity relations")?;
 
@@ -270,7 +256,7 @@ impl Stream for EntityTypeReceiver {
 pub fn entity_type_channel(
     chunk_size: usize,
     metadata_sender: OntologyTypeMetadataSender,
-    embedding_rx: Receiver<EntityTypeEmbeddingRow>,
+    embedding_rx: Receiver<EntityTypeEmbeddingRow<'static>>,
 ) -> (EntityTypeSender, EntityTypeReceiver) {
     let (schema_tx, schema_rx) = mpsc::channel(chunk_size);
     let (inherits_from_tx, inherits_from_rx) = mpsc::channel(chunk_size);

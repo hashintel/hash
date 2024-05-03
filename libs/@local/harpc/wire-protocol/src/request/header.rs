@@ -1,16 +1,19 @@
-use std::io;
-
+use bytes::{Buf, BufMut};
 use error_stack::{Result, ResultExt};
-use tokio::{
-    io::{AsyncRead, AsyncWrite},
-    pin,
-};
 
-use super::{body::RequestBody, codec::DecodeError, flags::RequestFlags, id::RequestId};
+use super::{body::RequestBody, flags::RequestFlags, id::RequestId};
 use crate::{
-    codec::{Decode, Encode},
+    codec::{Buffer, BufferError, Decode, Encode},
     protocol::Protocol,
 };
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
+pub enum RequestHeaderDecodeError {
+    #[error("invalid protocol")]
+    Protocol,
+    #[error("buffer error")]
+    Buffer,
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -31,33 +34,36 @@ impl RequestHeader {
 }
 
 impl Encode for RequestHeader {
-    type Error = io::Error;
+    type Error = BufferError;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        pin!(write);
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
+        self.protocol.encode(buffer)?;
+        self.request_id.encode(buffer)?;
+        self.flags.encode(buffer)?;
 
-        self.protocol.encode(&mut write).await?;
-        self.request_id.encode(&mut write).await?;
-        self.flags.encode(write).await
+        Ok(())
     }
 }
 
 impl Decode for RequestHeader {
     type Context = ();
-    type Error = DecodeError;
+    type Error = RequestHeaderDecodeError;
 
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        pin!(read);
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        let protocol =
+            Protocol::decode(buffer, ()).change_context(RequestHeaderDecodeError::Protocol)?;
 
-        let protocol = Protocol::decode(&mut read, ())
-            .await
-            .change_context(DecodeError)?;
-        let request_id = RequestId::decode(&mut read, ())
-            .await
-            .change_context(DecodeError)?;
-        let flags = RequestFlags::decode(read, ())
-            .await
-            .change_context(DecodeError)?;
+        let request_id =
+            RequestId::decode(buffer, ()).change_context(RequestHeaderDecodeError::Buffer)?;
+
+        let flags =
+            RequestFlags::decode(buffer, ()).change_context(RequestHeaderDecodeError::Buffer)?;
 
         Ok(Self {
             protocol,
@@ -82,8 +88,8 @@ mod test {
         },
     };
 
-    #[tokio::test]
-    async fn encode() {
+    #[test]
+    fn encode() {
         let mut producer = RequestIdProducer::new();
 
         let header = RequestHeader {
@@ -99,16 +105,15 @@ mod test {
             expect![[r#"
                 b'h' b'a' b'r' b'p' b'c' 0x01 0x00 0x00 0x00 0x00 0x80
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode() {
+    #[test]
+    fn decode() {
         assert_decode::<RequestHeader>(
             &[
                 b'h', b'a', b'r', b'p', b'c', 0x01, 0x00, 0x00, 0x00, 0x00, 0x80,
-            ],
+            ] as &[_],
             &RequestHeader {
                 protocol: Protocol {
                     version: ProtocolVersion::V1,
@@ -117,12 +122,12 @@ mod test {
                 flags: RequestFlags::from(RequestFlag::BeginOfRequest),
             },
             (),
-        )
-        .await;
+        );
     }
 
-    #[test_strategy::proptest(async = "tokio")]
-    async fn encode_decode(header: RequestHeader) {
-        assert_codec(&header, ()).await;
+    #[test_strategy::proptest]
+    #[cfg_attr(miri, ignore)]
+    fn encode_decode(header: RequestHeader) {
+        assert_codec(&header, ());
     }
 }

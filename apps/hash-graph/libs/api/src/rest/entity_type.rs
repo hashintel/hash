@@ -7,9 +7,9 @@ use std::{collections::hash_map, sync::Arc};
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
-        EntityTypeEditorSubject, EntityTypeId, EntityTypeInstantiatorSubject,
-        EntityTypeOwnerSubject, EntityTypePermission, EntityTypeRelationAndSubject,
-        EntityTypeSetting, EntityTypeSettingSubject, EntityTypeViewerSubject,
+        EntityTypeEditorSubject, EntityTypeInstantiatorSubject, EntityTypeOwnerSubject,
+        EntityTypePermission, EntityTypeRelationAndSubject, EntityTypeSetting,
+        EntityTypeSettingSubject, EntityTypeViewerSubject,
     },
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
@@ -31,7 +31,8 @@ use graph::{
         error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
         ontology::{
             ArchiveEntityTypeParams, CreateEntityTypeParams, GetEntityTypeSubgraphParams,
-            UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+            GetEntityTypesParams, GetEntityTypesResponse, UnarchiveEntityTypeParams,
+            UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
         },
         query::Filter,
         ConflictBehavior, EntityTypeStore, StorePool,
@@ -43,9 +44,9 @@ use graph::{
 };
 use graph_types::{
     ontology::{
-        EntityTypeEmbedding, EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata,
-        OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
-        ProvidedOntologyEditionProvenance,
+        EntityTypeEmbedding, EntityTypeId, EntityTypeMetadata, EntityTypeWithMetadata,
+        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeMetadata,
+        OntologyTypeReference, ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
 };
@@ -79,6 +80,7 @@ use crate::{
 
         create_entity_type,
         load_external_entity_type,
+        get_entity_types,
         get_entity_type_subgraph,
         update_entity_type,
         update_entity_type_embeddings,
@@ -105,6 +107,8 @@ use crate::{
             UpdateEntityTypeRequest,
             UpdateEntityTypeEmbeddingParams,
             EntityTypeQueryToken,
+            GetEntityTypesRequest,
+            GetEntityTypesResponse,
             GetEntityTypeSubgraphRequest,
             GetEntityTypeSubgraphResponse,
             ArchiveEntityTypeParams,
@@ -149,7 +153,12 @@ impl RoutedResource for EntityTypeResource {
                             get(check_entity_type_permission::<A>),
                         ),
                 )
-                .route("/query", post(get_entity_type_subgraph::<S, A>))
+                .nest(
+                    "/query",
+                    Router::new()
+                        .route("/", post(get_entity_types::<S, A>))
+                        .route("/subgraph", post(get_entity_type_subgraph::<S, A>)),
+                )
                 .route("/load", post(load_external_entity_type::<S, A>))
                 .route("/archive", put(archive_entity_type::<S, A>))
                 .route("/unarchive", put(unarchive_entity_type::<S, A>))
@@ -680,6 +689,91 @@ where
 
 #[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct GetEntityTypesRequest<'q> {
+    #[serde(borrow)]
+    filter: Filter<'q, EntityTypeWithMetadata>,
+    temporal_axes: QueryTemporalAxesUnresolved,
+    include_drafts: bool,
+}
+
+#[utoipa::path(
+    post,
+    path = "/entity-types/query",
+    request_body = GetEntityTypesRequest,
+    tag = "EntityType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (
+            status = 200,
+            content_type = "application/json",
+            body = GetEntityTypesResponse,
+            description = "Gets a a list of entity types that satisfy the given query.",
+            headers(
+                ("Link" = String, description = "The link to be used to query the next page of entity types"),
+            ),
+        ),
+
+        (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, request))]
+async fn get_entity_types<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Query(pagination): Query<Pagination<EntityTypeVertexId>>,
+    OriginalUri(uri): OriginalUri,
+    Json(request): Json<serde_json::Value>,
+) -> Result<(HeaderMap, Json<GetEntityTypesResponse>), Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    let store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    // Manually deserialize the query from a JSON value to allow borrowed deserialization and better
+    // error reporting.
+    let mut request = GetEntityTypesRequest::deserialize(&request).map_err(report_to_response)?;
+    request
+        .filter
+        .convert_parameters()
+        .map_err(report_to_response)?;
+    let response = store
+        .get_entity_types(
+            actor_id,
+            GetEntityTypesParams {
+                filter: request.filter,
+                after: pagination.after.map(|cursor| cursor.0),
+                limit: pagination.limit,
+                temporal_axes: request.temporal_axes,
+                include_drafts: request.include_drafts,
+            },
+        )
+        .await
+        .map_err(report_to_response)?;
+
+    let cursor = response.entity_types.last().map(Cursor);
+    let mut headers = HeaderMap::new();
+    if let (Some(cursor), Some(limit)) = (cursor, pagination.limit) {
+        headers.insert(LINK, cursor.link_header("next", uri, limit)?);
+    }
+    Ok((headers, Json(response)))
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct GetEntityTypeSubgraphRequest<'q> {
     #[serde(borrow)]
     filter: Filter<'q, EntityTypeWithMetadata>,
@@ -696,7 +790,7 @@ struct GetEntityTypeSubgraphResponse {
 
 #[utoipa::path(
     post,
-    path = "/entity-types/query",
+    path = "/entity-types/query/subgraph",
     request_body = GetEntityTypeSubgraphRequest,
     tag = "EntityType",
     params(

@@ -44,7 +44,7 @@ export const PageHeader: FunctionComponent = () => {
       component="header"
       sx={({ palette }) => ({
         background: palette.common.white,
-        borderBottom: `1px solid ${palette.gray["30"]}`,
+        borderBottom: `1px solid ${palette.gray[20]}`,
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",

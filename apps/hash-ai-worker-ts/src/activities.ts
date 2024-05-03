@@ -145,17 +145,7 @@ export const createAiActivities = ({
     });
   },
 
-  async inferEntitiesFromWebPageActivity(
-    params: Omit<
-      Parameters<typeof inferEntitiesFromWebPageActivity>[0],
-      "graphApiClient"
-    >,
-  ) {
-    return inferEntitiesFromWebPageActivity({
-      ...params,
-      graphApiClient,
-    });
-  },
+  inferEntitiesFromWebPageActivity,
 
   async createEntitiesActivity(
     params: Omit<

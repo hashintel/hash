@@ -1,12 +1,10 @@
-use std::io;
-
+use bytes::{Buf, BufMut};
 use enumflags2::BitFlags;
 use error_stack::Result;
-use tokio::io::AsyncWrite;
 
 use super::body::ResponseBody;
 use crate::{
-    codec::{Decode, Encode},
+    codec::{Buffer, BufferError, Decode, Encode},
     flags::BitFlagsOp,
 };
 
@@ -60,20 +58,27 @@ impl From<ResponseFlag> for ResponseFlags {
 }
 
 impl Encode for ResponseFlags {
-    type Error = io::Error;
+    type Error = BufferError;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        self.0.bits().encode(write).await
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
+        let bits = self.0.bits();
+
+        bits.encode(buffer)
     }
 }
 
 impl Decode for ResponseFlags {
     type Context = ();
-    type Error = io::Error;
+    type Error = BufferError;
 
-    async fn decode(read: impl tokio::io::AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        u8::decode(read, ())
-            .await
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        u8::decode(buffer, ())
             .map(BitFlags::from_bits_truncate)
             .map(Self)
     }
@@ -92,8 +97,8 @@ mod test {
         response::flags::ResponseFlag,
     };
 
-    #[tokio::test]
-    async fn encode() {
+    #[test]
+    fn encode() {
         let flags = RequestFlags::from(RequestFlag::BeginOfRequest);
 
         assert_encode(
@@ -101,24 +106,23 @@ mod test {
             expect![[r#"
             0x80
         "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode() {
-        assert_decode(&[0x00], &RequestFlags::EMPTY, ()).await;
+    #[test]
+    fn decode() {
+        assert_decode(&[0x00_u8] as &[_], &RequestFlags::EMPTY, ());
 
         assert_decode(
-            &[0x01],
+            &[0x01_u8] as &[_],
             &ResponseFlags::from(ResponseFlag::EndOfResponse),
             (),
-        )
-        .await;
+        );
     }
 
-    #[test_strategy::proptest(async = "tokio")]
-    async fn codec(flags: ResponseFlags) {
-        assert_codec(&flags, ()).await;
+    #[test_strategy::proptest]
+    #[cfg_attr(miri, ignore)]
+    fn codec(flags: ResponseFlags) {
+        assert_codec(&flags, ());
     }
 }

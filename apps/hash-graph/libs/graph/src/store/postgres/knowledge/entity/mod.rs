@@ -10,8 +10,8 @@ use std::{
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
-        EntityOwnerSubject, EntityPermission, EntityRelationAndSubject, EntityTypeId,
-        EntityTypePermission, WebPermission,
+        EntityOwnerSubject, EntityPermission, EntityRelationAndSubject, EntityTypePermission,
+        WebPermission,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
@@ -29,6 +29,7 @@ use graph_types::{
         link::LinkData,
         Confidence, PropertyMetadataMap, PropertyObject, PropertyPath,
     },
+    ontology::EntityTypeId,
     owned_by_id::OwnedById,
     Embedding,
 };

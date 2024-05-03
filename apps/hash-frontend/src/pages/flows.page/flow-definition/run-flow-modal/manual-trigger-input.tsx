@@ -6,7 +6,6 @@ import { EntitySelector } from "../../../shared/entity-selector";
 import { EntityTypeSelector } from "../../../shared/entity-type-selector";
 import { GoogleAccountSelect } from "../../../shared/integrations/google/google-account-select";
 import { SelectOrNameGoogleSheet } from "../../../shared/integrations/google/select-or-name-google-sheet";
-import { WebSelector } from "./manual-trigger-input/web-selector";
 import { inputHeight } from "./shared/dimensions";
 import type { FormState, LocalPayload } from "./types";
 
@@ -85,17 +84,6 @@ export const ManualTriggerInput = <Payload extends LocalPayload>({
           }
           sx={{ height: inputHeight, maxWidth: "100%" }}
           value={payload.value}
-        />
-      );
-    }
-    case "WebId": {
-      if (array || Array.isArray(payload.value)) {
-        throw new Error("Selecting multiple webs is not supported");
-      }
-      return (
-        <WebSelector
-          selectedWebOwnedById={payload.value}
-          setSelectedWebOwnedById={(newValue) => setValue(newValue)}
         />
       );
     }

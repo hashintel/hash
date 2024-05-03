@@ -1,20 +1,21 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { GraphApi } from "@local/hash-graph-client";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/ai-inference-types";
-import type { AccountId, Entity, EntityId } from "@local/hash-subgraph";
+import type { Entity, EntityId } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 
 import { logger } from "../shared/activity-logger";
+import { getFlowContext } from "../shared/get-flow-context";
 import { getLlmResponse } from "../shared/get-llm-response";
 import type {
   LlmMessage,
   LlmUserMessage,
 } from "../shared/get-llm-response/llm-message";
 import { getToolCallsFromLlmAssistantMessage } from "../shared/get-llm-response/llm-message";
+import { graphApiClient } from "../shared/graph-api-client";
 import { logProgress } from "../shared/log-progress";
 import { stringify } from "../shared/stringify";
 import { inferEntitiesSystemPrompt } from "./infer-entities-system-prompt";
@@ -40,16 +41,12 @@ export const proposeEntities = async (params: {
   previousMessages?: LlmMessage[];
   entityTypes: DereferencedEntityTypesByTypeId;
   inferenceState: InferenceState;
-  validationActorId: AccountId;
-  graphApiClient: GraphApi;
   existingEntities?: Entity[];
 }): Promise<Status<InferenceState>> => {
   const {
     maxTokens,
     previousMessages,
     entityTypes,
-    validationActorId,
-    graphApiClient,
     inferenceState,
     firstUserMessage,
     existingEntities,
@@ -183,18 +180,28 @@ export const proposeEntities = async (params: {
 
   logger.debug(`Next messages to model: ${stringify(messages)}`);
 
-  const llmResponse = await getLlmResponse({
-    model: "claude-3-opus-20240229",
-    maxTokens,
-    systemPrompt: inferEntitiesSystemPrompt,
-    messages,
-    tools,
-    /**
-     * We prefer consistency over creativity for the inference agent,
-     * so set the `temperature` to `0`.
-     */
-    temperature: 0,
-  });
+  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
+
+  const llmResponse = await getLlmResponse(
+    {
+      model: "claude-3-opus-20240229",
+      maxTokens,
+      systemPrompt: inferEntitiesSystemPrompt,
+      messages,
+      tools,
+      /**
+       * We prefer consistency over creativity for the inference agent,
+       * so set the `temperature` to `0`.
+       */
+      temperature: 0,
+    },
+    {
+      userAccountId: userAuthentication.actorId,
+      graphApiClient,
+      incurredInEntities: [{ entityId: flowEntityId }],
+      webId,
+    },
+  );
 
   if (llmResponse.status !== "ok") {
     return {
@@ -422,15 +429,18 @@ export const proposeEntities = async (params: {
                           })
                         : {};
 
-                      await graphApiClient.validateEntity(validationActorId, {
-                        entityTypes: [entityTypeId],
-                        components: {
-                          linkData: false,
-                          numItems: false,
-                          requiredProperties: false,
+                      await graphApiClient.validateEntity(
+                        userAuthentication.actorId,
+                        {
+                          entityTypes: [entityTypeId],
+                          components: {
+                            linkData: false,
+                            numItems: false,
+                            requiredProperties: false,
+                          },
+                          properties,
                         },
-                        properties,
-                      });
+                      );
 
                       return [];
                     } catch (error) {

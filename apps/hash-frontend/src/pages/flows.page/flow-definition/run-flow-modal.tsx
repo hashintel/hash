@@ -17,6 +17,7 @@ import { Modal } from "../../../shared/ui/modal";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { GoogleAuthProvider } from "../../shared/integrations/google/google-auth-context";
 import { ManualTriggerInput } from "./run-flow-modal/manual-trigger-input";
+import { WebSelector } from "./run-flow-modal/manual-trigger-input/web-selector";
 import type { FormState, LocalPayload } from "./run-flow-modal/types";
 import { isSupportedPayloadKind } from "./run-flow-modal/types";
 
@@ -42,18 +43,13 @@ const InputWrapper = ({
   </Box>
 );
 
-const generateInitialFormState = (
-  outputDefinitions: OutputDefinition[],
-  userWebId: OwnedById,
-) =>
+const generateInitialFormState = (outputDefinitions: OutputDefinition[]) =>
   outputDefinitions.reduce<FormState>((acc, outputDefinition) => {
     if (isSupportedPayloadKind(outputDefinition.payloadKind)) {
       let defaultValue: LocalPayload["value"] = "";
 
       if (outputDefinition.array) {
         defaultValue = [];
-      } else if (outputDefinition.payloadKind === "WebId") {
-        defaultValue = userWebId;
       } else if (outputDefinition.payloadKind === "Boolean") {
         defaultValue = false;
       } else if (outputDefinition.payloadKind === "Entity") {
@@ -75,7 +71,7 @@ type RunFlowModalProps = {
   flowDefinition: FlowDefinition;
   open: boolean;
   onClose: () => void;
-  runFlow: (outputs: FlowTrigger["outputs"]) => void;
+  runFlow: (outputs: FlowTrigger["outputs"], webId: OwnedById) => void;
 };
 
 export const RunFlowModal = ({
@@ -88,11 +84,12 @@ export const RunFlowModal = ({
 
   const { authenticatedUser } = useAuthenticatedUser();
 
+  const [webId, setWebId] = useState<OwnedById>(
+    authenticatedUser.accountId as OwnedById,
+  );
+
   const [formState, setFormState] = useState<FormState>(() =>
-    generateInitialFormState(
-      outputs ?? [],
-      authenticatedUser.accountId as OwnedById,
-    ),
+    generateInitialFormState(outputs ?? []),
   );
 
   const allRequiredValuesPresent = (outputs ?? []).every((output) => {
@@ -141,12 +138,11 @@ export const RunFlowModal = ({
       }
     }
 
-    runFlow(outputValues);
+    runFlow(outputValues, webId);
   };
 
   return (
     <Modal
-      hideBackdrop
       contentStyle={{ p: { xs: 0, md: 0 } }}
       open={open}
       onClose={onClose}
@@ -230,6 +226,10 @@ export const RunFlowModal = ({
               </InputWrapper>
             );
           })}
+          <WebSelector
+            selectedWebOwnedById={webId}
+            setSelectedWebOwnedById={(newWebId) => setWebId(newWebId)}
+          />
           <Button
             disabled={!allRequiredValuesPresent}
             size="small"

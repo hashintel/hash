@@ -3,7 +3,6 @@ import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-col
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -16,20 +15,13 @@ import {
   pageEntityTypeIds,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
 import type {
   HasDataProperties,
   HasIndexedContentProperties,
   PageProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import type {
-  Entity,
-  EntityId,
-  EntityRootType,
-  OwnedById,
-} from "@local/hash-subgraph";
-import { getEntities as getEntitiesFromSubgraph } from "@local/hash-subgraph/stdlib";
+import type { Entity, EntityId, OwnedById } from "@local/hash-subgraph";
 import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { ApolloError } from "apollo-server-errors";
@@ -43,6 +35,7 @@ import type { CreateEntityParams } from "../primitive/entity";
 import {
   archiveEntity,
   createEntity,
+  getEntities,
   getEntityOutgoingLinks,
   getLatestEntityById,
   updateEntityProperty,
@@ -253,30 +246,19 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
   false,
   true
 > = async (ctx, authentication, params) => {
-  const { graphApi } = ctx;
   const { ownedById, includeArchived = false, includeDrafts = false } = params;
-  const pageEntities = await graphApi
-    .getEntitySubgraph(authentication.actorId, {
-      filter: {
-        all: [
-          pageEntityTypeFilter,
-          {
-            equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
-          },
-        ],
-      },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
-    })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-        authentication.actorId,
-      );
-
-      return getEntitiesFromSubgraph(subgraph);
-    });
+  const pageEntities = await getEntities(ctx, authentication, {
+    filter: {
+      all: [
+        pageEntityTypeFilter,
+        {
+          equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+        },
+      ],
+    },
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts,
+  });
 
   const pages = pageEntities.map((entity) => getPageFromEntity({ entity }));
 

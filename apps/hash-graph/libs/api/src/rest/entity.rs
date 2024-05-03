@@ -28,8 +28,8 @@ use graph::{
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
         knowledge::{
             CountEntitiesParams, CreateEntityRequest, DiffEntityParams, DiffEntityResult,
-            GetEntitySubgraphParams, PatchEntityParams, UpdateEntityEmbeddingsParams,
-            ValidateEntityParams,
+            GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams, PatchEntityParams,
+            UpdateEntityEmbeddingsParams, ValidateEntityParams,
         },
         query::Filter,
         AccountStore, EntityQueryCursor, EntityQuerySorting, EntityQuerySortingRecord, EntityStore,
@@ -68,6 +68,7 @@ use crate::rest::{
         create_entity,
         validate_entity,
         check_entity_permission,
+        get_entities,
         get_entity_subgraph,
         count_entities,
         patch_entity,
@@ -108,12 +109,14 @@ use crate::rest::{
             ModifyRelationshipOperation,
             EntitySetting,
 
+            GetEntitiesRequest,
             GetEntitySubgraphRequest,
             EntityQueryCursor,
             Ordering,
             NullOrdering,
             EntityQuerySortingRecord,
             EntityQuerySortingToken,
+            GetEntitiesResponse,
             GetEntitySubgraphResponse,
 
             Entity,
@@ -197,7 +200,8 @@ impl RoutedResource for EntityResource {
                 .nest(
                     "/query",
                     Router::new()
-                        .route("/", post(get_entity_subgraph::<S, A>))
+                        .route("/", post(get_entities::<S, A>))
+                        .route("/subgraph", post(get_entity_subgraph::<S, A>))
                         .route("/count", post(count_entities::<S, A>)),
                 ),
         )
@@ -344,6 +348,164 @@ where
     }))
 }
 
+fn generate_sorting_paths(
+    paths: Option<Vec<EntityQuerySortingRecord<'_>>>,
+    limit: Option<usize>,
+    cursor: Option<EntityQueryCursor<'_>>,
+    temporal_axes: &QueryTemporalAxesUnresolved,
+) -> EntityQuerySorting<'static> {
+    let temporal_axes_sorting_path = match temporal_axes {
+        QueryTemporalAxesUnresolved::TransactionTime { .. } => &EntityQueryPath::TransactionTime,
+        QueryTemporalAxesUnresolved::DecisionTime { .. } => &EntityQueryPath::DecisionTime,
+    };
+
+    let sorting = paths
+        .map_or_else(
+            || {
+                if limit.is_some() || cursor.is_some() {
+                    vec![
+                        EntityQuerySortingRecord {
+                            path: temporal_axes_sorting_path.clone(),
+                            ordering: Ordering::Descending,
+                            nulls: None,
+                        },
+                        EntityQuerySortingRecord {
+                            path: EntityQueryPath::Uuid,
+                            ordering: Ordering::Ascending,
+                            nulls: None,
+                        },
+                        EntityQuerySortingRecord {
+                            path: EntityQueryPath::OwnedById,
+                            ordering: Ordering::Ascending,
+                            nulls: None,
+                        },
+                    ]
+                } else {
+                    Vec::new()
+                }
+            },
+            |mut paths| {
+                paths.push(EntityQuerySortingRecord {
+                    path: temporal_axes_sorting_path.clone(),
+                    ordering: Ordering::Descending,
+                    nulls: None,
+                });
+                paths.push(EntityQuerySortingRecord {
+                    path: EntityQueryPath::Uuid,
+                    ordering: Ordering::Ascending,
+                    nulls: None,
+                });
+                paths.push(EntityQuerySortingRecord {
+                    path: EntityQueryPath::OwnedById,
+                    ordering: Ordering::Ascending,
+                    nulls: None,
+                });
+                paths
+            },
+        )
+        .into_iter()
+        .map(EntityQuerySortingRecord::into_owned)
+        .collect();
+
+    EntityQuerySorting {
+        paths: sorting,
+        cursor: cursor.map(EntityQueryCursor::into_owned),
+    }
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct GetEntitiesRequest<'q, 's, 'p> {
+    #[serde(borrow)]
+    filter: Filter<'q, Entity>,
+    temporal_axes: QueryTemporalAxesUnresolved,
+    include_drafts: bool,
+    limit: Option<usize>,
+    #[serde(borrow)]
+    sorting_paths: Option<Vec<EntityQuerySortingRecord<'p>>>,
+    #[serde(borrow)]
+    cursor: Option<EntityQueryCursor<'s>>,
+    #[serde(default)]
+    include_count: bool,
+}
+
+#[utoipa::path(
+    post,
+    path = "/entities/query",
+    request_body = GetEntitiesRequest,
+    tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("after" = Option<String>, Query, description = "The cursor to start reading from"),
+        ("limit" = Option<usize>, Query, description = "The maximum number of entities to read"),
+    ),
+    responses(
+        (
+            status = 200,
+            content_type = "application/json",
+            body = GetEntitiesResponse,
+            description = "A list of entities that satisfy the given query.",
+        ),
+        (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, request))]
+async fn get_entities<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Json(request): Json<serde_json::Value>,
+) -> Result<Json<GetEntitiesResponse<'static>>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    let store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    let mut request = GetEntitiesRequest::deserialize(&request).map_err(report_to_response)?;
+    request
+        .filter
+        .convert_parameters()
+        .map_err(report_to_response)?;
+
+    store
+        .get_entities(
+            actor_id,
+            GetEntitiesParams {
+                filter: request.filter,
+                sorting: generate_sorting_paths(
+                    request.sorting_paths,
+                    request.limit,
+                    request.cursor,
+                    &request.temporal_axes,
+                ),
+                limit: request.limit,
+                include_drafts: request.include_drafts,
+                include_count: request.include_count,
+                temporal_axes: request.temporal_axes,
+            },
+        )
+        .await
+        .map(|response| {
+            Json(GetEntitiesResponse {
+                entities: response.entities,
+                cursor: response.cursor.map(EntityQueryCursor::into_owned),
+                count: response.count,
+            })
+        })
+        .map_err(report_to_response)
+}
+
 #[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct GetEntitySubgraphRequest<'q, 's, 'p> {
@@ -372,7 +534,7 @@ struct GetEntitySubgraphResponse<'r> {
 
 #[utoipa::path(
     post,
-    path = "/entities/query",
+    path = "/entities/query/subgraph",
     request_body = GetEntitySubgraphRequest,
     tag = "Entity",
     params(
@@ -420,67 +582,17 @@ where
         .convert_parameters()
         .map_err(report_to_response)?;
 
-    let temporal_axes_sorting_path = match request.temporal_axes {
-        QueryTemporalAxesUnresolved::TransactionTime { .. } => &EntityQueryPath::TransactionTime,
-        QueryTemporalAxesUnresolved::DecisionTime { .. } => &EntityQueryPath::DecisionTime,
-    };
-
-    let sorting = request.sorting_paths.map_or_else(
-        || {
-            if request.limit.is_some() || request.cursor.is_some() {
-                vec![
-                    EntityQuerySortingRecord {
-                        path: temporal_axes_sorting_path.clone(),
-                        ordering: Ordering::Descending,
-                        nulls: None,
-                    },
-                    EntityQuerySortingRecord {
-                        path: EntityQueryPath::Uuid,
-                        ordering: Ordering::Ascending,
-                        nulls: None,
-                    },
-                    EntityQuerySortingRecord {
-                        path: EntityQueryPath::OwnedById,
-                        ordering: Ordering::Ascending,
-                        nulls: None,
-                    },
-                ]
-            } else {
-                Vec::new()
-            }
-        },
-        |mut paths| {
-            paths.push(EntityQuerySortingRecord {
-                path: temporal_axes_sorting_path.clone(),
-                ordering: Ordering::Descending,
-                nulls: None,
-            });
-            paths.push(EntityQuerySortingRecord {
-                path: EntityQueryPath::Uuid,
-                ordering: Ordering::Ascending,
-                nulls: None,
-            });
-            paths.push(EntityQuerySortingRecord {
-                path: EntityQueryPath::OwnedById,
-                ordering: Ordering::Ascending,
-                nulls: None,
-            });
-            paths
-        },
-    );
-
     store
         .get_entity_subgraph(
             actor_id,
             GetEntitySubgraphParams {
                 filter: request.filter,
-                sorting: EntityQuerySorting {
-                    paths: sorting
-                        .into_iter()
-                        .map(EntityQuerySortingRecord::into_owned)
-                        .collect(),
-                    cursor: request.cursor.map(EntityQueryCursor::into_owned),
-                },
+                sorting: generate_sorting_paths(
+                    request.sorting_paths,
+                    request.limit,
+                    request.cursor,
+                    &request.temporal_axes,
+                ),
                 limit: request.limit,
                 graph_resolve_depths: request.graph_resolve_depths,
                 include_drafts: request.include_drafts,

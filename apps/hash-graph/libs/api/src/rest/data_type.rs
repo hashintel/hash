@@ -7,8 +7,7 @@ use std::sync::Arc;
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
-        DataTypeId, DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject,
-        DataTypeViewerSubject,
+        DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject, DataTypeViewerSubject,
     },
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
@@ -30,7 +29,8 @@ use graph::{
         error::VersionedUrlAlreadyExists,
         ontology::{
             ArchiveDataTypeParams, CreateDataTypeParams, GetDataTypeSubgraphParams,
-            UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
+            GetDataTypesParams, GetDataTypesResponse, UnarchiveDataTypeParams,
+            UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
         },
         query::Filter,
         BaseUrlAlreadyExists, ConflictBehavior, DataTypeStore, OntologyVersionDoesNotExist,
@@ -43,7 +43,7 @@ use graph::{
 };
 use graph_types::{
     ontology::{
-        DataTypeMetadata, DataTypeWithMetadata, OntologyTemporalMetadata,
+        DataTypeId, DataTypeMetadata, DataTypeWithMetadata, OntologyTemporalMetadata,
         OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
         ProvidedOntologyEditionProvenance,
     },
@@ -76,6 +76,7 @@ use crate::rest::{
 
         create_data_type,
         load_external_data_type,
+        get_data_types,
         get_data_type_subgraph,
         update_data_type,
         update_data_type_embeddings,
@@ -97,6 +98,8 @@ use crate::rest::{
             UpdateDataTypeRequest,
             UpdateDataTypeEmbeddingParams,
             DataTypeQueryToken,
+            GetDataTypesRequest,
+            GetDataTypesResponse,
             GetDataTypeSubgraphRequest,
             GetDataTypeSubgraphResponse,
             ArchiveDataTypeParams,
@@ -141,7 +144,12 @@ impl RoutedResource for DataTypeResource {
                             get(check_data_type_permission::<A>),
                         ),
                 )
-                .route("/query", post(get_data_type_subgraph::<S, A>))
+                .nest(
+                    "/query",
+                    Router::new()
+                        .route("/", post(get_data_types::<S, A>))
+                        .route("/subgraph", post(get_data_type_subgraph::<S, A>)),
+                )
                 .route("/load", post(load_external_data_type::<S, A>))
                 .route("/archive", put(archive_data_type::<S, A>))
                 .route("/unarchive", put(unarchive_data_type::<S, A>))
@@ -375,6 +383,91 @@ where
 
 #[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct GetDataTypesRequest<'q> {
+    #[serde(borrow)]
+    filter: Filter<'q, DataTypeWithMetadata>,
+    temporal_axes: QueryTemporalAxesUnresolved,
+    include_drafts: bool,
+}
+
+#[utoipa::path(
+    post,
+    path = "/data-types/query",
+    request_body = GetDataTypesRequest,
+    tag = "DataType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (
+            status = 200,
+            content_type = "application/json",
+            body = GetDataTypesResponse,
+            description = "Gets a a list of data types that satisfy the given query.",
+            headers(
+                ("Link" = String, description = "The link to be used to query the next page of data types"),
+            ),
+        ),
+
+        (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, request))]
+async fn get_data_types<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Query(pagination): Query<Pagination<DataTypeVertexId>>,
+    OriginalUri(uri): OriginalUri,
+    Json(request): Json<serde_json::Value>,
+) -> Result<(HeaderMap, Json<GetDataTypesResponse>), Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    let store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    // Manually deserialize the query from a JSON value to allow borrowed deserialization and better
+    // error reporting.
+    let mut request = GetDataTypesRequest::deserialize(&request).map_err(report_to_response)?;
+    request
+        .filter
+        .convert_parameters()
+        .map_err(report_to_response)?;
+    let response = store
+        .get_data_types(
+            actor_id,
+            GetDataTypesParams {
+                filter: request.filter,
+                after: pagination.after.map(|cursor| cursor.0),
+                limit: pagination.limit,
+                temporal_axes: request.temporal_axes,
+                include_drafts: request.include_drafts,
+            },
+        )
+        .await
+        .map_err(report_to_response)?;
+
+    let cursor = response.data_types.last().map(Cursor);
+    let mut headers = HeaderMap::new();
+    if let (Some(cursor), Some(limit)) = (cursor, pagination.limit) {
+        headers.insert(LINK, cursor.link_header("next", uri, limit)?);
+    }
+    Ok((headers, Json(response)))
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct GetDataTypeSubgraphRequest<'q> {
     #[serde(borrow)]
     filter: Filter<'q, DataTypeWithMetadata>,
@@ -391,7 +484,7 @@ struct GetDataTypeSubgraphResponse {
 
 #[utoipa::path(
     post,
-    path = "/data-types/query",
+    path = "/data-types/query/subgraph",
     request_body = GetDataTypeSubgraphRequest,
     tag = "DataType",
     params(

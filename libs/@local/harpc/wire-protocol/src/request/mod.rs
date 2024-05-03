@@ -1,26 +1,29 @@
 pub use bytes::Bytes;
+use bytes::{Buf, BufMut};
 use error_stack::{Result, ResultExt};
-use tokio::{
-    io::{AsyncRead, AsyncWrite},
-    pin,
-};
 
 use self::{
     body::{RequestBody, RequestBodyContext},
-    codec::{DecodeError, EncodeError},
     header::RequestHeader,
 };
-use crate::codec::{Decode, Encode};
+use crate::codec::{Buffer, Decode, Encode};
 
 pub mod begin;
 pub mod body;
-pub mod codec;
 pub mod flags;
 pub mod frame;
 pub mod header;
 pub mod id;
 pub mod procedure;
 pub mod service;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
+#[error("unable to encode request")]
+pub struct RequestEncodeError;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
+#[error("unable to decode request")]
+pub struct RequestDecodeError;
 
 /// A request message.
 ///
@@ -96,34 +99,33 @@ pub struct Request {
 }
 
 impl Encode for Request {
-    type Error = EncodeError;
+    type Error = RequestEncodeError;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        pin!(write);
-
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
         self.header
             .apply_body(&self.body)
-            .encode(&mut write)
-            .await
-            .change_context(EncodeError)?;
+            .encode(buffer)
+            .change_context(RequestEncodeError)?;
 
-        self.body.encode(write).await
+        self.body.encode(buffer).change_context(RequestEncodeError)
     }
 }
 
 impl Decode for Request {
     type Context = ();
-    type Error = DecodeError;
+    type Error = RequestDecodeError;
 
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        pin!(read);
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        let header = RequestHeader::decode(buffer, ()).change_context(RequestDecodeError)?;
 
-        let header = RequestHeader::decode(&mut read, ())
-            .await
-            .change_context(DecodeError)?;
-        let body = RequestBody::decode(read, RequestBodyContext::from_flags(header.flags))
-            .await
-            .change_context(DecodeError)?;
+        let body = RequestBody::decode(buffer, RequestBodyContext::from_flags(header.flags))
+            .change_context(RequestDecodeError)?;
 
         Ok(Self { header, body })
     }
@@ -188,8 +190,8 @@ mod test {
         b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd',
     ];
 
-    #[tokio::test]
-    async fn encode_begin() {
+    #[test]
+    fn encode_begin() {
         assert_encode(
             &Request {
                 header: RequestHeader {
@@ -217,12 +219,11 @@ mod test {
                 0x06 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B
                 b'h' b'e' b'l' b'l' b'o' b' ' b'w' b'o' b'r' b'l' b'd'
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn encode_begin_begin_of_request_unset() {
+    #[test]
+    fn encode_begin_begin_of_request_unset() {
         assert_encode(
             &Request {
                 header: EXAMPLE_HEADER,
@@ -246,12 +247,11 @@ mod test {
                 0x06 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B
                 b'h' b'e' b'l' b'l' b'o' b' ' b'w' b'o' b'r' b'l' b'd'
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn encode_frame() {
+    #[test]
+    fn encode_frame() {
         assert_encode(
             &Request {
                 header: EXAMPLE_HEADER,
@@ -264,12 +264,11 @@ mod test {
                 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B
                 b'h' b'e' b'l' b'l' b'o' b' ' b'w' b'o' b'r' b'l' b'd'
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn encode_frame_begin_of_request_set() {
+    #[test]
+    fn encode_frame_begin_of_request_set() {
         assert_encode(
             &Request {
                 header: RequestHeader {
@@ -285,12 +284,11 @@ mod test {
                 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B
                 b'h' b'e' b'l' b'l' b'o' b' ' b'w' b'o' b'r' b'l' b'd'
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode_begin() {
+    #[test]
+    fn decode_begin() {
         assert_decode(
             EXAMPLE_BEGIN_BUFFER,
             &Request {
@@ -314,12 +312,11 @@ mod test {
                 }),
             },
             (),
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode_frame() {
+    #[test]
+    fn decode_frame() {
         assert_decode(
             EXAMPLE_FRAME_BUFFER,
             &Request {
@@ -329,12 +326,12 @@ mod test {
                 }),
             },
             (),
-        )
-        .await;
+        );
     }
 
-    #[test_strategy::proptest(async = "tokio")]
-    async fn codec(request: Request) {
+    #[test_strategy::proptest]
+    #[cfg_attr(miri, ignore)]
+    fn codec(request: Request) {
         // encoding partially overrides flags if they are not set correctly, to ensure that
         // encode/decode is actually lossless we need to apply the body to the header
         // before encoding, this ensures that the flags are the same as the decoded request
@@ -343,14 +340,15 @@ mod test {
             ..request
         };
 
-        assert_codec(&request, ()).await;
+        assert_codec(&request, ());
     }
 
-    #[test_strategy::proptest(async = "tokio")]
-    async fn header_size(request: Request) {
+    #[test_strategy::proptest]
+    #[cfg_attr(miri, ignore)]
+    fn header_size(request: Request) {
         // ensure that for every request the header size is *always* 32 bytes
 
-        let value = encode_value(&request).await;
+        let value = encode_value(&request);
         // remove the last n bytes (payload size)
         let header_length = value.len() - request.body.payload().as_bytes().len();
 

@@ -1,6 +1,6 @@
 import { faHome } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
-import { Box, Collapse, Drawer, Tooltip } from "@mui/material";
+import { Box, Collapse, Drawer } from "@mui/material";
 import { useRouter } from "next/router";
 import {
   Fragment,
@@ -129,7 +129,7 @@ export const PageSidebar: FunctionComponent = () => {
           position: "relative",
           flex: 1,
           backgroundColor: theme.palette.white,
-          borderRight: `1px solid ${theme.palette.gray[30]}`,
+          borderRight: `1px solid ${theme.palette.gray[20]}`,
         }),
       }}
       data-testid="page-sidebar"
@@ -146,11 +146,9 @@ export const PageSidebar: FunctionComponent = () => {
         <Box sx={{ flex: 1 }}>
           <WorkspaceSwitcher />
         </Box>
-        <Tooltip title="Collapse Sidebar">
-          <IconButton size="medium" onClick={closeSidebar}>
-            <SidebarToggleIcon />
-          </IconButton>
-        </Tooltip>
+        <IconButton aria-hidden size="medium" onClick={closeSidebar}>
+          <SidebarToggleIcon />
+        </IconButton>
       </Box>
       {navLinks.map((navLink) => {
         const isActive =

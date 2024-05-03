@@ -1,4 +1,4 @@
-#![feature(result_flattening)]
+#![feature(lint_reasons)]
 
 #[cfg(feature = "bytes")]
 pub mod bytes;

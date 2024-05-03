@@ -3,7 +3,6 @@ import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -17,7 +16,6 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import type {
   ImpureGraphFunction,
@@ -27,9 +25,9 @@ import type { CreateEntityParams } from "../primitive/entity";
 import {
   archiveEntity,
   createEntity,
+  getEntities,
   getEntityIncomingLinks,
   getEntityOutgoingLinks,
-  getEntitySubgraph,
   getLatestEntityById,
 } from "../primitive/entity";
 import {
@@ -257,30 +255,25 @@ export const getBlockCollectionByBlock: ImpureGraphFunction<
     block.entity.metadata.recordId.entityId,
   );
 
-  const matchingContainsLinks = await getEntitySubgraph(
-    context,
-    authentication,
-    {
-      filter: {
-        all: [
-          contentLinkTypeFilter,
-          {
-            equal: [
-              { path: ["rightEntity", "uuid"] },
-              { parameter: blockEntityUuid },
-            ],
-          },
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.blockCollection.entityTypeId,
-            { ignoreParents: false, pathPrefix: ["leftEntity"] },
-          ),
-        ],
-      },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
+  const matchingContainsLinks = await getEntities(context, authentication, {
+    filter: {
+      all: [
+        contentLinkTypeFilter,
+        {
+          equal: [
+            { path: ["rightEntity", "uuid"] },
+            { parameter: blockEntityUuid },
+          ],
+        },
+        generateVersionedUrlMatchingFilter(
+          systemEntityTypes.blockCollection.entityTypeId,
+          { ignoreParents: false, pathPrefix: ["leftEntity"] },
+        ),
+      ],
     },
-  ).then((subgraph) => getRoots(subgraph).filter(isEntityLinkEntity));
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts,
+  }).then((entities) => entities.filter(isEntityLinkEntity));
 
   /** @todo: account for blocks that are in multiple pages */
 

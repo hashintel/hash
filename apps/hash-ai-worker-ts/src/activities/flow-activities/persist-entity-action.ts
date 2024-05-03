@@ -1,12 +1,12 @@
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
-import type { EntityMetadata, GraphApi } from "@local/hash-graph-client";
+import type { EntityMetadata } from "@local/hash-graph-client";
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { Entity, OwnedById } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 
@@ -16,22 +16,26 @@ import {
   findExistingEntity,
   findExistingLinkEntity,
 } from "../shared/find-existing-entity";
+import { getFlowContext } from "../shared/get-flow-context";
+import { graphApiClient } from "../shared/graph-api-client";
 import { logProgress } from "../shared/log-progress";
 import { getEntityUpdate } from "./shared/graph-requests";
 import type { FlowActionActivity } from "./types";
 
-export const persistEntityAction: FlowActionActivity<{
-  graphApiClient: GraphApi;
-}> = async ({ inputs, graphApiClient, userAuthentication: { actorId } }) => {
-  const { draft, proposedEntityWithResolvedLinks, webId } =
-    getSimplifiedActionInputs({
-      inputs,
-      actionType: "persistEntity",
-    });
+export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
+  const {
+    userAuthentication: { actorId },
+    webId,
+  } = await getFlowContext();
+
+  const { draft, proposedEntityWithResolvedLinks } = getSimplifiedActionInputs({
+    inputs,
+    actionType: "persistEntity",
+  });
 
   const createEditionAsDraft = draft ?? false;
 
-  const ownedById = webId ?? (actorId as OwnedById);
+  const ownedById = webId;
 
   const webBotActorId = await getWebMachineActorId(
     { graphApi: graphApiClient },

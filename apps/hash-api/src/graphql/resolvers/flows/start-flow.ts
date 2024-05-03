@@ -14,7 +14,7 @@ export const startFlow: ResolverFn<
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationStartFlowArgs
-> = async (_, { flowTrigger, flowDefinition }, graphQLContext) => {
+> = async (_, { flowTrigger, flowDefinition, webId }, graphQLContext) => {
   const { temporal, user } = graphQLContext;
 
   validateFlowDefinition(flowDefinition);
@@ -28,6 +28,7 @@ export const startFlow: ResolverFn<
         flowTrigger,
         flowDefinition,
         userAuthentication: { actorId: user.accountId },
+        webId,
       },
     ],
     memo: {

@@ -6,7 +6,6 @@ import type { VaultClient } from "@local/hash-backend-utils/vault";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -14,21 +13,19 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import type { UserSecretProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type {
   AccountId,
   Entity,
   EntityId,
-  EntityRootType,
   OwnedById,
 } from "@local/hash-subgraph";
 import {
   extractOwnedByIdFromEntityId,
   splitEntityId,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type {
@@ -77,7 +74,7 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
   const { userAccountId, linearOrgId, includeDrafts = false } = params;
 
   const entities = await graphApi
-    .getEntitySubgraph(actorId, {
+    .getEntities(actorId, {
       filter: {
         all: [
           {
@@ -118,19 +115,14 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
           },
         ],
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
     })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-        null,
-        true,
-      );
-
-      return getRoots(subgraph);
-    });
+    .then(({ data: response }) =>
+      response.entities.map((entity) =>
+        mapGraphApiEntityToEntity(entity, actorId),
+      ),
+    );
 
   if (entities.length > 1) {
     throw new Error(
@@ -170,7 +162,7 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
   );
 
   const linearIntegrationEntities = await context.graphApi
-    .getEntitySubgraph(authentication.actorId, {
+    .getEntities(authentication.actorId, {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
@@ -198,18 +190,14 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
           },
         ],
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
     })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-        null,
-        true,
-      );
-      return getRoots(subgraph);
-    });
+    .then(({ data: response }) =>
+      response.entities.map((entity) =>
+        mapGraphApiEntityToEntity(entity, null, true),
+      ),
+    );
 
   const integrationEntity = linearIntegrationEntities[0];
 

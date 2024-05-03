@@ -184,12 +184,6 @@ const actionDefinitionsAsConst = {
         },
         array: false,
       },
-      {
-        oneOfPayloadKinds: ["WebId"],
-        name: "webId",
-        required: false,
-        array: false,
-      },
     ],
     outputs: [
       {
@@ -220,12 +214,6 @@ const actionDefinitionsAsConst = {
           kind: "Boolean",
           value: false,
         },
-        array: false,
-      },
-      {
-        oneOfPayloadKinds: ["WebId"],
-        name: "webId",
-        required: false,
         array: false,
       },
     ],
@@ -448,13 +436,6 @@ const actionDefinitionsAsConst = {
         description:
           "The type of audience for the Google Sheet, which affects formatting.",
         name: "audience",
-        required: true,
-        array: false,
-      },
-      {
-        oneOfPayloadKinds: ["WebId"],
-        description: "The web to save the file entity to.",
-        name: "webId",
         required: true,
         array: false,
       },
