@@ -14,6 +14,13 @@ use tokio_util::{
 
 pub struct ProtocolCodec<T>(PhantomData<fn() -> *const T>);
 
+impl<T> ProtocolCodec<T> {
+    #[must_use]
+    pub const fn new() -> Self {
+        Self(PhantomData)
+    }
+}
+
 impl<T> Encoder<T> for ProtocolCodec<T>
 where
     T: Encode,
@@ -63,6 +70,12 @@ where
         T::decode(&mut buffer, ())
             .change_context(io::Error::from(io::ErrorKind::InvalidData))
             .map(Some)
+    }
+}
+
+impl<T> Default for ProtocolCodec<T> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

@@ -1,14 +1,28 @@
-use error_stack::{Result, ResultExt};
-use futures::StreamExt;
+mod client;
+mod error;
+mod server;
+
+use std::io;
+
+use bytes::BytesMut;
+use codec::harpc::wire::{RequestCodec, ResponseCodec};
+use error_stack::{Report, Result, ResultExt};
+use futures::{Sink, Stream, StreamExt};
+use harpc_wire_protocol::{request::Request, response::Response};
 use libp2p::{
-    core::{muxing::StreamMuxerBox, upgrade},
+    core::upgrade,
     identify,
     metrics::{self, Metrics, Registry},
-    noise, ping, yamux, StreamProtocol, SwarmBuilder, Transport,
+    noise, ping, yamux, PeerId, StreamProtocol, SwarmBuilder, Transport,
 };
 use libp2p_stream as stream;
-use stream::IncomingStreams;
+use tokio::io::BufStream;
+use tokio_util::{
+    codec::{Decoder, Encoder, Framed},
+    compat::FuturesAsyncReadCompatExt,
+};
 
+use self::error::TransportError;
 use crate::{
     behaviour::{TransportBehaviour, TransportSwarm},
     config::Config,
@@ -16,18 +30,12 @@ use crate::{
 
 const STREAM_PROTOCOL: StreamProtocol = StreamProtocol::new("/harpc");
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
-#[error("transport layer")]
-pub(crate) struct TransportError;
-
 pub(crate) struct TransportLayer {
     swarm: TransportSwarm,
 
     registry: Registry,
     metrics: Metrics,
 }
-
-// TODO: rename transport into protocol!
 
 impl TransportLayer {
     pub(crate) fn new(
@@ -79,18 +87,51 @@ impl TransportLayer {
         })
     }
 
-    async fn recv_stream(incoming: IncomingStreams) {
-        while let Some((peer, stream)) = incoming.next().await {
-            // TODO: stream into codec (and back, for sending)
-            yield stream;
-        }
+    pub(crate) fn listen(
+        &self,
+    ) -> Result<
+        impl Stream<
+            Item = (
+                PeerId,
+                impl Sink<Response>,
+                impl Stream<Item = Result<Request, io::Error>>,
+            ),
+        >,
+        TransportError,
+    > {
+        let mut control = self.swarm.behaviour().stream.new_control();
+        let incoming = control
+            .accept(STREAM_PROTOCOL)
+            .change_context(TransportError)?;
+
+        Ok(incoming.map(|(peer, stream)| {
+            let stream = stream.compat();
+            let stream = BufStream::new(stream);
+            let stream = Framed::new(stream, ServerCodec::new());
+
+            let (sink, stream) = stream.split();
+
+            (peer, sink, stream)
+        }))
     }
 
-    pub(crate) async fn recv(&self) {
+    pub(crate) async fn dial(
+        &self,
+        peer: PeerId,
+    ) -> Result<
+        (
+            impl Sink<Request>,
+            impl Stream<Item = Result<Response, io::Error>>,
+        ),
+        TransportError,
+    > {
         let mut control = self.swarm.behaviour().stream.new_control();
-        let mut incoming = control.accept(STREAM_PROTOCOL)?;
 
-        Self::recv_stream(incoming)
+        let stream = control
+            .open_stream(peer, STREAM_PROTOCOL)
+            .await
+            .map_err(OpenStreamError::convert)
+            .change_context(TransportError)?;
     }
 
     // TODO: recv, send, dial (?), where recv splits out a stream of wire-protocol messages.

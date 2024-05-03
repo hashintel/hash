@@ -9,9 +9,11 @@ authors.workspace = true
 edition.workspace = true
 
 [dependencies]
+bytes.workspace = true
 codec = { workspace = true, features = ["harpc"] }
 error-stack.workspace = true
 futures.workspace = true
+harpc-wire-protocol.workspace = true
 libp2p = { version = "0.53.2", features = [
     "metrics",
     "macros",
@@ -24,3 +26,5 @@ libp2p = { version = "0.53.2", features = [
 ] }
 libp2p-stream = "0.1.0-alpha"
 thiserror = "1.0.59"
+tokio = { workspace = true, features = ["io-util"] }
+tokio-util = { workspace = true, features = ["codec", "compat"] }
