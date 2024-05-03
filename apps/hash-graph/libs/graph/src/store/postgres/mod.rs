@@ -384,6 +384,8 @@ where
     /// Inserts an [`OntologyDatabaseType`] identified by [`OntologyId`], and associated with an
     /// [`OwnedById`] and [`EditionCreatedById`], into the database.
     ///
+    /// [`EditionCreatedById`]: graph_types::account::EditionCreatedById
+    ///
     /// # Errors
     ///
     /// - if inserting failed.
@@ -420,6 +422,8 @@ where
 
     /// Inserts a [`EntityType`] identified by [`OntologyId`], and associated with an
     /// [`OwnedById`], [`EditionCreatedById`], and the optional label property, into the database.
+    ///
+    /// [`EditionCreatedById`]: graph_types::account::EditionCreatedById
     ///
     /// # Errors
     ///
