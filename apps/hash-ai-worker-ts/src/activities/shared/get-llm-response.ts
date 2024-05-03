@@ -737,9 +737,17 @@ export const getLlmResponse = async <T extends LlmParams>(
     };
   }
 
+  const timeBeforeApiCall = Date.now();
+
   const llmResponse = isLlmParamsAnthropicLlmParams(llmParams)
     ? await getAnthropicResponse(llmParams)
     : await getOpenAiResponse(llmParams);
+
+  const timeAfterApiCall = Date.now();
+
+  const numberOfSeconds = (timeAfterApiCall - timeBeforeApiCall) / 1000;
+
+  logger.debug(`LLM API call time: ${numberOfSeconds} seconds`);
 
   /**
    * Capture incurred usage in a usage record.
