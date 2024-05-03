@@ -179,7 +179,7 @@ export const runFlowWorkflow = async (
   if (userHasPermissionToRunFlowInWeb.status !== "ok") {
     return {
       code: StatusCode.PermissionDenied,
-      message: `User does not have permission to run flow in web ${webId}, because they are permissions: ${userHasPermissionToRunFlowInWeb.missingPermissions.join(`,`)}`,
+      message: `User does not have permission to run flow in web ${webId}, because they are missing permissions: ${userHasPermissionToRunFlowInWeb.missingPermissions.join(`,`)}`,
       contents: [],
     };
   }
