@@ -7,8 +7,10 @@ import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
 import { getWebPageActivity } from "../get-web-page-activity";
+import { getFlowContext } from "../shared/get-flow-context";
 import { getLlmResponse } from "../shared/get-llm-response";
 import { getTextContentFromLlmMessage } from "../shared/get-llm-response/llm-message";
+import { graphApiClient } from "../shared/graph-api-client";
 import { modelAliasToSpecificModel } from "../shared/openai-client";
 import type { FlowActionActivity } from "./types";
 
@@ -44,25 +46,35 @@ export const getWebPageSummaryAction: FlowActionActivity = async ({
     numberOfSentences: numberOfSentences!,
   });
 
-  const llmResponse = await getLlmResponse({
-    systemPrompt,
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: dedent(`
+  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
+
+  const llmResponse = await getLlmResponse(
+    {
+      systemPrompt,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: dedent(`
               URL: ${url}
               Title: ${webPage.title}
               Text: ${webPage.htmlContent} 
             `),
-          },
-        ],
-      },
-    ],
-    model: modelAliasToSpecificModel[model],
-  });
+            },
+          ],
+        },
+      ],
+      model: modelAliasToSpecificModel[model],
+    },
+    {
+      userAccountId: userAuthentication.actorId,
+      graphApiClient,
+      incurredInEntities: [{ entityId: flowEntityId }],
+      webId,
+    },
+  );
 
   if (llmResponse.status !== "ok") {
     return {

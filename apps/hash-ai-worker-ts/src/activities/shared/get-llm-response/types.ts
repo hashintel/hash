@@ -27,6 +27,7 @@ export type CommonLlmParams<ToolName extends string = string> = {
   retryCount?: number;
   systemPrompt?: string;
   messages: LlmMessage[];
+  previousUsage?: LlmUsage;
 };
 
 export type AnthropicLlmParams<ToolName extends string = string> =
@@ -112,8 +113,17 @@ export type LlmResponse<T extends LlmParams> =
     } & (T extends AnthropicLlmParams ? AnthropicResponse : OpenAiResponse))
   | {
       status: "exceeded-maximum-retries";
+      usage: LlmUsage;
     }
   | {
       status: "api-error";
       axiosError?: AxiosError;
+    }
+  | {
+      status: "exceeded-usage-limit";
+      message: string;
+    }
+  | {
+      status: "internal-error";
+      message: string;
     };

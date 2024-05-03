@@ -5,13 +5,9 @@ import { AsyncRedisClient } from "@local/hash-backend-utils/redis";
 import type { Wal2JsonMsg } from "@local/hash-backend-utils/wal2json";
 import type { GraphApi } from "@local/hash-graph-client";
 import { getRequiredEnv } from "@local/hash-isomorphic-utils/environment";
-import {
-  fullDecisionTimeAxis,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { Entity, EntityRootType } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import { fullDecisionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
+import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import type { Entity } from "@local/hash-subgraph";
 
 import { systemAccountId } from "../graph/system-account";
 import { logger } from "../logger";
@@ -57,25 +53,21 @@ export const createIntegrationSyncBackWatcher = async (
 
         const entity = (
           await graphApiClient
-            .getEntitySubgraph(linearBotAccountId, {
+            .getEntities(linearBotAccountId, {
               filter: {
                 equal: [
                   { path: ["editionId"] },
                   { parameter: entityEdition.entityEditionId },
                 ],
               },
-              graphResolveDepths: zeroedGraphResolveDepths,
               temporalAxes: fullDecisionTimeAxis,
               includeDrafts: false,
             })
-            .then(({ data }) => {
-              const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-                data.subgraph,
-                null,
-                true,
-              );
-              return getRoots(subgraph);
-            })
+            .then(({ data: response }) =>
+              response.entities.map((graphEntity) =>
+                mapGraphApiEntityToEntity(graphEntity, null, true),
+              ),
+            )
         )[0];
 
         if (!entity) {

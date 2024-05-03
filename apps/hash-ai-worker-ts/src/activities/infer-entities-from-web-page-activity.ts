@@ -1,6 +1,5 @@
-import type { GraphApi } from "@local/hash-graph-client";
 import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
-import type { AccountId, Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
@@ -11,6 +10,8 @@ import type {
 } from "./infer-entities/inference-types";
 import { proposeEntities } from "./infer-entities/propose-entities";
 import { logger } from "./shared/activity-logger";
+import { getFlowContext } from "./shared/get-flow-context";
+import { graphApiClient } from "./shared/graph-api-client";
 import type { PermittedOpenAiModel } from "./shared/openai-client";
 import { simplifyEntity } from "./shared/simplify-entity";
 import { stringify } from "./shared/stringify";
@@ -20,9 +21,7 @@ export const inferEntitiesFromWebPageActivity = async (params: {
   relevantEntitiesPrompt?: string;
   entityTypes: DereferencedEntityTypesByTypeId;
   inferenceState: InferenceState;
-  validationActorId: AccountId;
   model: PermittedOpenAiModel;
-  graphApiClient: GraphApi;
   maxTokens?: number | null;
   temperature?: number;
   existingEntities?: Entity[];
@@ -31,14 +30,14 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     webPage,
     relevantEntitiesPrompt,
     entityTypes,
-    validationActorId,
     model,
-    graphApiClient,
     inferenceState,
     maxTokens,
     temperature,
     existingEntities,
   } = params;
+
+  const { webId, userAuthentication } = await getFlowContext();
 
   /**
    * Inference step 1: get a list of entities that can be inferred from the input text, without property details
@@ -62,6 +61,9 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     maxTokens,
     temperature,
     existingEntities,
+    userAccountId: userAuthentication.actorId,
+    graphApiClient,
+    webId,
   });
 
   logger.debug(
@@ -112,8 +114,6 @@ export const inferEntitiesFromWebPageActivity = async (params: {
   return await proposeEntities({
     maxTokens: maxTokens ?? undefined,
     firstUserMessage: proposeEntitiesPrompt,
-    validationActorId,
-    graphApiClient,
     entityTypes,
     inferenceState: {
       ...inferenceState,

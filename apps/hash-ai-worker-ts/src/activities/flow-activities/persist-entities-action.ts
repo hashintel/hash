@@ -1,4 +1,3 @@
-import type { GraphApi } from "@local/hash-graph-client";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   FailedEntityProposal,
@@ -6,21 +5,16 @@ import type {
   PersistedEntity,
   ProposedEntityWithResolvedLinks,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type { OwnedById } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 
 import { persistEntityAction } from "./persist-entity-action";
 import type { FlowActionActivity } from "./types";
 
-export const persistEntitiesAction: FlowActionActivity<{
-  graphApiClient: GraphApi;
-}> = async ({ inputs, graphApiClient, userAuthentication }) => {
-  const { draft, proposedEntities, webId } = getSimplifiedActionInputs({
+export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
+  const { draft, proposedEntities } = getSimplifiedActionInputs({
     inputs,
     actionType: "persistEntities",
   });
-
-  const ownedById = webId ?? (userAuthentication.actorId as OwnedById);
 
   /**
    * This assumes that there are no link entities which link to other link entities, which require being able to
@@ -114,13 +108,7 @@ export const persistEntitiesAction: FlowActionActivity<{
             value: entityWithResolvedLinks,
           },
         },
-        {
-          inputName: "webId",
-          payload: { kind: "WebId", value: ownedById },
-        },
       ],
-      graphApiClient,
-      userAuthentication,
     });
 
     const output = persistedEntityOutputs.contents[0]?.outputs?.[0]?.payload;

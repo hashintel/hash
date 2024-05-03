@@ -21,7 +21,8 @@
     "test:system": {},
     "test:miri": {},
     "dev": {
-      "persistent": true
+      "persistent": true,
+      "dependsOn": ["@local/hash-graph-client#codegen"]
     },
     "lint": {
       "dependsOn": ["codegen"]

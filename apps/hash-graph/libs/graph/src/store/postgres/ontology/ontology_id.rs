@@ -1,7 +1,6 @@
 use std::fmt;
 
-use authorization::schema::{DataTypeId, EntityTypeId, PropertyTypeId};
-use graph_types::ontology::OntologyTypeRecordId;
+use graph_types::ontology::{DataTypeId, EntityTypeId, OntologyTypeRecordId, PropertyTypeId};
 use postgres_types::{FromSql, ToSql};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "utoipa")]

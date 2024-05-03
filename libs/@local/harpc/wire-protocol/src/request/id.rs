@@ -1,9 +1,7 @@
-use std::io;
-
+use bytes::{Buf, BufMut};
 use error_stack::Result;
-use tokio::io::{AsyncRead, AsyncWrite};
 
-use crate::codec::{Decode, Encode};
+use crate::codec::{Buffer, BufferError, Decode, Encode};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -22,19 +20,25 @@ impl RequestId {
 }
 
 impl Encode for RequestId {
-    type Error = io::Error;
+    type Error = BufferError;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        self.0.encode(write).await
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
+        self.0.encode(buffer)
     }
 }
 
 impl Decode for RequestId {
     type Context = ();
-    type Error = io::Error;
+    type Error = BufferError;
 
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        u32::decode(read, ()).await.map(Self)
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        u32::decode(buffer, ()).map(Self)
     }
 }
 
@@ -103,24 +107,28 @@ pub(crate) mod test {
         assert_eq!(producer.next().expect("infallible").0, 0);
     }
 
-    #[tokio::test]
-    async fn encode_id() {
+    #[test]
+    fn encode_id() {
         assert_encode(
             &RequestId(0x01_02_03_04),
             expect![[r#"
                 0x01 0x02 0x03 0x04
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode_id() {
-        assert_decode(&[0x12, 0x34, 0x56, 0x78], &RequestId(0x12_34_56_78), ()).await;
+    #[test]
+    fn decode_id() {
+        assert_decode(
+            &[0x12_u8, 0x34, 0x56, 0x78] as &[_],
+            &RequestId(0x12_34_56_78),
+            (),
+        );
     }
 
-    #[test_strategy::proptest(async = "tokio")]
-    async fn codec_id(id: RequestId) {
-        assert_codec(&id, ()).await;
+    #[test_strategy::proptest]
+    #[cfg_attr(miri, ignore)]
+    fn codec_id(id: RequestId) {
+        assert_codec(&id, ());
     }
 }

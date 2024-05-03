@@ -1,5 +1,11 @@
+import type { GraphApi } from "@local/hash-graph-client";
 import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
-import type { Entity } from "@local/hash-subgraph";
+import type {
+  AccountId,
+  Entity,
+  EntityId,
+  OwnedById,
+} from "@local/hash-subgraph";
 import dedent from "dedent";
 
 import type { PermittedOpenAiModel } from "../shared/openai-client";
@@ -19,6 +25,16 @@ export const inferEntitySummariesFromWebPage = async (params: {
   inferenceState: InferenceState;
   entityTypes: DereferencedEntityTypesByTypeId;
   existingEntities?: Entity[];
+  /**
+   * @todo: remove these parameters when the `inferEntities` activity has
+   * been deprecated, and access them via `getFlowContext` instead.
+   *
+   * @see https://linear.app/hash/issue/H-2621/remove-superfluous-parameters-in-flow-activity-methods-and-use
+   */
+  userAccountId: AccountId;
+  graphApiClient: GraphApi;
+  flowEntityId?: EntityId;
+  webId: OwnedById;
 }) => {
   const {
     webPage,
@@ -29,6 +45,10 @@ export const inferEntitySummariesFromWebPage = async (params: {
     entityTypes,
     inferenceState,
     existingEntities,
+    userAccountId,
+    graphApiClient,
+    flowEntityId,
+    webId,
   } = params;
 
   const summariseEntitiesPrompt = dedent(`
@@ -85,5 +105,9 @@ export const inferEntitySummariesFromWebPage = async (params: {
     inferenceState,
     providedOrRerequestedEntityTypes: new Set(),
     existingEntities,
+    userAccountId,
+    graphApiClient,
+    flowEntityId,
+    webId,
   });
 };

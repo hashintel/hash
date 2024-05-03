@@ -170,7 +170,7 @@ const proxyActionActivity = (params: {
 export const runFlowWorkflow = async (
   params: RunFlowWorkflowParams,
 ): Promise<RunFlowWorkflowResponse> => {
-  const { flowDefinition, flowTrigger, userAuthentication } = params;
+  const { flowDefinition, flowTrigger, userAuthentication, webId } = params;
 
   try {
     validateFlowDefinition(flowDefinition);
@@ -178,6 +178,18 @@ export const runFlowWorkflow = async (
     return {
       code: StatusCode.InvalidArgument,
       message: (error as Error).message,
+      contents: [],
+    };
+  }
+
+  // Ensure the user has permission to create entities in specified web
+  const userHasPermissionToRunFlowInWeb =
+    await flowActivities.userHasPermissionToRunFlowInWebActivity();
+
+  if (userHasPermissionToRunFlowInWeb.status !== "ok") {
+    return {
+      code: StatusCode.PermissionDenied,
+      message: `User does not have permission to run flow in web ${webId}, because they are missing permissions: ${userHasPermissionToRunFlowInWeb.missingPermissions.join(`,`)}`,
       contents: [],
     };
   }
@@ -314,7 +326,6 @@ export const runFlowWorkflow = async (
       try {
         actionResponse = await actionActivity({
           inputs: currentStep.inputs ?? [],
-          userAuthentication,
         });
       } catch (error) {
         log(
@@ -491,12 +502,16 @@ export const runFlowWorkflow = async (
    */
   await sleep(3_000);
 
+  const stepErrors = Object.entries(processStepErrors).map(
+    ([stepId, status]) => ({ ...status, contents: [{ stepId }] }),
+  );
+
   /** @todo this is not necessarily an error once there are branches */
   if (processedStepIds.length !== getAllStepsInFlow(flow).length) {
     return {
       code: StatusCode.Unknown,
       message: "Not all steps in the flows were processed.",
-      contents: [{ flow }],
+      contents: [{ flow, stepErrors }],
     };
   }
 
@@ -515,7 +530,7 @@ export const runFlowWorkflow = async (
       return {
         code: StatusCode.NotFound,
         message: `${errorPrefix}required step with id '${outputDefinition.stepId}' not found in outputs.`,
-        contents: [{ flow }],
+        contents: [{ flow, stepErrors }],
       };
     }
 
@@ -532,7 +547,7 @@ export const runFlowWorkflow = async (
         return {
           code: StatusCode.NotFound,
           message: `${errorPrefix}there is no output with name '${outputDefinition.stepOutputName}' in step ${step.stepId}`,
-          contents: [],
+          contents: [{ stepErrors }],
         };
       }
 
@@ -550,7 +565,7 @@ export const runFlowWorkflow = async (
         return {
           code: StatusCode.NotFound,
           message: `${errorPrefix}no aggregate output found in step ${step.stepId}`,
-          contents: [],
+          contents: [{ stepErrors }],
         };
       }
 
@@ -563,10 +578,6 @@ export const runFlowWorkflow = async (
       ];
     }
   }
-
-  const stepErrors = Object.entries(processStepErrors).map(
-    ([stepId, status]) => ({ ...status, contents: [{ stepId }] }),
-  );
 
   await flowActivities.persistFlowActivity({ flow, userAuthentication });
 

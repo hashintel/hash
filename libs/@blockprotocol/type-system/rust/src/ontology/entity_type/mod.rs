@@ -5,12 +5,16 @@ pub(in crate::ontology) mod raw;
 #[cfg(target_arch = "wasm32")]
 mod wasm;
 
+#[cfg(feature = "postgres")]
+use std::error::Error;
 use std::{
     borrow::Borrow,
     collections::{HashMap, HashSet},
     ptr,
 };
 
+#[cfg(feature = "postgres")]
+use postgres_types::{private::BytesMut, FromSql, IsNull, Json, ToSql, Type};
 use serde::{Deserialize, Serialize};
 
 pub use self::{
@@ -126,6 +130,33 @@ impl EntityType {
                 )
             })
             .collect()
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl<'a> FromSql<'a> for EntityType {
+    fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
+        Ok(Json::from_sql(ty, raw)?.0)
+    }
+
+    fn accepts(ty: &Type) -> bool {
+        <Json<Self> as FromSql>::accepts(ty)
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl ToSql for EntityType {
+    postgres_types::to_sql_checked!();
+
+    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>>
+    where
+        Self: Sized,
+    {
+        Json(self).to_sql(ty, out)
+    }
+
+    fn accepts(ty: &Type) -> bool {
+        <Json<Self> as ToSql>::accepts(ty)
     }
 }
 

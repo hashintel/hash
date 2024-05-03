@@ -14,8 +14,8 @@ serde = { version = "1.0.199", features = ["derive"] }
 time = { workspace = true, features = ["serde", "std"] }
 tracing = { workspace = true }
 
-futures = "0.3"
+futures = "0.3.30"
 tarpc = { version = "0.33", features = ["tokio1"] }
 tokio = { workspace = true, features = ["macros"] }
 
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+reqwest = { version = "0.12.4", default-features = false, features = ["json", "rustls-tls"] }

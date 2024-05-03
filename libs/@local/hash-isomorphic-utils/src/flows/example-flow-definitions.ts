@@ -48,12 +48,6 @@ export const researchTaskFlowDefinition: FlowDefinition = {
         required: true,
       },
       {
-        payloadKind: "WebId",
-        name: "Create in",
-        array: false,
-        required: true,
-      },
-      {
         payloadKind: "Boolean",
         name: "Create as draft",
         array: false,
@@ -109,12 +103,6 @@ export const researchTaskFlowDefinition: FlowDefinition = {
           sourceStepId: "1",
           sourceStepOutputName:
             "proposedEntities" satisfies OutputNameForAction<"researchEntities">,
-        },
-        {
-          inputName: "webId" satisfies InputNameForAction<"persistEntities">,
-          kind: "step-output",
-          sourceStepId: "trigger",
-          sourceStepOutputName: "Create in",
         },
         {
           inputName: "draft" satisfies InputNameForAction<"persistEntities">,
@@ -175,12 +163,6 @@ export const researchTaskFlowDefinition: FlowDefinition = {
           kind: "step-output",
           sourceStepId: "trigger",
           sourceStepOutputName: "Google Sheet",
-        },
-        {
-          inputName: "webId" satisfies InputNameForAction<"writeGoogleSheet">,
-          kind: "step-output",
-          sourceStepId: "trigger",
-          sourceStepOutputName: "Create in",
         },
         {
           inputName:
@@ -398,12 +380,6 @@ export const ftseInvestorsFlowDefinition: FlowDefinition = {
     kind: "trigger",
     outputs: [
       {
-        payloadKind: "WebId",
-        name: "webId",
-        array: false,
-        required: false,
-      },
-      {
         payloadKind: "Boolean",
         name: "draft",
         array: false,
@@ -469,12 +445,6 @@ export const ftseInvestorsFlowDefinition: FlowDefinition = {
           sourceStepId: "1",
           sourceStepOutputName:
             "proposedEntities" satisfies OutputNameForAction<"researchEntities">,
-        },
-        {
-          inputName: "webId" satisfies InputNameForAction<"persistEntities">,
-          kind: "step-output",
-          sourceStepId: "trigger",
-          sourceStepOutputName: "webId",
         },
         {
           inputName: "draft" satisfies InputNameForAction<"persistEntities">,
@@ -550,13 +520,6 @@ export const ftseInvestorsFlowDefinition: FlowDefinition = {
               sourceStepId: "3.1",
               sourceStepOutputName:
                 "proposedEntities" satisfies OutputNameForAction<"researchEntities">,
-            },
-            {
-              inputName:
-                "webId" satisfies InputNameForAction<"persistEntities">,
-              kind: "step-output",
-              sourceStepId: "trigger",
-              sourceStepOutputName: "webId",
             },
             {
               inputName:
@@ -646,12 +609,6 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
         required: true,
       },
       {
-        payloadKind: "WebId",
-        name: "webId",
-        array: false,
-        required: false,
-      },
-      {
         payloadKind: "Boolean",
         name: "draft",
         array: false,
@@ -712,12 +669,6 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
             "proposedEntities" satisfies OutputNameForAction<"inferEntitiesFromContent">,
         },
         {
-          inputName: "webId" satisfies InputNameForAction<"persistEntities">,
-          kind: "step-output",
-          sourceStepId: "trigger",
-          sourceStepOutputName: "webId",
-        },
-        {
           inputName: "draft" satisfies InputNameForAction<"persistEntities">,
           kind: "step-output",
           sourceStepId: "trigger",
@@ -768,12 +719,6 @@ export const answerQuestionFlow: FlowDefinition = {
       {
         payloadKind: "GoogleSheet",
         name: "Google Sheet",
-        array: false,
-        required: true,
-      },
-      {
-        payloadKind: "WebId",
-        name: "Create in",
         array: false,
         required: true,
       },
@@ -834,12 +779,6 @@ export const answerQuestionFlow: FlowDefinition = {
           kind: "step-output",
           sourceStepId: "trigger",
           sourceStepOutputName: "Google Sheet",
-        },
-        {
-          inputName: "webId" satisfies InputNameForAction<"writeGoogleSheet">,
-          kind: "step-output",
-          sourceStepId: "trigger",
-          sourceStepOutputName: "Create in",
         },
         {
           inputName:

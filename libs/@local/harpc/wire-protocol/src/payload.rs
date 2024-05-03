@@ -1,10 +1,7 @@
-use std::io;
-
-use bytes::Bytes;
+use bytes::{Buf, BufMut, Bytes};
 use error_stack::Result;
-use tokio::io::{AsyncRead, AsyncWrite};
 
-use crate::codec::{BytesEncodeError, Decode, Encode};
+use crate::codec::{Buffer, BufferError, BytesEncodeError, Decode, Encode};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -37,20 +34,23 @@ impl Payload {
 impl Encode for Payload {
     type Error = BytesEncodeError;
 
-    fn encode(
-        &self,
-        write: impl AsyncWrite + Send,
-    ) -> impl Future<Output = Result<(), Self::Error>> + Send {
-        Bytes::encode(&self.0, write)
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
+        Bytes::encode(&self.0, buffer)
     }
 }
 
 impl Decode for Payload {
     type Context = ();
-    type Error = io::Error;
+    type Error = BufferError;
 
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        Bytes::decode(read, ()).await.map(Self)
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        Bytes::decode(buffer, ()).map(Self)
     }
 }
 
@@ -65,31 +65,30 @@ mod test {
         payload::Payload,
     };
 
-    #[tokio::test]
-    async fn encode() {
+    #[test]
+    fn encode() {
         assert_encode(
             &Payload(Bytes::from_static(b"hello world")),
             expect![[r#"
                 0x00 0x0B b'h' b'e' b'l' b'l' b'o' b' ' b'w' b'o' b'r' b'l' b'd'
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode() {
+    #[test]
+    fn decode() {
         assert_decode(
             &[
                 0x00, 0x0B, b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd',
-            ],
+            ] as &[_],
             &Payload::from_static(b"hello world"),
             (),
-        )
-        .await;
+        );
     }
 
-    #[test_strategy::proptest(async = "tokio")]
-    async fn encode_decode(payload: Payload) {
-        assert_codec(&payload, ()).await;
+    #[test_strategy::proptest]
+    #[cfg_attr(miri, ignore)]
+    fn encode_decode(payload: Payload) {
+        assert_codec(&payload, ());
     }
 }

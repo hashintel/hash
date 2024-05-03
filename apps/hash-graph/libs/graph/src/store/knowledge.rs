@@ -233,7 +233,9 @@ pub struct GetEntitiesParams<'a> {
     pub include_count: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
 pub struct GetEntitiesResponse<'r> {
     pub entities: Vec<Entity>,
     pub cursor: Option<EntityQueryCursor<'r>>,

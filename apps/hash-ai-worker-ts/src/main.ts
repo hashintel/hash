@@ -92,7 +92,6 @@ async function run() {
         graphApiClient,
       }),
       ...createFlowActivities({
-        graphApiClient,
         vaultClient,
       }),
     },

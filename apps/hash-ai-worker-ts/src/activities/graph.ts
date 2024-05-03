@@ -11,12 +11,12 @@ import type {
   UpdateEntityTypeEmbeddingParams,
   UpdatePropertyTypeEmbeddingParams,
 } from "@local/hash-graph-client";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import {
+  mapGraphApiEntityToEntity,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   AccountId,
   DataTypeRootType,
@@ -50,7 +50,7 @@ export const createGraphActivities = ({
 }) => ({
   async getUserAccountIds(): Promise<AccountId[]> {
     return graphApiClient
-      .getEntitySubgraph("00000000-0000-0000-0000-000000000000", {
+      .getEntities("00000000-0000-0000-0000-000000000000", {
         filter: {
           all: [
             {
@@ -61,18 +61,18 @@ export const createGraphActivities = ({
             },
           ],
         },
-        graphResolveDepths: zeroedGraphResolveDepths,
         includeDrafts: false,
         temporalAxes: currentTimeInstantTemporalAxes,
       })
-      .then((response) => {
-        const subgraph: Subgraph<EntityRootType> =
-          mapGraphApiSubgraphToSubgraph(response.data.subgraph, null);
-        return subgraph.roots.map(
-          (root) =>
-            extractEntityUuidFromEntityId(root.baseId) as Uuid as AccountId,
-        );
-      });
+      .then(({ data: response }) =>
+        response.entities.map((entity) => {
+          const mappedEntity = mapGraphApiEntityToEntity(entity, null, true);
+          const entity_uuid = extractEntityUuidFromEntityId(
+            mappedEntity.metadata.recordId.entityId,
+          );
+          return entity_uuid as Uuid as AccountId;
+        }),
+      );
   },
 
   async getDataTypesSubgraph(params: {

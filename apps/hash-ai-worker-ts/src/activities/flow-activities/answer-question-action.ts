@@ -1,5 +1,4 @@
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
-import type { GraphApi } from "@local/hash-graph-client";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   FormattedText,
@@ -26,6 +25,7 @@ import { stringify } from "../shared/stringify";
 import type { FlowActionActivity } from "./types";
 import ChatCompletionUserMessageParam = OpenAI.ChatCompletionUserMessageParam;
 import ChatCompletionToolMessageParam = OpenAI.ChatCompletionToolMessageParam;
+import { getFlowContext } from "../shared/get-flow-context";
 import { getLlmResponse } from "../shared/get-llm-response";
 import {
   getToolCallsFromLlmAssistantMessage,
@@ -33,6 +33,7 @@ import {
   mapOpenAiMessagesToLlmMessages,
 } from "../shared/get-llm-response/llm-message";
 import type { LlmToolDefinition } from "../shared/get-llm-response/types";
+import { graphApiClient } from "../shared/graph-api-client";
 
 const answerTools: LlmToolDefinition[] = [
   {
@@ -159,13 +160,23 @@ const callModel = async (
     outputs: StepOutput[];
   }>
 > => {
-  const llmResponse = await getLlmResponse({
-    model,
-    systemPrompt,
-    messages: mapOpenAiMessagesToLlmMessages({ messages }),
-    temperature: 0,
-    tools: answerTools,
-  });
+  const { flowEntityId, userAuthentication, webId } = await getFlowContext();
+
+  const llmResponse = await getLlmResponse(
+    {
+      model,
+      systemPrompt,
+      messages: mapOpenAiMessagesToLlmMessages({ messages }),
+      temperature: 0,
+      tools: answerTools,
+    },
+    {
+      userAccountId: userAuthentication.actorId,
+      graphApiClient,
+      incurredInEntities: [{ entityId: flowEntityId }],
+      webId,
+    },
+  );
 
   logger.debug(`Open AI Response received: ${stringify(llmResponse)}`);
 
@@ -377,9 +388,7 @@ const callModel = async (
   );
 };
 
-export const answerQuestionAction: FlowActionActivity<{
-  graphApiClient: GraphApi;
-}> = async ({ graphApiClient, inputs, userAuthentication }) => {
+export const answerQuestionAction: FlowActionActivity = async ({ inputs }) => {
   const {
     context,
     entities: inputEntities,
@@ -401,6 +410,8 @@ export const answerQuestionAction: FlowActionActivity<{
 
   let contextFilePath;
   let contextToUpload;
+
+  const { userAuthentication } = await getFlowContext();
 
   if (entities) {
     /**

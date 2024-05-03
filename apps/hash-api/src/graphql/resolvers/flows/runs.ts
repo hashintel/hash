@@ -1,3 +1,4 @@
+import { parseHistoryItemPayload } from "@local/hash-backend-utils/temporal/parse-history-item-payload";
 import type {
   ExternalInputRequest,
   ExternalInputRequestSignal,
@@ -20,23 +21,6 @@ import type {
 } from "../../api-types.gen";
 import { FlowStepStatus } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
-
-const parseHistoryItemPayload = (
-  inputOrResults: proto.temporal.api.common.v1.IPayloads | null | undefined,
-) =>
-  inputOrResults?.payloads
-    ?.map(({ data }) => {
-      if (!data || !data.toString()) {
-        return data;
-      }
-
-      try {
-        return JSON.parse(data.toString());
-      } catch {
-        return data.toString();
-      }
-    })
-    .filter((item) => item !== undefined);
 
 const eventTimeIsoStringFromEvent = (
   event?: proto.temporal.api.history.v1.IHistoryEvent,

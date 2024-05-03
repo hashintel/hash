@@ -1,25 +1,23 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
-use authorization::{
-    backend::ZanzibarBackend,
-    schema::{DataTypeId, DataTypeRelationAndSubject},
-};
+use authorization::{backend::ZanzibarBackend, schema::DataTypeRelationAndSubject};
 use error_stack::{Result, ResultExt};
+use graph_types::ontology::DataTypeId;
 use tokio_postgres::GenericClient;
 
 use crate::{
-    snapshot::{
-        ontology::{table::DataTypeRow, DataTypeEmbeddingRow},
-        WriteBatch,
+    snapshot::WriteBatch,
+    store::{
+        postgres::query::rows::{DataTypeEmbeddingRow, DataTypeRow},
+        AsClient, InsertionError, PostgresStore,
     },
-    store::{AsClient, InsertionError, PostgresStore},
 };
 
 pub enum DataTypeRowBatch {
     Schema(Vec<DataTypeRow>),
     Relations(HashMap<DataTypeId, Vec<DataTypeRelationAndSubject>>),
-    Embeddings(Vec<DataTypeEmbeddingRow>),
+    Embeddings(Vec<DataTypeEmbeddingRow<'static>>),
 }
 
 #[async_trait]
@@ -91,7 +89,7 @@ where
                     .query(
                         "
                             INSERT INTO data_type_embeddings_tmp
-                            SELECT * FROM UNNEST($1::data_type_embeddings_tmp[])
+                            SELECT * FROM UNNEST($1::data_type_embeddings[])
                             RETURNING 1;
                         ",
                         &[&embeddings],
@@ -115,7 +113,8 @@ where
             .client()
             .simple_query(
                 "
-                    INSERT INTO data_types SELECT * FROM data_types_tmp;
+                    INSERT INTO data_types
+                        SELECT * FROM data_types_tmp;
 
                     INSERT INTO data_type_embeddings
                         SELECT * FROM data_type_embeddings_tmp;

@@ -1,10 +1,9 @@
 use core::num::NonZero;
-use std::io;
 
+use bytes::{Buf, BufMut};
 use error_stack::Result;
-use tokio::io::{AsyncRead, AsyncWrite};
 
-use crate::codec::{Decode, Encode};
+use crate::codec::{Buffer, BufferError, Decode, Encode};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -45,19 +44,25 @@ impl From<ResponseKind> for u16 {
 }
 
 impl Encode for ResponseKind {
-    type Error = io::Error;
+    type Error = BufferError;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        u16::from(*self).encode(write).await
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
+        u16::from(*self).encode(buffer)
     }
 }
 
 impl Decode for ResponseKind {
     type Context = ();
-    type Error = io::Error;
+    type Error = BufferError;
 
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        u16::decode(read, ()).await.map(Self::from)
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        u16::decode(buffer, ()).map(Self::from)
     }
 }
 
@@ -73,38 +78,36 @@ mod test {
         response::kind::{ErrorCode, ResponseKind},
     };
 
-    #[tokio::test]
-    async fn encode() {
+    #[test]
+    fn encode() {
         assert_encode::<ResponseKind>(
             &ResponseKind::Ok,
             expect![[r#"
                 0x00 0x00
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode() {
-        assert_decode(&[0x00, 0x00], &ResponseKind::Ok, ()).await;
+    #[test]
+    fn decode() {
+        assert_decode(&[0x00_u8, 0x00] as &[_], &ResponseKind::Ok, ());
 
         assert_decode(
-            &[0x00, 0x01],
+            &[0x00_u8, 0x01] as &[_],
             &ResponseKind::Err(ErrorCode(NonZero::new(1).expect("infallible"))),
             (),
-        )
-        .await;
+        );
 
         assert_decode(
-            &[0x12, 0x34],
+            &[0x12_u8, 0x34] as &[_],
             &ResponseKind::Err(ErrorCode(NonZero::new(0x1234).expect("infallible"))),
             (),
-        )
-        .await;
+        );
     }
 
-    #[test_strategy::proptest(async = "tokio")]
-    async fn codec(kind: ResponseKind) {
-        assert_codec(&kind, ()).await;
+    #[test_strategy::proptest]
+    #[cfg_attr(miri, ignore)]
+    fn codec(kind: ResponseKind) {
+        assert_codec(&kind, ());
     }
 }

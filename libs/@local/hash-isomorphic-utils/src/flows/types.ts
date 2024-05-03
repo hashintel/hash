@@ -5,7 +5,6 @@ import type {
   EntityId,
   EntityPropertiesObject,
   EntityUuid,
-  OwnedById,
 } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 
@@ -93,7 +92,6 @@ export type PayloadKindValues = {
   ProposedEntityWithResolvedLinks: ProposedEntityWithResolvedLinks;
   Text: string;
   VersionedUrl: VersionedUrl;
-  WebId: OwnedById;
   WebPage: WebPage;
 };
 
