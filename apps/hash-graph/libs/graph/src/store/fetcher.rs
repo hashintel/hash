@@ -1130,15 +1130,20 @@ where
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + EntityStore + Send + Sync,
     A: ToSocketAddrs + Send + Sync,
 {
-    async fn create_entity<R>(
+    async fn create_entities<R>(
         &mut self,
         actor_id: AccountId,
-        params: CreateEntityParams<R>,
-    ) -> Result<EntityMetadata, InsertionError>
+        params: Vec<CreateEntityParams<R>>,
+    ) -> Result<Vec<EntityMetadata>, InsertionError>
     where
         R: IntoIterator<Item = EntityRelationAndSubject> + Send,
     {
-        for entity_type_id in &params.entity_type_ids {
+        let type_ids = params
+            .iter()
+            .flat_map(|params| &params.entity_type_ids)
+            .collect::<HashSet<_>>();
+
+        for entity_type_id in type_ids {
             let entity_type_reference = EntityTypeReference::new(entity_type_id.clone());
             self.insert_external_types_by_reference(
                 actor_id,
@@ -1150,7 +1155,7 @@ where
             .await?;
         }
 
-        self.store.create_entity(actor_id, params).await
+        self.store.create_entities(actor_id, params).await
     }
 
     async fn validate_entity(

@@ -2,6 +2,7 @@ use std::{borrow::Cow, error::Error, fmt};
 
 use authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency};
 use error_stack::Report;
+use futures::TryFutureExt;
 use graph_types::{
     account::AccountId,
     knowledge::{
@@ -357,6 +358,23 @@ pub trait EntityStore {
         actor_id: AccountId,
         params: CreateEntityParams<R>,
     ) -> impl Future<Output = Result<EntityMetadata, Report<InsertionError>>> + Send
+    where
+        R: IntoIterator<Item = EntityRelationAndSubject> + Send,
+    {
+        self.create_entities(actor_id, vec![params])
+            .map_ok(|mut entities| {
+                let entity = entities.pop().expect("Expected a single entity");
+                assert!(entities.is_empty(), "Expected a single entity");
+                entity
+            })
+    }
+
+    /// Creates new [`Entities`][Entity].
+    fn create_entities<R>(
+        &mut self,
+        actor_id: AccountId,
+        params: Vec<CreateEntityParams<R>>,
+    ) -> impl Future<Output = Result<Vec<EntityMetadata>, Report<InsertionError>>> + Send
     where
         R: IntoIterator<Item = EntityRelationAndSubject> + Send;
 

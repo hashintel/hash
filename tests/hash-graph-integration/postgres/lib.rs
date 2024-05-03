@@ -499,19 +499,21 @@ impl<A> EntityStore for DatabaseApi<'_, A>
 where
     A: AuthorizationApi,
 {
-    async fn create_entity<R>(
+    async fn create_entities<R>(
         &mut self,
         actor_id: AccountId,
-        mut params: CreateEntityParams<R>,
-    ) -> Result<EntityMetadata, InsertionError>
+        mut params: Vec<CreateEntityParams<R>>,
+    ) -> Result<Vec<EntityMetadata>, InsertionError>
     where
         R: IntoIterator<Item = EntityRelationAndSubject> + Send,
     {
-        if params.decision_time.is_none() {
-            params.decision_time = Some(generate_decision_time());
-        }
+        // for params in &mut params {
+        //     if params.decision_time.is_none() {
+        //         params.decision_time = Some(generate_decision_time());
+        //     }
+        // }
 
-        self.store.create_entity(actor_id, params).await
+        self.store.create_entities(actor_id, params).await
     }
 
     async fn validate_entity(
@@ -639,9 +641,9 @@ where
         actor_id: AccountId,
         mut params: PatchEntityParams,
     ) -> Result<EntityMetadata, UpdateError> {
-        if params.decision_time.is_none() {
-            params.decision_time = Some(generate_decision_time());
-        }
+        // if params.decision_time.is_none() {
+        //     params.decision_time = Some(generate_decision_time());
+        // }
 
         self.store.patch_entity(actor_id, params).await
     }

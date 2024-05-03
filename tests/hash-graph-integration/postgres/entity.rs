@@ -220,6 +220,7 @@ async fn update() {
         .await
         .expect("could not create entity");
 
+    println!("{}", v1_metadata.record_id.entity_id);
     let v2_metadata = api
         .patch_entity(
             api.account_id,

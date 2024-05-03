@@ -37,7 +37,9 @@ pub use self::{
         Constant, Expression, Function, JoinExpression, OrderByExpression, SelectExpression,
         WhereExpression, WithExpression,
     },
-    statement::{Distinctness, SelectStatement, Statement, WindowStatement},
+    statement::{
+        Distinctness, InsertStatementBuilder, SelectStatement, Statement, WindowStatement,
+    },
     table::{Alias, AliasedTable, Column, ForeignKeyReference, ReferenceTable, Table},
 };
 use crate::{
