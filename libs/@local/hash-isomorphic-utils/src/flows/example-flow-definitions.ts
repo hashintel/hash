@@ -232,12 +232,6 @@ export const researchEntitiesFlowDefinition: FlowDefinition = {
         required: true,
       },
       {
-        payloadKind: "WebId",
-        name: "Create in",
-        array: false,
-        required: true,
-      },
-      {
         payloadKind: "Boolean",
         name: "Create as draft",
         array: false,
@@ -295,12 +289,6 @@ export const researchEntitiesFlowDefinition: FlowDefinition = {
             "proposedEntities" satisfies OutputNameForAction<"researchEntities">,
         },
         {
-          inputName: "webId" satisfies InputNameForAction<"persistEntities">,
-          kind: "step-output",
-          sourceStepId: "trigger",
-          sourceStepOutputName: "Create in",
-        },
-        {
           inputName: "draft" satisfies InputNameForAction<"persistEntities">,
           kind: "step-output",
           sourceStepId: "trigger",
@@ -337,12 +325,6 @@ export const researchEntitiesFlowDefinition: FlowDefinition = {
           kind: "step-output",
           sourceStepId: "trigger",
           sourceStepOutputName: "Google Sheet",
-        },
-        {
-          inputName: "webId" satisfies InputNameForAction<"writeGoogleSheet">,
-          kind: "step-output",
-          sourceStepId: "trigger",
-          sourceStepOutputName: "Create in",
         },
         {
           inputName:
