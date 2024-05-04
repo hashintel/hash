@@ -121,8 +121,17 @@ where
 
                 task.start(cancel);
 
-                // TODO: evict old entry (if there's one)
-                transactions.insert_async(request_id, transaction_tx);
+                // insert the transaction into the index (replace if already exists)
+                let entry = transactions.entry_async(request_id).await;
+                match entry {
+                    scc::hash_index::Entry::Occupied(entry) => {
+                        entry.update(transaction_tx);
+                    }
+                    scc::hash_index::Entry::Vacant(entry) => {
+                        entry.insert_entry(transaction_tx);
+                    }
+                }
+
                 // TODO: error out if send not possible
                 transactions_tx.send(transaction).await;
             }

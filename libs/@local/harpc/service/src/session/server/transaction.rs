@@ -1,4 +1,4 @@
-use bytes::{Buf, Bytes, BytesMut};
+use bytes::{Buf, Bytes};
 use bytes_utils::SegmentedBuf;
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
