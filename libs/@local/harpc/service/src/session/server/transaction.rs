@@ -1,21 +1,40 @@
+use core::mem;
+
 use bytes::{Buf, Bytes, BytesMut};
 use bytes_utils::SegmentedBuf;
+use futures::StreamExt;
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{
+        begin::RequestBegin,
+        body::RequestBody,
         flags::{RequestFlag, RequestFlags},
         id::RequestId,
         Request,
     },
-    response::{header::ResponseHeader, Response},
+    response::{
+        begin::ResponseBegin,
+        body::ResponseBody,
+        flags::{ResponseFlag, ResponseFlags},
+        frame::ResponseFrame,
+        header::ResponseHeader,
+        kind::{ErrorCode, ResponseKind},
+        Response,
+    },
 };
+use kanal::SendError;
 use libp2p::PeerId;
 use tokio::{select, sync::mpsc};
 use tokio_util::sync::CancellationToken;
 
 use super::session::Session;
+
+struct TransactionError {
+    code: ErrorCode,
+    bytes: Bytes,
+}
 
 struct Transaction {
     peer: PeerId,
@@ -26,18 +45,88 @@ struct Transaction {
     stream: mpsc::Receiver<Bytes>,
 }
 
+struct TransactionSendDelegateTaskForward<'a> {
+    kind: ResponseKind,
+    index: &'a mut usize,
+    flush: bool,
+}
+
 struct TransactionSendDelegateTask {
     id: RequestId,
 
-    tx: mpsc::Sender<Response>,
-    rx: mpsc::Receiver<Bytes>,
+    tx: kanal::AsyncSender<Response>,
+    rx: kanal::AsyncReceiver<core::result::Result<Bytes, TransactionError>>,
 }
 
 impl TransactionSendDelegateTask {
+    async fn forward(
+        &mut self,
+        buffer: &mut SegmentedBuf<Bytes>,
+        TransactionSendDelegateTaskForward {
+            kind,
+            index,
+            flush,
+        }: TransactionSendDelegateTaskForward<'_>,
+    ) -> Result<(), SendError> {
+        let body = |bytes: Bytes, index: usize| {
+            let payload = Payload::new(bytes);
+
+            if index == 0 {
+                ResponseBody::Begin(ResponseBegin { kind, payload })
+            } else {
+                ResponseBody::Frame(ResponseFrame { payload })
+            }
+        };
+
+        while buffer.remaining() > Payload::MAX_SIZE {
+            let bytes = buffer.copy_to_bytes(Payload::MAX_SIZE);
+
+            let response = Response {
+                header: ResponseHeader {
+                    protocol: Protocol {
+                        version: ProtocolVersion::V1,
+                    },
+                    request_id: self.id,
+                    flags: ResponseFlags::empty(),
+                },
+                body: body(bytes, *index),
+            };
+
+            self.tx.send(response).await?;
+            *index += 1;
+        }
+
+        if !flush {
+            return Ok(());
+        }
+
+        let remaining = buffer.remaining();
+        let bytes = buffer.copy_to_bytes(remaining);
+
+        let response = Response {
+            header: ResponseHeader {
+                protocol: Protocol {
+                    version: ProtocolVersion::V1,
+                },
+                request_id: self.id,
+                flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+            },
+            body: body(bytes, *index),
+        };
+
+        self.tx.send(response).await?;
+        *index += 1;
+
+        Ok(())
+    }
+
     async fn run(mut self, cancel: CancellationToken) {
         // we cannot simply forward here, because we want to be able to send the end of request and
         // buffer the response into the least amount of packages possible
         let mut buffer = SegmentedBuf::new();
+
+        let mut kind = ResponseKind::Ok;
+        let mut index = 0;
 
         loop {
             let bytes = select! {
@@ -47,37 +136,76 @@ impl TransactionSendDelegateTask {
                 },
             };
 
-            let Some(bytes) = bytes else {
-                // todo: send the rest of the buffer (segmented) with the last having the
-                // `EndOfResponse` flag
+            let Ok(bytes) = bytes else {
+                // channel has been closed, we are done, flush the buffer
+
+                // flush the remaining buffer only *if* data is successful
+                if kind.is_err() {
+                    break;
+                }
+
+                if let Err(error) = self
+                    .forward(
+                        &mut buffer,
+                        TransactionSendDelegateTaskForward {
+                            kind,
+                            index: &mut index,
+                            flush: true,
+                        },
+                    )
+                    .await
+                {
+                    tracing::error!(?error, "connection has been prematurely closed");
+                }
+
                 break;
             };
 
-            buffer.push(bytes);
+            match bytes {
+                Ok(_) if kind.is_err() => {
+                    // we had an error previously, so just ignore the rest of the stream
+                    continue;
+                }
+                Ok(bytes) => {
+                    buffer.push(bytes);
 
-            while buffer.remaining() > Payload::MAX_SIZE {
-                let payload = buffer.copy_to_bytes(Payload::MAX_SIZE);
+                    if let Err(error) = self
+                        .forward(
+                            &mut buffer,
+                            TransactionSendDelegateTaskForward {
+                                kind,
+                                index: &mut index,
+                                flush: false,
+                            },
+                        )
+                        .await
+                    {
+                        tracing::error!(?error, "connection has been prematurely closed");
+                        break;
+                    }
+                }
+                Err(TransactionError { code, bytes }) => {
+                    kind = ResponseKind::Err(code);
 
-                // TODO: if this is the first? mhh this doesn't track with begin vs. error really
-                // how about a second channel? nah that kinda seems like a waste
-                // maybe the sink should be `Result<Bytes, ServiceError>`, and then on error we just
-                // serialize and send the error, the problem tho: we're dependent on the
-                // serialization of the `ServiceError` that way and we really shouldn't. Then again,
-                // it is quite elegant? The problem is just the serialization of the error. Should
-                // we have a trait that does that, that we then just simply attach, but it feels
-                // wrong to do that on this layer. What if instead we have `Result<Bytes, Error>`
-                // where Error {code: ErrorCode, bytes: Bytes}, sure that means no error streaming,
-                // but that should be fine.
-                let response = Response {
-                    header: ResponseHeader {
-                        protocol: Protocol {
-                            version: ProtocolVersion::V1,
-                        },
-                        request_id: self.id,
-                        flags: RequestFlags::empty(),
-                    },
-                    body: todo!(),
-                };
+                    // we start from the beginning
+                    buffer = SegmentedBuf::new();
+                    buffer.push(bytes);
+
+                    if let Err(error) = self
+                        .forward(
+                            &mut buffer,
+                            TransactionSendDelegateTaskForward {
+                                kind,
+                                index: &mut index,
+                                flush: true,
+                            },
+                        )
+                        .await
+                    {
+                        tracing::error!(?error, "connection has been prematurely closed");
+                        break;
+                    }
+                }
             }
         }
     }
@@ -86,17 +214,18 @@ impl TransactionSendDelegateTask {
 struct TransactionRecvDelegateTask {
     id: RequestId,
 
-    tx: mpsc::Sender<Bytes>,
-    rx: mpsc::Receiver<Request>,
+    tx: kanal::AsyncSender<Bytes>,
+    rx: kanal::AsyncReceiver<Request>,
 }
 
 impl TransactionRecvDelegateTask {
-    async fn run(mut self, cancel: CancellationToken) {
+    async fn run(self, cancel: CancellationToken) {
         // TODO: timeout is done at a later layer, not here, this just delegates.
+        let mut recv = self.rx.stream();
 
         loop {
             let request = select! {
-                Some(request) = self.rx.recv() => request,
+                Some(request) = recv.next() => request,
                 () = cancel.cancelled() => {
                     break;
                 },
@@ -108,15 +237,15 @@ impl TransactionRecvDelegateTask {
 
             let result = self.tx.send(bytes).await;
 
-            if is_end {
-                // TODO: close pipe to indicate request has finished
-            }
-
             if let Err(error) = result {
                 // TODO: the upper layer is responsible for notifying the other end as to why the
                 // connection was closed.
                 tracing::error!(?error, "connection has been prematurely closed");
+                break;
+            }
 
+            if is_end {
+                // dropping both rx and tx means that we signal to both ends that we're done.
                 break;
             }
         }

@@ -36,6 +36,18 @@ pub enum ResponseKind {
     Err(ErrorCode),
 }
 
+impl ResponseKind {
+    #[must_use]
+    pub const fn is_ok(self) -> bool {
+        matches!(self, Self::Ok)
+    }
+
+    #[must_use]
+    pub const fn is_err(self) -> bool {
+        matches!(self, Self::Err(_))
+    }
+}
+
 impl From<u16> for ResponseKind {
     fn from(value: u16) -> Self {
         NonZero::new(value).map_or(Self::Ok, |value| Self::Err(ErrorCode(value)))

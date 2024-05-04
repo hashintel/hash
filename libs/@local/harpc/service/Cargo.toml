@@ -15,6 +15,7 @@ codec = { workspace = true, features = ["harpc"] }
 error-stack.workspace = true
 futures.workspace = true
 harpc-wire-protocol.workspace = true
+kanal = "0.1.0-pre8"
 libp2p = { version = "0.53.2", features = [
     "metrics",
     "macros",
