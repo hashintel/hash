@@ -10,6 +10,7 @@ edition.workspace = true
 
 [dependencies]
 bytes.workspace = true
+bytes-utils = "0.1.4"
 codec = { workspace = true, features = ["harpc"] }
 error-stack.workspace = true
 futures.workspace = true
@@ -28,5 +29,6 @@ libp2p-stream = "0.1.0-alpha"
 scc = "2.1.1"
 thiserror = "1.0.59"
 tokio = { workspace = true, features = ["io-util"] }
+tokio-stream = { version = "0.1.15", features = ["time"] }
 tokio-util = { workspace = true, features = ["codec", "compat"] }
 tracing.workspace = true

@@ -15,6 +15,7 @@ impl ErrorCode {
     // 0xFF_E0..=0xFF_EF are session layer errors
 
     pub const CONNECTION_LIMIT_REACHED: Self = Self(NonZero::new(0xFF_E0).expect("infallible"));
+    pub const PAYLOAD_TOO_LARGE: Self = Self(NonZero::new(0xFF_E2).expect("infallible"));
     pub const TRANSACTION_LIMIT_REACHED: Self = Self(NonZero::new(0xFF_E1).expect("infallible"));
 
     #[must_use]

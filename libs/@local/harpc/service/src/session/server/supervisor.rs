@@ -2,7 +2,7 @@ use alloc::sync::Arc;
 use core::any::{Any, TypeId};
 use std::{collections::HashMap, io};
 
-use bytes::Bytes;
+use bytes::{Bytes, BytesMut};
 use error_stack::{Result, ResultExt};
 use futures::{FutureExt, Sink, Stream, StreamExt, TryFutureExt};
 use harpc_wire_protocol::{
@@ -38,82 +38,7 @@ impl SessionIdProducer {
     }
 }
 
-struct Session {
-    context: HashMap<TypeId, Box<dyn Any + Send + Sync + 'static>>,
-}
-
 pub(crate) enum Command {}
-
-struct Transaction {
-    peer: PeerId,
-    id: RequestId,
-    session: Session,
-
-    sink: mpsc::Sender<Bytes>,
-    stream: mpsc::Receiver<Bytes>,
-}
-
-pub(crate) struct ConnectionTask<T, U> {
-    id: SessionId,
-    session: Session,
-
-    transactions: HashIndex<RequestId, ()>,
-
-    peer: PeerId,
-    sink: T,
-    stream: U,
-
-    permit: OwnedSemaphorePermit,
-}
-
-impl<T, U> ConnectionTask<T, U>
-where
-    T: Sink<Response>,
-    U: Stream<Item = Result<Request, io::Error>>,
-{
-    async fn handle_request(transactions: &mut HashIndex<RequestId, ()>, request: Request) {
-        // check if this is a `Begin` request, in that case we need to create a new transaction,
-        // otherwise, this is already a transaction and we need to forward it, or log out if it is a
-        // rogue request
-        // at the end of a transaction we close the transaction
-
-        // these transactions then need to be propagated to the main session layer via an mpsc
-        // channel, which drops a transaction if there's too many.
-
-        let is_begin = matches!(request.body, RequestBody::Begin(_));
-
-        if is_begin {
-            // create a new Transaction, notify the session layer of the new transaction
-            // transactions
-            //     .entry_async(request.header.request_id, ())
-            //     .await;
-        }
-
-        // TODO: handle the bytes from these transactions!
-    }
-
-    async fn run(self, cancel: CancellationToken) -> Result<(), SessionError> {
-        let sink = self.sink;
-        let stream = self.stream;
-
-        pin!(sink, stream);
-
-        // delegate to a transaction, which delegates back?
-        loop {
-            select! {
-                Some(request) = stream.next() => {
-
-                },
-                () = cancel.cancelled() => {
-                    break;
-                }
-            }
-        }
-
-        // if the connection breaks down we no longer need the session.
-        Ok(())
-    }
-}
 
 pub(crate) struct SupervisorTask {
     id: SessionIdProducer,

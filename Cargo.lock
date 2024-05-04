@@ -526,6 +526,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "514de17de45fdb8dc022b1a7975556c53c86f9f0aa5f534b98977b171857c2c9"
 
 [[package]]
+name = "bytes-utils"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7dafe3a8757b027e2be6e4e5601ed563c55989fcf1546e933c66c8eb3a058d35"
+dependencies = [
+ "bytes",
+ "either",
+]
+
+[[package]]
 name = "cast"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1716,6 +1726,7 @@ name = "harpc-service"
 version = "0.0.0"
 dependencies = [
  "bytes",
+ "bytes-utils",
  "codec",
  "error-stack",
  "futures",
@@ -1725,6 +1736,7 @@ dependencies = [
  "scc",
  "thiserror",
  "tokio",
+ "tokio-stream",
  "tokio-util",
  "tracing",
 ]

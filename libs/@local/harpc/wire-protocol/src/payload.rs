@@ -17,6 +17,8 @@ pub struct Payload(
 );
 
 impl Payload {
+    pub const MAX_SIZE: usize = (u16::MAX as usize) - 32;
+
     pub fn new(bytes: impl Into<Bytes>) -> Self {
         Self(bytes.into())
     }
@@ -28,6 +30,10 @@ impl Payload {
 
     pub const fn as_bytes(&self) -> &Bytes {
         &self.0
+    }
+
+    pub fn into_bytes(self) -> Bytes {
+        self.0
     }
 }
 

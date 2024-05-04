@@ -8,13 +8,16 @@
 // * (server) connections are dropped if a certain timeout is reached in `AsyncRead` or `AsyncWrite`
 //   calls.
 
-mod task;
+mod connection;
+mod session;
+mod supervisor;
+mod transaction;
 
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
 pub struct SessionLayer {
-    tx: mpsc::Sender<self::task::Command>,
+    tx: mpsc::Sender<self::supervisor::Command>,
 
     cancel: CancellationToken,
 }
