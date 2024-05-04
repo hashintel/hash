@@ -90,6 +90,6 @@
     "@types/sanitize-html": "2.11.0",
     "@vitest/coverage-istanbul": "1.5.2",
     "eslint": "8.57.0",
-    "vitest": "1.5.3"
+    "vitest": "1.6.0"
   }
 }
