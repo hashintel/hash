@@ -14,7 +14,7 @@ use tokio::{
     sync::{mpsc, OwnedSemaphorePermit},
 };
 use tokio_stream::wrappers::ReceiverStream;
-use tokio_util::sync::CancellationToken;
+use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
 use super::{
     session_id::SessionId,
@@ -85,10 +85,12 @@ where
 {
     async fn handle_request(
         peer: PeerId,
-        session: &Session,
+        session: SessionId,
         transactions: &HashIndex<RequestId, mpsc::Sender<Request>>,
         request: Request,
-        tx: mpsc::Sender<Response>,
+        response_tx: mpsc::Sender<Response>,
+        transactions_tx: mpsc::Sender<Transaction>,
+        cancel: &CancellationToken,
     ) {
         // check if this is a `Begin` request, in that case we need to create a new transaction,
         // otherwise, this is already a transaction and we need to forward it, or log out if it is a
@@ -109,18 +111,20 @@ where
                     TransactionParts {
                         peer,
                         rx: transaction_rx,
-                        tx,
-                        session: session.clone(),
+                        tx: response_tx,
+                        session,
                     },
                 );
 
-                // TODO: evict old entry
-                transactions.insert_async(request_id, transaction_tx);
+                // we put it in the buffer, so will resolve immediately
+                transaction_tx.send(request).await;
 
-                // create a new Transaction, notify the session layer of the new transaction
-                // transactions
-                //     .entry_async(request.header.request_id, ())
-                //     .await;
+                task.start(cancel);
+
+                // TODO: evict old entry (if there's one)
+                transactions.insert_async(request_id, transaction_tx);
+                // TODO: error out if send not possible
+                transactions_tx.send(transaction).await;
             }
             RequestBody::Frame(_) => {
                 // forward the request to the transaction
@@ -136,7 +140,7 @@ where
         }
 
         // remove the transaction from the index if it is closed.
-        // TODO: forced gc on timeout in upper layer
+        // TODO: forced gc on timeout in upper layer (needs IPC)
         if is_end {
             // removing this also means that all the channels will cascade close
             transactions.remove_async(&request_id).await;
@@ -150,9 +154,11 @@ where
         pin!(stream);
 
         // TODO: active transaction limit?!
+        let tracker = TaskTracker::new();
 
         let (tx, rx) = mpsc::channel(RESPONSE_BUFFER_SIZE);
-        tokio::spawn(ConnectionDelegateTask { rx, sink }.into_future());
+        tracker.spawn(ConnectionDelegateTask { rx, sink }.into_future());
+        tracker.close();
 
         // delegate to a transaction, which delegates back?
         loop {

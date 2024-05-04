@@ -12,7 +12,9 @@ use futures::{prelude::stream::StreamExt, Sink, Stream};
 use harpc_wire_protocol::{request::Request, response::Response};
 use libp2p::{PeerId, StreamProtocol};
 use tokio::io::BufStream;
-use tokio_util::{codec::Framed, compat::FuturesAsyncReadCompatExt, sync::CancellationToken};
+use tokio_util::{
+    codec::Framed, compat::FuturesAsyncReadCompatExt, sync::CancellationToken, task::TaskTracker,
+};
 
 use self::{
     client::ClientCodec,
@@ -27,6 +29,8 @@ const PROTOCOL_NAME: StreamProtocol = StreamProtocol::new("/harpc/1.0.0");
 
 pub struct TransportLayer {
     ipc: TransportLayerIpc,
+
+    task: TaskTracker,
 }
 
 impl TransportLayer {
@@ -38,9 +42,11 @@ impl TransportLayer {
         let task = Task::new(config, transport)?;
         let ipc = task.ipc();
 
-        tokio::spawn(task.run(cancel));
+        let tracker = TaskTracker::new();
+        tracker.spawn(task.run(cancel));
+        tracker.close();
 
-        Ok(Self { ipc })
+        Ok(Self { ipc, task: tracker })
     }
 
     pub(crate) async fn listen(

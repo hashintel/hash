@@ -20,7 +20,7 @@ use harpc_wire_protocol::{
 };
 use libp2p::PeerId;
 use tokio::{select, sync::mpsc};
-use tokio_util::sync::CancellationToken;
+use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
 use super::session_id::SessionId;
 
@@ -318,7 +318,7 @@ pub(crate) struct TransactionTask {
 }
 
 impl TransactionTask {
-    pub(super) fn start(self, cancel: &CancellationToken) {
+    pub(super) fn start(self, cancel: &CancellationToken) -> TaskTracker {
         let child = cancel.child_token();
 
         let recv = TransactionRecvDelegateTask {
@@ -333,7 +333,13 @@ impl TransactionTask {
             rx: self.response_rx,
         };
 
-        tokio::spawn(recv.run(child.clone()));
-        tokio::spawn(send.run(child));
+        let tracker = TaskTracker::new();
+
+        tracker.spawn(recv.run(child.clone()));
+        tracker.spawn(send.run(child));
+
+        tracker.close();
+
+        tracker
     }
 }
