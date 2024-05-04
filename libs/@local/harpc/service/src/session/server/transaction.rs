@@ -221,14 +221,20 @@ struct TransactionRecvDelegateTask {
 impl TransactionRecvDelegateTask {
     async fn run(self, cancel: CancellationToken) {
         // TODO: timeout is done at a later layer, not here, this just delegates.
-        let mut recv = self.rx.stream();
 
         loop {
             let request = select! {
-                Some(request) = recv.next() => request,
+                request = self.rx.recv() => request,
                 () = cancel.cancelled() => {
                     break;
                 },
+            };
+
+            let Ok(request) = request else {
+                // channel has been closed, we are done
+                tracing::error!("connection has been prematurely closed");
+
+                break;
             };
 
             // send bytes to the other end, and close if we're at the end
