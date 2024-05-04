@@ -41,6 +41,6 @@
     "@types/uuid": "8.3.0",
     "@vitest/coverage-istanbul": "1.6.0",
     "typescript": "5.1.6",
-    "vitest": "1.5.3"
+    "vitest": "1.6.0"
   }
 }
