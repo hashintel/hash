@@ -25,6 +25,7 @@ libp2p = { version = "0.53.2", features = [
     "identify",
 ] }
 libp2p-stream = "0.1.0-alpha"
+scc = "2.1.1"
 thiserror = "1.0.59"
 tokio = { workspace = true, features = ["io-util"] }
 tokio-util = { workspace = true, features = ["codec", "compat"] }
