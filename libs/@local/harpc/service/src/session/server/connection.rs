@@ -3,7 +3,8 @@ use std::io;
 use error_stack::{Context, Report, Result, ResultExt};
 use futures::{stream, Sink, SinkExt, Stream, StreamExt};
 use harpc_wire_protocol::{
-    request::{body::RequestBody, id::RequestId, Request},
+    flags::BitFlagsOp,
+    request::{body::RequestBody, flags::RequestFlag, id::RequestId, Request},
     response::Response,
 };
 use libp2p::PeerId;
@@ -15,7 +16,10 @@ use tokio::{
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_util::sync::CancellationToken;
 
-use super::session::Session;
+use super::{
+    session_id::SessionId,
+    transaction::{Transaction, TransactionParts},
+};
 use crate::session::error::SessionError;
 
 const RESPONSE_BUFFER_SIZE: usize = 16;
@@ -28,7 +32,7 @@ struct ConnectionDelegateTask<T> {
 
 impl<T, C> ConnectionDelegateTask<T>
 where
-    T: Sink<Response, Error = Report<C>>,
+    T: Sink<Response, Error = Report<C>> + Send,
     C: Context,
 {
     async fn run(self) -> Result<(), SessionError> {
@@ -46,7 +50,7 @@ where
 
 impl<T, C> IntoFuture for ConnectionDelegateTask<T>
 where
-    T: Sink<Response, Error = Report<C>>,
+    T: Sink<Response, Error = Report<C>> + Send,
     C: Context,
 {
     type Output = Result<(), SessionError>;
@@ -59,15 +63,18 @@ where
 }
 
 pub(crate) struct ConnectionTask<T, U> {
-    session: Session,
+    session: SessionId,
 
-    transactions: HashIndex<RequestId, ()>,
+    // TODO: secondary map of cancellation tokens?!
+    transactions: HashIndex<RequestId, mpsc::Sender<Request>>,
 
     peer: PeerId,
     sink: T,
     stream: U,
 
     permit: OwnedSemaphorePermit,
+
+    tx_transaction: mpsc::Sender<Transaction>,
 }
 
 impl<T, C, U> ConnectionTask<T, U>
@@ -76,25 +83,64 @@ where
     C: Context,
     U: Stream<Item = Result<Request, io::Error>>,
 {
-    async fn handle_request(transactions: &mut HashIndex<RequestId, ()>, request: Request) {
+    async fn handle_request(
+        peer: PeerId,
+        session: &Session,
+        transactions: &HashIndex<RequestId, mpsc::Sender<Request>>,
+        request: Request,
+        tx: mpsc::Sender<Response>,
+    ) {
         // check if this is a `Begin` request, in that case we need to create a new transaction,
         // otherwise, this is already a transaction and we need to forward it, or log out if it is a
         // rogue request
         // at the end of a transaction we close the transaction
+        let request_id = request.header.request_id;
+        let is_end = request.header.flags.contains(RequestFlag::EndOfRequest);
 
         // these transactions then need to be propagated to the main session layer via an mpsc
         // channel, which drops a transaction if there's too many.
+        match &request.body {
+            RequestBody::Begin(begin) => {
+                let (transaction_tx, transaction_rx) = mpsc::channel(RESPONSE_BUFFER_SIZE);
 
-        let is_begin = matches!(request.body, RequestBody::Begin(_));
+                let (transaction, task) = Transaction::from_request(
+                    request.header,
+                    begin,
+                    TransactionParts {
+                        peer,
+                        rx: transaction_rx,
+                        tx,
+                        session: session.clone(),
+                    },
+                );
 
-        if is_begin {
-            // create a new Transaction, notify the session layer of the new transaction
-            // transactions
-            //     .entry_async(request.header.request_id, ())
-            //     .await;
+                // TODO: evict old entry
+                transactions.insert_async(request_id, transaction_tx);
+
+                // create a new Transaction, notify the session layer of the new transaction
+                // transactions
+                //     .entry_async(request.header.request_id, ())
+                //     .await;
+            }
+            RequestBody::Frame(_) => {
+                // forward the request to the transaction
+                if let Some(entry) = transactions.get_async(&request.header.request_id).await {
+                    if let Err(error) = entry.send(request).await {
+                        tracing::warn!(?error, "failed to forward request to transaction");
+                    }
+                } else {
+                    // request has no transaction, which means it is a rogue request
+                    tracing::warn!(?request, "request not part of transaction");
+                }
+            }
         }
 
-        // TODO: handle the bytes from these transactions!
+        // remove the transaction from the index if it is closed.
+        // TODO: forced gc on timeout in upper layer
+        if is_end {
+            // removing this also means that all the channels will cascade close
+            transactions.remove_async(&request_id).await;
+        }
     }
 
     async fn run(self, cancel: CancellationToken) -> Result<(), SessionError> {
@@ -102,6 +148,8 @@ where
         let stream = self.stream;
 
         pin!(stream);
+
+        // TODO: active transaction limit?!
 
         let (tx, rx) = mpsc::channel(RESPONSE_BUFFER_SIZE);
         tokio::spawn(ConnectionDelegateTask { rx, sink }.into_future());

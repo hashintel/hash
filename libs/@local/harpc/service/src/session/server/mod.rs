@@ -9,7 +9,7 @@
 //   calls.
 
 mod connection;
-mod session;
+mod session_id;
 mod supervisor;
 mod transaction;
 

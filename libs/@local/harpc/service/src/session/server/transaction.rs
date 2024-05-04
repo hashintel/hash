@@ -1,18 +1,12 @@
-use core::mem;
-
 use bytes::{Buf, Bytes, BytesMut};
 use bytes_utils::SegmentedBuf;
-use futures::StreamExt;
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{
-        begin::RequestBegin,
-        body::RequestBody,
-        flags::{RequestFlag, RequestFlags},
-        id::RequestId,
-        Request,
+        begin::RequestBegin, flags::RequestFlag, header::RequestHeader, id::RequestId,
+        procedure::ProcedureDescriptor, service::ServiceDescriptor, Request,
     },
     response::{
         begin::ResponseBegin,
@@ -24,25 +18,15 @@ use harpc_wire_protocol::{
         Response,
     },
 };
-use kanal::SendError;
 use libp2p::PeerId;
 use tokio::{select, sync::mpsc};
 use tokio_util::sync::CancellationToken;
 
-use super::session::Session;
+use super::session_id::SessionId;
 
 struct TransactionError {
     code: ErrorCode,
     bytes: Bytes,
-}
-
-struct Transaction {
-    peer: PeerId,
-    id: RequestId,
-    session: Session,
-
-    sink: mpsc::Sender<Bytes>,
-    stream: mpsc::Receiver<Bytes>,
 }
 
 struct TransactionSendDelegateTaskForward<'a> {
@@ -54,8 +38,8 @@ struct TransactionSendDelegateTaskForward<'a> {
 struct TransactionSendDelegateTask {
     id: RequestId,
 
-    tx: kanal::AsyncSender<Response>,
-    rx: kanal::AsyncReceiver<core::result::Result<Bytes, TransactionError>>,
+    tx: mpsc::Sender<Response>,
+    rx: mpsc::Receiver<core::result::Result<Bytes, TransactionError>>,
 }
 
 impl TransactionSendDelegateTask {
@@ -67,7 +51,7 @@ impl TransactionSendDelegateTask {
             index,
             flush,
         }: TransactionSendDelegateTaskForward<'_>,
-    ) -> Result<(), SendError> {
+    ) -> Result<(), mpsc::error::SendError<Response>> {
         let body = |bytes: Bytes, index: usize| {
             let payload = Payload::new(bytes);
 
@@ -136,7 +120,7 @@ impl TransactionSendDelegateTask {
                 },
             };
 
-            let Ok(bytes) = bytes else {
+            let Some(bytes) = bytes else {
                 // channel has been closed, we are done, flush the buffer
 
                 // flush the remaining buffer only *if* data is successful
@@ -180,12 +164,13 @@ impl TransactionSendDelegateTask {
                         )
                         .await
                     {
-                        tracing::error!(?error, "connection has been prematurely closed");
+                        tracing::warn!(?error, "connection has been prematurely closed");
                         break;
                     }
                 }
                 Err(TransactionError { code, bytes }) => {
                     kind = ResponseKind::Err(code);
+                    index = 0;
 
                     // we start from the beginning
                     buffer = SegmentedBuf::new();
@@ -202,7 +187,7 @@ impl TransactionSendDelegateTask {
                         )
                         .await
                     {
-                        tracing::error!(?error, "connection has been prematurely closed");
+                        tracing::warn!(?error, "connection has been prematurely closed");
                         break;
                     }
                 }
@@ -214,12 +199,12 @@ impl TransactionSendDelegateTask {
 struct TransactionRecvDelegateTask {
     id: RequestId,
 
-    tx: kanal::AsyncSender<Bytes>,
-    rx: kanal::AsyncReceiver<Request>,
+    tx: mpsc::Sender<Bytes>,
+    rx: mpsc::Receiver<Request>,
 }
 
 impl TransactionRecvDelegateTask {
-    async fn run(self, cancel: CancellationToken) {
+    async fn run(mut self, cancel: CancellationToken) {
         // TODO: timeout is done at a later layer, not here, this just delegates.
 
         loop {
@@ -230,9 +215,9 @@ impl TransactionRecvDelegateTask {
                 },
             };
 
-            let Ok(request) = request else {
+            let Some(request) = request else {
                 // channel has been closed, we are done
-                tracing::error!("connection has been prematurely closed");
+                tracing::warn!("connection has been prematurely closed");
 
                 break;
             };
@@ -246,7 +231,7 @@ impl TransactionRecvDelegateTask {
             if let Err(error) = result {
                 // TODO: the upper layer is responsible for notifying the other end as to why the
                 // connection was closed.
-                tracing::error!(?error, "connection has been prematurely closed");
+                tracing::warn!(?error, "connection has been prematurely closed");
                 break;
             }
 
@@ -258,66 +243,97 @@ impl TransactionRecvDelegateTask {
     }
 }
 
-// we essentially need two tasks per transaction/connection/session, one that delegates recv and one
-// that delegates send
+const REQUEST_BUFFER_SIZE: usize = 16;
+const RESPONSE_BUFFER_SIZE: usize = 16;
+
+pub(crate) struct TransactionParts {
+    pub(crate) peer: PeerId,
+
+    pub(crate) rx: mpsc::Receiver<Request>,
+    pub(crate) tx: mpsc::Sender<Response>,
+
+    pub(crate) session: SessionId,
+}
+
+pub struct Transaction {
+    peer: PeerId,
+    id: RequestId,
+    session: SessionId,
+
+    service: ServiceDescriptor,
+    procedure: ProcedureDescriptor,
+
+    request: mpsc::Receiver<Bytes>,
+    response: mpsc::Sender<Result<Bytes, TransactionError>>,
+}
+
+impl Transaction {
+    pub(crate) fn from_request(
+        header: RequestHeader,
+        body: &RequestBegin,
+        TransactionParts {
+            peer,
+            rx,
+            tx,
+            session,
+        }: TransactionParts,
+    ) -> (Self, TransactionTask) {
+        let (request_tx, request_rx) = mpsc::channel(REQUEST_BUFFER_SIZE);
+        let (response_tx, response_rx) = mpsc::channel(RESPONSE_BUFFER_SIZE);
+
+        let transaction = Self {
+            peer,
+            id: header.request_id,
+            session,
+
+            service: body.service,
+            procedure: body.procedure,
+
+            request: request_rx,
+            response: response_tx,
+        };
+
+        let task = TransactionTask {
+            id: header.request_id,
+
+            request_rx: rx,
+            request_tx,
+
+            response_rx,
+            response_tx: tx,
+        };
+
+        (transaction, task)
+    }
+}
 
 pub(crate) struct TransactionTask {
-    request: mpsc::Receiver<Request>,
-    response: mpsc::Sender<Response>,
+    id: RequestId,
 
-    recv: mpsc::Receiver<Bytes>,
-    send: mpsc::Sender<Bytes>,
+    request_rx: mpsc::Receiver<Request>,
+    request_tx: mpsc::Sender<Bytes>,
+
+    response_rx: mpsc::Receiver<Result<Bytes, TransactionError>>,
+    response_tx: mpsc::Sender<Response>,
 }
 
 impl TransactionTask {
-    fn run(mut self, cancel: CancellationToken) {
-        // Not necessary, but protects us from canceling other adjacent tasks if we are canceled.
-        let cancel = cancel.child_token();
+    pub(super) fn start(self, cancel: &CancellationToken) {
+        let child = cancel.child_token();
 
-        let cancel_recv = cancel.child_token();
-        let cancel_send = cancel.child_token();
+        let recv = TransactionRecvDelegateTask {
+            id: self.id,
+            tx: self.request_tx,
+            rx: self.request_rx,
+        };
 
-        tokio::spawn(async move {
-            loop {
-                let request = select! {
-                    Some(request) = self.request.recv() => {
-                        // send bytes to the other end
-                        request
-                    },
-                    () = cancel_recv.cancelled() => {
-                        break;
-                    }
-                };
+        let send = TransactionSendDelegateTask {
+            id: self.id,
+            tx: self.response_tx,
+            rx: self.response_rx,
+        };
 
-                // send bytes to the other end
-                let Err(error) = self
-                    .send
-                    .send(request.body.into_payload().into_bytes())
-                    .await
-                else {
-                    // we haven't failed so can safely continue
-                    continue;
-                };
-
-                // if we failed we can also bail out of the recv, send task because the connection
-                // has been closed either way. before we do we send a response
-                cancel.cancel();
-            }
-        });
-
-        tokio::spawn(async move {
-            let mut buffer = BytesMut::new();
-
-            loop {
-                let response = select! {
-                    bytes = self.recv.recv() => bytes,
-                    () = cancel_send.cancelled() => {
-                        break;
-                    }
-                };
-
-                // if `None` then we're at the end of the stream
-            }
-        });
+        tokio::spawn(recv.run(child.clone()));
+        tokio::spawn(send.run(child));
     }
 }

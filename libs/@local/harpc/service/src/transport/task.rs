@@ -14,6 +14,7 @@ use tokio_util::sync::CancellationToken;
 use super::{
     behaviour::{TransportBehaviour, TransportBehaviourEvent, TransportSwarm},
     error::TransportError,
+    ipc::TransportLayerIpc,
     PROTOCOL_NAME,
 };
 use crate::config::Config;
@@ -38,14 +39,14 @@ pub(crate) struct Task {
     metrics: metrics::Metrics,
 
     rx: mpsc::Receiver<Command>,
-    tx: mpsc::Sender<Command>,
+    ipc: TransportLayerIpc,
 }
 
 impl Task {
     pub(crate) fn new(config: Config, transport: impl Transport) -> Result<Self, TransportError> {
         let mut registry = metrics::Registry::default();
 
-        let (tx, rx) = mpsc::channel(config.command_buffer_size.get());
+        let (ipc, rx) = TransportLayerIpc::new();
 
         let swarm = SwarmBuilder::with_new_identity()
             .with_tokio()
@@ -82,12 +83,12 @@ impl Task {
             metrics,
 
             rx,
-            tx,
+            ipc,
         })
     }
 
-    pub(crate) fn sender(&self) -> mpsc::Sender<Command> {
-        self.tx.clone()
+    pub(crate) fn ipc(&self) -> TransportLayerIpc {
+        self.ipc.clone()
     }
 
     fn handle_command(&mut self, command: Command) {
