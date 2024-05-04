@@ -58,6 +58,6 @@
     "@vitest/coverage-istanbul": "1.5.2",
     "eslint": "8.57.0",
     "typescript": "5.1.6",
-    "vitest": "1.5.2"
+    "vitest": "1.5.3"
   }
 }
