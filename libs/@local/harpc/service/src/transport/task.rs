@@ -107,15 +107,13 @@ impl Task {
     }
 
     #[allow(clippy::integer_division_remainder_used)]
-    pub(crate) async fn run(mut self, cancel: CancellationToken) -> Result<(), TransportError> {
+    pub(crate) async fn run(mut self, cancel: CancellationToken) {
         loop {
             select! {
                 Some(command) = self.rx.recv() => self.handle_command(command),
                 Some(event) = self.swarm.next() => self.handle_event(event),
-                _ = cancel.cancelled() => break,
+                () = cancel.cancelled() => break,
             }
         }
-
-        Ok(())
     }
 }

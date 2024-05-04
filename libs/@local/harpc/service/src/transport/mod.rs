@@ -34,7 +34,7 @@ pub struct TransportLayer {
 }
 
 impl TransportLayer {
-    fn start(
+    pub fn start(
         config: Config,
         transport: impl self::task::Transport,
     ) -> Result<Self, TransportError> {
@@ -47,7 +47,7 @@ impl TransportLayer {
         Ok(Self { tx, cancel })
     }
 
-    async fn cancellation_token(&self) -> CancellationToken {
+    fn cancellation_token(&self) -> CancellationToken {
         self.cancel.clone()
     }
 
@@ -57,7 +57,7 @@ impl TransportLayer {
         self.tx
             .send(self::task::Command::IssueControl { tx })
             .await
-            .change_context(TransportError);
+            .change_context(TransportError)?;
 
         rx.await.change_context(TransportError)
     }

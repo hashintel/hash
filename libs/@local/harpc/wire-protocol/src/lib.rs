@@ -14,7 +14,8 @@
     lint_reasons,
     associated_type_defaults,
     never_type,
-    exhaustive_patterns
+    exhaustive_patterns,
+    const_option
 )]
 
 pub mod codec;
