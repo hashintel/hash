@@ -8975,10 +8975,10 @@
   dependencies:
     "@use-gesture/core" "10.2.26"
 
-"@vitest/coverage-istanbul@1.5.2":
-  version "1.5.2"
-  resolved "https://registry.yarnpkg.com/@vitest/coverage-istanbul/-/coverage-istanbul-1.5.2.tgz#b41625ea46f3751f5b013fa7647a0b42d6746d7d"
-  integrity sha512-YGC+QSWOL8cQ2HQaTEFttmG9v3DGLy7lMZIGdqjtTgaW6omW17/uZPxuh6m2t69T0rFLqImduVthm5o/gYYWTQ==
+"@vitest/coverage-istanbul@1.5.3":
+  version "1.5.3"
+  resolved "https://registry.yarnpkg.com/@vitest/coverage-istanbul/-/coverage-istanbul-1.5.3.tgz#d468e7968d5aea2cf6f3ce7782bf9a688c4b0093"
+  integrity sha512-mZrrqe5cgZJ5MsewF68xBwfPCeWPAoUn5HfZDIL1msv+EIJ/ifqF9aeZ/Q4kErtHS9RTBdCmkNC2dlx0F5lEKw==
   dependencies:
     debug "^4.3.4"
     istanbul-lib-coverage "^3.2.2"
