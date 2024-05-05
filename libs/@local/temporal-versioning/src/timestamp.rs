@@ -82,9 +82,14 @@ impl<A> Timestamp<A> {
 
     #[must_use]
     pub fn now() -> Self {
+        let now = OffsetDateTime::now_utc();
+        // The database does not store sub-second precision, so we need to ensure that the
+        // transaction time is zeroed out
         Self {
             axis: PhantomData,
-            time: OffsetDateTime::now_utc(),
+            time: now
+                .replace_nanosecond(now.nanosecond() / 1_000 * 1_000)
+                .unwrap(),
         }
     }
 
