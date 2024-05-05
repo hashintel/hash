@@ -15,8 +15,6 @@ use crate::{
     transport::TransportLayer,
 };
 
-const CONNECTION_LIMIT: usize = 256;
-
 pub(crate) enum Command {}
 
 pub(crate) struct SupervisorTask {

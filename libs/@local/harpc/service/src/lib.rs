@@ -7,6 +7,7 @@
 
 extern crate alloc;
 
+pub mod codec;
 mod config;
 mod session;
 mod transport;

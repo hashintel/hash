@@ -23,11 +23,7 @@ use tokio::{select, sync::mpsc};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
 use super::session_id::SessionId;
-
-struct TransactionError {
-    code: ErrorCode,
-    bytes: Bytes,
-}
+use crate::session::error::TransactionError;
 
 struct TransactionSendDelegateTaskForward<'a> {
     kind: ResponseKind,

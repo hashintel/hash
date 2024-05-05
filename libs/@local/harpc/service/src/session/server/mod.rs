@@ -27,10 +27,11 @@ use self::{session_id::SessionIdProducer, supervisor::SupervisorTask, transactio
 use crate::transport::TransportLayer;
 
 const TRANSACTION_BUFFER_SIZE: usize = 32;
-const CONNECTION_LIMIT: usize = 32;
+const CONCURRENT_CONNECTION_LIMIT: usize = 256;
 
 // TODO: encoding and decoding layer(?)
-// TODO: timeut layer - needs encoding layer
+// TODO: timeout layer - needs encoding layer (for error handling), and IPC to cancel a specific
+// request in a session
 
 struct ReceiverStreamCancel<T> {
     receiver: mpsc::Receiver<T>,
@@ -66,7 +67,7 @@ impl SessionLayer {
         let task = SupervisorTask {
             id: SessionIdProducer::new(),
             transport: self.transport,
-            active: Arc::new(Semaphore::new(CONNECTION_LIMIT)),
+            active: Arc::new(Semaphore::new(CONCURRENT_CONNECTION_LIMIT)),
             transactions: tx,
         };
 

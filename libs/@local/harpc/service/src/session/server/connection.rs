@@ -127,6 +127,7 @@ impl ConnectionTask {
             RequestBody::Begin(begin) => {
                 if self.transactions.len() > TRANSACTION_LIMIT {
                     tracing::warn!("transaction limit reached, dropping transaction");
+                    // TODO: let the client know that the transaction was dropped
                     return Ok(());
                 }
 
