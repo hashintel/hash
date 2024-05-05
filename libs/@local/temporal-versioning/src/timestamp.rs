@@ -80,16 +80,26 @@ impl<A> Timestamp<A> {
         time: OffsetDateTime::UNIX_EPOCH,
     };
 
-    #[must_use]
-    pub fn now() -> Self {
-        let now = OffsetDateTime::now_utc();
-        // The database does not store sub-second precision, so we need to ensure that the
-        // transaction time is zeroed out
+    /// Removes the nanosecond part of the timestamp.
+    ///
+    /// This is useful when inserting timestamps into databases that do not support nanosecond.
+    #[expect(clippy::missing_panics_doc, clippy::unwrap_used)]
+    #[must_use = "This method does not mutate the original `Timestamp`."]
+    pub fn remove_nanosecond(self) -> Self {
         Self {
             axis: PhantomData,
-            time: now
-                .replace_nanosecond(now.nanosecond() / 1_000 * 1_000)
+            time: self
+                .time
+                .replace_microsecond(self.time.microsecond())
                 .unwrap(),
+        }
+    }
+
+    #[must_use]
+    pub fn now() -> Self {
+        Self {
+            axis: PhantomData,
+            time: OffsetDateTime::now_utc(),
         }
     }
 

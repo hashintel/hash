@@ -475,7 +475,7 @@ where
     where
         R: IntoIterator<Item = EntityRelationAndSubject> + Send,
     {
-        let transaction_time = Timestamp::<TransactionTime>::now();
+        let transaction_time = Timestamp::<TransactionTime>::now().remove_nanosecond();
         let mut relationships = Vec::with_capacity(params.len());
         let mut entity_type_ids = HashSet::new();
         let mut checked_web_ids = HashSet::new();
@@ -494,7 +494,7 @@ where
         for params in params {
             let decision_time = params
                 .decision_time
-                .unwrap_or_else(|| transaction_time.cast());
+                .map_or_else(|| transaction_time.cast(), Timestamp::remove_nanosecond);
             let entity_id = EntityId {
                 owned_by_id: params.owned_by_id,
                 entity_uuid: params
@@ -1102,10 +1102,10 @@ where
         actor_id: AccountId,
         mut params: PatchEntityParams,
     ) -> Result<EntityMetadata, UpdateError> {
-        let transaction_time = Timestamp::now();
+        let transaction_time = Timestamp::now().remove_nanosecond();
         let decision_time = params
             .decision_time
-            .unwrap_or_else(|| transaction_time.cast());
+            .map_or_else(|| transaction_time.cast(), Timestamp::remove_nanosecond);
         let entity_type_ids = params
             .entity_type_ids
             .iter()
