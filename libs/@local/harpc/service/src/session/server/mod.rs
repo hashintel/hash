@@ -12,6 +12,7 @@ mod connection;
 mod session_id;
 mod supervisor;
 mod transaction;
+mod write;
 
 use alloc::sync::Arc;
 use core::{

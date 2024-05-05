@@ -1,35 +1,18 @@
-use bytes::{Buf, Bytes};
-use bytes_utils::SegmentedBuf;
+use bytes::Bytes;
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
-    payload::Payload,
-    protocol::{Protocol, ProtocolVersion},
     request::{
         begin::RequestBegin, flags::RequestFlag, header::RequestHeader, id::RequestId,
         procedure::ProcedureDescriptor, service::ServiceDescriptor, Request,
     },
-    response::{
-        begin::ResponseBegin,
-        body::ResponseBody,
-        flags::{ResponseFlag, ResponseFlags},
-        frame::ResponseFrame,
-        header::ResponseHeader,
-        kind::{ErrorCode, ResponseKind},
-        Response,
-    },
+    response::Response,
 };
 use libp2p::PeerId;
 use tokio::{select, sync::mpsc};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
-use super::session_id::SessionId;
+use super::{session_id::SessionId, write::ResponseWriter};
 use crate::session::error::TransactionError;
-
-struct TransactionSendDelegateTaskForward<'a> {
-    kind: ResponseKind,
-    index: &'a mut usize,
-    flush: bool,
-}
 
 struct TransactionSendDelegateTask {
     id: RequestId,
@@ -39,74 +22,11 @@ struct TransactionSendDelegateTask {
 }
 
 impl TransactionSendDelegateTask {
-    async fn forward(
-        &mut self,
-        buffer: &mut SegmentedBuf<Bytes>,
-        TransactionSendDelegateTaskForward {
-            kind,
-            index,
-            flush,
-        }: TransactionSendDelegateTaskForward<'_>,
-    ) -> Result<(), mpsc::error::SendError<Response>> {
-        let body = |bytes: Bytes, index: usize| {
-            let payload = Payload::new(bytes);
-
-            if index == 0 {
-                ResponseBody::Begin(ResponseBegin { kind, payload })
-            } else {
-                ResponseBody::Frame(ResponseFrame { payload })
-            }
-        };
-
-        while buffer.remaining() > Payload::MAX_SIZE {
-            let bytes = buffer.copy_to_bytes(Payload::MAX_SIZE);
-
-            let response = Response {
-                header: ResponseHeader {
-                    protocol: Protocol {
-                        version: ProtocolVersion::V1,
-                    },
-                    request_id: self.id,
-                    flags: ResponseFlags::empty(),
-                },
-                body: body(bytes, *index),
-            };
-
-            self.tx.send(response).await?;
-            *index += 1;
-        }
-
-        if !flush {
-            return Ok(());
-        }
-
-        let remaining = buffer.remaining();
-        let bytes = buffer.copy_to_bytes(remaining);
-
-        let response = Response {
-            header: ResponseHeader {
-                protocol: Protocol {
-                    version: ProtocolVersion::V1,
-                },
-                request_id: self.id,
-                flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            },
-            body: body(bytes, *index),
-        };
-
-        self.tx.send(response).await?;
-        *index += 1;
-
-        Ok(())
-    }
-
     async fn run(mut self, cancel: CancellationToken) {
         // we cannot simply forward here, because we want to be able to send the end of request and
         // buffer the response into the least amount of packages possible
-        let mut buffer = SegmentedBuf::new();
 
-        let mut kind = ResponseKind::Ok;
-        let mut index = 0;
+        let mut writer = Some(ResponseWriter::new_ok(self.id, &self.tx));
 
         loop {
             let bytes = select! {
@@ -119,70 +39,38 @@ impl TransactionSendDelegateTask {
             let Some(bytes) = bytes else {
                 // channel has been closed, we are done, flush the buffer
 
-                // flush the remaining buffer only *if* data is successful
-                if kind.is_err() {
+                // flush the remaining buffer, if there's any
+                let Some(writer) = writer.take() else {
                     break;
-                }
+                };
 
-                if let Err(error) = self
-                    .forward(
-                        &mut buffer,
-                        TransactionSendDelegateTaskForward {
-                            kind,
-                            index: &mut index,
-                            flush: true,
-                        },
-                    )
-                    .await
-                {
+                if let Err(error) = writer.flush().await {
                     tracing::error!(?error, "connection has been prematurely closed");
                 }
 
                 break;
             };
 
-            match bytes {
-                Ok(_) if kind.is_err() => {
+            match (bytes, writer.as_mut()) {
+                (Ok(_), None) => {
                     // we had an error previously, so just ignore the rest of the stream
                     continue;
                 }
-                Ok(bytes) => {
-                    buffer.push(bytes);
+                (Ok(bytes), Some(writer)) => {
+                    writer.push(bytes);
 
-                    if let Err(error) = self
-                        .forward(
-                            &mut buffer,
-                            TransactionSendDelegateTaskForward {
-                                kind,
-                                index: &mut index,
-                                flush: false,
-                            },
-                        )
-                        .await
-                    {
+                    if let Err(error) = writer.write().await {
                         tracing::warn!(?error, "connection has been prematurely closed");
                         break;
                     }
                 }
-                Err(TransactionError { code, bytes }) => {
-                    kind = ResponseKind::Err(code);
-                    index = 0;
+                (Err(TransactionError { code, bytes }), _) => {
+                    writer = None;
 
-                    // we start from the beginning
-                    buffer = SegmentedBuf::new();
-                    buffer.push(bytes);
+                    let mut writer = ResponseWriter::new_error(self.id, code, &self.tx);
+                    writer.push(bytes);
 
-                    if let Err(error) = self
-                        .forward(
-                            &mut buffer,
-                            TransactionSendDelegateTaskForward {
-                                kind,
-                                index: &mut index,
-                                flush: true,
-                            },
-                        )
-                        .await
-                    {
+                    if let Err(error) = writer.flush().await {
                         tracing::warn!(?error, "connection has been prematurely closed");
                         break;
                     }

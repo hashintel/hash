@@ -1,6 +1,6 @@
 use alloc::sync::Arc;
 use core::{fmt::Debug, time::Duration};
-use std::io;
+use std::{error::Error, io};
 
 use futures::{FutureExt, Sink, Stream, StreamExt};
 use harpc_wire_protocol::{
@@ -20,6 +20,11 @@ use tokio_util::sync::CancellationToken;
 use super::{
     session_id::SessionId,
     transaction::{Transaction, TransactionParts},
+    write::ResponseWriter,
+};
+use crate::{
+    codec::{ErrorEncoder, ErrorExt},
+    session::error::{TransactionError, TransactionLimitReachedError},
 };
 
 // TODO: make these configurable
@@ -92,22 +97,44 @@ impl ConnectionGarbageCollectorTask {
 
             if removed > 0 {
                 // this should never really happen, but it's good to know if it does
-                tracing::info!("garbage collector removed {removed} stale transactions");
+                tracing::info!(removed, "garbage collector removed stale transactions");
             }
         }
     }
 }
 
-pub(crate) struct ConnectionTask {
+pub(crate) struct ConnectionTask<E> {
     pub(crate) peer: PeerId,
     pub(crate) session: SessionId,
     pub(crate) permit: OwnedSemaphorePermit,
 
     pub(crate) transactions: Arc<HashIndex<RequestId, mpsc::Sender<Request>>>,
     pub(crate) tx_transaction: mpsc::Sender<Transaction>,
+
+    pub(crate) encoder: E,
 }
 
-impl ConnectionTask {
+impl<E> ConnectionTask<E>
+where
+    E: ErrorEncoder,
+{
+    async fn respond_error<T>(
+        &self,
+        id: RequestId,
+        error: T,
+        tx: &mpsc::Sender<Response>,
+    ) -> core::result::Result<(), Shutdown>
+    where
+        T: ErrorExt,
+    {
+        let TransactionError { code, bytes } = self.encoder.encode_error(error).await;
+
+        let mut writer = ResponseWriter::new_error(id, code, tx);
+        writer.push(bytes);
+
+        writer.flush().await.map_err(|_error| Shutdown)
+    }
+
     async fn handle_request(
         &self,
         tx: mpsc::Sender<Response>,
@@ -127,8 +154,16 @@ impl ConnectionTask {
             RequestBody::Begin(begin) => {
                 if self.transactions.len() > TRANSACTION_LIMIT {
                     tracing::warn!("transaction limit reached, dropping transaction");
-                    // TODO: let the client know that the transaction was dropped
-                    return Ok(());
+
+                    return self
+                        .respond_error(
+                            request_id,
+                            TransactionLimitReachedError {
+                                limit: TRANSACTION_LIMIT,
+                            },
+                            &tx,
+                        )
+                        .await;
                 }
 
                 let (transaction_tx, transaction_rx) = mpsc::channel(RESPONSE_BUFFER_SIZE);
