@@ -13,13 +13,41 @@ mod session_id;
 mod supervisor;
 mod transaction;
 
-use tokio::sync::mpsc;
+use alloc::sync::Arc;
+
+use futures::Stream;
+use tokio::sync::{mpsc, Semaphore};
+use tokio_stream::wrappers::ReceiverStream;
 use tokio_util::sync::CancellationToken;
 
-pub struct SessionLayer {
-    tx: mpsc::Sender<self::supervisor::Command>,
+use self::{session_id::SessionIdProducer, supervisor::SupervisorTask, transaction::Transaction};
+use crate::transport::TransportLayer;
 
-    cancel: CancellationToken,
+const TRANSACTION_BUFFER_SIZE: usize = 32;
+const CONNECTION_LIMIT: usize = 32;
+
+pub struct SessionLayer {
+    // TODO: IPC
+    transport: TransportLayer,
 }
 
-// should return a Stream of `Transaction<`
+impl SessionLayer {
+    pub fn listen(self) -> impl Stream<Item = Transaction> + Send + Sync + 'static {
+        let (tx, rx) = mpsc::channel(TRANSACTION_BUFFER_SIZE);
+
+        let task = SupervisorTask {
+            id: SessionIdProducer::new(),
+            transport: self.transport,
+            active: Arc::new(Semaphore::new(CONNECTION_LIMIT)),
+            transactions: tx,
+        };
+
+        let cancel = CancellationToken::new();
+
+        tokio::spawn(task.run(cancel.clone()));
+
+        // TODO: cancel on drop
+
+        ReceiverStream::new(rx)
+    }
+}

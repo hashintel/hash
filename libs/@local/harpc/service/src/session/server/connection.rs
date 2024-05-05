@@ -2,7 +2,6 @@ use alloc::sync::Arc;
 use core::{fmt::Debug, time::Duration};
 use std::io;
 
-use error_stack::{Context, Report};
 use futures::{FutureExt, Sink, Stream, StreamExt};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
@@ -100,15 +99,12 @@ impl ConnectionGarbageCollectorTask {
 }
 
 pub(crate) struct ConnectionTask {
-    session: SessionId,
+    pub(crate) peer: PeerId,
+    pub(crate) session: SessionId,
+    pub(crate) permit: OwnedSemaphorePermit,
 
-    transactions: Arc<HashIndex<RequestId, mpsc::Sender<Request>>>,
-
-    peer: PeerId,
-
-    permit: OwnedSemaphorePermit,
-
-    tx_transaction: mpsc::Sender<Transaction>,
+    pub(crate) transactions: Arc<HashIndex<RequestId, mpsc::Sender<Request>>>,
+    pub(crate) tx_transaction: mpsc::Sender<Transaction>,
 }
 
 impl ConnectionTask {
@@ -198,11 +194,10 @@ impl ConnectionTask {
     }
 
     #[allow(clippy::integer_division_remainder_used)]
-    async fn run<T, U, C>(self, cancel: CancellationToken, sink: T, stream: U)
+    pub(crate) async fn run<T, U>(self, cancel: CancellationToken, sink: T, stream: U)
     where
-        T: Sink<Response, Error = Report<C>> + Send + 'static,
-        C: Context,
-        U: Stream<Item = Result<Request, io::Error>> + Send,
+        T: Sink<Response, Error: Debug + Send> + Send + 'static,
+        U: Stream<Item = error_stack::Result<Request, io::Error>> + Send,
     {
         let stream = StreamNotifyClose::new(stream);
 

@@ -5,6 +5,7 @@ mod ipc;
 mod server;
 mod task;
 
+use core::fmt::Debug;
 use std::io;
 
 use error_stack::{Result, ResultExt};
@@ -55,10 +56,12 @@ impl TransportLayer {
         impl futures::Stream<
             Item = (
                 PeerId,
-                impl Sink<Response>,
-                impl Stream<Item = Result<Request, io::Error>>,
+                impl Sink<Response, Error: Debug + Send> + Send + Sync + 'static,
+                impl Stream<Item = Result<Request, io::Error>> + Send + Sync + 'static,
             ),
-        >,
+        > + Send
+        + Sync
+        + 'static,
         TransportError,
     > {
         let mut control = self.ipc.control().await?;
@@ -83,8 +86,8 @@ impl TransportLayer {
         peer: PeerId,
     ) -> Result<
         (
-            impl Sink<Request>,
-            impl Stream<Item = Result<Response, io::Error>>,
+            impl Sink<Request> + Send + Sync + 'static,
+            impl Stream<Item = Result<Response, io::Error>> + Send + Sync + 'static,
         ),
         TransportError,
     > {

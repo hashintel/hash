@@ -1,6 +1,6 @@
 use core::{num::NonZero, time::Duration};
 
-use libp2p::{core::upgrade, ping, swarm, tcp};
+use libp2p::{core::upgrade, ping, swarm};
 
 #[derive(Debug, Clone, Default)]
 pub struct SwarmConfig {
