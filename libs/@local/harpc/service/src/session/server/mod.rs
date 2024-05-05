@@ -14,11 +14,14 @@ mod supervisor;
 mod transaction;
 
 use alloc::sync::Arc;
+use core::{
+    pin::Pin,
+    task::{Context, Poll},
+};
 
 use futures::Stream;
 use tokio::sync::{mpsc, Semaphore};
-use tokio_stream::wrappers::ReceiverStream;
-use tokio_util::sync::CancellationToken;
+use tokio_util::sync::{CancellationToken, DropGuard};
 
 use self::{session_id::SessionIdProducer, supervisor::SupervisorTask, transaction::Transaction};
 use crate::transport::TransportLayer;
@@ -26,13 +29,38 @@ use crate::transport::TransportLayer;
 const TRANSACTION_BUFFER_SIZE: usize = 32;
 const CONNECTION_LIMIT: usize = 32;
 
+// TODO: encoding and decoding layer(?)
+// TODO: timeut layer - needs encoding layer
+
+struct ReceiverStreamCancel<T> {
+    receiver: mpsc::Receiver<T>,
+    _guard: DropGuard,
+}
+
+impl<T> ReceiverStreamCancel<T> {
+    fn new(receiver: mpsc::Receiver<T>, guard: DropGuard) -> Self {
+        Self {
+            receiver,
+            _guard: guard,
+        }
+    }
+}
+
+impl<T> Stream for ReceiverStreamCancel<T> {
+    type Item = T;
+
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        self.receiver.poll_recv(cx)
+    }
+}
+
 pub struct SessionLayer {
     // TODO: IPC
     transport: TransportLayer,
 }
 
 impl SessionLayer {
-    pub fn listen(self) -> impl Stream<Item = Transaction> + Send + Sync + 'static {
+    pub(crate) fn listen(self) -> impl Stream<Item = Transaction> + Send + Sync + 'static {
         let (tx, rx) = mpsc::channel(TRANSACTION_BUFFER_SIZE);
 
         let task = SupervisorTask {
@@ -46,8 +74,6 @@ impl SessionLayer {
 
         tokio::spawn(task.run(cancel.clone()));
 
-        // TODO: cancel on drop
-
-        ReceiverStream::new(rx)
+        ReceiverStreamCancel::new(rx, cancel.drop_guard())
     }
 }
