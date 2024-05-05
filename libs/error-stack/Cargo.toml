@@ -20,9 +20,9 @@ categories = ["rust-patterns", "no-std"]
 [dependencies]
 tracing-error = { version = "0.2", optional = true, default-features = false }
 anyhow = { version = ">=1.0.73", default-features = false, optional = true }
-eyre = { version = "0.6.12", default-features = false, optional = true }
-serde = { version = "1.0.200", default-features = false, optional = true }
-spin = { version = "0.9.8", default-features = false, optional = true, features = ['rwlock', 'once'] }
+eyre = { version = "0.6", default-features = false, optional = true }
+serde = { version = "1", default-features = false, optional = true }
+spin = { version = "0.9", default-features = false, optional = true, features = ['rwlock', 'once'] }
 
 [dev-dependencies]
 serde = { version = "1.0.200", features = ["derive"] }
