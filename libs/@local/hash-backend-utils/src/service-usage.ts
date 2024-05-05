@@ -294,26 +294,30 @@ export const createUsageRecord = async (
   ];
 
   const usageRecordEntityMetadata = await context.graphApi
-    .createEntity(authentication.actorId, {
+    .createEntities(authentication.actorId, [
+      {
+        draft: false,
+        ownedById: userAccountId,
+        properties,
+        entityTypeIds: [systemEntityTypes.usageRecord.entityTypeId],
+        relationships: entityRelationships,
+      },
+    ])
+    .then(({ data }) => data[0]!);
+
+  await context.graphApi.createEntities(authentication.actorId, [
+    {
       draft: false,
       ownedById: userAccountId,
-      properties,
-      entityTypeIds: [systemEntityTypes.usageRecord.entityTypeId],
+      properties: {},
+      linkData: {
+        leftEntityId: usageRecordEntityMetadata.recordId.entityId,
+        rightEntityId: serviceFeatureEntity.metadata.recordId.entityId,
+      },
+      entityTypeIds: [systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId],
       relationships: entityRelationships,
-    })
-    .then(({ data }) => data);
-
-  await context.graphApi.createEntity(authentication.actorId, {
-    draft: false,
-    ownedById: userAccountId,
-    properties: {},
-    linkData: {
-      leftEntityId: usageRecordEntityMetadata.recordId.entityId,
-      rightEntityId: serviceFeatureEntity.metadata.recordId.entityId,
     },
-    entityTypeIds: [systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId],
-    relationships: entityRelationships,
-  });
+  ]);
 
   return usageRecordEntityMetadata;
 };

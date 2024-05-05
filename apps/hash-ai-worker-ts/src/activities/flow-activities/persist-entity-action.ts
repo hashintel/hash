@@ -113,15 +113,17 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
         .then((resp) => resp.data);
     } else {
       entityMetadata = await graphApiClient
-        .createEntity(webBotActorId, {
-          ...entityValues,
-          draft: createEditionAsDraft,
-          ownedById,
-          relationships: createDefaultAuthorizationRelationships({
-            actorId,
-          }),
-        })
-        .then((resp) => resp.data);
+        .createEntities(webBotActorId, [
+          {
+            ...entityValues,
+            draft: createEditionAsDraft,
+            ownedById,
+            relationships: createDefaultAuthorizationRelationships({
+              actorId,
+            }),
+          },
+        ])
+        .then(({ data }) => data[0]!);
     }
 
     const entity: Entity = {

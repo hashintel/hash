@@ -170,32 +170,34 @@ export const createEntities = async ({
             });
 
             const { data: createdEntityMetadata } =
-              await graphApiClient.createEntity(actorId, {
-                draft: createAsDraft,
-                entityTypeIds: [entityTypeId],
-                ownedById,
-                properties,
-                relationships: [
-                  {
-                    relation: "setting",
-                    subject: {
-                      kind: "setting",
-                      subjectId: "administratorFromWeb",
+              await graphApiClient.createEntities(actorId, [
+                {
+                  draft: createAsDraft,
+                  entityTypeIds: [entityTypeId],
+                  ownedById,
+                  properties,
+                  relationships: [
+                    {
+                      relation: "setting",
+                      subject: {
+                        kind: "setting",
+                        subjectId: "administratorFromWeb",
+                      },
                     },
-                  },
-                  {
-                    relation: "setting",
-                    subject: { kind: "setting", subjectId: "updateFromWeb" },
-                  },
-                  {
-                    relation: "setting",
-                    subject: { kind: "setting", subjectId: "viewFromWeb" },
-                  },
-                ],
-              });
+                    {
+                      relation: "setting",
+                      subject: { kind: "setting", subjectId: "updateFromWeb" },
+                    },
+                    {
+                      relation: "setting",
+                      subject: { kind: "setting", subjectId: "viewFromWeb" },
+                    },
+                  ],
+                },
+              ]);
 
             const metadata = mapGraphApiEntityMetadataToMetadata(
-              createdEntityMetadata,
+              createdEntityMetadata[0]!,
             );
 
             internalEntityStatusMap.creationSuccesses[proposedEntity.entityId] =
@@ -412,33 +414,35 @@ export const createEntities = async ({
             }
 
             const { data: createdEntityMetadata } =
-              await graphApiClient.createEntity(actorId, {
-                draft: createAsDraft,
-                entityTypeIds: [entityTypeId],
-                linkData,
-                ownedById,
-                properties,
-                relationships: [
-                  {
-                    relation: "setting",
-                    subject: {
-                      kind: "setting",
-                      subjectId: "administratorFromWeb",
+              await graphApiClient.createEntities(actorId, [
+                {
+                  draft: createAsDraft,
+                  entityTypeIds: [entityTypeId],
+                  linkData,
+                  ownedById,
+                  properties,
+                  relationships: [
+                    {
+                      relation: "setting",
+                      subject: {
+                        kind: "setting",
+                        subjectId: "administratorFromWeb",
+                      },
                     },
-                  },
-                  {
-                    relation: "setting",
-                    subject: { kind: "setting", subjectId: "updateFromWeb" },
-                  },
-                  {
-                    relation: "setting",
-                    subject: { kind: "setting", subjectId: "viewFromWeb" },
-                  },
-                ],
-              });
+                    {
+                      relation: "setting",
+                      subject: { kind: "setting", subjectId: "updateFromWeb" },
+                    },
+                    {
+                      relation: "setting",
+                      subject: { kind: "setting", subjectId: "viewFromWeb" },
+                    },
+                  ],
+                },
+              ]);
 
             const metadata = mapGraphApiEntityMetadataToMetadata(
-              createdEntityMetadata,
+              createdEntityMetadata[0]!,
             );
 
             internalEntityStatusMap.creationSuccesses[proposedEntity.entityId] =

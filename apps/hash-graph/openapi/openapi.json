@@ -831,7 +831,7 @@
           "Graph",
           "Entity"
         ],
-        "operationId": "create_entity",
+        "operationId": "create_entities",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -847,7 +847,10 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateEntityRequest"
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CreateEntityRequest"
+                }
               }
             }
           },
@@ -859,7 +862,10 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/EntityMetadata"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EntityMetadata"
+                  }
                 }
               }
             }

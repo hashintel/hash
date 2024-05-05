@@ -377,28 +377,32 @@ export const writeGoogleSheetAction: FlowActionActivity<{
     };
 
     const fileEntityMetadata = await graphApiClient
-      .createEntity(webBotActorId, {
-        draft: false,
-        entityTypeIds: entityValues.entityTypeIds,
-        ownedById: webId,
-        properties: entityValues.properties,
-        relationships: authRelationships,
-      })
-      .then((resp) => resp.data);
+      .createEntities(webBotActorId, [
+        {
+          draft: false,
+          entityTypeIds: entityValues.entityTypeIds,
+          ownedById: webId,
+          properties: entityValues.properties,
+          relationships: authRelationships,
+        },
+      ])
+      .then(({ data }) => data[0]!);
 
-    await graphApiClient.createEntity(webBotActorId, {
-      draft: false,
-      entityTypeIds: [
-        systemLinkEntityTypes.associatedWithAccount.linkEntityTypeId,
-      ],
-      ownedById: webId,
-      linkData: {
-        leftEntityId: fileEntityMetadata.recordId.entityId,
-        rightEntityId: googleAccount.metadata.recordId.entityId,
+    await graphApiClient.createEntities(webBotActorId, [
+      {
+        draft: false,
+        entityTypeIds: [
+          systemLinkEntityTypes.associatedWithAccount.linkEntityTypeId,
+        ],
+        ownedById: webId,
+        linkData: {
+          leftEntityId: fileEntityMetadata.recordId.entityId,
+          rightEntityId: googleAccount.metadata.recordId.entityId,
+        },
+        properties: {},
+        relationships: authRelationships,
       },
-      properties: {},
-      relationships: authRelationships,
-    });
+    ]);
 
     entityToReturn = {
       ...entityValues,

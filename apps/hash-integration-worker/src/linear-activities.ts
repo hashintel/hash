@@ -38,47 +38,11 @@ const createHashEntity = async (params: {
   ownedById: OwnedById;
 }): Promise<void> => {
   const { graphApiClient, ownedById } = params;
-  const { data: entity } = await graphApiClient.createEntity(
+  const { data: entities } = await graphApiClient.createEntities(
     params.authentication.actorId,
-    {
-      ownedById,
-      draft: false,
-      relationships: [
-        {
-          relation: "administrator",
-          subject: {
-            kind: "account",
-            subjectId: params.authentication.actorId,
-          },
-        },
-        {
-          relation: "setting",
-          subject: { kind: "setting", subjectId: "administratorFromWeb" },
-        },
-        {
-          relation: "setting",
-          subject: { kind: "setting", subjectId: "updateFromWeb" },
-        },
-        {
-          relation: "setting",
-          subject: { kind: "setting", subjectId: "viewFromWeb" },
-        },
-      ],
-      ...params.partialEntity,
-      entityTypeIds: [params.partialEntity.entityTypeId],
-    },
-  );
-
-  await Promise.all(
-    params.outgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) =>
-      graphApiClient.createEntity(params.authentication.actorId, {
+    [
+      {
         ownedById,
-        linkData: {
-          leftEntityId: entity.recordId.entityId,
-          rightEntityId: destinationEntityId,
-        },
-        entityTypeIds: [linkEntityTypeId],
-        properties: {},
         draft: false,
         relationships: [
           {
@@ -101,8 +65,46 @@ const createHashEntity = async (params: {
             subject: { kind: "setting", subjectId: "viewFromWeb" },
           },
         ],
-      }),
-    ),
+        ...params.partialEntity,
+        entityTypeIds: [params.partialEntity.entityTypeId],
+      },
+    ],
+  );
+  const entity = entities[0]!;
+
+  await graphApiClient.createEntities(
+    params.authentication.actorId,
+    params.outgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) => ({
+      ownedById,
+      linkData: {
+        leftEntityId: entity.recordId.entityId,
+        rightEntityId: destinationEntityId,
+      },
+      entityTypeIds: [linkEntityTypeId],
+      properties: {},
+      draft: false,
+      relationships: [
+        {
+          relation: "administrator",
+          subject: {
+            kind: "account",
+            subjectId: params.authentication.actorId,
+          },
+        },
+        {
+          relation: "setting",
+          subject: { kind: "setting", subjectId: "administratorFromWeb" },
+        },
+        {
+          relation: "setting",
+          subject: { kind: "setting", subjectId: "updateFromWeb" },
+        },
+        {
+          relation: "setting",
+          subject: { kind: "setting", subjectId: "viewFromWeb" },
+        },
+      ],
+    })),
   );
 };
 
@@ -170,8 +172,9 @@ const createOrUpdateHashEntity = async (params: {
       ...removedOutgoingLinks.map((linkEntity) =>
         archiveEntity({ ...params, entity: linkEntity }),
       ),
-      ...addedOutgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) =>
-        graphApiClient.createEntity(params.authentication.actorId, {
+      graphApiClient.createEntities(
+        params.authentication.actorId,
+        addedOutgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) => ({
           entityTypeIds: [linkEntityTypeId],
           linkData: {
             leftEntityId: existingEntity.metadata.recordId.entityId,
@@ -194,7 +197,7 @@ const createOrUpdateHashEntity = async (params: {
               subject: { kind: "setting", subjectId: "viewFromWeb" },
             },
           ],
-        }),
+        })),
       ),
     ]);
 

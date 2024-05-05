@@ -97,18 +97,20 @@ export const createGraphChangeNotification = async (
    * We create the notification entity with the user's web bot, as we know it has the necessary permissions in the user's web
    */
   const notificationEntityMetadata = await graphApi
-    .createEntity(webMachineActorId, {
-      draft: false,
-      entityTypeIds: [systemEntityTypes.graphChangeNotification.entityTypeId],
-      ownedById: notifiedUserAccountId,
-      properties: {
-        [systemPropertyTypes.graphChangeType.propertyTypeBaseUrl]: operation,
+    .createEntities(webMachineActorId, [
+      {
+        draft: false,
+        entityTypeIds: [systemEntityTypes.graphChangeNotification.entityTypeId],
+        ownedById: notifiedUserAccountId,
+        properties: {
+          [systemPropertyTypes.graphChangeType.propertyTypeBaseUrl]: operation,
+        },
+        relationships: notificationEntityRelationships,
       },
-      relationships: notificationEntityRelationships,
-    })
-    .then((resp) => resp.data);
+    ])
+    .then(({ data }) => data[0]!);
 
-  await graphApi.createEntity(
+  await graphApi.createEntities(
     /**
      * We use the user's authority to create the link to the entity because it might be in a different web, e.g. an org's,
      * and we can't be sure that any single bot has access to both the user's web and the web of the changed entity,
@@ -117,19 +119,23 @@ export const createGraphChangeNotification = async (
      * Ideally we would have a global bot with restricted permissions across all webs to do this – H-1605
      */
     notifiedUserAccountId,
-    {
-      draft: false,
-      entityTypeIds: [systemLinkEntityTypes.occurredInEntity.linkEntityTypeId],
-      ownedById: notifiedUserAccountId,
-      linkData: {
-        leftEntityId: notificationEntityMetadata.recordId.entityId,
-        rightEntityId: changedEntityId,
+    [
+      {
+        draft: false,
+        entityTypeIds: [
+          systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
+        ],
+        ownedById: notifiedUserAccountId,
+        linkData: {
+          leftEntityId: notificationEntityMetadata.recordId.entityId,
+          rightEntityId: changedEntityId,
+        },
+        properties: {
+          [systemPropertyTypes.entityEditionId.propertyTypeBaseUrl]:
+            changedEntityEditionId,
+        },
+        relationships: linkEntityRelationships,
       },
-      properties: {
-        [systemPropertyTypes.entityEditionId.propertyTypeBaseUrl]:
-          changedEntityEditionId,
-      },
-      relationships: linkEntityRelationships,
-    },
+    ],
   );
 };
