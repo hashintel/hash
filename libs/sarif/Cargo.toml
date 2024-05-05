@@ -12,8 +12,8 @@ keywords = ["no_std", "sarif", "codeql", "serde", "static-analysis", "tools"]
 categories = ["no-std", "data-structures", "development-tools", "parsing"]
 
 [dependencies]
-serde = { version = "1.0.200", default-features = false, features = ["derive"], optional = true }
-serde_json = { version = "1.0.116", default-features = false, features = ["alloc"], optional = true }
+serde = { version = "1", default-features = false, features = ["derive"], optional = true }
+serde_json = { version = "1", default-features = false, features = ["alloc"], optional = true }
 semver = { version = "1", default-features = false }
 url = { version = "2", default-features = false }
 uuid = { version = "1", default-features = false }
