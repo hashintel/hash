@@ -1,4 +1,5 @@
-use core::fmt::Debug;
+use alloc::sync::Arc;
+use core::{fmt::Debug, time::Duration};
 use std::io;
 
 use error_stack::{Context, Report};
@@ -22,7 +23,9 @@ use super::{
     transaction::{Transaction, TransactionParts},
 };
 
+// TODO: make these configurable
 const RESPONSE_BUFFER_SIZE: usize = 16;
+const TRANSACTION_LIMIT: usize = 64;
 
 struct Shutdown;
 
@@ -58,10 +61,48 @@ where
     }
 }
 
+struct ConnectionGarbageCollectorTask {
+    every: Duration,
+    transactions: Arc<HashIndex<RequestId, mpsc::Sender<Request>>>,
+}
+
+impl ConnectionGarbageCollectorTask {
+    #[allow(clippy::integer_division_remainder_used)]
+    async fn run(self, cancel: CancellationToken) {
+        let mut interval = tokio::time::interval(self.every);
+
+        loop {
+            select! {
+                () = cancel.cancelled() => break,
+                _ = interval.tick() => {}
+            }
+
+            tracing::debug!("running garbage collector");
+
+            let mut removed = 0_usize;
+            self.transactions
+                .retain_async(|_, tx| {
+                    if tx.is_closed() {
+                        removed += 1;
+                        false
+                    } else {
+                        true
+                    }
+                })
+                .await;
+
+            if removed > 0 {
+                // this should never really happen, but it's good to know if it does
+                tracing::info!("garbage collector removed {removed} stale transactions");
+            }
+        }
+    }
+}
+
 pub(crate) struct ConnectionTask {
     session: SessionId,
 
-    transactions: HashIndex<RequestId, mpsc::Sender<Request>>,
+    transactions: Arc<HashIndex<RequestId, mpsc::Sender<Request>>>,
 
     peer: PeerId,
 
@@ -88,6 +129,11 @@ impl ConnectionTask {
         // channel, which drops a transaction if there's too many.
         match &request.body {
             RequestBody::Begin(begin) => {
+                if self.transactions.len() > TRANSACTION_LIMIT {
+                    tracing::warn!("transaction limit reached, dropping transaction");
+                    return Ok(());
+                }
+
                 let (transaction_tx, transaction_rx) = mpsc::channel(RESPONSE_BUFFER_SIZE);
 
                 let (transaction, task) = Transaction::from_request(
@@ -103,9 +149,8 @@ impl ConnectionTask {
 
                 // we put it in the buffer, so will resolve immediately
                 transaction_tx
-                    .send(request)
-                    .await
-                    .map_err(|_error| Shutdown)?;
+                    .try_send(request)
+                    .expect("infallible; buffer should be large enought to hold the request");
 
                 task.start(cancel);
 
@@ -120,7 +165,6 @@ impl ConnectionTask {
                     }
                 }
 
-                // TODO: error out if send not possible
                 self.tx_transaction
                     .send(transaction)
                     .await
@@ -143,8 +187,6 @@ impl ConnectionTask {
             }
         }
 
-        // TODO: cleanup every now and then, where closed channels are reclaimed
-
         // remove the transaction from the index if it is closed.
         // TODO: forced gc on timeout in upper layer (needs IPC)
         if is_end {
@@ -166,13 +208,22 @@ impl ConnectionTask {
 
         pin!(stream);
 
-        // TODO: active transaction limit?!
         let finished = Semaphore::new(0);
+
+        let cancel_gc = cancel.child_token();
+        tokio::spawn(
+            ConnectionGarbageCollectorTask {
+                // TODO: make this configurable
+                every: Duration::from_secs(10),
+                transactions: Arc::clone(&self.transactions),
+            }
+            .run(cancel_gc.clone()),
+        );
+        let _drop_gc = cancel_gc.drop_guard();
 
         let (tx, rx) = mpsc::channel(RESPONSE_BUFFER_SIZE);
         let mut handle = tokio::spawn(ConnectionDelegateTask { rx, sink }.into_future()).fuse();
 
-        // delegate to a transaction, which delegates back?
         loop {
             select! {
                 // we use `StreamNotifyClose` here (and the double `Option<Option<T>>`), so that we don't add too many permits at once
@@ -216,7 +267,5 @@ impl ConnectionTask {
                 }
             }
         }
-
-        // if the connection breaks down we no longer need the session.
     }
 }
