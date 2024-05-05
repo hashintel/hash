@@ -2099,37 +2099,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_c_entity_id", response.body.recordId.entityId.entityUuid);
+    client.global.set("person_c_entity_id", response.body.recordId.entityId);
 %}
-
-### Get all entities by embedding "My name is Bob"
-POST http://127.0.0.1:4000/entities/query
-Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
-
-{
-  "filter": {
-    "equal": [
-      { "path": ["uuid"] },
-      { "parameter": "24f952de-952b-4023-984c-7a90cbdd464e" }
-    ]
-  },
-  "temporalAxes": {
-    "pinned": {
-      "axis": "transactionTime",
-      "timestamp": null
-    },
-    "variable": {
-      "axis": "decisionTime",
-      "interval": {
-        "start": null,
-        "end": null
-      }
-    }
-  },
-  "includeDrafts": true
-}
-
 
 ### Update third Person entity
 PATCH http://127.0.0.1:4000/entities
