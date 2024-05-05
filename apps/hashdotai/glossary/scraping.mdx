@@ -19,19 +19,15 @@ Using HASH, it's extremely easy to scrape the web for information you're looking
 
 __________
 
-## Web scraping tips
+To ensure your web scraping yields useful information, make sure you're outputting:
 
-### Structure outputs
+- **Structured, typed data:** __________
+- **Validated, clean data:** __________
+- **Provenance data:** alongside the information you scrape, you want to know where it came from (tracking its source, and origins). You ideally also want the ability to inspect the original source (e.g. web page) as it existed at the specific point in time the information was scraped, to guarantee data was faithfully and accurately scraped in the first place.
 
-__________
-
-### Validate outputs
-
-__________
-
-### Track provenance
-
-__________
+Where appropriate, also consider:
+- **Regularly scraping:** if information is sensitive, and changes over time, set up recurring scraping jobs to check for updates, and keep information in your datastore up-to-date.
+- **Cross-referencing:** some information can be gotten directly from its source, while other data may only be accessible through third-parties. Consider scraping data from multiple locations as a "check" on its accuracy.
 
 ### Risks
 
@@ -40,7 +36,7 @@ While web scraping isn't inherently risky, there can be a few things to consider
 - **Legal risks:** we're not lawyers, and can't provide legal advice (nor can any AI!), so it's important that you familiarize yourself with the laws and regulations around web scraping that might apply to your use case. While scraping a website, you may be required to comply with a website's own terms of service or other policies, and there may be restrictions on what you can do (at least commercially) with publicly-available information you access.
 - **Ethical risks:** assuming something is legal, there's also an ethical component to consider. You should consider any relevant implications yourself and decide if you're comfortable with the risk.
 - **Reputational risks:** ask yourself... if what you were doing was front-page news, and your family or friends knew what you were doing, how would you feel?
-- **Technical response:** if you break a website's terms of use, its provider may seek to cut off your ability to access their service. While this is easier said than done, assuming the worst, if you were suddenly unable to access a given website, how would that impact you or your business?
+- **Access risks:** if you break a website's terms of use, its provider may seek to cut off your ability to access their service. Before scraping a website, ask yourself _in a worst case scenario_, if you were suddenly unable to access a given website, how would that impact you or your business? Certain sites such as LinkedIn may take measures to temporarily disable (and in extreme cases permanently ban) accounts who view too many profiles in a way that appears to be automated, or unnatural, in too short a span of time.
 
 ## Legally scraping the web
 
