@@ -29,7 +29,7 @@ where
 {
     // TODO: in struct derive, have option for none! (or should we just not use bounded in that
     //  case?)
-    fn visit_none<F>(&mut self, visitor: F) -> Result<F::Value, ObjectAccessError>
+    fn visit_none<F>(&self, visitor: F) -> Result<F::Value, ObjectAccessError>
     where
         F: FieldVisitor<'de>,
     {

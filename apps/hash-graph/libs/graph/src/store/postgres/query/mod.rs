@@ -113,15 +113,6 @@ pub trait PostgresSorting<'s, R: QueryRecord>:
         's: 'q;
 }
 
-#[cfg(feature = "postgres")]
-impl<'a> FromSql<'a> for OntologyTypeVersion {
-    postgres_types::accepts!(INT8);
-
-    fn from_sql(_: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
-        Ok(Self::new(i64::from_sql(&Type::INT8, raw)?.try_into()?))
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum CursorField<'a> {
     Bool(bool),
