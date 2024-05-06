@@ -296,12 +296,15 @@ jobs:
           [[ ${{ needs.setup.result }} = success ]]
       - name: Check unit benches
         run: |
+          echo ${{ fromJSON(needs.setup.outputs.unit) }} | jq
           [[ ${{ needs.unit-benches.result }} =~ success|skipped ]]
       - name: Check builds
         run: |
+          echo ${{ fromJSON(needs.setup.outputs.dockers) }} | jq
           [[ ${{ needs.build.result }} =~ success|skipped ]]
       - name: Check integration benches
         run: |
+          echo ${{ fromJSON(needs.setup.outputs.integration) }} | jq
           [[ ${{ needs.integration-benches.result }} =~ success|skipped ]]
 
       - name: Notify Slack on failure
