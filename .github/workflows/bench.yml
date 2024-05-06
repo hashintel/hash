@@ -21,7 +21,6 @@ jobs:
     outputs:
       unit: ${{ steps.packages.outputs.unit }}
       integration: ${{ steps.packages.outputs.integration }}
-      dockers: ${{ steps.packages.outputs.dockers }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
@@ -46,33 +45,9 @@ jobs:
             | jq 'select(.task == "bench:integration" and .command != "<NONEXISTENT>")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
-          REQUIRES_GRAPH=$(echo "$INTEGRATION_BENCH_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-graph" and .task == "build")] != []')
-          REQUIRES_AI_WORKER_TS=$(echo "$INTEGRATION_BENCH_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-ts" and .task == "build")] != []')
-          REQUIRES_INTEGRATION_WORKER=$(echo "$INTEGRATION_BENCH_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-worker-integration" and .task == "build")] != []')
-          REQUIRES_API=$(echo "$INTEGRATION_BENCH_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-api" and .task == "build")] != []')
-
-          DOCKER_PACKAGES=[]
-          if [[ $REQUIRES_GRAPH == 'true' ]]; then
-            DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-graph"]')
-          fi
-          if [[ $REQUIRES_AI_WORKER_TS == 'true' ]]; then
-            DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-ai-worker-ts"]')
-          fi
-          if [[ $REQUIRES_INTEGRATION_WORKER == 'true' ]]; then
-            DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-integration-worker"]')
-          fi
-          if [[ $REQUIRES_API == 'true' ]]; then
-            DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-api"]')
-          fi
-
-          # We currently don't have benchmarks relying on a service running in a docker container
-          DOCKER_PACKAGES=[]
-          DOCKER_PACKAGES=$(echo $DOCKER_PACKAGES | jq -c '{ include: [{ package: .[] }] }')
-
           set -x
           echo "unit=$UNIT_BENCH_PACKAGES" >> $GITHUB_OUTPUT
           echo "integration=$INTEGRATION_BENCH_PACKAGES" >> $GITHUB_OUTPUT
-          echo "dockers=$DOCKER_PACKAGES" >> $GITHUB_OUTPUT
 
   unit-benches:
     name: Unit
@@ -137,35 +112,11 @@ jobs:
 
       - name: Run benches
         continue-on-error: ${{ steps.benches.outputs.allow-failure == 'true' }}
-        run: |
-          turbo run bench:unit --filter "${{ matrix.package }}"
-          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
-
-  build:
-    name: Build
-    runs-on: ubuntu-22.04
-    needs: [setup]
-    strategy:
-      matrix: ${{ fromJSON(needs.setup.outputs.dockers) }}
-      fail-fast: false
-    if: needs.setup.outputs.dockers != '{"include":[]}'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-
-      - name: Build image
-        uses: ./.github/actions/build-docker-images
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          hash-graph: ${{ matrix.package == '@apps/hash-graph' }}
-          hash-ai-worker-ts: ${{ matrix.package == '@apps/hash-ai-worker-ts' }}
-          hash-integration-worker: ${{ matrix.package == '@apps/hash-integration-worker' }}
-          hash-api: ${{ matrix.package == '@apps/hash-api' }}
+        run: turbo run bench:unit --filter "${{ matrix.package }}"
 
   integration-benches:
     name: Integration
     needs: [setup]
-    # needs: [setup, build]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.integration) }}
       fail-fast: false
@@ -181,12 +132,6 @@ jobs:
       - name: Find bench steps to run
         id: benches
         run: |
-          BENCH_TASKS=$(turbo run bench:integration --dry-run=json --filter "${{ matrix.package }}" | jq -c '.tasks[]')
-          REQUIRES_GRAPH=$(echo "$BENCH_TASKS" | jq -s '[.[] | select((.package == "@apps/hash-graph" or .package == "@rust/graph") and .task == "build")] != []')
-          REQUIRES_AI_WORKER_TS=$(echo "$BENCH_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-ts" and .task == "build")] != []')
-          REQUIRES_INTEGRATION_WORKER=$(echo "$BENCH_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-worker-integration" and .task == "build")] != []')
-          REQUIRES_API=$(echo "$BENCH_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-api" and .task == "build")] != []')
-
           HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
@@ -198,11 +143,6 @@ jobs:
             echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
             echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
           fi
-
-          echo "external-service-graph=$REQUIRES_GRAPH" >> $GITHUB_OUTPUT
-          echo "external-service-ai-worker-ts=$REQUIRES_AI_WORKER_TS" >> $GITHUB_OUTPUT
-          echo "external-service-worker-integration=$REQUIRES_INTEGRATION_WORKER" >> $GITHUB_OUTPUT
-          echo "external-service-api=$REQUIRES_API" >> $GITHUB_OUTPUT
 
       - name: Prune repository
         uses: ./.github/actions/prune-repository
@@ -238,31 +178,11 @@ jobs:
           workspaces: ${{ matrix.directory }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
 
-      - name: Load Docker images
-        uses: ./.github/actions/load-docker-images
-        with:
-          hash-graph: ${{ steps.benches.outputs.external-service-graph == 'true' }}
-          hash-ai-worker-ts: ${{ steps.benches.outputs.external-service-ai-worker-ts == 'true' }}
-          hash-integration-worker: ${{ steps.benches.outputs.external-service-worker-integration == 'true' }}
-          hash-api: ${{ steps.benches.outputs.external-service-api == 'true' }}
-
       - name: Launch external services
         run: |
           turbo codegen --filter '@apps/hash-external-services'
 
           SERVICES="hydra kratos redis spicedb"
-
-          if [[ ${{ steps.benches.outputs.external-service-graph == 'true' }} == 'true' ]]; then
-            SERVICES="$SERVICES graph"
-          fi
-          if [[ ${{ steps.benches.outputs.external-service-ai-worker-ts }} == 'true' ]]; then
-              echo 'OPENAI_API_KEY=dummy' >> .env.local
-              echo 'ANTHROPIC_API_KEY=dummy' >> .env.local
-              SERVICES="$SERVICES hash-temporal-worker-ts"
-          fi
-          if [[ ${{ steps.benches.outputs.external-service-worker-integration }} == 'true' ]]; then
-              SERVICES="$SERVICES hash-temporal-worker-integration"
-          fi
 
           echo "Running services: $SERVICES"
           yarn workspace @apps/hash-external-services deploy:test up $SERVICES --wait
@@ -288,10 +208,6 @@ jobs:
         run: |
           echo '${{ needs.setup.outputs.unit }}' | jq
           [[ ${{ needs.unit-benches.result }} =~ success|skipped ]]
-      - name: Check builds
-        run: |
-          echo '${{ needs.setup.outputs.dockers }}' | jq
-          [[ ${{ needs.build.result }} =~ success|skipped ]]
       - name: Check integration benches
         run: |
           echo '${{ needs.setup.outputs.integration }}' | jq
