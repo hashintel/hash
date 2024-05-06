@@ -1,14 +1,14 @@
-import type { GraphApi } from "@local/hash-graph-client";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   ProposedEntity,
   StepInput,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type { AccountId, Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import dedent from "dedent";
 
 import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity";
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
+import { getFlowContext } from "../../shared/get-flow-context";
 import { getLlmResponse } from "../../shared/get-llm-response";
 import type {
   LlmMessage,
@@ -19,6 +19,7 @@ import {
   getToolCallsFromLlmAssistantMessage,
 } from "../../shared/get-llm-response/llm-message";
 import type { ParsedLlmToolCall } from "../../shared/get-llm-response/types";
+import { graphApiClient } from "../../shared/graph-api-client";
 import { mapActionInputEntitiesToEntities } from "../../shared/map-action-input-entities-to-entities";
 import type { PermittedOpenAiModel } from "../../shared/openai-client";
 import type { CoordinatorToolName } from "./coordinator-tools";
@@ -155,12 +156,22 @@ const getNextToolCalls = async (params: {
 
   const tools = Object.values(coordinatorToolDefinitions);
 
-  const llmResponse = await getLlmResponse({
-    systemPrompt,
-    messages,
-    model,
-    tools,
-  });
+  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
+
+  const llmResponse = await getLlmResponse(
+    {
+      systemPrompt,
+      messages,
+      model,
+      tools,
+    },
+    {
+      userAccountId: userAuthentication.actorId,
+      graphApiClient,
+      incurredInEntities: [{ entityId: flowEntityId }],
+      webId,
+    },
+  );
 
   if (llmResponse.status !== "ok") {
     throw new Error(
@@ -190,14 +201,24 @@ const createInitialPlan = async (params: {
     This should be a list of steps in plain English.
   `);
 
-  const llmResponse = await getLlmResponse({
-    systemPrompt,
-    messages: [generateInitialUserMessage({ input })],
-    model,
-    tools: Object.values(coordinatorToolDefinitions).filter(
-      ({ name }) => name !== "updatePlan",
-    ),
-  });
+  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
+
+  const llmResponse = await getLlmResponse(
+    {
+      systemPrompt,
+      messages: [generateInitialUserMessage({ input })],
+      model,
+      tools: Object.values(coordinatorToolDefinitions).filter(
+        ({ name }) => name !== "updatePlan",
+      ),
+    },
+    {
+      userAccountId: userAuthentication.actorId,
+      graphApiClient,
+      incurredInEntities: [{ entityId: flowEntityId }],
+      webId,
+    },
+  );
 
   if (llmResponse.status !== "ok") {
     throw new Error(
@@ -221,11 +242,9 @@ const createInitialPlan = async (params: {
 };
 
 const parseCoordinatorInputs = async (params: {
-  graphApiClient: GraphApi;
-  userAuthentication: { actorId: AccountId };
   stepInputs: StepInput[];
 }): Promise<CoordinatingAgentInput> => {
-  const { stepInputs, graphApiClient, userAuthentication } = params;
+  const { stepInputs } = params;
 
   const {
     prompt,
@@ -235,6 +254,8 @@ const parseCoordinatorInputs = async (params: {
     inputs: stepInputs,
     actionType: "researchEntities",
   });
+
+  const { userAuthentication } = await getFlowContext();
 
   const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
     graphApiClient,

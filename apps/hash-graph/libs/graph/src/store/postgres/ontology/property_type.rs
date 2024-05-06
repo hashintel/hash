@@ -6,8 +6,8 @@ use std::{
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
-        DataTypeId, PropertyTypeId, PropertyTypeOwnerSubject, PropertyTypePermission,
-        PropertyTypeRelationAndSubject, WebPermission,
+        PropertyTypeOwnerSubject, PropertyTypePermission, PropertyTypeRelationAndSubject,
+        WebPermission,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
@@ -16,9 +16,9 @@ use error_stack::{Result, ResultExt};
 use graph_types::{
     account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
-        OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
-        OntologyTypeClassificationMetadata, OntologyTypeRecordId, PropertyTypeMetadata,
-        PropertyTypeWithMetadata,
+        DataTypeId, OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
+        OntologyTypeClassificationMetadata, OntologyTypeRecordId, PropertyTypeId,
+        PropertyTypeMetadata, PropertyTypeWithMetadata,
     },
     Embedding,
 };

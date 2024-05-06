@@ -7,9 +7,9 @@ use std::{collections::hash_map, sync::Arc};
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
-        EntityTypeEditorSubject, EntityTypeId, EntityTypeInstantiatorSubject,
-        EntityTypeOwnerSubject, EntityTypePermission, EntityTypeRelationAndSubject,
-        EntityTypeSetting, EntityTypeSettingSubject, EntityTypeViewerSubject,
+        EntityTypeEditorSubject, EntityTypeInstantiatorSubject, EntityTypeOwnerSubject,
+        EntityTypePermission, EntityTypeRelationAndSubject, EntityTypeSetting,
+        EntityTypeSettingSubject, EntityTypeViewerSubject,
     },
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
@@ -44,9 +44,9 @@ use graph::{
 };
 use graph_types::{
     ontology::{
-        EntityTypeEmbedding, EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata,
-        OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
-        ProvidedOntologyEditionProvenance,
+        EntityTypeEmbedding, EntityTypeId, EntityTypeMetadata, EntityTypeWithMetadata,
+        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeMetadata,
+        OntologyTypeReference, ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
 };

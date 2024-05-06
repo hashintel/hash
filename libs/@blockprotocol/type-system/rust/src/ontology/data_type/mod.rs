@@ -1,7 +1,11 @@
 use core::fmt;
+#[cfg(feature = "postgres")]
+use std::error::Error;
 use std::{collections::HashMap, ptr};
 
 pub use error::ParseDataTypeError;
+#[cfg(feature = "postgres")]
+use postgres_types::{private::BytesMut, FromSql, IsNull, Json, ToSql, Type};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
@@ -114,6 +118,33 @@ impl DataType {
     #[must_use]
     pub fn additional_properties_mut(&mut self) -> &mut HashMap<String, JsonValue> {
         &mut self.additional_properties
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl<'a> FromSql<'a> for DataType {
+    fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
+        Ok(Json::from_sql(ty, raw)?.0)
+    }
+
+    fn accepts(ty: &Type) -> bool {
+        <Json<Self> as FromSql>::accepts(ty)
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl ToSql for DataType {
+    postgres_types::to_sql_checked!();
+
+    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>>
+    where
+        Self: Sized,
+    {
+        Json(self).to_sql(ty, out)
+    }
+
+    fn accepts(ty: &Type) -> bool {
+        <Json<Self> as ToSql>::accepts(ty)
     }
 }
 

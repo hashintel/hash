@@ -7,9 +7,9 @@ mod where_clause;
 mod with_clause;
 
 pub use self::{
-    conditional::{Constant, Expression, Function},
+    conditional::{Constant, Expression, Function, PostgresType},
     group_by_clause::GroupByExpression,
-    join_clause::JoinExpression,
+    join_clause::{JoinExpression, JoinType},
     order_clause::OrderByExpression,
     select_clause::SelectExpression,
     where_clause::WhereExpression,

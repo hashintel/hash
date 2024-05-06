@@ -42,7 +42,7 @@ derivative = "2.2.0"
 dotenv-flow = "0.16.2"
 futures = { workspace = true }
 mime = "0.3.17"
-refinery = { version = "0.8", features = ["tokio-postgres"] }
+refinery = { version = "0.8.14", features = ["tokio-postgres"] }
 regex = "1.10.4"
 semver = { version = "1.0.22", default-features = false, features = ["serde"] }
 sentry = { version = "0.32.3", features = [

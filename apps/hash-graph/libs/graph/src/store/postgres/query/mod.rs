@@ -9,8 +9,9 @@ mod entity;
 mod entity_type;
 mod expression;
 mod property_type;
+pub(crate) mod rows;
 mod statement;
-mod table;
+pub(crate) mod table;
 
 use std::{
     borrow::Cow,
@@ -37,15 +38,16 @@ pub use self::{
         WhereExpression, WithExpression,
     },
     statement::{Distinctness, SelectStatement, Statement, WindowStatement},
-    table::{
-        Alias, AliasedColumn, AliasedTable, Column, ForeignKeyReference, ReferenceTable, Table,
-    },
+    table::{Alias, AliasedTable, Column, ForeignKeyReference, ReferenceTable, Table},
 };
 use crate::{
     store::{
         crud::Sorting,
         knowledge::{EntityQueryCursor, EntityQuerySorting},
-        postgres::{crud::QueryRecordDecode, query::table::Relation},
+        postgres::{
+            crud::QueryRecordDecode,
+            query::table::{JsonField, Relation},
+        },
         query::ParameterConversionError,
         QueryRecord,
     },
@@ -72,7 +74,7 @@ pub trait PostgresQueryPath {
     fn relations(&self) -> Vec<Relation>;
 
     /// The [`Column`] where this path ends.
-    fn terminating_column(&self) -> Column<'_>;
+    fn terminating_column(&self) -> (Column, Option<JsonField<'_>>);
 }
 
 /// Renders the object into a Postgres compatible format.
@@ -109,15 +111,6 @@ pub trait PostgresSorting<'s, R: QueryRecord>:
     ) -> Self::CompilationArtifacts
     where
         's: 'q;
-}
-
-#[cfg(feature = "postgres")]
-impl<'a> FromSql<'a> for OntologyTypeVersion {
-    postgres_types::accepts!(INT8);
-
-    fn from_sql(_: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
-        Ok(Self::new(i64::from_sql(&Type::INT8, raw)?.try_into()?))
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -295,21 +288,23 @@ mod test_helper {
     pub fn max_version_expression() -> Expression {
         Expression::Window(
             Box::new(Expression::Function(Function::Max(Box::new(
-                Expression::Column(DataTypeQueryPath::Version.terminating_column().aliased(
-                    Alias {
+                Expression::ColumnReference {
+                    column: DataTypeQueryPath::Version.terminating_column().0,
+                    table_alias: Some(Alias {
                         condition_index: 0,
                         chain_depth: 0,
                         number: 0,
-                    },
-                )),
+                    }),
+                },
             )))),
-            WindowStatement::partition_by(DataTypeQueryPath::BaseUrl.terminating_column().aliased(
-                Alias {
+            WindowStatement::partition_by(Expression::ColumnReference {
+                column: DataTypeQueryPath::BaseUrl.terminating_column().0,
+                table_alias: Some(Alias {
                     condition_index: 0,
                     chain_depth: 0,
                     number: 0,
-                },
-            )),
+                }),
+            }),
         )
     }
 }

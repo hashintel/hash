@@ -168,7 +168,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@00a67321d66e038602baf558d366a594a7019ea2 # v2.33.9
+        uses: taiki-e/install-action@672949f0e99e12c1a48510fa548e812f6835397f # v2.33.16
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -196,7 +196,7 @@ jobs:
       - name: Show disk usage
         run: df -h
 
-      - uses: codecov/codecov-action@84508663e988701840491b86de86b666e8a86bed # v4.3.0
+      - uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be # v4.3.1
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
           flags: ${{ env.TRIMMED_PACKAGE_NAME }}
@@ -285,7 +285,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@00a67321d66e038602baf558d366a594a7019ea2 # v2.33.9
+        uses: taiki-e/install-action@672949f0e99e12c1a48510fa548e812f6835397f # v2.33.16
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -350,7 +350,7 @@ jobs:
       - name: Show disk usage
         run: df -h
 
-      - uses: codecov/codecov-action@84508663e988701840491b86de86b666e8a86bed # v4.3.0
+      - uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be # v4.3.1
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
           flags: ${{ env.TRIMMED_PACKAGE_NAME }}
@@ -415,7 +415,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@00a67321d66e038602baf558d366a594a7019ea2 # v2.33.9
+        uses: taiki-e/install-action@672949f0e99e12c1a48510fa548e812f6835397f # v2.33.16
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -546,7 +546,7 @@ jobs:
 
       - name: Install tools
         if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'pull_request' || github.event_name == 'merge_group'
-        uses: taiki-e/install-action@00a67321d66e038602baf558d366a594a7019ea2 # v2.33.9
+        uses: taiki-e/install-action@672949f0e99e12c1a48510fa548e812f6835397f # v2.33.16
         with:
           tool: cargo-semver-checks
 

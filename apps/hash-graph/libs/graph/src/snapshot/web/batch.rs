@@ -5,8 +5,8 @@ use graph_types::owned_by_id::OwnedById;
 use tokio_postgres::GenericClient;
 
 use crate::{
-    snapshot::{web::WebRow, WriteBatch},
-    store::{AsClient, InsertionError, PostgresStore},
+    snapshot::WriteBatch,
+    store::{postgres::query::rows::WebRow, AsClient, InsertionError, PostgresStore},
 };
 
 pub enum WebBatch {

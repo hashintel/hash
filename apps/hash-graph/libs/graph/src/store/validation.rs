@@ -2,10 +2,7 @@ use std::{collections::HashMap, fmt::Debug, hash::Hash, sync::Arc};
 
 use authorization::{
     backend::PermissionAssertion,
-    schema::{
-        DataTypeId, DataTypePermission, EntityPermission, EntityTypeId, EntityTypePermission,
-        PropertyTypeId, PropertyTypePermission,
-    },
+    schema::{DataTypePermission, EntityPermission, EntityTypePermission, PropertyTypePermission},
     zanzibar::Consistency,
     AuthorizationApi,
 };
@@ -14,7 +11,10 @@ use futures::TryStreamExt;
 use graph_types::{
     account::AccountId,
     knowledge::entity::{Entity, EntityId},
-    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
+    ontology::{
+        DataTypeId, DataTypeWithMetadata, EntityTypeId, EntityTypeWithMetadata, PropertyTypeId,
+        PropertyTypeWithMetadata,
+    },
 };
 use tokio::sync::RwLock;
 use tokio_postgres::GenericClient;

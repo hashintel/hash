@@ -1,13 +1,7 @@
 use authorization::AuthorizationApi;
-use graph::{
-    store::{
-        knowledge::{CountEntitiesParams, CreateEntityParams, PatchEntityParams},
-        query::Filter,
-        EntityStore,
-    },
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
-    },
+use graph::store::{
+    knowledge::{CreateEntityParams, PatchEntityParams},
+    EntityStore,
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
@@ -75,20 +69,9 @@ fn charles() -> PropertyObject {
 
 #[must_use]
 async fn check_entity_exists<A: AuthorizationApi>(api: &DatabaseApi<'_, A>, id: EntityId) -> bool {
-    api.count_entities(
-        api.account_id,
-        CountEntitiesParams {
-            filter: Filter::for_entity_by_entity_id(id),
-            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                pinned: PinnedTemporalAxisUnresolved::new(None),
-                variable: VariableTemporalAxisUnresolved::new(None, None),
-            },
-            include_drafts: id.draft_id.is_some(),
-        },
-    )
-    .await
-    .expect("could not count entities")
-        == 1
+    api.get_entity_by_id(api.account_id, id, None, None)
+        .await
+        .is_ok()
 }
 
 #[tokio::test]

@@ -1,3 +1,9 @@
+import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
+import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
+import type { EntityMetadata, GraphApi } from "@local/hash-graph-client";
+import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type { AccountId, EntityId, OwnedById } from "@local/hash-subgraph";
+import { StatusCode } from "@local/status";
 import Ajv from "ajv";
 import addFormats from "ajv-formats";
 import { isAxiosError } from "axios";
@@ -13,6 +19,8 @@ import type {
 } from "openai/resources";
 import { promptTokensEstimate } from "openai-chat-tokens";
 
+import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity";
+import { userExceededServiceUsageLimitActivity } from "../user-exceeded-service-usage-limit-activity";
 import { logger } from "./activity-logger";
 import type {
   AnthropicMessagesCreateResponse,
@@ -229,6 +237,7 @@ const getAnthropicResponse = async (
     retryCount = 0,
     messages,
     systemPrompt,
+    previousUsage,
     ...remainingParams
   } = params;
 
@@ -266,12 +275,25 @@ const getAnthropicResponse = async (
     };
   }
 
+  const usage: LlmUsage = {
+    inputTokens:
+      (previousUsage?.inputTokens ?? 0) + anthropicResponse.usage.input_tokens,
+    outputTokens:
+      (previousUsage?.outputTokens ?? 0) +
+      anthropicResponse.usage.output_tokens,
+    totalTokens:
+      (previousUsage?.totalTokens ?? 0) +
+      anthropicResponse.usage.input_tokens +
+      anthropicResponse.usage.output_tokens,
+  };
+
   const retry = async (retryParams: {
     retryMessageContent: LlmUserMessage["content"];
   }): Promise<LlmResponse<AnthropicLlmParams>> => {
     if (retryCount > maxRetryCount) {
       return {
         status: "exceeded-maximum-retries",
+        usage,
       };
     }
 
@@ -355,14 +377,6 @@ const getAnthropicResponse = async (
     throw new Error("Unexpected user message in response");
   }
 
-  const usage: LlmUsage = {
-    inputTokens: anthropicResponse.usage.input_tokens,
-    outputTokens: anthropicResponse.usage.output_tokens,
-    totalTokens:
-      anthropicResponse.usage.input_tokens +
-      anthropicResponse.usage.output_tokens,
-  };
-
   const response: LlmResponse<AnthropicLlmParams> = {
     ...anthropicResponse,
     status: "ok",
@@ -383,6 +397,7 @@ const getOpenAiResponse = async (
     retryCount = 0,
     messages,
     systemPrompt,
+    previousUsage,
     ...remainingParams
   } = params;
 
@@ -470,12 +485,25 @@ const getOpenAiResponse = async (
     };
   }
 
+  const usage: LlmUsage = {
+    inputTokens:
+      (previousUsage?.inputTokens ?? 0) +
+      (openAiResponse.usage?.prompt_tokens ?? 0),
+    outputTokens:
+      (previousUsage?.outputTokens ?? 0) +
+      (openAiResponse.usage?.completion_tokens ?? 0),
+    totalTokens:
+      (previousUsage?.totalTokens ?? 0) +
+      (openAiResponse.usage?.total_tokens ?? 0),
+  };
+
   const retry = async (retryParams: {
     retryMessageContent: LlmUserMessage["content"];
   }): Promise<LlmResponse<OpenAiLlmParams>> => {
     if (retryCount > maxRetryCount) {
       return {
         status: "exceeded-maximum-retries",
+        usage,
       };
     }
 
@@ -502,6 +530,7 @@ const getOpenAiResponse = async (
           content: retryParams.retryMessageContent,
         },
       ],
+      previousUsage: usage,
     });
   };
 
@@ -644,12 +673,6 @@ const getOpenAiResponse = async (
     throw new Error("Unexpected user message in response");
   }
 
-  const usage: LlmUsage = {
-    inputTokens: openAiResponse.usage?.prompt_tokens ?? 0,
-    outputTokens: openAiResponse.usage?.completion_tokens ?? 0,
-    totalTokens: openAiResponse.usage?.total_tokens ?? 0,
-  };
-
   const response: LlmResponse<OpenAiLlmParams> = {
     ...openAiResponse,
     status: "ok",
@@ -666,15 +689,155 @@ const getOpenAiResponse = async (
  * `model` provided in the parameters.
  */
 export const getLlmResponse = async <T extends LlmParams>(
-  params: T,
+  llmParams: T,
+  usageTrackingParams: {
+    /**
+     * Required for tracking usage on a per-user basis.
+     *
+     * @todo: consider abstracting this in a wrapper method, or via
+     * generic params (via a `logUsage` method).
+     */
+    userAccountId: AccountId;
+    webId: OwnedById;
+    graphApiClient: GraphApi;
+    incurredInEntities: { entityId: EntityId }[];
+  },
 ): Promise<LlmResponse<T>> => {
-  if (isLlmParamsAnthropicLlmParams(params)) {
-    const response = await getAnthropicResponse(params);
+  const { graphApiClient, userAccountId, webId } = usageTrackingParams;
 
-    return response as unknown as LlmResponse<T>;
-  } else {
-    const response = await getOpenAiResponse(params);
+  /**
+   * Check whether the user has exceeded their usage limit, before
+   * proceeding with the LLM request.
+   */
+  const userHasExceededUsageStatus =
+    await userExceededServiceUsageLimitActivity({
+      graphApiClient,
+      userAccountId,
+    });
 
-    return response as unknown as LlmResponse<T>;
+  if (userHasExceededUsageStatus.code !== StatusCode.Ok) {
+    return {
+      status: "exceeded-usage-limit",
+      message:
+        userHasExceededUsageStatus.message ??
+        "You have exceeded your usage limit.",
+    };
   }
+
+  const aiAssistantAccountId = await getAiAssistantAccountIdActivity({
+    authentication: { actorId: userAccountId },
+    grantCreatePermissionForWeb: webId,
+    graphApiClient,
+  });
+
+  if (!aiAssistantAccountId) {
+    return {
+      status: "internal-error",
+      message: `Failed to retrieve AI assistant account ID ${userAccountId}`,
+    };
+  }
+
+  const llmResponse = isLlmParamsAnthropicLlmParams(llmParams)
+    ? await getAnthropicResponse(llmParams)
+    : await getOpenAiResponse(llmParams);
+
+  /**
+   * Capture incurred usage in a usage record.
+   */
+  if (
+    llmResponse.status === "ok" ||
+    llmResponse.status === "exceeded-maximum-retries"
+  ) {
+    const { usage } = llmResponse;
+
+    let usageRecordEntityMetadata: EntityMetadata;
+
+    try {
+      usageRecordEntityMetadata = await createUsageRecord(
+        { graphApi: graphApiClient },
+        { actorId: aiAssistantAccountId },
+        {
+          serviceName: isLlmParamsAnthropicLlmParams(llmParams)
+            ? "Anthropic"
+            : "OpenAI",
+          featureName: llmParams.model,
+          userAccountId,
+          inputUnitCount: usage.inputTokens,
+          outputUnitCount: usage.outputTokens,
+        },
+      );
+    } catch (error) {
+      return {
+        status: "internal-error",
+        message: `Failed to create usage record for AI assistant: ${stringify(error)}`,
+      };
+    }
+
+    const { incurredInEntities } = usageTrackingParams;
+
+    if (incurredInEntities.length > 0) {
+      const hashInstanceAdminGroupId = await getHashInstanceAdminAccountGroupId(
+        { graphApi: graphApiClient },
+        { actorId: aiAssistantAccountId },
+      );
+
+      const errors = await Promise.all(
+        incurredInEntities.map(async ({ entityId }) => {
+          try {
+            await graphApiClient.createEntity(aiAssistantAccountId, {
+              draft: false,
+              properties: {},
+              ownedById: webId,
+              entityTypeIds: [
+                systemLinkEntityTypes.incurredIn.linkEntityTypeId,
+              ],
+              linkData: {
+                leftEntityId: usageRecordEntityMetadata.recordId.entityId,
+                rightEntityId: entityId,
+              },
+              relationships: [
+                {
+                  relation: "administrator",
+                  subject: {
+                    kind: "account",
+                    subjectId: aiAssistantAccountId,
+                  },
+                },
+                {
+                  relation: "viewer",
+                  subject: {
+                    kind: "account",
+                    subjectId: userAccountId,
+                  },
+                },
+                {
+                  relation: "viewer",
+                  subject: {
+                    kind: "accountGroup",
+                    subjectId: hashInstanceAdminGroupId,
+                  },
+                },
+              ],
+            });
+
+            return [];
+          } catch (error) {
+            return {
+              status: "internal-error",
+              message: `Failed to link usage record to entity with ID ${entityId}: ${stringify(error)}`,
+            };
+          }
+        }),
+      ).then((unflattenedErrors) => unflattenedErrors.flat());
+
+      if (errors.length > 0) {
+        return {
+          status: "internal-error",
+          message: `Failed to link usage record to entities: ${stringify(errors)}`,
+        };
+      }
+    }
+  }
+
+  return llmResponse as LlmResponse<T>;
 };

@@ -4,27 +4,32 @@ use std::{
     task::{ready, Context, Poll},
 };
 
-use authorization::schema::{DataTypeId, EntityRelationAndSubject};
+use authorization::schema::EntityRelationAndSubject;
 use error_stack::{Report, ResultExt};
 use futures::{
     channel::mpsc::{self, Sender, UnboundedReceiver, UnboundedSender},
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
-use graph_types::knowledge::entity::EntityUuid;
+use graph_types::{
+    knowledge::entity::EntityUuid,
+    ontology::{DataTypeId, EntityTypeId, PropertyTypeId},
+};
 
-use crate::snapshot::{
-    entity::{self, EntityEmbeddingRow, EntitySender},
-    ontology::{
-        self, DataTypeEmbeddingRow, DataTypeSender, EntityTypeEmbeddingRow, EntityTypeSender,
-        PropertyTypeEmbeddingRow, PropertyTypeSender,
+use crate::{
+    snapshot::{
+        entity::{self, EntitySender},
+        ontology::{self, DataTypeSender, EntityTypeSender, PropertyTypeSender},
+        owner,
+        owner::{Owner, OwnerSender},
+        restore::batch::SnapshotRecordBatch,
+        web,
+        web::WebSender,
+        AuthorizationRelation, SnapshotEntry, SnapshotMetadata, SnapshotRestoreError,
     },
-    owner,
-    owner::{Owner, OwnerSender},
-    restore::batch::SnapshotRecordBatch,
-    web,
-    web::WebSender,
-    AuthorizationRelation, SnapshotEntry, SnapshotMetadata, SnapshotRestoreError,
+    store::postgres::query::rows::{
+        DataTypeEmbeddingRow, EntityEmbeddingRow, EntityTypeEmbeddingRow, PropertyTypeEmbeddingRow,
+    },
 };
 
 #[derive(Debug, Clone)]
@@ -33,14 +38,14 @@ pub struct SnapshotRecordSender {
     owner: OwnerSender,
     webs: WebSender,
     data_type: DataTypeSender,
-    data_type_embedding: Sender<DataTypeEmbeddingRow>,
+    data_type_embedding: Sender<DataTypeEmbeddingRow<'static>>,
     property_type: PropertyTypeSender,
-    property_type_embedding: Sender<PropertyTypeEmbeddingRow>,
+    property_type_embedding: Sender<PropertyTypeEmbeddingRow<'static>>,
     entity_type: EntityTypeSender,
-    entity_type_embedding: Sender<EntityTypeEmbeddingRow>,
+    entity_type_embedding: Sender<EntityTypeEmbeddingRow<'static>>,
     entity: EntitySender,
-    entity_relation: Sender<(EntityUuid, EntityRelationAndSubject)>,
     entity_embedding: Sender<EntityEmbeddingRow>,
+    entity_relation: Sender<(EntityUuid, EntityRelationAndSubject)>,
 }
 
 impl Sink<SnapshotEntry> for SnapshotRecordSender {
@@ -111,7 +116,7 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
             SnapshotEntry::DataTypeEmbedding(embedding) => self
                 .data_type_embedding
                 .start_send_unpin(DataTypeEmbeddingRow {
-                    ontology_id: DataTypeId::from_url(&embedding.data_type_id).into_uuid(),
+                    ontology_id: DataTypeId::from_url(&embedding.data_type_id),
                     embedding: embedding.embedding,
                     updated_at_transaction_time: embedding.updated_at_transaction_time,
                 })
@@ -124,7 +129,7 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
             SnapshotEntry::PropertyTypeEmbedding(embedding) => self
                 .property_type_embedding
                 .start_send_unpin(PropertyTypeEmbeddingRow {
-                    ontology_id: DataTypeId::from_url(&embedding.property_type_id).into_uuid(),
+                    ontology_id: PropertyTypeId::from_url(&embedding.property_type_id),
                     embedding: embedding.embedding,
                     updated_at_transaction_time: embedding.updated_at_transaction_time,
                 })
@@ -137,7 +142,7 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
             SnapshotEntry::EntityTypeEmbedding(embedding) => self
                 .entity_type_embedding
                 .start_send_unpin(EntityTypeEmbeddingRow {
-                    ontology_id: DataTypeId::from_url(&embedding.entity_type_id).into_uuid(),
+                    ontology_id: EntityTypeId::from_url(&embedding.entity_type_id),
                     embedding: embedding.embedding,
                     updated_at_transaction_time: embedding.updated_at_transaction_time,
                 })

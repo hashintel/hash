@@ -13,9 +13,9 @@ use futures::{
 };
 use graph_types::owned_by_id::OwnedById;
 
-use crate::snapshot::{
-    web::{WebBatch, WebRow},
-    SnapshotRestoreError, Web,
+use crate::{
+    snapshot::{web::WebBatch, SnapshotRestoreError, Web},
+    store::postgres::query::rows::WebRow,
 };
 
 /// A sink to insert [`Web`]s.

@@ -113,58 +113,64 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
         }
     }
 
-    fn terminating_column(&self) -> Column {
+    fn terminating_column(&self) -> (Column, Option<JsonField<'_>>) {
         match self {
-            Self::BaseUrl => Column::OntologyIds(OntologyIds::BaseUrl),
-            Self::Version => Column::OntologyIds(OntologyIds::Version),
-            Self::TransactionTime => {
-                Column::OntologyTemporalMetadata(OntologyTemporalMetadata::TransactionTime)
-            }
-            Self::OwnedById => Column::OntologyOwnedMetadata(OntologyOwnedMetadata::WebId),
-            Self::OntologyId => Column::EntityTypes(EntityTypes::OntologyId),
-            Self::Embedding => Column::EntityTypeEmbeddings(EntityTypeEmbeddings::Embedding),
-            Self::Schema(path) => path
-                .as_ref()
-                .map_or(Column::EntityTypes(EntityTypes::Schema(None)), |path| {
-                    Column::EntityTypes(EntityTypes::Schema(Some(JsonField::JsonPath(path))))
-                }),
-            Self::ClosedSchema(path) => path.as_ref().map_or(
-                Column::EntityTypes(EntityTypes::ClosedSchema(None)),
-                |path| {
-                    Column::EntityTypes(EntityTypes::ClosedSchema(Some(JsonField::JsonPath(path))))
-                },
+            Self::BaseUrl => (Column::OntologyIds(OntologyIds::BaseUrl), None),
+            Self::Version => (Column::OntologyIds(OntologyIds::Version), None),
+            Self::TransactionTime => (
+                Column::OntologyTemporalMetadata(OntologyTemporalMetadata::TransactionTime),
+                None,
             ),
-            Self::VersionedUrl => {
-                Column::EntityTypes(EntityTypes::Schema(Some(JsonField::StaticText("$id"))))
-            }
-            Self::Title => {
-                Column::EntityTypes(EntityTypes::Schema(Some(JsonField::StaticText("title"))))
-            }
-            Self::Description => Column::EntityTypes(EntityTypes::Schema(Some(
-                JsonField::StaticText("description"),
-            ))),
-            Self::Examples => {
-                Column::EntityTypes(EntityTypes::Schema(Some(JsonField::StaticText("examples"))))
-            }
-            Self::Required => {
-                Column::EntityTypes(EntityTypes::Schema(Some(JsonField::StaticText("required"))))
-            }
-            Self::LabelProperty => Column::EntityTypes(EntityTypes::LabelProperty),
-            Self::Icon => Column::EntityTypes(EntityTypes::Icon),
-            Self::EditionProvenance(path) => path.as_ref().map_or(
-                Column::OntologyTemporalMetadata(OntologyTemporalMetadata::Provenance(None)),
-                |path| {
-                    Column::OntologyTemporalMetadata(OntologyTemporalMetadata::Provenance(Some(
-                        JsonField::JsonPath(path),
-                    )))
-                },
+            Self::OwnedById => (
+                Column::OntologyOwnedMetadata(OntologyOwnedMetadata::WebId),
+                None,
+            ),
+            Self::OntologyId => (Column::EntityTypes(EntityTypes::OntologyId), None),
+            Self::Embedding => (
+                Column::EntityTypeEmbeddings(EntityTypeEmbeddings::Embedding),
+                None,
+            ),
+            Self::Schema(path) => (
+                Column::EntityTypes(EntityTypes::Schema),
+                path.as_ref().map(JsonField::JsonPath),
+            ),
+            Self::ClosedSchema(path) => (
+                Column::EntityTypes(EntityTypes::ClosedSchema),
+                path.as_ref().map(JsonField::JsonPath),
+            ),
+            Self::VersionedUrl => (
+                Column::EntityTypes(EntityTypes::Schema),
+                Some(JsonField::StaticText("$id")),
+            ),
+            Self::Title => (
+                Column::EntityTypes(EntityTypes::Schema),
+                (Some(JsonField::StaticText("title"))),
+            ),
+            Self::Description => (
+                Column::EntityTypes(EntityTypes::Schema),
+                (Some(JsonField::StaticText("description"))),
+            ),
+            Self::Examples => (
+                Column::EntityTypes(EntityTypes::Schema),
+                (Some(JsonField::StaticText("examples"))),
+            ),
+            Self::Required => (
+                Column::EntityTypes(EntityTypes::Schema),
+                (Some(JsonField::StaticText("required"))),
+            ),
+            Self::LabelProperty => (Column::EntityTypes(EntityTypes::LabelProperty), None),
+            Self::Icon => (Column::EntityTypes(EntityTypes::Icon), None),
+            Self::EditionProvenance(path) => (
+                Column::OntologyTemporalMetadata(OntologyTemporalMetadata::Provenance),
+                path.as_ref().map(JsonField::JsonPath),
             ),
             Self::PropertyTypeEdge { path, .. } => path.terminating_column(),
             Self::EntityTypeEdge { path, .. } => path.terminating_column(),
             Self::EntityEdge { path, .. } => path.terminating_column(),
-            Self::AdditionalMetadata => {
-                Column::OntologyAdditionalMetadata(OntologyAdditionalMetadata::AdditionalMetadata)
-            }
+            Self::AdditionalMetadata => (
+                Column::OntologyAdditionalMetadata(OntologyAdditionalMetadata::AdditionalMetadata),
+                None,
+            ),
         }
     }
 }

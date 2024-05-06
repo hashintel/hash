@@ -1,17 +1,11 @@
+use bytes::{Buf, BufMut};
 use error_stack::{Result, ResultExt};
-use tokio::{
-    io::{AsyncRead, AsyncWrite},
-    pin,
-};
 
 use self::{
     body::{ResponseBody, ResponseBodyContext},
     header::ResponseHeader,
 };
-use crate::{
-    codec::{Decode, Encode},
-    request::codec::{DecodeError, EncodeError},
-};
+use crate::codec::{Buffer, Decode, Encode};
 
 pub mod begin;
 pub mod body;
@@ -19,6 +13,22 @@ pub mod flags;
 pub mod frame;
 pub mod header;
 pub mod kind;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
+pub enum ResponseEncodeError {
+    #[error("invalid response header")]
+    Header,
+    #[error("invalid response body")]
+    Body,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
+pub enum ResponseDecodeError {
+    #[error("invalid request header")]
+    Header,
+    #[error("invalid request body")]
+    Body,
+}
 
 /// A response to a request.
 ///
@@ -88,37 +98,39 @@ pub struct Response {
 }
 
 impl Encode for Response {
-    type Error = EncodeError;
+    type Error = ResponseEncodeError;
 
-    async fn encode(&self, write: impl AsyncWrite + Send) -> Result<(), Self::Error> {
-        pin!(write);
-
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    where
+        B: BufMut,
+    {
         let header = self.header.apply_body(&self.body);
-        header
-            .encode(&mut write)
-            .await
-            .change_context(EncodeError)?;
 
-        self.body.encode(write).await
+        header
+            .encode(buffer)
+            .change_context(ResponseEncodeError::Header)?;
+
+        self.body
+            .encode(buffer)
+            .change_context(ResponseEncodeError::Body)
     }
 }
 
 impl Decode for Response {
     type Context = ();
-    type Error = DecodeError;
+    type Error = ResponseDecodeError;
 
-    async fn decode(read: impl AsyncRead + Send, (): ()) -> Result<Self, Self::Error> {
-        pin!(read);
-
-        let header = ResponseHeader::decode(&mut read, ())
-            .await
-            .change_context(DecodeError)?;
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    where
+        B: Buf,
+    {
+        let header =
+            ResponseHeader::decode(buffer, ()).change_context(ResponseDecodeError::Header)?;
 
         let context = ResponseBodyContext::from_flags(header.flags);
 
-        let body = ResponseBody::decode(read, context)
-            .await
-            .change_context(DecodeError)?;
+        let body =
+            ResponseBody::decode(buffer, context).change_context(ResponseDecodeError::Body)?;
 
         Ok(Self { header, body })
     }
@@ -175,8 +187,8 @@ mod test {
         b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd',
     ];
 
-    #[tokio::test]
-    async fn encode_begin() {
+    #[test]
+    fn encode_begin() {
         assert_encode(
             &Response {
                 header: ResponseHeader {
@@ -194,12 +206,11 @@ mod test {
                 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B
                 b'h' b'e' b'l' b'l' b'o' b' ' b'w' b'o' b'r' b'l' b'd'
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn encode_begin_begin_of_response_unset() {
+    #[test]
+    fn encode_begin_begin_of_response_unset() {
         assert_encode(
             &Response {
                 header: EXAMPLE_HEADER,
@@ -214,12 +225,11 @@ mod test {
                 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B
                 b'h' b'e' b'l' b'l' b'o' b' ' b'w' b'o' b'r' b'l' b'd'
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn encode_frame() {
+    #[test]
+    fn encode_frame() {
         assert_encode(
             &Response {
                 header: EXAMPLE_HEADER,
@@ -232,12 +242,11 @@ mod test {
                 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B
                 b'h' b'e' b'l' b'l' b'o' b' ' b'w' b'o' b'r' b'l' b'd'
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn encode_frame_begin_of_response_set() {
+    #[test]
+    fn encode_frame_begin_of_response_set() {
         assert_encode(
             &Response {
                 header: ResponseHeader {
@@ -253,12 +262,11 @@ mod test {
                 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B
                 b'h' b'e' b'l' b'l' b'o' b' ' b'w' b'o' b'r' b'l' b'd'
             "#]],
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode_begin() {
+    #[test]
+    fn decode_begin() {
         assert_decode(
             EXAMPLE_BEGIN_BUFFER,
             &Response {
@@ -272,12 +280,11 @@ mod test {
                 }),
             },
             (),
-        )
-        .await;
+        );
     }
 
-    #[tokio::test]
-    async fn decode_frame() {
+    #[test]
+    fn decode_frame() {
         assert_decode(
             EXAMPLE_FRAME_BUFFER,
             &Response {
@@ -287,13 +294,12 @@ mod test {
                 }),
             },
             (),
-        )
-        .await;
+        );
     }
 
-    #[test_strategy::proptest(async = "tokio")]
+    #[test_strategy::proptest]
     #[cfg_attr(miri, ignore)]
-    async fn codec(response: Response) {
+    fn codec(response: Response) {
         // encoding partially overrides flags if they are not set correctly, to ensure that
         // encode/decode is actually lossless we need to apply the body to the header
         // before encoding, this ensures that the flags are the same as the decoded request
@@ -302,15 +308,15 @@ mod test {
             ..response
         };
 
-        assert_codec(&response, ()).await;
+        assert_codec(&response, ());
     }
 
-    #[test_strategy::proptest(async = "tokio")]
+    #[test_strategy::proptest]
     #[cfg_attr(miri, ignore)]
-    async fn header_size(response: Response) {
+    fn header_size(response: Response) {
         // ensure that for every response the header size is *always* 32 bytes
 
-        let value = encode_value(&response).await;
+        let value = encode_value(&response);
         // remove the last n bytes (payload size)
         let header_length = value.len() - response.body.payload().as_bytes().len();
 

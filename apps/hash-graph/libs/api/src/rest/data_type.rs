@@ -7,8 +7,7 @@ use std::sync::Arc;
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
-        DataTypeId, DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject,
-        DataTypeViewerSubject,
+        DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject, DataTypeViewerSubject,
     },
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
@@ -44,7 +43,7 @@ use graph::{
 };
 use graph_types::{
     ontology::{
-        DataTypeMetadata, DataTypeWithMetadata, OntologyTemporalMetadata,
+        DataTypeId, DataTypeMetadata, DataTypeWithMetadata, OntologyTemporalMetadata,
         OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
         ProvidedOntologyEditionProvenance,
     },

@@ -1,5 +1,4 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { GraphApi } from "@local/hash-graph-client";
 import type {
   InputNameForAction,
   OutputNameForAction,
@@ -24,13 +23,11 @@ import type { CompletedToolCall } from "./research-entities-action/types";
 import type { FlowActionActivity } from "./types";
 import { webSearchAction } from "./web-search-action";
 
-export const researchEntitiesAction: FlowActionActivity<{
-  graphApiClient: GraphApi;
-}> = async ({ inputs: stepInputs, userAuthentication, graphApiClient }) => {
+export const researchEntitiesAction: FlowActionActivity = async ({
+  inputs: stepInputs,
+}) => {
   const input = await coordinatingAgent.parseCoordinatorInputs({
     stepInputs,
-    userAuthentication,
-    graphApiClient,
   });
 
   /**
@@ -118,7 +115,6 @@ export const researchEntitiesAction: FlowActionActivity<{
                       : [{ inputName: name, payload: defaultValue }],
                 ),
               ],
-              userAuthentication,
             });
 
             if (response.code !== StatusCode.Ok) {
@@ -151,7 +147,6 @@ export const researchEntitiesAction: FlowActionActivity<{
                   payload: { kind: "Number", value: 3 },
                 },
               ],
-              userAuthentication,
             });
 
             if (response.code !== StatusCode.Ok) {
@@ -236,8 +231,6 @@ export const researchEntitiesAction: FlowActionActivity<{
                 ({ $id }) => linkEntityTypeIds?.includes($id) ?? false,
               ),
               url,
-              userAuthentication,
-              graphApiClient,
             });
 
             if (status.code !== StatusCode.Ok) {

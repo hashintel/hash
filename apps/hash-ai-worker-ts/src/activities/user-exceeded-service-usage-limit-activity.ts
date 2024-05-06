@@ -7,8 +7,8 @@ import { StatusCode } from "@local/status";
 
 const usageCostLimit = {
   admin: {
-    day: 100,
-    month: 500,
+    day: 30,
+    month: 150,
   },
   user: {
     day: 10,

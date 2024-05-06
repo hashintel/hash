@@ -6,8 +6,7 @@ use std::{
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
-        DataTypeId, EntityTypeId, EntityTypeOwnerSubject, EntityTypePermission,
-        EntityTypeRelationAndSubject, WebPermission,
+        EntityTypeOwnerSubject, EntityTypePermission, EntityTypeRelationAndSubject, WebPermission,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
@@ -17,9 +16,9 @@ use futures::TryStreamExt;
 use graph_types::{
     account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
-        EntityTypeMetadata, EntityTypeWithMetadata, OntologyEditionProvenance, OntologyProvenance,
-        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeRecordId,
-        PartialEntityTypeMetadata,
+        DataTypeId, EntityTypeId, EntityTypeMetadata, EntityTypeWithMetadata,
+        OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
+        OntologyTypeClassificationMetadata, OntologyTypeRecordId, PartialEntityTypeMetadata,
     },
     Embedding,
 };
