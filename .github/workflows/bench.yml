@@ -5,7 +5,6 @@ on:
   push:
     branches:
       - main
-  merge_group:
 
 env:
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
@@ -97,6 +96,8 @@ jobs:
             DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-api"]')
           fi
 
+          # We currently don't have benchmarks relying on a service running in a docker container
+          DOCKER_PACKAGES=[]
           DOCKER_PACKAGES=$(echo $DOCKER_PACKAGES | jq -c '{ include: [{ package: .[] }] }')
 
           set -x
