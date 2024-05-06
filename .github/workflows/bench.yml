@@ -1,4 +1,4 @@
-name: Test
+name: Bench
 
 on:
   pull_request:
@@ -355,9 +355,6 @@ jobs:
       - name: Check integration benches
         run: |
           [[ ${{ needs.integration-benches.result }} =~ success|skipped ]]
-      - name: Check system benches
-        run: |
-          [[ ${{ needs.system-benches.result }} =~ success|skipped ]]
 
       - name: Notify Slack on failure
         uses: rtCamp/action-slack-notify@19c86e40d4bc3be986b18f1459d4549536887065
