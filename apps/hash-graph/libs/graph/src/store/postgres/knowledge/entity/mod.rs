@@ -757,8 +757,9 @@ where
             .await
             .change_context(InsertionError)?;
 
-        for entity in &entities {
-            let validation_params = ValidateEntityParams {
+        let validation_params = entities
+            .iter()
+            .map(|entity| ValidateEntityParams {
                 entity_types: EntityValidationType::Id(Cow::Borrowed(
                     &entity.metadata.entity_type_ids,
                 )),
@@ -774,13 +775,14 @@ where
                 } else {
                     ValidateEntityComponents::full()
                 },
-            };
-            transaction
-                .validate_entity(actor_id, Consistency::FullyConsistent, validation_params)
-                .await
-                .change_context(InsertionError)
-                .attach(StatusCode::InvalidArgument)?;
-        }
+            })
+            .collect();
+
+        transaction
+            .validate_entities(actor_id, Consistency::FullyConsistent, validation_params)
+            .await
+            .change_context(InsertionError)
+            .attach(StatusCode::InvalidArgument)?;
 
         let commit_result = {
             let span = tracing::trace_span!("committing entity");
@@ -825,75 +827,13 @@ where
     // TODO: Restrict non-draft links to non-draft entities
     //   see https://linear.app/hash/issue/H-1450
     #[tracing::instrument(level = "info", skip(self))]
-    async fn validate_entity(
+    async fn validate_entities(
         &self,
         actor_id: AccountId,
         consistency: Consistency<'_>,
-        params: ValidateEntityParams<'_>,
+        params: Vec<ValidateEntityParams<'_>>,
     ) -> Result<(), ValidateEntityError> {
-        let schema = match params.entity_types {
-            EntityValidationType::ClosedSchema(schema) => schema,
-            EntityValidationType::Schema(schemas) => Cow::Owned(schemas.into_iter().collect()),
-            EntityValidationType::Id(entity_type_url) => {
-                let (ontology_type_ids, ontology_type_uuids): (Vec<_>, Vec<_>) = entity_type_url
-                    .as_ref()
-                    .iter()
-                    .map(|url| {
-                        let id = EntityTypeId::from_url(url);
-                        (id, id.into_uuid())
-                    })
-                    .unzip();
-
-                if !self
-                    .authorization_api
-                    .check_entity_types_permission(
-                        actor_id,
-                        EntityTypePermission::View,
-                        ontology_type_ids.iter().copied(),
-                        consistency,
-                    )
-                    .await
-                    .change_context(ValidateEntityError)?
-                    .0
-                    .into_iter()
-                    .all(|(_, permission)| permission)
-                {
-                    bail!(Report::new(ValidateEntityError).attach(StatusCode::PermissionDenied));
-                }
-
-                let closed_schema = self
-                    .read_closed_schemas(
-                        &Filter::In(
-                            FilterExpression::Path(EntityTypeQueryPath::OntologyId),
-                            ParameterList::Uuid(&ontology_type_uuids),
-                        ),
-                        Some(
-                            &QueryTemporalAxesUnresolved::DecisionTime {
-                                pinned: PinnedTemporalAxisUnresolved::new(None),
-                                variable: VariableTemporalAxisUnresolved::new(None, None),
-                            }
-                            .resolve(),
-                        ),
-                    )
-                    .await
-                    .change_context(ValidateEntityError)?
-                    .map_ok(|(_, raw_type)| raw_type)
-                    .try_collect::<ClosedEntityType>()
-                    .await
-                    .change_context(ValidateEntityError)?;
-
-                Cow::Owned(closed_schema)
-            }
-        };
-
-        let mut status: Result<(), validation::EntityValidationError> = if schema.schemas.is_empty()
-        {
-            Err(Report::new(
-                validation::EntityValidationError::EmptyEntityTypes,
-            ))
-        } else {
-            Ok(())
-        };
+        let mut status: Result<(), validation::EntityValidationError> = Ok(());
 
         let validator_provider = StoreProvider {
             store: self,
@@ -905,44 +845,113 @@ where
             )),
         };
 
-        if let Err(error) = params
-            .properties
-            .validate(&schema, params.components, &validator_provider)
-            .await
-        {
-            if let Err(ref mut report) = status {
-                report.extend_one(error);
-            } else {
-                status = Err(error);
-            }
-        }
+        for params in params {
+            let schema = match params.entity_types {
+                EntityValidationType::ClosedSchema(schema) => schema,
+                EntityValidationType::Schema(schemas) => Cow::Owned(schemas.into_iter().collect()),
+                EntityValidationType::Id(entity_type_url) => {
+                    let (ontology_type_ids, ontology_type_uuids): (Vec<_>, Vec<_>) =
+                        entity_type_url
+                            .as_ref()
+                            .iter()
+                            .map(|url| {
+                                let id = EntityTypeId::from_url(url);
+                                (id, id.into_uuid())
+                            })
+                            .unzip();
 
-        if let Err(error) = params
-            .property_metadata
-            .validate(
-                params.properties.as_ref(),
-                params.components,
-                &validator_provider,
-            )
-            .await
-        {
-            if let Err(ref mut report) = status {
-                report.extend_one(error);
-            } else {
-                status = Err(error);
-            }
-        }
+                    if !self
+                        .authorization_api
+                        .check_entity_types_permission(
+                            actor_id,
+                            EntityTypePermission::View,
+                            ontology_type_ids.iter().copied(),
+                            consistency,
+                        )
+                        .await
+                        .change_context(ValidateEntityError)?
+                        .0
+                        .into_iter()
+                        .all(|(_, permission)| permission)
+                    {
+                        bail!(
+                            Report::new(ValidateEntityError).attach(StatusCode::PermissionDenied)
+                        );
+                    }
 
-        if let Err(error) = params
-            .link_data
-            .as_deref()
-            .validate(&schema, params.components, &validator_provider)
-            .await
-        {
-            if let Err(ref mut report) = status {
-                report.extend_one(error);
-            } else {
-                status = Err(error);
+                    let closed_schema = self
+                        .read_closed_schemas(
+                            &Filter::In(
+                                FilterExpression::Path(EntityTypeQueryPath::OntologyId),
+                                ParameterList::Uuid(&ontology_type_uuids),
+                            ),
+                            Some(
+                                &QueryTemporalAxesUnresolved::DecisionTime {
+                                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                                    variable: VariableTemporalAxisUnresolved::new(None, None),
+                                }
+                                .resolve(),
+                            ),
+                        )
+                        .await
+                        .change_context(ValidateEntityError)?
+                        .map_ok(|(_, raw_type)| raw_type)
+                        .try_collect::<ClosedEntityType>()
+                        .await
+                        .change_context(ValidateEntityError)?;
+
+                    Cow::Owned(closed_schema)
+                }
+            };
+
+            if schema.schemas.is_empty() {
+                let error = Report::new(validation::EntityValidationError::EmptyEntityTypes);
+                if let Err(ref mut report) = status {
+                    report.extend_one(error);
+                } else {
+                    status = Err(error);
+                }
+            };
+
+            if let Err(error) = params
+                .properties
+                .validate(&schema, params.components, &validator_provider)
+                .await
+            {
+                if let Err(ref mut report) = status {
+                    report.extend_one(error);
+                } else {
+                    status = Err(error);
+                }
+            }
+
+            if let Err(error) = params
+                .property_metadata
+                .validate(
+                    params.properties.as_ref(),
+                    params.components,
+                    &validator_provider,
+                )
+                .await
+            {
+                if let Err(ref mut report) = status {
+                    report.extend_one(error);
+                } else {
+                    status = Err(error);
+                }
+            }
+
+            if let Err(error) = params
+                .link_data
+                .as_deref()
+                .validate(&schema, params.components, &validator_provider)
+                .await
+            {
+                if let Err(ref mut report) = status {
+                    report.extend_one(error);
+                } else {
+                    status = Err(error);
+                }
             }
         }
 

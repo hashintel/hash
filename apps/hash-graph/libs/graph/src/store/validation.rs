@@ -119,6 +119,7 @@ pub struct StoreCache {
     data_types: CacheHashMap<DataTypeId, DataType>,
     property_types: CacheHashMap<PropertyTypeId, PropertyType>,
     entity_types: CacheHashMap<EntityTypeId, ClosedEntityType>,
+    entities: CacheHashMap<EntityId, Entity>,
 }
 
 #[derive(Debug)]
@@ -406,7 +407,10 @@ where
     A: AuthorizationApi,
 {
     #[expect(refining_impl_trait)]
-    async fn provide_entity(&self, entity_id: EntityId) -> Result<Entity, Report<QueryError>> {
+    async fn provide_entity(&self, entity_id: EntityId) -> Result<Arc<Entity>, Report<QueryError>> {
+        if let Some(cached) = self.cache.entities.get(&entity_id).await {
+            return cached;
+        }
         if let Some((authorization_api, actor_id, consistency)) = self.authorization {
             authorization_api
                 .check_entity_permission(actor_id, EntityPermission::View, entity_id, consistency)
@@ -416,7 +420,8 @@ where
                 .change_context(QueryError)?;
         }
 
-        self.store
+        let entity = self
+            .store
             .read_one(
                 &Filter::for_entity_by_entity_id(entity_id),
                 Some(
@@ -428,6 +433,7 @@ where
                 ),
                 entity_id.draft_id.is_some(),
             )
-            .await
+            .await?;
+        Ok(self.cache.entities.grant(entity_id, entity).await)
     }
 }
