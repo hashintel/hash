@@ -24,14 +24,12 @@ use super::{
 };
 use crate::{
     codec::{ErrorEncoder, ErrorExt},
-    session::error::{TransactionError, TransactionLimitReachedError},
+    session::error::{ShutdownTask, TransactionError, TransactionLimitReachedError},
 };
 
 // TODO: make these configurable
 const RESPONSE_BUFFER_SIZE: usize = 16;
 const TRANSACTION_LIMIT: usize = 64;
-
-struct Shutdown;
 
 struct ConnectionDelegateTask<T> {
     rx: mpsc::Receiver<Response>,
@@ -118,12 +116,13 @@ impl<E> ConnectionTask<E>
 where
     E: ErrorEncoder + Send + Sync + 'static,
 {
+    // TODO: remove error with `ControlFlow`
     async fn respond_error<T>(
         &self,
         id: RequestId,
         error: T,
         tx: &mpsc::Sender<Response>,
-    ) -> core::result::Result<(), Shutdown>
+    ) -> core::result::Result<(), ShutdownTask>
     where
         T: ErrorExt + Send + Sync,
     {
@@ -132,15 +131,16 @@ where
         let mut writer = ResponseWriter::new_error(id, code, tx);
         writer.push(bytes);
 
-        writer.flush().await.map_err(|_error| Shutdown)
+        writer.flush().await.map_err(|_error| ShutdownTask)
     }
 
+    // TODO: remove error with `ControlFlow`
     async fn handle_request(
         &self,
         tx: mpsc::Sender<Response>,
         cancel: &CancellationToken,
         request: Request,
-    ) -> core::result::Result<(), Shutdown> {
+    ) -> core::result::Result<(), ShutdownTask> {
         // check if this is a `Begin` request, in that case we need to create a new transaction,
         // otherwise, this is already a transaction and we need to forward it, or log out if it is a
         // rogue request
@@ -200,7 +200,7 @@ where
                 self.tx_transaction
                     .send(transaction)
                     .await
-                    .map_err(|_error| Shutdown)?;
+                    .map_err(|_error| ShutdownTask)?;
             }
             RequestBody::Frame(_) => {
                 // forward the request to the transaction

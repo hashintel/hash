@@ -27,3 +27,7 @@ impl ErrorExt for TransactionLimitReachedError {
         ErrorCode::TRANSACTION_LIMIT_REACHED
     }
 }
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
+#[error("shutdown task")]
+pub(crate) struct ShutdownTask;
