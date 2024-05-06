@@ -3,7 +3,9 @@
   "version": "0.0.0-private",
   "private": true,
   "scripts": {
-    "bench:integration": "cargo bench"
+    "bench:integration": "cargo bench",
+    "bench:unit": "cargo test --bench '*'",
+    "test:integration": "cargo test --bench '*'"
   },
   "dependencies": {},
   "devDependencies": {
