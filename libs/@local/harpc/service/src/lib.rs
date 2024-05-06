@@ -14,3 +14,4 @@ mod transport;
 
 // TODO: payload size layer, timeout layer
 // ^ should these be composable via a trait? or nah. Honestly doesn't really matter.
+// ^ these should not part of this crate, but rather the typed RPC layer crate

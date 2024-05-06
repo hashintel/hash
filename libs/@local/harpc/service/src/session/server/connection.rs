@@ -1,6 +1,6 @@
 use alloc::sync::Arc;
 use core::{fmt::Debug, time::Duration};
-use std::{error::Error, io};
+use std::io;
 
 use futures::{FutureExt, Sink, Stream, StreamExt};
 use harpc_wire_protocol::{
@@ -111,12 +111,12 @@ pub(crate) struct ConnectionTask<E> {
     pub(crate) transactions: Arc<HashIndex<RequestId, mpsc::Sender<Request>>>,
     pub(crate) tx_transaction: mpsc::Sender<Transaction>,
 
-    pub(crate) encoder: E,
+    pub(crate) encoder: Arc<E>,
 }
 
 impl<E> ConnectionTask<E>
 where
-    E: ErrorEncoder,
+    E: ErrorEncoder + Send + Sync + 'static,
 {
     async fn respond_error<T>(
         &self,
@@ -125,7 +125,7 @@ where
         tx: &mpsc::Sender<Response>,
     ) -> core::result::Result<(), Shutdown>
     where
-        T: ErrorExt,
+        T: ErrorExt + Send + Sync,
     {
         let TransactionError { code, bytes } = self.encoder.encode_error(error).await;
 

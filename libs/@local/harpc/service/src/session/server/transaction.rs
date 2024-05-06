@@ -22,6 +22,7 @@ struct TransactionSendDelegateTask {
 }
 
 impl TransactionSendDelegateTask {
+    #[allow(clippy::integer_division_remainder_used)]
     async fn run(mut self, cancel: CancellationToken) {
         // we cannot simply forward here, because we want to be able to send the end of request and
         // buffer the response into the least amount of packages possible
@@ -88,6 +89,7 @@ struct TransactionRecvDelegateTask {
 }
 
 impl TransactionRecvDelegateTask {
+    #[allow(clippy::integer_division_remainder_used)]
     async fn run(mut self, cancel: CancellationToken) {
         // TODO: timeout is done at a later layer, not here, this just delegates.
 

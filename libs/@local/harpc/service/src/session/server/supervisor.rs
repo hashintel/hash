@@ -11,22 +11,27 @@ use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
 use super::{session_id::SessionIdProducer, transaction::Transaction};
 use crate::{
+    codec::ErrorEncoder,
     session::{error::SessionError, server::connection::ConnectionTask},
     transport::TransportLayer,
 };
 
 pub(crate) enum Command {}
 
-pub(crate) struct SupervisorTask {
+pub(crate) struct SupervisorTask<E> {
     pub(crate) id: SessionIdProducer,
     pub(crate) transport: TransportLayer,
 
     pub(crate) active: Arc<Semaphore>,
 
     pub(crate) transactions: mpsc::Sender<Transaction>,
+    pub(crate) encoder: Arc<E>,
 }
 
-impl SupervisorTask {
+impl<E> SupervisorTask<E>
+where
+    E: ErrorEncoder + Send + Sync + 'static,
+{
     #[allow(clippy::integer_division_remainder_used)]
     pub(crate) async fn run(mut self, cancel: CancellationToken) -> Result<(), SessionError> {
         let mut listen = self.transport.listen().await.change_context(SessionError)?;
@@ -67,6 +72,7 @@ impl SupervisorTask {
                         peer,
                         permit,
                         tx_transaction: self.transactions.clone(),
+                        encoder: Arc::clone(&self.encoder),
                     };
 
                     tracker.spawn(task.run(cancel, sink, stream));

@@ -3,5 +3,6 @@
 //   response. Once the `AsyncWrite` end is sealed(?)/dropped(?) it awaits for a response.
 // * (client) I am unsure about how to go about this, because `AsyncRead` + `AsyncWrite` lack the
 //   facilities to indicate end of stream easily?
+pub mod client;
 pub mod error;
 pub mod server;

@@ -25,7 +25,7 @@ use tokio::sync::{mpsc, Semaphore};
 use tokio_util::sync::{CancellationToken, DropGuard};
 
 use self::{session_id::SessionIdProducer, supervisor::SupervisorTask, transaction::Transaction};
-use crate::transport::TransportLayer;
+use crate::{codec::ErrorEncoder, transport::TransportLayer};
 
 const TRANSACTION_BUFFER_SIZE: usize = 32;
 const CONCURRENT_CONNECTION_LIMIT: usize = 256;
@@ -56,12 +56,16 @@ impl<T> Stream for ReceiverStreamCancel<T> {
     }
 }
 
-pub struct SessionLayer {
+pub struct SessionLayer<E> {
     // TODO: IPC
     transport: TransportLayer,
+    encoder: Arc<E>,
 }
 
-impl SessionLayer {
+impl<E> SessionLayer<E>
+where
+    E: ErrorEncoder + Send + Sync + 'static,
+{
     pub(crate) fn listen(self) -> impl Stream<Item = Transaction> + Send + Sync + 'static {
         let (tx, rx) = mpsc::channel(TRANSACTION_BUFFER_SIZE);
 
@@ -70,6 +74,7 @@ impl SessionLayer {
             transport: self.transport,
             active: Arc::new(Semaphore::new(CONCURRENT_CONNECTION_LIMIT)),
             transactions: tx,
+            encoder: self.encoder,
         };
 
         let cancel = CancellationToken::new();
