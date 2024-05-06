@@ -164,7 +164,8 @@ jobs:
 
   integration-benches:
     name: Integration
-    needs: [setup, build]
+    needs: [setup]
+    # needs: [setup, build]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.integration) }}
       fail-fast: false
@@ -180,11 +181,11 @@ jobs:
       - name: Find bench steps to run
         id: benches
         run: |
-          TEST_TASKS=$(turbo run bench:integration --dry-run=json --filter "${{ matrix.package }}" | jq -c '.tasks[]')
-          REQUIRES_GRAPH=$(echo "$TEST_TASKS" | jq -s '[.[] | select((.package == "@apps/hash-graph" or .package == "@rust/graph") and .task == "build")] != []')
-          REQUIRES_AI_WORKER_TS=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-ts" and .task == "build")] != []')
-          REQUIRES_INTEGRATION_WORKER=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-worker-integration" and .task == "build")] != []')
-          REQUIRES_API=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-api" and .task == "build")] != []')
+          BENCH_TASKS=$(turbo run bench:integration --dry-run=json --filter "${{ matrix.package }}" | jq -c '.tasks[]')
+          REQUIRES_GRAPH=$(echo "$BENCH_TASKS" | jq -s '[.[] | select((.package == "@apps/hash-graph" or .package == "@rust/graph") and .task == "build")] != []')
+          REQUIRES_AI_WORKER_TS=$(echo "$BENCH_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-ts" and .task == "build")] != []')
+          REQUIRES_INTEGRATION_WORKER=$(echo "$BENCH_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-worker-integration" and .task == "build")] != []')
+          REQUIRES_API=$(echo "$BENCH_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-api" and .task == "build")] != []')
 
           HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT

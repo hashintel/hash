@@ -25,23 +25,12 @@ test *arguments:
 
 [private]
 test-unit *arguments:
-  @just install-cargo-nextest
-
-  cargo nextest run --workspace --all-features --cargo-profile {{profile}} --lib --bins {{arguments}}
-  cargo test --profile {{profile}} --workspace --all-features --doc
-
   @just run server --write-openapi-specs
   git --no-pager diff --exit-code --color openapi
 
 [private]
 test-integration *arguments:
-  @just install-cargo-nextest
-
   @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/friendship.http
   @just yarn graph:reset-database
   @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/circular-links.http
   @just yarn graph:reset-database
-
-[private]
-bench *arguments:
-  @just --justfile {{repo}}/.justfile bench {{arguments}}

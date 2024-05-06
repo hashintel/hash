@@ -4,8 +4,7 @@
   "private": true,
   "scripts": {
     "bench:integration": "cargo bench",
-    "bench:unit": "cargo test --bench '*'",
-    "test:integration": "cargo test --bench '*'"
+    "test:integration": "cargo hack test --feature-powerset --all-targets"
   },
   "dependencies": {},
   "devDependencies": {
