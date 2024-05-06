@@ -296,15 +296,15 @@ jobs:
           [[ ${{ needs.setup.result }} = success ]]
       - name: Check unit benches
         run: |
-          echo ${{ needs.setup.outputs.unit }} | jq
+          echo "${{ needs.setup.outputs.unit }}" | jq
           [[ ${{ needs.unit-benches.result }} =~ success|skipped ]]
       - name: Check builds
         run: |
-          echo ${{ needs.setup.outputs.dockers }} | jq
+          echo "${{ needs.setup.outputs.dockers }}" | jq
           [[ ${{ needs.build.result }} =~ success|skipped ]]
       - name: Check integration benches
         run: |
-          echo ${{ needs.setup.outputs.integration }} | jq
+          echo "${{ needs.setup.outputs.integration }}" | jq
           [[ ${{ needs.integration-benches.result }} =~ success|skipped ]]
 
       - name: Notify Slack on failure
