@@ -1,5 +1,5 @@
 import { createWriteStream } from "node:fs";
-import { mkdir, unlink } from "node:fs/promises";
+import { mkdir, rm, unlink } from "node:fs/promises";
 import { Readable } from "node:stream";
 import { finished } from "node:stream/promises";
 import type { ReadableStream } from "node:stream/web";
@@ -83,10 +83,22 @@ export const indexPdfFile = async (params: {
       `Indexed PDF File successfully as ${documents.length} documents`,
     );
 
-    await persistSimpleStorageContext({
-      hash: hashedUrl,
-      simpleStorageContext: storageContext,
-    });
+    if (process.env.NODE_ENV === "development") {
+      /**
+       * In development, cache the storage context for faster iteration
+       * when testing the same PDF file.
+       */
+      await persistSimpleStorageContext({
+        hash: hashedUrl,
+        simpleStorageContext: storageContext,
+      });
+    } else {
+      /**
+       * In production, remove the PDF file from disk once it's been
+       * indexed in the simple vector store.
+       */
+      await rm(filePath);
+    }
 
     return { vectorStoreIndex };
   }
