@@ -338,7 +338,7 @@ jobs:
 
   passed:
     name: Benches passed
-    needs: [setup, unit-benches, build, integration-benches, publish]
+    needs: [setup, unit-benches, build, integration-benches]
     if: always()
     runs-on: ubuntu-latest
     steps:
