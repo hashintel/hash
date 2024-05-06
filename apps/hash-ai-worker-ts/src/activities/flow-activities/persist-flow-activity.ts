@@ -78,16 +78,14 @@ export const persistFlowActivity = async (
       ],
     });
   } else {
-    await graphApiClient.createEntities(userAuthentication.actorId, [
-      {
-        ownedById: userAuthentication.actorId,
-        entityUuid: flowId,
-        entityTypeIds: [systemEntityTypes.flow.entityTypeId],
-        properties: flowProperties,
-        draft: false,
-        relationships:
-          createDefaultAuthorizationRelationships(userAuthentication),
-      },
-    ]);
+    await graphApiClient.createEntity(userAuthentication.actorId, {
+      ownedById: userAuthentication.actorId,
+      entityUuid: flowId,
+      entityTypeIds: [systemEntityTypes.flow.entityTypeId],
+      properties: flowProperties,
+      draft: false,
+      relationships:
+        createDefaultAuthorizationRelationships(userAuthentication),
+    });
   }
 };

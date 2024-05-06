@@ -65,6 +65,7 @@ use crate::rest::{
 #[derive(OpenApi)]
 #[openapi(
     paths(
+        create_entity,
         create_entities,
         validate_entity,
         check_entity_permission,
@@ -168,10 +169,8 @@ impl RoutedResource for EntityResource {
         Router::new().nest(
             "/entities",
             Router::new()
-                .route(
-                    "/",
-                    post(create_entities::<S, A>).patch(patch_entity::<S, A>),
-                )
+                .route("/", post(create_entity::<S, A>).patch(patch_entity::<S, A>))
+                .route("/bulk", post(create_entities::<S, A>))
                 .route(
                     "/relationships",
                     post(modify_entity_authorization_relationships::<A>),
@@ -214,6 +213,56 @@ impl RoutedResource for EntityResource {
 #[utoipa::path(
     post,
     path = "/entities",
+    request_body = CreateEntityRequest,
+    tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (status = 200, content_type = "application/json", description = "The metadata of the created entity", body = EntityMetadata),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+
+        (status = 404, description = "Entity Type URL was not found"),
+        (status = 500, description = "Store error occurred"),
+    ),
+)]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
+async fn create_entity<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Json(body): Json<serde_json::Value>,
+) -> Result<Json<EntityMetadata>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let params = CreateEntityRequest::deserialize(&body).map_err(report_to_response)?;
+
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    store
+        .create_entity(actor_id, params)
+        .await
+        .map_err(report_to_response)
+        .map(Json)
+}
+
+#[utoipa::path(
+    post,
+    path = "/entities/bulk",
     request_body = [CreateEntityRequest],
     tag = "Entity",
     params(

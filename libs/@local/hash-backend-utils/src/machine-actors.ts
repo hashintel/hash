@@ -142,37 +142,35 @@ export const createMachineActorEntity = async (
   );
 
   const metadata = await context.graphApi
-    .createEntities(machineAccountId, [
-      {
-        draft: false,
-        entityTypeIds: [
-          machineEntityTypeId ?? systemEntityTypes.machine.entityTypeId,
-        ],
-        ownedById,
-        properties: {
-          "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-            displayName,
-          "https://hash.ai/@hash/types/property-type/machine-identifier/":
-            identifier,
-        } as MachineProperties,
-        relationships: [
-          {
-            relation: "administrator",
-            subject: {
-              kind: "account",
-              subjectId: machineAccountId,
-            },
+    .createEntity(machineAccountId, {
+      draft: false,
+      entityTypeIds: [
+        machineEntityTypeId ?? systemEntityTypes.machine.entityTypeId,
+      ],
+      ownedById,
+      properties: {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+          displayName,
+        "https://hash.ai/@hash/types/property-type/machine-identifier/":
+          identifier,
+      } as MachineProperties,
+      relationships: [
+        {
+          relation: "administrator",
+          subject: {
+            kind: "account",
+            subjectId: machineAccountId,
           },
-          {
-            relation: "viewer",
-            subject: {
-              kind: "public",
-            },
+        },
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
           },
-        ],
-      },
-    ])
-    .then(({ data }) => mapGraphApiEntityMetadataToMetadata(data[0]!));
+        },
+      ],
+    })
+    .then((resp) => mapGraphApiEntityMetadataToMetadata(resp.data));
 
   if (!shouldBeAbleToCreateMoreMachineEntities) {
     await context.graphApi.modifyEntityTypeAuthorizationRelationships(

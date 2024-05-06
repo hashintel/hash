@@ -784,43 +784,41 @@ export const getLlmResponse = async <T extends LlmParams>(
       const errors = await Promise.all(
         incurredInEntities.map(async ({ entityId }) => {
           try {
-            await graphApiClient.createEntities(aiAssistantAccountId, [
-              {
-                draft: false,
-                properties: {},
-                ownedById: webId,
-                entityTypeIds: [
-                  systemLinkEntityTypes.incurredIn.linkEntityTypeId,
-                ],
-                linkData: {
-                  leftEntityId: usageRecordEntityMetadata.recordId.entityId,
-                  rightEntityId: entityId,
-                },
-                relationships: [
-                  {
-                    relation: "administrator",
-                    subject: {
-                      kind: "account",
-                      subjectId: aiAssistantAccountId,
-                    },
-                  },
-                  {
-                    relation: "viewer",
-                    subject: {
-                      kind: "account",
-                      subjectId: userAccountId,
-                    },
-                  },
-                  {
-                    relation: "viewer",
-                    subject: {
-                      kind: "accountGroup",
-                      subjectId: hashInstanceAdminGroupId,
-                    },
-                  },
-                ],
+            await graphApiClient.createEntity(aiAssistantAccountId, {
+              draft: false,
+              properties: {},
+              ownedById: webId,
+              entityTypeIds: [
+                systemLinkEntityTypes.incurredIn.linkEntityTypeId,
+              ],
+              linkData: {
+                leftEntityId: usageRecordEntityMetadata.recordId.entityId,
+                rightEntityId: entityId,
               },
-            ]);
+              relationships: [
+                {
+                  relation: "administrator",
+                  subject: {
+                    kind: "account",
+                    subjectId: aiAssistantAccountId,
+                  },
+                },
+                {
+                  relation: "viewer",
+                  subject: {
+                    kind: "account",
+                    subjectId: userAccountId,
+                  },
+                },
+                {
+                  relation: "viewer",
+                  subject: {
+                    kind: "accountGroup",
+                    subjectId: hashInstanceAdminGroupId,
+                  },
+                },
+              ],
+            });
 
             return [];
           } catch (error) {

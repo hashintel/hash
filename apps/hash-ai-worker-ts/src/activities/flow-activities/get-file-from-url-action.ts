@@ -186,21 +186,19 @@ export const getFileFromUrlAction: FlowActionActivity = async ({ inputs }) => {
   const operation = "create" as const;
 
   const incompleteFileEntityMetadata = await graphApiClient
-    .createEntities(
+    .createEntity(
       // @todo which bot should this be?
       userAuthentication.actorId,
-      [
-        {
-          draft: false,
-          ownedById,
-          properties: initialProperties,
-          entityTypeIds: [entityTypeId],
-          relationships:
-            createDefaultAuthorizationRelationships(userAuthentication),
-        },
-      ],
+      {
+        draft: false,
+        ownedById,
+        properties: initialProperties,
+        entityTypeIds: [entityTypeId],
+        relationships:
+          createDefaultAuthorizationRelationships(userAuthentication),
+      },
     )
-    .then(({ data }) => mapGraphApiEntityMetadataToMetadata(data[0]!));
+    .then((result) => mapGraphApiEntityMetadataToMetadata(result.data));
 
   const s3Config = getAwsS3Config();
 
