@@ -166,23 +166,11 @@ jobs:
           workspaces: ${{ matrix.directory }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
 
-      - name: Show disk usage
-        run: df -h
-
       - name: Run benches
         continue-on-error: ${{ steps.benches.outputs.allow-failure == 'true' }}
         run: |
           turbo run bench:unit --filter "${{ matrix.package }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
-
-      - name: Show disk usage
-        run: df -h
-
-      - uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be # v4.3.1
-        name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
-        with:
-          flags: ${{ env.TRIMMED_PACKAGE_NAME }}
-          token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
 
   build:
     name: Build
@@ -211,7 +199,7 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.integration-benches) }}
       fail-fast: false
-    if: needs.setup.outputs.integration-benches != '{"package":[],"include":[]}'
+    #    if: needs.setup.outputs.integration-benches != '{"package":[],"include":[]}'
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -291,9 +279,6 @@ jobs:
           hash-integration-worker: ${{ steps.benches.outputs.external-service-worker-integration == 'true' }}
           hash-api: ${{ steps.benches.outputs.external-service-api == 'true' }}
 
-      - name: Show disk usage
-        run: df -h
-
       - name: Launch external services
         run: |
           turbo codegen --filter '@apps/hash-external-services'
@@ -315,17 +300,11 @@ jobs:
           echo "Running services: $SERVICES"
           yarn workspace @apps/hash-external-services deploy:test up $SERVICES --wait
 
-      - name: Show disk usage
-        run: df -h
-
       - name: Run benches
         continue-on-error: ${{ steps.benches.outputs.allow-failure == 'true' }}
         run: |
           turbo run bench:integration --filter "${{ matrix.package }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
-
-      - name: Show disk usage
-        run: df -h
 
       - uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be # v4.3.1
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
