@@ -50,6 +50,7 @@ pub(crate) mod tests {
     use super::*;
 
     #[expect(clippy::panic)]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     pub(crate) fn validate_schema(log: &SarifLog) {
         let log_value = serde_json::to_value(log).expect("serializing `SarifLog` into JSON failed");
 
