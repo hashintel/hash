@@ -19,8 +19,8 @@ jobs:
   setup:
     runs-on: ubuntu-22.04
     outputs:
-      unit-benches: ${{ steps.packages.outputs.unit-benches }}
-      integration-benches: ${{ steps.packages.outputs.integration-benches }}
+      unit-benches: ${{ steps.packages.outputs.unit }}
+      integration-benches: ${{ steps.packages.outputs.integration }}
       dockers: ${{ steps.packages.outputs.dockers }}
       publish: ${{ steps.packages.outputs.publish }}
     steps:
@@ -101,17 +101,17 @@ jobs:
           DOCKER_PACKAGES=$(echo $DOCKER_PACKAGES | jq -c '{ include: [{ package: .[] }] }')
 
           set -x
-          echo "unit-benches=$UNIT_BENCH_PACKAGES" >> $GITHUB_OUTPUT
-          echo "integration-benches=$INTEGRATION_BENCH_PACKAGES" >> $GITHUB_OUTPUT
+          echo "unit=$UNIT_BENCH_PACKAGES" >> $GITHUB_OUTPUT
+          echo "integration=$INTEGRATION_BENCH_PACKAGES" >> $GITHUB_OUTPUT
           echo "dockers=$DOCKER_PACKAGES" >> $GITHUB_OUTPUT
 
   unit-benches:
     name: Unit
     needs: [setup]
     strategy:
-      matrix: ${{ fromJSON(needs.setup.outputs.unit-benches) }}
+      matrix: ${{ fromJSON(needs.setup.outputs.unit) }}
       fail-fast: false
-    if: needs.setup.outputs.unit-benches != '{"package":[],"include":[]}'
+    if: needs.setup.outputs.unit != '{"package":[],"include":[]}'
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -197,9 +197,9 @@ jobs:
     name: Integration
     needs: [setup, build]
     strategy:
-      matrix: ${{ fromJSON(needs.setup.outputs.integration-benches) }}
+      matrix: ${{ fromJSON(needs.setup.outputs.integration) }}
       fail-fast: false
-    #    if: needs.setup.outputs.integration-benches != '{"package":[],"include":[]}'
+    if: needs.setup.outputs.integration != '{"package":[],"include":[]}'
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
