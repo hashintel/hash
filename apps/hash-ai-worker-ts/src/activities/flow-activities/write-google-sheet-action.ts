@@ -282,11 +282,15 @@ export const writeGoogleSheetAction: FlowActionActivity<{
             },
           },
         },
-        ...existingSheets.map((sheet) => ({
-          deleteSheet: {
-            sheetId: sheet.properties?.sheetId,
-          },
-        })),
+        ...existingSheets
+          .filter(
+            (sheet) => sheet.properties?.sheetId !== placeholderFirstSheetId,
+          )
+          .map((sheet) => ({
+            deleteSheet: {
+              sheetId: sheet.properties?.sheetId,
+            },
+          })),
         ...sheetRequests,
         {
           deleteSheet: {

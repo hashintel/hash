@@ -6,18 +6,26 @@ import type {
   EntityMetadata,
   EntityRecordId,
 } from "@local/hash-subgraph";
-import { TableBody, TableCell, TableRow } from "@mui/material";
+import { TableCell } from "@mui/material";
 import { format } from "date-fns";
 
 import { Link } from "../../../shared/ui/link";
-import { OrgTable } from "../../settings/organizations/shared/org-table";
+import {
+  CreateVirtualizedRowContentFn,
+  VirtualizedTable,
+  VirtualizedTableColumn,
+} from "./shared/virtualized-table";
+import { memo, useMemo } from "react";
 
 const LogDetail = ({ log }: { log: StepProgressLog }) => {
   switch (log.type) {
     case "VisitedWebPage": {
       return (
         <>
-          Visited <Link href={log.webPage.url}>{log.webPage.title}</Link>
+          Visited{" "}
+          <Link href={log.webPage.url} sx={{ textDecoration: "none" }}>
+            {log.webPage.title}
+          </Link>
         </>
       );
     }
@@ -69,52 +77,70 @@ const LogDetail = ({ log }: { log: StepProgressLog }) => {
   }
 };
 
+const createColumns = (rowCount: number): VirtualizedTableColumn[] => [
+  {
+    id: "number",
+    label: "#",
+    width: Math.max(50, rowCount.toString().length * 15),
+  },
+  {
+    id: "time",
+    label: "Time",
+    width: 100,
+  },
+  {
+    id: "detail",
+    label: "Detail",
+    width: "100%",
+  },
+];
+
+const TableRow = memo(
+  ({ index, log }: { index: number; log: StepProgressLog }) => {
+    return (
+      <>
+        <TableCell sx={{ fontSize: 13, width: 100 }}>{index + 1}</TableCell>
+        <TableCell
+          sx={{
+            fontSize: 11,
+            fontFamily: "monospace",
+          }}
+        >
+          {format(new Date(log.recordedAt), "yyyy-MM-dd")}
+          <br />
+          <strong>{format(new Date(log.recordedAt), "h:mm:ss a")}</strong>
+        </TableCell>
+        <TableCell sx={{ fontSize: 13, width: "100%", lineHeight: 1.4 }}>
+          <LogDetail log={log} />
+        </TableCell>
+      </>
+    );
+  },
+);
+
+const createRowContent: CreateVirtualizedRowContentFn<StepProgressLog> = (
+  index,
+  row,
+) => <TableRow index={index} log={row.data} />;
+
 export const ActivityLog = ({ logs }: { logs: StepProgressLog[] }) => {
+  const rows = useMemo(
+    () =>
+      logs.map((log, index) => ({
+        id: `${index}-${log.recordedAt}`,
+        data: log,
+      })),
+    [logs],
+  );
+
+  const columns = useMemo(() => createColumns(rows.length), [rows]);
+
   return (
-    <OrgTable
-      sx={{
-        background: "white",
-        height: "100%",
-        maxWidth: "100%",
-        maxHeight: "100%",
-        minWidth: 400,
-        display: "block",
-        overflow: "auto",
-        "th, td": {
-          padding: "10px 8px",
-          "&:first-of-type": {
-            paddingLeft: "12px",
-          },
-          "&:last-of-type": {
-            paddingRight: "12px",
-          },
-        },
-      }}
-    >
-      <TableBody>
-        {logs.map((log, index) => {
-          return (
-            <TableRow key={`${log.recordedAt}-${index}`}>
-              <TableCell sx={{ fontSize: 13 }}>{index + 1}</TableCell>
-              <TableCell
-                sx={{
-                  fontSize: 11,
-                  fontFamily: "monospace",
-                  width: 100,
-                  textAlign: "right",
-                }}
-              >
-                {format(new Date(log.recordedAt), "yyyy-MM-dd")}
-                <br />
-                {format(new Date(log.recordedAt), "h:mm:ss a")}
-              </TableCell>
-              <TableCell sx={{ fontSize: 13 }}>
-                <LogDetail log={log} />
-              </TableCell>
-            </TableRow>
-          );
-        })}
-      </TableBody>
-    </OrgTable>
+    <VirtualizedTable
+      columns={columns}
+      createRowContent={createRowContent}
+      height="100%"
+      rows={rows}
+    />
   );
 };

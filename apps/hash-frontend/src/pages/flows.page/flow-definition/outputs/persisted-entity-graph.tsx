@@ -14,8 +14,8 @@ import { useMemo } from "react";
 import type {
   QueryEntityTypesQuery,
   QueryEntityTypesQueryVariables,
-} from "../../../graphql/api-types.gen";
-import { queryEntityTypesQuery } from "../../../graphql/queries/ontology/entity-type.queries";
+} from "../../../../graphql/api-types.gen";
+import { queryEntityTypesQuery } from "../../../../graphql/queries/ontology/entity-type.queries";
 
 type PersistedEntityGraphProps = {
   persistedEntities: Entity[];

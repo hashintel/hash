@@ -1,11 +1,4 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type {
-  CustomCell,
-  Item,
-  SizedGridColumn,
-  TextCell,
-} from "@glideapps/glide-data-grid";
-import { GridCellKind } from "@glideapps/glide-data-grid";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type {
@@ -24,30 +17,25 @@ import {
   Typography,
 } from "@mui/material";
 
-// import { Grid } from "../../../components/grid/grid";
-import { Cell } from "../../settings/organizations/shared/cell";
-import { OrgTable } from "../../settings/organizations/shared/org-table";
-import { flowSectionBorderRadius } from "./shared/styles";
-// import { renderChipCell } from "../../shared/chip-cell";
+import { Cell } from "../../../settings/organizations/shared/cell";
+import { OrgTable } from "../../../settings/organizations/shared/org-table";
+import { flowSectionBorderRadius } from "../shared/styles";
 
-const columns: SizedGridColumn[] = [
+const columns = [
   {
     title: "Status",
     id: "status",
     width: 150,
-    grow: 0,
   },
   {
     title: "Type",
     id: "type",
     width: 200,
-    grow: 1,
   },
   {
     title: "Name",
     id: "name",
     width: 200,
-    grow: 2,
   },
 ];
 
@@ -59,64 +47,11 @@ type EntityResultRow = {
   status: "Proposed" | "New" | "Updated";
 };
 
-const _createGetCellContent =
-  (entityRows: EntityResultRow[]) =>
-  ([colIndex, rowIndex]: Item): TextCell | CustomCell => {
-    const columnId = columns[colIndex]?.id;
-
-    if (columnId) {
-      const row = entityRows[rowIndex];
-
-      if (!row) {
-        throw new Error(`Row not found for index ${rowIndex}`);
-      }
-
-      if (columnId === "status") {
-        return {
-          kind: GridCellKind.Text,
-          allowOverlay: false,
-          data: row.status,
-          displayData: row.status,
-          readonly: true,
-        };
-      }
-
-      if (columnId === "type") {
-        return {
-          kind: GridCellKind.Custom,
-          readonly: true,
-          allowOverlay: false,
-          copyData: row.entityTypeTitle,
-          data: {
-            kind: "chip-cell",
-            chips: [
-              {
-                text: row.entityTypeTitle,
-                icon: "bpAsteriskCircle",
-              },
-            ],
-            color: "white",
-            variant: "filled",
-          },
-        };
-      }
-
-      return {
-        kind: GridCellKind.Text,
-        allowOverlay: false,
-        data: row.entityLabel,
-        displayData: row.entityLabel,
-        readonly: true,
-      };
-    }
-
-    throw new Error("Column not found");
-  };
-
 type EntityResultTableProps = {
   persistedEntities: Entity[];
   proposedEntities: ProposedEntity[];
 };
+
 export const EntityResultTable = ({
   persistedEntities,
   proposedEntities,
@@ -129,7 +64,6 @@ export const EntityResultTable = ({
         background: ({ palette }) => palette.common.white,
         border: ({ palette }) => `1px solid ${palette.gray[20]}`,
         borderRadius: flowSectionBorderRadius,
-        height: "100%",
         textAlign: "center",
         width: "50%",
       }}
@@ -209,25 +143,4 @@ export const EntityResultTable = ({
       )}
     </Box>
   );
-  // @todo figure out why this Grid is not rendering and replace the table above with it
-  // const rows: EntityResultRow[] = [
-  //   {
-  //     rowId: "1",
-  //     entityId: "1" as EntityId,
-  //     entityLabel: "Entity 1",
-  //     entityTypeTitle: "Type 1",
-  //     status: "Proposed",
-  //   },
-  // ];
-  //
-  // return (
-  //   <Grid<EntityResultRow>
-  //     columns={columns}
-  //     createGetCellContent={createGetCellContent}
-  //     dataLoading={false}
-  //     rows={rows}
-  //     height="100%"
-  //     customRenderers={[renderChipCell]}
-  //   />
-  // );
 };

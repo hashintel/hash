@@ -27,7 +27,7 @@ export const FlowRunsContextProvider = ({ children }: PropsWithChildren) => {
   const { data } = useQuery<GetFlowRunsQuery, GetFlowRunsQueryVariables>(
     getFlowRunsQuery,
     {
-      pollInterval: 1_000,
+      pollInterval: 3_000,
     },
   );
 

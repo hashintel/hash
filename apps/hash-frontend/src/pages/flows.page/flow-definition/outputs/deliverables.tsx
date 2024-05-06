@@ -1,30 +1,16 @@
 import type { StepOutput } from "@local/hash-isomorphic-utils/flows/types";
 import { Box, Typography } from "@mui/material";
-import { parse } from "papaparse";
 import { useMemo } from "react";
 
-import type { FlowRun } from "../../../graphql/api-types.gen";
-import { Link } from "../../../shared/ui/link";
-import { getFileProperties } from "../../shared/get-file-properties";
-import { Csv } from "./deliverable/csv";
-import { flowSectionBorderRadius } from "./shared/styles";
+import type { FlowRun } from "../../../../graphql/api-types.gen";
+import { Link } from "../../../../shared/ui/link";
+import { getFileProperties } from "../../../shared/get-file-properties";
+import { flowSectionBorderRadius } from "../shared/styles";
 
 const Deliverable = ({ output }: { output: StepOutput }) => {
   const { payload } = output;
 
-  if (payload.kind === "FormattedText") {
-    if (!Array.isArray(payload.value) && payload.value.format === "CSV") {
-      try {
-        const parsedCsv = parse<string[]>(payload.value.content, {
-          header: false,
-        });
-
-        return <Csv parsedCsv={parsedCsv} />;
-      } catch {
-        // unparseable
-      }
-    }
-  } else if (payload.kind === "Entity" && !Array.isArray(payload.value)) {
+  if (payload.kind === "Entity" && !Array.isArray(payload.value)) {
     const entity = payload.value;
 
     const { displayName, fileName, fileUrl } = getFileProperties(
