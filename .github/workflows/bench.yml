@@ -237,9 +237,6 @@ jobs:
           workspaces: ${{ matrix.directory }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
 
-      - name: Show disk usage
-        run: df -h
-
       - name: Load Docker images
         uses: ./.github/actions/load-docker-images
         with:
@@ -271,15 +268,7 @@ jobs:
 
       - name: Run benches
         continue-on-error: ${{ steps.benches.outputs.allow-failure == 'true' }}
-        run: |
-          turbo run bench:integration --filter "${{ matrix.package }}"
-          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
-
-      - uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be # v4.3.1
-        name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
-        with:
-          flags: ${{ env.TRIMMED_PACKAGE_NAME }}
-          token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
+        run: turbo run bench:integration --filter "${{ matrix.package }}"
 
       - name: Show container logs
         if: ${{ success() || failure() }}
@@ -296,15 +285,15 @@ jobs:
           [[ ${{ needs.setup.result }} = success ]]
       - name: Check unit benches
         run: |
-          echo "${{ needs.setup.outputs.unit }}" | jq
+          echo '${{ needs.setup.outputs.unit }}' | jq
           [[ ${{ needs.unit-benches.result }} =~ success|skipped ]]
       - name: Check builds
         run: |
-          echo "${{ needs.setup.outputs.dockers }}" | jq
+          echo '${{ needs.setup.outputs.dockers }}' | jq
           [[ ${{ needs.build.result }} =~ success|skipped ]]
       - name: Check integration benches
         run: |
-          echo "${{ needs.setup.outputs.integration }}" | jq
+          echo '${{ needs.setup.outputs.integration }}' | jq
           [[ ${{ needs.integration-benches.result }} =~ success|skipped ]]
 
       - name: Notify Slack on failure
