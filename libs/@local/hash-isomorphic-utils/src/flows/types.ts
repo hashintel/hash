@@ -1,4 +1,8 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  PropertyMetadataMap,
+  ProvidedEntityEditionProvenance,
+} from "@local/hash-graph-client";
 import type { ActorTypeDataType } from "@local/hash-isomorphic-utils/system-types/google/googlesheetsfile";
 import type {
   Entity,
@@ -30,6 +34,8 @@ type LocalOrExistingEntityId =
  *    possibly just resolved by removing the latter when browser plugin inference migrated to a Flow
  */
 export type ProposedEntity = {
+  provenance?: ProvidedEntityEditionProvenance;
+  propertyMetadata?: PropertyMetadataMap;
   localEntityId: string;
   entityTypeId: VersionedUrl;
   summary?: string;

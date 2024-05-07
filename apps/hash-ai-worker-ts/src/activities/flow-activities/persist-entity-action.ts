@@ -1,5 +1,8 @@
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
-import type { EntityMetadata } from "@local/hash-graph-client";
+import type {
+  CreateEntityRequest,
+  EntityMetadata,
+} from "@local/hash-graph-client";
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
@@ -43,13 +46,18 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
     { ownedById },
   );
 
-  const { entityTypeId, properties, linkData } =
+  const { entityTypeId, properties, linkData, provenance, propertyMetadata } =
     proposedEntityWithResolvedLinks;
 
-  const entityValues = {
+  const entityValues: Omit<
+    CreateEntityRequest,
+    "relationships" | "ownedById" | "draft" | "linkData"
+  > & { linkData: Entity["linkData"] } = {
     entityTypeIds: [entityTypeId],
     properties,
     linkData,
+    provenance,
+    propertyMetadata,
   };
 
   const existingEntity = await (linkData
