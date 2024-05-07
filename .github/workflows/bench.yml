@@ -197,16 +197,17 @@ jobs:
         if: steps.benches.outputs.compare-results == 'true'
         run: |
           turbo run bench:compare --filter "${{ matrix.package }}"
-          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
-          echo '<details><summary>##${{ matrix.package }}</summary>' > out/${{ env.TRIMMED_PACKAGE_NAME }}.md
-          echo out/index.md >> out/${{ env.TRIMMED_PACKAGE_NAME }}.md
-          echo '</details>' >> out/${{ env.TRIMMED_PACKAGE_NAME }}.md
+          TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')
+          echo "TRIMMED_PACKAGE_NAME=$TRIMMED_PACKAGE_NAME" >> $GITHUB_ENV
+          echo '<details><summary>##${{ matrix.package }}</summary>' > "out/$TRIMMED_PACKAGE_NAME.md"
+          echo out/index.md >> "out/$TRIMMED_PACKAGE_NAME.md"
+          echo '</details>' >> "out/$TRIMMED_PACKAGE_NAME.md"
 
       - name: Upload benchmark results
         if: steps.benches.outputs.compare-results == 'true'
         uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
         with:
-          name: ${{ github.job }}_artifact_${{ env.TRIMMED_PACKAGE_NAME }}
+          name: ${{ env.TRIMMED_PACKAGE_NAME }}_${{ github.job }}
           path: ${{ matrix.directory }}/out/${{ env.TRIMMED_PACKAGE_NAME }}.md
 
   #      - name: Show container logs
