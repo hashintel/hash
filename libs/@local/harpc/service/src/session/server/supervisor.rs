@@ -33,10 +33,12 @@ where
     E: ErrorEncoder + Send + Sync + 'static,
 {
     #[allow(clippy::integer_division_remainder_used)]
-    pub(crate) async fn run(mut self, cancel: CancellationToken) -> Result<(), SessionError> {
+    pub(crate) async fn run(
+        mut self,
+        tasks: TaskTracker,
+        cancel: CancellationToken,
+    ) -> Result<(), SessionError> {
         let mut listen = self.transport.listen().await.change_context(SessionError)?;
-
-        let tracker = TaskTracker::new();
 
         loop {
             // first try to acquire a permit, if we can't, we can't accept new connections,
@@ -64,8 +66,6 @@ where
 
             match connection {
                 Ok(Some((permit, peer, sink, stream))) => {
-                    let cancel = cancel.child_token();
-
                     let task = ConnectionTask {
                         session: self.id.produce(),
                         transactions: Arc::new(HashIndex::new()),
@@ -75,7 +75,7 @@ where
                         encoder: Arc::clone(&self.encoder),
                     };
 
-                    tracker.spawn(task.run(cancel, sink, stream));
+                    tasks.spawn(task.run(sink, stream, tasks.clone(), cancel.child_token()));
                 }
                 Ok(None) => {
                     break;

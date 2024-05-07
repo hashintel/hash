@@ -31,10 +31,11 @@ const PROTOCOL_NAME: StreamProtocol = StreamProtocol::new("/harpc/1.0.0");
 pub struct TransportLayer {
     ipc: TransportLayerIpc,
 
-    task: TaskTracker,
+    tasks: TaskTracker,
 }
 
 impl TransportLayer {
+    #[must_use]
     pub fn start(
         config: Config,
         transport: impl self::task::Transport,
@@ -43,14 +44,19 @@ impl TransportLayer {
         let task = Task::new(config, transport)?;
         let ipc = task.ipc();
 
-        let tracker = TaskTracker::new();
-        tracker.spawn(task.run(cancel));
-        tracker.close();
+        let tasks = TaskTracker::new();
+        tasks.spawn(task.run(cancel));
+        tasks.close();
 
-        Ok(Self { ipc, task: tracker })
+        Ok(Self { ipc, tasks })
     }
 
-    pub(crate) async fn listen(
+    #[must_use]
+    pub fn tasks(&self) -> &TaskTracker {
+        &self.tasks
+    }
+
+    pub async fn listen(
         &self,
     ) -> Result<
         impl futures::Stream<
@@ -81,12 +87,12 @@ impl TransportLayer {
         }))
     }
 
-    pub(crate) async fn dial(
+    pub async fn dial(
         &self,
         peer: PeerId,
     ) -> Result<
         (
-            impl Sink<Request> + Send + Sync + 'static,
+            impl Sink<Request, Error: Send> + Send + Sync + 'static,
             impl Stream<Item = Result<Response, io::Error>> + Send + Sync + 'static,
         ),
         TransportError,

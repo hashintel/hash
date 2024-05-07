@@ -5,8 +5,10 @@ use core::{
 };
 
 use bytes::Bytes;
+use futures::{prelude::future::FutureExt, Stream};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
+    request::{id::RequestId, procedure::ProcedureDescriptor, service::ServiceDescriptor, Request},
     response::{
         begin::ResponseBegin,
         body::ResponseBody,
@@ -16,8 +18,11 @@ use harpc_wire_protocol::{
         Response,
     },
 };
-use tokio::{select, sync::mpsc};
+use tokio::{pin, select, sync::mpsc};
+use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
+
+use crate::session::client::writer::RequestWriter;
 
 const BYTE_STREAM_BUFFER_SIZE: usize = 32;
 
@@ -138,6 +143,53 @@ impl TransactionReceiveTask {
 
             if is_end {
                 tracing::debug!("end of response, shutting down");
+                break;
+            }
+        }
+    }
+}
+
+pub(crate) struct TransactionSendTask<S> {
+    pub(crate) id: RequestId,
+
+    pub(crate) service: ServiceDescriptor,
+    pub(crate) procedure: ProcedureDescriptor,
+
+    pub(crate) rx: S,
+    pub(crate) tx: mpsc::Sender<Request>,
+}
+
+impl<S> TransactionSendTask<S>
+where
+    S: Stream<Item = Bytes>,
+{
+    pub(crate) async fn run(self, cancel: CancellationToken) {
+        let mut writer = RequestWriter::new(self.id, self.service, self.procedure, &self.tx);
+        let rx = self.rx;
+
+        pin!(rx);
+
+        loop {
+            let bytes = select! {
+                bytes = rx.next().fuse() => bytes,
+                () = cancel.cancelled() => {
+                    break;
+                },
+            };
+
+            let Some(bytes) = bytes else {
+                // Stream has finished, flush the buffer
+
+                if let Err(error) = writer.flush().await {
+                    tracing::error!(?error, "connection has been prematurely closed");
+                }
+
+                break;
+            };
+
+            writer.push(bytes);
+            if let Err(error) = writer.write().await {
+                tracing::error!(?error, "connection has been prematurely closed");
                 break;
             }
         }

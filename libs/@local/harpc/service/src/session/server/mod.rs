@@ -15,17 +15,13 @@ mod transaction;
 mod write;
 
 use alloc::sync::Arc;
-use core::{
-    pin::Pin,
-    task::{Context, Poll},
-};
 
 use futures::Stream;
 use tokio::sync::{mpsc, Semaphore};
-use tokio_util::sync::{CancellationToken, DropGuard};
+use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
 use self::{session_id::SessionIdProducer, supervisor::SupervisorTask, transaction::Transaction};
-use crate::{codec::ErrorEncoder, transport::TransportLayer};
+use crate::{codec::ErrorEncoder, stream::ReceiverStreamCancel, transport::TransportLayer};
 
 const TRANSACTION_BUFFER_SIZE: usize = 32;
 const CONCURRENT_CONNECTION_LIMIT: usize = 256;
@@ -34,39 +30,32 @@ const CONCURRENT_CONNECTION_LIMIT: usize = 256;
 // TODO: timeout layer - needs encoding layer (for error handling), and IPC to cancel a specific
 // request in a session
 
-struct ReceiverStreamCancel<T> {
-    receiver: mpsc::Receiver<T>,
-    _guard: DropGuard,
-}
-
-impl<T> ReceiverStreamCancel<T> {
-    fn new(receiver: mpsc::Receiver<T>, guard: DropGuard) -> Self {
-        Self {
-            receiver,
-            _guard: guard,
-        }
-    }
-}
-
-impl<T> Stream for ReceiverStreamCancel<T> {
-    type Item = T;
-
-    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        self.receiver.poll_recv(cx)
-    }
-}
-
 pub struct SessionLayer<E> {
     // TODO: IPC
     transport: TransportLayer,
     encoder: Arc<E>,
+
+    tasks: TaskTracker,
 }
 
 impl<E> SessionLayer<E>
 where
     E: ErrorEncoder + Send + Sync + 'static,
 {
-    pub(crate) fn listen(self) -> impl Stream<Item = Transaction> + Send + Sync + 'static {
+    pub fn new(transport: TransportLayer, encoder: E) -> Self {
+        Self {
+            transport,
+            encoder: Arc::new(encoder),
+            tasks: TaskTracker::new(),
+        }
+    }
+
+    #[must_use]
+    pub const fn tasks(&self) -> &TaskTracker {
+        &self.tasks
+    }
+
+    pub fn listen(self) -> impl Stream<Item = Transaction> + Send + Sync + 'static {
         let (tx, rx) = mpsc::channel(TRANSACTION_BUFFER_SIZE);
 
         let task = SupervisorTask {
@@ -79,7 +68,8 @@ where
 
         let cancel = CancellationToken::new();
 
-        tokio::spawn(task.run(cancel.clone()));
+        self.tasks
+            .spawn(task.run(self.tasks.clone(), cancel.clone()));
 
         ReceiverStreamCancel::new(rx, cancel.drop_guard())
     }

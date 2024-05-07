@@ -15,7 +15,7 @@ use tokio::{
     sync::{mpsc, OwnedSemaphorePermit, Semaphore},
 };
 use tokio_stream::{wrappers::ReceiverStream, StreamNotifyClose};
-use tokio_util::sync::CancellationToken;
+use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
 use super::{
     session_id::SessionId,
@@ -41,25 +41,17 @@ impl<T> ConnectionDelegateTask<T>
 where
     T: Sink<Response, Error: Debug> + Send,
 {
-    async fn run(self) -> Result<(), T::Error> {
+    async fn run(self, cancel: CancellationToken) -> Result<(), T::Error> {
         let sink = self.sink;
         pin!(sink);
 
+        let forward = ReceiverStream::new(self.rx).map(Ok).forward(sink).fuse();
+
         // redirect the receiver stream to the sink, needs an extra task to drive both
-        ReceiverStream::new(self.rx).map(Ok).forward(sink).await
-    }
-}
-
-impl<T> IntoFuture for ConnectionDelegateTask<T>
-where
-    T: Sink<Response, Error: Debug> + Send,
-{
-    type Output = Result<(), T::Error>;
-
-    type IntoFuture = impl Future<Output = Self::Output>;
-
-    fn into_future(self) -> Self::IntoFuture {
-        self.run()
+        select! {
+            () = cancel.cancelled() => Ok(()),
+            result = forward => result,
+        }
     }
 }
 
@@ -230,8 +222,13 @@ where
     }
 
     #[allow(clippy::integer_division_remainder_used)]
-    pub(crate) async fn run<T, U>(self, cancel: CancellationToken, sink: T, stream: U)
-    where
+    pub(crate) async fn run<T, U>(
+        self,
+        sink: T,
+        stream: U,
+        tasks: TaskTracker,
+        cancel: CancellationToken,
+    ) where
         T: Sink<Response, Error: Debug + Send> + Send + 'static,
         U: Stream<Item = error_stack::Result<Request, io::Error>> + Send,
     {
@@ -242,7 +239,7 @@ where
         let finished = Semaphore::new(0);
 
         let cancel_gc = cancel.child_token();
-        tokio::spawn(
+        tasks.spawn(
             ConnectionGarbageCollectorTask {
                 // TODO: make this configurable
                 every: Duration::from_secs(10),
@@ -253,7 +250,9 @@ where
         let _drop_gc = cancel_gc.drop_guard();
 
         let (tx, rx) = mpsc::channel(RESPONSE_BUFFER_SIZE);
-        let mut handle = tokio::spawn(ConnectionDelegateTask { rx, sink }.into_future()).fuse();
+        let mut handle = tasks
+            .spawn(ConnectionDelegateTask { rx, sink }.run(cancel.clone()))
+            .fuse();
 
         loop {
             select! {
