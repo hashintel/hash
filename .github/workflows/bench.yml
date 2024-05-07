@@ -69,7 +69,7 @@ jobs:
       - name: Find bench steps to run
         id: benches
         run: |
-          if [[ ${{ github.event_name = 'pull_request' }} ]]; then
+          if [[ ${{ github.event_name == 'pull_request' }} ]]; then
             echo "create-base=true" >> $GITHUB_OUTPUT
           else
             echo "create-base=false" >> $GITHUB_OUTPUT
@@ -203,7 +203,7 @@ jobs:
       - name: Find bench steps to run
         id: benches
         run: |
-          if [[ ${{ github.event_name = 'pull_request' }} ]]; then
+          if [[ ${{ github.event_name == 'pull_request' }} ]]; then
             echo "create-base=true" >> $GITHUB_OUTPUT
           else
             echo "create-base=false" >> $GITHUB_OUTPUT
