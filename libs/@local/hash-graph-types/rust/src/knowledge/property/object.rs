@@ -9,6 +9,7 @@ use json_patch::{
     AddOperation, CopyOperation, MoveOperation, PatchOperation, RemoveOperation, ReplaceOperation,
     TestOperation,
 };
+use jsonptr::Pointer;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, ToSql, Type};
 use serde::{Deserialize, Serialize};
@@ -99,12 +100,12 @@ impl PropertyObject {
                         confidence: _,
                         provenance: _,
                     } => PatchOperation::Add(AddOperation {
-                        path: path.to_json_pointer(),
+                        path: Pointer::new(path),
                         value: serde_json::to_value(value).change_context(PatchError)?,
                     }),
                     PropertyPatchOperation::Remove { path } => {
                         PatchOperation::Remove(RemoveOperation {
-                            path: path.to_json_pointer(),
+                            path: Pointer::new(path),
                         })
                     }
                     PropertyPatchOperation::Replace {
@@ -113,7 +114,7 @@ impl PropertyObject {
                         confidence: _,
                         provenance: _,
                     } => PatchOperation::Replace(ReplaceOperation {
-                        path: path.to_json_pointer(),
+                        path: Pointer::new(path),
                         value: serde_json::to_value(value).change_context(PatchError)?,
                     }),
                     PropertyPatchOperation::Move {
@@ -122,8 +123,8 @@ impl PropertyObject {
                         confidence: _,
                         provenance: _,
                     } => PatchOperation::Move(MoveOperation {
-                        from: from.to_json_pointer(),
-                        path: path.to_json_pointer(),
+                        from: Pointer::new(from),
+                        path: Pointer::new(path),
                     }),
                     PropertyPatchOperation::Copy {
                         from,
@@ -131,12 +132,12 @@ impl PropertyObject {
                         confidence: _,
                         provenance: _,
                     } => PatchOperation::Copy(CopyOperation {
-                        from: from.to_json_pointer(),
-                        path: path.to_json_pointer(),
+                        from: Pointer::new(from),
+                        path: Pointer::new(path),
                     }),
                     PropertyPatchOperation::Test { path, value } => {
                         PatchOperation::Test(TestOperation {
-                            path: path.to_json_pointer(),
+                            path: Pointer::new(path),
                             value: serde_json::to_value(value).change_context(PatchError)?,
                         })
                     }
