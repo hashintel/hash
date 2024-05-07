@@ -160,7 +160,9 @@ jobs:
 
       - name: Checkout base branch
         if: steps.benches.outputs.compare-results == 'true'
-        run: git checkout ${{ github.base_ref }}
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          git checkout ${{ github.base_ref }}
 
       - name: Install Rust toolchain
         if: always() && steps.benches.outputs.has-rust == 'true' && steps.benches.outputs.compare-results == 'true'
