@@ -125,6 +125,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        with:
+          fetch-depth: 2
 
       - name: Install turbo
         uses: ./.github/actions/install-turbo
@@ -146,12 +148,60 @@ jobs:
             echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
           fi
 
+      - name: Install Rust tools
+        if: always() && steps.benches.outputs.has-rust == 'true'
+        uses: taiki-e/install-action@00a67321d66e038602baf558d366a594a7019ea2 # v2.33.9
+        with:
+          tool: just@1.13.0,critcmp@0.1.8
+
+      - name: Install Protobuf
+        if: always() && steps.benches.outputs.has-rust == 'true'
+        run: sudo apt install protobuf-compiler
+
+      - name: Checkout base branch
+        if: steps.benches.outputs.compare-results == 'true'
+        run: git checkout ${{ github.base_ref }}
+
+      - name: Install Rust toolchain
+        if: always() && steps.benches.outputs.has-rust == 'true' && steps.benches.outputs.compare-results == 'true'
+        uses: ./.github/actions/install-rust-toolchain
+        with:
+          toolchain: ${{ steps.benches.outputs.rust-toolchain }}
+          working-directory: ${{ matrix.directory }}
+
       - name: Prune repository
+        if: steps.benches.outputs.compare-results == 'true'
         uses: ./.github/actions/prune-repository
         with:
           scope: |
             ${{ matrix.package }}
             @apps/hash-external-services
+
+      - name: Warm up repository
+        if: steps.benches.outputs.compare-results == 'true'
+        uses: ./.github/actions/warm-up-repo
+
+      - name: Launch external services
+        if: steps.benches.outputs.compare-results == 'true'
+        run: |
+          turbo codegen --filter '@apps/hash-external-services'
+
+          SERVICES="hydra kratos redis spicedb"
+
+          echo "Running services: $SERVICES"
+          yarn workspace @apps/hash-external-services deploy:test up $SERVICES --wait
+
+      - name: Run base benches
+        if: steps.benches.outputs.compare-results == 'true'
+        run: turbo run bench:integration --filter "${{ matrix.package }}"
+
+      - name: Tear down external services
+        if: steps.benches.outputs.compare-results == 'true'
+        run: yarn workspace @apps/hash-external-services deploy:test down
+
+      - name: Checkout head branch
+        if: steps.benches.outputs.compare-results == 'true'
+        run: git checkout ${{ github.head_ref }}
 
       - name: Install Rust toolchain
         if: always() && steps.benches.outputs.has-rust == 'true'
@@ -160,18 +210,15 @@ jobs:
           toolchain: ${{ steps.benches.outputs.rust-toolchain }}
           working-directory: ${{ matrix.directory }}
 
-      - name: Install Rust tools
-        if: always() && steps.benches.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@00a67321d66e038602baf558d366a594a7019ea2 # v2.33.9
+      - name: Prune repository
+        uses: ./.github/actions/prune-repository
         with:
-          tool: just@1.13.0,critcmp@0.1.8
+          scope: |
+            ${{ matrix.package }}
+            @apps/hash-external-services
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
-
-      - name: Install Protobuf
-        if: always() && steps.benches.outputs.has-rust == 'true'
-        run: sudo apt install protobuf-compiler
 
       - name: Cache Rust dependencies
         if: always() && steps.benches.outputs.has-rust == 'true'
@@ -189,8 +236,7 @@ jobs:
           echo "Running services: $SERVICES"
           yarn workspace @apps/hash-external-services deploy:test up $SERVICES --wait
 
-      - name: Run benches
-        continue-on-error: ${{ steps.benches.outputs.allow-failure == 'true' }}
+      - name: Run new benches
         run: turbo run bench:integration --filter "${{ matrix.package }}"
 
       - name: Compare results
