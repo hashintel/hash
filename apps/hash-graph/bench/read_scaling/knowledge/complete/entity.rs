@@ -235,10 +235,7 @@ fn bench_scaling_read_entity_zero_depths(c: &mut Criterion) {
         let store = &store_wrapper.store;
 
         group.bench_with_input(
-            BenchmarkId::new(
-                "get_entity_by_id",
-                format!("Account ID: `{account_id}`, Number Of Entities: `{size}`"),
-            ),
+            BenchmarkId::new("get_entity_by_id", format!("entities: `{size}`")),
             &(account_id, entity_metadata_list),
             |b, (_account_id, entity_metadata_list)| {
                 bench_get_entity_by_id(
@@ -287,10 +284,7 @@ fn bench_scaling_read_entity_one_depth(c: &mut Criterion) {
         let store = &store_wrapper.store;
 
         group.bench_with_input(
-            BenchmarkId::new(
-                "get_entity_by_id",
-                format!("Account ID: `{account_id}`, Number Of Entities: `{size}`"),
-            ),
+            BenchmarkId::new("get_entity_by_id", format!("entities: `{size}`")),
             &(account_id, entity_metadata_list),
             |b, (_account_id, entity_metadata_list)| {
                 bench_get_entity_by_id(
