@@ -219,6 +219,8 @@ jobs:
     needs: [setup, unit-benches, integration-benches]
     if: always()
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     steps:
       - name: Check setup script
         run: |
@@ -252,7 +254,15 @@ jobs:
         with:
           path: downloads
 
-      - name: Post comment
+      - name: Create comment
         if: github.event_name == 'pull_request'
         run: |
-          cat downloads/*/*.md
+          echo "## Benchmark results" > /tmp/summary.md
+          cat downloads/*/*.md >> /tmp/summary.md
+          cat /tmp/summary.md
+
+      - name: Post comment
+        uses: mshick/add-pr-comment@b8f338c590a895d50bcbfa6c5859251edc8952fc # v2.8.2
+        if: github.event_name == 'pull_request'
+        with:
+          message-path: /tmp/summary.md
