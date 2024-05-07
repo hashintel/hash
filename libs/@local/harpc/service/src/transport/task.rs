@@ -1,7 +1,12 @@
+use std::collections::{hash_map::Entry, HashMap};
+
 use error_stack::{Result, ResultExt};
 use futures::prelude::stream::StreamExt;
 use libp2p::{
-    core::upgrade, identify, metrics, noise, ping, swarm::SwarmEvent, yamux, SwarmBuilder,
+    core::upgrade,
+    identify, metrics, noise, ping,
+    swarm::{DialError, SwarmEvent},
+    yamux, Multiaddr, PeerId, SwarmBuilder,
 };
 use libp2p_stream as stream;
 use stream::Control;
@@ -19,8 +24,16 @@ use super::{
 };
 use crate::config::Config;
 
+type SenderPeerId = oneshot::Sender<core::result::Result<PeerId, DialError>>;
+
 pub(crate) enum Command {
-    IssueControl { tx: oneshot::Sender<Control> },
+    IssueControl {
+        tx: oneshot::Sender<Control>,
+    },
+    LookupPeer {
+        address: Multiaddr,
+        tx: SenderPeerId,
+    },
 }
 
 pub(crate) trait Transport = libp2p::Transport<
@@ -40,6 +53,9 @@ pub(crate) struct Task {
 
     rx: mpsc::Receiver<Command>,
     ipc: TransportLayerIpc,
+
+    peers: HashMap<Multiaddr, PeerId>,
+    peers_waiting: HashMap<Multiaddr, Vec<SenderPeerId>>,
 }
 
 impl Task {
@@ -84,11 +100,39 @@ impl Task {
 
             rx,
             ipc,
+
+            peers: HashMap::new(),
+            peers_waiting: HashMap::new(),
         })
     }
 
     pub(crate) fn ipc(&self) -> TransportLayerIpc {
         self.ipc.clone()
+    }
+
+    fn handle_dial(&mut self, addr: Multiaddr, tx: SenderPeerId) {
+        if let Some(peer_id) = self.peers.get(&addr) {
+            if tx.send(Ok(*peer_id)).is_err() {
+                tracing::error!("failed to send peer id to the caller");
+            }
+        } else {
+            let entry = self.peers_waiting.entry(addr.clone());
+
+            match entry {
+                Entry::Occupied(mut entry) => {
+                    entry.get_mut().push(tx);
+                }
+                Entry::Vacant(entry) => {
+                    if let Err(error) = self.swarm.dial(addr) {
+                        if tx.send(Err(error)).is_err() {
+                            tracing::error!("failed to send dial error to the caller");
+                        }
+                    } else {
+                        entry.insert(vec![tx]);
+                    }
+                }
+            }
+        }
     }
 
     fn handle_command(&mut self, command: Command) {
@@ -100,11 +144,36 @@ impl Task {
                     tracing::error!("failed to send issued control to the caller");
                 }
             }
+            Command::LookupPeer { address: addr, tx } => self.handle_dial(addr, tx),
         }
+    }
+
+    fn handle_new_external_address_of_peer(&mut self, peer_id: PeerId, address: Multiaddr) {
+        tracing::info!(%peer_id, %address, "discovered external address of peer");
+
+        if let Some(senders) = self.peers_waiting.remove(&address) {
+            for tx in senders {
+                if tx.send(Ok(peer_id)).is_err() {
+                    tracing::error!("failed to send peer id to the caller");
+                }
+            }
+        }
+
+        self.peers.insert(address, peer_id);
     }
 
     fn handle_event(&mut self, event: SwarmEvent<TransportBehaviourEvent>) {
         tracing::debug!(?event, "received swarm event");
+
+        match event {
+            SwarmEvent::NewListenAddr { address, .. } => {
+                tracing::info!(%address, "listening on address");
+            }
+            SwarmEvent::NewExternalAddrOfPeer { peer_id, address } => {
+                self.handle_new_external_address_of_peer(peer_id, address);
+            }
+            _ => {}
+        }
     }
 
     #[allow(clippy::integer_division_remainder_used)]

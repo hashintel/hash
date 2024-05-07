@@ -31,4 +31,4 @@ impl OpenStreamError {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
 #[error("transport layer")]
-pub(crate) struct TransportError;
+pub struct TransportError;

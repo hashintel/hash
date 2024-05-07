@@ -11,7 +11,7 @@ use std::io;
 use error_stack::{Result, ResultExt};
 use futures::{prelude::stream::StreamExt, Sink, Stream};
 use harpc_wire_protocol::{request::Request, response::Response};
-use libp2p::{PeerId, StreamProtocol};
+use libp2p::{Multiaddr, PeerId, StreamProtocol};
 use tokio::io::BufStream;
 use tokio_util::{
     codec::Framed, compat::FuturesAsyncReadCompatExt, sync::CancellationToken, task::TaskTracker,
@@ -52,8 +52,15 @@ impl TransportLayer {
     }
 
     #[must_use]
-    pub fn tasks(&self) -> &TaskTracker {
+    pub const fn tasks(&self) -> &TaskTracker {
         &self.tasks
+    }
+
+    pub async fn lookup_peer(&self, address: Multiaddr) -> Result<PeerId, TransportError> {
+        self.ipc
+            .lookup_peer(address)
+            .await
+            .change_context(TransportError)
     }
 
     pub async fn listen(
