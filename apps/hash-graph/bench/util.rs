@@ -50,6 +50,7 @@ where
 {
     #[expect(
         clippy::significant_drop_tightening,
+        clippy::too_many_lines,
         reason = "The connection is required to borrow the client"
     )]
     pub async fn new(
