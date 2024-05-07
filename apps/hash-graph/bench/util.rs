@@ -17,7 +17,7 @@ use graph::{
         },
         AsClient, BaseUrlAlreadyExists, ConflictBehavior, DataTypeStore, DatabaseConnectionInfo,
         DatabaseType, EntityTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore,
-        StoreMigration, StorePool,
+        StorePool,
     },
     Environment,
 };
@@ -37,7 +37,7 @@ pub type Store<A> = <Pool as StorePool>::Store<'static, A>;
 pub struct StoreWrapper<A: AuthorizationApi> {
     delete_on_drop: bool,
     pub bench_db_name: String,
-    super_pool: Pool,
+    source_db_pool: Pool,
     pool: ManuallyDrop<Pool>,
     pub store: ManuallyDrop<Store<A>>,
     #[allow(dead_code, reason = "False positive")]
@@ -59,7 +59,6 @@ where
         account_id: AccountId,
         mut authorization_api: A,
     ) -> Self {
-        let fail_on_exists = false;
         load_env(Environment::Test);
 
         let super_user = std::env::var("POSTGRES_USER").unwrap_or_else(|_| "postgres".to_owned());
@@ -76,8 +75,19 @@ where
                     .unwrap_or_else(|_| panic!("{p} is not a valid port"))
             })
             .unwrap_or(5432);
+        let database =
+            std::env::var("HASH_GRAPH_PG_DATABASE").unwrap_or_else(|_| "graph".to_owned());
 
-        let db_connection_info = DatabaseConnectionInfo::new(
+        let source_db_connection_info = DatabaseConnectionInfo::new(
+            DatabaseType::Postgres,
+            super_user, // super user as we need to create and delete tables
+            super_password,
+            host.clone(),
+            port,
+            database,
+        );
+
+        let bench_db_connection_info = DatabaseConnectionInfo::new(
             DatabaseType::Postgres,
             user,
             password,
@@ -86,22 +96,13 @@ where
             bench_db_name.to_owned(),
         );
 
-        let super_pool = {
-            let pool = PostgresStorePool::new(
-                &DatabaseConnectionInfo::new(
-                    DatabaseType::Postgres,
-                    super_user.clone(), // super user as we need to create and delete tables
-                    super_password,
-                    host.clone(),
-                    port,
-                    "postgres".to_owned(),
-                ),
-                NoTls,
-            )
+        let source_db_pool = PostgresStorePool::new(&source_db_connection_info, NoTls)
             .await
             .expect("could not connect to database");
 
-            let conn = pool
+        // Create a new connection to the source database, copy the database, drop the connection
+        {
+            let conn = source_db_pool
                 .acquire_owned(&mut authorization_api, None)
                 .await
                 .expect("could not acquire a database connection");
@@ -125,47 +126,50 @@ where
                 "database `{bench_db_name}` exists, and `fails_on_exists` was set to true",
             );
 
-            if exists {
+            if !(exists) {
                 client
-                    .execute(&format!("DROP DATABASE {bench_db_name};"), &[])
+                    .execute(
+                        "
+                        /* KILL ALL EXISTING CONNECTION FROM ORIGINAL DB*/
+                        SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity
+                        WHERE pg_stat_activity.datname = $1 AND pid <> pg_backend_pid();
+                        ",
+                        &[&source_db_connection_info.database()],
+                    )
                     .await
-                    .expect("failed to drop database");
+                    .expect("failed to kill existing connections");
+
+                client
+                    .execute(
+                        &format!(
+                            r#"
+                            /* CLONE DATABASE TO NEW ONE */
+                            CREATE DATABASE {bench_db_name} WITH TEMPLATE {} OWNER {};
+                            "#,
+                            source_db_connection_info.database(),
+                            bench_db_connection_info.user()
+                        ),
+                        &[],
+                    )
+                    .await
+                    .expect("failed to clone database");
             }
+        }
 
-            client
-                .execute(
-                    &format!(
-                        "CREATE DATABASE {} OWNER {};",
-                        bench_db_name,
-                        db_connection_info.user()
-                    ),
-                    &[],
-                )
-                .await
-                .expect("failed to clone database");
-
-            pool
-        };
-
-        let pool = PostgresStorePool::new(&db_connection_info, NoTls)
+        let pool = PostgresStorePool::new(&bench_db_connection_info, NoTls)
             .await
             .expect("could not connect to database");
 
         // _owned is necessary as otherwise we have a self-referential struct
-        let mut store = pool
+        let store = pool
             .acquire_owned(authorization_api, None)
             .await
             .expect("could not acquire a database connection");
 
-        store
-            .run_migrations()
-            .await
-            .expect("failed to run migrations");
-
         Self {
             delete_on_drop,
+            source_db_pool,
             bench_db_name: bench_db_name.to_owned(),
-            super_pool,
             pool: ManuallyDrop::new(pool),
             store: ManuallyDrop::new(store),
             account_id,
@@ -192,7 +196,7 @@ where
 
         let runtime = Runtime::new().expect("could not create runtime");
         runtime.block_on(async {
-            self.super_pool
+            self.source_db_pool
                 .acquire_owned(NoAuthorization, None)
                 .await
                 .expect("could not acquire a database connection")
