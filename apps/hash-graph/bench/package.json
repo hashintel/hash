@@ -3,7 +3,8 @@
   "version": "0.0.0-private",
   "private": true,
   "scripts": {
-    "bench:integration": "cargo bench",
+    "bench:compare": "critcmp",
+    "bench:integration": "cargo bench -- --baseline base",
     "test:integration": "cargo hack test --feature-powerset --all-targets"
   },
   "dependencies": {},

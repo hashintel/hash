@@ -26,6 +26,7 @@
     "bench:integration": {
       "dependsOn": ["codegen"]
     },
+    "bench:compare": {},
     "dev": {
       "persistent": true,
       "dependsOn": ["@local/hash-graph-client#codegen"]

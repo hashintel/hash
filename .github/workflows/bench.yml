@@ -132,6 +132,9 @@ jobs:
       - name: Find bench steps to run
         id: benches
         run: |
+          COMPARE=$(turbo run bench:compare --dry-run=json --filter "${{ matrix.package }}" | jq -c '.tasks[] | select(.task == "bench:compare" and .command != "<NONEXISTENT>") != []')
+          echo "compare-results=$COMPARE" >> $GITHUB_OUTPUT
+
           HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
@@ -141,7 +144,6 @@ jobs:
               RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
             fi
             echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
-            echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
           fi
 
       - name: Prune repository
@@ -162,7 +164,7 @@ jobs:
         if: always() && steps.benches.outputs.has-rust == 'true'
         uses: taiki-e/install-action@00a67321d66e038602baf558d366a594a7019ea2 # v2.33.9
         with:
-          tool: just@1.13.0
+          tool: just@1.13.0,critcmp@0.1.8
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
@@ -190,6 +192,10 @@ jobs:
       - name: Run benches
         continue-on-error: ${{ steps.benches.outputs.allow-failure == 'true' }}
         run: turbo run bench:integration --filter "${{ matrix.package }}"
+
+      - name: Compare results
+        if: steps.benches.outputs.compare-results == 'true'
+        run: turbo run bench:compare --filter "${{ matrix.package }}"
 
       - name: Show container logs
         if: ${{ success() || failure() }}
