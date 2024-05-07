@@ -74,7 +74,7 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
                 height: "100%",
                 p: 1,
                 textAlign: "center",
-                width: 50,
+                width: 42,
                 zIndex: zIndex.drawer,
               })}
             >

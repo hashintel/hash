@@ -1,146 +1,176 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  PersistedEntity,
+  ProposedEntity,
+} from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type {
-  Entity,
   EntityId,
   EntityMetadata,
   EntityRecordId,
 } from "@local/hash-subgraph";
-import {
-  Box,
-  Stack,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Typography,
-} from "@mui/material";
+import { TableCell } from "@mui/material";
+import { memo, useMemo, useState } from "react";
 
-import { Cell } from "../../../settings/organizations/shared/cell";
-import { OrgTable } from "../../../settings/organizations/shared/org-table";
-import { flowSectionBorderRadius } from "../shared/styles";
+import type {
+  CreateVirtualizedRowContentFn,
+  VirtualizedTableColumn,
+  VirtualizedTableRow,
+  VirtualizedTableSort,
+} from "../shared/virtualized-table";
+import { VirtualizedTable } from "../shared/virtualized-table";
+import { EmptyOutputBox } from "./shared/empty-output-box";
+import { outputIcons } from "./shared/icons";
+import { OutputContainer } from "./shared/output-container";
 
-const columns = [
+type FieldId = "status" | "entityTypeTitle" | "entityLabel";
+
+const columns: VirtualizedTableColumn<FieldId>[] = [
   {
-    title: "Status",
+    label: "Status",
     id: "status",
-    width: 150,
+    sortable: true,
+    width: 100,
   },
   {
-    title: "Type",
-    id: "type",
-    width: 200,
+    label: "Type",
+    id: "entityTypeTitle",
+    sortable: true,
+    width: 120,
   },
   {
-    title: "Name",
-    id: "name",
-    width: 200,
+    label: "Name",
+    id: "entityLabel",
+    sortable: true,
+    width: "100%",
   },
 ];
 
 type EntityResultRow = {
-  rowId: string;
-  entityId: EntityId;
   entityLabel: string;
   entityTypeTitle: string;
   status: "Proposed" | "New" | "Updated";
 };
 
 type EntityResultTableProps = {
-  persistedEntities: Entity[];
+  persistedEntities: PersistedEntity[];
   proposedEntities: ProposedEntity[];
 };
+
+const TableRow = memo(({ row }: { row: EntityResultRow }) => {
+  return (
+    <>
+      <TableCell sx={{ fontSize: 13 }}>{row.status}</TableCell>
+      <TableCell sx={{ fontSize: 13 }}>{row.entityTypeTitle}</TableCell>
+      <TableCell sx={{ fontSize: 13 }}>{row.entityLabel}</TableCell>
+    </>
+  );
+});
+
+const createRowContent: CreateVirtualizedRowContentFn<EntityResultRow> = (
+  _index,
+  row,
+) => <TableRow row={row.data} />;
 
 export const EntityResultTable = ({
   persistedEntities,
   proposedEntities,
 }: EntityResultTableProps) => {
+  const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
+    field: "entityLabel",
+    direction: "asc",
+  });
+
   const hasData = persistedEntities.length || proposedEntities.length;
 
+  const rows: VirtualizedTableRow<EntityResultRow>[] = useMemo(() => {
+    const rowData: VirtualizedTableRow<EntityResultRow>[] = [];
+    for (const record of persistedEntities.length
+      ? persistedEntities
+      : proposedEntities) {
+      const entity = "operation" in record ? record.entity : record;
+
+      if (!entity) {
+        continue;
+      }
+
+      const entityId =
+        "localEntityId" in entity
+          ? entity.localEntityId
+          : entity.metadata.recordId.entityId;
+
+      const entityTypeId =
+        "entityTypeId" in entity
+          ? entity.entityTypeId
+          : entity.metadata.entityTypeId;
+
+      const entityLabel = generateEntityLabel(null, {
+        ...entity,
+        metadata: {
+          recordId: {
+            editionId: "irrelevant-here",
+            entityId: `ownedBy~${entityId}` as EntityId,
+          } satisfies EntityRecordId,
+          entityTypeId: entityTypeId satisfies VersionedUrl,
+        } as EntityMetadata,
+      });
+
+      const entityTitle = entityTypeId.split("/").at(-3) ?? "";
+      const capitalizedTitle =
+        entityTitle.charAt(0).toUpperCase() + entityTitle.slice(1);
+
+      rowData.push({
+        id: entityId,
+        data: {
+          entityLabel,
+          entityTypeTitle: capitalizedTitle,
+          status:
+            "localEntityId" in record
+              ? "Proposed"
+              : record.operation === "update"
+                ? "Updated"
+                : "New",
+        },
+      });
+    }
+
+    return rowData.sort((a, b) => {
+      const field = sort.field;
+      const direction = sort.direction === "asc" ? 1 : -1;
+
+      if (a.data[field] < b.data[field]) {
+        return 1 * direction;
+      }
+
+      if (a.data[field] > b.data[field]) {
+        return -1 * direction;
+      }
+
+      return 0;
+    });
+  }, [persistedEntities, proposedEntities, sort]);
+
   return (
-    <Box
+    <OutputContainer
       sx={{
-        background: ({ palette }) => palette.common.white,
-        border: ({ palette }) => `1px solid ${palette.gray[20]}`,
-        borderRadius: flowSectionBorderRadius,
-        textAlign: "center",
-        width: "50%",
+        flex: 1,
+        minWidth: 400,
       }}
     >
       {hasData ? (
-        <OrgTable
-          sx={{
-            maxWidth: "100%",
-            maxHeight: "100%",
-            display: "block",
-            overflow: "auto",
-          }}
-        >
-          <TableHead>
-            <TableRow>
-              {columns.map((column) => (
-                <Cell key={column.id}>{column.title}</Cell>
-              ))}
-            </TableRow>
-          </TableHead>
-
-          <TableBody>
-            {(persistedEntities.length
-              ? persistedEntities
-              : proposedEntities
-            ).map((entity) => {
-              const entityId =
-                "localEntityId" in entity
-                  ? entity.localEntityId
-                  : entity.metadata.recordId.entityId;
-              const entityTypeId =
-                "entityTypeId" in entity
-                  ? entity.entityTypeId
-                  : entity.metadata.entityTypeId;
-
-              const entityLabel = generateEntityLabel(null, {
-                ...entity,
-                metadata: {
-                  recordId: {
-                    editionId: "irrelevant-here",
-                    entityId: `ownedBy~${entityId}` as EntityId,
-                  } satisfies EntityRecordId,
-                  entityTypeId: entityTypeId satisfies VersionedUrl,
-                } as EntityMetadata,
-              });
-
-              return (
-                <TableRow key={entityId}>
-                  <TableCell sx={{ fontSize: 13 }}>
-                    {"localEntityId" in entity ? "Proposed" : "New"}
-                  </TableCell>
-                  <TableCell sx={{ fontSize: 13 }}>
-                    {entityTypeId.split("/").at(-3)}
-                  </TableCell>
-                  <TableCell sx={{ fontSize: 13 }}>{entityLabel}</TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </OrgTable>
+        <VirtualizedTable
+          columns={columns}
+          createRowContent={createRowContent}
+          rows={rows}
+          sort={sort}
+          setSort={setSort}
+        />
       ) : (
-        <Stack
-          alignItems="center"
-          justifyContent="center"
-          sx={{ height: "100%", p: 4 }}
-        >
-          <Typography
-            sx={{
-              color: ({ palette }) => palette.gray[60],
-              fontSize: 14,
-              fontWeight: 500,
-            }}
-          >
-            Entities inferred from the Flow will appear here
-          </Typography>
-        </Stack>
+        <EmptyOutputBox
+          Icon={outputIcons.table}
+          label="Entities proposed and affected by this flow will appear in a table here"
+        />
       )}
-    </Box>
+    </OutputContainer>
   );
 };

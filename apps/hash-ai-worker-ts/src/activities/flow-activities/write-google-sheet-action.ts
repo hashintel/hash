@@ -423,7 +423,10 @@ export const writeGoogleSheetAction: FlowActionActivity<{
         outputs: [
           {
             outputName: "googleSheetEntity",
-            payload: { kind: "Entity", value: entityToReturn },
+            payload: {
+              kind: "PersistedEntity",
+              value: { entity: entityToReturn, operation: "create" },
+            },
           },
         ],
       },

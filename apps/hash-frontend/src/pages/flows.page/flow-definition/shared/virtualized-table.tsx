@@ -1,21 +1,31 @@
-import * as React from "react";
+import {
+  ArrowUpWideShortLightIcon,
+  IconButton,
+} from "@hashintel/design-system";
+import { Box, Stack, Typography } from "@mui/material";
+/* eslint-disable no-restricted-imports */
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
-import Paper from "@mui/material/Paper";
-import { TableVirtuoso, TableComponents } from "react-virtuoso";
-import { Box } from "@mui/material";
-import {
-  ComponentPropsWithoutRef,
-  forwardRef,
-  ReactElement,
-  useCallback,
-} from "react";
+/* eslint-enable no-restricted-imports */
+import type { ComponentPropsWithoutRef, ReactElement } from "react";
+import { forwardRef, useCallback } from "react";
+import type { TableComponents } from "react-virtuoso";
+import { TableVirtuoso } from "react-virtuoso";
+
 import { flowSectionBorderRadius } from "./styles";
 
+type Data = Record<string, unknown>;
+
+export type VirtualizedTableRow<D extends Data> = {
+  id: string;
+  data: D;
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const VirtuosoTableComponents: TableComponents<VirtualizedTableRow<any>> = {
   Scroller: forwardRef<HTMLDivElement>(
     (props: ComponentPropsWithoutRef<"div">, ref) => (
@@ -59,38 +69,92 @@ const VirtuosoTableComponents: TableComponents<VirtualizedTableRow<any>> = {
   ),
 };
 
-export type VirtualizedTableColumn = {
-  id: string;
+export type VirtualizedTableColumn<FieldId extends string = string> = {
+  id: FieldId;
   label: string;
+  sortable: boolean;
   width: number | string;
 };
 
-const createHeaderContent = (columns: VirtualizedTableColumn[]) => {
+export type VirtualizedTableSort<Field extends string = string> = {
+  field: Field;
+  direction: "asc" | "desc";
+};
+
+type TableSortProps<Sort extends VirtualizedTableSort = VirtualizedTableSort> =
+  {
+    sort?: Sort;
+    setSort: (sort: Sort) => void;
+  };
+
+const SortButton = <Sort extends VirtualizedTableSort>({
+  columnId,
+  sort,
+  setSort,
+}: { columnId: NonNullable<Sort["field"]> } & TableSortProps<Sort>) => {
+  const isSorted = sort?.field === columnId;
+  const isSortedAscending = isSorted && sort.direction === "asc";
+
   return (
-    <TableRow>
-      {columns.map((column) => (
-        <TableCell
-          key={column.id}
-          variant="head"
-          sx={({ palette }) => ({
-            background: palette.common.white,
-            fontWeight: 600,
-            width: column.width,
-            fontSize: 12,
-          })}
-        >
-          {column.label}
-        </TableCell>
-      ))}
-    </TableRow>
+    <IconButton
+      onClick={() =>
+        setSort({
+          field: columnId,
+          direction: isSortedAscending ? "desc" : "asc",
+        } as Sort)
+      }
+    >
+      <ArrowUpWideShortLightIcon
+        sx={{
+          fill: ({ palette }) =>
+            isSorted ? palette.blue[70] : palette.gray[50],
+          fontSize: 15,
+          transform: isSortedAscending ? "rotate(0)" : "rotate(180deg)",
+          transition: ({ transitions }) => transitions.create("transform"),
+        }}
+      />
+    </IconButton>
   );
 };
 
-type Data = Record<string, unknown>;
-
-export type VirtualizedTableRow<D extends Data> = {
-  id: string;
-  data: D;
+const HeaderContent = <Sort extends VirtualizedTableSort>({
+  columns,
+  sort,
+  setSort,
+}: { columns: VirtualizedTableColumn[] } & TableSortProps<Sort>) => {
+  return (
+    <TableRow>
+      {columns.map((column) => {
+        return (
+          <TableCell
+            key={column.id}
+            variant="head"
+            sx={({ palette }) => ({
+              background: palette.common.white,
+              width: column.width,
+            })}
+          >
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+            >
+              <Typography sx={{ fontSize: 12, fontWeight: 600 }}>
+                {column.label}
+              </Typography>
+              {column.sortable && (
+                <SortButton
+                  columnId={column.id}
+                  setSort={setSort}
+                  sort={sort}
+                />
+              )}
+            </Stack>
+          </TableCell>
+        );
+      })}
+    </TableRow>
+  );
 };
 
 export type CreateVirtualizedRowContentFn<D extends Data> = (
@@ -98,22 +162,31 @@ export type CreateVirtualizedRowContentFn<D extends Data> = (
   row: VirtualizedTableRow<D>,
 ) => ReactElement;
 
-type VirtualizedTableProps<D extends Data> = {
+type VirtualizedTableProps<D extends Data, S extends VirtualizedTableSort> = {
+  /**
+   * This function will be called many times when scrolling, ensure repeated calls do as little as possible
+   * @see https://virtuoso.dev/#performance
+   */
   createRowContent: CreateVirtualizedRowContentFn<D>;
   columns?: VirtualizedTableColumn[];
-  height: number | string;
   rows: VirtualizedTableRow<D>[];
-};
+} & TableSortProps<S>;
 
-export const VirtualizedTable = <D extends Data>({
+const height = "100%";
+
+export const VirtualizedTable = <
+  D extends Data,
+  S extends VirtualizedTableSort,
+>({
   createRowContent,
   columns,
-  height,
   rows,
-}: VirtualizedTableProps<D>) => {
+  sort,
+  setSort,
+}: VirtualizedTableProps<D, S>) => {
   const fixedHeaderContent = useCallback(
-    () => (columns ? createHeaderContent(columns) : undefined),
-    [columns],
+    () => (columns ? HeaderContent({ columns, sort, setSort }) : null),
+    [columns, sort, setSort],
   );
 
   return (
@@ -124,6 +197,7 @@ export const VirtualizedTable = <D extends Data>({
         data={rows}
         components={VirtuosoTableComponents}
         fixedHeaderContent={fixedHeaderContent}
+        followOutput="smooth"
         increaseViewportBy={50}
         itemContent={createRowContent}
         style={{ height }}

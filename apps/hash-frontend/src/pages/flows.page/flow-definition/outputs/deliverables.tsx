@@ -1,81 +1,119 @@
-import type { StepOutput } from "@local/hash-isomorphic-utils/flows/types";
-import { Box, Typography } from "@mui/material";
-import { useMemo } from "react";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import {
+  SpreadsheetFileIconRegular,
+  SpreadsheetFileIconSolid,
+} from "@hashintel/design-system";
+import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { Box, Stack, Typography } from "@mui/material";
 
-import type { FlowRun } from "../../../../graphql/api-types.gen";
 import { Link } from "../../../../shared/ui/link";
-import { getFileProperties } from "../../../shared/get-file-properties";
-import { flowSectionBorderRadius } from "../shared/styles";
+import { EmptyOutputBox } from "./shared/empty-output-box";
+import { outputIcons } from "./shared/icons";
+import { OutputContainer } from "./shared/output-container";
 
-const Deliverable = ({ output }: { output: StepOutput }) => {
-  const { payload } = output;
-
-  if (payload.kind === "Entity" && !Array.isArray(payload.value)) {
-    const entity = payload.value;
-
-    const { displayName, fileName, fileUrl } = getFileProperties(
-      entity.properties,
-    );
-
-    if (fileUrl) {
-      return (
-        <Box mt={3}>
-          <Link href={fileUrl}>
-            <Typography variant="smallTextParagraphs">
-              Download file:{" "}
-              <strong>{displayName ?? fileName ?? "Untitled"}</strong>
-            </Typography>
-          </Link>
-        </Box>
-      );
-    }
-  }
-
-  return null;
+export type DeliverableData = {
+  displayName?: string;
+  entityTypeId: VersionedUrl;
+  fileName?: string;
+  fileUrl: string;
+  type: "file";
 };
 
-export const Deliverables = ({ outputs }: { outputs?: FlowRun["outputs"] }) => {
-  const flowOutputs = useMemo(
-    () => outputs?.[0]?.contents?.[0]?.outputs,
-    [outputs],
-  );
+const Deliverable = ({ deliverable }: { deliverable: DeliverableData }) => {
+  const { displayName, entityTypeId, fileName, fileUrl } = deliverable;
+
+  const appName =
+    entityTypeId === googleEntityTypes.googleSheetsFile.entityTypeId
+      ? "Google Sheets"
+      : "Unknown";
 
   return (
-    <Box
-      sx={{
-        background: ({ palette }) => palette.common.white,
-        border: ({ palette }) => `1px solid ${palette.gray[20]}`,
-        borderRadius: flowSectionBorderRadius,
-        height: "100%",
-        textAlign: "center",
-        justifyContent: "center",
-        alignItems: "center",
-        p: flowOutputs ? 0 : 4,
-      }}
+    <Stack
+      direction="row"
+      gap={1.5}
+      sx={{ alignItems: "flex-start", textAlign: "left" }}
     >
-      {flowOutputs ? (
-        flowOutputs.map((output) => (
-          <Box key={output.outputName} mb={2}>
-            <Deliverable output={output} />
-          </Box>
-        ))
-      ) : (
-        <Box
-          sx={{
-            height: "100%",
-          }}
+      <SpreadsheetFileIconSolid
+        sx={{ fill: ({ palette }) => palette.gray[30], fontSize: 36, mt: 0.5 }}
+      />
+      <Box>
+        <Typography
+          component="div"
+          variant="smallTextParagraphs"
+          sx={{ fontWeight: 600, lineHeight: 1.3, mb: 1 }}
         >
+          {displayName ?? fileName ?? "Untitled"}
+        </Typography>
+        <Stack alignItems="center" direction="row" gap={1}>
           <Typography
             sx={{
+              display: "inline-block",
+              fontSize: 11,
+              fontWeight: 600,
               color: ({ palette }) => palette.gray[60],
-              fontSize: 14,
-              fontWeight: 500,
+              textTransform: "uppercase",
             }}
           >
-            The end output of this task will appear here when ready
+            Open in
           </Typography>
+          <Link
+            href={fileUrl}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              textDecoration: "none",
+              fontSize: 12,
+              fontWeight: 600,
+              "&:hover": {
+                opacity: 0.8,
+              },
+              transition: ({ transitions }) => transitions.create("opacity"),
+            }}
+          >
+            <SpreadsheetFileIconRegular
+              sx={{
+                fill: ({ palette }) => palette.blue[70],
+                fontSize: 14,
+                lineHeight: 1,
+                mr: 0.5,
+              }}
+            />
+            {appName}
+          </Link>
+        </Stack>
+      </Box>
+    </Stack>
+  );
+};
+
+export const Deliverables = ({
+  deliverables,
+}: {
+  deliverables: DeliverableData[];
+}) => {
+  const hasDeliverables = deliverables.length > 0;
+  return (
+    <OutputContainer
+      sx={{
+        flex: 1,
+        minWidth: 275,
+      }}
+    >
+      {hasDeliverables ? (
+        <Box sx={{ p: 3 }}>
+          {deliverables.map((deliverable, index) => (
+            // eslint-disable-next-line react/no-array-index-key
+            <Box key={index} mb={2}>
+              <Deliverable deliverable={deliverable} />
+            </Box>
+          ))}
         </Box>
+      ) : (
+        <EmptyOutputBox
+          Icon={outputIcons.deliverables}
+          label="The outputs of this flow marked as deliverables will appear here when ready"
+        />
       )}
-    </Box>
+    </OutputContainer>
   );
 };
