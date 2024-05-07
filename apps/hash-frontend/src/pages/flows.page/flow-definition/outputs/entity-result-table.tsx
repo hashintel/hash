@@ -136,17 +136,9 @@ export const EntityResultTable = ({
 
     return rowData.sort((a, b) => {
       const field = sort.field;
-      const direction = sort.direction === "asc" ? 1 : -1;
+      const direction = sort.direction === "asc" ? -1 : 1;
 
-      if (a.data[field] < b.data[field]) {
-        return 1 * direction;
-      }
-
-      if (a.data[field] > b.data[field]) {
-        return -1 * direction;
-      }
-
-      return 0;
+      return a.data[field].localeCompare(b.data[field]) * direction;
     });
   }, [persistedEntities, proposedEntities, sort]);
 
