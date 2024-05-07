@@ -34,6 +34,9 @@ pub(crate) enum Command {
         address: Multiaddr,
         tx: SenderPeerId,
     },
+    Metrics {
+        tx: oneshot::Sender<metrics::Metrics>,
+    },
 }
 
 pub(crate) trait Transport = libp2p::Transport<
@@ -49,7 +52,6 @@ pub(crate) struct Task {
     swarm: TransportSwarm,
 
     registry: metrics::Registry,
-    metrics: metrics::Metrics,
 
     rx: mpsc::Receiver<Command>,
     ipc: TransportLayerIpc,
@@ -91,12 +93,9 @@ impl Task {
             .with_swarm_config(|existing| config.swarm.apply(existing))
             .build();
 
-        let metrics = metrics::Metrics::new(&mut registry);
-
         Ok(Self {
             swarm,
             registry,
-            metrics,
 
             rx,
             ipc,
@@ -145,6 +144,13 @@ impl Task {
                 }
             }
             Command::LookupPeer { address: addr, tx } => self.handle_dial(addr, tx),
+            Command::Metrics { tx } => {
+                let metrics = metrics::Metrics::new(&mut self.registry);
+
+                if tx.send(metrics).is_err() {
+                    tracing::error!("failed to send metrics registry to the caller");
+                }
+            }
         }
     }
 
