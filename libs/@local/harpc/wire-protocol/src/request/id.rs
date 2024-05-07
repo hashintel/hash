@@ -1,3 +1,5 @@
+use core::sync::atomic::{AtomicU32, Ordering};
+
 use bytes::{Buf, BufMut};
 use error_stack::Result;
 
@@ -6,18 +8,6 @@ use crate::codec::{Buffer, BufferError, Decode, Encode};
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub struct RequestId(u32);
-
-impl RequestId {
-    const fn zero() -> Self {
-        Self(0)
-    }
-
-    fn next(&mut self) -> Self {
-        let value = self.0;
-        self.0 = self.0.overflowing_add(1).0;
-        Self(value)
-    }
-}
 
 impl Encode for RequestId {
     type Error = BufferError;
@@ -43,19 +33,21 @@ impl Decode for RequestId {
 }
 
 pub struct RequestIdProducer {
-    current: RequestId,
+    current: AtomicU32,
 }
 
 impl RequestIdProducer {
     #[must_use]
     pub const fn new() -> Self {
         Self {
-            current: RequestId::zero(),
+            current: AtomicU32::new(0),
         }
     }
 
-    pub fn produce(&mut self) -> RequestId {
-        self.current.next()
+    pub fn produce(&self) -> RequestId {
+        // we do not care about reordering here, in the case of reordering we would just change
+        // which request gets which id
+        RequestId(self.current.fetch_add(1, Ordering::Relaxed))
     }
 }
 
@@ -76,6 +68,8 @@ impl Default for RequestIdProducer {
 #[cfg(test)]
 pub(crate) mod test {
     #![allow(clippy::needless_raw_strings, clippy::needless_raw_string_hashes)]
+    use core::sync::atomic::AtomicU32;
+
     use expect_test::expect;
 
     use super::RequestIdProducer;
@@ -101,7 +95,7 @@ pub(crate) mod test {
     #[test]
     fn overflow() {
         let mut producer = RequestIdProducer::new();
-        producer.current = RequestId(u32::MAX);
+        producer.current = AtomicU32::new(u32::MAX);
 
         assert_eq!(producer.next().expect("infallible").0, u32::MAX);
         assert_eq!(producer.next().expect("infallible").0, 0);

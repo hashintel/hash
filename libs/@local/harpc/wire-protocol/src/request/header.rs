@@ -90,7 +90,7 @@ mod test {
 
     #[test]
     fn encode() {
-        let mut producer = RequestIdProducer::new();
+        let producer = RequestIdProducer::new();
 
         let header = RequestHeader {
             protocol: Protocol {

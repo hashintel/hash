@@ -14,7 +14,7 @@ use harpc_wire_protocol::{
 use scc::HashIndex;
 use tokio::{pin, sync::mpsc};
 use tokio_stream::wrappers::ReceiverStream;
-use tokio_util::task::TaskTracker;
+use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
 use super::transaction::{ErrorStream, TransactionReceiveTask, ValueStream};
 
@@ -91,11 +91,14 @@ impl Connection {
         self.receivers.insert_async(id, tx).await;
 
         // TODO: RequestWriter (in separate task)
+        // TODO: dropping stream for cancellation (of both tasks)
+
+        let cancel = CancellationToken::new();
 
         let (stream_tx, stream_rx) = mpsc::channel(1);
 
         self.tracker
-            .spawn(TransactionReceiveTask { rx, tx: stream_tx }.run());
+            .spawn(TransactionReceiveTask { rx, tx: stream_tx }.run(cancel));
 
         ReceiverStream::new(stream_rx)
     }

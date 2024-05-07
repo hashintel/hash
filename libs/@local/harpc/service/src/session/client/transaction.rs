@@ -16,7 +16,8 @@ use harpc_wire_protocol::{
         Response,
     },
 };
-use tokio::sync::mpsc;
+use tokio::{select, sync::mpsc};
+use tokio_util::sync::CancellationToken;
 
 const BYTE_STREAM_BUFFER_SIZE: usize = 32;
 
@@ -83,11 +84,20 @@ impl TransactionReceiveTask {
         ControlFlow::Continue(payload.into_bytes())
     }
 
-    pub(crate) async fn run(mut self) {
+    pub(crate) async fn run(mut self, cancel: CancellationToken) {
         let mut bytes_tx = None;
         let mut end_of_response = None;
 
-        while let Some(response) = self.rx.recv().await {
+        loop {
+            let response = select! {
+                response = self.rx.recv() => response,
+                () = cancel.cancelled() => break
+            };
+
+            let Some(response) = response else {
+                break;
+            };
+
             // TODO: we can't signal to the other side if we're done with the stream (EndOfResponse)
             // or if we actually just dropped everything.
             // We *could* in theory signal this using maybe an AtomicBool(?)
