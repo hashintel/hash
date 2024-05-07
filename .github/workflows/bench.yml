@@ -153,41 +153,41 @@ jobs:
             ${{ matrix.package }}
             @apps/hash-external-services
 
-      #      - name: Install Rust toolchain
-      #        if: always() && steps.benches.outputs.has-rust == 'true'
-      #        uses: ./.github/actions/install-rust-toolchain
-      #        with:
-      #          toolchain: ${{ steps.benches.outputs.rust-toolchain }}
-      #          working-directory: ${{ matrix.directory }}
-      #
-      #      - name: Install Rust tools
-      #        if: always() && steps.benches.outputs.has-rust == 'true'
-      #        uses: taiki-e/install-action@00a67321d66e038602baf558d366a594a7019ea2 # v2.33.9
-      #        with:
-      #          tool: just@1.13.0,critcmp@0.1.8
-      #
-      #      - name: Warm up repository
-      #        uses: ./.github/actions/warm-up-repo
-      #
-      #      - name: Install Protobuf
-      #        if: always() && steps.benches.outputs.has-rust == 'true'
-      #        run: sudo apt install protobuf-compiler
-      #
-      #      - name: Cache Rust dependencies
-      #        if: always() && steps.benches.outputs.has-rust == 'true'
-      #        uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
-      #        with:
-      #          workspaces: ${{ matrix.directory }}
-      #          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
-      #
-      #      - name: Launch external services
-      #        run: |
-      #          turbo codegen --filter '@apps/hash-external-services'
-      #
-      #          SERVICES="hydra kratos redis spicedb"
-      #
-      #          echo "Running services: $SERVICES"
-      #          yarn workspace @apps/hash-external-services deploy:test up $SERVICES --wait
+      - name: Install Rust toolchain
+        if: always() && steps.benches.outputs.has-rust == 'true'
+        uses: ./.github/actions/install-rust-toolchain
+        with:
+          toolchain: ${{ steps.benches.outputs.rust-toolchain }}
+          working-directory: ${{ matrix.directory }}
+
+      - name: Install Rust tools
+        if: always() && steps.benches.outputs.has-rust == 'true'
+        uses: taiki-e/install-action@00a67321d66e038602baf558d366a594a7019ea2 # v2.33.9
+        with:
+          tool: just@1.13.0,critcmp@0.1.8
+
+      - name: Warm up repository
+        uses: ./.github/actions/warm-up-repo
+
+      - name: Install Protobuf
+        if: always() && steps.benches.outputs.has-rust == 'true'
+        run: sudo apt install protobuf-compiler
+
+      - name: Cache Rust dependencies
+        if: always() && steps.benches.outputs.has-rust == 'true'
+        uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
+        with:
+          workspaces: ${{ matrix.directory }}
+          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
+
+      - name: Launch external services
+        run: |
+          turbo codegen --filter '@apps/hash-external-services'
+
+          SERVICES="hydra kratos redis spicedb"
+
+          echo "Running services: $SERVICES"
+          yarn workspace @apps/hash-external-services deploy:test up $SERVICES --wait
 
       - name: Run benches
         continue-on-error: ${{ steps.benches.outputs.allow-failure == 'true' }}
@@ -211,9 +211,9 @@ jobs:
           name: ${{ env.TRIMMED_PACKAGE_NAME }}_${{ github.job }}
           path: /tmp/${{ env.TRIMMED_PACKAGE_NAME }}.md
 
-  #      - name: Show container logs
-  #        if: ${{ success() || failure() }}
-  #        run: yarn workspace @apps/hash-external-services deploy logs --timestamps
+      - name: Show container logs
+        if: ${{ success() || failure() }}
+        run: yarn workspace @apps/hash-external-services deploy logs --timestamps
 
   passed:
     name: Benches passed

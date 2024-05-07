@@ -3,8 +3,8 @@
   "version": "0.0.0-private",
   "private": true,
   "scripts": {
-    "bench:compare": "mkdir out && echo '```' > out/index.md && echo 'Hello World' >> out/index.md && echo '```' >> out/index.md",
-    "bench:integration": "echo success",
+    "bench:compare": "mkdir out && echo '```' > out/index.md && critcmp --list >> out/index.md && echo '```' >> out/index.md",
+    "bench:integration": "cargo bench",
     "test:integration": "cargo hack test --feature-powerset --all-targets"
   },
   "dependencies": {},
