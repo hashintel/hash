@@ -197,6 +197,13 @@ jobs:
         if: steps.benches.outputs.compare-results == 'true'
         run: turbo run bench:compare --filter "${{ matrix.package }}"
 
+      - name: Upload benchmark results
+        if: steps.benches.outputs.compare-results == 'true'
+        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
+        with:
+          name: ${{ env.RUN_UNIQUE_ID }}_artifact_${{ matrix.package }}
+          path: ${{ matrix.directory }}/bench.md
+
       - name: Show container logs
         if: ${{ success() || failure() }}
         run: yarn workspace @apps/hash-external-services deploy logs --timestamps
@@ -212,11 +219,9 @@ jobs:
           [[ ${{ needs.setup.result }} = success ]]
       - name: Check unit benches
         run: |
-          echo '${{ needs.setup.outputs.unit }}' | jq
           [[ ${{ needs.unit-benches.result }} =~ success|skipped ]]
       - name: Check integration benches
         run: |
-          echo '${{ needs.setup.outputs.integration }}' | jq
           [[ ${{ needs.integration-benches.result }} =~ success|skipped ]]
 
       - name: Notify Slack on failure
@@ -230,3 +235,18 @@ jobs:
           SLACK_USERNAME: GitHub
           VAULT_ADDR: ""
           VAULT_TOKEN: ""
+
+      - name: Checkout
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+
+      - name: Download reports' artifacts
+        if: github.event_name == 'pull_request'
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        with:
+          path: downloads
+
+      - name: Post comment
+        if: github.event_name == 'pull_request'
+        run: |
+          cat downloads/*.md
