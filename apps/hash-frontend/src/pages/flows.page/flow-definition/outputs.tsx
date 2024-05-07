@@ -4,7 +4,6 @@ import type {
   PersistedEntity,
   ProposedEntity,
 } from "@local/hash-isomorphic-utils/flows/types";
-import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { SvgIconProps } from "@mui/material";
 import { Box, Stack, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
@@ -25,14 +24,7 @@ export const getDeliverables = (
 ): DeliverableData[] => {
   const flowOutputs = outputs?.[0]?.contents?.[0]?.outputs;
 
-  const deliverables: DeliverableData[] = [
-    {
-      type: "file",
-      displayName: "Test Some File Name Analysis Report",
-      entityTypeId: googleEntityTypes.googleSheetsFile.entityTypeId,
-      fileUrl: "https://google.com",
-    },
-  ];
+  const deliverables: DeliverableData[] = [];
 
   for (const output of flowOutputs ?? []) {
     const { payload } = output;
