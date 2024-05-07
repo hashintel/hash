@@ -54,10 +54,6 @@ impl<'a> ResponseWriter<'a> {
         }
     }
 
-    pub(crate) fn is_error(&self) -> bool {
-        matches!(self.kind, ResponseKind::Err(_))
-    }
-
     pub(crate) fn push(&mut self, bytes: Bytes) {
         self.buffer.push(bytes);
     }

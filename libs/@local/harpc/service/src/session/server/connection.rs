@@ -41,6 +41,7 @@ impl<T> ConnectionDelegateTask<T>
 where
     T: Sink<Response, Error: Debug> + Send,
 {
+    #[allow(clippy::integer_division_remainder_used)]
     async fn run(self, cancel: CancellationToken) -> Result<(), T::Error> {
         let sink = self.sink;
         pin!(sink);
@@ -96,7 +97,7 @@ impl ConnectionGarbageCollectorTask {
 pub(crate) struct ConnectionTask<E> {
     pub(crate) peer: PeerId,
     pub(crate) session: SessionId,
-    pub(crate) permit: OwnedSemaphorePermit,
+    pub(crate) _permit: OwnedSemaphorePermit,
 
     pub(crate) transactions: Arc<HashIndex<RequestId, mpsc::Sender<Request>>>,
     pub(crate) tx_transaction: mpsc::Sender<Transaction>,

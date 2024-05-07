@@ -16,8 +16,6 @@ use crate::{
     transport::TransportLayer,
 };
 
-pub(crate) enum Command {}
-
 pub(crate) struct SupervisorTask<E> {
     pub(crate) id: SessionIdProducer,
     pub(crate) transport: TransportLayer,
@@ -70,7 +68,7 @@ where
                         session: self.id.produce(),
                         transactions: Arc::new(HashIndex::new()),
                         peer,
-                        permit,
+                        _permit: permit,
                         tx_transaction: self.transactions.clone(),
                         encoder: Arc::clone(&self.encoder),
                     };

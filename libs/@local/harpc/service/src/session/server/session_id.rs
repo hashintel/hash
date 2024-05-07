@@ -3,7 +3,8 @@ pub(crate) struct SessionIdProducer {
 }
 
 impl SessionIdProducer {
-    pub(crate) fn new() -> Self {
+    #[must_use]
+    pub(crate) const fn new() -> Self {
         Self { next: 0 }
     }
 

@@ -89,6 +89,7 @@ impl TransactionReceiveTask {
         ControlFlow::Continue(payload.into_bytes())
     }
 
+    #[allow(clippy::integer_division_remainder_used)]
     pub(crate) async fn run(mut self, cancel: CancellationToken) {
         let mut bytes_tx = None;
         let mut end_of_response = None;
@@ -135,7 +136,7 @@ impl TransactionReceiveTask {
             }
 
             if let Some(tx) = &mut bytes_tx {
-                if let Err(_) = tx.send(bytes).await {
+                if tx.send(bytes).await.is_err() {
                     tracing::info!("stream prematurely dropped");
                     break;
                 }
@@ -161,8 +162,9 @@ pub(crate) struct TransactionSendTask<S> {
 
 impl<S> TransactionSendTask<S>
 where
-    S: Stream<Item = Bytes>,
+    S: Stream<Item = Bytes> + Send,
 {
+    #[allow(clippy::integer_division_remainder_used)]
     pub(crate) async fn run(self, cancel: CancellationToken) {
         let mut writer = RequestWriter::new(self.id, self.service, self.procedure, &self.tx);
         let rx = self.rx;
