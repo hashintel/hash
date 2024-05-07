@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "bench:compare": "critcmp",
-    "bench:integration": "cargo bench -- --baseline base",
+    "bench:integration": "cargo bench",
     "test:integration": "cargo hack test --feature-powerset --all-targets"
   },
   "dependencies": {},
