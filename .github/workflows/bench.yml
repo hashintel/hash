@@ -199,8 +199,8 @@ jobs:
           turbo run bench:compare --filter "${{ matrix.package }}"
           TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')
           echo "TRIMMED_PACKAGE_NAME=$TRIMMED_PACKAGE_NAME" >> $GITHUB_ENV
-          echo '<details><summary>##${{ matrix.package }}</summary>' > "/tmp/$TRIMMED_PACKAGE_NAME.md"
-          echo ${{ matrix.directory }} out/index.md >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
+          echo '<details><summary>## ${{ matrix.package }}</summary>' > "/tmp/$TRIMMED_PACKAGE_NAME.md"
+          cat ${{ matrix.directory }}/out/index.md >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
           echo '</details>' >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
 
       - name: Upload benchmark results
