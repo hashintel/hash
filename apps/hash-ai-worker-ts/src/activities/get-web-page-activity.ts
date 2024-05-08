@@ -32,12 +32,6 @@ const getWebPageFromPuppeteer = async (url: string): Promise<WebPage> => {
       throw new Error(`${status}: ${message}`);
     }
 
-    /**
-     * We use puppeteer because we want to obtain the `innerText` of the HTML body.
-     *
-     * Ideally we'd use a lighter weight approach via a package such as `jsdom`,
-     * but `innerText` remains unavailable in this package (@see https://github.com/jsdom/jsdom/issues/1245)
-     */
     const htmlContent = await page.evaluate(() => document.body.innerHTML);
 
     const title = await page.title();
