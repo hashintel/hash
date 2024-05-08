@@ -1,5 +1,5 @@
 use error_stack::{Result, ResultExt};
-use libp2p::{metrics, Multiaddr, PeerId};
+use libp2p::{core::transport::ListenerId, metrics, Multiaddr, PeerId};
 use libp2p_stream::Control;
 use tokio::sync::{mpsc, oneshot};
 
@@ -52,5 +52,18 @@ impl TransportLayerIpc {
             .change_context(TransportError)?;
 
         rx.await.change_context(TransportError)
+    }
+
+    pub(super) async fn listen_on(&self, address: Multiaddr) -> Result<ListenerId, TransportError> {
+        let (tx, rx) = oneshot::channel();
+
+        self.tx
+            .send(Command::ListenOn { address, tx })
+            .await
+            .change_context(TransportError)?;
+
+        rx.await
+            .change_context(TransportError)?
+            .change_context(TransportError)
     }
 }

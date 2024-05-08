@@ -31,7 +31,8 @@ const CONCURRENT_CONNECTION_LIMIT: usize = 256;
 // request in a session
 
 pub struct SessionLayer<E> {
-    // TODO: IPC
+    // TODO: IPC (do we need it tho?)
+    // TODO: notification channel tho!
     transport: TransportLayer,
     encoder: Arc<E>,
 
@@ -43,10 +44,12 @@ where
     E: ErrorEncoder + Send + Sync + 'static,
 {
     pub fn new(transport: TransportLayer, encoder: E) -> Self {
+        let tasks = transport.tasks().clone();
+
         Self {
             transport,
             encoder: Arc::new(encoder),
-            tasks: TaskTracker::new(),
+            tasks,
         }
     }
 

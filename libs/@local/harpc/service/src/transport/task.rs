@@ -1,9 +1,12 @@
-use std::collections::{hash_map::Entry, HashMap};
+use std::{
+    collections::{hash_map::Entry, HashMap},
+    io,
+};
 
 use error_stack::{Result, ResultExt};
 use futures::prelude::stream::StreamExt;
 use libp2p::{
-    core::upgrade,
+    core::{transport::ListenerId, upgrade},
     identify, metrics, noise, ping,
     swarm::{DialError, SwarmEvent},
     yamux, Multiaddr, PeerId, SwarmBuilder,
@@ -25,6 +28,8 @@ use super::{
 use crate::config::Config;
 
 type SenderPeerId = oneshot::Sender<core::result::Result<PeerId, DialError>>;
+type SenderListenerId =
+    oneshot::Sender<core::result::Result<ListenerId, libp2p::TransportError<io::Error>>>;
 
 pub(crate) enum Command {
     IssueControl {
@@ -36,6 +41,10 @@ pub(crate) enum Command {
     },
     Metrics {
         tx: oneshot::Sender<metrics::Metrics>,
+    },
+    ListenOn {
+        address: Multiaddr,
+        tx: SenderListenerId,
     },
 }
 
@@ -100,6 +109,12 @@ impl Task {
         self.ipc.clone()
     }
 
+    fn send_ipc_response<T>(tx: oneshot::Sender<T>, value: T) {
+        if tx.send(value).is_err() {
+            tracing::error!("failed to send response to the IPC caller");
+        }
+    }
+
     fn handle_dial(&mut self, addr: Multiaddr, tx: SenderPeerId) {
         if let Some(peer_id) = self.peers.get(&addr) {
             if tx.send(Ok(*peer_id)).is_err() {
@@ -114,9 +129,7 @@ impl Task {
                 }
                 Entry::Vacant(entry) => {
                     if let Err(error) = self.swarm.dial(addr) {
-                        if tx.send(Err(error)).is_err() {
-                            tracing::error!("failed to send dial error to the caller");
-                        }
+                        Self::send_ipc_response(tx, Err(error));
                     } else {
                         entry.insert(vec![tx]);
                     }
@@ -130,17 +143,18 @@ impl Task {
             Command::IssueControl { tx } => {
                 let control = self.swarm.behaviour().stream.new_control();
 
-                if tx.send(control).is_err() {
-                    tracing::error!("failed to send issued control to the caller");
-                }
+                Self::send_ipc_response(tx, control);
             }
             Command::LookupPeer { address: addr, tx } => self.handle_dial(addr, tx),
             Command::Metrics { tx } => {
                 let metrics = metrics::Metrics::new(&mut self.registry);
 
-                if tx.send(metrics).is_err() {
-                    tracing::error!("failed to send metrics registry to the caller");
-                }
+                Self::send_ipc_response(tx, metrics);
+            }
+            Command::ListenOn { address, tx } => {
+                let result = self.swarm.listen_on(address);
+
+                Self::send_ipc_response(tx, result);
             }
         }
     }

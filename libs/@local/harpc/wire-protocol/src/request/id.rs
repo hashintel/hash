@@ -45,9 +45,10 @@ impl RequestIdProducer {
     }
 
     pub fn produce(&self) -> RequestId {
-        // we do not care about reordering here, in the case of reordering we would just change
-        // which request gets which id
-        RequestId(self.current.fetch_add(1, Ordering::Relaxed))
+        // we don't care about ordering here, and `fetch_add` is a single atomic operation
+        // (which is the only one we use), so in theory `Ordering::Relaxed` could be used here
+        // but we use `Ordering::SeqCst` to be on the safe side
+        RequestId(self.current.fetch_add(1, Ordering::SeqCst))
     }
 }
 

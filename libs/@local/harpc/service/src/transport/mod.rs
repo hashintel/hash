@@ -12,7 +12,7 @@ use std::io;
 use error_stack::{Result, ResultExt};
 use futures::{prelude::stream::StreamExt, Sink, Stream};
 use harpc_wire_protocol::{request::Request, response::Response};
-use libp2p::{metrics, Multiaddr, PeerId, StreamProtocol};
+use libp2p::{core::transport::ListenerId, metrics, Multiaddr, PeerId, StreamProtocol};
 use tokio::io::BufStream;
 use tokio_util::{
     codec::Framed, compat::FuturesAsyncReadCompatExt, sync::CancellationToken, task::TaskTracker,
@@ -62,7 +62,6 @@ impl TransportLayer {
 
         let tasks = TaskTracker::new();
         tasks.spawn(task.run(cancel));
-        tasks.close();
 
         Ok(Self { ipc, tasks })
     }
@@ -82,10 +81,7 @@ impl TransportLayer {
     /// If the background task cannot be reached, crashes while processing the request, or is unable
     /// to dial the address provided.
     pub async fn lookup_peer(&self, address: Multiaddr) -> Result<PeerId, TransportError> {
-        self.ipc
-            .lookup_peer(address)
-            .await
-            .change_context(TransportError)
+        self.ipc.lookup_peer(address).await
     }
 
     /// Metrics about the transport layer.
@@ -94,7 +90,17 @@ impl TransportLayer {
     ///
     /// If the background task cannot be reached or crashes while processing the request.
     pub async fn metrics(&self) -> Result<metrics::Metrics, TransportError> {
-        self.ipc.metrics().await.change_context(TransportError)
+        self.ipc.metrics().await
+    }
+
+    /// Listen on an address.
+    ///
+    /// # Errors
+    ///
+    /// If the background task cannot be reached, crashes while processing the request, or the
+    /// multiaddr is not supported by the transport.
+    pub async fn listen_on(&self, address: Multiaddr) -> Result<ListenerId, TransportError> {
+        self.ipc.listen_on(address).await
     }
 
     /// Listen for incoming connections.
@@ -170,5 +176,40 @@ impl TransportLayer {
         let (sink, stream) = stream.split();
 
         Ok((sink, stream))
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod test {
+    use core::{
+        iter,
+        sync::atomic::{AtomicU64, Ordering},
+    };
+
+    use libp2p::{core::transport::MemoryTransport, multiaddr::Protocol};
+    use tokio_util::sync::CancellationToken;
+
+    use super::TransportLayer;
+    use crate::config::Config;
+
+    pub(crate) fn address() -> libp2p::Multiaddr {
+        // to allow for unique port numbers, even if the tests are run concurrently we use an atomic
+        static CHANNEL: AtomicU64 = AtomicU64::new(0);
+
+        // `SeqCst` just to be on the safe side.
+        let id = CHANNEL.fetch_add(1, Ordering::SeqCst);
+
+        iter::once(Protocol::Memory(id)).collect()
+    }
+
+    pub(crate) fn layer() -> (TransportLayer, impl Drop) {
+        let transport = MemoryTransport::default();
+        let config = Config::default();
+        let cancel = CancellationToken::new();
+
+        let layer = TransportLayer::start(config, transport, cancel.clone())
+            .expect("should be able to create swarm");
+
+        (layer, cancel.drop_guard())
     }
 }
