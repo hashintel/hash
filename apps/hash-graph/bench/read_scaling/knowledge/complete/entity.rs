@@ -6,7 +6,7 @@ use criterion_macro::criterion;
 use graph::{
     store::{
         account::{InsertAccountIdParams, InsertWebIdParams},
-        knowledge::GetEntitySubgraphParams,
+        knowledge::{CreateEntityParams, GetEntitySubgraphParams},
         query::Filter,
         AccountStore, EntityQuerySorting, EntityStore,
     },
@@ -21,7 +21,11 @@ use graph::{
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     account::AccountId,
-    knowledge::{entity::EntityMetadata, link::LinkData, PropertyObject, PropertyProvenance},
+    knowledge::{
+        entity::{EntityMetadata, ProvidedEntityEditionProvenance},
+        link::LinkData,
+        PropertyMetadataMap, PropertyObject, PropertyProvenance,
+    },
     owned_by_id::OwnedById,
 };
 use rand::{prelude::IteratorRandom, thread_rng};
@@ -102,44 +106,67 @@ async fn seed_db<A: AuthorizationApi>(
     .await;
 
     let properties: PropertyObject =
-        serde_json::from_str(entity::BOOK_V1).expect("could not parse entity");
+        serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity");
     let entity_type: EntityType =
-        serde_json::from_str(entity_type::BOOK_V1).expect("could not parse entity type");
-    let entity_type_id = entity_type.id().clone();
+        serde_json::from_str(entity_type::PERSON_V1).expect("could not parse entity type");
+
+    let link_type: EntityType =
+        serde_json::from_str(entity_type::link::FRIEND_OF_V1).expect("could not parse entity type");
 
     let owned_by_id = OwnedById::new(account_id.into_uuid());
 
     let entity_metadata_list = transaction
-        .insert_entities_batched_by_type(
+        .create_entities(
             account_id,
-            repeat((owned_by_id, None, properties.clone(), None, None)).take(total),
-            &entity_type_id,
+            repeat(CreateEntityParams {
+                owned_by_id,
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: vec![entity_type.id().clone()],
+                properties,
+                confidence: None,
+                property_metadata: PropertyMetadataMap::default(),
+                link_data: None,
+                draft: false,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            })
+            .take(total)
+            .collect(),
         )
         .await
         .expect("failed to create entities");
 
     let link_entity_metadata_list = transaction
-        .insert_entities_batched_by_type(
+        .create_entities(
             account_id,
-            entity_metadata_list.iter().flat_map(|entity_a_metadata| {
-                entity_metadata_list.iter().map(|entity_b_metadata| {
-                    (
-                        owned_by_id,
-                        None,
-                        properties.clone(),
-                        Some(LinkData {
-                            left_entity_id: entity_a_metadata.record_id.entity_id,
-                            right_entity_id: entity_b_metadata.record_id.entity_id,
-                            left_entity_confidence: None,
-                            left_entity_provenance: PropertyProvenance::default(),
-                            right_entity_confidence: None,
-                            right_entity_provenance: PropertyProvenance::default(),
-                        }),
-                        None,
-                    )
+            entity_metadata_list
+                .iter()
+                .flat_map(|entity_a_metadata| {
+                    entity_metadata_list
+                        .iter()
+                        .map(|entity_b_metadata| CreateEntityParams {
+                            owned_by_id,
+                            entity_uuid: None,
+                            decision_time: None,
+                            entity_type_ids: vec![link_type.id().clone()],
+                            properties: PropertyObject::empty(),
+                            confidence: None,
+                            property_metadata: PropertyMetadataMap::default(),
+                            link_data: Some(LinkData {
+                                left_entity_id: entity_a_metadata.record_id.entity_id,
+                                right_entity_id: entity_b_metadata.record_id.entity_id,
+                                left_entity_confidence: None,
+                                left_entity_provenance: PropertyProvenance::default(),
+                                right_entity_confidence: None,
+                                right_entity_provenance: PropertyProvenance::default(),
+                            }),
+                            draft: false,
+                            relationships: [],
+                            provenance: ProvidedEntityEditionProvenance::default(),
+                        })
                 })
-            }),
-            &entity_type_id,
+                .collect(),
         )
         .await
         .expect("failed to create link entities");

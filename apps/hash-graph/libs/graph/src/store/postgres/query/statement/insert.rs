@@ -155,11 +155,10 @@ impl<'p> InsertStatementBuilder<'p> {
         self
     }
 
-    pub fn from_rows<R>(rows: &'p &[R]) -> Self
+    pub fn from_rows<R>(table: Table, rows: &'p Vec<R>) -> Self
     where
-        R: PostgresRow + Sync,
+        R: ToSql + Sync,
     {
-        let table = R::table();
         Self {
             statement: InsertStatement {
                 table,

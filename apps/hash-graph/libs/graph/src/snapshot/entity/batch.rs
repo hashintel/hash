@@ -76,8 +76,6 @@ where
                     CREATE TEMPORARY TABLE entity_temporal_metadata_tmp
                         (LIKE entity_temporal_metadata INCLUDING ALL)
                         ON COMMIT DROP;
-                    ALTER TABLE entity_temporal_metadata_tmp
-                        ALTER COLUMN transaction_time SET DEFAULT TSTZRANGE(now(), NULL, '[)');
 
                     CREATE TEMPORARY TABLE entity_has_left_entity_tmp
                         (LIKE entity_has_left_entity INCLUDING ALL)
