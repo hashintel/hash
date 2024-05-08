@@ -1,6 +1,6 @@
 import "reactflow/dist/style.css";
 
-import { useMutation } from "@apollo/client";
+import { useApolloClient, useMutation } from "@apollo/client";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   FlowDefinition as FlowDefinitionType,
@@ -178,9 +178,11 @@ const outputsHeight = 450;
 const containerHeight = `calc(100vh - ${HEADER_HEIGHT}px)`;
 
 export const FlowDefinition = () => {
+  const apolloClient = useApolloClient();
+
   const { selectedFlow } = useFlowDefinitionsContext();
 
-  const { selectedFlowRun } = useFlowRunsContext();
+  const { selectedFlowRun, setSelectedFlowRunId } = useFlowRunsContext();
 
   const { nodes: derivedNodes, edges: derivedEdges } = useMemo(() => {
     return getGraphFromFlowDefinition(selectedFlow);
@@ -318,7 +320,7 @@ export const FlowDefinition = () => {
 
   const flowDefinitionStateKey = `${selectedFlow.name}`;
   const flowRunStateKey = `${flowDefinitionStateKey}-${
-    selectedFlowRun?.runId ?? "definition"
+    selectedFlowRun?.workflowId ?? "definition"
   }`;
 
   return (
@@ -328,8 +330,8 @@ export const FlowDefinition = () => {
         flowDefinition={selectedFlow}
         open={showRunModal}
         onClose={() => setShowRunModal(false)}
-        runFlow={(outputs: FlowTrigger["outputs"], webId) => {
-          void startFlow({
+        runFlow={async (outputs: FlowTrigger["outputs"], webId) => {
+          const { data } = await startFlow({
             variables: {
               flowDefinition: selectedFlow,
               flowTrigger: {
@@ -339,6 +341,17 @@ export const FlowDefinition = () => {
               webId,
             },
           });
+
+          const workflowId = data?.startFlow;
+          if (!workflowId) {
+            throw new Error("Failed to start flow");
+          }
+
+          await apolloClient.refetchQueries({
+            include: ["getFlowRuns"],
+          });
+          setSelectedFlowRunId(workflowId);
+
           setShowRunModal(false);
         }}
       />
@@ -346,7 +359,7 @@ export const FlowDefinition = () => {
       <Box
         sx={{
           height: `calc(100% - ${outputsHeight + topbarHeight}px)`,
-          overflowY: "auto",
+          overflow: "auto",
           width: "100%",
           background: ({ palette }) =>
             selectedFlowRun ? palette.gray[10] : "rgb(241, 246, 251)",

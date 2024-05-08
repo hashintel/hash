@@ -71,7 +71,7 @@ type RunFlowModalProps = {
   flowDefinition: FlowDefinition;
   open: boolean;
   onClose: () => void;
-  runFlow: (outputs: FlowTrigger["outputs"], webId: OwnedById) => void;
+  runFlow: (outputs: FlowTrigger["outputs"], webId: OwnedById) => Promise<void>;
 };
 
 export const RunFlowModal = ({
@@ -92,6 +92,8 @@ export const RunFlowModal = ({
     generateInitialFormState(outputs ?? []),
   );
 
+  const [pending, setPending] = useState(false);
+
   const allRequiredValuesPresent = (outputs ?? []).every((output) => {
     const stateValue = formState[output.name]?.payload.value;
     return (
@@ -102,7 +104,7 @@ export const RunFlowModal = ({
     );
   });
 
-  const submitValues = () => {
+  const submitValues = async () => {
     if (!allRequiredValuesPresent) {
       return;
     }
@@ -138,7 +140,13 @@ export const RunFlowModal = ({
       }
     }
 
-    runFlow(outputValues, webId);
+    setPending(true);
+
+    try {
+      await runFlow(outputValues, webId);
+    } finally {
+      setPending(false);
+    }
   };
 
   return (
@@ -231,12 +239,12 @@ export const RunFlowModal = ({
             setSelectedWebOwnedById={(newWebId) => setWebId(newWebId)}
           />
           <Button
-            disabled={!allRequiredValuesPresent}
+            disabled={!allRequiredValuesPresent || pending}
             size="small"
             onClick={submitValues}
             sx={{ mt: 1 }}
           >
-            Run flow
+            {pending ? "Starting..." : "Run flow"}
           </Button>
         </Box>
       </GoogleAuthProvider>

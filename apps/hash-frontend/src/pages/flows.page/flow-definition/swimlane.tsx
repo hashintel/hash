@@ -215,8 +215,8 @@ export const Swimlane = ({
       </Stack>
       <Box
         sx={{
-          flex: 1,
           height: bounds.height + graphPadding * 2 - nodeTabHeight.offset,
+          width: bounds.width + graphPadding * 2,
         }}
       >
         <ReactFlow

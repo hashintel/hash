@@ -16,40 +16,42 @@ export type FlowRunsContextType = {
   flowRuns: FlowRun[];
   setFlowRuns: (flowRuns: FlowRun[]) => void;
   selectedFlowRun: FlowRun | null;
-  setSelectedFlowRun: (flow: FlowRun | null) => void;
+  selectedFlowRunId: string | null;
+  setSelectedFlowRunId: (workflowId: string | null) => void;
 };
 
 export const FlowRunsContext = createContext<FlowRunsContextType | null>(null);
+
 export const FlowRunsContextProvider = ({ children }: PropsWithChildren) => {
   const [flowRuns, setFlowRuns] = useState<FlowRun[]>([]);
-  const [selectedFlowRun, setSelectedFlowRun] = useState<FlowRun | null>(null);
+  const [selectedFlowRunId, setSelectedFlowRunId] = useState<string | null>(
+    null,
+  );
 
   const { data } = useQuery<GetFlowRunsQuery, GetFlowRunsQueryVariables>(
     getFlowRunsQuery,
     {
-      pollInterval: 3_000,
+      pollInterval: 10_000,
     },
   );
 
   useEffect(() => {
     if (data) {
       setFlowRuns(data.getFlowRuns);
-      setSelectedFlowRun(
-        data.getFlowRuns.find(
-          (flowRun) => flowRun.runId === selectedFlowRun?.runId,
-        ) ?? null,
-      );
     }
-  }, [data, selectedFlowRun?.runId]);
+  }, [data]);
 
   const context = useMemo<FlowRunsContextType>(
     () => ({
       flowRuns,
       setFlowRuns,
-      selectedFlowRun,
-      setSelectedFlowRun,
+      selectedFlowRun:
+        flowRuns.find((flowRun) => flowRun.workflowId === selectedFlowRunId) ??
+        null,
+      selectedFlowRunId,
+      setSelectedFlowRunId,
     }),
-    [flowRuns, selectedFlowRun],
+    [flowRuns, selectedFlowRunId],
   );
 
   return (

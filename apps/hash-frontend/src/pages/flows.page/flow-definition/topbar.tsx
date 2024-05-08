@@ -54,7 +54,7 @@ export const Topbar = ({
   const { flowDefinitions, selectedFlow, setSelectedFlow } =
     useFlowDefinitionsContext();
 
-  const { flowRuns, selectedFlowRun, setSelectedFlowRun } =
+  const { flowRuns, selectedFlowRun, setSelectedFlowRunId } =
     useFlowRunsContext();
 
   const runOptions = useMemo(
@@ -94,7 +94,7 @@ export const Topbar = ({
               setSelectedFlow(
                 flowDefinitions.find((def) => def.name === event.target.value)!,
               );
-              setSelectedFlowRun(null);
+              setSelectedFlowRunId(null);
             }}
           >
             {flowDefinitions.map((flow) => (
@@ -109,16 +109,13 @@ export const Topbar = ({
             <Divider />
             <Select
               selectSx={{ ...selectSx, minWidth: 100 }}
-              value={selectedFlowRun?.runId ?? "none"}
+              value={selectedFlowRun?.workflowId ?? "none"}
               onChange={(event) => {
                 const value = event.target.value;
                 if (!value) {
-                  setSelectedFlowRun(null);
+                  setSelectedFlowRunId(null);
                 }
-                setSelectedFlowRun(
-                  flowRuns.find((run) => run.runId === event.target.value) ??
-                    null,
-                );
+                setSelectedFlowRunId(event.target.value);
               }}
             >
               <MenuItem selected value="none">
@@ -126,8 +123,8 @@ export const Topbar = ({
               </MenuItem>
               {runOptions.map((run) => (
                 <MenuItem
-                  key={run.runId}
-                  value={run.runId}
+                  key={run.workflowId}
+                  value={run.workflowId}
                   sx={{ fontFamily: "monospace" }}
                 >
                   Run
