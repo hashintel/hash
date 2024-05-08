@@ -8,7 +8,7 @@ use futures::prelude::stream::StreamExt;
 use libp2p::{
     core::{transport::ListenerId, upgrade},
     identify, metrics, noise, ping,
-    swarm::{DialError, SwarmEvent},
+    swarm::{dial_opts::DialOpts, ConnectionId, DialError, SwarmEvent},
     yamux, Multiaddr, PeerId, SwarmBuilder,
 };
 use libp2p_stream as stream;
@@ -57,7 +57,9 @@ pub(crate) struct Task {
     ipc: TransportLayerIpc,
 
     peers: HashMap<Multiaddr, PeerId>,
+
     peers_waiting: HashMap<Multiaddr, Vec<SenderPeerId>>,
+    peers_address_lookup: HashMap<ConnectionId, Multiaddr>,
 }
 
 impl Task {
@@ -115,23 +117,27 @@ impl Task {
         }
     }
 
-    fn handle_dial(&mut self, addr: Multiaddr, tx: SenderPeerId) {
-        if let Some(peer_id) = self.peers.get(&addr) {
-            if tx.send(Ok(*peer_id)).is_err() {
-                tracing::error!("failed to send peer id to the caller");
-            }
+    fn handle_dial(&mut self, address: Multiaddr, tx: SenderPeerId) {
+        tracing::info!(%address, "dialing peer");
+
+        if let Some(peer_id) = self.peers.get(&address) {
+            Self::send_ipc_response(tx, Ok(*peer_id));
         } else {
-            let entry = self.peers_waiting.entry(addr.clone());
+            let entry = self.peers_waiting.entry(address.clone());
 
             match entry {
                 Entry::Occupied(mut entry) => {
                     entry.get_mut().push(tx);
                 }
                 Entry::Vacant(entry) => {
-                    if let Err(error) = self.swarm.dial(addr) {
+                    let opts = DialOpts::unknown_peer_id().address(address.clone()).build();
+                    let id = opts.connection_id();
+
+                    if let Err(error) = self.swarm.dial(opts) {
                         Self::send_ipc_response(tx, Err(error));
                     } else {
                         entry.insert(vec![tx]);
+                        self.peers_address_lookup.insert(id, address);
                     }
                 }
             }
@@ -164,13 +170,33 @@ impl Task {
 
         if let Some(senders) = self.peers_waiting.remove(&address) {
             for tx in senders {
-                if tx.send(Ok(peer_id)).is_err() {
-                    tracing::error!("failed to send peer id to the caller");
-                }
+                Self::send_ipc_response(tx, Ok(peer_id));
             }
         }
 
+        // remove the connection id from the lookup table
+        self.peers_address_lookup.retain(|_, addr| addr != &address);
+
         self.peers.insert(address, peer_id);
+    }
+
+    fn handle_outgoing_connection_error(
+        &mut self,
+        connection_id: ConnectionId,
+        peer_id: Option<PeerId>,
+        error: DialError,
+    ) {
+        tracing::warn!(%connection_id, ?peer_id, %error, "failed to establish outgoing connection");
+
+        let Some(address) = self.peers_address_lookup.remove(&connection_id) else {
+            return;
+        };
+
+        if let Some(senders) = self.peers_waiting.remove(&address) {
+            for tx in senders {
+                Self::send_ipc_response(tx, Err(error));
+            }
+        }
     }
 
     fn handle_event(&mut self, event: SwarmEvent<TransportBehaviourEvent>) {
@@ -182,6 +208,13 @@ impl Task {
             }
             SwarmEvent::NewExternalAddrOfPeer { peer_id, address } => {
                 self.handle_new_external_address_of_peer(peer_id, address);
+            }
+            SwarmEvent::OutgoingConnectionError {
+                connection_id,
+                peer_id,
+                error,
+            } => {
+                self.handle_outgoing_connection_error(connection_id, peer_id, error);
             }
             _ => {}
         }

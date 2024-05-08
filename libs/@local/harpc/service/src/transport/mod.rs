@@ -212,4 +212,46 @@ pub(crate) mod test {
 
         (layer, cancel.drop_guard())
     }
+
+    #[test_log::test(tokio::test)]
+    async fn lookup_peer() {
+        let (server, _guard_server) = layer();
+        let (client, _guard_client) = layer();
+
+        let address = address();
+
+        server
+            .listen_on(address.clone())
+            .await
+            .expect("memory transport should be able to listen on memory address");
+
+        let peer_id = client
+            .lookup_peer(address)
+            .await
+            .expect("should be able to lookup peer");
+
+        // TODO: peer id should be the same as the one returned by the server
+    }
+
+    #[tokio::test]
+    async fn metrics() {
+        // I think I misunderstood the purpose of metrics?! YEP I totally did. Metrics is not the
+        // output, it's rather the input used to record metrics.
+        let (layer, _guard) = layer();
+
+        let metrics = layer
+            .metrics()
+            .await
+            .expect("should be able to provide metrics");
+    }
+
+    #[tokio::test]
+    async fn listen_on() {
+        let (layer, _guard) = layer();
+
+        layer
+            .listen_on(address())
+            .await
+            .expect("memory transport should be able to listen on memory address");
+    }
 }

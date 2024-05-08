@@ -34,3 +34,6 @@ tokio = { workspace = true, features = ["io-util", "macros"] }
 tokio-stream = { version = "0.1.15", features = ["time"] }
 tokio-util = { workspace = true, features = ["codec", "compat", "rt"] }
 tracing.workspace = true
+
+[dev-dependencies]
+test-log = { version = "0.2.16", features = ["trace"] }
