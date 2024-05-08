@@ -40,7 +40,7 @@ import { handleQueryPdfToolCall } from "./infer-entities-from-web-page-worker-ag
 import type { ToolCallArguments } from "./infer-entities-from-web-page-worker-agent/tool-definitions";
 import { toolDefinitions } from "./infer-entities-from-web-page-worker-agent/tool-definitions";
 import type {
-  FileIdentifier,
+  AccessedRemoteFile,
   InferEntitiesFromWebPageWorkerAgentInput,
   InferEntitiesFromWebPageWorkerAgentState,
   ToolName,
@@ -337,7 +337,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
 }): Promise<
   Status<{
     inferredEntities: ProposedEntity[];
-    filesUsedToProposeEntities: FileIdentifier[];
+    filesUsedToProposeEntities: AccessedRemoteFile[];
   }>
 > => {
   const { url, existingEntities } = params;
@@ -499,13 +499,15 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               | "inferEntitiesFromWebPage"
               | "inferEntitiesFromText"];
 
-            if (
-              "fileUrl" in toolCallInput &&
-              !state.filesQueried.some(
-                ({ url: previouslyQueriedFileUrl }) =>
-                  previouslyQueriedFileUrl === toolCallInput.fileUrl,
-              )
-            ) {
+            const accessedRemoteFile =
+              "fileUrl" in toolCallInput
+                ? state.filesQueried.find(
+                    ({ url: previouslyQueriedFileUrl }) =>
+                      previouslyQueriedFileUrl === toolCallInput.fileUrl,
+                  )
+                : undefined;
+
+            if ("fileUrl" in toolCallInput && !accessedRemoteFile) {
               return {
                 ...toolCall,
                 output: dedent(`
@@ -695,11 +697,11 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                           name: undefined,
                           description: undefined,
                         },
+                        loadedAt: new Date().toISOString(),
                         /** @todo */
                         authors: undefined,
                         firstPublished: undefined,
                         lastUpdated: undefined,
-                        loadedAt: undefined,
                       },
                     ],
                   }
@@ -713,11 +715,11 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                           name: undefined,
                           description: undefined,
                         },
+                        loadedAt: accessedRemoteFile?.loadedAt,
                         /** @todo */
                         authors: undefined,
-                        firstPublished: undefined,
+                        firstPublished: validAt,
                         lastUpdated: undefined,
-                        loadedAt: undefined,
                       },
                     ],
                   };
@@ -756,12 +758,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                   toolCallInput.fileUrl,
               )
             ) {
-              const fileIdentifier = state.filesQueried.find(
-                ({ url: previouslyQueriedFileUrl }) =>
-                  previouslyQueriedFileUrl === toolCallInput.fileUrl,
-              )!;
-
-              state.filesUsedToProposeEntities.push(fileIdentifier);
+              state.filesUsedToProposeEntities.push(accessedRemoteFile!);
             }
 
             const summarizedNewProposedEntities = newProposedEntities.map(

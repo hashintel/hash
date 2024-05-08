@@ -23,13 +23,14 @@ export type ToolName = (typeof toolNames)[number];
 export const isToolName = (value: string): value is ToolName =>
   toolNames.includes(value as ToolName);
 
-export type FileIdentifier = {
+export type AccessedRemoteFile = {
   /**
    * @todo: consider enforcing that this refers to a type that is or extends
    * the "File" system entity type
    */
   entityTypeId: VersionedUrl;
   url: string;
+  loadedAt: string;
 };
 
 export type InferEntitiesFromWebPageWorkerAgentState = {
@@ -41,8 +42,8 @@ export type InferEntitiesFromWebPageWorkerAgentState = {
   submittedEntityIds: string[];
   inferredEntitiesFromWebPageUrls: string[];
   idCounter: number;
-  filesQueried: FileIdentifier[];
-  filesUsedToProposeEntities: FileIdentifier[];
+  filesQueried: AccessedRemoteFile[];
+  filesUsedToProposeEntities: AccessedRemoteFile[];
 };
 
 export type InferEntitiesFromWebPageWorkerAgentInput = {

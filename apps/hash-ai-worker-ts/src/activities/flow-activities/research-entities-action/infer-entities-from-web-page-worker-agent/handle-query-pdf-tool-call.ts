@@ -138,6 +138,7 @@ export const handleQueryPdfToolCall = async (params: {
     state.filesQueried.push({
       url: fileUrl,
       entityTypeId: systemEntityTypes.pdfDocument.entityTypeId,
+      loadedAt: new Date().toISOString(),
     });
   }
 
