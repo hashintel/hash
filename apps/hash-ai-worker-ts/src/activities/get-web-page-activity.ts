@@ -52,6 +52,9 @@ const getWebPageFromPuppeteer = async (url: string): Promise<WebPage> => {
     logger.error(`Failed to load URL ${url} in Puppeteer: ${errMessage}`);
 
     return {
+      /**
+       * @todo H-2604 consider returning this as a structured error that the calling code rather than the LLM can handle
+       */
       htmlContent: `Could not load page: ${errMessage}`,
       title: `Error loading page: ${errMessage}`,
       url,
@@ -87,6 +90,7 @@ const getWebPageFromBrowser = async (url: string): Promise<WebPage> => {
  * sites specific user(s) can access.
  *
  * @todo vary these based on knowledge about which sites users can help us with
+ * @todo be able to detect other arbitrary sites which hit auth/paywalls (e.g. via looking for 401 status codes)
  */
 const domainsToRequestFromBrowser = ["crunchbase.com", "linkedin.com"];
 
