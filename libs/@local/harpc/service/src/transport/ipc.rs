@@ -43,17 +43,6 @@ impl TransportLayerIpc {
             .change_context(TransportError)
     }
 
-    pub(super) async fn metrics(&self) -> Result<metrics::Metrics, TransportError> {
-        let (tx, rx) = oneshot::channel();
-
-        self.tx
-            .send(Command::Metrics { tx })
-            .await
-            .change_context(TransportError)?;
-
-        rx.await.change_context(TransportError)
-    }
-
     pub(super) async fn listen_on(&self, address: Multiaddr) -> Result<ListenerId, TransportError> {
         let (tx, rx) = oneshot::channel();
 

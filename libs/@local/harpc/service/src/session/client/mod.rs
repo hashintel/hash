@@ -3,7 +3,7 @@ mod transaction;
 mod writer;
 
 use error_stack::{Result, ResultExt};
-use libp2p::PeerId;
+use libp2p::{Multiaddr, PeerId};
 use tokio_util::sync::CancellationToken;
 
 use self::connection::Connection;
@@ -27,7 +27,13 @@ impl SessionLayer {
     /// # Errors
     ///
     /// Returns an error if the dial fails.
-    pub async fn dial(&self, peer: PeerId) -> Result<Connection, SessionError> {
+    pub async fn dial(&self, address: Multiaddr) -> Result<Connection, SessionError> {
+        let peer = self
+            .transport
+            .lookup_peer(address)
+            .await
+            .change_context(SessionError)?;
+
         let (sink, stream) = self
             .transport
             .dial(peer)

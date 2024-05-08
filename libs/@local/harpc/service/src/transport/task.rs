@@ -1,3 +1,4 @@
+use alloc::sync::Arc;
 use core::mem;
 use std::{
     collections::{hash_map::Entry, HashMap},
@@ -8,7 +9,9 @@ use error_stack::{Result, ResultExt};
 use futures::prelude::stream::StreamExt;
 use libp2p::{
     core::{transport::ListenerId, upgrade},
-    identify, metrics, noise, ping,
+    identify,
+    metrics::{self, BandwidthTransport, Metrics, Recorder},
+    noise, ping,
     swarm::{dial_opts::DialOpts, ConnectionId, DialError, SwarmEvent},
     yamux, Multiaddr, PeerId, SwarmBuilder,
 };
@@ -40,9 +43,6 @@ pub(crate) enum Command {
         address: Multiaddr,
         tx: SenderPeerId,
     },
-    Metrics {
-        tx: oneshot::Sender<metrics::Metrics>,
-    },
     ListenOn {
         address: Multiaddr,
         tx: SenderListenerId,
@@ -50,9 +50,11 @@ pub(crate) enum Command {
 }
 
 pub(crate) struct Task {
+    peer_id: PeerId,
     swarm: TransportSwarm,
 
-    registry: metrics::Registry,
+    registry: Arc<metrics::Registry>,
+    metrics: metrics::Metrics,
 
     rx: mpsc::Receiver<Command>,
     ipc: TransportLayerIpc,
@@ -96,9 +98,17 @@ impl Task {
             .with_swarm_config(|existing| config.swarm.apply(existing))
             .build();
 
+        let peer_id = *swarm.local_peer_id();
+
+        let metrics = Metrics::new(&mut registry);
+        let registry = Arc::new(registry);
+
         Ok(Self {
+            peer_id,
             swarm,
+
             registry,
+            metrics,
 
             rx,
             ipc,
@@ -107,6 +117,14 @@ impl Task {
             peers_waiting: HashMap::new(),
             peers_address_lookup: HashMap::new(),
         })
+    }
+
+    pub(crate) const fn peer_id(&self) -> PeerId {
+        self.peer_id
+    }
+
+    pub(crate) fn registry(&self) -> Arc<metrics::Registry> {
+        Arc::clone(&self.registry)
     }
 
     pub(crate) fn ipc(&self) -> TransportLayerIpc {
@@ -154,11 +172,6 @@ impl Task {
                 Self::send_ipc_response(tx, control);
             }
             Command::LookupPeer { address: addr, tx } => self.handle_dial(addr, tx),
-            Command::Metrics { tx } => {
-                let metrics = metrics::Metrics::new(&mut self.registry);
-
-                Self::send_ipc_response(tx, metrics);
-            }
             Command::ListenOn { address, tx } => {
                 let result = self.swarm.listen_on(address);
 
@@ -196,6 +209,9 @@ impl Task {
             return;
         };
 
+        // the peer has been invalidated, so we remove it from the list of known peers
+        self.peers.remove(&address);
+
         if let Some(senders) = self.peers_waiting.remove(&address) {
             for tx in senders {
                 // `DialError` is not `Clone`, so for every subsequent call to `send_ipc_response`
@@ -208,6 +224,16 @@ impl Task {
 
     fn handle_event(&mut self, event: SwarmEvent<TransportBehaviourEvent>) {
         tracing::debug!(?event, "received swarm event");
+
+        match &event {
+            SwarmEvent::Behaviour(TransportBehaviourEvent::Identify(event)) => {
+                self.metrics.record(event);
+            }
+            SwarmEvent::Behaviour(TransportBehaviourEvent::Ping(event)) => {
+                self.metrics.record(event);
+            }
+            event => self.metrics.record(event),
+        }
 
         match event {
             SwarmEvent::NewListenAddr { address, .. } => {

@@ -4,6 +4,7 @@
     type_alias_impl_trait,
     impl_trait_in_assoc_type
 )]
+#![cfg_attr(test, feature(assert_matches))]
 
 extern crate alloc;
 
