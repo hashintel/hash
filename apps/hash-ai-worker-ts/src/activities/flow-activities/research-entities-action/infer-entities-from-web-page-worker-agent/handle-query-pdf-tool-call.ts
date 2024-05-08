@@ -1,9 +1,11 @@
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 import { MetadataMode } from "llamaindex";
 
 import { logger } from "../../../shared/activity-logger";
 import type { ParsedLlmToolCall } from "../../../shared/get-llm-response/types";
+import { logProgress } from "../../../shared/log-progress";
 import { stringify } from "../../../shared/stringify";
 import type { CompletedToolCall } from "../types";
 import { filterAndRankTextChunksAgent } from "./filter-and-rank-text-chunks-agent";
@@ -61,6 +63,15 @@ export const handleQueryPdfToolCall = async (params: {
       isError: true,
     };
   }
+
+  logProgress([
+    {
+      recordedAt: new Date().toISOString(),
+      stepId: Context.current().info.activityId,
+      type: "ViewedFile",
+      fileUrl,
+    },
+  ]);
 
   /**
    * Step 2: Index the PDF file at the provided URL, and query it

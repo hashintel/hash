@@ -348,6 +348,13 @@ export type VisitedWebPageLog = {
   type: "VisitedWebPage";
 };
 
+export type ViewedFile = {
+  fileUrl: string;
+  recordedAt: string;
+  stepId: string;
+  type: "ViewedFile";
+};
+
 export type ProposedEntityLog = {
   proposedEntity: ProposedEntity;
   recordedAt: string;
@@ -365,7 +372,8 @@ export type PersistedEntityLog = {
 export type StepProgressLog =
   | PersistedEntityLog
   | ProposedEntityLog
-  | VisitedWebPageLog;
+  | VisitedWebPageLog
+  | ViewedFile;
 
 export type ProgressLogSignal = {
   attempt: number;
