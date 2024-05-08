@@ -133,6 +133,7 @@ where
     async fn handle_request(
         &self,
         tx: mpsc::Sender<Response>,
+        tasks: &TaskTracker,
         cancel: &CancellationToken,
         request: Request,
     ) -> ControlFlow<()> {
@@ -179,7 +180,7 @@ where
                     .try_send(request)
                     .expect("infallible; buffer should be large enough to hold the request");
 
-                task.start(cancel);
+                task.start(tasks, cancel.clone());
 
                 // insert the transaction into the index (replace if already exists)
                 let entry = self.transactions.entry_async(request_id).await;
@@ -267,7 +268,7 @@ where
                             finished.add_permits(1);
                         }
                         Some(Ok(request)) => {
-                            if self.handle_request(tx.clone(), &cancel, request).await.is_break() {
+                            if self.handle_request(tx.clone(), &tasks, &cancel, request).await.is_break() {
                                 tracing::info!("supervisor has been shut down");
                                 break;
                             }

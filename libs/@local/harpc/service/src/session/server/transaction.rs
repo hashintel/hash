@@ -204,9 +204,7 @@ pub(crate) struct TransactionTask {
 }
 
 impl TransactionTask {
-    pub(super) fn start(self, cancel: &CancellationToken) -> TaskTracker {
-        let child = cancel.child_token();
-
+    pub(super) fn start(self, tasks: &TaskTracker, cancel: CancellationToken) {
         let recv = TransactionRecvDelegateTask {
             id: self.id,
             tx: self.request_tx,
@@ -219,13 +217,7 @@ impl TransactionTask {
             rx: self.response_rx,
         };
 
-        let tracker = TaskTracker::new();
-
-        tracker.spawn(recv.run(child.clone()));
-        tracker.spawn(send.run(child));
-
-        tracker.close();
-
-        tracker
+        tasks.spawn(recv.run(cancel.clone()));
+        tasks.spawn(send.run(cancel));
     }
 }

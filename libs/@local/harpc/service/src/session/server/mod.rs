@@ -16,11 +16,14 @@ mod write;
 
 use alloc::sync::Arc;
 
+use error_stack::{Result, ResultExt};
 use futures::Stream;
+use libp2p::Multiaddr;
 use tokio::sync::{mpsc, Semaphore};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
 use self::{session_id::SessionIdProducer, task::Task, transaction::Transaction};
+use super::error::SessionError;
 use crate::{codec::ErrorEncoder, stream::ReceiverStreamCancel, transport::TransportLayer};
 
 const TRANSACTION_BUFFER_SIZE: usize = 32;
@@ -58,7 +61,20 @@ where
         &self.tasks
     }
 
-    pub fn listen(self) -> impl Stream<Item = Transaction> + Send + Sync + 'static {
+    /// Listen for incoming connections on the given address.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the transport layer fails to listen on the given address.
+    pub async fn listen(
+        self,
+        address: Multiaddr,
+    ) -> Result<impl Stream<Item = Transaction> + Send + Sync + 'static, SessionError> {
+        self.transport
+            .listen_on(address)
+            .await
+            .change_context(SessionError)?;
+
         let (tx, rx) = mpsc::channel(TRANSACTION_BUFFER_SIZE);
 
         let task = Task {
@@ -74,6 +90,6 @@ where
         self.tasks
             .spawn(task.run(self.tasks.clone(), cancel.clone()));
 
-        ReceiverStreamCancel::new(rx, cancel.drop_guard())
+        Ok(ReceiverStreamCancel::new(rx, cancel.drop_guard()))
     }
 }
