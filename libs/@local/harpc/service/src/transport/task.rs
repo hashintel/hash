@@ -1,3 +1,4 @@
+use core::mem;
 use std::{
     collections::{hash_map::Entry, HashMap},
     io,
@@ -104,6 +105,7 @@ impl Task {
 
             peers: HashMap::new(),
             peers_waiting: HashMap::new(),
+            peers_address_lookup: HashMap::new(),
         })
     }
 
@@ -188,13 +190,18 @@ impl Task {
     ) {
         tracing::warn!(%connection_id, ?peer_id, %error, "failed to establish outgoing connection");
 
+        let mut error = error;
+
         let Some(address) = self.peers_address_lookup.remove(&connection_id) else {
             return;
         };
 
         if let Some(senders) = self.peers_waiting.remove(&address) {
             for tx in senders {
-                Self::send_ipc_response(tx, Err(error));
+                // `DialError` is not `Clone`, so for every subsequent call to `send_ipc_response`
+                // (if we have multiple calls) we replace the error with `DialError::Aborted`, which
+                // is the closest I could find to a generic error.
+                Self::send_ipc_response(tx, Err(mem::replace(&mut error, DialError::Aborted)));
             }
         }
     }

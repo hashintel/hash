@@ -194,7 +194,7 @@ pub(crate) mod test {
 
     pub(crate) fn address() -> libp2p::Multiaddr {
         // to allow for unique port numbers, even if the tests are run concurrently we use an atomic
-        static CHANNEL: AtomicU64 = AtomicU64::new(0);
+        static CHANNEL: AtomicU64 = AtomicU64::new(1);
 
         // `SeqCst` just to be on the safe side.
         let id = CHANNEL.fetch_add(1, Ordering::SeqCst);
