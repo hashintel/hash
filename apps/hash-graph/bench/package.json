@@ -3,6 +3,7 @@
   "version": "0.0.0-private",
   "private": true,
   "scripts": {
+    "bench:compare": "mkdir -p out/ && bash ../../../.github/scripts/read_criterion_bench_results.sh > out/index.md",
     "bench:integration": "cargo bench",
     "bench:unit": "mkdir -p out && echo 0 && echo blablabla > out/index.md",
     "test:integration": "cargo hack test --feature-powerset --all-targets"

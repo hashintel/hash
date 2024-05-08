@@ -25,14 +25,14 @@ while [[ $# -gt 0 ]]; do
 done
 
 function convert_nanos() {
-  if [[ $1 -lt 10000 ]]; then
-    echo "$1 ns"
-  elif [[ $1 -lt 10000000 ]]; then
-    echo "$(( $1 / 1000 )) µs"
-  elif [[ $1 -lt 10000000000 ]]; then
-    echo "$(( $1 / 1000000 )) ms"
+  if [[ $1 -lt 1000 ]]; then
+    echo "$1 \text{ ns}"
+  elif [[ $1 -lt 1000000 ]]; then
+    echo "$(bc <<< "scale=2; $1 / 1000") \text{ µs}"
+  elif [[ $1 -lt 1000000000 ]]; then
+    echo "$(bc <<< "scale=2; $1 / 1000000") \text{ ms}"
   else
-    echo "$(( $1 / 10000000000 )) s"
+    echo "$(bc <<< "scale=2; $1 / 1000000000") \text{ s}"
   fi
 }
 
@@ -45,6 +45,8 @@ function compare() {
         last_group_id=$group_id
         echo "### $group_id"
         echo
+        echo "| Function | Value | Mean |"
+        echo "|----------|-------|------|"
     fi
 
     function_id=$(jq -r '.function_id' "$1/benchmark.json")
@@ -54,20 +56,32 @@ function compare() {
     new_stderr=$(jq -r '.mean.standard_error' "$1/estimates.json")
     new_mean=${new_mean%.*}
     new_stderr=${new_stderr%.*}
+
+    echo -n "| $function_id | $value_str | \$\$$(convert_nanos $new_mean) \pm $(convert_nanos $new_stderr)"
     if [[ -n $2 ]]; then
         old_mean=$(jq -r '.mean.point_estimate' "$2/estimates.json")
         old_stderr=$(jq -r '.mean.standard_error' "$2/estimates.json")
         old_mean=${old_mean%.*}
         old_stderr=${old_stderr%.*}
-        echo "$function_id $value_str"
-        echo "$(convert_nanos $old_mean) ± $(convert_nanos "$old_stderr") -> $(convert_nanos $new_mean) ± $(convert_nanos $new_stderr)"
 
-        is_regression=$(bc <<< "$new_mean > $old_mean")
         percent=$(bc <<< "scale=2; 100 * ($new_mean - $old_mean) / $old_mean")
-        echo "Change: $percent%"
+        if [[ $percent -ge 0 ]]; then
+            percent="+$percent"
+        fi
+
+#        $${\color{white}White}$$
+        echo -n '\space({\color{'
+        if [[ $percent -lt 5 && $percent -gt -5 ]]; then
+            echo -n "lightgreen"
+        elif [[ $is_regression -eq 1 ]]; then
+            echo -n "red"
+        else
+            echo -n "gray"
+        fi
+        echo -n "}$percent"
+        echo -n '\\%})'
     fi
-
-
+    echo '$$ |'
 }
 
 for group in "$REPOSITORY_ROOT/target/criterion/"*; do
