@@ -282,11 +282,15 @@ export const writeGoogleSheetAction: FlowActionActivity<{
             },
           },
         },
-        ...existingSheets.map((sheet) => ({
-          deleteSheet: {
-            sheetId: sheet.properties?.sheetId,
-          },
-        })),
+        ...existingSheets
+          .filter(
+            (sheet) => sheet.properties?.sheetId !== placeholderFirstSheetId,
+          )
+          .map((sheet) => ({
+            deleteSheet: {
+              sheetId: sheet.properties?.sheetId,
+            },
+          })),
         ...sheetRequests,
         {
           deleteSheet: {
@@ -419,7 +423,10 @@ export const writeGoogleSheetAction: FlowActionActivity<{
         outputs: [
           {
             outputName: "googleSheetEntity",
-            payload: { kind: "Entity", value: entityToReturn },
+            payload: {
+              kind: "PersistedEntity",
+              value: { entity: entityToReturn, operation: "create" },
+            },
           },
         ],
       },

@@ -192,7 +192,7 @@ export const EntitySelector = <Multiple extends boolean>({
           ),
         };
       }}
-      placeholder="Search for an entity"
+      inputPlaceholder="Search for an entity"
       renderTags={(tagValue, getTagProps) =>
         tagValue.map((option, index) => (
           <Chip

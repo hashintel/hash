@@ -5,6 +5,7 @@ import type {
   ExternalInputResponseSignal,
   ProgressLogSignal,
 } from "@local/hash-isomorphic-utils/flows/types";
+import { StatusCode } from "@local/status";
 import type {
   Client as TemporalClient,
   WorkflowExecutionInfo,
@@ -314,11 +315,22 @@ const mapTemporalWorkflowToFlowStatus = async (
 
         case proto.temporal.api.enums.v1.EventType
           .EVENT_TYPE_ACTIVITY_TASK_COMPLETED: {
-          activityRecord.status = FlowStepStatus.Completed;
           activityRecord.outputs =
             parseHistoryItemPayload(
               event.activityTaskCompletedEventAttributes?.result,
             ) ?? [];
+
+          if (
+            /** @todo H-2604 have some kind of 'partially completed' status when reworking flow return codes */
+            activityRecord.outputs.every(
+              (output) => output.code !== StatusCode.Ok,
+            )
+          ) {
+            activityRecord.status = FlowStepStatus.Failed;
+          } else {
+            activityRecord.status = FlowStepStatus.Completed;
+          }
+
           activityRecord.closedAt = eventTimeIsoStringFromEvent(event);
           break;
         }

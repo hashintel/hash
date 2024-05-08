@@ -5,9 +5,10 @@ import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-def
 import type {
   FlowDefinition as FlowDefinitionType,
   FlowTrigger,
+  PersistedEntity,
   ProposedEntity,
+  StepProgressLog,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type { Entity } from "@local/hash-subgraph";
 import { Box, Stack, Typography } from "@mui/material";
 import { format } from "date-fns";
 import { useCallback, useMemo, useState } from "react";
@@ -18,11 +19,10 @@ import type {
   StartFlowMutationVariables,
 } from "../../graphql/api-types.gen";
 import { startFlowMutation } from "../../graphql/queries/knowledge/entity.queries";
-import { isNonNullable } from "../../lib/typeguards";
-import { Deliverables } from "./flow-definition/deliverables";
-import { EntityResultTable } from "./flow-definition/entity-result-table";
+import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
+import { ActivityLog } from "./flow-definition/activity-log";
 import { FlowRunSidebar } from "./flow-definition/flow-run-sidebar";
-import { PersistedEntityGraph } from "./flow-definition/persisted-entity-graph";
+import { Outputs } from "./flow-definition/outputs";
 import { RunFlowModal } from "./flow-definition/run-flow-modal";
 import { SectionLabel } from "./flow-definition/section-label";
 import { nodeDimensions } from "./flow-definition/shared/dimensions";
@@ -43,7 +43,7 @@ import {
   groupStepsByDependencyLayer,
 } from "./flow-definition/sort-graph";
 import { Swimlane } from "./flow-definition/swimlane";
-import { Topbar } from "./flow-definition/topbar";
+import { Topbar, topbarHeight } from "./flow-definition/topbar";
 
 const getGraphFromFlowDefinition = (
   flowDefinition: FlowDefinitionType,
@@ -173,6 +173,10 @@ const getGraphFromFlowDefinition = (
   };
 };
 
+const outputsHeight = 450;
+
+const containerHeight = `calc(100vh - ${HEADER_HEIGHT}px)`;
+
 export const FlowDefinition = () => {
   const { selectedFlow } = useFlowDefinitionsContext();
 
@@ -238,26 +242,33 @@ export const FlowDefinition = () => {
     return graphsByGroup;
   }, [derivedNodes, derivedEdges, selectedFlow.groups]);
 
-  const { persistedEntities, proposedEntities } = useMemo(() => {
+  const { logs, persistedEntities, proposedEntities } = useMemo<{
+    logs: StepProgressLog[];
+    persistedEntities: PersistedEntity[];
+    proposedEntities: ProposedEntity[];
+  }>(() => {
     if (!selectedFlowRun) {
-      return { persistedEntities: [], proposedEntities: [] };
+      return { logs: [], persistedEntities: [], proposedEntities: [] };
     }
-    const persisted: Entity[] = [];
+
+    const progressLogs: StepProgressLog[] = [];
+    const persisted: PersistedEntity[] = [];
     const proposed: ProposedEntity[] = [];
 
     for (const step of selectedFlowRun.steps) {
       const outputs = step.outputs?.[0]?.contents?.[0]?.outputs ?? [];
 
-      if (outputs.length === 0) {
-        for (const log of step.logs) {
+      for (const log of step.logs) {
+        progressLogs.push(log);
+
+        if (outputs.length === 0) {
           if (log.type === "ProposedEntity") {
             proposed.push(log.proposedEntity);
           }
           if (log.type === "PersistedEntity" && log.persistedEntity.entity) {
-            persisted.push(log.persistedEntity.entity);
+            persisted.push(log.persistedEntity);
           }
         }
-        continue;
       }
 
       for (const output of outputs) {
@@ -269,44 +280,31 @@ export const FlowDefinition = () => {
               proposed.push(output.payload.value);
             }
             break;
-          case "Entity":
-            if (Array.isArray(output.payload.value)) {
-              persisted.push(...output.payload.value);
-            } else {
-              persisted.push(output.payload.value);
-            }
-            break;
           case "PersistedEntity":
             if (Array.isArray(output.payload.value)) {
-              persisted.push(
-                ...output.payload.value
-                  .map((inner) => inner.entity)
-                  .filter(isNonNullable),
-              );
+              persisted.push(...output.payload.value);
             } else if (output.payload.value.entity) {
-              persisted.push(output.payload.value.entity);
+              persisted.push(output.payload.value);
             }
             break;
           case "PersistedEntities":
             if (Array.isArray(output.payload.value)) {
               persisted.push(
-                ...output.payload.value.flatMap((innerMap) =>
-                  innerMap.persistedEntities
-                    .map((inner) => inner.entity)
-                    .filter(isNonNullable),
+                ...output.payload.value.flatMap(
+                  (innerMap) => innerMap.persistedEntities,
                 ),
               );
             } else {
-              persisted.push(
-                ...output.payload.value.persistedEntities
-                  .map((inner) => inner.entity)
-                  .filter(isNonNullable),
-              );
+              persisted.push(...output.payload.value.persistedEntities);
             }
         }
       }
     }
-    return { proposedEntities: proposed, persistedEntities: persisted };
+    return {
+      logs: progressLogs,
+      proposedEntities: proposed,
+      persistedEntities: persisted,
+    };
   }, [selectedFlowRun]);
 
   const [startFlow] = useMutation<
@@ -319,10 +317,12 @@ export const FlowDefinition = () => {
   }, []);
 
   const flowDefinitionStateKey = `${selectedFlow.name}`;
-  const flowRunStateKey = `${flowDefinitionStateKey}-${selectedFlowRun?.runId ?? "definition"}`;
+  const flowRunStateKey = `${flowDefinitionStateKey}-${
+    selectedFlowRun?.runId ?? "definition"
+  }`;
 
   return (
-    <>
+    <Box sx={{ height: containerHeight }}>
       <RunFlowModal
         key={selectedFlow.name}
         flowDefinition={selectedFlow}
@@ -345,140 +345,144 @@ export const FlowDefinition = () => {
       <Topbar handleRunFlowClicked={handleRunFlowClicked} />
       <Box
         sx={{
+          height: `calc(100% - ${outputsHeight + topbarHeight}px)`,
+          overflowY: "auto",
           width: "100%",
           background: ({ palette }) =>
             selectedFlowRun ? palette.gray[10] : "rgb(241, 246, 251)",
           transition: ({ transitions }) =>
             transitions.create("background", transitionOptions),
           pt: 1.5,
+          "&:after": {
+            content: '""',
+            display: "block",
+            height: 24,
+            width: "100%",
+          },
         }}
       >
-        <Stack direction="row">
+        <Stack
+          direction="row"
+          sx={{
+            width: "100%",
+          }}
+        >
           {selectedFlowRun ? (
             <FlowRunSidebar
               flowDefinition={selectedFlow}
               groups={flowMaybeGrouped.groups}
             />
           ) : null}
-          <Box flex={1}>
-            <Box sx={{ minHeight: 300, px: 3 }}>
-              <SectionLabel text={selectedFlowRun ? "status" : "definition"} />
-              <Box
-                sx={({ palette, transitions }) => ({
-                  background: palette.common.white,
-                  border: `1px solid ${palette.gray[selectedFlowRun ? 20 : 30]}`,
-                  borderRadius: flowSectionBorderRadius,
-                  "& > :first-of-type": {
-                    borderTopRightRadius: flowSectionBorderRadius,
-                    borderTopLeftRadius: flowSectionBorderRadius,
-                  },
-                  "& > :last-child": {
-                    borderBottomRightRadius: flowSectionBorderRadius,
-                    borderBottomLeftRadius: flowSectionBorderRadius,
-                  },
-                  "& > :last-child > :first-of-type": {
-                    borderBottomLeftRadius: flowSectionBorderRadius,
-                  },
-                  transition: transitions.create("border", transitionOptions),
-                })}
+          <Box sx={{ minHeight: 300, px: 3 }}>
+            <SectionLabel text={selectedFlowRun ? "status" : "definition"} />
+            <Box
+              sx={({ palette, transitions }) => ({
+                background: palette.common.white,
+                border: `1px solid ${palette.gray[selectedFlowRun ? 20 : 30]}`,
+                borderRadius: flowSectionBorderRadius,
+                "& > :first-of-type": {
+                  borderTopRightRadius: flowSectionBorderRadius,
+                  borderTopLeftRadius: flowSectionBorderRadius,
+                },
+                "& > :last-child": {
+                  borderBottomRightRadius: flowSectionBorderRadius,
+                  borderBottomLeftRadius: flowSectionBorderRadius,
+                },
+                "& > :last-child > :first-of-type": {
+                  borderBottomLeftRadius: flowSectionBorderRadius,
+                },
+                transition: transitions.create("border", transitionOptions),
+              })}
+            >
+              <Stack
+                direction="row"
+                sx={{
+                  borderBottom: ({ palette }) =>
+                    `1px solid ${palette.gray[20]}`,
+                  p: 3,
+                }}
               >
-                <Stack
-                  direction="row"
-                  sx={{
-                    borderBottom: ({ palette }) =>
-                      `1px solid ${palette.gray[20]}`,
-                    p: 3,
-                  }}
-                >
-                  {selectedFlowRun ? (
-                    <Typography
-                      variant="smallTextParagraphs"
-                      sx={{ color: ({ palette }) => palette.gray[60] }}
-                    >
-                      Started <strong>manually</strong> when triggered on{" "}
-                      {format(
-                        new Date(selectedFlowRun.startedAt),
-                        "yyyy-MM-dd 'at' h:mm a",
-                      )}
-                    </Typography>
-                  ) : (
-                    <>
-                      <Typography
-                        component="span"
-                        sx={{ fontSize: 14, fontWeight: 600, mr: 2 }}
-                      >
-                        {selectedFlow.name}
-                      </Typography>
-                      <Typography
-                        component="span"
-                        sx={{ fontSize: 14, fontWeight: 400 }}
-                      >
-                        {selectedFlow.description}
-                      </Typography>
-                    </>
-                  )}
-                </Stack>
-
-                {flowMaybeGrouped.groups.map(({ group, nodes, edges }) => (
-                  <ReactFlowProvider
-                    key={`${flowDefinitionStateKey}-${group?.groupId ?? "ungrouped"}`}
+                {selectedFlowRun ? (
+                  <Typography
+                    variant="smallTextParagraphs"
+                    sx={{ color: ({ palette }) => palette.gray[60] }}
                   >
-                    <Swimlane group={group} nodes={nodes} edges={edges} />
-                  </ReactFlowProvider>
-                ))}
-              </Box>
+                    Started <strong>manually</strong> when triggered on{" "}
+                    {format(
+                      new Date(selectedFlowRun.startedAt),
+                      "yyyy-MM-dd 'at' h:mm a",
+                    )}
+                  </Typography>
+                ) : (
+                  <>
+                    <Typography
+                      component="span"
+                      sx={{ fontSize: 14, fontWeight: 600, mr: 2 }}
+                    >
+                      {selectedFlow.name}
+                    </Typography>
+                    <Typography
+                      component="span"
+                      sx={{ fontSize: 14, fontWeight: 400 }}
+                    >
+                      {selectedFlow.description}
+                    </Typography>
+                  </>
+                )}
+              </Stack>
+
+              {flowMaybeGrouped.groups.map(({ group, nodes, edges }) => (
+                <ReactFlowProvider
+                  key={`${flowDefinitionStateKey}-${
+                    group?.groupId ?? "ungrouped"
+                  }`}
+                >
+                  <Swimlane group={group} nodes={nodes} edges={edges} />
+                </ReactFlowProvider>
+              ))}
             </Box>
           </Box>
         </Stack>
-
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          sx={({ palette }) => ({
-            background: palette.gray[10],
-            borderTop: `1px solid ${palette.gray[20]}`,
-            height: 400,
-            px: 3,
-            mt: 3,
-            pb: 7,
-          })}
-        >
-          <Box
-            sx={{
-              height: "100%",
-              width: "100%",
-              borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
-              pr: 3,
-              pt: 2.5,
-            }}
-          >
-            <SectionLabel text="Raw output" />
-            <Stack
-              direction="row"
-              gap={1}
-              sx={{ height: "100%", width: "100%" }}
-            >
-              <EntityResultTable
-                key={`${flowRunStateKey}-entity-result-table`}
-                persistedEntities={persistedEntities}
-                proposedEntities={proposedEntities}
-              />
-              <PersistedEntityGraph
-                key={`${flowRunStateKey}-persisted-entity-graph`}
-                persistedEntities={persistedEntities}
-              />
-            </Stack>
-          </Box>
-          <Box sx={{ width: "40%", pl: 3, pt: 2.5 }}>
-            <SectionLabel text="Deliverable" />
-
-            <Deliverables
-              key={`${flowRunStateKey}-deliverable`}
-              outputs={selectedFlowRun?.outputs ?? []}
-            />
-          </Box>
-        </Stack>
       </Box>
-    </>
+
+      <Stack
+        direction="row"
+        justifyContent="space-between"
+        sx={({ palette }) => ({
+          background: palette.gray[10],
+          borderTop: `2px solid ${palette.gray[20]}`,
+          height: outputsHeight,
+          maxWidth: "100%",
+          px: 3,
+          width: "100%",
+        })}
+      >
+        <Stack
+          sx={{
+            borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
+            height: "100%",
+            py: 2.5,
+            pr: 3,
+            width: "30%",
+          }}
+        >
+          <ActivityLog key={`${flowRunStateKey}-activity-log`} logs={logs} />
+        </Stack>
+        <Stack
+          sx={{
+            height: "100%",
+            py: 2.5,
+            pl: 3,
+            width: "70%",
+          }}
+        >
+          <Outputs
+            key={`${flowRunStateKey}-outputs`}
+            persistedEntities={persistedEntities}
+            proposedEntities={proposedEntities}
+          />
+        </Stack>
+      </Stack>
+    </Box>
   );
 };

@@ -42,7 +42,7 @@
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/react-dom": "18.0.10",
+    "@types/react-dom": "18.2.25",
     "@types/uuid": "8.3.0",
     "block-scripts": "0.3.4",
     "mock-block-dock": "0.1.9",

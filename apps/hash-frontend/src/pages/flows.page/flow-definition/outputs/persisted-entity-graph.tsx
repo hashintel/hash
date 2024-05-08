@@ -1,39 +1,38 @@
 import { useQuery } from "@apollo/client";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import { EntitiesGraphChart } from "@hashintel/block-design-system";
+import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
   fullOntologyResolveDepths,
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 import type { Entity, EntityId } from "@local/hash-subgraph";
-import type { SxProps, Theme } from "@mui/material";
-import { Box } from "@mui/material";
 import { useMemo } from "react";
 
 import type {
   QueryEntityTypesQuery,
   QueryEntityTypesQueryVariables,
-} from "../../../graphql/api-types.gen";
-import { queryEntityTypesQuery } from "../../../graphql/queries/ontology/entity-type.queries";
+} from "../../../../graphql/api-types.gen";
+import { queryEntityTypesQuery } from "../../../../graphql/queries/ontology/entity-type.queries";
+import { EmptyOutputBox } from "./shared/empty-output-box";
+import { outputIcons } from "./shared/icons";
+import { OutputContainer } from "./shared/output-container";
 
 type PersistedEntityGraphProps = {
-  persistedEntities: Entity[];
+  persistedEntities: PersistedEntity[];
 };
-
-const containerSx = {
-  height: "100%",
-  width: "100%",
-  background: ({ palette }) => palette.common.white,
-  border: ({ palette }) => `1px solid ${palette.gray[20]}`,
-  borderRadius: 2,
-} satisfies SxProps<Theme>;
 
 export const PersistedEntityGraph = ({
   persistedEntities,
 }: PersistedEntityGraphProps) => {
-  const entityTypeIds = persistedEntities.map(
-    (entity) => entity.metadata.entityTypeId,
+  const entityTypeIds = useMemo(
+    () =>
+      persistedEntities
+        .map(({ entity }) => entity?.metadata.entityTypeId)
+        .filter(isNotNullish),
+    [persistedEntities],
   );
 
   const { data: entityTypeResultData } = useQuery<
@@ -65,7 +64,11 @@ export const PersistedEntityGraph = ({
    */
   const deduplicatedPersistedEntities = useMemo(() => {
     const deduplicatedLatestEntitiesByEntityId: Record<EntityId, Entity> = {};
-    for (const entity of persistedEntities) {
+    for (const { entity } of persistedEntities) {
+      if (!entity) {
+        continue;
+      }
+
       const entityId = entity.metadata.recordId.entityId;
 
       const existing = deduplicatedLatestEntitiesByEntityId[entityId];
@@ -83,14 +86,23 @@ export const PersistedEntityGraph = ({
   }, [persistedEntities]);
 
   if (!entityTypeSubgraph && !persistedEntities.length) {
-    return <Box sx={containerSx} />;
+    return (
+      <OutputContainer sx={{ flex: 1.5 }}>
+        <EmptyOutputBox
+          Icon={outputIcons.graph}
+          label="A graph of entities saved to HASH by the flow will appear here"
+        />
+      </OutputContainer>
+    );
   }
 
   return (
-    <EntitiesGraphChart
-      entities={deduplicatedPersistedEntities}
-      sx={containerSx}
-      subgraph={entityTypeSubgraph as unknown as Subgraph<EntityRootType>} // @todo sort out this param to EntitiesGraphChart
-    />
+    <OutputContainer sx={{ flex: 1.5 }}>
+      <EntitiesGraphChart
+        entities={deduplicatedPersistedEntities}
+        subgraph={entityTypeSubgraph as unknown as Subgraph<EntityRootType>} // @todo sort out this param to EntitiesGraphChart
+        sx={{ maxHeight: "100%" }}
+      />
+    </OutputContainer>
   );
 };
