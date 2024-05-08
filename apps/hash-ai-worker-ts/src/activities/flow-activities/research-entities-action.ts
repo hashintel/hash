@@ -9,7 +9,6 @@ import type {
   StepInput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
@@ -518,8 +517,8 @@ export const researchEntitiesAction: FlowActionActivity = async ({
    * Note that uploading the file is handled in the "Persist Entity" action.
    */
   const fileEntityProposals: ProposedEntity[] =
-    filesUsedToProposeSubmittedEntities.map(({ url }) => ({
-      entityTypeId: systemEntityTypes.file.entityTypeId,
+    filesUsedToProposeSubmittedEntities.map(({ url, entityTypeId }) => ({
+      entityTypeId,
       localEntityId: generateUuid(),
       properties: {
         "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":

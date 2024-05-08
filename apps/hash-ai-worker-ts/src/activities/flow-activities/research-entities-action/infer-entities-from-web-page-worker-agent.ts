@@ -756,9 +756,12 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                   toolCallInput.fileUrl,
               )
             ) {
-              state.filesUsedToProposeEntities.push({
-                url: toolCallInput.fileUrl,
-              });
+              const fileIdentifier = state.filesQueried.find(
+                ({ url: previouslyQueriedFileUrl }) =>
+                  previouslyQueriedFileUrl === toolCallInput.fileUrl,
+              )!;
+
+              state.filesUsedToProposeEntities.push(fileIdentifier);
             }
 
             const summarizedNewProposedEntities = newProposedEntities.map(

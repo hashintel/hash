@@ -1,3 +1,4 @@
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import dedent from "dedent";
 import { MetadataMode } from "llamaindex";
 
@@ -123,7 +124,10 @@ export const handleQueryPdfToolCall = async (params: {
       ({ url: queriedFileUrl }) => queriedFileUrl === fileUrl,
     )
   ) {
-    state.filesQueried.push({ url: fileUrl });
+    state.filesQueried.push({
+      url: fileUrl,
+      entityTypeId: systemEntityTypes.pdfDocument.entityTypeId,
+    });
   }
 
   return {

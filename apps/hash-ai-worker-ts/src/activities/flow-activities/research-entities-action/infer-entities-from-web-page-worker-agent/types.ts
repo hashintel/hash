@@ -1,3 +1,4 @@
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import type { Entity } from "@local/hash-subgraph";
 
@@ -23,6 +24,11 @@ export const isToolName = (value: string): value is ToolName =>
   toolNames.includes(value as ToolName);
 
 export type FileIdentifier = {
+  /**
+   * @todo: consider enforcing that this refers to a type that is or extends
+   * the "File" system entity type
+   */
+  entityTypeId: VersionedUrl;
   url: string;
 };
 
