@@ -5,7 +5,7 @@ use crate::codec::ErrorExt;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
 #[error("session layer")]
-pub(crate) struct SessionError;
+pub struct SessionError;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TransactionError {
@@ -27,7 +27,3 @@ impl ErrorExt for TransactionLimitReachedError {
         ErrorCode::TRANSACTION_LIMIT_REACHED
     }
 }
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
-#[error("shutdown task")]
-pub(crate) struct ShutdownTask;

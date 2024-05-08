@@ -10,7 +10,7 @@
 
 mod connection;
 mod session_id;
-mod supervisor;
+mod task;
 mod transaction;
 mod write;
 
@@ -20,7 +20,7 @@ use futures::Stream;
 use tokio::sync::{mpsc, Semaphore};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
-use self::{session_id::SessionIdProducer, supervisor::SupervisorTask, transaction::Transaction};
+use self::{session_id::SessionIdProducer, task::Task, transaction::Transaction};
 use crate::{codec::ErrorEncoder, stream::ReceiverStreamCancel, transport::TransportLayer};
 
 const TRANSACTION_BUFFER_SIZE: usize = 32;
@@ -58,7 +58,7 @@ where
     pub fn listen(self) -> impl Stream<Item = Transaction> + Send + Sync + 'static {
         let (tx, rx) = mpsc::channel(TRANSACTION_BUFFER_SIZE);
 
-        let task = SupervisorTask {
+        let task = Task {
             id: SessionIdProducer::new(),
             transport: self.transport,
             active: Arc::new(Semaphore::new(CONCURRENT_CONNECTION_LIMIT)),

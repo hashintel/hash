@@ -1,5 +1,5 @@
 use alloc::sync::Arc;
-use core::{fmt::Debug, time::Duration};
+use core::{fmt::Debug, ops::ControlFlow, time::Duration};
 use std::io;
 
 use futures::{FutureExt, Sink, Stream, StreamExt};
@@ -24,7 +24,7 @@ use super::{
 };
 use crate::{
     codec::{ErrorEncoder, ErrorExt},
-    session::error::{ShutdownTask, TransactionError, TransactionLimitReachedError},
+    session::error::{TransactionError, TransactionLimitReachedError},
 };
 
 // TODO: make these configurable
@@ -109,13 +109,12 @@ impl<E> ConnectionTask<E>
 where
     E: ErrorEncoder + Send + Sync + 'static,
 {
-    // TODO: remove error with `ControlFlow`
     async fn respond_error<T>(
         &self,
         id: RequestId,
         error: T,
         tx: &mpsc::Sender<Response>,
-    ) -> core::result::Result<(), ShutdownTask>
+    ) -> ControlFlow<()>
     where
         T: ErrorExt + Send + Sync,
     {
@@ -124,16 +123,19 @@ where
         let mut writer = ResponseWriter::new_error(id, code, tx);
         writer.push(bytes);
 
-        writer.flush().await.map_err(|_error| ShutdownTask)
+        if writer.flush().await.is_err() {
+            ControlFlow::Break(())
+        } else {
+            ControlFlow::Continue(())
+        }
     }
 
-    // TODO: remove error with `ControlFlow`
     async fn handle_request(
         &self,
         tx: mpsc::Sender<Response>,
         cancel: &CancellationToken,
         request: Request,
-    ) -> core::result::Result<(), ShutdownTask> {
+    ) -> ControlFlow<()> {
         // check if this is a `Begin` request, in that case we need to create a new transaction,
         // otherwise, this is already a transaction and we need to forward it, or log out if it is a
         // rogue request
@@ -175,7 +177,7 @@ where
                 // we put it in the buffer, so will resolve immediately
                 transaction_tx
                     .try_send(request)
-                    .expect("infallible; buffer should be large enought to hold the request");
+                    .expect("infallible; buffer should be large enough to hold the request");
 
                 task.start(cancel);
 
@@ -190,10 +192,9 @@ where
                     }
                 }
 
-                self.tx_transaction
-                    .send(transaction)
-                    .await
-                    .map_err(|_error| ShutdownTask)?;
+                if self.tx_transaction.send(transaction).await.is_err() {
+                    return ControlFlow::Break(());
+                }
             }
             RequestBody::Frame(_) => {
                 // forward the request to the transaction
@@ -219,7 +220,7 @@ where
             self.transactions.remove_async(&request_id).await;
         }
 
-        Ok(())
+        ControlFlow::Continue(())
     }
 
     #[allow(clippy::integer_division_remainder_used)]
@@ -266,7 +267,7 @@ where
                             finished.add_permits(1);
                         }
                         Some(Ok(request)) => {
-                            if self.handle_request(tx.clone(), &cancel, request).await.is_err() {
+                            if self.handle_request(tx.clone(), &cancel, request).await.is_break() {
                                 tracing::info!("supervisor has been shut down");
                                 break;
                             }

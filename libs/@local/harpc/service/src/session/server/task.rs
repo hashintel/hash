@@ -16,7 +16,7 @@ use crate::{
     transport::TransportLayer,
 };
 
-pub(crate) struct SupervisorTask<E> {
+pub(crate) struct Task<E> {
     pub(crate) id: SessionIdProducer,
     pub(crate) transport: TransportLayer,
 
@@ -26,7 +26,7 @@ pub(crate) struct SupervisorTask<E> {
     pub(crate) encoder: Arc<E>,
 }
 
-impl<E> SupervisorTask<E>
+impl<E> Task<E>
 where
     E: ErrorEncoder + Send + Sync + 'static,
 {
@@ -42,7 +42,6 @@ where
             // first try to acquire a permit, if we can't, we can't accept new connections,
             // then we try to accept a new connection, this way we're able to still apply
             // backpressure
-
             let next = Arc::clone(&self.active)
                 .acquire_owned()
                 .change_context(SessionError)

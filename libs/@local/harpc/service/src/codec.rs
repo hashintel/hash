@@ -17,7 +17,7 @@ pub trait ValueEncoder<T> {
     + Send;
 }
 
-pub(crate) trait ErrorExt: Error {
+pub trait ErrorExt: Error {
     fn code(&self) -> ErrorCode;
 }
 

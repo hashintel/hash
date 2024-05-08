@@ -22,6 +22,11 @@ impl SessionLayer {
         Self { transport, cancel }
     }
 
+    /// Dial a peer.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the dial fails.
     pub async fn dial(&self, peer: PeerId) -> Result<Connection, SessionError> {
         let (sink, stream) = self
             .transport

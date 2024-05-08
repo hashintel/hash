@@ -20,7 +20,7 @@ use super::{
     behaviour::{TransportBehaviour, TransportBehaviourEvent, TransportSwarm},
     error::TransportError,
     ipc::TransportLayerIpc,
-    PROTOCOL_NAME,
+    Transport, PROTOCOL_NAME,
 };
 use crate::config::Config;
 
@@ -38,15 +38,6 @@ pub(crate) enum Command {
         tx: oneshot::Sender<metrics::Metrics>,
     },
 }
-
-pub(crate) trait Transport = libp2p::Transport<
-        Output: futures::AsyncWrite + futures::AsyncRead + Send + Unpin,
-        ListenerUpgrade: Send,
-        Dial: Send,
-        Error: Send + Sync,
-    > + Send
-    + Unpin
-    + 'static;
 
 pub(crate) struct Task {
     swarm: TransportSwarm,
