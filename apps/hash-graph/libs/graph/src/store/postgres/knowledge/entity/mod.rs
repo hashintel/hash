@@ -5,7 +5,6 @@ use std::{
     borrow::Cow,
     collections::{HashMap, HashSet},
     iter::once,
-    ops::Not,
 };
 
 use authorization::{
@@ -477,7 +476,7 @@ where
     {
         let transaction_time = Timestamp::<TransactionTime>::now().remove_nanosecond();
         let mut relationships = Vec::with_capacity(params.len());
-        let mut entity_type_ids = HashSet::new();
+        let mut entity_type_ids = HashMap::new();
         let mut checked_web_ids = HashSet::new();
 
         let mut entity_id_rows = Vec::with_capacity(params.len());
@@ -579,7 +578,7 @@ where
 
             for entity_type_url in &params.entity_type_ids {
                 let entity_type_id = EntityTypeId::from_url(entity_type_url);
-                entity_type_ids.insert(entity_type_id);
+                entity_type_ids.insert(entity_type_id, entity_type_url.clone());
                 entity_is_of_type_rows.push(EntityIsOfTypeRow {
                     entity_edition_id,
                     entity_type_ontology_id: entity_type_id,
@@ -647,16 +646,33 @@ where
             .check_entity_types_permission(
                 actor_id,
                 EntityTypePermission::Instantiate,
-                entity_type_ids,
+                entity_type_ids.keys().copied(),
                 Consistency::FullyConsistent,
             )
             .await
             .change_context(InsertionError)?;
-        if instantiate_permissions.values().any(Not::not) {
+        let forbidden_instantiations = instantiate_permissions
+            .iter()
+            .filter_map(|(entity_type_id, permission)| {
+                if *permission {
+                    None
+                } else {
+                    entity_type_ids.get(entity_type_id)
+                }
+            })
+            .collect::<Vec<_>>();
+        if !forbidden_instantiations.is_empty() {
             return Err(Report::new(InsertionError)
                 .attach(StatusCode::PermissionDenied)
                 .attach_printable(
                     "The actor does not have permission to instantiate one or more entity types",
+                )
+                .attach_printable(
+                    forbidden_instantiations
+                        .into_iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<_>>()
+                        .join(", "),
                 ));
         }
 
@@ -671,12 +687,27 @@ where
                 )
                 .await
                 .change_context(InsertionError)?;
-            if create_entity_permissions.values().any(Not::not) {
+            let forbidden_webs = create_entity_permissions
+                .iter()
+                .filter_map(
+                    |(web_id, permission)| {
+                        if *permission { None } else { Some(web_id) }
+                    },
+                )
+                .collect::<Vec<_>>();
+            if !forbidden_webs.is_empty() {
                 return Err(Report::new(InsertionError)
                     .attach(StatusCode::PermissionDenied)
                     .attach_printable(
                         "The actor does not have permission to create entities for one or more \
                          web ids",
+                    )
+                    .attach_printable(
+                        forbidden_webs
+                            .into_iter()
+                            .map(ToString::to_string)
+                            .collect::<Vec<_>>()
+                            .join(", "),
                     ));
             }
         }
