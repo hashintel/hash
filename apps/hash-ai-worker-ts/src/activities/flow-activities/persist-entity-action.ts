@@ -1,3 +1,4 @@
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type {
   CreateEntityRequest,
@@ -8,7 +9,9 @@ import {
   type OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { Entity } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
@@ -22,8 +25,19 @@ import {
 import { getFlowContext } from "../shared/get-flow-context";
 import { graphApiClient } from "../shared/graph-api-client";
 import { logProgress } from "../shared/log-progress";
+import { getFileEntityFromUrl } from "./shared/get-file-entity-from-url";
 import { getEntityUpdate } from "./shared/graph-requests";
 import type { FlowActionActivity } from "./types";
+
+const fileEntityTypeIds: VersionedUrl[] = [
+  systemEntityTypes.file.entityTypeId,
+  systemEntityTypes.image.entityTypeId,
+  systemEntityTypes.document.entityTypeId,
+  systemEntityTypes.pdfDocument.entityTypeId,
+  systemEntityTypes.docxDocument.entityTypeId,
+  systemEntityTypes.spreadsheetFile.entityTypeId,
+  systemEntityTypes.pptxPresentation.entityTypeId,
+];
 
 export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
   const {
@@ -60,138 +74,194 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
     propertyMetadata,
   };
 
-  const existingEntity = await (linkData
-    ? findExistingLinkEntity({
-        actorId,
-        graphApiClient,
-        ownedById,
-        linkData,
-        includeDrafts: createEditionAsDraft,
-      })
-    : findExistingEntity({
-        actorId,
-        graphApiClient,
-        ownedById,
-        proposedEntity: proposedEntityWithResolvedLinks,
-        includeDrafts: createEditionAsDraft,
-      }));
+  /**
+   * @todo: determine whether the entity type ID is a file entity type ID
+   * by looking up the entity type's parents in the graph, rather than
+   * relying on a hardcoded value.
+   */
+  const isFileEntity = fileEntityTypeIds.includes(entityTypeId);
 
-  const operation = existingEntity ? "update" : "create";
+  const fileUrl = isFileEntity
+    ? (properties as Partial<FileProperties>)[
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
+      ]
+    : undefined;
 
-  try {
-    let entityMetadata: EntityMetadata;
+  let entity: Entity;
+  let existingEntity: Entity | undefined;
+  let operation: "create" | "update";
 
-    if (existingEntity) {
-      const { existingEntityIsDraft, isExactMatch, patchOperations } =
-        getEntityUpdate({
-          existingEntity,
-          newProperties: properties,
-        });
+  if (isFileEntity && fileUrl) {
+    operation = "create";
 
-      if (isExactMatch) {
-        return {
-          code: StatusCode.Ok,
-          contents: [
-            {
-              outputs: [
-                {
-                  outputName:
-                    "persistedEntity" as OutputNameForAction<"persistEntity">,
-                  payload: {
-                    kind: "PersistedEntity",
-                    value: {
-                      entity: existingEntity,
-                      existingEntity,
-                      operation: "already-exists-as-proposed",
-                    },
-                  },
-                },
-              ],
-            },
-          ],
-        };
-      }
-
-      entityMetadata = await graphApiClient
-        .patchEntity(actorId, {
-          draft: existingEntityIsDraft ? true : createEditionAsDraft,
-          entityId: existingEntity.metadata.recordId.entityId,
-          properties: patchOperations,
-        })
-        .then((resp) => resp.data);
-    } else {
-      entityMetadata = await graphApiClient
-        .createEntity(webBotActorId, {
-          ...entityValues,
-          draft: createEditionAsDraft,
-          ownedById,
-          relationships: createDefaultAuthorizationRelationships({
-            actorId,
-          }),
-        })
-        .then((resp) => resp.data);
-    }
-
-    const entity: Entity = {
-      metadata: mapGraphApiEntityMetadataToMetadata(entityMetadata),
-      ...entityValues,
-    };
-
-    logProgress([
-      {
-        persistedEntity: {
-          entity,
-          existingEntity: existingEntity ?? undefined,
-          operation,
-        },
-        recordedAt: new Date().toISOString(),
-        stepId: Context.current().info.activityId,
-        type: "PersistedEntity",
-      },
-    ]);
-
-    await createInferredEntityNotification({
-      graphApiClient,
-      entity,
-      operation,
-      notifiedUserAccountId: actorId,
+    const getFileEntityFromUrlStatus = await getFileEntityFromUrl({
+      url: fileUrl,
+      entityTypeId,
     });
 
-    return {
-      code: StatusCode.Ok,
-      contents: [
-        {
-          outputs: [
-            {
-              outputName:
-                "persistedEntity" as OutputNameForAction<"persistEntity">,
-              payload: {
-                kind: "PersistedEntity",
-                value: { operation, entity, existingEntity },
+    if (getFileEntityFromUrlStatus.status !== "ok") {
+      return {
+        code: StatusCode.Internal,
+        message: getFileEntityFromUrlStatus.message,
+        contents: [
+          {
+            outputs: [
+              {
+                outputName:
+                  "persistedEntity" as OutputNameForAction<"persistEntity">,
+                payload: {
+                  kind: "PersistedEntity",
+                  value: { operation },
+                },
               },
-            },
-          ],
-        },
-      ],
+            ],
+          },
+        ],
+      };
+    }
+
+    const { entityMetadata, properties: updatedProperties } =
+      getFileEntityFromUrlStatus;
+
+    entity = {
+      metadata: entityMetadata,
+      ...entityValues,
+      properties: updatedProperties,
     };
-  } catch (err) {
-    return {
-      code: StatusCode.Internal,
-      message: `Could not persist entity: ${extractErrorMessage(err)}`,
-      contents: [
-        {
-          outputs: [
-            {
-              outputName:
-                "persistedEntity" as OutputNameForAction<"persistEntity">,
-              payload: {
-                kind: "PersistedEntity",
-                value: { existingEntity, operation },
+  } else {
+    existingEntity = await (linkData
+      ? findExistingLinkEntity({
+          actorId,
+          graphApiClient,
+          ownedById,
+          linkData,
+          includeDrafts: createEditionAsDraft,
+        })
+      : findExistingEntity({
+          actorId,
+          graphApiClient,
+          ownedById,
+          proposedEntity: proposedEntityWithResolvedLinks,
+          includeDrafts: createEditionAsDraft,
+        }));
+
+    operation = existingEntity ? "update" : "create";
+
+    try {
+      let entityMetadata: EntityMetadata;
+
+      if (existingEntity) {
+        const { existingEntityIsDraft, isExactMatch, patchOperations } =
+          getEntityUpdate({
+            existingEntity,
+            newProperties: properties,
+          });
+
+        if (isExactMatch) {
+          return {
+            code: StatusCode.Ok,
+            contents: [
+              {
+                outputs: [
+                  {
+                    outputName:
+                      "persistedEntity" as OutputNameForAction<"persistEntity">,
+                    payload: {
+                      kind: "PersistedEntity",
+                      value: {
+                        entity: existingEntity,
+                        existingEntity,
+                        operation: "already-exists-as-proposed",
+                      },
+                    },
+                  },
+                ],
               },
-            },
-          ],
-        },
-      ],
-    };
+            ],
+          };
+        }
+
+        entityMetadata = await graphApiClient
+          .patchEntity(actorId, {
+            draft: existingEntityIsDraft ? true : createEditionAsDraft,
+            entityId: existingEntity.metadata.recordId.entityId,
+            properties: patchOperations,
+          })
+          .then((resp) => resp.data);
+      } else {
+        entityMetadata = await graphApiClient
+          .createEntity(webBotActorId, {
+            ...entityValues,
+            draft: createEditionAsDraft,
+            ownedById,
+            relationships: createDefaultAuthorizationRelationships({
+              actorId,
+            }),
+          })
+          .then((resp) => resp.data);
+      }
+
+      entity = {
+        metadata: mapGraphApiEntityMetadataToMetadata(entityMetadata),
+        ...entityValues,
+      };
+    } catch (err) {
+      return {
+        code: StatusCode.Internal,
+        message: `Could not persist entity: ${extractErrorMessage(err)}`,
+        contents: [
+          {
+            outputs: [
+              {
+                outputName:
+                  "persistedEntity" as OutputNameForAction<"persistEntity">,
+                payload: {
+                  kind: "PersistedEntity",
+                  value: { existingEntity, operation },
+                },
+              },
+            ],
+          },
+        ],
+      };
+    }
   }
+
+  logProgress([
+    {
+      persistedEntity: {
+        entity,
+        existingEntity: existingEntity ?? undefined,
+        operation,
+      },
+      recordedAt: new Date().toISOString(),
+      stepId: Context.current().info.activityId,
+      type: "PersistedEntity",
+    },
+  ]);
+
+  await createInferredEntityNotification({
+    graphApiClient,
+    entity,
+    operation,
+    notifiedUserAccountId: actorId,
+  });
+
+  return {
+    code: StatusCode.Ok,
+    contents: [
+      {
+        outputs: [
+          {
+            outputName:
+              "persistedEntity" as OutputNameForAction<"persistEntity">,
+            payload: {
+              kind: "PersistedEntity",
+              value: { operation, entity, existingEntity },
+            },
+          },
+        ],
+      },
+    ],
+  };
 };
