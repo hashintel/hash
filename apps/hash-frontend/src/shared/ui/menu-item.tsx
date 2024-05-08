@@ -13,7 +13,7 @@ export type MenuItemProps = {
   href?: string;
 } & BaseMenuItemProps;
 
-export const MenuItem: FunctionComponent<MenuItemProps> = forwardRef(
+export const MenuItem = forwardRef<HTMLLIElement, MenuItemProps>(
   ({ children, href, ...props }, ref) => {
     const Component = (
       <BaseMenuItem ref={ref} {...props}>

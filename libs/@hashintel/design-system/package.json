@@ -54,7 +54,7 @@
     "@mui/material": "5.14.11",
     "@mui/system": "5.14.11",
     "@storybook/react": "7.0.5",
-    "@types/react": "18.2.79",
+    "@types/react": "18.2.68",
     "@types/react-dom": "18.2.25",
     "eslint": "8.57.0",
     "eslint-plugin-storybook": "0.8.0",

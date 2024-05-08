@@ -6,7 +6,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { forwardRef, useState } from "react";
 
 import type { TextFieldProps } from "./input-props";
@@ -25,7 +25,7 @@ const useFrozenValue = <T extends ReactNode>(value: T): T => {
   return frozenValue;
 };
 
-export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
+export const TextField = forwardRef<HTMLDivElement, TextFieldProps>(
   (
     {
       helperText,
