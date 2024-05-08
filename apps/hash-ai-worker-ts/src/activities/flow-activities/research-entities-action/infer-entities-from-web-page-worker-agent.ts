@@ -1,4 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { OriginProvenance } from "@local/hash-graph-client";
+import { SourceType } from "@local/hash-graph-client";
 import type {
   InputNameForAction,
   OutputNameForAction,
@@ -11,6 +13,7 @@ import type {
 import type { Entity } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
+import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 
 import { getWebPageActivity } from "../../get-web-page-activity";
@@ -37,6 +40,7 @@ import { handleQueryPdfToolCall } from "./infer-entities-from-web-page-worker-ag
 import type { ToolCallArguments } from "./infer-entities-from-web-page-worker-agent/tool-definitions";
 import { toolDefinitions } from "./infer-entities-from-web-page-worker-agent/tool-definitions";
 import type {
+  FileIdentifier,
   InferEntitiesFromWebPageWorkerAgentInput,
   InferEntitiesFromWebPageWorkerAgentState,
   ToolName,
@@ -333,6 +337,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
 }): Promise<
   Status<{
     inferredEntities: ProposedEntity[];
+    filesUsedToProposeEntities: FileIdentifier[];
   }>
 > => {
   const { url, existingEntities } = params;
@@ -369,7 +374,12 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     submittedEntityIds: [],
     inferredEntitiesFromWebPageUrls: [],
     idCounter: 0,
+    filesQueried: [],
+    filesUsedToProposeEntities: [],
   };
+
+  const { flowEntityId } = await getFlowContext();
+  const { activityId } = Context.current().info;
 
   // const state = retrievePreviousState();
 
@@ -488,6 +498,24 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
             const toolCallInput = toolCall.input as ToolCallArguments[
               | "inferEntitiesFromWebPage"
               | "inferEntitiesFromText"];
+
+            if (
+              "fileUrl" in toolCallInput &&
+              !state.filesQueried.some(
+                ({ url: previouslyQueriedFileUrl }) =>
+                  previouslyQueriedFileUrl === toolCallInput.fileUrl,
+              )
+            ) {
+              return {
+                ...toolCall,
+                output: dedent(`
+                  You did not previously query the PDF file at the provided fileUrl: ${toolCallInput.fileUrl}.
+                  You must first query the PDF file with the relevant query using the "queryPdf" tool,
+                    before inferring entities from its text content.
+                `),
+                isError: true,
+              };
+            }
 
             const {
               prompt: toolCallPrompt,
@@ -643,13 +671,95 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
 
             const { outputs } = response.contents[0]!;
 
-            const newProposedEntities = outputs.find(
-              ({ outputName }) =>
-                outputName ===
-                ("proposedEntities" satisfies OutputNameForAction<"inferEntitiesFromContent">),
-            )?.payload.value as ProposedEntity[];
+            const editionProvenance: ProposedEntity["provenance"] = {
+              actorType: "ai",
+              // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
+              origin: {
+                type: "flow",
+                id: flowEntityId,
+                stepIds: [activityId],
+              } satisfies OriginProvenance,
+            };
+
+            const propertyProvenance: NonNullable<
+              ProposedEntity["propertyMetadata"]
+            >[number]["metadata"]["provenance"] =
+              "url" in toolCallInput
+                ? {
+                    sources: [
+                      {
+                        type: SourceType.Webpage,
+                        location: {
+                          uri: toolCallInput.url,
+                          /** @todo */
+                          name: undefined,
+                          description: undefined,
+                        },
+                        /** @todo */
+                        authors: undefined,
+                        firstPublished: undefined,
+                        lastUpdated: undefined,
+                        loadedAt: undefined,
+                      },
+                    ],
+                  }
+                : {
+                    sources: [
+                      {
+                        type: SourceType.Document,
+                        location: {
+                          uri: toolCallInput.fileUrl,
+                          /** @todo */
+                          name: undefined,
+                          description: undefined,
+                        },
+                        /** @todo */
+                        authors: undefined,
+                        firstPublished: undefined,
+                        lastUpdated: undefined,
+                        loadedAt: undefined,
+                      },
+                    ],
+                  };
+
+            const newProposedEntities = (
+              outputs.find(
+                ({ outputName }) =>
+                  outputName ===
+                  ("proposedEntities" satisfies OutputNameForAction<"inferEntitiesFromContent">),
+              )?.payload.value as ProposedEntity[]
+            ).map(
+              (proposedEntity) =>
+                ({
+                  ...proposedEntity,
+                  provenance: editionProvenance,
+                  propertyMetadata: Object.keys(proposedEntity.properties).map(
+                    (propertyBaseUrl) => ({
+                      /** @todo: figure out whether this is the path */
+                      path: [propertyBaseUrl],
+                      metadata: {
+                        provenance: propertyProvenance,
+                      },
+                    }),
+                    {} as ProposedEntity["propertyMetadata"],
+                  ),
+                }) satisfies ProposedEntity,
+            );
 
             state.proposedEntities.push(...newProposedEntities);
+
+            if (
+              "fileUrl" in toolCallInput &&
+              !state.filesUsedToProposeEntities.some(
+                ({ url: previousFileUsedToProposeEntitiesUrl }) =>
+                  previousFileUsedToProposeEntitiesUrl ===
+                  toolCallInput.fileUrl,
+              )
+            ) {
+              state.filesUsedToProposeEntities.push({
+                url: toolCallInput.fileUrl,
+              });
+            }
 
             const summarizedNewProposedEntities = newProposedEntities.map(
               mapProposedEntityToSummarizedEntity,
@@ -710,6 +820,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
             };
           } else if (toolCall.name === "queryPdf") {
             return await handleQueryPdfToolCall({
+              state,
               toolCall: toolCall as ParsedLlmToolCall<"queryPdf">,
             });
           }
@@ -765,6 +876,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     contents: [
       {
         inferredEntities: submittedProposedEntities,
+        filesUsedToProposeEntities: state.filesUsedToProposeEntities,
       },
     ],
   };

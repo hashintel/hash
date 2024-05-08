@@ -41,6 +41,7 @@
     "@blockprotocol/type-system": "0.1.1",
     "@local/advanced-types": "0.0.0-private",
     "@local/hash-backend-utils": "0.0.0-private",
+    "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "@local/internal-api-client": "0.0.0-private",
@@ -79,7 +80,6 @@
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
-    "@local/hash-graph-client": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@sentry/cli": "2.31.0",
     "@types/dedent": "0.7.0",

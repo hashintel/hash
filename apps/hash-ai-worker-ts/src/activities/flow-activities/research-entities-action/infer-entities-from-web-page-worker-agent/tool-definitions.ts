@@ -222,6 +222,10 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
           `),
           // Potentially also ask why other text is unsuitable
         },
+        fileUrl: {
+          type: "string",
+          description: "The absolute URL of the file where the text is from.",
+        },
         text: {
           type: "string",
           description: dedent(`
@@ -288,6 +292,7 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
       },
       required: [
         "explanation",
+        "fileUrl",
         "text",
         "validAt",
         "prompt",
@@ -377,6 +382,7 @@ export type ToolCallArguments = Subtype<
     };
     inferEntitiesFromText: {
       text: string;
+      fileUrl: string;
       validAt: string;
       prompt: string;
       entityTypeIds: VersionedUrl[];

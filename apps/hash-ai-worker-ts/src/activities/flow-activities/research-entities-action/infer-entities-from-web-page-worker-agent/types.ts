@@ -22,6 +22,10 @@ export type ToolName = (typeof toolNames)[number];
 export const isToolName = (value: string): value is ToolName =>
   toolNames.includes(value as ToolName);
 
+export type FileIdentifier = {
+  url: string;
+};
+
 export type InferEntitiesFromWebPageWorkerAgentState = {
   currentPlan: string;
   previousCalls: {
@@ -31,6 +35,8 @@ export type InferEntitiesFromWebPageWorkerAgentState = {
   submittedEntityIds: string[];
   inferredEntitiesFromWebPageUrls: string[];
   idCounter: number;
+  filesQueried: FileIdentifier[];
+  filesUsedToProposeEntities: FileIdentifier[];
 };
 
 export type InferEntitiesFromWebPageWorkerAgentInput = {

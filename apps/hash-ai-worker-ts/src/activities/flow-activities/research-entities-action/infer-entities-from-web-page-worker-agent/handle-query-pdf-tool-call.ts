@@ -8,11 +8,13 @@ import type { CompletedToolCall } from "../types";
 import { filterAndRankTextChunksAgent } from "./filter-and-rank-text-chunks-agent";
 import { indexPdfFile } from "./llama-index/index-pdf-file";
 import type { ToolCallArguments } from "./tool-definitions";
+import type { InferEntitiesFromWebPageWorkerAgentState } from "./types";
 
 export const handleQueryPdfToolCall = async (params: {
+  state: InferEntitiesFromWebPageWorkerAgentState;
   toolCall: ParsedLlmToolCall<"queryPdf">;
 }): Promise<CompletedToolCall<"queryPdf">> => {
-  const { toolCall } = params;
+  const { toolCall, state } = params;
   const { description, fileUrl, exampleText } =
     toolCall.input as ToolCallArguments["queryPdf"];
 
@@ -115,6 +117,14 @@ export const handleQueryPdfToolCall = async (params: {
   logger.debug(
     `Ordered relevant text chunks: ${stringify(orderedRelevantTextChunks)}`,
   );
+
+  if (
+    !state.filesQueried.some(
+      ({ url: queriedFileUrl }) => queriedFileUrl === fileUrl,
+    )
+  ) {
+    state.filesQueried.push({ url: fileUrl });
+  }
 
   return {
     ...toolCall,

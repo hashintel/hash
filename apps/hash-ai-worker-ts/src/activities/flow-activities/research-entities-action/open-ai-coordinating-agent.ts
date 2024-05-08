@@ -24,6 +24,7 @@ import { mapActionInputEntitiesToEntities } from "../../shared/map-action-input-
 import type { PermittedOpenAiModel } from "../../shared/openai-client";
 import type { CoordinatorToolName } from "./coordinator-tools";
 import { coordinatorToolDefinitions } from "./coordinator-tools";
+import type { FileIdentifier } from "./infer-entities-from-web-page-worker-agent/types";
 import type { CompletedToolCall } from "./types";
 import { mapPreviousCallsToLlmMessages } from "./util";
 
@@ -96,6 +97,7 @@ export type CoordinatingAgentState = {
     completedToolCalls: CompletedToolCall<CoordinatorToolName>[];
   }[];
   hasConductedCheckStep: boolean;
+  filesUsedToProposeEntities: FileIdentifier[];
 };
 
 const getNextToolCalls = async (params: {
