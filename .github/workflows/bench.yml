@@ -69,7 +69,7 @@ jobs:
       - name: Find bench steps to run
         id: benches
         run: |
-          if [[ ${{ github.event_name == 'pull_request' ]]; then
+          if [[ ${{ github.event_name == 'pull_request' }} ]]; then
             COMPARE=$(turbo run bench:compare --dry-run=json --filter "${{ matrix.package }}" | jq -c '.tasks[] | select(.task == "bench:compare" and .command != "<NONEXISTENT>") != []')
             echo "compare-results=$COMPARE" >> $GITHUB_OUTPUT
           else
@@ -205,7 +205,7 @@ jobs:
       - name: Find bench steps to run
         id: benches
         run: |
-          if [[ ${{ github.event_name == 'pull_request' ]]; then
+          if [[ ${{ github.event_name == 'pull_request' }} ]]; then
             COMPARE=$(turbo run bench:compare --dry-run=json --filter "${{ matrix.package }}" | jq -c '.tasks[] | select(.task == "bench:compare" and .command != "<NONEXISTENT>") != []')
             echo "compare-results=$COMPARE" >> $GITHUB_OUTPUT
           else
