@@ -9,10 +9,11 @@ import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
 import { format } from "date-fns";
 import { useMemo } from "react";
 
-import { Button } from "../../../shared/ui/button";
-import { MenuItem } from "../../../shared/ui/menu-item";
-import { useFlowDefinitionsContext } from "./shared/flow-definitions-context";
+import { Button } from "../../../../shared/ui/button";
+import { MenuItem } from "../../../../shared/ui/menu-item";
+import { useFlowDefinitionsContext } from "../../../shared/flow-definitions-context";
 import { useFlowRunsContext } from "./shared/flow-runs-context";
+import { Link } from "../../../../shared/ui/link";
 
 const typographySx: SxProps<Theme> = {
   color: ({ palette }) => palette.gray[70],
@@ -82,9 +83,11 @@ export const Topbar = ({
         <InfinityLightIcon
           sx={{ fill: ({ palette }) => palette.gray[60], fontSize: 20, mr: 1 }}
         />
-        <Typography sx={typographySx} variant="smallTextParagraphs">
-          Flows
-        </Typography>
+        <Link href="/flows" noLinkStyle>
+          <Typography sx={typographySx} variant="smallTextParagraphs">
+            Flows
+          </Typography>
+        </Link>
         <Divider />
         <Box mr={1}>
           <Select

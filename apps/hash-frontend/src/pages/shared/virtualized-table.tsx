@@ -16,7 +16,7 @@ import { forwardRef, useCallback } from "react";
 import type { TableComponents } from "react-virtuoso";
 import { TableVirtuoso } from "react-virtuoso";
 
-import { flowSectionBorderRadius } from "./styles";
+import { flowSectionBorderRadius } from "../flows/flows.page/flow-definition/shared/styles";
 
 type Data = Record<string, unknown>;
 

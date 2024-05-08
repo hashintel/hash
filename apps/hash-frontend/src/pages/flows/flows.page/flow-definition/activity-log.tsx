@@ -10,14 +10,14 @@ import { Box, Stack, TableCell } from "@mui/material";
 import { format } from "date-fns";
 import { memo, useMemo, useState } from "react";
 
-import { Link } from "../../../shared/ui/link";
+import { Link } from "../../../../shared/ui/link";
 import { SectionLabel } from "./section-label";
 import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
   VirtualizedTableSort,
-} from "./shared/virtualized-table";
-import { VirtualizedTable } from "./shared/virtualized-table";
+} from "../../../shared/virtualized-table";
+import { VirtualizedTable } from "../../../shared/virtualized-table";
 
 const getEntityLabelFromLog = (log: StepProgressLog): string => {
   if (log.type !== "ProposedEntity" && log.type !== "PersistedEntity") {

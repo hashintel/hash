@@ -6,7 +6,7 @@ import {
 import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Box, Stack, Typography } from "@mui/material";
 
-import { Link } from "../../../../shared/ui/link";
+import { Link } from "../../../../../shared/ui/link";
 import { EmptyOutputBox } from "./shared/empty-output-box";
 import { outputIcons } from "./shared/icons";
 import { OutputContainer } from "./shared/output-container";

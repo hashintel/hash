@@ -19,9 +19,9 @@ import { differenceInMilliseconds, intervalToDuration } from "date-fns";
 import type { PropsWithChildren } from "react";
 import { useEffect, useMemo, useState } from "react";
 
-import { isNonNullable } from "../../../lib/typeguards";
-import { ArrowRightIcon } from "../../../shared/icons/arrow-right";
-import { EllipsisRegularIcon } from "../../../shared/icons/ellipsis-regular-icon";
+import { isNonNullable } from "../../../../lib/typeguards";
+import { ArrowRightIcon } from "../../../../shared/icons/arrow-right";
+import { EllipsisRegularIcon } from "../../../../shared/icons/ellipsis-regular-icon";
 import { SectionLabel } from "./section-label";
 import {
   statusToSimpleStatus,
