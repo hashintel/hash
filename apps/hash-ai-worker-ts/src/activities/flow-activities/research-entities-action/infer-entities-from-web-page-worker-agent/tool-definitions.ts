@@ -287,6 +287,7 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
           },
           description: dedent(`
             An array of link entity type IDs which should be inferred from provided HTML content.
+            If there are no links to infer, provide an empty array.
           `),
         },
       },
