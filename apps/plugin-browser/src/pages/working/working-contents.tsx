@@ -82,7 +82,7 @@ export const WorkingContents = () => {
                 Questions?
               </Typography>
               <Button
-                href="https://github.com/hashintel/hash/issues/new/choose"
+                href="https://hash.ai/contact"
                 variant="tertiary"
                 sx={{ fontSize: 14, mt: 1 }}
                 target="_blank"
