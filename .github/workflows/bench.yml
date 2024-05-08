@@ -181,10 +181,6 @@ jobs:
           name: ${{ env.TRIMMED_PACKAGE_NAME }}_${{ github.job }}
           path: /tmp/${{ env.TRIMMED_PACKAGE_NAME }}.md
 
-      - name: Show container logs
-        if: ${{ success() || failure() }}
-        run: yarn workspace @apps/hash-external-services deploy logs --timestamps
-
   integration-benches:
     name: Integration
     needs: [setup]

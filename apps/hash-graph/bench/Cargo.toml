@@ -42,3 +42,4 @@ path = "representative_read/lib.rs"
 [[bench]]
 name = "writes"
 path = "writes/lib.rs"
+harness = false
