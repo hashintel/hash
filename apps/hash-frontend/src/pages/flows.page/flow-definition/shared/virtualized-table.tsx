@@ -95,8 +95,6 @@ const SortButton = <Sort extends VirtualizedTableSort>({
   const isSorted = sort?.field === columnId;
   const isSortedAscending = isSorted && sort.direction === "asc";
 
-  console.log({ sort });
-
   return (
     <IconButton
       onClick={() =>
