@@ -11,10 +11,12 @@ import type {
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { StatusCode } from "@local/status";
+import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 
 import { logger } from "../shared/activity-logger";
 import type { ParsedLlmToolCall } from "../shared/get-llm-response/types";
+import { logProgress } from "../shared/log-progress";
 import { stringify } from "../shared/stringify";
 import { getWebPageSummaryAction } from "./get-web-page-summary-action";
 import type {
@@ -525,6 +527,20 @@ export const researchEntitiesAction: FlowActionActivity = async ({
           url,
       } satisfies FileProperties,
     }));
+
+  const now = new Date().toISOString();
+  const stepId = Context.current().info.activityId;
+
+  logProgress(
+    fileEntityProposals.map((proposedFileEntity) => ({
+      type: "ProposedEntity",
+      proposedEntity: proposedFileEntity,
+      recordedAt: now,
+      stepId,
+    })),
+  );
+
+  logger.debug(`File Entities Proposed: ${stringify(fileEntityProposals)}`);
 
   return {
     code: StatusCode.Ok,
