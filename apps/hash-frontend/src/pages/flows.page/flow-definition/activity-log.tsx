@@ -188,7 +188,7 @@ export const ActivityLog = ({ logs }: { logs: StepProgressLog[] }) => {
       .sort((a, b) => {
         if (sort.field === "time") {
           if (sort.direction === "asc") {
-            return a.recordedAt > b.recordedAt ? -1 : 1;
+            return a.recordedAt > b.recordedAt ? 1 : -1;
           }
 
           return a.recordedAt > b.recordedAt ? 1 : -1;

@@ -136,7 +136,7 @@ export const EntityResultTable = ({
 
     return rowData.sort((a, b) => {
       const field = sort.field;
-      const direction = sort.direction === "asc" ? -1 : 1;
+      const direction = sort.direction === "asc" ? 1 : -1;
 
       return a.data[field].localeCompare(b.data[field]) * direction;
     });

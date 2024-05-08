@@ -95,6 +95,8 @@ const SortButton = <Sort extends VirtualizedTableSort>({
   const isSorted = sort?.field === columnId;
   const isSortedAscending = isSorted && sort.direction === "asc";
 
+  console.log({ sort });
+
   return (
     <IconButton
       onClick={() =>
@@ -109,7 +111,7 @@ const SortButton = <Sort extends VirtualizedTableSort>({
           fill: ({ palette }) =>
             isSorted ? palette.blue[70] : palette.gray[50],
           fontSize: 15,
-          transform: isSortedAscending ? "rotate(0)" : "rotate(180deg)",
+          transform: isSortedAscending ? "rotate(180deg)" : "rotate(0deg)",
           transition: ({ transitions }) => transitions.create("transform"),
         }}
       />
