@@ -149,30 +149,36 @@ export const writeGoogleSheetAction: FlowActionActivity<{
       };
     }
   } else {
-    const queryFilter =
-      typeof dataToWrite === "string"
-        ? await getFilterFromBlockProtocolQueryEntity({
-            authentication: { actorId: userAccountId },
-            graphApiClient,
-            queryEntityId: dataToWrite,
-          })
-        : {
-            any: dataToWrite.persistedEntities
-              .map(
-                (persistedEntity) =>
-                  persistedEntity.entity?.metadata.recordId.entityId,
-              )
-              .filter(isNotNullish)
-              .map((entityId) =>
-                generateEntityIdFilter({ entityId, includeArchived: false }),
-              ),
-          };
+    const isPersistedEntities = "persistedEntities" in dataToWrite;
+    const queryFilter = isPersistedEntities
+      ? {
+          any: dataToWrite.persistedEntities
+            .map(
+              (persistedEntity) =>
+                persistedEntity.entity?.metadata.recordId.entityId,
+            )
+            .filter(isNotNullish)
+            .map((entityId) =>
+              generateEntityIdFilter({ entityId, includeArchived: false }),
+            ),
+        }
+      : await getFilterFromBlockProtocolQueryEntity({
+          authentication: { actorId: userAccountId },
+          graphApiClient,
+          queryEntityId: dataToWrite,
+        });
 
     const subgraph = await getSubgraphFromFilter({
       authentication: { actorId: userAccountId },
       filter: queryFilter,
       graphApiClient,
-      traversalDepth: 1,
+      /**
+       * If we've been given a Block Protocol query, also provide linked entities to depth 1, since the query can't specify it.
+       * If not, just use the exact entities we've been given from the previous step.
+       *
+       * @todo once we start using a Structural Query instead, it can specify the traversal depth itself (1 becomes variable)
+       */
+      traversalDepth: isPersistedEntities ? 0 : 1,
     });
 
     sheetRequests = convertSubgraphToSheetRequests({
@@ -190,7 +196,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
 
   /**
    * If a previous iteration of the activity failed after the spreadsheetId was resolved, we will have saved
-   * it as a heartbeat. This avoids us creating a duplicate spreadsheet when the activity is retried.
+   * the spreadsheetId as a heartbeat. This avoids us creating a duplicate spreadsheet when the activity is retried.
    */
   const { spreadsheetId: spreadsheetIdFromFailedAttempt } =
     (Context.current().info.heartbeatDetails as

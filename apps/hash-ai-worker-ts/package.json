@@ -69,6 +69,8 @@
     "openai-chat-tokens": "0.2.8",
     "papaparse": "5.4.1",
     "puppeteer": "22.3.0",
+    "puppeteer-extra": "3.3.6",
+    "puppeteer-extra-plugin-stealth": "2.11.2",
     "sanitize-html": "2.13.0",
     "tsx": "3.13.0",
     "typescript": "5.1.6"

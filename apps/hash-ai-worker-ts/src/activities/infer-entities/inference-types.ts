@@ -56,9 +56,3 @@ export type InferenceState = {
   /** The token usage for each iteration, in order */
   usage: LlmUsage[];
 };
-
-export type WebPage = {
-  title: string;
-  url: string;
-  textContent: string;
-};

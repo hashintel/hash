@@ -1,5 +1,10 @@
 import { parseHistoryItemPayload } from "@local/hash-backend-utils/temporal/parse-history-item-payload";
-import type { ProgressLogSignalData } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  ExternalInputRequest,
+  ExternalInputRequestSignal,
+  ExternalInputResponseSignal,
+  ProgressLogSignal,
+} from "@local/hash-isomorphic-utils/flows/types";
 import type {
   Client as TemporalClient,
   WorkflowExecutionInfo,
@@ -157,6 +162,15 @@ const mapTemporalWorkflowToFlowStatus = async (
   const progressSignalEvents: proto.temporal.api.history.v1.IHistoryEvent[] =
     [];
 
+  const inputRequestsById: Record<string, ExternalInputRequest> = {};
+
+  const workflowStoppedEarly = [
+    "TERMINATED",
+    "CANCELED",
+    "TIMED_OUT",
+    "FAILED",
+  ].includes(workflow.status.name);
+
   if (events?.length) {
     /*
      * Walk backwards from the most recent event until we have populated the latest state data for each step
@@ -173,6 +187,58 @@ const mapTemporalWorkflowToFlowStatus = async (
       ) {
         progressSignalEvents.push(event);
         continue;
+      }
+
+      if (
+        event.workflowExecutionSignaledEventAttributes?.signalName ===
+        "externalInputRequest"
+      ) {
+        const signalData = parseHistoryItemPayload(
+          event.workflowExecutionSignaledEventAttributes.input,
+        )?.[0] as
+          | ExternalInputRequestSignal
+          | ExternalInputResponseSignal
+          | undefined;
+
+        if (!signalData) {
+          throw new Error(
+            `No signal data on requestExternalInput signal event with id ${event.eventId}`,
+          );
+        }
+
+        if ("stepId" in signalData) {
+          /**
+           * This is a request for external input
+           */
+          const existingRequest = inputRequestsById[signalData.requestId];
+          if (existingRequest) {
+            existingRequest.data = signalData.data;
+          } else {
+            /**
+             * If we haven't already populated the request record, it must not have been resolved yet,
+             * because we are going backwards through the event history from most recent.
+             * We would already have encountered the response signal if one had been provided.
+             */
+            inputRequestsById[signalData.requestId] = {
+              ...signalData,
+              resolved: false,
+            };
+          }
+        } else {
+          /**
+           * This is the signal containing a response to a request for external input
+           */
+          const { requestId, data, type } = signalData;
+
+          inputRequestsById[signalData.requestId] = {
+            data: {} as never, // we will populate this when we hit the original request
+            answer: "answer" in data ? data.answer : undefined,
+            requestId,
+            stepId: "unresolved",
+            type,
+            resolved: true,
+          };
+        }
       }
 
       const nonScheduledAttributes =
@@ -216,9 +282,12 @@ const mapTemporalWorkflowToFlowStatus = async (
         stepType: activityType ?? "UNKNOWN",
         startedAt,
         scheduledAt,
+        closedAt: workflowStoppedEarly ? workflow.closeTime?.toISOString() : "",
         inputs,
         logs: [],
-        status: FlowStepStatus.Scheduled,
+        status: workflowStoppedEarly
+          ? FlowStepStatus.Cancelled
+          : FlowStepStatus.Scheduled,
         attempt,
       };
 
@@ -227,15 +296,19 @@ const mapTemporalWorkflowToFlowStatus = async (
       switch (event.eventType) {
         case proto.temporal.api.enums.v1.EventType
           .EVENT_TYPE_ACTIVITY_TASK_SCHEDULED: {
-          activityRecord.status = FlowStepStatus.Scheduled;
+          if (!workflowStoppedEarly) {
+            activityRecord.status = FlowStepStatus.Scheduled;
+          }
           break;
         }
 
         case proto.temporal.api.enums.v1.EventType
           .EVENT_TYPE_ACTIVITY_TASK_STARTED: {
-          activityRecord.status = FlowStepStatus.Started;
-          activityRecord.lastFailure =
-            event.activityTaskStartedEventAttributes?.lastFailure;
+          if (!workflowStoppedEarly) {
+            activityRecord.status = FlowStepStatus.Started;
+            activityRecord.lastFailure =
+              event.activityTaskStartedEventAttributes?.lastFailure;
+          }
           break;
         }
 
@@ -274,7 +347,7 @@ const mapTemporalWorkflowToFlowStatus = async (
 
         case proto.temporal.api.enums.v1.EventType
           .EVENT_TYPE_ACTIVITY_TASK_CANCELED: {
-          activityRecord.status = FlowStepStatus.Canceled;
+          activityRecord.status = FlowStepStatus.Cancelled;
           activityRecord.closedAt = eventTimeIsoStringFromEvent(event);
           break;
         }
@@ -309,7 +382,7 @@ const mapTemporalWorkflowToFlowStatus = async (
 
     const signalData = parseHistoryItemPayload(
       progressSignalEvent.workflowExecutionSignaledEventAttributes.input,
-    )?.[0] as ProgressLogSignalData | undefined;
+    )?.[0] as ProgressLogSignal | undefined;
 
     if (!signalData) {
       throw new Error(
@@ -341,26 +414,44 @@ const mapTemporalWorkflowToFlowStatus = async (
     }
   }
 
-  const { runId, status, startTime, executionTime, closeTime, memo } = workflow;
+  const {
+    runId,
+    workflowId,
+    status,
+    startTime,
+    executionTime,
+    closeTime,
+    memo,
+  } = workflow;
 
   return {
     flowDefinitionId:
       (memo?.flowDefinitionId as string | undefined) ?? "unknown",
     runId,
+    workflowId,
     status: status.name as FlowRunStatus,
     startedAt: startTime.toISOString(),
     executedAt: executionTime?.toISOString(),
     closedAt: closeTime?.toISOString(),
     inputs: workflowInputs,
     outputs: workflowOutputs,
+    inputRequests: Object.values(inputRequestsById),
     steps: Object.values(stepMap),
   };
 };
 
+const convertScreamingSnakeToPascalCase = (str: string) =>
+  str
+    .split("_")
+    .map((word) =>
+      word[0] ? word[0].toUpperCase() + word.slice(1).toLowerCase() : "",
+    )
+    .join("");
+
 export const getFlowRuns: ResolverFn<
   FlowRun[],
   Record<string, never>,
-  GraphQLContext,
+  Pick<GraphQLContext, "temporal">,
   QueryGetFlowRunsArgs
 > = async (_parent, args, context) => {
   if (isProdEnv) {
@@ -369,21 +460,20 @@ export const getFlowRuns: ResolverFn<
 
   const workflows: FlowRun[] = [];
 
-  const { flowTypes } = args;
+  const { flowTypes, executionStatus } = args;
 
-  const workflowIterable = context.temporal.workflow.list(
-    flowTypes?.length
-      ? {
-          /**
-           * Can also filter by runId, useful for e.g. getting all Temporal runIds for a given user
-           * and then retrieving a list of details from Temporal
-           */
-          query: `WorkflowType IN (${flowTypes
-            .map((type) => `'${type}'`)
-            .join(", ")})`,
-        }
-      : { query: "WorkflowType = 'runFlow'" },
-  );
+  /** @see https://docs.temporal.io/dev-guide/typescript/observability#search-attributes */
+  let query = flowTypes?.length
+    ? `WorkflowType IN (${flowTypes.map((type) => `'${type}'`).join(", ")})`
+    : "WorkflowType = 'runFlow'";
+
+  if (executionStatus) {
+    query += ` AND ExecutionStatus = "${convertScreamingSnakeToPascalCase(
+      executionStatus,
+    )}"`;
+  }
+
+  const workflowIterable = context.temporal.workflow.list({ query });
 
   for await (const workflow of workflowIterable) {
     const runInfo = await mapTemporalWorkflowToFlowStatus(

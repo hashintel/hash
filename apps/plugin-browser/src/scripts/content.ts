@@ -10,12 +10,12 @@ import browser from "webextension-polyfill";
  *
  * You must update the extension if you amend this file, from the extensions manager page in the browser.
  */
-import type { GetSiteContentReturn, Message } from "../shared/messages";
+import type { GetTabContentReturn, Message } from "../shared/messages";
 
 // Promise based API (see: https://github.com/mozilla/webextension-polyfill/?tab=readme-ov-file#using-the-promise-based-apis)
 // eslint-disable-next-line @typescript-eslint/require-await
 browser.runtime.onMessage.addListener(async (message: Message, _sender) => {
-  if (message.type === "get-site-content") {
+  if (message.type === "get-tab-content") {
     const docContent =
       document.querySelector("main") ?? document.querySelector("body");
 
@@ -27,10 +27,11 @@ browser.runtime.onMessage.addListener(async (message: Message, _sender) => {
     const pageUrl = urlObject.href.replace(urlObject.hash, "");
 
     return {
-      innerText: docContent?.innerText ?? "",
+      content:
+        (message.html ? docContent?.innerHTML : docContent?.innerText) ?? "",
       pageTitle: document.title,
       pageUrl,
-    } satisfies GetSiteContentReturn;
+    } satisfies GetTabContentReturn;
   }
 
   return `Unrecognised message type ${message.type}`;

@@ -55,7 +55,9 @@ const elkLayoutOptions: ElkNode["layoutOptions"] = {
   "elk.algorithm": "layered",
   "org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers": "100",
   "elk.direction": "RIGHT",
-  "elk.padding": `[left=${graphPadding},top=${graphPadding - nodeTabHeight.offset},right=${graphPadding},bottom=${graphPadding}]`,
+  "elk.padding": `[left=${graphPadding},top=${
+    graphPadding - nodeTabHeight.offset
+  },right=${graphPadding},bottom=${graphPadding}]`,
 };
 
 const parentGroupLayoutOptions: ElkNode["layoutOptions"] = {
@@ -177,7 +179,7 @@ export const Swimlane = ({
               ? "rgba(239, 254, 250, 1)"
               : groupStatus === "In Progress"
                 ? palette.blue[10]
-                : groupStatus === "Error"
+                : groupStatus === "Error" || groupStatus === "Cancelled"
                   ? palette.red[10]
                   : palette.common.white,
         "&:not(:last-of-type)": {
@@ -230,7 +232,7 @@ export const Swimlane = ({
           // onNodesChange={onNodesChange}
           // onEdgesChange={onEdgesChange}
         >
-          {Object.values(edgeColor).map((color) => (
+          {[...new Set(Object.values(edgeColor))].map((color) => (
             <MarkerEnd key={color} id={color} color={color} />
           ))}
 

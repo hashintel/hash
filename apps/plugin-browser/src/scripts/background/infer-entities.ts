@@ -1,6 +1,8 @@
 import type {
+  CancelInferEntitiesRequestMessage,
+  ExternalInputResponseMessage,
+  InferenceWebsocketServerMessage,
   InferEntitiesRequestMessage,
-  InferEntitiesResponseMessage,
   InferEntitiesReturn,
   InferEntitiesUserArguments,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
@@ -14,9 +16,34 @@ import {
   getFromLocalStorage,
   getSetFromLocalStorageValue,
 } from "../../shared/storage";
+import { getWebsiteContent } from "./infer-entities/get-website-content";
 
 const setInferenceRequestValue =
   getSetFromLocalStorageValue("inferenceRequests");
+
+const setExternalInputRequestsValue = getSetFromLocalStorageValue(
+  "externalInputRequests",
+);
+
+const getCookieString = async () => {
+  const cookies = await browser.cookies
+    .getAll({
+      url: API_ORIGIN,
+    })
+    .then((options) =>
+      options.filter(
+        (option) =>
+          option.name.startsWith("csrf_token_") ||
+          option.name === "ory_kratos_session",
+      ),
+    );
+
+  if (cookies.length < 2) {
+    throw new Error("No session cookies available to use in websocket request");
+  }
+
+  return cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join(";");
+};
 
 const waitForConnection = async (ws: WebSocket) => {
   while (ws.readyState !== ws.OPEN) {
@@ -57,7 +84,60 @@ const getWebSocket = async () => {
 
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
     async (event: MessageEvent<string>) => {
-      const message = JSON.parse(event.data) as InferEntitiesResponseMessage;
+      const message = JSON.parse(event.data) as InferenceWebsocketServerMessage;
+
+      if (message.type === "external-input-request") {
+        const { workflowId, payload } = message;
+        if (payload.type === "get-urls-html-content") {
+          const inputRequests =
+            (await getFromLocalStorage("externalInputRequests")) ?? {};
+
+          const request = inputRequests[payload.requestId];
+
+          if (request) {
+            /**
+             * This request is already being or has already been processed, so we don't need to do anything.
+             */
+            return;
+          } else {
+            await setExternalInputRequestsValue((requestsById) => ({
+              ...requestsById,
+              [payload.requestId]: {
+                message,
+                receivedAt: new Date().toISOString(),
+              },
+            }));
+          }
+
+          const webPages = await getWebsiteContent(payload.data.urls);
+
+          const cookie = await getCookieString();
+
+          ws?.send(
+            JSON.stringify({
+              cookie,
+              workflowId,
+              payload: {
+                ...payload,
+                data: { webPages: webPages ?? [] },
+              },
+              type: "external-input-response",
+            } satisfies ExternalInputResponseMessage),
+          );
+
+          /**
+           * Clear the request from local storage after 30 seconds – if the message didn't get through to Temporal
+           * for some reason, the API will request the content again.
+           */
+          setTimeout(() => {
+            void setExternalInputRequestsValue((requestsById) => ({
+              ...requestsById,
+              [payload.requestId]: null,
+            }));
+          }, 30_000);
+        }
+        return;
+      }
 
       const { payload: inferredEntitiesReturn, requestUuid, status } = message;
 
@@ -104,26 +184,6 @@ const getWebSocket = async () => {
   return ws;
 };
 
-const getCookieString = async () => {
-  const cookies = await browser.cookies
-    .getAll({
-      url: API_ORIGIN,
-    })
-    .then((options) =>
-      options.filter(
-        (option) =>
-          option.name.startsWith("csrf_token_") ||
-          option.name === "ory_kratos_session",
-      ),
-    );
-
-  if (cookies.length < 2) {
-    throw new Error("No session cookies available to use in websocket request");
-  }
-
-  return cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join(";");
-};
-
 const sendInferEntitiesMessage = async (params: {
   requestUuid: string;
   payload: Omit<
@@ -149,7 +209,7 @@ const sendInferEntitiesMessage = async (params: {
       payload: inferMessagePayload,
       requestUuid,
       type: "inference-request",
-    }),
+    } satisfies InferEntitiesRequestMessage),
   );
 };
 
@@ -167,7 +227,7 @@ export const cancelInferEntities = async ({
       cookie,
       requestUuid,
       type: "cancel-inference-request",
-    }),
+    } satisfies CancelInferEntitiesRequestMessage),
   );
 };
 
@@ -240,3 +300,16 @@ export const inferEntities = async (
     );
   }
 };
+
+/**
+ * Keep a persist websocket connection because we use it to get sent input requests from the API
+ */
+const init = () => {
+  setInterval(() => {
+    void getWebSocket();
+  }, 10_000);
+
+  void getWebSocket();
+};
+
+init();

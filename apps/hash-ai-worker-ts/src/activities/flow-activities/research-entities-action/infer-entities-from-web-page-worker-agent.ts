@@ -14,6 +14,7 @@ import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
+import { getWebPageActivity } from "../../get-web-page-activity";
 import { logger } from "../../shared/activity-logger";
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
 import { getFlowContext } from "../../shared/get-flow-context";
@@ -34,7 +35,6 @@ import { graphApiClient } from "../../shared/graph-api-client";
 import type { PermittedOpenAiModel } from "../../shared/openai-client";
 import { stringify } from "../../shared/stringify";
 import { inferEntitiesFromContentAction } from "../infer-entities-from-content-action";
-import { getWebPageInnerHtml } from "./infer-entities-from-web-page-worker-agent/get-web-page-inner-html";
 import type {
   InferEntitiesFromWebPageWorkerAgentState,
   ToolName,
@@ -569,7 +569,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
    * for the research task. We include the inner HTML for the web page in this
    * call, to help it formulate a better initial plan.
    */
-  const { innerHtml: initialWebPageInnerHtml } = await getWebPageInnerHtml({
+  const { htmlContent: initialWebPageInnerHtml } = await getWebPageActivity({
     url,
     sanitizeForLlm: true,
   });
@@ -644,7 +644,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
             const { url: toolCallUrl } =
               toolCall.input as ToolCallArguments["getWebPageInnerHtml"];
 
-            const { innerHtml } = await getWebPageInnerHtml({
+            const { htmlContent } = await getWebPageActivity({
               url: toolCallUrl,
               sanitizeForLlm: true,
             });
@@ -672,7 +672,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               ...toolCall,
               output: dedent(`
               ---------------- START OF INNER HTML ----------------
-              ${innerHtml}
+              ${htmlContent}
               ---------------- END OF INNER HTML ----------------
               If there are any entities in this HTML which you think are relevant to the task, you must
                 immediately call the "inferEntitiesFromWebPage" tool with the relevant HTML content from the HTML.

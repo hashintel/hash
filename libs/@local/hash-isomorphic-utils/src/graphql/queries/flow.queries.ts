@@ -4,11 +4,13 @@ export const getFlowRunsQuery = gql`
   query getFlowRuns {
     getFlowRuns {
       flowDefinitionId
+      workflowId
       runId
       status
       startedAt
       executedAt
       closedAt
+      inputRequests
       inputs
       outputs
       steps {
