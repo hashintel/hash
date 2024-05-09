@@ -1,4 +1,4 @@
-import { getRequiredEnv } from "@local/hash-isomorphic-utils/environment";
+import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import type { Identity } from "@ory/client";
 import { Configuration } from "@ory/client";
 import type { CreateIdentityBody } from "@ory/kratos-client";

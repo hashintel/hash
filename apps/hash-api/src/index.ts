@@ -2,6 +2,7 @@
 
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
+  getRequiredEnv,
   monorepoRootDir,
   realtimeSyncEnabled,
   waitOnResource,
@@ -27,7 +28,6 @@ import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
-import { getRequiredEnv } from "@local/hash-isomorphic-utils/environment";
 import * as Sentry from "@sentry/node";
 import bodyParser from "body-parser";
 import cors from "cors";
