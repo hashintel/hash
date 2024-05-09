@@ -1,6 +1,5 @@
 import type { IconButtonProps as MuiIconButtonProps } from "@mui/material";
 import { IconButton as MuiIconButton } from "@mui/material";
-import type { FunctionComponent } from "react";
 import { forwardRef } from "react";
 
 export type IconButtonProps = {
@@ -8,7 +7,7 @@ export type IconButtonProps = {
   rounded?: boolean;
 } & MuiIconButtonProps;
 
-export const IconButton: FunctionComponent<IconButtonProps> = forwardRef(
+export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
   ({ children, unpadded, rounded, sx = [], ...props }, ref) => {
     return (
       <MuiIconButton

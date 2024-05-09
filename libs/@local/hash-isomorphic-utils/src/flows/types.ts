@@ -341,10 +341,18 @@ export type Flow = {
   outputs?: StepOutput[];
 };
 
-export type VisitedWebPageLog = {
-  webPage: Pick<WebPage, "url" | "title">;
+type ProgressLogBase = {
   recordedAt: string;
   stepId: string;
+};
+
+export type QueriedWebLog = ProgressLogBase & {
+  query: string;
+  type: "QueriedWeb";
+};
+
+export type VisitedWebPageLog = ProgressLogBase & {
+  webPage: Pick<WebPage, "url" | "title">;
   type: "VisitedWebPage";
 };
 
@@ -355,17 +363,13 @@ export type ViewedFile = {
   type: "ViewedFile";
 };
 
-export type ProposedEntityLog = {
+export type ProposedEntityLog = ProgressLogBase & {
   proposedEntity: ProposedEntity;
-  recordedAt: string;
-  stepId: string;
   type: "ProposedEntity";
 };
 
-export type PersistedEntityLog = {
+export type PersistedEntityLog = ProgressLogBase & {
   persistedEntity: PersistedEntity;
-  recordedAt: string;
-  stepId: string;
   type: "PersistedEntity";
 };
 
@@ -373,7 +377,8 @@ export type StepProgressLog =
   | PersistedEntityLog
   | ProposedEntityLog
   | VisitedWebPageLog
-  | ViewedFile;
+  | ViewedFile
+  | QueriedWebLog;
 
 export type ProgressLogSignal = {
   attempt: number;

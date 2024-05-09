@@ -72,7 +72,10 @@ export const ColumnFilterMenu: FunctionComponent<
                 }
               }}
             >
-              <Paper ref={wrapperRef} sx={{ padding: 0.25 }}>
+              <Paper
+                ref={wrapperRef}
+                sx={{ padding: 0.25, maxHeight: 350, overflowY: "scroll" }}
+              >
                 <Typography
                   sx={{
                     marginTop: 1,
