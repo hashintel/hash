@@ -12,8 +12,8 @@ const WorkersPageContent = () => {
         crumbs={[
           {
             icon: null,
-            id: "goals",
-            title: "Workers",
+            id: "activity",
+            title: "Activity Log",
           },
         ]}
         title={{ text: "Activity Log", Icon: TerminalLightIcon }}
