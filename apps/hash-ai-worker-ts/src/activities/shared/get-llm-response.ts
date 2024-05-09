@@ -497,7 +497,17 @@ const getOpenAiResponse = async (
   try {
     openAiResponse = await openai.chat.completions.create(completionPayload);
 
-    logger.debug(`OpenAI response: ${stringify(openAiResponse)}`);
+    /**
+     * Avoid logging logprobs, as they clutter the output. The `logprobs` will
+     * be persisted in the LLM Request logs instead.
+     */
+    const choicesWithoutLogProbs = openAiResponse.choices.map(
+      ({ logprobs: _logprobs, ...choice }) => choice,
+    );
+
+    logger.debug(
+      `OpenAI response: ${stringify({ ...openAiResponse, choices: choicesWithoutLogProbs })}`,
+    );
   } catch (error) {
     logger.error(`OpenAI API error: ${stringify(error)}`);
 
