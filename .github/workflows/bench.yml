@@ -87,23 +87,23 @@ jobs:
           fi
 
       - name: Install Rust tools
-        if: always() && steps.benches.outputs.has-rust == 'true'
+        if: steps.benches.outputs.has-rust == 'true'
         uses: taiki-e/install-action@00a67321d66e038602baf558d366a594a7019ea2 # v2.33.9
         with:
           tool: just@1.13.0,critcmp@0.1.8
 
       - name: Install Protobuf
-        if: always() && steps.benches.outputs.has-rust == 'true'
+        if: steps.benches.outputs.has-rust == 'true'
         run: sudo apt install protobuf-compiler
 
       - name: Checkout base branch
         if: steps.benches.outputs.create-baseline == 'true'
         run: |
-          git fetch origin ${{ env.GITHUB_BASE_REF }}
+          git fetch origin "$GITHUB_BASE_REF"
           git checkout FETCH_HEAD
 
       - name: Install Rust toolchain
-        if: always() && steps.benches.outputs.has-rust == 'true' && steps.benches.outputs.create-baseline == 'true'
+        if: steps.benches.outputs.has-rust == 'true' && steps.benches.outputs.create-baseline == 'true'
         uses: ./.github/actions/install-rust-toolchain
         with:
           toolchain: ${{ steps.benches.outputs.rust-toolchain }}
@@ -122,7 +122,7 @@ jobs:
         uses: ./.github/actions/warm-up-repo
 
       - name: Cache Rust dependencies
-        if: always() && steps.benches.outputs.has-rust == 'true'
+        if: steps.benches.outputs.has-rust == 'true'
         uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
         with:
           workspaces: ${{ matrix.directory }}
@@ -134,10 +134,10 @@ jobs:
 
       - name: Checkout head branch
         if: steps.benches.outputs.create-baseline == 'true'
-        run: git checkout ${{ env.GITHUB_HEAD_REF }}
+        run: git checkout "$GITHUB_HEAD_REF"
 
       - name: Install Rust toolchain
-        if: always() && steps.benches.outputs.has-rust == 'true'
+        if: steps.benches.outputs.has-rust == 'true'
         uses: ./.github/actions/install-rust-toolchain
         with:
           toolchain: ${{ steps.benches.outputs.rust-toolchain }}
@@ -211,23 +211,23 @@ jobs:
           fi
 
       - name: Install Rust tools
-        if: always() && steps.benches.outputs.has-rust == 'true'
+        if: steps.benches.outputs.has-rust == 'true'
         uses: taiki-e/install-action@00a67321d66e038602baf558d366a594a7019ea2 # v2.33.9
         with:
           tool: just@1.13.0,critcmp@0.1.8
 
       - name: Install Protobuf
-        if: always() && steps.benches.outputs.has-rust == 'true'
+        if: steps.benches.outputs.has-rust == 'true'
         run: sudo apt install protobuf-compiler
 
       - name: Checkout base branch
         if: steps.benches.outputs.create-baseline == 'true'
         run: |
-          git fetch origin ${{ env.GITHUB_HEAD_REF }}
+          git fetch origin "$GITHUB_HEAD_REF"
           git checkout FETCH_HEAD
 
       - name: Install Rust toolchain
-        if: always() && steps.benches.outputs.has-rust == 'true' && steps.benches.outputs.create-baseline == 'true'
+        if: steps.benches.outputs.has-rust == 'true' && steps.benches.outputs.create-baseline == 'true'
         uses: ./.github/actions/install-rust-toolchain
         with:
           toolchain: ${{ steps.benches.outputs.rust-toolchain }}
@@ -246,7 +246,7 @@ jobs:
         uses: ./.github/actions/warm-up-repo
 
       - name: Cache Rust dependencies
-        if: always() && steps.benches.outputs.has-rust == 'true'
+        if: steps.benches.outputs.has-rust == 'true'
         uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
         with:
           workspaces: ${{ matrix.directory }}
@@ -272,10 +272,10 @@ jobs:
 
       - name: Checkout head branch
         if: steps.benches.outputs.create-baseline == 'true'
-        run: git checkout ${{ env.GITHUB_HEAD_REF }}
+        run: git checkout "$GITHUB_HEAD_REF"
 
       - name: Install Rust toolchain
-        if: always() && steps.benches.outputs.has-rust == 'true'
+        if: steps.benches.outputs.has-rust == 'true'
         uses: ./.github/actions/install-rust-toolchain
         with:
           toolchain: ${{ steps.benches.outputs.rust-toolchain }}
@@ -355,24 +355,24 @@ jobs:
           VAULT_TOKEN: ""
 
       - name: Checkout
-        if: ${{ always() && github.event_name == 'pull_request' }}
+        if: always() && github.event_name == 'pull_request'
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
 
       - name: Download reports' artifacts
-        if: ${{ always() && github.event_name == 'pull_request' }}
+        if: always() && github.event_name == 'pull_request'
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
           path: downloads
 
       - name: Create comment
-        if: ${{ always() && github.event_name == 'pull_request' }}
+        if: always() && github.event_name == 'pull_request'
         run: |
           echo "## Benchmark results" > /tmp/summary.md
           cat downloads/*/*.md >> /tmp/summary.md
 
       - name: Post comment
         uses: mshick/add-pr-comment@b8f338c590a895d50bcbfa6c5859251edc8952fc # v2.8.2
-        if: ${{ always() && github.event_name == 'pull_request' }}
+        if: always() && github.event_name == 'pull_request'
         with:
           message-path: /tmp/summary.md
           message-id: benchmark-results
