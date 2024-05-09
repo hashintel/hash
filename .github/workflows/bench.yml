@@ -355,24 +355,24 @@ jobs:
           VAULT_TOKEN: ""
 
       - name: Checkout
-        if: always() && github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request'
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
 
       - name: Download reports' artifacts
-        if: always() && github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request'
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
           path: downloads
 
       - name: Create comment
-        if: always() && github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request'
         run: |
           echo "## Benchmark results" > /tmp/summary.md
           cat downloads/*/*.md >> /tmp/summary.md
 
       - name: Post comment
         uses: mshick/add-pr-comment@b8f338c590a895d50bcbfa6c5859251edc8952fc # v2.8.2
-        if: always() && github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request'
         with:
           message-path: /tmp/summary.md
           message-id: benchmark-results
