@@ -379,3 +379,5 @@ jobs:
         if: github.event_name == 'pull_request'
         with:
           message-path: /tmp/summary.md
+          message-id: benchmark-results
+          refresh-message-position: true
