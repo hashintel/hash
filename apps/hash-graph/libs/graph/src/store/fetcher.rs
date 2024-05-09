@@ -1154,14 +1154,14 @@ where
         self.store.create_entities(actor_id, params).await
     }
 
-    async fn validate_entity(
+    async fn validate_entities(
         &self,
         actor_id: AccountId,
         consistency: Consistency<'_>,
-        params: ValidateEntityParams<'_>,
+        params: Vec<ValidateEntityParams<'_>>,
     ) -> Result<(), ValidateEntityError> {
         self.store
-            .validate_entity(actor_id, consistency, params)
+            .validate_entities(actor_id, consistency, params)
             .await
     }
 

@@ -388,6 +388,20 @@ pub trait EntityStore {
         actor_id: AccountId,
         consistency: Consistency<'_>,
         params: ValidateEntityParams<'_>,
+    ) -> impl Future<Output = Result<(), Report<ValidateEntityError>>> + Send {
+        self.validate_entities(actor_id, consistency, vec![params])
+    }
+
+    /// Validates [`Entities`][Entity].
+    ///
+    /// # Errors:
+    ///
+    /// - if the validation failed
+    fn validate_entities(
+        &self,
+        actor_id: AccountId,
+        consistency: Consistency<'_>,
+        params: Vec<ValidateEntityParams<'_>>,
     ) -> impl Future<Output = Result<(), Report<ValidateEntityError>>> + Send;
 
     /// Get a list of entities specified by the [`GetEntitiesParams`].
