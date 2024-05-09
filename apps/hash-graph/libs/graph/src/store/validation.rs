@@ -110,10 +110,6 @@ where
     }
 }
 
-#[expect(
-    clippy::struct_field_names,
-    reason = "The fields are named after the types they contain"
-)]
 #[derive(Debug, Default)]
 pub struct StoreCache {
     data_types: CacheHashMap<DataTypeId, DataType>,
