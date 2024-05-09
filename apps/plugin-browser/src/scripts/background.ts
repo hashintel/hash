@@ -3,8 +3,8 @@ import browser from "webextension-polyfill";
 import { setDisabledBadge, setEnabledBadge } from "../shared/badge";
 import { getUser } from "../shared/get-user";
 import type {
-  GetSiteContentRequest,
-  GetSiteContentReturn,
+  GetTabContentRequest,
+  GetTabContentReturn,
   Message,
 } from "../shared/messages";
 import {
@@ -37,16 +37,17 @@ browser.runtime.onInstalled.addListener(({ reason }) => {
   }
 });
 
-browser.runtime.onMessage.addListener((message: Message, sender) => {
+browser.runtime.onMessage.addListener(async (message: Message, sender) => {
   if (sender.tab) {
     // We are not expecting any messages from the content script
     return;
   }
 
-  if (message.type === "infer-entities") {
-    void inferEntities(message, "user");
-  } else if (message.type === "cancel-infer-entities") {
-    void cancelInferEntities(message);
+  switch (message.type) {
+    case "infer-entities":
+      return inferEntities(message, "user");
+    case "cancel-infer-entities":
+      return cancelInferEntities(message);
   }
 });
 
@@ -64,8 +65,8 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
           });
 
           const pageDetails = await (browser.tabs.sendMessage(tabId, {
-            type: "get-site-content",
-          } satisfies GetSiteContentRequest) as Promise<GetSiteContentReturn>);
+            type: "get-tab-content",
+          } satisfies GetTabContentRequest) as Promise<GetTabContentReturn>);
 
           const applicableRules = automaticInferenceConfig.rules.filter(
             ({ restrictToDomains }) => {
@@ -125,7 +126,7 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
               ownedById: automaticInferenceConfig.ownedById,
               sourceTitle: pageDetails.pageTitle,
               sourceUrl: pageDetails.pageUrl,
-              textInput: pageDetails.innerText,
+              textInput: pageDetails.content,
               type: "infer-entities",
             },
             "passive",

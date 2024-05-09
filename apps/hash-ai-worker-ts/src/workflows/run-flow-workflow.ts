@@ -36,6 +36,7 @@ import {
   initializeParallelGroup,
 } from "./run-flow-workflow/initialize-flow";
 import { passOutputsToUnprocessedSteps } from "./run-flow-workflow/pass-outputs-to-unprocessed-steps";
+import { setQueryAndSignalHandlers } from "./run-flow-workflow/set-query-and-signal-handlers";
 
 const log = (message: string) => {
   // eslint-disable-next-line no-console
@@ -195,6 +196,8 @@ export const runFlowWorkflow = async (
   });
 
   await flowActivities.persistFlowActivity({ flow, userAuthentication });
+
+  setQueryAndSignalHandlers();
 
   const processedStepIds: string[] = [];
   const processStepErrors: Record<string, Omit<Status<never>, "contents">> = {};

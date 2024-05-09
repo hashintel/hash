@@ -16,7 +16,7 @@ use authorization::{
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
 };
-use error_stack::{bail, ensure, Report, Result, ResultExt};
+use error_stack::{bail, Report, Result, ResultExt};
 use futures::TryStreamExt;
 use graph_types::{
     account::{AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
@@ -24,9 +24,8 @@ use graph_types::{
         entity::{
             DraftId, Entity, EntityEditionId, EntityEditionProvenance, EntityEmbedding, EntityId,
             EntityMetadata, EntityProvenance, EntityRecordId, EntityTemporalMetadata, EntityUuid,
-            InferredEntityProvenance, ProvidedEntityEditionProvenance,
+            InferredEntityProvenance,
         },
-        link::LinkData,
         Confidence, PropertyMetadataMap, PropertyObject, PropertyPath,
     },
     ontology::EntityTypeId,
@@ -37,7 +36,8 @@ use hash_status::StatusCode;
 use postgres_types::{Json, ToSql};
 use temporal_versioning::{
     ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
-    RightBoundedTemporalInterval, TemporalBound, Timestamp, TransactionTime,
+    OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, TemporalTagged, Timestamp,
+    TransactionTime,
 };
 use tokio_postgres::{error::SqlState, GenericClient, Row};
 use type_system::{url::VersionedUrl, ClosedEntityType};
@@ -57,8 +57,17 @@ use crate::{
             ValidateEntityError, ValidateEntityParams,
         },
         postgres::{
-            knowledge::entity::read::EntityEdgeTraversalData, ontology::OntologyId,
-            query::ReferenceTable, TraversalContext,
+            knowledge::entity::read::EntityEdgeTraversalData,
+            ontology::OntologyId,
+            query::{
+                rows::{
+                    EntityDraftRow, EntityEditionRow, EntityHasLeftEntityRow,
+                    EntityHasRightEntityRow, EntityIdRow, EntityIsOfTypeRow, EntityPropertyRow,
+                    EntityTemporalMetadataRow,
+                },
+                InsertStatementBuilder, ReferenceTable, Table,
+            },
+            TraversalContext,
         },
         query::{Filter, FilterExpression, Parameter, ParameterList},
         validation::StoreProvider,
@@ -457,275 +466,287 @@ where
     A: AuthorizationApi,
 {
     #[tracing::instrument(level = "info", skip(self, params))]
-    async fn create_entity<R>(
+    async fn create_entities<R>(
         &mut self,
         actor_id: AccountId,
-        params: CreateEntityParams<R>,
-    ) -> Result<EntityMetadata, InsertionError>
+        params: Vec<CreateEntityParams<R>>,
+    ) -> Result<Vec<EntityMetadata>, InsertionError>
     where
         R: IntoIterator<Item = EntityRelationAndSubject> + Send,
     {
-        let relationships = params
-            .relationships
-            .into_iter()
-            .chain(once(EntityRelationAndSubject::Owner {
-                subject: EntityOwnerSubject::Web {
-                    id: params.owned_by_id,
+        let transaction_time = Timestamp::<TransactionTime>::now().remove_nanosecond();
+        let mut relationships = Vec::with_capacity(params.len());
+        let mut entity_type_ids = HashMap::new();
+        let mut checked_web_ids = HashSet::new();
+
+        let mut entity_id_rows = Vec::with_capacity(params.len());
+        let mut entity_draft_rows = Vec::new();
+        let mut entity_edition_rows = Vec::with_capacity(params.len());
+        let mut entity_temporal_metadata_rows = Vec::with_capacity(params.len());
+        let mut entity_property_rows = Vec::new();
+        let mut entity_is_of_type_rows = Vec::with_capacity(params.len());
+        let mut entity_has_left_entity_rows = Vec::new();
+        let mut entity_has_right_entity_rows = Vec::new();
+
+        let mut entities = Vec::with_capacity(params.len());
+
+        for params in params {
+            let decision_time = params
+                .decision_time
+                .map_or_else(|| transaction_time.cast(), Timestamp::remove_nanosecond);
+            let entity_id = EntityId {
+                owned_by_id: params.owned_by_id,
+                entity_uuid: params
+                    .entity_uuid
+                    .unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
+                draft_id: params.draft.then(|| DraftId::new(Uuid::new_v4())),
+            };
+
+            if entity_id.entity_uuid.as_uuid() != entity_id.owned_by_id.as_uuid() {
+                checked_web_ids.insert(entity_id.owned_by_id);
+            }
+
+            let entity_provenance = EntityProvenance {
+                inferred: InferredEntityProvenance {
+                    created_by_id: CreatedById::new(actor_id),
+                    created_at_transaction_time: transaction_time,
+                    created_at_decision_time: decision_time,
+                    first_non_draft_created_at_transaction_time: entity_id
+                        .draft_id
+                        .is_none()
+                        .then_some(transaction_time),
+                    first_non_draft_created_at_decision_time: entity_id
+                        .draft_id
+                        .is_none()
+                        .then_some(decision_time),
                 },
-                level: 0,
-            }))
+                edition: EntityEditionProvenance {
+                    created_by_id: EditionCreatedById::new(actor_id),
+                    archived_by_id: None,
+                    provided: params.provenance,
+                },
+            };
+            entity_id_rows.push(EntityIdRow {
+                web_id: entity_id.owned_by_id,
+                entity_uuid: entity_id.entity_uuid,
+                provenance: entity_provenance.inferred.clone(),
+            });
+            if let Some(draft_id) = entity_id.draft_id {
+                entity_draft_rows.push(EntityDraftRow {
+                    web_id: entity_id.owned_by_id,
+                    entity_uuid: entity_id.entity_uuid,
+                    draft_id,
+                });
+            }
+
+            let entity_edition_id = EntityEditionId::new(Uuid::new_v4());
+            entity_edition_rows.push(EntityEditionRow {
+                entity_edition_id,
+                properties: params.properties.clone(),
+                archived: false,
+                confidence: params.confidence,
+                provenance: entity_provenance.edition.clone(),
+            });
+
+            let temporal_versioning = EntityTemporalMetadata {
+                decision_time: LeftClosedTemporalInterval::new(
+                    ClosedTemporalBound::Inclusive(decision_time),
+                    OpenTemporalBound::Unbounded,
+                ),
+                transaction_time: LeftClosedTemporalInterval::new(
+                    ClosedTemporalBound::Inclusive(transaction_time),
+                    OpenTemporalBound::Unbounded,
+                ),
+            };
+            entity_temporal_metadata_rows.push(EntityTemporalMetadataRow {
+                web_id: entity_id.owned_by_id,
+                entity_uuid: entity_id.entity_uuid,
+                draft_id: entity_id.draft_id,
+                entity_edition_id,
+                decision_time: temporal_versioning.decision_time,
+                transaction_time: temporal_versioning.transaction_time,
+            });
+
+            for (property_path, metadata) in &params.property_metadata {
+                entity_property_rows.push(EntityPropertyRow {
+                    entity_edition_id,
+                    property_path: property_path.clone(),
+                    confidence: metadata.confidence,
+                    provenance: metadata.provenance.clone(),
+                });
+            }
+
+            for entity_type_url in &params.entity_type_ids {
+                let entity_type_id = EntityTypeId::from_url(entity_type_url);
+                entity_type_ids.insert(entity_type_id, entity_type_url.clone());
+                entity_is_of_type_rows.push(EntityIsOfTypeRow {
+                    entity_edition_id,
+                    entity_type_ontology_id: entity_type_id,
+                });
+            }
+
+            let link_data = params.link_data.map(|link_data| {
+                entity_has_left_entity_rows.push(EntityHasLeftEntityRow {
+                    web_id: entity_id.owned_by_id,
+                    entity_uuid: entity_id.entity_uuid,
+                    left_web_id: link_data.left_entity_id.owned_by_id,
+                    left_entity_uuid: link_data.left_entity_id.entity_uuid,
+                    confidence: link_data.left_entity_confidence,
+                    provenance: link_data.left_entity_provenance.clone(),
+                });
+                entity_has_right_entity_rows.push(EntityHasRightEntityRow {
+                    web_id: entity_id.owned_by_id,
+                    entity_uuid: entity_id.entity_uuid,
+                    right_web_id: link_data.right_entity_id.owned_by_id,
+                    right_entity_uuid: link_data.right_entity_id.entity_uuid,
+                    confidence: link_data.right_entity_confidence,
+                    provenance: link_data.right_entity_provenance.clone(),
+                });
+                link_data
+            });
+
+            entities.push(Entity {
+                properties: params.properties,
+                link_data,
+                metadata: EntityMetadata {
+                    record_id: EntityRecordId {
+                        entity_id,
+                        edition_id: entity_edition_id,
+                    },
+                    temporal_versioning,
+                    entity_type_ids: params.entity_type_ids,
+                    archived: false,
+                    provenance: entity_provenance,
+                    confidence: params.confidence,
+                    properties: params.property_metadata,
+                },
+            });
+
+            let current_num_relationships = relationships.len();
+            relationships.extend(
+                params
+                    .relationships
+                    .into_iter()
+                    .chain(once(EntityRelationAndSubject::Owner {
+                        subject: EntityOwnerSubject::Web {
+                            id: params.owned_by_id,
+                        },
+                        level: 0,
+                    }))
+                    .map(|relation_and_subject| (entity_id, relation_and_subject)),
+            );
+            if relationships.len() == current_num_relationships {
+                return Err(Report::new(InsertionError)
+                    .attach_printable("At least one relationship must be provided"));
+            }
+        }
+
+        let (instantiate_permissions, zookie) = self
+            .authorization_api
+            .check_entity_types_permission(
+                actor_id,
+                EntityTypePermission::Instantiate,
+                entity_type_ids.keys().copied(),
+                Consistency::FullyConsistent,
+            )
+            .await
+            .change_context(InsertionError)?;
+        let forbidden_instantiations = instantiate_permissions
+            .iter()
+            .filter_map(|(entity_type_id, permission)| {
+                if *permission {
+                    None
+                } else {
+                    entity_type_ids.get(entity_type_id)
+                }
+            })
             .collect::<Vec<_>>();
-        if relationships.is_empty() {
+        if !forbidden_instantiations.is_empty() {
             return Err(Report::new(InsertionError)
-                .attach_printable("At least one relationship must be provided"));
-        }
-
-        for entity_type_id in &params.entity_type_ids {
-            let entity_type_id = EntityTypeId::from_url(entity_type_id);
-            self.authorization_api
-                .check_entity_type_permission(
-                    actor_id,
-                    EntityTypePermission::Instantiate,
-                    entity_type_id,
-                    Consistency::FullyConsistent,
+                .attach(StatusCode::PermissionDenied)
+                .attach_printable(
+                    "The actor does not have permission to instantiate one or more entity types",
                 )
-                .await
-                .change_context(InsertionError)?
-                .assert_permission()
-                .change_context(InsertionError)
-                .attach(StatusCode::PermissionDenied)?;
+                .attach_printable(
+                    forbidden_instantiations
+                        .into_iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                ));
         }
 
-        if Some(params.owned_by_id.into_uuid()) != params.entity_uuid.map(EntityUuid::into_uuid) {
-            self.authorization_api
-                .check_web_permission(
+        if !checked_web_ids.is_empty() {
+            let (create_entity_permissions, _zookie) = self
+                .authorization_api
+                .check_webs_permission(
                     actor_id,
                     WebPermission::CreateEntity,
-                    params.owned_by_id,
-                    Consistency::FullyConsistent,
+                    checked_web_ids,
+                    Consistency::AtLeastAsFresh(&zookie),
                 )
                 .await
-                .change_context(InsertionError)?
-                .assert_permission()
-                .change_context(InsertionError)
-                .attach(StatusCode::PermissionDenied)?;
+                .change_context(InsertionError)?;
+            let forbidden_webs = create_entity_permissions
+                .iter()
+                .filter_map(
+                    |(web_id, permission)| {
+                        if *permission { None } else { Some(web_id) }
+                    },
+                )
+                .collect::<Vec<_>>();
+            if !forbidden_webs.is_empty() {
+                return Err(Report::new(InsertionError)
+                    .attach(StatusCode::PermissionDenied)
+                    .attach_printable(
+                        "The actor does not have permission to create entities for one or more \
+                         web ids",
+                    )
+                    .attach_printable(
+                        forbidden_webs
+                            .into_iter()
+                            .map(ToString::to_string)
+                            .collect::<Vec<_>>()
+                            .join(", "),
+                    ));
+            }
         }
-
-        let entity_id = EntityId {
-            owned_by_id: params.owned_by_id,
-            entity_uuid: params
-                .entity_uuid
-                .unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
-            draft_id: params.draft.then(|| DraftId::new(Uuid::new_v4())),
-        };
 
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
-        match (params.decision_time, params.draft) {
-            (Some(decision_time), false) => transaction
-                .as_client()
-                .query(
-                    "
-                    INSERT INTO entity_ids (
-                        web_id,
-                        entity_uuid,
-                        provenance
-                    ) VALUES (
-                        $1,
-                        $2,
-                        JSONB_BUILD_OBJECT(
-                            'createdById', $3::UUID,
-                            'createdAtTransactionTime', now(),
-                            'createdAtDecisionTime', $4::TIMESTAMPTZ,
-                            'firstNonDraftCreatedAtTransactionTime', now(),
-                            'firstNonDraftCreatedAtDecisionTime', $4::TIMESTAMPTZ
-                        )
-                    );
-                ",
-                    &[
-                        &entity_id.owned_by_id,
-                        &entity_id.entity_uuid,
-                        &CreatedById::new(actor_id),
-                        &decision_time,
-                    ],
-                )
-                .await
-                .change_context(InsertionError)?,
-            (Some(decision_time), true) => transaction
-                .as_client()
-                .query(
-                    "
-                    INSERT INTO entity_ids (
-                        web_id,
-                        entity_uuid,
-                        provenance
-                    ) VALUES (
-                        $1,
-                        $2,
-                        JSONB_BUILD_OBJECT(
-                            'createdById', $3::UUID,
-                            'createdAtTransactionTime', now(),
-                            'createdAtDecisionTime', $4::TIMESTAMPTZ
-                        )
-                    );
-                ",
-                    &[
-                        &entity_id.owned_by_id,
-                        &entity_id.entity_uuid,
-                        &CreatedById::new(actor_id),
-                        &decision_time,
-                    ],
-                )
-                .await
-                .change_context(InsertionError)?,
-            (None, false) => transaction
-                .as_client()
-                .query(
-                    "
-                    INSERT INTO entity_ids (
-                        web_id,
-                        entity_uuid,
-                        provenance
-                    ) VALUES (
-                        $1,
-                        $2,
-                        JSONB_BUILD_OBJECT(
-                            'createdById', $3::UUID,
-                            'createdAtTransactionTime', now(),
-                            'createdAtDecisionTime', now(),
-                            'firstNonDraftCreatedAtTransactionTime', now(),
-                            'firstNonDraftCreatedAtDecisionTime', now()
-                        )
-                    );
-                ",
-                    &[
-                        &entity_id.owned_by_id,
-                        &entity_id.entity_uuid,
-                        &CreatedById::new(actor_id),
-                    ],
-                )
-                .await
-                .change_context(InsertionError)?,
-            (None, true) => transaction
-                .as_client()
-                .query(
-                    "
-                    INSERT INTO entity_ids (
-                        web_id,
-                        entity_uuid,
-                        provenance
-                    ) VALUES (
-                        $1,
-                        $2,
-                        JSONB_BUILD_OBJECT(
-                            'createdById', $3::UUID,
-                            'createdAtTransactionTime', now(),
-                            'createdAtDecisionTime', now()
-                        )
-                    );
-                ",
-                    &[
-                        &entity_id.owned_by_id,
-                        &entity_id.entity_uuid,
-                        &CreatedById::new(actor_id),
-                    ],
-                )
-                .await
-                .change_context(InsertionError)?,
-        };
+        let insertions = [
+            InsertStatementBuilder::from_rows(Table::EntityIds, &entity_id_rows),
+            InsertStatementBuilder::from_rows(Table::EntityDrafts, &entity_draft_rows),
+            InsertStatementBuilder::from_rows(Table::EntityEditions, &entity_edition_rows),
+            InsertStatementBuilder::from_rows(
+                Table::EntityTemporalMetadata,
+                &entity_temporal_metadata_rows,
+            ),
+            InsertStatementBuilder::from_rows(Table::EntityProperty, &entity_property_rows),
+            InsertStatementBuilder::from_rows(Table::EntityIsOfType, &entity_is_of_type_rows),
+            InsertStatementBuilder::from_rows(
+                Table::EntityHasLeftEntity,
+                &entity_has_left_entity_rows,
+            ),
+            InsertStatementBuilder::from_rows(
+                Table::EntityHasRightEntity,
+                &entity_has_right_entity_rows,
+            ),
+        ];
 
-        if let Some(draft_id) = entity_id.draft_id {
+        for statement in insertions {
+            let (statement, parameters) = statement.compile();
             transaction
                 .as_client()
-                .query(
-                    "
-                    INSERT INTO entity_drafts (
-                        web_id,
-                        entity_uuid,
-                        draft_id
-                    ) VALUES ($1, $2, $3);
-                ",
-                    &[&entity_id.owned_by_id, &entity_id.entity_uuid, &draft_id],
-                )
+                .query(&statement, &parameters)
                 .await
                 .change_context(InsertionError)?;
         }
-
-        if let Some(link_data) = &params.link_data {
-            transaction
-                .as_client()
-                .query(
-                    "
-                        INSERT INTO entity_has_left_entity (
-                            web_id,
-                            entity_uuid,
-                            left_web_id,
-                            left_entity_uuid,
-                            confidence
-                        ) VALUES ($1, $2, $3, $4, $5);
-                    ",
-                    &[
-                        &entity_id.owned_by_id,
-                        &entity_id.entity_uuid,
-                        &link_data.left_entity_id.owned_by_id,
-                        &link_data.left_entity_id.entity_uuid,
-                        &link_data.left_entity_confidence,
-                    ],
-                )
-                .await
-                .change_context(InsertionError)?;
-
-            transaction
-                .as_client()
-                .query(
-                    "
-                        INSERT INTO entity_has_right_entity (
-                            web_id,
-                            entity_uuid,
-                            right_web_id,
-                            right_entity_uuid,
-                            confidence
-                        ) VALUES ($1, $2, $3, $4, $5);
-                    ",
-                    &[
-                        &entity_id.owned_by_id,
-                        &entity_id.entity_uuid,
-                        &link_data.right_entity_id.owned_by_id,
-                        &link_data.right_entity_id.entity_uuid,
-                        &link_data.right_entity_confidence,
-                    ],
-                )
-                .await
-                .change_context(InsertionError)?;
-        }
-
-        let edition_provenance = EntityEditionProvenance {
-            created_by_id: EditionCreatedById::new(actor_id),
-            archived_by_id: None,
-            provided: params.provenance,
-        };
-        let (edition_id, closed_schema) = transaction
-            .insert_entity_edition(
-                false,
-                &params.entity_type_ids,
-                &params.properties,
-                params.confidence,
-                &edition_provenance,
-            )
-            .await?;
-
-        transaction
-            .insert_properties(edition_id, &params.property_metadata)
-            .await?;
-
-        let temporal_versioning = transaction
-            .insert_temporal_metadata(entity_id, edition_id, params.decision_time)
-            .await?;
 
         transaction
             .authorization_api
-            .modify_entity_relations(relationships.clone().into_iter().map(
-                |relation_and_subject| {
+            .modify_entity_relations(relationships.iter().copied().map(
+                |(entity_id, relation_and_subject)| {
                     (
                         ModifyRelationshipOperation::Create,
                         entity_id,
@@ -736,26 +757,29 @@ where
             .await
             .change_context(InsertionError)?;
 
-        transaction
-            .validate_entity(
-                actor_id,
-                Consistency::FullyConsistent,
-                ValidateEntityParams {
-                    entity_types: EntityValidationType::ClosedSchema(Cow::Owned(closed_schema)),
-                    properties: Cow::Borrowed(&params.properties),
-                    property_metadata: Cow::Borrowed(&params.property_metadata),
-                    link_data: params.link_data.as_ref().map(Cow::Borrowed),
-                    components: if params.draft {
-                        ValidateEntityComponents {
-                            num_items: false,
-                            required_properties: false,
-                            ..ValidateEntityComponents::full()
-                        }
-                    } else {
-                        ValidateEntityComponents::full()
-                    },
+        let validation_params = entities
+            .iter()
+            .map(|entity| ValidateEntityParams {
+                entity_types: EntityValidationType::Id(Cow::Borrowed(
+                    &entity.metadata.entity_type_ids,
+                )),
+                properties: Cow::Borrowed(&entity.properties),
+                property_metadata: Cow::Borrowed(&entity.metadata.properties),
+                link_data: entity.link_data.as_ref().map(Cow::Borrowed),
+                components: if entity.metadata.record_id.entity_id.draft_id.is_some() {
+                    ValidateEntityComponents {
+                        num_items: false,
+                        required_properties: false,
+                        ..ValidateEntityComponents::full()
+                    }
+                } else {
+                    ValidateEntityComponents::full()
                 },
-            )
+            })
+            .collect();
+
+        transaction
+            .validate_entities(actor_id, Consistency::FullyConsistent, validation_params)
             .await
             .change_context(InsertionError)
             .attach(StatusCode::InvalidArgument)?;
@@ -768,13 +792,15 @@ where
         if let Err(mut error) = commit_result {
             if let Err(auth_error) = self
                 .authorization_api
-                .modify_entity_relations(relationships.into_iter().map(|relation_and_subject| {
-                    (
-                        ModifyRelationshipOperation::Delete,
-                        entity_id,
-                        relation_and_subject,
-                    )
-                }))
+                .modify_entity_relations(relationships.into_iter().map(
+                    |(entity_id, relation_and_subject)| {
+                        (
+                            ModifyRelationshipOperation::Delete,
+                            entity_id,
+                            relation_and_subject,
+                        )
+                    },
+                ))
                 .await
                 .change_context(InsertionError)
             {
@@ -785,48 +811,14 @@ where
 
             Err(error)
         } else {
-            let entity_metadata = EntityMetadata {
-                record_id: EntityRecordId {
-                    entity_id,
-                    edition_id,
-                },
-                entity_type_ids: params.entity_type_ids,
-                provenance: EntityProvenance {
-                    inferred: InferredEntityProvenance {
-                        created_by_id: CreatedById::new(actor_id),
-                        created_at_decision_time: Timestamp::from(
-                            *temporal_versioning.decision_time.start(),
-                        ),
-                        created_at_transaction_time: Timestamp::from(
-                            *temporal_versioning.transaction_time.start(),
-                        ),
-                        first_non_draft_created_at_decision_time: (!params.draft)
-                            .then_some(Timestamp::from(*temporal_versioning.decision_time.start())),
-                        first_non_draft_created_at_transaction_time: (!params.draft).then_some(
-                            Timestamp::from(*temporal_versioning.transaction_time.start()),
-                        ),
-                    },
-                    edition: edition_provenance,
-                },
-                temporal_versioning,
-                archived: false,
-                confidence: params.confidence,
-                properties: params.property_metadata,
-            };
             if let Some(temporal_client) = &self.temporal_client {
                 temporal_client
-                    .start_update_entity_embeddings_workflow(
-                        actor_id,
-                        &[Entity {
-                            properties: params.properties,
-                            link_data: params.link_data,
-                            metadata: entity_metadata.clone(),
-                        }],
-                    )
+                    .start_update_entity_embeddings_workflow(actor_id, &entities)
                     .await
                     .change_context(InsertionError)?;
             }
-            Ok(entity_metadata)
+
+            Ok(entities.into_iter().map(|entity| entity.metadata).collect())
         }
     }
 
@@ -835,88 +827,13 @@ where
     // TODO: Restrict non-draft links to non-draft entities
     //   see https://linear.app/hash/issue/H-1450
     #[tracing::instrument(level = "info", skip(self))]
-    async fn validate_entity(
+    async fn validate_entities(
         &self,
         actor_id: AccountId,
         consistency: Consistency<'_>,
-        params: ValidateEntityParams<'_>,
+        params: Vec<ValidateEntityParams<'_>>,
     ) -> Result<(), ValidateEntityError> {
-        let schema = match params.entity_types {
-            EntityValidationType::ClosedSchema(schema) => schema,
-            EntityValidationType::Schema(schemas) => Cow::Owned(schemas.into_iter().collect()),
-            EntityValidationType::Id(entity_type_url) => {
-                let (ontology_type_ids, ontology_type_uuids): (Vec<_>, Vec<_>) = entity_type_url
-                    .as_ref()
-                    .iter()
-                    .map(|url| {
-                        let id = EntityTypeId::from_url(url);
-                        (id, id.into_uuid())
-                    })
-                    .unzip();
-
-                if !self
-                    .authorization_api
-                    .check_entity_types_permission(
-                        actor_id,
-                        EntityTypePermission::View,
-                        ontology_type_ids.iter().copied(),
-                        consistency,
-                    )
-                    .await
-                    .change_context(ValidateEntityError)?
-                    .0
-                    .into_iter()
-                    .all(|(_, permission)| permission)
-                {
-                    bail!(Report::new(ValidateEntityError).attach(StatusCode::PermissionDenied));
-                }
-
-                let mut closed_schemas = self
-                    .read_closed_schemas(
-                        &Filter::In(
-                            FilterExpression::Path(EntityTypeQueryPath::OntologyId),
-                            ParameterList::Uuid(&ontology_type_uuids),
-                        ),
-                        Some(
-                            &QueryTemporalAxesUnresolved::DecisionTime {
-                                pinned: PinnedTemporalAxisUnresolved::new(None),
-                                variable: VariableTemporalAxisUnresolved::new(None, None),
-                            }
-                            .resolve(),
-                        ),
-                    )
-                    .await
-                    .change_context(ValidateEntityError)?
-                    .map_ok(|(_, raw_type)| raw_type)
-                    .try_collect::<Vec<ClosedEntityType>>()
-                    .await
-                    .change_context(ValidateEntityError)?;
-
-                ensure!(
-                    closed_schemas.len() <= 1,
-                    Report::new(ValidateEntityError).attach_printable(format!(
-                        "Expected exactly one closed schema to be returned from the query but {} \
-                         were returned",
-                        closed_schemas.len(),
-                    ))
-                );
-                Cow::Owned(closed_schemas.pop().ok_or_else(|| {
-                    Report::new(ValidateEntityError).attach_printable(
-                        "Expected exactly one closed schema to be returned from the query but \
-                         none was returned",
-                    )
-                })?)
-            }
-        };
-
-        let mut status: Result<(), validation::EntityValidationError> = if schema.schemas.is_empty()
-        {
-            Err(Report::new(
-                validation::EntityValidationError::EmptyEntityTypes,
-            ))
-        } else {
-            Ok(())
-        };
+        let mut status: Result<(), validation::EntityValidationError> = Ok(());
 
         let validator_provider = StoreProvider {
             store: self,
@@ -928,208 +845,119 @@ where
             )),
         };
 
-        if let Err(error) = params
-            .properties
-            .validate(&schema, params.components, &validator_provider)
-            .await
-        {
-            if let Err(ref mut report) = status {
-                report.extend_one(error);
-            } else {
-                status = Err(error);
-            }
-        }
+        for params in params {
+            let schema = match params.entity_types {
+                EntityValidationType::ClosedSchema(schema) => schema,
+                EntityValidationType::Schema(schemas) => Cow::Owned(schemas.into_iter().collect()),
+                EntityValidationType::Id(entity_type_url) => {
+                    let (ontology_type_ids, ontology_type_uuids): (Vec<_>, Vec<_>) =
+                        entity_type_url
+                            .as_ref()
+                            .iter()
+                            .map(|url| {
+                                let id = EntityTypeId::from_url(url);
+                                (id, id.into_uuid())
+                            })
+                            .unzip();
 
-        if let Err(error) = params
-            .property_metadata
-            .validate(
-                params.properties.as_ref(),
-                params.components,
-                &validator_provider,
-            )
-            .await
-        {
-            if let Err(ref mut report) = status {
-                report.extend_one(error);
-            } else {
-                status = Err(error);
-            }
-        }
+                    if !self
+                        .authorization_api
+                        .check_entity_types_permission(
+                            actor_id,
+                            EntityTypePermission::View,
+                            ontology_type_ids.iter().copied(),
+                            consistency,
+                        )
+                        .await
+                        .change_context(ValidateEntityError)?
+                        .0
+                        .into_iter()
+                        .all(|(_, permission)| permission)
+                    {
+                        bail!(
+                            Report::new(ValidateEntityError).attach(StatusCode::PermissionDenied)
+                        );
+                    }
 
-        if let Err(error) = params
-            .link_data
-            .as_deref()
-            .validate(&schema, params.components, &validator_provider)
-            .await
-        {
-            if let Err(ref mut report) = status {
-                report.extend_one(error);
-            } else {
-                status = Err(error);
+                    let closed_schema = self
+                        .read_closed_schemas(
+                            &Filter::In(
+                                FilterExpression::Path(EntityTypeQueryPath::OntologyId),
+                                ParameterList::Uuid(&ontology_type_uuids),
+                            ),
+                            Some(
+                                &QueryTemporalAxesUnresolved::DecisionTime {
+                                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                                    variable: VariableTemporalAxisUnresolved::new(None, None),
+                                }
+                                .resolve(),
+                            ),
+                        )
+                        .await
+                        .change_context(ValidateEntityError)?
+                        .map_ok(|(_, raw_type)| raw_type)
+                        .try_collect::<ClosedEntityType>()
+                        .await
+                        .change_context(ValidateEntityError)?;
+
+                    Cow::Owned(closed_schema)
+                }
+            };
+
+            if schema.schemas.is_empty() {
+                let error = Report::new(validation::EntityValidationError::EmptyEntityTypes);
+                if let Err(ref mut report) = status {
+                    report.extend_one(error);
+                } else {
+                    status = Err(error);
+                }
+            };
+
+            if let Err(error) = params
+                .properties
+                .validate(&schema, params.components, &validator_provider)
+                .await
+            {
+                if let Err(ref mut report) = status {
+                    report.extend_one(error);
+                } else {
+                    status = Err(error);
+                }
+            }
+
+            if let Err(error) = params
+                .property_metadata
+                .validate(
+                    params.properties.as_ref(),
+                    params.components,
+                    &validator_provider,
+                )
+                .await
+            {
+                if let Err(ref mut report) = status {
+                    report.extend_one(error);
+                } else {
+                    status = Err(error);
+                }
+            }
+
+            if let Err(error) = params
+                .link_data
+                .as_deref()
+                .validate(&schema, params.components, &validator_provider)
+                .await
+            {
+                if let Err(ref mut report) = status {
+                    report.extend_one(error);
+                } else {
+                    status = Err(error);
+                }
             }
         }
 
         status
             .change_context(ValidateEntityError)
             .attach(StatusCode::InvalidArgument)
-    }
-
-    #[expect(
-        clippy::significant_drop_tightening,
-        reason = "The connection is required to borrow the client"
-    )]
-    #[tracing::instrument(level = "info", skip(self, entities))]
-    async fn insert_entities_batched_by_type(
-        &mut self,
-        actor_id: AccountId,
-        entities: impl IntoIterator<
-            Item = (
-                OwnedById,
-                Option<EntityUuid>,
-                PropertyObject,
-                Option<LinkData>,
-                Option<Timestamp<DecisionTime>>,
-            ),
-            IntoIter: Send,
-        > + Send,
-        entity_type_url: &VersionedUrl,
-    ) -> Result<Vec<EntityMetadata>, InsertionError> {
-        let entity_type_id = EntityTypeId::from_url(entity_type_url);
-        self.authorization_api
-            .check_entity_type_permission(
-                actor_id,
-                EntityTypePermission::Instantiate,
-                entity_type_id,
-                Consistency::FullyConsistent,
-            )
-            .await
-            .change_context(InsertionError)?
-            .assert_permission()
-            .change_context(InsertionError)
-            .attach(StatusCode::PermissionDenied)?;
-
-        let transaction = self.transaction().await.change_context(InsertionError)?;
-
-        let entities = entities.into_iter();
-        let mut entity_ids = Vec::with_capacity(entities.size_hint().0);
-        let mut entity_editions = Vec::with_capacity(entities.size_hint().0);
-        let mut entity_versions = Vec::with_capacity(entities.size_hint().0);
-        for (owned_by_id, entity_uuid, properties, link_data, decision_time) in entities {
-            entity_ids.push((
-                EntityId {
-                    owned_by_id,
-                    entity_uuid: entity_uuid.unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
-                    draft_id: None,
-                },
-                actor_id,
-                decision_time,
-                link_data.as_ref().map(|link_data| link_data.left_entity_id),
-                link_data
-                    .as_ref()
-                    .map(|link_data| link_data.right_entity_id),
-            ));
-            entity_editions.push(properties);
-            entity_versions.push(decision_time);
-        }
-
-        // TODO: match on and return the relevant error
-        //   https://app.asana.com/0/1200211978612931/1202574350052904/f
-        transaction
-            .insert_entity_ids(entity_ids.iter().copied().map(
-                |(id, actor_id, decision_time, ..)| (id, CreatedById::new(actor_id), decision_time),
-            ))
-            .await?;
-
-        transaction
-            .insert_entity_links(
-                "left",
-                entity_ids
-                    .iter()
-                    .copied()
-                    .filter_map(|(id, _, _, left, _)| left.map(|left| (id, left))),
-            )
-            .await?;
-        transaction
-            .insert_entity_links(
-                "right",
-                entity_ids
-                    .iter()
-                    .copied()
-                    .filter_map(|(id, _, _, _, right)| right.map(|right| (id, right))),
-            )
-            .await?;
-
-        // Using one entity type per entity would result in more lookups, which results in a more
-        // complex logic and/or be inefficient.
-        // Please see the documentation for this function on the trait for more information.
-        let entity_type_ontology_id = transaction
-            .ontology_id_by_url(entity_type_url)
-            .await
-            .change_context(InsertionError)?;
-
-        let entity_edition_ids = transaction
-            .insert_entity_records(entity_editions, EditionCreatedById::new(actor_id))
-            .await?;
-
-        let entity_versions = transaction
-            .insert_entity_versions(
-                entity_ids
-                    .iter()
-                    .copied()
-                    .zip(entity_edition_ids.iter().copied())
-                    .zip(entity_versions)
-                    .map(|(((entity_id, ..), entity_edition_id), decision_time)| {
-                        (entity_id, entity_edition_id, decision_time)
-                    }),
-            )
-            .await?;
-
-        transaction
-            .insert_entity_is_of_type(entity_edition_ids.iter().copied(), entity_type_ontology_id)
-            .await?;
-
-        transaction.commit().await.change_context(InsertionError)?;
-
-        Ok(entity_ids
-            .into_iter()
-            .zip(entity_versions)
-            .zip(entity_edition_ids)
-            .map(
-                |(((entity_id, ..), temporal_versioning), edition_id)| EntityMetadata {
-                    record_id: EntityRecordId {
-                        entity_id,
-                        edition_id,
-                    },
-                    entity_type_ids: vec![entity_type_url.clone()],
-                    provenance: EntityProvenance {
-                        inferred: InferredEntityProvenance {
-                            created_by_id: CreatedById::new(actor_id),
-                            created_at_decision_time: Timestamp::from(
-                                *temporal_versioning.decision_time.start(),
-                            ),
-                            created_at_transaction_time: Timestamp::from(
-                                *temporal_versioning.transaction_time.start(),
-                            ),
-                            first_non_draft_created_at_decision_time: Some(Timestamp::from(
-                                *temporal_versioning.decision_time.start(),
-                            )),
-                            first_non_draft_created_at_transaction_time: Some(Timestamp::from(
-                                *temporal_versioning.transaction_time.start(),
-                            )),
-                        },
-                        edition: EntityEditionProvenance {
-                            created_by_id: EditionCreatedById::new(actor_id),
-                            archived_by_id: None,
-                            provided: ProvidedEntityEditionProvenance::default(),
-                        },
-                    },
-                    temporal_versioning,
-                    archived: false,
-                    confidence: None,
-                    properties: PropertyMetadataMap::default(),
-                },
-            )
-            .collect())
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
@@ -1314,6 +1142,10 @@ where
         actor_id: AccountId,
         mut params: PatchEntityParams,
     ) -> Result<EntityMetadata, UpdateError> {
+        let transaction_time = Timestamp::now().remove_nanosecond();
+        let decision_time = params
+            .decision_time
+            .map_or_else(|| transaction_time.cast(), Timestamp::remove_nanosecond);
         let entity_type_ids = params
             .entity_type_ids
             .iter()
@@ -1352,7 +1184,7 @@ where
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
         let locked_row = transaction
-            .lock_entity_edition(params.entity_id, params.decision_time)
+            .lock_entity_edition(params.entity_id, transaction_time, decision_time)
             .await?
             .ok_or_else(|| {
                 Report::new(EntityDoesNotExist)
@@ -1500,7 +1332,13 @@ where
             (true, true) | (false, false) => {
                 // regular update
                 transaction
-                    .update_temporal_metadata(locked_row, edition_id, false)
+                    .update_temporal_metadata(
+                        locked_row,
+                        transaction_time,
+                        decision_time,
+                        edition_id,
+                        false,
+                    )
                     .await?
             }
             (false, true) => {
@@ -1524,7 +1362,12 @@ where
                     .change_context(UpdateError)?;
                 params.entity_id.draft_id = Some(draft_id);
                 transaction
-                    .insert_temporal_metadata(params.entity_id, edition_id, params.decision_time)
+                    .insert_temporal_metadata(
+                        params.entity_id,
+                        edition_id,
+                        transaction_time,
+                        decision_time,
+                    )
                     .await
                     .change_context(UpdateError)?
             }
@@ -1533,21 +1376,21 @@ where
                 params.entity_id.draft_id = None;
 
                 if first_non_draft_created_at_decision_time.is_none() {
-                    let row = transaction
+                    transaction
                         .as_client()
-                        .query_one(
+                        .query(
                             "
                             UPDATE entity_ids
                             SET provenance = provenance || JSONB_BUILD_OBJECT(
-                                'firstNonDraftCreatedAtTransactionTime', now(),
-                                'firstNonDraftCreatedAtDecisionTime', $1::TIMESTAMPTZ
+                                'firstNonDraftCreatedAtTransactionTime', $1::TIMESTAMPTZ,
+                                'firstNonDraftCreatedAtDecisionTime', $2::TIMESTAMPTZ
                             )
-                            WHERE web_id = $2
-                              AND entity_uuid = $3
-                            RETURNING now(), $1::TIMESTAMPTZ;
+                            WHERE web_id = $3
+                              AND entity_uuid = $4;
                             ",
                             &[
-                                &locked_row.updated_at_decision_time,
+                                &transaction_time,
+                                &decision_time,
                                 &params.entity_id.owned_by_id,
                                 &params.entity_id.entity_uuid,
                             ],
@@ -1555,20 +1398,31 @@ where
                         .await
                         .change_context(UpdateError)?;
 
-                    first_non_draft_created_at_transaction_time = row.get(0);
-                    first_non_draft_created_at_decision_time = row.get(1);
+                    first_non_draft_created_at_transaction_time = Some(transaction_time);
+                    first_non_draft_created_at_decision_time = Some(decision_time);
                 }
 
                 if let Some(previous_live_entity) = transaction
-                    .lock_entity_edition(params.entity_id, params.decision_time)
+                    .lock_entity_edition(params.entity_id, transaction_time, decision_time)
                     .await?
                 {
                     transaction
-                        .archive_entity(actor_id, previous_live_entity)
+                        .archive_entity(
+                            actor_id,
+                            previous_live_entity,
+                            transaction_time,
+                            decision_time,
+                        )
                         .await?;
                 }
                 transaction
-                    .update_temporal_metadata(locked_row, edition_id, true)
+                    .update_temporal_metadata(
+                        locked_row,
+                        transaction_time,
+                        decision_time,
+                        edition_id,
+                        true,
+                    )
                     .await?
             }
         };
@@ -1761,7 +1615,6 @@ struct LockedEntityEdition {
     entity_edition_id: EntityEditionId,
     decision_time: LeftClosedTemporalInterval<DecisionTime>,
     transaction_time: LeftClosedTemporalInterval<TransactionTime>,
-    updated_at_decision_time: Timestamp<DecisionTime>,
 }
 
 impl<A> PostgresStore<tokio_postgres::Transaction<'_>, A>
@@ -1877,98 +1730,56 @@ where
     async fn lock_entity_edition(
         &self,
         entity_id: EntityId,
-        decision_time: Option<Timestamp<DecisionTime>>,
+        transaction_time: Timestamp<TransactionTime>,
+        decision_time: Timestamp<DecisionTime>,
     ) -> Result<Option<LockedEntityEdition>, UpdateError> {
-        let current_data = match (entity_id.draft_id, decision_time) {
-            (Some(draft_id), Some(decision_time)) => {
-                self.as_client()
-                    .query_opt(
-                        "
-                            SELECT
-                                entity_temporal_metadata.entity_edition_id,
-                                entity_temporal_metadata.transaction_time,
-                                entity_temporal_metadata.decision_time,
-                                $4::timestamptz
-                            FROM entity_temporal_metadata
-                            WHERE entity_temporal_metadata.web_id = $1
-                              AND entity_temporal_metadata.entity_uuid = $2
-                              AND entity_temporal_metadata.draft_id = $3
-                              AND entity_temporal_metadata.decision_time @> $4::timestamptz
-                              AND entity_temporal_metadata.transaction_time @> now()
-                              FOR NO KEY UPDATE NOWAIT;",
-                        &[
-                            &entity_id.owned_by_id,
-                            &entity_id.entity_uuid,
-                            &draft_id,
-                            &decision_time,
-                        ],
-                    )
-                    .await
-            }
-            (None, Some(decision_time)) => {
-                self.as_client()
-                    .query_opt(
-                        "
-                            SELECT
-                                entity_temporal_metadata.entity_edition_id,
-                                entity_temporal_metadata.transaction_time,
-                                entity_temporal_metadata.decision_time,
-                                $3::timestamptz
-                            FROM entity_temporal_metadata
-                            WHERE entity_temporal_metadata.web_id = $1
-                              AND entity_temporal_metadata.entity_uuid = $2
-                              AND entity_temporal_metadata.draft_id IS NULL
-                              AND entity_temporal_metadata.decision_time @> $3::timestamptz
-                              AND entity_temporal_metadata.transaction_time @> now()
-                              FOR NO KEY UPDATE NOWAIT;",
-                        &[
-                            &entity_id.owned_by_id,
-                            &entity_id.entity_uuid,
-                            &decision_time,
-                        ],
-                    )
-                    .await
-            }
-            (Some(draft_id), None) => {
-                self.as_client()
-                    .query_opt(
-                        "
+        let current_data = if let Some(draft_id) = entity_id.draft_id {
+            self.as_client()
+                .query_opt(
+                    "
                         SELECT
                             entity_temporal_metadata.entity_edition_id,
                             entity_temporal_metadata.transaction_time,
-                            entity_temporal_metadata.decision_time,
-                            now()
+                            entity_temporal_metadata.decision_time
                         FROM entity_temporal_metadata
                         WHERE entity_temporal_metadata.web_id = $1
                           AND entity_temporal_metadata.entity_uuid = $2
                           AND entity_temporal_metadata.draft_id = $3
-                          AND entity_temporal_metadata.decision_time @> now()
-                          AND entity_temporal_metadata.transaction_time @> now()
+                          AND entity_temporal_metadata.transaction_time @> $4::timestamptz
+                          AND entity_temporal_metadata.decision_time @> $5::timestamptz
                           FOR NO KEY UPDATE NOWAIT;",
-                        &[&entity_id.owned_by_id, &entity_id.entity_uuid, &draft_id],
-                    )
-                    .await
-            }
-            (None, None) => {
-                self.as_client()
-                    .query_opt(
-                        "
+                    &[
+                        &entity_id.owned_by_id,
+                        &entity_id.entity_uuid,
+                        &draft_id,
+                        &transaction_time,
+                        &decision_time,
+                    ],
+                )
+                .await
+        } else {
+            self.as_client()
+                .query_opt(
+                    "
                         SELECT
                             entity_temporal_metadata.entity_edition_id,
                             entity_temporal_metadata.transaction_time,
-                            entity_temporal_metadata.decision_time,
-                            now()
+                            entity_temporal_metadata.decision_time
                         FROM entity_temporal_metadata
                         WHERE entity_temporal_metadata.web_id = $1
                           AND entity_temporal_metadata.entity_uuid = $2
                           AND entity_temporal_metadata.draft_id IS NULL
-                          AND entity_temporal_metadata.decision_time @> now()
-                          AND entity_temporal_metadata.transaction_time @> now()
+                          AND entity_temporal_metadata.transaction_time @> $3::timestamptz
+                          AND entity_temporal_metadata.decision_time @> $4::timestamptz
                           FOR NO KEY UPDATE NOWAIT;",
-                        &[&entity_id.owned_by_id, &entity_id.entity_uuid],
-                    )
-                    .await
-            }
+                    &[
+                        &entity_id.owned_by_id,
+                        &entity_id.entity_uuid,
+                        &transaction_time,
+                        &decision_time,
+                    ],
+                )
+                .await
         };
 
         current_data
@@ -1978,7 +1789,6 @@ where
                     entity_edition_id: row.get(0),
                     transaction_time: row.get(1),
                     decision_time: row.get(2),
-                    updated_at_decision_time: row.get(3),
                 })
             })
             .map_err(|error| match error.code() {
@@ -1994,66 +1804,39 @@ where
         &self,
         entity_id: EntityId,
         edition_id: EntityEditionId,
-        decision_time: Option<Timestamp<DecisionTime>>,
+        transaction_time: Timestamp<TransactionTime>,
+        decision_time: Timestamp<DecisionTime>,
     ) -> Result<EntityTemporalMetadata, InsertionError> {
-        let row = if let Some(decision_time) = decision_time {
-            self.as_client()
-                .query_one(
-                    "
-                    INSERT INTO entity_temporal_metadata (
-                        web_id,
-                        entity_uuid,
-                        draft_id,
-                        entity_edition_id,
-                        decision_time,
-                        transaction_time
-                    ) VALUES (
-                        $1,
-                        $2,
-                        $3,
-                        $4,
-                        tstzrange($5, NULL, '[)'),
-                        tstzrange(now(), NULL, '[)')
-                    ) RETURNING decision_time, transaction_time;",
-                    &[
-                        &entity_id.owned_by_id,
-                        &entity_id.entity_uuid,
-                        &entity_id.draft_id,
-                        &edition_id,
-                        &decision_time,
-                    ],
-                )
-                .await
-                .change_context(InsertionError)?
-        } else {
-            self.as_client()
-                .query_one(
-                    "
-                    INSERT INTO entity_temporal_metadata (
-                        web_id,
-                        entity_uuid,
-                        draft_id,
-                        entity_edition_id,
-                        decision_time,
-                        transaction_time
-                    ) VALUES (
-                        $1,
-                        $2,
-                        $3,
-                        $4,
-                        tstzrange(now(), NULL, '[)'),
-                        tstzrange(now(), NULL, '[)')
-                    ) RETURNING decision_time, transaction_time;",
-                    &[
-                        &entity_id.owned_by_id,
-                        &entity_id.entity_uuid,
-                        &entity_id.draft_id,
-                        &edition_id,
-                    ],
-                )
-                .await
-                .change_context(InsertionError)?
-        };
+        let row = self
+            .as_client()
+            .query_one(
+                "
+                INSERT INTO entity_temporal_metadata (
+                    web_id,
+                    entity_uuid,
+                    draft_id,
+                    entity_edition_id,
+                    transaction_time,
+                    decision_time
+                ) VALUES (
+                    $1,
+                    $2,
+                    $3,
+                    $4,
+                    tstzrange($5, NULL, '[)'),
+                    tstzrange($6, NULL, '[)')
+                ) RETURNING decision_time, transaction_time;",
+                &[
+                    &entity_id.owned_by_id,
+                    &entity_id.entity_uuid,
+                    &entity_id.draft_id,
+                    &edition_id,
+                    &transaction_time,
+                    &decision_time,
+                ],
+            )
+            .await
+            .change_context(InsertionError)?;
 
         Ok(EntityTemporalMetadata {
             decision_time: row.get(0),
@@ -2065,6 +1848,8 @@ where
     async fn update_temporal_metadata(
         &self,
         locked_row: LockedEntityEdition,
+        transaction_time: Timestamp<TransactionTime>,
+        decision_time: Timestamp<DecisionTime>,
         entity_edition_id: EntityEditionId,
         undraft: bool,
     ) -> Result<EntityTemporalMetadata, UpdateError> {
@@ -2075,21 +1860,22 @@ where
                     .query_one(
                         "
                 UPDATE entity_temporal_metadata
-                SET decision_time = tstzrange($4::timestamptz, upper(decision_time), '[)'),
-                    transaction_time = tstzrange(now(), NULL, '[)'),
-                    entity_edition_id = $5,
+                SET transaction_time = tstzrange($4::timestamptz, NULL, '[)'),
+                    decision_time = tstzrange($5::timestamptz, upper(decision_time), '[)'),
+                    entity_edition_id = $6,
                     draft_id = NULL
                 WHERE entity_temporal_metadata.web_id = $1
                   AND entity_temporal_metadata.entity_uuid = $2
                   AND entity_temporal_metadata.draft_id = $3
-                  AND entity_temporal_metadata.decision_time @> $4::timestamptz
-                  AND entity_temporal_metadata.transaction_time @> now()
+                  AND entity_temporal_metadata.transaction_time @> $4::timestamptz
+                  AND entity_temporal_metadata.decision_time @> $5::timestamptz
                 RETURNING decision_time, transaction_time;",
                         &[
                             &locked_row.entity_id.owned_by_id,
                             &locked_row.entity_id.entity_uuid,
                             &draft_id,
-                            &locked_row.updated_at_decision_time,
+                            &transaction_time,
+                            &decision_time,
                             &entity_edition_id,
                         ],
                     )
@@ -2101,20 +1887,21 @@ where
                     .query_one(
                         "
                 UPDATE entity_temporal_metadata
-                SET decision_time = tstzrange($4::timestamptz, upper(decision_time), '[)'),
-                    transaction_time = tstzrange(now(), NULL, '[)'),
-                    entity_edition_id = $5
+                SET transaction_time = tstzrange($4::timestamptz, NULL, '[)'),
+                    decision_time = tstzrange($5::timestamptz, upper(decision_time), '[)'),
+                    entity_edition_id = $6
                 WHERE entity_temporal_metadata.web_id = $1
                   AND entity_temporal_metadata.entity_uuid = $2
                   AND entity_temporal_metadata.draft_id = $3
-                  AND entity_temporal_metadata.decision_time @> $4::timestamptz
-                  AND entity_temporal_metadata.transaction_time @> now()
+                  AND entity_temporal_metadata.transaction_time @> $4::timestamptz
+                  AND entity_temporal_metadata.decision_time @> $5::timestamptz
                 RETURNING decision_time, transaction_time;",
                         &[
                             &locked_row.entity_id.owned_by_id,
                             &locked_row.entity_id.entity_uuid,
                             &draft_id,
-                            &locked_row.updated_at_decision_time,
+                            &transaction_time,
+                            &decision_time,
                             &entity_edition_id,
                         ],
                     )
@@ -2127,19 +1914,20 @@ where
                 .query_one(
                     "
                 UPDATE entity_temporal_metadata
-                SET decision_time = tstzrange($3::timestamptz, upper(decision_time), '[)'),
-                    transaction_time = tstzrange(now(), NULL, '[)'),
-                    entity_edition_id = $4
+                SET transaction_time = tstzrange($3::timestamptz, NULL, '[)'),
+                    decision_time = tstzrange($4::timestamptz, upper(decision_time), '[)'),
+                    entity_edition_id = $5
                 WHERE entity_temporal_metadata.web_id = $1
                   AND entity_temporal_metadata.entity_uuid = $2
                   AND entity_temporal_metadata.draft_id IS NULL
-                  AND entity_temporal_metadata.decision_time @> $3::timestamptz
-                  AND entity_temporal_metadata.transaction_time @> now()
+                  AND entity_temporal_metadata.transaction_time @> $3::timestamptz
+                  AND entity_temporal_metadata.decision_time @> $4::timestamptz
                 RETURNING decision_time, transaction_time;",
                     &[
                         &locked_row.entity_id.owned_by_id,
                         &locked_row.entity_id.entity_uuid,
-                        &locked_row.updated_at_decision_time,
+                        &transaction_time,
+                        &decision_time,
                         &entity_edition_id,
                     ],
                 )
@@ -2164,7 +1952,7 @@ where
                     $3,
                     $4,
                     $5,
-                    tstzrange(lower($6::tstzrange), now(), '[)')
+                    tstzrange(lower($6::tstzrange), $7, '[)')
                 );",
                 &[
                     &locked_row.entity_id.owned_by_id,
@@ -2173,6 +1961,7 @@ where
                     &locked_row.entity_edition_id,
                     &locked_row.decision_time,
                     &locked_row.transaction_time,
+                    &transaction_time,
                 ],
             )
             .await
@@ -2187,15 +1976,15 @@ where
                     entity_uuid,
                     draft_id,
                     entity_edition_id,
-                    decision_time,
-                    transaction_time
+                    transaction_time,
+                    decision_time
                 ) VALUES (
                     $1,
                     $2,
                     $3,
                     $4,
-                    tstzrange(lower($5::tstzrange), $6, '[)'),
-                    tstzrange(now(), NULL, '[)')
+                    tstzrange($6, NULL, '[)'),
+                    tstzrange(lower($5::tstzrange), $7, '[)')
                 );",
                 &[
                     &locked_row.entity_id.owned_by_id,
@@ -2203,7 +1992,8 @@ where
                     &locked_row.entity_id.draft_id,
                     &locked_row.entity_edition_id,
                     &locked_row.decision_time,
-                    &locked_row.updated_at_decision_time,
+                    &transaction_time,
+                    &decision_time,
                 ],
             )
             .await
@@ -2220,6 +2010,8 @@ where
         &self,
         actor_id: AccountId,
         locked_row: LockedEntityEdition,
+        transaction_time: Timestamp<TransactionTime>,
+        decision_time: Timestamp<DecisionTime>,
     ) -> Result<EntityTemporalMetadata, UpdateError> {
         let row = if let Some(draft_id) = locked_row.entity_id.draft_id {
             self.client
@@ -2227,19 +2019,20 @@ where
                 .query_one(
                     "
                 UPDATE entity_temporal_metadata
-                SET decision_time = tstzrange(lower(decision_time), $4::timestamptz, '[)'),
-                    transaction_time = tstzrange(now(), NULL, '[)')
+                SET transaction_time = tstzrange($4::timestamptz, NULL, '[)'),
+                    decision_time = tstzrange(lower(decision_time), $5::timestamptz, '[)')
                 WHERE entity_temporal_metadata.web_id = $1
                   AND entity_temporal_metadata.entity_uuid = $2
                   AND entity_temporal_metadata.draft_id = $3
-                  AND entity_temporal_metadata.decision_time @> $4::timestamptz
-                  AND entity_temporal_metadata.transaction_time @> now()
+                  AND entity_temporal_metadata.transaction_time @> $4::timestamptz
+                  AND entity_temporal_metadata.decision_time @> $5::timestamptz
                 RETURNING decision_time, transaction_time;",
                     &[
                         &locked_row.entity_id.owned_by_id,
                         &locked_row.entity_id.entity_uuid,
                         &draft_id,
-                        &locked_row.updated_at_decision_time,
+                        &transaction_time,
+                        &decision_time,
                     ],
                 )
                 .await
@@ -2250,18 +2043,19 @@ where
                 .query_one(
                     "
                 UPDATE entity_temporal_metadata
-                SET decision_time = tstzrange(lower(decision_time), $3::timestamptz, '[)'),
-                    transaction_time = tstzrange(now(), NULL, '[)')
+                SET transaction_time = tstzrange($3::timestamptz, NULL, '[)'),
+                    decision_time = tstzrange(lower(decision_time), $4::timestamptz, '[)')
                 WHERE entity_temporal_metadata.web_id = $1
                   AND entity_temporal_metadata.entity_uuid = $2
                   AND entity_temporal_metadata.draft_id IS NULL
-                  AND entity_temporal_metadata.decision_time @> $3::timestamptz
-                  AND entity_temporal_metadata.transaction_time @> now()
+                  AND entity_temporal_metadata.transaction_time @> $3::timestamptz
+                  AND entity_temporal_metadata.decision_time @> $4::timestamptz
                 RETURNING decision_time, transaction_time;",
                     &[
                         &locked_row.entity_id.owned_by_id,
                         &locked_row.entity_id.entity_uuid,
-                        &locked_row.updated_at_decision_time,
+                        &transaction_time,
+                        &decision_time,
                     ],
                 )
                 .await
@@ -2277,15 +2071,15 @@ where
                     entity_uuid,
                     draft_id,
                     entity_edition_id,
-                    decision_time,
-                    transaction_time
+                    transaction_time,
+                    decision_time
                 ) VALUES (
                     $1,
                     $2,
                     $3,
                     $4,
-                    $5,
-                    tstzrange(lower($6::tstzrange), now(), '[)')
+                    tstzrange(lower($6::tstzrange), $7, '[)'),
+                    $5
                 );",
                 &[
                     &locked_row.entity_id.owned_by_id,
@@ -2294,6 +2088,7 @@ where
                     &locked_row.entity_edition_id,
                     &locked_row.decision_time,
                     &locked_row.transaction_time,
+                    &transaction_time,
                 ],
             )
             .await

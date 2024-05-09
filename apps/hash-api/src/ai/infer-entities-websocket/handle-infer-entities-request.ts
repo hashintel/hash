@@ -1,5 +1,4 @@
 import type {
-  GetResultsFromCancelledInferenceRequestQuery,
   InferEntitiesCallerParams,
   InferEntitiesRequestMessage,
   InferEntitiesResponseMessage,
@@ -9,6 +8,7 @@ import {
   inferenceModelNames,
   inferEntitiesUserArgumentKeys,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
+import { getResultsFromCancelledInferenceQuery } from "@local/hash-isomorphic-utils/flows/queries";
 import { StatusCode } from "@local/status";
 import type {
   ApplicationFailure,
@@ -104,10 +104,9 @@ export const handleInferEntitiesRequest = async ({
 
     try {
       // See if we can get the results from the cancelled workflow via a query
-      const partialResultsFromCancellation =
-        await handle.query<InferEntitiesReturn>(
-          "getResultsFromCancelledInference" satisfies GetResultsFromCancelledInferenceRequestQuery["name"],
-        );
+      const partialResultsFromCancellation = await handle.query(
+        getResultsFromCancelledInferenceQuery,
+      );
       sendResponse(partialResultsFromCancellation, "user-cancelled");
       return;
     } catch (queryError) {

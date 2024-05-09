@@ -1,3 +1,4 @@
+import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
 import type { Entity } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
@@ -6,7 +7,6 @@ import { inferEntitySummariesFromWebPage } from "./infer-entities/infer-entity-s
 import type {
   DereferencedEntityTypesByTypeId,
   InferenceState,
-  WebPage,
 } from "./infer-entities/inference-types";
 import { proposeEntities } from "./infer-entities/propose-entities";
 import { logger } from "./shared/activity-logger";
@@ -87,7 +87,7 @@ export const inferEntitiesFromWebPageActivity = async (params: {
 
   const proposeEntitiesPrompt = dedent(`
     ${typeof webPage === "string" ? "The content of the web page is as follows:" : `The website page title is ${webPage.title}, hosted at ${webPage.url}. Its content is as follows:`}
-    ${typeof webPage === "string" ? webPage : webPage.textContent}
+    ${typeof webPage === "string" ? webPage : webPage.htmlContent}
     ---WEBSITE CONTENT ENDS---
 
     Pay careful attention to the units of data, which may be defined

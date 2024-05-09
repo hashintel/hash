@@ -6,8 +6,8 @@ import browser from "webextension-polyfill";
 
 import { createDefaultSettings } from "../../../../../shared/create-default-settings";
 import type {
-  GetSiteContentRequest,
-  GetSiteContentReturn,
+  GetTabContentRequest,
+  GetTabContentReturn,
 } from "../../../../../shared/messages";
 import type { LocalStorage } from "../../../../../shared/storage";
 import { sendMessageToBackground } from "../../../../shared/messages";
@@ -64,15 +64,15 @@ export const InferEntitiesAction = ({
       throw new Error("No active tab");
     }
 
-    const message: GetSiteContentRequest = {
-      type: "get-site-content",
+    const message: GetTabContentRequest = {
+      type: "get-tab-content",
     };
 
     try {
       const siteContent = await (browser.tabs.sendMessage(
         activeTab.id,
         message,
-      ) as Promise<GetSiteContentReturn>);
+      ) as Promise<GetTabContentReturn>);
 
       void sendMessageToBackground({
         createAs,
@@ -81,7 +81,7 @@ export const InferEntitiesAction = ({
         ownedById,
         sourceTitle: siteContent.pageTitle,
         sourceUrl: siteContent.pageUrl,
-        textInput: siteContent.innerText,
+        textInput: siteContent.content,
         type: "infer-entities",
       });
     } catch (err) {

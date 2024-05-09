@@ -27,7 +27,7 @@ export const FlowRunsContextProvider = ({ children }: PropsWithChildren) => {
   const { data } = useQuery<GetFlowRunsQuery, GetFlowRunsQueryVariables>(
     getFlowRunsQuery,
     {
-      pollInterval: 1_000,
+      pollInterval: 3_000,
     },
   );
 
@@ -106,7 +106,12 @@ export const useStatusForCurrentStep = (): Pick<
   return useStatusForStep(nodeId);
 };
 
-export type SimpleStatus = "Waiting" | "In Progress" | "Complete" | "Error";
+export type SimpleStatus =
+  | "Waiting"
+  | "In Progress"
+  | "Complete"
+  | "Error"
+  | "Cancelled";
 
 export const statusToSimpleStatus = (
   status: StepRun["status"] | null,
@@ -119,8 +124,10 @@ export const statusToSimpleStatus = (
       break;
     case FlowStepStatus.Failed:
     case FlowStepStatus.TimedOut:
-    case FlowStepStatus.Canceled:
       simpleStatus = "Error";
+      break;
+    case FlowStepStatus.Cancelled:
+      simpleStatus = "Cancelled";
       break;
     case FlowStepStatus.Scheduled:
     case FlowStepStatus.Started:
@@ -161,7 +168,10 @@ export const useStatusForSteps = (
 
     let scheduledAt: string | undefined;
     let closedAt: string | undefined;
-    let status: SimpleStatus = "Complete";
+    let status: SimpleStatus =
+      stepRuns.at(-1)!.status === FlowStepStatus.Cancelled
+        ? "Cancelled"
+        : "Complete";
 
     let hasError: boolean = false;
     let hasWaiting: boolean = false;

@@ -395,10 +395,11 @@ const seedFlowTestTypes = async () => {
   );
 
   /**
-   * This is a generic company entity type to allow for identifying companies that are invested in an index
-   * but are not constituents of an index (in the example use case we are developing Flows against initially)
+   * This is a generic company entity type to allow
+   * 1. for identifying companies that are invested in an index but are not constituents of an index
+   * 2. for identifying companies that a person worked at
    */
-  const _investingCompanyEntityType = await createSystemEntityTypeIfNotExists(
+  const companyEntityType = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
     {
@@ -419,6 +420,148 @@ const seedFlowTestTypes = async () => {
           {
             linkEntityType: investedInLinkEntityType,
             destinationEntityTypes: [stockMarketConstituentEntityType],
+          },
+        ],
+      },
+      ownedById,
+    },
+  );
+
+  const rolePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Role",
+        description: "The name of a role performed by someone or something.",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      ownedById,
+    },
+  );
+
+  const workedAtLinkType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        allOf: [linkEntityTypeUrl],
+        title: "Worked At",
+        description: "Somewhere that someone or something worked at",
+        properties: [
+          {
+            propertyType: systemPropertyTypes.appliesFrom.propertyTypeId,
+            required: false,
+          },
+          {
+            propertyType: systemPropertyTypes.appliesUntil.propertyTypeId,
+            required: false,
+          },
+          {
+            propertyType: rolePropertyType.schema.$id,
+            required: false,
+          },
+        ],
+      },
+      ownedById,
+    },
+  );
+
+  const linkedinUrlPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "LinkedIn URL",
+        description: "A URL to a LinkedIn profile",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      ownedById,
+    },
+  );
+
+  const googleScholarUrlPropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Google Scholar URL",
+        description: "A URL to a Google Scholar profile",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      ownedById,
+    });
+
+  const twitterUrlPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Twitter URL",
+        description: "A URL to a Twitter account",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      ownedById,
+    },
+  );
+
+  const githubUrlPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "GitHub URL",
+        description: "A URL to a GitHub account",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      ownedById,
+    },
+  );
+
+  /**
+   * This is a Person entity type for testing scraping of common fields one might want for a person.
+   * This is a simplified representation – for employment, for example, you would probably actually
+   * want separate entities for companies, and a link entity type for the employment relationship between them.
+   */
+  const _personEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        title: "Person",
+        description: "A human person",
+        properties: [
+          {
+            propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
+            required: true,
+          },
+          {
+            propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
+            required: true,
+          },
+          {
+            propertyType: systemPropertyTypes.email.propertyTypeId,
+            required: false,
+          },
+          {
+            propertyType: linkedinUrlPropertyType.schema.$id,
+            required: false,
+          },
+          {
+            propertyType: googleScholarUrlPropertyType.schema.$id,
+            required: false,
+          },
+          {
+            propertyType: twitterUrlPropertyType.schema.$id,
+            required: false,
+          },
+          {
+            propertyType: githubUrlPropertyType.schema.$id,
+            required: false,
+          },
+        ],
+        outgoingLinks: [
+          {
+            linkEntityType: workedAtLinkType,
+            destinationEntityTypes: [companyEntityType],
           },
         ],
       },

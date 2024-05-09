@@ -13,11 +13,7 @@ use authorization::{
 use error_stack::{Report, Result, ResultExt};
 use graph_types::{
     account::AccountId,
-    knowledge::{
-        entity::{Entity, EntityId, EntityMetadata, EntityUuid},
-        link::LinkData,
-        PropertyObject,
-    },
+    knowledge::entity::{Entity, EntityId, EntityMetadata},
     ontology::{
         DataTypeMetadata, EntityTypeMetadata, OntologyTemporalMetadata, OntologyType,
         OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
@@ -1130,15 +1126,20 @@ where
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + EntityStore + Send + Sync,
     A: ToSocketAddrs + Send + Sync,
 {
-    async fn create_entity<R>(
+    async fn create_entities<R>(
         &mut self,
         actor_id: AccountId,
-        params: CreateEntityParams<R>,
-    ) -> Result<EntityMetadata, InsertionError>
+        params: Vec<CreateEntityParams<R>>,
+    ) -> Result<Vec<EntityMetadata>, InsertionError>
     where
         R: IntoIterator<Item = EntityRelationAndSubject> + Send,
     {
-        for entity_type_id in &params.entity_type_ids {
+        let type_ids = params
+            .iter()
+            .flat_map(|params| &params.entity_type_ids)
+            .collect::<HashSet<_>>();
+
+        for entity_type_id in type_ids {
             let entity_type_reference = EntityTypeReference::new(entity_type_id.clone());
             self.insert_external_types_by_reference(
                 actor_id,
@@ -1150,47 +1151,17 @@ where
             .await?;
         }
 
-        self.store.create_entity(actor_id, params).await
+        self.store.create_entities(actor_id, params).await
     }
 
-    async fn validate_entity(
+    async fn validate_entities(
         &self,
         actor_id: AccountId,
         consistency: Consistency<'_>,
-        params: ValidateEntityParams<'_>,
+        params: Vec<ValidateEntityParams<'_>>,
     ) -> Result<(), ValidateEntityError> {
         self.store
-            .validate_entity(actor_id, consistency, params)
-            .await
-    }
-
-    async fn insert_entities_batched_by_type(
-        &mut self,
-        actor_id: AccountId,
-        entities: impl IntoIterator<
-            Item = (
-                OwnedById,
-                Option<EntityUuid>,
-                PropertyObject,
-                Option<LinkData>,
-                Option<Timestamp<DecisionTime>>,
-            ),
-            IntoIter: Send,
-        > + Send,
-        entity_type_id: &VersionedUrl,
-    ) -> Result<Vec<EntityMetadata>, InsertionError> {
-        let entity_type_reference = EntityTypeReference::new(entity_type_id.clone());
-        self.insert_external_types_by_reference(
-            actor_id,
-            OntologyTypeReference::EntityTypeReference(&entity_type_reference),
-            ConflictBehavior::Skip,
-            FetchBehavior::ExcludeProvidedReferences,
-            &HashSet::new(),
-        )
-        .await?;
-
-        self.store
-            .insert_entities_batched_by_type(actor_id, entities, entity_type_id)
+            .validate_entities(actor_id, consistency, params)
             .await
     }
 

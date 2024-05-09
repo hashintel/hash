@@ -1,6 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
+  ExternalInputRequestMessage,
   InferenceModelName,
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
@@ -120,6 +121,13 @@ export type PersistedUserSettings = Subtype<
   }
 >;
 
+export type ExternalInputRequestById = {
+  [requestUuid: string]: {
+    message: ExternalInputRequestMessage;
+    receivedAt: string;
+  } | null;
+};
+
 /**
  * LocalStorage area cleared persisted when the browser is closed.
  * Cleared if the extension is loaded with no user present.
@@ -127,6 +135,7 @@ export type PersistedUserSettings = Subtype<
 export type LocalStorage = PersistedUserSettings & {
   entityTypesSubgraph: Subgraph<EntityTypeRootType> | null;
   entityTypes: EntityTypeWithMetadata[];
+  externalInputRequests?: ExternalInputRequestById;
   inferenceRequests: PageEntityInference[];
   user: UserAndLinkedData | null;
 };

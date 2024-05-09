@@ -1,6 +1,10 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
+  ExternalInputRequestSignal,
+  ExternalInputResponseSignal,
+} from "@local/hash-isomorphic-utils/flows/types";
+import type {
   AccountId,
   BaseUrl,
   Entity,
@@ -162,9 +166,23 @@ export type CancelInferEntitiesRequestMessage = {
   requestUuid: string;
 };
 
-export type InferenceWebsocketRequestMessage =
+export type ExternalInputResponseMessage = {
+  cookie: string;
+  workflowId: string;
+  type: "external-input-response";
+  payload: ExternalInputResponseSignal;
+};
+
+export type InferenceWebsocketClientMessage =
   | InferEntitiesRequestMessage
-  | CancelInferEntitiesRequestMessage;
+  | CancelInferEntitiesRequestMessage
+  | ExternalInputResponseMessage;
+
+export type ExternalInputRequestMessage = {
+  workflowId: string;
+  payload: ExternalInputRequestSignal;
+  type: "external-input-request";
+};
 
 export type InferEntitiesResponseMessage = {
   payload: InferEntitiesReturn;
@@ -172,6 +190,10 @@ export type InferEntitiesResponseMessage = {
   status: "complete" | "user-cancelled" | "bad-request";
   type: "inference-response";
 };
+
+export type InferenceWebsocketServerMessage =
+  | InferEntitiesResponseMessage
+  | ExternalInputRequestMessage;
 
 export type CreateEmbeddingsParams = {
   input: string[];

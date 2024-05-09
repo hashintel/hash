@@ -80,6 +80,21 @@ impl<A> Timestamp<A> {
         time: OffsetDateTime::UNIX_EPOCH,
     };
 
+    /// Removes the nanosecond part of the timestamp.
+    ///
+    /// This is useful when inserting timestamps into databases that do not support nanosecond.
+    #[expect(clippy::missing_panics_doc, clippy::unwrap_used)]
+    #[must_use = "This method does not mutate the original `Timestamp`."]
+    pub fn remove_nanosecond(self) -> Self {
+        Self {
+            axis: PhantomData,
+            time: self
+                .time
+                .replace_microsecond(self.time.microsecond())
+                .unwrap(),
+        }
+    }
+
     #[must_use]
     pub fn now() -> Self {
         Self {
