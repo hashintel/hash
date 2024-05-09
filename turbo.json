@@ -20,13 +20,7 @@
     },
     "test:system": {},
     "test:miri": {},
-    "bench:unit:baseline": {
-      "dependsOn": ["codegen"]
-    },
     "bench:unit": {
-      "dependsOn": ["codegen"]
-    },
-    "bench:integration:baseline": {
       "dependsOn": ["codegen"]
     },
     "bench:integration": {
