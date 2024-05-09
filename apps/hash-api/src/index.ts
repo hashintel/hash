@@ -234,7 +234,9 @@ const main = async () => {
 
   const context = { graphApi, uploadProvider, temporalClient };
 
-  await ensureSystemGraphIsInitialized({ logger, context });
+  if (isDevEnv) {
+    await ensureSystemGraphIsInitialized({ logger, context });
+  }
 
   // This will seed users, an org and pages.
   // Configurable through environment variables.
