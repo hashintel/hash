@@ -229,7 +229,7 @@ jobs:
         if: steps.benches.outputs.compare-results == 'true'
         with:
           clean: false
-      #          ref: ${{ github.base_ref }}
+          ref: ${{ github.base_ref }}
 
       - name: Install Rust toolchain
         if: always() && steps.benches.outputs.has-rust == 'true' && steps.benches.outputs.compare-results == 'true'
