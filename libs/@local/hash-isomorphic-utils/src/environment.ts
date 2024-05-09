@@ -12,4 +12,3 @@ export const apiOrigin =
   "http://localhost:5001";
 
 export const apiGraphQLEndpoint = `${apiOrigin}/graphql`;
-
