@@ -130,15 +130,15 @@ export const Breadcrumbs = ({
               startIcon={
                 item.icon === null ? undefined : item.icon ?? defaultIcon
               }
-              sx={({ palette }) => ({
+              sx={{
                 background: "transparent",
                 "&:disabled": {
-                  background: palette.common.white,
-                  borderColor: palette.common.white,
+                  background: "transparent",
+                  borderColor: "transparent",
                   color: "inherit",
                 },
                 px: 1,
-              })}
+              }}
             >
               <Box
                 component="span"

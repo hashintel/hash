@@ -1,6 +1,6 @@
 import { customColors } from "@hashintel/design-system/theme";
 
-import type { SimpleStatus } from "../../shared/flow-runs-context";
+import type { SimpleStatus } from "../../../../../shared/flow-runs-context";
 
 export const edgeColor = {
   Complete: customColors.green[70],

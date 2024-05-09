@@ -27,7 +27,7 @@ import {
   statusToSimpleStatus,
   useStatusForStep,
   useStatusForSteps,
-} from "./shared/flow-runs-context";
+} from "../../../shared/flow-runs-context";
 import { flowSectionBorderRadius } from "./shared/styles";
 import type {
   FlowMaybeGrouped,

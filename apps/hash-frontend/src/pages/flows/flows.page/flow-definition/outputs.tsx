@@ -17,7 +17,7 @@ import { EntityResultTable } from "./outputs/entity-result-table";
 import { PersistedEntityGraph } from "./outputs/persisted-entity-graph";
 import { outputIcons } from "./outputs/shared/icons";
 import { SectionLabel } from "./section-label";
-import { useFlowRunsContext } from "./shared/flow-runs-context";
+import { useFlowRunsContext } from "../../../shared/flow-runs-context";
 
 export const getDeliverables = (
   outputs?: FlowRun["outputs"],

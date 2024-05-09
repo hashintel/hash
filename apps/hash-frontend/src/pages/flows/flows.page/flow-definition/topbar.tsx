@@ -12,7 +12,7 @@ import { useMemo } from "react";
 import { Button } from "../../../../shared/ui/button";
 import { MenuItem } from "../../../../shared/ui/menu-item";
 import { useFlowDefinitionsContext } from "../../../shared/flow-definitions-context";
-import { useFlowRunsContext } from "./shared/flow-runs-context";
+import { useFlowRunsContext } from "../../../shared/flow-runs-context";
 import { Link } from "../../../../shared/ui/link";
 
 const typographySx: SxProps<Theme> = {

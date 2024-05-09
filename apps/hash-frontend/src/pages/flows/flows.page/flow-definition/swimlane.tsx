@@ -19,7 +19,7 @@ import { nodeTabHeight, parentGroupPadding } from "./shared/dimensions";
 import {
   useFlowRunsContext,
   useStatusForSteps,
-} from "./shared/flow-runs-context";
+} from "../../../shared/flow-runs-context";
 import { transitionOptions } from "./shared/styles";
 import type {
   CustomNodeType,

@@ -27,7 +27,7 @@ import { RunFlowModal } from "./flow-definition/run-flow-modal";
 import { SectionLabel } from "./flow-definition/section-label";
 import { nodeDimensions } from "./flow-definition/shared/dimensions";
 import { useFlowDefinitionsContext } from "../../shared/flow-definitions-context";
-import { useFlowRunsContext } from "./flow-definition/shared/flow-runs-context";
+import { useFlowRunsContext } from "../../shared/flow-runs-context";
 import {
   flowSectionBorderRadius,
   transitionOptions,

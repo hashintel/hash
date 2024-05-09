@@ -12,8 +12,9 @@ import type {
 import { TableCell } from "@mui/material";
 import { memo, useMemo, useState } from "react";
 
-import type {
+import {
   CreateVirtualizedRowContentFn,
+  defaultCellSx,
   VirtualizedTableColumn,
   VirtualizedTableRow,
   VirtualizedTableSort,
@@ -57,12 +58,17 @@ type EntityResultTableProps = {
   proposedEntities: ProposedEntity[];
 };
 
+const cellSx = {
+  ...defaultCellSx,
+  fontSize: 13,
+};
+
 const TableRow = memo(({ row }: { row: EntityResultRow }) => {
   return (
     <>
-      <TableCell sx={{ fontSize: 13 }}>{row.status}</TableCell>
-      <TableCell sx={{ fontSize: 13 }}>{row.entityTypeTitle}</TableCell>
-      <TableCell sx={{ fontSize: 13 }}>{row.entityLabel}</TableCell>
+      <TableCell sx={cellSx}>{row.status}</TableCell>
+      <TableCell sx={cellSx}>{row.entityTypeTitle}</TableCell>
+      <TableCell sx={cellSx}>{row.entityLabel}</TableCell>
     </>
   );
 });

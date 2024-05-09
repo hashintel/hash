@@ -7,7 +7,7 @@ import {
   statusToSimpleStatus,
   useFlowRunsContext,
   useStatusForCurrentStep,
-} from "../shared/flow-runs-context";
+} from "../../../../shared/flow-runs-context";
 import type { NodeData } from "../shared/types";
 import { Handles } from "./custom-node/handles";
 import { NodeContainer } from "./custom-node/node-container";

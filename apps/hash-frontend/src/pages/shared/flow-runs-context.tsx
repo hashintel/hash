@@ -9,8 +9,8 @@ import type {
   GetFlowRunsQuery,
   GetFlowRunsQueryVariables,
   StepRun,
-} from "../../../../../graphql/api-types.gen";
-import { FlowStepStatus } from "../../../../../graphql/api-types.gen";
+} from "../../graphql/api-types.gen";
+import { FlowStepStatus } from "../../graphql/api-types.gen";
 
 export type FlowRunsContextType = {
   flowRuns: FlowRun[];

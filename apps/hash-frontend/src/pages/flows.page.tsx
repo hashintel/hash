@@ -1,4 +1,4 @@
-import { Box, TableCell, Typography } from "@mui/material";
+import { Box, Container, Stack, TableCell, Typography } from "@mui/material";
 
 import { BoltLightIcon } from "../shared/icons/bolt-light-icon";
 import type { NextPageWithLayout } from "../shared/layout";
@@ -10,18 +10,24 @@ import {
 import { TopContextBar } from "./shared/top-context-bar";
 import {
   CreateVirtualizedRowContentFn,
+  defaultCellSx,
+  headerHeight,
   VirtualizedTable,
   VirtualizedTableColumn,
   VirtualizedTableRow,
   type VirtualizedTableSort,
 } from "./shared/virtualized-table";
 import { memo, useMemo, useState } from "react";
-import { format } from "date-fns";
+import { format, formatDistanceToNowStrict } from "date-fns";
 import { Subtype } from "@local/advanced-types/subtype";
-import { Avatar } from "@hashintel/design-system";
+import { Avatar, InfinityLightIcon } from "@hashintel/design-system";
 import { Link } from "../shared/ui/link";
+import {
+  FlowRunsContextProvider,
+  useFlowRunsContext,
+} from "./shared/flow-runs-context";
 
-type FieldId = "web" | "name" | "description" | "lastRunScheduledAt";
+type FieldId = "web" | "name" | "description" | "lastRunStartedAt";
 
 const columns: VirtualizedTableColumn<FieldId>[] = [
   {
@@ -34,16 +40,16 @@ const columns: VirtualizedTableColumn<FieldId>[] = [
     id: "name",
     label: "Name",
     sortable: true,
-    width: "50%",
+    width: "40%",
   },
   {
     id: "description",
     label: "Description",
     sortable: true,
-    width: "50%",
+    width: "60%",
   },
   {
-    id: "lastRunScheduledAt",
+    id: "lastRunStartedAt",
     label: "Last run",
     sortable: true,
     width: 150,
@@ -56,52 +62,82 @@ type FlowSummary = Subtype<
     web: {
       avatarUrl?: string;
       name: string;
+      shortname: string;
     };
     name: string;
     description: string;
-    lastRunScheduledAt: string | null;
+    lastRunStartedAt: string | null;
   }
 >;
 
+const rowHeight = 58;
+
+const cellSx = {
+  ...defaultCellSx,
+  borderRight: "none",
+  height: rowHeight,
+  "*": {
+    whiteSpace: "nowrap",
+    overflowX: "hidden",
+    textOverflow: "ellipsis",
+  },
+};
+
 const TableRow = memo(({ flowSummary }: { flowSummary: FlowSummary }) => {
-  const { web, name, description, lastRunScheduledAt } = flowSummary;
+  const { web, name, description, lastRunStartedAt } = flowSummary;
 
   return (
     <>
-      <TableCell sx={{ fontSize: 13 }}>
-        {web.avatarUrl && (
-          <Avatar
-            src={web.avatarUrl}
-            size={24}
-            sx={{
-              border: "none",
-              flexShrink: 0,
-            }}
-          />
-        )}
-        {web.name}
+      <TableCell sx={{ ...cellSx, fontSize: 13 }}>
+        <Link href={`/@${web.shortname}`} noLinkStyle>
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="center"
+            gap={0.5}
+            sx={({ palette, transitions }) => ({
+              border: `1px solid ${palette.gray[30]}`,
+              borderRadius: 2,
+              py: "3px",
+              "&:hover": {
+                border: `1px solid ${palette.common.black}`,
+              },
+              transition: transitions.create("border"),
+            })}
+          >
+            {web.avatarUrl && <Avatar src={web.avatarUrl} size={14} />}
+            <Typography component="span" sx={{ fontSize: 12, fontWeight: 500 }}>
+              {web.name}
+            </Typography>
+          </Stack>
+        </Link>
       </TableCell>
-      <TableCell>
+      <TableCell sx={cellSx}>
         <Link
           href="#"
-          sx={{ fontSize: 14, fontWeight: 600, textDecoration: "none" }}
+          sx={{
+            display: "block",
+            fontSize: 14,
+            fontWeight: 600,
+            textDecoration: "none",
+          }}
         >
           {name}
         </Link>
       </TableCell>
-      <TableCell>
+      <TableCell sx={cellSx}>
         <Typography
           sx={{ fontSize: 13, color: ({ palette }) => palette.gray[70] }}
         >
           {description}
         </Typography>
       </TableCell>
-      <TableCell>
+      <TableCell sx={cellSx}>
         <Typography
           sx={{ fontSize: 13, color: ({ palette }) => palette.gray[70] }}
         >
-          {lastRunScheduledAt
-            ? format(new Date(lastRunScheduledAt), "yyyy-MM-dd")
+          {lastRunStartedAt
+            ? `${formatDistanceToNowStrict(new Date(lastRunStartedAt))} ago`
             : "Never"}
         </Typography>
       </TableCell>
@@ -122,17 +158,35 @@ const FlowsPageContent = () => {
 
   const { flowDefinitions } = useFlowDefinitionsContext();
 
+  const { flowRuns } = useFlowRunsContext();
+
   const flowDefinitionRows = useMemo<VirtualizedTableRow<FlowSummary>[]>(() => {
     const rowData: VirtualizedTableRow<FlowSummary>[] = flowDefinitions.map(
-      (flowDefinition) => ({
-        id: flowDefinition.flowDefinitionId,
-        data: {
-          web: { name: "HASH" },
-          name: flowDefinition.name,
-          description: flowDefinition.description,
-          lastRunScheduledAt: null,
-        },
-      }),
+      (flowDefinition) => {
+        let lastRunStartedAt = null;
+        for (const flowRun of flowRuns) {
+          if (
+            flowRun.flowDefinitionId === flowDefinition.flowDefinitionId &&
+            (!lastRunStartedAt || flowRun.startedAt > lastRunStartedAt)
+          ) {
+            lastRunStartedAt = flowRun.startedAt;
+          }
+        }
+
+        return {
+          id: flowDefinition.flowDefinitionId,
+          data: {
+            web: {
+              avatarUrl: "/hash-logo-black.png",
+              name: "HASH",
+              shortname: "hash",
+            },
+            name: flowDefinition.name,
+            description: flowDefinition.description,
+            lastRunStartedAt,
+          },
+        };
+      },
     );
 
     return rowData.sort((a, b) => {
@@ -147,32 +201,62 @@ const FlowsPageContent = () => {
         (a.data[field] ?? "").localeCompare(b.data[field] ?? "") * direction
       );
     });
-  }, [flowDefinitions, setSort, sort]);
+  }, [flowDefinitions, flowRuns, sort]);
+
+  const tableHeight = Math.min(
+    600,
+    headerHeight + rowHeight * flowDefinitionRows.length + 2, // account for borders
+  );
 
   return (
-    <FlowDefinitionsContextProvider>
-      <Box>
-        <TopContextBar
-          crumbs={[
-            {
-              href: "/workers",
-              id: "workers",
-              icon: <BoltLightIcon />,
-              title: "Workers",
-            },
-            {
-              icon: null,
-              id: "flows",
-              title: "Flows",
-            },
-          ]}
-          sx={({ palette }) => ({
-            background: palette.gray[5],
-            borderBottom: `1px solid ${palette.gray[20]}`,
-          })}
-        />
+    <Box>
+      <TopContextBar
+        crumbs={[
+          {
+            href: "/workers",
+            id: "workers",
+            icon: <BoltLightIcon />,
+            title: "Workers",
+          },
+          {
+            icon: null,
+            id: "flows",
+            title: "Flows",
+          },
+        ]}
+        sx={({ palette }) => ({
+          background: palette.gray[5],
+          borderBottom: `1px solid ${palette.gray[20]}`,
+        })}
+      />
+      <Box
+        sx={{
+          my: 4.5,
+          pb: 4.5,
+          borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
+        }}
+      >
+        <Container>
+          <Box ml={4}>
+            <Stack alignItems="center" direction="row" gap={1.5}>
+              <InfinityLightIcon
+                sx={{ fill: ({ palette }) => palette.blue[70], fontSize: 39 }}
+              />
+              <Typography variant="h3" sx={{ fontSize: 26, fontWeight: 400 }}>
+                Flows
+              </Typography>
+            </Stack>
+            <Typography
+              component="p"
+              variant="largeTextLabels"
+              sx={{ mt: 1, color: ({ palette }) => palette.gray[80] }}
+            >
+              Pre-defined sequences of actions run by workers on your behalf
+            </Typography>
+          </Box>
+        </Container>
       </Box>
-      <Box my={4} px={4} height={400}>
+      <Container sx={{ my: 4, px: 4, height: tableHeight }}>
         <VirtualizedTable
           columns={columns}
           createRowContent={createRowContent}
@@ -180,15 +264,17 @@ const FlowsPageContent = () => {
           sort={sort}
           setSort={setSort}
         />
-      </Box>
-    </FlowDefinitionsContextProvider>
+      </Container>
+    </Box>
   );
 };
 
 const FlowsPage: NextPageWithLayout = () => {
   return (
     <FlowDefinitionsContextProvider>
-      <FlowsPageContent />
+      <FlowRunsContextProvider>
+        <FlowsPageContent />
+      </FlowRunsContextProvider>
     </FlowDefinitionsContextProvider>
   );
 };

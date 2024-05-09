@@ -2,6 +2,7 @@ import {
   ArrowUpWideShortLightIcon,
   IconButton,
 } from "@hashintel/design-system";
+import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack, Typography } from "@mui/material";
 /* eslint-disable no-restricted-imports */
 import Table from "@mui/material/Table";
@@ -24,6 +25,15 @@ export type VirtualizedTableRow<D extends Data> = {
   id: string;
   data: D;
 };
+
+export const defaultCellSx: SxProps<Theme> = {
+  padding: "5px 14px",
+  borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
+  borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
+  textAlign: "left",
+};
+
+export const headerHeight = 43;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const VirtuosoTableComponents: TableComponents<VirtualizedTableRow<any>> = {
@@ -49,11 +59,9 @@ const VirtuosoTableComponents: TableComponents<VirtualizedTableRow<any>> = {
         borderCollapse: "separate",
         borderRadius: flowSectionBorderRadius,
         borderSpacing: 0,
-        "th, td": {
-          padding: "5px 14px",
-          borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
-          borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
-          textAlign: "left",
+        th: {
+          ...defaultCellSx,
+          height: headerHeight,
         },
       }}
     />

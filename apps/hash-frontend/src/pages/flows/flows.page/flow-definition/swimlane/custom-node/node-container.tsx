@@ -4,8 +4,8 @@ import type { PropsWithChildren } from "react";
 import { useNodeId, useStore } from "reactflow";
 
 import { nodeTabHeight } from "../../shared/dimensions";
-import type { SimpleStatus } from "../../shared/flow-runs-context";
-import { useFlowRunsContext } from "../../shared/flow-runs-context";
+import type { SimpleStatus } from "../../../../../shared/flow-runs-context";
+import { useFlowRunsContext } from "../../../../../shared/flow-runs-context";
 import { transitionOptions } from "../../shared/styles";
 import { statusSx } from "./node-styles";
 

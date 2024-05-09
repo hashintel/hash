@@ -1,8 +1,8 @@
 import type { NextPageWithLayout } from "../../shared/layout";
 import { getLayoutWithSidebar } from "../../shared/layout";
-import { FlowDefinition } from "./flows.page/flow-definition";
 import { FlowDefinitionsContextProvider } from "../shared/flow-definitions-context";
-import { FlowRunsContextProvider } from "./flows.page/flow-definition/shared/flow-runs-context";
+import { FlowRunsContextProvider } from "../shared/flow-runs-context";
+import { FlowDefinition } from "./flows.page/flow-definition";
 
 const FlowsDefinitionPage: NextPageWithLayout = () => {
   return (

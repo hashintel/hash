@@ -11,13 +11,16 @@ import { format } from "date-fns";
 import { memo, useMemo, useState } from "react";
 
 import { Link } from "../../../../shared/ui/link";
-import { SectionLabel } from "./section-label";
 import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
   VirtualizedTableSort,
 } from "../../../shared/virtualized-table";
-import { VirtualizedTable } from "../../../shared/virtualized-table";
+import {
+  defaultCellSx,
+  VirtualizedTable,
+} from "../../../shared/virtualized-table";
+import { SectionLabel } from "./section-label";
 
 const getEntityLabelFromLog = (log: StepProgressLog): string => {
   if (log.type !== "ProposedEntity" && log.type !== "PersistedEntity") {
@@ -153,9 +156,12 @@ const TableRow = memo(
   ({ index, log }: { index: number; log: StepProgressLog }) => {
     return (
       <>
-        <TableCell sx={{ fontSize: 13, width: 100 }}>{index + 1}</TableCell>
+        <TableCell sx={{ ...defaultCellSx, fontSize: 13 }}>
+          {index + 1}
+        </TableCell>
         <TableCell
           sx={{
+            ...defaultCellSx,
             fontSize: 11,
             fontFamily: "monospace",
           }}
@@ -164,7 +170,7 @@ const TableRow = memo(
           <br />
           <strong>{format(new Date(log.recordedAt), "h:mm:ss a")}</strong>
         </TableCell>
-        <TableCell sx={{ fontSize: 13, width: "100%", lineHeight: 1.4 }}>
+        <TableCell sx={{ ...defaultCellSx, fontSize: 13, lineHeight: 1.4 }}>
           <LogDetail log={log} />
         </TableCell>
       </>
