@@ -296,7 +296,9 @@ module "application" {
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_hydra_secrets_system"])
     },
   ])
-  api_image    = module.api_ecr
+  api_image              = module.api_ecr
+  api_migration_env_vars = concat(var.hash_api_migration_env_vars, [
+  ])
   api_env_vars = concat(var.hash_api_env_vars, [
     {
       name  = "MAILCHIMP_API_KEY", secret = true,
@@ -377,7 +379,7 @@ module "application" {
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_openai_api_key"])
     },
     {
-      name = "ANTHROPIC_API_KEY", secret = true,
+      name  = "ANTHROPIC_API_KEY", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_anthropic_api_key"])
     },
     {

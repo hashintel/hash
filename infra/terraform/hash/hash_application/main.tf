@@ -56,6 +56,11 @@ locals {
       env_vars = aws_ssm_parameter.api_env_vars
       ecr_arn  = var.api_image.ecr_arn
     },
+    {
+      task_def = local.api_migration_container_def
+      env_vars = aws_ssm_parameter.api_migration_env_vars
+      ecr_arn  = var.api_image.ecr_arn
+    },
     # TODO: Move it to the `worker` service and make sure it can connect to the Graph container
     {
       task_def = local.temporal_worker_ai_ts_service_container_def
