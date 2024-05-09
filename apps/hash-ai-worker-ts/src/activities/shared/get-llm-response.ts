@@ -239,6 +239,7 @@ const getAnthropicResponse = async (
     messages,
     systemPrompt,
     previousUsage,
+    previousInvalidResponses = [],
     ...remainingParams
   } = params;
 
@@ -310,6 +311,10 @@ const getAnthropicResponse = async (
           role: "user",
           content: retryParams.retryMessageContent,
         },
+      ],
+      previousInvalidResponses: [
+        ...previousInvalidResponses,
+        anthropicResponse,
       ],
     });
   };
@@ -384,6 +389,7 @@ const getAnthropicResponse = async (
     stopReason,
     message,
     usage,
+    invalidResponses: previousInvalidResponses,
   };
 
   return response;
@@ -399,6 +405,7 @@ const getOpenAiResponse = async (
     messages,
     systemPrompt,
     previousUsage,
+    previousInvalidResponses = [],
     ...remainingParams
   } = params;
 
@@ -532,6 +539,7 @@ const getOpenAiResponse = async (
         },
       ],
       previousUsage: usage,
+      previousInvalidResponses: [...previousInvalidResponses, openAiResponse],
     });
   };
 
@@ -680,6 +688,7 @@ const getOpenAiResponse = async (
     message: responseMessage,
     stopReason,
     usage,
+    invalidResponses: previousInvalidResponses,
   };
 
   return response;

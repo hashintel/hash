@@ -34,6 +34,7 @@ export type AnthropicLlmParams<ToolName extends string = string> =
   CommonLlmParams<ToolName> & {
     model: AnthropicMessageModel;
     maxTokens?: number;
+    previousInvalidResponses?: AnthropicMessagesCreateResponse[];
   } & Omit<
       AnthropicMessagesCreateParams,
       "tools" | "max_tokens" | "system" | "messages"
@@ -43,6 +44,7 @@ export type OpenAiLlmParams<ToolName extends string = string> =
   CommonLlmParams<ToolName> & {
     model: PermittedOpenAiModel;
     trimMessageAtIndex?: number;
+    previousInvalidResponses?: OpenAiChatCompletion[];
   } & Omit<OpenAiChatCompletionCreateParams, "tools" | "messages">;
 
 export type LlmParams<ToolName extends string = string> =
@@ -56,9 +58,13 @@ export const isLlmParamsAnthropicLlmParams = (
 export type AnthropicResponse = Omit<
   AnthropicMessagesCreateResponse,
   "content" | "role" | "usage"
->;
+> & {
+  invalidResponses: AnthropicMessagesCreateResponse[];
+};
 
-export type OpenAiResponse = Omit<OpenAiChatCompletion, "usage" | "choices">;
+export type OpenAiResponse = Omit<OpenAiChatCompletion, "usage" | "choices"> & {
+  invalidResponses: OpenAiChatCompletion[];
+};
 
 export type ParsedLlmToolCall<ToolName extends string = string> = {
   id: string;
