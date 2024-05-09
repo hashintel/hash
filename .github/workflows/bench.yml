@@ -100,7 +100,7 @@ jobs:
       - name: Checkout base branch
         if: steps.benches.outputs.compare-results == 'true'
         run: |
-          git fetch origin ${{ github.base_ref }}
+          git fetch origin ${{ env.GITHUB_BASE_REF }}
           git checkout FETCH_HEAD
 
       - name: Install Rust toolchain
@@ -135,7 +135,7 @@ jobs:
 
       - name: Checkout head branch
         if: steps.benches.outputs.compare-results == 'true'
-        run: git checkout ${{ github.head_ref }}
+        run: git checkout ${{ env.GITHUB_HEAD_REF }}
 
       - name: Install Rust toolchain
         if: always() && steps.benches.outputs.has-rust == 'true'
@@ -226,7 +226,7 @@ jobs:
       - name: Checkout base branch
         if: steps.benches.outputs.compare-results == 'true'
         run: |
-          git fetch origin ${{ github.base_ref }}
+          git fetch origin ${{ env.GITHUB_BASE_REF }}
           git checkout FETCH_HEAD
 
       - name: Install Rust toolchain
@@ -275,7 +275,7 @@ jobs:
 
       - name: Checkout head branch
         if: steps.benches.outputs.compare-results == 'true'
-        run: git checkout ${{ github.head_ref }}
+        run: git checkout ${{ env.GITHUB_HEAD_REF }}
 
       - name: Install Rust toolchain
         if: always() && steps.benches.outputs.has-rust == 'true'
