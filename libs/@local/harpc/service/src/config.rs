@@ -46,6 +46,9 @@ impl SwarmConfig {
 
         if let Some(idle_connection_timeout) = idle_connection_timeout {
             config = config.with_idle_connection_timeout(idle_connection_timeout);
+        } else {
+            // See: https://github.com/libp2p/rust-libp2p/issues/5060
+            config = config.with_idle_connection_timeout(Duration::from_secs(32));
         }
 
         config

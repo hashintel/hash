@@ -1,5 +1,5 @@
 use alloc::sync::Arc;
-use core::mem;
+use core::{mem, time::Duration};
 use std::{
     collections::{hash_map::Entry, HashMap},
     io,
@@ -10,7 +10,7 @@ use futures::prelude::stream::StreamExt;
 use libp2p::{
     core::{transport::ListenerId, upgrade},
     identify,
-    metrics::{self, BandwidthTransport, Metrics, Recorder},
+    metrics::{self, Metrics, Recorder},
     noise, ping,
     swarm::{dial_opts::DialOpts, ConnectionId, DialError, SwarmEvent},
     yamux, Multiaddr, PeerId, SwarmBuilder,
@@ -46,6 +46,9 @@ pub(crate) enum Command {
     ListenOn {
         address: Multiaddr,
         tx: SenderListenerId,
+    },
+    ExternalAddresses {
+        tx: oneshot::Sender<Vec<Multiaddr>>,
     },
 }
 
@@ -176,6 +179,11 @@ impl Task {
                 let result = self.swarm.listen_on(address);
 
                 Self::send_ipc_response(tx, result);
+            }
+            Command::ExternalAddresses { tx } => {
+                let addresses = self.swarm.listeners().cloned().collect();
+
+                Self::send_ipc_response(tx, addresses);
             }
         }
     }

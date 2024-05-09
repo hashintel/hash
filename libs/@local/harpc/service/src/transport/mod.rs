@@ -102,6 +102,15 @@ impl TransportLayer {
         self.ipc.lookup_peer(address).await
     }
 
+    /// Get the external addresses of the transport layer.
+    ///
+    /// # Errors
+    ///
+    /// If the background task cannot be reached or crashes while processing the request.
+    pub async fn external_addresses(&self) -> Result<Vec<Multiaddr>, TransportError> {
+        self.ipc.external_addresses().await
+    }
+
     #[must_use]
     pub fn registry(&self) -> &metrics::Registry {
         &self.registry
@@ -147,7 +156,7 @@ impl TransportLayer {
 
         Ok(incoming.map(|(peer, stream)| {
             let stream = stream.compat();
-            let stream = BufStream::new(stream);
+            // let stream = BufStream::new(stream);
             let stream = Framed::new(stream, ServerCodec::new());
 
             let (sink, stream) = stream.split();
@@ -184,7 +193,7 @@ impl TransportLayer {
             .change_context(TransportError)?;
 
         let stream = stream.compat();
-        let stream = BufStream::new(stream);
+        // let stream = BufStream::new(stream);
         let stream = Framed::new(stream, ClientCodec::new());
 
         let (sink, stream) = stream.split();
@@ -211,17 +220,47 @@ pub(crate) mod test {
         protocol::{Protocol, ProtocolVersion},
         request::{
             body::RequestBody, flags::RequestFlags, frame::RequestFrame, header::RequestHeader,
-            id::RequestIdProducer, Request,
+            id::RequestId, Request,
+        },
+        response::{
+            body::ResponseBody, flags::ResponseFlags, frame::ResponseFrame, header::ResponseHeader,
+            Response,
         },
     };
     use libp2p::{
-        core::transport::MemoryTransport, multiaddr, swarm::DialError, Multiaddr, TransportError,
+        core::transport::MemoryTransport, multiaddr, swarm::DialError, tcp, Multiaddr,
+        TransportError,
     };
-    use tokio::sync::Notify;
     use tokio_util::sync::CancellationToken;
 
     use super::TransportLayer;
     use crate::config::Config;
+
+    static EXAMPLE_REQUEST: Request = Request {
+        header: RequestHeader {
+            protocol: Protocol {
+                version: ProtocolVersion::V1,
+            },
+            request_id: RequestId::new_unchecked(0),
+            flags: RequestFlags::EMPTY,
+        },
+        body: RequestBody::Frame(RequestFrame {
+            payload: Payload::from_static(&[0x00_u8]),
+        }),
+    };
+
+    static EXAMPLE_RESPONSE: Response = Response {
+        header: ResponseHeader {
+            protocol: Protocol {
+                version: ProtocolVersion::V1,
+            },
+            request_id: RequestId::new_unchecked(0),
+            flags: ResponseFlags::EMPTY,
+        },
+        body: ResponseBody::Frame(ResponseFrame {
+            payload: Payload::from_static(&[0x00_u8]),
+        }),
+    };
 
     pub(crate) fn address() -> libp2p::Multiaddr {
         // to allow for unique port numbers, even if the tests are run concurrently we use an atomic
@@ -246,7 +285,48 @@ pub(crate) mod test {
         (layer, cancel.drop_guard())
     }
 
-    #[test_log::test(tokio::test)]
+    pub(crate) async fn tcp_server() -> (TransportLayer, Multiaddr, impl Drop) {
+        let transport = tcp::tokio::Transport::default();
+        let config = Config::default();
+        let cancel = CancellationToken::new();
+
+        let layer = TransportLayer::start(config, transport, cancel.clone())
+            .expect("should be able to create swarm");
+
+        let address = [
+            multiaddr::Protocol::Ip4(Ipv4Addr::LOCALHOST),
+            multiaddr::Protocol::Tcp(0),
+        ]
+        .into_iter()
+        .collect();
+
+        layer
+            .listen_on(address)
+            .await
+            .expect("should be able to listen on address");
+
+        let external_address = layer
+            .external_addresses()
+            .await
+            .expect("should be able to get external address")
+            .pop()
+            .expect("should have at least one external address");
+
+        (layer, external_address, cancel.drop_guard())
+    }
+
+    pub(crate) fn tcp_client() -> (TransportLayer, impl Drop) {
+        let transport = tcp::tokio::Transport::default();
+        let config = Config::default();
+        let cancel = CancellationToken::new();
+
+        let layer = TransportLayer::start(config, transport, cancel.clone())
+            .expect("should be able to create swarm");
+
+        (layer, cancel.drop_guard())
+    }
+
+    #[tokio::test]
     async fn lookup_peer() {
         let (server, _guard_server) = layer();
         let (client, _guard_client) = layer();
@@ -257,6 +337,10 @@ pub(crate) mod test {
             .listen_on(address.clone())
             .await
             .expect("memory transport should be able to listen on memory address");
+
+        // wait for 200ms to make sure the server is ready
+        // this is more than strictly necessary, but it's better to be safe
+        tokio::time::sleep(Duration::from_millis(200)).await;
 
         let peer_id = client
             .lookup_peer(address)
@@ -334,12 +418,16 @@ pub(crate) mod test {
 
         tokio::spawn(async move {
             while let Some((_, sink, stream)) = stream.next().await {
-                // we just check if we establish connection, so we don't need to do anything with
-                // the connection
+                // we just check if we establish connection, so we don't need to do anything
+                // with the connection
                 drop(sink);
                 let _ = stream.map(Ok).forward(sink::drain()).await;
             }
         });
+
+        // wait for 200ms to make sure the server is ready
+        // this is more than strictly necessary, but it's better to be safe
+        tokio::time::sleep(Duration::from_millis(200)).await;
 
         client
             .lookup_peer(address)
@@ -372,20 +460,27 @@ pub(crate) mod test {
 
         let mut stream = server.listen().await.expect("should be able to listen");
 
-        let notify = Arc::new(Notify::new());
-        let notify_server = Arc::clone(&notify);
+        let handle = tokio::spawn(async move {
+            let Some((_, sink, mut stream)) = stream.next().await else {
+                panic!("should receive connection");
+            };
 
-        tokio::spawn(async move {
-            while let Some((_, sink, mut stream)) = stream.next().await {
-                // we just check if we establish connection, so we don't need to do anything with
-                // the connection
-                drop(sink);
+            // we just check if we establish connection, so we don't need to do anything with
+            // the connection
+            drop(sink);
 
-                while stream.next().await.is_some() {
-                    notify_server.notify_waiters();
-                }
-            }
+            let Some(request) = stream.next().await else {
+                panic!("should receive request");
+            };
+
+            let request = request.expect("should be able to receive request");
+
+            assert_eq!(&request, &EXAMPLE_REQUEST);
         });
+
+        // wait for 200ms to make sure the server is ready
+        // this is more than strictly necessary, but it's better to be safe
+        tokio::time::sleep(Duration::from_millis(200)).await;
 
         client
             .lookup_peer(address)
@@ -399,24 +494,82 @@ pub(crate) mod test {
 
         drop(stream);
 
-        sink.send(Request {
-            header: RequestHeader {
-                protocol: Protocol {
-                    version: ProtocolVersion::V1,
-                },
-                request_id: RequestIdProducer::new().produce(),
-                flags: RequestFlags::empty(),
-            },
-            body: RequestBody::Frame(RequestFrame {
-                payload: Payload::new(vec![0x00_u8]),
-            }),
-        })
-        .await
-        .expect("should be able to send request");
-
-        tokio::time::timeout(Duration::from_secs(1), notify.notified())
+        sink.send(EXAMPLE_REQUEST.clone())
             .await
-            .expect("should be notified");
+            .expect("should be able to send request");
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should be notified")
+            .expect("should not have panicked during handling");
+    }
+
+    #[tokio::test]
+    async fn send_request_response() {
+        let (server, _guard_server) = layer();
+        let (client, _guard_client) = layer();
+
+        let address = address();
+
+        server
+            .listen_on(address.clone())
+            .await
+            .expect("memory transport should be able to listen on memory address");
+
+        let server_id = server.peer_id();
+
+        let mut stream = server.listen().await.expect("should be able to listen");
+
+        let handle = tokio::spawn(async move {
+            let Some((_, mut sink, mut stream)) = stream.next().await else {
+                panic!("should receive connection");
+            };
+
+            let Some(request) = stream.next().await else {
+                panic!("should receive request");
+            };
+
+            let request = request.expect("should be able to receive request");
+
+            assert_eq!(request, EXAMPLE_REQUEST);
+
+            sink.send(EXAMPLE_RESPONSE.clone())
+                .await
+                .expect("should be able to send response");
+        });
+
+        // wait for 200ms to make sure the server is ready
+        // this is more than strictly necessary, but it's better to be safe
+        tokio::time::sleep(Duration::from_millis(200)).await;
+
+        client
+            .lookup_peer(address)
+            .await
+            .expect("should be able to lookup peer");
+
+        let (mut sink, mut stream) = client
+            .dial(server_id)
+            .await
+            .expect("should be able to dial");
+
+        sink.send(EXAMPLE_REQUEST.clone())
+            .await
+            .expect("should be able to send request");
+
+        let response = stream
+            .next()
+            .await
+            .expect("should receive response")
+            .expect("should be well-formed response");
+
+        assert_eq!(response, EXAMPLE_RESPONSE);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should be notified")
+            .expect("should not have panicked during handling");
+
+        // assert_eq!(response, EXAMPLE_RESPONSE.clone());
     }
 
     // TODO: send request, response
@@ -433,6 +586,10 @@ pub(crate) mod test {
             .listen_on(address.clone())
             .await
             .expect("memory transport should be able to listen on memory address");
+
+        // wait for 200ms to make sure the server is ready
+        // this is more than strictly necessary, but it's better to be safe
+        tokio::time::sleep(Duration::from_millis(200)).await;
 
         let peer_id = server.peer_id();
 

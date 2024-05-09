@@ -9,6 +9,18 @@ use crate::codec::{Buffer, BufferError, Decode, Encode};
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub struct RequestId(u32);
 
+impl RequestId {
+    /// Creates a new `RequestId` with the given `id`.
+    ///
+    /// This method is hidden, as it should only be used sparangly in rare cases where a
+    /// predetermined `RequestId` is acceptable, such as in tests.
+    #[doc(hidden)]
+    #[must_use]
+    pub const fn new_unchecked(id: u32) -> Self {
+        Self(id)
+    }
+}
+
 impl Encode for RequestId {
     type Error = BufferError;
 
@@ -48,7 +60,7 @@ impl RequestIdProducer {
         // we don't care about ordering here, and `fetch_add` is a single atomic operation
         // (which is the only one we use), so in theory `Ordering::Relaxed` could be used here
         // but we use `Ordering::SeqCst` to be on the safe side
-        RequestId(self.current.fetch_add(1, Ordering::SeqCst))
+        RequestId::new_unchecked(self.current.fetch_add(1, Ordering::SeqCst))
     }
 }
 

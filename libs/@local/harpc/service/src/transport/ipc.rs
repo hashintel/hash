@@ -55,4 +55,15 @@ impl TransportLayerIpc {
             .change_context(TransportError)?
             .change_context(TransportError)
     }
+
+    pub(super) async fn external_addresses(&self) -> Result<Vec<Multiaddr>, TransportError> {
+        let (tx, rx) = oneshot::channel();
+
+        self.tx
+            .send(Command::ExternalAddresses { tx })
+            .await
+            .change_context(TransportError)?;
+
+        rx.await.change_context(TransportError)
+    }
 }
