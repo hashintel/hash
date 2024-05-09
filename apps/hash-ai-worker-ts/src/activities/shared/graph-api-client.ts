@@ -1,5 +1,5 @@
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
-import { getRequiredEnv } from "@local/hash-isomorphic-utils/environment";
+import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 
 import { logToConsole } from "../../shared/logger";
 
