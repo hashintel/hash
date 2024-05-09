@@ -60,8 +60,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-        with:
-          fetch-depth: 2
 
       - name: Install turbo
         uses: ./.github/actions/install-turbo
@@ -98,10 +96,11 @@ jobs:
         run: sudo apt install protobuf-compiler
 
       - name: Checkout base branch
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         if: steps.benches.outputs.compare-results == 'true'
-        run: |
-          git fetch origin ${{ github.base_ref }}
-          git checkout FETCH_HEAD
+        with:
+          clean: false
+          ref: ${{ github.base_ref }}
 
       - name: Install Rust toolchain
         if: always() && steps.benches.outputs.has-rust == 'true' && steps.benches.outputs.compare-results == 'true'
@@ -134,8 +133,10 @@ jobs:
         run: turbo run bench:unit --filter "${{ matrix.package }}"
 
       - name: Checkout head branch
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         if: steps.benches.outputs.compare-results == 'true'
-        run: git checkout ${{ github.head_ref }}
+        with:
+          clean: false
 
       - name: Install Rust toolchain
         if: always() && steps.benches.outputs.has-rust == 'true'
@@ -224,10 +225,11 @@ jobs:
         run: sudo apt install protobuf-compiler
 
       - name: Checkout base branch
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         if: steps.benches.outputs.compare-results == 'true'
-        run: |
-          git fetch origin ${{ github.base_ref }}
-          git checkout FETCH_HEAD
+        with:
+          clean: false
+          ref: ${{ github.base_ref }}
 
       - name: Install Rust toolchain
         if: always() && steps.benches.outputs.has-rust == 'true' && steps.benches.outputs.compare-results == 'true'
@@ -274,8 +276,10 @@ jobs:
         run: yarn workspace @apps/hash-external-services deploy:test down
 
       - name: Checkout head branch
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         if: steps.benches.outputs.compare-results == 'true'
-        run: git checkout ${{ github.head_ref }}
+        with:
+          clean: false
 
       - name: Install Rust toolchain
         if: always() && steps.benches.outputs.has-rust == 'true'
