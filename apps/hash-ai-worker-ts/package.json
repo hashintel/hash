@@ -26,7 +26,7 @@
   "scripts": {
     "build": "tsc --build && yarn exe ./scripts/bundle-workflow-code.ts",
     "build:docker": "docker buildx build --tag hash-ai-worker-ts --file ./docker/Dockerfile ../../ --load",
-    "compare-llm-response": "yarn exe ./scripts/compare-llm-response.ts",
+    "compare-llm-response": "NODE_ENV=development yarn exe ./scripts/compare-llm-response.ts",
     "dev": "NODE_ENV=development NODE_OPTIONS=--max-old-space-size=2048 tsx watch --clear-screen=false ./src/main.ts",
     "exe": "tsx",
     "fix:eslint": "eslint --fix .",
@@ -66,7 +66,7 @@
     "lodash.pickby": "4.6.0",
     "mime-types": "2.1.35",
     "officeparser": "4.0.6",
-    "openai": "4.20.0",
+    "openai": "4.43.0",
     "openai-chat-tokens": "0.2.8",
     "papaparse": "5.4.1",
     "puppeteer": "22.3.0",

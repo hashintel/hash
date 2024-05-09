@@ -438,6 +438,12 @@ const getOpenAiResponse = async (
     messages: openAiMessages,
     tools: openAiTools,
     stream: false,
+    /**
+     * Return `logprobs` by default when in development mode, unless
+     * explicitly overridden by the caller.
+     */
+    logprobs:
+      remainingParams.logprobs ?? process.env.NODE_ENV === "development",
   };
 
   /**
