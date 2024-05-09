@@ -156,7 +156,7 @@ impl TransportLayer {
 
         Ok(incoming.map(|(peer, stream)| {
             let stream = stream.compat();
-            // let stream = BufStream::new(stream);
+            let stream = BufStream::new(stream);
             let stream = Framed::new(stream, ServerCodec::new());
 
             let (sink, stream) = stream.split();
@@ -193,7 +193,7 @@ impl TransportLayer {
             .change_context(TransportError)?;
 
         let stream = stream.compat();
-        // let stream = BufStream::new(stream);
+        let stream = BufStream::new(stream);
         let stream = Framed::new(stream, ClientCodec::new());
 
         let (sink, stream) = stream.split();
@@ -262,6 +262,8 @@ pub(crate) mod test {
         }),
     };
 
+    const DEFAULT_DELAY: Duration = Duration::from_millis(10);
+
     pub(crate) fn address() -> libp2p::Multiaddr {
         // to allow for unique port numbers, even if the tests are run concurrently we use an atomic
         // we're not starting at `0` as `0` indicates that the port should be chosen by the
@@ -297,9 +299,9 @@ pub(crate) mod test {
             .await
             .expect("memory transport should be able to listen on memory address");
 
-        // wait for 200ms to make sure the server is ready
+        // wait for `DEFAULT_DELAY` to make sure the server is ready
         // this is more than strictly necessary, but it's better to be safe
-        tokio::time::sleep(Duration::from_millis(200)).await;
+        tokio::time::sleep(DEFAULT_DELAY).await;
 
         let peer_id = client
             .lookup_peer(address)
@@ -384,9 +386,9 @@ pub(crate) mod test {
             }
         });
 
-        // wait for 200ms to make sure the server is ready
+        // wait for `DEFAULT_DELAY` to make sure the server is ready
         // this is more than strictly necessary, but it's better to be safe
-        tokio::time::sleep(Duration::from_millis(200)).await;
+        tokio::time::sleep(DEFAULT_DELAY).await;
 
         client
             .lookup_peer(address)
@@ -437,9 +439,9 @@ pub(crate) mod test {
             assert_eq!(&request, &EXAMPLE_REQUEST);
         });
 
-        // wait for 200ms to make sure the server is ready
+        // wait for `DEFAULT_DELAY` to make sure the server is ready
         // this is more than strictly necessary, but it's better to be safe
-        tokio::time::sleep(Duration::from_millis(200)).await;
+        tokio::time::sleep(DEFAULT_DELAY).await;
 
         client
             .lookup_peer(address)
@@ -497,9 +499,9 @@ pub(crate) mod test {
                 .expect("should be able to send response");
         });
 
-        // wait for 200ms to make sure the server is ready
+        // wait for `DEFAULT_DELAY` to make sure the server is ready
         // this is more than strictly necessary, but it's better to be safe
-        tokio::time::sleep(Duration::from_millis(200)).await;
+        tokio::time::sleep(DEFAULT_DELAY).await;
 
         client
             .lookup_peer(address)
@@ -525,13 +527,10 @@ pub(crate) mod test {
 
         tokio::time::timeout(Duration::from_secs(1), handle)
             .await
-            .expect("should be notified")
+            .expect("should have finished before deadline")
             .expect("should not have panicked during handling");
-
-        // assert_eq!(response, EXAMPLE_RESPONSE.clone());
     }
 
-    // TODO: send request, response
     // TODO: send multiple packets
 
     #[tokio::test]
@@ -546,9 +545,9 @@ pub(crate) mod test {
             .await
             .expect("memory transport should be able to listen on memory address");
 
-        // wait for 200ms to make sure the server is ready
+        // wait for `DEFAULT_DELAY` to make sure the server is ready
         // this is more than strictly necessary, but it's better to be safe
-        tokio::time::sleep(Duration::from_millis(200)).await;
+        tokio::time::sleep(DEFAULT_DELAY).await;
 
         let peer_id = server.peer_id();
 
