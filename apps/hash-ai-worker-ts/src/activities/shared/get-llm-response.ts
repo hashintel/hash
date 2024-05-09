@@ -38,6 +38,7 @@ import {
   mapLlmMessageToOpenAiMessages,
   mapOpenAiMessagesToLlmMessages,
 } from "./get-llm-response/llm-message";
+import { logLlmRequest } from "./get-llm-response/log-llm-request";
 import type {
   AnthropicLlmParams,
   AnthropicResponse,
@@ -737,9 +738,11 @@ export const getLlmResponse = async <T extends LlmParams>(
     };
   }
 
-  const llmResponse = isLlmParamsAnthropicLlmParams(llmParams)
-    ? await getAnthropicResponse(llmParams)
-    : await getOpenAiResponse(llmParams);
+  const llmResponse = (
+    isLlmParamsAnthropicLlmParams(llmParams)
+      ? await getAnthropicResponse(llmParams)
+      : await getOpenAiResponse(llmParams)
+  ) as LlmResponse<T>;
 
   /**
    * Capture incurred usage in a usage record.
@@ -839,5 +842,9 @@ export const getLlmResponse = async <T extends LlmParams>(
     }
   }
 
-  return llmResponse as LlmResponse<T>;
+  if (process.env.NODE_ENV === "development") {
+    logLlmRequest({ llmParams, llmResponse });
+  }
+
+  return llmResponse;
 };
