@@ -211,6 +211,7 @@ const createInitialPlan = async (params: {
       tools: Object.values(coordinatorToolDefinitions).filter(
         ({ name }) => name !== "updatePlan",
       ),
+      seed: 1,
     },
     {
       userAccountId: userAuthentication.actorId,
