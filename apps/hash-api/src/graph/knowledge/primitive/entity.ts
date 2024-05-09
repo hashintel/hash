@@ -1,6 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
+import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type {
   AllFilter,
@@ -55,7 +56,6 @@ import {
 import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { ApolloError } from "apollo-server-errors";
 
-import { publicUserAccountId } from "../../../auth/public-user-account-id";
 import type {
   EntityDefinition,
   LinkedEntityDefinition,

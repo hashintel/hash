@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -25,9 +26,6 @@ import type {
 } from "../src/activities/shared/get-llm-response/types";
 import { graphApiClient } from "../src/activities/shared/graph-api-client";
 import type { CompareLlmResponseConfig } from "./compare-llm-response/types";
-
-export const publicUserAccountId: AccountId =
-  "00000000-0000-0000-0000-000000000000" as AccountId;
 
 const getAliceUserAccountId = async () => {
   const [aliceUserEntity] = await graphApiClient
