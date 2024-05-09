@@ -27,6 +27,8 @@ import { AccountPageList } from "./account-page-list/account-page-list";
 import { useSidebarContext } from "./sidebar-context";
 import { TopNavLink } from "./top-nav-link";
 import { WorkspaceSwitcher } from "./workspace-switcher";
+import { isDevEnv } from "@apps/hash-api/src/lib/env-config";
+import { BoltLightIcon } from "../../icons/bolt-light-icon";
 
 export const SIDEBAR_WIDTH = 260;
 
@@ -56,6 +58,39 @@ export const PageSidebar: FunctionComponent = () => {
 
   const { draftEntities } = useDraftEntities();
 
+  if (!isDevEnv) {
+    enabledFeatureFlags.workers = false;
+  }
+
+  const workersSection = enabledFeatureFlags.workers
+    ? [
+        {
+          title: "Workers",
+          href: "/goals",
+          icon: <BoltLightIcon sx={{ fontSize: 16 }} />,
+          tooltipTitle: "",
+          children: [
+            ...(enabledFeatureFlags.ai
+              ? [
+                  {
+                    title: "Goals",
+                    href: "/goals",
+                  },
+                ]
+              : []),
+            {
+              title: "Flows",
+              href: "/flows",
+            },
+            {
+              title: "Activity Log",
+              href: "/workers",
+            },
+          ],
+        },
+      ]
+    : [];
+
   const navLinks = useMemo<NavLinkDefinition[]>(() => {
     const numberOfPendingActions = draftEntities?.length ?? 0;
 
@@ -66,6 +101,7 @@ export const PageSidebar: FunctionComponent = () => {
         icon: <FontAwesomeIcon icon={faHome} />,
         tooltipTitle: "",
       },
+      ...workersSection,
       {
         title: "Inbox",
         href: "/inbox",

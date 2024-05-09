@@ -1,13 +1,11 @@
 import { Box, Container, Stack, TableCell, Typography } from "@mui/material";
 
-import { BoltLightIcon } from "../shared/icons/bolt-light-icon";
 import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar } from "../shared/layout";
 import {
   FlowDefinitionsContextProvider,
   useFlowDefinitionsContext,
 } from "./shared/flow-definitions-context";
-import { TopContextBar } from "./shared/top-context-bar";
 import {
   CreateVirtualizedRowContentFn,
   defaultCellSx,
@@ -18,7 +16,7 @@ import {
   type VirtualizedTableSort,
 } from "./shared/virtualized-table";
 import { memo, useMemo, useState } from "react";
-import { format, formatDistanceToNowStrict } from "date-fns";
+import { formatDistanceToNowStrict } from "date-fns";
 import { Subtype } from "@local/advanced-types/subtype";
 import { Avatar, InfinityLightIcon } from "@hashintel/design-system";
 import { Link } from "../shared/ui/link";
@@ -26,6 +24,7 @@ import {
   FlowRunsContextProvider,
   useFlowRunsContext,
 } from "./shared/flow-runs-context";
+import { WorkersHeader } from "../shared/workers-header";
 
 type FieldId = "web" | "name" | "description" | "lastRunStartedAt";
 
@@ -210,52 +209,17 @@ const FlowsPageContent = () => {
 
   return (
     <Box>
-      <TopContextBar
+      <WorkersHeader
         crumbs={[
-          {
-            href: "/workers",
-            id: "workers",
-            icon: <BoltLightIcon />,
-            title: "Workers",
-          },
           {
             icon: null,
             id: "flows",
             title: "Flows",
           },
         ]}
-        sx={({ palette }) => ({
-          background: palette.gray[5],
-          borderBottom: `1px solid ${palette.gray[20]}`,
-        })}
+        title={{ text: "Flows", Icon: InfinityLightIcon }}
+        subtitle="Pre-defined sequences of actions run by workers on your behalf"
       />
-      <Box
-        sx={{
-          my: 4.5,
-          pb: 4.5,
-          borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
-        }}
-      >
-        <Container>
-          <Box ml={4}>
-            <Stack alignItems="center" direction="row" gap={1.5}>
-              <InfinityLightIcon
-                sx={{ fill: ({ palette }) => palette.blue[70], fontSize: 39 }}
-              />
-              <Typography variant="h3" sx={{ fontSize: 26, fontWeight: 400 }}>
-                Flows
-              </Typography>
-            </Stack>
-            <Typography
-              component="p"
-              variant="largeTextLabels"
-              sx={{ mt: 1, color: ({ palette }) => palette.gray[80] }}
-            >
-              Pre-defined sequences of actions run by workers on your behalf
-            </Typography>
-          </Box>
-        </Container>
-      </Box>
       <Container sx={{ my: 4, px: 4, height: tableHeight }}>
         <VirtualizedTable
           columns={columns}
