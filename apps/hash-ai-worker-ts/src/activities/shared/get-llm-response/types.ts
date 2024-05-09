@@ -34,7 +34,9 @@ export type AnthropicLlmParams<ToolName extends string = string> =
   CommonLlmParams<ToolName> & {
     model: AnthropicMessageModel;
     maxTokens?: number;
-    previousInvalidResponses?: AnthropicMessagesCreateResponse[];
+    previousInvalidResponses?: (AnthropicMessagesCreateResponse & {
+      requestTime: number;
+    })[];
   } & Omit<
       AnthropicMessagesCreateParams,
       "tools" | "max_tokens" | "system" | "messages"
@@ -44,7 +46,9 @@ export type OpenAiLlmParams<ToolName extends string = string> =
   CommonLlmParams<ToolName> & {
     model: PermittedOpenAiModel;
     trimMessageAtIndex?: number;
-    previousInvalidResponses?: OpenAiChatCompletion[];
+    previousInvalidResponses?: (OpenAiChatCompletion & {
+      requestTime: number;
+    })[];
   } & Omit<OpenAiChatCompletionCreateParams, "tools" | "messages">;
 
 export type LlmParams<ToolName extends string = string> =
@@ -59,11 +63,13 @@ export type AnthropicResponse = Omit<
   AnthropicMessagesCreateResponse,
   "content" | "role" | "usage"
 > & {
-  invalidResponses: AnthropicMessagesCreateResponse[];
+  invalidResponses: (AnthropicMessagesCreateResponse & {
+    requestTime: number;
+  })[];
 };
 
 export type OpenAiResponse = Omit<OpenAiChatCompletion, "usage" | "choices"> & {
-  invalidResponses: OpenAiChatCompletion[];
+  invalidResponses: (OpenAiChatCompletion & { requestTime: number })[];
 };
 
 export type ParsedLlmToolCall<ToolName extends string = string> = {
@@ -109,6 +115,8 @@ export type LlmResponse<T extends LlmParams> =
       status: "ok";
       stopReason: LlmStopReason;
       usage: LlmUsage;
+      lastRequestTime: number;
+      totalRequestTime: number;
       message: LlmAssistantMessage<
         T["tools"] extends (infer U)[]
           ? U extends { name: infer N }

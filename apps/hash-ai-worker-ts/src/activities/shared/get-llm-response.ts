@@ -239,7 +239,7 @@ const getAnthropicResponse = async (
     messages,
     systemPrompt,
     previousUsage,
-    previousInvalidResponses = [],
+    previousInvalidResponses,
     ...remainingParams
   } = params;
 
@@ -259,6 +259,8 @@ const getAnthropicResponse = async (
 
   let anthropicResponse: AnthropicMessagesCreateResponse;
 
+  const timeBeforeRequest = Date.now();
+
   try {
     anthropicResponse = await createAnthropicMessagesWithTools({
       ...remainingParams,
@@ -276,6 +278,8 @@ const getAnthropicResponse = async (
       status: "api-error",
     };
   }
+
+  const currentRequestTime = Date.now() - timeBeforeRequest;
 
   const usage: LlmUsage = {
     inputTokens:
@@ -313,8 +317,8 @@ const getAnthropicResponse = async (
         },
       ],
       previousInvalidResponses: [
-        ...previousInvalidResponses,
-        anthropicResponse,
+        ...(previousInvalidResponses ?? []),
+        { ...anthropicResponse, requestTime: currentRequestTime },
       ],
     });
   };
@@ -383,16 +387,20 @@ const getAnthropicResponse = async (
     throw new Error("Unexpected user message in response");
   }
 
-  const response: LlmResponse<AnthropicLlmParams> = {
+  return {
     ...anthropicResponse,
     status: "ok",
     stopReason,
     message,
     usage,
-    invalidResponses: previousInvalidResponses,
+    invalidResponses: previousInvalidResponses ?? [],
+    lastRequestTime: currentRequestTime,
+    totalRequestTime:
+      previousInvalidResponses?.reduce(
+        (acc, { requestTime }) => acc + requestTime,
+        currentRequestTime,
+      ) ?? currentRequestTime,
   };
-
-  return response;
 };
 
 const getOpenAiResponse = async (
@@ -405,7 +413,7 @@ const getOpenAiResponse = async (
     messages,
     systemPrompt,
     previousUsage,
-    previousInvalidResponses = [],
+    previousInvalidResponses,
     ...remainingParams
   } = params;
 
@@ -478,6 +486,8 @@ const getOpenAiResponse = async (
 
   let openAiResponse: ChatCompletion;
 
+  const timeBeforeRequest = Date.now();
+
   try {
     openAiResponse = await openai.chat.completions.create(completionPayload);
 
@@ -492,6 +502,8 @@ const getOpenAiResponse = async (
       axiosError,
     };
   }
+
+  const currentRequestTime = Date.now() - timeBeforeRequest;
 
   const usage: LlmUsage = {
     inputTokens:
@@ -539,7 +551,10 @@ const getOpenAiResponse = async (
         },
       ],
       previousUsage: usage,
-      previousInvalidResponses: [...previousInvalidResponses, openAiResponse],
+      previousInvalidResponses: [
+        ...(previousInvalidResponses ?? []),
+        { ...openAiResponse, requestTime: currentRequestTime },
+      ],
     });
   };
 
@@ -688,7 +703,13 @@ const getOpenAiResponse = async (
     message: responseMessage,
     stopReason,
     usage,
-    invalidResponses: previousInvalidResponses,
+    invalidResponses: previousInvalidResponses ?? [],
+    lastRequestTime: currentRequestTime,
+    totalRequestTime:
+      previousInvalidResponses?.reduce(
+        (acc, { requestTime }) => acc + requestTime,
+        currentRequestTime,
+      ) ?? currentRequestTime,
   };
 
   return response;
