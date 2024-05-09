@@ -31,12 +31,15 @@ resource "aws_ssm_parameter" "api_env_vars" {
 
 locals {
   api_migration_container_def = {
-    name             = "${local.api_prefix}container"
+    name             = "${local.api_prefix}-migration"
     image            = "${var.api_image.url}:latest"
     cpu              = 0 # let ECS divvy up the available CPU
     mountPoints      = []
     volumesFrom      = []
     command          = ["ensure-system-graph-is-initialized"]
+    dependsOn   = [
+      { condition = "HEALTHY", containerName = local.kratos_service_container_def.name },
+    ]
     logConfiguration = {
       logDriver = "awslogs"
       options   = {
@@ -65,14 +68,14 @@ locals {
     essential = false
   }
   api_service_container_def = {
-    name        = "${local.api_prefix}container"
+    name        = local.api_prefix
     image       = "${var.api_image.url}:latest"
     cpu         = 0 # let ECS divvy up the available CPU
     mountPoints = []
     volumesFrom = []
     dependsOn   = [
       { condition = "SUCCESS", containerName = local.api_migration_container_def.name },
-      { condition = "HEALTHY", containerName = local.graph_service_container_def.name },
+      { condition = "HEALTHY", containerName = local.hydra_service_container_def.name },
       { condition = "HEALTHY", containerName = local.kratos_service_container_def.name },
     ]
     healthCheck = {
