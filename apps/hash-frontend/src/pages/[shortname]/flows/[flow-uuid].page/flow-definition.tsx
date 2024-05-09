@@ -187,8 +187,6 @@ export const FlowDefinition = () => {
   const { flowDefinitions, selectedFlow, setSelectedFlow } =
     useFlowDefinitionsContext();
 
-  console.log(flowDefinitions.map((def) => slugifyTypeTitle(def.name)));
-
   /** @todo replace with real uuid once flow definitions are stored in the db */
   const slugifiedFlowName = query["flow-uuid"] as string;
 
