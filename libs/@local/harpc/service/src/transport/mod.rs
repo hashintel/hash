@@ -285,47 +285,6 @@ pub(crate) mod test {
         (layer, cancel.drop_guard())
     }
 
-    pub(crate) async fn tcp_server() -> (TransportLayer, Multiaddr, impl Drop) {
-        let transport = tcp::tokio::Transport::default();
-        let config = Config::default();
-        let cancel = CancellationToken::new();
-
-        let layer = TransportLayer::start(config, transport, cancel.clone())
-            .expect("should be able to create swarm");
-
-        let address = [
-            multiaddr::Protocol::Ip4(Ipv4Addr::LOCALHOST),
-            multiaddr::Protocol::Tcp(0),
-        ]
-        .into_iter()
-        .collect();
-
-        layer
-            .listen_on(address)
-            .await
-            .expect("should be able to listen on address");
-
-        let external_address = layer
-            .external_addresses()
-            .await
-            .expect("should be able to get external address")
-            .pop()
-            .expect("should have at least one external address");
-
-        (layer, external_address, cancel.drop_guard())
-    }
-
-    pub(crate) fn tcp_client() -> (TransportLayer, impl Drop) {
-        let transport = tcp::tokio::Transport::default();
-        let config = Config::default();
-        let cancel = CancellationToken::new();
-
-        let layer = TransportLayer::start(config, transport, cancel.clone())
-            .expect("should be able to create swarm");
-
-        (layer, cancel.drop_guard())
-    }
-
     #[tokio::test]
     async fn lookup_peer() {
         let (server, _guard_server) = layer();
