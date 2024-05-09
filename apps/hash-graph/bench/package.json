@@ -5,7 +5,6 @@
   "scripts": {
     "bench:compare": "mkdir -p out/ && bash ../../../.github/scripts/read_criterion_bench_results.sh > out/index.md",
     "bench:integration": "cargo bench",
-    "bench:unit": "cargo bench --bench writes",
     "test:integration": "cargo hack test --feature-powerset --all-targets"
   },
   "dependencies": {},

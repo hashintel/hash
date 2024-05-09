@@ -101,13 +101,7 @@ jobs:
         if: steps.benches.outputs.compare-results == 'true'
         run: |
           git fetch origin ${{ github.base_ref }}
-          git checkout ${{ github.base_ref }}
-
-      - name: Checkout base branch
-        if: steps.benches.outputs.compare-results == 'true'
-        run: |
-          git fetch origin ${{ github.head_ref }}
-          git checkout ${{ github.head_ref }}
+          git checkout FETCH_HEAD
 
       - name: Install Rust toolchain
         if: always() && steps.benches.outputs.has-rust == 'true' && steps.benches.outputs.compare-results == 'true'
@@ -233,13 +227,7 @@ jobs:
         if: steps.benches.outputs.compare-results == 'true'
         run: |
           git fetch origin ${{ github.base_ref }}
-          git checkout ${{ github.base_ref }}
-
-      - name: Checkout base branch
-        if: steps.benches.outputs.compare-results == 'true'
-        run: |
-          git fetch origin ${{ github.head_ref }}
-          git checkout ${{ github.head_ref }}
+          git checkout FETCH_HEAD
 
       - name: Install Rust toolchain
         if: always() && steps.benches.outputs.has-rust == 'true' && steps.benches.outputs.compare-results == 'true'
