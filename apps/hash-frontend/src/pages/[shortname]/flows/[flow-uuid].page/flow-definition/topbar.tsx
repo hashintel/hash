@@ -4,9 +4,11 @@ import {
   PlayIconSolid,
   Select,
 } from "@hashintel/design-system";
+import { slugifyTypeTitle } from "@local/hash-isomorphic-utils/slugify-type-title";
 import type { SxProps, Theme } from "@mui/material";
 import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
 import { format } from "date-fns";
+import { useRouter } from "next/router";
 import { useMemo } from "react";
 
 import { Button } from "../../../../../shared/ui/button";
@@ -52,8 +54,9 @@ export const Topbar = ({
 }: {
   handleRunFlowClicked: () => void;
 }) => {
-  const { flowDefinitions, selectedFlow, setSelectedFlow } =
-    useFlowDefinitionsContext();
+  const { push } = useRouter();
+
+  const { flowDefinitions, selectedFlow } = useFlowDefinitionsContext();
 
   const { flowRuns, selectedFlowRun, setSelectedFlowRunId } =
     useFlowRunsContext();
@@ -94,9 +97,11 @@ export const Topbar = ({
             selectSx={selectSx}
             value={selectedFlow.name}
             onChange={(event) => {
-              setSelectedFlow(
-                flowDefinitions.find((def) => def.name === event.target.value)!,
-              );
+              /**
+               * @todo update this to use the flow definition's uuid when stored in the db
+               * also needs to take account of the correct namespace, which might be different from the current
+               */
+              void push(`/@hash/flows/${slugifyTypeTitle(event.target.value)}`);
               setSelectedFlowRunId(null);
             }}
           >

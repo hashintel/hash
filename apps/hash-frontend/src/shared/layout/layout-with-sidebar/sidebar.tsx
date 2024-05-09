@@ -1,6 +1,6 @@
-import { isDevEnv } from "@apps/hash-api/src/lib/env-config";
 import { faHome } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { Box, Collapse, Drawer } from "@mui/material";
 import { useRouter } from "next/router";
 import {
@@ -58,38 +58,45 @@ export const PageSidebar: FunctionComponent = () => {
 
   const { draftEntities } = useDraftEntities();
 
-  if (!isDevEnv) {
+  /**
+   * @todo H-2664 – remove this
+   */
+  if (frontendUrl !== "http://localhost:3000") {
     enabledFeatureFlags.workers = false;
   }
 
-  const workersSection = enabledFeatureFlags.workers
-    ? [
-        {
-          title: "Workers",
-          href: "/goals",
-          icon: <BoltLightIcon sx={{ fontSize: 16 }} />,
-          tooltipTitle: "",
-          children: [
-            ...(enabledFeatureFlags.ai
-              ? [
-                  {
-                    title: "Goals",
-                    href: "/goals",
-                  },
-                ]
-              : []),
+  const workersSection = useMemo(
+    () =>
+      enabledFeatureFlags.workers
+        ? [
             {
-              title: "Flows",
-              href: "/flows",
+              title: "Workers",
+              href: "/goals",
+              icon: <BoltLightIcon sx={{ fontSize: 16 }} />,
+              tooltipTitle: "",
+              children: [
+                ...(enabledFeatureFlags.ai
+                  ? [
+                      {
+                        title: "Goals",
+                        href: "/goals",
+                      },
+                    ]
+                  : []),
+                {
+                  title: "Flows",
+                  href: "/flows",
+                },
+                {
+                  title: "Activity Log",
+                  href: "/workers",
+                },
+              ],
             },
-            {
-              title: "Activity Log",
-              href: "/workers",
-            },
-          ],
-        },
-      ]
-    : [];
+          ]
+        : [],
+    [enabledFeatureFlags],
+  );
 
   const navLinks = useMemo<NavLinkDefinition[]>(() => {
     const numberOfPendingActions = draftEntities?.length ?? 0;
@@ -147,6 +154,7 @@ export const PageSidebar: FunctionComponent = () => {
     numberOfUnreadNotifications,
     enabledFeatureFlags,
     isInstanceAdmin,
+    workersSection,
   ]);
 
   return (

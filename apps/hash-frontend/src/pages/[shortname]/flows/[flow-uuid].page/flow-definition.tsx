@@ -9,19 +9,21 @@ import type {
   ProposedEntity,
   StepProgressLog,
 } from "@local/hash-isomorphic-utils/flows/types";
+import { slugifyTypeTitle } from "@local/hash-isomorphic-utils/slugify-type-title";
 import { Box, Stack, Typography } from "@mui/material";
 import { format } from "date-fns";
-import { useCallback, useMemo, useState } from "react";
+import { useRouter } from "next/router";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ReactFlowProvider } from "reactflow";
 
 import type {
   StartFlowMutation,
   StartFlowMutationVariables,
-} from "../../../graphql/api-types.gen";
-import { startFlowMutation } from "../../../graphql/queries/knowledge/entity.queries";
-import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
-import { useFlowDefinitionsContext } from "../../shared/flow-definitions-context";
-import { useFlowRunsContext } from "../../shared/flow-runs-context";
+} from "../../../../graphql/api-types.gen";
+import { startFlowMutation } from "../../../../graphql/queries/knowledge/entity.queries";
+import { HEADER_HEIGHT } from "../../../../shared/layout/layout-with-header/page-header";
+import { useFlowDefinitionsContext } from "../../../shared/flow-definitions-context";
+import { useFlowRunsContext } from "../../../shared/flow-runs-context";
 import { ActivityLog } from "./flow-definition/activity-log";
 import { FlowRunSidebar } from "./flow-definition/flow-run-sidebar";
 import { Outputs } from "./flow-definition/outputs";
@@ -180,7 +182,24 @@ const containerHeight = `calc(100vh - ${HEADER_HEIGHT}px)`;
 export const FlowDefinition = () => {
   const apolloClient = useApolloClient();
 
-  const { selectedFlow } = useFlowDefinitionsContext();
+  const { query } = useRouter();
+
+  const { flowDefinitions, selectedFlow, setSelectedFlow } =
+    useFlowDefinitionsContext();
+
+  console.log(flowDefinitions.map((def) => slugifyTypeTitle(def.name)));
+
+  /** @todo replace with real uuid once flow definitions are stored in the db */
+  const slugifiedFlowName = query["flow-uuid"] as string;
+
+  useEffect(() => {
+    const flowDefinition = flowDefinitions.find(
+      (def) => slugifyTypeTitle(def.name) === slugifiedFlowName,
+    );
+    if (flowDefinition && flowDefinition !== selectedFlow) {
+      setSelectedFlow(flowDefinition);
+    }
+  }, [slugifiedFlowName, flowDefinitions, selectedFlow, setSelectedFlow]);
 
   const { selectedFlowRun, setSelectedFlowRunId } = useFlowRunsContext();
 

@@ -1,5 +1,6 @@
 import { Avatar, InfinityLightIcon } from "@hashintel/design-system";
 import type { Subtype } from "@local/advanced-types/subtype";
+import { slugifyTypeTitle } from "@local/hash-isomorphic-utils/slugify-type-title";
 import { Box, Container, Stack, TableCell, Typography } from "@mui/material";
 import { formatDistanceToNowStrict } from "date-fns";
 import { memo, useMemo, useState } from "react";
@@ -66,6 +67,7 @@ type FlowSummary = Subtype<
       shortname: string;
     };
     name: string;
+    uuid: string;
     description: string;
     lastRunStartedAt: string | null;
   }
@@ -85,7 +87,7 @@ const cellSx = {
 };
 
 const TableRow = memo(({ flowSummary }: { flowSummary: FlowSummary }) => {
-  const { web, name, description, lastRunStartedAt } = flowSummary;
+  const { web, name, uuid, description, lastRunStartedAt } = flowSummary;
 
   return (
     <>
@@ -115,7 +117,7 @@ const TableRow = memo(({ flowSummary }: { flowSummary: FlowSummary }) => {
       </TableCell>
       <TableCell sx={cellSx}>
         <Link
-          href="#"
+          href={`/@${web.shortname}/flows/${uuid}`}
           sx={{
             display: "block",
             fontSize: 14,
@@ -183,6 +185,11 @@ const FlowsPageContent = () => {
               shortname: "hash",
             },
             name: flowDefinition.name,
+            /**
+             * Flow definitions will have their own uuid once we start storing them in the db, this is a placeholder
+             * while we only have hardcoded definitions
+             */
+            uuid: slugifyTypeTitle(flowDefinition.flowDefinitionId),
             description: flowDefinition.description,
             lastRunStartedAt,
           },
