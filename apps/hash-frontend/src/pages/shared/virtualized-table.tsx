@@ -17,8 +17,6 @@ import { forwardRef, useCallback } from "react";
 import type { TableComponents } from "react-virtuoso";
 import { TableVirtuoso } from "react-virtuoso";
 
-import { flowSectionBorderRadius } from "../flows/flows.page/flow-definition/shared/styles";
-
 type Data = Record<string, unknown>;
 
 export type VirtualizedTableRow<D extends Data> = {
@@ -33,6 +31,8 @@ export const defaultCellSx: SxProps<Theme> = {
   textAlign: "left",
 };
 
+const borderRadius = "10px";
+
 export const headerHeight = 43;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -44,7 +44,7 @@ const VirtuosoTableComponents: TableComponents<VirtualizedTableRow<any>> = {
         ref={ref}
         sx={{
           background: "white",
-          borderRadius: flowSectionBorderRadius,
+          borderRadius,
           height: "100%",
           border: ({ palette }) => `1px solid ${palette.gray[20]}`,
         }}
@@ -57,7 +57,7 @@ const VirtuosoTableComponents: TableComponents<VirtualizedTableRow<any>> = {
       sx={{
         tableLayout: "fixed",
         borderCollapse: "separate",
-        borderRadius: flowSectionBorderRadius,
+        borderRadius,
         borderSpacing: 0,
         th: {
           ...defaultCellSx,
@@ -198,9 +198,7 @@ export const VirtualizedTable = <
   );
 
   return (
-    <Box
-      style={{ borderRadius: flowSectionBorderRadius, height, width: "100%" }}
-    >
+    <Box style={{ borderRadius, height, width: "100%" }}>
       <TableVirtuoso
         data={rows}
         components={VirtuosoTableComponents}

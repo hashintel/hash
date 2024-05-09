@@ -9,15 +9,15 @@ import { Box, Stack, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useMemo, useState } from "react";
 
-import type { FlowRun } from "../../../../graphql/api-types.gen";
-import { getFileProperties } from "../../../shared/get-file-properties";
+import type { FlowRun } from "../../../../../graphql/api-types.gen";
+import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
+import { getFileProperties } from "../../../../shared/get-file-properties";
 import type { DeliverableData } from "./outputs/deliverables";
 import { Deliverables } from "./outputs/deliverables";
 import { EntityResultTable } from "./outputs/entity-result-table";
 import { PersistedEntityGraph } from "./outputs/persisted-entity-graph";
 import { outputIcons } from "./outputs/shared/icons";
 import { SectionLabel } from "./section-label";
-import { useFlowRunsContext } from "../../../shared/flow-runs-context";
 
 export const getDeliverables = (
   outputs?: FlowRun["outputs"],

@@ -9,11 +9,11 @@ import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
 import { format } from "date-fns";
 import { useMemo } from "react";
 
-import { Button } from "../../../../shared/ui/button";
-import { MenuItem } from "../../../../shared/ui/menu-item";
-import { useFlowDefinitionsContext } from "../../../shared/flow-definitions-context";
-import { useFlowRunsContext } from "../../../shared/flow-runs-context";
-import { Link } from "../../../../shared/ui/link";
+import { Button } from "../../../../../shared/ui/button";
+import { Link } from "../../../../../shared/ui/link";
+import { MenuItem } from "../../../../../shared/ui/menu-item";
+import { useFlowDefinitionsContext } from "../../../../shared/flow-definitions-context";
+import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
 
 const typographySx: SxProps<Theme> = {
   color: ({ palette }) => palette.gray[70],

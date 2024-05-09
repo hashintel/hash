@@ -2,10 +2,10 @@ import { TextField } from "@hashintel/design-system";
 import type { SxProps, Theme } from "@mui/material";
 import { Switch } from "@mui/material";
 
-import { EntitySelector } from "../../../../shared/entity-selector";
-import { EntityTypeSelector } from "../../../../shared/entity-type-selector";
-import { GoogleAccountSelect } from "../../../../shared/integrations/google/google-account-select";
-import { SelectOrNameGoogleSheet } from "../../../../shared/integrations/google/select-or-name-google-sheet";
+import { EntitySelector } from "../../../../../shared/entity-selector";
+import { EntityTypeSelector } from "../../../../../shared/entity-type-selector";
+import { GoogleAccountSelect } from "../../../../../shared/integrations/google/google-account-select";
+import { SelectOrNameGoogleSheet } from "../../../../../shared/integrations/google/select-or-name-google-sheet";
 import { inputHeight } from "./shared/dimensions";
 import type { FormState, LocalPayload } from "./types";
 

@@ -1,30 +1,32 @@
+import { Avatar, InfinityLightIcon } from "@hashintel/design-system";
+import type { Subtype } from "@local/advanced-types/subtype";
 import { Box, Container, Stack, TableCell, Typography } from "@mui/material";
+import { formatDistanceToNowStrict } from "date-fns";
+import { memo, useMemo, useState } from "react";
 
 import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar } from "../shared/layout";
+import { Link } from "../shared/ui/link";
+import { WorkersHeader } from "../shared/workers-header";
 import {
   FlowDefinitionsContextProvider,
   useFlowDefinitionsContext,
 } from "./shared/flow-definitions-context";
 import {
-  CreateVirtualizedRowContentFn,
-  defaultCellSx,
-  headerHeight,
-  VirtualizedTable,
-  VirtualizedTableColumn,
-  VirtualizedTableRow,
-  type VirtualizedTableSort,
-} from "./shared/virtualized-table";
-import { memo, useMemo, useState } from "react";
-import { formatDistanceToNowStrict } from "date-fns";
-import { Subtype } from "@local/advanced-types/subtype";
-import { Avatar, InfinityLightIcon } from "@hashintel/design-system";
-import { Link } from "../shared/ui/link";
-import {
   FlowRunsContextProvider,
   useFlowRunsContext,
 } from "./shared/flow-runs-context";
-import { WorkersHeader } from "../shared/workers-header";
+import type {
+  CreateVirtualizedRowContentFn,
+  VirtualizedTableColumn,
+  VirtualizedTableRow,
+  VirtualizedTableSort,
+} from "./shared/virtualized-table";
+import {
+  defaultCellSx,
+  headerHeight,
+  VirtualizedTable,
+} from "./shared/virtualized-table";
 
 type FieldId = "web" | "name" | "description" | "lastRunStartedAt";
 

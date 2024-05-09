@@ -1,22 +1,15 @@
-import { Breadcrumb } from "../pages/shared/breadcrumbs";
-import { FunctionComponent } from "react";
+import type { SvgIconProps, SxProps, Theme } from "@mui/material";
+import { Box, Container, Stack, Typography } from "@mui/material";
+import type { FunctionComponent } from "react";
+
+import type { Breadcrumb } from "../pages/shared/breadcrumbs";
 import { TopContextBar } from "../pages/shared/top-context-bar";
 import { BoltLightIcon } from "./icons/bolt-light-icon";
-import {
-  Box,
-  Container,
-  Stack,
-  SvgIconProps,
-  SxProps,
-  Theme,
-  Typography,
-} from "@mui/material";
 
 type WorkersHeaderProps = {
   crumbs: Breadcrumb[];
   title: {
     Icon: FunctionComponent<SvgIconProps>;
-    iconSize: number;
     iconSx?: SxProps<Theme>;
     text: string;
   };

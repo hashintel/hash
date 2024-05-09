@@ -3,9 +3,9 @@ import { useState } from "react";
 import type { HandleProps } from "reactflow";
 import { Handle as BaseHandle, Handle, Position, useEdges } from "reactflow";
 
-import { Modal } from "../../../../../../shared/ui/modal";
+import { Modal } from "../../../../../../../shared/ui/modal";
+import type { SimpleStatus } from "../../../../../../shared/flow-runs-context";
 import { nodeDimensions, nodeTabHeight } from "../../shared/dimensions";
-import type { SimpleStatus } from "../../../../../shared/flow-runs-context";
 import type { NodeData } from "../../shared/types";
 import { edgeColor } from "../shared/edge-styles";
 

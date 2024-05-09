@@ -1,3 +1,4 @@
+import { isDevEnv } from "@apps/hash-api/src/lib/env-config";
 import { faHome } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Box, Collapse, Drawer } from "@mui/material";
@@ -15,6 +16,7 @@ import { useEnabledFeatureFlags } from "../../../pages/shared/use-enabled-featur
 import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
 import { useDraftEntities } from "../../draft-entities-context";
 import { SidebarToggleIcon } from "../../icons";
+import { BoltLightIcon } from "../../icons/bolt-light-icon";
 import { CogLightIcon } from "../../icons/cog-light-icon";
 import { InboxIcon } from "../../icons/inbox-icon";
 import { NoteIcon } from "../../icons/note-icon";
@@ -27,8 +29,6 @@ import { AccountPageList } from "./account-page-list/account-page-list";
 import { useSidebarContext } from "./sidebar-context";
 import { TopNavLink } from "./top-nav-link";
 import { WorkspaceSwitcher } from "./workspace-switcher";
-import { isDevEnv } from "@apps/hash-api/src/lib/env-config";
-import { BoltLightIcon } from "../../icons/bolt-light-icon";
 
 export const SIDEBAR_WIDTH = 260;
 

@@ -12,14 +12,16 @@ import type {
 import { TableCell } from "@mui/material";
 import { memo, useMemo, useState } from "react";
 
-import {
+import type {
   CreateVirtualizedRowContentFn,
-  defaultCellSx,
   VirtualizedTableColumn,
   VirtualizedTableRow,
   VirtualizedTableSort,
-} from "../../../../shared/virtualized-table";
-import { VirtualizedTable } from "../../../../shared/virtualized-table";
+} from "../../../../../shared/virtualized-table";
+import {
+  defaultCellSx,
+  VirtualizedTable,
+} from "../../../../../shared/virtualized-table";
 import { EmptyOutputBox } from "./shared/empty-output-box";
 import { outputIcons } from "./shared/icons";
 import { OutputContainer } from "./shared/output-container";

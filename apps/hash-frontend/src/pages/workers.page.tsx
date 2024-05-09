@@ -1,10 +1,8 @@
+import { TerminalLightIcon } from "@hashintel/design-system";
 import { Box } from "@mui/material";
 
 import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar } from "../shared/layout";
-
-import { TerminalLightIcon } from "@hashintel/design-system";
-
 import { WorkersHeader } from "../shared/workers-header";
 
 const WorkersPageContent = () => {
