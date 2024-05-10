@@ -58,6 +58,10 @@ impl<'a> ResponseWriter<'a> {
         }
     }
 
+    pub(crate) const fn is_error(&self) -> bool {
+        matches!(self.kind, ResponseKind::Err(_))
+    }
+
     pub(crate) fn with_no_delay(self, no_delay: bool) -> Self {
         Self { no_delay, ..self }
     }

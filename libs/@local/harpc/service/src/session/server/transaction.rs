@@ -29,7 +29,7 @@ impl TransactionSendDelegateTask {
         // buffer the response into the least amount of packages possible
 
         let mut writer =
-            Some(ResponseWriter::new_ok(self.id, &self.tx).with_no_delay(self.config.no_delay));
+            ResponseWriter::new_ok(self.id, &self.tx).with_no_delay(self.config.no_delay);
 
         loop {
             let bytes = select! {
@@ -41,12 +41,7 @@ impl TransactionSendDelegateTask {
 
             let Some(bytes) = bytes else {
                 // channel has been closed, we are done, flush the buffer
-
                 // flush the remaining buffer, if there's any
-                let Some(writer) = writer.take() else {
-                    break;
-                };
-
                 if let Err(error) = writer.flush().await {
                     tracing::error!(?error, "connection has been prematurely closed");
                 }
@@ -54,12 +49,12 @@ impl TransactionSendDelegateTask {
                 break;
             };
 
-            match (bytes, writer.as_mut()) {
-                (Ok(_), None) => {
+            match bytes {
+                Ok(_) if writer.is_error() => {
                     // we had an error previously, so just ignore the rest of the stream
                     continue;
                 }
-                (Ok(bytes), Some(writer)) => {
+                Ok(bytes) => {
                     writer.push(bytes);
 
                     if let Err(error) = writer.write().await {
@@ -67,13 +62,12 @@ impl TransactionSendDelegateTask {
                         break;
                     }
                 }
-                (Err(TransactionError { code, bytes }), _) => {
-                    writer = None;
-
-                    let mut writer = ResponseWriter::new_error(self.id, code, &self.tx);
+                Err(TransactionError { code, bytes }) => {
+                    writer = ResponseWriter::new_error(self.id, code, &self.tx)
+                        .with_no_delay(self.config.no_delay);
                     writer.push(bytes);
 
-                    if let Err(error) = writer.flush().await {
+                    if let Err(error) = writer.write().await {
                         tracing::warn!(?error, "connection has been prematurely closed");
                         break;
                     }
@@ -231,7 +225,7 @@ impl TransactionTask {
 
 #[cfg(test)]
 mod test {
-    use core::time::Duration;
+    use core::{num::NonZero, time::Duration};
 
     use bytes::Bytes;
     use harpc_wire_protocol::{
@@ -243,7 +237,7 @@ mod test {
             body::ResponseBody,
             flags::{ResponseFlag, ResponseFlags},
             frame::ResponseFrame,
-            kind::ResponseKind,
+            kind::{ErrorCode, ResponseKind},
             Response,
         },
     };
@@ -595,22 +589,306 @@ mod test {
 
     #[tokio::test]
     async fn send_delay_error_immediate() {
-        todo!()
+        let (bytes_tx, mut response_rx, handle) = setup_send(false);
+
+        // send an error message
+        let payload = Bytes::from_static(&[0, 1, 2, 3, 4, 5, 6, 7]);
+        let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
+
+        bytes_tx
+            .send(Err(TransactionError {
+                code,
+                bytes: payload.clone(),
+            }))
+            .await
+            .expect("should not be closed");
+
+        drop(bytes_tx);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+
+        let mut responses = Vec::with_capacity(4);
+        let available = response_rx.recv_many(&mut responses, 4).await;
+        assert_eq!(available, 1);
+
+        assert_begin(
+            &responses[0],
+            ExpectedBegin {
+                flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+                kind: ResponseKind::Err(code),
+                payload: &payload,
+            },
+        );
     }
 
     #[tokio::test]
     async fn send_delay_error_delayed() {
-        todo!()
+        let (bytes_tx, mut response_rx, handle) = setup_send(false);
+
+        // if we send a packet that is too large, we'll split, but when we encounter an error we
+        // will discard the remaining messages
+        let payload_ok = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+
+        bytes_tx
+            .send(Ok(payload_ok.clone()))
+            .await
+            .expect("should not be closed");
+
+        // send an error message
+        let payload_err = Bytes::from_static(&[0, 1, 2, 3, 4, 5, 6, 7]);
+        let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
+
+        bytes_tx
+            .send(Err(TransactionError {
+                code,
+                bytes: payload_err.clone(),
+            }))
+            .await
+            .expect("should not be closed");
+
+        drop(bytes_tx);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+
+        // we should have received two packets, first ok, then error
+        let mut responses = Vec::with_capacity(4);
+        let available = response_rx.recv_many(&mut responses, 4).await;
+        assert_eq!(available, 2);
+
+        assert_begin(
+            &responses[0],
+            ExpectedBegin {
+                flags: ResponseFlags::EMPTY,
+                kind: ResponseKind::Ok,
+                payload: &payload_ok[..Payload::MAX_SIZE],
+            },
+        );
+
+        assert_begin(
+            &responses[1],
+            ExpectedBegin {
+                flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+                kind: ResponseKind::Err(code),
+                payload: &payload_err,
+            },
+        );
     }
 
     #[tokio::test]
     async fn send_delay_error_multiple() {
-        todo!()
+        let (bytes_tx, mut response_rx, handle) = setup_send(false);
+
+        // errors behave the same as normal messages in their flushing behaviour, which means that
+        // only that you are unable to have a stream or error bytes and their values need to be
+        // fully buffered.
+
+        let payload_err = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+        let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
+
+        for _ in 0..4 {
+            bytes_tx
+                .send(Err(TransactionError {
+                    code,
+                    bytes: payload_err.clone(),
+                }))
+                .await
+                .expect("should not be closed");
+        }
+
+        drop(bytes_tx);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+
+        // we should have received 5 packets, all errors
+        let mut responses = Vec::with_capacity(8);
+        let available = response_rx.recv_many(&mut responses, 8).await;
+        assert_eq!(available, 5);
+
+        // the first four should be the same
+        for response in &responses[..4] {
+            assert_begin(
+                response,
+                ExpectedBegin {
+                    flags: ResponseFlags::EMPTY,
+                    kind: ResponseKind::Err(code),
+                    payload: &payload_err[..Payload::MAX_SIZE],
+                },
+            );
+        }
+
+        assert_frame(
+            &responses[4],
+            ExpectedFrame {
+                flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+                payload: &payload_err[Payload::MAX_SIZE..],
+            },
+        );
     }
 
     #[tokio::test]
     async fn send_delay_error_interspersed() {
-        todo!()
+        // once we have an error message, we no longer send any more messages
+        let (bytes_tx, mut response_rx, handle) = setup_send(false);
+
+        let payload_ok = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+        let payload_err = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+        let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
+
+        for _ in 0..4 {
+            bytes_tx
+                .send(Ok(payload_ok.clone()))
+                .await
+                .expect("should not be closed");
+
+            bytes_tx
+                .send(Err(TransactionError {
+                    code,
+                    bytes: payload_err.clone(),
+                }))
+                .await
+                .expect("should not be closed");
+        }
+
+        drop(bytes_tx);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+
+        // we're expected to have 5 packets, 1 ok, 5 errors
+        let mut responses = Vec::with_capacity(8);
+        let available = response_rx.recv_many(&mut responses, 8).await;
+        assert_eq!(available, 6);
+
+        assert_begin(
+            &responses[0],
+            ExpectedBegin {
+                flags: ResponseFlags::EMPTY,
+                kind: ResponseKind::Ok,
+                payload: &payload_ok[..Payload::MAX_SIZE],
+            },
+        );
+
+        for response in &responses[1..5] {
+            assert_begin(
+                response,
+                ExpectedBegin {
+                    flags: ResponseFlags::EMPTY,
+                    kind: ResponseKind::Err(code),
+                    payload: &payload_err[..Payload::MAX_SIZE],
+                },
+            );
+        }
+
+        assert_frame(
+            &responses[5],
+            ExpectedFrame {
+                flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+                payload: &payload_err[Payload::MAX_SIZE..],
+            },
+        );
+    }
+
+    #[tokio::test]
+    async fn send_delay_error_interspersed_small() {
+        // if we actually have a small payload, we don't even send the intermediate errors
+        let (bytes_tx, mut response_rx, handle) = setup_send(false);
+
+        let payload_ok = Bytes::from_static(&[0; 8]);
+        let payload_err = Bytes::from_static(&[0; 8]);
+        let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
+
+        for _ in 0..4 {
+            bytes_tx
+                .send(Ok(payload_ok.clone()))
+                .await
+                .expect("should not be closed");
+
+            bytes_tx
+                .send(Err(TransactionError {
+                    code,
+                    bytes: payload_err.clone(),
+                }))
+                .await
+                .expect("should not be closed");
+        }
+
+        drop(bytes_tx);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+
+        // we're expected to have 1 packet
+        let mut responses = Vec::with_capacity(4);
+        let available = response_rx.recv_many(&mut responses, 4).await;
+        assert_eq!(available, 1);
+
+        assert_begin(
+            &responses[0],
+            ExpectedBegin {
+                flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+                kind: ResponseKind::Err(code),
+                payload: &payload_ok,
+            },
+        );
+    }
+
+    #[tokio::test]
+    async fn send_delay_error_split_large() {
+        let (bytes_tx, mut response_rx, handle) = setup_send(false);
+
+        // if we have a large payload we split it into multiple frames
+        let payload_err = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+        let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
+
+        bytes_tx
+            .send(Err(TransactionError {
+                code,
+                bytes: payload_err.clone(),
+            }))
+            .await
+            .expect("should not be closed");
+
+        drop(bytes_tx);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+
+        // we're expected to have 2 packets
+        let mut responses = Vec::with_capacity(4);
+        let available = response_rx.recv_many(&mut responses, 4).await;
+        assert_eq!(available, 2);
+
+        assert_begin(
+            &responses[0],
+            ExpectedBegin {
+                flags: ResponseFlags::EMPTY,
+                kind: ResponseKind::Err(code),
+                payload: &payload_err[..Payload::MAX_SIZE],
+            },
+        );
+
+        assert_frame(
+            &responses[1],
+            ExpectedFrame {
+                flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+                payload: &payload_err[Payload::MAX_SIZE..],
+            },
+        );
     }
 
     #[tokio::test]
@@ -655,6 +933,16 @@ mod test {
 
     #[tokio::test]
     async fn send_no_delay_error_interspersed() {
+        todo!()
+    }
+
+    #[tokio::test]
+    async fn send_no_delay_error_interspersed_small() {
+        todo!()
+    }
+
+    #[tokio::test]
+    async fn send_no_delay_error_split_large() {
         todo!()
     }
 }
