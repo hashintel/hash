@@ -51,6 +51,11 @@ impl<'a> RequestWriter<'a> {
     }
 
     pub(crate) fn push(&mut self, bytes: Bytes) {
+        // don't even bother pushing empty bytes
+        if !bytes.has_remaining() {
+            return;
+        }
+
         self.buffer.push(bytes);
     }
 

@@ -67,6 +67,11 @@ impl<'a> ResponseWriter<'a> {
     }
 
     pub(crate) fn push(&mut self, bytes: Bytes) {
+        // don't even bother pushing empty bytes
+        if !bytes.has_remaining() {
+            return;
+        }
+
         self.buffer.push(bytes);
     }
 
@@ -122,7 +127,7 @@ impl<'a> ResponseWriter<'a> {
     /// Write the remaining bytes in the buffer.
     ///
     /// The caller must ensure that the payload size is less than or equal to `Payload::MAX_SIZE`.
-    pub(crate) async fn write_remaining(
+    async fn write_remaining(
         &mut self,
         end_of_response: bool,
     ) -> Result<(), mpsc::error::SendError<Response>> {
@@ -151,5 +156,108 @@ impl<'a> ResponseWriter<'a> {
         self.write_remaining(true).await?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use bytes::{Buf, Bytes};
+    use harpc_wire_protocol::{
+        flags::BitFlagsOp,
+        payload::Payload,
+        request::id::RequestId,
+        response::flags::{ResponseFlag, ResponseFlags},
+    };
+    use tokio::sync::mpsc;
+
+    use super::ResponseWriter;
+
+    #[test]
+    fn push() {
+        let (tx, _rx) = mpsc::channel(1);
+
+        let mut writer = ResponseWriter::new_ok(RequestId::new_unchecked(0x01), &tx);
+        assert_eq!(writer.buffer.segments(), 0);
+
+        writer.push("hello".into());
+        assert_eq!(writer.buffer.segments(), 1);
+
+        writer.push(Bytes::new());
+        assert_eq!(writer.buffer.segments(), 1);
+
+        writer.push("world".into());
+        assert_eq!(writer.buffer.segments(), 2);
+    }
+
+    #[tokio::test]
+    async fn write_remaining_on_empty() {
+        let (tx, mut rx) = mpsc::channel(4);
+
+        let mut writer = ResponseWriter::new_ok(RequestId::new_unchecked(0x01), &tx);
+
+        writer.write_remaining(false).await.expect("infallible");
+        assert!(rx.is_empty());
+
+        // if we are empty and we are end_of_response, we should still send a response
+        writer.write_remaining(true).await.expect("infallible");
+        assert!(
+            rx.recv()
+                .await
+                .expect("response")
+                .header
+                .flags
+                .contains(ResponseFlag::EndOfResponse)
+        );
+    }
+
+    #[tokio::test]
+    async fn write_remaining_no_delay_increments_index() {
+        let (tx, _rx) = mpsc::channel(4);
+
+        let mut writer =
+            ResponseWriter::new_ok(RequestId::new_unchecked(0x01), &tx).with_no_delay(true);
+        writer.push(Bytes::from_static(&[0; 8]));
+
+        writer.write_remaining(false).await.expect("infallible");
+        assert_eq!(writer.index, 1);
+
+        writer.push(Bytes::from_static(&[0; 8]));
+        writer.write_remaining(false).await.expect("infallible");
+        assert_eq!(writer.index, 2);
+
+        writer.push(Bytes::from_static(&[0; 8]));
+        writer.write_remaining(true).await.expect("infallible");
+        assert_eq!(writer.index, 3);
+    }
+
+    #[tokio::test]
+    async fn flush_calls_write() {
+        let (tx, mut rx) = mpsc::channel(4);
+
+        let mut writer = ResponseWriter::new_ok(RequestId::new_unchecked(0x01), &tx);
+        writer.push(Bytes::from_static(&[0; Payload::MAX_SIZE + 8]));
+        writer.flush().await.expect("infallible");
+
+        // we should have sent 2 responses
+        let mut responses = Vec::with_capacity(4);
+        let available = rx.recv_many(&mut responses, 4).await;
+        assert_eq!(available, 2);
+    }
+
+    #[tokio::test]
+    async fn write_calls_write_remaining_on_no_delay() {
+        let (tx, mut rx) = mpsc::channel(4);
+
+        let mut writer =
+            ResponseWriter::new_ok(RequestId::new_unchecked(0x01), &tx).with_no_delay(true);
+        writer.push(Bytes::from_static(&[0; 8]));
+        writer.write().await.expect("infallible");
+
+        // we should have sent 1 response
+        let response = rx.recv().await.expect("response");
+        assert_eq!(response.header.flags, ResponseFlags::empty());
+
+        // ... and no data should be left in the buffer
+        assert_eq!(writer.buffer.remaining(), 0);
     }
 }
