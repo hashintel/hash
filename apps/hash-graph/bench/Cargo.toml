@@ -38,7 +38,3 @@ path = "read_scaling/lib.rs"
 [[bench]]
 name = "representative_read"
 path = "representative_read/lib.rs"
-
-[[bench]]
-name = "writes"
-path = "writes/lib.rs"
