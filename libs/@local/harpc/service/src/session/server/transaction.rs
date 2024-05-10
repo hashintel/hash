@@ -588,6 +588,65 @@ mod test {
     }
 
     #[tokio::test]
+    async fn send_delay_empty() {
+        let (bytes_tx, mut response_rx, handle) = setup_send(false);
+
+        // dropping the sender means that we now flush the remaining messages
+        drop(bytes_tx);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+
+        // we should receive a single packet
+        let mut responses = Vec::with_capacity(4);
+        let available = response_rx.recv_many(&mut responses, 4).await;
+        assert_eq!(available, 1);
+
+        assert_begin(
+            &responses[0],
+            ExpectedBegin {
+                flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+                kind: ResponseKind::Ok,
+                payload: &[],
+            },
+        );
+    }
+
+    #[tokio::test]
+    async fn send_delay_empty_bytes() {
+        let (bytes_tx, mut response_rx, handle) = setup_send(false);
+
+        bytes_tx
+            .send(Ok(Bytes::new()))
+            .await
+            .expect("should not be closed");
+
+        // dropping the sender means that we now flush the remaining messages
+        drop(bytes_tx);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+
+        // we should receive a single packet
+        let mut responses = Vec::with_capacity(4);
+        let available = response_rx.recv_many(&mut responses, 4).await;
+        assert_eq!(available, 1);
+
+        assert_begin(
+            &responses[0],
+            ExpectedBegin {
+                flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+                kind: ResponseKind::Ok,
+                payload: &[],
+            },
+        );
+    }
+
+    #[tokio::test]
     async fn send_delay_error_immediate() {
         let (bytes_tx, mut response_rx, handle) = setup_send(false);
 
@@ -893,56 +952,579 @@ mod test {
 
     #[tokio::test]
     async fn send_no_delay_split_large() {
-        todo!()
+        let (bytes_tx, mut response_rx, handle) = setup_send(true);
+
+        let payload_ok = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+
+        bytes_tx
+            .send(Ok(payload_ok.clone()))
+            .await
+            .expect("should not be closed");
+
+        while bytes_tx.capacity() != bytes_tx.max_capacity() {
+            tokio::task::yield_now().await;
+        }
+
+        // we should have two packets already available
+        let mut responses = Vec::with_capacity(4);
+        let available = response_rx.recv_many(&mut responses, 4).await;
+        assert_eq!(available, 2);
+
+        assert_begin(
+            &responses[0],
+            ExpectedBegin {
+                flags: ResponseFlags::EMPTY,
+                kind: ResponseKind::Ok,
+                payload: &payload_ok[..Payload::MAX_SIZE],
+            },
+        );
+
+        assert_frame(
+            &responses[1],
+            ExpectedFrame {
+                flags: ResponseFlags::EMPTY,
+                payload: &payload_ok[Payload::MAX_SIZE..],
+            },
+        );
+
+        drop(bytes_tx);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+
+        // last sent is end of frame
+        let mut responses = Vec::with_capacity(4);
+        let available = response_rx.recv_many(&mut responses, 4).await;
+        assert_eq!(available, 1);
+
+        assert_frame(
+            &responses[0],
+            ExpectedFrame {
+                flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+                payload: &[],
+            },
+        );
     }
 
     #[tokio::test]
     async fn send_no_delay_split_large_multiple() {
-        todo!()
+        let (bytes_tx, mut response_rx, handle) = setup_send(true);
+
+        let payload_ok = Bytes::from_static(&[0; (Payload::MAX_SIZE * 2) + 8]);
+
+        bytes_tx
+            .send(Ok(payload_ok.clone()))
+            .await
+            .expect("should not be closed");
+
+        while bytes_tx.capacity() != bytes_tx.max_capacity() {
+            tokio::task::yield_now().await;
+        }
+
+        // we should have three packets already available
+        let mut responses = Vec::with_capacity(4);
+        let available = response_rx.recv_many(&mut responses, 4).await;
+        assert_eq!(available, 3);
+
+        assert_begin(
+            &responses[0],
+            ExpectedBegin {
+                flags: ResponseFlags::EMPTY,
+                kind: ResponseKind::Ok,
+                payload: &payload_ok[..Payload::MAX_SIZE],
+            },
+        );
+
+        assert_frame(
+            &responses[1],
+            ExpectedFrame {
+                flags: ResponseFlags::EMPTY,
+                payload: &payload_ok[Payload::MAX_SIZE..(Payload::MAX_SIZE * 2)],
+            },
+        );
+
+        assert_frame(
+            &responses[2],
+            ExpectedFrame {
+                flags: ResponseFlags::EMPTY,
+                payload: &payload_ok[(Payload::MAX_SIZE * 2)..],
+            },
+        );
+
+        drop(bytes_tx);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+
+        // last frame is end of response
+        let mut responses = Vec::with_capacity(4);
+        let available = response_rx.recv_many(&mut responses, 4).await;
+        assert_eq!(available, 1);
+
+        assert_frame(
+            &responses[0],
+            ExpectedFrame {
+                flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+                payload: &[],
+            },
+        );
     }
 
     #[tokio::test]
     async fn send_no_delay_no_merge_small() {
-        todo!()
+        let (bytes_tx, mut response_rx, handle) = setup_send(true);
+
+        // send a couple of small payloads, we should get the same amount of responses
+        let payload_ok = Bytes::from_static(&[0; 8]);
+
+        for _ in 0..4 {
+            bytes_tx
+                .send(Ok(payload_ok.clone()))
+                .await
+                .expect("should not be closed");
+        }
+
+        while bytes_tx.capacity() != bytes_tx.max_capacity() {
+            tokio::task::yield_now().await;
+        }
+
+        let mut responses = Vec::with_capacity(4);
+        let available = response_rx.recv_many(&mut responses, 4).await;
+        assert_eq!(available, 4);
+
+        assert_begin(
+            &responses[0],
+            ExpectedBegin {
+                flags: ResponseFlags::EMPTY,
+                kind: ResponseKind::Ok,
+                payload: &payload_ok,
+            },
+        );
+
+        for response in &responses[1..] {
+            assert_frame(
+                response,
+                ExpectedFrame {
+                    flags: ResponseFlags::EMPTY,
+                    payload: &payload_ok,
+                },
+            );
+        }
+
+        drop(bytes_tx);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+
+        // last frame is end of response
+        let mut responses = Vec::with_capacity(4);
+        let available = response_rx.recv_many(&mut responses, 4).await;
+        assert_eq!(available, 1);
+
+        assert_frame(
+            &responses[0],
+            ExpectedFrame {
+                flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+                payload: &[],
+            },
+        );
     }
 
     #[tokio::test]
-    async fn send_no_delay_flush_remaining() {
-        todo!()
+    async fn send_no_delay_empty() {
+        let (bytes_tx, mut response_rx, handle) = setup_send(true);
+
+        drop(bytes_tx);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+
+        let mut responses = Vec::with_capacity(4);
+        let available = response_rx.recv_many(&mut responses, 4).await;
+        assert_eq!(available, 1);
+
+        assert_begin(
+            &responses[0],
+            ExpectedBegin {
+                flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+                kind: ResponseKind::Ok,
+                payload: &[],
+            },
+        );
     }
 
     #[tokio::test]
-    async fn send_no_delay_flush_empty() {
-        todo!()
+    async fn send_no_delay_empty_pushed() {
+        let (bytes_tx, mut response_rx, handle) = setup_send(true);
+
+        bytes_tx
+            .send(Ok(Bytes::new()))
+            .await
+            .expect("should not be closed");
+
+        drop(bytes_tx);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+
+        let mut responses = Vec::with_capacity(4);
+        let available = response_rx.recv_many(&mut responses, 4).await;
+        assert_eq!(available, 1);
+
+        assert_begin(
+            &responses[0],
+            ExpectedBegin {
+                flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+                kind: ResponseKind::Ok,
+                payload: &[],
+            },
+        );
+    }
+
+    #[tokio::test]
+    async fn send_no_delay_skip_empty() {
+        let (bytes_tx, mut response_rx, handle) = setup_send(true);
+
+        bytes_tx
+            .send(Ok(Bytes::from_static(&[0x00, 0x01])))
+            .await
+            .expect("should not be closed");
+
+        bytes_tx
+            .send(Ok(Bytes::new()))
+            .await
+            .expect("should not be closed");
+
+        bytes_tx
+            .send(Ok(Bytes::from_static(&[0x02, 0x03])))
+            .await
+            .expect("should not be closed");
+
+        drop(bytes_tx);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+
+        let mut responses = Vec::with_capacity(4);
+        let available = response_rx.recv_many(&mut responses, 4).await;
+        assert_eq!(available, 3);
+
+        assert_begin(
+            &responses[0],
+            ExpectedBegin {
+                flags: ResponseFlags::EMPTY,
+                kind: ResponseKind::Ok,
+                payload: &[0x00, 0x01],
+            },
+        );
+
+        assert_frame(
+            &responses[1],
+            ExpectedFrame {
+                flags: ResponseFlags::EMPTY,
+                payload: &[0x02, 0x03],
+            },
+        );
+
+        assert_frame(
+            &responses[2],
+            ExpectedFrame {
+                flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+                payload: &[],
+            },
+        );
     }
 
     #[tokio::test]
     async fn send_no_delay_error_immediate() {
-        todo!()
+        let (bytes_tx, mut response_rx, handle) = setup_send(true);
+
+        let payload_err = Bytes::from_static(b"error");
+        let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
+
+        bytes_tx
+            .send(Err(TransactionError {
+                code,
+                bytes: payload_err.clone(),
+            }))
+            .await
+            .expect("should not be closed");
+
+        drop(bytes_tx);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+
+        let mut responses = Vec::with_capacity(4);
+        let available = response_rx.recv_many(&mut responses, 4).await;
+        assert_eq!(available, 2);
+
+        assert_begin(
+            &responses[0],
+            ExpectedBegin {
+                flags: ResponseFlags::EMPTY,
+                kind: ResponseKind::Err(code),
+                payload: &payload_err,
+            },
+        );
+
+        assert_frame(
+            &responses[1],
+            ExpectedFrame {
+                flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+                payload: &[],
+            },
+        );
     }
 
     #[tokio::test]
     async fn send_no_delay_error_delayed() {
-        todo!()
+        let (bytes_tx, mut response_rx, handle) = setup_send(true);
+
+        let payload_ok = Bytes::from_static(b"ok");
+        let payload_err = Bytes::from_static(b"error");
+        let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
+
+        bytes_tx
+            .send(Ok(payload_ok.clone()))
+            .await
+            .expect("should not be closed");
+
+        bytes_tx
+            .send(Err(TransactionError {
+                code,
+                bytes: payload_err.clone(),
+            }))
+            .await
+            .expect("should not be closed");
+
+        drop(bytes_tx);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+
+        let mut responses = Vec::with_capacity(4);
+        let available = response_rx.recv_many(&mut responses, 4).await;
+        assert_eq!(available, 3);
+
+        assert_begin(
+            &responses[0],
+            ExpectedBegin {
+                flags: ResponseFlags::EMPTY,
+                kind: ResponseKind::Ok,
+                payload: &payload_ok,
+            },
+        );
+
+        assert_begin(
+            &responses[1],
+            ExpectedBegin {
+                flags: ResponseFlags::EMPTY,
+                kind: ResponseKind::Err(code),
+                payload: &payload_err,
+            },
+        );
+
+        assert_frame(
+            &responses[2],
+            ExpectedFrame {
+                flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+                payload: &[],
+            },
+        );
     }
 
     #[tokio::test]
     async fn send_no_delay_error_multiple() {
-        todo!()
+        let (bytes_tx, mut response_rx, handle) = setup_send(true);
+
+        let payload_ok = Bytes::from_static(b"ok");
+        let payload_err = Bytes::from_static(b"error");
+        let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
+
+        bytes_tx
+            .send(Ok(payload_ok.clone()))
+            .await
+            .expect("should not be closed");
+
+        for _ in 0..3 {
+            bytes_tx
+                .send(Err(TransactionError {
+                    code,
+                    bytes: payload_err.clone(),
+                }))
+                .await
+                .expect("should not be closed");
+        }
+
+        drop(bytes_tx);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+
+        let mut responses = Vec::with_capacity(8);
+        let available = response_rx.recv_many(&mut responses, 8).await;
+        assert_eq!(available, 5);
+
+        assert_begin(
+            &responses[0],
+            ExpectedBegin {
+                flags: ResponseFlags::EMPTY,
+                kind: ResponseKind::Ok,
+                payload: &payload_ok,
+            },
+        );
+
+        for response in &responses[1..4] {
+            assert_begin(
+                response,
+                ExpectedBegin {
+                    flags: ResponseFlags::EMPTY,
+                    kind: ResponseKind::Err(code),
+                    payload: &payload_err,
+                },
+            );
+        }
+
+        assert_frame(
+            &responses[4],
+            ExpectedFrame {
+                flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+                payload: &[],
+            },
+        );
     }
 
     #[tokio::test]
     async fn send_no_delay_error_interspersed() {
-        todo!()
-    }
+        let (bytes_tx, mut response_rx, handle) = setup_send(true);
 
-    #[tokio::test]
-    async fn send_no_delay_error_interspersed_small() {
-        todo!()
+        let payload_ok = Bytes::from_static(b"ok");
+        let payload_err = Bytes::from_static(b"error");
+        let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
+
+        for _ in 0..3 {
+            bytes_tx
+                .send(Ok(payload_ok.clone()))
+                .await
+                .expect("should not be closed");
+
+            bytes_tx
+                .send(Err(TransactionError {
+                    code,
+                    bytes: payload_err.clone(),
+                }))
+                .await
+                .expect("should not be closed");
+        }
+
+        drop(bytes_tx);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+
+        let mut responses = Vec::with_capacity(8);
+        let available = response_rx.recv_many(&mut responses, 8).await;
+        assert_eq!(available, 5);
+
+        assert_begin(
+            &responses[0],
+            ExpectedBegin {
+                flags: ResponseFlags::EMPTY,
+                kind: ResponseKind::Ok,
+                payload: &payload_ok,
+            },
+        );
+
+        for response in &responses[1..4] {
+            assert_begin(
+                response,
+                ExpectedBegin {
+                    flags: ResponseFlags::EMPTY,
+                    kind: ResponseKind::Err(code),
+                    payload: &payload_err,
+                },
+            );
+        }
+
+        assert_frame(
+            &responses[4],
+            ExpectedFrame {
+                flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+                payload: &[],
+            },
+        );
     }
 
     #[tokio::test]
     async fn send_no_delay_error_split_large() {
-        todo!()
+        let (bytes_tx, mut response_rx, handle) = setup_send(true);
+
+        let payload_err = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+        let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
+
+        bytes_tx
+            .send(Err(TransactionError {
+                code,
+                bytes: payload_err.clone(),
+            }))
+            .await
+            .expect("should not be closed");
+
+        drop(bytes_tx);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+
+        let mut responses = Vec::with_capacity(4);
+        let available = response_rx.recv_many(&mut responses, 4).await;
+        assert_eq!(available, 3);
+
+        assert_begin(
+            &responses[0],
+            ExpectedBegin {
+                flags: ResponseFlags::EMPTY,
+                kind: ResponseKind::Err(code),
+                payload: &payload_err[..Payload::MAX_SIZE],
+            },
+        );
+
+        assert_frame(
+            &responses[1],
+            ExpectedFrame {
+                flags: ResponseFlags::EMPTY,
+                payload: &payload_err[Payload::MAX_SIZE..],
+            },
+        );
+
+        assert_frame(
+            &responses[2],
+            ExpectedFrame {
+                flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+                payload: &[],
+            },
+        );
     }
 }

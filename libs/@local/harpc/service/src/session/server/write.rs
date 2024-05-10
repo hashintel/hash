@@ -96,14 +96,20 @@ impl<'a> ResponseWriter<'a> {
         }
     }
 
+    async fn send(&mut self, response: Response) -> Result<(), mpsc::error::SendError<Response>> {
+        self.tx.send(response).await?;
+        self.index += 1;
+
+        Ok(())
+    }
+
     pub(crate) async fn write(&mut self) -> Result<(), mpsc::error::SendError<Response>> {
         while self.buffer.remaining() > Payload::MAX_SIZE {
             let bytes = self.buffer.copy_to_bytes(Payload::MAX_SIZE);
 
             let response = self.make(bytes);
 
-            self.tx.send(response).await?;
-            self.index += 1;
+            self.send(response).await?;
         }
 
         if self.no_delay {
@@ -134,7 +140,7 @@ impl<'a> ResponseWriter<'a> {
             response.header.flags = response.header.flags.insert(ResponseFlag::EndOfResponse);
         }
 
-        self.tx.send(response).await?;
+        self.send(response).await?;
 
         Ok(())
     }
