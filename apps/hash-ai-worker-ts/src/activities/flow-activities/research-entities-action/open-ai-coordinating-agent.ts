@@ -270,12 +270,6 @@ const parseCoordinatorInputs = async (params: {
     graphApiClient,
     entityTypeIds: [
       ...entityTypeIds!,
-      /**
-       * We need to include the types of the existing entities, to correctly
-       * determine whether the links are satisfiable.
-       *
-       * @todo: address this in the `getDereferencedEntityTypesActivity` function
-       */
       ...(existingEntities?.map(({ metadata }) => metadata.entityTypeId) ?? []),
     ].filter((entityTypeId, index, all) => all.indexOf(entityTypeId) === index),
     actorId: userAuthentication.actorId,
