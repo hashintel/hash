@@ -1,4 +1,4 @@
-use core::num::NonZero;
+use core::{num::NonZero, time::Duration};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SessionConfig {
@@ -8,6 +8,7 @@ pub struct SessionConfig {
 
     pub per_connection_concurrent_transaction_limit: usize,
     pub per_connection_response_buffer_size: NonZero<usize>,
+    pub per_connection_transaction_garbage_collect_interval: Duration,
 
     pub per_transaction_request_buffer_size: NonZero<usize>,
 
@@ -26,6 +27,7 @@ impl Default for SessionConfig {
 
             per_connection_concurrent_transaction_limit: 64,
             per_connection_response_buffer_size: NonZero::new(16).expect("infallible"),
+            per_connection_transaction_garbage_collect_interval: Duration::from_secs(10),
 
             per_transaction_request_buffer_size: NonZero::new(16).expect("infallible"),
 

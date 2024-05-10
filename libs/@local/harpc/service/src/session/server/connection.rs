@@ -241,8 +241,9 @@ where
         let cancel_gc = cancel.child_token();
         tasks.spawn(
             ConnectionGarbageCollectorTask {
-                // TODO: make this configurable
-                every: Duration::from_secs(10),
+                every: self
+                    .config
+                    .per_connection_transaction_garbage_collect_interval,
                 transactions: Arc::clone(&self.active),
             }
             .run(cancel_gc.clone()),
