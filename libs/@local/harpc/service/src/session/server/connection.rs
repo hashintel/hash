@@ -162,7 +162,7 @@ where
                 }
 
                 let (transaction_tx, transaction_rx) =
-                    mpsc::channel(self.config.per_transaction_request_buffer_size);
+                    mpsc::channel(self.config.per_transaction_request_buffer_size.get());
 
                 let (transaction, task) = Transaction::from_request(
                     request.header,
@@ -249,7 +249,7 @@ where
         );
         let _drop_gc = cancel_gc.drop_guard();
 
-        let (tx, rx) = mpsc::channel(self.config.per_connection_response_buffer_size);
+        let (tx, rx) = mpsc::channel(self.config.per_connection_response_buffer_size.get());
         let mut handle = tasks
             .spawn(ConnectionDelegateTask { rx, sink }.run(cancel.clone()))
             .fuse();

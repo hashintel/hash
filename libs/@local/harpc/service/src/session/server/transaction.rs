@@ -92,7 +92,6 @@ impl TransactionRecvDelegateTask {
     #[allow(clippy::integer_division_remainder_used)]
     async fn run(mut self, cancel: CancellationToken) {
         // TODO: timeout is done at a later layer, not here, this just delegates.
-
         loop {
             let request = select! {
                 request = self.rx.recv() => request,
@@ -165,9 +164,12 @@ impl Transaction {
         }: TransactionParts,
     ) -> (Self, TransactionTask) {
         let (request_tx, request_rx) =
-            mpsc::channel(config.per_transaction_request_byte_stream_buffer_size);
-        let (response_tx, response_rx) =
-            mpsc::channel(config.per_transaction_response_byte_stream_buffer_size);
+            mpsc::channel(config.per_transaction_request_byte_stream_buffer_size.get());
+        let (response_tx, response_rx) = mpsc::channel(
+            config
+                .per_transaction_response_byte_stream_buffer_size
+                .get(),
+        );
 
         let transaction = Self {
             peer,
@@ -224,5 +226,435 @@ impl TransactionTask {
 
         tasks.spawn(recv.run(cancel.clone()));
         tasks.spawn(send.run(cancel));
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use core::time::Duration;
+
+    use bytes::Bytes;
+    use harpc_wire_protocol::{
+        flags::BitFlagsOp,
+        payload::Payload,
+        request::id::RequestId,
+        response::{
+            begin::ResponseBegin,
+            body::ResponseBody,
+            flags::{ResponseFlag, ResponseFlags},
+            frame::ResponseFrame,
+            kind::ResponseKind,
+            Response,
+        },
+    };
+    use tokio::{sync::mpsc, task::JoinHandle};
+    use tokio_util::sync::CancellationToken;
+
+    use crate::session::{
+        error::TransactionError,
+        server::{transaction::TransactionSendDelegateTask, SessionConfig},
+    };
+
+    fn config_delay() -> SessionConfig {
+        SessionConfig {
+            no_delay: false,
+            ..SessionConfig::default()
+        }
+    }
+
+    fn config_no_delay() -> SessionConfig {
+        SessionConfig {
+            no_delay: true,
+            ..SessionConfig::default()
+        }
+    }
+
+    fn setup_send(
+        no_delay: bool,
+    ) -> (
+        mpsc::Sender<Result<Bytes, TransactionError>>,
+        mpsc::Receiver<Response>,
+        JoinHandle<()>,
+    ) {
+        // we choose 8 here, so that we can buffer all replies easily and not spawn an extra task
+        let (bytes_tx, bytes_rx) = mpsc::channel(8);
+        let (response_tx, response_rx) = mpsc::channel(8);
+
+        let task = TransactionSendDelegateTask {
+            id: RequestId::new_unchecked(0),
+            config: if no_delay {
+                config_no_delay()
+            } else {
+                config_delay()
+            },
+            rx: bytes_rx,
+            tx: response_tx,
+        };
+
+        let handle = tokio::spawn(task.run(CancellationToken::new()));
+
+        (bytes_tx, response_rx, handle)
+    }
+
+    #[derive(Debug, Copy, Clone)]
+    struct ExpectedBegin<'a, T: ?Sized> {
+        flags: ResponseFlags,
+        kind: ResponseKind,
+        payload: &'a T,
+    }
+
+    #[track_caller]
+    fn assert_begin(response: &Response, expected: ExpectedBegin<impl AsRef<[u8]> + ?Sized>) {
+        let ResponseBody::Begin(ResponseBegin { kind, payload }) = &response.body else {
+            panic!("expected begin response, got {response:?}");
+        };
+
+        assert_eq!(response.header.flags, expected.flags);
+        assert_eq!(*kind, expected.kind);
+        assert_eq!(payload.as_ref(), expected.payload.as_ref());
+    }
+
+    #[derive(Debug, Copy, Clone)]
+    struct ExpectedFrame<'a, T: ?Sized> {
+        flags: ResponseFlags,
+        payload: &'a T,
+    }
+
+    #[track_caller]
+    fn assert_frame(response: &Response, expected: ExpectedFrame<impl AsRef<[u8]> + ?Sized>) {
+        let ResponseBody::Frame(ResponseFrame { payload }) = &response.body else {
+            panic!("expected frame response, got {response:?}");
+        };
+
+        assert_eq!(response.header.flags, expected.flags);
+        assert_eq!(payload.as_ref(), expected.payload.as_ref());
+    }
+
+    #[tokio::test]
+    async fn send_delay_perfect_buffer() {
+        let (bytes_tx, mut response_rx, handle) = setup_send(false);
+
+        // send a message that fits perfectly into the buffer
+        // this should not trigger any splitting
+        let payload = Bytes::from_static(&[0; Payload::MAX_SIZE]);
+
+        bytes_tx
+            .send(Ok(payload.clone()))
+            .await
+            .expect("should not be closed");
+
+        drop(bytes_tx);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+
+        // we should receive 1 packet
+        let mut responses = Vec::with_capacity(1);
+        let available = response_rx.recv_many(&mut responses, 1).await;
+        assert_eq!(available, 1);
+
+        assert_begin(
+            &responses[0],
+            ExpectedBegin {
+                flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+                kind: ResponseKind::Ok,
+                payload: &payload,
+            },
+        );
+    }
+
+    #[tokio::test]
+    async fn send_delay_split_large() {
+        let (bytes_tx, mut response_rx, handle) = setup_send(false);
+
+        // send a large message that needs to be split into multiple parts
+        let payload = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+
+        bytes_tx
+            .send(Ok(payload.clone()))
+            .await
+            .expect("should not be closed");
+
+        drop(bytes_tx);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+
+        // we should receive 2 packets, the last packet should have the end of request flag set
+        let mut responses = Vec::with_capacity(4);
+        let available = response_rx.recv_many(&mut responses, 4).await;
+        assert_eq!(available, 2);
+
+        assert_begin(
+            &responses[0],
+            ExpectedBegin {
+                flags: ResponseFlags::EMPTY,
+                kind: ResponseKind::Ok,
+                payload: &payload[..Payload::MAX_SIZE],
+            },
+        );
+
+        assert_frame(
+            &responses[1],
+            ExpectedFrame {
+                flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+                payload: &payload[Payload::MAX_SIZE..],
+            },
+        );
+    }
+
+    #[tokio::test]
+    async fn send_delay_split_large_multiple() {
+        let (bytes_tx, mut response_rx, handle) = setup_send(false);
+
+        // send a large message that needs to be split into multiple parts
+        let payload = Bytes::from_static(&[0; (Payload::MAX_SIZE * 2) + 8]);
+
+        bytes_tx
+            .send(Ok(payload.clone()))
+            .await
+            .expect("should not be closed");
+
+        drop(bytes_tx);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+
+        // we should receive 3 packets, the last packet should have the end of request flag set
+        let mut responses = Vec::with_capacity(4);
+        let available = response_rx.recv_many(&mut responses, 4).await;
+        assert_eq!(available, 3);
+
+        assert_begin(
+            &responses[0],
+            ExpectedBegin {
+                flags: ResponseFlags::EMPTY,
+                kind: ResponseKind::Ok,
+                payload: &payload[..Payload::MAX_SIZE],
+            },
+        );
+
+        assert_frame(
+            &responses[1],
+            ExpectedFrame {
+                flags: ResponseFlags::EMPTY,
+                payload: &payload[Payload::MAX_SIZE..(Payload::MAX_SIZE * 2)],
+            },
+        );
+
+        assert_frame(
+            &responses[2],
+            ExpectedFrame {
+                flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+                payload: &payload[(Payload::MAX_SIZE * 2)..],
+            },
+        );
+    }
+
+    #[tokio::test]
+    async fn send_delay_merge_small() {
+        let (bytes_tx, mut response_rx, handle) = setup_send(false);
+
+        // send a couple of small messages that can be merged into a single packet
+        let payload = Bytes::from_static(&[0, 1, 2, 3, 4, 5, 6, 7]);
+
+        for _ in 0..4 {
+            bytes_tx
+                .send(Ok(payload.clone()))
+                .await
+                .expect("should not be closed");
+        }
+
+        drop(bytes_tx);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+
+        // we should receive a single packet
+        // the last packet should have the end of request flag set
+        let mut responses = Vec::with_capacity(4);
+        let available = response_rx.recv_many(&mut responses, 4).await;
+        assert_eq!(available, 1);
+
+        assert_begin(
+            &responses[0],
+            ExpectedBegin {
+                flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+                kind: ResponseKind::Ok,
+                payload: &payload.repeat(4),
+            },
+        );
+    }
+
+    #[tokio::test]
+    async fn send_delay_flush_remaining() {
+        let (bytes_tx, mut response_rx, handle) = setup_send(false);
+
+        // send a packet that is to be split into multiple frames
+        let payload = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+
+        bytes_tx
+            .send(Ok(payload.clone()))
+            .await
+            .expect("should not be closed");
+
+        // wait until the task has processed all messages
+        while bytes_tx.capacity() != bytes_tx.max_capacity() {
+            tokio::task::yield_now().await;
+        }
+
+        // we should have a single packet in the buffer
+        let mut responses = Vec::with_capacity(4);
+        let available = response_rx.recv_many(&mut responses, 4).await;
+        assert_eq!(available, 1);
+
+        assert_begin(
+            &responses[0],
+            ExpectedBegin {
+                flags: ResponseFlags::EMPTY,
+                kind: ResponseKind::Ok,
+                payload: &payload[..Payload::MAX_SIZE],
+            },
+        );
+
+        // dropping the sender means that we now flush the remaining messages
+        drop(bytes_tx);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+
+        // we should receive a single packet
+        // the last packet should have the end of request flag set
+        let mut responses = Vec::with_capacity(4);
+        let available = response_rx.recv_many(&mut responses, 4).await;
+        assert_eq!(available, 1);
+
+        assert_frame(
+            &responses[0],
+            ExpectedFrame {
+                flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+                payload: &payload[Payload::MAX_SIZE..],
+            },
+        );
+    }
+
+    #[tokio::test]
+    async fn send_delay_flush_empty() {
+        let (bytes_tx, mut response_rx, handle) = setup_send(false);
+
+        // send a couple of small messages that can be merged into a single packet
+        let payload = Bytes::from_static(&[0, 1, 2, 3, 4, 5, 6, 7]);
+
+        for _ in 0..4 {
+            bytes_tx
+                .send(Ok(payload.clone()))
+                .await
+                .expect("should not be closed");
+        }
+
+        // wait until the task has processed all messages
+        while bytes_tx.capacity() != bytes_tx.max_capacity() {
+            tokio::task::yield_now().await;
+        }
+
+        // we should have not received any packets yet, even though the have been processed
+        assert!(response_rx.is_empty());
+
+        // dropping the sender means that we now flush the remaining messages
+        drop(bytes_tx);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+
+        // we should receive a single packet
+        let mut responses = Vec::with_capacity(4);
+        let available = response_rx.recv_many(&mut responses, 4).await;
+        assert_eq!(available, 1);
+
+        assert_begin(
+            &responses[0],
+            ExpectedBegin {
+                flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+                kind: ResponseKind::Ok,
+                payload: &payload.repeat(4),
+            },
+        );
+    }
+
+    #[tokio::test]
+    async fn send_delay_error_immediate() {
+        todo!()
+    }
+
+    #[tokio::test]
+    async fn send_delay_error_delayed() {
+        todo!()
+    }
+
+    #[tokio::test]
+    async fn send_delay_error_multiple() {
+        todo!()
+    }
+
+    #[tokio::test]
+    async fn send_delay_error_interspersed() {
+        todo!()
+    }
+
+    #[tokio::test]
+    async fn send_no_delay_split_large() {
+        todo!()
+    }
+
+    #[tokio::test]
+    async fn send_no_delay_split_large_multiple() {
+        todo!()
+    }
+
+    #[tokio::test]
+    async fn send_no_delay_no_merge_small() {
+        todo!()
+    }
+
+    #[tokio::test]
+    async fn send_no_delay_flush_remaining() {
+        todo!()
+    }
+
+    #[tokio::test]
+    async fn send_no_delay_flush_empty() {
+        todo!()
+    }
+
+    #[tokio::test]
+    async fn send_no_delay_error_immediate() {
+        todo!()
+    }
+
+    #[tokio::test]
+    async fn send_no_delay_error_delayed() {
+        todo!()
+    }
+
+    #[tokio::test]
+    async fn send_no_delay_error_multiple() {
+        todo!()
+    }
+
+    #[tokio::test]
+    async fn send_no_delay_error_interspersed() {
+        todo!()
     }
 }

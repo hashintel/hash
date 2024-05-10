@@ -227,8 +227,7 @@ pub(crate) mod test {
         },
     };
     use libp2p::{
-        core::transport::MemoryTransport, multiaddr, swarm::DialError, tcp, Multiaddr,
-        TransportError,
+        core::transport::MemoryTransport, multiaddr, swarm::DialError, Multiaddr, TransportError,
     };
     use tokio_util::sync::CancellationToken;
 
@@ -429,13 +428,12 @@ pub(crate) mod test {
             // the connection
             drop(sink);
 
-            let Some(request) = stream.next().await else {
-                panic!("should receive request");
-            };
-
-            let request = request.expect("should be able to receive request");
-
-            assert_eq!(&request, &EXAMPLE_REQUEST);
+            let request = stream
+                .next()
+                .await
+                .expect("should receive another request")
+                .expect("should be well-formed request");
+            assert_eq!(request, EXAMPLE_REQUEST);
         });
 
         // wait for `DEFAULT_DELAY` to make sure the server is ready
@@ -485,12 +483,11 @@ pub(crate) mod test {
                 panic!("should receive connection");
             };
 
-            let Some(request) = stream.next().await else {
-                panic!("should receive request");
-            };
-
-            let request = request.expect("should be able to receive request");
-
+            let request = stream
+                .next()
+                .await
+                .expect("should receive another request")
+                .expect("should be well-formed request");
             assert_eq!(request, EXAMPLE_REQUEST);
 
             sink.send(EXAMPLE_RESPONSE.clone())
@@ -530,7 +527,94 @@ pub(crate) mod test {
             .expect("should not have panicked during handling");
     }
 
-    // TODO: send multiple packets
+    #[tokio::test]
+    async fn send_request_response_multiple() {
+        let (server, _guard_server) = layer();
+        let (client, _guard_client) = layer();
+
+        let address = address();
+
+        server
+            .listen_on(address.clone())
+            .await
+            .expect("memory transport should be able to listen on memory address");
+
+        let server_id = server.peer_id();
+
+        let mut stream = server.listen().await.expect("should be able to listen");
+
+        let handle = tokio::spawn(async move {
+            let Some((_, mut sink, mut stream)) = stream.next().await else {
+                panic!("should receive connection");
+            };
+
+            let request = stream
+                .next()
+                .await
+                .expect("should receive another request")
+                .expect("should be well-formed request");
+            assert_eq!(request, EXAMPLE_REQUEST);
+
+            let request = stream
+                .next()
+                .await
+                .expect("should receive another request")
+                .expect("should be well-formed request");
+            assert_eq!(request, EXAMPLE_REQUEST);
+
+            sink.send(EXAMPLE_RESPONSE.clone())
+                .await
+                .expect("should be able to send response");
+
+            sink.send(EXAMPLE_RESPONSE.clone())
+                .await
+                .expect("should be able to send response");
+        });
+
+        // wait for `DEFAULT_DELAY` to make sure the server is ready
+        // this is more than strictly necessary, but it's better to be safe
+        tokio::time::sleep(DEFAULT_DELAY).await;
+
+        client
+            .lookup_peer(address)
+            .await
+            .expect("should be able to lookup peer");
+
+        let (mut sink, mut stream) = client
+            .dial(server_id)
+            .await
+            .expect("should be able to dial");
+
+        sink.send(EXAMPLE_REQUEST.clone())
+            .await
+            .expect("should be able to send request");
+
+        sink.send(EXAMPLE_REQUEST.clone())
+            .await
+            .expect("should be able to send request");
+
+        let response = stream
+            .next()
+            .await
+            .expect("should receive response")
+            .expect("should be well-formed response");
+        assert_eq!(response, EXAMPLE_RESPONSE);
+
+        let response = stream
+            .next()
+            .await
+            .expect("should receive response")
+            .expect("should be well-formed response");
+        assert_eq!(response, EXAMPLE_RESPONSE);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should have finished before deadline")
+            .expect("should not have panicked during handling");
+
+        // we cannot check if the stream is closed, because this would only happen after both the
+        // sink and stream are closed, meaning we'd get into a deadlock.
+    }
 
     #[tokio::test]
     async fn establish_connection_server_offline() {

@@ -88,7 +88,7 @@ where
             .await
             .change_context(SessionError)?;
 
-        let (output, rx) = mpsc::channel(self.config.transaction_buffer_size);
+        let (output, rx) = mpsc::channel(self.config.transaction_buffer_size.get());
 
         let task = Task {
             id: SessionIdProducer::new(),
