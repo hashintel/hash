@@ -189,7 +189,7 @@ const FlowsPageContent = () => {
              * Flow definitions will have their own uuid once we start storing them in the db, this is a placeholder
              * while we only have hardcoded definitions
              */
-            uuid: slugifyTypeTitle(flowDefinition.flowDefinitionId),
+            uuid: slugifyTypeTitle(flowDefinition.name),
             description: flowDefinition.description,
             lastRunStartedAt,
           },
