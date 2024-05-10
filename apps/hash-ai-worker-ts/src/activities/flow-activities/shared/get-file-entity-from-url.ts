@@ -190,7 +190,7 @@ export const getFileEntityFromUrl = async (params: {
 
   const incompleteFileEntityMetadata = await graphApiClient
     .createEntity(
-      // @todo which bot should this be?
+      // @todo H-2618 use AI bot or web bot as appropriate depending on provenance
       userAuthentication.actorId,
       {
         draft: false,
