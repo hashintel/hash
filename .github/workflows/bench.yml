@@ -193,8 +193,9 @@ jobs:
       - name: Find bench steps to run
         id: benches
         run: |
-          if [[ "${{ github.event_name == 'pull_request' }}" == 'false' ]]; then
+          if [[ "${{ github.event_name == 'pull_request' }}" == 'true' ]]; then
             echo "create-baseline=true" >> $GITHUB_OUTPUT
+            echo "$GITHUB_HEAD_REF"
           else
             echo "create-baseline=false" >> $GITHUB_OUTPUT
           fi
@@ -300,7 +301,7 @@ jobs:
           echo "Running services: $SERVICES"
           yarn workspace @apps/hash-external-services deploy:test up $SERVICES --wait
 
-      - name: Run head benches
+      - name: Run benches
         run: turbo run bench:integration --filter "${{ matrix.package }}"
 
       - name: Analyze benchmarks
