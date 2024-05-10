@@ -21,15 +21,12 @@ use super::{
     session_id::SessionId,
     transaction::{Transaction, TransactionParts},
     write::ResponseWriter,
+    SessionConfig,
 };
 use crate::{
     codec::{ErrorEncoder, ErrorExt},
     session::error::{TransactionError, TransactionLimitReachedError},
 };
-
-// TODO: make these configurable
-const RESPONSE_BUFFER_SIZE: usize = 16;
-const TRANSACTION_LIMIT: usize = 64;
 
 struct ConnectionDelegateTask<T> {
     rx: mpsc::Receiver<Response>,
@@ -50,8 +47,8 @@ where
 
         // redirect the receiver stream to the sink, needs an extra task to drive both
         select! {
-            () = cancel.cancelled() => Ok(()),
             result = forward => result,
+            () = cancel.cancelled() => Ok(()),
         }
     }
 }
@@ -68,8 +65,8 @@ impl ConnectionGarbageCollectorTask {
 
         loop {
             select! {
-                () = cancel.cancelled() => break,
                 _ = interval.tick() => {}
+                () = cancel.cancelled() => break,
             }
 
             tracing::debug!("running garbage collector");
@@ -97,12 +94,13 @@ impl ConnectionGarbageCollectorTask {
 pub(crate) struct ConnectionTask<E> {
     pub(crate) peer: PeerId,
     pub(crate) session: SessionId,
-    pub(crate) _permit: OwnedSemaphorePermit,
 
     pub(crate) transactions: Arc<HashIndex<RequestId, mpsc::Sender<Request>>>,
     pub(crate) tx_transaction: mpsc::Sender<Transaction>,
 
+    pub(crate) config: SessionConfig,
     pub(crate) encoder: Arc<E>,
+    pub(crate) _permit: OwnedSemaphorePermit,
 }
 
 impl<E> ConnectionTask<E>
@@ -148,30 +146,33 @@ where
         // channel, which drops a transaction if there's too many.
         match &request.body {
             RequestBody::Begin(begin) => {
-                if self.transactions.len() > TRANSACTION_LIMIT {
+                if self.transactions.len() > self.config.per_connection_concurrent_transaction_limit
+                {
                     tracing::warn!("transaction limit reached, dropping transaction");
 
                     return self
                         .respond_error(
                             request_id,
                             TransactionLimitReachedError {
-                                limit: TRANSACTION_LIMIT,
+                                limit: self.config.per_connection_concurrent_transaction_limit,
                             },
                             &tx,
                         )
                         .await;
                 }
 
-                let (transaction_tx, transaction_rx) = mpsc::channel(RESPONSE_BUFFER_SIZE);
+                let (transaction_tx, transaction_rx) =
+                    mpsc::channel(self.config.per_transaction_request_buffer_size);
 
                 let (transaction, task) = Transaction::from_request(
                     request.header,
                     begin,
                     TransactionParts {
                         peer: self.peer,
+                        session: self.session,
+                        config: self.config,
                         rx: transaction_rx,
                         tx,
-                        session: self.session,
                     },
                 );
 
@@ -252,7 +253,7 @@ where
         );
         let _drop_gc = cancel_gc.drop_guard();
 
-        let (tx, rx) = mpsc::channel(RESPONSE_BUFFER_SIZE);
+        let (tx, rx) = mpsc::channel(self.config.per_connection_response_buffer_size);
         let mut handle = tasks
             .spawn(ConnectionDelegateTask { rx, sink }.run(cancel.clone()))
             .fuse();

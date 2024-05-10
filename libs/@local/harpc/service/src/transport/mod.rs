@@ -204,7 +204,6 @@ impl TransportLayer {
 
 #[cfg(test)]
 pub(crate) mod test {
-    use alloc::sync::Arc;
     use core::{
         iter,
         net::Ipv4Addr,

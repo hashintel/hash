@@ -11,11 +11,12 @@ use libp2p::PeerId;
 use tokio::{select, sync::mpsc};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
-use super::{session_id::SessionId, write::ResponseWriter};
+use super::{session_id::SessionId, write::ResponseWriter, SessionConfig};
 use crate::session::error::TransactionError;
 
 struct TransactionSendDelegateTask {
     id: RequestId,
+    config: SessionConfig,
 
     tx: mpsc::Sender<Response>,
     rx: mpsc::Receiver<core::result::Result<Bytes, TransactionError>>,
@@ -27,7 +28,8 @@ impl TransactionSendDelegateTask {
         // we cannot simply forward here, because we want to be able to send the end of request and
         // buffer the response into the least amount of packages possible
 
-        let mut writer = Some(ResponseWriter::new_ok(self.id, &self.tx));
+        let mut writer =
+            Some(ResponseWriter::new_ok(self.id, &self.tx).with_no_delay(self.config.no_delay));
 
         loop {
             let bytes = select! {
@@ -129,21 +131,20 @@ impl TransactionRecvDelegateTask {
     }
 }
 
-const REQUEST_BUFFER_SIZE: usize = 16;
-const RESPONSE_BUFFER_SIZE: usize = 16;
-
 pub(crate) struct TransactionParts {
     pub(crate) peer: PeerId,
+    pub(crate) session: SessionId,
+
+    pub(crate) config: SessionConfig,
 
     pub(crate) rx: mpsc::Receiver<Request>,
     pub(crate) tx: mpsc::Sender<Response>,
-
-    pub(crate) session: SessionId,
 }
 
 pub struct Transaction {
-    peer: PeerId,
     id: RequestId,
+
+    peer: PeerId,
     session: SessionId,
 
     service: ServiceDescriptor,
@@ -159,13 +160,16 @@ impl Transaction {
         body: &RequestBegin,
         TransactionParts {
             peer,
+            session,
+            config,
             rx,
             tx,
-            session,
         }: TransactionParts,
     ) -> (Self, TransactionTask) {
-        let (request_tx, request_rx) = mpsc::channel(REQUEST_BUFFER_SIZE);
-        let (response_tx, response_rx) = mpsc::channel(RESPONSE_BUFFER_SIZE);
+        let (request_tx, request_rx) =
+            mpsc::channel(config.per_transaction_request_bytes_buffer_size);
+        let (response_tx, response_rx) =
+            mpsc::channel(config.per_transaction_response_bytes_buffer_size);
 
         let transaction = Self {
             peer,
@@ -181,6 +185,7 @@ impl Transaction {
 
         let task = TransactionTask {
             id: header.request_id,
+            config,
 
             request_rx: rx,
             request_tx,
@@ -195,6 +200,7 @@ impl Transaction {
 
 pub(crate) struct TransactionTask {
     id: RequestId,
+    config: SessionConfig,
 
     request_rx: mpsc::Receiver<Request>,
     request_tx: mpsc::Sender<Bytes>,
@@ -213,6 +219,8 @@ impl TransactionTask {
 
         let send = TransactionSendDelegateTask {
             id: self.id,
+            config: self.config,
+
             tx: self.response_tx,
             rx: self.response_rx,
         };

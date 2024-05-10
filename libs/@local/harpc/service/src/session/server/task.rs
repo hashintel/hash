@@ -9,7 +9,7 @@ use tokio::{
 };
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
-use super::{session_id::SessionIdProducer, transaction::Transaction};
+use super::{session_id::SessionIdProducer, transaction::Transaction, SessionConfig};
 use crate::{
     codec::ErrorEncoder,
     session::{error::SessionError, server::connection::ConnectionTask},
@@ -19,6 +19,8 @@ use crate::{
 pub(crate) struct Task<E> {
     pub(crate) id: SessionIdProducer,
     pub(crate) transport: TransportLayer,
+
+    pub(crate) config: SessionConfig,
 
     pub(crate) active: Arc<Semaphore>,
 
@@ -64,12 +66,13 @@ where
             match connection {
                 Ok(Some((permit, peer, sink, stream))) => {
                     let task = ConnectionTask {
-                        session: self.id.produce(),
-                        transactions: Arc::new(HashIndex::new()),
                         peer,
-                        _permit: permit,
+                        session: self.id.produce(),
+                        config: self.config,
+                        transactions: Arc::new(HashIndex::new()),
                         tx_transaction: self.transactions.clone(),
                         encoder: Arc::clone(&self.encoder),
+                        _permit: permit,
                     };
 
                     tasks.spawn(task.run(sink, stream, tasks.clone(), cancel.child_token()));

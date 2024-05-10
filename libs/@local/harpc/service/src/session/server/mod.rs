@@ -8,6 +8,7 @@
 // * (server) connections are dropped if a certain timeout is reached in `AsyncRead` or `AsyncWrite`
 //   calls.
 
+mod config;
 mod connection;
 mod session_id;
 mod task;
@@ -22,22 +23,26 @@ use libp2p::Multiaddr;
 use tokio::sync::{mpsc, Semaphore};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
+pub use self::config::SessionConfig;
 use self::{session_id::SessionIdProducer, task::Task, transaction::Transaction};
 use super::error::SessionError;
 use crate::{codec::ErrorEncoder, stream::ReceiverStreamCancel, transport::TransportLayer};
-
-const TRANSACTION_BUFFER_SIZE: usize = 32;
-const CONCURRENT_CONNECTION_LIMIT: usize = 256;
 
 // TODO: encoding and decoding layer(?)
 // TODO: timeout layer - needs encoding layer (for error handling), and IPC to cancel a specific
 // request in a session
 
+/// Session Layer
+///
+/// The session layer is responsible for accepting incoming connections, and splitting them up into
+/// dedicated sessions, these sessions are then used to form transactions.
 pub struct SessionLayer<E> {
+    config: SessionConfig,
+    encoder: Arc<E>,
+
     // TODO: IPC (do we need it tho?)
     // TODO: notification channel tho!
     transport: TransportLayer,
-    encoder: Arc<E>,
 
     tasks: TaskTracker,
 }
@@ -46,12 +51,15 @@ impl<E> SessionLayer<E>
 where
     E: ErrorEncoder + Send + Sync + 'static,
 {
-    pub fn new(transport: TransportLayer, encoder: E) -> Self {
+    pub fn new(config: SessionConfig, transport: TransportLayer, encoder: E) -> Self {
         let tasks = transport.tasks().clone();
 
         Self {
-            transport,
+            config,
             encoder: Arc::new(encoder),
+
+            transport,
+
             tasks,
         }
     }
@@ -75,12 +83,13 @@ where
             .await
             .change_context(SessionError)?;
 
-        let (tx, rx) = mpsc::channel(TRANSACTION_BUFFER_SIZE);
+        let (tx, rx) = mpsc::channel(self.config.transaction_buffer_size);
 
         let task = Task {
             id: SessionIdProducer::new(),
             transport: self.transport,
-            active: Arc::new(Semaphore::new(CONCURRENT_CONNECTION_LIMIT)),
+            config: self.config,
+            active: Arc::new(Semaphore::new(self.config.concurrent_connection_limit)),
             transactions: tx,
             encoder: self.encoder,
         };
