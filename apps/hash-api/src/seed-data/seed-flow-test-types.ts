@@ -2,6 +2,7 @@ import { createGraphClient } from "@local/hash-backend-utils/create-graph-client
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import {
   defaultEntityTypeAuthorizationRelationships,
   defaultPropertyTypeAuthorizationRelationships,
@@ -20,7 +21,6 @@ import type {
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 
-import { publicUserAccountId } from "../auth/public-user-account-id";
 import type { ImpureGraphFunction } from "../graph/context-types";
 import type {
   EntityTypeDefinition,

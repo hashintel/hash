@@ -7,14 +7,13 @@ import type {
   MessageParam,
   TextBlockParam,
 } from "@anthropic-ai/sdk/resources/messages";
+import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
-if (!process.env.ANTHROPIC_API_KEY) {
-  throw new Error("ANTHROPIC_API_KEY environment variable not set.");
-}
+const anthropicApiKey = getRequiredEnv("ANTHROPIC_API_KEY");
 
 export const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+  apiKey: anthropicApiKey,
 });
 
 export type AnthropicToolDefinition = {
@@ -79,7 +78,7 @@ type ToolUseContent = {
 type ToolResultContent = {
   type: "tool_result";
   tool_use_id: string;
-  content?: string;
+  content: string;
   is_error?: true;
 };
 

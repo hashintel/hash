@@ -120,7 +120,7 @@ feed.rss
 .sentryclirc
 
 # Application data
-/var
+**/var
 seed-users.json
 
 # Block Protocol
