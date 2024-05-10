@@ -1,10 +1,10 @@
+import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { entityEditionRecordFromRealtimeMessage } from "@local/hash-backend-utils/pg-tables";
 import { RedisQueueExclusiveConsumer } from "@local/hash-backend-utils/queue/redis";
 import { AsyncRedisClient } from "@local/hash-backend-utils/redis";
 import type { Wal2JsonMsg } from "@local/hash-backend-utils/wal2json";
 import type { GraphApi } from "@local/hash-graph-client";
-import { getRequiredEnv } from "@local/hash-isomorphic-utils/environment";
 import { fullDecisionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { Entity } from "@local/hash-subgraph";

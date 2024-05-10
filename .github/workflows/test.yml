@@ -495,13 +495,13 @@ jobs:
 
       - name: Upload artifact playwright-report
         if: matrix.package == '@tests/hash-playwright' && ${{ success() || failure() }}
-        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
           name: playwright-report
           path: tests/hash-playwright/playwright-report
 
       - name: Upload artifact playwright-var
-        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         if: matrix.package == '@tests/hash-playwright' && ${{ success() || failure() }}
         with:
           name: playwright-var

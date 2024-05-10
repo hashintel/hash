@@ -17,7 +17,7 @@ use graph::{
         },
         AsClient, BaseUrlAlreadyExists, ConflictBehavior, DataTypeStore, DatabaseConnectionInfo,
         DatabaseType, EntityTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore,
-        StorePool,
+        StoreMigration, StorePool,
     },
     Environment,
 };
@@ -50,6 +50,7 @@ where
 {
     #[expect(
         clippy::significant_drop_tightening,
+        clippy::too_many_lines,
         reason = "The connection is required to borrow the client"
     )]
     pub async fn new(
@@ -80,8 +81,8 @@ where
 
         let source_db_connection_info = DatabaseConnectionInfo::new(
             DatabaseType::Postgres,
-            super_user, // super user as we need to create and delete tables
-            super_password,
+            super_user.clone(), // super user as we need to create and delete tables
+            super_password.clone(),
             host.clone(),
             port,
             database,
@@ -91,7 +92,7 @@ where
             DatabaseType::Postgres,
             user,
             password,
-            host,
+            host.clone(),
             port,
             bench_db_name.to_owned(),
         );
@@ -154,6 +155,31 @@ where
                     .await
                     .expect("failed to clone database");
             }
+        }
+
+        // Connect as super user and run the migrations
+        {
+            let db_pool = PostgresStorePool::new(
+                &DatabaseConnectionInfo::new(
+                    DatabaseType::Postgres,
+                    super_user,
+                    super_password,
+                    host,
+                    port,
+                    bench_db_name.to_owned(),
+                ),
+                NoTls,
+            )
+            .await
+            .expect("could not connect to database");
+
+            db_pool
+                .acquire(&mut authorization_api, None)
+                .await
+                .expect("could not acquire a database connection")
+                .run_migrations()
+                .await
+                .expect("could not run migrations");
         }
 
         let pool = PostgresStorePool::new(&bench_db_connection_info, NoTls)
