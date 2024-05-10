@@ -1,6 +1,5 @@
 import { faHome } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
-import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { Box, Collapse, Drawer } from "@mui/material";
 import { useRouter } from "next/router";
 import {
