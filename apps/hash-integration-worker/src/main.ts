@@ -81,6 +81,8 @@ const workflowOption = () =>
     : { workflowsPath: require.resolve("./workflows") };
 
 async function run() {
+  // eslint-disable-next-line no-console
+  console.info("Starting integration worker...");
   const graphApiClient = createGraphClient(logger, {
     host: getRequiredEnv("HASH_GRAPH_API_HOST"),
     port: parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10),
@@ -118,8 +120,16 @@ async function run() {
   await worker.run();
 }
 
-process.on("SIGINT", () => process.exit(1));
-process.on("SIGTERM", () => process.exit(1));
+process.on("SIGINT", () => {
+  // eslint-disable-next-line no-console
+  console.info("Received SIGINT, exiting...");
+  process.exit(1);
+});
+process.on("SIGTERM", () => {
+  // eslint-disable-next-line no-console
+  console.info("Received SIGTERM, exiting...");
+  process.exit(1);
+});
 
 run().catch((err) => {
   // eslint-disable-next-line no-console
