@@ -737,7 +737,6 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                   provenance: editionProvenance,
                   propertyMetadata: Object.keys(proposedEntity.properties).map(
                     (propertyBaseUrl) => ({
-                      /** @todo: figure out whether this is the path */
                       path: [propertyBaseUrl],
                       metadata: {
                         provenance: propertyProvenance,
