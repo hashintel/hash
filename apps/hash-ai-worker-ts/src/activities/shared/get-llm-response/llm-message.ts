@@ -27,7 +27,7 @@ export type LlmAssistantMessage<ToolName = string> = {
 export type LlmMessageToolResultContent = {
   type: "tool_result";
   tool_use_id: string;
-  content?: string;
+  content: string;
   is_error?: true;
 };
 
@@ -164,7 +164,7 @@ export const mapLlmMessageToOpenAiMessages = (params: {
     return {
       role: "tool",
       tool_call_id: content.tool_use_id,
-      content: content.content ?? null,
+      content: content.content,
     } satisfies ChatCompletionToolMessageParam;
   });
 };
@@ -238,7 +238,7 @@ export const mapOpenAiMessagesToLlmMessages = (params: {
         const toolResultContent: LlmMessageToolResultContent = {
           type: "tool_result",
           tool_use_id: currentMessage.tool_call_id,
-          content: currentMessage.content ?? undefined,
+          content: currentMessage.content,
         };
 
         const previousLlmMessage = previousLlmMessages.slice(-1)[0];
