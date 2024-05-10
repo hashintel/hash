@@ -209,6 +209,7 @@ jobs:
             fi
             echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
           fi
+          echo "$GITHUB_OUTPUT"
 
       - name: Install Rust tools
         if: steps.benches.outputs.has-rust == 'true'
