@@ -209,7 +209,6 @@ jobs:
             fi
             echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
           fi
-          echo "$GITHUB_OUTPUT"
 
       - name: Install Rust tools
         if: steps.benches.outputs.has-rust == 'true'
@@ -219,7 +218,9 @@ jobs:
 
       - name: Install Protobuf
         if: steps.benches.outputs.has-rust == 'true'
-        run: sudo apt install protobuf-compiler
+        run: |
+          echo ${{ fromJSON(steps.benches.outputs) }}
+          sudo apt install protobuf-compiler
 
       - name: Checkout base branch
         if: steps.benches.outputs.create-baseline == 'true'
