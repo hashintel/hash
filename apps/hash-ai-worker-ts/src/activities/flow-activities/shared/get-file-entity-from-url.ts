@@ -20,6 +20,7 @@ import {
   getEntityTypeIdForMimeType,
 } from "@local/hash-backend-utils/file-storage";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
+import type { OriginProvenance } from "@local/hash-graph-client";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -135,7 +136,8 @@ export const getFileEntityFromUrl = async (params: {
 > => {
   const { url: originalUrl, description, displayName } = params;
 
-  const { userAuthentication, webId } = await getFlowContext();
+  const { userAuthentication, webId, flowEntityId, stepId } =
+    await getFlowContext();
 
   const urlObject = new URL(originalUrl);
   const urlWithoutParams = new URL(urlObject.origin + urlObject.pathname);
@@ -196,6 +198,14 @@ export const getFileEntityFromUrl = async (params: {
         entityTypeIds: [entityTypeId],
         relationships:
           createDefaultAuthorizationRelationships(userAuthentication),
+        provenance: {
+          // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
+          origin: {
+            type: "flow",
+            id: flowEntityId,
+            stepIds: [stepId],
+          } satisfies OriginProvenance,
+        },
       },
     )
     .then((result) => mapGraphApiEntityMetadataToMetadata(result.data));

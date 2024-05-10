@@ -13,7 +13,6 @@ import type {
 import type { Entity } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
-import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 
 import { getWebPageActivity } from "../../get-web-page-activity";
@@ -378,8 +377,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     filesUsedToProposeEntities: [],
   };
 
-  const { flowEntityId } = await getFlowContext();
-  const { activityId } = Context.current().info;
+  const { flowEntityId, stepId } = await getFlowContext();
 
   // const state = retrievePreviousState();
 
@@ -679,7 +677,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               origin: {
                 type: "flow",
                 id: flowEntityId,
-                stepIds: [activityId],
+                stepIds: [stepId],
               } satisfies OriginProvenance,
             };
 
