@@ -374,6 +374,7 @@ module "application" {
   ])
   temporal_worker_ai_ts_image    = module.temporal_worker_ai_ts_ecr
   temporal_worker_ai_ts_env_vars = [
+    { name = "LOG_LEVEL", secret = false, value = "debug" },
     {
       name  = "OPENAI_API_KEY", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_openai_api_key"])
@@ -422,6 +423,7 @@ module "application" {
   ]
   temporal_worker_integration_image    = module.temporal_worker_integration_ecr
   temporal_worker_integration_env_vars = [
+    { name = "LOG_LEVEL", secret = false, value = "debug" },
     {
       name  = "HASH_VAULT_HOST", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_host"])
