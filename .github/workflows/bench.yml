@@ -69,7 +69,7 @@ jobs:
       - name: Find bench steps to run
         id: benches
         run: |
-          if [[ ${{ github.event_name == 'pull_request' }} ]]; then
+          if [[ "${{ github.event_name == 'pull_request' }}" == 'true' ]]; then
             echo "create-baseline=true" >> $GITHUB_OUTPUT
           else
             echo "create-baseline=false" >> $GITHUB_OUTPUT
@@ -134,7 +134,9 @@ jobs:
 
       - name: Checkout head branch
         if: steps.benches.outputs.create-baseline == 'true'
-        run: git checkout "$GITHUB_HEAD_REF"
+        run: |
+          git fetch origin "$GITHUB_HEAD_REF"
+          git reset --hard FETCH_HEAD
 
       - name: Install Rust toolchain
         if: steps.benches.outputs.has-rust == 'true'
@@ -193,7 +195,7 @@ jobs:
       - name: Find bench steps to run
         id: benches
         run: |
-          if [[ ${{ github.event_name == 'pull_request' }} ]]; then
+          if [[ "${{ github.event_name == 'pull_request' }}" == 'true' ]]; then
             echo "create-baseline=true" >> $GITHUB_OUTPUT
           else
             echo "create-baseline=false" >> $GITHUB_OUTPUT
@@ -272,7 +274,9 @@ jobs:
 
       - name: Checkout head branch
         if: steps.benches.outputs.create-baseline == 'true'
-        run: git checkout "$GITHUB_HEAD_REF"
+        run: |
+          git fetch origin "$GITHUB_HEAD_REF"
+          git reset --hard FETCH_HEAD
 
       - name: Install Rust toolchain
         if: steps.benches.outputs.has-rust == 'true'
