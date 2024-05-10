@@ -716,7 +716,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                         loadedAt: accessedRemoteFile?.loadedAt,
                         /** @todo */
                         authors: undefined,
-                        firstPublished: validAt,
+                        firstPublished: undefined,
                         lastUpdated: undefined,
                       },
                     ],
