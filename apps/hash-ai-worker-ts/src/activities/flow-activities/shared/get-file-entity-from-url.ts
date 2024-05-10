@@ -28,6 +28,7 @@ import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/s
 import type { EntityMetadata } from "@local/hash-subgraph";
 import mime from "mime-types";
 
+import { logger } from "../../shared/activity-logger";
 import { getFlowContext } from "../../shared/get-flow-context";
 import { graphApiClient } from "../../shared/graph-api-client";
 
@@ -146,9 +147,8 @@ export const getFileEntityFromUrl = async (params: {
   } catch (err) {
     const message = `Error downloading file from URL: ${(err as Error).message}`;
 
-    // @todo logger – update once #4290 merges
-    // eslint-disable-next-line no-console
-    console.log(message);
+    logger.error(message);
+
     return {
       status: "error-downloading-file",
       message,
