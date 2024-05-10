@@ -58,12 +58,6 @@ export const PageSidebar: FunctionComponent = () => {
 
   const { draftEntities } = useDraftEntities();
 
-  /**
-   * @todo H-2664 – remove this
-   */
-  if (frontendUrl !== "http://localhost:3000") {
-    enabledFeatureFlags.workers = false;
-  }
 
   const workersSection = useMemo(
     () =>
