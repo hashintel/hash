@@ -135,7 +135,7 @@ export const getFileEntityFromUrl = async (params: {
 > => {
   const { url: originalUrl, description, displayName } = params;
 
-  const { userAuthentication } = await getFlowContext();
+  const { userAuthentication, webId } = await getFlowContext();
 
   const urlObject = new URL(originalUrl);
   const urlWithoutParams = new URL(urlObject.origin + urlObject.pathname);
@@ -164,9 +164,6 @@ export const getFileEntityFromUrl = async (params: {
   const stats = statSync(localFilePath);
   const fileSizeInBytes = stats.size;
 
-  /** @todo: allow overriding this via an input, as with other actions (hardcoded in Flow definition?) */
-  const ownedById = userAuthentication.actorId;
-
   const initialProperties: FileProperties = {
     "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
       description ?? undefined,
@@ -194,7 +191,7 @@ export const getFileEntityFromUrl = async (params: {
       userAuthentication.actorId,
       {
         draft: false,
-        ownedById,
+        ownedById: webId,
         properties: initialProperties,
         entityTypeIds: [entityTypeId],
         relationships:
