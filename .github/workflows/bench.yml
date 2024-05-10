@@ -136,7 +136,7 @@ jobs:
         if: steps.benches.outputs.create-baseline == 'true'
         run: |
           git fetch origin "$GITHUB_HEAD_REF"
-          git checkout FETCH_HEAD
+          git reset --hard FETCH_HEAD
 
       - name: Install Rust toolchain
         if: steps.benches.outputs.has-rust == 'true'
@@ -276,7 +276,7 @@ jobs:
         if: steps.benches.outputs.create-baseline == 'true'
         run: |
           git fetch origin "$GITHUB_HEAD_REF"
-          git checkout FETCH_HEAD
+          git reset --hard FETCH_HEAD
 
       - name: Install Rust toolchain
         if: steps.benches.outputs.has-rust == 'true'
