@@ -1,6 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
+import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type {
   ArchiveEntityTypeParams,
@@ -40,7 +41,6 @@ import {
   ontologyTypeRecordIdToVersionedUrl,
 } from "@local/hash-subgraph";
 
-import { publicUserAccountId } from "../../../auth/public-user-account-id";
 import type { ImpureGraphFunction } from "../../context-types";
 import { rewriteSemanticFilter } from "../../shared/rewrite-semantic-filter";
 import { getWebShortname, isExternalTypeId } from "./util";
