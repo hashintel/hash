@@ -520,6 +520,11 @@ export const researchEntitiesAction: FlowActionActivity = async ({
    */
   const fileEntityProposals: ProposedEntity[] =
     filesUsedToProposeSubmittedEntities.map(({ url, entityTypeId }) => ({
+      /**
+       * @todo: set the web page this file was discovered in (if applicable) in the property provenance
+       * for the `fileUrl`
+       */
+      propertyMetadata: [],
       entityTypeId,
       localEntityId: generateUuid(),
       properties: {

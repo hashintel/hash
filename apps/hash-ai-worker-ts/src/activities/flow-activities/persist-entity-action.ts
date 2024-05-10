@@ -96,6 +96,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
 
     const getFileEntityFromUrlStatus = await getFileEntityFromUrl({
       url: fileUrl,
+      propertyMetadata,
       entityTypeId,
     });
 

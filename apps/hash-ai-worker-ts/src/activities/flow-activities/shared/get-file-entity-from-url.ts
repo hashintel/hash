@@ -20,7 +20,10 @@ import {
   getEntityTypeIdForMimeType,
 } from "@local/hash-backend-utils/file-storage";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
-import type { OriginProvenance } from "@local/hash-graph-client";
+import type {
+  OriginProvenance,
+  PropertyMetadataMap,
+} from "@local/hash-graph-client";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -116,6 +119,7 @@ const writeFileToS3URL = async ({
 
 export const getFileEntityFromUrl = async (params: {
   url: string;
+  propertyMetadata?: PropertyMetadataMap;
   entityTypeId?: VersionedUrl;
   description?: string;
   displayName?: string;
@@ -134,7 +138,12 @@ export const getFileEntityFromUrl = async (params: {
       message: string;
     }
 > => {
-  const { url: originalUrl, description, displayName } = params;
+  const {
+    url: originalUrl,
+    description,
+    displayName,
+    propertyMetadata,
+  } = params;
 
   const { userAuthentication, webId, flowEntityId, stepId } =
     await getFlowContext();
@@ -194,6 +203,7 @@ export const getFileEntityFromUrl = async (params: {
       {
         draft: false,
         ownedById: webId,
+        propertyMetadata,
         properties: initialProperties,
         entityTypeIds: [entityTypeId],
         relationships:
