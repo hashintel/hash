@@ -21,10 +21,12 @@
     "test:system": {},
     "test:miri": {},
     "bench:unit": {
-      "dependsOn": ["codegen"]
+      "dependsOn": ["codegen"],
+      "cache": false
     },
     "bench:integration": {
-      "dependsOn": ["codegen"]
+      "dependsOn": ["codegen"],
+      "cache": false
     },
     "dev": {
       "persistent": true,
