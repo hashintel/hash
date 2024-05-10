@@ -233,7 +233,7 @@ const mapTemporalWorkflowToFlowStatus = async (
 
           inputRequestsById[signalData.requestId] = {
             data: {} as never, // we will populate this when we hit the original request
-            answer: "answer" in data ? data.answer : undefined,
+            answers: "answers" in data ? data.answers : undefined,
             requestId,
             stepId: "unresolved",
             type,
@@ -423,6 +423,19 @@ const mapTemporalWorkflowToFlowStatus = async (
       }
 
       activityRecord.logs.push(log);
+    }
+  }
+
+  const inputRequests = Object.values(inputRequestsById);
+  for (const inputRequest of inputRequests) {
+    if (!inputRequest.resolved) {
+      const step = stepMap[inputRequest.stepId];
+      if (!step) {
+        throw new Error(
+          `Could not find step with id ${inputRequest.stepId} for input request with id ${inputRequest.requestId}`,
+        );
+      }
+      step.status = FlowStepStatus.InformationRequired;
     }
   }
 

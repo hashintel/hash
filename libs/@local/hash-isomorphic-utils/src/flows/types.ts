@@ -389,7 +389,7 @@ type ExternalInputRequestType = "human-input" | "get-urls-html-content";
 
 type ExternalInputRequestDataByType = {
   "human-input": {
-    question: string;
+    questions: string[];
   };
   "get-urls-html-content": {
     urls: string[];
@@ -409,7 +409,7 @@ export type ExternalInputRequestSignal<
 
 export type ExternalInputResponseByType = {
   "human-input": {
-    answer: string;
+    answers: string[];
   };
   "get-urls-html-content": {
     webPages: WebPage[];
@@ -427,8 +427,8 @@ export type ExternalInputResponseSignal<
 }[RequestType];
 
 export type ExternalInputRequest = ExternalInputRequestSignal & {
-  /** The answer given by the human, if it was a request for human input */
-  answer?: string;
+  /** The answers given by the human, if it was a request for human input */
+  answers?: string[];
   /** Whether or not the request has been resolved */
   resolved: boolean;
 };

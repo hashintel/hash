@@ -110,6 +110,7 @@ export const useStatusForCurrentStep = (): Pick<
 
 export type SimpleStatus =
   | "Waiting"
+  | "Information Required"
   | "In Progress"
   | "Complete"
   | "Error"
@@ -134,6 +135,9 @@ export const statusToSimpleStatus = (
     case FlowStepStatus.Scheduled:
     case FlowStepStatus.Started:
       simpleStatus = "In Progress";
+      break;
+    case FlowStepStatus.InformationRequired:
+      simpleStatus = "Information Required";
       break;
   }
 
@@ -183,6 +187,7 @@ export const useStatusForSteps = (
       if (!scheduledAt || stepRun.scheduledAt < scheduledAt) {
         scheduledAt = stepRun.scheduledAt;
       }
+
       if (stepRun.closedAt && (!closedAt || stepRun.closedAt > closedAt)) {
         closedAt = stepRun.closedAt;
       }
@@ -193,7 +198,10 @@ export const useStatusForSteps = (
 
       if (simpleStatus === "Error") {
         hasError = true;
-      } else if (simpleStatus === "In Progress") {
+      } else if (
+        simpleStatus === "In Progress" ||
+        simpleStatus === "Information Required"
+      ) {
         hasInProgress = true;
       } else if (simpleStatus === "Waiting") {
         hasWaiting = true;

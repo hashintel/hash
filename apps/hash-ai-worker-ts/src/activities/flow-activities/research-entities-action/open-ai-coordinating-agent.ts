@@ -3,7 +3,9 @@ import type {
   ProposedEntity,
   StepInput,
 } from "@local/hash-isomorphic-utils/flows/types";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import type { Entity } from "@local/hash-subgraph";
+import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 
 import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity";
@@ -14,15 +16,16 @@ import type {
   LlmMessage,
   LlmUserMessage,
 } from "../../shared/get-llm-response/llm-message";
-import {
-  getTextContentFromLlmMessage,
-  getToolCallsFromLlmAssistantMessage,
-} from "../../shared/get-llm-response/llm-message";
+import { getToolCallsFromLlmAssistantMessage } from "../../shared/get-llm-response/llm-message";
 import type { ParsedLlmToolCall } from "../../shared/get-llm-response/types";
 import { graphApiClient } from "../../shared/graph-api-client";
 import { mapActionInputEntitiesToEntities } from "../../shared/map-action-input-entities-to-entities";
 import type { PermittedOpenAiModel } from "../../shared/openai-client";
-import type { CoordinatorToolName } from "./coordinator-tools";
+import { requestExternalInput } from "../../shared/request-external-input";
+import type {
+  CoordinatorToolCallArguments,
+  CoordinatorToolName,
+} from "./coordinator-tools";
 import { coordinatorToolDefinitions } from "./coordinator-tools";
 import type { AccessedRemoteFile } from "./infer-entities-from-web-page-worker-agent/types";
 import type { CompletedToolCall } from "./types";
@@ -189,18 +192,29 @@ const getNextToolCalls = async (params: {
 
   return { toolCalls };
 };
+
 const createInitialPlan = async (params: {
   input: CoordinatingAgentInput;
+  questionsAndAnswers?: string;
 }): Promise<{ plan: string }> => {
-  const { input } = params;
+  const { input, questionsAndAnswers } = params;
 
   const systemPrompt = dedent(`
     ${generateSystemPromptPrefix({ input })}
+    
+    ${questionsAndAnswers ? `You previously asked the user clarifying questions on the research brief, and received the following answers:\n${questionsAndAnswers}` : ""}
 
-    Do not make *any* tool calls. You must first provide a plan of how you will use
-      the tools to progress towards completing the task.
-
-    This should be a list of steps in plain English.
+    You must ${questionsAndAnswers ? "now" : "first"} do one of: 
+    1. Ask the user ${questionsAndAnswers ? "further" : ""} questions to help clarify the research brief. You should ask questions if:
+      - The scope of the research is unclear (e.g. how much information is desired in response)
+      - The scope of the research task is very broad (e.g. the prompt is vague)
+      - The research brief or terms within it are ambiguous
+      - You can think of any other questions that will help you deliver a better response to the user
+    If in doubt, ask!
+    
+    2. Provide a plan of how you will use the tools to progress towards completing the task, which should be a list of steps in plain English.
+    
+    Please now either ask the user your questions, or produce the initial plan if there are no ${questionsAndAnswers ? "more " : ""}useful questions to ask.
   `);
 
   const { userAuthentication, flowEntityId, webId } = await getFlowContext();
@@ -208,10 +222,11 @@ const createInitialPlan = async (params: {
   const llmResponse = await getLlmResponse(
     {
       systemPrompt,
+      // tool_choice: "required",
       messages: [generateInitialUserMessage({ input })],
       model,
       tools: Object.values(coordinatorToolDefinitions).filter(
-        ({ name }) => name !== "updatePlan",
+        ({ name }) => name === "updatePlan" || name === "requestHumanInput",
       ),
       seed: 1,
     },
@@ -231,17 +246,47 @@ const createInitialPlan = async (params: {
 
   const { usage: _usage, message } = llmResponse;
 
-  const messageTextContent = getTextContentFromLlmMessage({ message });
-
   /** @todo: capture usage */
 
-  if (!messageTextContent) {
+  const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
+
+  const firstToolCall = toolCalls[0];
+
+  if (!firstToolCall) {
     throw new Error(
-      `Expected message content in message: ${JSON.stringify(message, null, 2)}`,
+      `Expected tool calls in message: ${JSON.stringify(message, null, 2)}`,
     );
   }
 
-  return { plan: messageTextContent };
+  if (firstToolCall.name === "updatePlan") {
+    const { plan } =
+      firstToolCall.input as CoordinatorToolCallArguments["updatePlan"];
+
+    return { plan };
+  }
+
+  const { questions } =
+    firstToolCall.input as CoordinatorToolCallArguments["requestHumanInput"];
+
+  const {
+    data: { answers },
+  } = await requestExternalInput({
+    requestId: generateUuid(),
+    stepId: Context.current().info.activityId,
+    type: "human-input",
+    data: {
+      questions,
+    },
+  });
+
+  const responseString = answers
+    .map((answer, index) => `\nQuestion ${index + 1}:\n${answer}`)
+    .join("\n");
+
+  return createInitialPlan({
+    input,
+    questionsAndAnswers: (questionsAndAnswers ?? "") + responseString,
+  });
 };
 
 const parseCoordinatorInputs = async (params: {

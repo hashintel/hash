@@ -134,6 +134,9 @@ const doesFlowStepHaveSatisfiedDependencies = (params: {
 const flowActivities = proxyActivities<ReturnType<typeof createFlowActivities>>(
   {
     cancellationType: ActivityCancellationType.WAIT_CANCELLATION_COMPLETED,
+    /**
+     * @todo update this to account for human input – for research task only?
+     */
     startToCloseTimeout: "3600 second", // 1 hour
     retry: { maximumAttempts: 1 },
   },

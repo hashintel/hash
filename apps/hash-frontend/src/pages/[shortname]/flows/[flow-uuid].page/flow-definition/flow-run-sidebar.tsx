@@ -124,7 +124,9 @@ const GroupStepStatus = ({
   return (
     <Stack direction="row" ml={2} mb={1}>
       <Box>
-        {!simpleStatus || simpleStatus === "Waiting" ? (
+        {!simpleStatus ||
+        simpleStatus === "Waiting" ||
+        simpleStatus === "Information Required" ? (
           <WaitingIcon statusFor="step" />
         ) : simpleStatus === "In Progress" ? (
           <InProgressIcon statusFor="step" />
@@ -150,6 +152,8 @@ const formatTimeTaken = (scheduledAt: string, closedAt?: string) => {
   );
 
   const duration = intervalToDuration({ start: 0, end: elapsed });
+
+  console.log(elapsed, scheduledAt, closedAt, duration);
 
   return [duration.hours, duration.minutes, duration.seconds]
     .filter(isNonNullable)
