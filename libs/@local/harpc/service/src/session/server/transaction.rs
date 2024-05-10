@@ -18,8 +18,8 @@ struct TransactionSendDelegateTask {
     id: RequestId,
     config: SessionConfig,
 
-    tx: mpsc::Sender<Response>,
     rx: mpsc::Receiver<core::result::Result<Bytes, TransactionError>>,
+    tx: mpsc::Sender<Response>,
 }
 
 impl TransactionSendDelegateTask {
@@ -84,10 +84,8 @@ impl TransactionSendDelegateTask {
 }
 
 struct TransactionRecvDelegateTask {
-    id: RequestId,
-
-    tx: mpsc::Sender<Bytes>,
     rx: mpsc::Receiver<Request>,
+    tx: mpsc::Sender<Bytes>,
 }
 
 impl TransactionRecvDelegateTask {
@@ -167,9 +165,9 @@ impl Transaction {
         }: TransactionParts,
     ) -> (Self, TransactionTask) {
         let (request_tx, request_rx) =
-            mpsc::channel(config.per_transaction_request_bytes_buffer_size);
+            mpsc::channel(config.per_transaction_request_byte_stream_buffer_size);
         let (response_tx, response_rx) =
-            mpsc::channel(config.per_transaction_response_bytes_buffer_size);
+            mpsc::channel(config.per_transaction_response_byte_stream_buffer_size);
 
         let transaction = Self {
             peer,
@@ -212,17 +210,16 @@ pub(crate) struct TransactionTask {
 impl TransactionTask {
     pub(super) fn start(self, tasks: &TaskTracker, cancel: CancellationToken) {
         let recv = TransactionRecvDelegateTask {
-            id: self.id,
-            tx: self.request_tx,
             rx: self.request_rx,
+            tx: self.request_tx,
         };
 
         let send = TransactionSendDelegateTask {
             id: self.id,
             config: self.config,
 
-            tx: self.response_tx,
             rx: self.response_rx,
+            tx: self.response_tx,
         };
 
         tasks.spawn(recv.run(cancel.clone()));

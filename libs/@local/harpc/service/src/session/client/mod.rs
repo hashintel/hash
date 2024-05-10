@@ -3,7 +3,7 @@ mod transaction;
 mod writer;
 
 use error_stack::{Result, ResultExt};
-use libp2p::{Multiaddr, PeerId};
+use libp2p::Multiaddr;
 use tokio_util::sync::CancellationToken;
 
 use self::connection::Connection;

@@ -18,4 +18,4 @@ impl SessionIdProducer {
 
 // what is in the session is not part of the service, but higher level!
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct SessionId(usize);
+pub struct SessionId(usize);

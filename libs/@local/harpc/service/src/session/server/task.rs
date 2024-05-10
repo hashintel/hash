@@ -5,11 +5,11 @@ use futures::{FutureExt, StreamExt, TryFutureExt};
 use scc::HashIndex;
 use tokio::{
     select,
-    sync::{mpsc, Semaphore},
+    sync::{broadcast, mpsc, Semaphore},
 };
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
-use super::{session_id::SessionIdProducer, transaction::Transaction, SessionConfig};
+use super::{session_id::SessionIdProducer, transaction::Transaction, SessionConfig, SessionEvent};
 use crate::{
     codec::ErrorEncoder,
     session::{error::SessionError, server::connection::ConnectionTask},
@@ -24,7 +24,8 @@ pub(crate) struct Task<E> {
 
     pub(crate) active: Arc<Semaphore>,
 
-    pub(crate) transactions: mpsc::Sender<Transaction>,
+    pub(crate) output: mpsc::Sender<Transaction>,
+    pub(crate) events: broadcast::Sender<SessionEvent>,
     pub(crate) encoder: Arc<E>,
 }
 
@@ -69,8 +70,9 @@ where
                         peer,
                         session: self.id.produce(),
                         config: self.config,
-                        transactions: Arc::new(HashIndex::new()),
-                        tx_transaction: self.transactions.clone(),
+                        active: Arc::new(HashIndex::new()),
+                        output: self.output.clone(),
+                        events: self.events.clone(),
                         encoder: Arc::clone(&self.encoder),
                         _permit: permit,
                     };

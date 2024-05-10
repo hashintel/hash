@@ -1,13 +1,3 @@
-// What does the session do? It creates a new `Session`
-// * (server) object for every new requestid on a connection and returns a `Transaction` object,
-//   that has an `AsyncRead` + `AsyncWrite`, as well as `Session`, those are then bunched up
-//   together into packets, once all connections are dropped, the session object is dropped as well.
-// * (server) each connection a new `RequestId` on a request and is handled transparently
-// * (server) there is a maximum number of connections that can be open at once, once the limit is
-//   reached new connections are denied.
-// * (server) connections are dropped if a certain timeout is reached in `AsyncRead` or `AsyncWrite`
-//   calls.
-
 mod config;
 mod connection;
 mod session_id;
@@ -20,17 +10,22 @@ use alloc::sync::Arc;
 use error_stack::{Result, ResultExt};
 use futures::Stream;
 use libp2p::Multiaddr;
-use tokio::sync::{mpsc, Semaphore};
+use tokio::sync::{broadcast, mpsc, Semaphore};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
-pub use self::config::SessionConfig;
-use self::{session_id::SessionIdProducer, task::Task, transaction::Transaction};
+pub use self::{config::SessionConfig, session_id::SessionId, transaction::Transaction};
+use self::{session_id::SessionIdProducer, task::Task};
 use super::error::SessionError;
 use crate::{codec::ErrorEncoder, stream::ReceiverStreamCancel, transport::TransportLayer};
 
 // TODO: encoding and decoding layer(?)
 // TODO: timeout layer - needs encoding layer (for error handling), and IPC to cancel a specific
 // request in a session
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum SessionEvent {
+    SessionDropped { id: SessionId },
+}
 
 /// Session Layer
 ///
@@ -40,8 +35,9 @@ pub struct SessionLayer<E> {
     config: SessionConfig,
     encoder: Arc<E>,
 
+    events: broadcast::Sender<SessionEvent>,
+
     // TODO: IPC (do we need it tho?)
-    // TODO: notification channel tho!
     transport: TransportLayer,
 
     tasks: TaskTracker,
@@ -54,9 +50,13 @@ where
     pub fn new(config: SessionConfig, transport: TransportLayer, encoder: E) -> Self {
         let tasks = transport.tasks().clone();
 
+        let (events, _) = broadcast::channel(config.event_buffer_size.get());
+
         Self {
             config,
             encoder: Arc::new(encoder),
+
+            events,
 
             transport,
 
@@ -67,6 +67,11 @@ where
     #[must_use]
     pub const fn tasks(&self) -> &TaskTracker {
         &self.tasks
+    }
+
+    #[must_use]
+    pub fn events(&self) -> broadcast::Receiver<SessionEvent> {
+        self.events.subscribe()
     }
 
     /// Listen for incoming connections on the given address.
@@ -83,14 +88,15 @@ where
             .await
             .change_context(SessionError)?;
 
-        let (tx, rx) = mpsc::channel(self.config.transaction_buffer_size);
+        let (output, rx) = mpsc::channel(self.config.transaction_buffer_size);
 
         let task = Task {
             id: SessionIdProducer::new(),
             transport: self.transport,
             config: self.config,
             active: Arc::new(Semaphore::new(self.config.concurrent_connection_limit)),
-            transactions: tx,
+            output,
+            events: self.events.clone(),
             encoder: self.encoder,
         };
 

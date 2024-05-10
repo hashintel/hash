@@ -12,7 +12,7 @@ use libp2p::PeerId;
 use scc::HashIndex;
 use tokio::{
     pin, select,
-    sync::{mpsc, OwnedSemaphorePermit, Semaphore},
+    sync::{broadcast, mpsc, OwnedSemaphorePermit, Semaphore},
 };
 use tokio_stream::{wrappers::ReceiverStream, StreamNotifyClose};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
@@ -21,7 +21,7 @@ use super::{
     session_id::SessionId,
     transaction::{Transaction, TransactionParts},
     write::ResponseWriter,
-    SessionConfig,
+    SessionConfig, SessionEvent,
 };
 use crate::{
     codec::{ErrorEncoder, ErrorExt},
@@ -95,8 +95,9 @@ pub(crate) struct ConnectionTask<E> {
     pub(crate) peer: PeerId,
     pub(crate) session: SessionId,
 
-    pub(crate) transactions: Arc<HashIndex<RequestId, mpsc::Sender<Request>>>,
-    pub(crate) tx_transaction: mpsc::Sender<Transaction>,
+    pub(crate) active: Arc<HashIndex<RequestId, mpsc::Sender<Request>>>,
+    pub(crate) output: mpsc::Sender<Transaction>,
+    pub(crate) events: broadcast::Sender<SessionEvent>,
 
     pub(crate) config: SessionConfig,
     pub(crate) encoder: Arc<E>,
@@ -146,8 +147,7 @@ where
         // channel, which drops a transaction if there's too many.
         match &request.body {
             RequestBody::Begin(begin) => {
-                if self.transactions.len() > self.config.per_connection_concurrent_transaction_limit
-                {
+                if self.active.len() > self.config.per_connection_concurrent_transaction_limit {
                     tracing::warn!("transaction limit reached, dropping transaction");
 
                     return self
@@ -184,7 +184,7 @@ where
                 task.start(tasks, cancel.clone());
 
                 // insert the transaction into the index (replace if already exists)
-                let entry = self.transactions.entry_async(request_id).await;
+                let entry = self.active.entry_async(request_id).await;
                 match entry {
                     scc::hash_index::Entry::Occupied(entry) => {
                         entry.update(transaction_tx);
@@ -194,17 +194,13 @@ where
                     }
                 }
 
-                if self.tx_transaction.send(transaction).await.is_err() {
+                if self.output.send(transaction).await.is_err() {
                     return ControlFlow::Break(());
                 }
             }
             RequestBody::Frame(_) => {
                 // forward the request to the transaction
-                if let Some(entry) = self
-                    .transactions
-                    .get_async(&request.header.request_id)
-                    .await
-                {
+                if let Some(entry) = self.active.get_async(&request.header.request_id).await {
                     if let Err(error) = entry.send(request).await {
                         tracing::warn!(?error, "failed to forward request to transaction");
                     }
@@ -219,7 +215,7 @@ where
         // TODO: forced gc on timeout in upper layer (needs IPC)
         if is_end {
             // removing this also means that all the channels will cascade close
-            self.transactions.remove_async(&request_id).await;
+            self.active.remove_async(&request_id).await;
         }
 
         ControlFlow::Continue(())
@@ -247,7 +243,7 @@ where
             ConnectionGarbageCollectorTask {
                 // TODO: make this configurable
                 every: Duration::from_secs(10),
-                transactions: Arc::clone(&self.transactions),
+                transactions: Arc::clone(&self.active),
             }
             .run(cancel_gc.clone()),
         );
@@ -301,5 +297,12 @@ where
                 }
             }
         }
+
+        if let Err(error) = self
+            .events
+            .send(SessionEvent::SessionDropped { id: self.session })
+        {
+            tracing::debug!(?error, "no receivers connected");
+        };
     }
 }
