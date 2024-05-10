@@ -1,5 +1,5 @@
+import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import type { AwsS3StorageProviderConstructorArgs } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
-import { getRequiredEnv } from "@local/hash-isomorphic-utils/environment";
 
 export const getAwsRegion = (): string => getRequiredEnv("AWS_REGION");
 

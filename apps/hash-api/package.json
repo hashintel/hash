@@ -9,6 +9,7 @@
     "build:docker": "docker buildx build --tag hash-api --file ../../infra/docker/api/prod/Dockerfile ../../ --load",
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "dev": "NODE_ENV=development NODE_OPTIONS=--max-old-space-size=2048 tsx watch --clear-screen=false ./src/index.ts",
+    "ensure-system-graph-is-initialized": "tsx ./src/ensure-system-graph-is-initialized.ts",
     "fix:eslint": "eslint --fix .",
     "generate-hash-gpt-schema": "tsx ./src/ai/gpt/generate-hashgpt-schema.ts",
     "generate-ontology-type-ids": "tsx ./src/generate-ontology-type-ids.ts; yarn prettier --write ../../libs/@local/hash-isomorphic-utils/src/ontology-type-ids.ts",
