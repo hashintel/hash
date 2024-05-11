@@ -1,5 +1,10 @@
 use alloc::sync::Arc;
-use core::{fmt::Debug, ops::ControlFlow, time::Duration};
+use core::{
+    fmt::Debug,
+    ops::ControlFlow,
+    sync::atomic::{AtomicU64, Ordering},
+    time::Duration,
+};
 use std::io;
 
 use futures::{FutureExt, Sink, Stream, StreamExt};
@@ -28,7 +33,10 @@ use super::{
 };
 use crate::{
     codec::{ErrorEncoder, ErrorExt},
-    session::error::{TransactionError, TransactionLaggingError, TransactionLimitReachedError},
+    session::error::{
+        ConnectionTransactionLimitReachedError, InstanceTransactionLimitReachedError,
+        TransactionError, TransactionLaggingError,
+    },
 };
 
 struct ConnectionDelegateTask<T> {
@@ -94,6 +102,7 @@ impl ConnectionGarbageCollectorTask {
     }
 }
 
+#[derive(Debug)]
 struct ConcurrencyPermit {
     _permit: OwnedSemaphorePermit,
 }
@@ -112,9 +121,9 @@ impl ConcurrencyLimit {
         }
     }
 
-    fn acquire(&self) -> Result<ConcurrencyPermit, TransactionLimitReachedError> {
+    fn acquire(&self) -> Result<ConcurrencyPermit, ConnectionTransactionLimitReachedError> {
         Arc::clone(&self.current).try_acquire_owned().map_or_else(
-            |_error| Err(TransactionLimitReachedError { limit: self.limit }),
+            |_error| Err(ConnectionTransactionLimitReachedError { limit: self.limit }),
             |permit| Ok(ConcurrencyPermit { _permit: permit }),
         )
     }
@@ -122,6 +131,8 @@ impl ConcurrencyLimit {
 
 #[derive(Debug, Clone)]
 struct TransactionState {
+    generation: u64,
+
     sender: mpsc::Sender<Request>,
     cancel: CancellationToken,
 }
@@ -131,6 +142,7 @@ type TransactionStorage = Arc<HashIndex<RequestId, TransactionState>>;
 pub(crate) struct TransactionCollection {
     config: SessionConfig,
 
+    generation: AtomicU64,
     cancel: CancellationToken,
     storage: TransactionStorage,
     limit: ConcurrencyLimit,
@@ -138,13 +150,14 @@ pub(crate) struct TransactionCollection {
 
 impl TransactionCollection {
     pub(crate) fn new(config: SessionConfig, cancel: CancellationToken) -> Self {
-        let senders = Arc::new(HashIndex::new());
+        let storage = Arc::new(HashIndex::new());
         let limit = ConcurrencyLimit::new(config.per_connection_concurrent_transaction_limit);
 
         Self {
+            generation: AtomicU64::new(0),
             config,
             cancel,
-            storage: senders,
+            storage,
             limit,
         }
     }
@@ -158,14 +171,18 @@ impl TransactionCollection {
             mpsc::Sender<Request>,
             mpsc::Receiver<Request>,
         ),
-        TransactionLimitReachedError,
+        ConnectionTransactionLimitReachedError,
     > {
         let cancel = self.cancel.child_token();
+
+        let handle = TransactionPermit::new(self, id, cancel.clone())?;
+
         let (tx, rx) = mpsc::channel(self.config.per_transaction_request_buffer_size.get());
 
         let state = TransactionState {
+            generation: handle.generation,
             sender: tx.clone(),
-            cancel: cancel.clone(),
+            cancel,
         };
 
         let entry = self.storage.entry_async(id).await;
@@ -181,8 +198,6 @@ impl TransactionCollection {
                 entry.insert_entry(state);
             }
         }
-
-        let handle = TransactionPermit::new(self, id, cancel)?;
 
         Ok((handle, tx, rx))
     }
@@ -245,8 +260,26 @@ impl TransactionCollection {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct TransactionPermit {
     id: RequestId,
+    // adding an overflowing generation counter helps to prevent us from accidentally
+    // removing requests in the case that we're overriding them.
+    // If we override, we *could* have the case where w/ the following code:
+    //
+    // 1. TransactionCollection::acquire()
+    //    - create a new permit
+    //    - cancel the old permit (this one)
+    //    - replace old state (this one is bound to) with new state
+    // 2. TransactionPermit::drop() (old)
+    //    - remove the state from the storage
+    //
+    // without the generation, we would, in that case, remove the new state, which is not
+    // what we want.
+    //
+    // Also known as the ABA problem.
+    generation: u64,
+
     storage: TransactionStorage,
 
     cancel: CancellationToken,
@@ -259,13 +292,18 @@ impl TransactionPermit {
         collection: &TransactionCollection,
         id: RequestId,
         cancel: CancellationToken,
-    ) -> Result<Arc<Self>, TransactionLimitReachedError> {
+    ) -> Result<Arc<Self>, ConnectionTransactionLimitReachedError> {
         let permit = collection.limit.acquire()?;
         let storage = Arc::clone(&collection.storage);
+
+        // we only need to increment the generation counter, when we are successful in acquiring a
+        // permit.
+        let generation = collection.generation.fetch_add(1, Ordering::AcqRel);
 
         Ok(Arc::new(Self {
             id,
             storage,
+            generation,
             _permit: permit,
             cancel,
         }))
@@ -278,7 +316,8 @@ impl TransactionPermit {
 
 impl Drop for TransactionPermit {
     fn drop(&mut self) {
-        self.storage.remove(&self.id);
+        self.storage
+            .remove_if(&self.id, |state| state.generation == self.generation);
     }
 }
 
@@ -286,8 +325,6 @@ pub(crate) struct ConnectionTask<E> {
     pub(crate) peer: PeerId,
     pub(crate) session: SessionId,
 
-    // Note: this does not account for transactions that have been requested (endOfRequest flag
-    // set), but are still in flight.
     pub(crate) active: TransactionCollection,
     pub(crate) output: mpsc::Sender<Transaction>,
     pub(crate) events: broadcast::Sender<SessionEvent>,
@@ -342,8 +379,8 @@ where
                     reason = "This simply returns a drop guard, that is carried through the \
                               transaction lifetime."
                 )]
-                let (guard, request_tx, request_rx) = match self.active.acquire(request_id).await {
-                    Ok((guard, tx, rx)) => (guard, tx, rx),
+                let (permit, request_tx, request_rx) = match self.active.acquire(request_id).await {
+                    Ok((permit, tx, rx)) => (permit, tx, rx),
                     Err(error) => {
                         tracing::info!("transaction limit reached, dropping transaction");
 
@@ -368,7 +405,7 @@ where
                     .try_send(request)
                     .expect("infallible; buffer should be large enough to hold the request");
 
-                task.start(tasks, guard);
+                task.start(tasks, permit);
 
                 // creates implicit backpressure, if the session can not accept more transactions,
                 // we will wait until we can, this means that we will not be able to
@@ -388,7 +425,11 @@ where
                             self.active.release(request_id).await;
 
                             return self
-                                .respond_error(request_id, TransactionLaggingError, &tx)
+                                .respond_error(
+                                    request_id,
+                                    InstanceTransactionLimitReachedError,
+                                    &tx,
+                                )
                                 .await;
                         }
                         SendTimeoutError::Closed(_) => {
@@ -444,7 +485,17 @@ where
 
         let (tx, rx) = mpsc::channel(self.config.per_connection_response_buffer_size.get());
         let mut handle = tasks
-            .spawn(ConnectionDelegateTask { rx, sink }.run(cancel.clone()))
+            .spawn({
+                let cancel = cancel.clone();
+
+                async move {
+                    let task = ConnectionDelegateTask { rx, sink };
+
+                    if let Err(error) = task.run(cancel).await {
+                        tracing::info!(?error, "connection has been prematurely closed");
+                    }
+                }
+            })
             .fuse();
 
         loop {
@@ -497,5 +548,341 @@ where
         {
             tracing::debug!(?error, "no receivers connected");
         };
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use core::time::Duration;
+
+    use harpc_wire_protocol::{
+        flags::BitFlagsOp,
+        payload::Payload,
+        protocol::{Protocol, ProtocolVersion},
+        request::id::RequestId,
+        response::{
+            body::ResponseBody, flags::ResponseFlags, frame::ResponseFrame, header::ResponseHeader,
+            Response,
+        },
+    };
+    use tokio::sync::mpsc;
+    use tokio_util::sync::{CancellationToken, PollSender};
+
+    use super::ConcurrencyLimit;
+    use crate::session::server::{
+        connection::{ConnectionDelegateTask, TransactionCollection},
+        SessionConfig,
+    };
+
+    #[tokio::test]
+    #[ignore]
+    async fn stream_dropped() {}
+
+    #[tokio::test]
+    #[ignore]
+    async fn sink_dropped() {}
+
+    #[tokio::test]
+    #[ignore]
+    async fn transaction_limit_reached() {}
+
+    #[tokio::test]
+    #[ignore]
+    async fn transaction_replace() {}
+
+    #[tokio::test]
+    #[ignore]
+    async fn transaction() {}
+
+    #[tokio::test]
+    #[ignore]
+    async fn transaction_multiple() {}
+
+    #[tokio::test]
+    #[ignore]
+    async fn transaction_send_request_timeout() {}
+
+    #[tokio::test]
+    #[ignore]
+    async fn transaction_send_output_timeout() {}
+
+    #[tokio::test]
+    #[ignore]
+    async fn transaction_send_output_closed() {}
+
+    #[tokio::test]
+    #[ignore]
+    async fn transaction_reclamation() {}
+
+    #[tokio::test]
+    #[ignore]
+    async fn graceful_shutdown() {}
+
+    #[test]
+    fn concurrency_limit() {
+        let limit = ConcurrencyLimit::new(2);
+        assert_eq!(limit.current.available_permits(), 2);
+
+        let _permit = limit.acquire().expect("should be able to acquire permit");
+        assert_eq!(limit.current.available_permits(), 1);
+
+        let _permit2 = limit.acquire().expect("should be able to acquire permit");
+        assert_eq!(limit.current.available_permits(), 0);
+    }
+
+    #[test]
+    fn concurrency_limit_reached() {
+        let limit = ConcurrencyLimit::new(1);
+        assert_eq!(limit.current.available_permits(), 1);
+
+        let permit = limit.acquire().expect("should be able to acquire permit");
+        assert_eq!(limit.current.available_permits(), 0);
+
+        limit
+            .acquire()
+            .expect_err("should be unable to acquire permit");
+
+        drop(permit);
+        assert_eq!(limit.current.available_permits(), 1);
+
+        let _permit = limit.acquire().expect("should be able to acquire permit");
+        assert_eq!(limit.current.available_permits(), 0);
+    }
+
+    #[test]
+    fn concurrency_limit_reached_permit_reclaim() {
+        let limit = ConcurrencyLimit::new(1);
+        assert_eq!(limit.current.available_permits(), 1);
+
+        let permit = limit.acquire().expect("should be able to acquire permit");
+        assert_eq!(limit.current.available_permits(), 0);
+
+        drop(permit);
+        assert_eq!(limit.current.available_permits(), 1);
+    }
+
+    #[tokio::test]
+    async fn transaction_collection_acquire() {
+        let collection =
+            TransactionCollection::new(SessionConfig::default(), CancellationToken::new());
+
+        let (_permit, ..) = collection
+            .acquire(RequestId::new_unchecked(0x01))
+            .await
+            .expect("should be able to acquire permit");
+
+        assert_eq!(collection.storage.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn transaction_collection_acquire_override() {
+        let collection =
+            TransactionCollection::new(SessionConfig::default(), CancellationToken::new());
+
+        let (permit, ..) = collection
+            .acquire(RequestId::new_unchecked(0x01))
+            .await
+            .expect("should be able to acquire permit");
+
+        let cancel = permit.cancellation_token();
+
+        let (_permit, ..) = collection
+            .acquire(RequestId::new_unchecked(0x01))
+            .await
+            .expect("should be able to acquire permit");
+
+        assert!(cancel.is_cancelled());
+    }
+
+    #[tokio::test]
+    async fn transaction_collection_acquire_override_no_capacity() {
+        // if we override and our capacity has no capacity left we won't be able to acquire a permit
+        // this is a limitation of the current implementation, but also simplifies the logic quite a
+        // bit.
+        let collection = TransactionCollection::new(
+            SessionConfig {
+                per_connection_concurrent_transaction_limit: 1,
+                ..SessionConfig::default()
+            },
+            CancellationToken::new(),
+        );
+
+        let (_permit, ..) = collection
+            .acquire(RequestId::new_unchecked(0x01))
+            .await
+            .expect("should be able to acquire permit");
+
+        collection
+            .acquire(RequestId::new_unchecked(0x01))
+            .await
+            .expect_err("should not be able to acquire permit");
+    }
+
+    #[tokio::test]
+    async fn transaction_collection_release() {
+        let collection =
+            TransactionCollection::new(SessionConfig::default(), CancellationToken::new());
+
+        let (_permit, ..) = collection
+            .acquire(RequestId::new_unchecked(0x01))
+            .await
+            .expect("should be able to acquire permit");
+
+        // release does nothing if the transaction is not in the collection
+        collection.release(RequestId::new_unchecked(0x02)).await;
+    }
+
+    #[tokio::test]
+    async fn transaction_collection_acquire_full_no_insert() {
+        let collection = TransactionCollection::new(
+            SessionConfig {
+                per_connection_concurrent_transaction_limit: 0,
+                ..SessionConfig::default()
+            },
+            CancellationToken::new(),
+        );
+
+        collection
+            .acquire(RequestId::new_unchecked(0x01))
+            .await
+            .expect_err("should not be able to acquire permit");
+
+        assert_eq!(collection.storage.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn transaction_permit_reclaim() {
+        let collection =
+            TransactionCollection::new(SessionConfig::default(), CancellationToken::new());
+
+        let (permit, ..) = collection
+            .acquire(RequestId::new_unchecked(0x01))
+            .await
+            .expect("should be able to acquire permit");
+
+        assert_eq!(collection.storage.len(), 1);
+
+        drop(permit);
+
+        assert_eq!(collection.storage.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn transaction_permit_reclaim_override() {
+        let collection =
+            TransactionCollection::new(SessionConfig::default(), CancellationToken::new());
+
+        let (permit_a, ..) = collection
+            .acquire(RequestId::new_unchecked(0x01))
+            .await
+            .expect("should be able to acquire permit");
+
+        assert_eq!(collection.storage.len(), 1);
+
+        let (permit_b, ..) = collection
+            .acquire(RequestId::new_unchecked(0x01))
+            .await
+            .expect("should be able to acquire permit");
+
+        assert!(permit_a.cancellation_token().is_cancelled());
+        assert_eq!(collection.storage.len(), 1);
+
+        drop(permit_a);
+
+        assert_eq!(collection.storage.len(), 1);
+
+        drop(permit_b);
+
+        assert_eq!(collection.storage.len(), 0);
+    }
+
+    static EXAMPLE_RESPONSE: Response = Response {
+        header: ResponseHeader {
+            protocol: Protocol {
+                version: ProtocolVersion::V1,
+            },
+            request_id: RequestId::new_unchecked(0x01),
+            flags: ResponseFlags::EMPTY,
+        },
+        body: ResponseBody::Frame(ResponseFrame {
+            payload: Payload::from_static(b"hello"),
+        }),
+    };
+
+    #[tokio::test]
+    async fn delegate() {
+        let (tx, rx) = mpsc::channel::<Response>(8);
+        let (sink, mut stream) = mpsc::channel::<Response>(8);
+
+        let delegate = ConnectionDelegateTask {
+            rx,
+            sink: PollSender::new(sink),
+        };
+
+        let cancel = CancellationToken::new();
+
+        let handle = tokio::spawn(delegate.run(cancel.clone()));
+
+        tx.send(EXAMPLE_RESPONSE.clone())
+            .await
+            .expect("should be open");
+
+        // stream should immediately receive the response
+        let response = stream.recv().await.expect("should be open");
+        assert_eq!(response, EXAMPLE_RESPONSE);
+
+        cancel.cancel();
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic")
+            .expect("should not error");
+    }
+
+    #[tokio::test]
+    async fn delegate_drop_stream() {
+        let (tx, rx) = mpsc::channel::<Response>(8);
+        let (sink, stream) = mpsc::channel::<Response>(8);
+
+        let delegate = ConnectionDelegateTask {
+            rx,
+            sink: PollSender::new(sink),
+        };
+
+        let handle = tokio::spawn(delegate.run(CancellationToken::new()));
+
+        drop(stream);
+
+        tx.send(EXAMPLE_RESPONSE.clone())
+            .await
+            .expect("should be open");
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic")
+            .expect_err("should be unable to send to sink");
+    }
+
+    #[tokio::test]
+    async fn delegate_drop_tx() {
+        let (tx, rx) = mpsc::channel::<Response>(8);
+        let (sink, _stream) = mpsc::channel::<Response>(8);
+
+        let delegate = ConnectionDelegateTask {
+            rx,
+            sink: PollSender::new(sink),
+        };
+
+        let handle = tokio::spawn(delegate.run(CancellationToken::new()));
+
+        drop(tx);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic")
+            .expect("should not error");
     }
 }
