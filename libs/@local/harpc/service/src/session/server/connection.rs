@@ -4,8 +4,7 @@ use std::io;
 
 use futures::{FutureExt, Sink, Stream, StreamExt};
 use harpc_wire_protocol::{
-    flags::BitFlagsOp,
-    request::{body::RequestBody, flags::RequestFlag, id::RequestId, Request},
+    request::{body::RequestBody, id::RequestId, Request},
     response::Response,
 };
 use libp2p::PeerId;
@@ -96,7 +95,7 @@ impl ConnectionGarbageCollectorTask {
 }
 
 struct ConcurrencyPermit {
-    permit: OwnedSemaphorePermit,
+    _permit: OwnedSemaphorePermit,
 }
 
 #[derive(Debug, Clone)]
@@ -114,10 +113,10 @@ impl ConcurrencyLimit {
     }
 
     fn acquire(&self) -> Result<ConcurrencyPermit, TransactionLimitReachedError> {
-        match Arc::clone(&self.current).try_acquire_owned() {
-            Ok(permit) => Ok(ConcurrencyPermit { permit }),
-            Err(_) => Err(TransactionLimitReachedError { limit: self.limit }),
-        }
+        Arc::clone(&self.current).try_acquire_owned().map_or_else(
+            |_error| Err(TransactionLimitReachedError { limit: self.limit }),
+            |permit| Ok(ConcurrencyPermit { _permit: permit }),
+        )
     }
 }
 
@@ -183,7 +182,7 @@ impl TransactionCollection {
             }
         }
 
-        let handle = TransactionPermit::new(&self, id, cancel)?;
+        let handle = TransactionPermit::new(self, id, cancel)?;
 
         Ok((handle, tx, rx))
     }
@@ -338,6 +337,11 @@ where
         // channel, which drops a transaction if there's too many.
         match &request.body {
             RequestBody::Begin(begin) => {
+                #[expect(
+                    clippy::significant_drop_in_scrutinee,
+                    reason = "This simply returns a drop guard, that is carried through the \
+                              transaction lifetime."
+                )]
                 let (guard, request_tx, request_rx) = match self.active.acquire(request_id).await {
                     Ok((guard, tx, rx)) => (guard, tx, rx),
                     Err(error) => {
@@ -403,8 +407,8 @@ where
 
         // TODO: forced gc on timeout in upper layer
 
-        // we do not need to check for `EndOfRequest` here, and close the channel, as the task is
-        // already doing this for us.
+        // we do not need to check for `EndOfRequest` here and forcefully close the channel, as the
+        // task is already doing this for us.
 
         ControlFlow::Continue(())
     }

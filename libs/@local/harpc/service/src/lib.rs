@@ -2,7 +2,8 @@
     never_type,
     trait_alias,
     type_alias_impl_trait,
-    impl_trait_in_assoc_type
+    impl_trait_in_assoc_type,
+    lint_reasons
 )]
 #![cfg_attr(test, feature(assert_matches))]
 

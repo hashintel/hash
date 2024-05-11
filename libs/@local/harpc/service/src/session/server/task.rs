@@ -2,7 +2,6 @@ use alloc::sync::Arc;
 
 use error_stack::{FutureExt as _, Result, ResultExt};
 use futures::{FutureExt, StreamExt, TryFutureExt};
-use scc::HashIndex;
 use tokio::{
     select,
     sync::{broadcast, mpsc, Semaphore},
