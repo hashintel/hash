@@ -9,10 +9,14 @@ use harpc_wire_protocol::{
     response::Response,
 };
 use libp2p::PeerId;
-use scc::HashIndex;
+use scc::{hash_index::Entry, HashIndex};
 use tokio::{
     pin, select,
-    sync::{broadcast, mpsc, OwnedSemaphorePermit, Semaphore},
+    sync::{
+        broadcast,
+        mpsc::{self, error::SendTimeoutError},
+        OwnedSemaphorePermit, Semaphore,
+    },
 };
 use tokio_stream::{wrappers::ReceiverStream, StreamNotifyClose};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
@@ -25,7 +29,7 @@ use super::{
 };
 use crate::{
     codec::{ErrorEncoder, ErrorExt},
-    session::error::{TransactionError, TransactionLimitReachedError},
+    session::error::{TransactionError, TransactionLaggingError, TransactionLimitReachedError},
 };
 
 struct ConnectionDelegateTask<T> {
@@ -55,7 +59,7 @@ where
 
 struct ConnectionGarbageCollectorTask {
     every: Duration,
-    transactions: Arc<HashIndex<RequestId, mpsc::Sender<Request>>>,
+    transactions: TransactionStorage,
 }
 
 impl ConnectionGarbageCollectorTask {
@@ -73,8 +77,8 @@ impl ConnectionGarbageCollectorTask {
 
             let mut removed = 0_usize;
             self.transactions
-                .retain_async(|_, tx| {
-                    if tx.is_closed() {
+                .retain_async(|_, TransactionState { cancel, .. }| {
+                    if cancel.is_cancelled() {
                         removed += 1;
                         false
                     } else {
@@ -91,13 +95,201 @@ impl ConnectionGarbageCollectorTask {
     }
 }
 
+struct ConcurrencyPermit {
+    permit: OwnedSemaphorePermit,
+}
+
+#[derive(Debug, Clone)]
+struct ConcurrencyLimit {
+    limit: usize,
+    current: Arc<Semaphore>,
+}
+
+impl ConcurrencyLimit {
+    fn new(limit: usize) -> Self {
+        Self {
+            limit,
+            current: Arc::new(Semaphore::new(limit)),
+        }
+    }
+
+    fn acquire(&self) -> Result<ConcurrencyPermit, TransactionLimitReachedError> {
+        match Arc::clone(&self.current).try_acquire_owned() {
+            Ok(permit) => Ok(ConcurrencyPermit { permit }),
+            Err(_) => Err(TransactionLimitReachedError { limit: self.limit }),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct TransactionState {
+    sender: mpsc::Sender<Request>,
+    cancel: CancellationToken,
+}
+
+type TransactionStorage = Arc<HashIndex<RequestId, TransactionState>>;
+
+pub(crate) struct TransactionCollection {
+    config: SessionConfig,
+
+    cancel: CancellationToken,
+    storage: TransactionStorage,
+    limit: ConcurrencyLimit,
+}
+
+impl TransactionCollection {
+    pub(crate) fn new(config: SessionConfig, cancel: CancellationToken) -> Self {
+        let senders = Arc::new(HashIndex::new());
+        let limit = ConcurrencyLimit::new(config.per_connection_concurrent_transaction_limit);
+
+        Self {
+            config,
+            cancel,
+            storage: senders,
+            limit,
+        }
+    }
+
+    async fn acquire(
+        &self,
+        id: RequestId,
+    ) -> Result<
+        (
+            Arc<TransactionPermit>,
+            mpsc::Sender<Request>,
+            mpsc::Receiver<Request>,
+        ),
+        TransactionLimitReachedError,
+    > {
+        let cancel = self.cancel.child_token();
+        let (tx, rx) = mpsc::channel(self.config.per_transaction_request_buffer_size.get());
+
+        let state = TransactionState {
+            sender: tx.clone(),
+            cancel: cancel.clone(),
+        };
+
+        let entry = self.storage.entry_async(id).await;
+        match entry {
+            Entry::Occupied(entry) => {
+                // evict the old one by cancelling it, it's still active, so we do not decrease the
+                // counter
+                entry.cancel.cancel();
+
+                entry.update(state);
+            }
+            Entry::Vacant(entry) => {
+                entry.insert_entry(state);
+            }
+        }
+
+        let handle = TransactionPermit::new(&self, id, cancel)?;
+
+        Ok((handle, tx, rx))
+    }
+
+    async fn release(&self, id: RequestId) {
+        let entry = self.storage.entry_async(id).await;
+
+        match entry {
+            Entry::Occupied(entry) => {
+                entry.cancel.cancel();
+                entry.remove_entry();
+            }
+            Entry::Vacant(_) => {}
+        }
+    }
+
+    async fn send(&self, request: Request) -> Result<(), TransactionLaggingError> {
+        let id = request.header.request_id;
+
+        let Some(entry) = self.storage.get(&id) else {
+            tracing::info!(
+                ?id,
+                "rogue packet received that isn't part of a transaction, dropping"
+            );
+
+            return Ok(());
+        };
+
+        // this creates implicit backpressure, if the transaction cannot accept more
+        // requests, we will wait a short amount (specified via the deadline), if we
+        // haven't processed the data until then, we will drop the
+        // transaction.
+        let result = entry
+            .sender
+            .send_timeout(request, self.config.request_delivery_deadline)
+            .await;
+
+        let Err(error) = result else {
+            return Ok(());
+        };
+
+        // This only happens in the case of a full buffer, which only happens if during
+        // buffering in an upper layer we are not able to process
+        // the data fast enough. This is also a mechanism to prevent
+        // a single transaction from blocking the whole session,
+        // and to prevent packet flooding.
+        match error {
+            SendTimeoutError::Timeout(_) => {
+                tracing::warn!("transaction buffer is too slow, dropping transaction");
+            }
+            SendTimeoutError::Closed(_) => {
+                tracing::info!("transaction task has shutdown, dropping transaction");
+            }
+        }
+
+        // because we're missing a request in the transaction, we need to cancel it
+        self.release(id).await;
+
+        Err(TransactionLaggingError)
+    }
+}
+
+pub(crate) struct TransactionPermit {
+    id: RequestId,
+    storage: TransactionStorage,
+
+    cancel: CancellationToken,
+
+    _permit: ConcurrencyPermit,
+}
+
+impl TransactionPermit {
+    fn new(
+        collection: &TransactionCollection,
+        id: RequestId,
+        cancel: CancellationToken,
+    ) -> Result<Arc<Self>, TransactionLimitReachedError> {
+        let permit = collection.limit.acquire()?;
+        let storage = Arc::clone(&collection.storage);
+
+        Ok(Arc::new(Self {
+            id,
+            storage,
+            _permit: permit,
+            cancel,
+        }))
+    }
+
+    pub(crate) fn cancellation_token(&self) -> CancellationToken {
+        self.cancel.clone()
+    }
+}
+
+impl Drop for TransactionPermit {
+    fn drop(&mut self) {
+        self.storage.remove(&self.id);
+    }
+}
+
 pub(crate) struct ConnectionTask<E> {
     pub(crate) peer: PeerId,
     pub(crate) session: SessionId,
 
-    // TODO: we actually don't know if they're still active, only that their sender is still alive
-    // this means that transaction limiting is not really possible with this setup.
-    pub(crate) active: Arc<HashIndex<RequestId, mpsc::Sender<Request>>>,
+    // Note: this does not account for transactions that have been requested (endOfRequest flag
+    // set), but are still in flight.
+    pub(crate) active: TransactionCollection,
     pub(crate) output: mpsc::Sender<Transaction>,
     pub(crate) events: broadcast::Sender<SessionEvent>,
 
@@ -135,36 +327,25 @@ where
         &self,
         tx: mpsc::Sender<Response>,
         tasks: &TaskTracker,
-        cancel: &CancellationToken,
         request: Request,
     ) -> ControlFlow<()> {
         // check if this is a `Begin` request, in that case we need to create a new transaction,
         // otherwise, this is already a transaction and we need to forward it, or log out if it is a
         // rogue request
-        // at the end of a transaction we close the transaction
         let request_id = request.header.request_id;
-        let is_end = request.header.flags.contains(RequestFlag::EndOfRequest);
 
         // these transactions then need to be propagated to the main session layer via an mpsc
         // channel, which drops a transaction if there's too many.
         match &request.body {
             RequestBody::Begin(begin) => {
-                if self.active.len() > self.config.per_connection_concurrent_transaction_limit {
-                    tracing::warn!("transaction limit reached, dropping transaction");
+                let (guard, request_tx, request_rx) = match self.active.acquire(request_id).await {
+                    Ok((guard, tx, rx)) => (guard, tx, rx),
+                    Err(error) => {
+                        tracing::info!("transaction limit reached, dropping transaction");
 
-                    return self
-                        .respond_error(
-                            request_id,
-                            TransactionLimitReachedError {
-                                limit: self.config.per_connection_concurrent_transaction_limit,
-                            },
-                            &tx,
-                        )
-                        .await;
-                }
-
-                let (transaction_tx, transaction_rx) =
-                    mpsc::channel(self.config.per_transaction_request_buffer_size.get());
+                        return self.respond_error(request_id, error, &tx).await;
+                    }
+                };
 
                 let (transaction, task) = Transaction::from_request(
                     request.header,
@@ -173,64 +354,57 @@ where
                         peer: self.peer,
                         session: self.session,
                         config: self.config,
-                        rx: transaction_rx,
-                        tx,
+                        rx: request_rx,
+                        tx: tx.clone(),
                     },
                 );
 
                 // we put it in the buffer, so will resolve immediately
-                transaction_tx
+                request_tx
                     .try_send(request)
                     .expect("infallible; buffer should be large enough to hold the request");
 
-                task.start(tasks, cancel.clone());
-
-                // insert the transaction into the index (replace if already exists)
-                let entry = self.active.entry_async(request_id).await;
-                match entry {
-                    scc::hash_index::Entry::Occupied(entry) => {
-                        entry.update(transaction_tx);
-                    }
-                    scc::hash_index::Entry::Vacant(entry) => {
-                        entry.insert_entry(transaction_tx);
-                    }
-                }
+                task.start(tasks, guard);
 
                 // creates implicit backpressure, if the session can not accept more transactions,
                 // we will wait until we can, this means that we will not be able to
                 // accept any more request packets until we can.
-                // TODO: We might want to use `.send_timeout` here to prevent it slowing down
-                // any other transactions.
-                if self.output.send(transaction).await.is_err() {
-                    return ControlFlow::Break(());
+                let result = self
+                    .output
+                    .send_timeout(transaction, self.config.transaction_delivery_deadline)
+                    .await;
+
+                // This only happens in case of a full buffer, in that case we will drop the
+                // transaction, because we can assume that the upper layer is unable to keep up with
+                // the incoming requests, it also helps us to prevent a DoS attack.
+                if let Err(error) = result {
+                    match error {
+                        SendTimeoutError::Timeout(_) => {
+                            tracing::warn!("transaction delivery timed out, dropping transaction");
+                            self.active.release(request_id).await;
+
+                            return self
+                                .respond_error(request_id, TransactionLaggingError, &tx)
+                                .await;
+                        }
+                        SendTimeoutError::Closed(_) => {
+                            // other end has been dropped, we can stop processing
+                            return ControlFlow::Break(());
+                        }
+                    }
                 }
             }
             RequestBody::Frame(_) => {
-                // forward the request to the transaction
-                if let Some(entry) = self.active.get_async(&request.header.request_id).await {
-                    // this creates implicit backpressure, if the transaction cannot accept more
-                    // requests, we will wait until we can.
-                    // TODO: We might want to use `.send_timeout` here to prevent it slowing down
-                    // any other transactions.
-                    // TODO: this has the potential problem that we stop other transactions from
-                    // continuing if one transaction is slow (on our side).
-                    if entry.send(request).await.is_err() {
-                        tracing::warn!("transaction task has shutdown, dropping transaction");
-                        entry.remove_entry();
-                    }
-                } else {
-                    // request has no transaction, which means it is a rogue request
-                    tracing::warn!(?request, "request not part of transaction");
+                if let Err(error) = self.active.send(request).await {
+                    return self.respond_error(request_id, error, &tx).await;
                 }
             }
         }
 
-        // remove the transaction from the index if it is closed.
         // TODO: forced gc on timeout in upper layer
-        if is_end {
-            // removing this also means that all the channels will cascade close
-            self.active.remove_async(&request_id).await;
-        }
+
+        // we do not need to check for `EndOfRequest` here, and close the channel, as the task is
+        // already doing this for us.
 
         ControlFlow::Continue(())
     }
@@ -258,7 +432,7 @@ where
                 every: self
                     .config
                     .per_connection_transaction_garbage_collect_interval,
-                transactions: Arc::clone(&self.active),
+                transactions: Arc::clone(&self.active.storage),
             }
             .run(cancel_gc.clone()),
         );
@@ -280,7 +454,7 @@ where
                             finished.add_permits(1);
                         }
                         Some(Ok(request)) => {
-                            if self.handle_request(tx.clone(), &tasks, &cancel, request).await.is_break() {
+                            if self.handle_request(tx.clone(), &tasks, request).await.is_break() {
                                 tracing::info!("supervisor has been shut down");
                                 break;
                             }

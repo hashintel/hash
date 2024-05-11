@@ -6,6 +6,9 @@ pub struct SessionConfig {
     pub transaction_buffer_size: NonZero<usize>,
     pub concurrent_connection_limit: usize,
 
+    pub request_delivery_deadline: Duration,
+    pub transaction_delivery_deadline: Duration,
+
     pub per_connection_concurrent_transaction_limit: usize,
     pub per_connection_response_buffer_size: NonZero<usize>,
     pub per_connection_transaction_garbage_collect_interval: Duration,
@@ -24,6 +27,9 @@ impl Default for SessionConfig {
             event_buffer_size: NonZero::new(8).expect("infallible"),
             transaction_buffer_size: NonZero::new(32).expect("infallible"),
             concurrent_connection_limit: 256,
+
+            request_delivery_deadline: Duration::from_millis(100),
+            transaction_delivery_deadline: Duration::from_millis(100),
 
             per_connection_concurrent_transaction_limit: 64,
             per_connection_response_buffer_size: NonZero::new(16).expect("infallible"),

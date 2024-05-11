@@ -1,3 +1,5 @@
+use alloc::sync::Arc;
+
 use bytes::Bytes;
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
@@ -11,7 +13,9 @@ use libp2p::PeerId;
 use tokio::{select, sync::mpsc};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
-use super::{session_id::SessionId, write::ResponseWriter, SessionConfig};
+use super::{
+    connection::TransactionPermit, session_id::SessionId, write::ResponseWriter, SessionConfig,
+};
 use crate::session::error::TransactionError;
 
 struct TransactionSendDelegateTask {
@@ -204,7 +208,7 @@ pub(crate) struct TransactionTask {
 }
 
 impl TransactionTask {
-    pub(super) fn start(self, tasks: &TaskTracker, cancel: CancellationToken) {
+    pub(super) fn start(self, tasks: &TaskTracker, permit: Arc<TransactionPermit>) {
         let recv = TransactionRecvDelegateTask {
             rx: self.request_rx,
             tx: self.request_tx,
@@ -218,8 +222,20 @@ impl TransactionTask {
             tx: self.response_tx,
         };
 
-        tasks.spawn(recv.run(cancel.clone()));
-        tasks.spawn(send.run(cancel));
+        let recv_permit = Arc::clone(&permit);
+        tasks.spawn(async move {
+            // move the permit into the task, so that it's dropped when the task is done
+            let recv_permit = recv_permit;
+
+            recv.run(recv_permit.cancellation_token()).await;
+        });
+
+        tasks.spawn(async move {
+            // move the permit into the task, so that it's dropped when the task is done
+            let send_permit = permit;
+
+            send.run(send_permit.cancellation_token()).await;
+        });
     }
 }
 

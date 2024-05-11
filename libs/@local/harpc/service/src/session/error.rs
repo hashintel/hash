@@ -27,3 +27,23 @@ impl ErrorExt for TransactionLimitReachedError {
         ErrorCode::TRANSACTION_LIMIT_REACHED
     }
 }
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
+#[error("transaction has been dropped, as the connection is lagging")]
+pub struct TransactionLaggingError;
+
+impl ErrorExt for TransactionLaggingError {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::TRANSACTION_LAGGING
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
+#[error("session has been clossed")]
+pub struct ConnectionClosedError;
+
+impl ErrorExt for ConnectionClosedError {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::CONNECTION_CLOSED
+    }
+}

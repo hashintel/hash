@@ -10,11 +10,12 @@ use crate::codec::{Buffer, BufferError, Decode, Encode};
 pub struct ErrorCode(NonZero<u16>);
 
 impl ErrorCode {
-    // 0xFF_F0..=0xFF_FF are transport layer errors
-
     // 0xFF_E0..=0xFF_EF are session layer errors
+    pub const CONNECTION_CLOSED: Self = Self(NonZero::new(0xFF_E0).expect("infallible"));
+    pub const TRANSACTION_LAGGING: Self = Self(NonZero::new(0xFF_E1).expect("infallible"));
+    pub const TRANSACTION_LIMIT_REACHED: Self = Self(NonZero::new(0xFF_E2).expect("infallible"));
 
-    pub const TRANSACTION_LIMIT_REACHED: Self = Self(NonZero::new(0xFF_E0).expect("infallible"));
+    // 0xFF_F0..=0xFF_FF are transport layer errors
 
     #[must_use]
     pub const fn new(value: NonZero<u16>) -> Self {
