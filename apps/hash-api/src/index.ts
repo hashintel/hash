@@ -234,7 +234,7 @@ const main = async () => {
 
   const context = { graphApi, uploadProvider, temporalClient };
 
-  if (!isProdEnv) {
+  if (isDevEnv) {
     await ensureSystemGraphIsInitialized({ logger, context });
   }
 
