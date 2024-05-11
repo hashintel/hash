@@ -90,6 +90,7 @@ import {
   setupStorageProviders,
 } from "./storage";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
+import { ensureHashSystemAccountExists } from "./graph/system-account";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -236,6 +237,9 @@ const main = async () => {
 
   if (isDevEnv) {
     await ensureSystemGraphIsInitialized({ logger, context });
+  } else {
+    // Globally sets `systemAccountId`
+    await ensureHashSystemAccountExists({ logger, context });
   }
 
   // This will seed users, an org and pages.
