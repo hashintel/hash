@@ -38,6 +38,7 @@ import {
   mapLlmMessageToOpenAiMessages,
   mapOpenAiMessagesToLlmMessages,
 } from "./get-llm-response/llm-message";
+import { logLlmRequest } from "./get-llm-response/log-llm-request";
 import type {
   AnthropicLlmParams,
   AnthropicResponse,
@@ -238,6 +239,7 @@ const getAnthropicResponse = async (
     messages,
     systemPrompt,
     previousUsage,
+    previousInvalidResponses,
     ...remainingParams
   } = params;
 
@@ -257,6 +259,8 @@ const getAnthropicResponse = async (
 
   let anthropicResponse: AnthropicMessagesCreateResponse;
 
+  const timeBeforeRequest = Date.now();
+
   try {
     anthropicResponse = await createAnthropicMessagesWithTools({
       ...remainingParams,
@@ -274,6 +278,8 @@ const getAnthropicResponse = async (
       status: "api-error",
     };
   }
+
+  const currentRequestTime = Date.now() - timeBeforeRequest;
 
   const usage: LlmUsage = {
     inputTokens:
@@ -309,6 +315,10 @@ const getAnthropicResponse = async (
           role: "user",
           content: retryParams.retryMessageContent,
         },
+      ],
+      previousInvalidResponses: [
+        ...(previousInvalidResponses ?? []),
+        { ...anthropicResponse, requestTime: currentRequestTime },
       ],
     });
   };
@@ -377,15 +387,20 @@ const getAnthropicResponse = async (
     throw new Error("Unexpected user message in response");
   }
 
-  const response: LlmResponse<AnthropicLlmParams> = {
+  return {
     ...anthropicResponse,
     status: "ok",
     stopReason,
     message,
     usage,
+    invalidResponses: previousInvalidResponses ?? [],
+    lastRequestTime: currentRequestTime,
+    totalRequestTime:
+      previousInvalidResponses?.reduce(
+        (acc, { requestTime }) => acc + requestTime,
+        currentRequestTime,
+      ) ?? currentRequestTime,
   };
-
-  return response;
 };
 
 const getOpenAiResponse = async (
@@ -398,6 +413,7 @@ const getOpenAiResponse = async (
     messages,
     systemPrompt,
     previousUsage,
+    previousInvalidResponses,
     ...remainingParams
   } = params;
 
@@ -422,6 +438,12 @@ const getOpenAiResponse = async (
     messages: openAiMessages,
     tools: openAiTools,
     stream: false,
+    /**
+     * Return `logprobs` by default when in development mode, unless
+     * explicitly overridden by the caller.
+     */
+    logprobs:
+      remainingParams.logprobs ?? process.env.NODE_ENV === "development",
   };
 
   /**
@@ -470,10 +492,22 @@ const getOpenAiResponse = async (
 
   let openAiResponse: ChatCompletion;
 
+  const timeBeforeRequest = Date.now();
+
   try {
     openAiResponse = await openai.chat.completions.create(completionPayload);
 
-    logger.debug(`OpenAI response: ${stringify(openAiResponse)}`);
+    /**
+     * Avoid logging logprobs, as they clutter the output. The `logprobs` will
+     * be persisted in the LLM Request logs instead.
+     */
+    const choicesWithoutLogProbs = openAiResponse.choices.map(
+      ({ logprobs: _logprobs, ...choice }) => choice,
+    );
+
+    logger.debug(
+      `OpenAI response: ${stringify({ ...openAiResponse, choices: choicesWithoutLogProbs })}`,
+    );
   } catch (error) {
     logger.error(`OpenAI API error: ${stringify(error)}`);
 
@@ -484,6 +518,8 @@ const getOpenAiResponse = async (
       axiosError,
     };
   }
+
+  const currentRequestTime = Date.now() - timeBeforeRequest;
 
   const usage: LlmUsage = {
     inputTokens:
@@ -531,6 +567,10 @@ const getOpenAiResponse = async (
         },
       ],
       previousUsage: usage,
+      previousInvalidResponses: [
+        ...(previousInvalidResponses ?? []),
+        { ...openAiResponse, requestTime: currentRequestTime },
+      ],
     });
   };
 
@@ -679,6 +719,13 @@ const getOpenAiResponse = async (
     message: responseMessage,
     stopReason,
     usage,
+    invalidResponses: previousInvalidResponses ?? [],
+    lastRequestTime: currentRequestTime,
+    totalRequestTime:
+      previousInvalidResponses?.reduce(
+        (acc, { requestTime }) => acc + requestTime,
+        currentRequestTime,
+      ) ?? currentRequestTime,
   };
 
   return response;
@@ -739,9 +786,11 @@ export const getLlmResponse = async <T extends LlmParams>(
 
   const timeBeforeApiCall = Date.now();
 
-  const llmResponse = isLlmParamsAnthropicLlmParams(llmParams)
-    ? await getAnthropicResponse(llmParams)
-    : await getOpenAiResponse(llmParams);
+  const llmResponse = (
+    isLlmParamsAnthropicLlmParams(llmParams)
+      ? await getAnthropicResponse(llmParams)
+      : await getOpenAiResponse(llmParams)
+  ) as LlmResponse<T>;
 
   const timeAfterApiCall = Date.now();
 
@@ -847,5 +896,9 @@ export const getLlmResponse = async <T extends LlmParams>(
     }
   }
 
-  return llmResponse as LlmResponse<T>;
+  if (process.env.NODE_ENV === "development") {
+    logLlmRequest({ llmParams, llmResponse });
+  }
+
+  return llmResponse;
 };

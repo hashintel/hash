@@ -34,6 +34,7 @@ import {
 } from "../shared/get-llm-response/llm-message";
 import type { LlmToolDefinition } from "../shared/get-llm-response/types";
 import { graphApiClient } from "../shared/graph-api-client";
+import { openAiSeed } from "../shared/open-ai-seed";
 
 const answerTools: LlmToolDefinition[] = [
   {
@@ -168,6 +169,7 @@ const callModel = async (
       systemPrompt,
       messages: mapOpenAiMessagesToLlmMessages({ messages }),
       temperature: 0,
+      seed: openAiSeed,
       tools: answerTools,
     },
     {
