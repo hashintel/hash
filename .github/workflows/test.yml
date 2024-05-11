@@ -459,9 +459,13 @@ jobs:
           echo 'ANTHROPIC_API_KEY=dummy' >> .env.local
           yarn workspace @apps/hash-external-services deploy up --wait
 
-      - name: Launch HASH-API
+      - name: Migrate HASH-API
         run: |
           turbo run build --filter "@apps/hash-api"
+          yarn workspace @apps/hash-api ensure-system-graph-is-initialized
+
+      - name: Launch HASH-API
+        run: |
           yarn workspace @apps/hash-api start-test 2>&1 | tee var/logs/backend.log &
           yarn wait-on --timeout 120000 http://0.0.0.0:5001
 

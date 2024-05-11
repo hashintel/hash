@@ -59,6 +59,12 @@ hash_graph_env_vars = [
   { name = "RUST_BACKTRACE", secret = false, value = "1" }
 ]
 
+hash_api_migration_env_vars = [
+  { name = "HASH_KRATOS_PUBLIC_URL", secret = false, value = "http://localhost:4433" },
+  { name = "HASH_KRATOS_ADMIN_URL", secret = false, value = "http://localhost:4434" },
+  { name = "LOG_LEVEL", secret = false, value = "debug" },
+]
+
 hash_api_env_vars = [
   { name = "FRONTEND_URL", secret = false, value = "https://app.hash.ai" },
   { name = "API_ORIGIN", secret = false, value = "https://app-api.hash.ai" },

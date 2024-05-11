@@ -63,6 +63,7 @@ import {
   DummyEmailTransporter,
 } from "./email/transporters";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
+import { ensureHashSystemAccountExists } from "./graph/system-account";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
 import { checkGoogleAccessToken } from "./integrations/google/check-access-token";
@@ -234,7 +235,12 @@ const main = async () => {
 
   const context = { graphApi, uploadProvider, temporalClient };
 
-  await ensureSystemGraphIsInitialized({ logger, context });
+  if (isDevEnv) {
+    await ensureSystemGraphIsInitialized({ logger, context });
+  } else {
+    // Globally sets `systemAccountId`
+    await ensureHashSystemAccountExists({ logger, context });
+  }
 
   // This will seed users, an org and pages.
   // Configurable through environment variables.

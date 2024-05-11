@@ -56,6 +56,11 @@ locals {
       env_vars = aws_ssm_parameter.api_env_vars
       ecr_arn  = var.api_image.ecr_arn
     },
+    {
+      task_def = local.api_migration_container_def
+      env_vars = aws_ssm_parameter.api_migration_env_vars
+      ecr_arn  = var.api_image.ecr_arn
+    },
     # TODO: Move it to the `worker` service and make sure it can connect to the Graph container
     {
       task_def = local.temporal_worker_ai_ts_service_container_def
@@ -379,7 +384,7 @@ resource "aws_ecs_task_definition" "worker_task" {
 }
 
 resource "aws_ecs_service" "svc" {
-  depends_on                        = [aws_iam_role.task_role, aws_ecs_service.spicedb]
+  depends_on                        = [aws_iam_role.task_role, aws_ecs_service.graph]
   name                              = "${local.prefix}svc"
   cluster                           = data.aws_ecs_cluster.ecs.arn
   task_definition                   = aws_ecs_task_definition.task.arn
@@ -411,7 +416,7 @@ resource "aws_ecs_service" "svc" {
 }
 
 resource "aws_ecs_service" "worker" {
-  depends_on             = [aws_iam_role.task_role]
+  depends_on             = [aws_iam_role.task_role, aws_ecs_service.graph]
   name                   = "${local.prefix}worker-svc"
   cluster                = data.aws_ecs_cluster.ecs.arn
   task_definition        = aws_ecs_task_definition.worker_task.arn

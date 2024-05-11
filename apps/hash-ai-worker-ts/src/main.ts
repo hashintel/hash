@@ -72,6 +72,8 @@ const workflowOption = () =>
     : { workflowsPath: require.resolve("./workflows") };
 
 async function run() {
+  logToConsole.info("Starting AI worker...");
+
   const graphApiClient = createGraphClient(logToConsole, {
     host: getRequiredEnv("HASH_GRAPH_API_HOST"),
     port: parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10),
@@ -120,8 +122,14 @@ async function run() {
   await worker.run();
 }
 
-process.on("SIGINT", () => process.exit(1));
-process.on("SIGTERM", () => process.exit(1));
+process.on("SIGINT", () => {
+  logToConsole.info("Received SIGINT, exiting...");
+  process.exit(1);
+});
+process.on("SIGTERM", () => {
+  logToConsole.info("Received SIGTERM, exiting...");
+  process.exit(1);
+});
 
 run().catch((err) => {
   logToConsole.error(err);
