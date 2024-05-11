@@ -1815,6 +1815,7 @@ dependencies = [
  "error-stack",
  "flume",
  "futures",
+ "harpc-types",
  "harpc-wire-protocol",
  "kanal",
  "libp2p",

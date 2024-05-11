@@ -95,6 +95,8 @@ pub(crate) struct ConnectionTask<E> {
     pub(crate) peer: PeerId,
     pub(crate) session: SessionId,
 
+    // TODO: we actually don't know if they're still active, only that their sender is still alive
+    // this means that transaction limiting is not really possible with this setup.
     pub(crate) active: Arc<HashIndex<RequestId, mpsc::Sender<Request>>>,
     pub(crate) output: mpsc::Sender<Transaction>,
     pub(crate) events: broadcast::Sender<SessionEvent>,
@@ -194,6 +196,11 @@ where
                     }
                 }
 
+                // creates implicit backpressure, if the session can not accept more transactions,
+                // we will wait until we can, this means that we will not be able to
+                // accept any more request packets until we can.
+                // TODO: We might want to use `.send_timeout` here to prevent it slowing down
+                // any other transactions.
                 if self.output.send(transaction).await.is_err() {
                     return ControlFlow::Break(());
                 }
@@ -201,8 +208,15 @@ where
             RequestBody::Frame(_) => {
                 // forward the request to the transaction
                 if let Some(entry) = self.active.get_async(&request.header.request_id).await {
-                    if let Err(error) = entry.send(request).await {
-                        tracing::warn!(?error, "failed to forward request to transaction");
+                    // this creates implicit backpressure, if the transaction cannot accept more
+                    // requests, we will wait until we can.
+                    // TODO: We might want to use `.send_timeout` here to prevent it slowing down
+                    // any other transactions.
+                    // TODO: this has the potential problem that we stop other transactions from
+                    // continuing if one transaction is slow (on our side).
+                    if entry.send(request).await.is_err() {
+                        tracing::warn!("transaction task has shutdown, dropping transaction");
+                        entry.remove_entry();
                     }
                 } else {
                     // request has no transaction, which means it is a rogue request
@@ -212,7 +226,7 @@ where
         }
 
         // remove the transaction from the index if it is closed.
-        // TODO: forced gc on timeout in upper layer (needs IPC)
+        // TODO: forced gc on timeout in upper layer
         if is_end {
             // removing this also means that all the channels will cascade close
             self.active.remove_async(&request_id).await;

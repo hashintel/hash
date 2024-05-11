@@ -36,4 +36,5 @@ tokio-util = { workspace = true, features = ["codec", "compat", "rt"] }
 tracing.workspace = true
 
 [dev-dependencies]
+harpc-types.workspace = true
 test-log = { version = "0.2.16", features = ["trace"] }

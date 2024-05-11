@@ -228,10 +228,22 @@ mod test {
     use core::{num::NonZero, time::Duration};
 
     use bytes::Bytes;
+    use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
     use harpc_wire_protocol::{
         flags::BitFlagsOp,
         payload::Payload,
-        request::id::RequestId,
+        protocol::{Protocol, ProtocolVersion},
+        request::{
+            begin::RequestBegin,
+            body::RequestBody,
+            flags::{RequestFlag, RequestFlags},
+            frame::RequestFrame,
+            header::RequestHeader,
+            id::RequestId,
+            procedure::ProcedureDescriptor,
+            service::ServiceDescriptor,
+            Request,
+        },
         response::{
             begin::ResponseBegin,
             body::ResponseBody,
@@ -244,6 +256,7 @@ mod test {
     use tokio::{sync::mpsc, task::JoinHandle};
     use tokio_util::sync::CancellationToken;
 
+    use super::TransactionRecvDelegateTask;
     use crate::session::{
         error::TransactionError,
         server::{transaction::TransactionSendDelegateTask, SessionConfig},
@@ -1526,5 +1539,148 @@ mod test {
                 payload: &[],
             },
         );
+    }
+
+    fn setup_recv() -> (mpsc::Sender<Request>, mpsc::Receiver<Bytes>, JoinHandle<()>) {
+        let (request_tx, request_rx) = mpsc::channel(8);
+        let (bytes_tx, bytes_rx) = mpsc::channel(8);
+
+        let handle = tokio::spawn(
+            TransactionRecvDelegateTask {
+                rx: request_rx,
+                tx: bytes_tx,
+            }
+            .run(CancellationToken::new()),
+        );
+
+        (request_tx, bytes_rx, handle)
+    }
+
+    fn make_begin(flags: impl Into<RequestFlags>, payload: impl Into<Bytes>) -> Request {
+        Request {
+            header: RequestHeader {
+                flags: flags.into(),
+                protocol: Protocol {
+                    version: ProtocolVersion::V1,
+                },
+                request_id: RequestId::new_unchecked(0x01),
+            },
+            body: RequestBody::Begin(RequestBegin {
+                service: ServiceDescriptor {
+                    id: ServiceId::new(0x00),
+                    version: Version {
+                        major: 0x00,
+                        minor: 0x00,
+                    },
+                },
+                procedure: ProcedureDescriptor {
+                    id: ProcedureId::new(0x00),
+                },
+                payload: Payload::new(payload),
+            }),
+        }
+    }
+
+    fn make_frame(flags: impl Into<RequestFlags>, payload: impl Into<Bytes>) -> Request {
+        Request {
+            header: RequestHeader {
+                flags: flags.into(),
+                protocol: Protocol {
+                    version: ProtocolVersion::V1,
+                },
+                request_id: RequestId::new_unchecked(0x01),
+            },
+            body: RequestBody::Frame(RequestFrame {
+                payload: Payload::new(payload),
+            }),
+        }
+    }
+
+    #[tokio::test]
+    async fn recv() {
+        let (request_tx, mut bytes_rx, handle) = setup_recv();
+
+        request_tx
+            .send(make_begin(
+                RequestFlags::EMPTY,
+                Bytes::from_static(b"begin"),
+            ))
+            .await
+            .expect("should not be closed");
+
+        request_tx
+            .send(make_frame(
+                RequestFlags::EMPTY,
+                Bytes::from_static(b"frame"),
+            ))
+            .await
+            .expect("should not be closed");
+
+        request_tx
+            .send(make_frame(
+                RequestFlag::EndOfRequest,
+                Bytes::from_static(b"end of request"),
+            ))
+            .await
+            .expect("should not be closed");
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+
+        let mut bytes = Vec::with_capacity(4);
+        let available = bytes_rx.recv_many(&mut bytes, 4).await;
+        assert_eq!(available, 3);
+
+        assert_eq!(bytes[0], Bytes::from_static(b"begin"));
+        assert_eq!(bytes[1], Bytes::from_static(b"frame"));
+        assert_eq!(bytes[2], Bytes::from_static(b"end of request"));
+    }
+
+    #[tokio::test]
+    async fn recv_premature_close_tx() {
+        let (request_tx, mut bytes_rx, handle) = setup_recv();
+
+        request_tx
+            .send(make_begin(
+                RequestFlags::EMPTY,
+                Bytes::from_static(b"begin"),
+            ))
+            .await
+            .expect("should not be closed");
+
+        drop(request_tx);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+
+        let mut bytes = Vec::with_capacity(1);
+        let available = bytes_rx.recv_many(&mut bytes, 1).await;
+        assert_eq!(available, 1);
+
+        assert_eq!(bytes[0], Bytes::from_static(b"begin"));
+    }
+
+    #[tokio::test]
+    async fn recv_premature_close_rx() {
+        let (request_tx, bytes_rx, handle) = setup_recv();
+
+        request_tx
+            .send(make_begin(
+                RequestFlags::EMPTY,
+                Bytes::from_static(b"begin"),
+            ))
+            .await
+            .expect("should not be closed");
+
+        drop(bytes_rx);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
     }
 }
