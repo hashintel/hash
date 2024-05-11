@@ -63,6 +63,7 @@ import {
   DummyEmailTransporter,
 } from "./email/transporters";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
+import { ensureHashSystemAccountExists } from "./graph/system-account";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
 import { checkGoogleAccessToken } from "./integrations/google/check-access-token";
@@ -90,7 +91,6 @@ import {
   setupStorageProviders,
 } from "./storage";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
-import { ensureHashSystemAccountExists } from "./graph/system-account";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
