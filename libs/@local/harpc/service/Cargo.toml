@@ -28,6 +28,7 @@ libp2p = { version = "0.53.2", features = [
     "identify",
 ] }
 libp2p-stream = "0.1.0-alpha"
+pin-project-lite = "0.2.14"
 scc = "2.1.1"
 tachyonix = "0.2.1"
 thiserror = "1.0.59"

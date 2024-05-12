@@ -13,7 +13,7 @@ use harpc_wire_protocol::{
     response::Response,
 };
 use libp2p::PeerId;
-use scc::{hash_index::Entry, HashIndex};
+use scc::{ebr::Guard, hash_index::Entry, HashIndex};
 use tokio::{
     pin, select,
     sync::{
@@ -32,7 +32,7 @@ use super::{
     SessionConfig, SessionEvent,
 };
 use crate::{
-    codec::{ErrorEncoder, ErrorExt},
+    codec::{ErrorEncoder, PlainError},
     session::error::{
         ConnectionTransactionLimitReachedError, InstanceTransactionLimitReachedError,
         TransactionError, TransactionLaggingError,
@@ -133,7 +133,7 @@ impl ConcurrencyLimit {
 struct TransactionState {
     generation: u64,
 
-    sender: mpsc::Sender<Request>,
+    sender: tachyonix::Sender<Request>,
     cancel: CancellationToken,
 }
 
@@ -168,8 +168,8 @@ impl TransactionCollection {
     ) -> Result<
         (
             Arc<TransactionPermit>,
-            mpsc::Sender<Request>,
-            mpsc::Receiver<Request>,
+            tachyonix::Sender<Request>,
+            tachyonix::Receiver<Request>,
         ),
         ConnectionTransactionLimitReachedError,
     > {
@@ -177,7 +177,7 @@ impl TransactionCollection {
 
         let handle = TransactionPermit::new(self, id, cancel.clone())?;
 
-        let (tx, rx) = mpsc::channel(self.config.per_transaction_request_buffer_size.get());
+        let (tx, rx) = tachyonix::channel(self.config.per_transaction_request_buffer_size.get());
 
         let state = TransactionState {
             generation: handle.generation,
@@ -214,6 +214,26 @@ impl TransactionCollection {
         }
     }
 
+    fn shutdown_senders(&self) {
+        let guard = Guard::new();
+        for (_, state) in self.storage.iter(&guard) {
+            state.sender.close();
+        }
+    }
+
+    async fn shutdown_sender(&self, id: RequestId) {
+        if let Some(state) = self.storage.get_async(&id).await {
+            state.sender.close();
+        }
+    }
+
+    fn cancel_all(&self) {
+        let guard = Guard::new();
+        for (_, state) in self.storage.iter(&guard) {
+            state.cancel.cancel();
+        }
+    }
+
     async fn send(&self, request: Request) -> Result<(), TransactionLaggingError> {
         let id = request.header.request_id;
 
@@ -230,33 +250,53 @@ impl TransactionCollection {
         // requests, we will wait a short amount (specified via the deadline), if we
         // haven't processed the data until then, we will drop the
         // transaction.
-        let result = entry
-            .sender
-            .send_timeout(request, self.config.request_delivery_deadline)
-            .await;
-
-        let Err(error) = result else {
-            return Ok(());
-        };
+        let result = tokio::time::timeout(
+            self.config.request_delivery_deadline,
+            entry.sender.send(request),
+        )
+        .await;
 
         // This only happens in the case of a full buffer, which only happens if during
         // buffering in an upper layer we are not able to process
         // the data fast enough. This is also a mechanism to prevent
         // a single transaction from blocking the whole session,
         // and to prevent packet flooding.
-        match error {
-            SendTimeoutError::Timeout(_) => {
-                tracing::warn!("transaction buffer is too slow, dropping transaction");
+        match result {
+            Ok(Ok(())) => {
+                // everything is fine, continue by early returning
+                return Ok(());
             }
-            SendTimeoutError::Closed(_) => {
-                tracing::info!("transaction task has shutdown, dropping transaction");
+            Ok(Err(_)) => {
+                tracing::info!("transaction sender has been closed, dropping packet");
+
+                // the channel has already been closed, the upper layer must notify
+                // the sender that the transaction is (potentially) incomplete.
+                //
+                // Otherwise this could also be a packet that is simply out of order or rogue
+                // in that case notifing the client would be confusing anyway.
+                return Ok(());
+            }
+            Err(_) => {
+                tracing::warn!("transaction buffer is too slow, dropping transaction");
+
+                // we've missed the deadline, therefore we can no longer send data to the
+                // transaction without risking the integrity of the transaction.
+                self.shutdown_sender(id).await;
+
+                return Err(TransactionLaggingError);
             }
         }
+    }
+}
 
-        // because we're missing a request in the transaction, we need to cancel it
-        self.release(id).await;
-
-        Err(TransactionLaggingError)
+impl Drop for TransactionCollection {
+    fn drop(&mut self) {
+        // Dropping the transaction collection indicates that the session is shutting down, this
+        // means no supervisor is there to send or recv data, so we can just go ahead and cancel any
+        // pending transactions.
+        // These should have been cancelled already implicitly, but just to be sure we do it again
+        // explicitely here, as to not leave any dangling tasks.
+        self.cancel_all();
     }
 }
 
@@ -345,7 +385,7 @@ where
         tx: &mpsc::Sender<Response>,
     ) -> ControlFlow<()>
     where
-        T: ErrorExt + Send + Sync,
+        T: PlainError + Send + Sync,
     {
         let TransactionError { code, bytes } = self.encoder.encode_error(error).await;
 
@@ -483,19 +523,12 @@ where
         );
         let _drop_gc = cancel_gc.drop_guard();
 
+        // if we break out of the loop the `ConnectionDelegateTask` automatically stops itself, even
+        // *if* it is still running, this is because `tx` is dropped, which closes the
+        // channel, meaning that `ConnectionDelegateTask` will stop itself.
         let (tx, rx) = mpsc::channel(self.config.per_connection_response_buffer_size.get());
         let mut handle = tasks
-            .spawn({
-                let cancel = cancel.clone();
-
-                async move {
-                    let task = ConnectionDelegateTask { rx, sink };
-
-                    if let Err(error) = task.run(cancel).await {
-                        tracing::info!(?error, "connection has been prematurely closed");
-                    }
-                }
-            })
+            .spawn(ConnectionDelegateTask { rx, sink }.run(cancel.clone()))
             .fuse();
 
         loop {
@@ -507,10 +540,16 @@ where
                         None => {
                             // stream has finished
                             finished.add_permits(1);
+
+                            // shutdown the senders, as they can't be used anymore, this indicates to the delegate tasks that they should stop
+                            // we don't cancel them, because they might still respond to the requests,
+                            // they'll cancel themselves once the handle has finished
+                            self.active.shutdown_senders();
                         }
                         Some(Ok(request)) => {
                             if self.handle_request(tx.clone(), &tasks, request).await.is_break() {
                                 tracing::info!("supervisor has been shut down");
+
                                 break;
                             }
                         },
@@ -534,9 +573,11 @@ where
                 }
                 _ = finished.acquire_many(2) => {
                     // both the stream and the sink have finished, we can terminate
+                    // both the stream and sink have finished, so we don't need to shutdown the senders, they'll shutdown by themselves
                     break;
                 }
                 () = cancel.cancelled() => {
+                    // cancel propagates down, so we don't need to shutdown the senders
                     break;
                 }
             }
@@ -553,34 +594,246 @@ where
 
 #[cfg(test)]
 mod test {
-    use core::time::Duration;
+    use alloc::sync::Arc;
+    use core::{future::ready, time::Duration};
+    use std::io;
 
+    use bytes::Bytes;
+    use futures::prelude::sink::SinkExt;
+    use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
     use harpc_wire_protocol::{
         flags::BitFlagsOp,
         payload::Payload,
         protocol::{Protocol, ProtocolVersion},
-        request::id::RequestId,
+        request::{
+            begin::RequestBegin, body::RequestBody, flags::RequestFlags, frame::RequestFrame,
+            header::RequestHeader, id::RequestId, procedure::ProcedureDescriptor,
+            service::ServiceDescriptor, Request,
+        },
         response::{
-            body::ResponseBody, flags::ResponseFlags, frame::ResponseFrame, header::ResponseHeader,
+            begin::ResponseBegin,
+            body::ResponseBody,
+            flags::ResponseFlags,
+            frame::ResponseFrame,
+            header::ResponseHeader,
+            kind::{ErrorCode, ResponseKind},
             Response,
         },
     };
-    use tokio::sync::mpsc;
-    use tokio_util::sync::{CancellationToken, PollSender};
-
-    use super::ConcurrencyLimit;
-    use crate::session::server::{
-        connection::{ConnectionDelegateTask, TransactionCollection},
-        SessionConfig,
+    use libp2p::PeerId;
+    use tokio::{
+        sync::{broadcast, mpsc, Semaphore},
+        task::JoinHandle,
+    };
+    use tokio_stream::wrappers::ReceiverStream;
+    use tokio_util::{
+        sync::{CancellationToken, PollSender},
+        task::TaskTracker,
     };
 
-    #[tokio::test]
-    #[ignore]
-    async fn stream_dropped() {}
+    use super::{ConcurrencyLimit, ConnectionTask};
+    use crate::{
+        codec::ErrorEncoder,
+        session::{
+            error::TransactionError,
+            server::{
+                connection::{ConnectionDelegateTask, TransactionCollection},
+                SessionConfig, SessionEvent, SessionId, Transaction,
+            },
+        },
+    };
+
+    struct StringEncoder;
+
+    impl ErrorEncoder for StringEncoder {
+        fn encode_error<E>(
+            &self,
+            error: E,
+        ) -> impl Future<Output = crate::session::error::TransactionError> + Send
+        where
+            E: crate::codec::PlainError,
+        {
+            ready(TransactionError {
+                code: error.code(),
+                bytes: error.to_string().into_bytes().into(),
+            })
+        }
+
+        fn encode_report<C>(
+            &self,
+            report: error_stack::Report<C>,
+        ) -> impl Future<Output = crate::session::error::TransactionError> + Send {
+            let code = report
+                .request_ref::<ErrorCode>()
+                .next()
+                .copied()
+                .unwrap_or(ErrorCode::INTERNAL_SERVER_ERROR);
+
+            ready(TransactionError {
+                code,
+                bytes: report.to_string().into_bytes().into(),
+            })
+        }
+    }
+
+    struct Setup {
+        output: mpsc::Receiver<Transaction>,
+        events: broadcast::Receiver<SessionEvent>,
+
+        stream: mpsc::Sender<error_stack::Result<Request, io::Error>>,
+        sink: mpsc::Receiver<Response>,
+
+        handle: JoinHandle<()>,
+    }
+
+    impl Setup {
+        #[expect(clippy::significant_drop_tightening, reason = "False positive")]
+        fn new(config: SessionConfig) -> Self {
+            let cancel = CancellationToken::new();
+
+            let (output_tx, output_rx) = mpsc::channel(8);
+            let (events_tx, events_rx) = broadcast::channel(8);
+
+            let (stream_tx, stream_rx) = mpsc::channel(8);
+            let (sink_tx, sink_rx) = mpsc::channel(8);
+
+            let permit = Arc::new(Semaphore::new(1))
+                .try_acquire_owned()
+                .expect("infallible");
+
+            let task = ConnectionTask {
+                peer: PeerId::random(),
+                session: SessionId::new_unchecked(0x00),
+                active: TransactionCollection::new(config, cancel.clone()),
+                output: output_tx,
+                events: events_tx,
+                config,
+                encoder: Arc::new(StringEncoder),
+                _permit: permit,
+            };
+
+            let handle = tokio::spawn(task.run(
+                PollSender::new(sink_tx),
+                ReceiverStream::new(stream_rx),
+                TaskTracker::new(),
+                cancel,
+            ));
+
+            Self {
+                output: output_rx,
+                events: events_rx,
+                stream: stream_tx,
+                sink: sink_rx,
+                handle,
+            }
+        }
+    }
+
+    fn make_request_header(flags: impl Into<RequestFlags>) -> RequestHeader {
+        RequestHeader {
+            protocol: Protocol {
+                version: ProtocolVersion::V1,
+            },
+            request_id: RequestId::new_unchecked(0x01),
+            flags: flags.into(),
+        }
+    }
+
+    fn make_request_begin(flags: impl Into<RequestFlags>, payload: impl Into<Bytes>) -> Request {
+        Request {
+            header: make_request_header(flags),
+            body: RequestBody::Begin(RequestBegin {
+                service: ServiceDescriptor {
+                    id: ServiceId::new(0x01),
+                    version: Version {
+                        major: 0x00,
+                        minor: 0x01,
+                    },
+                },
+                procedure: ProcedureDescriptor {
+                    id: ProcedureId::new(0x01),
+                },
+                payload: Payload::new(payload),
+            }),
+        }
+    }
+
+    fn make_request_frame(flags: impl Into<RequestFlags>, payload: impl Into<Bytes>) -> Request {
+        Request {
+            header: make_request_header(flags),
+            body: RequestBody::Frame(RequestFrame {
+                payload: Payload::new(payload),
+            }),
+        }
+    }
 
     #[tokio::test]
-    #[ignore]
-    async fn sink_dropped() {}
+    async fn stream_closed_does_not_stop_task() {
+        let Setup {
+            mut output,
+            events,
+            stream,
+            mut sink,
+            handle,
+        } = Setup::new(SessionConfig::default());
+
+        stream
+            .send(Ok(make_request_begin(
+                RequestFlags::EMPTY,
+                b"hello" as &[_],
+            )))
+            .await
+            .expect("should be able to send message");
+
+        // we should get a transaction handle
+        let transaction = output.recv().await.expect("should receive transaction");
+        let mut transaction_sink = transaction.into_sink();
+
+        // to verify that the task hasn't stopped yet we can simply send a message to the sink.
+        transaction_sink
+            .send(Ok(Bytes::from_static(b"world")))
+            .await
+            .expect("should be able to send message");
+
+        // drop both sink and transaction, otherwise we won't flush.
+        drop(transaction_sink);
+
+        // response should be received
+        let response = sink.recv().await.expect("should receive response");
+        assert_eq!(
+            response.body,
+            ResponseBody::Begin(ResponseBegin {
+                kind: ResponseKind::Ok,
+                payload: Payload::new(b"world" as &[_]),
+            })
+        );
+
+        // the handle should still be alive
+        assert!(!handle.is_finished());
+    }
+
+    #[tokio::test]
+    async fn connection_closed() {
+        let Setup {
+            output: _output,
+            events: _events,
+            stream,
+            sink,
+            handle,
+        } = Setup::new(SessionConfig::default());
+
+        drop(stream);
+
+        // TODO:
+        // to register that the receiver sink is gone, we need to actually push a message
+
+        drop(sink);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+    }
 
     #[tokio::test]
     #[ignore]

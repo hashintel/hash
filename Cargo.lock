@@ -1852,6 +1852,7 @@ dependencies = [
  "kanal",
  "libp2p",
  "libp2p-stream",
+ "pin-project-lite",
  "scc",
  "tachyonix",
  "test-log",

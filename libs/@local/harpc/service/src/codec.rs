@@ -17,7 +17,7 @@ pub trait ValueEncoder<T> {
     + Send;
 }
 
-pub trait ErrorExt: Error {
+pub trait PlainError: Error {
     fn code(&self) -> ErrorCode;
 }
 
@@ -36,7 +36,7 @@ pub trait ErrorEncoder {
     /// This is only used in lower-level errors, in which a report cannot be utilized.
     fn encode_error<E>(&self, error: E) -> impl Future<Output = TransactionError> + Send
     where
-        E: ErrorExt;
+        E: PlainError;
 }
 
 pub trait Encoder<T>: ValueEncoder<T> + ErrorEncoder {}

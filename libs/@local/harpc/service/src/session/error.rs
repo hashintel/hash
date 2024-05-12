@@ -1,7 +1,7 @@
 use bytes::Bytes;
 use harpc_wire_protocol::response::kind::ErrorCode;
 
-use crate::codec::ErrorExt;
+use crate::codec::PlainError;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
 #[error("session layer")]
@@ -22,7 +22,7 @@ pub struct ConnectionTransactionLimitReachedError {
     pub limit: usize,
 }
 
-impl ErrorExt for ConnectionTransactionLimitReachedError {
+impl PlainError for ConnectionTransactionLimitReachedError {
     fn code(&self) -> ErrorCode {
         ErrorCode::CONNECTION_TRANSACTION_LIMIT_REACHED
     }
@@ -32,7 +32,7 @@ impl ErrorExt for ConnectionTransactionLimitReachedError {
 #[error("transaction has been dropped, because it is unable to receive more request packets")]
 pub struct TransactionLaggingError;
 
-impl ErrorExt for TransactionLaggingError {
+impl PlainError for TransactionLaggingError {
     fn code(&self) -> ErrorCode {
         ErrorCode::TRANSACTION_LAGGING
     }
@@ -42,7 +42,7 @@ impl ErrorExt for TransactionLaggingError {
 #[error("transaction has been dropped, because the server is unable to process more transactions")]
 pub struct InstanceTransactionLimitReachedError;
 
-impl ErrorExt for InstanceTransactionLimitReachedError {
+impl PlainError for InstanceTransactionLimitReachedError {
     fn code(&self) -> ErrorCode {
         ErrorCode::INSTANCE_TRANSACTION_LIMIT_REACHED
     }
@@ -52,7 +52,7 @@ impl ErrorExt for InstanceTransactionLimitReachedError {
 #[error("session has been clossed")]
 pub struct ConnectionClosedError;
 
-impl ErrorExt for ConnectionClosedError {
+impl PlainError for ConnectionClosedError {
     fn code(&self) -> ErrorCode {
         ErrorCode::CONNECTION_CLOSED
     }
