@@ -871,7 +871,58 @@ mod test {
             })
         );
 
-        assert!(handle.is_finished());
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+    }
+
+    #[tokio::test]
+    async fn stream_closed_keep_alive_until_last_transaction() {
+        let Setup {
+            mut output,
+            events: _events,
+            stream,
+            sink: _sink,
+            handle,
+        } = Setup::new(SessionConfig::default());
+
+        stream
+            .send(Ok(make_request_begin(
+                RequestFlags::EMPTY,
+                b"hello" as &[_],
+            )))
+            .await
+            .expect("should be able to send message");
+
+        let mut request_2 = make_request_begin(RequestFlags::EMPTY, b"hello" as &[_]);
+        request_2.header.request_id = RequestId::new_unchecked(0x02);
+
+        stream
+            .send(Ok(request_2))
+            .await
+            .expect("should be able to send message");
+
+        drop(stream);
+
+        // get two transaction handles
+        let transaction_1 = output.recv().await.expect("should receive transaction");
+        let transaction_2 = output.recv().await.expect("should receive transaction");
+
+        drop(transaction_1);
+
+        // give ample time to react (if needed)
+        tokio::time::sleep(Duration::from_millis(100)).await;
+
+        // task should not have stopped yet
+        assert!(!handle.is_finished());
+
+        drop(transaction_2);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
     }
 
     #[tokio::test]
