@@ -505,7 +505,7 @@ where
         T: Sink<Response, Error: Debug + Send> + Send + 'static,
         U: Stream<Item = error_stack::Result<Request, io::Error>> + Send,
     {
-        let stream = StreamNotifyClose::new(stream);
+        let stream = StreamNotifyClose::new(stream.fuse());
 
         pin!(stream);
 
@@ -526,10 +526,16 @@ where
         // if we break out of the loop the `ConnectionDelegateTask` automatically stops itself, even
         // *if* it is still running, this is because `tx` is dropped, which closes the
         // channel, meaning that `ConnectionDelegateTask` will stop itself.
+        // ^ this is true in theory, but we only drop `tx` if task has been finished, which is a
+        // problem, this has the potential of creating a task that just never stops. Which we do NOT
+        // want.
+        // We solve this by dropping the `tx` once the stream has finished, because we know that we
+        // won't be able to create any more transactions.
         let (tx, rx) = mpsc::channel(self.config.per_connection_response_buffer_size.get());
         let mut handle = tasks
             .spawn(ConnectionDelegateTask { rx, sink }.run(cancel.clone()))
             .fuse();
+        let mut tx = Some(tx);
 
         loop {
             select! {
@@ -545,8 +551,14 @@ where
                             // we don't cancel them, because they might still respond to the requests,
                             // they'll cancel themselves once the handle has finished
                             self.active.shutdown_senders();
+
+                            // drop the sender (as we no longer can use it anyway)
+                            // this will also stop the delegate task, once all transactions have finished
+                            tx.take();
                         }
                         Some(Ok(request)) => {
+                            let tx = tx.clone().expect("infallible; sender is only unavailble once the stream is exhausted");
+
                             if self.handle_request(tx.clone(), &tasks, request).await.is_break() {
                                 tracing::info!("supervisor has been shut down");
 
@@ -771,11 +783,14 @@ mod test {
     async fn stream_closed_does_not_stop_task() {
         let Setup {
             mut output,
-            events,
+            events: _events,
             stream,
             mut sink,
             handle,
-        } = Setup::new(SessionConfig::default());
+        } = Setup::new(SessionConfig {
+            no_delay: true,
+            ..SessionConfig::default()
+        });
 
         stream
             .send(Ok(make_request_begin(
@@ -784,6 +799,8 @@ mod test {
             )))
             .await
             .expect("should be able to send message");
+
+        drop(stream);
 
         // we should get a transaction handle
         let transaction = output.recv().await.expect("should receive transaction");
@@ -795,8 +812,7 @@ mod test {
             .await
             .expect("should be able to send message");
 
-        // drop both sink and transaction, otherwise we won't flush.
-        drop(transaction_sink);
+        // if we would drop the sink, the task would automatically stop
 
         // response should be received
         let response = sink.recv().await.expect("should receive response");
@@ -813,6 +829,56 @@ mod test {
     }
 
     #[tokio::test]
+    async fn stream_closed_last_transaction_dropped_stops_task() {
+        let Setup {
+            mut output,
+            events: _events,
+            stream,
+            mut sink,
+            handle,
+        } = Setup::new(SessionConfig::default());
+
+        stream
+            .send(Ok(make_request_begin(
+                RequestFlags::EMPTY,
+                b"hello" as &[_],
+            )))
+            .await
+            .expect("should be able to send message");
+
+        drop(stream);
+
+        // we should get a transaction handle
+        let transaction = output.recv().await.expect("should receive transaction");
+        let mut transaction_sink = transaction.into_sink();
+
+        // to verify that the task hasn't stopped yet we can simply send a message to the sink.
+        transaction_sink
+            .send(Ok(Bytes::from_static(b"world")))
+            .await
+            .expect("should be able to send message");
+
+        // last transaction, means task will shutdown gracefully.
+        drop(transaction_sink);
+
+        // response should be received
+        let response = sink.recv().await.expect("should receive response");
+        assert_eq!(
+            response.body,
+            ResponseBody::Begin(ResponseBegin {
+                kind: ResponseKind::Ok,
+                payload: Payload::new(b"world" as &[_]),
+            })
+        );
+
+        assert!(handle.is_finished());
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn sink_closed_does_not_stop_task() {}
+
+    #[tokio::test]
     async fn connection_closed() {
         let Setup {
             output: _output,
@@ -823,10 +889,6 @@ mod test {
         } = Setup::new(SessionConfig::default());
 
         drop(stream);
-
-        // TODO:
-        // to register that the receiver sink is gone, we need to actually push a message
-
         drop(sink);
 
         tokio::time::timeout(Duration::from_secs(1), handle)
