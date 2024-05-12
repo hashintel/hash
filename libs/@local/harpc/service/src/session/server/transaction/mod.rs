@@ -377,6 +377,12 @@ impl TransactionSink {
     pub fn is_closed(&self) -> bool {
         self.inner.is_closed()
     }
+
+    pub fn buffer_size(&self) -> usize {
+        self.inner
+            .get_ref()
+            .map_or(0, tokio::sync::mpsc::Sender::max_capacity)
+    }
 }
 
 impl Sink<SinkItem> for TransactionSink {

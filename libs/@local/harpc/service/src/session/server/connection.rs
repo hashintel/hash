@@ -16,11 +16,7 @@ use libp2p::PeerId;
 use scc::{ebr::Guard, hash_index::Entry, HashIndex};
 use tokio::{
     pin, select,
-    sync::{
-        broadcast,
-        mpsc::{self, error::SendTimeoutError},
-        OwnedSemaphorePermit, Semaphore,
-    },
+    sync::{broadcast, mpsc, OwnedSemaphorePermit, Semaphore},
 };
 use tokio_stream::{wrappers::ReceiverStream, StreamNotifyClose};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
@@ -264,7 +260,7 @@ impl TransactionCollection {
         match result {
             Ok(Ok(())) => {
                 // everything is fine, continue by early returning
-                return Ok(());
+                Ok(())
             }
             Ok(Err(_)) => {
                 tracing::info!("transaction sender has been closed, dropping packet");
@@ -274,7 +270,7 @@ impl TransactionCollection {
                 //
                 // Otherwise this could also be a packet that is simply out of order or rogue
                 // in that case notifing the client would be confusing anyway.
-                return Ok(());
+                Ok(())
             }
             Err(_) => {
                 tracing::warn!("transaction buffer is too slow, dropping transaction");
@@ -283,7 +279,7 @@ impl TransactionCollection {
                 // transaction without risking the integrity of the transaction.
                 self.shutdown_sender(id).await;
 
-                return Err(TransactionLaggingError);
+                Err(TransactionLaggingError)
             }
         }
     }
@@ -428,6 +424,37 @@ where
                     }
                 };
 
+                // creates implicit backpressure, if the session can not accept more transactions,
+                // we will wait until we can, this means that we will not be able to
+                // accept any more request packets until we can.
+                //
+                // by first acquiring a permit, instead of sending, we can ensure that we won't
+                // spawn a transaction if we can't deliver it.
+                let result = tokio::time::timeout(
+                    self.config.transaction_delivery_deadline,
+                    self.output.reserve(),
+                )
+                .await;
+
+                // This only happens in case of a full buffer, in that case we will drop the
+                // transaction, because we can assume that the upper layer is unable to keep up with
+                // the incoming requests, it also helps us to prevent a DoS attack.
+                let transaction_permit = match result {
+                    Ok(Ok(permit)) => permit,
+                    Ok(Err(_)) => {
+                        // the other end has been dropped, we can stop processing
+                        return ControlFlow::Break(());
+                    }
+                    Err(_) => {
+                        tracing::warn!("transaction delivery timed out, dropping transaction");
+                        self.active.release(request_id).await;
+
+                        return self
+                            .respond_error(request_id, InstanceTransactionLimitReachedError, &tx)
+                            .await;
+                    }
+                };
+
                 let (transaction, task) = Transaction::from_request(
                     request.header,
                     begin,
@@ -447,37 +474,7 @@ where
 
                 task.start(tasks, permit);
 
-                // creates implicit backpressure, if the session can not accept more transactions,
-                // we will wait until we can, this means that we will not be able to
-                // accept any more request packets until we can.
-                let result = self
-                    .output
-                    .send_timeout(transaction, self.config.transaction_delivery_deadline)
-                    .await;
-
-                // This only happens in case of a full buffer, in that case we will drop the
-                // transaction, because we can assume that the upper layer is unable to keep up with
-                // the incoming requests, it also helps us to prevent a DoS attack.
-                if let Err(error) = result {
-                    match error {
-                        SendTimeoutError::Timeout(_) => {
-                            tracing::warn!("transaction delivery timed out, dropping transaction");
-                            self.active.release(request_id).await;
-
-                            return self
-                                .respond_error(
-                                    request_id,
-                                    InstanceTransactionLimitReachedError,
-                                    &tx,
-                                )
-                                .await;
-                        }
-                        SendTimeoutError::Closed(_) => {
-                            // other end has been dropped, we can stop processing
-                            return ControlFlow::Break(());
-                        }
-                    }
-                }
+                transaction_permit.send(transaction);
             }
             RequestBody::Frame(_) => {
                 if let Err(error) = self.active.send(request).await {
@@ -585,7 +582,7 @@ where
                 }
                 _ = finished.acquire_many(2) => {
                     // both the stream and the sink have finished, we can terminate
-                    // both the stream and sink have finished, so we don't need to shutdown the senders, they'll shutdown by themselves
+                    // and we don't need to shutdown the senders, they'll shutdown by themselves
                     break;
                 }
                 () = cancel.cancelled() => {
@@ -607,25 +604,31 @@ where
 #[cfg(test)]
 mod test {
     use alloc::sync::Arc;
-    use core::{future::ready, time::Duration};
+    use core::{future::ready, num::NonZero, time::Duration};
     use std::io;
 
     use bytes::Bytes;
-    use futures::prelude::sink::SinkExt;
+    use futures::{prelude::sink::SinkExt, StreamExt};
     use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
     use harpc_wire_protocol::{
         flags::BitFlagsOp,
         payload::Payload,
         protocol::{Protocol, ProtocolVersion},
         request::{
-            begin::RequestBegin, body::RequestBody, flags::RequestFlags, frame::RequestFrame,
-            header::RequestHeader, id::RequestId, procedure::ProcedureDescriptor,
-            service::ServiceDescriptor, Request,
+            begin::RequestBegin,
+            body::RequestBody,
+            flags::{RequestFlag, RequestFlags},
+            frame::RequestFrame,
+            header::RequestHeader,
+            id::RequestId,
+            procedure::ProcedureDescriptor,
+            service::ServiceDescriptor,
+            Request,
         },
         response::{
             begin::ResponseBegin,
             body::ResponseBody,
-            flags::ResponseFlags,
+            flags::{ResponseFlag, ResponseFlags},
             frame::ResponseFrame,
             header::ResponseHeader,
             kind::{ErrorCode, ResponseKind},
@@ -647,7 +650,10 @@ mod test {
     use crate::{
         codec::ErrorEncoder,
         session::{
-            error::TransactionError,
+            error::{
+                ConnectionTransactionLimitReachedError, InstanceTransactionLimitReachedError,
+                TransactionError,
+            },
             server::{
                 connection::{ConnectionDelegateTask, TransactionCollection},
                 SessionConfig, SessionEvent, SessionId, Transaction,
@@ -699,11 +705,13 @@ mod test {
     }
 
     impl Setup {
+        const OUTPUT_BUFFER_SIZE: usize = 8;
+
         #[expect(clippy::significant_drop_tightening, reason = "False positive")]
         fn new(config: SessionConfig) -> Self {
             let cancel = CancellationToken::new();
 
-            let (output_tx, output_rx) = mpsc::channel(8);
+            let (output_tx, output_rx) = mpsc::channel(Self::OUTPUT_BUFFER_SIZE);
             let (events_tx, events_rx) = broadcast::channel(8);
 
             let (stream_tx, stream_rx) = mpsc::channel(8);
@@ -926,8 +934,99 @@ mod test {
     }
 
     #[tokio::test]
-    #[ignore]
-    async fn sink_closed_does_not_stop_task() {}
+    async fn sink_closed_does_not_stop_task() {
+        let Setup {
+            mut output,
+            events: _events,
+            stream,
+            sink,
+            handle,
+        } = Setup::new(SessionConfig {
+            per_connection_response_buffer_size: NonZero::new(1).expect("infallible"),
+            per_transaction_response_byte_stream_buffer_size: NonZero::new(1).expect("infallible"),
+            no_delay: true,
+            ..SessionConfig::default()
+        });
+
+        drop(sink);
+
+        stream
+            .send(Ok(make_request_begin(
+                RequestFlags::EMPTY,
+                b"hello" as &[_],
+            )))
+            .await
+            .expect("should be able to send message");
+
+        let transaction = output.recv().await.expect("should receive transaction");
+        let (_, mut transaction_sink, mut transaction_stream) = transaction.into_parts();
+
+        // we should still be able to send additional requests, but sending a response should fail.
+        let item = transaction_stream
+            .next()
+            .await
+            .expect("should receive item.");
+
+        stream
+            .send(Ok(make_request_frame(
+                RequestFlag::EndOfRequest,
+                b" world" as &[_],
+            )))
+            .await
+            .expect("should be able to send message");
+
+        assert_eq!(item, Bytes::from_static(b"hello"));
+
+        let item = transaction_stream
+            .next()
+            .await
+            .expect("should receive item.");
+
+        assert_eq!(item, Bytes::from_static(b" world"));
+
+        // because we finished (end of request) next item should be none
+        assert!(transaction_stream.next().await.is_none());
+        assert_eq!(transaction_stream.is_incomplete(), Some(false));
+
+        // task should not have stopped yet
+        assert!(!handle.is_finished());
+
+        // this is a limitation of sinks, the first item will succeed, but then the sink will stop
+        // and the channel will stop accepting new items.
+
+        // the first two items are buffered, so we'll be able to "send" it
+        assert_eq!(transaction_sink.buffer_size(), 1);
+
+        // buffered in bytes -> response buffer
+        transaction_sink
+            .send(Ok(Bytes::from_static(b"hello")))
+            .await
+            .expect("should be able to send message (is lost)");
+
+        // buffered in response -> sink buffer
+        transaction_sink
+            .send(Ok(Bytes::from_static(b" world")))
+            .await
+            .expect("should be able to send message (is lost)");
+
+        // this one will push the response through, so it will fail
+        transaction_sink
+            .send(Ok(Bytes::from_static(b" world")))
+            .await
+            .expect_err("channel should be closed");
+
+        // the send task should terminate (because we explicitely polled), but the handle should
+        // still be alive
+        assert!(!handle.is_finished());
+
+        // if we now drop the stream, the task should stop (both sink and stream have stopped)
+        drop(stream);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+    }
 
     #[tokio::test]
     async fn connection_closed() {
@@ -949,40 +1048,152 @@ mod test {
     }
 
     #[tokio::test]
-    #[ignore]
-    async fn transaction_limit_reached() {}
+    async fn transaction_limit_reached_connection() {
+        let Setup {
+            output: _output,
+            events: _events,
+            stream,
+            mut sink,
+            handle: _handle,
+        } = Setup::new(SessionConfig {
+            per_connection_concurrent_transaction_limit: 1,
+            ..SessionConfig::default()
+        });
+
+        stream
+            .send(Ok(make_request_begin(
+                RequestFlags::EMPTY,
+                b"hello" as &[_],
+            )))
+            .await
+            .expect("should be able to send message");
+
+        let mut request_2 = make_request_begin(RequestFlags::EMPTY, b"hello" as &[_]);
+        request_2.header.request_id = RequestId::new_unchecked(0x02);
+
+        stream
+            .send(Ok(request_2))
+            .await
+            .expect("should be able to send message");
+
+        // this message will bounce because the limit is reached
+        let mut responses = Vec::with_capacity(8);
+        let available = sink.recv_many(&mut responses, 8).await;
+        assert_eq!(available, 1);
+
+        let response = responses.pop().expect("infallible");
+        assert_eq!(response.header.request_id, RequestId::new_unchecked(0x02));
+        assert!(response.header.flags.contains(ResponseFlag::EndOfResponse));
+        assert_eq!(
+            response.body.payload().as_bytes().as_ref(),
+            ConnectionTransactionLimitReachedError { limit: 1 }
+                .to_string()
+                .into_bytes()
+        );
+    }
+
+    #[tokio::test]
+    #[allow(clippy::cast_possible_truncation)]
+    async fn transaction_limit_reached_instance() {
+        let Setup {
+            output: _output,
+            events: _events,
+            stream,
+            mut sink,
+            handle: _handle,
+        } = Setup::new(SessionConfig::default());
+
+        // fill the buffer with transactions, the last transaction will bounce
+        for index in 0..=Setup::OUTPUT_BUFFER_SIZE {
+            let mut request = make_request_begin(RequestFlags::EMPTY, b"hello" as &[_]);
+            request.header.request_id = RequestId::new_unchecked(index as u32);
+
+            stream
+                .send(Ok(request))
+                .await
+                .expect("should be able to send message");
+        }
+
+        let mut responses = Vec::with_capacity(16);
+        let available = sink.recv_many(&mut responses, 16).await;
+        assert_eq!(available, 1);
+
+        let response = responses.pop().expect("infallible");
+        assert_eq!(
+            response.header.request_id,
+            RequestId::new_unchecked(Setup::OUTPUT_BUFFER_SIZE as u32)
+        );
+        assert!(response.header.flags.contains(ResponseFlag::EndOfResponse));
+        assert_eq!(
+            response.body.payload().as_bytes().as_ref(),
+            InstanceTransactionLimitReachedError
+                .to_string()
+                .into_bytes()
+        );
+    }
 
     #[tokio::test]
     #[ignore]
-    async fn transaction_replace() {}
+    async fn transaction_overwrite() {
+        // transaction 0x01 has been started, and then we start a transaction 0x01 again
+    }
 
     #[tokio::test]
     #[ignore]
-    async fn transaction() {}
+    async fn transaction_repeat() {
+        // finish transaction 0x01, and then start it again
+    }
 
     #[tokio::test]
     #[ignore]
-    async fn transaction_multiple() {}
+    async fn transaction() {
+        // send and finish a whole transaction.
+    }
 
     #[tokio::test]
     #[ignore]
-    async fn transaction_send_request_timeout() {}
+    async fn transaction_multiple() {
+        // send and finish multiple transactions simultaneously
+    }
 
     #[tokio::test]
     #[ignore]
-    async fn transaction_send_output_timeout() {}
+    async fn transaction_response_buffer_limit_reached() {
+        // try to send (but not accept) too many request packets, so that the transaction gets
+        // cancelled.
+    }
 
     #[tokio::test]
     #[ignore]
-    async fn transaction_send_output_closed() {}
+    async fn transaction_send_output_closed() {
+        // try to accept a new transaction, but the output mpsc::Sender<Transaction> is closed
+    }
 
     #[tokio::test]
     #[ignore]
-    async fn transaction_reclamation() {}
+    async fn transaction_reclamation() {
+        // do a complete transaction, and once done the transaction should be reclaimed (the inner
+        // buffer should be empty)
+    }
 
     #[tokio::test]
-    #[ignore]
-    async fn graceful_shutdown() {}
+    async fn graceful_shutdown() {
+        let Setup {
+            output: _output,
+            events: _events,
+            stream,
+            sink,
+            handle,
+        } = Setup::new(SessionConfig::default());
+
+        drop(stream);
+        drop(sink);
+
+        tokio::time::timeout(Duration::from_secs(1), handle)
+            .await
+            .expect("should finish within timeout")
+            .expect("should not panic");
+    }
 
     #[test]
     fn concurrency_limit() {
