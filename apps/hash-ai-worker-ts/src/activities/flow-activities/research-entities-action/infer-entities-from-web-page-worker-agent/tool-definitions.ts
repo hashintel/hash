@@ -129,7 +129,7 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
       },
       required: [
         "url",
-        "hmtlContent",
+        "htmlContent",
         "expectedNumberOfEntities",
         "validAt",
         "prompt",
