@@ -45,6 +45,10 @@ pub enum Filter<'p, R: QueryRecord + ?Sized> {
         Option<FilterExpression<'p, R>>,
         Option<FilterExpression<'p, R>>,
     ),
+    Greater(FilterExpression<'p, R>, FilterExpression<'p, R>),
+    GreaterOrEqual(FilterExpression<'p, R>, FilterExpression<'p, R>),
+    Less(FilterExpression<'p, R>, FilterExpression<'p, R>),
+    LessOrEqual(FilterExpression<'p, R>, FilterExpression<'p, R>),
     CosineDistance(
         FilterExpression<'p, R>,
         FilterExpression<'p, R>,
@@ -169,6 +173,7 @@ where
                 ) => parameter.convert_to_parameter_type(path.expected_type())?,
                 (..) => {}
             },
+
             Self::CosineDistance(lhs, rhs, max) => {
                 if let FilterExpression::Parameter(parameter) = max {
                     parameter.convert_to_parameter_type(ParameterType::F64)?;
@@ -192,7 +197,11 @@ where
             }
             Self::StartsWith(lhs, rhs)
             | Self::EndsWith(lhs, rhs)
-            | Self::ContainsSegment(lhs, rhs) => {
+            | Self::ContainsSegment(lhs, rhs)
+            | Self::Greater(lhs, rhs)
+            | Self::GreaterOrEqual(lhs, rhs)
+            | Self::Less(lhs, rhs)
+            | Self::LessOrEqual(lhs, rhs) => {
                 // TODO: We need to find a way to support lists in addition to strings as well
                 if let FilterExpression::Parameter(parameter) = lhs {
                     parameter.convert_to_parameter_type(ParameterType::Text)?;
