@@ -38,7 +38,6 @@ pub struct SessionLayer<E> {
 
     events: broadcast::Sender<SessionEvent>,
 
-    // TODO: IPC (do we need it tho?)
     transport: TransportLayer,
 
     tasks: TaskTracker,
@@ -95,15 +94,19 @@ where
 
         let task = Task {
             id: SessionIdProducer::new(),
-            transport: self.transport,
             config: self.config,
-            active: Arc::new(Semaphore::new(self.config.concurrent_connection_limit)),
+            active: Arc::new(Semaphore::new(
+                self.config.concurrent_connection_limit.as_usize(),
+            )),
             output,
             events: self.events.clone(),
             encoder: self.encoder,
         };
 
-        self.tasks.spawn(task.run(self.tasks.clone(), cancel));
+        let listen = self.transport.listen().await.change_context(SessionError)?;
+
+        self.tasks
+            .spawn(task.run(listen, self.tasks.clone(), cancel));
 
         Ok(ReceiverStream::new(rx))
     }
@@ -122,4 +125,8 @@ mod test {
     #[tokio::test]
     #[ignore]
     async fn stream_dropped_graceful_shutdown() {}
+
+    #[tokio::test]
+    #[ignore]
+    async fn complete_shutdown() {}
 }

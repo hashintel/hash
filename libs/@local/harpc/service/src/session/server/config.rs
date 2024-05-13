@@ -1,10 +1,41 @@
 use core::{num::NonZero, time::Duration};
 
+use tokio::sync::Semaphore;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ConcurrentConnectionLimit(u32);
+
+impl ConcurrentConnectionLimit {
+    pub fn new(value: u32) -> Option<Self> {
+        if value == 0 {
+            return None;
+        }
+
+        let value_usize = usize::try_from(value).ok()?;
+
+        if value_usize > Semaphore::MAX_PERMITS {
+            return None;
+        }
+
+        Some(Self(value))
+    }
+
+    #[must_use]
+    pub const fn as_u32(&self) -> u32 {
+        self.0
+    }
+
+    #[must_use]
+    pub const fn as_usize(&self) -> usize {
+        self.0 as usize
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SessionConfig {
     pub event_buffer_size: NonZero<usize>,
     pub transaction_buffer_size: NonZero<usize>,
-    pub concurrent_connection_limit: usize,
+    pub concurrent_connection_limit: ConcurrentConnectionLimit,
 
     pub request_delivery_deadline: Duration,
     pub transaction_delivery_deadline: Duration,
@@ -26,7 +57,7 @@ impl Default for SessionConfig {
         Self {
             event_buffer_size: NonZero::new(8).expect("infallible"),
             transaction_buffer_size: NonZero::new(32).expect("infallible"),
-            concurrent_connection_limit: 256,
+            concurrent_connection_limit: ConcurrentConnectionLimit::new(256).expect("infallible"),
 
             request_delivery_deadline: Duration::from_millis(100),
             transaction_delivery_deadline: Duration::from_millis(100),

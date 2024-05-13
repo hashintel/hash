@@ -1,6 +1,6 @@
 use alloc::sync::Arc;
 
-use error_stack::{FutureExt as _, Result, ResultExt};
+use error_stack::FutureExt as _;
 use futures::{FutureExt, StreamExt, TryFutureExt};
 use tokio::{
     select,
@@ -15,12 +15,11 @@ use super::{
 use crate::{
     codec::ErrorEncoder,
     session::{error::SessionError, server::connection::ConnectionTask},
-    transport::{connection::IncomingConnection, TransportLayer},
+    transport::connection::{IncomingConnection, IncomingConnections},
 };
 
 pub(crate) struct Task<E> {
     pub(crate) id: SessionIdProducer,
-    pub(crate) transport: TransportLayer,
 
     pub(crate) config: SessionConfig,
 
@@ -36,13 +35,12 @@ where
     E: ErrorEncoder + Send + Sync + 'static,
 {
     #[allow(clippy::integer_division_remainder_used)]
-    pub(crate) async fn run(
-        mut self,
+    async fn handle(
+        &mut self,
+        listen: &mut IncomingConnections,
         tasks: TaskTracker,
         cancel: CancellationToken,
-    ) -> Result<(), SessionError> {
-        let mut listen = self.transport.listen().await.change_context(SessionError)?;
-
+    ) {
         loop {
             // first try to acquire a permit, if we can't, we can't accept new connections,
             // then we try to accept a new connection, this way we're able to still apply
@@ -55,10 +53,15 @@ where
                         .next()
                         .map(|connection| connection.map(|connection| (permit, connection)))
                         .map(Ok)
-                });
+                })
+                .fuse();
 
             let connection = select! {
                 connection = next => connection,
+                // TODO: this won't do, this will stop all connections, immediately, we need to drain.
+                () = self.output.closed() => {
+                    break;
+                }
                 () = cancel.cancelled() => {
                     break;
                 }
@@ -97,7 +100,30 @@ where
                 }
             }
         }
+    }
 
-        Ok(())
+    pub(crate) async fn run(
+        mut self,
+        mut listen: IncomingConnections,
+        tasks: TaskTracker,
+        cancel: CancellationToken,
+    ) {
+        self.handle(&mut listen, tasks, cancel.clone()).await;
+
+        // instead of instantly returning (which would remove any connection) we drain the
+        // connections, but only if we're not cancelled and the semaphore is still open
+        if cancel.is_cancelled() || self.active.is_closed() {
+            return;
+        }
+
+        // we wait for all connections to finish, this is done by just acquiring all possible
+        // permits
+        if let Err(error) = self
+            .active
+            .acquire_many(self.config.concurrent_connection_limit.as_u32())
+            .await
+        {
+            tracing::error!(?error, "failed to reclaim all connections");
+        }
     }
 }
