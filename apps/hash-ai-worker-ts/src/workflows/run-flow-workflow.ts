@@ -135,9 +135,12 @@ const flowActivities = proxyActivities<ReturnType<typeof createFlowActivities>>(
   {
     cancellationType: ActivityCancellationType.WAIT_CANCELLATION_COMPLETED,
     /**
-     * @todo update this to account for human input – for research task only?
+     * @todo H-2575 – decide what to do about timeouts, in light of potentially having to wait for user input
+     *    – ideally we'd be able to wait on the workflow level, so that it's put to sleep until the response is received,
+     *    but this requires refactoring the research task such that all tool calls are activities.
+     * @see https://docs.temporal.io/dev-guide/typescript/features#asynchronous-design-patterns
      */
-    startToCloseTimeout: "3600 second", // 1 hour
+    startToCloseTimeout: "7200 second", // 2 hours
     retry: { maximumAttempts: 1 },
   },
 );
