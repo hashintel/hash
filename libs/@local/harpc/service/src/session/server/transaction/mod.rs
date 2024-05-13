@@ -324,6 +324,11 @@ impl Transaction {
         (context, sink, stream)
     }
 
+    #[must_use]
+    pub fn is_closed(&self) -> bool {
+        self.request.is_closed() || self.response.is_closed()
+    }
+
     pub fn into_sink(self) -> TransactionSink {
         TransactionSink {
             inner: PollSender::new(self.response),

@@ -1,4 +1,7 @@
-use core::sync::atomic::{AtomicU32, Ordering};
+use core::{
+    fmt::Display,
+    sync::atomic::{AtomicU32, Ordering},
+};
 
 use bytes::{Buf, BufMut};
 use error_stack::Result;
@@ -18,6 +21,12 @@ impl RequestId {
     #[must_use]
     pub const fn new_unchecked(id: u32) -> Self {
         Self(id)
+    }
+}
+
+impl Display for RequestId {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        Display::fmt(&self.0, f)
     }
 }
 
@@ -57,10 +66,13 @@ impl RequestIdProducer {
     }
 
     pub fn produce(&self) -> RequestId {
-        // we don't care about ordering here, and `fetch_add` is a single atomic operation
-        // (which is the only one we use), so in theory `Ordering::Relaxed` could be used here
-        // but we use `Ordering::SeqCst` to be on the safe side
-        RequestId::new_unchecked(self.current.fetch_add(1, Ordering::SeqCst))
+        // we don't care about ordering here, and `fetch_add` is a single atomic operation.
+        // We do not care if on simultanous calls to `produce` one caller is before the other (the
+        // order of the `RequestId`s is not important)
+        // Therefore `Relaxed` is enough of a guarantee here, because we rely on the atomicity of
+        // the operation, not on the ordering.
+        // (This would be different if this wasn't just a counter)
+        RequestId::new_unchecked(self.current.fetch_add(1, Ordering::Relaxed))
     }
 }
 
