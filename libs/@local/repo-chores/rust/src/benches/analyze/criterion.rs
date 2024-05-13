@@ -1,4 +1,4 @@
-use std::{ffi::OsStr, fmt};
+use std::fmt;
 
 use crate::benches::results::{Benchmark, Stat};
 
@@ -10,8 +10,8 @@ enum Unit {
 
 #[derive(Debug, Copy, Clone)]
 struct Duration {
-    pub amount: f64,
-    pub unit: Unit,
+    amount: f64,
+    unit: Unit,
 }
 
 impl fmt::Display for Duration {
@@ -99,6 +99,11 @@ fn table_row(
     writeln!(fmt, " {p_value} $$ |")
 }
 
+/// Formats the given benchmarks in GitHub-flavored Markdown.
+///
+/// # Errors
+///
+/// Returns an error if writing to `fmt` fails.
 pub fn format_github_markdown<'b>(
     benchmarks: impl IntoIterator<Item = &'b Benchmark>,
     fmt: &mut fmt::Formatter<'_>,

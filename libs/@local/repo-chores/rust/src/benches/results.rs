@@ -1,6 +1,6 @@
-use std::{collections::HashMap, ffi::OsString, fs::File, io::BufReader, path::Path};
+use std::{collections::HashMap, fs::File, io::BufReader, path::Path};
 
-use error_stack::{FutureExt, Report, ResultExt};
+use error_stack::{Report, ResultExt};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use walkdir::WalkDir;
 
@@ -101,6 +101,13 @@ pub struct Benchmark {
 }
 
 impl Benchmark {
+    /// Reads a benchmark result from the given directory.
+    ///
+    /// Returns `None` if the directory does not contain any benchmark results.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if reading from the directory fails or the data is invalid.
     pub fn from_path(path: impl AsRef<Path>) -> Result<Option<Self>, Report<AnalyzeError>> {
         let path = path.as_ref();
         if !path.is_dir() {
