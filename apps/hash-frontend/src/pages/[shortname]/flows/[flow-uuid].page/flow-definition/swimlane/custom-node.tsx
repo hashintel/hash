@@ -200,8 +200,8 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
           </Stack>
 
           {!isParallelizedGroup &&
-          // selectedFlowRun &&
-          // stepStatusName === "Information Required" &&
+          selectedFlowRun &&
+          stepStatusName === "Information Required" &&
           outstandingInputRequest &&
           outstandingInputRequest.type === "human-input" ? (
             <Button
