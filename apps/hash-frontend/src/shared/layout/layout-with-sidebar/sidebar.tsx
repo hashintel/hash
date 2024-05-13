@@ -57,7 +57,6 @@ export const PageSidebar: FunctionComponent = () => {
 
   const { draftEntities } = useDraftEntities();
 
-
   const workersSection = useMemo(
     () =>
       enabledFeatureFlags.workers
