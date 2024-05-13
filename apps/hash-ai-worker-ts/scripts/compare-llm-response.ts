@@ -2,22 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import {
-  systemEntityTypes,
-  systemPropertyTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import {
-  type AccountId,
-  extractOwnedByIdFromEntityId,
-  type OwnedById,
-} from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+import { type OwnedById } from "@local/hash-subgraph";
 
 import { getLlmResponse } from "../src/activities/shared/get-llm-response";
 import type {
@@ -25,49 +10,8 @@ import type {
   LlmResponse,
 } from "../src/activities/shared/get-llm-response/types";
 import { graphApiClient } from "../src/activities/shared/graph-api-client";
+import { getAliceUserAccountId } from "../src/shared/testing-utilities/get-alice-user-account-id";
 import type { CompareLlmResponseConfig } from "./compare-llm-response/types";
-
-const getAliceUserAccountId = async () => {
-  const [aliceUserEntity] = await graphApiClient
-    .getEntities(publicUserAccountId, {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.user.entityTypeId,
-            { ignoreParents: true },
-          ),
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  extractBaseUrl(systemPropertyTypes.shortname.propertyTypeId),
-                ],
-              },
-              { parameter: "alice" },
-            ],
-          },
-        ],
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
-    })
-    .then(({ data: response }) =>
-      response.entities.map((entity) =>
-        mapGraphApiEntityToEntity(entity, publicUserAccountId),
-      ),
-    );
-
-  if (!aliceUserEntity) {
-    throw new Error("Could not find a user entity with shortname 'alice'");
-  }
-
-  const aliceUserAccountId = extractOwnedByIdFromEntityId(
-    aliceUserEntity.metadata.recordId.entityId,
-  );
-
-  return aliceUserAccountId as AccountId;
-};
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
