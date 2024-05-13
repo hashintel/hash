@@ -2,8 +2,8 @@ pub mod __private {
     #![doc(hidden)]
     //! Implementation detail for macros.
     //!
-    //! ⚠️ **Functionality in this module is considered unstable and is subject to change at any time
-    //! without a major version bump!** ⚠️
+    //! ⚠️ **Functionality in this module is considered unstable and is subject to change at any
+    //! time without a major version bump!** ⚠️
     mod specialization {
         #![allow(clippy::unused_self)]
         //! [Autoref-Based Stable Specialization](https://github.com/dtolnay/case-studies/blob/master/autoref-specialization/README.md)
