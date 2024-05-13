@@ -128,10 +128,10 @@ const GroupStepStatus = ({
           <WaitingIcon statusFor="step" />
         ) : simpleStatus === "In Progress" ? (
           <InProgressIcon statusFor="step" />
-        ) : simpleStatus === "Error" ? (
-          <ErrorIcon statusFor="step" />
-        ) : (
+        ) : simpleStatus === "Complete" ? (
           <SuccessIcon statusFor="step" />
+        ) : (
+          <ErrorIcon statusFor="step" />
         )}
       </Box>
       <Typography sx={{ fontSize: 14, ml: 1, mt: 0.2 }}>{label}</Typography>
@@ -178,7 +178,7 @@ const GroupStatus = ({
   const [timeTaken, setTimeTaken] = useState("");
 
   useEffect(() => {
-    let interval: NodeJS.Timer;
+    let interval: NodeJS.Timeout;
 
     if (scheduledAt) {
       setTimeTaken(formatTimeTaken(scheduledAt, closedAt));
@@ -223,10 +223,10 @@ const GroupStatus = ({
               <WaitingIcon statusFor="group" />
             ) : groupStatus === "In Progress" ? (
               <InProgressIcon statusFor="group" />
-            ) : groupStatus === "Error" ? (
-              <ErrorIcon statusFor="group" />
-            ) : (
+            ) : groupStatus === "Complete" ? (
               <SuccessIcon statusFor="group" />
+            ) : (
+              <ErrorIcon statusFor="group" />
             )}
           </Box>
           <Typography

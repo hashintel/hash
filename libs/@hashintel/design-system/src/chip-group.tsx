@@ -1,6 +1,6 @@
 import type { BoxProps } from "@mui/material";
 import { Box, chipClasses } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Children, forwardRef } from "react";
 
 type ChipGroupProps = {
@@ -15,7 +15,7 @@ type ChipGroupProps = {
 // </ChipGroup>
 //
 
-export const ChipGroup: FunctionComponent<ChipGroupProps> = forwardRef(
+export const ChipGroup = forwardRef<HTMLDivElement, ChipGroupProps>(
   ({ children }, ref) => {
     return (
       <Box

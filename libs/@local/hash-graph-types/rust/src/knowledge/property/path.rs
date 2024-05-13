@@ -19,6 +19,15 @@ pub enum PropertyPathElement<'k> {
     Index(usize),
 }
 
+impl From<&PropertyPathElement<'_>> for jsonptr::Token {
+    fn from(value: &PropertyPathElement<'_>) -> Self {
+        match value {
+            PropertyPathElement::Property(key) => Self::new(key.as_str()),
+            PropertyPathElement::Index(index) => Self::new(index.to_string()),
+        }
+    }
+}
+
 impl From<usize> for PropertyPathElement<'_> {
     fn from(index: usize) -> Self {
         PropertyPathElement::Index(index)
@@ -53,6 +62,12 @@ impl PropertyPathElement<'_> {
 #[serde(transparent)]
 pub struct PropertyPath<'k> {
     elements: Vec<PropertyPathElement<'k>>,
+}
+
+impl<'k> AsRef<[PropertyPathElement<'k>]> for PropertyPath<'k> {
+    fn as_ref(&self) -> &[PropertyPathElement<'k>] {
+        &self.elements
+    }
 }
 
 impl<'k> PropertyPath<'k> {

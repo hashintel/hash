@@ -7,12 +7,17 @@ use std::{
 use authorization::{schema::WebOwnerSubject, AuthorizationApi};
 use graph::store::{
     account::{InsertAccountIdParams, InsertWebIdParams},
+    knowledge::CreateEntityParams,
     AccountStore, AsClient, EntityStore,
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     account::AccountId,
-    knowledge::{entity::EntityUuid, link::LinkData, PropertyObject, PropertyProvenance},
+    knowledge::{
+        entity::{EntityUuid, ProvidedEntityEditionProvenance},
+        link::LinkData,
+        PropertyMetadataMap, PropertyObject, PropertyProvenance,
+    },
     owned_by_id::OwnedById,
 };
 use type_system::{url::VersionedUrl, EntityType};
@@ -167,17 +172,23 @@ async fn seed_db<A: AuthorizationApi>(account_id: AccountId, store_wrapper: &mut
         let entity_type_id = entity_type.id().clone();
 
         let uuids = transaction
-            .insert_entities_batched_by_type(
+            .create_entities(
                 account_id,
-                repeat((
-                    OwnedById::new(account_id.into_uuid()),
-                    None,
+                repeat(CreateEntityParams {
+                    owned_by_id: OwnedById::new(account_id.into_uuid()),
+                    entity_uuid: None,
+                    decision_time: None,
+                    entity_type_ids: vec![entity_type_id],
                     properties,
-                    None,
-                    None,
-                ))
-                .take(quantity),
-                &entity_type_id,
+                    confidence: None,
+                    property_metadata: PropertyMetadataMap::default(),
+                    link_data: None,
+                    draft: false,
+                    relationships: [],
+                    provenance: ProvidedEntityEditionProvenance::default(),
+                })
+                .take(quantity)
+                .collect(),
             )
             .await
             .expect("failed to create entities");
@@ -192,17 +203,21 @@ async fn seed_db<A: AuthorizationApi>(account_id: AccountId, store_wrapper: &mut
         let entity_type_id = entity_type.id().clone();
 
         let uuids = transaction
-            .insert_entities_batched_by_type(
+            .create_entities(
                 account_id,
                 entity_uuids[*left_entity_index]
                     .iter()
                     .zip(&entity_uuids[*right_entity_index])
-                    .map(|(left_entity_metadata, right_entity_metadata)| {
-                        (
-                            OwnedById::new(account_id.into_uuid()),
-                            None,
-                            PropertyObject::empty(),
-                            Some(LinkData {
+                    .map(
+                        |(left_entity_metadata, right_entity_metadata)| CreateEntityParams {
+                            owned_by_id: OwnedById::new(account_id.into_uuid()),
+                            entity_uuid: None,
+                            decision_time: None,
+                            entity_type_ids: vec![entity_type_id.clone()],
+                            properties: PropertyObject::empty(),
+                            confidence: None,
+                            property_metadata: PropertyMetadataMap::default(),
+                            link_data: Some(LinkData {
                                 left_entity_id: left_entity_metadata.record_id.entity_id,
                                 right_entity_id: right_entity_metadata.record_id.entity_id,
                                 left_entity_confidence: None,
@@ -210,10 +225,12 @@ async fn seed_db<A: AuthorizationApi>(account_id: AccountId, store_wrapper: &mut
                                 right_entity_confidence: None,
                                 right_entity_provenance: PropertyProvenance::default(),
                             }),
-                            None,
-                        )
-                    }),
-                &entity_type_id,
+                            draft: false,
+                            relationships: [],
+                            provenance: ProvidedEntityEditionProvenance::default(),
+                        },
+                    )
+                    .collect(),
             )
             .await
             .expect("failed to create entities");

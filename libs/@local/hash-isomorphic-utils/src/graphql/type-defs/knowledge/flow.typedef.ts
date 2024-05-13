@@ -43,10 +43,11 @@ export const flowTypedef = gql`
     FAILED
     TIMED_OUT
     CANCEL_REQUESTED
-    CANCELED
+    CANCELLED
   }
 
   scalar ArbitraryJsonData
+  scalar ExternalInputRequest
   scalar StepInput
   scalar StepRunOutput
   scalar StepProgressLog
@@ -112,7 +113,11 @@ export const flowTypedef = gql`
 
   type FlowRun {
     """
-    The identifier for this specific run of a Flow definition
+    The uuid of the Temporal workflow
+    """
+    workflowId: String!
+    """
+    The uuid of the Temporal run
     """
     runId: String!
     """
@@ -144,13 +149,20 @@ export const flowTypedef = gql`
     """
     outputs: [StepRunOutput!]
     """
+    Any requests for external input made by steps within the Flow
+    """
+    inputRequests: [ExternalInputRequest!]!
+    """
     The steps in the flow
     """
     steps: [StepRun!]!
   }
 
   extend type Query {
-    getFlowRuns(flowTypes: [String!]): [FlowRun!]!
+    getFlowRuns(
+      flowTypes: [String!]
+      executionStatus: FlowRunStatus
+    ): [FlowRun!]!
   }
 
   scalar FlowDefinition

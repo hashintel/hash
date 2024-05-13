@@ -19,7 +19,7 @@ const generateSummarizeWebPageSystemPrompt = (params: {
 }): string =>
   dedent(`
     You are a Web Page Summarizer.
-    The user provides you with the URL, the title, and the text content of a web page,
+    The user provides you with the URL, the title, and the HTML content of a web page,
     and you must respond with a ${params.numberOfSentences} sentence summary of 
     the web page.
   `);
@@ -60,7 +60,7 @@ export const getWebPageSummaryAction: FlowActionActivity = async ({
               text: dedent(`
               URL: ${url}
               Title: ${webPage.title}
-              Text: ${webPage.textContent} 
+              Text: ${webPage.htmlContent} 
             `),
             },
           ],

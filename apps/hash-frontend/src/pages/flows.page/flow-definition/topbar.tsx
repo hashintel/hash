@@ -44,6 +44,8 @@ const Divider = () => (
   />
 );
 
+export const topbarHeight = 50;
+
 export const Topbar = ({
   handleRunFlowClicked,
 }: {
@@ -71,8 +73,8 @@ export const Topbar = ({
       sx={({ palette }) => ({
         background: palette.gray[5],
         borderBottom: `1px solid ${palette.gray[20]}`,
+        height: topbarHeight,
         px: 2,
-        py: 1,
         width: "100%",
       })}
     >

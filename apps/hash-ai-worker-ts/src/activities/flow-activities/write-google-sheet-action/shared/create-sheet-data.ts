@@ -12,7 +12,7 @@ export const createCellFromValue = ({
 }): sheets_v4.Schema$CellData => {
   const userEnteredFormat = applyDefaultHeaderFormat
     ? cellHeaderFormat
-    : { padding: cellPadding };
+    : { padding: cellPadding, wrapStrategy: "WRAP" };
 
   switch (typeof value) {
     case "number": {

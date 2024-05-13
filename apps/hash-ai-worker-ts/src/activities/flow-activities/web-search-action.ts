@@ -1,7 +1,9 @@
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
+import { Context } from "@temporalio/activity";
 
 import { internalApi } from "../shared/internal-api-client";
+import { logProgress } from "../shared/log-progress";
 import type { FlowActionActivity } from "./types";
 
 export const webSearchAction: FlowActionActivity = async ({ inputs }) => {
@@ -16,7 +18,24 @@ export const webSearchAction: FlowActionActivity = async ({ inputs }) => {
 
   const webPagesUrls = webSearchResults
     .map(({ url }) => url)
+    /**
+     * The coordinator agent using this method does not have the ability to directly
+     * interact with PDFs, so we filter these out for now.
+     *
+     * @todo: account for PDFs being returned in search results in the coordinator agent
+     * @see https://linear.app/hash/issue/H-2676/allow-pdfs-returned-in-search-results-to-be-parsed
+     */
+    .filter((url) => !url.endsWith(".pdf"))
     .slice(0, numberOfSearchResults);
+
+  logProgress([
+    {
+      type: "QueriedWeb",
+      query,
+      recordedAt: new Date().toISOString(),
+      stepId: Context.current().info.activityId,
+    },
+  ]);
 
   return {
     code: StatusCode.Ok,

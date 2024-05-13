@@ -6,7 +6,7 @@ import execa from "execa";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-export const monorepoRootDirPath = path.resolve(__dirname, "../../../../..");
+export const monorepoRootDirPath = path.resolve(__dirname, "../../../../../..");
 
 type YarnWorkspaceInfo = {
   location: string;

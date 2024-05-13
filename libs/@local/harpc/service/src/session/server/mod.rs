@@ -124,9 +124,13 @@ mod test {
 
     #[tokio::test]
     #[ignore]
+    async fn connection_reclaim() {}
+
+    #[tokio::test]
+    #[ignore]
     async fn stream_dropped_graceful_shutdown() {}
 
     #[tokio::test]
     #[ignore]
-    async fn complete_shutdown() {}
+    async fn swarm_shutdown() {}
 }

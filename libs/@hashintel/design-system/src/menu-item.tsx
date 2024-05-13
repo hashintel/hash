@@ -5,7 +5,7 @@ import {
   MenuItem as MuiMenuItem,
   typographyClasses,
 } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { forwardRef } from "react";
 
 export type MenuItemProps = {
@@ -15,7 +15,7 @@ export type MenuItemProps = {
   noSelectBackground?: boolean;
 } & MuiMenuItemProps;
 
-export const MenuItem: FunctionComponent<MenuItemProps> = forwardRef(
+export const MenuItem = forwardRef<HTMLLIElement, MenuItemProps>(
   (
     {
       children,

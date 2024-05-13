@@ -27,12 +27,7 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
 
   const stepStatusName = statusToSimpleStatus(statusData?.status ?? null);
 
-  const isoString =
-    (stepStatusName === "Complete" || stepStatusName === "Error") && closedAt
-      ? closedAt
-      : stepStatusName === "In Progress" && scheduledAt
-        ? scheduledAt
-        : null;
+  const isoString = closedAt ?? scheduledAt;
 
   const [timeAgo, setTimeAgo] = useState(
     isoString ? getTimeAgo(isoString) : "",
@@ -115,7 +110,9 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
                   ? "Currently processing step..."
                   : stepStatusName === "Error"
                     ? "Step failed to complete"
-                    : "Waiting for earlier stages to finish"}
+                    : stepStatusName === "Cancelled"
+                      ? "Cancelled"
+                      : "Waiting for earlier stages to finish"}
             </Typography>
           </Box>
         )}

@@ -129,21 +129,9 @@ impl<'de> Deserialize<'de> for usize {
         u32::deserialize(de).map(|value| value as Self)
     }
 
-    // #[cfg(target_pointer_width = "64")]
-    // The default if no other architecture is chosen, should there ever be a case of a `usize` that
-    // does not have the "default" pointer width, even 128 is quite unlikely
-    #[cfg(not(any(
-        target_pointer_width = "16",
-        target_pointer_width = "32",
-        target_pointer_width = "128"
-    )))]
+    #[cfg(target_pointer_width = "64")]
     fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
         u64::deserialize(de).map(|value| value as Self)
-    }
-
-    #[cfg(target_pointer_width = "128")]
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        u128::deserialize(de).map(|value| value as Self)
     }
 }
 
@@ -170,20 +158,8 @@ impl<'de> Deserialize<'de> for isize {
         i32::deserialize(de).map(|value| value as Self)
     }
 
-    // #[cfg(target_pointer_width = "64")]
-    // The default if no other architecture is chosen, should there ever be a case of a `usize` that
-    // does not have the "default" pointer width, even 128 is quite unlikely
-    #[cfg(not(any(
-        target_pointer_width = "16",
-        target_pointer_width = "32",
-        target_pointer_width = "128"
-    )))]
+    #[cfg(target_pointer_width = "64")]
     fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
         i64::deserialize(de).map(|value| value as Self)
-    }
-
-    #[cfg(target_pointer_width = "128")]
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        i128::deserialize(de).map(|value| value as Self)
     }
 }

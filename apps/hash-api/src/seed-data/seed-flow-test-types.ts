@@ -2,6 +2,7 @@ import { createGraphClient } from "@local/hash-backend-utils/create-graph-client
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import {
   defaultEntityTypeAuthorizationRelationships,
   defaultPropertyTypeAuthorizationRelationships,
@@ -20,7 +21,6 @@ import type {
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 
-import { publicUserAccountId } from "../auth/public-user-account-id";
 import type { ImpureGraphFunction } from "../graph/context-types";
 import type {
   EntityTypeDefinition,
@@ -271,6 +271,57 @@ const seedFlowTestTypes = async () => {
       ownedById,
     });
 
+  const numberOfVotingRightsPropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Number of Voting Rights",
+        description:
+          "The number of voting rights of a company, usually expressed as the total count of shares held by an entity that are eligible to vote in corporate decisions.",
+        possibleValues: [
+          {
+            propertyTypeObjectProperties: {
+              [valuePropertyType.metadata.recordId.baseUrl]: {
+                $ref: valuePropertyType.schema.$id,
+              },
+              [unitPropertyType.metadata.recordId.baseUrl]: {
+                $ref: unitPropertyType.schema.$id,
+              },
+            },
+            propertyTypeObjectRequiredProperties: [
+              valuePropertyType.metadata.recordId.baseUrl,
+              unitPropertyType.metadata.recordId.baseUrl,
+            ],
+          },
+        ],
+      },
+      ownedById,
+    });
+
+  const ownershipPercentagePropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Ownership Percentage",
+        description:
+          "The proportion of the total available capital of a company that is owned by a specific shareholder, reflecting their relative financial stake and potential influence in corporate governance.",
+        possibleValues: [{ primitiveDataType: "number" }],
+      },
+      ownedById,
+    });
+
+  const holdingTypePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Holding Type",
+        description:
+          "The method or structure through which a shareholder possesses shares, indicating whether the interest is direct, indirect, or through financial instruments such as derivatives.",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      ownedById,
+    },
+  );
+
   const investedInLinkEntityType = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
@@ -281,10 +332,17 @@ const seedFlowTestTypes = async () => {
         description: "Something that something is invested in",
         properties: [
           {
-            propertyType: valuePropertyType.schema.$id,
-            required: true,
+            propertyType: numberOfVotingRightsPropertyType.schema.$id,
           },
-          { propertyType: measuredOnPropertyType.schema.$id },
+          {
+            propertyType: ownershipPercentagePropertyType.schema.$id,
+          },
+          {
+            propertyType: holdingTypePropertyType.schema.$id,
+          },
+          {
+            propertyType: measuredOnPropertyType.schema.$id,
+          },
         ],
       },
       ownedById,
@@ -395,10 +453,11 @@ const seedFlowTestTypes = async () => {
   );
 
   /**
-   * This is a generic company entity type to allow for identifying companies that are invested in an index
-   * but are not constituents of an index (in the example use case we are developing Flows against initially)
+   * This is a generic company entity type to allow
+   * 1. for identifying companies that are invested in an index but are not constituents of an index
+   * 2. for identifying companies that a person worked at
    */
-  const _investingCompanyEntityType = await createSystemEntityTypeIfNotExists(
+  const companyEntityType = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
     {
@@ -419,6 +478,148 @@ const seedFlowTestTypes = async () => {
           {
             linkEntityType: investedInLinkEntityType,
             destinationEntityTypes: [stockMarketConstituentEntityType],
+          },
+        ],
+      },
+      ownedById,
+    },
+  );
+
+  const rolePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Role",
+        description: "The name of a role performed by someone or something.",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      ownedById,
+    },
+  );
+
+  const workedAtLinkType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        allOf: [linkEntityTypeUrl],
+        title: "Worked At",
+        description: "Somewhere that someone or something worked at",
+        properties: [
+          {
+            propertyType: systemPropertyTypes.appliesFrom.propertyTypeId,
+            required: false,
+          },
+          {
+            propertyType: systemPropertyTypes.appliesUntil.propertyTypeId,
+            required: false,
+          },
+          {
+            propertyType: rolePropertyType.schema.$id,
+            required: false,
+          },
+        ],
+      },
+      ownedById,
+    },
+  );
+
+  const linkedinUrlPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "LinkedIn URL",
+        description: "A URL to a LinkedIn profile",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      ownedById,
+    },
+  );
+
+  const googleScholarUrlPropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Google Scholar URL",
+        description: "A URL to a Google Scholar profile",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      ownedById,
+    });
+
+  const twitterUrlPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Twitter URL",
+        description: "A URL to a Twitter account",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      ownedById,
+    },
+  );
+
+  const githubUrlPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "GitHub URL",
+        description: "A URL to a GitHub account",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      ownedById,
+    },
+  );
+
+  /**
+   * This is a Person entity type for testing scraping of common fields one might want for a person.
+   * This is a simplified representation – for employment, for example, you would probably actually
+   * want separate entities for companies, and a link entity type for the employment relationship between them.
+   */
+  const _personEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        title: "Person",
+        description: "A human person",
+        properties: [
+          {
+            propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
+            required: true,
+          },
+          {
+            propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
+            required: true,
+          },
+          {
+            propertyType: systemPropertyTypes.email.propertyTypeId,
+            required: false,
+          },
+          {
+            propertyType: linkedinUrlPropertyType.schema.$id,
+            required: false,
+          },
+          {
+            propertyType: googleScholarUrlPropertyType.schema.$id,
+            required: false,
+          },
+          {
+            propertyType: twitterUrlPropertyType.schema.$id,
+            required: false,
+          },
+          {
+            propertyType: githubUrlPropertyType.schema.$id,
+            required: false,
+          },
+        ],
+        outgoingLinks: [
+          {
+            linkEntityType: workedAtLinkType,
+            destinationEntityTypes: [companyEntityType],
           },
         ],
       },

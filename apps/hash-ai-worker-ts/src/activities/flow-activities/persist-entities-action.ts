@@ -149,8 +149,12 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
     persistedEntitiesByLocalId[unresolvedEntity.localEntityId] = output.value;
   }
 
+  const persistedEntities = Object.values(persistedEntitiesByLocalId);
+  const failedEntityProposals = Object.values(failedEntitiesByLocalId);
+
   return {
-    code: StatusCode.Ok,
+    /** @todo H-2604 have some kind of 'partially completed' status when reworking flow return codes */
+    code: persistedEntities.length > 0 ? StatusCode.Ok : StatusCode.Internal,
     contents: [
       {
         outputs: [
@@ -159,8 +163,8 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
             payload: {
               kind: "PersistedEntities",
               value: {
-                persistedEntities: Object.values(persistedEntitiesByLocalId),
-                failedEntityProposals: Object.values(failedEntitiesByLocalId),
+                persistedEntities,
+                failedEntityProposals,
               } satisfies PersistedEntities,
             },
           },

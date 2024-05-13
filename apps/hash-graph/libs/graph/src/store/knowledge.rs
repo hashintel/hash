@@ -2,6 +2,7 @@ use std::{borrow::Cow, error::Error, fmt};
 
 use authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency};
 use error_stack::Report;
+use futures::TryFutureExt;
 use graph_types::{
     account::AccountId,
     knowledge::{
@@ -163,7 +164,7 @@ impl<'s> Sorting for EntityQuerySorting<'s> {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[cfg_attr(
 feature = "utoipa",
 derive(utoipa::ToSchema),
@@ -358,6 +359,23 @@ pub trait EntityStore {
         params: CreateEntityParams<R>,
     ) -> impl Future<Output = Result<EntityMetadata, Report<InsertionError>>> + Send
     where
+        R: IntoIterator<Item = EntityRelationAndSubject> + Send,
+    {
+        self.create_entities(actor_id, vec![params])
+            .map_ok(|mut entities| {
+                let entity = entities.pop().expect("Expected a single entity");
+                assert!(entities.is_empty(), "Expected a single entity");
+                entity
+            })
+    }
+
+    /// Creates new [`Entities`][Entity].
+    fn create_entities<R>(
+        &mut self,
+        actor_id: AccountId,
+        params: Vec<CreateEntityParams<R>>,
+    ) -> impl Future<Output = Result<Vec<EntityMetadata>, Report<InsertionError>>> + Send
+    where
         R: IntoIterator<Item = EntityRelationAndSubject> + Send;
 
     /// Validates an [`Entity`].
@@ -370,38 +388,21 @@ pub trait EntityStore {
         actor_id: AccountId,
         consistency: Consistency<'_>,
         params: ValidateEntityParams<'_>,
-    ) -> impl Future<Output = Result<(), Report<ValidateEntityError>>> + Send;
+    ) -> impl Future<Output = Result<(), Report<ValidateEntityError>>> + Send {
+        self.validate_entities(actor_id, consistency, vec![params])
+    }
 
-    /// Inserts the entities with the specified [`EntityType`] into the `Store`.
+    /// Validates [`Entities`][Entity].
     ///
-    /// This is only supporting a single [`EntityType`], not one [`EntityType`] per entity.
-    /// [`EntityType`]s is stored in a different table and would need to be queried for each,
-    /// this would be a lot less efficient.
+    /// # Errors:
     ///
-    /// This is not supposed to be used outside of benchmarking as in the long term we need to
-    /// figure out how to deal with batch inserting.
-    ///
-    /// # Errors
-    ///
-    /// - if the [`EntityType`] doesn't exist
-    /// - if on of the [`Entity`] is not valid with respect to the specified [`EntityType`]
-    /// - if the account referred to by `owned_by_id` does not exist
-    /// - if an [`EntityUuid`] was supplied and already exists in the store
-    fn insert_entities_batched_by_type(
-        &mut self,
+    /// - if the validation failed
+    fn validate_entities(
+        &self,
         actor_id: AccountId,
-        entities: impl IntoIterator<
-            Item = (
-                OwnedById,
-                Option<EntityUuid>,
-                PropertyObject,
-                Option<LinkData>,
-                Option<Timestamp<DecisionTime>>,
-            ),
-            IntoIter: Send,
-        > + Send,
-        entity_type_id: &VersionedUrl,
-    ) -> impl Future<Output = Result<Vec<EntityMetadata>, Report<InsertionError>>> + Send;
+        consistency: Consistency<'_>,
+        params: Vec<ValidateEntityParams<'_>>,
+    ) -> impl Future<Output = Result<(), Report<ValidateEntityError>>> + Send;
 
     /// Get a list of entities specified by the [`GetEntitiesParams`].
     ///

@@ -27,7 +27,7 @@ jobs:
       publish: ${{ steps.packages.outputs.publish }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
         with:
           fetch-depth: 2
 
@@ -130,7 +130,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
 
       - name: Install turbo
         uses: ./.github/actions/install-turbo
@@ -168,7 +168,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@00a67321d66e038602baf558d366a594a7019ea2 # v2.33.9
+        uses: taiki-e/install-action@c2927f0c5b5adc6a76bc4a7847bc6e0503754bed # v2.33.22
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -217,7 +217,7 @@ jobs:
     if: needs.setup.outputs.dockers != '{"include":[]}'
     steps:
       - name: Checkout
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
 
       - name: Build image
         uses: ./.github/actions/build-docker-images
@@ -238,7 +238,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
 
       - name: Install turbo
         uses: ./.github/actions/install-turbo
@@ -285,7 +285,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@00a67321d66e038602baf558d366a594a7019ea2 # v2.33.9
+        uses: taiki-e/install-action@c2927f0c5b5adc6a76bc4a7847bc6e0503754bed # v2.33.22
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -372,7 +372,7 @@ jobs:
       TURBO_FORCE: true
     steps:
       - name: Checkout
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
 
       - name: Create temp files and folders
         run: mkdir -p var/logs
@@ -415,7 +415,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@00a67321d66e038602baf558d366a594a7019ea2 # v2.33.9
+        uses: taiki-e/install-action@c2927f0c5b5adc6a76bc4a7847bc6e0503754bed # v2.33.22
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -459,9 +459,13 @@ jobs:
           echo 'ANTHROPIC_API_KEY=dummy' >> .env.local
           yarn workspace @apps/hash-external-services deploy up --wait
 
-      - name: Launch HASH-API
+      - name: Migrate HASH-API
         run: |
           turbo run build --filter "@apps/hash-api"
+          yarn workspace @apps/hash-api ensure-system-graph-is-initialized
+
+      - name: Launch HASH-API
+        run: |
           yarn workspace @apps/hash-api start-test 2>&1 | tee var/logs/backend.log &
           yarn wait-on --timeout 120000 http://0.0.0.0:5001
 
@@ -495,13 +499,13 @@ jobs:
 
       - name: Upload artifact playwright-report
         if: matrix.package == '@tests/hash-playwright' && ${{ success() || failure() }}
-        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
           name: playwright-report
           path: tests/hash-playwright/playwright-report
 
       - name: Upload artifact playwright-var
-        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         if: matrix.package == '@tests/hash-playwright' && ${{ success() || failure() }}
         with:
           name: playwright-var
@@ -521,7 +525,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
 
       - name: Find publish jobs to run
         id: publish
@@ -546,7 +550,7 @@ jobs:
 
       - name: Install tools
         if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'pull_request' || github.event_name == 'merge_group'
-        uses: taiki-e/install-action@00a67321d66e038602baf558d366a594a7019ea2 # v2.33.9
+        uses: taiki-e/install-action@c2927f0c5b5adc6a76bc4a7847bc6e0503754bed # v2.33.22
         with:
           tool: cargo-semver-checks
 

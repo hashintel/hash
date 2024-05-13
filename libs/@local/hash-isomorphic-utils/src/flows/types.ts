@@ -1,4 +1,8 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  PropertyMetadataMap,
+  ProvidedEntityEditionProvenance,
+} from "@local/hash-graph-client";
 import type { ActorTypeDataType } from "@local/hash-isomorphic-utils/system-types/google/googlesheetsfile";
 import type {
   Entity,
@@ -15,14 +19,10 @@ export type DeepReadOnly<T> = {
   readonly [key in keyof T]: DeepReadOnly<T[key]>;
 };
 
-/**
- * Payload
- */
-
 export type WebPage = {
   url: string;
   title: string;
-  textContent: string;
+  htmlContent: string;
 };
 
 type LocalOrExistingEntityId =
@@ -34,6 +34,8 @@ type LocalOrExistingEntityId =
  *    possibly just resolved by removing the latter when browser plugin inference migrated to a Flow
  */
 export type ProposedEntity = {
+  provenance?: ProvidedEntityEditionProvenance;
+  propertyMetadata?: PropertyMetadataMap;
   localEntityId: string;
   entityTypeId: VersionedUrl;
   summary?: string;
@@ -339,23 +341,94 @@ export type Flow = {
   outputs?: StepOutput[];
 };
 
-export type ProposedEntityLog = {
-  proposedEntity: ProposedEntity;
+type ProgressLogBase = {
   recordedAt: string;
   stepId: string;
+};
+
+export type QueriedWebLog = ProgressLogBase & {
+  query: string;
+  type: "QueriedWeb";
+};
+
+export type VisitedWebPageLog = ProgressLogBase & {
+  webPage: Pick<WebPage, "url" | "title">;
+  type: "VisitedWebPage";
+};
+
+export type ViewedFile = {
+  fileUrl: string;
+  recordedAt: string;
+  stepId: string;
+  type: "ViewedFile";
+};
+
+export type ProposedEntityLog = ProgressLogBase & {
+  proposedEntity: ProposedEntity;
   type: "ProposedEntity";
 };
 
-export type PersistedEntityLog = {
+export type PersistedEntityLog = ProgressLogBase & {
   persistedEntity: PersistedEntity;
-  recordedAt: string;
-  stepId: string;
   type: "PersistedEntity";
 };
 
-export type StepProgressLog = PersistedEntityLog | ProposedEntityLog;
+export type StepProgressLog =
+  | PersistedEntityLog
+  | ProposedEntityLog
+  | VisitedWebPageLog
+  | ViewedFile
+  | QueriedWebLog;
 
-export type ProgressLogSignalData = {
+export type ProgressLogSignal = {
   attempt: number;
   logs: StepProgressLog[];
+};
+
+type ExternalInputRequestType = "human-input" | "get-urls-html-content";
+
+type ExternalInputRequestDataByType = {
+  "human-input": {
+    question: string;
+  };
+  "get-urls-html-content": {
+    urls: string[];
+  };
+};
+
+export type ExternalInputRequestSignal<
+  RequestType extends ExternalInputRequestType = ExternalInputRequestType,
+> = {
+  [Type in RequestType]: {
+    requestId: string;
+    stepId: string;
+    type: Type;
+    data: ExternalInputRequestDataByType[Type];
+  };
+}[RequestType];
+
+export type ExternalInputResponseByType = {
+  "human-input": {
+    answer: string;
+  };
+  "get-urls-html-content": {
+    webPages: WebPage[];
+  };
+};
+
+export type ExternalInputResponseSignal<
+  RequestType extends ExternalInputRequestType = ExternalInputRequestType,
+> = {
+  [Type in RequestType]: {
+    requestId: string;
+    type: Type;
+    data: ExternalInputResponseByType[Type];
+  };
+}[RequestType];
+
+export type ExternalInputRequest = ExternalInputRequestSignal & {
+  /** The answer given by the human, if it was a request for human input */
+  answer?: string;
+  /** Whether or not the request has been resolved */
+  resolved: boolean;
 };

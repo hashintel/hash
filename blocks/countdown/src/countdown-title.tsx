@@ -38,6 +38,7 @@ export const CountdownTitle: FunctionComponent<CountdownTitleProps> = ({
       <div
         ref={textareaEl}
         className="title-input"
+        // @ts-expect-error -- placeholder has been implemented as attr(placeholder) in CSS class
         placeholder="Event name"
         onInput={handleChange}
         onBlur={onBlur}

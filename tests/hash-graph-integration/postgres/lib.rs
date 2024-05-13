@@ -20,8 +20,6 @@ mod property_metadata;
 mod property_type;
 mod sorting;
 
-use std::str::FromStr;
-
 use authorization::{
     schema::{
         DataTypeRelationAndSubject, DataTypeViewerSubject, EntityRelationAndSubject,
@@ -62,11 +60,7 @@ use graph::{
 };
 use graph_types::{
     account::AccountId,
-    knowledge::{
-        entity::{Entity, EntityId, EntityMetadata, EntityUuid},
-        link::LinkData,
-        PropertyObject,
-    },
+    knowledge::entity::{Entity, EntityId, EntityMetadata},
     ontology::{
         DataTypeMetadata, EntityTypeMetadata, OntologyTemporalMetadata,
         OntologyTypeClassificationMetadata, PropertyTypeMetadata,
@@ -76,9 +70,8 @@ use graph_types::{
 };
 use hash_tracing::logging::env_filter;
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
-use time::{format_description::well_known::Iso8601, Duration, OffsetDateTime};
 use tokio_postgres::{NoTls, Transaction};
-use type_system::{url::VersionedUrl, DataType, EntityType, PropertyType};
+use type_system::{DataType, EntityType, PropertyType};
 use uuid::Uuid;
 
 pub struct DatabaseTestWrapper<A: AuthorizationApi> {
@@ -277,19 +270,6 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
 
         Ok(DatabaseApi { store, account_id })
     }
-}
-
-fn generate_decision_time() -> Timestamp<DecisionTime> {
-    // We cannot use `Timestamp::now` as the decision time must be before the transaction time. As
-    // the transaction is started before the time was recorded, this will always fail.
-    Timestamp::from_str(
-        &OffsetDateTime::now_utc()
-            .checked_sub(Duration::days(1))
-            .expect("could not subtract a day from the current time")
-            .format(&Iso8601::DEFAULT)
-            .expect("could not format date to ISO8601"),
-    )
-    .expect("could not parse timestamp")
 }
 
 impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
@@ -499,49 +479,25 @@ impl<A> EntityStore for DatabaseApi<'_, A>
 where
     A: AuthorizationApi,
 {
-    async fn create_entity<R>(
+    async fn create_entities<R>(
         &mut self,
         actor_id: AccountId,
-        mut params: CreateEntityParams<R>,
-    ) -> Result<EntityMetadata, InsertionError>
+        params: Vec<CreateEntityParams<R>>,
+    ) -> Result<Vec<EntityMetadata>, InsertionError>
     where
         R: IntoIterator<Item = EntityRelationAndSubject> + Send,
     {
-        if params.decision_time.is_none() {
-            params.decision_time = Some(generate_decision_time());
-        }
-
-        self.store.create_entity(actor_id, params).await
+        self.store.create_entities(actor_id, params).await
     }
 
-    async fn validate_entity(
+    async fn validate_entities(
         &self,
         actor_id: AccountId,
         consistency: Consistency<'_>,
-        params: ValidateEntityParams<'_>,
+        params: Vec<ValidateEntityParams<'_>>,
     ) -> Result<(), ValidateEntityError> {
         self.store
-            .validate_entity(actor_id, consistency, params)
-            .await
-    }
-
-    async fn insert_entities_batched_by_type(
-        &mut self,
-        actor_id: AccountId,
-        entities: impl IntoIterator<
-            Item = (
-                OwnedById,
-                Option<EntityUuid>,
-                PropertyObject,
-                Option<LinkData>,
-                Option<Timestamp<DecisionTime>>,
-            ),
-            IntoIter: Send,
-        > + Send,
-        entity_type_id: &VersionedUrl,
-    ) -> Result<Vec<EntityMetadata>, InsertionError> {
-        self.store
-            .insert_entities_batched_by_type(actor_id, entities, entity_type_id)
+            .validate_entities(actor_id, consistency, params)
             .await
     }
 
@@ -637,12 +593,8 @@ where
     async fn patch_entity(
         &mut self,
         actor_id: AccountId,
-        mut params: PatchEntityParams,
+        params: PatchEntityParams,
     ) -> Result<EntityMetadata, UpdateError> {
-        if params.decision_time.is_none() {
-            params.decision_time = Some(generate_decision_time());
-        }
-
         self.store.patch_entity(actor_id, params).await
     }
 

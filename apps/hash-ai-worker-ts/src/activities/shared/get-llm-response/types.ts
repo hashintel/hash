@@ -34,6 +34,9 @@ export type AnthropicLlmParams<ToolName extends string = string> =
   CommonLlmParams<ToolName> & {
     model: AnthropicMessageModel;
     maxTokens?: number;
+    previousInvalidResponses?: (AnthropicMessagesCreateResponse & {
+      requestTime: number;
+    })[];
   } & Omit<
       AnthropicMessagesCreateParams,
       "tools" | "max_tokens" | "system" | "messages"
@@ -43,6 +46,9 @@ export type OpenAiLlmParams<ToolName extends string = string> =
   CommonLlmParams<ToolName> & {
     model: PermittedOpenAiModel;
     trimMessageAtIndex?: number;
+    previousInvalidResponses?: (OpenAiChatCompletion & {
+      requestTime: number;
+    })[];
   } & Omit<OpenAiChatCompletionCreateParams, "tools" | "messages">;
 
 export type LlmParams<ToolName extends string = string> =
@@ -56,9 +62,15 @@ export const isLlmParamsAnthropicLlmParams = (
 export type AnthropicResponse = Omit<
   AnthropicMessagesCreateResponse,
   "content" | "role" | "usage"
->;
+> & {
+  invalidResponses: (AnthropicMessagesCreateResponse & {
+    requestTime: number;
+  })[];
+};
 
-export type OpenAiResponse = Omit<OpenAiChatCompletion, "usage" | "choices">;
+export type OpenAiResponse = Omit<OpenAiChatCompletion, "usage" | "choices"> & {
+  invalidResponses: (OpenAiChatCompletion & { requestTime: number })[];
+};
 
 export type ParsedLlmToolCall<ToolName extends string = string> = {
   id: string;
@@ -98,19 +110,7 @@ export type LlmUsage = {
   totalTokens: number;
 };
 
-export type LlmResponse<T extends LlmParams> =
-  | ({
-      status: "ok";
-      stopReason: LlmStopReason;
-      usage: LlmUsage;
-      message: LlmAssistantMessage<
-        T["tools"] extends (infer U)[]
-          ? U extends { name: infer N }
-            ? N
-            : never
-          : string
-      >;
-    } & (T extends AnthropicLlmParams ? AnthropicResponse : OpenAiResponse))
+export type LlmErrorResponse =
   | {
       status: "exceeded-maximum-retries";
       usage: LlmUsage;
@@ -127,3 +127,20 @@ export type LlmResponse<T extends LlmParams> =
       status: "internal-error";
       message: string;
     };
+
+export type LlmResponse<T extends LlmParams> =
+  | ({
+      status: "ok";
+      stopReason: LlmStopReason;
+      usage: LlmUsage;
+      lastRequestTime: number;
+      totalRequestTime: number;
+      message: LlmAssistantMessage<
+        T["tools"] extends (infer U)[]
+          ? U extends { name: infer N }
+            ? N
+            : never
+          : string
+      >;
+    } & (T extends AnthropicLlmParams ? AnthropicResponse : OpenAiResponse))
+  | LlmErrorResponse;

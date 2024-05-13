@@ -24,6 +24,7 @@ import { mapActionInputEntitiesToEntities } from "../../shared/map-action-input-
 import type { PermittedOpenAiModel } from "../../shared/openai-client";
 import type { CoordinatorToolName } from "./coordinator-tools";
 import { coordinatorToolDefinitions } from "./coordinator-tools";
+import type { AccessedRemoteFile } from "./infer-entities-from-web-page-worker-agent/types";
 import type { CompletedToolCall } from "./types";
 import { mapPreviousCallsToLlmMessages } from "./util";
 
@@ -96,6 +97,7 @@ export type CoordinatingAgentState = {
     completedToolCalls: CompletedToolCall<CoordinatorToolName>[];
   }[];
   hasConductedCheckStep: boolean;
+  filesUsedToProposeEntities: AccessedRemoteFile[];
 };
 
 const getNextToolCalls = async (params: {
@@ -211,6 +213,7 @@ const createInitialPlan = async (params: {
       tools: Object.values(coordinatorToolDefinitions).filter(
         ({ name }) => name !== "updatePlan",
       ),
+      seed: 1,
     },
     {
       userAccountId: userAuthentication.actorId,
@@ -257,27 +260,34 @@ const parseCoordinatorInputs = async (params: {
 
   const { userAuthentication } = await getFlowContext();
 
-  const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
-    graphApiClient,
-    entityTypeIds: entityTypeIds!,
-    actorId: userAuthentication.actorId,
-    simplifyPropertyKeys: true,
-  });
-
-  const entityTypes = Object.values(dereferencedEntityTypes)
-    .filter(({ isLink }) => !isLink)
-    .map(({ schema }) => schema);
-
-  const linkEntityTypes = Object.values(dereferencedEntityTypes)
-    .filter(({ isLink }) => isLink)
-    .map(({ schema }) => schema);
-
   /**
    * @todo: simplify the properties in the existing entities
    */
   const existingEntities = inputExistingEntities
     ? mapActionInputEntitiesToEntities({ inputEntities: inputExistingEntities })
     : undefined;
+
+  const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
+    graphApiClient,
+    entityTypeIds: [
+      ...entityTypeIds!,
+      ...(existingEntities?.map(({ metadata }) => metadata.entityTypeId) ?? []),
+    ].filter((entityTypeId, index, all) => all.indexOf(entityTypeId) === index),
+    actorId: userAuthentication.actorId,
+    simplifyPropertyKeys: true,
+  });
+
+  const entityTypes = Object.values(dereferencedEntityTypes)
+    .filter(
+      ({ isLink, schema }) => entityTypeIds!.includes(schema.$id) && !isLink,
+    )
+    .map(({ schema }) => schema);
+
+  const linkEntityTypes = Object.values(dereferencedEntityTypes)
+    .filter(
+      ({ isLink, schema }) => entityTypeIds!.includes(schema.$id) && isLink,
+    )
+    .map(({ schema }) => schema);
 
   return {
     prompt,

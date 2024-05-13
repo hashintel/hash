@@ -69,40 +69,39 @@ const createHashEntity = async (params: {
     },
   );
 
-  await Promise.all(
-    params.outgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) =>
-      graphApiClient.createEntity(params.authentication.actorId, {
-        ownedById,
-        linkData: {
-          leftEntityId: entity.recordId.entityId,
-          rightEntityId: destinationEntityId,
+  await graphApiClient.createEntities(
+    params.authentication.actorId,
+    params.outgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) => ({
+      ownedById,
+      linkData: {
+        leftEntityId: entity.recordId.entityId,
+        rightEntityId: destinationEntityId,
+      },
+      entityTypeIds: [linkEntityTypeId],
+      properties: {},
+      draft: false,
+      relationships: [
+        {
+          relation: "administrator",
+          subject: {
+            kind: "account",
+            subjectId: params.authentication.actorId,
+          },
         },
-        entityTypeIds: [linkEntityTypeId],
-        properties: {},
-        draft: false,
-        relationships: [
-          {
-            relation: "administrator",
-            subject: {
-              kind: "account",
-              subjectId: params.authentication.actorId,
-            },
-          },
-          {
-            relation: "setting",
-            subject: { kind: "setting", subjectId: "administratorFromWeb" },
-          },
-          {
-            relation: "setting",
-            subject: { kind: "setting", subjectId: "updateFromWeb" },
-          },
-          {
-            relation: "setting",
-            subject: { kind: "setting", subjectId: "viewFromWeb" },
-          },
-        ],
-      }),
-    ),
+        {
+          relation: "setting",
+          subject: { kind: "setting", subjectId: "administratorFromWeb" },
+        },
+        {
+          relation: "setting",
+          subject: { kind: "setting", subjectId: "updateFromWeb" },
+        },
+        {
+          relation: "setting",
+          subject: { kind: "setting", subjectId: "viewFromWeb" },
+        },
+      ],
+    })),
   );
 };
 

@@ -18,12 +18,13 @@ export type CancelInferEntitiesRequest = {
   requestUuid: string;
 };
 
-export type GetSiteContentRequest = {
-  type: "get-site-content";
+export type GetTabContentRequest = {
+  type: "get-tab-content";
+  html?: boolean;
 };
 
-export type GetSiteContentReturn = {
-  innerText: string;
+export type GetTabContentReturn = {
+  content: string;
   pageTitle: string;
   pageUrl: string;
 };
@@ -31,4 +32,4 @@ export type GetSiteContentReturn = {
 export type Message =
   | InferEntitiesRequest
   | CancelInferEntitiesRequest
-  | GetSiteContentRequest;
+  | GetTabContentRequest;

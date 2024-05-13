@@ -196,6 +196,7 @@ type PolymorphicComponent<
   props: PolymorphicProps<P, T>,
 ) => ReactElement | null;
 
+// @ts-expect-error -- fix this at some point, search 'PolymorphicComponent with forwardRef'
 export const TypeFormModal: PolymorphicComponent = forwardRef(
   <T extends ElementType>(
     props: TypeFormModalProps<T>,

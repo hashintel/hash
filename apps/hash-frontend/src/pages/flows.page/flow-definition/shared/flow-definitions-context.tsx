@@ -2,6 +2,7 @@ import {
   answerQuestionFlow,
   ftseInvestorsFlowDefinition,
   inferUserEntitiesFromWebPageFlowDefinition,
+  researchEntitiesFlowDefinition,
   researchTaskFlowDefinition,
   saveFileFromUrl,
 } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
@@ -22,6 +23,7 @@ export const FlowDefinitionsContext =
 const exampleFlows: FlowDefinition[] = [
   // ...dummyFlows,
   researchTaskFlowDefinition,
+  researchEntitiesFlowDefinition,
   ftseInvestorsFlowDefinition,
 
   inferUserEntitiesFromWebPageFlowDefinition,

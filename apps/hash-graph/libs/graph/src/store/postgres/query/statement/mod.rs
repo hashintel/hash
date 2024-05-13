@@ -5,6 +5,7 @@ mod window;
 use std::fmt;
 
 pub use self::{
+    insert::InsertStatementBuilder,
     select::{Distinctness, FromItem, SelectStatement},
     window::WindowStatement,
 };

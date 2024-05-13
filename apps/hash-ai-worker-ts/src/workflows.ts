@@ -3,10 +3,10 @@ import type { Entity as GraphApiEntity } from "@local/hash-graph-client/api";
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
-  GetResultsFromCancelledInferenceRequestQuery,
   InferEntitiesCallerParams,
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
+import { getResultsFromCancelledInferenceQuery } from "@local/hash-isomorphic-utils/flows/queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import type {
@@ -21,7 +21,6 @@ import { CancelledFailure } from "@temporalio/common";
 import {
   ActivityCancellationType,
   ActivityFailure,
-  defineQuery,
   isCancellation,
   proxyActivities,
   setHandler,
@@ -48,9 +47,6 @@ const graphActivities = proxyActivities<
   },
 });
 
-const getResultsFromCancelledInferenceQuery: GetResultsFromCancelledInferenceRequestQuery =
-  defineQuery("getResultsFromCancelledInference");
-
 export const inferEntities = async (params: InferEntitiesCallerParams) => {
   try {
     return await aiActivities.inferEntitiesActivity(params);
@@ -67,9 +63,11 @@ export const inferEntities = async (params: InferEntitiesCallerParams) => {
 
         /**
          * For some reason the `details` are not returned to the client as part of the 'CancelledFailure' error,
-         * so we set up a query handler instead which the client can call for partial results when it receives a cancellation.
+         * so we set up a query handler instead which the client can call for partial results when it receives a
+         * cancellation.
          *
-         * @todo figure out why 'details' is not being returned in the error - @see https://temporalio.slack.com/archives/C01DKSMU94L/p1705927971571849
+         * @todo figure out why 'details' is not being returned in the error - @see
+         *   https://temporalio.slack.com/archives/C01DKSMU94L/p1705927971571849
          */
         setHandler(getResultsFromCancelledInferenceQuery, () => results);
 

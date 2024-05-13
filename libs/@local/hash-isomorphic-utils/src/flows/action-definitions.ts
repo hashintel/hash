@@ -253,7 +253,7 @@ const actionDefinitionsAsConst = {
     ],
     outputs: [
       {
-        payloadKind: "Entity",
+        payloadKind: "PersistedEntity",
         name: "fileEntity",
         array: false,
         required: true,
@@ -442,7 +442,7 @@ const actionDefinitionsAsConst = {
     ],
     outputs: [
       {
-        payloadKind: "Entity",
+        payloadKind: "PersistedEntity",
         description: "The entity representing the Google Sheet synced to.",
         name: "googleSheetEntity",
         array: false,

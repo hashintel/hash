@@ -35,6 +35,15 @@ variable "hash_graph_env_vars" {
   description = "A list of environment variables to save as system parameters and inject into the Graph service"
 }
 
+variable "hash_api_migration_env_vars" {
+  type = list(object({
+    name   = string,
+    secret = bool,
+    value  = string
+  }))
+  description = "A list of environment variables to save as system parameters and inject into the API service migration"
+}
+
 variable "hash_api_env_vars" {
   type = list(object({
     name   = string,
