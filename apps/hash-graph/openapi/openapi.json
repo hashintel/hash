@@ -4712,6 +4712,74 @@
           },
           {
             "type": "object",
+            "title": "GreaterFilter",
+            "required": [
+              "notEqual"
+            ],
+            "properties": {
+              "greater": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FilterExpression"
+                },
+                "maxItems": 2,
+                "minItems": 2
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "GreaterOrEqualFilter",
+            "required": [
+              "notEqual"
+            ],
+            "properties": {
+              "greaterOrEqual": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FilterExpression"
+                },
+                "maxItems": 2,
+                "minItems": 2
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "LessFilter",
+            "required": [
+              "notEqual"
+            ],
+            "properties": {
+              "less": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FilterExpression"
+                },
+                "maxItems": 2,
+                "minItems": 2
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "LessOrEqualFilter",
+            "required": [
+              "notEqual"
+            ],
+            "properties": {
+              "lessOrEqual": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FilterExpression"
+                },
+                "maxItems": 2,
+                "minItems": 2
+              }
+            }
+          },
+          {
+            "type": "object",
             "title": "CosineDistanceFilter",
             "required": [
               "cosineDistance"
