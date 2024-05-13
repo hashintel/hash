@@ -1,0 +1,8 @@
+{
+  "name": "@rust/repo-chores",
+  "version": "0.0.0-private",
+  "private": true,
+  "scripts": {},
+  "dependencies": {},
+  "devDependencies": {}
+}

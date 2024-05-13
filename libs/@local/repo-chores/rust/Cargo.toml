@@ -1,0 +1,10 @@
+cargo-features = ["edition2024"]
+
+[package]
+name = "repo-chores"
+authors.workspace = true
+edition.workspace = true
+version = "0.0.0"
+publish = false
+
+[dependencies]

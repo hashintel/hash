@@ -12,6 +12,7 @@ members = [
     "libs/@local/hash-authorization",
     "libs/@local/hash-graph-types/rust",
     "libs/@local/hash-validation",
+    "libs/@local/repo-chores/rust",
     "libs/@local/temporal-client",
     "libs/@local/temporal-versioning",
     "tests/hash-graph-integration",
