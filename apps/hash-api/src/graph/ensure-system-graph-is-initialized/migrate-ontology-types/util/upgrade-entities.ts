@@ -67,6 +67,8 @@ export const upgradeWebEntities = async ({
                     { path: ["type(inheritanceDepth = 0)", "baseUrl"] },
                     { parameter: baseUrl },
                   ],
+                },
+                {
                   less: [
                     { path: ["type(inheritanceDepth = 0)", "version"] },
                     { parameter: migrationState.entityTypeVersions[baseUrl] },
