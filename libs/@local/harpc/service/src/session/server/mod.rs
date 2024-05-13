@@ -11,12 +11,13 @@ use error_stack::{Result, ResultExt};
 use futures::Stream;
 use libp2p::Multiaddr;
 use tokio::sync::{broadcast, mpsc, Semaphore};
-use tokio_util::{sync::CancellationToken, task::TaskTracker};
+use tokio_stream::wrappers::ReceiverStream;
+use tokio_util::task::TaskTracker;
 
 pub use self::{config::SessionConfig, session_id::SessionId, transaction::Transaction};
 use self::{session_id::SessionIdProducer, task::Task};
 use super::error::SessionError;
-use crate::{codec::ErrorEncoder, stream::ReceiverStreamCancel, transport::TransportLayer};
+use crate::{codec::ErrorEncoder, transport::TransportLayer};
 
 // TODO: encoding and decoding layer(?)
 // TODO: timeout layer - needs encoding layer (for error handling), and IPC to cancel a specific
@@ -90,6 +91,8 @@ where
 
         let (output, rx) = mpsc::channel(self.config.transaction_buffer_size.get());
 
+        let cancel = self.transport.cancellation_token();
+
         let task = Task {
             id: SessionIdProducer::new(),
             transport: self.transport,
@@ -100,11 +103,23 @@ where
             encoder: self.encoder,
         };
 
-        let cancel = CancellationToken::new();
+        self.tasks.spawn(task.run(self.tasks.clone(), cancel));
 
-        self.tasks
-            .spawn(task.run(self.tasks.clone(), cancel.clone()));
-
-        Ok(ReceiverStreamCancel::new(rx, cancel.drop_guard()))
+        Ok(ReceiverStream::new(rx))
     }
+}
+
+#[cfg(test)]
+mod test {
+    #[tokio::test]
+    #[ignore]
+    async fn normal_session() {}
+
+    #[tokio::test]
+    #[ignore]
+    async fn too_many_connections() {}
+
+    #[tokio::test]
+    #[ignore]
+    async fn stream_dropped_graceful_shutdown() {}
 }

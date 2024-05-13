@@ -6,7 +6,7 @@ use error_stack::{Report, Result};
 use harpc_wire_protocol::{request::Request, response::Response};
 use tokio_util::codec::{Decoder, Encoder};
 
-pub(super) struct ServerCodec {
+pub struct ServerCodec {
     request: RequestCodec,
     response: ResponseCodec,
 }

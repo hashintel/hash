@@ -89,6 +89,10 @@ struct ExpectedBegin<'a, T: ?Sized> {
 }
 
 #[track_caller]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "this is test code and gives better ergonimics"
+)]
 fn assert_begin(response: &Response, expected: ExpectedBegin<impl AsRef<[u8]> + ?Sized>) {
     let ResponseBody::Begin(ResponseBegin { kind, payload }) = &response.body else {
         panic!("expected begin response, got {response:?}");
@@ -106,6 +110,10 @@ struct ExpectedFrame<'a, T: ?Sized> {
 }
 
 #[track_caller]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "this is test code and gives better ergonimics"
+)]
 fn assert_frame(response: &Response, expected: ExpectedFrame<impl AsRef<[u8]> + ?Sized>) {
     let ResponseBody::Frame(ResponseFrame { payload }) = &response.body else {
         panic!("expected frame response, got {response:?}");

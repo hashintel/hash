@@ -15,7 +15,7 @@ use super::{
 use crate::{
     codec::ErrorEncoder,
     session::{error::SessionError, server::connection::ConnectionTask},
-    transport::TransportLayer,
+    transport::{connection::IncomingConnection, TransportLayer},
 };
 
 pub(crate) struct Task<E> {
@@ -53,9 +53,7 @@ where
                 .and_then(|permit| {
                     listen
                         .next()
-                        .map(|connection| {
-                            connection.map(|(peer, sink, stream)| (permit, peer, sink, stream))
-                        })
+                        .map(|connection| connection.map(|connection| (permit, connection)))
                         .map(Ok)
                 });
 
@@ -67,11 +65,18 @@ where
             };
 
             match connection {
-                Ok(Some((permit, peer, sink, stream))) => {
+                Ok(Some((
+                    permit,
+                    IncomingConnection {
+                        peer_id,
+                        sink,
+                        stream,
+                    },
+                ))) => {
                     let cancel = cancel.child_token();
 
                     let task = ConnectionTask {
-                        peer,
+                        peer: peer_id,
                         session: self.id.produce(),
                         config: self.config,
                         active: TransactionCollection::new(self.config, cancel.clone()),

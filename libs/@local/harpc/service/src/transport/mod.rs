@@ -1,6 +1,6 @@
-// TODO: tests about the behaviour of tasks on closure of different streams (such as a disconnect)
 mod behaviour;
 mod client;
+pub mod connection;
 mod error;
 mod ipc;
 mod server;
@@ -21,9 +21,9 @@ use tokio_util::{
 
 use self::{
     client::ClientCodec,
+    connection::IncomingConnections,
     error::{OpenStreamError, TransportError},
     ipc::TransportLayerIpc,
-    server::ServerCodec,
     task::Task,
 };
 use crate::config::Config;
@@ -46,6 +46,7 @@ pub struct TransportLayer {
     registry: Arc<metrics::Registry>,
 
     tasks: TaskTracker,
+    cancel: CancellationToken,
 }
 
 impl TransportLayer {
@@ -67,7 +68,7 @@ impl TransportLayer {
         let registry = task.registry();
 
         let tasks = TaskTracker::new();
-        tasks.spawn(task.run(cancel));
+        tasks.spawn(task.run(cancel.clone()));
 
         Ok(Self {
             id,
@@ -76,7 +77,12 @@ impl TransportLayer {
             registry,
 
             tasks,
+            cancel,
         })
+    }
+
+    pub(crate) fn cancellation_token(&self) -> CancellationToken {
+        self.cancel.clone()
     }
 
     #[must_use]
@@ -134,35 +140,14 @@ impl TransportLayer {
     ///
     /// If the background task cannot be reached, crashes while processing the request or there is
     /// already an active listener.
-    pub async fn listen(
-        &self,
-    ) -> Result<
-        impl futures::Stream<
-            Item = (
-                PeerId,
-                impl Sink<Response, Error: Debug + Send> + Send + Sync + 'static,
-                impl Stream<Item = Result<Request, io::Error>> + Send + Sync + 'static,
-            ),
-        > + Send
-        + Sync
-        + 'static,
-        TransportError,
-    > {
+    pub async fn listen(&self) -> Result<IncomingConnections, TransportError> {
         let mut control = self.ipc.control().await?;
 
         let incoming = control
             .accept(PROTOCOL_NAME)
             .change_context(TransportError)?;
 
-        Ok(incoming.map(|(peer, stream)| {
-            let stream = stream.compat();
-            let stream = BufStream::new(stream);
-            let stream = Framed::new(stream, ServerCodec::new());
-
-            let (sink, stream) = stream.split();
-
-            (peer, sink, stream)
-        }))
+        Ok(IncomingConnections { inner: incoming })
     }
 
     /// Dial a peer.
@@ -232,7 +217,7 @@ pub(crate) mod test {
     use tokio_util::sync::CancellationToken;
 
     use super::TransportLayer;
-    use crate::config::Config;
+    use crate::{config::Config, transport::connection::IncomingConnection};
 
     static EXAMPLE_REQUEST: Request = Request {
         header: RequestHeader {
@@ -376,7 +361,7 @@ pub(crate) mod test {
         let mut stream = server.listen().await.expect("should be able to listen");
 
         tokio::spawn(async move {
-            while let Some((_, sink, stream)) = stream.next().await {
+            while let Some(IncomingConnection { sink, stream, .. }) = stream.next().await {
                 // we just check if we establish connection, so we don't need to do anything
                 // with the connection
                 drop(sink);
@@ -420,7 +405,10 @@ pub(crate) mod test {
         let mut stream = server.listen().await.expect("should be able to listen");
 
         let handle = tokio::spawn(async move {
-            let Some((_, sink, mut stream)) = stream.next().await else {
+            let Some(IncomingConnection {
+                sink, mut stream, ..
+            }) = stream.next().await
+            else {
                 panic!("should receive connection");
             };
 
@@ -479,7 +467,12 @@ pub(crate) mod test {
         let mut stream = server.listen().await.expect("should be able to listen");
 
         let handle = tokio::spawn(async move {
-            let Some((_, mut sink, mut stream)) = stream.next().await else {
+            let Some(IncomingConnection {
+                mut sink,
+                mut stream,
+                ..
+            }) = stream.next().await
+            else {
                 panic!("should receive connection");
             };
 
@@ -544,7 +537,12 @@ pub(crate) mod test {
         let mut stream = server.listen().await.expect("should be able to listen");
 
         let handle = tokio::spawn(async move {
-            let Some((_, mut sink, mut stream)) = stream.next().await else {
+            let Some(IncomingConnection {
+                mut sink,
+                mut stream,
+                ..
+            }) = stream.next().await
+            else {
                 panic!("should receive connection");
             };
 
