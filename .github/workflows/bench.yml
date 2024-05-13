@@ -151,6 +151,7 @@ jobs:
         with:
           scope: |
             ${{ matrix.package }}
+            @rust/repo-chores
             @apps/hash-external-services
 
       - name: Warm up repository
@@ -292,6 +293,7 @@ jobs:
         with:
           scope: |
             ${{ matrix.package }}
+            @rust/repo-chores
             @apps/hash-external-services
 
       - name: Warm up repository
