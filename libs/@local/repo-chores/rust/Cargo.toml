@@ -6,3 +6,17 @@ authors.workspace = true
 edition.workspace = true
 version = "0.0.0"
 publish = false
+
+[dependencies]
+error-stack = "0.4.1"
+
+clap = { workspace = true, features = ["cargo", "derive", "env", "wrap_help"] }
+clap_complete = "4.5.2"
+serde = { workspace = true, features = ["derive", "std"] }
+serde_json = { workspace = true }
+thiserror = { version = "1.0.60"}
+walkdir = { version = "2.5.0" }
+
+[[bin]]
+name = "repo-chores-cli"
+path = "bin/cli/main.rs"
