@@ -173,6 +173,16 @@ where
                 ) => parameter.convert_to_parameter_type(path.expected_type())?,
                 (..) => {}
             },
+            Self::Greater(lhs, rhs)
+            | Self::GreaterOrEqual(lhs, rhs)
+            | Self::Less(lhs, rhs)
+            | Self::LessOrEqual(lhs, rhs) => match (lhs, rhs) {
+                (FilterExpression::Parameter(parameter), FilterExpression::Path(path))
+                | (FilterExpression::Path(path), FilterExpression::Parameter(parameter)) => {
+                    parameter.convert_to_parameter_type(path.expected_type())?
+                }
+                (..) => {}
+            },
 
             Self::CosineDistance(lhs, rhs, max) => {
                 if let FilterExpression::Parameter(parameter) = max {
@@ -197,11 +207,7 @@ where
             }
             Self::StartsWith(lhs, rhs)
             | Self::EndsWith(lhs, rhs)
-            | Self::ContainsSegment(lhs, rhs)
-            | Self::Greater(lhs, rhs)
-            | Self::GreaterOrEqual(lhs, rhs)
-            | Self::Less(lhs, rhs)
-            | Self::LessOrEqual(lhs, rhs) => {
+            | Self::ContainsSegment(lhs, rhs) => {
                 // TODO: We need to find a way to support lists in addition to strings as well
                 if let FilterExpression::Parameter(parameter) = lhs {
                     parameter.convert_to_parameter_type(ParameterType::Text)?;
