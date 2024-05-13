@@ -45,6 +45,10 @@ pub enum Filter<'p, R: QueryRecord + ?Sized> {
         Option<FilterExpression<'p, R>>,
         Option<FilterExpression<'p, R>>,
     ),
+    Greater(FilterExpression<'p, R>, FilterExpression<'p, R>),
+    GreaterOrEqual(FilterExpression<'p, R>, FilterExpression<'p, R>),
+    Less(FilterExpression<'p, R>, FilterExpression<'p, R>),
+    LessOrEqual(FilterExpression<'p, R>, FilterExpression<'p, R>),
     CosineDistance(
         FilterExpression<'p, R>,
         FilterExpression<'p, R>,
@@ -167,6 +171,16 @@ where
                     Some(FilterExpression::Path(path)),
                     Some(FilterExpression::Parameter(parameter)),
                 ) => parameter.convert_to_parameter_type(path.expected_type())?,
+                (..) => {}
+            },
+            Self::Greater(lhs, rhs)
+            | Self::GreaterOrEqual(lhs, rhs)
+            | Self::Less(lhs, rhs)
+            | Self::LessOrEqual(lhs, rhs) => match (lhs, rhs) {
+                (FilterExpression::Parameter(parameter), FilterExpression::Path(path))
+                | (FilterExpression::Path(path), FilterExpression::Parameter(parameter)) => {
+                    parameter.convert_to_parameter_type(path.expected_type())?;
+                }
                 (..) => {}
             },
             Self::CosineDistance(lhs, rhs, max) => {
