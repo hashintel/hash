@@ -133,6 +133,15 @@ variable "api_image" {
   description = "URL of the docker image for the API service"
 }
 
+variable "api_migration_env_vars" {
+  type = list(object({
+    name   = string,
+    secret = bool,
+    value  = string
+  }))
+  description = "A list of environment variables to save as system parameters and inject into the API service migration"
+}
+
 variable "api_env_vars" {
   type = list(object({
     name   = string,

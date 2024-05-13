@@ -2,6 +2,7 @@ import { createGraphClient } from "@local/hash-backend-utils/create-graph-client
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import {
   defaultEntityTypeAuthorizationRelationships,
   defaultPropertyTypeAuthorizationRelationships,
@@ -20,7 +21,6 @@ import type {
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 
-import { publicUserAccountId } from "../auth/public-user-account-id";
 import type { ImpureGraphFunction } from "../graph/context-types";
 import type {
   EntityTypeDefinition,
@@ -271,6 +271,57 @@ const seedFlowTestTypes = async () => {
       ownedById,
     });
 
+  const numberOfVotingRightsPropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Number of Voting Rights",
+        description:
+          "The number of voting rights of a company, usually expressed as the total count of shares held by an entity that are eligible to vote in corporate decisions.",
+        possibleValues: [
+          {
+            propertyTypeObjectProperties: {
+              [valuePropertyType.metadata.recordId.baseUrl]: {
+                $ref: valuePropertyType.schema.$id,
+              },
+              [unitPropertyType.metadata.recordId.baseUrl]: {
+                $ref: unitPropertyType.schema.$id,
+              },
+            },
+            propertyTypeObjectRequiredProperties: [
+              valuePropertyType.metadata.recordId.baseUrl,
+              unitPropertyType.metadata.recordId.baseUrl,
+            ],
+          },
+        ],
+      },
+      ownedById,
+    });
+
+  const ownershipPercentagePropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Ownership Percentage",
+        description:
+          "The proportion of the total available capital of a company that is owned by a specific shareholder, reflecting their relative financial stake and potential influence in corporate governance.",
+        possibleValues: [{ primitiveDataType: "number" }],
+      },
+      ownedById,
+    });
+
+  const holdingTypePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Holding Type",
+        description:
+          "The method or structure through which a shareholder possesses shares, indicating whether the interest is direct, indirect, or through financial instruments such as derivatives.",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      ownedById,
+    },
+  );
+
   const investedInLinkEntityType = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
@@ -281,10 +332,17 @@ const seedFlowTestTypes = async () => {
         description: "Something that something is invested in",
         properties: [
           {
-            propertyType: valuePropertyType.schema.$id,
-            required: true,
+            propertyType: numberOfVotingRightsPropertyType.schema.$id,
           },
-          { propertyType: measuredOnPropertyType.schema.$id },
+          {
+            propertyType: ownershipPercentagePropertyType.schema.$id,
+          },
+          {
+            propertyType: holdingTypePropertyType.schema.$id,
+          },
+          {
+            propertyType: measuredOnPropertyType.schema.$id,
+          },
         ],
       },
       ownedById,

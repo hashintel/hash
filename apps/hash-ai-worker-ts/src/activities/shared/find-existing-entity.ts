@@ -26,6 +26,7 @@ import {
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
+import { logger } from "./activity-logger";
 import type { DereferencedEntityType } from "./dereference-entity-type";
 import { dereferenceEntityType } from "./dereference-entity-type";
 import { createEntityEmbeddings } from "./embeddings";
@@ -164,8 +165,7 @@ export const findExistingEntity = async ({
         )?.embedding;
 
         if (!foundEmbedding) {
-          // eslint-disable-next-line no-console -- @todo replace with logger once PR #4290 merges
-          console.log(
+          logger.error(
             `Could not find embedding for property ${baseUrl} – skipping`,
           );
           return null;
@@ -208,8 +208,7 @@ export const findExistingEntity = async ({
     );
 
     if (!propertyObjectEmbedding) {
-      // eslint-disable-next-line no-console -- @todo replace with logger once PR #4290 merges
-      console.log(`Could not find embedding for properties object – skipping`);
+      logger.error(`Could not find embedding for properties object – skipping`);
     } else {
       existingEntity = await getEntityByFilter({
         actorId,

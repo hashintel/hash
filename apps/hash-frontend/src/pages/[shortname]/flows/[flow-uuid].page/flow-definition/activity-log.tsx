@@ -72,6 +72,7 @@ const getEntityPrefixFromLog = (log: StepProgressLog): string => {
 };
 
 const visitedWebPagePrefix = "Visited ";
+const viewedPdfFilePrefix = "Viewed PDF file at ";
 const queriedWebPrefix = "Searched web for ";
 
 const getRawTextFromLog = (log: StepProgressLog): string => {
@@ -89,6 +90,9 @@ const getRawTextFromLog = (log: StepProgressLog): string => {
       const entityLabel = getEntityLabelFromLog(log);
 
       return `${prefix} ${entityLabel}`;
+    }
+    case "ViewedFile": {
+      return `${viewedPdfFilePrefix}${log.fileUrl}`;
     }
   }
 };

@@ -11,6 +11,12 @@ import type { AccountId } from "@local/hash-subgraph";
 import type { DereferencedEntityTypesByTypeId } from "./infer-entities/inference-types";
 import { dereferenceEntityType } from "./shared/dereference-entity-type";
 
+/**
+ * @todo: allow for specifying additional entity types which may be linked to
+ * when determining whether link types are "satisfiable".
+ *
+ * @see https://linear.app/hash/issue/H-2685/in-getdereferencedentitytypesactivity-allow-for-specifying-additional
+ */
 export const getDereferencedEntityTypesActivity = async (params: {
   entityTypeIds: VersionedUrl[];
   graphApiClient: GraphApi;

@@ -1,5 +1,6 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import type { GraphApi } from "@local/hash-graph-client";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -24,7 +25,10 @@ import type {
   Entity,
   EntityRelationAndSubject,
   EntityRootType,
+  EntityUuid,
+  OwnedById,
 } from "@local/hash-subgraph";
+import { entityIdFromComponents } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
@@ -293,27 +297,47 @@ export const createUsageRecord = async (
     },
   ];
 
-  const usageRecordEntityMetadata = await context.graphApi
-    .createEntity(authentication.actorId, {
-      draft: false,
-      ownedById: userAccountId,
-      properties,
-      entityTypeIds: [systemEntityTypes.usageRecord.entityTypeId],
-      relationships: entityRelationships,
-    })
+  const usageRecordEntityUuid = generateUuid() as EntityUuid;
+
+  const usageRecordEntityId = entityIdFromComponents(
+    userAccountId as OwnedById,
+    usageRecordEntityUuid,
+  );
+
+  const createdEntitiesMetadata = await context.graphApi
+    .createEntities(authentication.actorId, [
+      {
+        draft: false,
+        entityUuid: usageRecordEntityUuid,
+        ownedById: userAccountId,
+        properties,
+        entityTypeIds: [systemEntityTypes.usageRecord.entityTypeId],
+        relationships: entityRelationships,
+      },
+      {
+        draft: false,
+        ownedById: userAccountId,
+        properties: {},
+        linkData: {
+          leftEntityId: usageRecordEntityId,
+          rightEntityId: serviceFeatureEntity.metadata.recordId.entityId,
+        },
+        entityTypeIds: [systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId],
+        relationships: entityRelationships,
+      },
+    ])
     .then(({ data }) => data);
 
-  await context.graphApi.createEntity(authentication.actorId, {
-    draft: false,
-    ownedById: userAccountId,
-    properties: {},
-    linkData: {
-      leftEntityId: usageRecordEntityMetadata.recordId.entityId,
-      rightEntityId: serviceFeatureEntity.metadata.recordId.entityId,
-    },
-    entityTypeIds: [systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId],
-    relationships: entityRelationships,
-  });
+  const usageRecordEntityMetadata = createdEntitiesMetadata.find(
+    (entityMetadata) =>
+      entityMetadata.recordId.entityId === usageRecordEntityId,
+  );
+
+  if (!usageRecordEntityMetadata) {
+    throw new Error(
+      `Failed to create usage record entity for user ${userAccountId}.`,
+    );
+  }
 
   return usageRecordEntityMetadata;
 };

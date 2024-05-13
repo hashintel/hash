@@ -103,7 +103,7 @@ resource "aws_ecs_task_definition" "graph" {
 }
 
 resource "aws_ecs_service" "graph" {
-  depends_on             = [aws_iam_role.task_role]
+  depends_on             = [aws_iam_role.task_role, aws_ecs_service.spicedb]
   name                   = local.graph_prefix
   cluster                = data.aws_ecs_cluster.ecs.arn
   task_definition        = aws_ecs_task_definition.graph.arn

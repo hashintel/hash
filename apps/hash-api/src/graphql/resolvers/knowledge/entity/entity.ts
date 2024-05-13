@@ -1,4 +1,5 @@
 import { convertBpFilterToGraphFilter } from "@local/hash-backend-utils/convert-bp-filter-to-graph-filter";
+import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
   Filter,
   QueryTemporalAxesUnresolved,
@@ -24,7 +25,6 @@ import {
   UserInputError,
 } from "apollo-server-express";
 
-import { publicUserAccountId } from "../../../../auth/public-user-account-id";
 import {
   addEntityAdministrator,
   addEntityEditor,

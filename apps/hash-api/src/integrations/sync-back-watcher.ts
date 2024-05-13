@@ -97,7 +97,7 @@ export const createIntegrationSyncBackWatcher = async (
       });
   };
 
-  let interval: NodeJS.Timer;
+  let interval: NodeJS.Timeout;
 
   return {
     stop: async () => {
