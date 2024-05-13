@@ -17,7 +17,6 @@ use harpc_wire_protocol::{
 };
 use libp2p::PeerId;
 use scc::{ebr::Guard, hash_index::Entry, HashIndex};
-use stream_cancel::Valved;
 use tokio::{
     pin, select,
     sync::{broadcast, mpsc, Notify, OwnedSemaphorePermit, Semaphore},
@@ -225,12 +224,6 @@ impl TransactionCollection {
         }
     }
 
-    async fn shutdown_sender(&self, id: RequestId) {
-        if let Some(state) = self.storage.get_async(&id).await {
-            state.sender.close();
-        }
-    }
-
     fn cancel_all(&self) {
         let guard = Guard::new();
         for (_, state) in self.storage.iter(&guard) {
@@ -285,7 +278,12 @@ impl TransactionCollection {
 
                 // we've missed the deadline, therefore we can no longer send data to the
                 // transaction without risking the integrity of the transaction.
-                self.shutdown_sender(id).await;
+                // we also send our own error to the client, so we need to cancel any existing
+                // transaction, so that we do not send any auxilirary data.
+                // Whenever we cancel a task, we do not flush, so no `EndOfResponse` is accidentally
+                // sent.
+                // TODO: is this behaviour we want, or do we want a more graceful approach?
+                entry.cancel.cancel();
 
                 Err(TransactionLaggingError)
             }

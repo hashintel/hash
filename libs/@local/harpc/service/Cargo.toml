@@ -13,10 +13,8 @@ bytes.workspace = true
 bytes-utils = "0.1.4"
 codec = { workspace = true, features = ["harpc"] }
 error-stack.workspace = true
-flume = "0.11.0"
 futures.workspace = true
 harpc-wire-protocol.workspace = true
-kanal = "0.1.0-pre8"
 libp2p = { version = "0.53.2", features = [
     "metrics",
     "macros",
@@ -30,7 +28,6 @@ libp2p = { version = "0.53.2", features = [
 libp2p-stream = "0.1.0-alpha"
 pin-project-lite = "0.2.14"
 scc = "2.1.1"
-stream-cancel = "0.8.2"
 tachyonix = "0.2.1"
 thiserror = "1.0.59"
 tokio = { workspace = true, features = ["io-util", "macros"] }

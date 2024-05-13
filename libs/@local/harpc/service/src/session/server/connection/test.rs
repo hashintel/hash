@@ -47,7 +47,7 @@ use crate::{
     session::{
         error::{
             ConnectionShutdownError, ConnectionTransactionLimitReachedError,
-            InstanceTransactionLimitReachedError, TransactionError,
+            InstanceTransactionLimitReachedError, TransactionError, TransactionLaggingError,
         },
         server::{
             connection::{ConnectionDelegateTask, TransactionCollection},
@@ -103,6 +103,7 @@ struct Setup {
 
 impl Setup {
     const OUTPUT_BUFFER_SIZE: usize = 8;
+    const SESSION_ID: SessionId = SessionId::new_unchecked(0x00);
 
     #[expect(clippy::significant_drop_tightening, reason = "False positive")]
     fn new(config: SessionConfig) -> Self {
@@ -120,7 +121,7 @@ impl Setup {
 
         let task = ConnectionTask {
             peer: PeerId::random(),
-            session: SessionId::new_unchecked(0x00),
+            session: Self::SESSION_ID,
             active: TransactionCollection::new(config, cancel.clone()),
             output: output_tx,
             events: events_tx,
@@ -810,10 +811,90 @@ async fn transaction_multiple() {
 }
 
 #[tokio::test]
-#[ignore]
 async fn transaction_request_buffer_limit_reached() {
     // send too many request packets, but not process them, leading to a lagging state, which drops
     // the transaction.
+    let Setup {
+        mut output,
+        events: _events,
+        stream,
+        mut sink,
+        handle: _handle,
+        storage: _,
+    } = Setup::new(SessionConfig {
+        per_transaction_request_buffer_size: NonZero::new(2).expect("infallible"),
+        per_transaction_request_byte_stream_buffer_size: NonZero::new(2).expect("infallible"),
+        ..SessionConfig::default()
+    });
+
+    // send 5 packets to the transaction, on the 6th packet the stream will be dropped
+    stream
+        .send(Ok(make_request_begin(RequestFlags::EMPTY, "hello")))
+        .await
+        .expect("should be able to send message");
+
+    let transaction = output.recv().await.expect("should have a transaction");
+    let (_, mut txn_sink, mut txn_stream) = transaction.into_parts();
+
+    // send 4 messages, the transaction should still be active by then
+    for _ in 0..4 {
+        stream
+            .send(Ok(make_request_frame(RequestFlags::EMPTY, "world")))
+            .await
+            .expect("should be able to send message");
+    }
+
+    assert_eq!(txn_stream.is_incomplete(), None);
+
+    // send the 6th packet, the transaction stream will be dropped then
+    stream
+        .send(Ok(make_request_frame(RequestFlags::EMPTY, "world")))
+        .await
+        .expect("should be able to send message");
+
+    tokio::time::sleep(Duration::from_millis(150)).await;
+
+    // the sink will be inoperable as well, as we cancel the whole task
+    txn_sink
+        .send(Ok(Bytes::from_static(b"ok" as &[_])))
+        .await
+        .expect_err("should not be able to send message");
+
+    let mut responses = Vec::with_capacity(8);
+    while let Some(response) = txn_stream.next().await {
+        responses.push(response);
+    }
+
+    assert_eq!(txn_stream.is_incomplete(), Some(true));
+
+    // some messages will be lost, because we immediately cancel the task
+    assert!(responses.len() < 6);
+    assert_eq!(responses[0].as_ref(), b"hello");
+    for response in &responses[1..] {
+        assert_eq!(response.as_ref(), b"world");
+    }
+
+    drop(txn_stream);
+    drop(txn_sink);
+
+    // we should've received an error
+    let mut responses = Vec::with_capacity(4);
+    let available = sink.recv_many(&mut responses, 4).await;
+    assert_eq!(available, 1);
+
+    let response = responses.pop().expect("should have a response");
+    assert!(response.header.flags.contains(ResponseFlag::EndOfResponse));
+    assert_eq!(
+        response.body.payload().as_bytes().as_ref(),
+        TransactionLaggingError.to_string().as_bytes()
+    );
+    assert_matches!(
+        response.body,
+        ResponseBody::Begin(ResponseBegin {
+            kind: ResponseKind::Err(ErrorCode::TRANSACTION_LAGGING),
+            ..
+        })
+    );
 }
 
 #[tokio::test]
@@ -1050,7 +1131,7 @@ async fn transaction_reclamation() {
 async fn graceful_shutdown() {
     let Setup {
         output: _output,
-        events: _events,
+        mut events,
         stream,
         sink,
         handle,
@@ -1064,6 +1145,14 @@ async fn graceful_shutdown() {
         .await
         .expect("should finish within timeout")
         .expect("should not panic");
+
+    let event = events.recv().await.expect("should have a shutdown event");
+    assert_eq!(
+        event,
+        SessionEvent::SessionDropped {
+            id: Setup::SESSION_ID
+        }
+    );
 }
 
 #[test]
