@@ -1,5 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { Subtype } from "@local/advanced-types/subtype";
+import type { OriginProvenance } from "@local/hash-graph-client";
+import { SourceType } from "@local/hash-graph-client";
 import type {
   InputNameForAction,
   OutputNameForAction,
@@ -28,14 +29,18 @@ import {
   getToolCallsFromLlmAssistantMessage,
 } from "../../shared/get-llm-response/llm-message";
 import type {
-  LlmToolDefinition,
+  LlmParams,
   ParsedLlmToolCall,
 } from "../../shared/get-llm-response/types";
 import { graphApiClient } from "../../shared/graph-api-client";
-import type { PermittedOpenAiModel } from "../../shared/openai-client";
 import { stringify } from "../../shared/stringify";
 import { inferEntitiesFromContentAction } from "../infer-entities-from-content-action";
+import { handleQueryPdfToolCall } from "./infer-entities-from-web-page-worker-agent/handle-query-pdf-tool-call";
+import type { ToolCallArguments } from "./infer-entities-from-web-page-worker-agent/tool-definitions";
+import { toolDefinitions } from "./infer-entities-from-web-page-worker-agent/tool-definitions";
 import type {
+  AccessedRemoteFile,
+  InferEntitiesFromWebPageWorkerAgentInput,
   InferEntitiesFromWebPageWorkerAgentState,
   ToolName,
 } from "./infer-entities-from-web-page-worker-agent/types";
@@ -43,7 +48,7 @@ import type {
 import type { CompletedToolCall } from "./types";
 import { mapPreviousCallsToLlmMessages } from "./util";
 
-const model: PermittedOpenAiModel = "gpt-4-0125-preview";
+const model: LlmParams["model"] = "gpt-4-0125-preview";
 
 type SummarizedEntity = {
   id: string;
@@ -64,244 +69,9 @@ const mapProposedEntityToSummarizedEntity = (
   };
 };
 
-const explanationDefinition = {
-  type: "string",
-  description: dedent(`
-    An explanation of why this tool call is required to satisfy the task,
-    and how it aligns with the current plan. If the plan needs to be modified,
-    make a call to the "updatePlan" tool.
-  `),
-} as const;
-
-const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
-  getWebPageInnerHtml: {
-    name: "getWebPageInnerHtml",
-    description: "Get the inner HTML of a web page.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        explanation: explanationDefinition,
-        url: {
-          type: "string",
-          description: "The URL of the web page.",
-        },
-      },
-      required: ["url", "explanation"],
-    },
-  },
-  inferEntitiesFromWebPage: {
-    name: "inferEntitiesFromWebPage",
-    description: "Infer entities from some text content.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        explanation: explanationDefinition,
-        url: {
-          type: "string",
-          description: "The URL of the web page.",
-        },
-        hmtlContent: {
-          type: "string",
-          description: dedent(`
-            The HTML content with the relevant sections, paragraphs, tables
-              or other content from the webpage that describe entities of the requested type(s).
-
-            You must not modify the content in any way.
-
-            You must include table headers when passing data from a table.
-
-            Do not under any circumstance truncate or provide partial text which may lead to missed entities
-              or properties.
-
-            You must provide as much text as necessary to infer all
-              the required entities and their properties from the web page in a single tool call.
-
-            ${
-              ""
-              /**
-               * Note: This was previously included to sometimes improve the unit formatting
-               * for the inference agent, however this came with the cost that the worker
-               * agent would frequently truncate text. This has been omitted so that the
-               * unit inference becomes the responsibility of the inference agent.
-               */
-              // For example if the text contains data from a table, you must provide the table
-              // column names. If the are column names specifying units, you must explicitly
-              // specify the unit for each value in the table. For example if the column
-              // specifies a unit in millions (m), append this to each value (e.g. "10 million (m)").
-
-              /** Note: the agent doesn't do this even if you ask it to */
-              // If there are units in the data, you must give a detailed definition for
-              // each unit and what it means.
-            }
-            `),
-        },
-        /**
-         * @todo: consider letting the agent set `"unknown"` or `"as many as possible"` as
-         * an argument here, incase it isn't sure of the number of entities that can be inferred.
-         */
-        expectedNumberOfEntities: {
-          type: "number",
-          description: dedent(`
-            The expected number of entities which should be inferred from the HTML content.
-            You should expect at least 1 entity to be inferred.
-          `),
-        },
-        validAt: {
-          type: "string",
-          format: "date-time",
-          description: dedent(`
-            A date-time string in ISO 8601 format, representing when the provided HTML content is valid at.
-            If this cannot be found on the web page, assume it is the current date and time.
-            The current time is "${new Date().toISOString()}".
-          `),
-        },
-        prompt: {
-          type: "string",
-          description: dedent(`
-            A prompt instructing the inference agent which entities should be inferred from the HTML content.
-            Do not specify any information of the structure of the entities, as this is predefined by
-              the entity type.
-          `),
-        },
-        entityTypeIds: {
-          type: "array",
-          items: {
-            type: "string",
-          },
-          description: dedent(`
-            An array of entity type IDs which should be inferred from the provided HTML content.
-          `),
-        },
-        linkEntityTypeIds: {
-          type: "array",
-          items: {
-            type: "string",
-          },
-          description: dedent(`
-            An array of link entity type IDs which should be inferred from provided HTML content.
-          `),
-        },
-      },
-      required: [
-        "url",
-        "hmtlContent",
-        "expectedNumberOfEntities",
-        "validAt",
-        "prompt",
-        "explanation",
-        "entityTypeIds",
-      ],
-    },
-  },
-  submitProposedEntities: {
-    name: "submitProposedEntities",
-    description:
-      "Submit one or more proposed entities as the `result` of the inference task.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        explanation: explanationDefinition,
-        entityIds: {
-          type: "array",
-          items: {
-            type: "string",
-          },
-          description: dedent(`
-            An array of entity IDs of the entities to submit.
-            These must correspond to the IDs provided by a "inferEntitiesFromWebPage" tool call.
-          `),
-        },
-      },
-      required: ["entityIds", "explanation"],
-    },
-  },
-  complete: {
-    name: "complete",
-    description: dedent(`
-      Complete the inference task.
-      You must explain how the task has been completed with the existing submitted entities.
-      Do not make this tool call if the research prompt hasn't been fully satisfied.
-    `),
-    inputSchema: {
-      type: "object",
-      properties: {
-        explanation: explanationDefinition,
-      },
-      required: ["explanation"],
-    },
-  },
-  terminate: {
-    name: "terminate",
-    description:
-      "Terminate the inference task, because it cannot be completed with the provided tools.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        explanation: explanationDefinition,
-      },
-      required: ["explanation"],
-    },
-  },
-  updatePlan: {
-    name: "updatePlan",
-    description:
-      "Update the plan for the research task. You should call this alongside other tool calls to progress towards completing the task.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        explanation: {
-          type: "string",
-          description: dedent(`
-            An explanation of why the plan needs to be updated, and
-            how it aligns with the current plan.
-          `),
-        },
-        plan: {
-          type: "string",
-          description: "The updated plan for the research task.",
-        },
-      },
-      required: ["plan", "explanation"],
-    },
-  },
-};
-
-type ToolCallArguments = Subtype<
-  Record<ToolName, unknown>,
-  {
-    getWebPageInnerHtml: {
-      url: string;
-    };
-    inferEntitiesFromWebPage: {
-      url: string;
-      hmtlContent: string;
-      expectedNumberOfEntities: number;
-      validAt: string;
-      prompt: string;
-      entityTypeIds: VersionedUrl[];
-      linkEntityTypeIds?: VersionedUrl[];
-    };
-    submitProposedEntities: {
-      entityIds: string[];
-    };
-    updatePlan: {
-      plan: string;
-    };
-    complete: never;
-    terminate: never;
-  }
->;
-
-type WorkerAgentInput = {
-  prompt: string;
-  entityTypes: DereferencedEntityType[];
-  linkEntityTypes?: DereferencedEntityType[];
-  existingEntities?: Entity[];
-  url: string;
-  innerHtml: string;
-};
-
-const generateSystemMessagePrefix = (params: { input: WorkerAgentInput }) => {
+const generateSystemMessagePrefix = (params: {
+  input: InferEntitiesFromWebPageWorkerAgentInput;
+}) => {
   const { linkEntityTypes, existingEntities } = params.input;
 
   return dedent(`
@@ -348,11 +118,18 @@ const generateSystemMessagePrefix = (params: { input: WorkerAgentInput }) => {
 };
 
 const generateUserMessage = (params: {
-  input: WorkerAgentInput;
+  input: InferEntitiesFromWebPageWorkerAgentInput;
   includeInnerHtml?: boolean;
 }): LlmUserMessage => {
   const { includeInnerHtml = false, input } = params;
-  const { prompt, url, innerHtml, entityTypes, linkEntityTypes } = input;
+  const {
+    prompt,
+    url,
+    innerHtml,
+    entityTypes,
+    linkEntityTypes,
+    existingEntities,
+  } = input;
 
   return {
     role: "user",
@@ -363,6 +140,7 @@ const generateUserMessage = (params: {
           Prompt: ${prompt}
           Initial web page url: ${url}
           Entity Types: ${JSON.stringify(entityTypes)}
+          Existing Entities: ${existingEntities ? JSON.stringify(existingEntities) : ""}
           ${linkEntityTypes ? `Link Types: ${JSON.stringify(linkEntityTypes)}` : ""}
           ${includeInnerHtml ? `Initial web page inner HTML: ${innerHtml}` : ""}
         `),
@@ -374,7 +152,7 @@ const generateUserMessage = (params: {
 const maxRetryCount = 3;
 
 const createInitialPlan = async (params: {
-  input: WorkerAgentInput;
+  input: InferEntitiesFromWebPageWorkerAgentInput;
   retryMessages?: LlmMessage[];
   retryCount?: number;
 }): Promise<{ plan: string }> => {
@@ -481,7 +259,7 @@ const getSubmittedProposedEntitiesFromState = (
   );
 
 const getNextToolCalls = async (params: {
-  input: WorkerAgentInput;
+  input: InferEntitiesFromWebPageWorkerAgentInput;
   state: InferEntitiesFromWebPageWorkerAgentState;
 }): Promise<{ toolCalls: ParsedLlmToolCall<ToolName>[] }> => {
   const { state, input } = params;
@@ -542,11 +320,9 @@ const getNextToolCalls = async (params: {
     );
   }
 
-  const { message, usage: _usage } = llmResponse;
+  const { message } = llmResponse;
 
   const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
-
-  /** @todo: capture usage */
 
   return { toolCalls };
 };
@@ -560,6 +336,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
 }): Promise<
   Status<{
     inferredEntities: ProposedEntity[];
+    filesUsedToProposeEntities: AccessedRemoteFile[];
   }>
 > => {
   const { url, existingEntities } = params;
@@ -574,7 +351,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     sanitizeForLlm: true,
   });
 
-  const input: WorkerAgentInput = {
+  const input: InferEntitiesFromWebPageWorkerAgentInput = {
     prompt: params.prompt,
     entityTypes: params.entityTypes,
     linkEntityTypes: params.linkEntityTypes,
@@ -596,7 +373,11 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     submittedEntityIds: [],
     inferredEntitiesFromWebPageUrls: [],
     idCounter: 0,
+    filesQueried: [],
+    filesUsedToProposeEntities: [],
   };
+
+  const { flowEntityId, stepId } = await getFlowContext();
 
   // const state = retrievePreviousState();
 
@@ -644,6 +425,30 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
             const { url: toolCallUrl } =
               toolCall.input as ToolCallArguments["getWebPageInnerHtml"];
 
+            const urlHeadFetch = await fetch(toolCallUrl, { method: "HEAD" });
+
+            if (!urlHeadFetch.ok) {
+              return {
+                ...toolCall,
+                output: `Failed to fetch the page at the provided URL: ${toolCallUrl}`,
+                isError: true,
+              };
+            }
+
+            const contentType = urlHeadFetch.headers.get("Content-Type");
+
+            if (contentType && contentType.includes("application/pdf")) {
+              return {
+                ...toolCall,
+                output: dedent(`
+                  The URL provided is a PDF file.
+                  You must use the "queryPdf" tool to extract the text content from the PDF.
+                  Detected Content-Type: ${contentType}
+                `),
+                isError: true,
+              };
+            }
+
             const { htmlContent } = await getWebPageActivity({
               url: toolCallUrl,
               sanitizeForLlm: true,
@@ -684,18 +489,45 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                 tool call unless there are no entities to infer from this page.
               `),
             };
-          } else if (toolCall.name === "inferEntitiesFromWebPage") {
+          } else if (
+            toolCall.name === "inferEntitiesFromWebPage" ||
+            toolCall.name === "inferEntitiesFromText"
+          ) {
+            const toolCallInput = toolCall.input as ToolCallArguments[
+              | "inferEntitiesFromWebPage"
+              | "inferEntitiesFromText"];
+
+            const accessedRemoteFile =
+              "fileUrl" in toolCallInput
+                ? state.filesQueried.find(
+                    ({ url: previouslyQueriedFileUrl }) =>
+                      previouslyQueriedFileUrl === toolCallInput.fileUrl,
+                  )
+                : undefined;
+
+            if ("fileUrl" in toolCallInput && !accessedRemoteFile) {
+              return {
+                ...toolCall,
+                output: dedent(`
+                  You did not previously query the PDF file at the provided fileUrl: ${toolCallInput.fileUrl}.
+                  You must first query the PDF file with the relevant query using the "queryPdf" tool,
+                    before inferring entities from its text content.
+                `),
+                isError: true,
+              };
+            }
+
             const {
-              hmtlContent,
               prompt: toolCallPrompt,
-              url: inferringEntitiesFromWebPageUrl,
-              expectedNumberOfEntities,
               validAt,
               entityTypeIds: inferringEntitiesOfTypeIds,
               linkEntityTypeIds: inferringLinkEntitiesOfTypeIds,
-            } = toolCall.input as ToolCallArguments["inferEntitiesFromWebPage"];
+            } = toolCallInput;
 
-            if (expectedNumberOfEntities < 1) {
+            if (
+              "expectedNumberOfEntities" in toolCallInput &&
+              toolCallInput.expectedNumberOfEntities < 1
+            ) {
               return {
                 ...toolCall,
                 output: dedent(`
@@ -758,23 +590,27 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               };
             }
 
-            if (hmtlContent.length === 0) {
+            if (
+              "htmlContent" in toolCallInput
+                ? toolCallInput.htmlContent.length === 0
+                : toolCallInput.text.length === 0
+            ) {
               return {
                 ...toolCall,
                 output: dedent(`
-                  You provided an empty string as the HTML content from the web page. You must provide
-                  the relevant HTML content from the web page to infer entities.
+                  You provided an empty string as the ${"htmlContent" in toolCallInput ? "htmlContent from the web page" : "text"}.
+                  You must provide ${"htmlContent" in toolCallInput ? "the relevant HTML content from the web page" : "text content"} to infer entities from.
                 `),
                 isError: true,
               };
             }
 
-            state.inferredEntitiesFromWebPageUrls.push(
-              inferringEntitiesFromWebPageUrl,
-            );
+            if ("url" in toolCallInput) {
+              state.inferredEntitiesFromWebPageUrls.push(toolCallInput.url);
+            }
 
             const content = dedent(`
-              ${hmtlContent}
+              ${"htmlContent" in toolCallInput ? toolCallInput.htmlContent : toolCallInput.text}
               The above data is valid at ${validAt}.
             `);
 
@@ -790,7 +626,10 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                     "entityTypeIds" satisfies InputNameForAction<"inferEntitiesFromContent">,
                   payload: {
                     kind: "VersionedUrl",
-                    value: inferringEntitiesOfTypeIds,
+                    value: [
+                      ...inferringEntitiesOfTypeIds,
+                      ...(inferringLinkEntitiesOfTypeIds ?? []),
+                    ],
                   },
                 },
                 {
@@ -832,26 +671,109 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
 
             const { outputs } = response.contents[0]!;
 
-            const newProposedEntities = outputs.find(
-              ({ outputName }) =>
-                outputName ===
-                ("proposedEntities" satisfies OutputNameForAction<"inferEntitiesFromContent">),
-            )?.payload.value as ProposedEntity[];
+            const editionProvenance: ProposedEntity["provenance"] = {
+              actorType: "ai",
+              // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
+              origin: {
+                type: "flow",
+                id: flowEntityId,
+                stepIds: [stepId],
+              } satisfies OriginProvenance,
+            };
+
+            const propertyProvenance: NonNullable<
+              ProposedEntity["propertyMetadata"]
+            >[number]["metadata"]["provenance"] =
+              "url" in toolCallInput
+                ? {
+                    sources: [
+                      {
+                        type: SourceType.Webpage,
+                        location: {
+                          uri: toolCallInput.url,
+                          /** @todo */
+                          name: undefined,
+                          description: undefined,
+                        },
+                        loadedAt: new Date().toISOString(),
+                        /** @todo */
+                        authors: undefined,
+                        firstPublished: undefined,
+                        lastUpdated: undefined,
+                      },
+                    ],
+                  }
+                : {
+                    sources: [
+                      {
+                        type: SourceType.Document,
+                        location: {
+                          uri: toolCallInput.fileUrl,
+                          /** @todo */
+                          name: undefined,
+                          description: undefined,
+                        },
+                        loadedAt: accessedRemoteFile?.loadedAt,
+                        /** @todo */
+                        authors: undefined,
+                        firstPublished: undefined,
+                        lastUpdated: undefined,
+                      },
+                    ],
+                  };
+
+            const newProposedEntities = (
+              outputs.find(
+                ({ outputName }) =>
+                  outputName ===
+                  ("proposedEntities" satisfies OutputNameForAction<"inferEntitiesFromContent">),
+              )?.payload.value as ProposedEntity[]
+            ).map(
+              (proposedEntity) =>
+                ({
+                  ...proposedEntity,
+                  provenance: editionProvenance,
+                  propertyMetadata: Object.keys(proposedEntity.properties).map(
+                    (propertyBaseUrl) => ({
+                      path: [propertyBaseUrl],
+                      metadata: {
+                        provenance: propertyProvenance,
+                      },
+                    }),
+                    {} as ProposedEntity["propertyMetadata"],
+                  ),
+                }) satisfies ProposedEntity,
+            );
 
             state.proposedEntities.push(...newProposedEntities);
+
+            if (
+              "fileUrl" in toolCallInput &&
+              !state.filesUsedToProposeEntities.some(
+                ({ url: previousFileUsedToProposeEntitiesUrl }) =>
+                  previousFileUsedToProposeEntitiesUrl ===
+                  toolCallInput.fileUrl,
+              )
+            ) {
+              state.filesUsedToProposeEntities.push(accessedRemoteFile!);
+            }
 
             const summarizedNewProposedEntities = newProposedEntities.map(
               mapProposedEntityToSummarizedEntity,
             );
 
-            if (newProposedEntities.length !== expectedNumberOfEntities) {
+            if (
+              "expectedNumberOfEntities" in toolCallInput &&
+              newProposedEntities.length !==
+                toolCallInput.expectedNumberOfEntities
+            ) {
               return {
                 ...toolCall,
                 output: dedent(`
                   The following entities were inferred from the provided HTML content: ${JSON.stringify(summarizedNewProposedEntities)}
 
                   The number of entities inferred from the HTML content doesn't match the expected number of entities.
-                  Expected: ${expectedNumberOfEntities}
+                  Expected: ${toolCallInput.expectedNumberOfEntities}
                   Actual: ${newProposedEntities.length}
 
                   If there are missing entities which you require, you must make another "inferEntitiesFromWebPage" tool call
@@ -893,6 +815,11 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               output: `The entities with IDs ${JSON.stringify(entityIds)} where successfully submitted.   Do not call the "complete" tool unless the submitted entities satisfy
               the initial research prompt.`,
             };
+          } else if (toolCall.name === "queryPdf") {
+            return await handleQueryPdfToolCall({
+              state,
+              toolCall: toolCall as ParsedLlmToolCall<"queryPdf">,
+            });
           }
 
           throw new Error(`Unimplemented tool call: ${toolCall.name}`);
@@ -946,6 +873,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     contents: [
       {
         inferredEntities: submittedProposedEntities,
+        filesUsedToProposeEntities: state.filesUsedToProposeEntities,
       },
     ],
   };

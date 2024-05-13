@@ -4,12 +4,19 @@ import type {
   OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type { StepInput } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  ProposedEntity,
+  StepInput,
+} from "@local/hash-isomorphic-utils/flows/types";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { StatusCode } from "@local/status";
+import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 
 import { logger } from "../shared/activity-logger";
 import type { ParsedLlmToolCall } from "../shared/get-llm-response/types";
+import { logProgress } from "../shared/log-progress";
 import { stringify } from "../shared/stringify";
 import { getWebPageSummaryAction } from "./get-web-page-summary-action";
 import type {
@@ -44,6 +51,7 @@ export const researchEntitiesAction: FlowActionActivity = async ({
     submittedEntityIds: [],
     previousCalls: [],
     hasConductedCheckStep: false,
+    filesUsedToProposeEntities: [],
   };
 
   const { toolCalls: initialToolCalls } =
@@ -246,9 +254,13 @@ export const researchEntitiesAction: FlowActionActivity = async ({
               };
             }
 
-            const { inferredEntities } = status.contents[0]!;
+            const { inferredEntities, filesUsedToProposeEntities } =
+              status.contents[0]!;
 
             state.proposedEntities.push(...inferredEntities);
+            state.filesUsedToProposeEntities.push(
+              ...filesUsedToProposeEntities,
+            );
 
             return {
               ...toolCall,
@@ -478,6 +490,63 @@ export const researchEntitiesAction: FlowActionActivity = async ({
 
   const submittedProposedEntities = getSubmittedProposedEntities();
 
+  const filesUsedToProposeSubmittedEntities = submittedProposedEntities
+    .flatMap((submittedProposedEntity) => {
+      const sourcesUsedToProposeEntity = [
+        ...(submittedProposedEntity.provenance?.sources ?? []),
+        ...(submittedProposedEntity.propertyMetadata?.flatMap(
+          ({ metadata }) => metadata.provenance?.sources ?? [],
+        ) ?? []),
+      ];
+
+      return sourcesUsedToProposeEntity.flatMap(({ location }) => {
+        const { uri } = location ?? {};
+
+        return (
+          state.filesUsedToProposeEntities.find(({ url }) => url === uri) ?? []
+        );
+      });
+    })
+    .filter(
+      ({ url }, index, all) =>
+        all.findIndex((file) => file.url === url) === index,
+    );
+
+  /**
+   * We return additional proposed entities for each file that was used to propose
+   * the submitted entities, so that these are persisted in the graph.
+   *
+   * Note that uploading the file is handled in the "Persist Entity" action.
+   */
+  const fileEntityProposals: ProposedEntity[] =
+    filesUsedToProposeSubmittedEntities.map(({ url, entityTypeId }) => ({
+      /**
+       * @todo: set the web page this file was discovered in (if applicable) in the property provenance
+       * for the `fileUrl`
+       */
+      propertyMetadata: [],
+      entityTypeId,
+      localEntityId: generateUuid(),
+      properties: {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
+          url,
+      } satisfies FileProperties,
+    }));
+
+  const now = new Date().toISOString();
+  const stepId = Context.current().info.activityId;
+
+  logProgress(
+    fileEntityProposals.map((proposedFileEntity) => ({
+      type: "ProposedEntity",
+      proposedEntity: proposedFileEntity,
+      recordedAt: now,
+      stepId,
+    })),
+  );
+
+  logger.debug(`File Entities Proposed: ${stringify(fileEntityProposals)}`);
+
   return {
     code: StatusCode.Ok,
     contents: [
@@ -488,7 +557,7 @@ export const researchEntitiesAction: FlowActionActivity = async ({
               "proposedEntities" satisfies OutputNameForAction<"researchEntities">,
             payload: {
               kind: "ProposedEntity",
-              value: submittedProposedEntities,
+              value: [...submittedProposedEntities, ...fileEntityProposals],
             },
           },
         ],
