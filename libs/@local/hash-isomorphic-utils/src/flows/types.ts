@@ -341,7 +341,7 @@ export type Flow = {
   outputs?: StepOutput[];
 };
 
-type ProgressLogBase = {
+export type ProgressLogBase = {
   recordedAt: string;
   stepId: string;
 };
@@ -349,6 +349,10 @@ type ProgressLogBase = {
 export type QueriedWebLog = ProgressLogBase & {
   query: string;
   type: "QueriedWeb";
+};
+
+export type CreatedPlanLog = ProgressLogBase & {
+  type: "CreatedPlan";
 };
 
 export type VisitedWebPageLog = ProgressLogBase & {
@@ -374,6 +378,7 @@ export type PersistedEntityLog = ProgressLogBase & {
 };
 
 export type StepProgressLog =
+  | CreatedPlanLog
   | PersistedEntityLog
   | ProposedEntityLog
   | VisitedWebPageLog

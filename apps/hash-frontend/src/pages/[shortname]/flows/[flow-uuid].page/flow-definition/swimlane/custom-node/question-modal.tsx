@@ -1,11 +1,18 @@
+import { useMutation } from "@apollo/client";
 import { IconButton, TextField } from "@hashintel/design-system";
 import type { ExternalInputRequest } from "@local/hash-isomorphic-utils/flows/types";
+import { submitExternalInputResponseMutation } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 import { Box, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 
+import type {
+  SubmitExternalInputResponseMutation,
+  SubmitExternalInputResponseMutationVariables,
+} from "../../../../../../../graphql/api-types.gen";
 import { XMarkRegularIcon } from "../../../../../../../shared/icons/x-mark-regular-icon";
 import { Button } from "../../../../../../../shared/ui/button";
 import { Modal } from "../../../../../../../shared/ui/modal";
+import { useFlowRunsContext } from "../../../../../../shared/flow-runs-context";
 
 type QuestionModalProps = {
   inputRequest: ExternalInputRequest;
@@ -61,7 +68,12 @@ export const QuestionModal = ({
     );
   }
 
-  console.log({ inputRequest });
+  const { selectedFlowRunId } = useFlowRunsContext();
+
+  const [submitExternalInputResponse] = useMutation<
+    SubmitExternalInputResponseMutation,
+    SubmitExternalInputResponseMutationVariables
+  >(submitExternalInputResponseMutation);
 
   const [answers, setAnswers] = useState<string[]>(
     new Array(inputRequest.data.questions.length).fill(""),
@@ -74,11 +86,24 @@ export const QuestionModal = ({
   );
 
   const submitAnswers = async () => {
-    if (!allQuestionsAnswered) {
+    if (!allQuestionsAnswered || !selectedFlowRunId) {
       return;
     }
-    /** @todo implement response */
-    close();
+
+    await submitExternalInputResponse({
+      variables: {
+        flowUuid: selectedFlowRunId,
+        response: {
+          requestId: inputRequest.requestId,
+          type: "human-input",
+          data: {
+            answers,
+          },
+        },
+      },
+    });
+
+    onClose();
   };
 
   return (

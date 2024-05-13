@@ -19,6 +19,7 @@ import type {
 import { getToolCallsFromLlmAssistantMessage } from "../../shared/get-llm-response/llm-message";
 import type { ParsedLlmToolCall } from "../../shared/get-llm-response/types";
 import { graphApiClient } from "../../shared/graph-api-client";
+import { logProgress } from "../../shared/log-progress";
 import { mapActionInputEntitiesToEntities } from "../../shared/map-action-input-entities-to-entities";
 import type { PermittedOpenAiModel } from "../../shared/openai-client";
 import { requestExternalInput } from "../../shared/request-external-input";
@@ -184,11 +185,9 @@ const getNextToolCalls = async (params: {
     );
   }
 
-  const { message, usage: _usage } = llmResponse;
+  const { message } = llmResponse;
 
   const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
-
-  /** @todo: capture usage */
 
   return { toolCalls };
 };
@@ -215,6 +214,8 @@ const createInitialPlan = async (params: {
     2. Provide a plan of how you will use the tools to progress towards completing the task, which should be a list of steps in plain English.
     
     Please now either ask the user your questions, or produce the initial plan if there are no ${questionsAndAnswers ? "more " : ""}useful questions to ask.
+    
+    At this stage you may only use the 'requestHumanInput' and 'updatePlan' tools – definitions for the other tools are only provided to help you produce a plan.
   `);
 
   const { userAuthentication, flowEntityId, webId } = await getFlowContext();
@@ -222,12 +223,10 @@ const createInitialPlan = async (params: {
   const llmResponse = await getLlmResponse(
     {
       systemPrompt,
-      // tool_choice: "required",
+      tool_choice: "required",
       messages: [generateInitialUserMessage({ input })],
       model,
-      tools: Object.values(coordinatorToolDefinitions).filter(
-        ({ name }) => name === "updatePlan" || name === "requestHumanInput",
-      ),
+      tools: Object.values(coordinatorToolDefinitions),
       seed: 1,
     },
     {
@@ -244,9 +243,7 @@ const createInitialPlan = async (params: {
     );
   }
 
-  const { usage: _usage, message } = llmResponse;
-
-  /** @todo: capture usage */
+  const { message } = llmResponse;
 
   const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
 
@@ -258,9 +255,23 @@ const createInitialPlan = async (params: {
     );
   }
 
+  if (toolCalls.length > 1) {
+    throw new Error(
+      `Expected only one tool call in message: ${JSON.stringify(message, null, 2)}`,
+    );
+  }
+
   if (firstToolCall.name === "updatePlan") {
     const { plan } =
       firstToolCall.input as CoordinatorToolCallArguments["updatePlan"];
+
+    logProgress([
+      {
+        recordedAt: new Date().toISOString(),
+        stepId: Context.current().info.activityId,
+        type: "CreatedPlan",
+      },
+    ]);
 
     return { plan };
   }
@@ -280,7 +291,9 @@ const createInitialPlan = async (params: {
   });
 
   const responseString = answers
-    .map((answer, index) => `\nQuestion ${index + 1}:\n${answer}`)
+    .map(
+      (answer, index) => `\nQuestion: ${questions[index]}\nAnswer: ${answer}\n`,
+    )
     .join("\n");
 
   return createInitialPlan({

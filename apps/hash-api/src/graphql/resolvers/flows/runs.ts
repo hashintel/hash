@@ -15,12 +15,11 @@ import proto from "@temporalio/proto";
 import { isProdEnv } from "../../../lib/env-config";
 import type {
   FlowRun,
-  FlowRunStatus,
   QueryGetFlowRunsArgs,
   ResolverFn,
   StepRun,
 } from "../../api-types.gen";
-import { FlowStepStatus } from "../../api-types.gen";
+import { FlowRunStatus, FlowStepStatus } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
 
 const eventTimeIsoStringFromEvent = (
@@ -196,10 +195,7 @@ const mapTemporalWorkflowToFlowStatus = async (
       ) {
         const signalData = parseHistoryItemPayload(
           event.workflowExecutionSignaledEventAttributes.input,
-        )?.[0] as
-          | ExternalInputRequestSignal
-          | ExternalInputResponseSignal
-          | undefined;
+        )?.[0] as ExternalInputRequestSignal | undefined;
 
         if (!signalData) {
           throw new Error(
@@ -207,39 +203,48 @@ const mapTemporalWorkflowToFlowStatus = async (
           );
         }
 
-        if ("stepId" in signalData) {
-          /**
-           * This is a request for external input
-           */
-          const existingRequest = inputRequestsById[signalData.requestId];
-          if (existingRequest) {
-            existingRequest.data = signalData.data;
-          } else {
-            /**
-             * If we haven't already populated the request record, it must not have been resolved yet,
-             * because we are going backwards through the event history from most recent.
-             * We would already have encountered the response signal if one had been provided.
-             */
-            inputRequestsById[signalData.requestId] = {
-              ...signalData,
-              resolved: false,
-            };
-          }
+        /**
+         * This is a request for external input
+         */
+        const existingRequest = inputRequestsById[signalData.requestId];
+        if (existingRequest) {
+          existingRequest.data = signalData.data;
         } else {
           /**
-           * This is the signal containing a response to a request for external input
+           * If we haven't already populated the request record, it must not have been resolved yet,
+           * because we are going backwards through the event history from most recent.
+           * We would already have encountered the response signal if one had been provided.
            */
-          const { requestId, data, type } = signalData;
-
           inputRequestsById[signalData.requestId] = {
-            data: {} as never, // we will populate this when we hit the original request
-            answers: "answers" in data ? data.answers : undefined,
-            requestId,
-            stepId: "unresolved",
-            type,
-            resolved: true,
+            ...signalData,
+            resolved: false,
           };
         }
+      }
+
+      if (
+        event.workflowExecutionSignaledEventAttributes?.signalName ===
+        "externalInputResponse"
+      ) {
+        const signalData = parseHistoryItemPayload(
+          event.workflowExecutionSignaledEventAttributes.input,
+        )?.[0] as ExternalInputResponseSignal | undefined;
+
+        if (!signalData) {
+          throw new Error(
+            `No signal data on requestExternalInput signal event with id ${event.eventId}`,
+          );
+        }
+        const { requestId, data, type } = signalData;
+
+        inputRequestsById[signalData.requestId] = {
+          data: {} as never, // we will populate this when we hit the original request
+          answers: "answers" in data ? data.answers : undefined,
+          requestId,
+          stepId: "unresolved",
+          type,
+          resolved: true,
+        };
       }
 
       const nonScheduledAttributes =
@@ -449,12 +454,26 @@ const mapTemporalWorkflowToFlowStatus = async (
     memo,
   } = workflow;
 
+  let workflowStatus: FlowRunStatus = status.name as FlowRunStatus;
+  if (
+    workflowStatus === FlowRunStatus.Completed &&
+    workflowOutputs &&
+    !workflowOutputs.every((output) => output.code === "Ok")
+  ) {
+    /**
+     * The workflow may have completed without an error being thrown, but the outputs have error codes within them
+     * @todo H-2604 – consider what to do here as part of restructuring flow errors – keep errors as values, or throw from run-workflow-run?
+     *       how about partially successful workflows with some Ok outputs, some not?
+     */
+    workflowStatus = FlowRunStatus.Failed;
+  }
+
   return {
     flowDefinitionId:
       (memo?.flowDefinitionId as string | undefined) ?? "unknown",
     runId,
     workflowId,
-    status: status.name as FlowRunStatus,
+    status: workflowStatus,
     startedAt: startTime.toISOString(),
     executedAt: executionTime?.toISOString(),
     closedAt: closeTime?.toISOString(),

@@ -1,3 +1,4 @@
+import type { ActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { ExternalInputRequest } from "@local/hash-isomorphic-utils/flows/types";
 import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack, Typography } from "@mui/material";
@@ -7,6 +8,10 @@ import type { NodeProps } from "reactflow";
 
 import { ArrowRightIcon } from "../../../../../../shared/icons/arrow-right";
 import { Button } from "../../../../../../shared/ui/button";
+import type {
+  SimpleStatus,
+  StepRunStatus,
+} from "../../../../../shared/flow-runs-context";
 import {
   statusToSimpleStatus,
   useFlowRunsContext,
@@ -23,12 +28,64 @@ const getTimeAgo = (isoString: string) =>
     addSuffix: true,
   });
 
+const useStatusText = ({
+  actionDefinitionId,
+  simpleStatusName,
+  statusData,
+}: {
+  actionDefinitionId?: ActionDefinitionId;
+  simpleStatusName: SimpleStatus;
+  statusData?: StepRunStatus | null;
+}) => {
+  return useMemo(() => {
+    if (
+      actionDefinitionId &&
+      actionDefinitionId === "researchEntities" &&
+      simpleStatusName === "In Progress"
+    ) {
+      /**
+       * When the research task starts, which will often be at the start of a Flow,
+       * show a message while the agent is deciding whether to ask questions or immediately produce a plan.
+       * This provides a visual indicator that the triggering user should stick around to see if any questions are asked,
+       * which is replaced once the plan has been produced or questions have been asked.
+       */
+      const hasCreatedPlan = statusData?.logs.some(
+        (log) => log.type === "CreatedPlan",
+      );
+      if (!hasCreatedPlan) {
+        return "Deciding whether to ask questions...";
+      }
+    }
+
+    switch (simpleStatusName) {
+      case "Complete":
+        return "Successfully completed";
+      case "In Progress":
+        return "Currently processing step...";
+      case "Error":
+        return "Step failed to complete";
+      case "Cancelled":
+        return "Cancelled";
+      case "Information Required":
+        return "Waiting for information from browser plugin";
+      default:
+        return "Waiting for earlier stages to finish";
+    }
+  }, [actionDefinitionId, simpleStatusName, statusData]);
+};
+
 export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
   const [showQuestionModal, setShowQuestionModal] = useState(false);
 
   const statusData = useStatusForCurrentStep();
 
   const { selectedFlowRun } = useFlowRunsContext();
+
+  const statusText = useStatusText({
+    actionDefinitionId: data.actionDefinition?.actionDefinitionId,
+    simpleStatusName: statusToSimpleStatus(statusData?.status ?? null),
+    statusData,
+  });
 
   const outstandingInputRequest = useMemo(() => {
     /**
@@ -43,7 +100,7 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
      *
      * We could alternatively show a count of outstanding requests.
      */
-    let browserInputRequest: ExternalInputRequest | undefined;
+    let browserInputRequest: ExternalInputRequest | undefined = undefined;
     for (const request of selectedFlowRun?.inputRequests ?? []) {
       if (request.resolved || request.stepId !== id) {
         continue;
@@ -165,19 +222,7 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
             </Button>
           ) : (
             <Box sx={commonStatusBarSx}>
-              <Typography sx={statusBarTextSx}>
-                {stepStatusName === "Complete"
-                  ? "Successfully completed"
-                  : stepStatusName === "In Progress"
-                    ? "Currently processing step..."
-                    : stepStatusName === "Error"
-                      ? "Step failed to complete"
-                      : stepStatusName === "Cancelled"
-                        ? "Cancelled"
-                        : stepStatusName === "Information Required"
-                          ? "Waiting for information from browser plugin"
-                          : "Waiting for earlier stages to finish"}
-              </Typography>
+              <Typography sx={statusBarTextSx}>{statusText}</Typography>
             </Box>
           )}
 

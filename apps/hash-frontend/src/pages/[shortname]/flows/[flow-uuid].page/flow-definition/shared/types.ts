@@ -3,8 +3,10 @@ import type {
   ActionStepDefinition,
   ActionStepWithParallelInput,
   ParallelGroupStepDefinition,
+  ProgressLogBase,
   StepDefinition,
   StepGroup,
+  StepProgressLog,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { Edge, Node } from "reactflow";
 
@@ -51,3 +53,10 @@ export type SingleGroupFlow = {
 };
 
 export type FlowMaybeGrouped = SingleGroupFlow | MultiGroupFlow;
+
+export type StateChangeLog = ProgressLogBase & {
+  message: string;
+  type: "StateChange";
+};
+
+export type LocalProgressLog = StepProgressLog | StateChangeLog;

@@ -1,4 +1,3 @@
-import { ExternalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/types";
 import { gql } from "apollo-server-express";
 
 export const flowTypedef = gql`

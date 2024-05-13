@@ -153,8 +153,6 @@ const formatTimeTaken = (scheduledAt: string, closedAt?: string) => {
 
   const duration = intervalToDuration({ start: 0, end: elapsed });
 
-  console.log(elapsed, scheduledAt, closedAt, duration);
-
   return [duration.hours, duration.minutes, duration.seconds]
     .filter(isNonNullable)
     .map(pad)

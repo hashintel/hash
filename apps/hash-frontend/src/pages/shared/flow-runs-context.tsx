@@ -71,9 +71,9 @@ export const useFlowRunsContext = () => {
   return flowRunsContext;
 };
 
-type StepRunStatus = Pick<
+export type StepRunStatus = Pick<
   StepRun,
-  "inputs" | "outputs" | "status" | "closedAt" | "scheduledAt"
+  "inputs" | "outputs" | "status" | "closedAt" | "scheduledAt" | "logs"
 >;
 
 export const useStatusForStep = (
@@ -89,6 +89,7 @@ export const useStatusForStep = (
     if (nodeId === "trigger") {
       return {
         closedAt: selectedFlowRun.startedAt,
+        logs: [],
         outputs: selectedFlowRun.inputs[0].flowTrigger.outputs,
         scheduledAt: selectedFlowRun.startedAt,
         status: FlowStepStatus.Completed,
@@ -99,10 +100,7 @@ export const useStatusForStep = (
   }, [selectedFlowRun, nodeId]);
 };
 
-export const useStatusForCurrentStep = (): Pick<
-  StepRun,
-  "inputs" | "outputs" | "status" | "closedAt" | "scheduledAt"
-> | null => {
+export const useStatusForCurrentStep = (): StepRunStatus | null => {
   const nodeId = useNodeId();
 
   return useStatusForStep(nodeId);
