@@ -6,6 +6,7 @@ import type {
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
+import { AutomaticInferenceSettings } from "@local/hash-isomorphic-utils/flows/browser-plugin-types";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   SimpleProperties,
@@ -99,17 +100,7 @@ type PersistedUserSettingsKey = (typeof persistedUserSettingKeys)[number];
 export type PersistedUserSettings = Subtype<
   Record<PersistedUserSettingsKey, unknown>,
   {
-    automaticInferenceConfig: {
-      createAs: "draft" | "live";
-      displayGroupedBy: "type" | "location";
-      enabled: boolean;
-      model: InferenceModelName;
-      ownedById: OwnedById;
-      rules: {
-        restrictToDomains: string[];
-        entityTypeId: VersionedUrl;
-      }[];
-    };
+    automaticInferenceConfig: AutomaticInferenceSettings;
     draftQuickNote: string;
     manualInferenceConfig: {
       createAs: "draft" | "live";
