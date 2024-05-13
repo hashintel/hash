@@ -1,4 +1,3 @@
-import type { JsonObject } from "@blockprotocol/core";
 import type {
   RunFlowWorkflowParams,
   RunFlowWorkflowResponse,
@@ -10,7 +9,7 @@ import type { MutationStartFlowArgs, ResolverFn } from "../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../context";
 
 export const startFlow: ResolverFn<
-  Promise<JsonObject>,
+  Promise<string>,
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationStartFlowArgs
@@ -19,7 +18,9 @@ export const startFlow: ResolverFn<
 
   validateFlowDefinition(flowDefinition);
 
-  const workflowResponse = await temporal.workflow.execute<
+  const workflowId = generateUuid();
+
+  await temporal.workflow.start<
     (params: RunFlowWorkflowParams) => Promise<RunFlowWorkflowResponse>
   >("runFlow", {
     taskQueue: "ai",
@@ -34,11 +35,11 @@ export const startFlow: ResolverFn<
     memo: {
       flowDefinitionId: flowDefinition.flowDefinitionId,
     },
-    workflowId: generateUuid(),
+    workflowId,
     retry: {
       maximumAttempts: 1,
     },
   });
 
-  return workflowResponse as unknown as JsonObject;
+  return workflowId;
 };

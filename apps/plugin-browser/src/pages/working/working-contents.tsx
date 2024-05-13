@@ -2,7 +2,7 @@ import "../shared/common.scss";
 
 import { Button } from "@hashintel/design-system";
 import { theme } from "@hashintel/design-system/theme";
-import { Box, Stack, ThemeProvider, Typography } from "@mui/material";
+import { Box, Link, Stack, ThemeProvider, Typography } from "@mui/material";
 
 import { HashLockup } from "../shared/hash-lockup";
 import { lightModeBorderColor } from "../shared/style-values";
@@ -63,12 +63,21 @@ export const WorkingContents = () => {
                 sx={{
                   color: ({ palette }) => palette.gray[70],
                   fontSize: 17,
-                  mt: 2,
+                  my: 2,
                 }}
               >
-                The worker is visiting web pages according to your research
-                goal, and will tidy up afterwards.
+                The HASH browser extension is visiting web pages according to
+                your research goal, and will tidy up afterwards.
               </Typography>
+              <Box>
+                <Link
+                  href={`${FRONTEND_ORIGIN}/flows`}
+                  target="blank"
+                  sx={{ fontSize: 16, fontWeight: 600 }}
+                >
+                  Click here to view currently active flows
+                </Link>
+              </Box>
             </Box>
             <Box ml={6} sx={{ width: 300 }}>
               <Typography

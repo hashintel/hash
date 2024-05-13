@@ -15,6 +15,7 @@ import { useEnabledFeatureFlags } from "../../../pages/shared/use-enabled-featur
 import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
 import { useDraftEntities } from "../../draft-entities-context";
 import { SidebarToggleIcon } from "../../icons";
+import { BoltLightIcon } from "../../icons/bolt-light-icon";
 import { CogLightIcon } from "../../icons/cog-light-icon";
 import { InboxIcon } from "../../icons/inbox-icon";
 import { NoteIcon } from "../../icons/note-icon";
@@ -56,6 +57,39 @@ export const PageSidebar: FunctionComponent = () => {
 
   const { draftEntities } = useDraftEntities();
 
+  const workersSection = useMemo(
+    () =>
+      enabledFeatureFlags.workers
+        ? [
+            {
+              title: "Workers",
+              href: "/goals",
+              icon: <BoltLightIcon sx={{ fontSize: 16 }} />,
+              tooltipTitle: "",
+              children: [
+                ...(enabledFeatureFlags.ai
+                  ? [
+                      {
+                        title: "Goals",
+                        href: "/goals",
+                      },
+                    ]
+                  : []),
+                {
+                  title: "Flows",
+                  href: "/flows",
+                },
+                {
+                  title: "Activity Log",
+                  href: "/workers",
+                },
+              ],
+            },
+          ]
+        : [],
+    [enabledFeatureFlags],
+  );
+
   const navLinks = useMemo<NavLinkDefinition[]>(() => {
     const numberOfPendingActions = draftEntities?.length ?? 0;
 
@@ -66,6 +100,7 @@ export const PageSidebar: FunctionComponent = () => {
         icon: <FontAwesomeIcon icon={faHome} />,
         tooltipTitle: "",
       },
+      ...workersSection,
       {
         title: "Inbox",
         href: "/inbox",
@@ -111,6 +146,7 @@ export const PageSidebar: FunctionComponent = () => {
     numberOfUnreadNotifications,
     enabledFeatureFlags,
     isInstanceAdmin,
+    workersSection,
   ]);
 
   return (
