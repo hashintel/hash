@@ -4,25 +4,26 @@ mod test;
 use alloc::sync::Arc;
 use core::{
     fmt::Debug,
-    ops::ControlFlow,
+    future,
     sync::atomic::{AtomicU64, Ordering},
     time::Duration,
 };
 use std::io;
 
-use futures::{FutureExt, Sink, Stream, StreamExt};
+use futures::{stream, FutureExt, Sink, Stream, StreamExt};
 use harpc_wire_protocol::{
     request::{body::RequestBody, id::RequestId, Request},
     response::Response,
 };
 use libp2p::PeerId;
 use scc::{ebr::Guard, hash_index::Entry, HashIndex};
+use stream_cancel::Valved;
 use tokio::{
     pin, select,
-    sync::{broadcast, mpsc, OwnedSemaphorePermit, Semaphore},
+    sync::{broadcast, mpsc, Notify, OwnedSemaphorePermit, Semaphore},
 };
 use tokio_stream::{wrappers::ReceiverStream, StreamNotifyClose};
-use tokio_util::{sync::CancellationToken, task::TaskTracker};
+use tokio_util::{either::Either, sync::CancellationToken, task::TaskTracker};
 
 use super::{
     session_id::SessionId,
@@ -33,8 +34,8 @@ use super::{
 use crate::{
     codec::{ErrorEncoder, PlainError},
     session::error::{
-        ConnectionTransactionLimitReachedError, InstanceTransactionLimitReachedError,
-        TransactionError, TransactionLaggingError,
+        ConnectionShutdownError, ConnectionTransactionLimitReachedError,
+        InstanceTransactionLimitReachedError, TransactionError, TransactionLaggingError,
     },
 };
 
@@ -142,6 +143,8 @@ pub(crate) struct TransactionCollection {
     config: SessionConfig,
 
     generation: AtomicU64,
+    notify: Arc<Notify>,
+
     cancel: CancellationToken,
     storage: TransactionStorage,
     limit: ConcurrencyLimit,
@@ -151,9 +154,11 @@ impl TransactionCollection {
     pub(crate) fn new(config: SessionConfig, cancel: CancellationToken) -> Self {
         let storage = Arc::new(HashIndex::new());
         let limit = ConcurrencyLimit::new(config.per_connection_concurrent_transaction_limit);
+        let notify = Arc::new(Notify::new());
 
         Self {
             generation: AtomicU64::new(0),
+            notify,
             config,
             cancel,
             storage,
@@ -286,6 +291,10 @@ impl TransactionCollection {
             }
         }
     }
+
+    fn is_empty(&self) -> bool {
+        self.storage.is_empty()
+    }
 }
 
 impl Drop for TransactionCollection {
@@ -322,6 +331,7 @@ pub(crate) struct TransactionPermit {
     storage: TransactionStorage,
 
     cancel: CancellationToken,
+    notify: Arc<Notify>,
 
     _permit: ConcurrencyPermit,
 }
@@ -334,15 +344,19 @@ impl TransactionPermit {
     ) -> Result<Arc<Self>, ConnectionTransactionLimitReachedError> {
         let permit = collection.limit.acquire()?;
         let storage = Arc::clone(&collection.storage);
+        let notify = Arc::clone(&collection.notify);
 
         // we only need to increment the generation counter, when we are successful in acquiring a
         // permit.
-        let generation = collection.generation.fetch_add(1, Ordering::AcqRel);
+        // Relaxed ordering is fine here, as we only ever increment the value and we do not care
+        // about the order of those increments.
+        let generation = collection.generation.fetch_add(1, Ordering::Relaxed);
 
         Ok(Arc::new(Self {
             id,
             storage,
             generation,
+            notify,
             _permit: permit,
             cancel,
         }))
@@ -355,8 +369,14 @@ impl TransactionPermit {
 
 impl Drop for TransactionPermit {
     fn drop(&mut self) {
-        self.storage
+        let has_removed = self
+            .storage
             .remove_if(&self.id, |state| state.generation == self.generation);
+
+        // we only need to check if empty, if we have removed something
+        if has_removed && self.storage.is_empty() {
+            self.notify.notify_one();
+        }
     }
 }
 
@@ -377,12 +397,7 @@ impl<E> ConnectionTask<E>
 where
     E: ErrorEncoder + Send + Sync + 'static,
 {
-    async fn respond_error<T>(
-        &self,
-        id: RequestId,
-        error: T,
-        tx: &mpsc::Sender<Response>,
-    ) -> ControlFlow<()>
+    async fn respond_error<T>(&self, id: RequestId, error: T, tx: &mpsc::Sender<Response>)
     where
         T: PlainError + Send + Sync,
     {
@@ -391,10 +406,10 @@ where
         let mut writer = ResponseWriter::new_error(id, code, tx);
         writer.push(bytes);
 
+        // we cannot stop processing if the writer fails, as that simply means that we can no longer
+        // send and we're winding down.
         if writer.flush().await.is_err() {
-            ControlFlow::Break(())
-        } else {
-            ControlFlow::Continue(())
+            tracing::info!("connection prematurely closed, response to transaction has been lost");
         }
     }
 
@@ -403,7 +418,7 @@ where
         tx: mpsc::Sender<Response>,
         tasks: &TaskTracker,
         request: Request,
-    ) -> ControlFlow<()> {
+    ) {
         // check if this is a `Begin` request, in that case we need to create a new transaction,
         // otherwise, this is already a transaction and we need to forward it, or log out if it is a
         // rogue request
@@ -439,22 +454,31 @@ where
                 )
                 .await;
 
-                // This only happens in case of a full buffer, in that case we will drop the
-                // transaction, because we can assume that the upper layer is unable to keep up with
-                // the incoming requests, it also helps us to prevent a DoS attack.
                 let transaction_permit = match result {
                     Ok(Ok(permit)) => permit,
                     Ok(Err(_)) => {
-                        // the other end has been dropped, we can stop processing
-                        return ControlFlow::Break(());
+                        // while the supervisor has been closed (or at least the stream to send
+                        // transactions to), it does not mean that we can easily just stop the
+                        // connection task, this is because, while the server might not be accepting
+                        // any more transactions, existing transactions might still be in flight and
+                        // be processed, this is also known as the "graceful shutdown" phase.
+                        tracing::info!("supervisor has been dropped, dropping transaction");
+
+                        self.respond_error(request_id, ConnectionShutdownError, &tx)
+                            .await;
+                        return;
                     }
                     Err(_) => {
+                        // This only happens in case of a full buffer, in that case we will drop the
+                        // transaction, because we can assume that the upper layer is unable to keep
+                        // up with the incoming requests, it also helps us to prevent a DoS attack.
                         tracing::warn!("transaction delivery timed out, dropping transaction");
+
                         self.active.release(request_id).await;
 
-                        return self
-                            .respond_error(request_id, InstanceTransactionLimitReachedError, &tx)
+                        self.respond_error(request_id, InstanceTransactionLimitReachedError, &tx)
                             .await;
+                        return;
                     }
                 };
 
@@ -470,7 +494,8 @@ where
                     },
                 );
 
-                // we put it in the buffer, so will resolve immediately
+                // The channel size is a non-zero, meaning that we always have space in the buffer
+                // to send the request and resolve immediately.
                 request_tx
                     .try_send(request)
                     .expect("infallible; buffer should be large enough to hold the request");
@@ -481,7 +506,7 @@ where
             }
             RequestBody::Frame(_) => {
                 if let Err(error) = self.active.send(request).await {
-                    return self.respond_error(request_id, error, &tx).await;
+                    self.respond_error(request_id, error, &tx).await;
                 }
             }
         }
@@ -490,8 +515,6 @@ where
 
         // we do not need to check for `EndOfRequest` here and forcefully close the channel, as the
         // task is already doing this for us.
-
-        ControlFlow::Continue(())
     }
 
     #[allow(clippy::integer_division_remainder_used)]
@@ -505,11 +528,14 @@ where
         T: Sink<Response, Error: Debug + Send> + Send + 'static,
         U: Stream<Item = error_stack::Result<Request, io::Error>> + Send,
     {
-        let stream = StreamNotifyClose::new(stream.fuse());
+        let stream = stream.fuse();
+        let stream = StreamNotifyClose::new(stream);
+        let stream = Either::Left(stream);
 
         pin!(stream);
 
         let finished = Semaphore::new(0);
+        let notify = Arc::clone(&self.active.notify);
 
         let cancel_gc = cancel.child_token();
         tasks.spawn(
@@ -535,6 +561,7 @@ where
         let mut handle = tasks
             .spawn(ConnectionDelegateTask { rx, sink }.run(cancel.clone()))
             .fuse();
+
         let mut tx = Some(tx);
 
         loop {
@@ -559,11 +586,7 @@ where
                         Some(Ok(request)) => {
                             let tx = tx.clone().expect("infallible; sender is only unavailble once the stream is exhausted");
 
-                            if self.handle_request(tx.clone(), &tasks, request).await.is_break() {
-                                tracing::info!("supervisor has been shut down");
-
-                                break;
-                            }
+                            self.handle_request(tx.clone(), &tasks, request).await;
                         },
                         Some(Err(error)) => {
                             tracing::info!(?error, "malformed request");
@@ -582,6 +605,17 @@ where
                     }
 
                     finished.add_permits(1);
+                },
+                () = notify.notified() => {
+                    // we've been notified that an item has been removed and that the collection is now empty (at the time of notification)
+
+                    // double check if `is_empty` (otherwise we might run into a race-condition)
+                    if self.output.is_closed() && self.active.is_empty() {
+                        // We can no longer accept any connections, if that is the case, we can stop the stream
+                        // this is done by dropping the sender, and replacing it with another stream, which yields `None`
+                        // This `None` is used in the next iteration of the loop, and will start the shutdown process.
+                        stream.set(Either::Right(stream::once(future::ready(None))));
+                    }
                 }
                 _ = finished.acquire_many(2) => {
                     // both the stream and the sink have finished, we can terminate

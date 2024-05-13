@@ -12,11 +12,12 @@ pub struct ErrorCode(NonZero<u16>);
 impl ErrorCode {
     // 0xFF_E0..=0xFF_EF are session layer errors
     pub const CONNECTION_CLOSED: Self = Self(NonZero::new(0xFF_E0).expect("infallible"));
+    pub const CONNECTION_SHUTDOWN: Self = Self(NonZero::new(0xFF_E1).expect("infallible"));
     pub const CONNECTION_TRANSACTION_LIMIT_REACHED: Self =
-        Self(NonZero::new(0xFF_E1).expect("infallible"));
-    pub const INSTANCE_TRANSACTION_LIMIT_REACHED: Self =
         Self(NonZero::new(0xFF_E2).expect("infallible"));
-    pub const TRANSACTION_LAGGING: Self = Self(NonZero::new(0xFF_E3).expect("infallible"));
+    pub const INSTANCE_TRANSACTION_LIMIT_REACHED: Self =
+        Self(NonZero::new(0xFF_E3).expect("infallible"));
+    pub const TRANSACTION_LAGGING: Self = Self(NonZero::new(0xFF_E4).expect("infallible"));
 }
 
 impl ErrorCode {

@@ -1,6 +1,6 @@
 use alloc::sync::Arc;
 use core::{future::ready, num::NonZero, time::Duration};
-use std::io;
+use std::{assert_matches::assert_matches, io};
 
 use bytes::Bytes;
 use futures::{prelude::sink::SinkExt, StreamExt};
@@ -41,13 +41,13 @@ use tokio_util::{
     task::TaskTracker,
 };
 
-use super::{ConcurrencyLimit, ConnectionTask};
+use super::{ConcurrencyLimit, ConnectionTask, TransactionStorage};
 use crate::{
     codec::ErrorEncoder,
     session::{
         error::{
-            ConnectionTransactionLimitReachedError, InstanceTransactionLimitReachedError,
-            TransactionError,
+            ConnectionShutdownError, ConnectionTransactionLimitReachedError,
+            InstanceTransactionLimitReachedError, TransactionError,
         },
         server::{
             connection::{ConnectionDelegateTask, TransactionCollection},
@@ -97,6 +97,8 @@ struct Setup {
     sink: mpsc::Receiver<Response>,
 
     handle: JoinHandle<()>,
+
+    storage: TransactionStorage,
 }
 
 impl Setup {
@@ -127,6 +129,8 @@ impl Setup {
             _permit: permit,
         };
 
+        let storage = Arc::clone(&task.active.storage);
+
         let handle = tokio::spawn(task.run(
             PollSender::new(sink_tx),
             ReceiverStream::new(stream_rx),
@@ -140,6 +144,7 @@ impl Setup {
             stream: stream_tx,
             sink: sink_rx,
             handle,
+            storage,
         }
     }
 }
@@ -190,6 +195,7 @@ async fn stream_closed_does_not_stop_task() {
         stream,
         mut sink,
         handle,
+        storage: _,
     } = Setup::new(SessionConfig {
         no_delay: true,
         ..SessionConfig::default()
@@ -239,6 +245,7 @@ async fn stream_closed_last_transaction_dropped_stops_task() {
         stream,
         mut sink,
         handle,
+        storage: _,
     } = Setup::new(SessionConfig::default());
 
     stream
@@ -288,6 +295,7 @@ async fn stream_closed_keep_alive_until_last_transaction() {
         stream,
         sink: _sink,
         handle,
+        storage: _,
     } = Setup::new(SessionConfig::default());
 
     stream
@@ -336,6 +344,7 @@ async fn sink_closed_does_not_stop_task() {
         stream,
         sink,
         handle,
+        storage: _,
     } = Setup::new(SessionConfig {
         per_connection_response_buffer_size: NonZero::new(1).expect("infallible"),
         per_transaction_response_byte_stream_buffer_size: NonZero::new(1).expect("infallible"),
@@ -431,6 +440,7 @@ async fn connection_closed() {
         stream,
         sink,
         handle,
+        storage: _,
     } = Setup::new(SessionConfig::default());
 
     drop(stream);
@@ -450,6 +460,7 @@ async fn transaction_limit_reached_connection() {
         stream,
         mut sink,
         handle: _handle,
+        storage: _,
     } = Setup::new(SessionConfig {
         per_connection_concurrent_transaction_limit: 1,
         ..SessionConfig::default()
@@ -496,6 +507,7 @@ async fn transaction_limit_reached_instance() {
         stream,
         mut sink,
         handle: _handle,
+        storage: _,
     } = Setup::new(SessionConfig::default());
 
     // fill the buffer with transactions, the last transaction will bounce
@@ -536,6 +548,7 @@ async fn transaction_overwrite() {
         stream,
         sink,
         handle: _handle,
+        storage: _,
     } = Setup::new(SessionConfig::default());
 
     stream
@@ -577,6 +590,7 @@ async fn transaction_repeat() {
         stream,
         mut sink,
         handle: _handle,
+        storage: _,
     } = Setup::new(SessionConfig::default());
 
     stream
@@ -652,6 +666,7 @@ async fn transaction() {
         stream,
         mut sink,
         handle: _handle,
+        storage: _,
     } = Setup::new(SessionConfig::default());
 
     stream
@@ -700,6 +715,7 @@ async fn transaction_multiple() {
         stream,
         mut sink,
         handle: _handle,
+        storage: _,
     } = Setup::new(SessionConfig::default());
 
     // we are sending four distinct packets, each one with a different message
@@ -801,16 +817,233 @@ async fn transaction_request_buffer_limit_reached() {
 }
 
 #[tokio::test]
-#[ignore]
 async fn transaction_send_output_closed() {
     // try to accept a new transaction, but the output mpsc::Sender<Transaction> is closed
+    let Setup {
+        mut output,
+        events: _events,
+        stream,
+        mut sink,
+        handle,
+        storage: _,
+    } = Setup::new(SessionConfig {
+        no_delay: true,
+        ..SessionConfig::default()
+    });
+
+    // trying to create a new transaction, when the output is gone, should result in wind-down of
+    // tasks, but only if all transactions are done!
+    stream
+        .send(Ok(make_request_begin(RequestFlags::EMPTY, "hello")))
+        .await
+        .expect("should be able to send message");
+
+    // but existing transactions are still being processed
+    let transaction = output.recv().await.expect("should have a transaction");
+    let (_, mut txn_sink, mut txn_stream) = transaction.into_parts();
+
+    // we're no longer accepting any connections
+    output.close();
+
+    // ... and we can use the transactions to both still send and receive messages
+    let message = txn_stream.next().await.expect("should have a message");
+    assert_eq!(message.as_ref(), b"hello");
+
+    txn_sink
+        .send(Ok(Bytes::from("world")))
+        .await
+        .expect("should be able to send message");
+
+    txn_sink
+        .close()
+        .await
+        .expect("should be able to close sink");
+
+    let mut responses = Vec::with_capacity(8);
+    let available = sink.recv_many(&mut responses, 8).await;
+    assert_eq!(available, 2);
+
+    assert!(
+        !responses[0]
+            .header
+            .flags
+            .contains(ResponseFlag::EndOfResponse)
+    );
+    assert_eq!(responses[0].body.payload().as_bytes().as_ref(), b"world");
+
+    assert!(
+        responses[1]
+            .header
+            .flags
+            .contains(ResponseFlag::EndOfResponse)
+    );
+    assert_eq!(responses[1].body.payload().as_bytes().as_ref(), b"");
+
+    // but creating new transactions will fail
+    let mut request = make_request_begin(RequestFlag::EndOfRequest, "hello");
+    request.header.request_id = RequestId::new_unchecked(0x02);
+
+    stream
+        .send(Ok(request))
+        .await
+        .expect("should be able to send message");
+
+    // we will have a response with an error
+    let mut responses = Vec::with_capacity(8);
+    let available = sink.recv_many(&mut responses, 8).await;
+    assert_eq!(available, 1);
+
+    let response = responses.pop().expect("should have a response");
+    assert!(response.header.flags.contains(ResponseFlag::EndOfResponse));
+    assert_matches!(
+        response.body,
+        ResponseBody::Begin(ResponseBegin {
+            kind: ResponseKind::Err(ErrorCode::CONNECTION_SHUTDOWN),
+            ..
+        })
+    );
+    assert_eq!(
+        response.body.payload().as_bytes().as_ref(),
+        ConnectionShutdownError.to_string().into_bytes()
+    );
+
+    stream
+        .send(Ok(make_request_frame(RequestFlag::EndOfRequest, "hello")))
+        .await
+        .expect("should be able to send message");
+
+    let request = txn_stream.next().await.expect("should have a request");
+    assert_eq!(request.as_ref(), b"hello");
+
+    assert!(txn_stream.next().await.is_none());
+
+    tokio::time::timeout(Duration::from_secs(1), handle)
+        .await
+        .expect("should finish within timeout")
+        .expect("should finish gracefully");
 }
 
 #[tokio::test]
-#[ignore]
+async fn transaction_graceful_shutdown() {
+    // try to accept a new transaction, but the output mpsc::Sender<Transaction> is closed
+    let Setup {
+        mut output,
+        events: _events,
+        stream,
+        mut sink,
+        handle,
+        storage: _,
+    } = Setup::new(SessionConfig {
+        no_delay: true,
+        ..SessionConfig::default()
+    });
+
+    // trying to create a new transaction, when the output is gone, should result in wind-down of
+    // tasks, but only if all transactions are done!
+    stream
+        .send(Ok(make_request_begin(RequestFlags::EMPTY, "hello")))
+        .await
+        .expect("should be able to send message");
+
+    // but existing transactions are still being processed
+    let transaction = output.recv().await.expect("should have a transaction");
+    let (_, mut txn_sink, mut txn_stream) = transaction.into_parts();
+
+    // we're no longer accepting any connections
+    output.close();
+
+    // once `output` has been closed, this will initiate a graceful shutdown,
+    // but only once all transactions have been completed,
+    // until then we will still be able to send and receive messages
+    let message = txn_stream.next().await.expect("should have a message");
+    assert_eq!(message.as_ref(), b"hello");
+
+    txn_sink
+        .send(Ok(Bytes::from("world")))
+        .await
+        .expect("should be able to send message");
+
+    let mut responses = Vec::with_capacity(8);
+    let available = sink.recv_many(&mut responses, 8).await;
+    assert_eq!(available, 1);
+
+    let response = responses.pop().expect("should have a response");
+    assert!(!response.header.flags.contains(ResponseFlag::EndOfResponse));
+    assert_eq!(response.body.payload().as_bytes().as_ref(), b"world");
+
+    // we now send the end of the current transaction
+    stream
+        .send(Ok(make_request_frame(
+            RequestFlag::EndOfRequest,
+            b"good bye" as &[_],
+        )))
+        .await
+        .expect("should be able to send message");
+
+    // that one should still be received
+    let response = txn_stream.next().await.expect("should have a response");
+    assert_eq!(response.as_ref(), b"good bye");
+
+    // the stream should now be exhausted
+    assert!(txn_stream.next().await.is_none());
+
+    // once we close the sink, the connection should be closed
+    txn_sink
+        .close()
+        .await
+        .expect("should be able to close sink");
+
+    let mut responses = Vec::with_capacity(8);
+    let available = sink.recv_many(&mut responses, 8).await;
+    assert_eq!(available, 1);
+
+    let response = responses.pop().expect("should have a response");
+    assert!(response.header.flags.contains(ResponseFlag::EndOfResponse));
+    assert_eq!(response.body.payload().as_bytes().as_ref(), b"");
+
+    tokio::time::timeout(Duration::from_secs(1), handle)
+        .await
+        .expect("should finish within timeout")
+        .expect("should finish gracefully");
+}
+
+#[tokio::test]
 async fn transaction_reclamation() {
     // do a complete transaction, and once done the transaction should be reclaimed (the inner
     // buffer should be empty)
+    let Setup {
+        mut output,
+        events: _events,
+        stream,
+        sink: _sink,
+        handle: _handle,
+        storage,
+    } = Setup::new(SessionConfig::default());
+
+    stream
+        .send(Ok(make_request_begin(RequestFlag::EndOfRequest, "hello")))
+        .await
+        .expect("should be able to send message");
+
+    let transaction = output.recv().await.expect("should have a response");
+    let (_, mut txn_sink, mut txn_stream) = transaction.into_parts();
+
+    let message = txn_stream.next().await.expect("should have a message");
+    assert_eq!(message.as_ref(), b"hello");
+
+    assert!(txn_stream.next().await.is_none());
+
+    // closing the sink should be enough to finish the transaction
+    txn_sink.close().await.expect("should be able to close");
+
+    // we should have a single transaction in storage
+    assert_eq!(storage.len(), 1);
+
+    // once finishing the transaction (sending of request)
+    // the transaction should be reclaimed
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    assert_eq!(storage.len(), 0);
 }
 
 #[tokio::test]
@@ -821,6 +1054,7 @@ async fn graceful_shutdown() {
         stream,
         sink,
         handle,
+        storage: _,
     } = Setup::new(SessionConfig::default());
 
     drop(stream);

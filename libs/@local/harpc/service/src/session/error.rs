@@ -57,3 +57,15 @@ impl PlainError for ConnectionClosedError {
         ErrorCode::CONNECTION_CLOSED
     }
 }
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
+#[error(
+    "The connection is in the graceful shutdown state and no longer accepts any new transactions"
+)]
+pub struct ConnectionShutdownError;
+
+impl PlainError for ConnectionShutdownError {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::CONNECTION_SHUTDOWN
+    }
+}
