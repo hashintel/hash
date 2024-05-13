@@ -3,14 +3,14 @@ use std::{
     fs::File,
     io,
     io::{BufWriter, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use clap::Parser;
 use error_stack::{Report, ResultExt};
 use repo_chores::benches::{
     analyze::{criterion, AnalyzeError},
-    results::Benchmark,
+    report::Benchmark,
 };
 
 #[derive(Debug, Parser)]
@@ -39,12 +39,23 @@ pub(super) fn run(args: Args) -> Result<(), Report<AnalyzeError>> {
         .change_context(AnalyzeError::WriteOutput)?
         .unwrap_or_else(|| Box::new(std::io::stdout()));
 
+    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .and_then(Path::parent)
+        .and_then(Path::parent)
+        .expect("could not find repository root directory")
+        .join("target")
+        .join("criterion");
+    let canonicalized = path
+        .canonicalize()
+        .attach_printable_lazy(|| format!("Could not open directory `{}`", path.display()))
+        .change_context(AnalyzeError::ReadInput)?;
+
     writeln!(
         output,
         "{}",
-        BenchFormatter(
-            Benchmark::gather("../../../../target/criterion").collect::<Result<_, _>>()?
-        )
+        BenchFormatter(Benchmark::gather(canonicalized).collect::<Result<_, _>>()?)
     )
     .change_context(AnalyzeError::WriteOutput)?;
 

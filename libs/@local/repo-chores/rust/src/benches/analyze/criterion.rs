@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::benches::results::{Benchmark, Stat};
+use crate::benches::report::{Benchmark, Stat};
 
 #[derive(Debug, Copy, Clone)]
 enum Unit {
