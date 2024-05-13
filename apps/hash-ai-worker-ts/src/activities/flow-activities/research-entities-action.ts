@@ -27,6 +27,7 @@ import { inferEntitiesFromWebPageWorkerAgent } from "./research-entities-action/
 import type { CoordinatingAgentState } from "./research-entities-action/open-ai-coordinating-agent";
 import { coordinatingAgent } from "./research-entities-action/open-ai-coordinating-agent";
 import type { CompletedToolCall } from "./research-entities-action/types";
+import { getAnswersFromHuman } from "./shared/get-answers-from-human";
 import type { FlowActionActivity } from "./types";
 import { webSearchAction } from "./web-search-action";
 
@@ -95,6 +96,17 @@ export const researchEntitiesAction: FlowActionActivity = async ({
               ...toolCall,
               output: `The plan has been successfully updated.`,
             };
+          } else if (toolCall.name === "requestHumanInput") {
+            const response = await getAnswersFromHuman(
+              (
+                toolCall.input as CoordinatorToolCallArguments["requestHumanInput"]
+              ).questions,
+            );
+
+            return {
+              ...toolCall,
+              output: response,
+            };
           } else if (toolCall.name === "submitProposedEntities") {
             const { entityIds } =
               toolCall.input as CoordinatorToolCallArguments["submitProposedEntities"];
@@ -103,7 +115,7 @@ export const researchEntitiesAction: FlowActionActivity = async ({
 
             return {
               ...toolCall,
-              output: `The entities with IDs ${JSON.stringify(entityIds)} where successfully submitted.`,
+              output: `The entities with IDs ${JSON.stringify(entityIds)} were successfully submitted.`,
             };
           } else if (toolCall.name === "getWebPageSummary") {
             const { url } =

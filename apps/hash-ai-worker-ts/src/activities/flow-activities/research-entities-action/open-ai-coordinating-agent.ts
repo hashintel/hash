@@ -3,7 +3,6 @@ import type {
   ProposedEntity,
   StepInput,
 } from "@local/hash-isomorphic-utils/flows/types";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import type { Entity } from "@local/hash-subgraph";
 import { Context } from "@temporalio/activity";
 import dedent from "dedent";
@@ -22,7 +21,7 @@ import { graphApiClient } from "../../shared/graph-api-client";
 import { logProgress } from "../../shared/log-progress";
 import { mapActionInputEntitiesToEntities } from "../../shared/map-action-input-entities-to-entities";
 import type { PermittedOpenAiModel } from "../../shared/openai-client";
-import { requestExternalInput } from "../../shared/request-external-input";
+import { getAnswersFromHuman } from "../shared/get-answers-from-human";
 import type {
   CoordinatorToolCallArguments,
   CoordinatorToolName,
@@ -279,22 +278,7 @@ const createInitialPlan = async (params: {
   const { questions } =
     firstToolCall.input as CoordinatorToolCallArguments["requestHumanInput"];
 
-  const {
-    data: { answers },
-  } = await requestExternalInput({
-    requestId: generateUuid(),
-    stepId: Context.current().info.activityId,
-    type: "human-input",
-    data: {
-      questions,
-    },
-  });
-
-  const responseString = answers
-    .map(
-      (answer, index) => `\nQuestion: ${questions[index]}\nAnswer: ${answer}\n`,
-    )
-    .join("\n");
+  const responseString = await getAnswersFromHuman(questions);
 
   return createInitialPlan({
     input,
