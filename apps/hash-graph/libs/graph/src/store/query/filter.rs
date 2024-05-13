@@ -179,11 +179,10 @@ where
             | Self::LessOrEqual(lhs, rhs) => match (lhs, rhs) {
                 (FilterExpression::Parameter(parameter), FilterExpression::Path(path))
                 | (FilterExpression::Path(path), FilterExpression::Parameter(parameter)) => {
-                    parameter.convert_to_parameter_type(path.expected_type())?
+                    parameter.convert_to_parameter_type(path.expected_type())?;
                 }
                 (..) => {}
             },
-
             Self::CosineDistance(lhs, rhs, max) => {
                 if let FilterExpression::Parameter(parameter) = max {
                     parameter.convert_to_parameter_type(ParameterType::F64)?;
