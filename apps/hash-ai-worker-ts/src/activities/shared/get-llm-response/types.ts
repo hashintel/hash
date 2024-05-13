@@ -110,21 +110,7 @@ export type LlmUsage = {
   totalTokens: number;
 };
 
-export type LlmResponse<T extends LlmParams> =
-  | ({
-      status: "ok";
-      stopReason: LlmStopReason;
-      usage: LlmUsage;
-      lastRequestTime: number;
-      totalRequestTime: number;
-      message: LlmAssistantMessage<
-        T["tools"] extends (infer U)[]
-          ? U extends { name: infer N }
-            ? N
-            : never
-          : string
-      >;
-    } & (T extends AnthropicLlmParams ? AnthropicResponse : OpenAiResponse))
+export type LlmErrorResponse =
   | {
       status: "exceeded-maximum-retries";
       usage: LlmUsage;
@@ -141,3 +127,20 @@ export type LlmResponse<T extends LlmParams> =
       status: "internal-error";
       message: string;
     };
+
+export type LlmResponse<T extends LlmParams> =
+  | ({
+      status: "ok";
+      stopReason: LlmStopReason;
+      usage: LlmUsage;
+      lastRequestTime: number;
+      totalRequestTime: number;
+      message: LlmAssistantMessage<
+        T["tools"] extends (infer U)[]
+          ? U extends { name: infer N }
+            ? N
+            : never
+          : string
+      >;
+    } & (T extends AnthropicLlmParams ? AnthropicResponse : OpenAiResponse))
+  | LlmErrorResponse;

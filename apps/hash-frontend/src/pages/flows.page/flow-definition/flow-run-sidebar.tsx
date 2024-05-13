@@ -178,7 +178,7 @@ const GroupStatus = ({
   const [timeTaken, setTimeTaken] = useState("");
 
   useEffect(() => {
-    let interval: NodeJS.Timer;
+    let interval: NodeJS.Timeout;
 
     if (scheduledAt) {
       setTimeTaken(formatTimeTaken(scheduledAt, closedAt));
