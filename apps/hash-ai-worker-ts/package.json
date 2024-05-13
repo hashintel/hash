@@ -34,7 +34,7 @@
     "lint:tsc": "tsc --noEmit",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org hashintel --project hash-temporal-worker-ai ./dist && sentry-cli sourcemaps upload --org hashintel --project hash-temporal-worker-ai ./dist",
     "start": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/main.ts",
-    "test:unit": "vitest --run"
+    "test:unit": "vitest --run  --exclude \"**/*.ai.test.ts\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.20.5",
