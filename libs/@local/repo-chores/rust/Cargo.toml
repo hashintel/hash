@@ -6,5 +6,3 @@ authors.workspace = true
 edition.workspace = true
 version = "0.0.0"
 publish = false
-
-[dependencies]
