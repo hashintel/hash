@@ -1,5 +1,5 @@
 #!/usr/bin/env -S cargo +nightly -Zscript
-```cargo
+---
 cargo-features = ["edition2024"]
 
 [package]
@@ -10,7 +10,7 @@ serde = {version = "*", features = ["derive"]}
 serde_json = {version = "*", features = ["preserve_order"]}
 cargo_metadata = {version = "*"}
 nodejs_package_json = { version = "*", features = ["serialize"] }
-```
+---
 
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
