@@ -1,16 +1,18 @@
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { Context } from "@temporalio/activity";
 
+import { getFlowContext } from "../../shared/get-flow-context";
 import { requestExternalInput } from "../../shared/request-external-input";
 
 export const getAnswersFromHuman = async (
   questions: string[],
 ): Promise<string> => {
+  const { stepId } = await getFlowContext();
+
   const {
     data: { answers },
   } = await requestExternalInput({
     requestId: generateUuid(),
-    stepId: Context.current().info.activityId,
+    stepId,
     type: "human-input",
     data: {
       questions,
