@@ -38,16 +38,6 @@ export const researchEntitiesAction: FlowActionActivity = async ({
     stepInputs,
   });
 
-  const state: CoordinatingAgentState = {
-    plan: "",
-    proposedEntities: [],
-    submittedEntityIds: [],
-    previousCalls: [],
-    hasConductedCheckStep: false,
-    filesUsedToProposeEntities: [],
-    questionsAndAnswers: null,
-  };
-
   /**
    * We start by asking the coordinator agent to create an initial plan
    * for the research task.
@@ -55,8 +45,18 @@ export const researchEntitiesAction: FlowActionActivity = async ({
   const { plan: initialPlan, questionsAndAnswers } =
     await coordinatingAgent.createInitialPlan({
       input,
-      questionsAndAnswers: state.questionsAndAnswers,
+      questionsAndAnswers: null,
     });
+
+  const state: CoordinatingAgentState = {
+    plan: initialPlan,
+    proposedEntities: [],
+    submittedEntityIds: [],
+    previousCalls: [],
+    hasConductedCheckStep: false,
+    filesUsedToProposeEntities: [],
+    questionsAndAnswers,
+  };
 
   state.plan = initialPlan;
   state.questionsAndAnswers = questionsAndAnswers;
