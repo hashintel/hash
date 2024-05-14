@@ -172,11 +172,13 @@ export const runFlowWorkflow = async (
   try {
     validateFlowDefinition(flowDefinition);
   } catch (error) {
-    return {
-      code: StatusCode.InvalidArgument,
-      message: (error as Error).message,
-      contents: [],
-    };
+    throw new Error((error as Error).message, {
+      cause: {
+        code: StatusCode.InvalidArgument,
+        message: (error as Error).message,
+        contents: [],
+      },
+    });
   }
 
   // Ensure the user has permission to create entities in specified web
@@ -184,11 +186,14 @@ export const runFlowWorkflow = async (
     await flowActivities.userHasPermissionToRunFlowInWebActivity();
 
   if (userHasPermissionToRunFlowInWeb.status !== "ok") {
-    return {
-      code: StatusCode.PermissionDenied,
-      message: `User does not have permission to run flow in web ${webId}, because they are missing permissions: ${userHasPermissionToRunFlowInWeb.missingPermissions.join(`,`)}`,
-      contents: [],
-    };
+    const errorMessage = `User does not have permission to run flow in web ${webId}, because they are missing permissions: ${userHasPermissionToRunFlowInWeb.missingPermissions.join(`,`)}`;
+    throw new Error(errorMessage, {
+      cause: {
+        code: StatusCode.PermissionDenied,
+        message: errorMessage,
+        contents: [],
+      },
+    });
   }
 
   log(`Initializing ${flowDefinition.name} Flow`);
@@ -198,7 +203,7 @@ export const runFlowWorkflow = async (
   const flow = initializeFlow({
     flowDefinition,
     flowTrigger,
-    flowId: workflowId as EntityUuid,
+    flowRunId: workflowId as EntityUuid,
   });
 
   await flowActivities.persistFlowActivity({ flow, userAuthentication });
@@ -380,12 +385,15 @@ export const runFlowWorkflow = async (
   );
 
   if (stepWithSatisfiedDependencies.length === 0) {
-    return {
-      code: StatusCode.FailedPrecondition,
-      message:
-        "No steps have satisfied dependencies when initializing the flow.",
-      contents: [{ flow }],
-    };
+    const errorMessage =
+      "No steps have satisfied dependencies when initializing the flow.";
+    throw new Error(errorMessage, {
+      cause: {
+        code: StatusCode.FailedPrecondition,
+        message: errorMessage,
+        contents: [{ flow }],
+      },
+    });
   }
 
   // Recursively process steps which have satisfied dependencies
@@ -432,11 +440,14 @@ export const runFlowWorkflow = async (
 
   /** @todo this is not necessarily an error once there are branches */
   if (processedStepIds.length !== getAllStepsInFlow(flow).length) {
-    return {
-      code: StatusCode.Unknown,
-      message: "Not all steps in the flows were processed.",
-      contents: [{ flow, stepErrors }],
-    };
+    const errorMessage = "Not all steps in the flows were processed.";
+    throw new Error(errorMessage, {
+      cause: {
+        code: StatusCode.Unknown,
+        message: errorMessage,
+        contents: [{ flow, stepErrors }],
+      },
+    });
   }
 
   for (const outputDefinition of flowDefinition.outputs) {
@@ -451,11 +462,14 @@ export const runFlowWorkflow = async (
         continue;
       }
 
-      return {
-        code: StatusCode.NotFound,
-        message: `${errorPrefix}required step with id '${outputDefinition.stepId}' not found in outputs.`,
-        contents: [{ flow, stepErrors }],
-      };
+      const errorMessage = `${errorPrefix}required step with id '${outputDefinition.stepId}' not found in outputs.`;
+      throw new Error(errorMessage, {
+        cause: {
+          code: StatusCode.NotFound,
+          message: errorMessage,
+          contents: [{ flow, stepErrors }],
+        },
+      });
     }
 
     if (step.kind === "action") {
@@ -468,11 +482,15 @@ export const runFlowWorkflow = async (
           continue;
         }
 
-        return {
-          code: StatusCode.NotFound,
-          message: `${errorPrefix}there is no output with name '${outputDefinition.stepOutputName}' in step ${step.stepId}`,
-          contents: [{ stepErrors }],
-        };
+        const errorMessage = `${errorPrefix}there is no output with name '${outputDefinition.stepOutputName}' in step ${step.stepId}`;
+
+        throw new Error(errorMessage, {
+          cause: {
+            code: StatusCode.NotFound,
+            message: errorMessage,
+            contents: [{ stepErrors }],
+          },
+        });
       }
 
       flow.outputs = [
@@ -486,11 +504,14 @@ export const runFlowWorkflow = async (
       const output = step.aggregateOutput;
 
       if (!output) {
-        return {
-          code: StatusCode.NotFound,
-          message: `${errorPrefix}no aggregate output found in step ${step.stepId}`,
-          contents: [{ stepErrors }],
-        };
+        const errorMessage = `${errorPrefix}no aggregate output found in step ${step.stepId}`;
+        throw new Error(errorMessage, {
+          cause: {
+            code: StatusCode.NotFound,
+            message: errorMessage,
+            contents: [{ stepErrors }],
+          },
+        });
       }
 
       flow.outputs = [

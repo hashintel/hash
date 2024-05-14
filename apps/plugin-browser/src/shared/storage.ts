@@ -1,12 +1,12 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
-  ExternalInputRequestMessage,
+  ExternalInputWebsocketRequestMessage,
   InferenceModelName,
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
-import { AutomaticInferenceSettings } from "@local/hash-isomorphic-utils/flows/browser-plugin-types";
+import type { AutomaticInferenceSettings } from "@local/hash-isomorphic-utils/flows/browser-plugin-types";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   SimpleProperties,
@@ -114,7 +114,7 @@ export type PersistedUserSettings = Subtype<
 
 export type ExternalInputRequestById = {
   [requestUuid: string]: {
-    message: ExternalInputRequestMessage;
+    message: ExternalInputWebsocketRequestMessage;
     receivedAt: string;
   } | null;
 };

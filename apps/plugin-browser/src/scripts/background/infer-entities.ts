@@ -1,6 +1,6 @@
 import type {
-  CancelInferEntitiesRequestMessage,
-  ExternalInputResponseMessage,
+  CancelInferEntitiesWebsocketRequestMessage,
+  ExternalInputWebsocketResponseMessage,
   InferenceWebsocketServerMessage,
   InferEntitiesRequestMessage,
   InferEntitiesReturn,
@@ -122,7 +122,7 @@ const getWebSocket = async () => {
                 data: { webPages: webPages ?? [] },
               },
               type: "external-input-response",
-            } satisfies ExternalInputResponseMessage),
+            } satisfies ExternalInputWebsocketResponseMessage),
           );
 
           /**
@@ -227,7 +227,7 @@ export const cancelInferEntities = async ({
       cookie,
       requestUuid,
       type: "cancel-inference-request",
-    } satisfies CancelInferEntitiesRequestMessage),
+    } satisfies CancelInferEntitiesWebsocketRequestMessage),
   );
 };
 
