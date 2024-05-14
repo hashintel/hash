@@ -34,7 +34,10 @@ impl<E> Task<E>
 where
     E: ErrorEncoder + Send + Sync + 'static,
 {
-    #[allow(clippy::integer_division_remainder_used)]
+    #[expect(
+        clippy::integer_division_remainder_used,
+        reason = "required for select! macro"
+    )]
     async fn handle(
         &mut self,
         listen: &mut IncomingConnections,

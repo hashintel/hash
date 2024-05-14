@@ -89,7 +89,10 @@ impl TransactionReceiveTask {
         ControlFlow::Continue(payload.into_bytes())
     }
 
-    #[allow(clippy::integer_division_remainder_used)]
+    #[expect(
+        clippy::integer_division_remainder_used,
+        reason = "required for select! macro"
+    )]
     pub(crate) async fn run(mut self, cancel: CancellationToken) {
         let mut bytes_tx = None;
         let mut end_of_response = None;
@@ -103,12 +106,6 @@ impl TransactionReceiveTask {
             let Some(response) = response else {
                 break;
             };
-
-            // TODO: we can't signal to the other side if we're done with the stream (EndOfResponse)
-            // or if we actually just dropped everything.
-            // We *could* in theory signal this using maybe an AtomicBool(?)
-            // in that case we would need to flip the flag before we drop the stream? but then we
-            // have a potential race condition.
 
             let is_end = response.header.flags.contains(ResponseFlag::EndOfResponse);
 
@@ -164,7 +161,10 @@ impl<S> TransactionSendTask<S>
 where
     S: Stream<Item = Bytes> + Send,
 {
-    #[allow(clippy::integer_division_remainder_used)]
+    #[expect(
+        clippy::integer_division_remainder_used,
+        reason = "required for select! macro"
+    )]
     pub(crate) async fn run(self, cancel: CancellationToken) {
         let mut writer = RequestWriter::new(self.id, self.service, self.procedure, &self.tx);
         let rx = self.rx;

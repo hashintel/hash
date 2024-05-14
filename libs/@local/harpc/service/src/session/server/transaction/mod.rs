@@ -39,7 +39,10 @@ struct TransactionSendDelegateTask {
 }
 
 impl TransactionSendDelegateTask {
-    #[allow(clippy::integer_division_remainder_used)]
+    #[expect(
+        clippy::integer_division_remainder_used,
+        reason = "required for select! macro"
+    )]
     async fn run(mut self, cancel: CancellationToken) {
         // we cannot simply forward here, because we want to be able to send the end of request and
         // buffer the response into the least amount of packages possible
@@ -105,7 +108,10 @@ impl TransactionRecvDelegateTask {
         self.incomplete.store(true, Ordering::SeqCst);
     }
 
-    #[allow(clippy::integer_division_remainder_used)]
+    #[expect(
+        clippy::integer_division_remainder_used,
+        reason = "required for select! macro"
+    )]
     async fn run(mut self, cancel: CancellationToken) {
         // TODO: timeout is done at a later layer, not here, this just delegates.
         loop {

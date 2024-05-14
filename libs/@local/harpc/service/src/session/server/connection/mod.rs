@@ -48,7 +48,10 @@ impl<T> ConnectionDelegateTask<T>
 where
     T: Sink<Response, Error: Debug> + Send,
 {
-    #[allow(clippy::integer_division_remainder_used)]
+    #[expect(
+        clippy::integer_division_remainder_used,
+        reason = "required for select! macro"
+    )]
     async fn run(self, cancel: CancellationToken) -> Result<(), T::Error> {
         let sink = self.sink;
         pin!(sink);
@@ -69,7 +72,10 @@ struct ConnectionGarbageCollectorTask {
 }
 
 impl ConnectionGarbageCollectorTask {
-    #[allow(clippy::integer_division_remainder_used)]
+    #[expect(
+        clippy::integer_division_remainder_used,
+        reason = "required for select! macro"
+    )]
     async fn run(self, cancel: CancellationToken) {
         let mut interval = tokio::time::interval(self.every);
 
@@ -440,9 +446,9 @@ where
                     }
                 };
 
-                // creates implicit backpressure, if the session can not accept more transactions,
-                // we will wait until we can, this means that we will not be able to
-                // accept any more request packets until we can.
+                // this creates implicit backpressure, if the session cannot accept more
+                // transaction, we will wait a short amount (specified via the deadline), if we
+                // haven't processed the data until then, we will not start the transaction.
                 //
                 // by first acquiring a permit, instead of sending, we can ensure that we won't
                 // spawn a transaction if we can't deliver it.
@@ -515,7 +521,10 @@ where
         // task is already doing this for us.
     }
 
-    #[allow(clippy::integer_division_remainder_used)]
+    #[expect(
+        clippy::integer_division_remainder_used,
+        reason = "required for select! macro"
+    )]
     pub(crate) async fn run<T, U>(
         self,
         sink: T,

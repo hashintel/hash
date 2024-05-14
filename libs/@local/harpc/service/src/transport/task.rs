@@ -261,7 +261,10 @@ impl Task {
         }
     }
 
-    #[allow(clippy::integer_division_remainder_used)]
+    #[expect(
+        clippy::integer_division_remainder_used,
+        reason = "required for select! macro"
+    )]
     pub(crate) async fn run(mut self, cancel: CancellationToken) {
         loop {
             select! {

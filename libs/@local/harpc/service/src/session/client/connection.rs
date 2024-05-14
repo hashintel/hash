@@ -31,7 +31,10 @@ impl<S> ConnectionRequestDelegateTask<S>
 where
     S: Sink<Request> + Send,
 {
-    #[allow(clippy::integer_division_remainder_used)]
+    #[expect(
+        clippy::integer_division_remainder_used,
+        reason = "required for select! macro"
+    )]
     async fn run(self, cancel: CancellationToken) -> Result<(), S::Error> {
         let sink = self.sink;
         pin!(sink);
@@ -55,7 +58,10 @@ impl<S> ConnectionResponseDelegateTask<S>
 where
     S: Stream<Item = error_stack::Result<Response, io::Error>> + Send,
 {
-    #[allow(clippy::integer_division_remainder_used)]
+    #[expect(
+        clippy::integer_division_remainder_used,
+        reason = "required for select! macro"
+    )]
     async fn run(self, cancel: CancellationToken) {
         let stream = self.stream;
         pin!(stream);
@@ -103,7 +109,7 @@ pub struct Connection {
     receivers: Arc<HashIndex<RequestId, mpsc::Sender<Response>>>,
 }
 
-// BufferedResponse that will only return the last (valid) response
+// TODO: BufferedResponse that will only return the last (valid) response
 impl Connection {
     pub(crate) fn start(
         sink: impl Sink<Request, Error: Send> + Send + 'static,
