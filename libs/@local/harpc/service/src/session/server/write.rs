@@ -26,6 +26,21 @@ pub(crate) struct ResponseWriter<'a> {
 
     tx: &'a mpsc::Sender<Response>,
 
+    /// Whether to enable no-delay for the response.
+    ///
+    /// This option is similar to the `TCP_NODELAY` setting. When `no_delay` is `false`, responses
+    /// are buffered until the payload size is maximized or the writer is flushed, which
+    /// aggregates small packets into larger ones to improve throughput. When `no_delay` is
+    /// `true`, responses are sent immediately, reducing latency but increasing the number of
+    /// packets.
+    ///
+    /// Enabling `no_delay` increases the number of packets sent but decreases response latency.
+    /// Buffering responses helps minimize packet overhead (32 bytes per packet), which can
+    /// significantly impact throughput if small packets are sent immediately.
+    ///
+    /// Additionally, if `no_delay` is set, an empty `EndOfResponse` frame is sent to signal that
+    /// the response is finished. When `no_delay` is disabled, the frame containing the
+    /// remaining buffer will be tagged with `EndOfResponse` instead.
     no_delay: bool,
 }
 

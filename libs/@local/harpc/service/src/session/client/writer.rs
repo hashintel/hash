@@ -28,6 +28,24 @@ pub(crate) struct RequestWriter<'a> {
     buffer: SegmentedBuf<Bytes>,
 
     tx: &'a mpsc::Sender<Request>,
+
+    /// Whether to enable no-delay for the request.
+    ///
+    /// This option is similar to the `TCP_NODELAY` setting. When `no_delay` is `false`, requests
+    /// are buffered until the payload size is maximized or the writer is flushed, which
+    /// aggregates small packets into larger ones to improve throughput. When `no_delay` is
+    /// `true`, requests are sent immediately, reducing latency but increasing the number of
+    /// packets.
+    ///
+    /// Enabling `no_delay` increases the number of packets sent but decreases request latency.
+    /// Buffering requests helps minimize packet overhead (32 bytes per packet), which can
+    /// significantly impact throughput if small packets are sent immediately.
+    ///
+    /// Additionally, if `no_delay` is set, an empty `EndOfRequest` frame is sent to signal that
+    /// the request is finished. When `no_delay` is disabled, the frame containing the
+    /// remaining buffer will be tagged with `EndOfRequest` instead.
+    no_delay: bool,
+    // ^ TODO: implement this
 }
 
 impl<'a> RequestWriter<'a> {
