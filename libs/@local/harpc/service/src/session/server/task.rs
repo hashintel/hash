@@ -38,6 +38,7 @@ where
         clippy::integer_division_remainder_used,
         reason = "required for select! macro"
     )]
+    #[expect(clippy::needless_pass_by_ref_mut, reason = "false-positive")]
     async fn handle(
         &mut self,
         listen: &mut IncomingConnections,
