@@ -19,14 +19,18 @@ pub(crate) struct Args {
     /// Output file to write the benchmark results to.
     #[clap(short, long)]
     output: Option<PathBuf>,
+
+    /// Baseline to analyze.
+    #[clap(long, default_value = "new")]
+    baseline: String,
 }
 
 pub(super) fn run(args: Args) -> Result<(), Report<AnalyzeError>> {
-    struct BenchFormatter(Vec<Benchmark>);
+    struct BenchFormatter<'b>(Vec<Benchmark>, &'b str);
 
-    impl Display for BenchFormatter {
+    impl Display for BenchFormatter<'_> {
         fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-            criterion::format_github_markdown(&self.0, f, "new")
+            criterion::format_github_markdown(&self.0, f, self.1)
         }
     }
 
@@ -55,7 +59,10 @@ pub(super) fn run(args: Args) -> Result<(), Report<AnalyzeError>> {
     writeln!(
         output,
         "{}",
-        BenchFormatter(Benchmark::gather(canonicalized).collect::<Result<_, _>>()?)
+        BenchFormatter(
+            Benchmark::gather(canonicalized).collect::<Result<_, _>>()?,
+            &args.baseline
+        )
     )
     .change_context(AnalyzeError::WriteOutput)?;
 
