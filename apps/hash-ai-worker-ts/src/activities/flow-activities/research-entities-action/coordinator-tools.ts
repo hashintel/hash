@@ -43,6 +43,11 @@ export const coordinatorToolDefinitions: Record<
     inputSchema: {
       type: "object",
       properties: {
+        explanation: {
+          type: "string",
+          description:
+            "An explanation of why human input is required to advance the research task, and how it will be used",
+        },
         questions: {
           type: "array",
           items: {
@@ -53,7 +58,7 @@ export const coordinatorToolDefinitions: Record<
           description: "A list of questions to ask the user",
         },
       },
-      required: ["questions"],
+      required: ["explanation", "questions"],
     },
   },
   webSearch: {
