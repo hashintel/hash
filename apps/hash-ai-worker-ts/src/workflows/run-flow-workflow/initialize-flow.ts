@@ -172,14 +172,14 @@ export const initializeParallelGroup = (params: {
 };
 
 export const initializeFlow = (params: {
-  flowId: EntityUuid;
+  flowRunId: EntityUuid;
   flowDefinition: FlowDefinition;
   flowTrigger: FlowTrigger;
 }): Flow => {
-  const { flowId, flowDefinition, flowTrigger } = params;
+  const { flowRunId, flowDefinition, flowTrigger } = params;
 
   return {
-    flowId,
+    flowRunId,
     trigger: {
       triggerDefinitionId: flowTrigger.triggerDefinitionId,
       outputs: flowTrigger.outputs,

@@ -46,7 +46,7 @@ export const FlowRunsContextProvider = ({ children }: PropsWithChildren) => {
       flowRuns,
       setFlowRuns,
       selectedFlowRun:
-        flowRuns.find((flowRun) => flowRun.workflowId === selectedFlowRunId) ??
+        flowRuns.find((flowRun) => flowRun.flowRunId === selectedFlowRunId) ??
         null,
       selectedFlowRunId,
       setSelectedFlowRunId,

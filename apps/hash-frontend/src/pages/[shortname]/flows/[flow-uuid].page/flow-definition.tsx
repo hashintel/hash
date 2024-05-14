@@ -345,7 +345,7 @@ export const FlowDefinition = () => {
 
   const flowDefinitionStateKey = `${selectedFlow.name}`;
   const flowRunStateKey = `${flowDefinitionStateKey}-${
-    selectedFlowRun?.workflowId ?? "definition"
+    selectedFlowRun?.flowRunId ?? "definition"
   }`;
 
   return (
@@ -367,15 +367,15 @@ export const FlowDefinition = () => {
             },
           });
 
-          const workflowId = data?.startFlow;
-          if (!workflowId) {
+          const flowRunId = data?.startFlow;
+          if (!flowRunId) {
             throw new Error("Failed to start flow");
           }
 
           await apolloClient.refetchQueries({
             include: ["getFlowRuns"],
           });
-          setSelectedFlowRunId(workflowId);
+          setSelectedFlowRunId(flowRunId);
 
           setShowRunModal(false);
         }}

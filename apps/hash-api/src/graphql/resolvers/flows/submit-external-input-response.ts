@@ -1,4 +1,4 @@
-import { getFlowById } from "@local/hash-backend-utils/flows";
+import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
 import { externalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/signals";
 import type { EntityUuid } from "@local/hash-subgraph";
 import { ApolloError } from "apollo-server-errors";
@@ -19,8 +19,8 @@ export const submitExternalInputResponse: ResolverFn<
   { response, flowUuid },
   { authentication, dataSources, temporal },
 ) => {
-  const flow = await getFlowById({
-    flowId: flowUuid as EntityUuid,
+  const flow = await getFlowRunEntityById({
+    flowRunId: flowUuid as EntityUuid,
     graphApiClient: dataSources.graphApi,
     userAuthentication: authentication,
   });

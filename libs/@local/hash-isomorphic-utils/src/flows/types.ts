@@ -334,7 +334,7 @@ export type FlowTrigger = {
 };
 
 export type Flow = {
-  flowId: EntityUuid;
+  flowRunId: EntityUuid;
   trigger: FlowTrigger;
   flowDefinitionId: EntityUuid;
   steps: FlowStep[];

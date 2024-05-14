@@ -117,7 +117,7 @@ export const Topbar = ({
             <Divider />
             <Select
               selectSx={{ ...selectSx, minWidth: 100 }}
-              value={selectedFlowRun?.workflowId ?? "none"}
+              value={selectedFlowRun?.flowRunId ?? "none"}
               onChange={(event) => {
                 const value = event.target.value;
                 if (!value) {
@@ -131,8 +131,8 @@ export const Topbar = ({
               </MenuItem>
               {runOptions.map((run) => (
                 <MenuItem
-                  key={run.workflowId}
-                  value={run.workflowId}
+                  key={run.flowRunId}
+                  value={run.flowRunId}
                   sx={{ fontFamily: "monospace" }}
                 >
                   Run
