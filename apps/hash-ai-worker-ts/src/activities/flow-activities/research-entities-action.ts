@@ -58,9 +58,6 @@ export const researchEntitiesAction: FlowActionActivity = async ({
     questionsAndAnswers,
   };
 
-  state.plan = initialPlan;
-  state.questionsAndAnswers = questionsAndAnswers;
-
   const { toolCalls: initialToolCalls } =
     await coordinatingAgent.getNextToolCalls({
       input,
