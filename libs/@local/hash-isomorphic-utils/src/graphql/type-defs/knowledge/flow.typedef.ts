@@ -113,15 +113,21 @@ export const flowTypedef = gql`
 
   type FlowRun {
     """
-    The uuid of the Temporal workflow
+    The uuid of the Temporal workflow, which is unique across currently-executing flow runs.
+
+    There may be multiple runs with the same workflowId if a flow is 'continued as new' (see Temporal docs)
+    – the same workflowId is the mechanism by which consecutive runs which continue from a previous can be identified.
+
+    While Temporal allows for re-use of workflowId across arbitrary flows, our business logic does not re-use them,
+    and they are only re-used in the 'continue as new' case.
     """
     workflowId: String!
     """
-    The uuid of the Temporal run
+    The uuid of the Temporal workflow run, which is unique among all flow executions.
     """
     runId: String!
     """
-    The id for the definition of the Flow this run is executing
+    The id for the definition of the flow this run is executing (the template for the flow)
     """
     flowDefinitionId: String!
     """
@@ -169,10 +175,13 @@ export const flowTypedef = gql`
   scalar FlowTrigger
 
   extend type Mutation {
+    """
+    Start a new flow run, and return its workflowId to allow for identifying it later.
+    """
     startFlow(
       flowDefinition: FlowDefinition!
       flowTrigger: FlowTrigger!
       webId: OwnedById!
-    ): JSONObject!
+    ): ID!
   }
 `;

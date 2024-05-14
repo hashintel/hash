@@ -48,7 +48,7 @@ export const SelectOrNameGoogleSheet = ({
           type="info"
         >
           <Typography>
-            Please log in with Google again to continue setting up the Flow.
+            Please log in with Google again to continue setting up the flow.
           </Typography>
         </AlertModal>
       )}

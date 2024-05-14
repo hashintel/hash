@@ -17,7 +17,6 @@ import type {
 import { getToolCallsFromLlmAssistantMessage } from "../shared/get-llm-response/llm-message";
 import { graphApiClient } from "../shared/graph-api-client";
 import { logProgress } from "../shared/log-progress";
-import { openAiSeed } from "../shared/open-ai-seed";
 import { stringify } from "../shared/stringify";
 import { inferEntitiesSystemPrompt } from "./infer-entities-system-prompt";
 import type {
@@ -195,7 +194,6 @@ export const proposeEntities = async (params: {
        * so set the `temperature` to `0`.
        */
       temperature: 0,
-      seed: openAiSeed,
     },
     {
       userAccountId: userAuthentication.actorId,

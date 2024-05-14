@@ -24,10 +24,13 @@ export type LlmToolDefinition<ToolName extends string = string> = {
 export type CommonLlmParams<ToolName extends string = string> = {
   model: AnthropicMessageModel | PermittedOpenAiModel;
   tools?: LlmToolDefinition<ToolName>[];
-  retryCount?: number;
   systemPrompt?: string;
   messages: LlmMessage[];
-  previousUsage?: LlmUsage;
+  retryContext?: {
+    retryCount: number;
+    previousSuccessfulToolCalls: ParsedLlmToolCall<ToolName>[];
+    previousUsage: LlmUsage;
+  };
 };
 
 export type AnthropicLlmParams<ToolName extends string = string> =
@@ -113,6 +116,9 @@ export type LlmUsage = {
 export type LlmErrorResponse =
   | {
       status: "exceeded-maximum-retries";
+      invalidResponses:
+        | AnthropicResponse["invalidResponses"]
+        | OpenAiResponse["invalidResponses"];
       usage: LlmUsage;
     }
   | {
