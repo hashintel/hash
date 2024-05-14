@@ -1,72 +1,28 @@
 use std::fmt;
 
-use crate::benches::report::{Benchmark, Stat};
-
-#[derive(Debug, Copy, Clone)]
-enum Unit {
-    Nanoseconds,
-    Percent,
-}
-
-#[derive(Debug, Copy, Clone)]
-struct Duration {
-    amount: f64,
-    unit: Unit,
-}
-
-impl fmt::Display for Duration {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        #[expect(clippy::float_arithmetic)]
-        match self.unit {
-            Unit::Nanoseconds => {
-                let (number, unit) = if self.amount < 1.0 {
-                    (self.amount * 1_000.0, "\\mathrm{ps}")
-                } else if self.amount < 1_000.0 {
-                    (self.amount, "\\mathrm{ns}")
-                } else if self.amount < 1_000_000.0 {
-                    (self.amount / 1_000.0, "\\mathrm{\u{3bc}s}")
-                } else if self.amount < 1_000_000_000.0 {
-                    (self.amount / 1_000_000.0, "\\mathrm{ms}")
-                } else {
-                    (self.amount / 1_000_000_000.0, "\\mathrm{s}")
-                };
-
-                if number < 1.0 {
-                    write!(fmt, "{number:.3} {unit}")
-                } else if number < 10.0 {
-                    write!(fmt, "{number:.2} {unit}")
-                } else if number < 100.0 {
-                    write!(fmt, "{number:.1} {unit}")
-                } else {
-                    write!(fmt, "{number:.0} {unit}")
-                }
-            }
-            Unit::Percent => write!(fmt, "{:+.2} \\mathrm{{\\\\%}}", self.amount * 100.0),
-        }
-    }
-}
+use crate::benches::{
+    fmt::{latex::Latex, Braced, Color, Colored, Duration},
+    report::{Benchmark, Stat},
+};
 
 fn stat(fmt: &mut fmt::Formatter<'_>, stat: &Stat, change: Option<&Stat>) -> fmt::Result {
-    write!(
-        fmt,
-        "{} \\pm {}",
-        Duration {
-            amount: stat.point_estimate,
-            unit: Unit::Nanoseconds
-        },
-        Duration {
-            amount: stat.standard_error,
-            unit: Unit::Nanoseconds
-        }
-    )?;
+    Latex::fmt(&Duration::from_nanos(stat.point_estimate), fmt)?;
+    fmt.write_str(" \\pm ")?;
+    Latex::fmt(&Duration::from_nanos(stat.standard_error), fmt)?;
     if let Some(change) = change {
-        write!(
+        let value = Duration::from_percent(change.point_estimate);
+        let color = if value.amount < -5.0 {
+            Color::Green
+        } else if value.amount > 5.0 {
+            Color::Red
+        } else {
+            Color::Gray
+        };
+        Latex::fmt(
+            &Braced {
+                value: Colored { value, color },
+            },
             fmt,
-            " \\left({}\\right)",
-            Duration {
-                amount: change.point_estimate,
-                unit: Unit::Percent
-            }
         )?;
     }
 
@@ -92,11 +48,10 @@ fn table_row(
     value: &str,
     mean: &Stat,
     change: Option<&Stat>,
-    p_value: f64,
 ) -> fmt::Result {
     write!(fmt, "| {function} | {value} | $$")?;
     stat(fmt, mean, change)?;
-    writeln!(fmt, " {p_value} $$ |")
+    writeln!(fmt, " $$ |")
 }
 
 /// Formats the given benchmarks in GitHub-flavored Markdown.
@@ -133,7 +88,6 @@ pub fn format_github_markdown<'b>(
                 baseline.info.value_str.as_deref().unwrap_or_default(),
                 &baseline.estimates.mean,
                 benchmark.change.as_ref().map(|x| &x.mean),
-                0.0,
             )?;
         }
     }
