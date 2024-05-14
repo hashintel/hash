@@ -65,6 +65,8 @@ impl<'a> RequestWriter<'a> {
             buffer: SegmentedBuf::new(),
 
             tx,
+
+            no_delay: false,
         }
     }
 
