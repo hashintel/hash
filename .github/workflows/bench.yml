@@ -115,6 +115,7 @@ jobs:
         with:
           scope: |
             ${{ matrix.package }}
+            @rust/repo-chores
             @apps/hash-external-services
 
       - name: Warm up repository
@@ -150,6 +151,7 @@ jobs:
         with:
           scope: |
             ${{ matrix.package }}
+            @rust/repo-chores
             @apps/hash-external-services
 
       - name: Warm up repository
@@ -165,7 +167,8 @@ jobs:
           echo "TRIMMED_PACKAGE_NAME=$TRIMMED_PACKAGE_NAME" >> $GITHUB_ENV
           echo '<details><summary><h2>${{ matrix.package }} – Units</h2></summary>' > "/tmp/$TRIMMED_PACKAGE_NAME.md"
           echo >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
-          bash .github/scripts/read_criterion_bench_results.sh >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
+          turbo run analyze-benchmarks -- --output "/tmp/benches.md"
+          cat "/tmp/benches.md" >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
           echo '</details>' >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
 
       - name: Upload benchmark results
@@ -241,6 +244,7 @@ jobs:
         with:
           scope: |
             ${{ matrix.package }}
+            @rust/repo-chores
             @apps/hash-external-services
 
       - name: Warm up repository
@@ -290,6 +294,7 @@ jobs:
         with:
           scope: |
             ${{ matrix.package }}
+            @rust/repo-chores
             @apps/hash-external-services
 
       - name: Warm up repository
@@ -314,7 +319,8 @@ jobs:
           echo "TRIMMED_PACKAGE_NAME=$TRIMMED_PACKAGE_NAME" >> $GITHUB_ENV
           echo '<details><summary><h2>${{ matrix.package }} – Integrations</h2></summary>' > "/tmp/$TRIMMED_PACKAGE_NAME.md"
           echo >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
-          bash .github/scripts/read_criterion_bench_results.sh >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
+          turbo run analyze-benchmarks -- --output "/tmp/benches.md"
+          cat "/tmp/benches.md" >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
           echo '</details>' >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
 
       - name: Upload benchmark results
@@ -359,24 +365,24 @@ jobs:
           VAULT_TOKEN: ""
 
       - name: Checkout
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && needs.integration-benches.result == 'success'
         uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
 
       - name: Download reports' artifacts
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && needs.integration-benches.result == 'success'
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
           path: downloads
 
       - name: Create comment
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && needs.integration-benches.result == 'success'
         run: |
           echo "## Benchmark results" > /tmp/summary.md
           cat downloads/*/*.md >> /tmp/summary.md
 
       - name: Post comment
         uses: mshick/add-pr-comment@b8f338c590a895d50bcbfa6c5859251edc8952fc # v2.8.2
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && needs.integration-benches.result == 'success'
         with:
           message-path: /tmp/summary.md
           message-id: benchmark-results
