@@ -1,4 +1,4 @@
-use std::{borrow::Cow, error::Error};
+use std::borrow::Cow;
 
 use aws_config::SdkConfig;
 use aws_sdk_s3::operation::put_object::PutObjectOutput;
@@ -53,14 +53,6 @@ impl S3Storage {
             )
             .send()
             .await
-            .map_err(|error| {
-                let mut source = error.source();
-                while let Some(s) = source {
-                    println!("{s}");
-                    source = s.source();
-                }
-                error
-            })
             .change_context(UploadError::Upload)
     }
 
