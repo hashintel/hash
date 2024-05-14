@@ -93,7 +93,7 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
      * and if none are found return the first unresolved browser plugin request.
      *
      * There should only ever be a single human input request active,
-     * as they are asked by the top-level co-ordinating agent.
+     * as they are asked by the top-level coordinating agent.
      *
      * There may be multiple browser web page requests, but the node's appearance
      * should remain unchanged as they are resolved.
