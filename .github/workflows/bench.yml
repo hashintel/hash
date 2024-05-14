@@ -11,6 +11,8 @@ env:
   TURBO_TEAM: hashintel
   TURBO_REMOTE_ONLY: true
 
+  VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
