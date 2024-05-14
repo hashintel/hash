@@ -1,30 +1,19 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
-import type { Subtype } from "@local/advanced-types/subtype";
+import type {
+  AutomaticInferenceArguments,
+  ManualInferenceArguments,
+} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
 import type {
   ExternalInputRequestSignal,
   ExternalInputResponseSignal,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type {
-  AccountId,
   BaseUrl,
   Entity,
   EntityPropertyValue,
-  OwnedById,
 } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import type { QueryDefinition } from "@temporalio/workflow";
-
-export const inferEntitiesUserArgumentKeys = [
-  "entityTypeIds",
-  "maxTokens",
-  "model",
-  "ownedById",
-  "temperature",
-  "textInput",
-] as const;
-
-export type InferEntitiesUserArgumentKey =
-  (typeof inferEntitiesUserArgumentKeys)[number];
 
 export const inferenceModelNames = [
   "gpt-4",
@@ -36,29 +25,6 @@ export type InferenceModelName = (typeof inferenceModelNames)[number];
 
 export const isInferenceModelName = (tbd: string): tbd is InferenceModelName =>
   inferenceModelNames.includes(tbd as InferenceModelName);
-
-export type InferEntitiesUserArguments = Subtype<
-  Record<InferEntitiesUserArgumentKey, unknown>,
-  {
-    createAs: "draft" | "live";
-    entityTypeIds: VersionedUrl[];
-    maxTokens: number | null;
-    model: InferenceModelName;
-    ownedById: OwnedById;
-    sourceTitle: string;
-    sourceUrl: string;
-    temperature: number;
-    textInput: string;
-  }
->;
-
-export type InferEntitiesCallerParams = {
-  authentication: {
-    actorId: AccountId;
-  };
-  requestUuid: string;
-  userArguments: InferEntitiesUserArguments;
-};
 
 type BaseProposedEntitySchemaOrData = {
   entityId: unknown;
@@ -153,20 +119,32 @@ export type InferEntitiesReturn = Status<{
   usage: InferenceTokenUsage[];
 }>;
 
-export type InferEntitiesRequestMessage = {
+export type AutomaticInferenceWebsocketRequestMessage = {
   cookie: string;
-  type: "inference-request";
-  payload: InferEntitiesUserArguments;
+  type: "automatic-inference-request";
+  payload: AutomaticInferenceArguments;
   requestUuid: string;
 };
 
-export type CancelInferEntitiesRequestMessage = {
+export type ManualInferenceWebsocketRequestMessage = {
+  cookie: string;
+  type: "manual-inference-request";
+  payload: ManualInferenceArguments;
+  requestUuid: string;
+};
+
+export type CancelInferEntitiesWebsocketRequestMessage = {
   cookie: string;
   type: "cancel-inference-request";
   requestUuid: string;
 };
 
-export type ExternalInputResponseMessage = {
+export type CheckForExternalInputRequestsWebsocketRequestMessage = {
+  cookie: string;
+  type: "check-for-external-input-requests";
+};
+
+export type ExternalInputWebsocketResponseMessage = {
   cookie: string;
   workflowId: string;
   type: "external-input-response";
@@ -174,26 +152,20 @@ export type ExternalInputResponseMessage = {
 };
 
 export type InferenceWebsocketClientMessage =
-  | InferEntitiesRequestMessage
-  | CancelInferEntitiesRequestMessage
-  | ExternalInputResponseMessage;
+  | AutomaticInferenceWebsocketRequestMessage
+  | ManualInferenceWebsocketRequestMessage
+  | CancelInferEntitiesWebsocketRequestMessage
+  | CheckForExternalInputRequestsWebsocketRequestMessage
+  | ExternalInputWebsocketResponseMessage;
 
-export type ExternalInputRequestMessage = {
+export type ExternalInputWebsocketRequestMessage = {
   workflowId: string;
   payload: ExternalInputRequestSignal;
   type: "external-input-request";
 };
 
-export type InferEntitiesResponseMessage = {
-  payload: InferEntitiesReturn;
-  requestUuid: string;
-  status: "complete" | "user-cancelled" | "bad-request";
-  type: "inference-response";
-};
-
 export type InferenceWebsocketServerMessage =
-  | InferEntitiesResponseMessage
-  | ExternalInputRequestMessage;
+  ExternalInputWebsocketRequestMessage;
 
 export type CreateEmbeddingsParams = {
   input: string[];

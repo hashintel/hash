@@ -2,7 +2,7 @@ import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type { AutomaticInferenceSettings } from "@local/hash-isomorphic-utils/flows/browser-plugin-types";
+import type { AutomaticInferenceSettings } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
 import { generateVersionedUrlMatchingFilter } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { BrowserPluginSettings } from "@local/hash-isomorphic-utils/system-types/shared";

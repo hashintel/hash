@@ -2,6 +2,12 @@ import type {
   InputNameForAction,
   OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type {
+  AutomaticInferenceTriggerInputName,
+  AutomaticInferenceTriggerInputs,
+  ManualInferenceTriggerInputName,
+  ManualInferenceTriggerInputs,
+} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import type { EntityUuid } from "@local/hash-subgraph";
 
@@ -15,30 +21,34 @@ export const manualBrowserInferenceFlowDefinition: FlowDefinition = {
     triggerDefinitionId: "userTrigger",
     outputs: [
       {
-        payloadKind: "WebPage",
-        description: "The web page to be analyzed",
-        name: "visitedWebPage",
+        payloadKind:
+          "WebPage" satisfies ManualInferenceTriggerInputs["visitedWebPage"]["kind"],
+        description: "The web page visited",
+        name: "visitedWebPage" satisfies ManualInferenceTriggerInputName,
         array: false,
         required: true,
       },
       {
-        payloadKind: "VersionedUrl",
+        payloadKind:
+          "VersionedUrl" satisfies ManualInferenceTriggerInputs["entityTypeIds"]["kind"],
         description: "The ids of the entity types to create entities of",
-        name: "entityTypeIds",
+        name: "entityTypeIds" satisfies ManualInferenceTriggerInputName,
         array: true,
         required: true,
       },
       {
-        payloadKind: "Text",
+        payloadKind:
+          "Text" satisfies ManualInferenceTriggerInputs["model"]["kind"],
         description: "The model to use for inference",
-        name: "model",
+        name: "model" satisfies ManualInferenceTriggerInputName,
         array: true,
         required: true,
       },
       {
-        payloadKind: "Boolean",
+        payloadKind:
+          "Boolean" satisfies ManualInferenceTriggerInputs["draft"]["kind"],
         description: "Whether the entities should be created as drafts or not",
-        name: "draft",
+        name: "draft" satisfies ManualInferenceTriggerInputName,
         array: false,
         required: true,
       },
@@ -56,21 +66,24 @@ export const manualBrowserInferenceFlowDefinition: FlowDefinition = {
             "content" satisfies InputNameForAction<"inferEntitiesFromContent">,
           kind: "step-output",
           sourceStepId: "trigger",
-          sourceStepOutputName: "webPage",
+          sourceStepOutputName:
+            "visitedWebPage" satisfies ManualInferenceTriggerInputName,
         },
         {
           inputName:
             "entityTypeIds" satisfies InputNameForAction<"inferEntitiesFromContent">,
           kind: "step-output",
           sourceStepId: "trigger",
-          sourceStepOutputName: "entityTypeIds",
+          sourceStepOutputName:
+            "entityTypeIds" satisfies ManualInferenceTriggerInputName,
         },
         {
           inputName:
             "model" satisfies InputNameForAction<"inferEntitiesFromContent">,
           kind: "step-output",
           sourceStepId: "trigger",
-          sourceStepOutputName: "model",
+          sourceStepOutputName:
+            "model" satisfies ManualInferenceTriggerInputName,
         },
       ],
     },
@@ -92,7 +105,8 @@ export const manualBrowserInferenceFlowDefinition: FlowDefinition = {
           inputName: "draft" satisfies InputNameForAction<"persistEntities">,
           kind: "step-output",
           sourceStepId: "trigger",
-          sourceStepOutputName: "draft",
+          sourceStepOutputName:
+            "draft" satisfies ManualInferenceTriggerInputName,
         },
       ],
     },
@@ -101,7 +115,7 @@ export const manualBrowserInferenceFlowDefinition: FlowDefinition = {
     {
       stepId: "1",
       stepOutputName: "persistedEntities",
-      name: "persistedEntities" as const,
+      name: "persistedEntities" as const satisfies OutputNameForAction<"persistEntities">,
       payloadKind: "PersistedEntity",
       array: true,
       required: true,
@@ -120,9 +134,10 @@ export const automaticBrowserInferenceFlowDefinition: FlowDefinition = {
     triggerDefinitionId: "userVisitedWebPageTrigger",
     outputs: [
       {
-        payloadKind: "WebPage",
+        payloadKind:
+          "WebPage" satisfies AutomaticInferenceTriggerInputs["visitedWebPage"]["kind"],
         description: "The web page visited",
-        name: "visitedWebPage",
+        name: "visitedWebPage" satisfies AutomaticInferenceTriggerInputName,
         array: false,
         required: true,
       },
@@ -141,7 +156,8 @@ export const automaticBrowserInferenceFlowDefinition: FlowDefinition = {
             "content" satisfies InputNameForAction<"inferEntitiesFromContent">,
           kind: "step-output",
           sourceStepId: "trigger",
-          sourceStepOutputName: "webPage",
+          sourceStepOutputName:
+            "visitedWebPage" satisfies AutomaticInferenceTriggerInputName,
         },
       ],
     },
@@ -156,7 +172,8 @@ export const automaticBrowserInferenceFlowDefinition: FlowDefinition = {
             "content" satisfies InputNameForAction<"inferEntitiesFromContent">,
           kind: "step-output",
           sourceStepId: "trigger",
-          sourceStepOutputName: "webPage",
+          sourceStepOutputName:
+            "visitedWebPage" satisfies AutomaticInferenceTriggerInputName,
         },
         {
           inputName:
@@ -204,7 +221,7 @@ export const automaticBrowserInferenceFlowDefinition: FlowDefinition = {
     {
       stepId: "2",
       stepOutputName: "persistedEntities",
-      name: "persistedEntities" as const,
+      name: "persistedEntities" as const satisfies OutputNameForAction<"persistEntities">,
       payloadKind: "PersistedEntity",
       array: true,
       required: true,
