@@ -54,6 +54,9 @@ jobs:
   unit-benches:
     name: Unit
     needs: [setup]
+    permissions:
+      id-token: write
+      contents: read
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.unit) }}
       fail-fast: false
@@ -199,6 +202,9 @@ jobs:
   integration-benches:
     name: Integration
     needs: [setup]
+    permissions:
+      id-token: write
+      contents: read
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.integration) }}
       fail-fast: false
