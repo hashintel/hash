@@ -11,7 +11,7 @@ use core::fmt::Debug;
 use std::io;
 
 use error_stack::{Result, ResultExt};
-use futures::{prelude::stream::StreamExt, Sink, Stream};
+use futures::{stream::StreamExt, Sink, Stream};
 use harpc_wire_protocol::{request::Request, response::Response};
 use libp2p::{core::transport::ListenerId, metrics, Multiaddr, PeerId, StreamProtocol};
 use tokio::io::BufStream;
@@ -174,7 +174,7 @@ impl TransportLayer {
         let stream = control
             .open_stream(peer, PROTOCOL_NAME)
             .await
-            .map_err(OpenStreamError::new)
+            .map_err(OpenStreamError::from)
             .change_context(TransportError)?;
 
         let stream = stream.compat();

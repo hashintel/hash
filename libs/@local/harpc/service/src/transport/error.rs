@@ -1,31 +1,27 @@
-use error_stack::Report;
-use libp2p::StreamProtocol;
+use core::fmt::{self, Debug, Display, Formatter};
+
 use libp2p_stream as stream;
 
 /// Errors while opening a new stream.
-#[derive(Debug, Clone, PartialEq, thiserror::Error)]
-pub(crate) enum OpenStreamError {
-    /// The remote does not support the requested protocol.
-    #[error("failed to open stream: remote peer does not support {0}")]
-    UnsupportedProtocol(StreamProtocol),
-    /// IO Error that occurred during the protocol handshake.
-    #[error("failed to open stream")]
-    Io,
-    /// Unknown error.
-    #[error("failed to open stream: unknown error")]
-    Unknown,
+pub(crate) struct OpenStreamError(stream::OpenStreamError);
+
+impl Debug for OpenStreamError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Debug::fmt(&self.0, f)
+    }
 }
 
-impl OpenStreamError {
-    #[track_caller]
-    pub(super) fn new(error: stream::OpenStreamError) -> Report<Self> {
-        match error {
-            stream::OpenStreamError::UnsupportedProtocol(protocol) => {
-                Report::new(Self::UnsupportedProtocol(protocol))
-            }
-            stream::OpenStreamError::Io(io) => Report::new(io).change_context(Self::Io),
-            _ => Report::new(Self::Unknown).attach_printable(error),
-        }
+impl Display for OpenStreamError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
+impl std::error::Error for OpenStreamError {}
+
+impl From<stream::OpenStreamError> for OpenStreamError {
+    fn from(err: stream::OpenStreamError) -> Self {
+        Self(err)
     }
 }
 
