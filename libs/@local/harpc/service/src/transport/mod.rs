@@ -1,5 +1,6 @@
 mod behaviour;
 mod client;
+mod config;
 pub mod connection;
 pub mod error;
 mod ipc;

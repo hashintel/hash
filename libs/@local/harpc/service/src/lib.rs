@@ -3,7 +3,8 @@
     trait_alias,
     type_alias_impl_trait,
     impl_trait_in_assoc_type,
-    lint_reasons
+    lint_reasons,
+    stmt_expr_attributes
 )]
 #![cfg_attr(test, feature(assert_matches))]
 
@@ -11,6 +12,7 @@ extern crate alloc;
 
 pub mod codec;
 pub mod config;
+mod macros;
 pub mod session;
 mod stream;
 pub mod transport;
