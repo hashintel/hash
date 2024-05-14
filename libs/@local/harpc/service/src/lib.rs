@@ -11,7 +11,6 @@
 extern crate alloc;
 
 pub mod codec;
-pub mod config;
 mod macros;
 pub mod session;
 mod stream;

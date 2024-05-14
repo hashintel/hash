@@ -25,8 +25,8 @@ use libp2p::{
 };
 use tokio_util::sync::CancellationToken;
 
-use super::TransportLayer;
-use crate::{config::Config, transport::connection::IncomingConnection};
+use super::{TransportConfig, TransportLayer};
+use crate::transport::connection::IncomingConnection;
 
 static EXAMPLE_REQUEST: Request = Request {
     header: RequestHeader {
@@ -70,7 +70,7 @@ pub(crate) fn address() -> libp2p::Multiaddr {
 
 pub(crate) fn layer() -> (TransportLayer, impl Drop) {
     let transport = MemoryTransport::default();
-    let config = Config::default();
+    let config = TransportConfig::default();
     let cancel = CancellationToken::new();
 
     let layer = TransportLayer::start(config, transport, cancel.clone())

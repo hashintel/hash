@@ -27,9 +27,8 @@ use super::{
     behaviour::{TransportBehaviour, TransportBehaviourEvent, TransportSwarm},
     error::TransportError,
     ipc::TransportLayerIpc,
-    Transport, PROTOCOL_NAME,
+    Transport, TransportConfig, PROTOCOL_NAME,
 };
-use crate::config::Config;
 
 type SenderPeerId = oneshot::Sender<core::result::Result<PeerId, DialError>>;
 type SenderListenerId =
@@ -69,7 +68,10 @@ pub(crate) struct Task {
 }
 
 impl Task {
-    pub(crate) fn new(config: Config, transport: impl Transport) -> Result<Self, TransportError> {
+    pub(crate) fn new(
+        config: TransportConfig,
+        transport: impl Transport,
+    ) -> Result<Self, TransportError> {
         let mut registry = metrics::Registry::default();
 
         let (ipc, rx) = TransportLayerIpc::new();

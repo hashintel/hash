@@ -22,6 +22,7 @@ use tokio_util::{
     codec::Framed, compat::FuturesAsyncReadCompatExt, sync::CancellationToken, task::TaskTracker,
 };
 
+pub use self::config::TransportConfig;
 use self::{
     client::ClientCodec,
     connection::IncomingConnections,
@@ -29,7 +30,6 @@ use self::{
     ipc::TransportLayerIpc,
     task::Task,
 };
-use crate::config::Config;
 
 const PROTOCOL_NAME: StreamProtocol = StreamProtocol::new("/harpc/1.0.0");
 
@@ -61,7 +61,7 @@ impl TransportLayer {
     ///
     /// Returns an error if the task fails to start.
     pub fn start(
-        config: Config,
+        config: TransportConfig,
         transport: impl Transport,
         cancel: CancellationToken,
     ) -> Result<Self, TransportError> {
