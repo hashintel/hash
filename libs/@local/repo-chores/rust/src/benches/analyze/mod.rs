@@ -6,6 +6,4 @@ pub enum AnalyzeError {
     ReadInput,
     #[error("Unable to parse input file.")]
     ParseInput,
-    #[error("Failed to write output.")]
-    WriteOutput,
 }

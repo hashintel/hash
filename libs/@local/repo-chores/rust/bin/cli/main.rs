@@ -15,6 +15,7 @@ struct Args {
     subcommand: subcommand::Subcommand,
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-    Args::parse().subcommand.run()
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
+    Args::parse().subcommand.run().await
 }

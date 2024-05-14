@@ -7,6 +7,10 @@
     "analyze-benchmarks": {
       "dependsOn": ["build"],
       "cache": false
+    },
+    "upload-benchmarks": {
+      "dependsOn": ["build"],
+      "cache": false
     }
   }
 }
