@@ -24,3 +24,8 @@ pub mod payload;
 pub mod protocol;
 pub mod request;
 pub mod response;
+
+#[cfg(feature = "test-utils")]
+pub mod test_utils {
+    pub use super::request::id::test_utils::mock_request_id;
+}

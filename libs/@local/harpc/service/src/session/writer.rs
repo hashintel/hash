@@ -159,7 +159,8 @@ where
 
 impl<'a, T> PacketWriter<'a, T>
 where
-    T: NetworkPacket,
+    T: NetworkPacket + Send,
+    T::Context: Send,
 {
     pub(crate) fn new(
         options: WriterOptions,
@@ -255,7 +256,7 @@ where
 pub(crate) type ResponseWriter<'a> = PacketWriter<'a, Response>;
 
 impl<'a> ResponseWriter<'a> {
-    pub(crate) fn is_error(&self) -> bool {
+    pub(crate) const fn is_error(&self) -> bool {
         matches!(self.context.kind, ResponseKind::Err(_))
     }
 }
@@ -268,11 +269,11 @@ mod test {
     use harpc_wire_protocol::{
         flags::BitFlagsOp,
         payload::Payload,
-        request::id::RequestId,
         response::{
             flags::{ResponseFlag, ResponseFlags},
             kind::ResponseKind,
         },
+        test_utils::mock_request_id,
     };
     use tokio::sync::mpsc;
 
@@ -286,7 +287,7 @@ mod test {
         let mut writer = ResponseWriter::new(
             WriterOptions { no_delay: false },
             ResponseContext {
-                id: RequestId::new_unchecked(0x01),
+                id: mock_request_id(0x01),
                 kind: ResponseKind::Ok,
             },
             &tx,
@@ -310,7 +311,7 @@ mod test {
         let mut writer = ResponseWriter::new(
             WriterOptions { no_delay: false },
             ResponseContext {
-                id: RequestId::new_unchecked(0x01),
+                id: mock_request_id(0x01),
                 kind: ResponseKind::Ok,
             },
             &tx,
@@ -338,7 +339,7 @@ mod test {
         let mut writer = ResponseWriter::new(
             WriterOptions { no_delay: true },
             ResponseContext {
-                id: RequestId::new_unchecked(0x01),
+                id: mock_request_id(0x01),
                 kind: ResponseKind::Ok,
             },
             &tx,
@@ -364,7 +365,7 @@ mod test {
         let mut writer = ResponseWriter::new(
             WriterOptions { no_delay: false },
             ResponseContext {
-                id: RequestId::new_unchecked(0x01),
+                id: mock_request_id(0x01),
                 kind: ResponseKind::Ok,
             },
             &tx,
@@ -385,7 +386,7 @@ mod test {
         let mut writer = ResponseWriter::new(
             WriterOptions { no_delay: true },
             ResponseContext {
-                id: RequestId::new_unchecked(0x01),
+                id: mock_request_id(0x01),
                 kind: ResponseKind::Ok,
             },
             &tx,

@@ -20,3 +20,6 @@ test-strategy = "0.3.1"
 harpc-types = { workspace = true, features = ["proptest"] }
 expect-test = "1.5.0"
 similar-asserts = "1.5.0"
+
+[features]
+test-utils = []

@@ -37,4 +37,5 @@ tracing.workspace = true
 
 [dev-dependencies]
 harpc-types.workspace = true
+harpc-wire-protocol = { workspace = true, features = ["test-utils"] }
 test-log = { version = "0.2.16", features = ["trace"] }

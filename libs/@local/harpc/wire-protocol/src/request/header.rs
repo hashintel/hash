@@ -84,7 +84,7 @@ mod test {
         request::{
             flags::{RequestFlag, RequestFlags},
             header::RequestHeader,
-            id::{test::mock_request_id, RequestIdProducer},
+            id::{test_utils::mock_request_id, RequestIdProducer},
         },
     };
 

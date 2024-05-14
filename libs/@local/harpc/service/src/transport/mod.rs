@@ -204,12 +204,13 @@ pub(crate) mod test {
         protocol::{Protocol, ProtocolVersion},
         request::{
             body::RequestBody, flags::RequestFlags, frame::RequestFrame, header::RequestHeader,
-            id::RequestId, Request,
+            Request,
         },
         response::{
             body::ResponseBody, flags::ResponseFlags, frame::ResponseFrame, header::ResponseHeader,
             Response,
         },
+        test_utils::mock_request_id,
     };
     use libp2p::{
         core::transport::MemoryTransport, multiaddr, swarm::DialError, Multiaddr, TransportError,
@@ -224,7 +225,7 @@ pub(crate) mod test {
             protocol: Protocol {
                 version: ProtocolVersion::V1,
             },
-            request_id: RequestId::new_unchecked(0),
+            request_id: mock_request_id(0),
             flags: RequestFlags::EMPTY,
         },
         body: RequestBody::Frame(RequestFrame {
@@ -237,7 +238,7 @@ pub(crate) mod test {
             protocol: Protocol {
                 version: ProtocolVersion::V1,
             },
-            request_id: RequestId::new_unchecked(0),
+            request_id: mock_request_id(0),
             flags: ResponseFlags::EMPTY,
         },
         body: ResponseBody::Frame(ResponseFrame {

@@ -17,7 +17,6 @@ use harpc_wire_protocol::{
         flags::{RequestFlag, RequestFlags},
         frame::RequestFrame,
         header::RequestHeader,
-        id::RequestId,
         procedure::ProcedureDescriptor,
         service::ServiceDescriptor,
         Request,
@@ -30,6 +29,7 @@ use harpc_wire_protocol::{
         kind::{ErrorCode, ResponseKind},
         Response,
     },
+    test_utils::mock_request_id,
 };
 use tokio::{sync::mpsc, task::JoinHandle};
 use tokio_util::sync::CancellationToken;
@@ -66,7 +66,7 @@ fn setup_send(
     let (response_tx, response_rx) = mpsc::channel(8);
 
     let task = TransactionSendDelegateTask {
-        id: RequestId::new_unchecked(0),
+        id: mock_request_id(0),
         config: if no_delay {
             config_no_delay()
         } else {
@@ -1357,7 +1357,7 @@ fn make_begin(flags: impl Into<RequestFlags>, payload: impl Into<Bytes>) -> Requ
             protocol: Protocol {
                 version: ProtocolVersion::V1,
             },
-            request_id: RequestId::new_unchecked(0x01),
+            request_id: mock_request_id(0x01),
         },
         body: RequestBody::Begin(RequestBegin {
             service: ServiceDescriptor {
@@ -1382,7 +1382,7 @@ fn make_frame(flags: impl Into<RequestFlags>, payload: impl Into<Bytes>) -> Requ
             protocol: Protocol {
                 version: ProtocolVersion::V1,
             },
-            request_id: RequestId::new_unchecked(0x01),
+            request_id: mock_request_id(0x01),
         },
         body: RequestBody::Frame(RequestFrame {
             payload: Payload::new(payload),

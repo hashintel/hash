@@ -12,18 +12,6 @@ use crate::codec::{Buffer, BufferError, Decode, Encode};
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub struct RequestId(u32);
 
-impl RequestId {
-    /// Creates a new `RequestId` with the given `id`.
-    ///
-    /// This method is hidden, as it should only be used sparangly in rare cases where a
-    /// predetermined `RequestId` is acceptable, such as in tests.
-    #[doc(hidden)]
-    #[must_use]
-    pub const fn new_unchecked(id: u32) -> Self {
-        Self(id)
-    }
-}
-
 impl Display for RequestId {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         Display::fmt(&self.0, f)
@@ -72,7 +60,7 @@ impl RequestIdProducer {
         // Therefore `Relaxed` is enough of a guarantee here, because we rely on the atomicity of
         // the operation, not on the ordering.
         // (This would be different if this wasn't just a counter)
-        RequestId::new_unchecked(self.current.fetch_add(1, Ordering::Relaxed))
+        RequestId(self.current.fetch_add(1, Ordering::Relaxed))
     }
 }
 
@@ -90,6 +78,16 @@ impl Default for RequestIdProducer {
     }
 }
 
+#[cfg(any(feature = "test-utils", test))]
+pub(crate) mod test_utils {
+    use super::RequestId;
+
+    #[must_use]
+    pub const fn mock_request_id(id: u32) -> RequestId {
+        RequestId(id)
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod test {
     #![allow(clippy::needless_raw_strings, clippy::needless_raw_string_hashes)]
@@ -102,10 +100,6 @@ pub(crate) mod test {
         codec::test::{assert_codec, assert_decode, assert_encode},
         request::id::RequestId,
     };
-
-    pub(crate) const fn mock_request_id(id: u32) -> RequestId {
-        RequestId(id)
-    }
 
     #[test]
     fn next() {

@@ -15,7 +15,6 @@ use harpc_wire_protocol::{
         flags::{RequestFlag, RequestFlags},
         frame::RequestFrame,
         header::RequestHeader,
-        id::RequestId,
         procedure::ProcedureDescriptor,
         service::ServiceDescriptor,
         Request,
@@ -29,6 +28,7 @@ use harpc_wire_protocol::{
         kind::{ErrorCode, ResponseKind},
         Response,
     },
+    test_utils::mock_request_id,
 };
 use libp2p::PeerId;
 use tokio::{
@@ -155,7 +155,7 @@ fn make_request_header(flags: impl Into<RequestFlags>) -> RequestHeader {
         protocol: Protocol {
             version: ProtocolVersion::V1,
         },
-        request_id: RequestId::new_unchecked(0x01),
+        request_id: mock_request_id(0x01),
         flags: flags.into(),
     }
 }
@@ -308,7 +308,7 @@ async fn stream_closed_keep_alive_until_last_transaction() {
         .expect("should be able to send message");
 
     let mut request_2 = make_request_begin(RequestFlags::EMPTY, b"hello" as &[_]);
-    request_2.header.request_id = RequestId::new_unchecked(0x02);
+    request_2.header.request_id = mock_request_id(0x02);
 
     stream
         .send(Ok(request_2))
@@ -476,7 +476,7 @@ async fn transaction_limit_reached_connection() {
         .expect("should be able to send message");
 
     let mut request_2 = make_request_begin(RequestFlags::EMPTY, b"hello" as &[_]);
-    request_2.header.request_id = RequestId::new_unchecked(0x02);
+    request_2.header.request_id = mock_request_id(0x02);
 
     stream
         .send(Ok(request_2))
@@ -489,7 +489,7 @@ async fn transaction_limit_reached_connection() {
     assert_eq!(available, 1);
 
     let response = responses.pop().expect("infallible");
-    assert_eq!(response.header.request_id, RequestId::new_unchecked(0x02));
+    assert_eq!(response.header.request_id, mock_request_id(0x02));
     assert!(response.header.flags.contains(ResponseFlag::EndOfResponse));
     assert_eq!(
         response.body.payload().as_bytes().as_ref(),
@@ -514,7 +514,7 @@ async fn transaction_limit_reached_instance() {
     // fill the buffer with transactions, the last transaction will bounce
     for index in 0..=Setup::OUTPUT_BUFFER_SIZE {
         let mut request = make_request_begin(RequestFlags::EMPTY, b"hello" as &[_]);
-        request.header.request_id = RequestId::new_unchecked(index as u32);
+        request.header.request_id = mock_request_id(index as u32);
 
         stream
             .send(Ok(request))
@@ -529,7 +529,7 @@ async fn transaction_limit_reached_instance() {
     let response = responses.pop().expect("infallible");
     assert_eq!(
         response.header.request_id,
-        RequestId::new_unchecked(Setup::OUTPUT_BUFFER_SIZE as u32)
+        mock_request_id(Setup::OUTPUT_BUFFER_SIZE as u32)
     );
     assert!(response.header.flags.contains(ResponseFlag::EndOfResponse));
     assert_eq!(
@@ -652,7 +652,7 @@ async fn transaction_repeat() {
     assert_eq!(available, 2);
 
     for response in responses {
-        assert_eq!(response.header.request_id, RequestId::new_unchecked(0x01));
+        assert_eq!(response.header.request_id, mock_request_id(0x01));
         assert!(response.header.flags.contains(ResponseFlag::EndOfResponse));
         assert_eq!(response.body.payload().as_bytes().as_ref(), b"world");
     }
@@ -702,7 +702,7 @@ async fn transaction() {
     assert_eq!(available, 1);
 
     let response = responses.pop().expect("should have a response");
-    assert_eq!(response.header.request_id, RequestId::new_unchecked(0x01));
+    assert_eq!(response.header.request_id, mock_request_id(0x01));
     assert!(response.header.flags.contains(ResponseFlag::EndOfResponse));
     assert_eq!(response.body.payload().as_bytes().as_ref(), b"world");
 }
@@ -732,7 +732,7 @@ async fn transaction_multiple() {
         tasks.spawn(async move {
             barrier.wait().await;
 
-            let request_id = RequestId::new_unchecked(n);
+            let request_id = mock_request_id(n);
 
             let mut request = make_request_begin(RequestFlags::EMPTY, format!("({n}) apple"));
             request.header.request_id = request_id;
@@ -962,7 +962,7 @@ async fn transaction_send_output_closed() {
 
     // but creating new transactions will fail
     let mut request = make_request_begin(RequestFlag::EndOfRequest, "hello");
-    request.header.request_id = RequestId::new_unchecked(0x02);
+    request.header.request_id = mock_request_id(0x02);
 
     stream
         .send(Ok(request))
@@ -1203,7 +1203,7 @@ async fn transaction_collection_acquire() {
     let collection = TransactionCollection::new(SessionConfig::default(), CancellationToken::new());
 
     let (_permit, ..) = collection
-        .acquire(RequestId::new_unchecked(0x01))
+        .acquire(mock_request_id(0x01))
         .await
         .expect("should be able to acquire permit");
 
@@ -1215,14 +1215,14 @@ async fn transaction_collection_acquire_override() {
     let collection = TransactionCollection::new(SessionConfig::default(), CancellationToken::new());
 
     let (permit, ..) = collection
-        .acquire(RequestId::new_unchecked(0x01))
+        .acquire(mock_request_id(0x01))
         .await
         .expect("should be able to acquire permit");
 
     let cancel = permit.cancellation_token();
 
     let (_permit, ..) = collection
-        .acquire(RequestId::new_unchecked(0x01))
+        .acquire(mock_request_id(0x01))
         .await
         .expect("should be able to acquire permit");
 
@@ -1243,12 +1243,12 @@ async fn transaction_collection_acquire_override_no_capacity() {
     );
 
     let (_permit, ..) = collection
-        .acquire(RequestId::new_unchecked(0x01))
+        .acquire(mock_request_id(0x01))
         .await
         .expect("should be able to acquire permit");
 
     collection
-        .acquire(RequestId::new_unchecked(0x01))
+        .acquire(mock_request_id(0x01))
         .await
         .expect_err("should not be able to acquire permit");
 }
@@ -1258,12 +1258,12 @@ async fn transaction_collection_release() {
     let collection = TransactionCollection::new(SessionConfig::default(), CancellationToken::new());
 
     let (_permit, ..) = collection
-        .acquire(RequestId::new_unchecked(0x01))
+        .acquire(mock_request_id(0x01))
         .await
         .expect("should be able to acquire permit");
 
     // release does nothing if the transaction is not in the collection
-    collection.release(RequestId::new_unchecked(0x02)).await;
+    collection.release(mock_request_id(0x02)).await;
 }
 
 #[tokio::test]
@@ -1277,7 +1277,7 @@ async fn transaction_collection_acquire_full_no_insert() {
     );
 
     collection
-        .acquire(RequestId::new_unchecked(0x01))
+        .acquire(mock_request_id(0x01))
         .await
         .expect_err("should not be able to acquire permit");
 
@@ -1289,7 +1289,7 @@ async fn transaction_permit_reclaim() {
     let collection = TransactionCollection::new(SessionConfig::default(), CancellationToken::new());
 
     let (permit, ..) = collection
-        .acquire(RequestId::new_unchecked(0x01))
+        .acquire(mock_request_id(0x01))
         .await
         .expect("should be able to acquire permit");
 
@@ -1305,14 +1305,14 @@ async fn transaction_permit_reclaim_override() {
     let collection = TransactionCollection::new(SessionConfig::default(), CancellationToken::new());
 
     let (permit_a, ..) = collection
-        .acquire(RequestId::new_unchecked(0x01))
+        .acquire(mock_request_id(0x01))
         .await
         .expect("should be able to acquire permit");
 
     assert_eq!(collection.storage.len(), 1);
 
     let (permit_b, ..) = collection
-        .acquire(RequestId::new_unchecked(0x01))
+        .acquire(mock_request_id(0x01))
         .await
         .expect("should be able to acquire permit");
 
@@ -1333,7 +1333,7 @@ static EXAMPLE_RESPONSE: Response = Response {
         protocol: Protocol {
             version: ProtocolVersion::V1,
         },
-        request_id: RequestId::new_unchecked(0x01),
+        request_id: mock_request_id(0x01),
         flags: ResponseFlags::EMPTY,
     },
     body: ResponseBody::Frame(ResponseFrame {
