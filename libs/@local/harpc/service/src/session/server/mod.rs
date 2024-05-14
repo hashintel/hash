@@ -3,7 +3,6 @@ mod connection;
 mod session_id;
 mod task;
 pub mod transaction;
-mod write;
 
 use alloc::sync::Arc;
 

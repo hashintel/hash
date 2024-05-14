@@ -1,6 +1,5 @@
 mod connection;
 mod transaction;
-mod writer;
 
 use error_stack::{Result, ResultExt};
 use libp2p::Multiaddr;

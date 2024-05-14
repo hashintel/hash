@@ -22,7 +22,7 @@ use tokio::{pin, select, sync::mpsc};
 use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 
-use crate::session::client::writer::RequestWriter;
+use crate::session::writer::{RequestContext, RequestWriter, WriterOptions};
 
 const BYTE_STREAM_BUFFER_SIZE: usize = 32;
 
@@ -157,6 +157,8 @@ pub(crate) struct TransactionSendTask<S> {
     pub(crate) tx: mpsc::Sender<Request>,
 }
 
+const REMOVE_ME_BEFORE_YOU_MERGE_TIM_DIEKMANN_GIVE_ME_A_BONK_ON_THE_HEAD_IF_I_FORGET: bool = false;
+
 impl<S> TransactionSendTask<S>
 where
     S: Stream<Item = Bytes> + Send,
@@ -166,7 +168,18 @@ where
         reason = "required for select! macro"
     )]
     pub(crate) async fn run(self, cancel: CancellationToken) {
-        let mut writer = RequestWriter::new(self.id, self.service, self.procedure, &self.tx);
+        let mut writer = RequestWriter::new(
+            WriterOptions {
+                no_delay:
+                    REMOVE_ME_BEFORE_YOU_MERGE_TIM_DIEKMANN_GIVE_ME_A_BONK_ON_THE_HEAD_IF_I_FORGET,
+            },
+            RequestContext {
+                id: self.id,
+                service: self.service,
+                procedure: self.procedure,
+            },
+            &self.tx,
+        );
         let rx = self.rx;
 
         pin!(rx);

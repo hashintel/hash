@@ -13,7 +13,7 @@ use std::io;
 use futures::{stream, FutureExt, Sink, Stream, StreamExt};
 use harpc_wire_protocol::{
     request::{body::RequestBody, id::RequestId, Request},
-    response::Response,
+    response::{kind::ResponseKind, Response},
 };
 use libp2p::PeerId;
 use scc::{ebr::Guard, hash_index::Entry, HashIndex};
@@ -27,14 +27,16 @@ use tokio_util::{either::Either, sync::CancellationToken, task::TaskTracker};
 use super::{
     session_id::SessionId,
     transaction::{Transaction, TransactionParts},
-    write::ResponseWriter,
     SessionConfig, SessionEvent,
 };
 use crate::{
     codec::{ErrorEncoder, PlainError},
-    session::error::{
-        ConnectionShutdownError, ConnectionTransactionLimitReachedError,
-        InstanceTransactionLimitReachedError, TransactionError, TransactionLaggingError,
+    session::{
+        error::{
+            ConnectionShutdownError, ConnectionTransactionLimitReachedError,
+            InstanceTransactionLimitReachedError, TransactionError, TransactionLaggingError,
+        },
+        writer::{ResponseContext, ResponseWriter, WriterOptions},
     },
 };
 
@@ -407,7 +409,14 @@ where
     {
         let TransactionError { code, bytes } = self.encoder.encode_error(error).await;
 
-        let mut writer = ResponseWriter::new_error(id, code, tx);
+        let mut writer = ResponseWriter::new(
+            WriterOptions { no_delay: false },
+            ResponseContext {
+                id,
+                kind: ResponseKind::Err(code),
+            },
+            tx,
+        );
         writer.push(bytes);
 
         // we cannot stop processing if the writer fails, as that simply means that we can no longer

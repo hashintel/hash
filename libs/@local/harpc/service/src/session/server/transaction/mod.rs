@@ -16,7 +16,7 @@ use harpc_wire_protocol::{
         begin::RequestBegin, flags::RequestFlag, header::RequestHeader, id::RequestId,
         procedure::ProcedureDescriptor, service::ServiceDescriptor, Request,
     },
-    response::Response,
+    response::{kind::ResponseKind, Response},
 };
 use libp2p::PeerId;
 use tokio::{select, sync::mpsc};
@@ -25,10 +25,11 @@ use tokio_util::{
     task::TaskTracker,
 };
 
-use super::{
-    connection::TransactionPermit, session_id::SessionId, write::ResponseWriter, SessionConfig,
+use super::{connection::TransactionPermit, session_id::SessionId, SessionConfig};
+use crate::session::{
+    error::TransactionError,
+    writer::{ResponseContext, ResponseWriter, WriterOptions},
 };
-use crate::session::error::TransactionError;
 
 struct TransactionSendDelegateTask {
     id: RequestId,
@@ -47,8 +48,16 @@ impl TransactionSendDelegateTask {
         // we cannot simply forward here, because we want to be able to send the end of request and
         // buffer the response into the least amount of packages possible
 
-        let mut writer =
-            ResponseWriter::new_ok(self.id, &self.tx).with_no_delay(self.config.no_delay);
+        let mut writer = ResponseWriter::new(
+            WriterOptions {
+                no_delay: self.config.no_delay,
+            },
+            ResponseContext {
+                id: self.id,
+                kind: ResponseKind::Ok,
+            },
+            &self.tx,
+        );
 
         loop {
             let bytes = select! {
@@ -82,8 +91,16 @@ impl TransactionSendDelegateTask {
                     }
                 }
                 Err(TransactionError { code, bytes }) => {
-                    writer = ResponseWriter::new_error(self.id, code, &self.tx)
-                        .with_no_delay(self.config.no_delay);
+                    writer = ResponseWriter::new(
+                        WriterOptions {
+                            no_delay: self.config.no_delay,
+                        },
+                        ResponseContext {
+                            id: self.id,
+                            kind: ResponseKind::Err(code),
+                        },
+                        &self.tx,
+                    );
                     writer.push(bytes);
 
                     if let Err(error) = writer.write().await {
