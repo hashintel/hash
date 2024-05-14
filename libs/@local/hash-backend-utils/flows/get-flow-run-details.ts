@@ -1,26 +1,21 @@
-import { parseHistoryItemPayload } from "@local/hash-backend-utils/temporal/parse-history-item-payload";
 import type {
   ExternalInputRequest,
   ExternalInputRequestSignal,
   ExternalInputResponseSignal,
   ProgressLogSignal,
+  SparseFlowRun,
 } from "@local/hash-isomorphic-utils/flows/types";
-import { StatusCode } from "@local/status";
-import type {
-  Client as TemporalClient,
-  WorkflowExecutionInfo,
-} from "@temporalio/client";
-import proto from "@temporalio/proto";
-
-import { isProdEnv } from "../../../lib/env-config";
 import type {
   FlowRun,
-  QueryGetFlowRunsArgs,
-  ResolverFn,
+  FlowRunStatus,
   StepRun,
-} from "../../api-types.gen";
-import { FlowRunStatus, FlowStepStatus } from "../../api-types.gen";
-import type { GraphQLContext } from "../../context";
+} from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import { FlowStepStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import { StatusCode } from "@local/status";
+import type { Client as TemporalClient } from "@temporalio/client";
+import proto from "@temporalio/proto";
+
+import { parseHistoryItemPayload } from "../src/temporal/parse-history-item-payload";
 
 const eventTimeIsoStringFromEvent = (
   event?: proto.temporal.api.history.v1.IHistoryEvent,
@@ -124,15 +119,18 @@ const getActivityStartedDetails = (
   };
 };
 
-const mapTemporalWorkflowToFlowStatus = async (
-  workflow: WorkflowExecutionInfo,
-  temporalClient: TemporalClient,
-): Promise<FlowRun> => {
-  const handle = temporalClient.workflow.getHandle(
-    workflow.workflowId,
-    workflow.runId,
-  );
+const getFlowRunDetailedFields = async ({
+  workflowId,
+  temporalClient,
+}: {
+  workflowId: string;
+  temporalClient: TemporalClient;
+}): Promise<
+  Pick<FlowRun, "inputs" | "inputRequests" | "outputs" | "steps">
+> => {
+  const handle = temporalClient.workflow.getHandle(workflowId);
 
+  const workflow = await handle.describe();
   const { events } = await handle.fetchHistory();
 
   const workflowInputs = parseHistoryItemPayload(
@@ -199,7 +197,7 @@ const mapTemporalWorkflowToFlowStatus = async (
 
         if (!signalData) {
           throw new Error(
-            `No signal data on requestExternalInput signal event with id ${event.eventId}`,
+            `No signal data on requestExternalInput signal event with id ${event.eventId?.toInt()}`,
           );
         }
 
@@ -232,7 +230,7 @@ const mapTemporalWorkflowToFlowStatus = async (
 
         if (!signalData) {
           throw new Error(
-            `No signal data on requestExternalInput signal event with id ${event.eventId}`,
+            `No signal data on requestExternalInput signal event with id ${event.eventId?.toInt()}`,
           );
         }
         const { requestId, data, type } = signalData;
@@ -248,11 +246,11 @@ const mapTemporalWorkflowToFlowStatus = async (
       }
 
       const nonScheduledAttributes =
-        event.activityTaskStartedEventAttributes ||
-        event.activityTaskCompletedEventAttributes ||
-        event.activityTaskCanceledEventAttributes ||
-        event.activityTaskCancelRequestedEventAttributes ||
-        event.activityTaskFailedEventAttributes ||
+        event.activityTaskStartedEventAttributes ??
+        event.activityTaskCompletedEventAttributes ??
+        event.activityTaskCanceledEventAttributes ??
+        event.activityTaskCancelRequestedEventAttributes ??
+        event.activityTaskFailedEventAttributes ??
         event.activityTaskTimedOutEventAttributes;
 
       if (
@@ -393,7 +391,7 @@ const mapTemporalWorkflowToFlowStatus = async (
 
     if (!progressSignalEvent.workflowExecutionSignaledEventAttributes) {
       throw new Error(
-        `No signal attributes on progress signal event with id ${progressSignalEvent.eventId}`,
+        `No signal attributes on progress signal event with id ${progressSignalEvent.eventId?.toInt()}`,
       );
     }
 
@@ -403,7 +401,7 @@ const mapTemporalWorkflowToFlowStatus = async (
 
     if (!signalData) {
       throw new Error(
-        `No signal data on progress signal event with id ${progressSignalEvent.eventId}`,
+        `No signal data on progress signal event with id ${progressSignalEvent.eventId?.toInt()}`,
       );
     }
 
@@ -444,39 +442,7 @@ const mapTemporalWorkflowToFlowStatus = async (
     }
   }
 
-  const {
-    runId,
-    workflowId,
-    status,
-    startTime,
-    executionTime,
-    closeTime,
-    memo,
-  } = workflow;
-
-  let workflowStatus: FlowRunStatus = status.name as FlowRunStatus;
-  if (
-    workflowStatus === FlowRunStatus.Completed &&
-    workflowOutputs &&
-    !workflowOutputs.every((output) => output.code === "Ok")
-  ) {
-    /**
-     * The workflow may have completed without an error being thrown, but the outputs have error codes within them
-     * @todo H-2604 – consider what to do here as part of restructuring flow errors – keep errors as values, or throw from run-workflow-run?
-     *       how about partially successful workflows with some Ok outputs, some not?
-     */
-    workflowStatus = FlowRunStatus.Failed;
-  }
-
   return {
-    flowDefinitionId:
-      (memo?.flowDefinitionId as string | undefined) ?? "unknown",
-    runId,
-    workflowId,
-    status: workflowStatus,
-    startedAt: startTime.toISOString(),
-    executedAt: executionTime?.toISOString(),
-    closedAt: closeTime?.toISOString(),
     inputs: workflowInputs,
     outputs: workflowOutputs,
     inputRequests: Object.values(inputRequestsById),
@@ -484,49 +450,38 @@ const mapTemporalWorkflowToFlowStatus = async (
   };
 };
 
-const convertScreamingSnakeToPascalCase = (str: string) =>
-  str
-    .split("_")
-    .map((word) =>
-      word[0] ? word[0].toUpperCase() + word.slice(1).toLowerCase() : "",
-    )
-    .join("");
+export const getSparseFlowRunFromWorkflowId = async ({
+  workflowId,
+  temporalClient,
+}: {
+  workflowId: string;
+  temporalClient: TemporalClient;
+}): Promise<SparseFlowRun> => {
+  const handle = temporalClient.workflow.getHandle(workflowId);
 
-export const getFlowRuns: ResolverFn<
-  FlowRun[],
-  Record<string, never>,
-  Pick<GraphQLContext, "temporal">,
-  QueryGetFlowRunsArgs
-> = async (_parent, args, context) => {
-  if (isProdEnv) {
-    throw new Error("Not yet available");
-  }
+  const { startTime, executionTime, closeTime, memo, status } =
+    await handle.describe();
 
-  const workflows: FlowRun[] = [];
+  return {
+    flowDefinitionId:
+      (memo?.flowDefinitionId as string | undefined) ?? "unknown",
+    flowRunId: workflowId,
+    status: status.name as FlowRunStatus,
+    startedAt: startTime.toISOString(),
+    executedAt: executionTime?.toISOString(),
+    closedAt: closeTime?.toISOString(),
+  };
+};
 
-  const { flowTypes, executionStatus } = args;
+export const getFlowRunFromWorkflowId = async (args: {
+  workflowId: string;
+  temporalClient: TemporalClient;
+}): Promise<FlowRun> => {
+  const baseFields = await getSparseFlowRunFromWorkflowId(args);
+  const detailedFields = await getFlowRunDetailedFields(args);
 
-  /** @see https://docs.temporal.io/dev-guide/typescript/observability#search-attributes */
-  let query = flowTypes?.length
-    ? `WorkflowType IN (${flowTypes.map((type) => `'${type}'`).join(", ")})`
-    : "WorkflowType = 'runFlow'";
-
-  if (executionStatus) {
-    query += ` AND ExecutionStatus = "${convertScreamingSnakeToPascalCase(
-      executionStatus,
-    )}"`;
-  }
-
-  const workflowIterable = context.temporal.workflow.list({ query });
-
-  for await (const workflow of workflowIterable) {
-    const runInfo = await mapTemporalWorkflowToFlowStatus(
-      workflow,
-      context.temporal,
-    );
-
-    workflows.push(runInfo);
-  }
-
-  return workflows;
+  return {
+    ...baseFields,
+    ...detailedFields,
+  };
 };

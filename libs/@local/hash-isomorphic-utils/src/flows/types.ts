@@ -3,6 +3,7 @@ import type {
   PropertyMetadataMap,
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
+import type { FlowRun } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import type { ActorTypeDataType } from "@local/hash-isomorphic-utils/system-types/google/googlesheetsfile";
 import type {
   Entity,
@@ -437,3 +438,14 @@ export type ExternalInputRequest = ExternalInputRequestSignal & {
   /** Whether or not the request has been resolved */
   resolved: boolean;
 };
+
+export const detailedFlowFields = [
+  "inputs",
+  "inputRequests",
+  "outputs",
+  "steps",
+];
+
+type DetailedFlowField = (typeof detailedFlowFields)[number];
+
+export type SparseFlowRun = Omit<FlowRun, DetailedFlowField>;

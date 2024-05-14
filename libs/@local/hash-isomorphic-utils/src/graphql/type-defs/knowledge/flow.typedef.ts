@@ -114,19 +114,19 @@ export const flowTypedef = gql`
 
   type FlowRun {
     """
-    The uuid of the Temporal workflow, which is unique across currently-executing flow runs.
+    The uuid of the flow run
+    This corresponds to:
+    - the EntityUuid of the Flow entity
+    - the workflowId of the Temporal workflow, which is unique among all currently-executing Temporal workflow executions
 
     There may be multiple runs with the same workflowId if a flow is 'continued as new' (see Temporal docs)
-    – the same workflowId is the mechanism by which consecutive runs which continue from a previous can be identified.
+    – the same workflowId/flowRunId is the mechanism by which consecutive runs which continue from a previous can be identified.
 
     While Temporal allows for re-use of workflowId across arbitrary flows, our business logic does not re-use them,
-    and they are only re-used in the 'continue as new' case.
+    and they are only re-used in the 'continue as new' case, in which case we will need to combine the history
+    of those runs to form a complete picture of the flow's execution.
     """
-    workflowId: String!
-    """
-    The uuid of the Temporal workflow run, which is unique among all flow executions.
-    """
-    runId: String!
+    flowRunId: String!
     """
     The id for the definition of the flow this run is executing (the template for the flow)
     """
@@ -167,9 +167,17 @@ export const flowTypedef = gql`
 
   extend type Query {
     getFlowRuns(
-      flowTypes: [String!]
+      """
+      Return only flow runs that are based off specific definitions
+      """
+      flowDefinitionIds: [String!]
+      """
+      Return only flows that match the given status
+      """
       executionStatus: FlowRunStatus
     ): [FlowRun!]!
+
+    getFlowRunById(flowRunId: String!): FlowRun!
   }
 
   scalar FlowDefinition
@@ -178,7 +186,7 @@ export const flowTypedef = gql`
 
   extend type Mutation {
     """
-    Start a new flow run, and return its workflowId to allow for identifying it later.
+    Start a new flow run, and return its flowRunId to allow for identifying it later.
     """
     startFlow(
       flowDefinition: FlowDefinition!
