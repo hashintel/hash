@@ -3,7 +3,7 @@ use core::fmt::{self, Debug, Display, Formatter};
 use libp2p_stream as stream;
 
 /// Errors while opening a new stream.
-pub(crate) struct OpenStreamError(stream::OpenStreamError);
+pub struct OpenStreamError(stream::OpenStreamError);
 
 impl Debug for OpenStreamError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
