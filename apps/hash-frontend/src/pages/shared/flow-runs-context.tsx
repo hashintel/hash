@@ -71,9 +71,9 @@ export const useFlowRunsContext = () => {
   return flowRunsContext;
 };
 
-type StepRunStatus = Pick<
+export type StepRunStatus = Pick<
   StepRun,
-  "inputs" | "outputs" | "status" | "closedAt" | "scheduledAt"
+  "inputs" | "outputs" | "status" | "closedAt" | "scheduledAt" | "logs"
 >;
 
 export const useStatusForStep = (
@@ -89,6 +89,7 @@ export const useStatusForStep = (
     if (nodeId === "trigger") {
       return {
         closedAt: selectedFlowRun.startedAt,
+        logs: [],
         outputs: selectedFlowRun.inputs[0].flowTrigger.outputs,
         scheduledAt: selectedFlowRun.startedAt,
         status: FlowStepStatus.Completed,
@@ -99,10 +100,7 @@ export const useStatusForStep = (
   }, [selectedFlowRun, nodeId]);
 };
 
-export const useStatusForCurrentStep = (): Pick<
-  StepRun,
-  "inputs" | "outputs" | "status" | "closedAt" | "scheduledAt"
-> | null => {
+export const useStatusForCurrentStep = (): StepRunStatus | null => {
   const nodeId = useNodeId();
 
   return useStatusForStep(nodeId);
@@ -110,6 +108,7 @@ export const useStatusForCurrentStep = (): Pick<
 
 export type SimpleStatus =
   | "Waiting"
+  | "Information Required"
   | "In Progress"
   | "Complete"
   | "Error"
@@ -134,6 +133,9 @@ export const statusToSimpleStatus = (
     case FlowStepStatus.Scheduled:
     case FlowStepStatus.Started:
       simpleStatus = "In Progress";
+      break;
+    case FlowStepStatus.InformationRequired:
+      simpleStatus = "Information Required";
       break;
   }
 
@@ -183,6 +185,7 @@ export const useStatusForSteps = (
       if (!scheduledAt || stepRun.scheduledAt < scheduledAt) {
         scheduledAt = stepRun.scheduledAt;
       }
+
       if (stepRun.closedAt && (!closedAt || stepRun.closedAt > closedAt)) {
         closedAt = stepRun.closedAt;
       }
@@ -193,7 +196,10 @@ export const useStatusForSteps = (
 
       if (simpleStatus === "Error") {
         hasError = true;
-      } else if (simpleStatus === "In Progress") {
+      } else if (
+        simpleStatus === "In Progress" ||
+        simpleStatus === "Information Required"
+      ) {
         hasInProgress = true;
       } else if (simpleStatus === "Waiting") {
         hasWaiting = true;

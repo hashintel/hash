@@ -40,6 +40,7 @@ export const flowTypedef = gql`
     SCHEDULED
     STARTED
     COMPLETED
+    INFORMATION_REQUIRED
     FAILED
     TIMED_OUT
     CANCEL_REQUESTED
@@ -173,6 +174,7 @@ export const flowTypedef = gql`
 
   scalar FlowDefinition
   scalar FlowTrigger
+  scalar ExternalInputResponseSignal
 
   extend type Mutation {
     """
@@ -183,5 +185,13 @@ export const flowTypedef = gql`
       flowTrigger: FlowTrigger!
       webId: OwnedById!
     ): ID!
+
+    """
+    Submit a response to a request from a flow step for external input
+    """
+    submitExternalInputResponse(
+      response: ExternalInputResponseSignal!
+      flowUuid: ID!
+    ): Boolean!
   }
 `;

@@ -34,4 +34,11 @@ export const statusSx = {
     lightestBackground: ({ palette }) => palette.gray[10],
     text: ({ palette }) => palette.common.black,
   },
+  "Information Required": {
+    borderColor: ({ palette }) => palette.yellow[40],
+    darkBackground: ({ palette }) => palette.yellow[80],
+    lightBackground: ({ palette }) => palette.yellow[30],
+    lightestBackground: ({ palette }) => palette.yellow[10],
+    text: ({ palette }) => palette.yellow[100],
+  },
 } as const satisfies Record<SimpleStatus, SxProps<Theme>>;

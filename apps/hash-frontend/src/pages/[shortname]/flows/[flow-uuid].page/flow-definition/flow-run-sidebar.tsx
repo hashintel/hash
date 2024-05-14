@@ -124,7 +124,9 @@ const GroupStepStatus = ({
   return (
     <Stack direction="row" ml={2} mb={1}>
       <Box>
-        {!simpleStatus || simpleStatus === "Waiting" ? (
+        {!simpleStatus ||
+        simpleStatus === "Waiting" ||
+        simpleStatus === "Information Required" ? (
           <WaitingIcon statusFor="step" />
         ) : simpleStatus === "In Progress" ? (
           <InProgressIcon statusFor="step" />

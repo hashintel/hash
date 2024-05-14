@@ -8,4 +8,5 @@ export const edgeColor = {
   Cancelled: customColors.red[70],
   Error: customColors.red[70],
   Waiting: customColors.gray[50],
+  "Information Required": customColors.yellow[70],
 } as const satisfies Record<SimpleStatus, string>;

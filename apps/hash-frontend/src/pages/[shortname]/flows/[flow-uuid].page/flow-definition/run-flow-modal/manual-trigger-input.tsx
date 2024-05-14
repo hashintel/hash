@@ -13,7 +13,6 @@ const textFieldSx: SxProps<Theme> = {
   width: "100%",
   /**
    * Aligns with the Autocomplete used for EntityTypeSelector and WebSelector.
-   * Changing these
    */
   height: inputHeight,
 };

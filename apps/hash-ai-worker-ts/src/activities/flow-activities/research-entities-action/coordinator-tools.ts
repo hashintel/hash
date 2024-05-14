@@ -4,6 +4,7 @@ import dedent from "dedent";
 import type { LlmToolDefinition } from "../../shared/get-llm-response/types";
 
 const coordinatorToolNames = [
+  "requestHumanInput",
   "webSearch",
   "inferEntitiesFromWebPage",
   "getWebPageSummary",
@@ -35,6 +36,31 @@ export const coordinatorToolDefinitions: Record<
   CoordinatorToolName,
   LlmToolDefinition<CoordinatorToolName>
 > = {
+  requestHumanInput: {
+    name: "requestHumanInput",
+    description:
+      "Ask the user questions to gather information required to complete the research task, which include clarifying the research brief, or asking for advice on how to proceed if difficulties are encountered.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        explanation: {
+          type: "string",
+          description:
+            "An explanation of why human input is required to advance the research task, and how it will be used",
+        },
+        questions: {
+          type: "array",
+          items: {
+            type: "string",
+            description:
+              "A question to help clarify or complete the research task",
+          },
+          description: "A list of questions to ask the user",
+        },
+      },
+      required: ["explanation", "questions"],
+    },
+  },
   webSearch: {
     name: "webSearch",
     description:
@@ -237,6 +263,9 @@ export const coordinatorToolDefinitions: Record<
 export type CoordinatorToolCallArguments = Subtype<
   Record<CoordinatorToolName, unknown>,
   {
+    requestHumanInput: {
+      questions: string[];
+    };
     webSearch: {
       query: string;
     };

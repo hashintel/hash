@@ -8,6 +8,7 @@ import type {
 } from "@local/hash-subgraph";
 import { Box, Stack, TableCell } from "@mui/material";
 import { format } from "date-fns";
+import type { ReactElement } from "react";
 import { memo, useMemo, useState } from "react";
 
 import { Link } from "../../../../../shared/ui/link";
@@ -21,6 +22,7 @@ import {
   VirtualizedTable,
 } from "../../../../shared/virtualized-table";
 import { SectionLabel } from "./section-label";
+import type { LocalProgressLog } from "./shared/types";
 
 const getEntityLabelFromLog = (log: StepProgressLog): string => {
   if (log.type !== "ProposedEntity" && log.type !== "PersistedEntity") {
@@ -75,7 +77,7 @@ const visitedWebPagePrefix = "Visited ";
 const viewedPdfFilePrefix = "Viewed PDF file at ";
 const queriedWebPrefix = "Searched web for ";
 
-const getRawTextFromLog = (log: StepProgressLog): string => {
+const getRawTextFromLog = (log: LocalProgressLog): string => {
   switch (log.type) {
     case "VisitedWebPage": {
       return `${visitedWebPagePrefix}${log.webPage.title}`;
@@ -94,10 +96,20 @@ const getRawTextFromLog = (log: StepProgressLog): string => {
     case "ViewedFile": {
       return `${viewedPdfFilePrefix}${log.fileUrl}`;
     }
+    case "StateChange": {
+      return log.message;
+    }
+    case "CreatedPlan": {
+      return "Created research plan";
+    }
   }
 };
 
-const LogDetail = ({ log }: { log: StepProgressLog }) => {
+const LogDetail = ({
+  log,
+}: {
+  log: LocalProgressLog;
+}): ReactElement | string => {
   switch (log.type) {
     case "VisitedWebPage": {
       return (
@@ -105,6 +117,16 @@ const LogDetail = ({ log }: { log: StepProgressLog }) => {
           {visitedWebPagePrefix}
           <Link href={log.webPage.url} sx={{ textDecoration: "none" }}>
             {log.webPage.title}
+          </Link>
+        </>
+      );
+    }
+    case "ViewedFile": {
+      return (
+        <>
+          {viewedPdfFilePrefix}
+          <Link href={log.fileUrl} sx={{ textDecoration: "none" }}>
+            {log.fileUrl}
           </Link>
         </>
       );
@@ -130,6 +152,12 @@ const LogDetail = ({ log }: { log: StepProgressLog }) => {
         </>
       );
     }
+    case "CreatedPlan": {
+      return "Created research plan";
+    }
+    case "StateChange": {
+      return log.message;
+    }
   }
 };
 
@@ -146,7 +174,7 @@ const createColumns = (rowCount: number): VirtualizedTableColumn<FieldId>[] => [
     id: "time",
     label: "Time",
     sortable: true,
-    width: 100,
+    width: 110,
   },
   {
     id: "detail",
@@ -157,7 +185,7 @@ const createColumns = (rowCount: number): VirtualizedTableColumn<FieldId>[] => [
 ];
 
 const TableRow = memo(
-  ({ index, log }: { index: number; log: StepProgressLog }) => {
+  ({ index, log }: { index: number; log: LocalProgressLog }) => {
     return (
       <>
         <TableCell sx={{ ...defaultCellSx, fontSize: 13 }}>
@@ -182,12 +210,12 @@ const TableRow = memo(
   },
 );
 
-const createRowContent: CreateVirtualizedRowContentFn<StepProgressLog> = (
+const createRowContent: CreateVirtualizedRowContentFn<LocalProgressLog> = (
   index,
   row,
 ) => <TableRow index={index} log={row.data} />;
 
-export const ActivityLog = ({ logs }: { logs: StepProgressLog[] }) => {
+export const ActivityLog = ({ logs }: { logs: LocalProgressLog[] }) => {
   const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
     field: "time",
     direction: "asc",

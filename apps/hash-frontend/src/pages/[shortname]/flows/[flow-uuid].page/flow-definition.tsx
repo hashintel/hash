@@ -7,7 +7,6 @@ import type {
   FlowTrigger,
   PersistedEntity,
   ProposedEntity,
-  StepProgressLog,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { slugifyTypeTitle } from "@local/hash-isomorphic-utils/slugify-type-title";
 import { Box, Stack, Typography } from "@mui/material";
@@ -39,6 +38,7 @@ import type {
   CustomNodeType,
   EdgeData,
   FlowMaybeGrouped,
+  LocalProgressLog,
 } from "./flow-definition/shared/types";
 import {
   getFlattenedSteps,
@@ -262,7 +262,7 @@ export const FlowDefinition = () => {
   }, [derivedNodes, derivedEdges, selectedFlow.groups]);
 
   const { logs, persistedEntities, proposedEntities } = useMemo<{
-    logs: StepProgressLog[];
+    logs: LocalProgressLog[];
     persistedEntities: PersistedEntity[];
     proposedEntities: ProposedEntity[];
   }>(() => {
@@ -270,7 +270,15 @@ export const FlowDefinition = () => {
       return { logs: [], persistedEntities: [], proposedEntities: [] };
     }
 
-    const progressLogs: StepProgressLog[] = [];
+    const progressLogs: LocalProgressLog[] = [
+      {
+        message: "Flow run started",
+        recordedAt: selectedFlowRun.startedAt,
+        stepId: "trigger",
+        type: "StateChange",
+      },
+    ];
+
     const persisted: PersistedEntity[] = [];
     const proposed: ProposedEntity[] = [];
 
@@ -405,7 +413,7 @@ export const FlowDefinition = () => {
           ) : null}
           <Box sx={{ minHeight: 300, px: 3 }}>
             <SectionLabel text={selectedFlowRun ? "status" : "definition"} />
-            <Box
+            <Stack
               sx={({ palette, transitions }) => ({
                 background: palette.common.white,
                 border: `1px solid ${palette.gray[selectedFlowRun ? 20 : 30]}`,
@@ -421,6 +429,7 @@ export const FlowDefinition = () => {
                 "& > :last-child > :first-of-type": {
                   borderBottomLeftRadius: flowSectionBorderRadius,
                 },
+                flexWrap: "wrap",
                 transition: transitions.create("border", transitionOptions),
               })}
             >
@@ -470,7 +479,7 @@ export const FlowDefinition = () => {
                   <Swimlane group={group} nodes={nodes} edges={edges} />
                 </ReactFlowProvider>
               ))}
-            </Box>
+            </Stack>
           </Box>
         </Stack>
       </Box>

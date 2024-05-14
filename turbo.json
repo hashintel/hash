@@ -30,7 +30,7 @@
     },
     "dev": {
       "persistent": true,
-      "dependsOn": ["@local/hash-graph-client#codegen"]
+      "dependsOn": ["codegen"]
     },
     "lint": {
       "dependsOn": ["codegen"]

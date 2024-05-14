@@ -198,9 +198,7 @@ const createInitialPlan = async (params: {
     );
   }
 
-  const { message, stopReason, usage: _usage } = llmResponse;
-
-  /** @todo: capture usage */
+  const { message, stopReason } = llmResponse;
 
   const retry = (retryParams: {
     retryMessageContent: LlmUserMessage["content"];
