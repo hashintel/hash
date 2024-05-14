@@ -24,3 +24,10 @@ aws-sdk-s3 = { workspace = true }
 [[bin]]
 name = "repo-chores-cli"
 path = "bin/cli/main.rs"
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "tmp"
+harness = false

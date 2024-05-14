@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "analyze-benchmarks": "../../../../target/debug/repo-chores-cli benches analyze",
+    "bench:unit": "cargo bench",
     "build": "cargo build",
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
