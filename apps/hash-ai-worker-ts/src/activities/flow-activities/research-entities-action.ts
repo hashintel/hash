@@ -23,11 +23,11 @@ import type {
   CoordinatorToolCallArguments,
   CoordinatorToolName,
 } from "./research-entities-action/coordinator-tools";
+import { getAnswersFromHuman } from "./research-entities-action/get-answers-from-human";
 import { inferEntitiesFromWebPageWorkerAgent } from "./research-entities-action/infer-entities-from-web-page-worker-agent";
 import type { CoordinatingAgentState } from "./research-entities-action/open-ai-coordinating-agent";
 import { coordinatingAgent } from "./research-entities-action/open-ai-coordinating-agent";
 import type { CompletedToolCall } from "./research-entities-action/types";
-import { getAnswersFromHuman } from "./shared/get-answers-from-human";
 import type { FlowActionActivity } from "./types";
 import { webSearchAction } from "./web-search-action";
 
@@ -38,22 +38,28 @@ export const researchEntitiesAction: FlowActionActivity = async ({
     stepInputs,
   });
 
-  /**
-   * We start by asking the coordinator agent to create an initial plan
-   * for the research task.
-   */
-  const { plan: initialPlan } = await coordinatingAgent.createInitialPlan({
-    input,
-  });
-
   const state: CoordinatingAgentState = {
-    plan: initialPlan,
+    plan: "",
     proposedEntities: [],
     submittedEntityIds: [],
     previousCalls: [],
     hasConductedCheckStep: false,
     filesUsedToProposeEntities: [],
+    questionsAndAnswers: null,
   };
+
+  /**
+   * We start by asking the coordinator agent to create an initial plan
+   * for the research task.
+   */
+  const { plan: initialPlan, questionsAndAnswers } =
+    await coordinatingAgent.createInitialPlan({
+      input,
+      questionsAndAnswers: state.questionsAndAnswers,
+    });
+
+  state.plan = initialPlan;
+  state.questionsAndAnswers = questionsAndAnswers;
 
   const { toolCalls: initialToolCalls } =
     await coordinatingAgent.getNextToolCalls({
@@ -102,6 +108,9 @@ export const researchEntitiesAction: FlowActionActivity = async ({
                 toolCall.input as CoordinatorToolCallArguments["requestHumanInput"]
               ).questions,
             );
+
+            state.questionsAndAnswers =
+              (state.questionsAndAnswers ?? "") + response;
 
             return {
               ...toolCall,

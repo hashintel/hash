@@ -21,12 +21,12 @@ import { graphApiClient } from "../../shared/graph-api-client";
 import { logProgress } from "../../shared/log-progress";
 import { mapActionInputEntitiesToEntities } from "../../shared/map-action-input-entities-to-entities";
 import type { PermittedOpenAiModel } from "../../shared/openai-client";
-import { getAnswersFromHuman } from "../shared/get-answers-from-human";
 import type {
   CoordinatorToolCallArguments,
   CoordinatorToolName,
 } from "./coordinator-tools";
 import { coordinatorToolDefinitions } from "./coordinator-tools";
+import { getAnswersFromHuman } from "./get-answers-from-human";
 import type { AccessedRemoteFile } from "./infer-entities-from-web-page-worker-agent/types";
 import type { CompletedToolCall } from "./types";
 import { mapPreviousCallsToLlmMessages } from "./util";
@@ -42,13 +42,15 @@ export type CoordinatingAgentInput = {
 
 const generateSystemPromptPrefix = (params: {
   input: CoordinatingAgentInput;
+  questionsAndAnswers: CoordinatingAgentState["questionsAndAnswers"];
 }) => {
   const { linkEntityTypes, existingEntities } = params.input;
+  const { questionsAndAnswers } = params;
 
   return dedent(`
     You are a coordinating agent for a research task.
 
-    The user will provide you with:
+    The user provides you with:
       - Prompt: the text prompt you need to satisfy to complete the research task
       - Entity Types: the types of entities you can propose to satisfy the research prompt
       ${
@@ -68,6 +70,8 @@ const generateSystemPromptPrefix = (params: {
       }
 
     You must completely satisfy the research prompt, without any missing information.
+    
+    ${questionsAndAnswers ? `You previously asked the user clarifying questions on the research brief provided below, and received the following answers:\n${questionsAndAnswers}` : ""}
   `);
 };
 
@@ -101,6 +105,7 @@ export type CoordinatingAgentState = {
   }[];
   hasConductedCheckStep: boolean;
   filesUsedToProposeEntities: AccessedRemoteFile[];
+  questionsAndAnswers: string | null;
 };
 
 const getNextToolCalls = async (params: {
@@ -124,7 +129,7 @@ const getNextToolCalls = async (params: {
   );
 
   const systemPrompt = dedent(`
-      ${generateSystemPromptPrefix({ input })}
+      ${generateSystemPromptPrefix({ input, questionsAndAnswers: state.questionsAndAnswers })}
       
       Make as many tool calls as are required to progress towards completing the task.
 
@@ -193,15 +198,15 @@ const getNextToolCalls = async (params: {
 
 const createInitialPlan = async (params: {
   input: CoordinatingAgentInput;
-  questionsAndAnswers?: string;
-}): Promise<{ plan: string }> => {
-  const { input, questionsAndAnswers } = params;
+  questionsAndAnswers: CoordinatingAgentState["questionsAndAnswers"];
+}): Promise<Pick<CoordinatingAgentState, "plan" | "questionsAndAnswers">> => {
+  const { input } = params;
+
+  const { questionsAndAnswers } = params;
 
   const systemPrompt = dedent(`
-    ${generateSystemPromptPrefix({ input })}
+    ${generateSystemPromptPrefix({ input, questionsAndAnswers })}
     
-    ${questionsAndAnswers ? `You previously asked the user clarifying questions on the research brief, and received the following answers:\n${questionsAndAnswers}` : ""}
-
     You must ${questionsAndAnswers ? "now" : "first"} do one of: 
     1. Ask the user ${questionsAndAnswers ? "further" : ""} questions to help clarify the research brief. You should ask questions if:
       - The scope of the research is unclear (e.g. how much information is desired in response)
@@ -272,7 +277,7 @@ const createInitialPlan = async (params: {
       },
     ]);
 
-    return { plan };
+    return { plan, questionsAndAnswers };
   }
 
   const { questions } =

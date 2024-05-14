@@ -174,7 +174,7 @@ const createColumns = (rowCount: number): VirtualizedTableColumn<FieldId>[] => [
     id: "time",
     label: "Time",
     sortable: true,
-    width: 100,
+    width: 110,
   },
   {
     id: "detail",
