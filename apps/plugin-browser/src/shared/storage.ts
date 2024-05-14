@@ -6,7 +6,6 @@ import type {
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
-import type { AutomaticInferenceSettings } from "@local/hash-isomorphic-utils/flows/browser-plugin-types";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   SimpleProperties,
@@ -31,6 +30,7 @@ import browser from "webextension-polyfill";
 
 import { setDisabledBadge, setEnabledBadge } from "./badge";
 import { updateEntity } from "./storage/update-entity";
+import { AutomaticInferenceSettings } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
 
 type InferenceErrorStatus = {
   errorMessage: string;
