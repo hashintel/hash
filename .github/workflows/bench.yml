@@ -190,6 +190,7 @@ jobs:
             aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
 
       - name: Upload benchmark results
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: turbo run upload-benchmarks
 
       - name: Upload benchmark summary
@@ -361,6 +362,7 @@ jobs:
             aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
 
       - name: Upload benchmark results
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: turbo run upload-benchmarks
 
       - name: Upload benchmark summary
