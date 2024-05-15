@@ -23,7 +23,7 @@ const log = (
   const logMessage = `[Request ${requestId} – ${new Date().toISOString()}] ${message}`;
   const logFolderPath = path.join(__dirname, "logs");
 
-  if (process.env.NODE_ENV === "development") {
+  if (["test", "development"].includes(process.env.NODE_ENV ?? "")) {
     if (!fs.existsSync(logFolderPath)) {
       fs.mkdirSync(logFolderPath);
     }
@@ -31,7 +31,12 @@ const log = (
     fs.appendFileSync(logFilePath, `${logMessage}\n`);
   }
 
-  logToConsole[level](logMessage);
+  if (process.env.NODE_ENV === "test") {
+    // eslint-disable-next-line no-console
+    console.log(logMessage);
+  } else {
+    logToConsole[level](logMessage);
+  }
 };
 
 export const logger = {
