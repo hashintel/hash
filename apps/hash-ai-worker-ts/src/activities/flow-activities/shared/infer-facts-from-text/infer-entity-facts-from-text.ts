@@ -143,6 +143,7 @@ export const inferEntityFactsFromText = async (params: {
             },
           ],
         },
+        ...(retryContext?.retryMessages ?? []),
       ],
     },
     {
@@ -154,7 +155,9 @@ export const inferEntityFactsFromText = async (params: {
   );
 
   if (llmResponse.status !== "ok") {
-    throw new Error(`Failed to get response from LLM: ${llmResponse.status}`);
+    throw new Error(
+      `Failed to get response from LLM: ${stringify(llmResponse)}`,
+    );
   }
 
   const validFacts: Fact[] = [];
