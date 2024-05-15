@@ -287,6 +287,7 @@ export const proposeEntityFromFacts = async (params: {
         components: {
           linkData: false,
           numItems: false,
+          /** @todo: set this depending on whether entities are created as drafts? */
           requiredProperties: false,
         },
         properties,
@@ -327,6 +328,7 @@ export const proposeEntityFromFacts = async (params: {
               components: {
                 linkData: false,
                 numItems: false,
+                /** @todo: set this depending on whether entities are created as drafts? */
                 requiredProperties: false,
               },
               properties: outgoingLinkProperties,

@@ -84,6 +84,10 @@ export const proposeEntitiesFromFacts = async (params: {
         },
       );
 
+      /**
+       * @todo: consider batching requests made to the LLM so we propose multiple entities
+       * in a single LLM requests, to reduce the number of requests made to LLM providers.
+       */
       const proposeEntityFromFactsStatus = await proposeEntityFromFacts({
         entitySummary,
         facts: factsWithEntityAsSubject,
