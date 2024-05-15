@@ -41,14 +41,20 @@ const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
   },
 };
 
-const systemPrompt = dedent(`
+const generateSystemPrompt = (params: {
+  includesRelevantEntitiesPrompt?: boolean;
+}) =>
+  dedent(`
   You are an entity summary extraction agent.
 
   The user will provide you with:
     - "text": the text from which you should extract entity summaries.
     - "entityType": the type of the entities that need to be extracted from the text
+    ${params.includesRelevantEntitiesPrompt ? `- "relevantEntitiesPrompt": a prompt provided by the user indicating which entities should be included.` : ""}
 
-  You must extract all the entities which are of the provided type from the text, providing:
+  You must extract all the entities from the text which are of the provided type${params.includesRelevantEntitiesPrompt ? " and are relevant given the provided prompt" : ""}.
+  
+  For each ${params.includesRelevantEntitiesPrompt ? "relevant " : ""}entity, provide:
     - "name": the name of the entity, which can be used to identify the entity in the text.
     - "summary": a one sentence description of the entity. This must be entirely based on
       the provided text, and not any other knowledge you may have.
@@ -57,10 +63,11 @@ const systemPrompt = dedent(`
 export const getEntitySummariesFromText = async (params: {
   text: string;
   dereferencedEntityType: DereferencedEntityType;
+  relevantEntitiesPrompt?: string;
 }): Promise<{
   entitySummaries: EntitySummary[];
 }> => {
-  const { text, dereferencedEntityType } = params;
+  const { text, dereferencedEntityType, relevantEntitiesPrompt } = params;
 
   const { userAuthentication, flowEntityId, webId } = await getFlowContext();
 
@@ -76,12 +83,15 @@ export const getEntitySummariesFromText = async (params: {
               text: dedent(`
                 text: ${text}
                 entityType: ${JSON.stringify(dereferencedEntityType)}
+                ${relevantEntitiesPrompt ? `Relevant entities prompt: ${relevantEntitiesPrompt}` : ""}
               `),
             },
           ],
         },
       ],
-      systemPrompt,
+      systemPrompt: generateSystemPrompt({
+        includesRelevantEntitiesPrompt: !!relevantEntitiesPrompt,
+      }),
       tools: Object.values(toolDefinitions),
     },
     {

@@ -1,9 +1,5 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-
-import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity";
+import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types";
 import { logger } from "../../shared/activity-logger";
-import { getFlowContext } from "../../shared/get-flow-context";
-import { graphApiClient } from "../../shared/graph-api-client";
 import { stringify } from "../../shared/stringify";
 import type { EntitySummary } from "./infer-facts-from-text/get-entity-summaries-from-text";
 import { getEntitySummariesFromText } from "./infer-facts-from-text/get-entity-summaries-from-text";
@@ -12,7 +8,8 @@ import type { Fact } from "./infer-facts-from-text/types";
 
 export const inferFactsFromText = async (params: {
   text: string;
-  entityTypeIds: VersionedUrl[];
+  dereferencedEntityTypes: DereferencedEntityTypesByTypeId;
+  relevantEntitiesPrompt?: string;
   testingParams?: {
     existingEntitySummaries?: EntitySummary[];
   };
@@ -20,16 +17,12 @@ export const inferFactsFromText = async (params: {
   facts: Fact[];
   entitySummaries: EntitySummary[];
 }> => {
-  const { text, testingParams, entityTypeIds } = params;
-
-  const { userAuthentication } = await getFlowContext();
-
-  const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
-    entityTypeIds,
-    graphApiClient,
-    actorId: userAuthentication.actorId,
-    simplifyPropertyKeys: true,
-  });
+  const {
+    text,
+    testingParams,
+    dereferencedEntityTypes,
+    relevantEntitiesPrompt,
+  } = params;
 
   const entitySummaries: EntitySummary[] =
     testingParams?.existingEntitySummaries ??
@@ -44,6 +37,7 @@ export const inferFactsFromText = async (params: {
             await getEntitySummariesFromText({
               text,
               dereferencedEntityType: schema,
+              relevantEntitiesPrompt,
             });
 
           return entitySummariesOfType;
