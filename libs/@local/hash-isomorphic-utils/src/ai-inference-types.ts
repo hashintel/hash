@@ -135,6 +135,7 @@ export type ManualInferenceWebsocketRequestMessage = {
 
 export type CancelInferEntitiesWebsocketRequestMessage = {
   cookie: string;
+  flowRunId: string;
   type: "cancel-inference-request";
   requestUuid: string;
 };

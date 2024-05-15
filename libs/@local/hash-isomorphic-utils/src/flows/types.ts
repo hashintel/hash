@@ -10,6 +10,7 @@ import type {
   EntityId,
   EntityPropertiesObject,
   EntityUuid,
+  OwnedById,
 } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 
@@ -72,6 +73,14 @@ export type PersistedEntities = {
   persistedEntities: PersistedEntity[];
   failedEntityProposals: FailedEntityProposal[];
 };
+
+export type FlowInputs = [
+  {
+    flowDefinition: FlowDefinition;
+    flowTrigger: FlowTrigger;
+    webId: OwnedById;
+  },
+];
 
 export const textFormats = ["CSV", "HTML", "Markdown", "Plain"] as const;
 
@@ -444,7 +453,7 @@ export const detailedFlowFields = [
   "inputRequests",
   "outputs",
   "steps",
-];
+] as const;
 
 type DetailedFlowField = (typeof detailedFlowFields)[number];
 

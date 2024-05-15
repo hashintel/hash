@@ -10,7 +10,6 @@ import type {
 import {
   clearLocalStorage,
   getFromLocalStorage,
-  getSetFromLocalStorageValue,
   setInLocalStorage,
 } from "../shared/storage";
 import {
@@ -45,7 +44,7 @@ browser.runtime.onMessage.addListener(async (message: Message, sender) => {
 
   switch (message.type) {
     case "infer-entities":
-      return inferEntities(message, "user");
+      return inferEntities(message, "manual");
     case "cancel-infer-entities":
       return cancelInferEntities(message);
   }
@@ -98,26 +97,6 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
             ({ entityTypeId }) => entityTypeId,
           );
 
-          const inferenceRequests =
-            await getFromLocalStorage("inferenceRequests");
-
-          const pendingRequest = inferenceRequests?.find((request) => {
-            return (
-              request.sourceUrl === pageDetails.pageUrl &&
-              (request.status === "pending" ||
-                // Prevent requests for the same page refiring within 30 seconds of a previous one
-                (request.status === "complete" &&
-                  new Date().valueOf() -
-                    new Date(request.finishedAt ?? "").valueOf() <
-                    30_000)) &&
-              request.trigger === "passive"
-            );
-          });
-
-          if (pendingRequest) {
-            return;
-          }
-
           void inferEntities(
             {
               createAs: automaticInferenceConfig.createAs,
@@ -129,7 +108,7 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
               textInput: pageDetails.content,
               type: "infer-entities",
             },
-            "passive",
+            "manual",
           );
         }
       })
@@ -154,26 +133,3 @@ void getFromLocalStorage("automaticInferenceConfig").then((config) => {
     setDisabledBadge();
   }
 });
-
-const sixtyMinutesInMs = 60 * 60 * 1000;
-
-const setInferenceRequests = getSetFromLocalStorageValue("inferenceRequests");
-void setInferenceRequests((currentValue) =>
-  (currentValue ?? []).map((request) => {
-    if (request.status === "pending") {
-      const now = new Date();
-      const requestDate = new Date(request.createdAt);
-      const msSinceRequest = now.getTime() - requestDate.getTime();
-
-      if (msSinceRequest > sixtyMinutesInMs) {
-        return {
-          ...request,
-          errorMessage: "Request timed out",
-          status: "error",
-        };
-      }
-    }
-
-    return request;
-  }),
-);

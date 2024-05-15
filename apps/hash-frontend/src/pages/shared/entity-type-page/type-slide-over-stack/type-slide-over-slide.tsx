@@ -22,13 +22,13 @@ import { useCallback, useMemo, useState } from "react";
 
 import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { ArrowRightIcon } from "../../../../shared/icons/arrow-right";
-import { ArrowUpRightRegularFromSquareIcon } from "../../../../shared/icons/arrow-up-right-from-square-regular-icon";
 import { Link } from "../../../../shared/ui";
 import { useRouteNamespace } from "../../../[shortname]/shared/use-route-namespace";
 import { useDataTypesContext } from "../../data-types-context";
 import { EntityTypeContext } from "../shared/entity-type-context";
 import { EntityTypeHeader } from "../shared/entity-type-header";
 import { useEntityTypeValue } from "../use-entity-type-value";
+import { ArrowUpRightFromSquareRegularIcon } from "@hashintel/design-system/src/icon-arrow-up-right-from-square-regular";
 
 const CopyableOntologyChip: FunctionComponent<{
   entityType: EntityTypeWithMetadata;
@@ -93,7 +93,7 @@ const CopyableOntologyChip: FunctionComponent<{
             },
           }}
         >
-          <ArrowUpRightRegularFromSquareIcon />
+          <ArrowUpRightFromSquareRegularIcon />
         </IconButton>
       </Link>
     </Box>

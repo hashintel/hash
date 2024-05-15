@@ -52,6 +52,11 @@ if (fileSystem.existsSync(secretsPath)) {
 const isProduction = process.env.NODE_ENV === "production";
 const isDevelopment = process.env.NODE_ENV === "development";
 
+if (isDevelopment) {
+  process.env.BABEL_ENV = "development";
+  process.env.ASSET_PATH = "/";
+}
+
 if (isProduction && (!env.SENTRY_DSN || !env.SENTRY_AUTH_TOKEN)) {
   throw new Error(
     "Both SENTRY_DSN and SENTRY_AUTH_TOKEN must be set in environment for a production build. SENTRY_DSN is relied on at runtime, and they are both needed to build and upload source maps to Sentry.",

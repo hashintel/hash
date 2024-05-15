@@ -2,6 +2,7 @@ import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type { InferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type {
+  OutputDefinition,
   Payload,
   WebPage,
 } from "@local/hash-isomorphic-utils/flows/types";
@@ -61,3 +62,11 @@ export type AutomaticInferenceArguments = AutomaticInferenceTriggerInputs &
 
 export type ManualInferenceArguments = ManualInferenceTriggerInputs &
   BaseInferenceArguments;
+
+export const browserInferenceFlowOutput = {
+  name: "persistedEntities",
+  description: "The entities created or updated by the flow run",
+  payloadKind: "PersistedEntities",
+  array: true,
+  required: true,
+} as const satisfies Readonly<OutputDefinition>;

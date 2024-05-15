@@ -49,6 +49,7 @@ export const flowTypedef = gql`
 
   scalar ArbitraryJsonData
   scalar ExternalInputRequest
+  scalar FlowInputs
   scalar StepInput
   scalar StepRunOutput
   scalar StepProgressLog
@@ -119,12 +120,12 @@ export const flowTypedef = gql`
     - the EntityUuid of the Flow entity
     - the workflowId of the Temporal workflow, which is unique among all currently-executing Temporal workflow executions
 
-    There may be multiple runs with the same workflowId if a flow is 'continued as new' (see Temporal docs)
-    – the same workflowId/flowRunId is the mechanism by which consecutive runs which continue from a previous can be identified.
+    There may be multiple runs with the same workflowId if a flow is 'continued as new' (see Temporal docs), OR fails and is retried.
+    – the same workflowId/flowRunId is the mechanism by which consecutive runs which continue from/retry a previous can be identified.
 
-    While Temporal allows for re-use of workflowId across arbitrary flows, our business logic does not re-use them,
-    and they are only re-used in the 'continue as new' case, in which case we will need to combine the history
-    of those runs to form a complete picture of the flow's execution.
+    While Temporal allows for re-use of workflowId across arbitrary flows, our business logic does not re-use them, and they are only re-used:
+    1. in the 'continue as new' case, in which case we will need to combine the history of those runs to form a complete picture of the flow's execution.
+    2. in the retry case, in which case the failed runs are only important if we want to expose past failures to the user.
     """
     flowRunId: String!
     """
@@ -140,7 +141,7 @@ export const flowTypedef = gql`
     """
     startedAt: String!
     """
-    When the run began executing
+    When the run began executing (which may be after it was started if it has a delay before execution)
     """
     executedAt: String
     """
@@ -150,7 +151,7 @@ export const flowTypedef = gql`
     """
     Inputs to the flow run
     """
-    inputs: ArbitraryJsonData
+    inputs: FlowInputs!
     """
     Outputs of the flow run
     """

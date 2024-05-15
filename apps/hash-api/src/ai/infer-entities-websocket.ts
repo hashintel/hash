@@ -40,6 +40,7 @@ const inferEntitiesMessageHandler = async ({
     case "automatic-inference-request":
     case "manual-inference-request":
       await handleInferEntitiesRequest({
+        graphApiClient,
         temporalClient,
         message,
         user,

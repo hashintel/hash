@@ -9,6 +9,10 @@ import {
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import type { PropsWithChildren } from "react";
 import { createContext, useContext, useMemo, useState } from "react";
+import {
+  automaticBrowserInferenceFlowDefinition,
+  manualBrowserInferenceFlowDefinition,
+} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
 
 export type FlowDefinitionsContextType = {
   flowDefinitions: FlowDefinition[];
@@ -29,6 +33,8 @@ const exampleFlows: FlowDefinition[] = [
   inferUserEntitiesFromWebPageFlowDefinition,
   answerQuestionFlow,
   saveFileFromUrl,
+  manualBrowserInferenceFlowDefinition,
+  automaticBrowserInferenceFlowDefinition,
 ];
 
 export const FlowDefinitionsContextProvider = ({

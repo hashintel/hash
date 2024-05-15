@@ -17,11 +17,11 @@ export const handleCancelInferEntitiesRequest = async ({
   message: Omit<CancelInferEntitiesWebsocketRequestMessage, "cookie">;
   user: User;
 }) => {
-  const { requestUuid } = message;
+  const { flowRunId } = message;
 
   const flow = await getFlowRunEntityById({
     userAuthentication: { actorId: user.accountId },
-    flowRunId: requestUuid as EntityUuid,
+    flowRunId: flowRunId as EntityUuid,
     graphApiClient,
   });
 
@@ -29,7 +29,7 @@ export const handleCancelInferEntitiesRequest = async ({
     return;
   }
 
-  const workflowHandle = temporalClient.workflow.getHandle(requestUuid);
+  const workflowHandle = temporalClient.workflow.getHandle(flowRunId);
 
   void workflowHandle.cancel();
 };

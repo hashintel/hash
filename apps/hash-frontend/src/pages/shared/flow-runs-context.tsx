@@ -1,5 +1,6 @@
 import { useQuery } from "@apollo/client";
 import { getFlowRunsQuery } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
+import { StatusCode } from "@local/status";
 import type { PropsWithChildren } from "react";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useNodeId } from "reactflow";
@@ -90,7 +91,12 @@ export const useStatusForStep = (
       return {
         closedAt: selectedFlowRun.startedAt,
         logs: [],
-        outputs: selectedFlowRun.inputs[0].flowTrigger.outputs,
+        outputs: [
+          {
+            contents: selectedFlowRun.inputs[0].flowTrigger.outputs ?? [],
+            code: StatusCode.Ok,
+          },
+        ],
         scheduledAt: selectedFlowRun.startedAt,
         status: FlowStepStatus.Completed,
       };

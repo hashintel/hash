@@ -3,9 +3,9 @@ import type { Subtype } from "@local/advanced-types/subtype";
 import type {
   ExternalInputWebsocketRequestMessage,
   InferenceModelName,
-  InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
+import type { AutomaticInferenceSettings } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   SimpleProperties,
@@ -30,43 +30,12 @@ import browser from "webextension-polyfill";
 
 import { setDisabledBadge, setEnabledBadge } from "./badge";
 import { updateEntity } from "./storage/update-entity";
-import { AutomaticInferenceSettings } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
-
-type InferenceErrorStatus = {
-  errorMessage: string;
-  status: "error";
-};
-
-type InferenceCancelledStatus = {
-  data: InferEntitiesReturn;
-  status: "user-cancelled";
-};
-
-type InferenceCompleteStatus = {
-  data: InferEntitiesReturn;
-  status: "complete";
-};
-
-export type InferenceStatus =
-  | {
-      status: "not-started" | "pending";
-    }
-  | InferenceErrorStatus
-  | InferenceCancelledStatus
-  | InferenceCompleteStatus;
-
-export type PageEntityInference = InferenceStatus & {
-  createAs: "draft" | "live";
-  createdAt: string;
-  entityTypeIds: VersionedUrl[];
-  finishedAt?: string;
-  requestUuid: string;
-  model: InferenceModelName;
-  ownedById: OwnedById;
-  sourceTitle: string;
-  sourceUrl: string;
-  trigger: "passive" | "user";
-};
+import type {
+  ExternalInputRequestSignal,
+  PersistedEntity,
+  WebPage,
+} from "@local/hash-isomorphic-utils/flows/types";
+import type { FlowRun } from "../graphql/api-types.gen";
 
 type SimplifiedUser = Entity & {
   properties: Required<
@@ -108,7 +77,7 @@ export type PersistedUserSettings = Subtype<
       ownedById: OwnedById;
       targetEntityTypeIds: VersionedUrl[];
     };
-    popupTab: "one-off" | "automated" | "log";
+    popupTab: "one-off" | "automated" | "history";
   }
 >;
 
@@ -119,15 +88,30 @@ export type ExternalInputRequestById = {
   } | null;
 };
 
+export type MinimalFlowRun = Pick<
+  FlowRun,
+  | "flowDefinitionId"
+  | "flowRunId"
+  | "closedAt"
+  | "executedAt"
+  | "status"
+  | "inputs"
+> & { persistedEntities: PersistedEntity[]; webPage: WebPage };
+
+export type BrowserFlowsAndBackgroundRequests = {
+  browserFlowRuns: MinimalFlowRun[];
+  inputRequests: ExternalInputRequestSignal[];
+};
+
 /**
  * LocalStorage area cleared persisted when the browser is closed.
  * Cleared if the extension is loaded with no user present.
  */
 export type LocalStorage = PersistedUserSettings & {
+  browserFlowsAndBackgroundRequests: BrowserFlowsAndBackgroundRequests;
   entityTypesSubgraph: Subgraph<EntityTypeRootType> | null;
   entityTypes: EntityTypeWithMetadata[];
   externalInputRequests?: ExternalInputRequestById;
-  inferenceRequests: PageEntityInference[];
   user: UserAndLinkedData | null;
 };
 

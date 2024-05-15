@@ -1,29 +1,24 @@
-import type {
+import {
   AutomaticInferenceWebsocketRequestMessage,
   CancelInferEntitiesWebsocketRequestMessage,
+  CheckForExternalInputRequestsWebsocketRequestMessage,
   ExternalInputWebsocketResponseMessage,
   InferenceWebsocketServerMessage,
-  InferEntitiesReturn,
   ManualInferenceWebsocketRequestMessage,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type {
   AutomaticInferenceArguments,
   ManualInferenceArguments,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
-import type { Status } from "@local/status";
 import { v4 as uuid } from "uuid";
 import browser from "webextension-polyfill";
 
-import { setErroredBadge } from "../../shared/badge";
 import type { InferEntitiesRequest } from "../../shared/messages";
 import {
   getFromLocalStorage,
   getSetFromLocalStorageValue,
 } from "../../shared/storage";
 import { getWebsiteContent } from "./infer-entities/get-website-content";
-
-const setInferenceRequestValue =
-  getSetFromLocalStorageValue("inferenceRequests");
 
 const setExternalInputRequestsValue = getSetFromLocalStorageValue(
   "externalInputRequests",
@@ -69,14 +64,21 @@ const getWebSocket = async () => {
 
   ws = new WebSocket(websocketUrl);
 
-  const heartbeat = setInterval(() => {
-    ws?.send("ping");
+  const externalRequestPoll = setInterval(async () => {
+    const cookie = await getCookieString();
+
+    ws?.send(
+      JSON.stringify({
+        cookie,
+        type: "check-for-external-input-requests",
+      } satisfies CheckForExternalInputRequestsWebsocketRequestMessage),
+    );
   }, 20_000);
 
   ws.addEventListener("close", () => {
     console.log("Connection closed");
     ws = null;
-    clearInterval(heartbeat);
+    clearInterval(externalRequestPoll);
   });
 
   ws.addEventListener("open", () => {
@@ -175,9 +177,9 @@ const sendInferEntitiesMessage = async (
 };
 
 export const cancelInferEntities = async ({
-  requestUuid,
+  flowRunId,
 }: {
-  requestUuid: string;
+  flowRunId: string;
 }) => {
   const cookie = await getCookieString();
 
@@ -186,7 +188,8 @@ export const cancelInferEntities = async ({
   socket.send(
     JSON.stringify({
       cookie,
-      requestUuid,
+      flowRunId,
+      requestUuid: uuid(),
       type: "cancel-inference-request",
     } satisfies CancelInferEntitiesWebsocketRequestMessage),
   );
@@ -213,23 +216,8 @@ export const inferEntities = async (
 
   const requestUuid = uuid();
 
-  await setInferenceRequestValue((currentValue) => [
-    {
-      createAs,
-      createdAt: new Date().toISOString(),
-      entityTypeIds,
-      requestUuid,
-      model,
-      ownedById,
-      status: "pending",
-      sourceTitle,
-      sourceUrl,
-      trigger,
-    },
-    ...(currentValue ?? []),
-  ]);
-
   const basePayload = {
+    webId: ownedById,
     visitedWebPage: {
       kind: "WebPage",
       value: {
@@ -238,54 +226,36 @@ export const inferEntities = async (
         url: sourceUrl,
       },
     },
-  };
+  } as const satisfies AutomaticInferenceArguments;
 
-  const payload: AutomaticInferenceArguments | ManualInferenceArguments =
+  const inferenceArgs =
     trigger === "automatic"
-      ? basePayload
-      : {
-          ...basePayload,
-          draft: {
-            kind: "Boolean",
-            value: createAs === "draft",
-          },
-          entityTypeIds: entityTypeIds.map((entityTypeId) => ({
-            kind: "VersionedUrl",
-            value: entityTypeId,
-          })),
-          model: {
-            kind: "Text",
-            value: model,
-          },
-        };
+      ? ({
+          payload: basePayload,
+          requestUuid,
+          type: "automatic-inference-request",
+        } as const)
+      : ({
+          payload: {
+            ...basePayload,
+            draft: {
+              kind: "Boolean",
+              value: createAs === "draft",
+            },
+            entityTypeIds: {
+              kind: "VersionedUrl",
+              value: entityTypeIds,
+            },
+            model: {
+              kind: "Text",
+              value: model,
+            },
+          } as const satisfies ManualInferenceArguments,
+          requestUuid,
+          type: "manual-inference-request",
+        } as const);
 
-  try {
-    await sendInferEntitiesMessage({
-      requestUuid,
-      payload,
-      type:
-        trigger === "automatic"
-          ? "automatic-inference-request"
-          : "manual-inference-request",
-    });
-  } catch (err) {
-    setErroredBadge();
-
-    const errorMessage = (err as Error | Status<InferEntitiesReturn>).message;
-
-    await setInferenceRequestValue((currentValue) =>
-      (currentValue ?? []).map((request) =>
-        request.requestUuid === requestUuid
-          ? {
-              ...request,
-              errorMessage: errorMessage ?? "Unknown error – please contact us",
-              finishedAt: new Date().toISOString(),
-              status: "error",
-            }
-          : request,
-      ),
-    );
-  }
+  await sendInferEntitiesMessage(inferenceArgs);
 };
 
 /**

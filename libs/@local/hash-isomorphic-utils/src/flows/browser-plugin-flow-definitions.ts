@@ -2,9 +2,10 @@ import type {
   InputNameForAction,
   OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type {
+import {
   AutomaticInferenceTriggerInputName,
   AutomaticInferenceTriggerInputs,
+  browserInferenceFlowOutput,
   ManualInferenceTriggerInputName,
   ManualInferenceTriggerInputs,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
@@ -12,7 +13,7 @@ import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import type { EntityUuid } from "@local/hash-subgraph";
 
 export const manualBrowserInferenceFlowDefinition: FlowDefinition = {
-  name: "Entity research triggered manually from browser",
+  name: "Research triggered manually from browser",
   flowDefinitionId: "manual-browser-inference" as EntityUuid,
   description: "Find entities of the requested types in a web page",
   trigger: {
@@ -97,7 +98,7 @@ export const manualBrowserInferenceFlowDefinition: FlowDefinition = {
           inputName:
             "proposedEntities" satisfies InputNameForAction<"persistEntities">,
           kind: "step-output",
-          sourceStepId: "1",
+          sourceStepId: "0",
           sourceStepOutputName:
             "proposedEntities" satisfies OutputNameForAction<"inferEntitiesFromContent">,
         },
@@ -114,20 +115,18 @@ export const manualBrowserInferenceFlowDefinition: FlowDefinition = {
   outputs: [
     {
       stepId: "1",
-      stepOutputName: "persistedEntities",
-      name: "persistedEntities" as const satisfies OutputNameForAction<"persistEntities">,
-      payloadKind: "PersistedEntity",
-      array: true,
-      required: true,
+      stepOutputName:
+        "persistedEntities" as const satisfies OutputNameForAction<"persistEntities">,
+      ...browserInferenceFlowOutput,
     },
   ],
 };
 
 export const automaticBrowserInferenceFlowDefinition: FlowDefinition = {
-  name: "Entity research triggered automatically from browser",
+  name: "Research triggered automatically from browser",
   flowDefinitionId: "automatic-browser-inference" as EntityUuid,
   description:
-    "Find entities in a web page according to the user's automatic browsing settings",
+    "Find entities in a web page according to the user's passive analysis settings",
   trigger: {
     kind: "trigger",
     description: "Triggered automatically when the user visited a web page",
@@ -220,11 +219,9 @@ export const automaticBrowserInferenceFlowDefinition: FlowDefinition = {
   outputs: [
     {
       stepId: "2",
-      stepOutputName: "persistedEntities",
-      name: "persistedEntities" as const satisfies OutputNameForAction<"persistEntities">,
-      payloadKind: "PersistedEntity",
-      array: true,
-      required: true,
+      stepOutputName:
+        "persistedEntities" as const satisfies OutputNameForAction<"persistEntities">,
+      ...browserInferenceFlowOutput,
     },
   ],
 };
