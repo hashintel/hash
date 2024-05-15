@@ -92,6 +92,7 @@ vi.mock("@local/hash-backend-utils/temporal", async (importOriginal) => {
     createTemporalClient: async () => ({
       workflow: {
         getHandle: () => ({
+          signal: async () => {},
           // eslint-disable-next-line @typescript-eslint/require-await
           fetchHistory: async () => {
             const mockedFlorWorkflowParams: Partial<RunFlowWorkflowParams> = {
