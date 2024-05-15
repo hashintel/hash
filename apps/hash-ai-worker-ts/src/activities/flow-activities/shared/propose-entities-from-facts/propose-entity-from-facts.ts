@@ -1,4 +1,6 @@
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import type { BaseUrl } from "@local/hash-subgraph";
 import dedent from "dedent";
 
@@ -16,6 +18,7 @@ import type {
 import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message";
 import type { LlmToolDefinition } from "../../../shared/get-llm-response/types";
 import { graphApiClient } from "../../../shared/graph-api-client";
+import { stringify } from "../../../shared/stringify";
 import type { EntitySummary } from "../infer-facts-from-text/get-entity-summaries-from-text";
 import type { Fact } from "../infer-facts-from-text/types";
 
@@ -25,8 +28,12 @@ type ToolName = (typeof toolNames)[number];
 
 const generateToolDefinitions = (params: {
   dereferencedEntityType: DereferencedEntityType;
+  proposeOutgoingLinkEntityTypes: {
+    schema: DereferencedEntityType;
+    simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
+  }[];
 }): Record<ToolName, LlmToolDefinition> => {
-  const { dereferencedEntityType } = params;
+  const { dereferencedEntityType, proposeOutgoingLinkEntityTypes } = params;
 
   return {
     proposeEntity: {
@@ -45,8 +52,54 @@ const generateToolDefinitions = (params: {
               properties: dereferencedEntityType.properties,
             }),
           },
+          ...(proposeOutgoingLinkEntityTypes.length > 0
+            ? {
+                outgoingLinks: {
+                  type: "array",
+                  items: {
+                    oneOf: proposeOutgoingLinkEntityTypes.map(
+                      ({ schema: dereferencedOutgoingLinkEntityType }) => ({
+                        type: "object",
+                        properties: {
+                          entityTypeId: {
+                            type: "string",
+                            enum: [dereferencedOutgoingLinkEntityType.$id],
+                            description:
+                              "The entity type ID of the target entity",
+                          },
+                          targetEntityLocalId: {
+                            type: "string",
+                            description: "The local ID of the target entity",
+                          },
+                          properties: {
+                            description:
+                              "The properties to set on the outgoing link",
+                            default: {},
+                            type: "object",
+                            properties: stripIdsFromDereferencedProperties({
+                              properties:
+                                dereferencedOutgoingLinkEntityType.properties,
+                            }),
+                          },
+                        },
+                        required: [
+                          "entityTypeId",
+                          "targetEntityLocalId",
+                          "properties",
+                        ],
+                      }),
+                    ),
+                  },
+                },
+              }
+            : {}),
         },
-        required: ["properties"],
+        required: [
+          "properties",
+          ...(proposeOutgoingLinkEntityTypes.length > 0
+            ? ["outgoingLinks"]
+            : []),
+        ],
       },
     },
     abandonEntity: {
@@ -68,11 +121,13 @@ const generateToolDefinitions = (params: {
   };
 };
 
-const systemPrompt = dedent(`
+const generateSystemPrompt = (params: { proposingOutgoingLinks: boolean }) =>
+  dedent(`
   You are an entity proposal agent.
 
   The user will provide you with:
-    - "facts": a list of facts about the entity
+    - Facts: a list of facts about the entity
+    ${params.proposingOutgoingLinks ? `Possible outgoing link target entities: a list of entities which can be used as target entities when defining outgoing links on the entity` : ``}
   
   The user has requested that you fill out as many properties as possible, so please do so. Do not optimize for short responses.
 
@@ -89,6 +144,11 @@ export const proposeEntityFromFacts = async (params: {
   facts: Fact[];
   dereferencedEntityType: DereferencedEntityType;
   simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
+  proposeOutgoingLinkEntityTypes: {
+    schema: DereferencedEntityType;
+    simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
+  }[];
+  possibleOutgoingLinkTargetEntitySummaries: EntitySummary[];
   retryContext?: {
     retryCount: number;
     retryMessages: LlmMessage[];
@@ -97,6 +157,7 @@ export const proposeEntityFromFacts = async (params: {
   | {
       status: "ok";
       proposedEntity: ProposedEntity;
+      proposedOutgoingLinkEntities: ProposedEntity[];
     }
   | {
       status: "abandoned";
@@ -112,15 +173,28 @@ export const proposeEntityFromFacts = async (params: {
     dereferencedEntityType,
     simplifiedPropertyTypeMappings,
     retryContext,
+    proposeOutgoingLinkEntityTypes,
+    possibleOutgoingLinkTargetEntitySummaries,
   } = params;
 
   const { userAuthentication, flowEntityId, webId } = await getFlowContext();
 
+  const proposingOutgoingLinks =
+    proposeOutgoingLinkEntityTypes.length > 0 &&
+    possibleOutgoingLinkTargetEntitySummaries.length > 0;
+
   const llmResponse = await getLlmResponse(
     {
       model: "gpt-4-0125-preview",
-      tools: Object.values(generateToolDefinitions({ dereferencedEntityType })),
-      systemPrompt,
+      tools: Object.values(
+        generateToolDefinitions({
+          dereferencedEntityType,
+          proposeOutgoingLinkEntityTypes,
+        }),
+      ),
+      systemPrompt: generateSystemPrompt({
+        proposingOutgoingLinks,
+      }),
       messages: [
         {
           role: "user",
@@ -129,6 +203,14 @@ export const proposeEntityFromFacts = async (params: {
               type: "text",
               text: dedent(`
                 Facts: ${JSON.stringify(facts)}
+                ${
+                  proposingOutgoingLinks
+                    ? `Possible outgoing link target entities: ${JSON.stringify(
+                        possibleOutgoingLinkTargetEntitySummaries,
+                      )}`
+                    : ""
+                }
+              
               `),
             },
           ],
@@ -145,7 +227,9 @@ export const proposeEntityFromFacts = async (params: {
   );
 
   if (llmResponse.status !== "ok") {
-    throw new Error(`Failed to get response from LLM: ${llmResponse.status}`);
+    throw new Error(
+      `Failed to get response from LLM: ${stringify(llmResponse)}`,
+    );
   }
 
   const retry = (retryParams: { retryMessage: LlmUserMessage }) => {
@@ -177,15 +261,25 @@ export const proposeEntityFromFacts = async (params: {
   );
 
   if (proposeEntityToolCall) {
-    const { properties: simplifiedProperties } =
+    const { properties: simplifiedProperties, outgoingLinks } =
       proposeEntityToolCall.input as {
         properties: Record<string, EntityPropertyValueWithSimplifiedProperties>;
+        outgoingLinks?: {
+          entityTypeId: string;
+          targetEntityLocalId: string;
+          properties: Record<
+            string,
+            EntityPropertyValueWithSimplifiedProperties
+          >;
+        }[];
       };
 
     const properties = mapSimplifiedPropertiesToProperties({
       simplifiedProperties,
       simplifiedPropertyTypeMappings,
     });
+
+    const retryToolCallMessages: string[] = [];
 
     try {
       await graphApiClient.validateEntity(userAuthentication.actorId, {
@@ -200,6 +294,69 @@ export const proposeEntityFromFacts = async (params: {
     } catch (error) {
       const invalidReason = `${extractErrorMessage(error)}.`;
 
+      retryToolCallMessages.push(
+        `The properties of the proposed entity are invalid. Invalid reason: ${invalidReason}`,
+      );
+    }
+
+    const proposedOutgoingLinkEntities: ProposedEntity[] = [];
+
+    if (proposingOutgoingLinks && outgoingLinks) {
+      await Promise.all(
+        outgoingLinks.map(async (outgoingLink) => {
+          const outgoingLinkSimplifiedPropertyTypeMappings =
+            proposeOutgoingLinkEntityTypes.find(
+              ({ schema }) => schema.$id === outgoingLink.entityTypeId,
+            )?.simplifiedPropertyTypeMappings;
+
+          if (!outgoingLinkSimplifiedPropertyTypeMappings) {
+            throw new Error(
+              `Could not find simplified property type mappings for entity type ID: ${outgoingLink.entityTypeId}`,
+            );
+          }
+
+          const outgoingLinkProperties = mapSimplifiedPropertiesToProperties({
+            simplifiedProperties: outgoingLink.properties,
+            simplifiedPropertyTypeMappings:
+              outgoingLinkSimplifiedPropertyTypeMappings,
+          });
+
+          try {
+            await graphApiClient.validateEntity(userAuthentication.actorId, {
+              entityTypes: [outgoingLink.entityTypeId],
+              components: {
+                linkData: false,
+                numItems: false,
+                requiredProperties: false,
+              },
+              properties: outgoingLinkProperties,
+            });
+          } catch (error) {
+            const invalidReason = `${extractErrorMessage(error)}.`;
+
+            retryToolCallMessages.push(
+              `The properties of a proposed outgoing link are invalid. Invalid reason: ${invalidReason}`,
+            );
+          }
+
+          proposedOutgoingLinkEntities.push({
+            localEntityId: generateUuid(),
+            sourceEntityId: {
+              kind: "proposed-entity",
+              localId: entitySummary.localId,
+            },
+            targetEntityId: {
+              kind: "proposed-entity",
+              localId: outgoingLink.targetEntityLocalId,
+            },
+            entityTypeId: outgoingLink.entityTypeId as VersionedUrl,
+            properties: outgoingLinkProperties,
+          });
+        }),
+      );
+    }
+
+    if (retryToolCallMessages.length > 0) {
       return retry({
         retryMessage: {
           role: "user",
@@ -208,11 +365,9 @@ export const proposeEntityFromFacts = async (params: {
               type: "tool_result",
               tool_use_id: proposeEntityToolCall.id,
               content: dedent(`
-                The provided entity proposal is invalid.
-
-                Invalid reason: ${invalidReason}
-
-                Make another call to "proposeEntity" addressing the issue.
+                ${retryToolCallMessages.join("\n")}
+                
+                Make another call to "proposeEntity" addressing the issue(s).
               `),
               is_error: true,
             },
@@ -230,6 +385,7 @@ export const proposeEntityFromFacts = async (params: {
     return {
       status: "ok",
       proposedEntity,
+      proposedOutgoingLinkEntities,
     };
   }
 

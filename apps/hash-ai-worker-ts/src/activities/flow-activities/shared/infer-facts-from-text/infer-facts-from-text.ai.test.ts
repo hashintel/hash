@@ -35,7 +35,7 @@ test.skip(
   },
 );
 
-const ftse350EntitySummaries: EntitySummary[] = [
+const _ftse350EntitySummaries: EntitySummary[] = [
   {
     localId: "6916156b-e759-41ad-b1da-2cf7af05d223",
     name: "HUNTING PLC ORD 25P",
@@ -130,10 +130,9 @@ test(
       text: htmlContent,
       entityTypeIds: [
         "https://hash.ai/@ftse/types/entity-type/stock-market-constituent/v/1",
+        "https://hash.ai/@ftse/types/entity-type/stock-market-index/v/1",
+        "https://hash.ai/@ftse/types/entity-type/appears-in-index/v/1",
       ],
-      testingParams: {
-        existingEntitySummaries: ftse350EntitySummaries,
-      },
     });
 
     // eslint-disable-next-line no-console

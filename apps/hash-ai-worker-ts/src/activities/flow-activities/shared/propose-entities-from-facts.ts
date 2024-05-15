@@ -1,7 +1,9 @@
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
+import type { BaseUrl } from "@local/hash-subgraph/.";
 
 import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types";
 import { logger } from "../../shared/activity-logger";
+import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
 import { stringify } from "../../shared/stringify";
 import type { EntitySummary } from "./infer-facts-from-text/get-entity-summaries-from-text";
 import type { Fact } from "./infer-facts-from-text/types";
@@ -35,11 +37,67 @@ export const proposeEntitiesFromFacts = async (params: {
         (fact) => fact.subjectEntityLocalId === entitySummary.localId,
       );
 
+      const proposeOutgoingLinkEntityTypes: {
+        schema: DereferencedEntityType;
+        simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
+      }[] = Object.entries(dereferencedEntityTypes)
+        .filter(([entityTypeId]) =>
+          Object.keys(dereferencedEntityType.links ?? {}).includes(
+            entityTypeId,
+          ),
+        )
+        .map(
+          ([
+            _,
+            {
+              schema,
+              simplifiedPropertyTypeMappings:
+                outgoingLinkEntityTypeSimplifiedPropertyTypeMappings,
+            },
+          ]) => {
+            if (!outgoingLinkEntityTypeSimplifiedPropertyTypeMappings) {
+              throw new Error(
+                `Could not find simplified property type mappings for entity summary: ${JSON.stringify(
+                  entitySummary,
+                )}`,
+              );
+            }
+
+            return {
+              schema,
+              simplifiedPropertyTypeMappings:
+                outgoingLinkEntityTypeSimplifiedPropertyTypeMappings,
+            };
+          },
+        );
+
+      const possibleOutgoingLinkTargetEntitySummaries = entitySummaries.filter(
+        (potentialTargetEntitySummary) => {
+          const someFactIncludesTargetEntityAsObject =
+            factsWithEntityAsSubject.some(
+              (fact) =>
+                fact.objectEntityLocalId ===
+                potentialTargetEntitySummary.localId,
+            );
+
+          return someFactIncludesTargetEntityAsObject;
+        },
+      );
+
       const proposeEntityFromFactsStatus = await proposeEntityFromFacts({
         entitySummary,
         facts: factsWithEntityAsSubject,
         dereferencedEntityType,
         simplifiedPropertyTypeMappings,
+        /**
+         * We only propose outgoing links if there is more than one possible
+         * target for the link.
+         */
+        proposeOutgoingLinkEntityTypes:
+          possibleOutgoingLinkTargetEntitySummaries.length > 0
+            ? proposeOutgoingLinkEntityTypes
+            : [],
+        possibleOutgoingLinkTargetEntitySummaries,
       });
 
       if (proposeEntityFromFactsStatus.status !== "ok") {
@@ -50,11 +108,10 @@ export const proposeEntitiesFromFacts = async (params: {
         return [];
       }
 
-      /** @todo: propose links with the entity as their source */
+      const { proposedEntity, proposedOutgoingLinkEntities } =
+        proposeEntityFromFactsStatus;
 
-      const { proposedEntity } = proposeEntityFromFactsStatus;
-
-      return proposedEntity;
+      return [proposedEntity, ...proposedOutgoingLinkEntities];
     }),
   ).then((unflattenedProposedEntities) => unflattenedProposedEntities.flat());
 
