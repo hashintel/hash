@@ -150,7 +150,7 @@
     "@types/node": "20.12.3",
     "@types/react": "18.2.68",
     "eslint": "8.57.0",
-    "rimraf": "5.0.6",
+    "rimraf": "5.0.7",
     "rollup": "4.12.0"
   },
   "peerDependencies": {
