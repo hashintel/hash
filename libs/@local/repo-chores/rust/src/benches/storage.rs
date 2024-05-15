@@ -36,6 +36,26 @@ impl S3Storage {
         }
     }
 
+    async fn put_text_file(
+        &self,
+        key: &str,
+        body: &(impl Serialize + Sync),
+    ) -> Result<PutObjectOutput, Report<UploadError>> {
+        self.client
+            .put_object()
+            .bucket(self.bucket.to_string())
+            .key(key)
+            .content_type("application/json")
+            .body(
+                serde_json::to_vec_pretty(body)
+                    .change_context(UploadError::Serialize)?
+                    .into(),
+            )
+            .send()
+            .await
+            .change_context(UploadError::Upload)
+    }
+
     async fn put_json_file(
         &self,
         key: &str,

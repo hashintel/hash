@@ -29,11 +29,11 @@ pub(crate) struct Args {
 }
 
 pub(super) fn run(args: Args) -> Result<(), Box<dyn Error + Send + Sync>> {
-    struct BenchFormatter<'b>(Vec<Benchmark>, &'b str);
+    struct BenchFormatter<'b>(&'b [Benchmark], &'b str);
 
     impl Display for BenchFormatter<'_> {
         fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-            criterion::format_github_markdown(&self.0, f, self.1)
+            criterion::format_github_markdown(self.0, f, self.1)
         }
     }
 
@@ -45,12 +45,16 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn Error + Send + Sync>> {
         .transpose()?
         .unwrap_or_else(|| Box::new(io::stdout()));
 
+    let benchmarks =
+        Benchmark::gather(criterion_directory().change_context(AnalyzeError::ReadInput)?)
+            .collect::<Result<Vec<_>, _>>()?;
+
     writeln!(
         output,
         "{}",
         BenchFormatter(
             Benchmark::gather(criterion_directory().change_context(AnalyzeError::ReadInput)?)
-                .collect::<Result<_, _>>()?,
+                .collect::<Result<Vec<_>, _>>()?,
             &args.baseline
         )
     )?;
