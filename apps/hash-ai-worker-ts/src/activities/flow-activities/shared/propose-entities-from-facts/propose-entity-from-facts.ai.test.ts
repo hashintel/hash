@@ -62,6 +62,8 @@ test(
       facts: huntingPlcEntityFacts,
       dereferencedEntityType,
       simplifiedPropertyTypeMappings: simplifiedPropertyTypeMappings!,
+      proposeOutgoingLinkEntityTypes: [],
+      possibleOutgoingLinkTargetEntitySummaries: [],
     });
 
     expect(proposeEntityFromFactsStatus).toBeDefined();

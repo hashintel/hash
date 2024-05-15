@@ -2,7 +2,10 @@ import "../../../../shared/testing-utilities/mock-get-flow-context";
 
 import { expect, test } from "vitest";
 
+import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity";
 import { getWebPageActivity } from "../../../get-web-page-activity";
+import { getFlowContext } from "../../../shared/get-flow-context";
+import { graphApiClient } from "../../../shared/graph-api-client";
 import { inferFactsFromText } from "../infer-facts-from-text";
 import type { EntitySummary } from "./get-entity-summaries-from-text";
 
@@ -25,7 +28,7 @@ test.skip(
   async () => {
     const { facts } = await inferFactsFromText({
       text: microsoftWikipediaParagraph,
-      entityTypeIds: [],
+      dereferencedEntityTypes: {},
     });
 
     expect(facts).toBeDefined();
@@ -126,13 +129,22 @@ test(
       sanitizeForLlm: true,
     });
 
-    const { facts, entitySummaries } = await inferFactsFromText({
-      text: htmlContent,
+    const { userAuthentication } = await getFlowContext();
+
+    const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
       entityTypeIds: [
         "https://hash.ai/@ftse/types/entity-type/stock-market-constituent/v/1",
         "https://hash.ai/@ftse/types/entity-type/stock-market-index/v/1",
         "https://hash.ai/@ftse/types/entity-type/appears-in-index/v/1",
       ],
+      actorId: userAuthentication.actorId,
+      graphApiClient,
+      simplifyPropertyKeys: true,
+    });
+
+    const { facts, entitySummaries } = await inferFactsFromText({
+      text: htmlContent,
+      dereferencedEntityTypes,
     });
 
     // eslint-disable-next-line no-console
