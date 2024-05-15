@@ -126,7 +126,7 @@ test(
       sanitizeForLlm: true,
     });
 
-    const { facts } = await inferFactsFromText({
+    const { facts, entitySummaries } = await inferFactsFromText({
       text: htmlContent,
       entityTypeIds: [
         "https://hash.ai/@ftse/types/entity-type/stock-market-constituent/v/1",
@@ -135,6 +135,9 @@ test(
         existingEntitySummaries: ftse350EntitySummaries,
       },
     });
+
+    // eslint-disable-next-line no-console
+    console.log(JSON.stringify({ facts, entitySummaries }, null, 2));
 
     expect(facts).toBeDefined();
   },
