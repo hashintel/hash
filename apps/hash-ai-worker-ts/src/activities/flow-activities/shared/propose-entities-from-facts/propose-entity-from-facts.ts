@@ -305,14 +305,24 @@ export const proposeEntityFromFacts = async (params: {
     if (proposingOutgoingLinks && outgoingLinks) {
       await Promise.all(
         outgoingLinks.map(async (outgoingLink) => {
-          const outgoingLinkSimplifiedPropertyTypeMappings =
+          const {
+            schema: dereferencedOutgoingLinkEntityType,
+            simplifiedPropertyTypeMappings:
+              outgoingLinkSimplifiedPropertyTypeMappings,
+          } =
             proposeOutgoingLinkEntityTypes.find(
               ({ schema }) => schema.$id === outgoingLink.entityTypeId,
-            )?.simplifiedPropertyTypeMappings;
+            ) ?? {};
 
           if (!outgoingLinkSimplifiedPropertyTypeMappings) {
             throw new Error(
               `Could not find simplified property type mappings for entity type ID: ${outgoingLink.entityTypeId}`,
+            );
+          }
+
+          if (!dereferencedOutgoingLinkEntityType) {
+            throw new Error(
+              `Could not find dereferenced entity type for entity type ID: ${outgoingLink.entityTypeId}`,
             );
           }
 
@@ -341,8 +351,22 @@ export const proposeEntityFromFacts = async (params: {
             );
           }
 
+          const targetEntitySummary =
+            possibleOutgoingLinkTargetEntitySummaries.find(
+              ({ localId }) => localId === outgoingLink.targetEntityLocalId,
+            );
+
+          if (!targetEntitySummary) {
+            retryToolCallMessages.push(
+              `The target entity with local ID ${outgoingLink.targetEntityLocalId} does not exist.`,
+            );
+
+            return;
+          }
+
           proposedOutgoingLinkEntities.push({
             localEntityId: generateUuid(),
+            summary: `"${dereferencedOutgoingLinkEntityType.title}" link with source ${entitySummary.name} and target ${targetEntitySummary.name}`,
             sourceEntityId: {
               kind: "proposed-entity",
               localId: entitySummary.localId,
@@ -380,6 +404,7 @@ export const proposeEntityFromFacts = async (params: {
 
     const proposedEntity: ProposedEntity = {
       localEntityId: entitySummary.localId,
+      summary: entitySummary.summary,
       entityTypeId: dereferencedEntityType.$id,
       properties,
     };
