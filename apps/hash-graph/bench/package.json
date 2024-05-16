@@ -6,8 +6,7 @@
     "bench:integration": "cargo bench",
     "test:integration": "cargo hack test --feature-powerset --all-targets"
   },
-  "dependencies": {},
-  "devDependencies": {
+  "dependencies": {
     "@blockprotocol/type-system-rs": "0.0.0-private",
     "@rust/authorization": "0.0.0-private",
     "@rust/graph": "0.0.0-private",
