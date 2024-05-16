@@ -35,7 +35,7 @@ const UrlChip = ({ type, url }: { type: RowType; url: string }) => (
           display: "block",
           fontFamily: "monospace",
           fontSize: 12,
-          maxWidth: type === "manual" ? 190 : 120,
+          maxWidth: type === "manual" ? 190 : 110,
           overflow: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
@@ -83,7 +83,7 @@ export const HistoryRow = ({
                 <MicroscopeRegularIcon
                   sx={{
                     ...iconSx,
-                    mr: 1,
+                    mr: 0.6,
                   }}
                 />
                 Analyze
@@ -91,7 +91,6 @@ export const HistoryRow = ({
               <IconButton
                 onClick={() => setExpanded(!expanded)}
                 sx={{
-                  ml: 0.3,
                   p: 0.4,
                   "& svg": { fontSize: 13 },
                   "@media (prefers-color-scheme: dark)": {

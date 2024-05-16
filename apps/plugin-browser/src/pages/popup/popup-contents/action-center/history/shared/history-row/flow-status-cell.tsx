@@ -14,11 +14,11 @@ import { sendMessageToBackground } from "../../../../../../shared/messages";
 import { CellWithHoverButton } from "./cell-with-hover-button";
 import { Chip } from "./chip";
 
-const flowStatusToStatusText = (status: FlowRunStatus): string => {
+const flowStatusToStatusText = (status: FlowRunStatus) => {
   switch (status) {
     case FlowRunStatus.Running:
     case FlowRunStatus.ContinuedAsNew:
-      return "In Progress";
+      return "Running";
     case FlowRunStatus.Completed:
       return "Done";
     case FlowRunStatus.Cancelled:
@@ -88,7 +88,7 @@ export const FlowStatusCell = ({ flowRun }: { flowRun: MinimalFlowRun }) => {
     setCancellationRequested(true);
   };
 
-  if (statusText === "In Progress") {
+  if (statusText === "Running") {
     return (
       <CellWithHoverButton
         button={
