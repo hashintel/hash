@@ -10,12 +10,9 @@ mod task;
 pub(crate) mod test;
 
 use alloc::sync::Arc;
-use core::fmt::Debug;
-use std::io;
 
 use error_stack::{Result, ResultExt};
-use futures::{stream::StreamExt, Sink, Stream};
-use harpc_wire_protocol::{request::Request, response::Response};
+use futures::stream::StreamExt;
 use libp2p::{core::transport::ListenerId, metrics, Multiaddr, PeerId, StreamProtocol};
 use tokio::io::BufStream;
 use tokio_util::{
@@ -25,7 +22,7 @@ use tokio_util::{
 pub use self::config::TransportConfig;
 use self::{
     client::ClientCodec,
-    connection::IncomingConnections,
+    connection::{IncomingConnections, OutgoingConnection},
     error::{OpenStreamError, TransportError},
     ipc::TransportLayerIpc,
     task::Task,
@@ -162,16 +159,7 @@ impl TransportLayer {
     ///
     /// If the background task cannot be reached, crashes while processing the request or the remote
     /// peer does not support the protocol.
-    pub async fn dial(
-        &self,
-        peer: PeerId,
-    ) -> Result<
-        (
-            impl Sink<Request, Error: Debug + Send> + Send + Sync + 'static,
-            impl Stream<Item = Result<Response, io::Error>> + Send + Sync + 'static,
-        ),
-        TransportError,
-    > {
+    pub async fn dial(&self, peer: PeerId) -> Result<OutgoingConnection, TransportError> {
         let mut control = self.ipc.control().await?;
 
         let stream = control
@@ -186,6 +174,10 @@ impl TransportLayer {
 
         let (sink, stream) = stream.split();
 
-        Ok((sink, stream))
+        Ok(OutgoingConnection {
+            peer_id: peer,
+            sink,
+            stream,
+        })
     }
 }

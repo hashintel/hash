@@ -7,7 +7,7 @@ use tokio_util::sync::CancellationToken;
 
 use self::connection::Connection;
 use super::error::SessionError;
-use crate::transport::TransportLayer;
+use crate::transport::{connection::OutgoingConnection, TransportLayer};
 
 pub struct SessionLayer {
     transport: TransportLayer,
@@ -33,7 +33,7 @@ impl SessionLayer {
             .await
             .change_context(SessionError)?;
 
-        let (sink, stream) = self
+        let OutgoingConnection { sink, stream, .. } = self
             .transport
             .dial(peer)
             .await

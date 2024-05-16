@@ -9,7 +9,7 @@ use futures::{
     stream::{SplitSink, SplitStream},
     Stream,
 };
-use harpc_wire_protocol::response::Response;
+use harpc_wire_protocol::{request::Request, response::Response};
 use libp2p::PeerId;
 use tokio::io::BufStream;
 use tokio_util::{
@@ -17,18 +17,17 @@ use tokio_util::{
     compat::{Compat, FuturesAsyncReadCompatExt},
 };
 
-use super::server::ServerCodec;
+use super::{client::ClientCodec, server::ServerCodec};
 
-type InternalDuplex = Framed<BufStream<Compat<libp2p::Stream>>, ServerCodec>;
-
-type ResponseSink = SplitSink<InternalDuplex, Response>;
-type RequestStream = SplitStream<InternalDuplex>;
+type IncomingDuplex = Framed<BufStream<Compat<libp2p::Stream>>, ServerCodec>;
+type IncomingSink = SplitSink<IncomingDuplex, Response>;
+type IncomingStream = SplitStream<IncomingDuplex>;
 
 pub struct IncomingConnection {
     pub peer_id: PeerId,
 
-    pub sink: ResponseSink,
-    pub stream: RequestStream,
+    pub sink: IncomingSink,
+    pub stream: IncomingStream,
 }
 
 pin_project_lite::pin_project! {
@@ -60,4 +59,15 @@ impl Stream for IncomingConnections {
             stream,
         }))
     }
+}
+
+type OutgoingDuplex = Framed<BufStream<Compat<libp2p::Stream>>, ClientCodec>;
+type OutgoingSink = SplitSink<OutgoingDuplex, Request>;
+type OutgoingStream = SplitStream<OutgoingDuplex>;
+
+pub struct OutgoingConnection {
+    pub peer_id: PeerId,
+
+    pub sink: OutgoingSink,
+    pub stream: OutgoingStream,
 }

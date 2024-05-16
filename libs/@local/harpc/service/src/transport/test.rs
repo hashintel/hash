@@ -26,7 +26,7 @@ use libp2p::{
 use tokio_util::sync::CancellationToken;
 
 use super::{TransportConfig, TransportLayer};
-use crate::transport::connection::IncomingConnection;
+use crate::transport::connection::{IncomingConnection, OutgoingConnection};
 
 static EXAMPLE_REQUEST: Request = Request {
     header: RequestHeader {
@@ -187,7 +187,7 @@ async fn establish_connection() {
         .await
         .expect("should be able to lookup peer");
 
-    let (sink, stream) = client
+    let OutgoingConnection { sink, stream, .. } = client
         .dial(server_id)
         .await
         .expect("should be able to dial");
@@ -242,7 +242,9 @@ async fn send_request() {
         .await
         .expect("should be able to lookup peer");
 
-    let (mut sink, stream) = client
+    let OutgoingConnection {
+        mut sink, stream, ..
+    } = client
         .dial(server_id)
         .await
         .expect("should be able to dial");
@@ -306,7 +308,11 @@ async fn send_request_response() {
         .await
         .expect("should be able to lookup peer");
 
-    let (mut sink, mut stream) = client
+    let OutgoingConnection {
+        mut sink,
+        mut stream,
+        ..
+    } = client
         .dial(server_id)
         .await
         .expect("should be able to dial");
@@ -387,7 +393,11 @@ async fn send_request_response_multiple() {
         .await
         .expect("should be able to lookup peer");
 
-    let (mut sink, mut stream) = client
+    let OutgoingConnection {
+        mut sink,
+        mut stream,
+        ..
+    } = client
         .dial(server_id)
         .await
         .expect("should be able to dial");

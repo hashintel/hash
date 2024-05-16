@@ -7,12 +7,15 @@ pub(crate) mod test;
 pub mod transaction;
 
 use alloc::sync::Arc;
+use core::{
+    pin::Pin,
+    task::{ready, Context, Poll},
+};
 
 use error_stack::{Result, ResultExt};
-use futures::Stream;
+use futures::{stream::FusedStream, Stream};
 use libp2p::Multiaddr;
 use tokio::sync::{broadcast, mpsc, Semaphore};
-use tokio_stream::wrappers::ReceiverStream;
 use tokio_util::task::TaskTracker;
 
 pub use self::{config::SessionConfig, session_id::SessionId, transaction::Transaction};
@@ -27,6 +30,50 @@ use crate::{codec::ErrorEncoder, transport::TransportLayer};
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum SessionEvent {
     SessionDropped { id: SessionId },
+}
+
+pub struct ListenStream {
+    inner: mpsc::Receiver<Transaction>,
+
+    is_finished: bool,
+}
+
+impl ListenStream {
+    const fn new(inner: mpsc::Receiver<Transaction>) -> Self {
+        Self {
+            inner,
+            is_finished: false,
+        }
+    }
+}
+
+impl Stream for ListenStream {
+    type Item = Transaction;
+
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        // we don't need to poll again, if we know that the stream has finished
+        if self.is_finished {
+            return Poll::Ready(None);
+        }
+
+        let value = ready!(self.inner.poll_recv(cx));
+
+        if value.is_none() {
+            // if the inner poll returns `Poll::Ready(None)` this indicates that the receiver has
+            // been closed *and* all messages before closing have been received.
+            // A tokio mpsc channel cannot be re-opened, so we can safely assume that the stream
+            // has finished.
+            self.is_finished = true;
+        }
+
+        Poll::Ready(value)
+    }
+}
+
+impl FusedStream for ListenStream {
+    fn is_terminated(&self) -> bool {
+        self.is_finished
+    }
 }
 
 /// Session Layer
@@ -80,10 +127,7 @@ where
     /// # Errors
     ///
     /// Returns an error if the transport layer fails to listen on the given address.
-    pub async fn listen(
-        self,
-        address: Multiaddr,
-    ) -> Result<impl Stream<Item = Transaction> + Send + Sync + 'static, SessionError> {
+    pub async fn listen(self, address: Multiaddr) -> Result<ListenStream, SessionError> {
         self.transport
             .listen_on(address)
             .await
@@ -109,6 +153,6 @@ where
         self.tasks
             .spawn(task.run(listen, self.tasks.clone(), cancel));
 
-        Ok(ReceiverStream::new(rx))
+        Ok(ListenStream::new(rx))
     }
 }
