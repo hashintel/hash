@@ -73,7 +73,7 @@ export const getEntitySummariesFromText = async (params: {
 
   const llmResponse = await getLlmResponse(
     {
-      model: "gpt-4-0125-preview",
+      model: "claude-3-opus-20240229",
       messages: [
         {
           role: "user",
