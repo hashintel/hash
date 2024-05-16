@@ -27,12 +27,12 @@ pub(crate) struct Task<E> {
 
     pub(crate) output: mpsc::Sender<Transaction>,
     pub(crate) events: broadcast::Sender<SessionEvent>,
-    pub(crate) encoder: Arc<E>,
+    pub(crate) encoder: E,
 }
 
 impl<E> Task<E>
 where
-    E: ErrorEncoder + Send + Sync + 'static,
+    E: ErrorEncoder + Clone + Send + Sync + 'static,
 {
     #[expect(
         clippy::integer_division_remainder_used,
@@ -89,7 +89,7 @@ where
                         active: TransactionCollection::new(self.config, cancel.clone()),
                         output: self.output.clone(),
                         events: self.events.clone(),
-                        encoder: Arc::clone(&self.encoder),
+                        encoder: self.encoder.clone(),
                         _permit: permit,
                     };
 

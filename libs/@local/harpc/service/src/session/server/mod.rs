@@ -2,6 +2,8 @@ mod config;
 mod connection;
 mod session_id;
 mod task;
+#[cfg(test)]
+pub(crate) mod test;
 pub mod transaction;
 
 use alloc::sync::Arc;
@@ -44,7 +46,7 @@ pub struct SessionLayer<E> {
 
 impl<E> SessionLayer<E>
 where
-    E: ErrorEncoder + Send + Sync + 'static,
+    E: ErrorEncoder + Clone + Send + Sync + 'static,
 {
     pub fn new(config: SessionConfig, transport: TransportLayer, encoder: E) -> Self {
         let tasks = transport.tasks().clone();
@@ -109,27 +111,4 @@ where
 
         Ok(ReceiverStream::new(rx))
     }
-}
-
-#[cfg(test)]
-mod test {
-    #[tokio::test]
-    #[ignore]
-    async fn normal_session() {}
-
-    #[tokio::test]
-    #[ignore]
-    async fn too_many_connections() {}
-
-    #[tokio::test]
-    #[ignore]
-    async fn connection_reclaim() {}
-
-    #[tokio::test]
-    #[ignore]
-    async fn stream_dropped_graceful_shutdown() {}
-
-    #[tokio::test]
-    #[ignore]
-    async fn swarm_shutdown() {}
 }

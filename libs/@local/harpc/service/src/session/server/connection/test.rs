@@ -1,5 +1,5 @@
 use alloc::sync::Arc;
-use core::{future::ready, num::NonZero, time::Duration};
+use core::{num::NonZero, time::Duration};
 use std::{assert_matches::assert_matches, io};
 
 use bytes::Bytes;
@@ -42,52 +42,17 @@ use tokio_util::{
 };
 
 use super::{ConcurrencyLimit, ConnectionTask, TransactionStorage};
-use crate::{
-    codec::ErrorEncoder,
-    session::{
-        error::{
-            ConnectionShutdownError, ConnectionTransactionLimitReachedError,
-            InstanceTransactionLimitReachedError, TransactionError, TransactionLaggingError,
-        },
-        server::{
-            connection::{ConnectionDelegateTask, TransactionCollection},
-            SessionConfig, SessionEvent, SessionId, Transaction,
-        },
+use crate::session::{
+    error::{
+        ConnectionShutdownError, ConnectionTransactionLimitReachedError,
+        InstanceTransactionLimitReachedError, TransactionLaggingError,
+    },
+    server::{
+        connection::{ConnectionDelegateTask, TransactionCollection},
+        test::StringEncoder,
+        SessionConfig, SessionEvent, SessionId, Transaction,
     },
 };
-
-struct StringEncoder;
-
-impl ErrorEncoder for StringEncoder {
-    fn encode_error<E>(
-        &self,
-        error: E,
-    ) -> impl Future<Output = crate::session::error::TransactionError> + Send
-    where
-        E: crate::codec::PlainError,
-    {
-        ready(TransactionError {
-            code: error.code(),
-            bytes: error.to_string().into_bytes().into(),
-        })
-    }
-
-    fn encode_report<C>(
-        &self,
-        report: error_stack::Report<C>,
-    ) -> impl Future<Output = crate::session::error::TransactionError> + Send {
-        let code = report
-            .request_ref::<ErrorCode>()
-            .next()
-            .copied()
-            .unwrap_or(ErrorCode::INTERNAL_SERVER_ERROR);
-
-        ready(TransactionError {
-            code,
-            bytes: report.to_string().into_bytes().into(),
-        })
-    }
-}
 
 struct Setup {
     output: mpsc::Receiver<Transaction>,

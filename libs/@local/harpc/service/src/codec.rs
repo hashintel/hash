@@ -1,3 +1,4 @@
+use alloc::sync::Arc;
 use std::error::Error;
 
 use bytes::Bytes;
@@ -37,6 +38,22 @@ pub trait ErrorEncoder {
     fn encode_error<E>(&self, error: E) -> impl Future<Output = TransactionError> + Send
     where
         E: PlainError;
+}
+
+impl<T> ErrorEncoder for Arc<T>
+where
+    T: ErrorEncoder,
+{
+    fn encode_report<C>(&self, report: Report<C>) -> impl Future<Output = TransactionError> + Send {
+        self.as_ref().encode_report(report)
+    }
+
+    fn encode_error<E>(&self, error: E) -> impl Future<Output = TransactionError> + Send
+    where
+        E: PlainError,
+    {
+        self.as_ref().encode_error(error)
+    }
 }
 
 pub trait Encoder<T>: ValueEncoder<T> + ErrorEncoder {}

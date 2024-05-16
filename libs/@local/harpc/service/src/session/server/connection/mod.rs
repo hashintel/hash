@@ -395,7 +395,7 @@ pub(crate) struct ConnectionTask<E> {
     pub(crate) events: broadcast::Sender<SessionEvent>,
 
     pub(crate) config: SessionConfig,
-    pub(crate) encoder: Arc<E>,
+    pub(crate) encoder: E,
     pub(crate) _permit: OwnedSemaphorePermit,
 }
 
