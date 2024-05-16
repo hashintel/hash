@@ -114,15 +114,15 @@ const generateDurationString = ({
   );
 
 export const FlowMetadataCellContents = ({
-  flow,
+  flowRun,
   visible,
 }: {
-  flow: MinimalFlowRun;
+  flowRun: MinimalFlowRun;
   visible: boolean;
 }) => {
   const [usage, setUsage] = useState<TotalUsage | null>(null);
 
-  const { executedAt, closedAt } = flow;
+  const { executedAt, closedAt } = flowRun;
 
   const [timeElapsed, setTimeElapsed] = useState(() =>
     executedAt
@@ -161,18 +161,18 @@ export const FlowMetadataCellContents = ({
        * are accounted for.
        */
       const interval = setInterval(() => {
-        void getTotalUsage({ flowRunId: flow.flowRunId }).then(setUsage);
+        void getTotalUsage({ flowRunId: flowRun.flowRunId }).then(setUsage);
       }, 10_000);
 
       return () => clearInterval(interval);
     }
-  }, [flow.flowRunId, visible]);
+  }, [flowRun.flowRunId, visible]);
 
   useEffect(() => {
     if (visible) {
-      void getTotalUsage({ flowRunId: flow.flowRunId }).then(setUsage);
+      void getTotalUsage({ flowRunId: flowRun.flowRunId }).then(setUsage);
     }
-  }, [flow.flowRunId, visible]);
+  }, [flowRun.flowRunId, visible]);
 
   return (
     <Stack
@@ -205,9 +205,9 @@ export const FlowMetadataCellContents = ({
           />
         </>
       )}
-      {flow.persistedEntities.length > 0 && (
+      {flowRun.persistedEntities.length > 0 && (
         <MetadataItem
-          text={`${flow.persistedEntities.length} entities`}
+          text={`${flowRun.persistedEntities.length} entities`}
           Icon={AsteriskRegularIcon}
         />
       )}

@@ -65,16 +65,16 @@ const CancelButton = ({
   </Tooltip>
 );
 
-export const FlowStatusCell = ({ flow }: { flow: MinimalFlowRun }) => {
+export const FlowStatusCell = ({ flowRun }: { flowRun: MinimalFlowRun }) => {
   const [cancellationRequested, setCancellationRequested] = useState(false);
 
-  const statusText = flowStatusToStatusText(flow.status);
+  const statusText = flowStatusToStatusText(flowRun.status);
 
   const isUnproductiveSuccessfulRequest =
-    (flow.status === FlowRunStatus.Completed ||
-      flow.status === FlowRunStatus.Cancelled) &&
-    (flow.persistedEntities.length === 0 ||
-      flow.persistedEntities.every(
+    (flowRun.status === FlowRunStatus.Completed ||
+      flowRun.status === FlowRunStatus.Cancelled) &&
+    (flowRun.persistedEntities.length === 0 ||
+      flowRun.persistedEntities.every(
         (persistedEntity) =>
           persistedEntity.operation === "already-exists-as-proposed",
       ));
@@ -82,7 +82,7 @@ export const FlowStatusCell = ({ flow }: { flow: MinimalFlowRun }) => {
   const cancelRequest = (event: MouseEvent) => {
     event.stopPropagation();
     void sendMessageToBackground({
-      flowRunId: flow.flowRunId,
+      flowRunId: flowRun.flowRunId,
       type: "cancel-infer-entities",
     });
     setCancellationRequested(true);

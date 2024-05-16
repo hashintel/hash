@@ -72,7 +72,7 @@ export const HistoryRow = ({
         {type === "external-page-request" ? (
           <TableCell>
             <Chip>
-              <MemoCircleCheckRegularIcon sx={{ ...iconSx, mr: 1 }} /> External
+              <MemoCircleCheckRegularIcon sx={{ ...iconSx, mr: 1 }} />
               Load Page
             </Chip>
           </TableCell>
@@ -139,7 +139,7 @@ export const HistoryRow = ({
             </Chip>
           </CellWithHoverButton>
         )}
-        <FlowStatusCell flow={flowRun} />
+        <FlowStatusCell flowRun={flowRun} />
       </TableRow>
 
       <TableRow
@@ -158,7 +158,7 @@ export const HistoryRow = ({
           sx={{ p: "0 !important" }}
         >
           <Collapse in={expanded} timeout={200}>
-            <FlowMetadataCellContents flow={flowRun} visible={expanded} />
+            <FlowMetadataCellContents flowRun={flowRun} visible={expanded} />
           </Collapse>
         </TableCell>
       </TableRow>
