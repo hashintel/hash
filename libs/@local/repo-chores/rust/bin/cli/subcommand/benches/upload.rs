@@ -28,14 +28,11 @@ pub(crate) struct Args {
 }
 
 pub(super) async fn run(args: Args) -> Result<(), Box<dyn Error + Send + Sync>> {
-    let config = aws_config::defaults(BehaviorVersion::latest())
-        .region("us-east-2")
-        .load()
-        .await;
+    let config = aws_config::defaults(BehaviorVersion::latest()).load().await;
 
     let benchmarks = Benchmark::gather(criterion_directory()?).collect::<Result<Vec<_>, _>>()?;
 
-    let s3 = S3Storage::new(&config, "benchmarks.hash.ai");
+    let s3 = S3Storage::new(&config, "benchmarks.hash.dev");
     let commit = args.commit.map_or_else(current_commit, Ok)?;
     for measurement in benchmarks
         .iter()
