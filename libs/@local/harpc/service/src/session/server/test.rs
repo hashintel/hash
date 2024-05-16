@@ -1,14 +1,18 @@
 use alloc::sync::Arc;
 use core::{
+    any::type_name_of_val,
     future::ready,
     sync::atomic::{AtomicUsize, Ordering},
     time::Duration,
 };
-use std::io;
+use std::{
+    assert_matches::assert_matches,
+    io::{self, ErrorKind},
+};
 
 use bytes::{Bytes, BytesMut};
 use error_stack::{Report, ResultExt};
-use futures::{SinkExt, Stream, StreamExt};
+use futures::{FutureExt, SinkExt, Stream, StreamExt};
 use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
@@ -36,8 +40,10 @@ use super::{
 };
 use crate::{
     codec::{ErrorEncoder, PlainError},
-    session::error::TransactionError,
+    macros::non_zero,
+    session::{error::TransactionError, server::config::ConcurrentConnectionLimit},
     transport::{
+        behaviour::{TransportBehaviour, TransportBehaviourEvent},
         connection::OutgoingConnection,
         error::{OpenStreamError, TransportError},
         test::{address, layer},
@@ -120,14 +126,34 @@ pub(crate) fn make_request_frame(
     }
 }
 
-async fn session(config: SessionConfig, address: Multiaddr) -> (ListenStream, impl Drop) {
+async fn session_map<T, U>(
+    config: SessionConfig,
+    address: Multiaddr,
+    map_transport: impl FnOnce(&TransportLayer) -> T + Send,
+    map_layer: impl FnOnce(&SessionLayer<StringEncoder>) -> U + Send,
+) -> (ListenStream, T, U, impl Drop)
+where
+    T: Send,
+    U: Send,
+{
     let (transport, guard) = layer();
+
+    let transport_data = map_transport(&transport);
+
     let layer = SessionLayer::new(config, transport, StringEncoder);
+
+    let layer_data = map_layer(&layer);
 
     let stream = layer
         .listen(address)
         .await
         .expect("able to listen on address");
+
+    (stream, transport_data, layer_data, guard)
+}
+
+async fn session(config: SessionConfig, address: Multiaddr) -> (ListenStream, impl Drop) {
+    let (stream, (), (), guard) = session_map(config, address, |_| (), |_| ()).await;
 
     (stream, guard)
 }
@@ -464,13 +490,217 @@ async fn server_disconnect_by_dropping_listen_stream() {
 }
 
 #[tokio::test]
-#[ignore]
-async fn server_disconnect_by_swarm_shutdown() {}
+async fn swarm_shutdown_client() {
+    let address = address();
+
+    let (server, server_task_cancel, (), _server_guard) = session_map(
+        SessionConfig::default(),
+        address.clone(),
+        TransportLayer::cancellation_token_task,
+        |_| (),
+    )
+    .await;
+    let (client, _client_guard) = layer();
+
+    let service = EchoService::new();
+
+    service.spawn(server);
+
+    let OutgoingConnection {
+        mut sink,
+        mut stream,
+        ..
+    } = connect(&client, address).await;
+
+    sink.send(make_request_begin(
+        RequestFlag::BeginOfRequest,
+        b"hello" as &[_],
+    ))
+    .await
+    .expect("should be able to send");
+
+    // we now simulate a server "crash"
+    server_task_cancel.cancel();
+
+    // the transport is now no longer accessible
+    // (give it some time to just shutdown)
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    // sending anything to the sink should result in an error
+    let error = sink
+        .send(make_request_frame(
+            RequestFlag::EndOfRequest,
+            b" world" as &[_],
+        ))
+        .await
+        .expect_err("should not be able to send");
+    let error = error.current_context();
+    assert_eq!(error.kind(), ErrorKind::WriteZero);
+
+    // errors are horribly designed, I (bmahmoud) looked for the original error everywhere
+    // I know that it is yamux::ConnectionError::Closed, but during the conversion
+    // libp2p converts into an io::Error (by presumably) converting it into a string.
+
+    // the stream should be exhausted
+    assert!(stream.next().await.is_none());
+}
 
 #[tokio::test]
-#[ignore]
-async fn too_many_connections() {}
+async fn swarm_shutdown_server() {
+    let address = address();
+
+    let (mut server, server_task_cancel, (), _server_guard) = session_map(
+        SessionConfig {
+            no_delay: true,
+            per_transaction_response_byte_stream_buffer_size: non_zero!(1),
+            ..SessionConfig::default()
+        },
+        address.clone(),
+        TransportLayer::cancellation_token_task,
+        |_| (),
+    )
+    .await;
+    let (client, _client_guard) = layer();
+
+    let OutgoingConnection { mut sink, .. } = connect(&client, address.clone()).await;
+
+    sink.send(make_request_begin(
+        RequestFlag::BeginOfRequest,
+        b"hello" as &[_],
+    ))
+    .await
+    .expect("should be able to send");
+
+    let transaction = server
+        .next()
+        .await
+        .expect("should be able to accept transaction");
+    let (_, mut txn_sink, mut txn_stream) = transaction.into_parts();
+
+    // and now the swarm "crashes"
+    server_task_cancel.cancel();
+
+    // the transport is now no longer accessible
+    // (give it some time to just shutdown)
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    // this one is always buffered by `PollSender`
+    txn_sink
+        .send(Ok(Bytes::from_static(b" world")))
+        .await
+        .expect("should be able to send");
+
+    // ... this one will trigger the premature shutdown
+    txn_sink
+        .send(Ok(Bytes::from_static(b" world")))
+        .await
+        .expect("should be able to send");
+
+    // ... this one will result in an error
+    txn_sink
+        .send(Ok(Bytes::from_static(b" world")))
+        .await
+        .expect_err("should not be able to send");
+
+    // the stream should return None
+    // we get one buffered message and that's it
+    assert_eq!(txn_stream.next().await, Some(Bytes::from_static(b"hello")));
+    assert!(txn_stream.next().await.is_none());
+}
 
 #[tokio::test]
-#[ignore]
-async fn connection_reclaim() {}
+async fn too_many_connections() {
+    let address = address();
+
+    let (server, _server_guard) = session(
+        SessionConfig {
+            concurrent_connection_limit: ConcurrentConnectionLimit::new(1)
+                .unwrap_or_else(|| unreachable!()),
+            ..SessionConfig::default()
+        },
+        address.clone(),
+    )
+    .await;
+
+    let (client, _client_guard) = layer();
+
+    let service = EchoService::new();
+    service.spawn(server);
+
+    let OutgoingConnection {
+        mut sink, stream, ..
+    } = connect(&client, address.clone()).await;
+
+    // creating a new connection would exceed the limit
+    let OutgoingConnection {
+        sink: mut sink2,
+        stream: _stream2,
+        ..
+    } = connect(&client, address.clone()).await;
+
+    // the first connection should still work
+    sink.send(make_request_begin(RequestFlags::EMPTY, b"hello" as &[_]))
+        .await
+        .expect("should be able to send");
+
+    // ... but the second one should not
+    let error = sink2
+        .send(make_request_begin(RequestFlags::EMPTY, b"hello" as &[_]))
+        .await
+        .expect_err("should not be able to send");
+
+    let error = error.current_context();
+    assert_eq!(error.kind(), ErrorKind::WriteZero);
+}
+
+#[tokio::test]
+async fn connection_reclaim() {
+    let address = address();
+
+    let (server, _server_guard) = session(
+        SessionConfig {
+            concurrent_connection_limit: ConcurrentConnectionLimit::new(1)
+                .unwrap_or_else(|| unreachable!()),
+            connection_shutdown_linger: Duration::from_millis(100),
+            ..SessionConfig::default()
+        },
+        address.clone(),
+    )
+    .await;
+
+    let (client, _client_guard) = layer();
+
+    let service = EchoService::new();
+    service.spawn(server);
+
+    let OutgoingConnection {
+        mut sink, stream, ..
+    } = connect(&client, address.clone()).await;
+
+    sink.send(make_request_begin(
+        RequestFlag::EndOfRequest,
+        b"hello" as &[_],
+    ))
+    .await
+    .expect("should be able to send");
+
+    assert_response(stream, "hello").await;
+    drop(sink);
+
+    // the connection should be reclaimed and we should be able to create a new one
+    tokio::time::sleep(Duration::from_millis(150)).await;
+
+    let OutgoingConnection {
+        mut sink, stream, ..
+    } = connect(&client, address.clone()).await;
+
+    sink.send(make_request_begin(
+        RequestFlag::EndOfRequest,
+        b"hello" as &[_],
+    ))
+    .await
+    .expect("should be able to send");
+
+    assert_response(stream, "hello").await;
+    drop(sink);
+}

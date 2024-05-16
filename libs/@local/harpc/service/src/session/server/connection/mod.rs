@@ -652,6 +652,8 @@ where
             tracing::debug!(?error, "no receivers connected");
         };
 
+        // keep the connection alive for a little while, to allow the other side to finish receiving
+        // any remaining data
         tokio::time::sleep(self.config.connection_shutdown_linger).await;
     }
 }

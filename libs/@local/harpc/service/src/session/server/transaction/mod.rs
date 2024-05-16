@@ -35,6 +35,9 @@ struct TransactionSendDelegateTask {
     id: RequestId,
     config: SessionConfig,
 
+    // TODO: consider switching to `tachyonix` crate for better performance (not yet tested)
+    // as well as more predictable buffering behavioud. `PollSender` is prone to just buffer
+    // everything before sending, which might not be the best idea in this scenario.
     rx: mpsc::Receiver<core::result::Result<Bytes, TransactionError>>,
     tx: mpsc::Sender<Response>,
 }
@@ -60,6 +63,10 @@ impl TransactionSendDelegateTask {
         );
 
         loop {
+            // TODO: potential performance improvement: use `recv_many` instead of `recv`
+            // This only is a performance improvement depending on the behaviour of the channel
+            // used. `PollSender` likes to buffer as much as possible before sending, which might
+            // not be a good idea.
             let bytes = select! {
                 bytes = self.rx.recv() => bytes,
                 () = cancel.cancelled() => {
@@ -407,9 +414,7 @@ impl TransactionSink {
     }
 
     pub fn buffer_size(&self) -> usize {
-        self.inner
-            .get_ref()
-            .map_or(0, tokio::sync::mpsc::Sender::max_capacity)
+        self.inner.get_ref().map_or(0, mpsc::Sender::max_capacity)
     }
 }
 

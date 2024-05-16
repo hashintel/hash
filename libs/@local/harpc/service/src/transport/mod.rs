@@ -1,4 +1,4 @@
-mod behaviour;
+pub(crate) mod behaviour;
 pub mod client;
 mod config;
 pub mod connection;
@@ -87,6 +87,12 @@ impl TransportLayer {
 
     pub(crate) fn cancellation_token(&self) -> CancellationToken {
         self.cancel.clone()
+    }
+
+    // Only used for tests, to emulate crash of the underlying swarm task.
+    #[cfg(test)]
+    pub(crate) fn cancellation_token_task(&self) -> CancellationToken {
+        self.cancel_task.clone()
     }
 
     #[must_use]

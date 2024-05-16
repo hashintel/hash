@@ -4,7 +4,7 @@ use error_stack::FutureExt as _;
 use futures::{FutureExt, StreamExt, TryFutureExt};
 use tokio::{
     select,
-    sync::{broadcast, mpsc, Semaphore},
+    sync::{broadcast, mpsc, Semaphore, TryAcquireError},
 };
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
@@ -44,30 +44,33 @@ where
         clippy::integer_division_remainder_used,
         reason = "required for select! macro"
     )]
-
+    #[expect(
+        clippy::significant_drop_tightening,
+        reason = "permit is used for congestion control"
+    )]
     async fn handle(
         &mut self,
         listen: &mut IncomingConnections,
         tasks: TaskTracker,
         cancel: CancellationToken,
     ) {
+        // In this loop, we first accept a connection and then attempt to acquire a permit.
+        // This approach avoids holding connections in the accept queue when we cannot acquire a
+        // permit, immediately dropping them instead.
+        //
+        // This method is more predictable compared to the alternative, where a connection would be
+        // held until a permit could be acquired or it timed out. The latter scenario might result
+        // in an older connection being accepted.
+        //
+        // Although it might seem that this uses a rendezvous channel from `futures_channel`, this
+        // is not the case. The buffer is set to 0, but the channel’s capacity is `buffer +
+        // num-senders` (which is always 1). As a result, we always buffer a connection,
+        // allowing it to send a message that will never be answered, rather than being
+        // instantly terminated. The implemented behavior is more predictable for the end user and
+        // less confusing.
         loop {
-            // first try to acquire a permit, if we can't, we can't accept new connections,
-            // then we try to accept a new connection, this way we're able to still apply
-            // backpressure
-            let next = Arc::clone(&self.active)
-                .acquire_owned()
-                .change_context(SessionError)
-                .and_then(|permit| {
-                    listen
-                        .next()
-                        .map(|connection| connection.map(|connection| (permit, connection)))
-                        .map(Ok)
-                })
-                .fuse();
-
             let connection = select! {
-                connection = next => connection,
+                connection = listen.next().fuse() => connection,
                 () = self.output.closed() => {
                     break;
                 }
@@ -76,38 +79,43 @@ where
                 }
             };
 
-            match connection {
-                Ok(Some((
-                    permit,
-                    IncomingConnection {
-                        peer_id,
-                        sink,
-                        stream,
-                    },
-                ))) => {
-                    let cancel = cancel.child_token();
+            let Some(IncomingConnection {
+                peer_id,
+                sink,
+                stream,
+            }) = connection
+            else {
+                // connection has been closed
+                break;
+            };
 
-                    let task = ConnectionTask {
-                        peer: peer_id,
-                        session: self.id.produce(),
-                        config: self.config,
-                        active: TransactionCollection::new(self.config, cancel.clone()),
-                        output: self.output.clone(),
-                        events: self.events.clone(),
-                        encoder: self.encoder.clone(),
-                        _permit: permit,
-                    };
-
-                    tasks.spawn(task.run(sink, stream, tasks.clone(), cancel));
+            // try to obtain a permit and accept a new connection
+            let permit = match Arc::clone(&self.active).try_acquire_owned() {
+                Ok(permit) => permit,
+                Err(TryAcquireError::NoPermits) => {
+                    // we have reached the connection limit, we can't accept new connections
+                    continue;
                 }
-                Ok(None) => {
-                    break;
-                }
-                Err(_) => {
+                Err(TryAcquireError::Closed) => {
                     // semaphore has been closed, this means we can no longer accept new connections
                     break;
                 }
-            }
+            };
+
+            let cancel = cancel.child_token();
+
+            let task = ConnectionTask {
+                peer: peer_id,
+                session: self.id.produce(),
+                config: self.config,
+                active: TransactionCollection::new(self.config, cancel.clone()),
+                output: self.output.clone(),
+                events: self.events.clone(),
+                encoder: self.encoder.clone(),
+                _permit: permit,
+            };
+
+            tasks.spawn(task.run(sink, stream, tasks.clone(), cancel));
         }
     }
 
