@@ -32,7 +32,10 @@ pub(crate) struct Args {
 }
 
 pub(super) async fn run(args: Args) -> Result<(), Box<dyn Error + Send + Sync>> {
-    let config = aws_config::defaults(BehaviorVersion::latest()).load().await;
+    let config = aws_config::defaults(BehaviorVersion::latest())
+        .region("us-east-1")
+        .load()
+        .await;
 
     let benchmarks = Benchmark::gather(criterion_directory()).collect::<Result<Vec<_>, _>>()?;
 
