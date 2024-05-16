@@ -42,7 +42,7 @@ pub(super) async fn run(args: Args) -> Result<(), Box<dyn Error + Send + Sync>> 
     let commit = args.commit.map_or_else(current_commit, Ok)?;
     for benchmark in benchmarks {
         s3.put_benchmark_analysis(
-            &BenchmarkAnalysis::from_benchmark(benchmark, "new", &artifacts_path)?,
+            BenchmarkAnalysis::from_benchmark(benchmark, "new", &artifacts_path)?,
             &commit,
         )
         .await?;
