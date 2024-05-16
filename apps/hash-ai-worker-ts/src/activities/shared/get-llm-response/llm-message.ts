@@ -169,6 +169,14 @@ export const mapLlmMessageToOpenAiMessages = (params: {
   });
 };
 
+const sanitizeToolCallName = (toolName: string): string => {
+  const allowedPattern = /[a-zA-Z0-9_-]/g;
+
+  const filteredString = toolName.match(allowedPattern)?.join("") ?? "";
+
+  return filteredString;
+};
+
 export const mapOpenAiMessagesToLlmMessages = (params: {
   messages: OpenAiMessage[];
 }): LlmMessage[] => {
@@ -192,7 +200,7 @@ export const mapOpenAiMessagesToLlmMessages = (params: {
               return {
                 type: "tool_use" as const,
                 id: toolCall.id,
-                name: toolCall.function.name,
+                name: sanitizeToolCallName(toolCall.function.name),
                 input: jsonInput,
               };
             },
