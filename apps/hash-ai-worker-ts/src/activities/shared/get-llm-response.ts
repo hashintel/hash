@@ -994,7 +994,7 @@ export const getLlmResponse = async <T extends LlmParams>(
     }
   }
 
-  if (process.env.NODE_ENV === "development") {
+  if (["development", "test"].includes(process.env.NODE_ENV ?? "")) {
     logLlmRequest({ llmParams, llmResponse });
   }
 
