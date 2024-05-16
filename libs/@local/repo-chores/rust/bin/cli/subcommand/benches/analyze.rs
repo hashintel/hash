@@ -8,8 +8,9 @@ use std::{
 };
 
 use clap::Parser;
+use error_stack::{Report, ResultExt};
 use repo_chores::benches::{
-    analyze::{criterion, BenchmarkAnalysis},
+    analyze::{criterion, AnalyzeError, BenchmarkAnalysis},
     report::Benchmark,
 };
 
@@ -29,6 +30,10 @@ pub(crate) struct Args {
     /// The path to the directory where the benchmark artifacts are stored.
     #[clap(long)]
     artifacts_path: Option<PathBuf>,
+
+    /// Error if the benchmark did not generate a flamegraph.
+    #[clap(long, default_value_t = false)]
+    enforce_flame_graph: bool,
 }
 
 pub(super) fn run(args: Args) -> Result<(), Box<dyn Error + Send + Sync>> {
@@ -54,6 +59,15 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn Error + Send + Sync>> {
         .map(|benchmark| {
             benchmark.and_then(|benchmark| {
                 BenchmarkAnalysis::from_benchmark(benchmark, &args.baseline, &artifacts_path)
+                    .change_context(AnalyzeError::ReadInput)
+                    .and_then(|analysis| {
+                        if args.enforce_flame_graph && analysis.folded_stacks.is_none() {
+                            Err(Report::new(AnalyzeError::FlameGraphMissing)
+                                .attach_printable(analysis.measurement.info.title))
+                        } else {
+                            Ok(analysis)
+                        }
+                    })
             })
         })
         .collect::<Result<Vec<_>, _>>()?;

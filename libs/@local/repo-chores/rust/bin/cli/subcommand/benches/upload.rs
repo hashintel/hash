@@ -2,8 +2,12 @@ use std::{error::Error, path::PathBuf};
 
 use aws_config::BehaviorVersion;
 use clap::Parser;
-use error_stack::ResultExt;
-use repo_chores::benches::{analyze::BenchmarkAnalysis, report::Benchmark, storage::S3Storage};
+use error_stack::{Report, ResultExt};
+use repo_chores::benches::{
+    analyze::{AnalyzeError, BenchmarkAnalysis},
+    report::Benchmark,
+    storage::{S3Storage, UploadError},
+};
 
 use crate::subcommand::benches::{criterion_directory, target_directory};
 
@@ -29,6 +33,10 @@ pub(crate) struct Args {
     /// The path to the directory where the benchmark artifacts are stored.
     #[clap(long)]
     artifacts_path: Option<PathBuf>,
+
+    /// Error if the benchmark did not generate a flamegraph.
+    #[clap(long, default_value_t = false)]
+    enforce_flame_graph: bool,
 }
 
 pub(super) async fn run(args: Args) -> Result<(), Box<dyn Error + Send + Sync>> {
@@ -45,7 +53,16 @@ pub(super) async fn run(args: Args) -> Result<(), Box<dyn Error + Send + Sync>> 
     let commit = args.commit.map_or_else(current_commit, Ok)?;
     for benchmark in benchmarks {
         s3.put_benchmark_analysis(
-            BenchmarkAnalysis::from_benchmark(benchmark, "new", &artifacts_path)?,
+            BenchmarkAnalysis::from_benchmark(benchmark, "new", &artifacts_path)
+                .change_context(UploadError::ReadInput)
+                .and_then(|analysis| {
+                    if args.enforce_flame_graph && analysis.folded_stacks.is_none() {
+                        Err(Report::new(UploadError::FlameGraphMissing)
+                            .attach_printable(analysis.measurement.info.title))
+                    } else {
+                        Ok(analysis)
+                    }
+                })?,
             &commit,
         )
         .await?;
