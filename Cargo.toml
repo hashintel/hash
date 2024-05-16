@@ -56,6 +56,9 @@ harpc-wire-protocol.path = "libs/@local/harpc/wire-protocol"
 # External dependencies owned by HASH
 error-stack = { version = "0.4.1", default-features = false }
 
+aws-config = { version = "1.4.0" }
+aws-sdk-s3 = { version = "1.28.0" }
+
 # Shared third-party dependencies
 bytes = "1.6.0"
 clap = { version = "4.5.4", default-features = false, features = ["std"] }
