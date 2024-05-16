@@ -602,7 +602,7 @@ where
                         Some(Ok(request)) => {
                             let tx = tx.clone().expect("infallible; sender is only unavailble once the stream is exhausted");
 
-                            self.handle_request(tx.clone(), &tasks, request).await;
+                            self.handle_request(tx, &tasks, request).await;
                         },
                         Some(Err(error)) => {
                             tracing::info!(?error, "malformed request");
@@ -651,5 +651,7 @@ where
         {
             tracing::debug!(?error, "no receivers connected");
         };
+
+        tokio::time::sleep(self.config.connection_shutdown_linger).await;
     }
 }

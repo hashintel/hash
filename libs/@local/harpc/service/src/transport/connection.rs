@@ -65,6 +65,7 @@ type OutgoingDuplex = Framed<BufStream<Compat<libp2p::Stream>>, ClientCodec>;
 type OutgoingSink = SplitSink<OutgoingDuplex, Request>;
 type OutgoingStream = SplitStream<OutgoingDuplex>;
 
+#[derive(Debug)]
 pub struct OutgoingConnection {
     pub peer_id: PeerId,
 

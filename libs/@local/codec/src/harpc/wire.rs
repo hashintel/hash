@@ -12,6 +12,7 @@ use tokio_util::{
     codec::{Decoder, Encoder},
 };
 
+#[derive(Debug)]
 pub struct ProtocolCodec<T>(PhantomData<fn() -> *const T>);
 
 impl<T> ProtocolCodec<T> {

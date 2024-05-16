@@ -1,5 +1,5 @@
 mod behaviour;
-mod client;
+pub mod client;
 mod config;
 pub mod connection;
 pub mod error;

@@ -37,6 +37,22 @@ pub struct SessionConfig {
     pub transaction_buffer_size: NonZero<usize>,
     pub concurrent_connection_limit: ConcurrentConnectionLimit,
 
+    /// The linger time for the connection shutdown.
+    ///
+    /// Once all existing connections have been closed (and the stream has been closed), this is
+    /// the amount of time the server will stay open to allow for any remaining packages in
+    /// transit to be delivered.
+    ///
+    /// A duration of 0 will immediately stop the swarm after all connections have been closed and
+    /// will likely result in lost packages still in transit.
+    ///
+    /// This is different from the swarm [`SwarmConfig::idle_connection_timeout`], which is the
+    /// time the swarm will keep alive a connection, instead of the time the swarm will remain
+    /// active once shutdown.
+    ///
+    /// [`SwarmConfig`]: crate::transport::config::SwarmConfig
+    pub connection_shutdown_linger: Duration,
+
     pub request_delivery_deadline: Duration,
     pub transaction_delivery_deadline: Duration,
 
@@ -58,6 +74,8 @@ impl Default for SessionConfig {
             event_buffer_size: NonZero::new(8).expect("infallible"),
             transaction_buffer_size: NonZero::new(32).expect("infallible"),
             concurrent_connection_limit: ConcurrentConnectionLimit::new(256).expect("infallible"),
+
+            connection_shutdown_linger: Duration::from_secs(16),
 
             request_delivery_deadline: Duration::from_millis(100),
             transaction_delivery_deadline: Duration::from_millis(100),

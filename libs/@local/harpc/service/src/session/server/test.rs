@@ -29,7 +29,6 @@ use harpc_wire_protocol::{
 };
 use libp2p::Multiaddr;
 use tokio::{pin, sync::Notify};
-use tokio_util::sync::PollSendError;
 
 use super::{
     transaction::{TransactionSink, TransactionStream},
@@ -40,6 +39,7 @@ use crate::{
     session::error::TransactionError,
     transport::{
         connection::OutgoingConnection,
+        error::{OpenStreamError, TransportError},
         test::{address, layer},
         TransportLayer,
     },
@@ -257,6 +257,18 @@ async fn connect(client: &TransportLayer, address: Multiaddr) -> OutgoingConnect
         .expect("should be able to dial peer")
 }
 
+async fn connect_error(client: &TransportLayer, address: Multiaddr) -> Report<TransportError> {
+    let peer = client
+        .lookup_peer(address)
+        .await
+        .expect("should be able to lookup peer");
+
+    client
+        .dial(peer)
+        .await
+        .expect_err("should not be able to dial peer")
+}
+
 #[track_caller]
 async fn assert_response(
     stream: impl Stream<Item = error_stack::Result<Response, io::Error>> + Send + Sync,
@@ -392,8 +404,64 @@ async fn client_disconnect() {
 }
 
 #[tokio::test]
-#[ignore]
-async fn server_disconnect_by_dropping_listen_stream() {}
+async fn server_disconnect_by_dropping_listen_stream() {
+    let address = address();
+
+    let (mut server, _server_guard) = session(
+        SessionConfig {
+            connection_shutdown_linger: Duration::from_millis(100),
+            ..SessionConfig::default()
+        },
+        address.clone(),
+    )
+    .await;
+    let (client, _client_guard) = layer();
+
+    let service = EchoService::new();
+
+    // we first start a connection, and accept that transaction with an echo service
+    let OutgoingConnection {
+        mut sink, stream, ..
+    } = connect(&client, address.clone()).await;
+
+    // we should still be able to send a message
+    sink.send(make_request_begin(RequestFlags::EMPTY, b"hello" as &[_]))
+        .await
+        .expect("should be able to send");
+
+    let transaction = server
+        .next()
+        .await
+        .expect("should be able to accept transaction");
+
+    let (_, txn_sink, txn_stream) = transaction.into_parts();
+    service.accept(txn_sink, txn_stream);
+
+    // we now shutdown the server
+    drop(server);
+
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    sink.send(make_request_frame(
+        RequestFlag::EndOfRequest,
+        b" world" as &[_],
+    ))
+    .await
+    .expect("should be able to send");
+
+    // and receive the response
+    assert_response(stream, b"hello world").await;
+    drop(sink);
+
+    tokio::time::sleep(Duration::from_millis(150)).await;
+
+    // now that all active transactions of the connection (session) are completed, the session
+    // should be terminated, meaning that no new transactions can be started
+    let error = connect_error(&client, address).await;
+    error
+        .downcast_ref::<OpenStreamError>()
+        .expect("should not be able to open another stream");
+}
 
 #[tokio::test]
 #[ignore]

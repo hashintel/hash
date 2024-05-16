@@ -26,7 +26,10 @@ use libp2p::{
 use tokio_util::sync::CancellationToken;
 
 use super::{TransportConfig, TransportLayer};
-use crate::transport::connection::{IncomingConnection, OutgoingConnection};
+use crate::transport::{
+    connection::{IncomingConnection, OutgoingConnection},
+    error::OpenStreamError,
+};
 
 static EXAMPLE_REQUEST: Request = Request {
     header: RequestHeader {
@@ -460,7 +463,13 @@ async fn establish_connection_server_offline() {
     drop(guard_server);
     drop(server);
 
-    assert!(client.dial(peer_id).await.is_err());
+    let error = client
+        .dial(peer_id)
+        .await
+        .expect_err("should not be able to dial");
+    error
+        .downcast_ref::<OpenStreamError>()
+        .expect("underlying error should be OpenStreamError");
 }
 
 #[tokio::test]

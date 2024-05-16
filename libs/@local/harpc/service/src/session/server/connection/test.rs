@@ -110,6 +110,11 @@ impl Setup {
 }
 
 #[tokio::test]
+async fn idle_does_not_terminate_task() {
+    todo!()
+}
+
+#[tokio::test]
 async fn stream_closed_does_not_stop_task() {
     let Setup {
         mut output,
