@@ -190,7 +190,7 @@ jobs:
             aws/creds/dev-deploy security_token | AWS_SESSION_TOKEN;
 
       - name: Upload benchmark results
-        run: turbo run upload-benchmarks -- --artifacts-path "${{ matrix.directory }}/out"
+        run: turbo run upload-benchmarks -- --artifacts-path "$(pwd)/${{ matrix.directory }}/out"
 
       - name: Upload benchmark summary
         if: steps.benches.outputs.create-baseline == 'true'
@@ -361,7 +361,7 @@ jobs:
             aws/creds/dev-deploy security_token | AWS_SESSION_TOKEN;
 
       - name: Upload benchmark results
-        run: turbo run upload-benchmarks -- --artifacts-path "${{ matrix.directory }}/out"
+        run: turbo run upload-benchmarks -- --artifacts-path "$(pwd)/${{ matrix.directory }}/out"
 
       - name: Upload benchmark summary
         if: steps.benches.outputs.create-baseline == 'true'
