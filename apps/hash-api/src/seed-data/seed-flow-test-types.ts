@@ -579,7 +579,7 @@ const seedFlowTestTypes = async () => {
    * This is a simplified representation – for employment, for example, you would probably actually
    * want separate entities for companies, and a link entity type for the employment relationship between them.
    */
-  const _personEntityType = await createSystemEntityTypeIfNotExists(
+  const personEntityType = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
     {
@@ -620,6 +620,83 @@ const seedFlowTestTypes = async () => {
           {
             linkEntityType: workedAtLinkType,
             destinationEntityTypes: [companyEntityType],
+          },
+        ],
+      },
+      ownedById,
+    },
+  );
+
+  const hasAuthorLinkEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        allOf: [linkEntityTypeUrl],
+        title: "Has Author",
+        description: "Something that has an author",
+        properties: [
+          {
+            propertyType: systemPropertyTypes.appliesFrom.propertyTypeId,
+            required: false,
+          },
+          {
+            propertyType: systemPropertyTypes.appliesUntil.propertyTypeId,
+            required: false,
+          },
+        ],
+      },
+      ownedById,
+    },
+  );
+
+  const _researchPaperType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        title: "Research Paper",
+        description: "A research paper",
+        properties: [
+          {
+            propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
+            required: true,
+          },
+          {
+            propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
+            required: true,
+          },
+        ],
+        outgoingLinks: [
+          {
+            linkEntityType: hasAuthorLinkEntityType,
+            destinationEntityTypes: [personEntityType],
+          },
+        ],
+      },
+      ownedById,
+    },
+  );
+
+  const _article = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        title: "Article",
+        description: "A article about something.",
+        properties: [
+          {
+            propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
+          },
+          {
+            propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
+          },
+        ],
+        outgoingLinks: [
+          {
+            linkEntityType: hasAuthorLinkEntityType,
+            destinationEntityTypes: [personEntityType],
           },
         ],
       },

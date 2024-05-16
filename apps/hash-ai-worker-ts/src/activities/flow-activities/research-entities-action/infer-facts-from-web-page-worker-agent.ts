@@ -1,7 +1,5 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { OriginProvenance } from "@local/hash-graph-client";
+import type { SourceProvenance } from "@local/hash-graph-client";
 import { SourceType } from "@local/hash-graph-client";
-import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
@@ -27,7 +25,8 @@ import type {
 import { graphApiClient } from "../../shared/graph-api-client";
 import { stringify } from "../../shared/stringify";
 import { inferFactsFromText } from "../shared/infer-facts-from-text";
-import { proposeEntitiesFromFacts } from "../shared/propose-entities-from-facts";
+import type { EntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text";
+import type { Fact } from "../shared/infer-facts-from-text/types";
 import { handleQueryPdfToolCall } from "./infer-facts-from-web-page-worker-agent/handle-query-pdf-tool-call";
 import type { ToolCallArguments } from "./infer-facts-from-web-page-worker-agent/tool-definitions";
 import { toolDefinitions } from "./infer-facts-from-web-page-worker-agent/tool-definitions";
@@ -42,25 +41,6 @@ import type { CompletedToolCall } from "./types";
 import { mapPreviousCallsToLlmMessages } from "./util";
 
 const model: LlmParams["model"] = "gpt-4-0125-preview";
-
-type SummarizedEntity = {
-  id: string;
-  entityTypeId: VersionedUrl;
-  summary: string;
-};
-
-const mapProposedEntityToSummarizedEntity = (
-  entity: ProposedEntity,
-): SummarizedEntity => {
-  if (!entity.summary) {
-    throw new Error("Expected proposed entity to have a summary.");
-  }
-  return {
-    id: entity.localEntityId,
-    entityTypeId: entity.entityTypeId,
-    summary: entity.summary ?? "",
-  };
-};
 
 const generateSystemMessagePrefix = (params: {
   input: InferFactsFromWebPageWorkerAgentInput;
@@ -93,7 +73,7 @@ const generateSystemMessagePrefix = (params: {
     This is particularly important if the contents of a page are paginated
       over multiple web pages (for example web pages containing a table).
 
-    Make as many different tool calls in parallel as possible. For example, call "inferEntitiesFromWebPage"
+    Make as many different tool calls in parallel as possible. For example, call "inferFactsFromWebPage"
       alongside "getWebPageInnerHtml" to get the content of another web page which may contain
       more entities. Do not make more than one "getWebPageInnerHtml" tool call at a time.
 
@@ -226,21 +206,11 @@ const createInitialPlan = async (params: {
   return { plan: messageText };
 };
 
-const getSubmittedProposedEntitiesFromState = (
-  state: InferFactsFromWebPageWorkerAgentState,
-): ProposedEntity[] =>
-  state.proposedEntities.filter(({ localEntityId }) =>
-    state.submittedEntityIds.includes(localEntityId),
-  );
-
 const getNextToolCalls = async (params: {
   input: InferFactsFromWebPageWorkerAgentInput;
   state: InferFactsFromWebPageWorkerAgentState;
 }): Promise<{ toolCalls: ParsedLlmToolCall<ToolName>[] }> => {
   const { state, input } = params;
-
-  const submittedProposedEntities =
-    getSubmittedProposedEntitiesFromState(state);
 
   const systemPrompt = dedent(`
       ${generateSystemMessagePrefix({ input })}
@@ -254,15 +224,32 @@ const getNextToolCalls = async (params: {
       To constrain the size of the chat history, some message outputs may have been omitted.
       
       Here's a summary of what you've previously done:
-        - You have previously inferred entities from the following webpages: ${JSON.stringify(state.inferredEntitiesFromWebPageUrls, null, 2)}
-      ${
-        submittedProposedEntities.length > 0
-          ? dedent(`
-            - You have previously submitted the following proposed entities: ${JSON.stringify(submittedProposedEntities.map(mapProposedEntityToSummarizedEntity))}
 
+      You have previously inferred facts from the following webpages: ${JSON.stringify(state.inferredFactsFromWebPageUrls)}
+      You have previously inferred facts from the following files: ${JSON.stringify(state.filesUsedToInferFacts.map(({ url }) => url))}
+      
+      ${
+        state.inferredFactsAboutEntities.length > 0
+          ? dedent(`
+            You have previously obtained facts about the following entities:
+            ${state.inferredFactsAboutEntities
+              .map((entitySummary) => {
+                const factsWithEntityAsSubject = state.inferredFacts.filter(
+                  (fact) => fact.subjectEntityLocalId === entitySummary.localId,
+                );
+
+                return dedent(`
+                  Entity ID: ${entitySummary.localId}
+                  Entity Name: ${entitySummary.name}
+                  Entity Summary: ${entitySummary.summary}
+                  Entity Type Id: ${entitySummary.entityTypeId}
+                  Entity facts: ${JSON.stringify(factsWithEntityAsSubject.map(({ text, prepositionalPhrases }) => `${text} ${prepositionalPhrases.join(", ")}`))}
+                `);
+              })
+              .join("\n")}
             If the submitted entities satisfy the research prompt, call the "complete" tool.
           `)
-          : "- You have not previously submitted any facts about entities."
+          : "You have not yet obtained facts about any entities."
       }
     `);
 
@@ -310,8 +297,9 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
   url: string;
 }): Promise<
   Status<{
-    inferredEntities: ProposedEntity[];
-    filesUsedToProposeEntities: AccessedRemoteFile[];
+    inferredFactsAboutEntities: EntitySummary[];
+    inferredFacts: Fact[];
+    filesUsedToInferFacts: AccessedRemoteFile[];
   }>
 > => {
   const { url } = params;
@@ -343,15 +331,14 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
   const state: InferFactsFromWebPageWorkerAgentState = {
     currentPlan: initialPlan,
     previousCalls: [],
-    proposedEntities: [],
-    submittedEntityIds: [],
-    inferredEntitiesFromWebPageUrls: [],
-    idCounter: 0,
+    inferredFactsAboutEntities: [],
+    inferredFacts: [],
+    inferredFactsFromWebPageUrls: [],
     filesQueried: [],
-    filesUsedToProposeEntities: [],
+    filesUsedToInferFacts: [],
   };
 
-  const { flowEntityId, stepId, userAuthentication } = await getFlowContext();
+  const { userAuthentication } = await getFlowContext();
 
   // const state = retrievePreviousState();
 
@@ -453,10 +440,10 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
               ---------------- START OF INNER HTML ----------------
               ${htmlContent}
               ---------------- END OF INNER HTML ----------------
-              If there are any entities in this HTML which you think are relevant to the task, you must
-                immediately call the "inferEntitiesFromWebPage" tool with the relevant HTML content from the HTML.
+              If there are any facts in this HTML which you think are relevant to the task, you must
+                immediately call the "inferFactsFromWebPage" tool with the relevant HTML content from the HTML.
               
-              If there are any links in the HTML which may also contain relevant entities, you should
+              If there are any navigation links in the HTML which may also contain relevant facts, you should
                 make additional "getWebPageInnerHtml" tool calls to get the content of those pages.
 
               Note that you will only be able to see one HTML page at a time, so do not make a single "getWebPageInnerHtml"
@@ -464,12 +451,12 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
               `),
             };
           } else if (
-            toolCall.name === "inferEntitiesFromWebPage" ||
-            toolCall.name === "inferEntitiesFromText"
+            toolCall.name === "inferFactsFromWebPage" ||
+            toolCall.name === "inferFactsFromText"
           ) {
             const toolCallInput = toolCall.input as ToolCallArguments[
-              | "inferEntitiesFromWebPage"
-              | "inferEntitiesFromText"];
+              | "inferFactsFromWebPage"
+              | "inferFactsFromText"];
 
             const accessedRemoteFile =
               "fileUrl" in toolCallInput
@@ -493,82 +480,77 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
 
             const {
               prompt: toolCallPrompt,
-              validAt,
-              entityTypeIds: inferringEntitiesOfTypeIds,
-              linkEntityTypeIds: inferringLinkEntitiesOfTypeIds,
+              // entityTypeIds: inferringEntitiesOfTypeIds,
+              // linkEntityTypeIds: inferringLinkEntitiesOfTypeIds,
             } = toolCallInput;
 
-            if (
-              "expectedNumberOfEntities" in toolCallInput &&
-              toolCallInput.expectedNumberOfEntities < 1
-            ) {
-              return {
-                ...toolCall,
-                output: dedent(`
-                  You provided an expected number of entities which is less than 1. You must provide
-                  a positive integer as the expected number of entities to infer.
-                `),
-                isError: true,
-              };
-            }
+            // if (
+            //   "expectedNumberOfEntities" in toolCallInput &&
+            //   toolCallInput.expectedNumberOfEntities < 1
+            // ) {
+            //   return {
+            //     ...toolCall,
+            //     output: dedent(`
+            //       You provided an expected number of entities which is less than 1. You must provide
+            //       a positive integer as the expected number of entities to infer.
+            //     `),
+            //     isError: true,
+            //   };
+            // }
 
-            const validEntityTypeIds = input.entityTypes.map(({ $id }) => $id);
+            // const validEntityTypeIds = input.entityTypes.map(({ $id }) => $id);
 
-            const invalidEntityTypeIds = inferringEntitiesOfTypeIds.filter(
-              (entityTypeId) => !validEntityTypeIds.includes(entityTypeId),
-            );
+            // const invalidEntityTypeIds = inferringEntitiesOfTypeIds.filter(
+            //   (entityTypeId) => !validEntityTypeIds.includes(entityTypeId),
+            // );
 
-            const validLinkEntityTypeIds = input.linkEntityTypes?.map(
-              ({ $id }) => $id,
-            );
+            // const validLinkEntityTypeIds = input.linkEntityTypes?.map(
+            //   ({ $id }) => $id,
+            // );
 
-            const invalidLinkEntityTypeIds =
-              inferringLinkEntitiesOfTypeIds?.filter(
-                (entityTypeId) =>
-                  !validLinkEntityTypeIds?.includes(entityTypeId),
-              ) ?? [];
+            // const invalidLinkEntityTypeIds =
+            //   inferringLinkEntitiesOfTypeIds.filter(
+            //     (entityTypeId) =>
+            //       !validLinkEntityTypeIds?.includes(entityTypeId),
+            //   );
 
-            if (
-              invalidEntityTypeIds.length > 0 ||
-              invalidLinkEntityTypeIds.length > 0
-            ) {
-              return {
-                ...toolCall,
-                output: dedent(`
-                  ${
-                    invalidEntityTypeIds.length > 0
-                      ? dedent(`
-                        You provided invalid entityTypeIds which don't correspond to the entity types
-                        which were initially provided: ${JSON.stringify(invalidEntityTypeIds)}
+            // if (
+            //   invalidEntityTypeIds.length > 0 ||
+            //   invalidLinkEntityTypeIds.length > 0
+            // ) {
+            //   return {
+            //     ...toolCall,
+            //     output: dedent(`
+            //       ${
+            //         invalidEntityTypeIds.length > 0
+            //           ? dedent(`
+            //             You provided invalid entityTypeIds which don't correspond to the entity types
+            //             which were initially provided: ${JSON.stringify(invalidEntityTypeIds)}
 
-                        The possible entity types you can submit are: ${JSON.stringify(
-                          validEntityTypeIds,
-                        )}
-                      `)
-                      : ""
-                  }
-                  ${
-                    invalidLinkEntityTypeIds.length > 0
-                      ? dedent(`
-                        You provided invalid linkEntityTypeIds which don't correspond to the link entity types
-                        which were initially provided: ${JSON.stringify(invalidLinkEntityTypeIds)}
+            //             The possible entity types you can submit are: ${JSON.stringify(
+            //               validEntityTypeIds,
+            //             )}
+            //           `)
+            //           : ""
+            //       }
+            //       ${
+            //         invalidLinkEntityTypeIds.length > 0
+            //           ? dedent(`
+            //             You provided invalid linkEntityTypeIds which don't correspond to the link entity types
+            //             which were initially provided: ${JSON.stringify(invalidLinkEntityTypeIds)}
 
-                        The possible link entity types you can submit are: ${JSON.stringify(
-                          validLinkEntityTypeIds,
-                        )}
-                      `)
-                      : ""
-                  }
-                `),
-                isError: true,
-              };
-            }
+            //             The possible link entity types you can submit are: ${JSON.stringify(
+            //               validLinkEntityTypeIds,
+            //             )}
+            //           `)
+            //           : ""
+            //       }
+            //     `),
+            //     isError: true,
+            //   };
+            // }
 
-            if (
-              "htmlContent" in toolCallInput
-                ? toolCallInput.htmlContent.length === 0
-                : toolCallInput.text.length === 0
-            ) {
+            if ("text" in toolCallInput && toolCallInput.text.length === 0) {
               return {
                 ...toolCall,
                 output: dedent(`
@@ -580,19 +562,28 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
             }
 
             if ("url" in toolCallInput) {
-              state.inferredEntitiesFromWebPageUrls.push(toolCallInput.url);
+              state.inferredFactsFromWebPageUrls.push(toolCallInput.url);
             }
 
-            const content = dedent(`
-              ${"htmlContent" in toolCallInput ? toolCallInput.htmlContent : toolCallInput.text}
-              The above data is valid at ${validAt}.
-            `);
+            const content =
+              "text" in toolCallInput
+                ? toolCallInput.text
+                : (
+                    await getWebPageActivity({
+                      url: toolCallInput.url,
+                      sanitizeForLlm: true,
+                    })
+                  ).htmlContent;
+
+            // const content = dedent(`
+            //   ${"htmlContent" in toolCallInput ? toolCallInput.htmlContent : toolCallInput.text}
+            // `);
 
             const dereferencedEntityTypes =
               await getDereferencedEntityTypesActivity({
                 entityTypeIds: [
-                  ...inferringEntitiesOfTypeIds,
-                  ...(inferringLinkEntitiesOfTypeIds ?? []),
+                  ...input.entityTypes.map(({ $id }) => $id),
+                  ...(input.linkEntityTypes?.map(({ $id }) => $id) ?? []),
                 ],
                 graphApiClient,
                 actorId: userAuthentication.actorId,
@@ -604,162 +595,93 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
              *
              * @see https://linear.app/hash/issue/H-2713/add-ability-to-specify-existingentities-when-inferring-facts-so-that
              */
-            const { facts, entitySummaries } = await inferFactsFromText({
-              text: content,
-              dereferencedEntityTypes,
-              relevantEntitiesPrompt: toolCallPrompt,
-            });
+            const { facts: inferredFacts, entitySummaries } =
+              await inferFactsFromText({
+                text: content,
+                dereferencedEntityTypes,
+                relevantEntitiesPrompt: toolCallPrompt,
+              });
 
-            /**
-             * @todo: instead of directly proposing entities from the facts, we should
-             * pass the facts to the coordinator agent for collection/deduplication, so
-             * that entities can be proposed from multiple sources.
-             *
-             * @see https://linear.app/hash/issue/H-2693/implement-fact-gathering-in-the-workercoordinator-agents-of-the
-             */
-            const { proposedEntities } = await proposeEntitiesFromFacts({
-              entitySummaries,
-              facts,
-              dereferencedEntityTypes,
-            });
-
-            const editionProvenance: ProposedEntity["provenance"] = {
-              actorType: "ai",
-              // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
-              origin: {
-                type: "flow",
-                id: flowEntityId,
-                stepIds: [stepId],
-              } satisfies OriginProvenance,
-            };
-
-            const propertyProvenance: NonNullable<
-              ProposedEntity["propertyMetadata"]
-            >[number]["metadata"]["provenance"] =
+            const factSource: SourceProvenance =
               "url" in toolCallInput
                 ? {
-                    sources: [
-                      {
-                        type: SourceType.Webpage,
-                        location: {
-                          uri: toolCallInput.url,
-                          /** @todo */
-                          name: undefined,
-                          description: undefined,
-                        },
-                        loadedAt: new Date().toISOString(),
-                        /** @todo */
-                        authors: undefined,
-                        firstPublished: undefined,
-                        lastUpdated: undefined,
-                      },
-                    ],
+                    type: SourceType.Webpage,
+                    location: {
+                      uri: toolCallInput.url,
+                      /** @todo */
+                      name: undefined,
+                      description: undefined,
+                    },
+                    loadedAt: new Date().toISOString(),
+                    /** @todo */
+                    authors: undefined,
+                    firstPublished: undefined,
+                    lastUpdated: undefined,
                   }
                 : {
-                    sources: [
-                      {
-                        type: SourceType.Document,
-                        location: {
-                          uri: toolCallInput.fileUrl,
-                          /** @todo H-2728 get the AI to infer these from the doc */
-                          name: undefined,
-                          description: undefined,
-                        },
-                        loadedAt: accessedRemoteFile?.loadedAt,
-                        /** @todo H-2728 get the AI to infer these from the doc */
-                        authors: undefined,
-                        firstPublished: undefined,
-                        lastUpdated: undefined,
-                      },
-                    ],
+                    type: SourceType.Document,
+                    location: {
+                      uri: toolCallInput.fileUrl,
+                      /** @todo H-2728 get the AI to infer these from the doc */
+                      name: undefined,
+                      description: undefined,
+                    },
+                    loadedAt: accessedRemoteFile?.loadedAt,
+                    /** @todo H-2728 get the AI to infer these from the doc */
+                    authors: undefined,
+                    firstPublished: undefined,
+                    lastUpdated: undefined,
                   };
 
-            const newProposedEntities = proposedEntities.map(
-              (proposedEntity) =>
-                ({
-                  ...proposedEntity,
-                  provenance: editionProvenance,
-                  propertyMetadata: Object.keys(proposedEntity.properties).map(
-                    (propertyBaseUrl) => ({
-                      path: [propertyBaseUrl],
-                      metadata: {
-                        provenance: propertyProvenance,
-                      },
-                    }),
-                    {} as ProposedEntity["propertyMetadata"],
-                  ),
-                }) satisfies ProposedEntity,
-            );
+            const inferredFactsWithSource = inferredFacts.map((fact) => ({
+              ...fact,
+              sources: [...(fact.sources ?? []), factSource],
+            }));
 
-            state.proposedEntities.push(...newProposedEntities);
+            /**
+             * @todo: deduplicate the entity summaries from previously obtained
+             * entity summaries.
+             */
+
+            state.inferredFacts.push(...inferredFactsWithSource);
+            state.inferredFactsAboutEntities.push(...entitySummaries);
 
             if (
               "fileUrl" in toolCallInput &&
-              !state.filesUsedToProposeEntities.some(
+              !state.filesUsedToInferFacts.some(
                 ({ url: previousFileUsedToProposeEntitiesUrl }) =>
                   previousFileUsedToProposeEntitiesUrl ===
                   toolCallInput.fileUrl,
               )
             ) {
-              state.filesUsedToProposeEntities.push(accessedRemoteFile!);
+              state.filesUsedToInferFacts.push(accessedRemoteFile!);
             }
 
-            const summarizedNewProposedEntities = newProposedEntities.map(
-              mapProposedEntityToSummarizedEntity,
-            );
+            // if (
+            //   "expectedNumberOfEntities" in toolCallInput &&
+            //   entitySummaries.length !==
+            //     toolCallInput.expectedNumberOfEntities
+            // ) {
+            //   return {
+            //     ...toolCall,
+            //     output: dedent(`
+            //       The following entities were inferred from the provided HTML content: ${JSON.stringify(summarizedNewProposedEntities)}
 
-            if (
-              "expectedNumberOfEntities" in toolCallInput &&
-              newProposedEntities.length !==
-                toolCallInput.expectedNumberOfEntities
-            ) {
-              return {
-                ...toolCall,
-                output: dedent(`
-                  The following entities were inferred from the provided HTML content: ${JSON.stringify(summarizedNewProposedEntities)}
+            //       The number of entities inferred from the HTML content doesn't match the expected number of entities.
+            //       Expected: ${toolCallInput.expectedNumberOfEntities}
+            //       Actual: ${entitySummaries.length}
 
-                  The number of entities inferred from the HTML content doesn't match the expected number of entities.
-                  Expected: ${toolCallInput.expectedNumberOfEntities}
-                  Actual: ${newProposedEntities.length}
-
-                  If there are missing entities which you require, you must make another "inferEntitiesFromWebPage" tool call
-                    with the relevant HTML content to try again.
-                `),
-              };
-            }
+            //       If there are missing entities which you require, you must make another "inferFactsFromWebPage" tool call
+            //         with the relevant HTML content to try again.
+            //     `),
+            //   };
+            // }
 
             return {
               ...toolCall,
-              output: JSON.stringify(summarizedNewProposedEntities),
-            };
-          } else if (toolCall.name === "submitProposedEntities") {
-            const { entityIds } =
-              toolCall.input as ToolCallArguments["submitProposedEntities"];
-
-            const invalidEntityIds = entityIds.filter(
-              (entityId) =>
-                !state.proposedEntities.some(
-                  ({ localEntityId }) => localEntityId === entityId,
-                ),
-            );
-
-            if (invalidEntityIds.length > 0) {
-              return {
-                ...toolCall,
-                output: dedent(`
-                  You provided invalid entity IDs which don't correspond to any entities
-                  which were previously inferred from an "inferEntitiesFromWebPage"
-                  tool call: ${JSON.stringify(invalidEntityIds)}
-                `),
-              };
-            }
-
-            state.submittedEntityIds.push(...entityIds);
-
-            return {
-              ...toolCall,
-              output: `The entities with IDs ${JSON.stringify(entityIds)} where successfully submitted.   Do not call the "complete" tool unless the submitted entities satisfy
-              the initial research prompt.`,
+              output: dedent(`
+                ${inferredFacts.length} facts were successfully inferred for the following entities: ${JSON.stringify(entitySummaries)}
+              `),
             };
           } else if (toolCall.name === "queryPdf") {
             return await handleQueryPdfToolCall({
@@ -811,15 +733,13 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
     };
   }
 
-  const submittedProposedEntities =
-    getSubmittedProposedEntitiesFromState(state);
-
   return {
     code: StatusCode.Ok,
     contents: [
       {
-        inferredEntities: submittedProposedEntities,
-        filesUsedToProposeEntities: state.filesUsedToProposeEntities,
+        inferredFacts: state.inferredFacts,
+        inferredFactsAboutEntities: state.inferredFactsAboutEntities,
+        filesUsedToInferFacts: state.filesUsedToInferFacts,
       },
     ],
   };
