@@ -12,7 +12,6 @@ export const TableLabel = ({ type }: { type: "manual" | "automatic" }) => {
         {type === "manual" ? "Manually" : "Automatically"} triggered
       </Typography>
       <Link
-        /** @todo H-1323 introduce the /workers filterable list of runs */
         href={`${FRONTEND_ORIGIN}/workers?definitionId=${type === "manual" ? manualBrowserInferenceFlowDefinition.flowDefinitionId : automaticBrowserInferenceFlowDefinition.flowDefinitionId}`}
         sx={{
           alignItems: "center",

@@ -12,6 +12,7 @@ import type {
   StepRun,
 } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { FlowStepStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import type { OwnedById } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import type { Client as TemporalClient } from "@temporalio/client";
 import proto from "@temporalio/proto";
@@ -456,9 +457,11 @@ const getFlowRunDetailedFields = async ({
 };
 
 export const getSparseFlowRunFromWorkflowId = async ({
+  webId,
   workflowId,
   temporalClient,
 }: {
+  webId: OwnedById;
   workflowId: string;
   temporalClient: TemporalClient;
 }): Promise<SparseFlowRun> => {
@@ -475,10 +478,12 @@ export const getSparseFlowRunFromWorkflowId = async ({
     startedAt: startTime.toISOString(),
     executedAt: executionTime?.toISOString(),
     closedAt: closeTime?.toISOString(),
+    webId,
   };
 };
 
 export const getFlowRunFromWorkflowId = async (args: {
+  webId: OwnedById;
   workflowId: string;
   temporalClient: TemporalClient;
 }): Promise<FlowRun> => {

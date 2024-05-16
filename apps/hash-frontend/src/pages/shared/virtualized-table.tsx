@@ -147,7 +147,7 @@ const HeaderContent = <Sort extends VirtualizedTableSort>({
               justifyContent="space-between"
               alignItems="center"
             >
-              <Typography sx={{ fontSize: 12, fontWeight: 600 }}>
+              <Typography sx={{ fontSize: 14, fontWeight: 500 }}>
                 {column.label}
               </Typography>
               {column.sortable && (

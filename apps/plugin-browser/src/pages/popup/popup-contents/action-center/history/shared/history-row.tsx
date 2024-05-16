@@ -7,6 +7,7 @@ import {
   MicroscopeRegularIcon,
   PlugIconRegular,
 } from "@hashintel/design-system";
+import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import {
   Box,
   Collapse,
@@ -57,9 +58,9 @@ export const HistoryRow = ({
   const [expanded, setExpanded] = useState(false);
 
   const openFlowButton = (
-    /** @todo H-1323 make this link work in the frontend */
     <Link
-      href={`${FRONTEND_ORIGIN}/@hash/workers/${flowRun.flowRunId}`}
+      /** @todo get the correct shortname */
+      href={`${FRONTEND_ORIGIN}${generateWorkerRunPath({ shortname: "hash", flowRunId: flowRun.flowRunId })}`}
       target="_blank"
     >
       <ArrowUpRightFromSquareRegularIcon />

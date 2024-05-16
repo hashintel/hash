@@ -6,50 +6,52 @@ import {
   automaticBrowserInferenceFlowDefinition,
   manualBrowserInferenceFlowDefinition,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
+import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import type {
   FlowDefinition as FlowDefinitionType,
   FlowTrigger,
   PersistedEntity,
   ProposedEntity,
 } from "@local/hash-isomorphic-utils/flows/types";
-import { slugifyTypeTitle } from "@local/hash-isomorphic-utils/slugify-type-title";
+import type { EntityUuid } from "@local/hash-subgraph";
 import { Box, Stack, Typography } from "@mui/material";
 import { format } from "date-fns";
+import NotFound from "next/dist/client/components/not-found-error";
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ReactFlowProvider } from "reactflow";
 
 import type {
   StartFlowMutation,
   StartFlowMutationVariables,
-} from "../../../../graphql/api-types.gen";
-import { startFlowMutation } from "../../../../graphql/queries/knowledge/entity.queries";
-import { HEADER_HEIGHT } from "../../../../shared/layout/layout-with-header/page-header";
-import { useFlowDefinitionsContext } from "../../../shared/flow-definitions-context";
-import { useFlowRunsContext } from "../../../shared/flow-runs-context";
-import { ActivityLog } from "./flow-definition/activity-log";
-import { FlowRunSidebar } from "./flow-definition/flow-run-sidebar";
-import { Outputs } from "./flow-definition/outputs";
-import { RunFlowModal } from "./flow-definition/run-flow-modal";
-import { SectionLabel } from "./flow-definition/section-label";
-import { nodeDimensions } from "./flow-definition/shared/dimensions";
+} from "../../../graphql/api-types.gen";
+import { startFlowMutation } from "../../../graphql/queries/knowledge/entity.queries";
+import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
+import { useFlowDefinitionsContext } from "../../shared/flow-definitions-context";
+import { useFlowRunsContext } from "../../shared/flow-runs-context";
+import { ActivityLog } from "./flow-visualizer/activity-log";
+import { FlowRunSidebar } from "./flow-visualizer/flow-run-sidebar";
+import { Outputs } from "./flow-visualizer/outputs";
+import { RunFlowModal } from "./flow-visualizer/run-flow-modal";
+import { SectionLabel } from "./flow-visualizer/section-label";
+import { nodeDimensions } from "./flow-visualizer/shared/dimensions";
 import {
   flowSectionBorderRadius,
   transitionOptions,
-} from "./flow-definition/shared/styles";
+} from "./flow-visualizer/shared/styles";
 import type {
   CustomEdgeType,
   CustomNodeType,
   EdgeData,
   FlowMaybeGrouped,
   LocalProgressLog,
-} from "./flow-definition/shared/types";
+} from "./flow-visualizer/shared/types";
 import {
   getFlattenedSteps,
   groupStepsByDependencyLayer,
-} from "./flow-definition/sort-graph";
-import { Swimlane } from "./flow-definition/swimlane";
-import { Topbar, topbarHeight } from "./flow-definition/topbar";
+} from "./flow-visualizer/sort-graph";
+import { Swimlane } from "./flow-visualizer/swimlane";
+import { Topbar, topbarHeight } from "./flow-visualizer/topbar";
 
 const getGraphFromFlowDefinition = (
   flowDefinition: FlowDefinitionType,
@@ -188,36 +190,66 @@ const unrunnableDefinitionIds = [
   automaticBrowserInferenceFlowDefinition.flowDefinitionId,
 ];
 
-export const FlowDefinition = () => {
+export const FlowVisualizer = () => {
   const apolloClient = useApolloClient();
 
-  const { query } = useRouter();
+  const { query, push } = useRouter();
 
-  const { flowDefinitions, selectedFlow, setSelectedFlow } =
-    useFlowDefinitionsContext();
+  const {
+    selectedFlowDefinition,
+    selectedFlowDefinitionId,
+    setSelectedFlowDefinitionId,
+  } = useFlowDefinitionsContext();
+
+  const { selectedFlowRun, selectedFlowRunId, setSelectedFlowRunId } =
+    useFlowRunsContext();
 
   /** @todo replace with real uuid once flow definitions are stored in the db */
-  const slugifiedFlowName = query["flow-uuid"] as string;
+  const routeFlowDefinitionId = query["flow-uuid"] as string | undefined;
 
-  useEffect(() => {
-    const flowDefinition = flowDefinitions.find(
-      (def) => slugifyTypeTitle(def.name) === slugifiedFlowName,
-    );
-    if (flowDefinition && flowDefinition !== selectedFlow) {
-      setSelectedFlow(flowDefinition);
-    }
-  }, [slugifiedFlowName, flowDefinitions, selectedFlow, setSelectedFlow]);
+  const routeFlowRunId = query["run-uuid"] as string | undefined;
 
-  const { selectedFlowRun, setSelectedFlowRunId } = useFlowRunsContext();
+  /**
+   * Update either the selected definition or run from the route param, depending on which route we're on
+   */
+  if (
+    routeFlowDefinitionId &&
+    routeFlowDefinitionId !== selectedFlowDefinitionId
+  ) {
+    setSelectedFlowDefinitionId(routeFlowDefinitionId as EntityUuid);
+  } else if (routeFlowRunId && routeFlowRunId !== selectedFlowRunId) {
+    setSelectedFlowRunId(routeFlowRunId);
+  }
+
+  /**
+   * If we're on the `/@[namespace/workers/[run-id] page and we don't yet have the matching definition selected, select it
+   */
+  if (
+    routeFlowRunId &&
+    selectedFlowRun &&
+    selectedFlowDefinitionId !== selectedFlowRun.flowDefinitionId
+  ) {
+    setSelectedFlowDefinitionId(selectedFlowRun.flowDefinitionId as EntityUuid);
+  }
 
   const { nodes: derivedNodes, edges: derivedEdges } = useMemo(() => {
-    return getGraphFromFlowDefinition(selectedFlow);
-  }, [selectedFlow]);
+    if (!selectedFlowDefinition) {
+      return { nodes: [], edges: [] };
+    }
+    return getGraphFromFlowDefinition(selectedFlowDefinition);
+  }, [selectedFlowDefinition]);
 
   const [showRunModal, setShowRunModal] = useState(false);
 
   const flowMaybeGrouped = useMemo<FlowMaybeGrouped>(() => {
     const graphsByGroup: FlowMaybeGrouped = { type: "grouped", groups: [] };
+
+    if (!selectedFlowDefinition) {
+      return {
+        groups: [{ group: null, edges: [], nodes: [] }],
+        type: "ungrouped",
+      };
+    }
 
     for (const node of derivedNodes) {
       if (!node.data.groupId) {
@@ -236,7 +268,7 @@ export const FlowDefinition = () => {
         };
       }
 
-      const groupDefinition = selectedFlow.groups?.find(
+      const groupDefinition = selectedFlowDefinition.groups?.find(
         (grp) => grp.groupId === node.data.groupId,
       );
 
@@ -268,7 +300,7 @@ export const FlowDefinition = () => {
     }
 
     return graphsByGroup;
-  }, [derivedNodes, derivedEdges, selectedFlow.groups]);
+  }, [derivedNodes, derivedEdges, selectedFlowDefinition]);
 
   const { logs, persistedEntities, proposedEntities } = useMemo<{
     logs: LocalProgressLog[];
@@ -352,27 +384,38 @@ export const FlowDefinition = () => {
     setShowRunModal(true);
   }, []);
 
-  const flowDefinitionStateKey = `${selectedFlow.name}`;
+  if (!selectedFlowDefinition) {
+    if (selectedFlowDefinitionId) {
+      /**
+       * If we have a selected definition id but no definition, it doesn't exist
+       * @todo when flow definitions are loaded from the database, this may no longer be true
+       */
+      return <NotFound />;
+    }
+    throw new Error("Is this possible?");
+  }
+
+  const flowDefinitionStateKey = `${selectedFlowDefinition.name} ?? "loading`;
   const flowRunStateKey = `${flowDefinitionStateKey}-${
     selectedFlowRun?.flowRunId ?? "definition"
   }`;
 
   const isRunnableFromHere = !unrunnableDefinitionIds.includes(
-    selectedFlow.flowDefinitionId,
+    selectedFlowDefinition.flowDefinitionId,
   );
 
   return (
     <Box sx={{ height: containerHeight }}>
       {isRunnableFromHere && (
         <RunFlowModal
-          key={selectedFlow.name}
-          flowDefinition={selectedFlow}
+          key={selectedFlowDefinition.name}
+          flowDefinition={selectedFlowDefinition}
           open={showRunModal}
           onClose={() => setShowRunModal(false)}
           runFlow={async (outputs: FlowTrigger["outputs"], webId) => {
             const { data } = await startFlow({
               variables: {
-                flowDefinition: selectedFlow,
+                flowDefinition: selectedFlowDefinition,
                 flowTrigger: {
                   outputs,
                   triggerDefinitionId: "userTrigger",
@@ -389,9 +432,11 @@ export const FlowDefinition = () => {
             await apolloClient.refetchQueries({
               include: ["getFlowRuns"],
             });
-            setSelectedFlowRunId(flowRunId);
 
             setShowRunModal(false);
+
+            /** @todo get the correct shortname */
+            void push(generateWorkerRunPath({ shortname: "hash", flowRunId }));
           }}
         />
       )}
@@ -425,7 +470,7 @@ export const FlowDefinition = () => {
         >
           {selectedFlowRun ? (
             <FlowRunSidebar
-              flowDefinition={selectedFlow}
+              flowDefinition={selectedFlowDefinition}
               groups={flowMaybeGrouped.groups}
             />
           ) : null}
@@ -476,13 +521,13 @@ export const FlowDefinition = () => {
                       component="span"
                       sx={{ fontSize: 14, fontWeight: 600, mr: 2 }}
                     >
-                      {selectedFlow.name}
+                      {selectedFlowDefinition.name}
                     </Typography>
                     <Typography
                       component="span"
                       sx={{ fontSize: 14, fontWeight: 400 }}
                     >
-                      {selectedFlow.description}
+                      {selectedFlowDefinition.description}
                     </Typography>
                   </>
                 )}

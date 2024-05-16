@@ -11,21 +11,22 @@ import {
   saveFileFromUrl,
 } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
+import type { EntityUuid } from "@local/hash-subgraph";
 import type { PropsWithChildren } from "react";
 import { createContext, useContext, useMemo, useState } from "react";
 
 export type FlowDefinitionsContextType = {
   flowDefinitions: FlowDefinition[];
   setFlowDefinitions: (flowDefinitions: FlowDefinition[]) => void;
-  selectedFlow: FlowDefinition;
-  setSelectedFlow: (flow: FlowDefinition) => void;
+  selectedFlowDefinition?: FlowDefinition;
+  selectedFlowDefinitionId: EntityUuid;
+  setSelectedFlowDefinitionId: (definitionId: EntityUuid) => void;
 };
 
 export const FlowDefinitionsContext =
   createContext<FlowDefinitionsContextType | null>(null);
 
 const exampleFlows: FlowDefinition[] = [
-  // ...dummyFlows,
   researchTaskFlowDefinition,
   researchEntitiesFlowDefinition,
   ftseInvestorsFlowDefinition,
@@ -42,16 +43,29 @@ export const FlowDefinitionsContextProvider = ({
 }: PropsWithChildren) => {
   const [flowDefinitions, setFlowDefinitions] =
     useState<FlowDefinition[]>(exampleFlows);
-  const [selectedFlow, setSelectedFlow] = useState(exampleFlows[0]!);
+
+  const [selectedFlowDefinitionId, setSelectedFlowDefinitionId] = useState(
+    exampleFlows[0]!.flowDefinitionId,
+  );
+
+  const selectedFlowDefinition = useMemo(
+    () =>
+      flowDefinitions.find(
+        (flowDefinition) =>
+          flowDefinition.flowDefinitionId === selectedFlowDefinitionId,
+      ),
+    [flowDefinitions, selectedFlowDefinitionId],
+  );
 
   const context = useMemo<FlowDefinitionsContextType>(
     () => ({
       flowDefinitions,
       setFlowDefinitions,
-      selectedFlow,
-      setSelectedFlow,
+      selectedFlowDefinitionId,
+      setSelectedFlowDefinitionId,
+      selectedFlowDefinition,
     }),
-    [flowDefinitions, selectedFlow],
+    [flowDefinitions, selectedFlowDefinition, selectedFlowDefinitionId],
   );
 
   return (

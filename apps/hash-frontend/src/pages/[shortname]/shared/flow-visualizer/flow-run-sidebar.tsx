@@ -20,13 +20,13 @@ import { differenceInMilliseconds, intervalToDuration } from "date-fns";
 import type { PropsWithChildren } from "react";
 import { useEffect, useMemo, useState } from "react";
 
-import { isNonNullable } from "../../../../../lib/typeguards";
-import { EllipsisRegularIcon } from "../../../../../shared/icons/ellipsis-regular-icon";
+import { isNonNullable } from "../../../../lib/typeguards";
+import { EllipsisRegularIcon } from "../../../../shared/icons/ellipsis-regular-icon";
 import {
   statusToSimpleStatus,
   useStatusForStep,
   useStatusForSteps,
-} from "../../../../shared/flow-runs-context";
+} from "../../../shared/flow-runs-context";
 import { SectionLabel } from "./section-label";
 import { flowSectionBorderRadius } from "./shared/styles";
 import type {

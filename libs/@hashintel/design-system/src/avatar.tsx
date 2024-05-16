@@ -40,6 +40,7 @@ export const Avatar: FunctionComponent<AvatarProps> = ({
           width: size,
           height: size,
           display: "flex",
+          overflow: "inherit",
           ...(!src && {
             alignItems: "center",
             justifyContent: "center",

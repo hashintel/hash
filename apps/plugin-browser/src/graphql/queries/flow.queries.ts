@@ -3,6 +3,7 @@ export const getMinimalFlowRunsQuery = /* GraphQL */ `
     getFlowRuns {
       flowDefinitionId
       flowRunId
+      webId
       status
       executedAt
       closedAt

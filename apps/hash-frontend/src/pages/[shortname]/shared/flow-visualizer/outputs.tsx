@@ -9,9 +9,9 @@ import { Box, Stack, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useMemo, useState } from "react";
 
-import type { FlowRun } from "../../../../../graphql/api-types.gen";
-import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
-import { getFileProperties } from "../../../../shared/get-file-properties";
+import type { FlowRun } from "../../../../graphql/api-types.gen";
+import { useFlowRunsContext } from "../../../shared/flow-runs-context";
+import { getFileProperties } from "../../../shared/get-file-properties";
 import type { DeliverableData } from "./outputs/deliverables";
 import { Deliverables } from "./outputs/deliverables";
 import { EntityResultTable } from "./outputs/entity-result-table";

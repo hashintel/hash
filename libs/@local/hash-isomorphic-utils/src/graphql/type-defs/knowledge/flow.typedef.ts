@@ -133,6 +133,10 @@ export const flowTypedef = gql`
     """
     flowDefinitionId: String!
     """
+    The web this flow run is associated with
+    """
+    webId: OwnedById!
+    """
     Details of the run's status, inputs, outputs etc
     """
     status: FlowRunStatus!

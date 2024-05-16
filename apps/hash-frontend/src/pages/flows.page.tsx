@@ -1,6 +1,6 @@
 import { Avatar, InfinityLightIcon } from "@hashintel/design-system";
 import type { Subtype } from "@local/advanced-types/subtype";
-import { slugifyTypeTitle } from "@local/hash-isomorphic-utils/slugify-type-title";
+import { generateFlowDefinitionPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import { Box, Container, Stack, TableCell, Typography } from "@mui/material";
 import { formatDistanceToNowStrict } from "date-fns";
 import { memo, useMemo, useState } from "react";
@@ -17,17 +17,14 @@ import {
   FlowRunsContextProvider,
   useFlowRunsContext,
 } from "./shared/flow-runs-context";
+import { flowTableCellSx, flowTableRowHeight } from "./shared/flow-styles";
 import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
   VirtualizedTableRow,
   VirtualizedTableSort,
 } from "./shared/virtualized-table";
-import {
-  defaultCellSx,
-  headerHeight,
-  VirtualizedTable,
-} from "./shared/virtualized-table";
+import { headerHeight, VirtualizedTable } from "./shared/virtualized-table";
 
 type FieldId = "web" | "name" | "description" | "lastRunStartedAt";
 
@@ -73,25 +70,12 @@ type FlowSummary = Subtype<
   }
 >;
 
-const rowHeight = 58;
-
-const cellSx = {
-  ...defaultCellSx,
-  borderRight: "none",
-  height: rowHeight,
-  "*": {
-    whiteSpace: "nowrap",
-    overflowX: "hidden",
-    textOverflow: "ellipsis",
-  },
-};
-
 const TableRow = memo(({ flowSummary }: { flowSummary: FlowSummary }) => {
   const { web, name, uuid, description, lastRunStartedAt } = flowSummary;
 
   return (
     <>
-      <TableCell sx={{ ...cellSx, fontSize: 13 }}>
+      <TableCell sx={{ ...flowTableCellSx, fontSize: 13 }}>
         <Link href={`/@${web.shortname}`} noLinkStyle>
           <Stack
             direction="row"
@@ -108,16 +92,19 @@ const TableRow = memo(({ flowSummary }: { flowSummary: FlowSummary }) => {
               transition: transitions.create("border"),
             })}
           >
-            {web.avatarUrl && <Avatar src={web.avatarUrl} size={14} />}
+            <Avatar src={web.avatarUrl} title={web.name} size={14} />
             <Typography component="span" sx={{ fontSize: 12, fontWeight: 500 }}>
               {web.name}
             </Typography>
           </Stack>
         </Link>
       </TableCell>
-      <TableCell sx={cellSx}>
+      <TableCell sx={flowTableCellSx}>
         <Link
-          href={`/@${web.shortname}/flows/${uuid}`}
+          href={generateFlowDefinitionPath({
+            shortname: web.shortname,
+            flowDefinitionId: uuid,
+          })}
           sx={{
             display: "block",
             fontSize: 14,
@@ -128,14 +115,14 @@ const TableRow = memo(({ flowSummary }: { flowSummary: FlowSummary }) => {
           {name}
         </Link>
       </TableCell>
-      <TableCell sx={cellSx}>
+      <TableCell sx={flowTableCellSx}>
         <Typography
           sx={{ fontSize: 13, color: ({ palette }) => palette.gray[70] }}
         >
           {description}
         </Typography>
       </TableCell>
-      <TableCell sx={cellSx}>
+      <TableCell sx={flowTableCellSx}>
         <Typography
           sx={{ fontSize: 13, color: ({ palette }) => palette.gray[70] }}
         >
@@ -189,7 +176,7 @@ const FlowsPageContent = () => {
              * Flow definitions will have their own uuid once we start storing them in the db, this is a placeholder
              * while we only have hardcoded definitions
              */
-            uuid: slugifyTypeTitle(flowDefinition.name),
+            uuid: flowDefinition.flowDefinitionId,
             description: flowDefinition.description,
             lastRunStartedAt,
           },
@@ -213,7 +200,7 @@ const FlowsPageContent = () => {
 
   const tableHeight = Math.min(
     600,
-    headerHeight + rowHeight * flowDefinitionRows.length + 2, // account for borders
+    headerHeight + flowTableRowHeight * flowDefinitionRows.length + 2, // account for borders
   );
 
   return (
