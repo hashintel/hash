@@ -20,14 +20,14 @@ import type { ParsedLlmToolCall } from "../shared/get-llm-response/types";
 import { logProgress } from "../shared/log-progress";
 import { stringify } from "../shared/stringify";
 import { getWebPageSummaryAction } from "./get-web-page-summary-action";
+import type { CoordinatingAgentState } from "./research-entities-action/coordinating-agent";
+import { coordinatingAgent } from "./research-entities-action/coordinating-agent";
 import type {
   CoordinatorToolCallArguments,
   CoordinatorToolName,
 } from "./research-entities-action/coordinator-tools";
 import { getAnswersFromHuman } from "./research-entities-action/get-answers-from-human";
 import { inferEntitiesFromWebPageWorkerAgent } from "./research-entities-action/infer-entities-from-web-page-worker-agent";
-import type { CoordinatingAgentState } from "./research-entities-action/open-ai-coordinating-agent";
-import { coordinatingAgent } from "./research-entities-action/open-ai-coordinating-agent";
 import type { CompletedToolCall } from "./research-entities-action/types";
 import type { FlowActionActivity } from "./types";
 import { webSearchAction } from "./web-search-action";

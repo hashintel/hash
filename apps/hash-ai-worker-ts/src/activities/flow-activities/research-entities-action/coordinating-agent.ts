@@ -24,7 +24,7 @@ import type { PermittedOpenAiModel } from "../../shared/openai-client";
 import type {
   CoordinatorToolCallArguments,
   CoordinatorToolName,
-} from "./coordinator-tools";./infer-facts-from-web-page-worker-agent/types
+} from "./coordinator-tools";
 import { coordinatorToolDefinitions } from "./coordinator-tools";
 import { getAnswersFromHuman } from "./get-answers-from-human";
 import type { AccessedRemoteFile } from "./infer-entities-from-web-page-worker-agent/types";
