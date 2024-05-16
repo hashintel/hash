@@ -36,7 +36,6 @@ impl FoldedStacks {
     ) -> Result<Option<Self>, Report<io::Error>> {
         let path = artifact_output
             .as_ref()
-            .join("tracing")
             .join(&measurement.info.directory_name)
             .join("tracing.folded");
 

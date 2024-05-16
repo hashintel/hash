@@ -97,9 +97,7 @@ pub fn setup_subscriber(
         string
     }
 
-    let mut target_dir = Path::new("out")
-        .join("tracing")
-        .join(make_filename_safe(group_id));
+    let mut target_dir = Path::new("out").join(make_filename_safe(group_id));
     if let Some(function_id) = function_id {
         target_dir = target_dir.join(make_filename_safe(function_id));
     }
