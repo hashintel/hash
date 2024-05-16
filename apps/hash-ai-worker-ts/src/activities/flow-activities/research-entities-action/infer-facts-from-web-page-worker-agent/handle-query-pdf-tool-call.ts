@@ -11,10 +11,10 @@ import type { CompletedToolCall } from "../types";
 import { filterAndRankTextChunksAgent } from "./filter-and-rank-text-chunks-agent";
 import { indexPdfFile } from "./llama-index/index-pdf-file";
 import type { ToolCallArguments } from "./tool-definitions";
-import type { InferEntitiesFromWebPageWorkerAgentState } from "./types";
+import type { InferFactsFromWebPageWorkerAgentState } from "./types";
 
 export const handleQueryPdfToolCall = async (params: {
-  state: InferEntitiesFromWebPageWorkerAgentState;
+  state: InferFactsFromWebPageWorkerAgentState;
   toolCall: ParsedLlmToolCall<"queryPdf">;
 }): Promise<CompletedToolCall<"queryPdf">> => {
   const { toolCall, state } = params;

@@ -2,7 +2,6 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { OriginProvenance } from "@local/hash-graph-client";
 import { SourceType } from "@local/hash-graph-client";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
-import type { Entity } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
@@ -29,15 +28,15 @@ import { graphApiClient } from "../../shared/graph-api-client";
 import { stringify } from "../../shared/stringify";
 import { inferFactsFromText } from "../shared/infer-facts-from-text";
 import { proposeEntitiesFromFacts } from "../shared/propose-entities-from-facts";
-import { handleQueryPdfToolCall } from "./infer-entities-from-web-page-worker-agent/handle-query-pdf-tool-call";
-import type { ToolCallArguments } from "./infer-entities-from-web-page-worker-agent/tool-definitions";
-import { toolDefinitions } from "./infer-entities-from-web-page-worker-agent/tool-definitions";
+import { handleQueryPdfToolCall } from "./infer-facts-from-web-page-worker-agent/handle-query-pdf-tool-call";
+import type { ToolCallArguments } from "./infer-facts-from-web-page-worker-agent/tool-definitions";
+import { toolDefinitions } from "./infer-facts-from-web-page-worker-agent/tool-definitions";
 import type {
   AccessedRemoteFile,
-  InferEntitiesFromWebPageWorkerAgentInput,
-  InferEntitiesFromWebPageWorkerAgentState,
+  InferFactsFromWebPageWorkerAgentInput,
+  InferFactsFromWebPageWorkerAgentState,
   ToolName,
-} from "./infer-entities-from-web-page-worker-agent/types";
+} from "./infer-facts-from-web-page-worker-agent/types";
 // import { retrievePreviousState, writeStateToFile } from "./testing-utils";
 import type { CompletedToolCall } from "./types";
 import { mapPreviousCallsToLlmMessages } from "./util";
@@ -64,16 +63,16 @@ const mapProposedEntityToSummarizedEntity = (
 };
 
 const generateSystemMessagePrefix = (params: {
-  input: InferEntitiesFromWebPageWorkerAgentInput;
+  input: InferFactsFromWebPageWorkerAgentInput;
 }) => {
-  const { linkEntityTypes, existingEntities } = params.input;
+  const { linkEntityTypes } = params.input;
 
   return dedent(`
-    You are an infer entities from web page worker agent, with the goal
-      of inferring specific entities from a web page or pages linked to by
+    You are an infer facts from web page agent, with the goal
+      of inferring facts about entities a web page or pages linked to by
       the web page.
 
-    You are provided by the user with:
+    The user will provide you with:
       - Prompt: the prompt you need to satisfy to complete the research task
       - Initial web page url: the url of the initial web page you should use to infer entities
       - Entity Types: the types of entities you can propose to satisfy the research prompt
@@ -81,14 +80,6 @@ const generateSystemMessagePrefix = (params: {
         linkEntityTypes
           ? dedent(`
       - Link Types: the types of links you can propose between entities
-      `)
-          : ""
-      }
-      ${
-        existingEntities
-          ? dedent(`
-      - Existing Entities: a list of existing entities, that may contain relevant information
-        and you may want to link to from the proposed entities.
       `)
           : ""
       }
@@ -112,18 +103,11 @@ const generateSystemMessagePrefix = (params: {
 };
 
 const generateUserMessage = (params: {
-  input: InferEntitiesFromWebPageWorkerAgentInput;
+  input: InferFactsFromWebPageWorkerAgentInput;
   includeInnerHtml?: boolean;
 }): LlmUserMessage => {
   const { includeInnerHtml = false, input } = params;
-  const {
-    prompt,
-    url,
-    innerHtml,
-    entityTypes,
-    linkEntityTypes,
-    existingEntities,
-  } = input;
+  const { prompt, url, innerHtml, entityTypes, linkEntityTypes } = input;
 
   return {
     role: "user",
@@ -134,7 +118,6 @@ const generateUserMessage = (params: {
           Prompt: ${prompt}
           Initial web page url: ${url}
           Entity Types: ${JSON.stringify(entityTypes)}
-          Existing Entities: ${existingEntities ? JSON.stringify(existingEntities) : ""}
           ${linkEntityTypes ? `Link Types: ${JSON.stringify(linkEntityTypes)}` : ""}
           ${includeInnerHtml ? `Initial web page inner HTML: ${innerHtml}` : ""}
         `),
@@ -146,7 +129,7 @@ const generateUserMessage = (params: {
 const maxRetryCount = 3;
 
 const createInitialPlan = async (params: {
-  input: InferEntitiesFromWebPageWorkerAgentInput;
+  input: InferFactsFromWebPageWorkerAgentInput;
   retryMessages?: LlmMessage[];
   retryCount?: number;
 }): Promise<{ plan: string }> => {
@@ -161,7 +144,7 @@ const createInitialPlan = async (params: {
       This should be a list of steps in plain English.
 
       Remember that you may need to navigate to other web pages which are linked on the
-      initial web page, to find all the entities required to satisfy the prompt.
+        initial web page, to find all the facts about entities required to satisfy the prompt.
     `);
 
   const messages = [
@@ -244,15 +227,15 @@ const createInitialPlan = async (params: {
 };
 
 const getSubmittedProposedEntitiesFromState = (
-  state: InferEntitiesFromWebPageWorkerAgentState,
+  state: InferFactsFromWebPageWorkerAgentState,
 ): ProposedEntity[] =>
   state.proposedEntities.filter(({ localEntityId }) =>
     state.submittedEntityIds.includes(localEntityId),
   );
 
 const getNextToolCalls = async (params: {
-  input: InferEntitiesFromWebPageWorkerAgentInput;
-  state: InferEntitiesFromWebPageWorkerAgentState;
+  input: InferFactsFromWebPageWorkerAgentInput;
+  state: InferFactsFromWebPageWorkerAgentState;
 }): Promise<{ toolCalls: ParsedLlmToolCall<ToolName>[] }> => {
   const { state, input } = params;
 
@@ -268,17 +251,18 @@ const getNextToolCalls = async (params: {
       If you want to deviate from this plan, update it using the "updatePlan" tool.
       You must call the "updatePlan" tool alongside other tool calls to progress towards completing the task.
 
-      To constrain the size of the chat, some message outputs may have been omitted. Here's a summary of what you've previously done:
-      You have previously inferred entities from the following webpages: ${JSON.stringify(state.inferredEntitiesFromWebPageUrls, null, 2)}
+      To constrain the size of the chat history, some message outputs may have been omitted.
+      
+      Here's a summary of what you've previously done:
+        - You have previously inferred entities from the following webpages: ${JSON.stringify(state.inferredEntitiesFromWebPageUrls, null, 2)}
       ${
         submittedProposedEntities.length > 0
           ? dedent(`
-            You have previously submitted the following proposed entities:
-            ${JSON.stringify(submittedProposedEntities.map(mapProposedEntityToSummarizedEntity))}
+            - You have previously submitted the following proposed entities: ${JSON.stringify(submittedProposedEntities.map(mapProposedEntityToSummarizedEntity))}
 
             If the submitted entities satisfy the research prompt, call the "complete" tool.
           `)
-          : "You have not previously submitted any proposed entities."
+          : "- You have not previously submitted any facts about entities."
       }
     `);
 
@@ -319,19 +303,18 @@ const getNextToolCalls = async (params: {
   return { toolCalls };
 };
 
-export const inferEntitiesFromWebPageWorkerAgent = async (params: {
+export const inferFactsFromWebPageWorkerAgent = async (params: {
   prompt: string;
   entityTypes: DereferencedEntityType[];
   linkEntityTypes?: DereferencedEntityType[];
   url: string;
-  existingEntities?: Entity[];
 }): Promise<
   Status<{
     inferredEntities: ProposedEntity[];
     filesUsedToProposeEntities: AccessedRemoteFile[];
   }>
 > => {
-  const { url, existingEntities } = params;
+  const { url } = params;
 
   /**
    * We start by making a asking the coordinator agent to create an initial plan
@@ -343,11 +326,10 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     sanitizeForLlm: true,
   });
 
-  const input: InferEntitiesFromWebPageWorkerAgentInput = {
+  const input: InferFactsFromWebPageWorkerAgentInput = {
     prompt: params.prompt,
     entityTypes: params.entityTypes,
     linkEntityTypes: params.linkEntityTypes,
-    existingEntities,
     url,
     innerHtml: initialWebPageInnerHtml,
   };
@@ -358,7 +340,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
 
   logger.debug(`Worker agent initial plan: ${initialPlan}`);
 
-  const state: InferEntitiesFromWebPageWorkerAgentState = {
+  const state: InferFactsFromWebPageWorkerAgentState = {
     currentPlan: initialPlan,
     previousCalls: [],
     proposedEntities: [],
