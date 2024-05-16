@@ -1,8 +1,5 @@
 import { sleep } from "@local/hash-backend-utils/utils";
-import {
-  type ActionDefinitionId,
-  actionDefinitions,
-} from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   RunFlowWorkflowParams,
   RunFlowWorkflowResponse,
@@ -23,10 +20,7 @@ import {
   workflowInfo,
 } from "@temporalio/workflow";
 
-import type {
-  createFlowActionActivities,
-  createFlowActivities,
-} from "../activities/flow-activities";
+import type { createFlowActivities } from "../activities/flow-activities";
 import { stringify } from "../activities/shared/stringify";
 import { getAllStepsInFlow } from "./run-flow-workflow/get-all-steps-in-flow";
 import { getStepDefinitionFromFlowDefinition } from "./run-flow-workflow/get-step-definition-from-flow";
@@ -131,32 +125,26 @@ const doesFlowStepHaveSatisfiedDependencies = (params: {
   }
 };
 
-const flowActivities = proxyActivities<ReturnType<typeof createFlowActivities>>(
-  {
+const proxyFlowActivity = <
+  ActionId extends keyof ReturnType<typeof createFlowActivities>,
+>(params: {
+  actionId: ActionId;
+  maximumAttempts: number;
+  activityId: string;
+}): ReturnType<typeof createFlowActivities>[ActionId] => {
+  const { actionId, maximumAttempts, activityId } = params;
+
+  const { [actionId]: action } = proxyActivities<
+    ReturnType<typeof createFlowActivities>
+  >({
     cancellationType: ActivityCancellationType.WAIT_CANCELLATION_COMPLETED,
     /**
      * @todo H-2575 – decide what to do about timeouts, in light of potentially having to wait for user input
-     *    – ideally we'd be able to wait on the workflow level, so that it's put to sleep until the response is received,
-     *    but this requires refactoring the research task such that all tool calls are activities.
+     *    – ideally we'd be able to wait on the workflow level, so that it's put to sleep until the response is
+     *   received, but this requires refactoring the research task such that all tool calls are activities.
      * @see https://docs.temporal.io/dev-guide/typescript/features#asynchronous-design-patterns
      */
     startToCloseTimeout: "7200 second", // 2 hours
-    retry: { maximumAttempts: 1 },
-  },
-);
-
-const proxyActionActivity = (params: {
-  actionDefinitionId: ActionDefinitionId;
-  maximumAttempts: number;
-  activityId: string;
-}) => {
-  const { actionDefinitionId, maximumAttempts, activityId } = params;
-
-  const { [`${actionDefinitionId}Action` as const]: action } = proxyActivities<
-    ReturnType<typeof createFlowActionActivities>
-  >({
-    cancellationType: ActivityCancellationType.WAIT_CANCELLATION_COMPLETED,
-    startToCloseTimeout: "3600 second", // 1 hour
     retry: { maximumAttempts },
     activityId,
   });
@@ -181,9 +169,20 @@ export const runFlowWorkflow = async (
     });
   }
 
+  const userHasPermissionActivity = proxyFlowActivity({
+    actionId: "userHasPermissionToRunFlowInWebActivity",
+    maximumAttempts: 1,
+    activityId: "check-permissions",
+  });
+
+  const persistFlowActivity = proxyFlowActivity({
+    actionId: "persistFlowActivity",
+    maximumAttempts: 1,
+    activityId: "persist-flow",
+  });
+
   // Ensure the user has permission to create entities in specified web
-  const userHasPermissionToRunFlowInWeb =
-    await flowActivities.userHasPermissionToRunFlowInWebActivity();
+  const userHasPermissionToRunFlowInWeb = await userHasPermissionActivity();
 
   if (userHasPermissionToRunFlowInWeb.status !== "ok") {
     const errorMessage = `User does not have permission to run flow in web ${webId}, because they are missing permissions: ${userHasPermissionToRunFlowInWeb.missingPermissions.join(`,`)}`;
@@ -206,7 +205,7 @@ export const runFlowWorkflow = async (
     flowRunId: workflowId as EntityUuid,
   });
 
-  await flowActivities.persistFlowActivity({ flow, userAuthentication });
+  await persistFlowActivity({ flow, userAuthentication });
 
   setQueryAndSignalHandlers();
 
@@ -236,8 +235,8 @@ export const runFlowWorkflow = async (
         flowDefinition,
       });
 
-      const actionActivity = proxyActionActivity({
-        actionDefinitionId: currentStep.actionDefinitionId,
+      const actionActivity = proxyFlowActivity({
+        actionId: `${currentStep.actionDefinitionId}Action`,
         maximumAttempts: actionStepDefinition.retryCount ?? 1,
         activityId: currentStep.stepId,
       });
@@ -417,7 +416,7 @@ export const runFlowWorkflow = async (
 
     await Promise.all(stepsToProcess.map((step) => processStep(step.stepId)));
 
-    await flowActivities.persistFlowActivity({ flow, userAuthentication });
+    await persistFlowActivity({ flow, userAuthentication });
 
     // Recursively call processSteps until all steps are processed
     await processSteps();
@@ -524,7 +523,7 @@ export const runFlowWorkflow = async (
     }
   }
 
-  await flowActivities.persistFlowActivity({ flow, userAuthentication });
+  await persistFlowActivity({ flow, userAuthentication });
 
   const outputs = flow.outputs ?? [];
 
