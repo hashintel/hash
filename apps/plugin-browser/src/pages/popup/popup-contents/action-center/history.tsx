@@ -11,7 +11,10 @@ const HistorySection = ({ children }: PropsWithChildren) => (
     sx={{
       p: 2,
       "&:not(:last-of-type)": {
-        borderTop: ({ palette }) => `1px solid ${palette.gray[30]}`,
+        borderBottom: ({ palette }) => `1px solid ${palette.gray[30]}`,
+        "@media (prefers-color-scheme: dark)": {
+          borderBottom: ({ palette }) => `1px solid ${palette.gray[70]}`,
+        },
       },
     }}
   >

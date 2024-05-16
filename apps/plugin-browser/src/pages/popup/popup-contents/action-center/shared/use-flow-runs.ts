@@ -116,7 +116,7 @@ export const useFlowRuns = (): BrowserFlowsAndBackgroundRequests & {
   useEffect(() => {
     const pollInterval = setInterval(() => {
       void getFlowRuns().then(setValue);
-    }, 2_000);
+    }, 1_000);
 
     return () => clearInterval(pollInterval);
   }, [setValue]);

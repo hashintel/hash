@@ -34,7 +34,6 @@ export const EventTable = ({
           borderCollapse: "separate",
           "@media (prefers-color-scheme: dark)": {
             background: palette.common.black,
-            border: `1px solid ${palette.gray[80]}`,
           },
           "th, td": {
             border: "none",
