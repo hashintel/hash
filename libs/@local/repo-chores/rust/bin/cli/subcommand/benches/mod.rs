@@ -1,25 +1,29 @@
 use std::{
     error::Error,
-    io,
     path::{Path, PathBuf},
 };
 
 mod analyze;
 mod upload;
 use clap::Parser;
-use error_stack::{Report, ResultExt};
 
-fn criterion_directory() -> Result<PathBuf, Report<io::Error>> {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+fn target_directory() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .and_then(Path::parent)
         .and_then(Path::parent)
         .and_then(Path::parent)
         .expect("could not find repository root directory")
         .join("target")
-        .join("criterion");
-    path.canonicalize()
-        .attach_printable_lazy(|| format!("Could not open directory `{}`", path.display()))
+        .canonicalize()
+        .expect("Could not open directory")
+}
+
+fn criterion_directory() -> PathBuf {
+    target_directory()
+        .join("criterion")
+        .canonicalize()
+        .expect("Could not open directory")
 }
 
 #[derive(Debug, clap::Subcommand)]

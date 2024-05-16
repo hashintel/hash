@@ -8,13 +8,12 @@ use std::{
 };
 
 use clap::Parser;
-use error_stack::ResultExt;
 use repo_chores::benches::{
-    analyze::{criterion, AnalyzeError},
+    analyze::{criterion, BenchmarkAnalysis},
     report::Benchmark,
 };
 
-use crate::subcommand::benches::criterion_directory;
+use crate::subcommand::benches::{criterion_directory, target_directory};
 
 #[derive(Debug, Parser)]
 #[clap(version, author, about, long_about = None)]
@@ -26,14 +25,18 @@ pub(crate) struct Args {
     /// Baseline to analyze.
     #[clap(long, default_value = "new")]
     baseline: String,
+
+    /// The path to the directory where the benchmark artifacts are stored.
+    #[clap(long)]
+    artifacts_path: Option<PathBuf>,
 }
 
 pub(super) fn run(args: Args) -> Result<(), Box<dyn Error + Send + Sync>> {
-    struct BenchFormatter<'b>(Vec<Benchmark>, &'b str);
+    struct BenchFormatter<'b>(&'b [BenchmarkAnalysis]);
 
     impl Display for BenchFormatter<'_> {
         fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-            criterion::format_github_markdown(&self.0, f, self.1)
+            criterion::format_github_markdown(self.0, f)
         }
     }
 
@@ -45,15 +48,17 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn Error + Send + Sync>> {
         .transpose()?
         .unwrap_or_else(|| Box::new(io::stdout()));
 
-    writeln!(
-        output,
-        "{}",
-        BenchFormatter(
-            Benchmark::gather(criterion_directory().change_context(AnalyzeError::ReadInput)?)
-                .collect::<Result<_, _>>()?,
-            &args.baseline
-        )
-    )?;
+    let artifacts_path = args.artifacts_path.unwrap_or_else(target_directory);
+
+    let benchmarks = Benchmark::gather(criterion_directory())
+        .map(|benchmark| {
+            benchmark.and_then(|benchmark| {
+                BenchmarkAnalysis::from_benchmark(benchmark, &args.baseline, &artifacts_path)
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    writeln!(output, "{}", BenchFormatter(&benchmarks))?;
 
     Ok(())
 }
