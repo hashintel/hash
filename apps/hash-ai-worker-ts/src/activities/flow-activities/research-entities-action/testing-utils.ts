@@ -6,7 +6,7 @@ import {
   writeFileSync,
 } from "node:fs";
 
-import type { InferEntitiesFromWebPageWorkerAgentState } from "./infer-entities-from-web-page-worker-agent/types";
+import type { InferEntitiesFromWebPageWorkerAgentState } from "./infer-facts-from-web-page-worker-agent/types";
 
 const directoryPath = "./persisted-states";
 

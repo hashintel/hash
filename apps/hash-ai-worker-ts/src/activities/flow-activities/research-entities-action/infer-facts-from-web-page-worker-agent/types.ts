@@ -1,6 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
-import type { Entity } from "@local/hash-subgraph";
 
 import type { DereferencedEntityType } from "../../../shared/dereference-entity-type";
 import type { CompletedToolCall } from "../types";
@@ -33,7 +32,7 @@ export type AccessedRemoteFile = {
   loadedAt: string;
 };
 
-export type InferEntitiesFromWebPageWorkerAgentState = {
+export type InferFactsFromWebPageWorkerAgentState = {
   currentPlan: string;
   previousCalls: {
     completedToolCalls: CompletedToolCall<ToolName>[];
@@ -46,11 +45,10 @@ export type InferEntitiesFromWebPageWorkerAgentState = {
   filesUsedToProposeEntities: AccessedRemoteFile[];
 };
 
-export type InferEntitiesFromWebPageWorkerAgentInput = {
+export type InferFactsFromWebPageWorkerAgentInput = {
   prompt: string;
   entityTypes: DereferencedEntityType[];
   linkEntityTypes?: DereferencedEntityType[];
-  existingEntities?: Entity[];
   url: string;
   innerHtml: string;
 };
