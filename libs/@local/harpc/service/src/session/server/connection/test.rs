@@ -4,19 +4,12 @@ use std::{assert_matches::assert_matches, io};
 
 use bytes::Bytes;
 use futures::{prelude::sink::SinkExt, StreamExt};
-use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{
-        begin::RequestBegin,
-        body::RequestBody,
         flags::{RequestFlag, RequestFlags},
-        frame::RequestFrame,
-        header::RequestHeader,
-        procedure::ProcedureDescriptor,
-        service::ServiceDescriptor,
         Request,
     },
     response::{
@@ -49,7 +42,8 @@ use crate::session::{
     },
     server::{
         connection::{ConnectionDelegateTask, TransactionCollection},
-        test::StringEncoder,
+        session_id::test_utils::mock_session_id,
+        test::{make_request_begin, make_request_frame, StringEncoder},
         SessionConfig, SessionEvent, SessionId, Transaction,
     },
 };
@@ -68,7 +62,7 @@ struct Setup {
 
 impl Setup {
     const OUTPUT_BUFFER_SIZE: usize = 8;
-    const SESSION_ID: SessionId = SessionId::new_unchecked(0x00);
+    const SESSION_ID: SessionId = mock_session_id(0x00);
 
     #[expect(clippy::significant_drop_tightening, reason = "False positive")]
     fn new(config: SessionConfig) -> Self {
@@ -112,44 +106,6 @@ impl Setup {
             handle,
             storage,
         }
-    }
-}
-
-fn make_request_header(flags: impl Into<RequestFlags>) -> RequestHeader {
-    RequestHeader {
-        protocol: Protocol {
-            version: ProtocolVersion::V1,
-        },
-        request_id: mock_request_id(0x01),
-        flags: flags.into(),
-    }
-}
-
-fn make_request_begin(flags: impl Into<RequestFlags>, payload: impl Into<Bytes>) -> Request {
-    Request {
-        header: make_request_header(flags),
-        body: RequestBody::Begin(RequestBegin {
-            service: ServiceDescriptor {
-                id: ServiceId::new(0x01),
-                version: Version {
-                    major: 0x00,
-                    minor: 0x01,
-                },
-            },
-            procedure: ProcedureDescriptor {
-                id: ProcedureId::new(0x01),
-            },
-            payload: Payload::new(payload),
-        }),
-    }
-}
-
-fn make_request_frame(flags: impl Into<RequestFlags>, payload: impl Into<Bytes>) -> Request {
-    Request {
-        header: make_request_header(flags),
-        body: RequestBody::Frame(RequestFrame {
-            payload: Payload::new(payload),
-        }),
     }
 }
 

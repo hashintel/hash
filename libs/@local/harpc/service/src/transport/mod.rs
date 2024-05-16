@@ -47,6 +47,7 @@ pub struct TransportLayer {
 
     tasks: TaskTracker,
     cancel: CancellationToken,
+    cancel_task: CancellationToken,
 }
 
 impl TransportLayer {
@@ -67,8 +68,10 @@ impl TransportLayer {
         let ipc = task.ipc();
         let registry = task.registry();
 
+        let cancel_task = cancel.child_token();
+
         let tasks = TaskTracker::new();
-        tasks.spawn(task.run(cancel.clone()));
+        tasks.spawn(task.run(cancel_task.clone()));
 
         Ok(Self {
             id,
@@ -78,6 +81,7 @@ impl TransportLayer {
 
             tasks,
             cancel,
+            cancel_task,
         })
     }
 
@@ -179,5 +183,13 @@ impl TransportLayer {
             sink,
             stream,
         })
+    }
+}
+
+impl Drop for TransportLayer {
+    fn drop(&mut self) {
+        // always cancel the task when the transport layer is dropped
+        // otherwise the once started swarm will keep running
+        self.cancel_task.cancel();
     }
 }

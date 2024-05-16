@@ -20,14 +20,11 @@ impl SessionIdProducer {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SessionId(usize);
 
-impl SessionId {
-    /// Creates a new `SessionId` with the given `id`.
-    ///
-    /// This method is hidden, as it should only be used sparangly in rare cases where a
-    /// predetermined `SessionId` is acceptable, such as in tests.
-    #[doc(hidden)]
-    #[must_use]
-    pub const fn new_unchecked(id: usize) -> Self {
-        Self(id)
+#[cfg(test)]
+pub(crate) mod test_utils {
+    use super::SessionId;
+
+    pub(crate) const fn mock_session_id(id: usize) -> SessionId {
+        SessionId(id)
     }
 }

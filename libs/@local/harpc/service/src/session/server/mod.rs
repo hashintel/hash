@@ -136,6 +136,7 @@ where
         let (output, rx) = mpsc::channel(self.config.transaction_buffer_size.get());
 
         let cancel = self.transport.cancellation_token();
+        let listen = self.transport.listen().await.change_context(SessionError)?;
 
         let task = Task {
             id: SessionIdProducer::new(),
@@ -146,9 +147,8 @@ where
             output,
             events: self.events.clone(),
             encoder: self.encoder,
+            _transport: self.transport,
         };
-
-        let listen = self.transport.listen().await.change_context(SessionError)?;
 
         self.tasks
             .spawn(task.run(listen, self.tasks.clone(), cancel));

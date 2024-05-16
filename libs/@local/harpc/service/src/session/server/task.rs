@@ -15,7 +15,10 @@ use super::{
 use crate::{
     codec::ErrorEncoder,
     session::{error::SessionError, server::connection::ConnectionTask},
-    transport::connection::{IncomingConnection, IncomingConnections},
+    transport::{
+        connection::{IncomingConnection, IncomingConnections},
+        TransportLayer,
+    },
 };
 
 pub(crate) struct Task<E> {
@@ -28,6 +31,9 @@ pub(crate) struct Task<E> {
     pub(crate) output: mpsc::Sender<Transaction>,
     pub(crate) events: broadcast::Sender<SessionEvent>,
     pub(crate) encoder: E,
+
+    // significant because of the Drop, if dropped this will stop the task automatically
+    pub(crate) _transport: TransportLayer,
 }
 
 impl<E> Task<E>
@@ -62,7 +68,6 @@ where
 
             let connection = select! {
                 connection = next => connection,
-                // TODO: this won't do, this will stop all connections, immediately, we need to drain.
                 () = self.output.closed() => {
                     break;
                 }
