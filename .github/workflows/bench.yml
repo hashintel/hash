@@ -185,9 +185,8 @@ jobs:
           method: jwt
           role: dev
           secrets: |
-            aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
-            aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
-            aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
+            aws/creds/dev-deploy access_key | AWS_ACCESS_KEY_ID ;
+            aws/creds/dev-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
 
       - name: Upload benchmark results
         run: turbo run upload-benchmarks -- --artifacts-path "${{ matrix.directory }}/out"
@@ -356,9 +355,8 @@ jobs:
           method: jwt
           role: dev
           secrets: |
-            aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
-            aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
-            aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
+            aws/creds/dev-deploy access_key | AWS_ACCESS_KEY_ID ;
+            aws/creds/dev-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
 
       - name: Upload benchmark results
         run: turbo run upload-benchmarks -- --artifacts-path "${{ matrix.directory }}/out"
