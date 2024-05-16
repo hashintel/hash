@@ -14,18 +14,14 @@ use crate::benches::{analyze::BenchmarkAnalysis, report::Measurement};
 
 #[derive(Debug, thiserror::Error)]
 pub enum UploadError {
+    #[error("Failed to read input file.")]
+    ReadInput,
     #[error("could not serialize file.")]
     Serialize,
     #[error("Upload failed.")]
     Upload,
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum DownloadError {
-    #[error("could not deserialize file.")]
-    Deserialize,
-    #[error("Download failed.")]
-    Download,
+    #[error("Flame graph is missing.")]
+    FlameGraphMissing,
 }
 
 pub struct S3Storage {

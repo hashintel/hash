@@ -1781,6 +1781,7 @@ dependencies = [
  "graph-test-data",
  "graph-types",
  "rand",
+ "repo-chores",
  "serde",
  "serde_json",
  "temporal-versioning",
