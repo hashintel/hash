@@ -1,7 +1,6 @@
 use alloc::sync::Arc;
 
-use error_stack::FutureExt as _;
-use futures::{FutureExt, StreamExt, TryFutureExt};
+use futures::{FutureExt, StreamExt};
 use tokio::{
     select,
     sync::{broadcast, mpsc, Semaphore, TryAcquireError},
@@ -14,7 +13,7 @@ use super::{
 };
 use crate::{
     codec::ErrorEncoder,
-    session::{error::SessionError, server::connection::ConnectionTask},
+    session::server::connection::ConnectionTask,
     transport::{
         connection::{IncomingConnection, IncomingConnections},
         TransportLayer,

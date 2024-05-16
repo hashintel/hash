@@ -1,18 +1,14 @@
 use alloc::sync::Arc;
 use core::{
-    any::type_name_of_val,
     future::ready,
     sync::atomic::{AtomicUsize, Ordering},
     time::Duration,
 };
-use std::{
-    assert_matches::assert_matches,
-    io::{self, ErrorKind},
-};
+use std::io::{self, ErrorKind};
 
 use bytes::{Bytes, BytesMut};
 use error_stack::{Report, ResultExt};
-use futures::{FutureExt, SinkExt, Stream, StreamExt};
+use futures::{SinkExt, Stream, StreamExt};
 use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
@@ -43,7 +39,6 @@ use crate::{
     macros::non_zero,
     session::{error::TransactionError, server::config::ConcurrentConnectionLimit},
     transport::{
-        behaviour::{TransportBehaviour, TransportBehaviourEvent},
         connection::OutgoingConnection,
         error::{OpenStreamError, TransportError},
         test::{address, layer},
@@ -628,7 +623,9 @@ async fn too_many_connections() {
     service.spawn(server);
 
     let OutgoingConnection {
-        mut sink, stream, ..
+        mut sink,
+        stream: _stream,
+        ..
     } = connect(&client, address.clone()).await;
 
     // creating a new connection would exceed the limit

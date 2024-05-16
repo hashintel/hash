@@ -115,7 +115,7 @@ async fn idle_does_not_terminate_task() {
         mut output,
         events: _events,
         stream,
-        mut sink,
+        sink: _sink,
         handle,
         storage,
     } = Setup::new(SessionConfig::default());
