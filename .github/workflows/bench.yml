@@ -183,7 +183,7 @@ jobs:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}
           method: jwt
-          role: prod
+          role: dev
           secrets: |
             aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
             aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
@@ -354,7 +354,7 @@ jobs:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}
           method: jwt
-          role: prod
+          role: dev
           secrets: |
             aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
             aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
