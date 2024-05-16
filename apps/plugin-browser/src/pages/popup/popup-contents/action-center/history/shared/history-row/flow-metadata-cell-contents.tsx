@@ -178,7 +178,9 @@ export const FlowMetadataCellContents = ({
     <Stack
       alignItems="center"
       direction="row"
-      gap={2}
+      flexWrap="wrap"
+      columnGap={2}
+      rowGap={1.5}
       p="10px 16px"
       sx={({ palette }) => ({
         color: palette.gray[80],

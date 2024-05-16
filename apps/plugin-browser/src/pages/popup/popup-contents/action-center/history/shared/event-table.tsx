@@ -16,14 +16,22 @@ export const EventTable = ({
   triggerRow,
   ...tableProps
 }: TableProps & { triggerRow: boolean }) => (
-  <TableContainer sx={{ maxHeight: 350 }}>
+  <TableContainer
+    sx={({ palette }) => ({
+      border: `1px solid ${palette.gray[30]}`,
+      borderRadius,
+      maxHeight: 350,
+      "@media (prefers-color-scheme: dark)": {
+        border: `1px solid ${palette.gray[80]}`,
+      },
+    })}
+  >
     <Table
       stickyHeader
       sx={[
         ({ palette }) => ({
           borderRadius,
           borderCollapse: "separate",
-          border: `1px solid ${palette.gray[30]}`,
           "@media (prefers-color-scheme: dark)": {
             background: palette.common.black,
             border: `1px solid ${palette.gray[80]}`,

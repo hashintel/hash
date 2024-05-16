@@ -35,7 +35,7 @@ const UrlChip = ({ type, url }: { type: RowType; url: string }) => (
           display: "block",
           fontFamily: "monospace",
           fontSize: 12,
-          maxWidth: type === "manual" ? 190 : 110,
+          maxWidth: type === "manual" ? 210 : 125,
           overflow: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",

@@ -137,7 +137,8 @@ const proxyFlowActivity = <
   const { [actionId]: action } = proxyActivities<
     ReturnType<typeof createFlowActivities>
   >({
-    cancellationType: ActivityCancellationType.WAIT_CANCELLATION_COMPLETED,
+    /** @todo H-2545 switch to WAIT_CANCELLATION_COMPLETED and handle cancellation cleanup in activities */
+    cancellationType: ActivityCancellationType.TRY_CANCEL,
     /**
      * @todo H-2575 – decide what to do about timeouts, in light of potentially having to wait for user input
      *    – ideally we'd be able to wait on the workflow level, so that it's put to sleep until the response is
