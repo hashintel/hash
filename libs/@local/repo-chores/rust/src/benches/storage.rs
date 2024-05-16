@@ -113,7 +113,9 @@ impl S3Storage {
 
         if let Some(stacks) = analysis.folded_stacks {
             let mut flame_graph_options = flamegraph::Options::default();
-            flame_graph_options.title = analysis.measurement.info.title.clone();
+            flame_graph_options
+                .title
+                .clone_from(&analysis.measurement.info.title);
 
             let flame_graph = stacks
                 .create_flame_graph(flame_graph_options)
