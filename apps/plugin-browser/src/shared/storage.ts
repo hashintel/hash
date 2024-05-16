@@ -6,6 +6,11 @@ import type {
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import type { AutomaticInferenceSettings } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
+import type {
+  ExternalInputRequestSignal,
+  PersistedEntity,
+  WebPage,
+} from "@local/hash-isomorphic-utils/flows/types";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   SimpleProperties,
@@ -28,14 +33,9 @@ import type {
 import debounce from "lodash.debounce";
 import browser from "webextension-polyfill";
 
+import type { FlowRun } from "../graphql/api-types.gen";
 import { setDisabledBadge, setEnabledBadge } from "./badge";
 import { updateEntity } from "./storage/update-entity";
-import type {
-  ExternalInputRequestSignal,
-  PersistedEntity,
-  WebPage,
-} from "@local/hash-isomorphic-utils/flows/types";
-import type { FlowRun } from "../graphql/api-types.gen";
 
 type SimplifiedUser = Entity & {
   properties: Required<

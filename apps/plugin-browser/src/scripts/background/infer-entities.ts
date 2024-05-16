@@ -1,4 +1,4 @@
-import {
+import type {
   AutomaticInferenceWebsocketRequestMessage,
   CancelInferEntitiesWebsocketRequestMessage,
   CheckForExternalInputRequestsWebsocketRequestMessage,
@@ -64,14 +64,14 @@ const getWebSocket = async () => {
 
   ws = new WebSocket(websocketUrl);
 
-  const externalRequestPoll = setInterval(async () => {
-    const cookie = await getCookieString();
-
-    ws?.send(
-      JSON.stringify({
-        cookie,
-        type: "check-for-external-input-requests",
-      } satisfies CheckForExternalInputRequestsWebsocketRequestMessage),
+  const externalRequestPoll = setInterval(() => {
+    void getCookieString().then((cookie) =>
+      ws?.send(
+        JSON.stringify({
+          cookie,
+          type: "check-for-external-input-requests",
+        } satisfies CheckForExternalInputRequestsWebsocketRequestMessage),
+      ),
     );
   }, 20_000);
 

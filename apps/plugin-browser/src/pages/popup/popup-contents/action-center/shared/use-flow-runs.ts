@@ -12,7 +12,7 @@ import type {
   ExternalInputRequestSignal,
   PayloadKindValues,
 } from "@local/hash-isomorphic-utils/flows/types";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type {
   GetMinimalFlowRunsQuery,
@@ -20,11 +20,11 @@ import type {
 } from "../../../../../graphql/api-types.gen";
 import { getMinimalFlowRunsQuery } from "../../../../../graphql/queries/flow.queries";
 import { queryGraphQlApi } from "../../../../../shared/query-graphql-api";
-import { useStorageSync } from "../../../../shared/use-storage-sync";
 import type {
   BrowserFlowsAndBackgroundRequests,
   MinimalFlowRun,
 } from "../../../../../shared/storage";
+import { useStorageSync } from "../../../../shared/use-storage-sync";
 
 const mapFlowRunToMinimalFlowRun = (
   flowRun: Omit<
@@ -46,8 +46,6 @@ const mapFlowRunToMinimalFlowRun = (
     }),
   );
 
-  console.log({ persistedEntities });
-
   const webPage = flowRun.inputs[0].flowTrigger.outputs?.find(
     ({ outputName }) =>
       outputName ===
@@ -63,8 +61,49 @@ const mapFlowRunToMinimalFlowRun = (
   };
 };
 
-export const useFlowRuns = (): BrowserFlowsAndBackgroundRequests => {
-  const [value, setValue] = useStorageSync(
+const getFlowRuns = async (): Promise<BrowserFlowsAndBackgroundRequests> =>
+  queryGraphQlApi<GetMinimalFlowRunsQuery, GetMinimalFlowRunsQueryVariables>(
+    getMinimalFlowRunsQuery,
+  )
+    .then(({ data }) =>
+      data.getFlowRuns.sort((a, b) => {
+        if (!a.executedAt) {
+          return b.executedAt ? 1 : 0;
+        }
+        if (!b.executedAt) {
+          return -1;
+        }
+        return b.executedAt.localeCompare(a.executedAt);
+      }),
+    )
+    .then((flowRuns) => {
+      const browserFlowRuns: MinimalFlowRun[] = [];
+      const allInputRequests: ExternalInputRequestSignal[] = [];
+
+      for (const flowRun of flowRuns) {
+        const { inputRequests, ...flow } = flowRun;
+        if (
+          flow.flowDefinitionId ===
+            manualBrowserInferenceFlowDefinition.flowDefinitionId ||
+          flow.flowDefinitionId ===
+            automaticBrowserInferenceFlowDefinition.flowDefinitionId
+        ) {
+          browserFlowRuns.push(mapFlowRunToMinimalFlowRun(flowRun));
+        }
+
+        allInputRequests.push(...inputRequests);
+      }
+
+      return {
+        browserFlowRuns,
+        inputRequests: allInputRequests,
+      };
+    });
+
+export const useFlowRuns = (): BrowserFlowsAndBackgroundRequests & {
+  loading: boolean;
+} => {
+  const [value, setValue, storageLoading] = useStorageSync(
     "browserFlowsAndBackgroundRequests",
     {
       browserFlowRuns: [],
@@ -72,38 +111,33 @@ export const useFlowRuns = (): BrowserFlowsAndBackgroundRequests => {
     },
   );
 
+  const [apiChecked, setApiChecked] = useState(false);
+
   useEffect(() => {
     const pollInterval = setInterval(() => {
-      void queryGraphQlApi<
-        GetMinimalFlowRunsQuery,
-        GetMinimalFlowRunsQueryVariables
-      >(getMinimalFlowRunsQuery).then(({ data }) => {
-        const browserFlowRuns: MinimalFlowRun[] = [];
-        const allInputRequests: ExternalInputRequestSignal[] = [];
-
-        for (const flowRun of data.getFlowRuns) {
-          const { inputRequests, ...flow } = flowRun;
-          if (
-            flow.flowDefinitionId ===
-              manualBrowserInferenceFlowDefinition.flowDefinitionId ||
-            flow.flowDefinitionId ===
-              automaticBrowserInferenceFlowDefinition.flowDefinitionId
-          ) {
-            browserFlowRuns.push(mapFlowRunToMinimalFlowRun(flowRun));
-          }
-
-          allInputRequests.push(...inputRequests);
-        }
-
-        setValue({
-          browserFlowRuns,
-          inputRequests: allInputRequests,
-        });
-      });
-    }, 5_000);
+      void getFlowRuns().then(setValue);
+    }, 2_000);
 
     return () => clearInterval(pollInterval);
   }, [setValue]);
 
-  return value;
+  useEffect(() => {
+    if (apiChecked) {
+      return;
+    }
+
+    void getFlowRuns().then((newValue) => {
+      setValue(newValue);
+      setApiChecked(true);
+    });
+
+    setApiChecked(true);
+  }, [apiChecked, setValue]);
+
+  return useMemo(() => {
+    return {
+      ...value,
+      loading: !storageLoading || !apiChecked,
+    };
+  }, [apiChecked, storageLoading, value]);
 };

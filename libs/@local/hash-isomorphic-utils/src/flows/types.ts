@@ -455,6 +455,6 @@ export const detailedFlowFields = [
   "steps",
 ] as const;
 
-type DetailedFlowField = (typeof detailedFlowFields)[number];
+export type DetailedFlowField = (typeof detailedFlowFields)[number];
 
 export type SparseFlowRun = Omit<FlowRun, DetailedFlowField>;

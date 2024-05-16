@@ -51,8 +51,10 @@ export const topbarHeight = 50;
 
 export const Topbar = ({
   handleRunFlowClicked,
+  showRunButton,
 }: {
   handleRunFlowClicked: () => void;
+  showRunButton: boolean;
 }) => {
   const { push } = useRouter();
 
@@ -145,35 +147,37 @@ export const Topbar = ({
           </>
         )}
       </Stack>
-      <Button
-        onClick={handleRunFlowClicked}
-        size="xs"
-        sx={{
-          px: "14px",
-          "&:before": { background: "transparent" },
-          "&:hover svg": {
-            fill: ({ palette }) => palette.common.white,
-          },
-        }}
-      >
-        <PlayIconSolid
+      {showRunButton && (
+        <Button
+          onClick={handleRunFlowClicked}
+          size="xs"
           sx={{
-            fill: ({ palette }) => palette.blue[40],
-            fontSize: 14,
-            mr: 1,
-            transition: ({ transitions }) => transitions.create("fill"),
-          }}
-        />
-        <Typography
-          sx={{
-            color: ({ palette }) => palette.common.white,
-            fontSize: 13,
-            fontWeight: 500,
+            px: "14px",
+            "&:before": { background: "transparent" },
+            "&:hover svg": {
+              fill: ({ palette }) => palette.common.white,
+            },
           }}
         >
-          Run
-        </Typography>
-      </Button>
+          <PlayIconSolid
+            sx={{
+              fill: ({ palette }) => palette.blue[40],
+              fontSize: 14,
+              mr: 1,
+              transition: ({ transitions }) => transitions.create("fill"),
+            }}
+          />
+          <Typography
+            sx={{
+              color: ({ palette }) => palette.common.white,
+              fontSize: 13,
+              fontWeight: 500,
+            }}
+          >
+            Run
+          </Typography>
+        </Button>
+      )}
     </Stack>
   );
 };

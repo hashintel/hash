@@ -108,7 +108,7 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
               textInput: pageDetails.content,
               type: "infer-entities",
             },
-            "manual",
+            "automatic",
           );
         }
       })

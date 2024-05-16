@@ -1,4 +1,5 @@
 import {
+  ArrowRightIconRegular,
   CaretDownSolidIcon,
   CircleCheckRegularIcon,
   CircleEllipsisRegularIcon,
@@ -20,7 +21,6 @@ import type { PropsWithChildren } from "react";
 import { useEffect, useMemo, useState } from "react";
 
 import { isNonNullable } from "../../../../../lib/typeguards";
-import { ArrowRightIcon } from "../../../../../shared/icons/arrow-right";
 import { EllipsisRegularIcon } from "../../../../../shared/icons/ellipsis-regular-icon";
 import {
   statusToSimpleStatus,
@@ -83,7 +83,7 @@ const InProgressIcon = ({ statusFor }: IconProps) =>
       variant="indeterminate"
     />
   ) : (
-    <ArrowRightIcon
+    <ArrowRightIconRegular
       sx={{ fill: ({ palette }) => palette.blue[70], ...iconSx[statusFor] }}
     />
   );

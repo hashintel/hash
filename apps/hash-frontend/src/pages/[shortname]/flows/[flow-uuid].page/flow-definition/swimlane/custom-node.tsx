@@ -1,3 +1,4 @@
+import { ArrowRightIconRegular } from "@hashintel/design-system";
 import type { ActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { ExternalInputRequest } from "@local/hash-isomorphic-utils/flows/types";
 import type { SxProps, Theme } from "@mui/material";
@@ -6,7 +7,6 @@ import { formatDistance } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
 import type { NodeProps } from "reactflow";
 
-import { ArrowRightIcon } from "../../../../../../shared/icons/arrow-right";
 import { Button } from "../../../../../../shared/ui/button";
 import type {
   SimpleStatus,
@@ -199,11 +199,10 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
             </Typography>
           </Stack>
 
-          {!isParallelizedGroup &&
-          selectedFlowRun &&
-          stepStatusName === "Information Required" &&
-          outstandingInputRequest &&
-          outstandingInputRequest.type === "human-input" ? (
+          {!selectedFlowRun ? null : !isParallelizedGroup &&
+            stepStatusName === "Information Required" &&
+            outstandingInputRequest &&
+            outstandingInputRequest.type === "human-input" ? (
             <Button
               component="button"
               onClick={() => setShowQuestionModal(true)}
@@ -218,7 +217,7 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
               }}
             >
               Your worker wants your advice
-              <ArrowRightIcon sx={{ ...statusBarTextSx, ml: 0.8 }} />
+              <ArrowRightIconRegular sx={{ ...statusBarTextSx, ml: 0.8 }} />
             </Button>
           ) : (
             <Box sx={commonStatusBarSx}>

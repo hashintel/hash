@@ -1,12 +1,12 @@
 import type { TableProps } from "@mui/material";
 import {
+  Table,
   TableBody,
   TableCell,
+  TableContainer,
   TableHead,
   TableRow,
-  Table,
 } from "@mui/material";
-import { darkModeBorderColor } from "../../../../../shared/style-values";
 
 const borderRadius = "8px";
 
@@ -16,67 +16,79 @@ export const EventTable = ({
   triggerRow,
   ...tableProps
 }: TableProps & { triggerRow: boolean }) => (
-  <Table
-    sx={[
-      ({ palette }) => ({
-        borderRadius,
-        borderCollapse: "separate",
-        border: `1px solid ${palette.gray[30]}`,
-        "@media (prefers-color-scheme: dark)": {
-          background: palette.common.black,
-          border: `1px solid ${darkModeBorderColor}`,
-        },
-        "th, td": {
-          color: palette.common.black,
+  <TableContainer sx={{ maxHeight: 350 }}>
+    <Table
+      stickyHeader
+      sx={[
+        ({ palette }) => ({
+          borderRadius,
+          borderCollapse: "separate",
+          border: `1px solid ${palette.gray[30]}`,
           "@media (prefers-color-scheme: dark)": {
-            color: palette.gray[30],
+            background: palette.common.black,
+            border: `1px solid ${palette.gray[80]}`,
           },
-          fontSize: 13,
-          lineHeight: 1,
-          padding: "10px 12px",
-        },
-        th: {
-          background: palette.gray[20],
-          fontWeight: 600,
-          "@media (prefers-color-scheme: dark)": {
-            background: palette.gray[90],
+          "th, td": {
+            border: "none",
+            color: palette.common.black,
+            "@media (prefers-color-scheme: dark)": {
+              color: palette.gray[30],
+            },
+            fontSize: 13,
+            lineHeight: 1,
+            padding: "10px 12px",
+            "&:not(:last-of-type)": {
+              borderRight: `1px solid ${palette.gray[30]}`,
+              "@media (prefers-color-scheme: dark)": {
+                borderRightColor: palette.gray[80],
+              },
+            },
           },
-        },
-        "tr:not(:first-of-type)": {
-          td: { borderBottom: `1px solid ${palette.gray[20]}` },
-        },
-        "thead tr": {
-          "th:first-of-type": {
-            borderTopLeftRadius: borderRadius,
+          th: {
+            background: "rgba(242, 245, 250, 1)",
+            borderBottom: "none",
+            fontWeight: 600,
+            "@media (prefers-color-scheme: dark)": {
+              background: palette.gray[90],
+            },
           },
-          "th:last-of-type": {
-            borderTopRightRadius: borderRadius,
+          "tr:not(:last-of-type) td": {
+            borderTop: `1px solid ${palette.gray[30]}`,
+            "@media (prefers-color-scheme: dark)": {
+              borderTopColor: palette.gray[80],
+            },
           },
-        },
-        "tbody tr:last-of-type": {
-          "td:first-of-type": {
-            borderBottomLeftRadius: borderRadius,
+          "thead tr": {
+            "th:first-of-type": {
+              borderTopLeftRadius: borderRadius,
+            },
+            "th:last-of-type": {
+              borderTopRightRadius: borderRadius,
+            },
           },
-          "td:last-of-type": {
-            borderBottomRightRadius: borderRadius,
+          "tbody tr:last-of-type": {
+            "td:first-of-type": {
+              borderBottomLeftRadius: borderRadius,
+            },
+            "td:last-of-type": {
+              borderBottomRightRadius: borderRadius,
+            },
           },
-        },
-        "td:not(:last-of-type)": {
-          borderRight: palette.gray[20],
-        },
-      }),
-      ...(Array.isArray(sx) ? sx : [sx]),
-    ]}
-    {...tableProps}
-  >
-    <TableHead>
-      <TableRow>
-        <TableCell>Event</TableCell>
-        <TableCell>Subject</TableCell>
-        {triggerRow && <TableCell>Trigger</TableCell>}
-        <TableCell>Status</TableCell>
-      </TableRow>
-    </TableHead>
-    <TableBody>{children}</TableBody>
-  </Table>
+        }),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- @todo why is this any
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
+      {...tableProps}
+    >
+      <TableHead>
+        <TableRow>
+          <TableCell>Event</TableCell>
+          <TableCell>Subject</TableCell>
+          {triggerRow && <TableCell>Trigger</TableCell>}
+          <TableCell>Status</TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>{children}</TableBody>
+    </Table>
+  </TableContainer>
 );

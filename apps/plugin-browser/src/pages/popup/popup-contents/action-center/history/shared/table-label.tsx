@@ -1,9 +1,9 @@
-import { Link, Stack, Typography } from "@mui/material";
 import { ArrowUpRightRegularIcon } from "@hashintel/design-system";
 import {
   automaticBrowserInferenceFlowDefinition,
   manualBrowserInferenceFlowDefinition,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
+import { Link, Stack, Typography } from "@mui/material";
 
 export const TableLabel = ({ type }: { type: "manual" | "automatic" }) => {
   return (
@@ -12,6 +12,7 @@ export const TableLabel = ({ type }: { type: "manual" | "automatic" }) => {
         {type === "manual" ? "Manually" : "Automatically"} triggered
       </Typography>
       <Link
+        /** @todo H-1323 introduce the /workers filterable list of runs */
         href={`${FRONTEND_ORIGIN}/workers?definitionId=${type === "manual" ? manualBrowserInferenceFlowDefinition.flowDefinitionId : automaticBrowserInferenceFlowDefinition.flowDefinitionId}`}
         sx={{
           alignItems: "center",

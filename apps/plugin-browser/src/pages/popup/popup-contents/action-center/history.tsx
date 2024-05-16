@@ -1,8 +1,10 @@
+import { Skeleton } from "@hashintel/design-system";
 import { Box, Link, Typography } from "@mui/material";
+import type { PropsWithChildren } from "react";
 
-import { ManuallyTriggered } from "./history/manually-triggered";
 import { AutomaticallyTriggered } from "./history/automatically-triggered";
-import { PropsWithChildren } from "react";
+import { ManuallyTriggered } from "./history/manually-triggered";
+import { useFlowRuns } from "./shared/use-flow-runs";
 
 const HistorySection = ({ children }: PropsWithChildren) => (
   <Box
@@ -18,13 +20,26 @@ const HistorySection = ({ children }: PropsWithChildren) => (
 );
 
 export const History = () => {
+  const { browserFlowRuns, loading } = useFlowRuns();
+
+  if (loading) {
+    return (
+      <Box p={2}>
+        <Skeleton height={20} width={150} style={{ marginBottom: 10 }} />
+        <Skeleton height={130} style={{ marginBottom: 20 }} />
+        <Skeleton height={20} width={150} style={{ marginBottom: 10 }} />
+        <Skeleton height={130} />
+      </Box>
+    );
+  }
+
   return (
     <Box>
       <HistorySection>
-        <ManuallyTriggered />
+        <ManuallyTriggered browserFlowRuns={browserFlowRuns} />
       </HistorySection>
       <HistorySection>
-        <AutomaticallyTriggered />
+        <AutomaticallyTriggered browserFlowRuns={browserFlowRuns} />
       </HistorySection>
       <HistorySection>
         <Typography

@@ -1,3 +1,4 @@
+import type { DetailedFlowField } from "@local/hash-isomorphic-utils/flows/types";
 import { detailedFlowFields } from "@local/hash-isomorphic-utils/flows/types";
 import type { GraphQLResolveInfo } from "graphql";
 import { parseResolveInfo } from "graphql-parse-resolve-info";
@@ -15,6 +16,6 @@ export const wereDetailedFieldsRequested = (
   }
 
   return Object.keys(requestedFieldsTree).some((fieldName) =>
-    detailedFlowFields.includes(fieldName),
+    detailedFlowFields.includes(fieldName as DetailedFlowField),
   );
 };

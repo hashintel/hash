@@ -1,18 +1,17 @@
-import {
-  automaticBrowserInferenceFlowDefinition,
-  manualBrowserInferenceFlowDefinition,
-} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
+import { automaticBrowserInferenceFlowDefinition } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
 import { TableCell, TableRow } from "@mui/material";
 import { useMemo } from "react";
 
-import { useFlowRuns } from "../shared/use-flow-runs";
-import { TableLabel } from "./shared/table-label";
+import type { MinimalFlowRun } from "../../../../../shared/storage";
 import { EventTable } from "./shared/event-table";
-import { BrowserFlowRow } from "./shared/browser-flow-row";
+import { HistoryRow } from "./shared/history-row";
+import { TableLabel } from "./shared/table-label";
 
-export const AutomaticallyTriggered = () => {
-  const { browserFlowRuns: unfilteredFlowRuns } = useFlowRuns();
-
+export const AutomaticallyTriggered = ({
+  browserFlowRuns: unfilteredFlowRuns,
+}: {
+  browserFlowRuns: MinimalFlowRun[];
+}) => {
   const automaticallyTriggeredFlows = useMemo(
     () =>
       unfilteredFlowRuns.filter(
@@ -39,7 +38,7 @@ export const AutomaticallyTriggered = () => {
             const flowRunId = flow.flowRunId;
 
             return (
-              <BrowserFlowRow flow={flow} key={flowRunId} type="automatic" />
+              <HistoryRow flowRun={flow} key={flowRunId} type="automatic" />
             );
           })
         )}

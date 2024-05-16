@@ -1,5 +1,6 @@
-import { PropsWithChildren, ReactElement, useState } from "react";
-import { Box, Fade, Stack, TableCell } from "@mui/material";
+import { Fade, Stack, TableCell } from "@mui/material";
+import type { PropsWithChildren, ReactElement } from "react";
+import { useState } from "react";
 
 export const CellWithHoverButton = ({
   button,
@@ -14,12 +15,16 @@ export const CellWithHoverButton = ({
       sx={{ position: "relative" }}
     >
       {children}
-      <Fade in={hovered} timeout={100}>
+      <Fade in={hovered} timeout={300}>
         <Stack
           sx={{
             alignItems: "flex-end",
             background:
               "linear-gradient(270deg, #F7F7F7 64.29%, rgba(247, 247, 247, 0) 100%)",
+            "@media (prefers-color-scheme: dark)": {
+              background: ({ palette }) =>
+                `linear-gradient(270deg, ${palette.common.black} 64.29%, rgba(0, 0, 0, 0) 100%)`,
+            },
             justifyContent: "center",
             position: "absolute",
             pr: 1,
@@ -34,7 +39,7 @@ export const CellWithHoverButton = ({
               fontSize: 13,
               transition: ({ transitions }) => transitions.create("fill"),
             },
-            width: 40,
+            width: 57,
           }}
         >
           {button}

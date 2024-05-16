@@ -2,13 +2,13 @@ import type {
   InputNameForAction,
   OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import {
+import type {
   AutomaticInferenceTriggerInputName,
   AutomaticInferenceTriggerInputs,
-  browserInferenceFlowOutput,
   ManualInferenceTriggerInputName,
   ManualInferenceTriggerInputs,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
+import { browserInferenceFlowOutput } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import type { EntityUuid } from "@local/hash-subgraph";
 
@@ -152,7 +152,7 @@ export const automaticBrowserInferenceFlowDefinition: FlowDefinition = {
       inputSources: [
         {
           inputName:
-            "content" satisfies InputNameForAction<"inferEntitiesFromContent">,
+            "webPage" satisfies InputNameForAction<"processAutomaticBrowsingSettings">,
           kind: "step-output",
           sourceStepId: "trigger",
           sourceStepOutputName:

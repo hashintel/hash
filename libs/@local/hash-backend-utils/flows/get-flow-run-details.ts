@@ -2,6 +2,7 @@ import type {
   ExternalInputRequest,
   ExternalInputRequestSignal,
   ExternalInputResponseSignal,
+  FlowInputs,
   ProgressLogSignal,
   SparseFlowRun,
 } from "@local/hash-isomorphic-utils/flows/types";
@@ -140,7 +141,7 @@ const getFlowRunDetailedFields = async ({
         proto.temporal.api.enums.v1.EventType
           .EVENT_TYPE_WORKFLOW_EXECUTION_STARTED,
     )?.workflowExecutionStartedEventAttributes?.input,
-  );
+  ) as FlowInputs | undefined;
 
   const workflowOutputs = parseHistoryItemPayload(
     events?.find(
@@ -440,6 +441,10 @@ const getFlowRunDetailedFields = async ({
       }
       step.status = FlowStepStatus.InformationRequired;
     }
+  }
+
+  if (!workflowInputs) {
+    throw new Error("No workflow inputs found");
   }
 
   return {
