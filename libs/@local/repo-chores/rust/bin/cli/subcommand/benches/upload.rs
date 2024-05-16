@@ -4,7 +4,7 @@ use aws_config::BehaviorVersion;
 use clap::Parser;
 use error_stack::{Report, ResultExt};
 use repo_chores::benches::{
-    analyze::{AnalyzeError, BenchmarkAnalysis},
+    analyze::BenchmarkAnalysis,
     report::Benchmark,
     storage::{S3Storage, UploadError},
 };

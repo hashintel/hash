@@ -38,7 +38,6 @@ impl BenchmarkAnalysis {
             .ok_or(AnalyzeError::BaselineMissing)?;
         let folded_stacks = FoldedStacks::from_measurement(artifact_output, &measurement)
             .change_context(AnalyzeError::ReadInput)?;
-        println!("{:?}", folded_stacks.is_some());
         Ok(Self {
             measurement,
             change: benchmark.change,

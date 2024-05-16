@@ -39,7 +39,6 @@ impl FoldedStacks {
                 measurement.info.value_str.as_deref(),
             ))
             .join("tracing.folded");
-        println!("{:?}", path);
 
         if path.exists() {
             Ok(Some(Self::from_file(path)?))
