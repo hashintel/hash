@@ -111,7 +111,61 @@ impl Setup {
 
 #[tokio::test]
 async fn idle_does_not_terminate_task() {
-    todo!()
+    let Setup {
+        mut output,
+        events: _events,
+        stream,
+        mut sink,
+        handle,
+        storage,
+    } = Setup::new(SessionConfig::default());
+
+    stream
+        .send(Ok(make_request_begin(
+            RequestFlag::EndOfRequest,
+            b"hello" as &[_],
+        )))
+        .await
+        .expect("should be able to send message");
+
+    // we should get a transaction handle, and immediately terminate it
+    let transaction = output.recv().await.expect("should receive transaction");
+
+    // we now should have 1 transaction
+    assert_eq!(storage.len(), 1);
+
+    drop(transaction);
+
+    // we now should have 0 transactions
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    assert_eq!(storage.len(), 0);
+
+    // the handle should still be alive
+    assert!(!handle.is_finished());
+
+    // we can now create another transaction
+    stream
+        .send(Ok(make_request_begin(
+            RequestFlag::EndOfRequest,
+            b"world" as &[_],
+        )))
+        .await
+        .expect("should be able to send message");
+
+    // we should get a transaction handle
+    let transaction = output.recv().await.expect("should receive transaction");
+
+    // we now should have 1 transaction
+    assert_eq!(storage.len(), 1);
+
+    drop(transaction);
+
+    // we now should have 0 transactions
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    assert_eq!(storage.len(), 0);
+
+    // the handle should still be alive
+    assert!(!handle.is_finished());
 }
 
 #[tokio::test]
