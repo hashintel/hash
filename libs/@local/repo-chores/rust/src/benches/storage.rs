@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, error::Error};
 
 use aws_config::SdkConfig;
 use aws_sdk_s3::{
@@ -58,6 +58,14 @@ impl S3Storage {
         .content_type("application/json")
         .send()
         .await
+        .map_err(|error| {
+            let mut source = error.source();
+            while let Some(s) = source {
+                println!("{s}");
+                source = s.source();
+            }
+            error
+        })
         .change_context(UploadError::Upload)
     }
 
@@ -127,6 +135,14 @@ impl S3Storage {
             .content_type("plain/text")
             .send()
             .await
+            .map_err(|error| {
+                let mut source = error.source();
+                while let Some(s) = source {
+                    println!("{s}");
+                    source = s.source();
+                }
+                error
+            })
             .change_context(UploadError::Upload)?;
 
             self.put_file(
@@ -140,6 +156,14 @@ impl S3Storage {
             .acl(ObjectCannedAcl::PublicRead)
             .send()
             .await
+            .map_err(|error| {
+                let mut source = error.source();
+                while let Some(s) = source {
+                    println!("{s}");
+                    source = s.source();
+                }
+                error
+            })
             .change_context(UploadError::Upload)?;
         }
         Ok(())
