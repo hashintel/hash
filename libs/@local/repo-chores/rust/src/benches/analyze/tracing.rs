@@ -1,21 +1,18 @@
-use std::{
-    fs::File,
-    io,
-    io::{BufRead, BufReader},
-    path::Path,
-};
+use std::{fs, io, path::Path};
 
-use error_stack::Report;
+use bytes::Bytes;
+use error_stack::{Context, Report};
+use inferno::flamegraph;
 
 use crate::benches::report::Measurement;
 #[derive(Debug)]
 pub struct FoldedStacks {
-    stacks: Vec<String>,
+    data: Box<[u8]>,
 }
 
-impl FoldedStacks {
-    pub fn lines(&self) -> impl Iterator<Item = &str> {
-        self.stacks.iter().map(String::as_str)
+impl From<FoldedStacks> for Bytes {
+    fn from(value: FoldedStacks) -> Self {
+        Self::from(value.data)
     }
 }
 
@@ -53,9 +50,36 @@ impl FoldedStacks {
     /// Returns an error if reading from the file fails.
     pub fn from_file(input: impl AsRef<Path>) -> Result<Self, Report<io::Error>> {
         Ok(Self {
-            stacks: BufReader::new(File::open(input)?)
-                .lines()
-                .collect::<Result<_, _>>()?,
+            data: fs::read_to_string(input.as_ref())?
+                .into_bytes()
+                .into_boxed_slice(),
         })
+    }
+
+    /// Creates a flame graph from the folded stacks.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if creating the flame graph fails.
+    pub fn create_flame_graph(
+        &self,
+        mut options: flamegraph::Options,
+    ) -> Result<FlameGraph, Report<impl Context>> {
+        let mut buffer = Vec::new();
+        flamegraph::from_reader(&mut options, self.data.as_ref(), &mut buffer)?;
+
+        Ok(FlameGraph {
+            data: buffer.into_boxed_slice(),
+        })
+    }
+}
+
+pub struct FlameGraph {
+    data: Box<[u8]>,
+}
+
+impl From<FlameGraph> for Bytes {
+    fn from(value: FlameGraph) -> Self {
+        Self::from(value.data)
     }
 }
