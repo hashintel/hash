@@ -1,4 +1,4 @@
-use std::{cmp, fs, mem::ManuallyDrop, path::Path};
+use std::{fs, mem::ManuallyDrop, path::Path};
 
 use authorization::{
     schema::{
