@@ -13,12 +13,11 @@ import type {
   PersistedEntity,
   ProposedEntity,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type { EntityUuid } from "@local/hash-subgraph";
 import { Box, Stack, Typography } from "@mui/material";
 import { format } from "date-fns";
 import NotFound from "next/dist/client/components/not-found-error";
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ReactFlowProvider } from "reactflow";
 
 import type {
@@ -192,9 +191,9 @@ const unrunnableDefinitionIds = [
 ];
 
 export const FlowRunVisualizerSkeleton = () => (
-  <Stack gap={1} sx={{ height: `calc(100vh - ${HEADER_HEIGHT + 40}px)` }}>
+  <Stack gap={3} sx={{ height: `calc(100vh - ${HEADER_HEIGHT + 40}px)` }}>
     <Box height={topbarHeight} px={2}>
-      <Skeleton width="400px" height="100%" />
+      <Skeleton width="300px" height="100%" />
     </Box>
     <Box flexGrow={1} px={2}>
       <Skeleton width="70%" height="100%" />
@@ -219,7 +218,7 @@ export const FlowVisualizer = () => {
     return flowDefinitions.find(
       (def) => def.flowDefinitionId === selectedFlowDefinitionId,
     );
-  }, [flowDefinitions, selectedFlowRun, selectedFlowDefinitionId]);
+  }, [flowDefinitions, selectedFlowDefinitionId]);
 
   const { nodes: derivedNodes, edges: derivedEdges } = useMemo(() => {
     if (!selectedFlowDefinition) {

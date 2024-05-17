@@ -1,4 +1,5 @@
 import { useRouter } from "next/router";
+import type { EntityUuid } from "@local/hash-subgraph";
 import type { NextPageWithLayout } from "../../../shared/layout";
 import { getLayoutWithSidebar } from "../../../shared/layout";
 import { FlowDefinitionsContextProvider } from "../../shared/flow-definitions-context";
@@ -10,7 +11,6 @@ import {
   FlowRunVisualizerSkeleton,
   FlowVisualizer,
 } from "../shared/flow-visualizer";
-import { EntityUuid } from "@local/hash-subgraph";
 
 const WorkerFlowDefinitionResolver = () => {
   const { selectedFlowRun } = useFlowRunsContext();
