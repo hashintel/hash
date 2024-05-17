@@ -205,9 +205,9 @@ export const FlowVisualizer = () => {
     useFlowRunsContext();
 
   /** @todo replace with real uuid once flow definitions are stored in the db */
-  const routeFlowDefinitionId = query["flow-uuid"] as string | undefined;
+  const routeFlowDefinitionId = query["flow-def-id"] as string | undefined;
 
-  const routeFlowRunId = query["run-uuid"] as string | undefined;
+  const routeFlowRunId = query["run-id"] as string | undefined;
 
   /**
    * Update either the selected definition or run from the route param, depending on which route we're on

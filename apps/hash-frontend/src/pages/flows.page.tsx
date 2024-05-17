@@ -1,7 +1,7 @@
-import { Avatar, InfinityLightIcon } from "@hashintel/design-system";
+import { InfinityLightIcon } from "@hashintel/design-system";
 import type { Subtype } from "@local/advanced-types/subtype";
 import { generateFlowDefinitionPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
-import { Box, Container, Stack, TableCell, Typography } from "@mui/material";
+import { Box, Container, TableCell, Typography } from "@mui/material";
 import { formatDistanceToNowStrict } from "date-fns";
 import { memo, useMemo, useState } from "react";
 
@@ -17,7 +17,11 @@ import {
   FlowRunsContextProvider,
   useFlowRunsContext,
 } from "./shared/flow-runs-context";
-import { flowTableCellSx, flowTableRowHeight } from "./shared/flow-styles";
+import {
+  flowTableCellSx,
+  flowTableRowHeight,
+  FlowTableWebChip,
+} from "./shared/flow-styles";
 import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
@@ -33,7 +37,7 @@ const columns: VirtualizedTableColumn<FieldId>[] = [
     id: "web",
     label: "Web",
     sortable: true,
-    width: 100,
+    width: 120,
   },
   {
     id: "name",
@@ -76,28 +80,7 @@ const TableRow = memo(({ flowSummary }: { flowSummary: FlowSummary }) => {
   return (
     <>
       <TableCell sx={{ ...flowTableCellSx, fontSize: 13 }}>
-        <Link href={`/@${web.shortname}`} noLinkStyle>
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="center"
-            gap={0.5}
-            sx={({ palette, transitions }) => ({
-              border: `1px solid ${palette.gray[30]}`,
-              borderRadius: 2,
-              py: "3px",
-              "&:hover": {
-                border: `1px solid ${palette.common.black}`,
-              },
-              transition: transitions.create("border"),
-            })}
-          >
-            <Avatar src={web.avatarUrl} title={web.name} size={14} />
-            <Typography component="span" sx={{ fontSize: 12, fontWeight: 500 }}>
-              {web.name}
-            </Typography>
-          </Stack>
-        </Link>
+        <FlowTableWebChip {...web} />
       </TableCell>
       <TableCell sx={flowTableCellSx}>
         <Link

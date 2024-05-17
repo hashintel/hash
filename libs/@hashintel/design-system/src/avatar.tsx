@@ -40,7 +40,6 @@ export const Avatar: FunctionComponent<AvatarProps> = ({
           width: size,
           height: size,
           display: "flex",
-          overflow: "inherit",
           ...(!src && {
             alignItems: "center",
             justifyContent: "center",
@@ -73,6 +72,7 @@ export const Avatar: FunctionComponent<AvatarProps> = ({
             fontSize: size / 2,
             fontWeight: 700,
             lineHeight: 1,
+            overflow: "hidden",
           }}
         >
           {title ? title.charAt(0).toUpperCase() : undefined}

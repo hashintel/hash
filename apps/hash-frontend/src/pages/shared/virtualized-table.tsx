@@ -13,7 +13,7 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 /* eslint-enable no-restricted-imports */
 import type { ComponentPropsWithoutRef, ReactElement } from "react";
-import { forwardRef, useCallback } from "react";
+import { forwardRef, useCallback, useMemo } from "react";
 import type { TableComponents } from "react-virtuoso";
 import { TableVirtuoso } from "react-virtuoso";
 
@@ -177,6 +177,7 @@ type VirtualizedTableProps<D extends Data, S extends VirtualizedTableSort> = {
    */
   createRowContent: CreateVirtualizedRowContentFn<D>;
   columns?: VirtualizedTableColumn[];
+  EmptyPlaceholder?: () => ReactElement;
   rows: VirtualizedTableRow<D>[];
 } & TableSortProps<S>;
 
@@ -188,6 +189,7 @@ export const VirtualizedTable = <
 >({
   createRowContent,
   columns,
+  EmptyPlaceholder,
   rows,
   sort,
   setSort,
@@ -197,11 +199,19 @@ export const VirtualizedTable = <
     [columns, sort, setSort],
   );
 
+  const components = useMemo(
+    () => ({
+      ...VirtuosoTableComponents,
+      EmptyPlaceholder,
+    }),
+    [EmptyPlaceholder],
+  );
+
   return (
     <Box style={{ borderRadius, height, width: "100%" }}>
       <TableVirtuoso
         data={rows}
-        components={VirtuosoTableComponents}
+        components={components}
         fixedHeaderContent={fixedHeaderContent}
         followOutput="smooth"
         increaseViewportBy={50}

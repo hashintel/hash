@@ -14,6 +14,7 @@ import { FlowStepStatus } from "../../graphql/api-types.gen";
 
 export type FlowRunsContextType = {
   flowRuns: FlowRun[];
+  loading: boolean;
   setFlowRuns: (flowRuns: FlowRun[]) => void;
   selectedFlowRun: FlowRun | null;
   selectedFlowRunId: string | null;
@@ -28,12 +29,12 @@ export const FlowRunsContextProvider = ({ children }: PropsWithChildren) => {
     null,
   );
 
-  const { data } = useQuery<GetFlowRunsQuery, GetFlowRunsQueryVariables>(
-    getFlowRunsQuery,
-    {
-      pollInterval: 3_000,
-    },
-  );
+  const { data, loading } = useQuery<
+    GetFlowRunsQuery,
+    GetFlowRunsQueryVariables
+  >(getFlowRunsQuery, {
+    pollInterval: 3_000,
+  });
 
   useEffect(() => {
     if (data) {
@@ -44,6 +45,7 @@ export const FlowRunsContextProvider = ({ children }: PropsWithChildren) => {
   const context = useMemo<FlowRunsContextType>(
     () => ({
       flowRuns,
+      loading,
       setFlowRuns,
       selectedFlowRun:
         flowRuns.find((flowRun) => flowRun.flowRunId === selectedFlowRunId) ??
@@ -51,7 +53,7 @@ export const FlowRunsContextProvider = ({ children }: PropsWithChildren) => {
       selectedFlowRunId,
       setSelectedFlowRunId,
     }),
-    [flowRuns, selectedFlowRunId],
+    [flowRuns, loading, selectedFlowRunId],
   );
 
   return (

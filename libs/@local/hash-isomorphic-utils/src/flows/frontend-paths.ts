@@ -7,9 +7,18 @@ export const generateFlowDefinitionPath = ({
 }) => `/@${shortname}/flows/${flowDefinitionId}`;
 
 export const generateWorkerRunPath = ({
-  namespace,
+  shortname,
   flowRunId,
 }: {
-  namespace: string;
+  shortname: string;
   flowRunId: string;
-}) => `/@${namespace}/workers/${flowRunId}`;
+}) => `/@${shortname}/workers/${flowRunId}`;
+
+export const workerFlowFilterParam = "flow";
+
+export const generatedFilteredWorkersPath = ({
+  flowDefinitionIds,
+}: {
+  flowDefinitionIds: string[];
+}) =>
+  `/workers?${flowDefinitionIds.map((flowDefinitionId) => `${workerFlowFilterParam}=${flowDefinitionId}`).join("&")}`;

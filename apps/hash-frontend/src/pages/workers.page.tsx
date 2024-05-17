@@ -1,16 +1,20 @@
 import {
-  Avatar,
   BullseyeLightIcon,
   InfinityLightIcon,
+  Skeleton,
   TerminalLightIcon,
 } from "@hashintel/design-system";
 import type { Subtype } from "@local/advanced-types/subtype";
 import { goalDefinitionId } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
+import {
+  generateWorkerRunPath,
+  workerFlowFilterParam,
+} from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import type { SxProps, Theme } from "@mui/material";
 import { Box, Container, Stack, TableCell, Typography } from "@mui/material";
 import { format } from "date-fns";
 import { useRouter } from "next/router";
-import { memo, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 
 import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar } from "../shared/layout";
@@ -25,7 +29,11 @@ import {
   FlowRunsContextProvider,
   useFlowRunsContext,
 } from "./shared/flow-runs-context";
-import { flowTableCellSx, flowTableRowHeight } from "./shared/flow-styles";
+import {
+  flowTableCellSx,
+  flowTableRowHeight,
+  FlowTableWebChip,
+} from "./shared/flow-styles";
 import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
@@ -41,31 +49,31 @@ const columns: VirtualizedTableColumn<FieldId>[] = [
     id: "web",
     label: "Web",
     sortable: true,
-    width: "1%",
+    width: 120,
   },
   {
     id: "type",
     label: "Type",
     sortable: true,
-    width: "1%",
+    width: 100,
   },
   {
     id: "name",
     label: "Name",
     sortable: true,
-    width: "40%",
+    width: "auto",
   },
   {
     id: "executedAt",
     label: "Started At",
     sortable: true,
-    width: 150,
+    width: 170,
   },
   {
     id: "closedAt",
     label: "Finished At",
     sortable: true,
-    width: 150,
+    width: 170,
   },
 ];
 
@@ -89,8 +97,8 @@ const chipSx: SxProps<Theme> = {
   border: ({ palette }) => `1px solid ${palette.gray[30]}`,
   borderRadius: 2,
   display: "inline-flex",
-  py: "3px",
-  px: 0.8,
+  py: "4px",
+  px: 1.2,
 };
 
 const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
@@ -101,33 +109,14 @@ const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
   return (
     <>
       <TableCell sx={{ ...flowTableCellSx, fontSize: 13 }}>
-        <Link href={`/@${web.shortname}`} noLinkStyle>
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="center"
-            gap={0.5}
-            sx={({ palette, transitions }) => ({
-              ...chipSx,
-              "&:hover": {
-                border: `1px solid ${palette.common.black}`,
-              },
-              transition: transitions.create("border"),
-            })}
-          >
-            <Avatar src={web.avatarUrl} title={web.name} size={14} />
-            <Typography component="span" sx={{ fontSize: 12, fontWeight: 500 }}>
-              {web.name}
-            </Typography>
-          </Stack>
-        </Link>
+        <FlowTableWebChip {...web} />
       </TableCell>
       <TableCell sx={flowTableCellSx}>
         <Stack
           direction="row"
           alignItems="center"
           justifyContent="center"
-          gap={0.5}
+          gap={1}
           sx={chipSx}
         >
           <Icon
@@ -143,7 +132,7 @@ const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
       </TableCell>
       <TableCell sx={flowTableCellSx}>
         <Link
-          href={`/@${web.shortname}/${type}s/${flowRunId}`}
+          href={generateWorkerRunPath({ shortname: web.shortname, flowRunId })}
           sx={{
             display: "block",
             fontSize: 14,
@@ -186,6 +175,28 @@ const createRowContent: CreateVirtualizedRowContentFn<WorkerSummary> = (
   row,
 ) => <TableRow workerSummary={row.data} />;
 
+const placeholderHeight = 200;
+
+const EmptyComponent = ({ filtered }: { filtered: boolean }) => (
+  <TableCell colSpan={columns.length} sx={{ height: placeholderHeight }}>
+    <Stack
+      alignItems="center"
+      justifyContent="center"
+      sx={{ fontSize: 14, height: "100%" }}
+    >
+      No worker activity {filtered && "for this flow"} yet
+    </Stack>
+  </TableCell>
+);
+
+const LoadingPlaceholder = () => (
+  <TableCell colSpan={columns.length} sx={{ height: placeholderHeight }}>
+    <Box sx={{ height: "100%", marginTop: -0.6 }}>
+      <Skeleton height="100%" />
+    </Box>
+  </TableCell>
+);
+
 const WorkersPageContent = () => {
   const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
     field: "name",
@@ -193,12 +204,12 @@ const WorkersPageContent = () => {
   });
 
   const {
-    query: { flowDefinitionId: definitionFilterQueryParam },
+    query: { [workerFlowFilterParam]: definitionFilterQueryParam },
   } = useRouter();
 
   const { flowDefinitions } = useFlowDefinitionsContext();
 
-  const { flowRuns: unfilteredFlowRuns } = useFlowRunsContext();
+  const { flowRuns: unfilteredFlowRuns, loading } = useFlowRunsContext();
 
   const { authenticatedUser } = useAuthenticatedUser();
 
@@ -292,7 +303,16 @@ const WorkersPageContent = () => {
 
   const tableHeight = Math.min(
     600,
-    headerHeight + flowTableRowHeight * flowRunRows.length + 2, // account for borders
+    headerHeight +
+      2 + // borders
+      (flowRunRows.length
+        ? flowRunRows.length * flowTableRowHeight
+        : placeholderHeight),
+  );
+
+  const EmptyPlaceholder = useCallback(
+    () => <EmptyComponent filtered={!!definitionFilterQueryParam} />,
+    [definitionFilterQueryParam],
   );
 
   return (
@@ -312,6 +332,7 @@ const WorkersPageContent = () => {
         <VirtualizedTable
           columns={columns}
           createRowContent={createRowContent}
+          EmptyPlaceholder={loading ? LoadingPlaceholder : EmptyPlaceholder}
           rows={flowRunRows}
           sort={sort}
           setSort={setSort}

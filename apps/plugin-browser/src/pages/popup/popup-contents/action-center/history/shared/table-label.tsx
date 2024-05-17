@@ -4,6 +4,7 @@ import {
   manualBrowserInferenceFlowDefinition,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
 import { Link, Stack, Typography } from "@mui/material";
+import { generatedFilteredWorkersPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 
 export const TableLabel = ({ type }: { type: "manual" | "automatic" }) => {
   return (
@@ -12,7 +13,7 @@ export const TableLabel = ({ type }: { type: "manual" | "automatic" }) => {
         {type === "manual" ? "Manually" : "Automatically"} triggered
       </Typography>
       <Link
-        href={`${FRONTEND_ORIGIN}/workers?definitionId=${type === "manual" ? manualBrowserInferenceFlowDefinition.flowDefinitionId : automaticBrowserInferenceFlowDefinition.flowDefinitionId}`}
+        href={`${FRONTEND_ORIGIN}${generatedFilteredWorkersPath({ flowDefinitionIds: type === "manual" ? [manualBrowserInferenceFlowDefinition.flowDefinitionId] : [automaticBrowserInferenceFlowDefinition.flowDefinitionId] })}`}
         sx={{
           alignItems: "center",
           color: ({ palette }) => palette.gray[50],

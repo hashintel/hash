@@ -135,11 +135,14 @@ export const Topbar = ({
               onChange={(event) => {
                 const value = event.target.value;
 
-                if (!value) {
-                  generateFlowDefinitionPath({
-                    shortname: "hash",
-                    flowDefinitionId: selectedFlowDefinitionId,
-                  });
+                if (value === "none") {
+                  void push(
+                    generateFlowDefinitionPath({
+                      shortname: "hash",
+                      flowDefinitionId: selectedFlowDefinitionId,
+                    }),
+                  );
+                  return;
                 }
 
                 void push(
