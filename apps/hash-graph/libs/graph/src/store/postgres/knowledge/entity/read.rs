@@ -9,6 +9,7 @@ use temporal_versioning::{
     LeftClosedTemporalInterval, RightBoundedTemporalInterval, TimeAxis, Timestamp,
 };
 use tokio_postgres::GenericClient;
+use tracing::{span, Instrument, Level};
 use type_system::url::BaseUrl;
 
 use crate::{
@@ -150,6 +151,7 @@ where
                     &traversal_data.pinned_timestamp,
                 ],
             )
+            .instrument(tracing::trace_span!("query"))
             .await
             .change_context(QueryError)?
             .into_iter()
@@ -260,6 +262,7 @@ where
                     &traversal_data.pinned_timestamp,
                 ],
             )
+            .instrument(tracing::trace_span!("query"))
             .await
             .change_context(QueryError)?
             .into_iter()

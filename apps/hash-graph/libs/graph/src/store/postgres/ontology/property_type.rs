@@ -25,6 +25,7 @@ use graph_types::{
 use postgres_types::{Json, ToSql};
 use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
 use tokio_postgres::{GenericClient, Row};
+use tracing::instrument;
 use type_system::{
     url::{OntologyTypeVersion, VersionedUrl},
     PropertyType,
@@ -875,6 +876,7 @@ impl PostgresRecord for PropertyTypeWithMetadata {
 
     fn parameters() -> Self::CompilationParameters {}
 
+    #[instrument(level = "info", skip(compiler, _paths))]
     fn compile<'p, 'q: 'p>(
         compiler: &mut SelectCompiler<'p, 'q, Self>,
         _paths: &Self::CompilationParameters,

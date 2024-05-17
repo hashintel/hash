@@ -6,6 +6,7 @@ use graph_types::{
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
 };
 use temporal_versioning::RightBoundedTemporalInterval;
+use tracing::Instrument;
 
 use crate::{
     knowledge::EntityQueryPath,
@@ -24,6 +25,7 @@ where
     C: AsClient,
     A: Send + Sync,
 {
+    #[tracing::instrument(level = "info", skip(self, vertex_ids, subgraph))]
     async fn read_data_types_by_ids(
         &self,
         vertex_ids: impl IntoIterator<Item = OntologyId, IntoIter: Send> + Send,
@@ -54,6 +56,7 @@ where
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self, vertex_ids, subgraph))]
     async fn read_property_types_by_ids(
         &self,
         vertex_ids: impl IntoIterator<Item = OntologyId, IntoIter: Send> + Send,
@@ -84,6 +87,7 @@ where
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self, vertex_ids, subgraph))]
     async fn read_entity_types_by_ids(
         &self,
         vertex_ids: impl IntoIterator<Item = OntologyId, IntoIter: Send> + Send,
@@ -114,6 +118,7 @@ where
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self, edition_ids, subgraph))]
     async fn read_entities_by_ids(
         &self,
         edition_ids: impl IntoIterator<Item = EntityEditionId, IntoIter: Send> + Send,
@@ -125,7 +130,7 @@ where
             .map(EntityEditionId::into_uuid)
             .collect::<Vec<_>>();
 
-        for entity in <Self as Read<Entity>>::read_vec(
+        let entities = <Self as Read<Entity>>::read_vec(
             self,
             &Filter::<Entity>::In(
                 FilterExpression::Path(EntityQueryPath::EditionId),
@@ -134,8 +139,12 @@ where
             Some(&subgraph.temporal_axes.resolved),
             include_drafts,
         )
-        .await?
-        {
+        .await?;
+
+        let span = tracing::trace_span!("insert_into_subgraph", count = entities.len());
+        let _enter = span.enter();
+
+        for entity in entities {
             subgraph.insert_vertex(
                 entity.vertex_id(subgraph.temporal_axes.resolved.variable_time_axis()),
                 entity,
@@ -230,6 +239,7 @@ pub struct TraversalContext {
 }
 
 impl TraversalContext {
+    #[tracing::instrument(level = "info", skip(self, store, subgraph))]
     pub async fn read_traversed_vertices<C: AsClient, A: Send + Sync>(
         &self,
         store: &PostgresStore<C, A>,

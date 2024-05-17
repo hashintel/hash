@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use error_stack::{Report, ResultExt};
 use futures::{Stream, StreamExt, TryStreamExt};
 use tokio_postgres::{GenericClient, Row};
+use tracing::Instrument;
 
 use crate::{
     store::{
@@ -88,6 +89,7 @@ where
         let stream = self
             .as_client()
             .query_raw(&statement, parameters.iter().copied())
+            .instrument(tracing::trace_span!("query"))
             .await
             .change_context(QueryError)?;
 
@@ -110,6 +112,7 @@ where
 {
     type ReadStream = impl Stream<Item = Result<R, Report<QueryError>>> + Send + Sync;
 
+    #[tracing::instrument(level = "info", skip(self, filter))]
     async fn read(
         &self,
         filter: &Filter<'_, R>,
@@ -127,6 +130,7 @@ where
         Ok(self
             .as_client()
             .query_raw(&statement, parameters.iter().copied())
+            .instrument(tracing::trace_span!("query"))
             .await
             .change_context(QueryError)?
             .map(|row| row.change_context(QueryError))
@@ -151,6 +155,7 @@ where
         let rows = self
             .as_client()
             .query(&statement, parameters)
+            .instrument(tracing::trace_span!("query"))
             .await
             .change_context(QueryError)?;
 

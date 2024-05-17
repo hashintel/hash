@@ -27,6 +27,7 @@ use temporal_client::TemporalClient;
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use tokio::net::ToSocketAddrs;
 use tokio_serde::formats::Json;
+use tracing::Instrument;
 use type_fetcher::fetcher::{FetchedOntologyType, FetcherClient};
 use type_system::{url::VersionedUrl, DataType, EntityType, EntityTypeReference, PropertyType};
 

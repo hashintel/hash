@@ -12,6 +12,7 @@ use temporal_versioning::{
     ClosedTemporalBound, LeftClosedTemporalInterval, TemporalTagged, TimeAxis,
 };
 use tokio_postgres::Row;
+use tracing::instrument;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 use uuid::Uuid;
 
@@ -353,6 +354,7 @@ impl PostgresRecord for Entity {
         EntityRecordPaths::default()
     }
 
+    #[instrument(level = "info", skip(compiler, paths))]
     fn compile<'p, 'q: 'p>(
         compiler: &mut SelectCompiler<'p, 'q, Self>,
         paths: &'p Self::CompilationParameters,
