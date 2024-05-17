@@ -27,7 +27,6 @@ export const generatePreviouslyInferredFactsSystemPromptMessage = (params: {
         `);
       })
       .join("\n")}
-    If the submitted entities satisfy the research prompt, call the "complete" tool.
   `)
     : "You have not yet obtained facts about any entities.";
 };

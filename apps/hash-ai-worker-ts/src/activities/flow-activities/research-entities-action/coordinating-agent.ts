@@ -55,6 +55,9 @@ const generateSystemPromptPrefix = (params: {
 
   return dedent(`
     You are a coordinating agent for a research task.
+    You are tasked with proposing entities and links between entities to satisfy a research prompt.
+    You will have tools provided to you to gather facts about entities, propose entities from the obtained facts, and submit the proposed entities to the user.
+    Note that only proposed entities will be provided to the user, not the inferred facts.
 
     The user provides you with:
       - Prompt: the text prompt you need to satisfy to complete the research task

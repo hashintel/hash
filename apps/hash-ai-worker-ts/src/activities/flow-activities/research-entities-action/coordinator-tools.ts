@@ -168,7 +168,10 @@ export const generateToolCalls = (params: {
           items: {
             type: "string",
           },
-          description: "An array of entity IDs of the entities to submit.",
+          description: dedent(`
+            An array of entity IDs of the proposed entities to submit.
+            Each entity must have been proposed by a prior "proposeEntitiesFromFacts" tool call.
+          `),
         },
       },
       required: ["entityIds", "explanation"],

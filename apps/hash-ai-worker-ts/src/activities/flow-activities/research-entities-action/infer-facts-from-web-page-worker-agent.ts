@@ -229,6 +229,11 @@ const getNextToolCalls = async (params: {
       You have previously inferred facts from the following webpages: ${JSON.stringify(state.inferredFactsFromWebPageUrls)}
       You have previously inferred facts from the following files: ${JSON.stringify(state.filesUsedToInferFacts.map(({ url }) => url))}
       ${generatePreviouslyInferredFactsSystemPromptMessage(state)}
+      ${
+        state.inferredFactsAboutEntities.length > 0
+          ? `If the facts about entities satisfy the user's research prompt, you may call the "complete" tool.`
+          : ""
+      }
     `);
 
   const messages: LlmMessage[] = [
