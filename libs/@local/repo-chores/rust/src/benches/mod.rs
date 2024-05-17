@@ -34,9 +34,6 @@ fn make_filename_safe(string: &str) -> String {
                 //
                 // Without trimming ourselves, creating a directory `dir ` will silently create
                 // `dir` instead, but then operations on files like `dir /file` will fail.
-                //
-                // Also note that it's important to do this *after* trimming to MAX_DIRECTORY_NAME_LEN,
-                // otherwise it can trim again to a name with a trailing space.
                 .trim_end()
                 // On Windows, file names are not case-sensitive, so lowercase everything.
                 .to_lowercase();
