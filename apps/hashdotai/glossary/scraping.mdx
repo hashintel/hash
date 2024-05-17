@@ -7,27 +7,35 @@ tags: ["Data Science", "Graphs", "Software Engineering"]
 
 ## What is web scraping?
 
-Scraping (or _web scraping_) is __________ 
+Scraping (or _web scraping_) allows you to automatically extract large amounts of data from websites systematically and efficiently, without having to manually navigate to (and copy and paste) bits of information from webpages. It helps speed up (by fully or partially automating) web-based research tasks, as well as eliminating transcription errors that can occur when copying information from one location to another by hand.
 
 ## Uses of web scraping
 
-__________
+There are lots of peronsal and professional reasons you might want to scrape the web. For example:
+
+- **Price monitoring:** automatically gather and track the prices and availability of products on different providers
+- **Market mapping:** map out the important players in a space to build a market overview
+- **Job listings:** track the job openings advertised by competitors, customers or suppliers to receive advance-notice of changes in their strategies (or track new openings advertised by companies you'd potentially like to work at in the future!)
 
 ## How to scrape the web
 
 Using HASH, it's extremely easy to scrape the web for information you're looking for - both on a one-time and automated/recurring basis.
 
-__________
+1. **Goal-driven scraping:** provide AI workers with a research [goal](/guide/workers/goals), and they'll determine what websites to visit on your behalf.
+1. **Manual scraping:** with the [HASH browser extension](/guide/plugins#browser-extension) installed, you can scrape entities from any webpage you're on with a single click.
+1. **Passive scraping:** rather than manually click "analyze" in the browser extension when visiting a page, you can also toggle HASH's "auto-analyze" mode to "on". When you do, entities will automatically be extracted as structured data from the web-pages you visit, and added to [your HASH web](/guide/webs). You can confine this activity to only run on certain domains (protecting you privacy), and specifically focus on scraping certain types of entities (if you wish).
 
 To ensure your web scraping yields useful information, make sure you're outputting:
 
-- **Structured, typed data:** __________
-- **Validated, clean data:** __________
+- **Structured, typed data:** ensuring entities scraped conform to common schemas, known as "types", guarantees consistency and helps scrapers more completely capture all available information about an entity. This makes data more useful, and reliable.
+- **Validated, clean, labeled data:** using a real-world example, you want to ensure that "Celcius" and "Farenheit" values aren't confusingly mixed up when comparing "Temperature" data from across different websites. Many scraping tools fail to account for [data types](/glossary/data-types) in the same way HASH does, and this can lead to inaccurate, unreliable data. 
 - **Provenance data:** alongside the information you scrape, you want to know where it came from (tracking its source, and origins). You ideally also want the ability to inspect the original source (e.g. web page) as it existed at the specific point in time the information was scraped, to guarantee data was faithfully and accurately scraped in the first place.
 
 Where appropriate, also consider:
 - **Regularly scraping:** if information is sensitive, and changes over time, set up recurring scraping jobs to check for updates, and keep information in your datastore up-to-date.
 - **Cross-referencing:** some information can be gotten directly from its source, while other data may only be accessible through third-parties. Consider scraping data from multiple locations as a "check" on its accuracy.
+
+All information scraped by HASH is strutured, typed, validated, labeled and cleaned. Provenance information is provided for every attribute of every entity scraped, so there's never any question where information came from or whether or not you can rely upon it.
 
 ### Risks
 
