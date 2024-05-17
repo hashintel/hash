@@ -18,9 +18,15 @@ import type { CoordinatingAgentState } from "./coordinating-agent";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const directoryPath = join(__dirname, "/var/persisted-state");
+const baseDirectoryPath = join(__dirname, "/var/persisted-state");
 
-export const retrievePreviousState = (): CoordinatingAgentState => {
+export const retrievePreviousState = (params: {
+  testName: string;
+}): CoordinatingAgentState => {
+  const { testName } = params;
+
+  const directoryPath = `${baseDirectoryPath}/${testName}`;
+
   if (!existsSync(directoryPath)) {
     throw new Error("No persisted state directory found.");
   }
@@ -38,8 +44,13 @@ export const retrievePreviousState = (): CoordinatingAgentState => {
   return JSON.parse(latestFileContent) as CoordinatingAgentState;
 };
 
-const persistState = (params: { state: CoordinatingAgentState }) => {
-  const { state } = params;
+const persistState = (params: {
+  state: CoordinatingAgentState;
+  testName: string;
+}) => {
+  const { state, testName } = params;
+
+  const directoryPath = `${baseDirectoryPath}/${testName}`;
 
   const filePath = `${directoryPath}/${new Date().getTime()}-state.json`;
 
@@ -49,7 +60,7 @@ const persistState = (params: { state: CoordinatingAgentState }) => {
   writeFileSync(filePath, JSON.stringify(state, null, 2));
 };
 
-test(
+test.skip(
   "Test researchEntitiesAction: find subsidiary companies of Google",
   async () => {
     const status = await researchEntitiesAction({
@@ -71,8 +82,11 @@ test(
       ],
       testingParams: {
         humanInputCanBeRequested: false,
-        persistState: (state) => persistState({ state }),
-        resumeFromState: retrievePreviousState(),
+        persistState: (state) =>
+          persistState({ state, testName: "google-subsidiaries" }),
+        resumeFromState: retrievePreviousState({
+          testName: "google-subsidiaries",
+        }),
       },
     });
 
@@ -83,7 +97,7 @@ test(
   },
 );
 
-test.skip(
+test(
   "Test researchEntitiesAction: find the authors of the 'Video generation models as world simulators' article",
   async () => {
     const status = await researchEntitiesAction({
@@ -106,12 +120,17 @@ test.skip(
       ],
       testingParams: {
         humanInputCanBeRequested: false,
+        persistState: (state) =>
+          persistState({ state, testName: "sora-authors" }),
+        resumeFromState: retrievePreviousState({
+          testName: "sora-authors",
+        }),
       },
     });
 
     expect(status).toBeDefined();
   },
   {
-    timeout: 5 * 60 * 1000,
+    timeout: 10 * 60 * 1000,
   },
 );
