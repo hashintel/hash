@@ -3,19 +3,20 @@ import { mapFlowToEntityProperties } from "@local/hash-isomorphic-utils/flows/ma
 import type { Flow } from "@local/hash-isomorphic-utils/flows/types";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { AccountId } from "@local/hash-subgraph";
+import type { AccountId, OwnedById } from "@local/hash-subgraph";
 
 import { graphApiClient } from "../shared/graph-api-client";
 
 type PersistFlowActivityParams = {
   flow: Flow;
   userAuthentication: { actorId: AccountId };
+  webId: OwnedById;
 };
 
 export const persistFlowActivity = async (
   params: PersistFlowActivityParams,
 ) => {
-  const { flow, userAuthentication } = params;
+  const { flow, userAuthentication, webId } = params;
 
   const { flowRunId } = flow;
 
@@ -40,7 +41,7 @@ export const persistFlowActivity = async (
     });
   } else {
     await graphApiClient.createEntity(userAuthentication.actorId, {
-      ownedById: userAuthentication.actorId,
+      ownedById: webId,
       entityUuid: flowRunId,
       entityTypeIds: [systemEntityTypes.flow.entityTypeId],
       properties: flowProperties,
