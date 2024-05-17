@@ -1,10 +1,13 @@
 import type { SvgIconProps, SxProps, Theme } from "@mui/material";
+import { Divider } from "@mui/material";
 import { Box, Container, Stack, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 
 import type { Breadcrumb } from "../pages/shared/breadcrumbs";
 import { TopContextBar } from "../pages/shared/top-context-bar";
 import { BoltLightIcon } from "./icons/bolt-light-icon";
+import { FontAwesomeIcon } from "@hashintel/design-system";
+import { faAngleRight } from "@fortawesome/free-solid-svg-icons";
 
 type WorkersHeaderProps = {
   crumbs: Breadcrumb[];
@@ -13,13 +16,15 @@ type WorkersHeaderProps = {
     iconSx?: SxProps<Theme>;
     text: string;
   };
+  sideTitle?: string;
   subtitle?: string;
 };
 
 export const WorkersHeader = ({
   crumbs,
-  title,
+  sideTitle,
   subtitle,
+  title,
 }: WorkersHeaderProps) => {
   return (
     <>
@@ -62,6 +67,28 @@ export const WorkersHeader = ({
               <Typography variant="h3" sx={{ fontSize: 26, fontWeight: 400 }}>
                 {title.text}
               </Typography>
+              {sideTitle ? (
+                <>
+                  <FontAwesomeIcon
+                    icon={faAngleRight}
+                    sx={({ palette }) => ({
+                      fontSize: 16,
+                      color: palette.gray[50],
+                      mx: 0,
+                    })}
+                  />
+                  <Typography
+                    variant="h4"
+                    sx={{
+                      color: ({ palette }) => palette.gray[80],
+                      fontSize: 26,
+                      fontWeight: 400,
+                    }}
+                  >
+                    {sideTitle}
+                  </Typography>
+                </>
+              ) : null}
             </Stack>
             {subtitle && (
               <Typography

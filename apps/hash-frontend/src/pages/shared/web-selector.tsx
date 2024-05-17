@@ -10,10 +10,9 @@ import {
 import type { ReactElement } from "react";
 import { useMemo } from "react";
 
-import { MenuItem } from "../../../../../../shared/ui/menu-item";
-import { useAuthenticatedUser } from "../../../../../shared/auth-info-context";
-import { getImageUrlFromEntityProperties } from "../../../../../shared/get-file-properties";
-import { inputHeight } from "../shared/dimensions";
+import { MenuItem } from "../../shared/ui/menu-item";
+import { useAuthenticatedUser } from "./auth-info-context";
+import { getImageUrlFromEntityProperties } from "./get-file-properties";
 
 const RenderOptionContent = ({
   avatarComponent,
@@ -39,6 +38,7 @@ const RenderOptionContent = ({
 };
 
 type WebSelectorProps = {
+  inputHeight: number;
   selectedWebOwnedById?: OwnedById;
   setSelectedWebOwnedById: (ownedById: OwnedById) => void;
 };
@@ -46,6 +46,7 @@ type WebSelectorProps = {
 const optionPx = 2;
 
 export const WebSelector = ({
+  inputHeight,
   selectedWebOwnedById,
   setSelectedWebOwnedById,
 }: WebSelectorProps) => {
