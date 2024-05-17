@@ -291,6 +291,7 @@ impl TransactionCollection {
                 // Whenever we cancel a task, we do not flush, so no `EndOfResponse` is accidentally
                 // sent.
                 // TODO: is this behaviour we want, or do we want a more graceful approach?
+                entry.sender.close();
                 entry.cancel.cancel();
 
                 Err(TransactionLaggingError)
@@ -375,14 +376,24 @@ impl TransactionPermit {
 
 impl Drop for TransactionPermit {
     fn drop(&mut self) {
-        let has_removed = self
-            .storage
-            .remove_if(&self.id, |state| state.generation == self.generation);
+        // using async and sync methods can lead to deadlocks, so we spawn a new task to remove the
+        // state from the storage (it's also just cleaner this way), as `remove_if` might block.
+        let storage = Arc::clone(&self.storage);
+        let notify = Arc::clone(&self.notify);
 
-        // we only need to check if empty, if we have removed something
-        if has_removed && self.storage.is_empty() {
-            self.notify.notify_one();
-        }
+        let id = self.id;
+        let generation = self.generation;
+
+        tokio::spawn(async move {
+            let has_removed = storage
+                .remove_if_async(&id, |state| state.generation == generation)
+                .await;
+
+            // we only need to check if empty, if we have removed something
+            if has_removed && storage.is_empty() {
+                notify.notify_one();
+            }
+        });
     }
 }
 
@@ -461,13 +472,17 @@ where
                 //
                 // by first acquiring a permit, instead of sending, we can ensure that we won't
                 // spawn a transaction if we can't deliver it.
-                let result = tokio::time::timeout(
+                #[expect(
+                    clippy::significant_drop_in_scrutinee,
+                    reason = "This simply returns a drop guard, that is carried through the \
+                              transaction lifetime."
+                )]
+                let transaction_permit = match tokio::time::timeout(
                     self.config.transaction_delivery_deadline,
                     self.output.reserve(),
                 )
-                .await;
-
-                let transaction_permit = match result {
+                .await
+                {
                     Ok(Ok(permit)) => permit,
                     Ok(Err(_)) => {
                         // while the supervisor has been closed (or at least the stream to send
@@ -504,6 +519,7 @@ where
                         config: self.config,
                         rx: request_rx,
                         tx: tx.clone(),
+                        permit,
                     },
                 );
 
@@ -513,7 +529,7 @@ where
                     .try_send(request)
                     .expect("infallible; buffer should be large enough to hold the request");
 
-                task.start(tasks, permit);
+                task.start(tasks);
 
                 transaction_permit.send(transaction);
             }

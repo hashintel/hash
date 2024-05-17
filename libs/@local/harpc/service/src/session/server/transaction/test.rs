@@ -34,7 +34,6 @@ use harpc_wire_protocol::{
 use tokio::{sync::mpsc, task::JoinHandle};
 use tokio_util::sync::CancellationToken;
 
-use super::TransactionRecvDelegateTask;
 use crate::session::{
     error::TransactionError,
     server::{transaction::TransactionSendDelegateTask, SessionConfig},

@@ -78,7 +78,7 @@ impl Default for SessionConfig {
             concurrent_connection_limit: ConcurrentConnectionLimit::new(256)
                 .unwrap_or_else(|| unreachable!()),
 
-            connection_shutdown_linger: Duration::from_secs(16),
+            connection_shutdown_linger: Duration::from_millis(250),
 
             request_delivery_deadline: Duration::from_millis(100),
             transaction_delivery_deadline: Duration::from_millis(100),

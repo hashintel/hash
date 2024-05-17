@@ -1,3 +1,4 @@
+#![expect(clippy::significant_drop_tightening, reason = "this is test code")]
 use alloc::sync::Arc;
 use core::{num::NonZero, time::Duration};
 use std::{assert_matches::assert_matches, io};
@@ -64,7 +65,6 @@ impl Setup {
     const OUTPUT_BUFFER_SIZE: usize = 8;
     const SESSION_ID: SessionId = mock_session_id(0x00);
 
-    #[expect(clippy::significant_drop_tightening, reason = "False positive")]
     fn new(config: SessionConfig) -> Self {
         let cancel = CancellationToken::new();
 
@@ -803,11 +803,10 @@ async fn transaction_request_buffer_limit_reached() {
         storage: _,
     } = Setup::new(SessionConfig {
         per_transaction_request_buffer_size: NonZero::new(2).expect("infallible"),
-        per_transaction_request_byte_stream_buffer_size: NonZero::new(2).expect("infallible"),
         ..SessionConfig::default()
     });
 
-    // send 5 packets to the transaction, on the 6th packet the stream will be dropped
+    // send 2 packets to the transaction, on the 3rd packet the stream will be dropped
     stream
         .send(Ok(make_request_begin(RequestFlags::EMPTY, "hello")))
         .await
@@ -816,17 +815,15 @@ async fn transaction_request_buffer_limit_reached() {
     let transaction = output.recv().await.expect("should have a transaction");
     let (_, mut txn_sink, mut txn_stream) = transaction.into_parts();
 
-    // send 4 messages, the transaction should still be active by then
-    for _ in 0..4 {
-        stream
-            .send(Ok(make_request_frame(RequestFlags::EMPTY, "world")))
-            .await
-            .expect("should be able to send message");
-    }
+    // send 1 messages, the transaction should still be active by then
+    stream
+        .send(Ok(make_request_frame(RequestFlags::EMPTY, "world")))
+        .await
+        .expect("should be able to send message");
 
     assert_eq!(txn_stream.is_incomplete(), None);
 
-    // send the 6th packet, the transaction stream will be dropped then
+    // send the 3rd packet, the transaction stream will be dropped then
     stream
         .send(Ok(make_request_frame(RequestFlags::EMPTY, "world")))
         .await
@@ -1277,6 +1274,9 @@ async fn transaction_permit_reclaim() {
 
     drop(permit);
 
+    // wait for the remove task to finish
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
     assert_eq!(collection.storage.len(), 0);
 }
 
@@ -1301,9 +1301,15 @@ async fn transaction_permit_reclaim_override() {
 
     drop(permit_a);
 
+    // wait for the remove task to finish
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
     assert_eq!(collection.storage.len(), 1);
 
     drop(permit_b);
+
+    // wait for the remove task to finish
+    tokio::time::sleep(Duration::from_millis(100)).await;
 
     assert_eq!(collection.storage.len(), 0);
 }

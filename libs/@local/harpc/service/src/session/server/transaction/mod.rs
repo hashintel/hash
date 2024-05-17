@@ -5,11 +5,11 @@ use alloc::sync::Arc;
 use core::{
     pin::Pin,
     sync::atomic::{AtomicBool, Ordering},
-    task::{Context, Poll},
+    task::{ready, Context, Poll},
 };
 
 use bytes::Bytes;
-use futures::{Sink, Stream};
+use futures::{stream::FusedStream, Sink, Stream, StreamExt};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
     request::{
@@ -120,85 +120,18 @@ impl TransactionSendDelegateTask {
     }
 }
 
-struct TransactionRecvDelegateTask {
-    rx: tachyonix::Receiver<Request>,
-    tx: mpsc::Sender<Bytes>,
-
-    incomplete: Arc<AtomicBool>,
-}
-
-impl TransactionRecvDelegateTask {
-    fn mark_incomplete(&self) {
-        self.incomplete.store(true, Ordering::SeqCst);
-    }
-
-    #[expect(
-        clippy::integer_division_remainder_used,
-        reason = "required for select! macro"
-    )]
-    async fn run(mut self, cancel: CancellationToken) {
-        // TODO: timeout is done at a later layer, not here, this just delegates.
-        loop {
-            let request = select! {
-                request = self.rx.recv() => request,
-                () = cancel.cancelled() => {
-                    self.mark_incomplete();
-                    break;
-                },
-            };
-
-            let Ok(request) = request else {
-                // channel has been closed, we are done
-                tracing::warn!("connection has been prematurely closed");
-                self.mark_incomplete();
-
-                break;
-            };
-
-            // send bytes to the other end, and close if we're at the end
-            let is_end = request.header.flags.contains(RequestFlag::EndOfRequest);
-            let bytes = request.body.into_payload().into_bytes();
-
-            let result = self.tx.send(bytes).await;
-
-            if let Err(error) = result {
-                // TODO: the upper layer is responsible for notifying the other end as to why the
-                // connection was closed.
-                tracing::warn!(?error, "connection has been prematurely closed");
-                self.mark_incomplete();
-
-                break;
-            }
-
-            if is_end {
-                // dropping both rx and tx means that we signal to both ends that we're done.
-                break;
-            }
-        }
-    }
-}
-
 pub(crate) struct TransactionTask {
     id: RequestId,
     config: SessionConfig,
 
-    request_rx: tachyonix::Receiver<Request>,
-    request_tx: mpsc::Sender<Bytes>,
-
     response_rx: mpsc::Receiver<Result<Bytes, TransactionError>>,
     response_tx: mpsc::Sender<Response>,
 
-    incomplete: Arc<AtomicBool>,
+    permit: Arc<TransactionPermit>,
 }
 
 impl TransactionTask {
-    pub(super) fn start(self, tasks: &TaskTracker, permit: Arc<TransactionPermit>) {
-        let recv = TransactionRecvDelegateTask {
-            rx: self.request_rx,
-            tx: self.request_tx,
-            incomplete: self.incomplete,
-        };
-
+    pub(super) fn start(self, tasks: &TaskTracker) {
         let send = TransactionSendDelegateTask {
             id: self.id,
             config: self.config,
@@ -207,17 +140,13 @@ impl TransactionTask {
             tx: self.response_tx,
         };
 
-        let recv_permit = Arc::clone(&permit);
+        #[expect(
+            clippy::significant_drop_tightening,
+            reason = "The drop needs to be in the scope"
+        )]
         tasks.spawn(async move {
             // move the permit into the task, so that it's dropped when the task is done
-            let recv_permit = recv_permit;
-
-            recv.run(recv_permit.cancellation_token()).await;
-        });
-
-        tasks.spawn(async move {
-            // move the permit into the task, so that it's dropped when the task is done
-            let send_permit = permit;
+            let send_permit = self.permit;
 
             send.run(send_permit.cancellation_token()).await;
         });
@@ -232,6 +161,8 @@ pub(crate) struct TransactionParts {
 
     pub(crate) rx: tachyonix::Receiver<Request>,
     pub(crate) tx: mpsc::Sender<Response>,
+
+    pub(crate) permit: Arc<TransactionPermit>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -275,10 +206,10 @@ impl TransactionContext {
 pub struct Transaction {
     context: TransactionContext,
 
-    request: mpsc::Receiver<Bytes>,
+    request: tachyonix::Receiver<Request>,
     response: mpsc::Sender<Result<Bytes, TransactionError>>,
 
-    incomplete: Arc<AtomicBool>,
+    permit: Arc<TransactionPermit>,
 }
 
 impl Transaction {
@@ -291,17 +222,14 @@ impl Transaction {
             config,
             rx,
             tx,
+            permit,
         }: TransactionParts,
     ) -> (Self, TransactionTask) {
-        let (request_tx, request_rx) =
-            mpsc::channel(config.per_transaction_request_byte_stream_buffer_size.get());
         let (response_tx, response_rx) = mpsc::channel(
             config
                 .per_transaction_response_byte_stream_buffer_size
                 .get(),
         );
-
-        let incomplete = Arc::new(AtomicBool::new(false));
 
         let transaction = Self {
             context: TransactionContext {
@@ -312,23 +240,20 @@ impl Transaction {
                 procedure: body.procedure,
             },
 
-            request: request_rx,
+            request: rx,
             response: response_tx,
 
-            incomplete: Arc::clone(&incomplete),
+            permit: Arc::clone(&permit),
         };
 
         let task = TransactionTask {
             id: header.request_id,
             config,
 
-            request_rx: rx,
-            request_tx,
-
             response_rx,
             response_tx: tx,
 
-            incomplete,
+            permit,
         };
 
         (transaction, task)
@@ -346,17 +271,14 @@ impl Transaction {
             inner: PollSender::new(self.response),
         };
 
-        let stream = TransactionStream {
-            inner: self.request,
-            incomplete: self.incomplete,
-        };
+        let stream = TransactionStream::new(self.request, self.permit);
 
         (context, sink, stream)
     }
 
     #[must_use]
     pub fn is_closed(&self) -> bool {
-        self.request.is_closed() || self.response.is_closed()
+        self.response.is_closed()
     }
 
     pub fn into_sink(self) -> TransactionSink {
@@ -366,26 +288,42 @@ impl Transaction {
     }
 
     pub fn into_stream(self) -> TransactionStream {
-        TransactionStream {
-            inner: self.request,
-            incomplete: self.incomplete,
-        }
+        TransactionStream::new(self.request, self.permit)
     }
+}
+
+#[derive(Debug)]
+enum TransactionStreamState {
+    Open {
+        sender: tachyonix::Receiver<Request>,
+        _permit: Arc<TransactionPermit>,
+    },
+    Closed {
+        complete: bool,
+    },
 }
 
 #[must_use = "streams do nothing unless polled"]
 pub struct TransactionStream {
-    inner: mpsc::Receiver<Bytes>,
-
-    incomplete: Arc<AtomicBool>,
+    state: TransactionStreamState,
 }
 
 impl TransactionStream {
+    fn new(sender: tachyonix::Receiver<Request>, permit: Arc<TransactionPermit>) -> Self {
+        Self {
+            state: TransactionStreamState::Open {
+                sender,
+                _permit: permit,
+            },
+        }
+    }
+
     #[must_use]
     pub fn is_incomplete(&self) -> Option<bool> {
-        self.inner
-            .is_closed()
-            .then(|| self.incomplete.load(Ordering::SeqCst))
+        match &self.state {
+            TransactionStreamState::Open { .. } => None,
+            TransactionStreamState::Closed { complete } => Some(!complete),
+        }
     }
 }
 
@@ -393,7 +331,37 @@ impl Stream for TransactionStream {
     type Item = Bytes;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        self.inner.poll_recv(cx)
+        let TransactionStreamState::Open { sender, .. } = &mut self.state else {
+            return Poll::Ready(None);
+        };
+
+        let Some(value) = ready!(sender.poll_next_unpin(cx)) else {
+            // connection has been prematurely closed by the remote
+            // we should consider the transaction as incomplete
+            self.state = TransactionStreamState::Closed { complete: false };
+            tracing::warn!("connection has been prematurely closed");
+
+            return Poll::Ready(None);
+        };
+
+        let is_end_of_request = value.header.flags.contains(RequestFlag::EndOfRequest);
+
+        if is_end_of_request {
+            self.state = TransactionStreamState::Closed { complete: true };
+        }
+
+        let bytes = value.body.into_payload().into_bytes();
+
+        Poll::Ready(Some(bytes))
+    }
+}
+
+impl FusedStream for TransactionStream {
+    fn is_terminated(&self) -> bool {
+        match &self.state {
+            TransactionStreamState::Open { .. } => false,
+            TransactionStreamState::Closed { .. } => true,
+        }
     }
 }
 
