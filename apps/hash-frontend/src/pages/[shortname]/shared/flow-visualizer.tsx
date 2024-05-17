@@ -52,6 +52,7 @@ import {
 } from "./flow-visualizer/sort-graph";
 import { Swimlane } from "./flow-visualizer/swimlane";
 import { Topbar, topbarHeight } from "./flow-visualizer/topbar";
+import { Skeleton } from "@hashintel/design-system";
 
 const getGraphFromFlowDefinition = (
   flowDefinition: FlowDefinitionType,
@@ -189,6 +190,20 @@ const unrunnableDefinitionIds = [
   manualBrowserInferenceFlowDefinition.flowDefinitionId,
   automaticBrowserInferenceFlowDefinition.flowDefinitionId,
 ];
+
+export const FlowRunVisualizerSkeleton = () => (
+  <Stack gap={1} sx={{ height: `calc(100vh - ${HEADER_HEIGHT + 40}px)` }}>
+    <Box height={topbarHeight} px={2}>
+      <Skeleton width="400px" height="100%" />
+    </Box>
+    <Box flexGrow={1} px={2}>
+      <Skeleton width="70%" height="100%" />
+    </Box>
+    <Box height={outputsHeight} px={2}>
+      <Skeleton width="70%" height="100%" />
+    </Box>
+  </Stack>
+);
 
 export const FlowVisualizer = () => {
   const apolloClient = useApolloClient();
