@@ -6,7 +6,6 @@ use graph_types::{
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
 };
 use temporal_versioning::RightBoundedTemporalInterval;
-use tracing::Instrument;
 
 use crate::{
     knowledge::EntityQueryPath,

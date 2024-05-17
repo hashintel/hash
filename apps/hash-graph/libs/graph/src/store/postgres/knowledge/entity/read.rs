@@ -9,7 +9,7 @@ use temporal_versioning::{
     LeftClosedTemporalInterval, RightBoundedTemporalInterval, TimeAxis, Timestamp,
 };
 use tokio_postgres::GenericClient;
-use tracing::{span, Instrument, Level};
+use tracing::Instrument;
 use type_system::url::BaseUrl;
 
 use crate::{

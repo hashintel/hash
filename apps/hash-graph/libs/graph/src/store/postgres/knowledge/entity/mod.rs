@@ -40,7 +40,6 @@ use temporal_versioning::{
     TransactionTime,
 };
 use tokio_postgres::{error::SqlState, GenericClient, Row};
-use tracing::{span, Level};
 use type_system::{url::VersionedUrl, ClosedEntityType};
 use uuid::Uuid;
 use validation::{Validate, ValidateEntityComponents};
