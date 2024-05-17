@@ -43,7 +43,7 @@ export const EventTable = ({
             },
             fontSize: 13,
             lineHeight: 1,
-            padding: "10px 12px",
+            padding: "6px 12px",
             "&:not(:last-of-type)": {
               borderRight: `1px solid ${palette.gray[30]}`,
               "@media (prefers-color-scheme: dark)": {
