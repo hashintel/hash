@@ -73,7 +73,7 @@ const generateTestReport = ({
     Incorrect: duplicatesIncorrectlyIdentified,
     Missed: duplicatesMissed,
     "Ids Invented": idsInvented,
-    Time: `${timeTaken}s`,
+    Time: `${timeTaken}ms`,
     Error: "",
   };
 };
