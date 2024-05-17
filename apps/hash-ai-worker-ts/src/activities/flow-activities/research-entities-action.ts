@@ -133,6 +133,27 @@ export const researchEntitiesAction: FlowActionActivity<{
             const { entityIds } =
               toolCall.input as CoordinatorToolCallArguments["submitProposedEntities"];
 
+            const invalidEntityIds = entityIds.filter(
+              (entityId) =>
+                !state.proposedEntities.some(
+                  ({ localEntityId }) => localEntityId === entityId,
+                ),
+            );
+
+            if (invalidEntityIds.length > 0) {
+              return {
+                ...toolCall,
+                output: dedent(`
+                  The following entity IDs do not correspond to any proposed entities: ${JSON.stringify(
+                    invalidEntityIds,
+                  )}
+
+                  ${state.proposedEntities.length > 0 ? `Valid entity IDs are: ${JSON.stringify(state.proposedEntities.map(({ localEntityId }) => localEntityId))}` : `You haven't proposed any entities so far with the "proposeEntitiesFromFacts" tool.`}
+                `),
+                isError: true,
+              };
+            }
+
             state.submittedEntityIds.push(...entityIds);
 
             return {
