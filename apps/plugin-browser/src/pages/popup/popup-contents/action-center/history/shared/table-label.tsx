@@ -3,8 +3,8 @@ import {
   automaticBrowserInferenceFlowDefinition,
   manualBrowserInferenceFlowDefinition,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
-import { Link, Stack, Typography } from "@mui/material";
 import { generatedFilteredWorkersPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
+import { Link, Stack, Typography } from "@mui/material";
 
 export const TableLabel = ({ type }: { type: "manual" | "automatic" }) => {
   return (

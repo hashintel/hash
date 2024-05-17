@@ -5,7 +5,7 @@ import {
   getFlowRunsQuery,
 } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 import type { PropsWithChildren } from "react";
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useMemo } from "react";
 import { useNodeId } from "reactflow";
 
 import type {
