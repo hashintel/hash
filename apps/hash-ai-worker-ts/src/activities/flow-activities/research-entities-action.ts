@@ -36,6 +36,8 @@ import { webSearchAction } from "./web-search-action";
 export const researchEntitiesAction: FlowActionActivity<{
   testingParams?: {
     humanInputCanBeRequested?: boolean;
+    persistState?: (state: CoordinatingAgentState) => void;
+    resumeFromState?: CoordinatingAgentState;
   };
 }> = async ({ inputs: stepInputs, testingParams }) => {
   const input = await coordinatingAgent.parseCoordinatorInputs({
@@ -43,28 +45,34 @@ export const researchEntitiesAction: FlowActionActivity<{
     testingParams,
   });
 
-  /**
-   * We start by asking the coordinator agent to create an initial plan
-   * for the research task.
-   */
-  const { plan: initialPlan, questionsAndAnswers } =
-    await coordinatingAgent.createInitialPlan({
-      input,
-      questionsAndAnswers: null,
-    });
+  let state: CoordinatingAgentState;
 
-  const state: CoordinatingAgentState = {
-    plan: initialPlan,
-    proposedEntities: [],
-    submittedEntityIds: [],
-    previousCalls: [],
-    inferredFactsAboutEntities: [],
-    filesUsedToInferFacts: [],
-    inferredFacts: [],
-    hasConductedCheckStep: false,
-    filesUsedToProposeEntities: [],
-    questionsAndAnswers,
-  };
+  if (testingParams?.resumeFromState) {
+    state = testingParams.resumeFromState;
+  } else {
+    /**
+     * We start by asking the coordinator agent to create an initial plan
+     * for the research task.
+     */
+    const { plan: initialPlan, questionsAndAnswers } =
+      await coordinatingAgent.createInitialPlan({
+        input,
+        questionsAndAnswers: null,
+      });
+
+    state = {
+      plan: initialPlan,
+      proposedEntities: [],
+      submittedEntityIds: [],
+      previousCalls: [],
+      inferredFactsAboutEntities: [],
+      filesUsedToInferFacts: [],
+      inferredFacts: [],
+      hasConductedCheckStep: false,
+      filesUsedToProposeEntities: [],
+      questionsAndAnswers,
+    };
+  }
 
   const { toolCalls: initialToolCalls } =
     await coordinatingAgent.getNextToolCalls({
@@ -537,6 +545,10 @@ export const researchEntitiesAction: FlowActionActivity<{
     }
 
     state.previousCalls = [...state.previousCalls, { completedToolCalls }];
+
+    if (testingParams?.persistState) {
+      testingParams.persistState(state);
+    }
 
     const { toolCalls: nextToolCalls } =
       await coordinatingAgent.getNextToolCalls({
