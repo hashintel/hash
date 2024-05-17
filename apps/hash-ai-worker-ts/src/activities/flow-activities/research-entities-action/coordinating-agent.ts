@@ -8,6 +8,7 @@ import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 
 import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity";
+import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types";
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
 import { getFlowContext } from "../../shared/get-flow-context";
 import { getLlmResponse } from "../../shared/get-llm-response";
@@ -21,20 +22,25 @@ import { graphApiClient } from "../../shared/graph-api-client";
 import { logProgress } from "../../shared/log-progress";
 import { mapActionInputEntitiesToEntities } from "../../shared/map-action-input-entities-to-entities";
 import type { PermittedOpenAiModel } from "../../shared/openai-client";
+import type { EntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text";
+import type { Fact } from "../shared/infer-facts-from-text/types";
 import type {
   CoordinatorToolCallArguments,
   CoordinatorToolName,
 } from "./coordinator-tools";
-import { coordinatorToolDefinitions } from "./coordinator-tools";
+import { generateToolCalls } from "./coordinator-tools";
+import { generatePreviouslyInferredFactsSystemPromptMessage } from "./generate-previously-inferred-facts-system-prompt-message";
 import { getAnswersFromHuman } from "./get-answers-from-human";
-import type { AccessedRemoteFile } from "./infer-entities-from-web-page-worker-agent/types";
+import type { AccessedRemoteFile } from "./infer-facts-from-web-page-worker-agent/types";
 import type { CompletedToolCall } from "./types";
 import { mapPreviousCallsToLlmMessages } from "./util";
 
 const model: PermittedOpenAiModel = "gpt-4-0125-preview";
 
 export type CoordinatingAgentInput = {
+  humanInputCanBeRequested: boolean;
   prompt: string;
+  allDereferencedEntityTypesById: DereferencedEntityTypesByTypeId;
   entityTypes: DereferencedEntityType<string>[];
   linkEntityTypes?: DereferencedEntityType<string>[];
   existingEntities?: Entity[];
@@ -98,11 +104,14 @@ const generateInitialUserMessage = (params: {
 
 export type CoordinatingAgentState = {
   plan: string;
-  proposedEntities: ProposedEntity[];
-  submittedEntityIds: string[];
   previousCalls: {
     completedToolCalls: CompletedToolCall<CoordinatorToolName>[];
   }[];
+  inferredFactsAboutEntities: EntitySummary[];
+  inferredFacts: Fact[];
+  filesUsedToInferFacts: AccessedRemoteFile[];
+  proposedEntities: ProposedEntity[];
+  submittedEntityIds: string[];
   hasConductedCheckStep: boolean;
   filesUsedToProposeEntities: AccessedRemoteFile[];
   questionsAndAnswers: string | null;
@@ -132,6 +141,8 @@ const getNextToolCalls = async (params: {
       ${generateSystemPromptPrefix({ input, questionsAndAnswers: state.questionsAndAnswers })}
       
       Make as many tool calls as are required to progress towards completing the task.
+
+      ${generatePreviouslyInferredFactsSystemPromptMessage(state)}
 
       ${
         submittedProposedEntities.length > 0
@@ -164,7 +175,11 @@ const getNextToolCalls = async (params: {
     ...mapPreviousCallsToLlmMessages({ previousCalls: state.previousCalls }),
   ];
 
-  const tools = Object.values(coordinatorToolDefinitions);
+  const tools = Object.values(
+    generateToolCalls({
+      humanInputCanBeRequested: input.humanInputCanBeRequested,
+    }),
+  );
 
   const { userAuthentication, flowEntityId, webId } = await getFlowContext();
 
@@ -206,23 +221,38 @@ const createInitialPlan = async (params: {
 
   const systemPrompt = dedent(`
     ${generateSystemPromptPrefix({ input, questionsAndAnswers })}
-    
-    You must ${questionsAndAnswers ? "now" : "first"} do one of: 
-    1. Ask the user ${questionsAndAnswers ? "further" : ""} questions to help clarify the research brief. You should ask questions if:
-      - The scope of the research is unclear (e.g. how much information is desired in response)
-      - The scope of the research task is very broad (e.g. the prompt is vague)
-      - The research brief or terms within it are ambiguous
-      - You can think of any other questions that will help you deliver a better response to the user
-    If in doubt, ask!
-    
-    2. Provide a plan of how you will use the tools to progress towards completing the task, which should be a list of steps in plain English.
-    
-    Please now either ask the user your questions, or produce the initial plan if there are no ${questionsAndAnswers ? "more " : ""}useful questions to ask.
-    
-    At this stage you may only use the 'requestHumanInput' and 'updatePlan' tools – definitions for the other tools are only provided to help you produce a plan.
+
+    ${
+      input.humanInputCanBeRequested
+        ? dedent(`
+          You must ${questionsAndAnswers ? "now" : "first"} do one of: 
+          1. Ask the user ${questionsAndAnswers ? "further" : ""} questions to help clarify the research brief. You should ask questions if:
+            - The scope of the research is unclear (e.g. how much information is desired in response)
+            - The scope of the research task is very broad (e.g. the prompt is vague)
+            - The research brief or terms within it are ambiguous
+            - You can think of any other questions that will help you deliver a better response to the user
+          If in doubt, ask!
+          
+          2. Provide a plan of how you will use the tools to progress towards completing the task, which should be a list of steps in plain English.
+          
+          Please now either ask the user your questions, or produce the initial plan if there are no ${questionsAndAnswers ? "more " : ""}useful questions to ask.
+          
+          At this stage you may only use the 'requestHumanInput' and 'updatePlan' tools – definitions for the other tools are only provided to help you produce a plan.
+    `)
+        : dedent(`
+        You must now provide a plan with the "updatePlan" tool of how you will use the tools to progress towards completing the task, which should be a list of steps in plain English.
+        Do not make any other tool calls.
+    `)
+    }
   `);
 
   const { userAuthentication, flowEntityId, webId } = await getFlowContext();
+
+  const tools = Object.values(
+    generateToolCalls({
+      humanInputCanBeRequested: input.humanInputCanBeRequested,
+    }),
+  );
 
   const llmResponse = await getLlmResponse(
     {
@@ -230,7 +260,7 @@ const createInitialPlan = async (params: {
       tool_choice: "required",
       messages: [generateInitialUserMessage({ input })],
       model,
-      tools: Object.values(coordinatorToolDefinitions),
+      tools,
       seed: 1,
     },
     {
@@ -280,6 +310,8 @@ const createInitialPlan = async (params: {
     return { plan, questionsAndAnswers };
   }
 
+  /** @todo: ensure the tool call is one of the expected ones */
+
   const { questions } =
     firstToolCall.input as CoordinatorToolCallArguments["requestHumanInput"];
 
@@ -293,8 +325,11 @@ const createInitialPlan = async (params: {
 
 const parseCoordinatorInputs = async (params: {
   stepInputs: StepInput[];
+  testingParams?: {
+    humanInputCanBeRequested?: boolean;
+  };
 }): Promise<CoordinatingAgentInput> => {
-  const { stepInputs } = params;
+  const { stepInputs, testingParams } = params;
 
   const {
     prompt,
@@ -337,9 +372,11 @@ const parseCoordinatorInputs = async (params: {
     .map(({ schema }) => schema);
 
   return {
+    humanInputCanBeRequested: testingParams?.humanInputCanBeRequested ?? false,
     prompt,
     entityTypes,
     linkEntityTypes: linkEntityTypes.length > 0 ? linkEntityTypes : undefined,
+    allDereferencedEntityTypesById: dereferencedEntityTypes,
     existingEntities,
   };
 };

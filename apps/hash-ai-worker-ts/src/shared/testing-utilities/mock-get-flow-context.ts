@@ -92,6 +92,21 @@ vi.mock("@local/hash-backend-utils/temporal", async (importOriginal) => {
     createTemporalClient: async () => ({
       workflow: {
         getHandle: () => ({
+          query: (params: { name: string }) => {
+            const { name } = params;
+
+            if (name === "getExternalInputResponse") {
+              const response = {
+                requestId: "test-request-id",
+                type: "human-input",
+                data: {
+                  answers: [],
+                },
+              };
+
+              return response;
+            }
+          },
           signal: async () => {},
           // eslint-disable-next-line @typescript-eslint/require-await
           fetchHistory: async () => {
