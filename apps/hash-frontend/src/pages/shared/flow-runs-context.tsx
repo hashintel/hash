@@ -23,16 +23,14 @@ export type FlowRunsContextType = {
   loading: boolean;
   selectedFlowRun: FlowRun | null;
   selectedFlowRunId: string | null;
-  setSelectedFlowRunId: (workflowId: string | null) => void;
 };
 
 export const FlowRunsContext = createContext<FlowRunsContextType | null>(null);
 
-export const FlowRunsContextProvider = ({ children }: PropsWithChildren) => {
-  const [selectedFlowRunId, setSelectedFlowRunId] = useState<string | null>(
-    null,
-  );
-
+export const FlowRunsContextProvider = ({
+  children,
+  selectedFlowRunId,
+}: PropsWithChildren<{ selectedFlowRunId: string | null }>) => {
   const { data: flowRunsData, loading: flowRunsLoading } = useQuery<
     GetFlowRunsQuery,
     GetFlowRunsQueryVariables
@@ -72,7 +70,6 @@ export const FlowRunsContextProvider = ({ children }: PropsWithChildren) => {
       loading: selectedFlowRunLoading || flowRunsLoading,
       selectedFlowRun,
       selectedFlowRunId,
-      setSelectedFlowRunId,
     }),
     [
       flowRuns,

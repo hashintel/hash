@@ -64,8 +64,7 @@ export const Topbar = ({
   const { flowDefinitions, selectedFlowDefinitionId } =
     useFlowDefinitionsContext();
 
-  const { flowRuns, selectedFlowRunId, setSelectedFlowRunId } =
-    useFlowRunsContext();
+  const { flowRuns, selectedFlowRunId } = useFlowRunsContext();
 
   const runOptions = useMemo(
     () =>
@@ -113,7 +112,6 @@ export const Topbar = ({
                   flowDefinitionId: event.target.value,
                 }),
               );
-              setSelectedFlowRunId(null);
             }}
           >
             {flowDefinitions.map((flow) => (

@@ -17,10 +17,7 @@ import { createContext, useContext, useMemo, useState } from "react";
 
 export type FlowDefinitionsContextType = {
   flowDefinitions: FlowDefinition[];
-  setFlowDefinitions: (flowDefinitions: FlowDefinition[]) => void;
-  selectedFlowDefinition?: FlowDefinition;
-  selectedFlowDefinitionId: EntityUuid;
-  setSelectedFlowDefinitionId: (definitionId: EntityUuid) => void;
+  selectedFlowDefinitionId: EntityUuid | null;
 };
 
 export const FlowDefinitionsContext =
@@ -40,32 +37,18 @@ const exampleFlows: FlowDefinition[] = [
 
 export const FlowDefinitionsContextProvider = ({
   children,
-}: PropsWithChildren) => {
+  selectedFlowDefinitionId,
+}: PropsWithChildren<{ selectedFlowDefinitionId: EntityUuid | null }>) => {
   const [flowDefinitions, setFlowDefinitions] =
     useState<FlowDefinition[]>(exampleFlows);
-
-  const [selectedFlowDefinitionId, setSelectedFlowDefinitionId] = useState(
-    exampleFlows[0]!.flowDefinitionId,
-  );
-
-  const selectedFlowDefinition = useMemo(
-    () =>
-      flowDefinitions.find(
-        (flowDefinition) =>
-          flowDefinition.flowDefinitionId === selectedFlowDefinitionId,
-      ),
-    [flowDefinitions, selectedFlowDefinitionId],
-  );
 
   const context = useMemo<FlowDefinitionsContextType>(
     () => ({
       flowDefinitions,
       setFlowDefinitions,
       selectedFlowDefinitionId,
-      setSelectedFlowDefinitionId,
-      selectedFlowDefinition,
     }),
-    [flowDefinitions, selectedFlowDefinition, selectedFlowDefinitionId],
+    [flowDefinitions, selectedFlowDefinitionId],
   );
 
   return (

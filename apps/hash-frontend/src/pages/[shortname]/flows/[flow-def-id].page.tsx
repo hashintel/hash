@@ -3,11 +3,20 @@ import { getLayoutWithSidebar } from "../../../shared/layout";
 import { FlowDefinitionsContextProvider } from "../../shared/flow-definitions-context";
 import { FlowRunsContextProvider } from "../../shared/flow-runs-context";
 import { FlowVisualizer } from "../shared/flow-visualizer";
+import type { EntityUuid } from "@local/hash-subgraph";
+import { useRouter } from "next/router";
 
 const FlowDefinitionPage: NextPageWithLayout = () => {
+  const { query } = useRouter();
+
+  /** @todo replace with real uuid once flow definitions are stored in the db */
+  const routeFlowDefinitionId = query["flow-def-id"] as EntityUuid;
+
   return (
-    <FlowDefinitionsContextProvider>
-      <FlowRunsContextProvider>
+    <FlowDefinitionsContextProvider
+      selectedFlowDefinitionId={routeFlowDefinitionId}
+    >
+      <FlowRunsContextProvider selectedFlowRunId={null}>
         <FlowVisualizer />
       </FlowRunsContextProvider>
     </FlowDefinitionsContextProvider>

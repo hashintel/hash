@@ -363,10 +363,10 @@ const WorkersPageContent = () => {
 
 const WorkersPage: NextPageWithLayout = () => {
   return (
-    <FlowDefinitionsContextProvider>
-      <FlowRunsContextProvider>
+    <FlowDefinitionsContextProvider selectedFlowDefinitionId={null}>
+      <FlowRunsContextProvider selectedFlowRunId={null}>
         <WorkersPageContent />
-      </FlowRunsContextProvider>{" "}
+      </FlowRunsContextProvider>
     </FlowDefinitionsContextProvider>
   );
 };

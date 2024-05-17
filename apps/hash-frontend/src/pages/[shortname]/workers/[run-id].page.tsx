@@ -1,16 +1,39 @@
 import type { NextPageWithLayout } from "../../../shared/layout";
 import { getLayoutWithSidebar } from "../../../shared/layout";
 import { FlowDefinitionsContextProvider } from "../../shared/flow-definitions-context";
-import { FlowRunsContextProvider } from "../../shared/flow-runs-context";
+import {
+  FlowRunsContextProvider,
+  useFlowRunsContext,
+} from "../../shared/flow-runs-context";
 import { FlowVisualizer } from "../shared/flow-visualizer";
+import { useRouter } from "next/router";
+import { EntityUuid } from "@local/hash-subgraph";
+
+const WorkerFlowDefinitionResolver = () => {
+  const { selectedFlowRun } = useFlowRunsContext();
+
+  if (!selectedFlowRun) {
+    return null;
+  }
+
+  return (
+    <FlowDefinitionsContextProvider
+      selectedFlowDefinitionId={selectedFlowRun.flowDefinitionId as EntityUuid}
+    >
+      <FlowVisualizer />
+    </FlowDefinitionsContextProvider>
+  );
+};
 
 const WorkerRunPage: NextPageWithLayout = () => {
+  const { query } = useRouter();
+
+  const routeFlowRunId = query["run-id"] as string;
+
   return (
-    <FlowDefinitionsContextProvider>
-      <FlowRunsContextProvider>
-        <FlowVisualizer />
-      </FlowRunsContextProvider>
-    </FlowDefinitionsContextProvider>
+    <FlowRunsContextProvider selectedFlowRunId={routeFlowRunId}>
+      <WorkerFlowDefinitionResolver />
+    </FlowRunsContextProvider>
   );
 };
 

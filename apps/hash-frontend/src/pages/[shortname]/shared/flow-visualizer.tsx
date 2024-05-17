@@ -193,56 +193,18 @@ const unrunnableDefinitionIds = [
 export const FlowVisualizer = () => {
   const apolloClient = useApolloClient();
 
-  const { query, push } = useRouter();
+  const { push } = useRouter();
 
-  const {
-    selectedFlowDefinition,
-    selectedFlowDefinitionId,
-    setSelectedFlowDefinitionId,
-  } = useFlowDefinitionsContext();
+  const { flowDefinitions, selectedFlowDefinitionId } =
+    useFlowDefinitionsContext();
 
-  const { selectedFlowRun, selectedFlowRunId, setSelectedFlowRunId } =
-    useFlowRunsContext();
+  const { selectedFlowRun } = useFlowRunsContext();
 
-  /** @todo replace with real uuid once flow definitions are stored in the db */
-  const routeFlowDefinitionId = query["flow-def-id"] as string | undefined;
-
-  const routeFlowRunId = query["run-id"] as string | undefined;
-
-  useEffect(() => {
-    /**
-     * Update either the selected definition or run from the route param, depending on which route we're on
-     */
-    if (
-      routeFlowDefinitionId &&
-      routeFlowDefinitionId !== selectedFlowDefinitionId
-    ) {
-      setSelectedFlowDefinitionId(routeFlowDefinitionId as EntityUuid);
-    } else if (routeFlowRunId && routeFlowRunId !== selectedFlowRunId) {
-      setSelectedFlowRunId(routeFlowRunId);
-    }
-
-    /**
-     * If we're on the `/@[namespace/workers/[run-id] page and we don't yet have the matching definition selected, select it
-     */
-    if (
-      routeFlowRunId &&
-      selectedFlowRun &&
-      selectedFlowDefinitionId !== selectedFlowRun.flowDefinitionId
-    ) {
-      setSelectedFlowDefinitionId(
-        selectedFlowRun.flowDefinitionId as EntityUuid,
-      );
-    }
-  }, [
-    routeFlowDefinitionId,
-    routeFlowRunId,
-    selectedFlowDefinitionId,
-    selectedFlowRun,
-    selectedFlowRunId,
-    setSelectedFlowDefinitionId,
-    setSelectedFlowRunId,
-  ]);
+  const selectedFlowDefinition = useMemo(() => {
+    return flowDefinitions.find(
+      (def) => def.flowDefinitionId === selectedFlowDefinitionId,
+    );
+  }, [flowDefinitions, selectedFlowRun, selectedFlowDefinitionId]);
 
   const { nodes: derivedNodes, edges: derivedEdges } = useMemo(() => {
     if (!selectedFlowDefinition) {
