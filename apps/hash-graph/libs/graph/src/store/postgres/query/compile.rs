@@ -418,6 +418,22 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 rhs.as_ref()
                     .map(|expression| self.compile_filter_expression(expression).0),
             ),
+            Filter::Greater(lhs, rhs) => Condition::Greater(
+                self.compile_filter_expression(lhs).0,
+                self.compile_filter_expression(rhs).0,
+            ),
+            Filter::GreaterOrEqual(lhs, rhs) => Condition::GreaterOrEqual(
+                self.compile_filter_expression(lhs).0,
+                self.compile_filter_expression(rhs).0,
+            ),
+            Filter::Less(lhs, rhs) => Condition::Less(
+                self.compile_filter_expression(lhs).0,
+                self.compile_filter_expression(rhs).0,
+            ),
+            Filter::LessOrEqual(lhs, rhs) => Condition::LessOrEqual(
+                self.compile_filter_expression(lhs).0,
+                self.compile_filter_expression(rhs).0,
+            ),
             Filter::CosineDistance(lhs, rhs, max) => match (lhs, rhs) {
                 (FilterExpression::Path(path), FilterExpression::Parameter(parameter))
                 | (FilterExpression::Parameter(parameter), FilterExpression::Path(path)) => {

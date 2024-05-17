@@ -68,6 +68,8 @@ export const scalars = {
   FlowDefinition: "@local/hash-isomorphic-utils/flows/types#FlowDefinition",
   ExternalInputRequest:
     "@local/hash-isomorphic-utils/flows/types#ExternalInputRequest",
+  ExternalInputResponseSignal:
+    "@local/hash-isomorphic-utils/flows/types#ExternalInputResponseSignal",
   StepInput: "@local/hash-isomorphic-utils/flows/types#StepInput",
   StepRunOutput: "@local/hash-isomorphic-utils/flows/types#StepRunOutput",
   StepProgressLog: "@local/hash-isomorphic-utils/flows/types#StepProgressLog",

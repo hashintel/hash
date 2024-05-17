@@ -12,13 +12,13 @@ members = [
     "libs/@local/hash-authorization",
     "libs/@local/hash-graph-types/rust",
     "libs/@local/hash-validation",
+    "libs/@local/repo-chores/rust",
     "libs/@local/temporal-client",
     "libs/@local/temporal-versioning",
     "tests/hash-graph-integration",
     "tests/hash-graph-test-data/rust",
     "libs/@local/harpc/wire-protocol",
-    "libs/@local/harpc/types"
-]
+    "libs/@local/harpc/types"]
 exclude = [
     "libs/antsi",
     "libs/deer",
@@ -55,6 +55,9 @@ harpc-wire-protocol.path = "libs/@local/harpc/wire-protocol"
 
 # External dependencies owned by HASH
 error-stack = { version = "0.4.1", default-features = false }
+
+aws-config = { version = "1.4.0" }
+aws-sdk-s3 = { version = "1.28.0" }
 
 # Shared third-party dependencies
 bytes = "1.6.0"

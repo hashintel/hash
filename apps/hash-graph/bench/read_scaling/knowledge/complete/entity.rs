@@ -34,7 +34,7 @@ use tokio::runtime::Runtime;
 use type_system::EntityType;
 use uuid::Uuid;
 
-use crate::util::{seed, setup, Store, StoreWrapper};
+use crate::util::{seed, setup, setup_subscriber, Store, StoreWrapper};
 
 const DB_NAME: &str = "entity_scale";
 
@@ -240,7 +240,8 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
 
 #[criterion]
 fn bench_scaling_read_entity_zero_depths(c: &mut Criterion) {
-    let mut group = c.benchmark_group("scaling_read_entity_complete_zero_depth");
+    let group_id = "scaling_read_entity_complete_zero_depth";
+    let mut group = c.benchmark_group(group_id);
 
     group.sample_size(10);
     group.sampling_mode(SamplingMode::Flat);
@@ -261,13 +262,13 @@ fn bench_scaling_read_entity_zero_depths(c: &mut Criterion) {
         } = runtime.block_on(seed_db(account_id, &mut store_wrapper, size));
         let store = &store_wrapper.store;
 
+        let function_id = "get_entity_by_id";
+        let parameter = format!("{size} entities");
         group.bench_with_input(
-            BenchmarkId::new(
-                "get_entity_by_id",
-                format!("Account ID: `{account_id}`, Number Of Entities: `{size}`"),
-            ),
+            BenchmarkId::new(function_id, &parameter),
             &(account_id, entity_metadata_list),
             |b, (_account_id, entity_metadata_list)| {
+                let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
                 bench_get_entity_by_id(
                     b,
                     &runtime,
@@ -292,7 +293,8 @@ fn bench_scaling_read_entity_zero_depths(c: &mut Criterion) {
 
 #[criterion]
 fn bench_scaling_read_entity_one_depth(c: &mut Criterion) {
-    let mut group = c.benchmark_group("scaling_read_entity_complete_one_depth");
+    let group_id = "scaling_read_entity_complete_one_depth";
+    let mut group = c.benchmark_group(group_id);
 
     group.sample_size(10);
     group.sampling_mode(SamplingMode::Flat);
@@ -313,13 +315,13 @@ fn bench_scaling_read_entity_one_depth(c: &mut Criterion) {
         } = runtime.block_on(seed_db(account_id, &mut store_wrapper, size));
         let store = &store_wrapper.store;
 
+        let function_id = "get_entity_by_id";
+        let parameter = format!("{size} entities");
         group.bench_with_input(
-            BenchmarkId::new(
-                "get_entity_by_id",
-                format!("Account ID: `{account_id}`, Number Of Entities: `{size}`"),
-            ),
+            BenchmarkId::new(function_id, &parameter),
             &(account_id, entity_metadata_list),
             |b, (_account_id, entity_metadata_list)| {
+                let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
                 bench_get_entity_by_id(
                     b,
                     &runtime,

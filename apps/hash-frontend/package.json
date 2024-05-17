@@ -101,7 +101,7 @@
     "setimmediate": "1.0.5",
     "signia": "0.1.1",
     "signia-react": "0.1.1",
-    "url-regex-safe": "2.1.0",
+    "url-regex-safe": "4.0.0",
     "use-font-face-observer": "1.2.1",
     "uuid": "9.0.1"
   },
@@ -128,7 +128,7 @@
     "@types/url-regex-safe": "1.0.0",
     "@types/uuid": "8.3.0",
     "eslint": "8.57.0",
-    "rimraf": "5.0.5",
+    "rimraf": "5.0.7",
     "sass": "1.57.1",
     "typescript": "5.1.6",
     "webpack": "5.90.3"

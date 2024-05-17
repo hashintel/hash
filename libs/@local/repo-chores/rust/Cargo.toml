@@ -1,0 +1,29 @@
+cargo-features = ["edition2024"]
+
+[package]
+name = "repo-chores"
+authors.workspace = true
+edition.workspace = true
+version = "0.0.0"
+publish = false
+
+[dependencies]
+error-stack = "0.4.1"
+
+bytes = "1.6.0"
+clap = { workspace = true, features = ["cargo", "derive", "env", "wrap_help"] }
+clap_complete = "4.5.2"
+criterion = "0.5.1"
+inferno = "0.11.19"
+serde = { workspace = true, features = ["derive", "std"] }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+thiserror = { version = "1.0.60"}
+walkdir = { version = "2.5.0" }
+
+aws-config = { workspace = true, features = ["rustls"] }
+aws-sdk-s3 = { workspace = true }
+
+[[bin]]
+name = "repo-chores-cli"
+path = "bin/cli/main.rs"

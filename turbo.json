@@ -20,9 +20,17 @@
     },
     "test:system": {},
     "test:miri": {},
+    "bench:unit": {
+      "dependsOn": ["codegen"],
+      "cache": false
+    },
+    "bench:integration": {
+      "dependsOn": ["codegen"],
+      "cache": false
+    },
     "dev": {
       "persistent": true,
-      "dependsOn": ["@local/hash-graph-client#codegen"]
+      "dependsOn": ["codegen"]
     },
     "lint": {
       "dependsOn": ["codegen"]

@@ -1,0 +1,16 @@
+{
+  "extends": ["//"],
+  "pipeline": {
+    "build": {
+      "outputs": ["../../../../target/debug/repo-chores-cli"]
+    },
+    "analyze-benchmarks": {
+      "dependsOn": ["build"],
+      "cache": false
+    },
+    "upload-benchmarks": {
+      "dependsOn": ["build"],
+      "cache": false
+    }
+  }
+}

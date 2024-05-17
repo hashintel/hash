@@ -1,13 +1,12 @@
-import "@local/hash-backend-utils/environment";
-
 import { writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
+import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { getRequiredEnv } from "@local/hash-isomorphic-utils/environment";
+import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import type {
   DataTypeWithMetadata,
@@ -16,7 +15,6 @@ import type {
 } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
-import { publicUserAccountId } from "./auth/public-user-account-id";
 import type {
   ImpureGraphContext,
   ImpureGraphFunction,

@@ -1,4 +1,8 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  PropertyMetadataMap,
+  ProvidedEntityEditionProvenance,
+} from "@local/hash-graph-client";
 import type { ActorTypeDataType } from "@local/hash-isomorphic-utils/system-types/google/googlesheetsfile";
 import type {
   Entity,
@@ -30,6 +34,8 @@ type LocalOrExistingEntityId =
  *    possibly just resolved by removing the latter when browser plugin inference migrated to a Flow
  */
 export type ProposedEntity = {
+  provenance?: ProvidedEntityEditionProvenance;
+  propertyMetadata?: PropertyMetadataMap;
   localEntityId: string;
   entityTypeId: VersionedUrl;
   summary?: string;
@@ -335,7 +341,7 @@ export type Flow = {
   outputs?: StepOutput[];
 };
 
-type ProgressLogBase = {
+export type ProgressLogBase = {
   recordedAt: string;
   stepId: string;
 };
@@ -345,9 +351,20 @@ export type QueriedWebLog = ProgressLogBase & {
   type: "QueriedWeb";
 };
 
+export type CreatedPlanLog = ProgressLogBase & {
+  type: "CreatedPlan";
+};
+
 export type VisitedWebPageLog = ProgressLogBase & {
   webPage: Pick<WebPage, "url" | "title">;
   type: "VisitedWebPage";
+};
+
+export type ViewedFile = {
+  fileUrl: string;
+  recordedAt: string;
+  stepId: string;
+  type: "ViewedFile";
 };
 
 export type ProposedEntityLog = ProgressLogBase & {
@@ -361,10 +378,12 @@ export type PersistedEntityLog = ProgressLogBase & {
 };
 
 export type StepProgressLog =
+  | CreatedPlanLog
   | PersistedEntityLog
   | ProposedEntityLog
-  | QueriedWebLog
-  | VisitedWebPageLog;
+  | VisitedWebPageLog
+  | ViewedFile
+  | QueriedWebLog;
 
 export type ProgressLogSignal = {
   attempt: number;
@@ -375,7 +394,7 @@ type ExternalInputRequestType = "human-input" | "get-urls-html-content";
 
 type ExternalInputRequestDataByType = {
   "human-input": {
-    question: string;
+    questions: string[];
   };
   "get-urls-html-content": {
     urls: string[];
@@ -395,7 +414,7 @@ export type ExternalInputRequestSignal<
 
 export type ExternalInputResponseByType = {
   "human-input": {
-    answer: string;
+    answers: string[];
   };
   "get-urls-html-content": {
     webPages: WebPage[];
@@ -413,8 +432,8 @@ export type ExternalInputResponseSignal<
 }[RequestType];
 
 export type ExternalInputRequest = ExternalInputRequestSignal & {
-  /** The answer given by the human, if it was a request for human input */
-  answer?: string;
+  /** The answers given by the human, if it was a request for human input */
+  answers?: string[];
   /** Whether or not the request has been resolved */
   resolved: boolean;
 };

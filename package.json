@@ -53,6 +53,9 @@
     "test:unit": "turbo run test:unit --",
     "test:integration": "turbo run test:integration --",
     "test:system": "turbo run test:system --",
+    "bench": "npm-run-all --continue-on-error \"bench:*\"",
+    "bench:unit": "turbo run bench:unit --",
+    "bench:integration": "turbo run bench:integration --",
     "prune-node-modules": "find . -type d -name \"node_modules\" -exec rm -rf {} +"
   },
   "lint-staged": {

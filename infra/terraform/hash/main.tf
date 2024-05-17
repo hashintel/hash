@@ -296,7 +296,9 @@ module "application" {
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_hydra_secrets_system"])
     },
   ])
-  api_image    = module.api_ecr
+  api_image              = module.api_ecr
+  api_migration_env_vars = concat(var.hash_api_migration_env_vars, [
+  ])
   api_env_vars = concat(var.hash_api_env_vars, [
     {
       name  = "MAILCHIMP_API_KEY", secret = true,
@@ -372,12 +374,13 @@ module "application" {
   ])
   temporal_worker_ai_ts_image    = module.temporal_worker_ai_ts_ecr
   temporal_worker_ai_ts_env_vars = [
+    { name = "LOG_LEVEL", secret = false, value = "debug" },
     {
       name  = "OPENAI_API_KEY", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_openai_api_key"])
     },
     {
-      name = "ANTHROPIC_API_KEY", secret = true,
+      name  = "ANTHROPIC_API_KEY", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_anthropic_api_key"])
     },
     {
@@ -420,6 +423,7 @@ module "application" {
   ]
   temporal_worker_integration_image    = module.temporal_worker_integration_ecr
   temporal_worker_integration_env_vars = [
+    { name = "LOG_LEVEL", secret = false, value = "debug" },
     {
       name  = "HASH_VAULT_HOST", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_host"])

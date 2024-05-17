@@ -29,6 +29,9 @@ serde = { version = "1.0.200", features = ["derive"] }
 serde_json = "1.0.116"
 tokio = { workspace = true, features = ["macros"] }
 tokio-postgres = { version = "0.7.10", default-features = false }
+tracing = "0.1.40"
+tracing-flame = "0.2.0"
+tracing-subscriber = "0.3.18"
 uuid = { version = "1.8.0", features = ["v4", "serde"] }
 
 [[bench]]
@@ -38,7 +41,3 @@ path = "read_scaling/lib.rs"
 [[bench]]
 name = "representative_read"
 path = "representative_read/lib.rs"
-
-[[bench]]
-name = "writes"
-path = "writes/lib.rs"

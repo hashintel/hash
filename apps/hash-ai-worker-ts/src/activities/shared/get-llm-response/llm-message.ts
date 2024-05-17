@@ -27,7 +27,7 @@ export type LlmAssistantMessage<ToolName = string> = {
 export type LlmMessageToolResultContent = {
   type: "tool_result";
   tool_use_id: string;
-  content?: string;
+  content: string;
   is_error?: true;
 };
 
@@ -164,7 +164,7 @@ export const mapLlmMessageToOpenAiMessages = (params: {
     return {
       role: "tool",
       tool_call_id: content.tool_use_id,
-      content: content.content ?? null,
+      content: content.content,
     } satisfies ChatCompletionToolMessageParam;
   });
 };
@@ -179,12 +179,23 @@ export const mapOpenAiMessagesToLlmMessages = (params: {
       if (currentMessage.role === "assistant") {
         const toolCalls =
           currentMessage.tool_calls?.map<LlmMessageToolUseContent>(
-            (toolCall) => ({
-              type: "tool_use" as const,
-              id: toolCall.id,
-              name: toolCall.function.name,
-              input: JSON.parse(toolCall.function.arguments) as object,
-            }),
+            (toolCall) => {
+              const rawInput = toolCall.function.arguments;
+              let jsonInput: object;
+              try {
+                jsonInput = JSON.parse(rawInput) as object;
+              } catch {
+                // model's input could not be parsed, this is likely a retry of a failed tool call
+                jsonInput = { unparseableInput: rawInput };
+              }
+
+              return {
+                type: "tool_use" as const,
+                id: toolCall.id,
+                name: toolCall.function.name,
+                input: jsonInput,
+              };
+            },
           );
 
         return [
@@ -238,7 +249,7 @@ export const mapOpenAiMessagesToLlmMessages = (params: {
         const toolResultContent: LlmMessageToolResultContent = {
           type: "tool_result",
           tool_use_id: currentMessage.tool_call_id,
-          content: currentMessage.content ?? undefined,
+          content: currentMessage.content,
         };
 
         const previousLlmMessage = previousLlmMessages.slice(-1)[0];

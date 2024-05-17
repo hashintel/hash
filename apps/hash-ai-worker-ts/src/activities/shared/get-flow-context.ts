@@ -92,6 +92,7 @@ const getPartialRunFlowWorkflowParams = async (params: {
 
 type FlowContext = {
   flowEntityId: EntityId;
+  stepId: string;
   userAuthentication: { actorId: AccountId };
   webId: OwnedById;
 };
@@ -113,11 +114,12 @@ export const getFlowContext = async (): Promise<FlowContext> => {
   });
 
   const flowEntityId = entityIdFromComponents(
-    /** @todo: replace this with the `webId` input parameter */
     webId,
     // Assumes the flow entity UUID is the same as the workflow ID
     workflowId as EntityUuid,
   );
 
-  return { userAuthentication, flowEntityId, webId };
+  const { activityId: stepId } = Context.current().info;
+
+  return { userAuthentication, flowEntityId, webId, stepId };
 };

@@ -660,6 +660,54 @@ impl Modify for FilterSchemaAddon {
                         )
                         .item(
                             ObjectBuilder::new()
+                                .title(Some("GreaterFilter"))
+                                .property(
+                                    "greater",
+                                    ArrayBuilder::new()
+                                        .items(Ref::from_schema_name("FilterExpression"))
+                                        .min_items(Some(2))
+                                        .max_items(Some(2)),
+                                )
+                                .required("notEqual"),
+                        )
+                        .item(
+                            ObjectBuilder::new()
+                                .title(Some("GreaterOrEqualFilter"))
+                                .property(
+                                    "greaterOrEqual",
+                                    ArrayBuilder::new()
+                                        .items(Ref::from_schema_name("FilterExpression"))
+                                        .min_items(Some(2))
+                                        .max_items(Some(2)),
+                                )
+                                .required("notEqual"),
+                        )
+                        .item(
+                            ObjectBuilder::new()
+                                .title(Some("LessFilter"))
+                                .property(
+                                    "less",
+                                    ArrayBuilder::new()
+                                        .items(Ref::from_schema_name("FilterExpression"))
+                                        .min_items(Some(2))
+                                        .max_items(Some(2)),
+                                )
+                                .required("notEqual"),
+                        )
+                        .item(
+                            ObjectBuilder::new()
+                                .title(Some("LessOrEqualFilter"))
+                                .property(
+                                    "lessOrEqual",
+                                    ArrayBuilder::new()
+                                        .items(Ref::from_schema_name("FilterExpression"))
+                                        .min_items(Some(2))
+                                        .max_items(Some(2)),
+                                )
+                                .required("notEqual"),
+                        )
+                        .item(
+                            ObjectBuilder::new()
                                 .title(Some("CosineDistanceFilter"))
                                 .property(
                                     "cosineDistance",
