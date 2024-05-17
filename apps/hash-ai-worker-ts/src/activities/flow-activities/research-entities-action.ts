@@ -131,39 +131,53 @@ export const researchEntitiesAction: FlowActionActivity<{
               ...toolCall,
               output: `The entities with IDs ${JSON.stringify(entityIds)} were successfully submitted.`,
             };
-          } else if (toolCall.name === "getWebPageSummary") {
-            const { url } =
-              toolCall.input as CoordinatorToolCallArguments["getWebPageSummary"];
+          } else if (toolCall.name === "getSummariesOfWebPages") {
+            const { webPageUrls } =
+              toolCall.input as CoordinatorToolCallArguments["getSummariesOfWebPages"];
 
-            const response = await getWebPageSummaryAction({
-              inputs: [
-                {
-                  inputName:
-                    "url" satisfies InputNameForAction<"getWebPageSummary">,
-                  payload: { kind: "Text", value: url },
-                },
-                ...actionDefinitions.getWebPageSummary.inputs.flatMap<StepInput>(
-                  ({ name, default: defaultValue }) =>
-                    !defaultValue || name === "url"
-                      ? []
-                      : [{ inputName: name, payload: defaultValue }],
-                ),
-              ],
-            });
+            const summaries = await Promise.all(
+              webPageUrls.map(async (webPageUrl) => {
+                const response = await getWebPageSummaryAction({
+                  inputs: [
+                    {
+                      inputName:
+                        "url" satisfies InputNameForAction<"getWebPageSummary">,
+                      payload: { kind: "Text", value: webPageUrl },
+                    },
+                    ...actionDefinitions.getWebPageSummary.inputs.flatMap<StepInput>(
+                      ({ name, default: defaultValue }) =>
+                        !defaultValue || name === "url"
+                          ? []
+                          : [{ inputName: name, payload: defaultValue }],
+                    ),
+                  ],
+                });
 
-            if (response.code !== StatusCode.Ok) {
-              return {
-                ...toolCall,
-                output: `An unexpected error occurred trying to summarize the web page at url ${url}, try a different web page.`,
-                isError: true,
-              };
-            }
+                if (response.code !== StatusCode.Ok) {
+                  return `An unexpected error occurred trying to summarize the web page at url ${webPageUrl}.`;
+                }
 
-            const { outputs } = response.contents[0]!;
+                const { outputs } = response.contents[0]!;
+
+                const summaryOutput = outputs.find(
+                  ({ outputName }) => outputName === "summary",
+                );
+
+                if (!summaryOutput) {
+                  throw new Error(
+                    `No summary output was found when calling "getWebPageSummaryAction" for the web page at url ${webPageUrl}.`,
+                  );
+                }
+
+                const summary = summaryOutput.payload.value as string;
+
+                return `Summary of the web page at url ${webPageUrl}: ${summary}`;
+              }),
+            );
 
             return {
               ...toolCall,
-              output: JSON.stringify(outputs),
+              output: summaries.join("\n"),
             };
           } else if (toolCall.name === "webSearch") {
             const { query } =
