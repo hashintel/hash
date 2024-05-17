@@ -1,3 +1,4 @@
+#![expect(clippy::significant_drop_tightening, reason = "test code")]
 use alloc::sync::Arc;
 use core::{
     future::ready,

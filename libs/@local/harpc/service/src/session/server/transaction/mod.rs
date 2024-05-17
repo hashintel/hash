@@ -4,7 +4,6 @@ mod test;
 use alloc::sync::Arc;
 use core::{
     pin::Pin,
-    sync::atomic::{AtomicBool, Ordering},
     task::{ready, Context, Poll},
 };
 

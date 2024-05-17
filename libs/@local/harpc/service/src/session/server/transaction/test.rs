@@ -1,9 +1,4 @@
-use alloc::sync::Arc;
-use core::{
-    num::NonZero,
-    sync::atomic::{AtomicBool, Ordering},
-    time::Duration,
-};
+use core::{num::NonZero, time::Duration};
 
 use bytes::Bytes;
 use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
