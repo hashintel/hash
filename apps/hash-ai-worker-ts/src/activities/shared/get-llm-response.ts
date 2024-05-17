@@ -846,40 +846,44 @@ export const getLlmResponse = async <T extends LlmParams>(
     webId: OwnedById;
     graphApiClient: GraphApi;
     incurredInEntities: { entityId: EntityId }[];
-  },
+  } | null,
 ): Promise<LlmResponse<T>> => {
-  const { graphApiClient, userAccountId, webId } = usageTrackingParams;
+  let aiAssistantAccountId: AccountId | null = null;
 
-  /**
-   * Check whether the user has exceeded their usage limit, before
-   * proceeding with the LLM request.
-   */
-  const userHasExceededUsageStatus =
-    await userExceededServiceUsageLimitActivity({
+  if (usageTrackingParams) {
+    const { graphApiClient, userAccountId, webId } = usageTrackingParams;
+
+    /**
+     * Check whether the user has exceeded their usage limit, before
+     * proceeding with the LLM request.
+     */
+    const userHasExceededUsageStatus =
+      await userExceededServiceUsageLimitActivity({
+        graphApiClient,
+        userAccountId,
+      });
+
+    if (userHasExceededUsageStatus.code !== StatusCode.Ok) {
+      return {
+        status: "exceeded-usage-limit",
+        message:
+          userHasExceededUsageStatus.message ??
+          "You have exceeded your usage limit.",
+      };
+    }
+
+    aiAssistantAccountId = await getAiAssistantAccountIdActivity({
+      authentication: { actorId: userAccountId },
+      grantCreatePermissionForWeb: webId,
       graphApiClient,
-      userAccountId,
     });
 
-  if (userHasExceededUsageStatus.code !== StatusCode.Ok) {
-    return {
-      status: "exceeded-usage-limit",
-      message:
-        userHasExceededUsageStatus.message ??
-        "You have exceeded your usage limit.",
-    };
-  }
-
-  const aiAssistantAccountId = await getAiAssistantAccountIdActivity({
-    authentication: { actorId: userAccountId },
-    grantCreatePermissionForWeb: webId,
-    graphApiClient,
-  });
-
-  if (!aiAssistantAccountId) {
-    return {
-      status: "internal-error",
-      message: `Failed to retrieve AI assistant account ID ${userAccountId}`,
-    };
+    if (!aiAssistantAccountId) {
+      return {
+        status: "internal-error",
+        message: `Failed to retrieve AI assistant account ID ${userAccountId}`,
+      };
+    }
   }
 
   const timeBeforeApiCall = Date.now();
@@ -896,100 +900,105 @@ export const getLlmResponse = async <T extends LlmParams>(
 
   logger.debug(`LLM API call time: ${numberOfSeconds} seconds`);
 
-  /**
-   * Capture incurred usage in a usage record.
-   */
-  if (
-    llmResponse.status === "ok" ||
-    llmResponse.status === "exceeded-maximum-retries"
-  ) {
-    const { usage } = llmResponse;
+  if (usageTrackingParams && aiAssistantAccountId) {
+    const { graphApiClient, userAccountId, webId } = usageTrackingParams;
 
-    let usageRecordEntityMetadata: EntityMetadata;
+    /**
+     * Capture incurred usage in a usage record.
+     */
+    if (
+      llmResponse.status === "ok" ||
+      llmResponse.status === "exceeded-maximum-retries"
+    ) {
+      const { usage } = llmResponse;
 
-    try {
-      usageRecordEntityMetadata = await createUsageRecord(
-        { graphApi: graphApiClient },
-        { actorId: aiAssistantAccountId },
-        {
-          serviceName: isLlmParamsAnthropicLlmParams(llmParams)
-            ? "Anthropic"
-            : "OpenAI",
-          featureName: llmParams.model,
-          userAccountId,
-          inputUnitCount: usage.inputTokens,
-          outputUnitCount: usage.outputTokens,
-        },
-      );
-    } catch (error) {
-      return {
-        status: "internal-error",
-        message: `Failed to create usage record for AI assistant: ${stringify(error)}`,
-      };
-    }
+      let usageRecordEntityMetadata: EntityMetadata;
 
-    const { incurredInEntities } = usageTrackingParams;
-
-    if (incurredInEntities.length > 0) {
-      const hashInstanceAdminGroupId = await getHashInstanceAdminAccountGroupId(
-        { graphApi: graphApiClient },
-        { actorId: aiAssistantAccountId },
-      );
-
-      const errors = await Promise.all(
-        incurredInEntities.map(async ({ entityId }) => {
-          try {
-            await graphApiClient.createEntity(aiAssistantAccountId, {
-              draft: false,
-              properties: {},
-              ownedById: webId,
-              entityTypeIds: [
-                systemLinkEntityTypes.incurredIn.linkEntityTypeId,
-              ],
-              linkData: {
-                leftEntityId: usageRecordEntityMetadata.recordId.entityId,
-                rightEntityId: entityId,
-              },
-              relationships: [
-                {
-                  relation: "administrator",
-                  subject: {
-                    kind: "account",
-                    subjectId: aiAssistantAccountId,
-                  },
-                },
-                {
-                  relation: "viewer",
-                  subject: {
-                    kind: "account",
-                    subjectId: userAccountId,
-                  },
-                },
-                {
-                  relation: "viewer",
-                  subject: {
-                    kind: "accountGroup",
-                    subjectId: hashInstanceAdminGroupId,
-                  },
-                },
-              ],
-            });
-
-            return [];
-          } catch (error) {
-            return {
-              status: "internal-error",
-              message: `Failed to link usage record to entity with ID ${entityId}: ${stringify(error)}`,
-            };
-          }
-        }),
-      ).then((unflattenedErrors) => unflattenedErrors.flat());
-
-      if (errors.length > 0) {
+      try {
+        usageRecordEntityMetadata = await createUsageRecord(
+          { graphApi: graphApiClient },
+          { actorId: aiAssistantAccountId },
+          {
+            serviceName: isLlmParamsAnthropicLlmParams(llmParams)
+              ? "Anthropic"
+              : "OpenAI",
+            featureName: llmParams.model,
+            userAccountId,
+            inputUnitCount: usage.inputTokens,
+            outputUnitCount: usage.outputTokens,
+          },
+        );
+      } catch (error) {
         return {
           status: "internal-error",
-          message: `Failed to link usage record to entities: ${stringify(errors)}`,
+          message: `Failed to create usage record for AI assistant: ${stringify(error)}`,
         };
+      }
+
+      const { incurredInEntities } = usageTrackingParams;
+
+      if (incurredInEntities.length > 0) {
+        const hashInstanceAdminGroupId =
+          await getHashInstanceAdminAccountGroupId(
+            { graphApi: graphApiClient },
+            { actorId: aiAssistantAccountId },
+          );
+
+        const errors = await Promise.all(
+          incurredInEntities.map(async ({ entityId }) => {
+            try {
+              await graphApiClient.createEntity(aiAssistantAccountId, {
+                draft: false,
+                properties: {},
+                ownedById: webId,
+                entityTypeIds: [
+                  systemLinkEntityTypes.incurredIn.linkEntityTypeId,
+                ],
+                linkData: {
+                  leftEntityId: usageRecordEntityMetadata.recordId.entityId,
+                  rightEntityId: entityId,
+                },
+                relationships: [
+                  {
+                    relation: "administrator",
+                    subject: {
+                      kind: "account",
+                      subjectId: aiAssistantAccountId,
+                    },
+                  },
+                  {
+                    relation: "viewer",
+                    subject: {
+                      kind: "account",
+                      subjectId: userAccountId,
+                    },
+                  },
+                  {
+                    relation: "viewer",
+                    subject: {
+                      kind: "accountGroup",
+                      subjectId: hashInstanceAdminGroupId,
+                    },
+                  },
+                ],
+              });
+
+              return [];
+            } catch (error) {
+              return {
+                status: "internal-error",
+                message: `Failed to link usage record to entity with ID ${entityId}: ${stringify(error)}`,
+              };
+            }
+          }),
+        ).then((unflattenedErrors) => unflattenedErrors.flat());
+
+        if (errors.length > 0) {
+          return {
+            status: "internal-error",
+            message: `Failed to link usage record to entities: ${stringify(errors)}`,
+          };
+        }
       }
     }
   }
