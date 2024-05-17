@@ -9,24 +9,12 @@ use repo_chores::benches::{
     storage::{S3Storage, UploadError},
 };
 
-use crate::subcommand::benches::{criterion_directory, target_directory};
-
-fn current_commit() -> Result<String, Box<dyn Error + Send + Sync>> {
-    Ok(String::from_utf8(
-        std::process::Command::new("git")
-            .args(["rev-parse", "HEAD"])
-            .output()
-            .attach_printable("Could not get current commit hash")?
-            .stdout,
-    )?
-    .trim()
-    .to_owned())
-}
+use crate::subcommand::benches::{criterion_directory, current_commit, target_directory};
 
 #[derive(Debug, Parser)]
 #[clap(version, author, about, long_about = None)]
 pub(crate) struct Args {
-    /// The region to use for the AWS client
+    /// The current commit to identify the benchmark results.
     #[clap(long)]
     commit: Option<String>,
 

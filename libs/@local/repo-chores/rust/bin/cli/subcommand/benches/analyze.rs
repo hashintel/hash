@@ -14,7 +14,7 @@ use repo_chores::benches::{
     report::Benchmark,
 };
 
-use crate::subcommand::benches::{criterion_directory, target_directory};
+use crate::subcommand::benches::{criterion_directory, current_commit, target_directory};
 
 #[derive(Debug, Parser)]
 #[clap(version, author, about, long_about = None)]
@@ -22,6 +22,10 @@ pub(crate) struct Args {
     /// Output file to write the benchmark results to.
     #[clap(short, long)]
     output: Option<PathBuf>,
+
+    /// The current commit to identify the benchmark results.
+    #[clap(long)]
+    commit: Option<String>,
 
     /// Baseline to analyze.
     #[clap(long, default_value = "new")]
@@ -37,11 +41,11 @@ pub(crate) struct Args {
 }
 
 pub(super) fn run(args: Args) -> Result<(), Box<dyn Error + Send + Sync>> {
-    struct BenchFormatter<'b>(&'b [BenchmarkAnalysis]);
+    struct BenchFormatter<'b>(&'b [BenchmarkAnalysis], &'b str);
 
     impl Display for BenchFormatter<'_> {
         fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-            criterion::format_github_markdown(self.0, f)
+            criterion::format_github_markdown(f, self.0, self.1)
         }
     }
 
@@ -54,6 +58,7 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn Error + Send + Sync>> {
         .unwrap_or_else(|| Box::new(io::stdout()));
 
     let artifacts_path = args.artifacts_path.unwrap_or_else(target_directory);
+    let commit = args.commit.map_or_else(current_commit, Ok)?;
 
     let benchmarks = Benchmark::gather(criterion_directory())
         .map(|benchmark| {
@@ -72,7 +77,7 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn Error + Send + Sync>> {
         })
         .collect::<Result<Vec<_>, _>>()?;
 
-    writeln!(output, "{}", BenchFormatter(&benchmarks))?;
+    writeln!(output, "{}", BenchFormatter(&benchmarks, &commit))?;
 
     Ok(())
 }
