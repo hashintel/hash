@@ -22,23 +22,8 @@ pub fn generate_path(
 }
 
 fn make_filename_safe(string: &str) -> String {
-    let mut string = string.replace(
-        &['?', '"', '/', '\\', '*', '<', '>', ':', '|', '^'][..],
-        "_",
-    );
-
-    if cfg!(target_os = "windows") {
-        {
-            string = string
-                // On Windows, spaces in the end of the filename are ignored and will be trimmed.
-                //
-                // Without trimming ourselves, creating a directory `dir ` will silently create
-                // `dir` instead, but then operations on files like `dir /file` will fail.
-                .trim_end()
-                // On Windows, file names are not case-sensitive, so lowercase everything.
-                .to_lowercase();
-        }
-    }
-
     string
+        .replace(['?', '"', '/', '\\', '*', '<', '>', ':', '|', '^'], "_")
+        .trim()
+        .to_lowercase()
 }
