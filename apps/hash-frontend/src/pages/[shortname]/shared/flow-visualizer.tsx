@@ -18,7 +18,7 @@ import { Box, Stack, Typography } from "@mui/material";
 import { format } from "date-fns";
 import NotFound from "next/dist/client/components/not-found-error";
 import { useRouter } from "next/router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ReactFlowProvider } from "reactflow";
 
 import type {
@@ -209,28 +209,40 @@ export const FlowVisualizer = () => {
 
   const routeFlowRunId = query["run-id"] as string | undefined;
 
-  /**
-   * Update either the selected definition or run from the route param, depending on which route we're on
-   */
-  if (
-    routeFlowDefinitionId &&
-    routeFlowDefinitionId !== selectedFlowDefinitionId
-  ) {
-    setSelectedFlowDefinitionId(routeFlowDefinitionId as EntityUuid);
-  } else if (routeFlowRunId && routeFlowRunId !== selectedFlowRunId) {
-    setSelectedFlowRunId(routeFlowRunId);
-  }
+  useEffect(() => {
+    /**
+     * Update either the selected definition or run from the route param, depending on which route we're on
+     */
+    if (
+      routeFlowDefinitionId &&
+      routeFlowDefinitionId !== selectedFlowDefinitionId
+    ) {
+      setSelectedFlowDefinitionId(routeFlowDefinitionId as EntityUuid);
+    } else if (routeFlowRunId && routeFlowRunId !== selectedFlowRunId) {
+      setSelectedFlowRunId(routeFlowRunId);
+    }
 
-  /**
-   * If we're on the `/@[namespace/workers/[run-id] page and we don't yet have the matching definition selected, select it
-   */
-  if (
-    routeFlowRunId &&
-    selectedFlowRun &&
-    selectedFlowDefinitionId !== selectedFlowRun.flowDefinitionId
-  ) {
-    setSelectedFlowDefinitionId(selectedFlowRun.flowDefinitionId as EntityUuid);
-  }
+    /**
+     * If we're on the `/@[namespace/workers/[run-id] page and we don't yet have the matching definition selected, select it
+     */
+    if (
+      routeFlowRunId &&
+      selectedFlowRun &&
+      selectedFlowDefinitionId !== selectedFlowRun.flowDefinitionId
+    ) {
+      setSelectedFlowDefinitionId(
+        selectedFlowRun.flowDefinitionId as EntityUuid,
+      );
+    }
+  }, [
+    routeFlowDefinitionId,
+    routeFlowRunId,
+    selectedFlowDefinitionId,
+    selectedFlowRun,
+    selectedFlowRunId,
+    setSelectedFlowDefinitionId,
+    setSelectedFlowRunId,
+  ]);
 
   const { nodes: derivedNodes, edges: derivedEdges } = useMemo(() => {
     if (!selectedFlowDefinition) {

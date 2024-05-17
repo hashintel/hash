@@ -11,9 +11,18 @@ import {
   workerFlowFilterParam,
 } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import type { SxProps, Theme } from "@mui/material";
-import { Box, Container, Stack, TableCell, Typography } from "@mui/material";
+import {
+  Box,
+  Container,
+  Stack,
+  TableBody as MuiTableBody,
+  TableCell as MuiTableCell,
+  TableRow as MuiTableRow,
+  Typography,
+} from "@mui/material";
 import { format } from "date-fns";
 import { useRouter } from "next/router";
+import type { PropsWithChildren } from "react";
 import { memo, useCallback, useMemo, useState } from "react";
 
 import type { NextPageWithLayout } from "../shared/layout";
@@ -108,10 +117,10 @@ const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
 
   return (
     <>
-      <TableCell sx={{ ...flowTableCellSx, fontSize: 13 }}>
+      <MuiTableCell sx={{ ...flowTableCellSx, fontSize: 13 }}>
         <FlowTableWebChip {...web} />
-      </TableCell>
-      <TableCell sx={flowTableCellSx}>
+      </MuiTableCell>
+      <MuiTableCell sx={flowTableCellSx}>
         <Stack
           direction="row"
           alignItems="center"
@@ -129,8 +138,8 @@ const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
             {type}
           </Typography>
         </Stack>
-      </TableCell>
-      <TableCell sx={flowTableCellSx}>
+      </MuiTableCell>
+      <MuiTableCell sx={flowTableCellSx}>
         <Link
           href={generateWorkerRunPath({ shortname: web.shortname, flowRunId })}
           sx={{
@@ -142,8 +151,8 @@ const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
         >
           {name}
         </Link>
-      </TableCell>
-      <TableCell sx={flowTableCellSx}>
+      </MuiTableCell>
+      <MuiTableCell sx={flowTableCellSx}>
         <Typography
           sx={{ fontSize: 13, color: ({ palette }) => palette.gray[70] }}
         >
@@ -151,8 +160,8 @@ const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
             ? format(new Date(executedAt), "yyyy-MM-dd HH:mm a")
             : "Pending..."}
         </Typography>
-      </TableCell>
-      <TableCell sx={flowTableCellSx}>
+      </MuiTableCell>
+      <MuiTableCell sx={flowTableCellSx}>
         <Typography
           sx={{
             fontSize: 13,
@@ -165,7 +174,7 @@ const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
             ? format(new Date(closedAt), "yyyy-MM-dd HH:mm a")
             : "Current running"}
         </Typography>
-      </TableCell>
+      </MuiTableCell>
     </>
   );
 });
@@ -177,8 +186,18 @@ const createRowContent: CreateVirtualizedRowContentFn<WorkerSummary> = (
 
 const placeholderHeight = 200;
 
+const PlaceholderContainer = ({ children }: PropsWithChildren) => (
+  <MuiTableBody>
+    <MuiTableRow>
+      <MuiTableCell colSpan={columns.length} sx={{ height: placeholderHeight }}>
+        {children}
+      </MuiTableCell>
+    </MuiTableRow>
+  </MuiTableBody>
+);
+
 const EmptyComponent = ({ filtered }: { filtered: boolean }) => (
-  <TableCell colSpan={columns.length} sx={{ height: placeholderHeight }}>
+  <PlaceholderContainer>
     <Stack
       alignItems="center"
       justifyContent="center"
@@ -186,15 +205,15 @@ const EmptyComponent = ({ filtered }: { filtered: boolean }) => (
     >
       No worker activity {filtered && "for this flow"} yet
     </Stack>
-  </TableCell>
+  </PlaceholderContainer>
 );
 
 const LoadingPlaceholder = () => (
-  <TableCell colSpan={columns.length} sx={{ height: placeholderHeight }}>
+  <PlaceholderContainer>
     <Box sx={{ height: "100%", marginTop: -0.6 }}>
       <Skeleton height="100%" />
     </Box>
-  </TableCell>
+  </PlaceholderContainer>
 );
 
 const WorkersPageContent = () => {

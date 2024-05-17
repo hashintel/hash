@@ -1,11 +1,17 @@
 import { useQuery } from "@apollo/client";
-import { getFlowRunsQuery } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
+import type { SparseFlowRun } from "@local/hash-isomorphic-utils/flows/types";
+import {
+  getFlowRunById,
+  getFlowRunsQuery,
+} from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 import type { PropsWithChildren } from "react";
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 import { useNodeId } from "reactflow";
 
 import type {
   FlowRun,
+  GetFlowRunByIdQuery,
+  GetFlowRunByIdQueryVariables,
   GetFlowRunsQuery,
   GetFlowRunsQueryVariables,
   StepRun,
@@ -13,9 +19,8 @@ import type {
 import { FlowStepStatus } from "../../graphql/api-types.gen";
 
 export type FlowRunsContextType = {
-  flowRuns: FlowRun[];
+  flowRuns: SparseFlowRun[];
   loading: boolean;
-  setFlowRuns: (flowRuns: FlowRun[]) => void;
   selectedFlowRun: FlowRun | null;
   selectedFlowRunId: string | null;
   setSelectedFlowRunId: (workflowId: string | null) => void;
@@ -24,36 +29,58 @@ export type FlowRunsContextType = {
 export const FlowRunsContext = createContext<FlowRunsContextType | null>(null);
 
 export const FlowRunsContextProvider = ({ children }: PropsWithChildren) => {
-  const [flowRuns, setFlowRuns] = useState<FlowRun[]>([]);
   const [selectedFlowRunId, setSelectedFlowRunId] = useState<string | null>(
     null,
   );
 
-  const { data, loading } = useQuery<
+  const { data: flowRunsData, loading: flowRunsLoading } = useQuery<
     GetFlowRunsQuery,
     GetFlowRunsQueryVariables
   >(getFlowRunsQuery, {
     pollInterval: 3_000,
   });
 
-  useEffect(() => {
-    if (data) {
-      setFlowRuns(data.getFlowRuns);
+  const { data: selectedFlowRunData, loading: selectedFlowRunLoading } =
+    useQuery<GetFlowRunByIdQuery, GetFlowRunByIdQueryVariables>(
+      getFlowRunById,
+      {
+        pollInterval: 1_000,
+        skip: !selectedFlowRunId,
+        variables: {
+          flowRunId: selectedFlowRunId ?? "",
+        },
+      },
+    );
+
+  const flowRuns = useMemo(() => {
+    if (flowRunsData) {
+      return flowRunsData.getFlowRuns;
     }
-  }, [data]);
+    return [];
+  }, [flowRunsData]);
+
+  const selectedFlowRun = useMemo(() => {
+    if (selectedFlowRunData) {
+      return selectedFlowRunData.getFlowRunById;
+    }
+    return null;
+  }, [selectedFlowRunData]);
 
   const context = useMemo<FlowRunsContextType>(
     () => ({
       flowRuns,
-      loading,
-      setFlowRuns,
-      selectedFlowRun:
-        flowRuns.find((flowRun) => flowRun.flowRunId === selectedFlowRunId) ??
-        null,
+      loading: selectedFlowRunLoading || flowRunsLoading,
+      selectedFlowRun,
       selectedFlowRunId,
       setSelectedFlowRunId,
     }),
-    [flowRuns, loading, selectedFlowRunId],
+    [
+      flowRuns,
+      flowRunsLoading,
+      selectedFlowRunLoading,
+      selectedFlowRun,
+      selectedFlowRunId,
+    ],
   );
 
   return (
