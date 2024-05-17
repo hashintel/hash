@@ -5,7 +5,7 @@ use aws_sdk_s3::operation::put_object::PutObjectOutput;
 use error_stack::{Report, ResultExt};
 use serde::Serialize;
 
-use crate::benches::report::Measurement;
+use crate::benches::{analyze::BenchmarkAnalysis, report::Measurement};
 
 #[derive(Debug, thiserror::Error)]
 pub enum UploadError {
@@ -47,7 +47,7 @@ impl S3Storage {
             .key(key)
             .content_type("application/json")
             .body(
-                serde_json::to_vec_pretty(body)
+                serde_json::to_vec(body)
                     .change_context(UploadError::Serialize)?
                     .into(),
             )
@@ -86,6 +86,21 @@ impl S3Storage {
             &measurement.tukey,
         )
         .await?;
+
+        Ok(())
+    }
+
+    /// Uploads the given benchmark analysis to the storage.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the upload fails.
+    pub async fn put_benchmark_analysis(
+        &self,
+        analysis: &BenchmarkAnalysis,
+        name: &str,
+    ) -> Result<(), Report<UploadError>> {
+        self.put_measurement(&analysis.measurement, name).await?;
 
         Ok(())
     }

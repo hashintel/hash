@@ -1,5 +1,6 @@
 use std::{collections::HashMap, fs::File, io::BufReader, path::Path};
 
+use criterion::Throughput;
 use error_stack::{Report, ResultExt};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use walkdir::WalkDir;
@@ -11,6 +12,7 @@ pub struct Info {
     pub title: String,
     pub full_id: String,
     pub directory_name: String,
+    pub throughput: Option<Throughput>,
     pub group_id: String,
     pub function_id: Option<String>,
     pub value_str: Option<String>,

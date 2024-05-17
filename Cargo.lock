@@ -3280,6 +3280,7 @@ dependencies = [
  "aws-sdk-s3",
  "clap",
  "clap_complete",
+ "criterion",
  "error-stack",
  "serde",
  "serde_json",
