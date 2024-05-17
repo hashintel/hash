@@ -11,6 +11,7 @@ use harpc_wire_protocol::{
     protocol::{Protocol, ProtocolVersion},
     request::{
         flags::{RequestFlag, RequestFlags},
+        id::RequestId,
         Request,
     },
     response::{
@@ -35,7 +36,7 @@ use tokio_util::{
     task::TaskTracker,
 };
 
-use super::{ConcurrencyLimit, ConnectionTask, TransactionStorage};
+use super::{ConcurrencyLimit, ConnectionTask, TransactionPermit, TransactionStorage};
 use crate::session::{
     error::{
         ConnectionShutdownError, ConnectionTransactionLimitReachedError,
@@ -48,6 +49,22 @@ use crate::session::{
         SessionConfig, SessionEvent, SessionId, Transaction,
     },
 };
+
+pub(crate) async fn make_transaction_permit(
+    config: SessionConfig,
+    id: RequestId,
+) -> (
+    Arc<TransactionPermit>,
+    tachyonix::Sender<Request>,
+    tachyonix::Receiver<Request>,
+) {
+    let collection = TransactionCollection::new(config, CancellationToken::new());
+
+    collection
+        .acquire(id)
+        .await
+        .expect("should be able to acquire transaction")
+}
 
 struct Setup {
     output: mpsc::Receiver<Transaction>,

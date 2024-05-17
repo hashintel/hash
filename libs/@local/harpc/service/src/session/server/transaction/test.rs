@@ -32,11 +32,16 @@ use harpc_wire_protocol::{
     test_utils::mock_request_id,
 };
 use tokio::{sync::mpsc, task::JoinHandle};
+use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 
+use super::TransactionStream;
 use crate::session::{
     error::TransactionError,
-    server::{transaction::TransactionSendDelegateTask, SessionConfig},
+    server::{
+        connection::test::make_transaction_permit, transaction::TransactionSendDelegateTask,
+        SessionConfig,
+    },
 };
 
 fn config_delay() -> SessionConfig {
@@ -1326,27 +1331,13 @@ async fn send_no_delay_error_split_large() {
     );
 }
 
-fn setup_recv() -> (
-    tachyonix::Sender<Request>,
-    mpsc::Receiver<Bytes>,
-    Arc<AtomicBool>,
-    JoinHandle<()>,
-) {
-    let (request_tx, request_rx) = tachyonix::channel(8);
-    let (bytes_tx, bytes_rx) = mpsc::channel(8);
+async fn setup_recv() -> (tachyonix::Sender<Request>, TransactionStream) {
+    let (permit, tx, rx) =
+        make_transaction_permit(SessionConfig::default(), mock_request_id(0x00)).await;
 
-    let incomplete = Arc::new(AtomicBool::new(false));
+    let stream = TransactionStream::new(rx, permit);
 
-    let handle = tokio::spawn(
-        TransactionRecvDelegateTask {
-            rx: request_rx,
-            tx: bytes_tx,
-            incomplete: Arc::clone(&incomplete),
-        }
-        .run(CancellationToken::new()),
-    );
-
-    (request_tx, bytes_rx, incomplete, handle)
+    (tx, stream)
 }
 
 fn make_begin(flags: impl Into<RequestFlags>, payload: impl Into<Bytes>) -> Request {
@@ -1391,7 +1382,7 @@ fn make_frame(flags: impl Into<RequestFlags>, payload: impl Into<Bytes>) -> Requ
 
 #[tokio::test]
 async fn recv() {
-    let (request_tx, mut bytes_rx, incomplete, handle) = setup_recv();
+    let (request_tx, mut bytes_rx) = setup_recv().await;
 
     request_tx
         .send(make_begin(
@@ -1417,25 +1408,22 @@ async fn recv() {
         .await
         .expect("should not be closed");
 
-    tokio::time::timeout(Duration::from_secs(1), handle)
-        .await
-        .expect("should finish within timeout")
-        .expect("should not panic");
+    let mut buffer = Vec::with_capacity(4);
+    while let Some(bytes) = bytes_rx.next().await {
+        buffer.push(bytes);
+    }
+    assert_eq!(buffer.len(), 3);
 
-    let mut bytes = Vec::with_capacity(4);
-    let available = bytes_rx.recv_many(&mut bytes, 4).await;
-    assert_eq!(available, 3);
+    assert_eq!(buffer[0], Bytes::from_static(b"begin"));
+    assert_eq!(buffer[1], Bytes::from_static(b"frame"));
+    assert_eq!(buffer[2], Bytes::from_static(b"end of request"));
 
-    assert_eq!(bytes[0], Bytes::from_static(b"begin"));
-    assert_eq!(bytes[1], Bytes::from_static(b"frame"));
-    assert_eq!(bytes[2], Bytes::from_static(b"end of request"));
-
-    assert!(!incomplete.load(Ordering::SeqCst));
+    assert_eq!(bytes_rx.is_incomplete(), Some(false));
 }
 
 #[tokio::test]
 async fn recv_premature_close_tx() {
-    let (request_tx, mut bytes_rx, incomplete, handle) = setup_recv();
+    let (request_tx, mut bytes_rx) = setup_recv().await;
 
     request_tx
         .send(make_begin(
@@ -1445,25 +1433,22 @@ async fn recv_premature_close_tx() {
         .await
         .expect("should not be closed");
 
-    drop(request_tx);
+    request_tx.close();
 
-    tokio::time::timeout(Duration::from_secs(1), handle)
-        .await
-        .expect("should finish within timeout")
-        .expect("should not panic");
+    let mut buffer = Vec::with_capacity(1);
+    while let Some(bytes) = bytes_rx.next().await {
+        buffer.push(bytes);
+    }
+    assert_eq!(buffer.len(), 1);
 
-    let mut bytes = Vec::with_capacity(1);
-    let available = bytes_rx.recv_many(&mut bytes, 1).await;
-    assert_eq!(available, 1);
+    assert_eq!(buffer[0], Bytes::from_static(b"begin"));
 
-    assert_eq!(bytes[0], Bytes::from_static(b"begin"));
-
-    assert!(incomplete.load(Ordering::SeqCst));
+    assert_eq!(bytes_rx.is_incomplete(), Some(true));
 }
 
 #[tokio::test]
 async fn recv_premature_close_rx() {
-    let (request_tx, bytes_rx, incomplete, handle) = setup_recv();
+    let (request_tx, bytes_rx) = setup_recv().await;
 
     request_tx
         .send(make_begin(
@@ -1475,10 +1460,5 @@ async fn recv_premature_close_rx() {
 
     drop(bytes_rx);
 
-    tokio::time::timeout(Duration::from_secs(1), handle)
-        .await
-        .expect("should finish within timeout")
-        .expect("should not panic");
-
-    assert!(incomplete.load(Ordering::SeqCst));
+    assert!(request_tx.is_closed());
 }
