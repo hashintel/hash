@@ -6,7 +6,7 @@ import type { LlmToolDefinition } from "../../shared/get-llm-response/types";
 const coordinatorToolNames = [
   "requestHumanInput",
   "webSearch",
-  "getWebPageSummary",
+  "getSummariesOfWebPages",
   "inferFactsFromWebPage",
   "proposeEntitiesFromFacts",
   "submitProposedEntities",
@@ -134,20 +134,25 @@ export const generateToolCalls = (params: {
       required: ["url", "prompt", "explanation", "entityTypeIds"],
     },
   },
-  getWebPageSummary: {
-    name: "getWebPageSummary",
-    description:
-      "Get the summary of a web page. This may be useful to decide whether to read the full page, or choose between a set of web pages which may be relevant to complete a task.",
+  getSummariesOfWebPages: {
+    name: "getSummariesOfWebPages",
+    description: dedent(`
+      Get short summaries of one or more web pages.
+      This may be useful to decide whether to read the full page, or choose between a set of web pages which may be relevant to complete a task.
+    `),
     inputSchema: {
       type: "object",
       properties: {
         explanation: explanationDefinition,
-        url: {
-          type: "string",
-          description: "The URL of the web page to summarize",
+        webPageUrls: {
+          type: "array",
+          items: {
+            type: "string",
+          },
+          description: "The URLs of the web pages to summarize",
         },
       },
-      required: ["url", "explanation"],
+      required: ["webPageUrls", "explanation"],
     },
   },
   submitProposedEntities: {
@@ -311,8 +316,8 @@ export type CoordinatorToolCallArguments = Subtype<
       entityTypeIds: string[];
       linkEntityTypeIds?: string[];
     };
-    getWebPageSummary: {
-      url: string;
+    getSummariesOfWebPages: {
+      webPageUrls: string[];
     };
     proposeEntitiesFromFacts: {
       entityIds: string[];
