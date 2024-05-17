@@ -116,7 +116,7 @@ export const useFlowRuns = (): BrowserFlowsAndBackgroundRequests & {
   useEffect(() => {
     const pollInterval = setInterval(() => {
       void getFlowRuns().then(setValue);
-    }, 1_000);
+    }, 2_000);
 
     return () => clearInterval(pollInterval);
   }, [setValue]);
@@ -134,10 +134,55 @@ export const useFlowRuns = (): BrowserFlowsAndBackgroundRequests & {
     setApiChecked(true);
   }, [apiChecked, setValue]);
 
+  const [localPendingRuns, setLocalPendingRuns] = useStorageSync(
+    "localPendingFlowRuns",
+    [],
+  );
+
+  /**
+   * Merge in any local pending runs that are not already in the API response,
+   * to allow for more optimistic UI updates.
+   */
+  const { allFlowRuns, redundantLocalRunIds } = useMemo(() => {
+    const flowRunsToShow: MinimalFlowRun[] = [];
+    const redundantOptimisticRunIds: string[] = [];
+
+    const allFlowIds = value.browserFlowRuns.map((run) => run.flowRunId);
+
+    for (const run of localPendingRuns ?? []) {
+      if (allFlowIds.includes(run.flowRunId)) {
+        redundantOptimisticRunIds.push(run.flowRunId);
+      } else {
+        flowRunsToShow.push(run);
+      }
+    }
+
+    flowRunsToShow.push(...value.browserFlowRuns);
+
+    return {
+      allFlowRuns: flowRunsToShow,
+      redundantLocalRunIds: redundantOptimisticRunIds,
+    };
+  }, [value.browserFlowRuns, localPendingRuns]);
+
+  /**
+   * Clean up the state for any runs that have been added to the API response.
+   */
+  useEffect(() => {
+    if (redundantLocalRunIds.length > 0 && !!localPendingRuns?.length) {
+      setLocalPendingRuns(
+        localPendingRuns.filter(
+          (run) => !redundantLocalRunIds.includes(run.flowRunId),
+        ),
+      );
+    }
+  }, [localPendingRuns, setLocalPendingRuns, redundantLocalRunIds]);
+
   return useMemo(() => {
     return {
-      ...value,
+      inputRequests: value.inputRequests,
+      browserFlowRuns: allFlowRuns,
       loading: !storageLoading || !apiChecked,
     };
-  }, [apiChecked, storageLoading, value]);
+  }, [allFlowRuns, apiChecked, storageLoading, value]);
 };

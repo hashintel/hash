@@ -6,6 +6,10 @@ import type {
   InferenceWebsocketServerMessage,
   ManualInferenceWebsocketRequestMessage,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
+import {
+  automaticBrowserInferenceFlowDefinition,
+  manualBrowserInferenceFlowDefinition,
+} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
 import type {
   AutomaticInferenceArguments,
   ManualInferenceArguments,
@@ -13,6 +17,7 @@ import type {
 import { v4 as uuid } from "uuid";
 import browser from "webextension-polyfill";
 
+import { FlowRunStatus } from "../../graphql/api-types.gen";
 import type { InferEntitiesRequest } from "../../shared/messages";
 import {
   getFromLocalStorage,
@@ -195,6 +200,8 @@ export const cancelInferEntities = async ({
   );
 };
 
+const setLocalPendingRuns = getSetFromLocalStorageValue("localPendingFlowRuns");
+
 export const inferEntities = async (
   message: InferEntitiesRequest,
   trigger: "automatic" | "manual",
@@ -256,6 +263,26 @@ export const inferEntities = async (
         } as const);
 
   await sendInferEntitiesMessage(inferenceArgs);
+
+  /**
+   * Optimistically add the run to local storage so that it appears in the history tab immediately.
+   * When the next request for the latest runs comes back from the API, it will overwrite local storage again.
+   */
+  await setLocalPendingRuns((existingValue) => [
+    ...(existingValue ?? []),
+    {
+      flowDefinitionId:
+        trigger === "automatic"
+          ? automaticBrowserInferenceFlowDefinition.flowDefinitionId
+          : manualBrowserInferenceFlowDefinition.flowDefinitionId,
+      flowRunId: requestUuid,
+      closedAt: null,
+      executedAt: new Date().toISOString(),
+      persistedEntities: [],
+      webPage: basePayload.visitedWebPage.value,
+      status: FlowRunStatus.Running,
+    },
+  ]);
 };
 
 /**

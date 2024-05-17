@@ -90,12 +90,7 @@ export type ExternalInputRequestById = {
 
 export type MinimalFlowRun = Pick<
   FlowRun,
-  | "flowDefinitionId"
-  | "flowRunId"
-  | "closedAt"
-  | "executedAt"
-  | "status"
-  | "inputs"
+  "flowDefinitionId" | "flowRunId" | "closedAt" | "executedAt" | "status"
 > & { persistedEntities: PersistedEntity[]; webPage: WebPage };
 
 export type BrowserFlowsAndBackgroundRequests = {
@@ -112,6 +107,7 @@ export type LocalStorage = PersistedUserSettings & {
   entityTypesSubgraph: Subgraph<EntityTypeRootType> | null;
   entityTypes: EntityTypeWithMetadata[];
   externalInputRequests?: ExternalInputRequestById;
+  localPendingFlowRuns?: MinimalFlowRun[];
   user: UserAndLinkedData | null;
 };
 
