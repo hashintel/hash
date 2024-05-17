@@ -8,7 +8,7 @@ export const useEntityHref = (entity: Entity, includeDraftId: boolean) => {
   const getOwnerForEntity = useGetOwnerForEntity();
 
   return useMemo(() => {
-    const { shortname } = getOwnerForEntity(entity);
+    const { shortname } = getOwnerForEntity({ entity });
 
     return generateEntityPath({
       shortname,

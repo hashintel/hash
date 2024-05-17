@@ -14,12 +14,13 @@ import { format } from "date-fns";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 
+import { useGetOwnerForEntity } from "../../../../components/hooks/use-get-owner-for-entity";
+import { BoltLightIcon } from "../../../../shared/icons/bolt-light-icon";
 import { Button } from "../../../../shared/ui/button";
 import { Link } from "../../../../shared/ui/link";
 import { MenuItem } from "../../../../shared/ui/menu-item";
 import { useFlowDefinitionsContext } from "../../../shared/flow-definitions-context";
 import { useFlowRunsContext } from "../../../shared/flow-runs-context";
-import { BoltLightIcon } from "../../../../shared/icons/bolt-light-icon";
 
 const typographySx: SxProps<Theme> = {
   color: ({ palette }) => palette.gray[70],
@@ -66,6 +67,8 @@ export const Topbar = ({
     useFlowDefinitionsContext();
 
   const { flowRuns, selectedFlowRunId } = useFlowRunsContext();
+
+  const getOwner = useGetOwnerForEntity();
 
   const runOptions = useMemo(
     () =>
@@ -162,10 +165,16 @@ export const Topbar = ({
                   return;
                 }
 
+                const flowRun = flowRuns.find((run) => run.flowRunId === value);
+                if (!flowRun) {
+                  throw new Error(`Flow run with id ${value} not found`);
+                }
+
+                const { shortname } = getOwner({ ownedById: flowRun.webId });
+
                 void push(
-                  /** @todo get the correct shortname */
                   generateWorkerRunPath({
-                    shortname: "hash",
+                    shortname,
                     flowRunId: value,
                   }),
                 );

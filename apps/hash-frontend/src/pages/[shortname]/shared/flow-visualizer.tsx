@@ -1,6 +1,7 @@
 import "reactflow/dist/style.css";
 
 import { useApolloClient, useMutation } from "@apollo/client";
+import { Skeleton } from "@hashintel/design-system";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import {
   automaticBrowserInferenceFlowDefinition,
@@ -20,6 +21,7 @@ import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
 import { ReactFlowProvider } from "reactflow";
 
+import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
 import type {
   StartFlowMutation,
   StartFlowMutationVariables,
@@ -51,7 +53,6 @@ import {
 } from "./flow-visualizer/sort-graph";
 import { Swimlane } from "./flow-visualizer/swimlane";
 import { Topbar, topbarHeight } from "./flow-visualizer/topbar";
-import { Skeleton } from "@hashintel/design-system";
 
 const getGraphFromFlowDefinition = (
   flowDefinition: FlowDefinitionType,
@@ -213,6 +214,8 @@ export const FlowVisualizer = () => {
     useFlowDefinitionsContext();
 
   const { selectedFlowRun } = useFlowRunsContext();
+
+  const getOwner = useGetOwnerForEntity();
 
   const selectedFlowDefinition = useMemo(() => {
     return flowDefinitions.find(
@@ -423,8 +426,9 @@ export const FlowVisualizer = () => {
 
             setShowRunModal(false);
 
-            /** @todo get the correct shortname */
-            void push(generateWorkerRunPath({ shortname: "hash", flowRunId }));
+            const { shortname } = getOwner({ ownedById: webId });
+
+            void push(generateWorkerRunPath({ shortname, flowRunId }));
           }}
         />
       )}
