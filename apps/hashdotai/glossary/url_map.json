@@ -300,7 +300,7 @@
   },
   {
     "title": "Scraping",
-    "description": "Scraping is ______.",
+    "description": "Web scraping is the process of automatically extracting data from websites efficiently and reliably.",
     "slug": "scraping",
     "tags": ["Data Science", "Graphs", "Software Engineering"]
   },
