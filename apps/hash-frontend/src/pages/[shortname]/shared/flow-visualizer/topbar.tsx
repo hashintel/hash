@@ -19,6 +19,7 @@ import { Link } from "../../../../shared/ui/link";
 import { MenuItem } from "../../../../shared/ui/menu-item";
 import { useFlowDefinitionsContext } from "../../../shared/flow-definitions-context";
 import { useFlowRunsContext } from "../../../shared/flow-runs-context";
+import { BoltLightIcon } from "../../../../shared/icons/bolt-light-icon";
 
 const typographySx: SxProps<Theme> = {
   color: ({ palette }) => palette.gray[70],
@@ -88,8 +89,26 @@ export const Topbar = ({
       })}
     >
       <Stack direction="row" alignItems="center">
+        <BoltLightIcon
+          sx={{
+            fill: ({ palette }) => palette.gray[60],
+            fontSize: 14,
+            mr: 0.8,
+          }}
+        />
+        <Link href="/workers" noLinkStyle>
+          <Typography sx={typographySx} variant="smallTextParagraphs">
+            Workers
+          </Typography>
+        </Link>
+        <Divider />
+
         <InfinityLightIcon
-          sx={{ fill: ({ palette }) => palette.gray[60], fontSize: 20, mr: 1 }}
+          sx={{
+            fill: ({ palette }) => palette.gray[60],
+            fontSize: 20,
+            mr: 1,
+          }}
         />
         <Link href="/flows" noLinkStyle>
           <Typography sx={typographySx} variant="smallTextParagraphs">
@@ -100,7 +119,7 @@ export const Topbar = ({
         <Box mr={1}>
           <Select
             selectSx={selectSx}
-            value={selectedFlowDefinitionId}
+            value={selectedFlowDefinitionId ?? "none"}
             onChange={(event) => {
               /**
                * @todo update this to use the flow definition's uuid when stored in the db
@@ -137,7 +156,7 @@ export const Topbar = ({
                   void push(
                     generateFlowDefinitionPath({
                       shortname: "hash",
-                      flowDefinitionId: selectedFlowDefinitionId,
+                      flowDefinitionId: selectedFlowDefinitionId ?? "none",
                     }),
                   );
                   return;
