@@ -22,9 +22,8 @@ use tokio::{pin, select, sync::mpsc};
 use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 
+use super::config::SessionConfig;
 use crate::session::writer::{RequestContext, RequestWriter, WriterOptions};
-
-const BYTE_STREAM_BUFFER_SIZE: usize = 32;
 
 pub struct ErrorStream {
     code: ErrorCode,
@@ -52,7 +51,14 @@ impl ValueStream {
     }
 }
 
+struct ResponseState {
+    tx: mpsc::Sender<Bytes>,
+    end_of_response: Arc<AtomicBool>,
+}
+
 pub(crate) struct TransactionReceiveTask {
+    pub(crate) config: SessionConfig,
+
     pub(crate) rx: mpsc::Receiver<Response>,
     pub(crate) tx: mpsc::Sender<Result<ValueStream, ErrorStream>>,
 }
@@ -60,29 +66,37 @@ pub(crate) struct TransactionReceiveTask {
 impl TransactionReceiveTask {
     async fn handle_begin(
         &self,
-        bytes_tx: &mut Option<mpsc::Sender<Bytes>>,
-        end_of_response: &mut Option<Arc<AtomicBool>>,
+        state: &mut Option<ResponseState>,
         ResponseBegin { kind, payload }: ResponseBegin,
     ) -> ControlFlow<(), Bytes> {
-        let (tx, rx) = mpsc::channel(BYTE_STREAM_BUFFER_SIZE);
-        bytes_tx.replace(tx);
+        let (tx, rx) = mpsc::channel(
+            self.config
+                .per_transaction_response_byte_stream_buffer_size
+                .get(),
+        );
 
-        let flag = Arc::new(AtomicBool::new(false));
-        end_of_response.replace(Arc::clone(&flag));
+        let end_of_response = Arc::new(AtomicBool::new(false));
+
+        state.replace(ResponseState {
+            tx,
+            end_of_response: Arc::clone(&end_of_response),
+        });
 
         let stream = match kind {
             ResponseKind::Ok => Ok(ValueStream {
                 rx,
-                end_of_response: flag,
+                end_of_response,
             }),
             ResponseKind::Err(code) => Err(ErrorStream {
                 code,
                 rx,
-                end_of_response: flag,
+                end_of_response,
             }),
         };
 
         if self.tx.send(stream).await.is_err() {
+            // The receiver for individual responses has been dropped, meaning we can stop
+            // processing
             return ControlFlow::Break(());
         }
 
@@ -94,8 +108,7 @@ impl TransactionReceiveTask {
         reason = "required for select! macro"
     )]
     pub(crate) async fn run(mut self, cancel: CancellationToken) {
-        let mut bytes_tx = None;
-        let mut end_of_response = None;
+        let mut state = None;
 
         loop {
             let response = select! {
@@ -107,13 +120,10 @@ impl TransactionReceiveTask {
                 break;
             };
 
-            let is_end = response.header.flags.contains(ResponseFlag::EndOfResponse);
+            let end_of_response = response.header.flags.contains(ResponseFlag::EndOfResponse);
 
             let bytes = match response.body {
-                ResponseBody::Begin(begin) => {
-                    self.handle_begin(&mut bytes_tx, &mut end_of_response, begin)
-                        .await
-                }
+                ResponseBody::Begin(begin) => self.handle_begin(&mut state, begin).await,
                 ResponseBody::Frame(ResponseFrame { payload }) => {
                     ControlFlow::Continue(payload.into_bytes())
                 }
@@ -124,22 +134,28 @@ impl TransactionReceiveTask {
                 break;
             };
 
-            if is_end {
+            let mut reset = false;
+            if let Some(state) = &mut state {
                 // before sending the last byte, flip the flag
-                if let Some(last) = &end_of_response {
+                if end_of_response {
                     // SeqCst should ensure that we see the flag flip in any circumstance.
-                    last.store(true, Ordering::SeqCst);
+                    state.end_of_response.store(true, Ordering::SeqCst);
                 }
+
+                if state.tx.send(bytes).await.is_err() {
+                    tracing::warn!("response bytestream has been prematurely dropped");
+                    reset = true;
+                }
+            } else {
+                tracing::warn!("received frame without a begin");
+                continue;
             }
 
-            if let Some(tx) = &mut bytes_tx {
-                if tx.send(bytes).await.is_err() {
-                    tracing::info!("stream prematurely dropped");
-                    break;
-                }
+            if reset {
+                state.take();
             }
 
-            if is_end {
+            if end_of_response {
                 tracing::debug!("end of response, shutting down");
                 break;
             }
@@ -148,6 +164,7 @@ impl TransactionReceiveTask {
 }
 
 pub(crate) struct TransactionSendTask<S> {
+    pub(crate) config: SessionConfig,
     pub(crate) id: RequestId,
 
     pub(crate) service: ServiceDescriptor,
@@ -156,8 +173,6 @@ pub(crate) struct TransactionSendTask<S> {
     pub(crate) rx: S,
     pub(crate) tx: mpsc::Sender<Request>,
 }
-
-const REMOVE_ME_BEFORE_YOU_MERGE_TIM_DIEKMANN_GIVE_ME_A_BONK_ON_THE_HEAD_IF_I_FORGET: bool = false;
 
 impl<S> TransactionSendTask<S>
 where
@@ -170,8 +185,7 @@ where
     pub(crate) async fn run(self, cancel: CancellationToken) {
         let mut writer = RequestWriter::new(
             WriterOptions {
-                no_delay:
-                    REMOVE_ME_BEFORE_YOU_MERGE_TIM_DIEKMANN_GIVE_ME_A_BONK_ON_THE_HEAD_IF_I_FORGET,
+                no_delay: self.config.no_delay,
             },
             RequestContext {
                 id: self.id,

@@ -63,8 +63,6 @@ pub struct SessionConfig {
     pub per_connection_transaction_garbage_collect_interval: Duration,
 
     pub per_transaction_request_buffer_size: NonZero<usize>,
-
-    pub per_transaction_request_byte_stream_buffer_size: NonZero<usize>,
     pub per_transaction_response_byte_stream_buffer_size: NonZero<usize>,
 
     pub no_delay: bool,
@@ -89,7 +87,6 @@ impl Default for SessionConfig {
 
             per_transaction_request_buffer_size: non_zero!(16),
 
-            per_transaction_request_byte_stream_buffer_size: non_zero!(16),
             per_transaction_response_byte_stream_buffer_size: non_zero!(16),
 
             no_delay: false,

@@ -11,16 +11,81 @@ use harpc_wire_protocol::{
     },
     response::Response,
 };
-use scc::{hash_index::Entry, HashIndex};
+use scc::{ebr::Guard, hash_index::Entry, HashIndex};
 use tokio::{io, pin, select, sync::mpsc};
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
-use super::transaction::{ErrorStream, TransactionReceiveTask, TransactionSendTask, ValueStream};
-use crate::stream::ReceiverStreamCancel;
+use super::{
+    config::SessionConfig,
+    transaction::{ErrorStream, TransactionReceiveTask, TransactionSendTask, ValueStream},
+};
+use crate::{stream::ReceiverStreamCancel, transport::connection::OutgoingConnection};
 
-const REQUEST_BUFFER_SIZE: usize = 32;
-const RESPONSE_BUFFER_SIZE: usize = 32;
+#[derive(Debug, Clone)]
+struct TransactionState {
+    sender: tachyonix::Sender<Response>,
+    cancel: CancellationToken,
+}
+
+type TransactionStorage = Arc<HashIndex<RequestId, TransactionState>>;
+
+pub(crate) struct TransactionCollection {
+    config: SessionConfig,
+    producer: RequestIdProducer,
+
+    cancel: CancellationToken,
+    storage: TransactionStorage,
+}
+
+impl TransactionCollection {
+    pub(crate) fn new(config: SessionConfig, cancel: CancellationToken) -> Self {
+        let storage = Arc::new(HashIndex::new());
+
+        Self {
+            config,
+            producer: RequestIdProducer::new(),
+
+            cancel,
+            storage,
+        }
+    }
+
+    pub(crate) fn cancel_all(&self) {
+        let guard = Guard::new();
+        for (_, state) in self.storage.iter(&guard) {
+            state.cancel.cancel();
+        }
+    }
+}
+
+impl Drop for TransactionCollection {
+    fn drop(&mut self) {
+        // Dropping the transaction collection indicates that the session is shutting down, this
+        // means no supervisor is there to send or recv data, so we can just go ahead and cancel any
+        // pending transactions.
+        // These should have been cancelled already implicitly, but just to be sure we do it again
+        // explicitely here, as to not leave any dangling tasks.
+        self.cancel_all();
+    }
+}
+
+pub(crate) struct TransactionPermit {
+    id: RequestId,
+    storage: TransactionStorage,
+}
+
+impl Drop for TransactionPermit {
+    fn drop(&mut self) {
+        let id = self.id;
+
+        let storage = Arc::clone(&self.storage);
+
+        tokio::spawn(async move {
+            storage.remove_async(&id).await;
+        });
+    }
+}
 
 struct ConnectionRequestDelegateTask<S> {
     sink: S,
@@ -51,6 +116,7 @@ where
 struct ConnectionResponseDelegateTask<S> {
     stream: S,
 
+    // TODO: what about permits and such?!
     tx: Arc<HashIndex<RequestId, mpsc::Sender<Response>>>,
 }
 
@@ -73,6 +139,7 @@ where
             };
 
             let Some(response) = response else {
+                // The stream has ended, meaning the connection has been terminated
                 break;
             };
 
@@ -99,11 +166,14 @@ where
     }
 }
 
+// TODO: DropGuard on connection drop (via the collection)
+
 pub struct Connection {
+    config: SessionConfig,
     id: RequestIdProducer,
 
     tx: mpsc::Sender<Request>,
-    tracker: TaskTracker,
+    tasks: TaskTracker,
     cancel: CancellationToken,
 
     receivers: Arc<HashIndex<RequestId, mpsc::Sender<Response>>>,
@@ -111,27 +181,28 @@ pub struct Connection {
 
 // TODO: BufferedResponse that will only return the last (valid) response
 impl Connection {
-    pub(crate) fn start(
-        sink: impl Sink<Request, Error: Send> + Send + 'static,
-        stream: impl Stream<Item = error_stack::Result<Response, io::Error>> + Send + 'static,
+    pub(crate) fn spawn(
+        config: SessionConfig,
+        OutgoingConnection { sink, stream, .. }: OutgoingConnection,
+        tasks: &TaskTracker,
         cancel: CancellationToken,
     ) -> Self {
-        let (tx, rx) = mpsc::channel(REQUEST_BUFFER_SIZE);
+        let (tx, rx) = mpsc::channel(config.per_connection_request_buffer_size.get());
 
         let this = Self {
+            config,
             id: RequestIdProducer::new(),
 
             tx,
-            tracker: TaskTracker::new(),
+            tasks: tasks.clone(),
             cancel: cancel.clone(),
 
             receivers: Arc::new(HashIndex::new()),
         };
 
-        this.tracker
-            .spawn(ConnectionRequestDelegateTask { sink, rx }.run(cancel.clone()));
+        tasks.spawn(ConnectionRequestDelegateTask { sink, rx }.run(cancel.clone()));
 
-        this.tracker.spawn(
+        tasks.spawn(
             ConnectionResponseDelegateTask {
                 stream,
                 tx: Arc::clone(&this.receivers),
@@ -152,9 +223,11 @@ impl Connection {
     ) -> impl Stream<Item = Result<ValueStream, ErrorStream>> + Send + Sync + 'static {
         let id = self.id.produce();
 
-        let (tx, rx) = mpsc::channel(RESPONSE_BUFFER_SIZE);
+        let (tx, rx) = mpsc::channel(self.config.per_transaction_response_buffer_size.get());
 
         let entry = self.receivers.entry_async(id).await;
+
+        // TODO: should error out if we have that already!
         match entry {
             Entry::Occupied(entry) => {
                 tracing::warn!(?id, "occupied entry used"); // this should never happen
@@ -169,8 +242,9 @@ impl Connection {
 
         let (stream_tx, stream_rx) = mpsc::channel(1);
 
-        self.tracker.spawn(
+        self.tasks.spawn(
             TransactionSendTask {
+                config: self.config,
                 id,
                 service,
                 procedure,
@@ -180,9 +254,17 @@ impl Connection {
             .run(cancel.clone()),
         );
 
-        self.tracker
-            .spawn(TransactionReceiveTask { rx, tx: stream_tx }.run(cancel.clone()));
+        self.tasks.spawn(
+            TransactionReceiveTask {
+                config: self.config,
+                rx,
+                tx: stream_tx,
+            }
+            .run(cancel.clone()),
+        );
 
+        // TODO: do we want to drop them?
+        // TODO: no use permit here (like the server)
         ReceiverStreamCancel::new(stream_rx, cancel.drop_guard())
     }
 }
