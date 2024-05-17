@@ -70,7 +70,7 @@ test(
       text: htmlContent,
       dereferencedEntityType,
       relevantEntitiesPrompt:
-        'Obtain the authors of the "Video generation models as world simulators" paper',
+        'Obtain the authors of the "Video generation models as world simulators" article',
     });
 
     expect(entitySummaries).toBeDefined();

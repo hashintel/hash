@@ -6,17 +6,20 @@ import type { LlmToolDefinition } from "../../shared/get-llm-response/types";
 const coordinatorToolNames = [
   "requestHumanInput",
   "webSearch",
-  "inferEntitiesFromWebPage",
   "getWebPageSummary",
+  "inferFactsFromWebPage",
+  "proposeEntitiesFromFacts",
   "submitProposedEntities",
-  // "discardProposedEntities",
-  "proposeAndSubmitLink",
   "complete",
   "terminate",
   "updatePlan",
+  // "discardProposedEntities",
+  // "proposeAndSubmitLink",
 ] as const;
 
 export type CoordinatorToolName = (typeof coordinatorToolNames)[number];
+
+type OmitValue<T, K> = T extends K ? never : T;
 
 export const isCoordinatorToolName = (
   value: string,
@@ -32,35 +35,43 @@ const explanationDefinition = {
   `),
 } as const;
 
-export const coordinatorToolDefinitions: Record<
-  CoordinatorToolName,
-  LlmToolDefinition<CoordinatorToolName>
-> = {
-  requestHumanInput: {
-    name: "requestHumanInput",
-    description:
-      "Ask the user questions to gather information required to complete the research task, which include clarifying the research brief, or asking for advice on how to proceed if difficulties are encountered.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        explanation: {
-          type: "string",
+export const generateToolCalls = (params: {
+  humanInputCanBeRequested: boolean;
+}):
+  | Record<CoordinatorToolName, LlmToolDefinition<CoordinatorToolName>>
+  | Record<
+      OmitValue<CoordinatorToolName, "requestHumanInput">,
+      LlmToolDefinition<OmitValue<CoordinatorToolName, "requestHumanInput">>
+    > => ({
+  ...(params.humanInputCanBeRequested
+    ? {
+        requestHumanInput: {
+          name: "requestHumanInput",
           description:
-            "An explanation of why human input is required to advance the research task, and how it will be used",
-        },
-        questions: {
-          type: "array",
-          items: {
-            type: "string",
-            description:
-              "A question to help clarify or complete the research task",
+            "Ask the user questions to gather information required to complete the research task, which include clarifying the research brief, or asking for advice on how to proceed if difficulties are encountered.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              explanation: {
+                type: "string",
+                description:
+                  "An explanation of why human input is required to advance the research task, and how it will be used",
+              },
+              questions: {
+                type: "array",
+                items: {
+                  type: "string",
+                  description:
+                    "A question to help clarify or complete the research task",
+                },
+                description: "A list of questions to ask the user",
+              },
+            },
+            required: ["explanation", "questions"],
           },
-          description: "A list of questions to ask the user",
         },
-      },
-      required: ["explanation", "questions"],
-    },
-  },
+      }
+    : {}),
   webSearch: {
     name: "webSearch",
     description:
@@ -76,10 +87,12 @@ export const coordinatorToolDefinitions: Record<
       required: ["query"],
     },
   },
-  inferEntitiesFromWebPage: {
-    name: "inferEntitiesFromWebPage",
-    description:
-      "Infer entities from the content of a web page. This tool is useful for extracting structured data from a web page. This is an expensive operation, so use it conservatively.",
+  inferFactsFromWebPage: {
+    name: "inferFactsFromWebPage",
+    description: dedent(`
+      Infer facts from the content of a web page.
+      This tool should be used to gather facts about entities of specific types, before the entities can be proposed.
+    `),
     inputSchema: {
       type: "object",
       properties: {
@@ -91,12 +104,12 @@ export const coordinatorToolDefinitions: Record<
         prompt: {
           type: "string",
           description: dedent(`
-            A prompt instructing the inference agent which entities should be inferred from the webpage.
+            A prompt instructing the inference agent which entities it should gather facts about from the webpage.
             Do not specify any information of the structure of the entities, as this is predefined by
               the entity type.
 
-            You must be specific about which and how many entities you need from the webpage to satisfy the
-            research task.
+            You must be specific about which and how many entities you need to gather facts about from
+              the webpage to satisfy the research task.
           `),
         },
         entityTypeIds: {
@@ -203,43 +216,66 @@ export const coordinatorToolDefinitions: Record<
       required: ["plan", "explanation"],
     },
   },
-  proposeAndSubmitLink: {
-    name: "proposeAndSubmitLink",
+  proposeEntitiesFromFacts: {
+    name: "proposeEntitiesFromFacts",
     description: dedent(`
-      Propose and submit a link entity, which creates a link between two entities.
+      Propose entities from the inferred facts about the entities.
 
-      The source or target entity can be:
-        - a proposed entity
-        - an existing entity
-
-      If the source or target are a proposed entity that has not yet been submitted,
-        they will be submitted in this tool call.
+      All required facts must be obtained before proposing entities.
     `),
     inputSchema: {
       type: "object",
       properties: {
         explanation: explanationDefinition,
-        sourceEntityId: {
-          type: "string",
-          description: "The ID of the source proposed or existing entity.",
-        },
-        targetEntityId: {
-          type: "string",
-          description: "The ID of the target proposed or existing entity.",
-        },
-        linkEntityTypeId: {
-          type: "string",
-          description: "The link entity type ID of the proposed link.",
+        entityIds: {
+          type: "array",
+          items: {
+            type: "string",
+            description:
+              "The fact IDs of the inferred facts to propose entities from.",
+          },
         },
       },
-      required: [
-        "sourceEntityId",
-        "targetEntityId",
-        "linkEntityTypeId",
-        "explanation",
-      ],
+      required: ["entityIds", "explanation"],
     },
   },
+  // proposeAndSubmitLink: {
+  //   name: "proposeAndSubmitLink",
+  //   description: dedent(`
+  //     Propose and submit a link entity, which creates a link between two entities.
+
+  //     The source or target entity can be:
+  //       - a proposed entity
+  //       - an existing entity
+
+  //     If the source or target are a proposed entity that has not yet been submitted,
+  //       they will be submitted in this tool call.
+  //   `),
+  //   inputSchema: {
+  //     type: "object",
+  //     properties: {
+  //       explanation: explanationDefinition,
+  //       sourceEntityId: {
+  //         type: "string",
+  //         description: "The ID of the source proposed or existing entity.",
+  //       },
+  //       targetEntityId: {
+  //         type: "string",
+  //         description: "The ID of the target proposed or existing entity.",
+  //       },
+  //       linkEntityTypeId: {
+  //         type: "string",
+  //         description: "The link entity type ID of the proposed link.",
+  //       },
+  //     },
+  //     required: [
+  //       "sourceEntityId",
+  //       "targetEntityId",
+  //       "linkEntityTypeId",
+  //       "explanation",
+  //     ],
+  //   },
+  // },
   // discardProposedEntities: {
   //   name: "discardProposedEntities",
   //   description: "Discard previously submitted proposed entities.",
@@ -258,7 +294,7 @@ export const coordinatorToolDefinitions: Record<
   //     required: ["entityIds"],
   //   },
   // },
-};
+});
 
 export type CoordinatorToolCallArguments = Subtype<
   Record<CoordinatorToolName, unknown>,
@@ -269,7 +305,7 @@ export type CoordinatorToolCallArguments = Subtype<
     webSearch: {
       query: string;
     };
-    inferEntitiesFromWebPage: {
+    inferFactsFromWebPage: {
       url: string;
       prompt: string;
       entityTypeIds: string[];
@@ -278,17 +314,20 @@ export type CoordinatorToolCallArguments = Subtype<
     getWebPageSummary: {
       url: string;
     };
+    proposeEntitiesFromFacts: {
+      entityIds: string[];
+    };
     submitProposedEntities: {
       entityIds: string[];
     };
     updatePlan: {
       plan: string;
     };
-    proposeAndSubmitLink: {
-      sourceEntityId: string;
-      targetEntityId: string;
-      linkEntityTypeId: string;
-    };
+    // proposeAndSubmitLink: {
+    //   sourceEntityId: string;
+    //   targetEntityId: string;
+    //   linkEntityTypeId: string;
+    // };
     complete: never;
     terminate: never;
   }

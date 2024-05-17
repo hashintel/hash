@@ -27,6 +27,7 @@ import { stringify } from "../../shared/stringify";
 import { inferFactsFromText } from "../shared/infer-facts-from-text";
 import type { EntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text";
 import type { Fact } from "../shared/infer-facts-from-text/types";
+import { generatePreviouslyInferredFactsSystemPromptMessage } from "./generate-previously-inferred-facts-system-prompt-message";
 import { handleQueryPdfToolCall } from "./infer-facts-from-web-page-worker-agent/handle-query-pdf-tool-call";
 import type { ToolCallArguments } from "./infer-facts-from-web-page-worker-agent/tool-definitions";
 import { toolDefinitions } from "./infer-facts-from-web-page-worker-agent/tool-definitions";
@@ -227,30 +228,7 @@ const getNextToolCalls = async (params: {
 
       You have previously inferred facts from the following webpages: ${JSON.stringify(state.inferredFactsFromWebPageUrls)}
       You have previously inferred facts from the following files: ${JSON.stringify(state.filesUsedToInferFacts.map(({ url }) => url))}
-      
-      ${
-        state.inferredFactsAboutEntities.length > 0
-          ? dedent(`
-            You have previously obtained facts about the following entities:
-            ${state.inferredFactsAboutEntities
-              .map((entitySummary) => {
-                const factsWithEntityAsSubject = state.inferredFacts.filter(
-                  (fact) => fact.subjectEntityLocalId === entitySummary.localId,
-                );
-
-                return dedent(`
-                  Entity ID: ${entitySummary.localId}
-                  Entity Name: ${entitySummary.name}
-                  Entity Summary: ${entitySummary.summary}
-                  Entity Type Id: ${entitySummary.entityTypeId}
-                  Entity facts: ${JSON.stringify(factsWithEntityAsSubject.map(({ text, prepositionalPhrases }) => `${text} ${prepositionalPhrases.join(", ")}`))}
-                `);
-              })
-              .join("\n")}
-            If the submitted entities satisfy the research prompt, call the "complete" tool.
-          `)
-          : "You have not yet obtained facts about any entities."
-      }
+      ${generatePreviouslyInferredFactsSystemPromptMessage(state)}
     `);
 
   const messages: LlmMessage[] = [
