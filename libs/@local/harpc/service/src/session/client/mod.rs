@@ -6,6 +6,7 @@ use error_stack::{Result, ResultExt};
 use libp2p::Multiaddr;
 use tokio_util::sync::CancellationToken;
 
+pub use self::transaction::{ErrorStream, ValueStream};
 use self::{config::SessionConfig, connection::Connection};
 use super::error::SessionError;
 use crate::transport::TransportLayer;

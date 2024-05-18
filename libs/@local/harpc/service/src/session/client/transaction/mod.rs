@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod test;
+
 use alloc::sync::Arc;
 use core::{
     ops::ControlFlow,
@@ -5,10 +8,10 @@ use core::{
 };
 
 use bytes::Bytes;
-use futures::{prelude::future::FutureExt, Stream};
+use futures::{prelude::future::FutureExt, stream::FusedStream, Stream, StreamExt};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
-    request::{procedure::ProcedureDescriptor, service::ServiceDescriptor, Request},
+    request::{id::RequestId, procedure::ProcedureDescriptor, service::ServiceDescriptor, Request},
     response::{
         begin::ResponseBegin,
         body::ResponseBody,
@@ -19,59 +22,120 @@ use harpc_wire_protocol::{
     },
 };
 use tokio::{pin, select, sync::mpsc};
-use tokio_stream::StreamExt;
-use tokio_util::task::TaskTracker;
+use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
-use super::{config::SessionConfig, connection::TransactionPermit};
-use crate::session::writer::{RequestContext, RequestWriter, WriterOptions};
+use super::config::SessionConfig;
+use crate::{
+    session::writer::{RequestContext, RequestWriter, WriterOptions},
+    stream::TerminatedChannelStream,
+};
 
+pub(crate) trait Permit: Send + Sync + 'static {
+    fn id(&self) -> RequestId;
+    fn cancellation_token(&self) -> CancellationToken;
+}
+
+#[derive(Debug)]
 pub struct ErrorStream {
     code: ErrorCode,
 
-    rx: mpsc::Receiver<Bytes>,
+    inner: TerminatedChannelStream<Bytes>,
 
     end_of_response: Arc<AtomicBool>,
 }
 
 impl ErrorStream {
-    pub fn is_end_of_response(&self) -> bool {
-        self.end_of_response.load(Ordering::SeqCst)
+    #[must_use]
+    pub const fn code(&self) -> ErrorCode {
+        self.code
+    }
+
+    #[must_use]
+    pub fn is_end_of_response(&self) -> Option<bool> {
+        if !self.inner.is_terminated() {
+            return None;
+        }
+
+        Some(self.end_of_response.load(Ordering::SeqCst))
     }
 }
 
+impl Stream for ErrorStream {
+    type Item = Bytes;
+
+    fn poll_next(
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Option<Self::Item>> {
+        self.inner.poll_next_unpin(cx)
+    }
+}
+
+impl FusedStream for ErrorStream {
+    fn is_terminated(&self) -> bool {
+        self.inner.is_terminated()
+    }
+}
+
+#[derive(Debug)]
 pub struct ValueStream {
-    rx: mpsc::Receiver<Bytes>,
+    inner: TerminatedChannelStream<Bytes>,
 
     end_of_response: Arc<AtomicBool>,
 }
 
 impl ValueStream {
-    pub fn is_end_of_response(&self) -> bool {
-        self.end_of_response.load(Ordering::SeqCst)
+    #[must_use]
+    pub fn is_end_of_response(&self) -> Option<bool> {
+        if !self.inner.is_terminated() {
+            return None;
+        }
+
+        Some(self.end_of_response.load(Ordering::SeqCst))
+    }
+}
+
+impl Stream for ValueStream {
+    type Item = Bytes;
+
+    fn poll_next(
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Option<Self::Item>> {
+        self.inner.poll_next_unpin(cx)
+    }
+}
+
+impl FusedStream for ValueStream {
+    fn is_terminated(&self) -> bool {
+        self.inner.is_terminated()
     }
 }
 
 struct ResponseState {
-    tx: mpsc::Sender<Bytes>,
+    tx: tachyonix::Sender<Bytes>,
     end_of_response: Arc<AtomicBool>,
 }
 
-pub(crate) struct TransactionReceiveTask {
+pub(crate) struct TransactionReceiveTask<P> {
     config: SessionConfig,
 
     rx: tachyonix::Receiver<Response>,
     tx: mpsc::Sender<Result<ValueStream, ErrorStream>>,
 
-    permit: Arc<TransactionPermit>,
+    permit: Arc<P>,
 }
 
-impl TransactionReceiveTask {
+impl<P> TransactionReceiveTask<P>
+where
+    P: Permit,
+{
     async fn handle_begin(
         &self,
         state: &mut Option<ResponseState>,
         ResponseBegin { kind, payload }: ResponseBegin,
     ) -> ControlFlow<(), Bytes> {
-        let (tx, rx) = mpsc::channel(
+        let (tx, rx) = tachyonix::channel(
             self.config
                 .per_transaction_response_byte_stream_buffer_size
                 .get(),
@@ -86,12 +150,12 @@ impl TransactionReceiveTask {
 
         let stream = match kind {
             ResponseKind::Ok => Ok(ValueStream {
-                rx,
+                inner: TerminatedChannelStream::new(rx),
                 end_of_response,
             }),
             ResponseKind::Err(code) => Err(ErrorStream {
                 code,
-                rx,
+                inner: TerminatedChannelStream::new(rx),
                 end_of_response,
             }),
         };
@@ -124,6 +188,20 @@ impl TransactionReceiveTask {
                 // failed in some fashion or the request has been dropped.
                 break;
             };
+
+            if response.header.request_id != self.permit.id() {
+                let task_id = self.permit.id();
+                let response_id = response.header.request_id;
+
+                // this response is not for us, ignore it
+                tracing::warn!(
+                    %response_id,
+                    %task_id,
+                    "response with differing request id has been routed to transaction task, \
+                     ignoring..."
+                );
+                continue;
+            }
 
             let end_of_response = response.header.flags.contains(ResponseFlag::EndOfResponse);
 
@@ -168,7 +246,7 @@ impl TransactionReceiveTask {
     }
 }
 
-pub(crate) struct TransactionSendTask<S> {
+pub(crate) struct TransactionSendTask<S, P> {
     config: SessionConfig,
 
     service: ServiceDescriptor,
@@ -177,12 +255,13 @@ pub(crate) struct TransactionSendTask<S> {
     rx: S,
     tx: mpsc::Sender<Request>,
 
-    permit: Arc<TransactionPermit>,
+    permit: Arc<P>,
 }
 
-impl<S> TransactionSendTask<S>
+impl<S, P> TransactionSendTask<S, P>
 where
     S: Stream<Item = Bytes> + Send,
+    P: Permit,
 {
     #[expect(
         clippy::integer_division_remainder_used,
@@ -232,9 +311,9 @@ where
     }
 }
 
-pub(crate) struct TransactionTask<S> {
+pub(crate) struct TransactionTask<S, P> {
     pub(crate) config: SessionConfig,
-    pub(crate) permit: Arc<TransactionPermit>,
+    pub(crate) permit: Arc<P>,
 
     pub(crate) service: ServiceDescriptor,
     pub(crate) procedure: ProcedureDescriptor,
@@ -246,9 +325,10 @@ pub(crate) struct TransactionTask<S> {
     pub(crate) request_tx: mpsc::Sender<Request>,
 }
 
-impl<S> TransactionTask<S>
+impl<S, P> TransactionTask<S, P>
 where
     S: Stream<Item = Bytes> + Send + 'static,
+    P: Permit,
 {
     pub(crate) fn spawn(self, tasks: &TaskTracker) {
         tasks.spawn(

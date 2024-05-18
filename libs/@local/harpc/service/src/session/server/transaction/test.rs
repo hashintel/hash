@@ -142,6 +142,8 @@ fn assert_frame(response: &Response, expected: ExpectedFrame<impl AsRef<[u8]> + 
     assert_eq!(payload.as_ref(), expected.payload.as_ref());
 }
 
+// in theory not needed, as a very similar test is already existing in the PaketWriter test suite,
+// but it was here before that one was created, so might as well keep em.
 #[tokio::test]
 async fn send_delay_perfect_buffer() {
     let (bytes_tx, mut response_rx, handle) = setup_send(false);

@@ -18,7 +18,7 @@ use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
 use super::{
     config::SessionConfig,
-    transaction::{ErrorStream, TransactionTask, ValueStream},
+    transaction::{ErrorStream, Permit, TransactionTask, ValueStream},
 };
 use crate::{
     session::gc::{Cancellable, ConnectionGarbageCollectorTask},
@@ -128,14 +128,14 @@ impl TransactionPermit {
             cancel,
         })
     }
+}
 
-    #[must_use]
-    pub(crate) const fn id(&self) -> RequestId {
+impl Permit for TransactionPermit {
+    fn id(&self) -> RequestId {
         self.id
     }
 
-    #[must_use]
-    pub(crate) fn cancellation_token(&self) -> CancellationToken {
+    fn cancellation_token(&self) -> CancellationToken {
         self.cancel.clone()
     }
 }
@@ -217,7 +217,7 @@ where
             let response = match response {
                 Ok(response) => response,
                 Err(error) => {
-                    tracing::error!(?error, "malformed response received, dropping...");
+                    tracing::error!(?error, "malformed response received, ignoring...");
                     continue;
                 }
             };
@@ -225,7 +225,7 @@ where
             let id = response.header.request_id;
 
             let Some(entry) = self.tx.get_async(&id).await else {
-                tracing::debug!(?id, "rogue response received, dropping...");
+                tracing::debug!(?id, "response for unknown transaction, ignoring...");
                 continue;
             };
 
@@ -287,8 +287,6 @@ impl Connection {
             }
             .run(cancel),
         );
-
-        // TODO: gc receivers
 
         this
     }
