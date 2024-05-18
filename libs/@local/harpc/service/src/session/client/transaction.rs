@@ -8,7 +8,7 @@ use bytes::Bytes;
 use futures::{prelude::future::FutureExt, Stream};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
-    request::{id::RequestId, procedure::ProcedureDescriptor, service::ServiceDescriptor, Request},
+    request::{procedure::ProcedureDescriptor, service::ServiceDescriptor, Request},
     response::{
         begin::ResponseBegin,
         body::ResponseBody,
@@ -20,7 +20,7 @@ use harpc_wire_protocol::{
 };
 use tokio::{pin, select, sync::mpsc};
 use tokio_stream::StreamExt;
-use tokio_util::{sync::CancellationToken, task::TaskTracker};
+use tokio_util::task::TaskTracker;
 
 use super::{config::SessionConfig, connection::TransactionPermit};
 use crate::session::writer::{RequestContext, RequestWriter, WriterOptions};

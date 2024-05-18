@@ -1213,7 +1213,7 @@ async fn transaction_collection_acquire_override() {
         .await
         .expect("should be able to acquire permit");
 
-    let cancel = permit.cancellation_token();
+    let cancel = permit.cancel.clone();
 
     let (_permit, ..) = collection
         .acquire(mock_request_id(0x01))
@@ -1313,7 +1313,7 @@ async fn transaction_permit_reclaim_override() {
         .await
         .expect("should be able to acquire permit");
 
-    assert!(permit_a.cancellation_token().is_cancelled());
+    assert!(permit_a.cancel.is_cancelled());
     assert_eq!(collection.storage.len(), 1);
 
     drop(permit_a);

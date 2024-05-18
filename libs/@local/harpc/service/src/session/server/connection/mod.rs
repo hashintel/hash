@@ -26,7 +26,7 @@ use tokio_util::{either::Either, sync::CancellationToken, task::TaskTracker};
 
 use super::{
     session_id::SessionId,
-    transaction::{Transaction, TransactionParts},
+    transaction::{Permit, Transaction, TransactionParts},
     SessionConfig, SessionEvent,
 };
 use crate::{
@@ -368,13 +368,15 @@ impl TransactionPermit {
             cancel,
         }))
     }
+}
 
-    pub(crate) fn id(&self) -> RequestId {
-        self.id
+impl Permit for TransactionPermit {
+    fn cancellation_token(&self) -> CancellationToken {
+        self.cancel.clone()
     }
 
-    pub(crate) fn cancellation_token(&self) -> CancellationToken {
-        self.cancel.clone()
+    fn id(&self) -> RequestId {
+        self.id
     }
 }
 
@@ -516,7 +518,6 @@ where
                 };
 
                 let (transaction, task) = Transaction::from_request(
-                    request.header,
                     begin,
                     TransactionParts {
                         peer: self.peer,

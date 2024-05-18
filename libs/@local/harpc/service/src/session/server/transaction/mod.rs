@@ -12,8 +12,8 @@ use futures::{stream::FusedStream, Sink, Stream, StreamExt};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
     request::{
-        begin::RequestBegin, flags::RequestFlag, header::RequestHeader, id::RequestId,
-        procedure::ProcedureDescriptor, service::ServiceDescriptor, Request,
+        begin::RequestBegin, flags::RequestFlag, id::RequestId, procedure::ProcedureDescriptor,
+        service::ServiceDescriptor, Request,
     },
     response::{kind::ResponseKind, Response},
 };
@@ -30,19 +30,9 @@ use crate::session::{
     writer::{ResponseContext, ResponseWriter, WriterOptions},
 };
 
-trait Permit: Send + Sync + 'static {
+pub(crate) trait Permit: Send + Sync + 'static {
     fn cancellation_token(&self) -> CancellationToken;
     fn id(&self) -> RequestId;
-}
-
-impl Permit for TransactionPermit {
-    fn cancellation_token(&self) -> CancellationToken {
-        self.cancellation_token()
-    }
-
-    fn id(&self) -> RequestId {
-        self.id()
-    }
 }
 
 struct TransactionSendDelegateTask<P> {
@@ -141,7 +131,6 @@ where
 }
 
 pub(crate) struct TransactionTask<P> {
-    id: RequestId,
     config: SessionConfig,
 
     response_rx: mpsc::Receiver<Result<Bytes, TransactionError>>,
@@ -218,18 +207,17 @@ impl TransactionContext {
     }
 }
 
-pub struct Transaction<P = TransactionPermit> {
+pub struct Transaction {
     context: TransactionContext,
 
     request: tachyonix::Receiver<Request>,
     response: mpsc::Sender<Result<Bytes, TransactionError>>,
 
-    permit: Arc<P>,
+    permit: Arc<TransactionPermit>,
 }
 
-impl<P> Transaction<P> {
+impl Transaction {
     pub(crate) fn from_request(
-        header: RequestHeader,
         body: &RequestBegin,
         TransactionParts {
             peer,
@@ -238,8 +226,8 @@ impl<P> Transaction<P> {
             rx,
             tx,
             permit,
-        }: TransactionParts<P>,
-    ) -> (Self, TransactionTask<P>) {
+        }: TransactionParts<TransactionPermit>,
+    ) -> (Self, TransactionTask<TransactionPermit>) {
         let (response_tx, response_rx) = mpsc::channel(
             config
                 .per_transaction_response_byte_stream_buffer_size
@@ -248,7 +236,7 @@ impl<P> Transaction<P> {
 
         let transaction = Self {
             context: TransactionContext {
-                id: header.request_id,
+                id: permit.id(),
                 peer,
                 session,
                 service: body.service,
@@ -262,7 +250,6 @@ impl<P> Transaction<P> {
         };
 
         let task = TransactionTask {
-            id: header.request_id,
             config,
 
             response_rx,
@@ -278,9 +265,7 @@ impl<P> Transaction<P> {
     pub const fn context(&self) -> TransactionContext {
         self.context
     }
-}
 
-impl Transaction {
     pub fn into_parts(self) -> (TransactionContext, TransactionSink, TransactionStream) {
         let context = self.context;
 
