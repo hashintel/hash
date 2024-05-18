@@ -59,7 +59,7 @@ struct ResponseState {
 pub(crate) struct TransactionReceiveTask {
     config: SessionConfig,
 
-    rx: mpsc::Receiver<Response>,
+    rx: tachyonix::Receiver<Response>,
     tx: mpsc::Sender<Result<ValueStream, ErrorStream>>,
 
     permit: Arc<TransactionPermit>,
@@ -119,7 +119,9 @@ impl TransactionReceiveTask {
                 () = cancel.cancelled() => break
             };
 
-            let Some(response) = response else {
+            let Ok(response) = response else {
+                // sender has been prematurely dropped, this might be because the transaction has
+                // failed in some fashion or the request has been dropped.
                 break;
             };
 
@@ -237,7 +239,7 @@ pub(crate) struct TransactionTask<S> {
     pub(crate) service: ServiceDescriptor,
     pub(crate) procedure: ProcedureDescriptor,
 
-    pub(crate) response_rx: mpsc::Receiver<Response>,
+    pub(crate) response_rx: tachyonix::Receiver<Response>,
     pub(crate) response_tx: mpsc::Sender<Result<ValueStream, ErrorStream>>,
 
     pub(crate) request_rx: S,
@@ -269,7 +271,7 @@ where
                 rx: self.request_rx,
                 tx: self.request_tx,
 
-                permit: Arc::clone(&self.permit),
+                permit: self.permit,
             }
             .run(),
         );

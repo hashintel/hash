@@ -6,7 +6,6 @@ use core::{
     fmt::Debug,
     future,
     sync::atomic::{AtomicU64, Ordering},
-    time::Duration,
 };
 use std::io;
 
@@ -36,6 +35,7 @@ use crate::{
             ConnectionShutdownError, ConnectionTransactionLimitReachedError,
             InstanceTransactionLimitReachedError, TransactionError, TransactionLaggingError,
         },
+        gc::{Cancellable, ConnectionGarbageCollectorTask},
         writer::{ResponseContext, ResponseWriter, WriterOptions},
     },
 };
@@ -64,47 +64,6 @@ where
         select! {
             result = forward => result,
             () = cancel.cancelled() => Ok(()),
-        }
-    }
-}
-
-struct ConnectionGarbageCollectorTask {
-    every: Duration,
-    transactions: TransactionStorage,
-}
-
-impl ConnectionGarbageCollectorTask {
-    #[expect(
-        clippy::integer_division_remainder_used,
-        reason = "required for select! macro"
-    )]
-    async fn run(self, cancel: CancellationToken) {
-        let mut interval = tokio::time::interval(self.every);
-
-        loop {
-            select! {
-                _ = interval.tick() => {}
-                () = cancel.cancelled() => break,
-            }
-
-            tracing::debug!("running garbage collector");
-
-            let mut removed = 0_usize;
-            self.transactions
-                .retain_async(|_, TransactionState { cancel, .. }| {
-                    if cancel.is_cancelled() {
-                        removed += 1;
-                        false
-                    } else {
-                        true
-                    }
-                })
-                .await;
-
-            if removed > 0 {
-                // this should never really happen, but it's good to know if it does
-                tracing::info!(removed, "garbage collector removed stale transactions");
-            }
         }
     }
 }
@@ -142,6 +101,12 @@ struct TransactionState {
 
     sender: tachyonix::Sender<Request>,
     cancel: CancellationToken,
+}
+
+impl Cancellable for TransactionState {
+    fn is_cancelled(&self) -> bool {
+        self.cancel.is_cancelled()
+    }
 }
 
 type TransactionStorage = Arc<HashIndex<RequestId, TransactionState>>;
@@ -581,7 +546,7 @@ where
                 every: self
                     .config
                     .per_connection_transaction_garbage_collect_interval,
-                transactions: Arc::clone(&self.transactions.storage),
+                index: Arc::clone(&self.transactions.storage),
             }
             .run(cancel_gc.clone()),
         );

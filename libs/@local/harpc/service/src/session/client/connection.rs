@@ -18,14 +18,23 @@ use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
 use super::{
     config::SessionConfig,
-    transaction::{ErrorStream, TransactionReceiveTask, TransactionSendTask, ValueStream},
+    transaction::{ErrorStream, TransactionTask, ValueStream},
 };
-use crate::{stream::ReceiverStreamCancel, transport::connection::OutgoingConnection};
+use crate::{
+    session::gc::{Cancellable, ConnectionGarbageCollectorTask},
+    transport::connection::OutgoingConnection,
+};
 
 #[derive(Debug, Clone)]
 struct TransactionState {
     sender: tachyonix::Sender<Response>,
     cancel: CancellationToken,
+}
+
+impl Cancellable for TransactionState {
+    fn is_cancelled(&self) -> bool {
+        self.cancel.is_cancelled()
+    }
 }
 
 type TransactionStorage = Arc<HashIndex<RequestId, TransactionState>>;
@@ -120,10 +129,12 @@ impl TransactionPermit {
         })
     }
 
-    pub(crate) fn id(&self) -> RequestId {
+    #[must_use]
+    pub(crate) const fn id(&self) -> RequestId {
         self.id
     }
 
+    #[must_use]
     pub(crate) fn cancellation_token(&self) -> CancellationToken {
         self.cancel.clone()
     }
@@ -177,7 +188,7 @@ where
 struct ConnectionResponseDelegateTask<S> {
     stream: S,
 
-    tx: Arc<HashIndex<RequestId, mpsc::Sender<Response>>>,
+    tx: TransactionStorage,
 }
 
 impl<S> ConnectionResponseDelegateTask<S>
@@ -213,14 +224,19 @@ where
 
             let id = response.header.request_id;
 
-            let Some(sender) = self.tx.get_async(&id).await else {
+            let Some(entry) = self.tx.get_async(&id).await else {
                 tracing::debug!(?id, "rogue response received, dropping...");
                 continue;
             };
 
-            if let Err(error) = sender.send(response).await {
-                tracing::debug!(?id, ?error, "receiver dropped, dropping...");
-                self.tx.remove_async(&id).await;
+            if let Err(error) = entry.sender.send(response).await {
+                tracing::debug!(
+                    ?id,
+                    ?error,
+                    "unable to forward response to transaction, ignoring..."
+                );
+
+                // the item will be removed implicitely if the transaction is dropped
             }
         }
     }
@@ -228,11 +244,9 @@ where
 
 pub struct Connection {
     config: SessionConfig,
-    id: RequestIdProducer,
 
     tx: mpsc::Sender<Request>,
     tasks: TaskTracker,
-    cancel: CancellationToken,
 
     transactions: TransactionCollection,
 }
@@ -249,13 +263,11 @@ impl Connection {
 
         let this = Self {
             config,
-            id: RequestIdProducer::new(),
 
             tx,
             tasks: tasks.clone(),
-            cancel: cancel.clone(),
 
-            transactions: Arc::new(HashIndex::new()),
+            transactions: TransactionCollection::new(config, cancel.clone()),
         };
 
         tasks.spawn(ConnectionRequestDelegateTask { sink, rx }.run(cancel.clone()));
@@ -263,7 +275,15 @@ impl Connection {
         tasks.spawn(
             ConnectionResponseDelegateTask {
                 stream,
-                tx: Arc::clone(&this.receivers),
+                tx: Arc::clone(&this.transactions.storage),
+            }
+            .run(cancel.clone()),
+        );
+
+        tasks.spawn(
+            ConnectionGarbageCollectorTask {
+                every: config.per_connection_transaction_garbage_collect_interval,
+                index: Arc::clone(&this.transactions.storage),
             }
             .run(cancel),
         );
@@ -279,50 +299,32 @@ impl Connection {
         procedure: ProcedureDescriptor,
         payload: impl Stream<Item = Bytes> + Send + 'static,
     ) -> impl Stream<Item = Result<ValueStream, ErrorStream>> + Send + Sync + 'static {
-        let id = self.id.produce();
-
-        let (tx, rx) = mpsc::channel(self.config.per_transaction_response_buffer_size.get());
-
-        let entry = self.receivers.entry_async(id).await;
-
-        // TODO: should error out if we have that already!
-        match entry {
-            Entry::Occupied(entry) => {
-                tracing::warn!(?id, "occupied entry used"); // this should never happen
-                entry.update(tx);
-            }
-            Entry::Vacant(entry) => {
-                entry.insert_entry(tx);
-            }
-        }
-
-        let cancel = self.cancel.child_token();
+        let (permit, response_rx) = self.transactions.acquire().await;
 
         let (stream_tx, stream_rx) = mpsc::channel(1);
 
-        self.tasks.spawn(
-            TransactionSendTask {
-                config: self.config,
-                id,
-                service,
-                procedure,
-                rx: payload,
-                tx: self.tx.clone(),
-            }
-            .run(cancel.clone()),
-        );
+        let task = TransactionTask {
+            config: self.config,
+            permit,
+            service,
+            procedure,
+            response_rx,
+            response_tx: stream_tx,
+            request_rx: payload,
+            request_tx: self.tx.clone(),
+        };
 
-        self.tasks.spawn(
-            TransactionReceiveTask {
-                config: self.config,
-                rx,
-                tx: stream_tx,
-            }
-            .run(cancel.clone()),
-        );
+        task.spawn(&self.tasks);
 
-        // TODO: do we want to drop them?
-        // TODO: no use permit here (like the server)
-        ReceiverStreamCancel::new(stream_rx, cancel.drop_guard())
+        // we don't need to cancel the transaction here, it will be done automatically, if the
+        // stream is dropped, responses will no longer be received, which shuts down the task
+        // associated with it.
+        // The only task that will survive is the one that sends the request, this one will be
+        // terminated once the payload stream is exhausted.
+        // This means we can allow scenarios in which the response does not matter and we only want
+        // to send a request.
+        // TODOs: consider actually stoping the task if this is dropped, as we don't have full
+        // control of the payload stream?
+        ReceiverStream::new(stream_rx)
     }
 }
