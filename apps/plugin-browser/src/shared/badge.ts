@@ -2,9 +2,11 @@ import browser from "webextension-polyfill";
 
 import { getFromLocalStorage } from "./storage";
 
+const isTestBedBuild = !!ITERO_TEST_BED;
+
 const generateIconPath = (
-  status: "default" | "disabled" | "enabled" | "warning",
-) => `/icon-24-${status}.png`;
+  status: "default" | "disabled" | "enabled" | "warning" | "error" | "success",
+) => `/${status}-48${isTestBedBuild ? "-dev" : ""}.png`;
 
 export const clearError = async () => {
   const inferenceConfig = await getFromLocalStorage("automaticInferenceConfig");
