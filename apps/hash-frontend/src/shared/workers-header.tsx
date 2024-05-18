@@ -1,13 +1,12 @@
+import { faAngleRight } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@hashintel/design-system";
 import type { SvgIconProps, SxProps, Theme } from "@mui/material";
-import { Divider } from "@mui/material";
 import { Box, Container, Stack, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 
 import type { Breadcrumb } from "../pages/shared/breadcrumbs";
 import { TopContextBar } from "../pages/shared/top-context-bar";
 import { BoltLightIcon } from "./icons/bolt-light-icon";
-import { FontAwesomeIcon } from "@hashintel/design-system";
-import { faAngleRight } from "@fortawesome/free-solid-svg-icons";
 
 type WorkersHeaderProps = {
   crumbs: Breadcrumb[];

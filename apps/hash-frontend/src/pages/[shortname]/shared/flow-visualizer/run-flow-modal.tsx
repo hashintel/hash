@@ -16,11 +16,11 @@ import { Button } from "../../../../shared/ui/button";
 import { Modal } from "../../../../shared/ui/modal";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { GoogleAuthProvider } from "../../../shared/integrations/google/google-auth-context";
-import { ManualTriggerInput } from "./run-flow-modal/manual-trigger-input";
 import { WebSelector } from "../../../shared/web-selector";
+import { ManualTriggerInput } from "./run-flow-modal/manual-trigger-input";
+import { inputHeight } from "./run-flow-modal/shared/dimensions";
 import type { FormState, LocalPayload } from "./run-flow-modal/types";
 import { isSupportedPayloadKind } from "./run-flow-modal/types";
-import { inputHeight } from "./run-flow-modal/shared/dimensions";
 
 const InputWrapper = ({
   children,
