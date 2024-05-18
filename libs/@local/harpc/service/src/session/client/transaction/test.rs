@@ -40,6 +40,38 @@ impl Permit for StaticTransactionPermit {
     }
 }
 
+#[expect(clippy::type_complexity, reason = "test code")]
+fn setup_recv_mapped<T>(
+    config: SessionConfig,
+    with_permit: impl FnOnce(&StaticTransactionPermit) -> T,
+) -> (
+    tachyonix::Sender<Response>,
+    mpsc::Receiver<Result<ValueStream, ErrorStream>>,
+    T,
+    task::JoinHandle<()>,
+) {
+    let (response_tx, response_rx) = tachyonix::channel(8);
+    let (stream_tx, stream_rx) = mpsc::channel(8);
+
+    let permit = StaticTransactionPermit {
+        id: mock_request_id(0x00),
+        cancel: CancellationToken::new(),
+    };
+
+    let permit_value = with_permit(&permit);
+
+    let task = TransactionReceiveTask {
+        config,
+        rx: response_rx,
+        tx: stream_tx,
+        permit: Arc::new(permit),
+    };
+
+    let handle = tokio::spawn(task.run());
+
+    (response_tx, stream_rx, permit_value, handle)
+}
+
 fn setup_recv(
     config: SessionConfig,
 ) -> (
@@ -47,22 +79,9 @@ fn setup_recv(
     mpsc::Receiver<Result<ValueStream, ErrorStream>>,
     task::JoinHandle<()>,
 ) {
-    let (response_tx, response_rx) = tachyonix::channel(8);
-    let (stream_tx, stream_rx) = mpsc::channel(8);
+    let (tx, rx, (), handler) = setup_recv_mapped(config, |_| ());
 
-    let task = TransactionReceiveTask {
-        config,
-        rx: response_rx,
-        tx: stream_tx,
-        permit: Arc::new(StaticTransactionPermit {
-            id: mock_request_id(0x00),
-            cancel: CancellationToken::new(),
-        }),
-    };
-
-    let handle = tokio::spawn(task.run());
-
-    (response_tx, stream_rx, handle)
+    (tx, rx, handler)
 }
 
 fn make_response_header(flags: impl Into<ResponseFlags>) -> ResponseHeader {
@@ -197,7 +216,7 @@ async fn receive_single_response_error() {
 async fn receive_response_wrong_request_id() {
     // this has the RequestId 0x01, but we send something with RequestId 0x02, this should never
     // happen, but resilience is key
-    let (tx, mut rx, handle) = setup_recv(SessionConfig::default());
+    let (tx, mut rx, _) = setup_recv(SessionConfig::default());
 
     let mut incorrect = make_response_begin(
         ResponseFlag::EndOfResponse,
@@ -278,36 +297,312 @@ async fn receive_multiple_responses() {
     assert_eq!(stream.is_end_of_response(), Some(true));
 
     assert_eq!(buffer.as_ref(), b"fruits:applepearorangegrapefruitbanana");
+
+    // after that the stream should have terminated
+    assert!(rx.recv().await.is_none());
+
+    tokio::time::timeout(Duration::from_secs(1), handle)
+        .await
+        .expect("should finish within timeout")
+        .expect("should not panic");
 }
 
 #[tokio::test]
-#[ignore]
-async fn receive_multiple_streams() {}
+async fn receive_multiple_streams() {
+    let (tx, mut rx, handle) = setup_recv(SessionConfig::default());
+
+    let response = make_response_begin(ResponseFlags::EMPTY, ResponseKind::Ok, b"fruits:" as &[_]);
+    tx.send(response).await.expect("able to send response");
+
+    let mut stream = rx
+        .recv()
+        .await
+        .expect("able to receive stream")
+        .expect("should be ok stream");
+
+    assert_eq!(
+        stream
+            .next()
+            .await
+            .expect("should be able to get response")
+            .as_ref(),
+        b"fruits:"
+    );
+
+    let response = make_response_begin(
+        ResponseFlags::EMPTY,
+        ResponseKind::Ok,
+        b"vegetables:" as &[_],
+    );
+    tx.send(response).await.expect("able to send response");
+
+    // we started a new one, so that old one is invalidated
+    assert!(stream.next().await.is_none());
+    // ... it is also not end of response
+    assert_eq!(stream.is_end_of_response(), Some(false));
+
+    // but we have a new stream
+    let mut stream = rx
+        .recv()
+        .await
+        .expect("able to receive stream")
+        .expect("should be ok stream");
+
+    assert_eq!(
+        stream
+            .next()
+            .await
+            .expect("should be able to get response")
+            .as_ref(),
+        b"vegetables:"
+    );
+
+    let error = ErrorCode::new(NonZero::new(0x01).expect("infallible"));
+    let response = make_response_begin(
+        ResponseFlags::EMPTY,
+        ResponseKind::Err(error),
+        b"error" as &[_],
+    );
+    tx.send(response).await.expect("able to send response");
+
+    // we started a new one, so that old one is invalidated
+    assert!(stream.next().await.is_none());
+    // ... it is also not end of response
+    assert_eq!(stream.is_end_of_response(), Some(false));
+
+    // but we have a new stream
+    let mut stream = rx
+        .recv()
+        .await
+        .expect("able to receive stream")
+        .expect_err("should be error stream");
+
+    assert_eq!(stream.code(), error);
+
+    assert_eq!(
+        stream
+            .next()
+            .await
+            .expect("should be able to get response")
+            .as_ref(),
+        b"error"
+    );
+
+    // send an end of response
+    let response = make_response_frame(ResponseFlag::EndOfResponse, b"end" as &[_]);
+    tx.send(response).await.expect("able to send response");
+
+    assert_eq!(
+        stream
+            .next()
+            .await
+            .expect("should be able to get response")
+            .as_ref(),
+        b"end"
+    );
+    assert!(stream.next().await.is_none());
+    assert_eq!(stream.is_end_of_response(), Some(true));
+
+    // and now we should be done
+    assert!(rx.is_closed());
+
+    tokio::time::timeout(Duration::from_secs(1), handle)
+        .await
+        .expect("should finish within timeout")
+        .expect("should not panic");
+}
 
 #[tokio::test]
-#[ignore]
-async fn receive_terminate_after_end_of_response() {}
+async fn receive_terminate_after_end_of_response() {
+    let (tx, mut rx, handle) = setup_recv(SessionConfig::default());
+
+    let response = make_response_begin(ResponseFlags::EMPTY, ResponseKind::Ok, b"fruits:" as &[_]);
+    tx.send(response).await.expect("able to send response");
+
+    let response = make_response_frame(ResponseFlag::EndOfResponse, b"apple" as &[_]);
+    tx.send(response).await.expect("able to send response");
+
+    let _stream = rx
+        .recv()
+        .await
+        .expect("able to receive stream")
+        .expect("should be ok stream");
+
+    // after that the stream should have terminated
+    assert!(rx.recv().await.is_none());
+
+    tokio::time::timeout(Duration::from_secs(1), handle)
+        .await
+        .expect("should finish within timeout")
+        .expect("should not panic");
+}
 
 #[tokio::test]
-#[ignore]
-async fn receive_receiver_closed() {}
+async fn receive_receiver_closed() {
+    let (tx, rx, handle) = setup_recv(SessionConfig::default());
+
+    drop(rx);
+
+    // sending an item will work, but will be "lost"
+    let response = make_response_begin(ResponseFlags::EMPTY, ResponseKind::Ok, b"fruits:" as &[_]);
+    tx.send(response).await.expect("able to send response");
+
+    // the task should automatically shutdown
+    tokio::time::timeout(Duration::from_secs(1), handle)
+        .await
+        .expect("should finish within timeout")
+        .expect("should not panic");
+
+    // and the sender should be closed
+    assert!(tx.is_closed());
+}
 
 #[tokio::test]
-#[ignore]
-async fn receive_sender_closed() {}
+async fn receive_receiver_closed_can_still_receive_but_not_start_new() {
+    let (tx, mut rx, handle) = setup_recv(SessionConfig::default());
+
+    let response = make_response_begin(ResponseFlags::EMPTY, ResponseKind::Ok, b"fruits:" as &[_]);
+    tx.send(response).await.expect("able to send response");
+
+    // if we have a stream it will wait until we're done
+    let mut stream = rx
+        .recv()
+        .await
+        .expect("able to receive stream")
+        .expect("should be ok stream");
+
+    drop(rx);
+
+    // we should still be able to send and receive responses
+    let response = make_response_frame(ResponseFlags::EMPTY, b"apple" as &[_]);
+    tx.send(response).await.expect("able to send response");
+
+    // we should be able to receive the responses
+    assert_eq!(
+        stream
+            .next()
+            .await
+            .expect("should be able to get response")
+            .as_ref(),
+        b"fruits:"
+    );
+    assert_eq!(
+        stream
+            .next()
+            .await
+            .expect("should be able to get response")
+            .as_ref(),
+        b"apple"
+    );
+
+    // but if we just start a new stream? we shutdown and it won't be delivered
+    let response = make_response_begin(
+        ResponseFlags::EMPTY,
+        ResponseKind::Ok,
+        b"vegetables:" as &[_],
+    );
+    tx.send(response).await.expect("able to send response");
+
+    // the task should automatically shutdown
+    tokio::time::timeout(Duration::from_secs(1), handle)
+        .await
+        .expect("should finish within timeout")
+        .expect("should not panic");
+
+    // and the sender should be closed
+    assert!(tx.is_closed());
+}
 
 #[tokio::test]
-#[ignore]
-async fn receive_out_of_order_frame() {}
+async fn receive_sender_closed() {
+    let (tx, rx, handle) = setup_recv(SessionConfig::default());
+
+    drop(tx);
+
+    // the task should automatically shutdown
+    tokio::time::timeout(Duration::from_secs(1), handle)
+        .await
+        .expect("should finish within timeout")
+        .expect("should not panic");
+
+    // and the receiver should be closed
+    assert!(rx.is_closed());
+}
+
+#[tokio::test]
+async fn receive_out_of_order_frame() {
+    // we have a frame that has no beginning
+    let (tx, mut rx, _handle) = setup_recv(SessionConfig::default());
+
+    let response = make_response_frame(ResponseFlags::EMPTY, b"apple" as &[_]);
+    tx.send(response).await.expect("able to send response");
+
+    // should be completely ignored
+    tokio::time::timeout(Duration::from_millis(100), rx.recv())
+        .await
+        .expect_err("should not receive a value");
+}
 
 // TODO: inhibit that one can buffer the stream, but taking a mutable reference in the stream item?!
 #[tokio::test]
-#[ignore]
-async fn receive_next_dropped() {}
+async fn receive_next_dropped() {
+    let (tx, mut rx, handle) = setup_recv(SessionConfig::default());
+
+    let response = make_response_begin(ResponseFlags::EMPTY, ResponseKind::Ok, b"fruits:" as &[_]);
+    tx.send(response).await.expect("able to send response");
+
+    let mut stream = rx
+        .recv()
+        .await
+        .expect("able to receive stream")
+        .expect("should be ok stream");
+
+    assert_eq!(
+        stream
+            .next()
+            .await
+            .expect("should be able to get response")
+            .as_ref(),
+        b"fruits:"
+    );
+
+    drop(stream);
+
+    // we drop the stream, but continue to send frames until the end, we enter the out of order
+    // state meaning they just get ignored
+    for _ in 0..10 {
+        let response = make_response_frame(ResponseFlags::EMPTY, b"apple" as &[_]);
+        tx.send(response).await.expect("able to send response");
+    }
+
+    tokio::time::timeout(Duration::from_millis(100), rx.recv())
+        .await
+        .expect_err("should not receive a value");
+
+    // end of response should still work and shutdown the task
+    let response = make_response_frame(ResponseFlag::EndOfResponse, b"apple" as &[_]);
+    tx.send(response).await.expect("able to send response");
+
+    tokio::time::timeout(Duration::from_secs(1), handle)
+        .await
+        .expect("should finish within timeout")
+        .expect("should not panic");
+}
 
 #[tokio::test]
-#[ignore]
-async fn receive_cancel() {}
+async fn receive_cancel() {
+    let (_tx, _rx, cancel, handle) = setup_recv_mapped(SessionConfig::default(), |permit| {
+        permit.cancellation_token()
+    });
+
+    cancel.cancel();
+
+    // the task should automatically shutdown
+    tokio::time::timeout(Duration::from_secs(1), handle)
+        .await
+        .expect("should finish within timeout")
+        .expect("should not panic");
+}
 
 #[tokio::test]
 #[ignore]

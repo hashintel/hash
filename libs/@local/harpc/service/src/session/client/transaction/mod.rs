@@ -178,6 +178,7 @@ where
         let cancel = self.permit.cancellation_token();
 
         loop {
+            // We cannot early break if tx is closed, because we might still deliver some responses
             let response = select! {
                 response = self.rx.recv() => response,
                 () = cancel.cancelled() => break
@@ -231,7 +232,6 @@ where
                 }
             } else {
                 tracing::warn!("received frame without a begin");
-                continue;
             }
 
             if reset {

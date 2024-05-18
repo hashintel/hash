@@ -36,12 +36,12 @@ enum TerminatedChannelStreamState<T> {
 }
 
 #[derive(Debug)]
-pub struct TerminatedChannelStream<T> {
+pub(crate) struct TerminatedChannelStream<T> {
     state: TerminatedChannelStreamState<T>,
 }
 
 impl<T> TerminatedChannelStream<T> {
-    pub fn new(sender: tachyonix::Receiver<T>) -> Self {
+    pub(crate) fn new(sender: tachyonix::Receiver<T>) -> Self {
         Self {
             state: TerminatedChannelStreamState::Open { sender },
         }
