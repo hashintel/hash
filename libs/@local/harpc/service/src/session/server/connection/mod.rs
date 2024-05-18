@@ -186,12 +186,12 @@ impl TransactionCollection {
     > {
         let cancel = self.cancel.child_token();
 
-        let handle = TransactionPermit::new(self, id, cancel.clone())?;
+        let permit = TransactionPermit::new(self, id, cancel.clone())?;
 
         let (tx, rx) = tachyonix::channel(self.config.per_transaction_request_buffer_size.get());
 
         let state = TransactionState {
-            generation: handle.generation,
+            generation: permit.generation,
             sender: tx.clone(),
             cancel,
         };
@@ -210,7 +210,7 @@ impl TransactionCollection {
             }
         }
 
-        Ok((handle, tx, rx))
+        Ok((permit, tx, rx))
     }
 
     async fn release(&self, id: RequestId) {
@@ -369,6 +369,10 @@ impl TransactionPermit {
         }))
     }
 
+    pub(crate) fn id(&self) -> RequestId {
+        self.id
+    }
+
     pub(crate) fn cancellation_token(&self) -> CancellationToken {
         self.cancel.clone()
     }
@@ -401,7 +405,7 @@ pub(crate) struct ConnectionTask<E> {
     pub(crate) peer: PeerId,
     pub(crate) session: SessionId,
 
-    pub(crate) active: TransactionCollection,
+    pub(crate) transactions: TransactionCollection,
     pub(crate) output: mpsc::Sender<Transaction>,
     pub(crate) events: broadcast::Sender<SessionEvent>,
 
@@ -457,14 +461,15 @@ where
                     reason = "This simply returns a drop guard, that is carried through the \
                               transaction lifetime."
                 )]
-                let (permit, request_tx, request_rx) = match self.active.acquire(request_id).await {
-                    Ok((permit, tx, rx)) => (permit, tx, rx),
-                    Err(error) => {
-                        tracing::info!("transaction limit reached, dropping transaction");
+                let (permit, request_tx, request_rx) =
+                    match self.transactions.acquire(request_id).await {
+                        Ok((permit, tx, rx)) => (permit, tx, rx),
+                        Err(error) => {
+                            tracing::info!("transaction limit reached, dropping transaction");
 
-                        return self.respond_error(request_id, error, &tx).await;
-                    }
-                };
+                            return self.respond_error(request_id, error, &tx).await;
+                        }
+                    };
 
                 // this creates implicit backpressure, if the session cannot accept more
                 // transaction, we will wait a short amount (specified via the deadline), if we
@@ -502,7 +507,7 @@ where
                         // up with the incoming requests, it also helps us to prevent a DoS attack.
                         tracing::warn!("transaction delivery timed out, dropping transaction");
 
-                        self.active.release(request_id).await;
+                        self.transactions.release(request_id).await;
 
                         self.respond_error(request_id, InstanceTransactionLimitReachedError, &tx)
                             .await;
@@ -534,7 +539,7 @@ where
                 transaction_permit.send(transaction);
             }
             RequestBody::Frame(_) => {
-                if let Err(error) = self.active.send(request).await {
+                if let Err(error) = self.transactions.send(request).await {
                     self.respond_error(request_id, error, &tx).await;
                 }
             }
@@ -567,7 +572,7 @@ where
         pin!(stream);
 
         let finished = Semaphore::new(0);
-        let notify = Arc::clone(&self.active.notify);
+        let notify = Arc::clone(&self.transactions.notify);
 
         let cancel_gc = cancel.child_token();
         tasks.spawn(
@@ -575,7 +580,7 @@ where
                 every: self
                     .config
                     .per_connection_transaction_garbage_collect_interval,
-                transactions: Arc::clone(&self.active.storage),
+                transactions: Arc::clone(&self.transactions.storage),
             }
             .run(cancel_gc.clone()),
         );
@@ -609,7 +614,7 @@ where
                             // shutdown the senders, as they can't be used anymore, this indicates to the delegate tasks that they should stop
                             // we don't cancel them, because they might still respond to the requests,
                             // they'll cancel themselves once the handle has finished
-                            self.active.shutdown_senders();
+                            self.transactions.shutdown_senders();
 
                             // drop the sender (as we no longer can use it anyway)
                             // this will also stop the delegate task, once all transactions have finished
@@ -642,7 +647,7 @@ where
                     // we've been notified that an item has been removed and that the collection is now empty (at the time of notification)
 
                     // double check if `is_empty` (otherwise we might run into a race-condition)
-                    if self.output.is_closed() && self.active.is_empty() {
+                    if self.output.is_closed() && self.transactions.is_empty() {
                         // We can no longer accept any connections, if that is the case, we can stop the stream
                         // this is done by dropping the sender, and replacing it with another stream, which yields `None`
                         // This `None` is used in the next iteration of the loop, and will start the shutdown process.

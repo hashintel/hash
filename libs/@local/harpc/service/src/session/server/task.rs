@@ -107,7 +107,7 @@ where
                 peer: peer_id,
                 session: self.id.produce(),
                 config: self.config,
-                active: TransactionCollection::new(self.config, cancel.clone()),
+                transactions: TransactionCollection::new(self.config, cancel.clone()),
                 output: self.output.clone(),
                 events: self.events.clone(),
                 encoder: self.encoder.clone(),

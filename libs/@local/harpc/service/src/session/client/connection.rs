@@ -51,6 +51,37 @@ impl TransactionCollection {
         }
     }
 
+    pub(crate) async fn acquire(&self) -> (Arc<TransactionPermit>, tachyonix::Receiver<Response>) {
+        let cancel = self.cancel.child_token();
+        let permit = TransactionPermit::new(self, cancel.clone());
+
+        let (tx, rx) = tachyonix::channel(self.config.per_transaction_response_buffer_size.get());
+
+        let state = TransactionState { sender: tx, cancel };
+
+        match self.storage.entry_async(permit.id).await {
+            Entry::Vacant(entry) => {
+                entry.insert_entry(state);
+            }
+            Entry::Occupied(entry) => {
+                // This should never happen, as the permit is unique and should not be shared
+                // between multiple transactions.
+                // This can only happen in the case that we overflow the u32 RequestId and we have a
+                // connection that never terminated
+                // This is **highly** unlikely, in case it happens we cancel the old task and
+                // replace it with the new one.
+                tracing::warn!("Transaction ID collision detected, cancelling old transaction");
+
+                entry.sender.close();
+                entry.cancel.cancel();
+
+                entry.update(state);
+            }
+        }
+
+        (permit, rx)
+    }
+
     pub(crate) fn cancel_all(&self) {
         let guard = Guard::new();
         for (_, state) in self.storage.iter(&guard) {
@@ -72,7 +103,30 @@ impl Drop for TransactionCollection {
 
 pub(crate) struct TransactionPermit {
     id: RequestId,
+
     storage: TransactionStorage,
+
+    cancel: CancellationToken,
+}
+
+impl TransactionPermit {
+    fn new(collection: &TransactionCollection, cancel: CancellationToken) -> Arc<Self> {
+        let id = collection.producer.produce();
+
+        Arc::new(Self {
+            id,
+            storage: Arc::clone(&collection.storage),
+            cancel,
+        })
+    }
+
+    pub(crate) fn id(&self) -> RequestId {
+        self.id
+    }
+
+    pub(crate) fn cancellation_token(&self) -> CancellationToken {
+        self.cancel.clone()
+    }
 }
 
 impl Drop for TransactionPermit {
@@ -87,6 +141,10 @@ impl Drop for TransactionPermit {
     }
 }
 
+/// Delegate requests to the respective transaction
+///
+/// This is a 1-n task, which takes requests from the individual transactions and forwards them to
+/// the connection.
 struct ConnectionRequestDelegateTask<S> {
     sink: S,
     rx: mpsc::Receiver<Request>,
@@ -113,10 +171,12 @@ where
     }
 }
 
+/// Delgate responses to the respective transaction
+///
+/// Takes into account the [`RequestId`] to route the response to the correct transaction
 struct ConnectionResponseDelegateTask<S> {
     stream: S,
 
-    // TODO: what about permits and such?!
     tx: Arc<HashIndex<RequestId, mpsc::Sender<Response>>>,
 }
 
@@ -166,8 +226,6 @@ where
     }
 }
 
-// TODO: DropGuard on connection drop (via the collection)
-
 pub struct Connection {
     config: SessionConfig,
     id: RequestIdProducer,
@@ -176,7 +234,7 @@ pub struct Connection {
     tasks: TaskTracker,
     cancel: CancellationToken,
 
-    receivers: Arc<HashIndex<RequestId, mpsc::Sender<Response>>>,
+    transactions: TransactionCollection,
 }
 
 // TODO: BufferedResponse that will only return the last (valid) response
@@ -197,7 +255,7 @@ impl Connection {
             tasks: tasks.clone(),
             cancel: cancel.clone(),
 
-            receivers: Arc::new(HashIndex::new()),
+            transactions: Arc::new(HashIndex::new()),
         };
 
         tasks.spawn(ConnectionRequestDelegateTask { sink, rx }.run(cancel.clone()));

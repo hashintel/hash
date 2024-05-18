@@ -1,3 +1,4 @@
+use alloc::sync::Arc;
 use core::{num::NonZero, time::Duration};
 
 use bytes::Bytes;
@@ -12,6 +13,7 @@ use harpc_wire_protocol::{
         flags::{RequestFlag, RequestFlags},
         frame::RequestFrame,
         header::RequestHeader,
+        id::RequestId,
         procedure::ProcedureDescriptor,
         service::ServiceDescriptor,
         Request,
@@ -30,7 +32,7 @@ use tokio::{sync::mpsc, task::JoinHandle};
 use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 
-use super::TransactionStream;
+use super::{Permit, TransactionStream};
 use crate::session::{
     error::TransactionError,
     server::{
@@ -53,6 +55,21 @@ fn config_no_delay() -> SessionConfig {
     }
 }
 
+struct StaticTransactionPermit {
+    id: RequestId,
+    cancel: CancellationToken,
+}
+
+impl Permit for StaticTransactionPermit {
+    fn id(&self) -> RequestId {
+        self.id
+    }
+
+    fn cancellation_token(&self) -> CancellationToken {
+        self.cancel.clone()
+    }
+}
+
 fn setup_send(
     no_delay: bool,
 ) -> (
@@ -65,7 +82,6 @@ fn setup_send(
     let (response_tx, response_rx) = mpsc::channel(8);
 
     let task = TransactionSendDelegateTask {
-        id: mock_request_id(0),
         config: if no_delay {
             config_no_delay()
         } else {
@@ -73,9 +89,13 @@ fn setup_send(
         },
         rx: bytes_rx,
         tx: response_tx,
+        permit: Arc::new(StaticTransactionPermit {
+            id: mock_request_id(0),
+            cancel: CancellationToken::new(),
+        }),
     };
 
-    let handle = tokio::spawn(task.run(CancellationToken::new()));
+    let handle = tokio::spawn(task.run());
 
     (bytes_tx, response_rx, handle)
 }

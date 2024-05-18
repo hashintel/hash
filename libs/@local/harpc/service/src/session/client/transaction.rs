@@ -20,9 +20,9 @@ use harpc_wire_protocol::{
 };
 use tokio::{pin, select, sync::mpsc};
 use tokio_stream::StreamExt;
-use tokio_util::sync::CancellationToken;
+use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
-use super::config::SessionConfig;
+use super::{config::SessionConfig, connection::TransactionPermit};
 use crate::session::writer::{RequestContext, RequestWriter, WriterOptions};
 
 pub struct ErrorStream {
@@ -57,10 +57,12 @@ struct ResponseState {
 }
 
 pub(crate) struct TransactionReceiveTask {
-    pub(crate) config: SessionConfig,
+    config: SessionConfig,
 
-    pub(crate) rx: mpsc::Receiver<Response>,
-    pub(crate) tx: mpsc::Sender<Result<ValueStream, ErrorStream>>,
+    rx: mpsc::Receiver<Response>,
+    tx: mpsc::Sender<Result<ValueStream, ErrorStream>>,
+
+    permit: Arc<TransactionPermit>,
 }
 
 impl TransactionReceiveTask {
@@ -107,8 +109,9 @@ impl TransactionReceiveTask {
         clippy::integer_division_remainder_used,
         reason = "required for select! macro"
     )]
-    pub(crate) async fn run(mut self, cancel: CancellationToken) {
+    pub(crate) async fn run(mut self) {
         let mut state = None;
+        let cancel = self.permit.cancellation_token();
 
         loop {
             let response = select! {
@@ -164,14 +167,15 @@ impl TransactionReceiveTask {
 }
 
 pub(crate) struct TransactionSendTask<S> {
-    pub(crate) config: SessionConfig,
-    pub(crate) id: RequestId,
+    config: SessionConfig,
 
-    pub(crate) service: ServiceDescriptor,
-    pub(crate) procedure: ProcedureDescriptor,
+    service: ServiceDescriptor,
+    procedure: ProcedureDescriptor,
 
-    pub(crate) rx: S,
-    pub(crate) tx: mpsc::Sender<Request>,
+    rx: S,
+    tx: mpsc::Sender<Request>,
+
+    permit: Arc<TransactionPermit>,
 }
 
 impl<S> TransactionSendTask<S>
@@ -182,13 +186,14 @@ where
         clippy::integer_division_remainder_used,
         reason = "required for select! macro"
     )]
-    pub(crate) async fn run(self, cancel: CancellationToken) {
+    pub(crate) async fn run(self) {
+        let cancel = self.permit.cancellation_token();
         let mut writer = RequestWriter::new(
             WriterOptions {
                 no_delay: self.config.no_delay,
             },
             RequestContext {
-                id: self.id,
+                id: self.permit.id(),
                 service: self.service,
                 procedure: self.procedure,
             },
@@ -222,5 +227,51 @@ where
                 break;
             }
         }
+    }
+}
+
+pub(crate) struct TransactionTask<S> {
+    pub(crate) config: SessionConfig,
+    pub(crate) permit: Arc<TransactionPermit>,
+
+    pub(crate) service: ServiceDescriptor,
+    pub(crate) procedure: ProcedureDescriptor,
+
+    pub(crate) response_rx: mpsc::Receiver<Response>,
+    pub(crate) response_tx: mpsc::Sender<Result<ValueStream, ErrorStream>>,
+
+    pub(crate) request_rx: S,
+    pub(crate) request_tx: mpsc::Sender<Request>,
+}
+
+impl<S> TransactionTask<S>
+where
+    S: Stream<Item = Bytes> + Send + 'static,
+{
+    pub(crate) fn spawn(self, tasks: &TaskTracker) {
+        tasks.spawn(
+            TransactionReceiveTask {
+                config: self.config,
+                rx: self.response_rx,
+                tx: self.response_tx,
+                permit: Arc::clone(&self.permit),
+            }
+            .run(),
+        );
+
+        tasks.spawn(
+            TransactionSendTask {
+                config: self.config,
+
+                service: self.service,
+                procedure: self.procedure,
+
+                rx: self.request_rx,
+                tx: self.request_tx,
+
+                permit: Arc::clone(&self.permit),
+            }
+            .run(),
+        );
     }
 }

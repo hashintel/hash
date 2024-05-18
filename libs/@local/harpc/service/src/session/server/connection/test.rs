@@ -98,7 +98,7 @@ impl Setup {
         let task = ConnectionTask {
             peer: PeerId::random(),
             session: Self::SESSION_ID,
-            active: TransactionCollection::new(config, cancel.clone()),
+            transactions: TransactionCollection::new(config, cancel.clone()),
             output: output_tx,
             events: events_tx,
             config,
@@ -106,7 +106,7 @@ impl Setup {
             _permit: permit,
         };
 
-        let storage = Arc::clone(&task.active.storage);
+        let storage = Arc::clone(&task.transactions.storage);
 
         let handle = tokio::spawn(task.run(
             PollSender::new(sink_tx),

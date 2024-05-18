@@ -30,8 +30,22 @@ use crate::session::{
     writer::{ResponseContext, ResponseWriter, WriterOptions},
 };
 
-struct TransactionSendDelegateTask {
-    id: RequestId,
+trait Permit: Send + Sync + 'static {
+    fn cancellation_token(&self) -> CancellationToken;
+    fn id(&self) -> RequestId;
+}
+
+impl Permit for TransactionPermit {
+    fn cancellation_token(&self) -> CancellationToken {
+        self.cancellation_token()
+    }
+
+    fn id(&self) -> RequestId {
+        self.id()
+    }
+}
+
+struct TransactionSendDelegateTask<P> {
     config: SessionConfig,
 
     // TODO: consider switching to `tachyonix` crate for better performance (not yet tested)
@@ -39,14 +53,21 @@ struct TransactionSendDelegateTask {
     // everything before sending, which might not be the best idea in this scenario.
     rx: mpsc::Receiver<core::result::Result<Bytes, TransactionError>>,
     tx: mpsc::Sender<Response>,
+
+    permit: Arc<P>,
 }
 
-impl TransactionSendDelegateTask {
+impl<P> TransactionSendDelegateTask<P>
+where
+    P: Permit,
+{
     #[expect(
         clippy::integer_division_remainder_used,
         reason = "required for select! macro"
     )]
-    async fn run(mut self, cancel: CancellationToken) {
+    async fn run(mut self) {
+        let cancel = self.permit.cancellation_token();
+
         // we cannot simply forward here, because we want to be able to send the end of request and
         // buffer the response into the least amount of packages possible
 
@@ -55,7 +76,7 @@ impl TransactionSendDelegateTask {
                 no_delay: self.config.no_delay,
             },
             ResponseContext {
-                id: self.id,
+                id: self.permit.id(),
                 kind: ResponseKind::Ok,
             },
             &self.tx,
@@ -102,7 +123,7 @@ impl TransactionSendDelegateTask {
                             no_delay: self.config.no_delay,
                         },
                         ResponseContext {
-                            id: self.id,
+                            id: self.permit.id(),
                             kind: ResponseKind::Err(code),
                         },
                         &self.tx,
@@ -119,40 +140,35 @@ impl TransactionSendDelegateTask {
     }
 }
 
-pub(crate) struct TransactionTask {
+pub(crate) struct TransactionTask<P> {
     id: RequestId,
     config: SessionConfig,
 
     response_rx: mpsc::Receiver<Result<Bytes, TransactionError>>,
     response_tx: mpsc::Sender<Response>,
 
-    permit: Arc<TransactionPermit>,
+    permit: Arc<P>,
 }
 
-impl TransactionTask {
+impl<P> TransactionTask<P>
+where
+    P: Permit,
+{
     pub(super) fn start(self, tasks: &TaskTracker) {
         let send = TransactionSendDelegateTask {
-            id: self.id,
             config: self.config,
 
             rx: self.response_rx,
             tx: self.response_tx,
+
+            permit: self.permit,
         };
 
-        #[expect(
-            clippy::significant_drop_tightening,
-            reason = "The drop needs to be in the scope"
-        )]
-        tasks.spawn(async move {
-            // move the permit into the task, so that it's dropped when the task is done
-            let send_permit = self.permit;
-
-            send.run(send_permit.cancellation_token()).await;
-        });
+        tasks.spawn(send.run());
     }
 }
 
-pub(crate) struct TransactionParts {
+pub(crate) struct TransactionParts<P> {
     pub(crate) peer: PeerId,
     pub(crate) session: SessionId,
 
@@ -161,7 +177,7 @@ pub(crate) struct TransactionParts {
     pub(crate) rx: tachyonix::Receiver<Request>,
     pub(crate) tx: mpsc::Sender<Response>,
 
-    pub(crate) permit: Arc<TransactionPermit>,
+    pub(crate) permit: Arc<P>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -202,16 +218,16 @@ impl TransactionContext {
     }
 }
 
-pub struct Transaction {
+pub struct Transaction<P = TransactionPermit> {
     context: TransactionContext,
 
     request: tachyonix::Receiver<Request>,
     response: mpsc::Sender<Result<Bytes, TransactionError>>,
 
-    permit: Arc<TransactionPermit>,
+    permit: Arc<P>,
 }
 
-impl Transaction {
+impl<P> Transaction<P> {
     pub(crate) fn from_request(
         header: RequestHeader,
         body: &RequestBegin,
@@ -222,8 +238,8 @@ impl Transaction {
             rx,
             tx,
             permit,
-        }: TransactionParts,
-    ) -> (Self, TransactionTask) {
+        }: TransactionParts<P>,
+    ) -> (Self, TransactionTask<P>) {
         let (response_tx, response_rx) = mpsc::channel(
             config
                 .per_transaction_response_byte_stream_buffer_size
@@ -262,7 +278,9 @@ impl Transaction {
     pub const fn context(&self) -> TransactionContext {
         self.context
     }
+}
 
+impl Transaction {
     pub fn into_parts(self) -> (TransactionContext, TransactionSink, TransactionStream) {
         let context = self.context;
 
