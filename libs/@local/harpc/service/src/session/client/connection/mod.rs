@@ -187,6 +187,11 @@ impl Connection {
 
         let (stream_tx, stream_rx) = mpsc::channel(1);
 
+        // Important: the resulting stream won't be directly notified if the payload stream couldn't
+        // be sent, completely (which can only happen if the `Sink` has been shutdown). This is
+        // intended, as we know that `Sink` and `Stream` are both bound to each other, meaning that
+        // if the request couldn't be delivered, the response won't be delivered to the consumer
+        // either, leading to a "broken pipe" of sorts.
         let task = TransactionTask {
             config: self.config,
             permit,
