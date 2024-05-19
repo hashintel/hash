@@ -11,6 +11,7 @@ import type {
   InferenceWebsocketClientMessage,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { externalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/signals";
+import type { ExternalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/types";
 import type { EntityUuid } from "@local/hash-subgraph";
 import type { Client } from "@temporalio/client";
 import type { WebSocket } from "ws";
@@ -91,7 +92,10 @@ const inferEntitiesMessageHandler = async ({
       }
 
       const handle = temporalClient.workflow.getHandle(workflowId);
-      await handle.signal(externalInputResponseSignal, payload);
+      await handle.signal<[ExternalInputResponseSignal]>(
+        externalInputResponseSignal,
+        { ...payload, resolvedBy: user.accountId },
+      );
       return;
     }
   }

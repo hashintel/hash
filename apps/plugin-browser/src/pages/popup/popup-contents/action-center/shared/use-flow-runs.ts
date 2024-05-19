@@ -8,10 +8,9 @@ import type {
   browserInferenceFlowOutput,
   ManualInferenceTriggerInputName,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
-import type {
-  ExternalInputRequestSignal,
-  PayloadKindValues,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { PayloadKindValues } from "@local/hash-isomorphic-utils/flows/types";
+import type { AccountId } from "@local/hash-subgraph";
+import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { useEffect, useMemo, useState } from "react";
 
 import type {
@@ -21,16 +20,15 @@ import type {
 import { getMinimalFlowRunsQuery } from "../../../../../graphql/queries/flow.queries";
 import { queryGraphQlApi } from "../../../../../shared/query-graphql-api";
 import type {
-  BrowserFlowsAndBackgroundRequests,
+  FlowFromBrowserOrWithPageRequest,
+  LocalStorage,
   MinimalFlowRun,
 } from "../../../../../shared/storage";
 import { useStorageSync } from "../../../../shared/use-storage-sync";
+import { useUser } from "../../../../shared/use-user";
 
 const mapFlowRunToMinimalFlowRun = (
-  flowRun: Omit<
-    GetMinimalFlowRunsQuery["getFlowRuns"][number],
-    "inputRequests"
-  >,
+  flowRun: GetMinimalFlowRunsQuery["getFlowRuns"][number],
 ): MinimalFlowRun => {
   const persistedEntities = (flowRun.outputs ?? []).flatMap((output) =>
     output.contents[0].outputs.flatMap(({ outputName, payload }) => {
@@ -61,7 +59,11 @@ const mapFlowRunToMinimalFlowRun = (
   };
 };
 
-const getFlowRuns = async (): Promise<BrowserFlowsAndBackgroundRequests> =>
+const getFlowRuns = async ({
+  userAccountId,
+}: {
+  userAccountId: AccountId;
+}): Promise<FlowFromBrowserOrWithPageRequest[]> =>
   queryGraphQlApi<GetMinimalFlowRunsQuery, GetMinimalFlowRunsQueryVariables>(
     getMinimalFlowRunsQuery,
   )
@@ -77,62 +79,81 @@ const getFlowRuns = async (): Promise<BrowserFlowsAndBackgroundRequests> =>
       }),
     )
     .then((flowRuns) => {
-      const browserFlowRuns: MinimalFlowRun[] = [];
-      const allInputRequests: ExternalInputRequestSignal[] = [];
+      const flowRunsOfInterest: LocalStorage["flowRuns"] = [];
 
       for (const flowRun of flowRuns) {
-        const { inputRequests, ...flow } = flowRun;
         if (
-          flow.flowDefinitionId ===
+          flowRun.flowDefinitionId ===
             manualBrowserInferenceFlowDefinition.flowDefinitionId ||
-          flow.flowDefinitionId ===
+          flowRun.flowDefinitionId ===
             automaticBrowserInferenceFlowDefinition.flowDefinitionId
         ) {
-          browserFlowRuns.push(mapFlowRunToMinimalFlowRun(flowRun));
+          flowRuns.push(mapFlowRunToMinimalFlowRun(flowRun));
         }
 
-        allInputRequests.push(...inputRequests);
+        for (const inputRequest of flowRun.inputRequests) {
+          if (
+            inputRequest.type === "get-urls-html-content" &&
+            !!inputRequest.resolvedAt &&
+            inputRequest.resolvedBy === userAccountId
+          ) {
+            for (const url of inputRequest.data.urls) {
+              flowRunsOfInterest.push({
+                ...mapFlowRunToMinimalFlowRun(flowRun),
+                requestedPageUrl: url,
+              });
+            }
+          }
+        }
       }
 
-      return {
-        browserFlowRuns,
-        inputRequests: allInputRequests,
-      };
+      return flowRunsOfInterest;
     });
 
-export const useFlowRuns = (): BrowserFlowsAndBackgroundRequests & {
+export const useFlowRuns = (): {
+  flowRuns: FlowFromBrowserOrWithPageRequest[];
+} & {
   loading: boolean;
 } => {
-  const [value, setValue, storageLoading] = useStorageSync(
-    "browserFlowsAndBackgroundRequests",
-    {
-      browserFlowRuns: [],
-      inputRequests: [],
-    },
-  );
+  const [value, setValue, storageLoading] = useStorageSync("flowRuns", []);
 
   const [apiChecked, setApiChecked] = useState(false);
 
+  const { user } = useUser();
+
+  const userAccountId = useMemo(() => {
+    if (!user) {
+      return null;
+    }
+    return extractOwnedByIdFromEntityId(
+      user.metadata.recordId.entityId,
+    ) as AccountId;
+  }, [user]);
+
   useEffect(() => {
+    if (!userAccountId) {
+      return;
+    }
+
     const pollInterval = setInterval(() => {
       void getFlowRuns().then(setValue);
     }, 2_000);
 
     return () => clearInterval(pollInterval);
-  }, [setValue]);
+  }, [setValue, userAccountId]);
 
   useEffect(() => {
-    if (apiChecked) {
+    if (apiChecked || !userAccountId) {
       return;
     }
 
-    void getFlowRuns().then((newValue) => {
+    void getFlowRuns({ userAccountId }).then((newValue) => {
       setValue(newValue);
       setApiChecked(true);
     });
 
     setApiChecked(true);
-  }, [apiChecked, setValue]);
+  }, [apiChecked, setValue, userAccountId]);
 
   const [localPendingRuns, setLocalPendingRuns] = useStorageSync(
     "localPendingFlowRuns",

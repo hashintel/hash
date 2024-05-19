@@ -7,7 +7,6 @@ import type {
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import type { AutomaticInferenceSettings } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
 import type {
-  ExternalInputRequestSignal,
   PersistedEntity,
   WebPage,
 } from "@local/hash-isomorphic-utils/flows/types";
@@ -97,11 +96,16 @@ export type MinimalFlowRun = Pick<
   | "executedAt"
   | "status"
   | "inputs"
+  | "inputRequests"
 > & { persistedEntities: PersistedEntity[]; webPage: WebPage };
 
-export type BrowserFlowsAndBackgroundRequests = {
-  browserFlowRuns: MinimalFlowRun[];
-  inputRequests: ExternalInputRequestSignal[];
+/**
+ * One of the flow runs we expose in the History tab, which are one of:
+ * 1. Flows triggered by the browser, whether automatic or maunal, or
+ * 2. Flows which have requested the content of a web page from the browser
+ */
+export type FlowFromBrowserOrWithPageRequest = MinimalFlowRun & {
+  requestedPageUrl?: string;
 };
 
 /**
@@ -109,7 +113,7 @@ export type BrowserFlowsAndBackgroundRequests = {
  * Cleared if the extension is loaded with no user present.
  */
 export type LocalStorage = PersistedUserSettings & {
-  browserFlowsAndBackgroundRequests: BrowserFlowsAndBackgroundRequests;
+  flowRuns: FlowFromBrowserOrWithPageRequest[];
   entityTypesSubgraph: Subgraph<EntityTypeRootType> | null;
   entityTypes: EntityTypeWithMetadata[];
   externalInputRequests?: ExternalInputRequestById;

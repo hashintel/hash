@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type {
   PropertyMetadataMap,
   ProvidedEntityEditionProvenance,
@@ -6,6 +7,7 @@ import type {
 import type { FlowRun } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import type { ActorTypeDataType } from "@local/hash-isomorphic-utils/system-types/google/googlesheetsfile";
 import type {
+  AccountId,
   Entity,
   EntityId,
   EntityPropertiesObject,
@@ -431,17 +433,25 @@ export type ExternalInputResponseSignal<
   RequestType extends ExternalInputRequestType = ExternalInputRequestType,
 > = {
   [Type in RequestType]: {
+    resolvedBy: AccountId;
     requestId: string;
     type: Type;
     data: ExternalInputResponseByType[Type];
   };
 }[RequestType];
 
+export type ExternalInputResponseWithoutUser = DistributiveOmit<
+  ExternalInputResponseSignal,
+  "resolvedBy"
+>;
+
 export type ExternalInputRequest = ExternalInputRequestSignal & {
   /** The answers given by the human, if it was a request for human input */
   answers?: string[];
   /** The time at which the request was resolved */
   resolvedAt?: string;
+  /** The user that responded to the request (or the user whose device responded to the request) */
+  resolvedBy?: AccountId;
   /** The time at which the request was made */
   raisedAt: string;
 };

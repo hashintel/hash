@@ -23,7 +23,7 @@ const HistorySection = ({ children }: PropsWithChildren) => (
 );
 
 export const History = () => {
-  const { browserFlowRuns, loading } = useFlowRuns();
+  const { flowRuns, loading } = useFlowRuns();
 
   if (loading) {
     return (
@@ -39,10 +39,10 @@ export const History = () => {
   return (
     <Box>
       <HistorySection>
-        <ManuallyTriggered browserFlowRuns={browserFlowRuns} />
+        <ManuallyTriggered flowRuns={flowRuns} />
       </HistorySection>
       <HistorySection>
-        <AutomaticallyTriggered browserFlowRuns={browserFlowRuns} />
+        <AutomaticallyTriggered flowRuns={flowRuns} />
       </HistorySection>
       <HistorySection>
         <Typography

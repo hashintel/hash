@@ -61,7 +61,7 @@ export const getFlowRunById = gql`
 export const submitExternalInputResponseMutation = gql`
   mutation submitExternalInputResponse(
     $flowUuid: ID!
-    $response: ExternalInputResponseSignal!
+    $response: ExternalInputResponseWithoutUser!
   ) {
     submitExternalInputResponse(flowUuid: $flowUuid, response: $response)
   }
