@@ -16,11 +16,10 @@ use crate::stream::TerminatedChannelStream;
 /// Layout:
 ///
 /// ```text
-/// X X X X X T B A
+/// X X X X X X X A
 ///
 /// * X: Unused
 /// * A: EndOfResponse
-/// * B: Connection Prematurely Closed
 /// ```
 #[derive(Debug, Clone)]
 pub struct StreamState(Arc<AtomicU8>);
