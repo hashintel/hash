@@ -41,8 +41,8 @@ impl Permit for StaticTransactionPermit {
         self.id
     }
 
-    fn cancellation_token(&self) -> CancellationToken {
-        self.cancel.clone()
+    fn cancellation_token(&self) -> &CancellationToken {
+        &self.cancel
     }
 }
 
@@ -599,7 +599,7 @@ async fn receive_next_dropped() {
 #[tokio::test]
 async fn receive_cancel() {
     let (_tx, _rx, cancel, handle) = setup_recv_mapped(SessionConfig::default(), |permit| {
-        permit.cancellation_token()
+        permit.cancellation_token().clone()
     });
 
     cancel.cancel();

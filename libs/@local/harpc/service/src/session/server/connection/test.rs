@@ -36,7 +36,10 @@ use tokio_util::{
     task::TaskTracker,
 };
 
-use super::{ConcurrencyLimit, ConnectionTask, TransactionPermit, TransactionStorage};
+use super::{
+    collection::{TransactionPermit, TransactionStorage},
+    ConnectionTask,
+};
 use crate::session::{
     error::{
         ConnectionShutdownError, ConnectionTransactionLimitReachedError,
@@ -46,6 +49,7 @@ use crate::session::{
         connection::{ConnectionDelegateTask, TransactionCollection},
         session_id::test_utils::mock_session_id,
         test::{make_request_begin, make_request_frame, StringEncoder},
+        transaction::ServerTransactionPermit,
         SessionConfig, SessionEvent, SessionId, Transaction,
     },
 };
@@ -106,7 +110,7 @@ impl Setup {
             _permit: permit,
         };
 
-        let storage = Arc::clone(&task.transactions.storage);
+        let storage = Arc::clone(task.transactions.storage());
 
         let handle = tokio::spawn(task.run(
             PollSender::new(sink_tx),
@@ -1149,49 +1153,6 @@ async fn graceful_shutdown() {
     );
 }
 
-#[test]
-fn concurrency_limit() {
-    let limit = ConcurrencyLimit::new(2);
-    assert_eq!(limit.current.available_permits(), 2);
-
-    let _permit = limit.acquire().expect("should be able to acquire permit");
-    assert_eq!(limit.current.available_permits(), 1);
-
-    let _permit2 = limit.acquire().expect("should be able to acquire permit");
-    assert_eq!(limit.current.available_permits(), 0);
-}
-
-#[test]
-fn concurrency_limit_reached() {
-    let limit = ConcurrencyLimit::new(1);
-    assert_eq!(limit.current.available_permits(), 1);
-
-    let permit = limit.acquire().expect("should be able to acquire permit");
-    assert_eq!(limit.current.available_permits(), 0);
-
-    limit
-        .acquire()
-        .expect_err("should be unable to acquire permit");
-
-    drop(permit);
-    assert_eq!(limit.current.available_permits(), 1);
-
-    let _permit = limit.acquire().expect("should be able to acquire permit");
-    assert_eq!(limit.current.available_permits(), 0);
-}
-
-#[test]
-fn concurrency_limit_reached_permit_reclaim() {
-    let limit = ConcurrencyLimit::new(1);
-    assert_eq!(limit.current.available_permits(), 1);
-
-    let permit = limit.acquire().expect("should be able to acquire permit");
-    assert_eq!(limit.current.available_permits(), 0);
-
-    drop(permit);
-    assert_eq!(limit.current.available_permits(), 1);
-}
-
 #[tokio::test]
 async fn transaction_collection_acquire() {
     let collection = TransactionCollection::new(SessionConfig::default(), CancellationToken::new());
@@ -1201,7 +1162,7 @@ async fn transaction_collection_acquire() {
         .await
         .expect("should be able to acquire permit");
 
-    assert_eq!(collection.storage.len(), 1);
+    assert_eq!(collection.storage().len(), 1);
 }
 
 #[tokio::test]
@@ -1213,7 +1174,7 @@ async fn transaction_collection_acquire_override() {
         .await
         .expect("should be able to acquire permit");
 
-    let cancel = permit.cancel.clone();
+    let cancel = permit.cancellation_token().clone();
 
     let (_permit, ..) = collection
         .acquire(mock_request_id(0x01))
@@ -1275,7 +1236,7 @@ async fn transaction_collection_acquire_full_no_insert() {
         .await
         .expect_err("should not be able to acquire permit");
 
-    assert_eq!(collection.storage.len(), 0);
+    assert_eq!(collection.storage().len(), 0);
 }
 
 #[tokio::test]
@@ -1287,14 +1248,14 @@ async fn transaction_permit_reclaim() {
         .await
         .expect("should be able to acquire permit");
 
-    assert_eq!(collection.storage.len(), 1);
+    assert_eq!(collection.storage().len(), 1);
 
     drop(permit);
 
     // wait for the remove task to finish
     tokio::time::sleep(Duration::from_millis(100)).await;
 
-    assert_eq!(collection.storage.len(), 0);
+    assert_eq!(collection.storage().len(), 0);
 }
 
 #[tokio::test]
@@ -1306,29 +1267,29 @@ async fn transaction_permit_reclaim_override() {
         .await
         .expect("should be able to acquire permit");
 
-    assert_eq!(collection.storage.len(), 1);
+    assert_eq!(collection.storage().len(), 1);
 
     let (permit_b, ..) = collection
         .acquire(mock_request_id(0x01))
         .await
         .expect("should be able to acquire permit");
 
-    assert!(permit_a.cancel.is_cancelled());
-    assert_eq!(collection.storage.len(), 1);
+    assert!(permit_a.cancellation_token().is_cancelled());
+    assert_eq!(collection.storage().len(), 1);
 
     drop(permit_a);
 
     // wait for the remove task to finish
     tokio::time::sleep(Duration::from_millis(100)).await;
 
-    assert_eq!(collection.storage.len(), 1);
+    assert_eq!(collection.storage().len(), 1);
 
     drop(permit_b);
 
     // wait for the remove task to finish
     tokio::time::sleep(Duration::from_millis(100)).await;
 
-    assert_eq!(collection.storage.len(), 0);
+    assert_eq!(collection.storage().len(), 0);
 }
 
 static EXAMPLE_RESPONSE: Response = Response {

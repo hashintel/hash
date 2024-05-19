@@ -1,156 +1,26 @@
+mod collection;
+mod stream;
+#[cfg(test)]
+mod test;
+
 use alloc::sync::Arc;
 
 use bytes::Bytes;
 use futures::{prelude::future::FutureExt, Sink, Stream, StreamExt};
 use harpc_wire_protocol::{
-    request::{
-        id::{RequestId, RequestIdProducer},
-        procedure::ProcedureDescriptor,
-        service::ServiceDescriptor,
-        Request,
-    },
+    request::{procedure::ProcedureDescriptor, service::ServiceDescriptor, Request},
     response::Response,
 };
-use scc::{ebr::Guard, hash_index::Entry, HashIndex};
 use tokio::{io, pin, select, sync::mpsc};
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
+use self::collection::{TransactionCollection, TransactionStorage};
 use super::{
     config::SessionConfig,
-    transaction::{ErrorStream, Permit, TransactionTask, ValueStream},
+    transaction::{ErrorStream, TransactionTask, ValueStream},
 };
-use crate::{
-    session::gc::{Cancellable, ConnectionGarbageCollectorTask},
-    transport::connection::OutgoingConnection,
-};
-
-#[derive(Debug, Clone)]
-struct TransactionState {
-    sender: tachyonix::Sender<Response>,
-    cancel: CancellationToken,
-}
-
-impl Cancellable for TransactionState {
-    fn is_cancelled(&self) -> bool {
-        self.cancel.is_cancelled()
-    }
-}
-
-type TransactionStorage = Arc<HashIndex<RequestId, TransactionState>>;
-
-pub(crate) struct TransactionCollection {
-    config: SessionConfig,
-    producer: RequestIdProducer,
-
-    cancel: CancellationToken,
-    storage: TransactionStorage,
-}
-
-impl TransactionCollection {
-    pub(crate) fn new(config: SessionConfig, cancel: CancellationToken) -> Self {
-        let storage = Arc::new(HashIndex::new());
-
-        Self {
-            config,
-            producer: RequestIdProducer::new(),
-
-            cancel,
-            storage,
-        }
-    }
-
-    pub(crate) async fn acquire(&self) -> (Arc<TransactionPermit>, tachyonix::Receiver<Response>) {
-        let cancel = self.cancel.child_token();
-        let permit = TransactionPermit::new(self, cancel.clone());
-
-        let (tx, rx) = tachyonix::channel(self.config.per_transaction_response_buffer_size.get());
-
-        let state = TransactionState { sender: tx, cancel };
-
-        match self.storage.entry_async(permit.id).await {
-            Entry::Vacant(entry) => {
-                entry.insert_entry(state);
-            }
-            Entry::Occupied(entry) => {
-                // This should never happen, as the permit is unique and should not be shared
-                // between multiple transactions.
-                // This can only happen in the case that we overflow the u32 RequestId and we have a
-                // connection that never terminated
-                // This is **highly** unlikely, in case it happens we cancel the old task and
-                // replace it with the new one.
-                tracing::warn!("Transaction ID collision detected, cancelling old transaction");
-
-                entry.sender.close();
-                entry.cancel.cancel();
-
-                entry.update(state);
-            }
-        }
-
-        (permit, rx)
-    }
-
-    pub(crate) fn cancel_all(&self) {
-        let guard = Guard::new();
-        for (_, state) in self.storage.iter(&guard) {
-            state.cancel.cancel();
-        }
-    }
-}
-
-impl Drop for TransactionCollection {
-    fn drop(&mut self) {
-        // Dropping the transaction collection indicates that the session is shutting down, this
-        // means no supervisor is there to send or recv data, so we can just go ahead and cancel any
-        // pending transactions.
-        // These should have been cancelled already implicitly, but just to be sure we do it again
-        // explicitely here, as to not leave any dangling tasks.
-        self.cancel_all();
-    }
-}
-
-pub(crate) struct TransactionPermit {
-    id: RequestId,
-
-    storage: TransactionStorage,
-
-    cancel: CancellationToken,
-}
-
-impl TransactionPermit {
-    fn new(collection: &TransactionCollection, cancel: CancellationToken) -> Arc<Self> {
-        let id = collection.producer.produce();
-
-        Arc::new(Self {
-            id,
-            storage: Arc::clone(&collection.storage),
-            cancel,
-        })
-    }
-}
-
-impl Permit for TransactionPermit {
-    fn id(&self) -> RequestId {
-        self.id
-    }
-
-    fn cancellation_token(&self) -> CancellationToken {
-        self.cancel.clone()
-    }
-}
-
-impl Drop for TransactionPermit {
-    fn drop(&mut self) {
-        let id = self.id;
-
-        let storage = Arc::clone(&self.storage);
-
-        tokio::spawn(async move {
-            storage.remove_async(&id).await;
-        });
-    }
-}
+use crate::session::gc::ConnectionGarbageCollectorTask;
 
 /// Delegate requests to the respective transaction
 ///
@@ -242,6 +112,15 @@ where
     }
 }
 
+// TODO: we have no concept of when the connection is closed on call, we need to have something like
+// a `healthy` meter.
+
+pub(crate) struct ConnectionParts<'a> {
+    pub(crate) config: SessionConfig,
+    pub(crate) tasks: &'a TaskTracker,
+    pub(crate) cancel: CancellationToken,
+}
+
 pub struct Connection {
     config: SessionConfig,
 
@@ -253,12 +132,19 @@ pub struct Connection {
 
 // TODO: BufferedResponse that will only return the last (valid) response
 impl Connection {
-    pub(crate) fn spawn(
-        config: SessionConfig,
-        OutgoingConnection { sink, stream, .. }: OutgoingConnection,
-        tasks: &TaskTracker,
-        cancel: CancellationToken,
-    ) -> Self {
+    pub(crate) fn spawn<S, T>(
+        ConnectionParts {
+            config,
+            tasks,
+            cancel,
+        }: ConnectionParts,
+        sink: S,
+        stream: T,
+    ) -> Self
+    where
+        S: Sink<Request, Error: Send> + Send + 'static,
+        T: Stream<Item = error_stack::Result<Response, io::Error>> + Send + 'static,
+    {
         let (tx, rx) = mpsc::channel(config.per_connection_request_buffer_size.get());
 
         let this = Self {
@@ -275,7 +161,7 @@ impl Connection {
         tasks.spawn(
             ConnectionResponseDelegateTask {
                 stream,
-                tx: Arc::clone(&this.transactions.storage),
+                tx: Arc::clone(this.transactions.storage()),
             }
             .run(cancel.clone()),
         );
@@ -283,7 +169,7 @@ impl Connection {
         tasks.spawn(
             ConnectionGarbageCollectorTask {
                 every: config.per_connection_transaction_garbage_collect_interval,
-                index: Arc::clone(&this.transactions.storage),
+                index: Arc::clone(this.transactions.storage()),
             }
             .run(cancel),
         );
@@ -321,8 +207,6 @@ impl Connection {
         // terminated once the payload stream is exhausted.
         // This means we can allow scenarios in which the response does not matter and we only want
         // to send a request.
-        // TODOs: consider actually stoping the task if this is dropped, as we don't have full
-        // control of the payload stream?
         ReceiverStream::new(stream_rx)
     }
 }

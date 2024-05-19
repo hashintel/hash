@@ -32,7 +32,7 @@ use tokio::{sync::mpsc, task::JoinHandle};
 use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 
-use super::{Permit, TransactionStream};
+use super::{ServerTransactionPermit, TransactionStream};
 use crate::session::{
     error::TransactionError,
     server::{
@@ -60,13 +60,13 @@ struct StaticTransactionPermit {
     cancel: CancellationToken,
 }
 
-impl Permit for StaticTransactionPermit {
+impl ServerTransactionPermit for StaticTransactionPermit {
     fn id(&self) -> RequestId {
         self.id
     }
 
-    fn cancellation_token(&self) -> CancellationToken {
-        self.cancel.clone()
+    fn cancellation_token(&self) -> &CancellationToken {
+        &self.cancel
     }
 }
 

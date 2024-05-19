@@ -8,8 +8,8 @@ use tokio::{
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
 use super::{
-    connection::TransactionCollection, session_id::SessionIdProducer, transaction::Transaction,
-    SessionConfig, SessionEvent,
+    connection::collection::TransactionCollection, session_id::SessionIdProducer,
+    transaction::Transaction, SessionConfig, SessionEvent,
 };
 use crate::{
     codec::ErrorEncoder,

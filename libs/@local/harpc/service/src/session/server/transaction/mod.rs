@@ -24,15 +24,15 @@ use tokio_util::{
     task::TaskTracker,
 };
 
-use super::{connection::TransactionPermit, session_id::SessionId, SessionConfig};
+use super::{connection::collection::TransactionPermit, session_id::SessionId, SessionConfig};
 use crate::session::{
     error::TransactionError,
     writer::{ResponseContext, ResponseWriter, WriterOptions},
 };
 
-pub(crate) trait Permit: Send + Sync + 'static {
-    fn cancellation_token(&self) -> CancellationToken;
+pub(crate) trait ServerTransactionPermit: Send + Sync + 'static {
     fn id(&self) -> RequestId;
+    fn cancellation_token(&self) -> &CancellationToken;
 }
 
 struct TransactionSendDelegateTask<P> {
@@ -49,7 +49,7 @@ struct TransactionSendDelegateTask<P> {
 
 impl<P> TransactionSendDelegateTask<P>
 where
-    P: Permit,
+    P: ServerTransactionPermit,
 {
     #[expect(
         clippy::integer_division_remainder_used,
@@ -141,7 +141,7 @@ pub(crate) struct TransactionTask<P> {
 
 impl<P> TransactionTask<P>
 where
-    P: Permit,
+    P: ServerTransactionPermit,
 {
     pub(super) fn start(self, tasks: &TaskTracker) {
         let send = TransactionSendDelegateTask {

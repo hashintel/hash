@@ -7,9 +7,12 @@ use libp2p::Multiaddr;
 use tokio_util::sync::CancellationToken;
 
 pub use self::transaction::{ErrorStream, ValueStream};
-use self::{config::SessionConfig, connection::Connection};
+use self::{
+    config::SessionConfig,
+    connection::{Connection, ConnectionParts},
+};
 use super::error::SessionError;
-use crate::transport::TransportLayer;
+use crate::transport::{connection::OutgoingConnection, TransportLayer};
 
 pub struct SessionLayer {
     config: SessionConfig,
@@ -43,17 +46,20 @@ impl SessionLayer {
 
         let cancel = self.cancel.child_token();
 
-        let connection = self
+        let OutgoingConnection { sink, stream, .. } = self
             .transport
             .dial(peer)
             .await
             .change_context(SessionError)?;
 
         Ok(Connection::spawn(
-            self.config,
-            connection,
-            self.transport.tasks(),
-            cancel,
+            ConnectionParts {
+                config: self.config,
+                tasks: self.transport.tasks(),
+                cancel,
+            },
+            sink,
+            stream,
         ))
     }
 }

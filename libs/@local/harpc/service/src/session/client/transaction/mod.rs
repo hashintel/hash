@@ -3,7 +3,6 @@ mod test;
 
 use alloc::sync::Arc;
 use core::{
-    marker::PhantomData,
     ops::ControlFlow,
     sync::atomic::{AtomicBool, Ordering},
 };
@@ -33,7 +32,7 @@ use crate::{
 
 pub(crate) trait Permit: Send + Sync + 'static {
     fn id(&self) -> RequestId;
-    fn cancellation_token(&self) -> CancellationToken;
+    fn cancellation_token(&self) -> &CancellationToken;
 }
 
 #[derive(Debug)]
@@ -332,6 +331,10 @@ where
     P: Permit,
 {
     pub(crate) fn spawn(self, tasks: &TaskTracker) {
+        // TODO: notify the other end if we failed prematurely.
+        //  This will work either way, but it's just good to know.
+        // The only problem is: over which channel do we send this?!
+        // We'd need to have a future of some sort, or an AtomicBool that we set.
         tasks.spawn(
             TransactionReceiveTask {
                 config: self.config,
