@@ -5,6 +5,7 @@ import {
 import {
   answerQuestionFlow,
   ftseInvestorsFlowDefinition,
+  goalFlowDefinition,
   inferUserEntitiesFromWebPageFlowDefinition,
   researchEntitiesFlowDefinition,
   researchTaskFlowDefinition,
@@ -27,12 +28,12 @@ const exampleFlows: FlowDefinition[] = [
   researchTaskFlowDefinition,
   researchEntitiesFlowDefinition,
   ftseInvestorsFlowDefinition,
-
   inferUserEntitiesFromWebPageFlowDefinition,
   answerQuestionFlow,
   saveFileFromUrl,
   manualBrowserInferenceFlowDefinition,
   automaticBrowserInferenceFlowDefinition,
+  goalFlowDefinition,
 ];
 
 export const FlowDefinitionsContextProvider = ({

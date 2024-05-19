@@ -23,7 +23,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useRouter } from "next/router";
-import type { PropsWithChildren } from "react";
+import type { FormEvent, PropsWithChildren } from "react";
 import { useState } from "react";
 
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
@@ -102,7 +102,9 @@ const NewGoalPageContent = () => {
     StartFlowMutationVariables
   >(startFlowMutation);
 
-  const createGoal = async () => {
+  const createGoal = async (event: FormEvent) => {
+    event.preventDefault();
+
     const triggerOutputs = [
       {
         outputName: "Create as draft" satisfies GoalFlowTriggerInput,

@@ -334,10 +334,6 @@ export type ParallelGroupStep = {
 
 export type FlowStep = ActionStep | ParallelGroupStep;
 
-/**
- * Flow
- */
-
 export type FlowTrigger = {
   triggerDefinitionId: TriggerDefinitionId;
   outputs?: StepOutput[];
@@ -444,8 +440,10 @@ export type ExternalInputResponseSignal<
 export type ExternalInputRequest = ExternalInputRequestSignal & {
   /** The answers given by the human, if it was a request for human input */
   answers?: string[];
-  /** Whether or not the request has been resolved */
-  resolved: boolean;
+  /** The time at which the request was resolved */
+  resolvedAt?: string;
+  /** The time at which the request was made */
+  raisedAt: string;
 };
 
 export const detailedFlowFields = [

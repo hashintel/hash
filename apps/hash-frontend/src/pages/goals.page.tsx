@@ -1,9 +1,13 @@
 import { BullseyeLightIcon } from "@hashintel/design-system";
 import { Box, Container } from "@mui/material";
 
+import { PlusRegularIcon } from "../shared/icons/plus-regular";
 import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar } from "../shared/layout";
+import { Button } from "../shared/ui/button";
 import { WorkersHeader } from "../shared/workers-header";
+import { GoalsList } from "./goals.page/goals-list";
+import { FlowRunsContextProvider } from "./shared/flow-runs-context";
 
 const GoalsPageContent = () => {
   return (
@@ -16,6 +20,13 @@ const GoalsPageContent = () => {
             title: "Goals",
           },
         ]}
+        endElement={
+          <Button href="/goals/new" size="xs" sx={{ py: 1.3 }}>
+            Create goal <PlusRegularIcon sx={{ fontSize: 14, ml: 1 }} />
+          </Button>
+        }
+        hideDivider
+        subtitle="Workers conduct research and analysis for you"
         title={{
           text: "Goals",
           Icon: BullseyeLightIcon,
@@ -23,21 +34,18 @@ const GoalsPageContent = () => {
         }}
       />
       <Container>
-        <Box
-          sx={({ palette }) => ({
-            background: palette.common.white,
-            borderRadius: 2,
-            border: `1px solid ${palette.gray[30]}`,
-            p: 4,
-          })}
-        />
+        <GoalsList />
       </Container>
     </Box>
   );
 };
 
 const GoalsPage: NextPageWithLayout = () => {
-  return <GoalsPageContent />;
+  return (
+    <FlowRunsContextProvider selectedFlowRunId={null}>
+      <GoalsPageContent />
+    </FlowRunsContextProvider>
+  );
 };
 
 GoalsPage.getLayout = (page) =>

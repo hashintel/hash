@@ -1,5 +1,6 @@
 import { InfinityLightIcon } from "@hashintel/design-system";
 import type { Subtype } from "@local/advanced-types/subtype";
+import { goalFlowDefinition } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
 import { generateFlowDefinitionPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import { Box, Container, TableCell, Typography } from "@mui/material";
 import { formatDistanceToNowStrict } from "date-fns";
@@ -21,7 +22,7 @@ import {
   flowTableCellSx,
   flowTableRowHeight,
   FlowTableWebChip,
-} from "./shared/flow-styles";
+} from "./shared/flow-tables";
 import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
@@ -129,13 +130,16 @@ const FlowsPageContent = () => {
     direction: "asc",
   });
 
-  const { flowDefinitions } = useFlowDefinitionsContext();
+  const { flowDefinitions: allFlowDefinitions } = useFlowDefinitionsContext();
 
   const { flowRuns } = useFlowRunsContext();
 
   const flowDefinitionRows = useMemo<VirtualizedTableRow<FlowSummary>[]>(() => {
-    const rowData: VirtualizedTableRow<FlowSummary>[] = flowDefinitions.map(
-      (flowDefinition) => {
+    const rowData: VirtualizedTableRow<FlowSummary>[] = allFlowDefinitions
+      .filter(
+        (def) => def.flowDefinitionId !== goalFlowDefinition.flowDefinitionId,
+      )
+      .map((flowDefinition) => {
         let lastRunStartedAt = null;
         for (const flowRun of flowRuns) {
           if (
@@ -164,8 +168,7 @@ const FlowsPageContent = () => {
             lastRunStartedAt,
           },
         };
-      },
-    );
+      });
 
     return rowData.sort((a, b) => {
       const field = sort.field;
@@ -179,7 +182,7 @@ const FlowsPageContent = () => {
         (a.data[field] ?? "").localeCompare(b.data[field] ?? "") * direction
       );
     });
-  }, [flowDefinitions, flowRuns, sort]);
+  }, [allFlowDefinitions, flowRuns, sort]);
 
   const tableHeight = Math.min(
     600,

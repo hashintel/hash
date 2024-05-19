@@ -65,7 +65,7 @@ const inferEntitiesMessageHandler = async ({
 
       for (const flowRun of openFlowRuns) {
         for (const inputRequest of flowRun.inputRequests) {
-          if (!inputRequest.resolved) {
+          if (!inputRequest.resolvedAt) {
             const requestMessage: ExternalInputWebsocketRequestMessage = {
               workflowId: flowRun.flowRunId,
               payload: inputRequest,

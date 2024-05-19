@@ -27,7 +27,6 @@ export type VirtualizedTableRow<D extends Data> = {
 export const defaultCellSx: SxProps<Theme> = {
   padding: "5px 14px",
   borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
-  borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
   textAlign: "left",
 };
 

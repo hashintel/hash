@@ -1,5 +1,4 @@
 import { useQuery } from "@apollo/client";
-import type { SparseFlowRun } from "@local/hash-isomorphic-utils/flows/types";
 import {
   getFlowRunById,
   getFlowRunsQuery,
@@ -19,7 +18,7 @@ import type {
 import { FlowStepStatus } from "../../graphql/api-types.gen";
 
 export type FlowRunsContextType = {
-  flowRuns: SparseFlowRun[];
+  flowRuns: GetFlowRunsQuery["getFlowRuns"];
   loading: boolean;
   selectedFlowRun: FlowRun | null;
   selectedFlowRunId: string | null;

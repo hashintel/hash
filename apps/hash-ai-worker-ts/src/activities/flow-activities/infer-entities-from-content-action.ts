@@ -40,15 +40,11 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
     ? mapActionInputEntitiesToEntities({ inputEntities: inputExistingEntities })
     : [];
 
-  const { userAuthentication } = await getFlowContext();
+  const { userAuthentication, webId } = await getFlowContext();
 
   const aiAssistantAccountId = await getAiAssistantAccountIdActivity({
     authentication: userAuthentication,
-    /**
-     * @todo: we probably want this customizable by an input for the action, or
-     * as an additional parameter for the activity.
-     */
-    grantCreatePermissionForWeb: userAuthentication.actorId as OwnedById,
+    grantCreatePermissionForWeb: webId,
     graphApiClient,
   });
 
