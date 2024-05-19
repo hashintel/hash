@@ -61,7 +61,7 @@ export const GoalRow = memo(({ goalSummary }: { goalSummary: GoalSummary }) => {
       <Typography mr={2} sx={{ fontSize: 14 }}>
         Research
       </Typography>
-      {status !== "Completed" && (
+      {status !== "Running" && (
         <FlowStatusChip status={status} sx={{ mr: 2.2 }} />
       )}
       <FlowTableChip>
