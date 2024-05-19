@@ -6,7 +6,7 @@ import {
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import type { EntityId, OwnedById } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 
 import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity";
