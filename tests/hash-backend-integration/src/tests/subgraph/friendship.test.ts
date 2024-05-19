@@ -23,10 +23,10 @@ import {
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
-  GetDataTypesRequest,
+  GetDataTypesParams,
   GetEntitySubgraphRequest,
   GetEntityTypesParams,
-  GetPropertyTypesRequest,
+  GetPropertyTypesParams,
 } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -245,7 +245,7 @@ describe("Ontology queries", () => {
     const dataTypeId: VersionedUrl =
       "http://localhost:3000/@alice/types/data-type/number/v/1";
 
-    const request: GetDataTypesRequest = {
+    const request: GetDataTypesParams = {
       filter: {
         equal: [
           {
@@ -344,7 +344,7 @@ describe("Ontology queries", () => {
     const propertyTypeId: VersionedUrl =
       "http://localhost:3000/@alice/types/property-type/name/v/1";
 
-    const request: GetPropertyTypesRequest = {
+    const request: GetPropertyTypesParams = {
       filter: {
         equal: [
           {

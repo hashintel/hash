@@ -169,18 +169,16 @@ where
             })
             .collect::<Vec<_>>();
 
-        let cursor = if params.limit.is_some() {
-            entity_types
-                .last()
-                .map(|entity_type| entity_type.vertex_id(time_axis))
-        } else {
-            None
-        };
-
         Ok((
             GetEntityTypesResponse {
+                cursor: if params.limit.is_some() {
+                    entity_types
+                        .last()
+                        .map(|entity_type| entity_type.vertex_id(time_axis))
+                } else {
+                    None
+                },
                 entity_types,
-                cursor,
             },
             zookie,
         ))

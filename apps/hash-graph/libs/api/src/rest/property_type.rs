@@ -15,8 +15,8 @@ use authorization::{
     AuthorizationApi, AuthorizationApiPool,
 };
 use axum::{
-    extract::{OriginalUri, Path, Query},
-    http::{header::LINK, HeaderMap, StatusCode},
+    extract::Path,
+    http::StatusCode,
     response::Response,
     routing::{get, post, put},
     Extension, Router,
@@ -34,14 +34,10 @@ use graph::{
             GetPropertyTypesParams, GetPropertyTypesResponse, UnarchivePropertyTypeParams,
             UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
         },
-        query::Filter,
         BaseUrlAlreadyExists, ConflictBehavior, OntologyVersionDoesNotExist, PropertyTypeStore,
         StorePool,
     },
-    subgraph::{
-        edges::GraphResolveDepths, identifier::PropertyTypeVertexId,
-        temporal_axes::QueryTemporalAxesUnresolved,
-    },
+    subgraph::identifier::PropertyTypeVertexId,
 };
 use graph_types::{
     ontology::{
@@ -66,7 +62,7 @@ use crate::rest::{
     json::Json,
     status::{report_to_response, status_to_response},
     utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfPropertyType},
-    AuthenticatedUserHeader, Cursor, Pagination, PermissionResponse, RestApiStore,
+    AuthenticatedUserHeader, PermissionResponse, RestApiStore,
 };
 
 #[derive(OpenApi)]
@@ -104,9 +100,9 @@ use crate::rest::{
             UpdatePropertyTypeRequest,
             UpdatePropertyTypeEmbeddingParams,
             PropertyTypeQueryToken,
-            GetPropertyTypesRequest,
+            GetPropertyTypesParams,
             GetPropertyTypesResponse,
-            GetPropertyTypeSubgraphRequest,
+            GetPropertyTypeSubgraphParams,
             GetPropertyTypeSubgraphResponse,
             ArchivePropertyTypeParams,
             UnarchivePropertyTypeParams,
@@ -387,19 +383,10 @@ where
     }
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct GetPropertyTypesRequest<'q> {
-    #[serde(borrow)]
-    filter: Filter<'q, PropertyTypeWithMetadata>,
-    temporal_axes: QueryTemporalAxesUnresolved,
-    include_drafts: bool,
-}
-
 #[utoipa::path(
     post,
     path = "/property-types/query",
-    request_body = GetPropertyTypesRequest,
+    request_body = GetPropertyTypesParams,
     tag = "PropertyType",
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -410,9 +397,6 @@ struct GetPropertyTypesRequest<'q> {
             content_type = "application/json",
             body = GetPropertyTypesResponse,
             description = "Gets a a list of property types that satisfy the given query.",
-            headers(
-                ("Link" = String, description = "The link to be used to query the next page of property types"),
-            ),
         ),
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
@@ -424,10 +408,8 @@ async fn get_property_types<S, A>(
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
-    Query(pagination): Query<Pagination<PropertyTypeVertexId>>,
-    OriginalUri(uri): OriginalUri,
     Json(request): Json<serde_json::Value>,
-) -> Result<(HeaderMap, Json<GetPropertyTypesResponse>), Response>
+) -> Result<Json<GetPropertyTypesResponse>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -444,53 +426,29 @@ where
 
     // Manually deserialize the query from a JSON value to allow borrowed deserialization and better
     // error reporting.
-    let mut request = GetPropertyTypesRequest::deserialize(&request).map_err(report_to_response)?;
+    let mut request = GetPropertyTypesParams::deserialize(&request).map_err(report_to_response)?;
     request
         .filter
         .convert_parameters()
         .map_err(report_to_response)?;
-    let response = store
-        .get_property_types(
-            actor_id,
-            GetPropertyTypesParams {
-                filter: request.filter,
-                after: pagination.after.map(|cursor| cursor.0),
-                limit: pagination.limit,
-                temporal_axes: request.temporal_axes,
-                include_drafts: request.include_drafts,
-            },
-        )
+    store
+        .get_property_types(actor_id, request)
         .await
-        .map_err(report_to_response)?;
-
-    let cursor = response.property_types.last().map(Cursor);
-    let mut headers = HeaderMap::new();
-    if let (Some(cursor), Some(limit)) = (cursor, pagination.limit) {
-        headers.insert(LINK, cursor.link_header("next", uri, limit)?);
-    }
-    Ok((headers, Json(response)))
-}
-
-#[derive(Debug, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct GetPropertyTypeSubgraphRequest<'q> {
-    #[serde(borrow)]
-    filter: Filter<'q, PropertyTypeWithMetadata>,
-    graph_resolve_depths: GraphResolveDepths,
-    temporal_axes: QueryTemporalAxesUnresolved,
-    include_drafts: bool,
+        .map_err(report_to_response)
+        .map(Json)
 }
 
 #[derive(Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct GetPropertyTypeSubgraphResponse {
     subgraph: Subgraph,
+    cursor: Option<PropertyTypeVertexId>,
 }
 
 #[utoipa::path(
     post,
     path = "/property-types/query/subgraph",
-    request_body = GetPropertyTypeSubgraphRequest,
+    request_body = GetPropertyTypeSubgraphParams,
     tag = "PropertyType",
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -517,10 +475,8 @@ async fn get_property_type_subgraph<S, A>(
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
-    Query(pagination): Query<Pagination<PropertyTypeVertexId>>,
-    OriginalUri(uri): OriginalUri,
     Json(request): Json<serde_json::Value>,
-) -> Result<(HeaderMap, Json<GetPropertyTypeSubgraphResponse>), Response>
+) -> Result<Json<GetPropertyTypeSubgraphResponse>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -536,37 +492,21 @@ where
         .map_err(report_to_response)?;
 
     let mut request =
-        GetPropertyTypeSubgraphRequest::deserialize(&request).map_err(report_to_response)?;
+        GetPropertyTypeSubgraphParams::deserialize(&request).map_err(report_to_response)?;
     request
         .filter
         .convert_parameters()
         .map_err(report_to_response)?;
-    let response = store
-        .get_property_type_subgraph(
-            actor_id,
-            GetPropertyTypeSubgraphParams {
-                filter: request.filter,
-                graph_resolve_depths: request.graph_resolve_depths,
-                temporal_axes: request.temporal_axes,
-                after: pagination.after.map(|cursor| cursor.0),
-                limit: pagination.limit,
-                include_drafts: request.include_drafts,
-            },
-        )
+    store
+        .get_property_type_subgraph(actor_id, request)
         .await
-        .map_err(report_to_response)?;
-
-    let cursor = response.subgraph.roots.iter().last().map(Cursor);
-    let mut headers = HeaderMap::new();
-    if let (Some(cursor), Some(limit)) = (cursor, pagination.limit) {
-        headers.insert(LINK, cursor.link_header("next", uri, limit)?);
-    }
-    Ok((
-        headers,
-        Json(GetPropertyTypeSubgraphResponse {
-            subgraph: Subgraph::from(response.subgraph),
-        }),
-    ))
+        .map_err(report_to_response)
+        .map(|response| {
+            Json(GetPropertyTypeSubgraphResponse {
+                subgraph: Subgraph::from(response.subgraph),
+                cursor: response.cursor,
+            })
+        })
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]

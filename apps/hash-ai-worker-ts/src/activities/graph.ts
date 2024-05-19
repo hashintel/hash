@@ -1,10 +1,10 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import type {
   EntityQueryCursor,
-  GetDataTypeSubgraphRequest,
+  GetDataTypeSubgraphParams,
   GetEntitySubgraphRequest,
   GetEntityTypeSubgraphParams,
-  GetPropertyTypeSubgraphRequest,
+  GetPropertyTypeSubgraphParams,
   GraphApi,
   UpdateDataTypeEmbeddingParams,
   UpdateEntityEmbeddingsParams,
@@ -79,7 +79,7 @@ export const createGraphActivities = ({
     authentication: {
       actorId: AccountId;
     };
-    request: GetDataTypeSubgraphRequest;
+    request: GetDataTypeSubgraphParams;
   }): Promise<Subgraph<DataTypeRootType>> {
     return graphApiClient
       .getDataTypeSubgraph(params.authentication.actorId, params.request)
@@ -95,7 +95,7 @@ export const createGraphActivities = ({
     authentication: {
       actorId: AccountId;
     };
-    request: GetPropertyTypeSubgraphRequest;
+    request: GetPropertyTypeSubgraphParams;
   }): Promise<Subgraph<PropertyTypeRootType>> {
     return graphApiClient
       .getPropertyTypeSubgraph(params.authentication.actorId, params.request)
