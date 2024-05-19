@@ -462,7 +462,11 @@ async fn call() {}
 
 #[tokio::test]
 #[ignore]
-async fn call_do_not_admit_if_partially_closed() {}
+async fn call_do_not_admit_if_partially_closed_read() {}
+
+#[tokio::test]
+#[ignore]
+async fn call_do_not_admit_if_partially_closed_write() {}
 
 #[tokio::test]
 #[ignore]

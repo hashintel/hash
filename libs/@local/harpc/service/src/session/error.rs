@@ -62,10 +62,20 @@ impl PlainError for ConnectionClosedError {
 #[error(
     "The connection is in the graceful shutdown state and no longer accepts any new transactions"
 )]
-pub struct ConnectionShutdownError;
+pub struct ConnectionGracefulShutdownError;
 
-impl PlainError for ConnectionShutdownError {
+impl PlainError for ConnectionGracefulShutdownError {
     fn code(&self) -> ErrorCode {
         ErrorCode::CONNECTION_SHUTDOWN
     }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
+#[error(
+    "the underlying read and/or write connection to the server has been closed (read: {read}, \
+     write: {write})"
+)]
+pub struct ConnectionPartiallyClosedError {
+    pub read: bool,
+    pub write: bool,
 }

@@ -42,7 +42,7 @@ use super::{
 };
 use crate::session::{
     error::{
-        ConnectionShutdownError, ConnectionTransactionLimitReachedError,
+        ConnectionGracefulShutdownError, ConnectionTransactionLimitReachedError,
         InstanceTransactionLimitReachedError, TransactionLaggingError,
     },
     server::{
@@ -984,7 +984,7 @@ async fn transaction_send_output_closed() {
     );
     assert_eq!(
         response.body.payload().as_bytes().as_ref(),
-        ConnectionShutdownError.to_string().into_bytes()
+        ConnectionGracefulShutdownError.to_string().into_bytes()
     );
 
     stream

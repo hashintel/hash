@@ -6,6 +6,7 @@ mod test;
 use alloc::sync::Arc;
 
 use bytes::Bytes;
+use error_stack::Report;
 use futures::{prelude::future::FutureExt, Sink, Stream, StreamExt};
 use harpc_wire_protocol::{
     request::{procedure::ProcedureDescriptor, service::ServiceDescriptor, Request},
@@ -20,7 +21,7 @@ use self::{
     stream::ResponseStream,
 };
 use super::{config::SessionConfig, transaction::TransactionTask};
-use crate::session::gc::ConnectionGarbageCollectorTask;
+use crate::session::{error::ConnectionPartiallyClosedError, gc::ConnectionGarbageCollectorTask};
 
 /// Delegate requests to the respective transaction
 ///
@@ -198,9 +199,18 @@ impl Connection {
         service: ServiceDescriptor,
         procedure: ProcedureDescriptor,
         payload: impl Stream<Item = Bytes> + Send + 'static,
-    ) -> ResponseStream {
-        // We don't need to check if the connection is healthy, as if it isn't the case the produced
-        // stream will immediately be closed.
+    ) -> error_stack::Result<ResponseStream, ConnectionPartiallyClosedError> {
+        // While not strictly necessary (as the transaction will immediately terminate if the
+        // underlying connection is closed) and the `ResponseStream` will return `None` it is a good
+        // indicator to the user that the connection is unhealthy, and as to why, as these tasks
+        // only ever stop running when the underlying connection is closed.
+        if !self.is_healthy() {
+            return Err(Report::new(ConnectionPartiallyClosedError {
+                read: self.response_delegate_handle.is_finished(),
+                write: self.request_delegate_handle.is_finished(),
+            }));
+        }
+
         let (permit, response_rx) = self.transactions.acquire().await;
 
         let (stream_tx, stream_rx) = mpsc::channel(1);
@@ -230,6 +240,6 @@ impl Connection {
         // terminated once the payload stream is exhausted.
         // This means we can allow scenarios in which the response does not matter and we only want
         // to send a request.
-        ResponseStream::new(stream_rx)
+        Ok(ResponseStream::new(stream_rx))
     }
 }

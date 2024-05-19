@@ -28,7 +28,9 @@ use super::{
 use crate::{
     codec::{ErrorEncoder, PlainError},
     session::{
-        error::{ConnectionShutdownError, InstanceTransactionLimitReachedError, TransactionError},
+        error::{
+            ConnectionGracefulShutdownError, InstanceTransactionLimitReachedError, TransactionError,
+        },
         gc::ConnectionGarbageCollectorTask,
         writer::{ResponseContext, ResponseWriter, WriterOptions},
     },
@@ -158,7 +160,7 @@ where
                         // be processed, this is also known as the "graceful shutdown" phase.
                         tracing::info!("supervisor has been dropped, dropping transaction");
 
-                        self.respond_error(request_id, ConnectionShutdownError, &tx)
+                        self.respond_error(request_id, ConnectionGracefulShutdownError, &tx)
                             .await;
                         return;
                     }

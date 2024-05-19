@@ -35,3 +35,11 @@ impl ErrorEncoder for StringEncoder {
         })
     }
 }
+
+#[tokio::test]
+#[ignore]
+async fn echo() {}
+
+#[tokio::test]
+#[ignore]
+async fn echo_concurrent() {}
