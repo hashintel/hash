@@ -15,11 +15,11 @@ use tokio::{io, pin, select, sync::mpsc};
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
-use self::collection::{TransactionCollection, TransactionStorage};
-use super::{
-    config::SessionConfig,
-    transaction::{ErrorStream, TransactionTask, ValueStream},
+use self::{
+    collection::{TransactionCollection, TransactionStorage},
+    stream::ResponseStream,
 };
+use super::{config::SessionConfig, transaction::TransactionTask};
 use crate::session::gc::ConnectionGarbageCollectorTask;
 
 /// Delegate requests to the respective transaction
@@ -182,7 +182,7 @@ impl Connection {
         service: ServiceDescriptor,
         procedure: ProcedureDescriptor,
         payload: impl Stream<Item = Bytes> + Send + 'static,
-    ) -> impl Stream<Item = Result<ValueStream, ErrorStream>> + Send + Sync + 'static {
+    ) -> ResponseStream {
         let (permit, response_rx) = self.transactions.acquire().await;
 
         let (stream_tx, stream_rx) = mpsc::channel(1);
@@ -207,6 +207,6 @@ impl Connection {
         // terminated once the payload stream is exhausted.
         // This means we can allow scenarios in which the response does not matter and we only want
         // to send a request.
-        ReceiverStream::new(stream_rx)
+        ResponseStream::new(stream_rx)
     }
 }

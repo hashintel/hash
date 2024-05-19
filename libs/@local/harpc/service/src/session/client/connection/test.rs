@@ -28,7 +28,7 @@ use crate::session::{
             collection::TransactionCollection, ConnectionRequestDelegateTask,
             ConnectionResponseDelegateTask,
         },
-        transaction::Permit,
+        transaction::ClientTransactionPermit,
     },
     gc::ConnectionGarbageCollectorTask,
 };

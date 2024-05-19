@@ -1,120 +1,38 @@
+pub(crate) mod stream;
 #[cfg(test)]
 mod test;
 
 use alloc::sync::Arc;
-use core::{
-    ops::ControlFlow,
-    sync::atomic::{AtomicBool, Ordering},
-};
+use core::ops::ControlFlow;
 
 use bytes::Bytes;
-use futures::{prelude::future::FutureExt, stream::FusedStream, Stream, StreamExt};
+use futures::{prelude::future::FutureExt, Stream, StreamExt};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
     request::{id::RequestId, procedure::ProcedureDescriptor, service::ServiceDescriptor, Request},
     response::{
-        begin::ResponseBegin,
-        body::ResponseBody,
-        flags::ResponseFlag,
-        frame::ResponseFrame,
-        kind::{ErrorCode, ResponseKind},
-        Response,
+        begin::ResponseBegin, body::ResponseBody, flags::ResponseFlag, frame::ResponseFrame,
+        kind::ResponseKind, Response,
     },
 };
 use tokio::{pin, select, sync::mpsc};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
+use self::stream::{ErrorStream, StreamState, ValueStream};
 use super::config::SessionConfig;
 use crate::{
     session::writer::{RequestContext, RequestWriter, WriterOptions},
     stream::TerminatedChannelStream,
 };
 
-pub(crate) trait Permit: Send + Sync + 'static {
+pub(crate) trait ClientTransactionPermit: Send + Sync + 'static {
     fn id(&self) -> RequestId;
     fn cancellation_token(&self) -> &CancellationToken;
 }
 
-#[derive(Debug)]
-pub struct ErrorStream {
-    code: ErrorCode,
-
-    inner: TerminatedChannelStream<Bytes>,
-
-    end_of_response: Arc<AtomicBool>,
-}
-
-impl ErrorStream {
-    #[must_use]
-    pub const fn code(&self) -> ErrorCode {
-        self.code
-    }
-
-    #[must_use]
-    pub fn is_end_of_response(&self) -> Option<bool> {
-        if !self.inner.is_terminated() {
-            return None;
-        }
-
-        Some(self.end_of_response.load(Ordering::SeqCst))
-    }
-}
-
-impl Stream for ErrorStream {
-    type Item = Bytes;
-
-    fn poll_next(
-        mut self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<Option<Self::Item>> {
-        self.inner.poll_next_unpin(cx)
-    }
-}
-
-impl FusedStream for ErrorStream {
-    fn is_terminated(&self) -> bool {
-        self.inner.is_terminated()
-    }
-}
-
-#[derive(Debug)]
-pub struct ValueStream {
-    inner: TerminatedChannelStream<Bytes>,
-
-    end_of_response: Arc<AtomicBool>,
-}
-
-impl ValueStream {
-    #[must_use]
-    pub fn is_end_of_response(&self) -> Option<bool> {
-        if !self.inner.is_terminated() {
-            return None;
-        }
-
-        Some(self.end_of_response.load(Ordering::SeqCst))
-    }
-}
-
-impl Stream for ValueStream {
-    type Item = Bytes;
-
-    fn poll_next(
-        mut self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<Option<Self::Item>> {
-        self.inner.poll_next_unpin(cx)
-    }
-}
-
-impl FusedStream for ValueStream {
-    fn is_terminated(&self) -> bool {
-        self.inner.is_terminated()
-    }
-}
-
 struct ResponseState {
     tx: tachyonix::Sender<Bytes>,
-    end_of_response: Arc<AtomicBool>,
+    stream: StreamState,
 }
 
 pub(crate) struct TransactionReceiveTask<P> {
@@ -128,7 +46,7 @@ pub(crate) struct TransactionReceiveTask<P> {
 
 impl<P> TransactionReceiveTask<P>
 where
-    P: Permit,
+    P: ClientTransactionPermit,
 {
     async fn handle_begin(
         &self,
@@ -141,22 +59,22 @@ where
                 .get(),
         );
 
-        let end_of_response = Arc::new(AtomicBool::new(false));
+        let internal = StreamState::new();
 
         state.replace(ResponseState {
             tx,
-            end_of_response: Arc::clone(&end_of_response),
+            stream: internal.clone(),
         });
 
         let stream = match kind {
             ResponseKind::Ok => Ok(ValueStream {
                 inner: TerminatedChannelStream::new(rx),
-                end_of_response,
+                state: internal,
             }),
             ResponseKind::Err(code) => Err(ErrorStream {
                 code,
                 inner: TerminatedChannelStream::new(rx),
-                end_of_response,
+                state: internal,
             }),
         };
 
@@ -174,7 +92,7 @@ where
         reason = "required for select! macro"
     )]
     pub(crate) async fn run(mut self) {
-        let mut state = None;
+        let mut state: Option<ResponseState> = None;
         let cancel = self.permit.cancellation_token();
 
         loop {
@@ -187,6 +105,11 @@ where
             let Ok(response) = response else {
                 // sender has been prematurely dropped, this might be because the transaction has
                 // failed in some fashion or the request has been dropped.
+                tracing::info!("connection prematurely dropped");
+
+                // the consumer will be indirectly informed, as we're winding down operation, and
+                // therefore will never send a EndOfResponse flag.
+
                 break;
             };
 
@@ -214,7 +137,10 @@ where
             };
 
             let ControlFlow::Continue(bytes) = bytes else {
+                // we don't need to notify the consumer of this, as the consumer was the one that
+                // initiated it.
                 tracing::info!("stream prematurely dropped");
+
                 break;
             };
 
@@ -223,11 +149,13 @@ where
                 // before sending the last byte, flip the flag
                 if end_of_response {
                     // SeqCst should ensure that we see the flag flip in any circumstance.
-                    state.end_of_response.store(true, Ordering::SeqCst);
+                    state.stream.set_end_of_response();
                 }
 
                 if state.tx.send(bytes).await.is_err() {
-                    tracing::warn!("response bytestream has been prematurely dropped");
+                    // don't need to notify the consumer of this, as the consumer was the one that
+                    // initiated it.
+                    tracing::warn!("response byte stream has been prematurely dropped");
                     reset = true;
                 }
             } else {
@@ -261,7 +189,7 @@ pub(crate) struct TransactionSendTask<S, P> {
 impl<S, P> TransactionSendTask<S, P>
 where
     S: Stream<Item = Bytes> + Send,
-    P: Permit,
+    P: ClientTransactionPermit,
 {
     #[expect(
         clippy::integer_division_remainder_used,
@@ -328,7 +256,7 @@ pub(crate) struct TransactionTask<S, P> {
 impl<S, P> TransactionTask<S, P>
 where
     S: Stream<Item = Bytes> + Send + 'static,
-    P: Permit,
+    P: ClientTransactionPermit,
 {
     pub(crate) fn spawn(self, tasks: &TaskTracker) {
         // TODO: notify the other end if we failed prematurely.

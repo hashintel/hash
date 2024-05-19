@@ -82,7 +82,7 @@ impl FusedStream for ListenStream {
 /// dedicated sessions, these sessions are then used to form transactions.
 pub struct SessionLayer<E> {
     config: SessionConfig,
-    encoder: Arc<E>,
+    encoder: E,
 
     events: broadcast::Sender<SessionEvent>,
 
@@ -102,7 +102,7 @@ where
 
         Self {
             config,
-            encoder: Arc::new(encoder),
+            encoder,
 
             events,
 

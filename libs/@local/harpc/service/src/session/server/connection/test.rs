@@ -48,10 +48,11 @@ use crate::session::{
     server::{
         connection::{ConnectionDelegateTask, TransactionCollection},
         session_id::test_utils::mock_session_id,
-        test::{make_request_begin, make_request_frame, StringEncoder},
+        test::{make_request_begin, make_request_frame},
         transaction::ServerTransactionPermit,
         SessionConfig, SessionEvent, SessionId, Transaction,
     },
+    test::StringEncoder,
 };
 
 pub(crate) async fn make_transaction_permit(
@@ -106,7 +107,7 @@ impl Setup {
             output: output_tx,
             events: events_tx,
             config,
-            encoder: Arc::new(StringEncoder),
+            encoder: StringEncoder,
             _permit: permit,
         };
 

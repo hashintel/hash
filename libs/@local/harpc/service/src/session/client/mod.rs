@@ -6,7 +6,7 @@ use error_stack::{Result, ResultExt};
 use libp2p::Multiaddr;
 use tokio_util::sync::CancellationToken;
 
-pub use self::transaction::{ErrorStream, ValueStream};
+pub use self::transaction::stream::{ErrorStream, ValueStream};
 use self::{
     config::SessionConfig,
     connection::{Connection, ConnectionParts},
@@ -27,6 +27,7 @@ impl SessionLayer {
     pub fn new(config: SessionConfig, transport: TransportLayer) -> Self {
         Self {
             config,
+
             cancel: transport.cancellation_token(),
             transport,
         }

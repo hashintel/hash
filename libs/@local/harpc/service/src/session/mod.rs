@@ -7,4 +7,6 @@ pub mod client;
 pub mod error;
 mod gc;
 pub mod server;
+#[cfg(test)]
+mod test;
 mod writer;

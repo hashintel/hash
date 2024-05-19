@@ -8,7 +8,7 @@ use scc::{ebr::Guard, hash_index::Entry, HashIndex};
 use tokio_util::sync::CancellationToken;
 
 use crate::session::{
-    client::{config::SessionConfig, transaction::Permit},
+    client::{config::SessionConfig, transaction::ClientTransactionPermit},
     gc::Cancellable,
 };
 
@@ -122,7 +122,7 @@ impl TransactionPermit {
     }
 }
 
-impl Permit for TransactionPermit {
+impl ClientTransactionPermit for TransactionPermit {
     fn id(&self) -> RequestId {
         self.id
     }

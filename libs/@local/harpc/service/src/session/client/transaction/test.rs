@@ -28,15 +28,17 @@ use tokio::{sync::mpsc, task};
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_util::sync::CancellationToken;
 
-use super::{ErrorStream, Permit, TransactionReceiveTask, TransactionSendTask, ValueStream};
-use crate::session::client::config::SessionConfig;
+use super::{
+    ClientTransactionPermit, ErrorStream, TransactionReceiveTask, TransactionSendTask, ValueStream,
+};
+use crate::session::client::{config::SessionConfig, transaction::StreamState};
 
 struct StaticTransactionPermit {
     id: RequestId,
     cancel: CancellationToken,
 }
 
-impl Permit for StaticTransactionPermit {
+impl ClientTransactionPermit for StaticTransactionPermit {
     fn id(&self) -> RequestId {
         self.id
     }
@@ -144,7 +146,7 @@ async fn receive_single_response_ok() {
         .expect("should be ok stream");
 
     // checking now (where it isn't closed yet), incomplete should be inconclusive
-    assert_eq!(stream.is_end_of_response(), None);
+    assert!(stream.state().is_none());
 
     assert_eq!(
         stream
@@ -158,7 +160,10 @@ async fn receive_single_response_ok() {
     assert!(stream.next().await.is_none());
 
     // after that we should've terminated and we should be endOfResponse
-    assert_eq!(stream.is_end_of_response(), Some(true));
+    assert_eq!(
+        stream.state().map(StreamState::is_end_of_response),
+        Some(true)
+    );
 
     // after that the stream should have terminated
     assert!(rx.recv().await.is_none());
@@ -193,7 +198,7 @@ async fn receive_single_response_error() {
     assert_eq!(stream.code(), code);
 
     // checking now (where it isn't closed yet), incomplete should be inconclusive
-    assert_eq!(stream.is_end_of_response(), None);
+    assert!(stream.state().is_none());
 
     assert_eq!(
         stream
@@ -207,7 +212,10 @@ async fn receive_single_response_error() {
     assert!(stream.next().await.is_none());
 
     // after that we should've terminated and we should be endOfResponse
-    assert_eq!(stream.is_end_of_response(), Some(true));
+    assert_eq!(
+        stream.state().map(StreamState::is_end_of_response),
+        Some(true)
+    );
 
     // after that the stream should have terminated
     assert!(rx.recv().await.is_none());
@@ -300,7 +308,10 @@ async fn receive_multiple_responses() {
         buffer.extend_from_slice(chunk.as_ref());
     }
 
-    assert_eq!(stream.is_end_of_response(), Some(true));
+    assert_eq!(
+        stream.state().map(StreamState::is_end_of_response),
+        Some(true)
+    );
 
     assert_eq!(buffer.as_ref(), b"fruits:applepearorangegrapefruitbanana");
 
@@ -345,7 +356,10 @@ async fn receive_multiple_streams() {
     // we started a new one, so that old one is invalidated
     assert!(stream.next().await.is_none());
     // ... it is also not end of response
-    assert_eq!(stream.is_end_of_response(), Some(false));
+    assert_eq!(
+        stream.state().map(StreamState::is_end_of_response),
+        Some(false)
+    );
 
     // but we have a new stream
     let mut stream = rx
@@ -374,7 +388,10 @@ async fn receive_multiple_streams() {
     // we started a new one, so that old one is invalidated
     assert!(stream.next().await.is_none());
     // ... it is also not end of response
-    assert_eq!(stream.is_end_of_response(), Some(false));
+    assert_eq!(
+        stream.state().map(StreamState::is_end_of_response),
+        Some(false)
+    );
 
     // but we have a new stream
     let mut stream = rx
@@ -407,7 +424,10 @@ async fn receive_multiple_streams() {
         b"end"
     );
     assert!(stream.next().await.is_none());
-    assert_eq!(stream.is_end_of_response(), Some(true));
+    assert_eq!(
+        stream.state().map(StreamState::is_end_of_response),
+        Some(true)
+    );
 
     // and now we should be done
     assert!(rx.is_closed());
@@ -521,7 +541,7 @@ async fn receive_receiver_closed_can_still_receive_but_not_start_new() {
 
 #[tokio::test]
 async fn receive_sender_closed() {
-    let (tx, rx, handle) = setup_recv(SessionConfig::default());
+    let (tx, mut rx, handle) = setup_recv(SessionConfig::default());
 
     drop(tx);
 
@@ -530,6 +550,60 @@ async fn receive_sender_closed() {
         .await
         .expect("should finish within timeout")
         .expect("should not panic");
+
+    assert!(rx.recv().await.is_none());
+
+    // and the receiver should be closed
+    assert!(rx.is_closed());
+}
+
+#[tokio::test]
+async fn receive_sender_closed_mit_frame() {
+    let (tx, mut rx, handle) = setup_recv(SessionConfig::default());
+
+    let response = make_response_begin(ResponseFlags::EMPTY, ResponseKind::Ok, b"fruits:" as &[_]);
+    tx.send(response).await.expect("able to send response");
+
+    let response = make_response_frame(ResponseFlags::EMPTY, b"apple" as &[_]);
+    tx.send(response).await.expect("able to send response");
+
+    drop(tx);
+
+    // the task should automatically shutdown
+    tokio::time::timeout(Duration::from_secs(1), handle)
+        .await
+        .expect("should finish within timeout")
+        .expect("should not panic");
+
+    // we should receive a response, but that one should be the last
+    let mut stream = rx
+        .recv()
+        .await
+        .expect("able to receive stream")
+        .expect("should be ok stream");
+    assert_eq!(
+        stream
+            .next()
+            .await
+            .expect("should be able to get response")
+            .as_ref(),
+        b"fruits:"
+    );
+    assert_eq!(
+        stream
+            .next()
+            .await
+            .expect("should be able to get response")
+            .as_ref(),
+        b"apple"
+    );
+    assert_eq!(stream.next().await, None);
+    assert_eq!(
+        stream.state().map(StreamState::is_end_of_response),
+        Some(false)
+    );
+
+    assert!(rx.recv().await.is_none());
 
     // and the receiver should be closed
     assert!(rx.is_closed());

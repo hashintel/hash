@@ -10,6 +10,10 @@ use crate::codec::{Buffer, BufferError, Decode, Encode};
 pub struct ErrorCode(NonZero<u16>);
 
 impl ErrorCode {
+    // 0xFF_D0..=0xFF_DF are client layer errors
+}
+
+impl ErrorCode {
     // 0xFF_E0..=0xFF_EF are session layer errors
     pub const CONNECTION_CLOSED: Self = Self(NonZero::new(0xFF_E0).expect("infallible"));
     pub const CONNECTION_SHUTDOWN: Self = Self(NonZero::new(0xFF_E1).expect("infallible"));
